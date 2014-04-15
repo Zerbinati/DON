@@ -724,7 +724,6 @@ namespace Searcher {
                     return tt_value;
                 }
 
-                /*
                 // Step 4-TB. Tablebase probe
                 if (   (depth >= TBProbeDepth)
                     && (pos.clock50 () == 0)
@@ -762,7 +761,6 @@ namespace Searcher {
                         return value;
                     }
                 }
-                */
             }
 
             // Step 5. Evaluate the position statically and update parent's gain statistics
@@ -1771,7 +1769,7 @@ namespace Searcher {
         bool write_search_log = bool (Options["Write Search Log"]);
         string search_log_fn  = string (Options["Search Log File"]);
 
-        //i32 piece_cnt;
+        i32 piece_cnt;
 
         if (RootMoves.empty ())
         {
@@ -1817,13 +1815,6 @@ namespace Searcher {
                 << endl;
         }
 
-        TBCardinality = 0;
-        TB50MoveRule = true;
-        TBHits = 0;
-        RootInTB = false;
-        TBProbeDepth = DEPTH_NONE;
-
-        /*
         piece_cnt = RootPos.count ();
         TBCardinality = i32 (Options["Syzygy Probe Limit"]);
         if (TBCardinality > TBSyzygy::TB_Largest)
@@ -1882,8 +1873,7 @@ namespace Searcher {
                 TBHits = 0;
             }
         }
-        */
-
+        
         // Reset the threads, still sleeping: will wake up at split time
         for (u08 t = 0; t < Threadpool.size (); ++t)
         {
