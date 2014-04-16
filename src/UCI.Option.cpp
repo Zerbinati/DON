@@ -165,7 +165,7 @@ namespace UCI {
         void on_change_tb_syzygy (const Option &opt)
         {
             string syzygy_path = string (opt);
-            //TBSyzygy::initialize (syzygy_path);
+            TBSyzygy::initialize (syzygy_path);
         }
         
         void on_config_threadpool(const Option &)
