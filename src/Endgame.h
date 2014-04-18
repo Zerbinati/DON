@@ -57,7 +57,7 @@ namespace EndGame {
 
     // Base and derived templates for endgame evaluation and scaling functions
     template<typename T>
-    struct EndgameBase
+    class EndgameBase
     {
     public:
 
@@ -76,7 +76,7 @@ namespace EndGame {
 #endif
 
     template<EndgameT E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
-    struct Endgame
+    class Endgame
         : public EndgameBase<T>
     {
 
@@ -122,12 +122,17 @@ namespace EndGame {
        ~Endgames ();
 
         template<class T>
-        inline T probe (Key key, T &eg)
+        inline T probe (Key matl_key, T &eg)
         {
-            return eg = (map (eg).count (key) ? map (eg)[key] : NULL);
+            return eg = (map (eg).count (matl_key) ? map (eg)[matl_key] : NULL);
         }
     };
 
+    extern void   initialize ();
+    extern void deinitialize ();
+
 }
+
+extern EndGame::Endgames *EndGames; // Global Endgames
 
 #endif // _ENDGAME_H_INC_

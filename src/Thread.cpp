@@ -4,6 +4,7 @@
 
 #include "MoveGenerator.h"
 #include "Searcher.h"
+#include "Endgame.h"
 #include "UCI.h"
 
 Threads::ThreadPool     Threadpool; // Global ThreadPool
@@ -53,7 +54,7 @@ namespace Threads {
         mutex.unlock ();
     }
 
-    // wait_for() set the thread to sleep until condition 'b' turns true
+    // wait_for() set the thread to sleep until condition turns true
     void ThreadBase::wait_for (const volatile bool &condition)
     {
         mutex.lock ();
@@ -261,7 +262,7 @@ namespace Threads {
     // initialize() is called at startup to create and launch requested threads, that will
     // go immediately to sleep due to 'idle_sleep' set to true.
     // We cannot use a c'tor becuase Threadpool is a static object and we need a fully initialized
-    // engine at this point due to allocation of Endgames in Thread c'tor.
+    // engine at this point due to allocation of Endgames object.
     void ThreadPool::initialize ()
     {
         idle_sleep = true;
@@ -274,7 +275,6 @@ namespace Threads {
     void ThreadPool::deinitialize ()
     {
         delete_thread (timer); // As first because check_time() accesses threads data
-
         for (iterator itr = begin (); itr != end (); ++itr)
         {
             delete_thread (*itr);

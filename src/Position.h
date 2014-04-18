@@ -22,8 +22,7 @@ namespace Threads {
 // FORSYTH-EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
 // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
 
-extern const std::string FEN_N;
-extern const std::string FEN_X;
+extern const std::string StartFEN;
 
 // Check the validity of FEN string
 extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
@@ -562,7 +561,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
     _index[s1] = -1;
     _piece_list[c][pt][_index[s2]] = s2;
 }
-// Position::do_castling() is a helper used to do/undo a castling move.
+// do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.
 template<bool DO>
 inline void Position::do_castling (Square org_king, Square &dst_king, Square &org_rook, Square &dst_rook)

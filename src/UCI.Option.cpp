@@ -25,7 +25,7 @@ namespace UCI {
         , _maximum (0)
         , _on_change (on_change)
     {}
-    Option::Option (bool val, OnChange on_change)
+    Option::Option (const bool    val, OnChange on_change)
         : _type ("check")
         , _minimum (0)
         , _maximum (0)
@@ -33,7 +33,7 @@ namespace UCI {
     {
         _default = _value = (val ? "true" : "false");
     }
-    Option::Option (const char *val, OnChange on_change)
+    Option::Option (const string &val, OnChange on_change)
         : _type ("string")
         , _minimum (0)
         , _maximum (0)
@@ -41,7 +41,7 @@ namespace UCI {
     {
         _default = _value = val;
     }
-    Option::Option (i32 val, i32 minimum, i32 maximum, OnChange on_change)
+    Option::Option (const i32     val, i32 minimum, i32 maximum, OnChange on_change)
         : _type ("spin")
         , _minimum (minimum)
         , _maximum (maximum)
@@ -58,7 +58,7 @@ namespace UCI {
     Option::operator i32 () const
     {
         ASSERT (_type == "spin");
-        return atoi (_value.c_str());
+        return atoi (_value.c_str ());
     }
     Option::operator string () const
     {
@@ -113,7 +113,8 @@ namespace UCI {
             oss << " default " << _default;
             if (_type == "spin")
             {
-                oss << " min " << _minimum << " max " << _maximum;
+                oss << " min " << _minimum
+                    << " max " << _maximum;
             }
         }
         return oss.str ();
@@ -159,7 +160,7 @@ namespace UCI {
 
         void on_change_book (const Option &)
         {
-            Searcher::Book.close ();
+            Book.close ();
         }
 
         void on_change_tb_syzygy (const Option &opt)

@@ -29,11 +29,7 @@ const Value PieceValue[PHASE_NO][TOTL] =
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
 };
 
-
-//const char *const FEN_N = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
-//const char *const FEN_X = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1";
-const string FEN_N ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-const string FEN_X ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w HAha - 0 1");
+const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
 bool _ok (const string &fen, bool c960, bool full)
 {
@@ -65,7 +61,7 @@ namespace {
             S(-20, 0), S( 0, 0), S(+10, 0), S(+20, 0), S(+20, 0), S(+10, 0), S( 0, 0), S(-20, 0),
             S(-20, 0), S( 0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0), S(-20, 0),
             S(-20, 0), S( 0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0), S(-20, 0),
-            S(  0, 0), S( 0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0), S(  0, 0),
+            S(  0, 0), S( 0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0), S(  0, 0)
         },
         // Knight
         {
@@ -120,8 +116,8 @@ namespace {
             S(+173,+135), S(+207,+189), S(+148,+216), S(+100,+224), S(+100,+224), S(+148,+216), S(+207,+189), S(+173,+135),
             S(+146,+111), S(+180,+165), S(+121,+192), S(+ 73,+200), S(+ 73,+200), S(+121,+192), S(+180,+165), S(+146,+111),
             S(+119,+ 74), S(+153,+128), S(+ 94,+155), S(+ 46,+163), S(+ 46,+163), S(+ 94,+155), S(+153,+128), S(+119,+ 74),
-            S(+ 98,+ 27), S(+132,+ 81), S(+ 73,+108), S(+ 25,+116), S(+ 25,+116), S(+ 73,+108), S(+132,+ 81), S(+ 98,+ 27),
-        },
+            S(+ 98,+ 27), S(+132,+ 81), S(+ 73,+108), S(+ 25,+116), S(+ 25,+116), S(+ 73,+108), S(+132,+ 81), S(+ 98,+ 27)
+        }
     };
 #undef S
 
@@ -135,7 +131,7 @@ namespace {
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
-    inline void prefetch (char *addr)
+    inline void prefetch (const char *addr)
     {
 
 #   if defined(__INTEL_COMPILER)
@@ -151,7 +147,7 @@ namespace {
 
 #else
 
-    inline void prefetch (char *addr)
+    inline void prefetch (const char *addr)
     {
         __builtin_prefetch (addr);
     }
@@ -160,7 +156,7 @@ namespace {
 
 #else
 
-    inline void prefetch (char *) {}
+    inline void prefetch (const char *) {}
 
 #endif
 
@@ -208,7 +204,8 @@ bool Position::draw () const
     // Draw by Material?
     if (   (_types_bb[PAWN] == U64 (0))
         && (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK]
-        <= VALUE_MG_BSHP))
+          <= VALUE_MG_BSHP)
+       )
     {
         return true;
     }
@@ -216,7 +213,9 @@ bool Position::draw () const
     // Draw by 50 moves Rule?
     if (    _50_move_dist <  _si->clock50
         || (_50_move_dist == _si->clock50
-          && (_si->checkers == U64 (0) || MoveList<LEGAL> (*this).size () != 0)))
+          && (_si->checkers == U64 (0) || MoveList<LEGAL> (*this).size () != 0)
+           )
+       )
     {
         return true;
     }
@@ -319,7 +318,8 @@ bool Position::ok (i08 *step) const
     {
         if (   pop_count<FULL> (_types_bb[NONE]) > 32
             || count () > 32
-            || count () != pop_count<FULL> (_types_bb[NONE]))
+            || count () != pop_count<FULL> (_types_bb[NONE])
+           )
         {
             return false;
         }
@@ -357,16 +357,20 @@ bool Position::ok (i08 *step) const
 
         // The union of the white and black pieces must be equal to occupied squares
         if (  ((_color_bb[WHITE]|_color_bb[BLACK]) != _types_bb[NONE])
-           || ((_color_bb[WHITE]^_color_bb[BLACK]) != _types_bb[NONE]))
+           || ((_color_bb[WHITE]^_color_bb[BLACK]) != _types_bb[NONE])
+           )
         {
             return false;
         }
 
         // The union of separate piece type must be equal to occupied squares
         if ( ((_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]
-              |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE])
+              |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE]
+             )
           || ((_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]
-              ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]))
+              ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]
+             )
+           )
         {
             return false;
         }
@@ -392,7 +396,8 @@ bool Position::ok (i08 *step) const
                 max (_piece_count[c][NIHT] - 2, 0) +
                 max (_piece_count[c][BSHP] - 2, 0) +
                 max (_piece_count[c][ROOK] - 2, 0) +
-                max (_piece_count[c][QUEN] - 1, 0)) > 8)
+                max (_piece_count[c][QUEN] - 1, 0)) > 8
+               )
             {
                 return false; // Too many Promoted Piece of color
             }
@@ -408,7 +413,8 @@ bool Position::ok (i08 *step) const
 
                 if (    (_piece_count[c][PAWN] +
                     max (bishop_count[WHITE] - 1, 0) +
-                    max (bishop_count[BLACK] - 1, 0)) > 8)
+                    max (bishop_count[BLACK] - 1, 0)) > 8
+                   )
                 {
                     return false; // Too many Promoted BISHOP of color
                 }
@@ -433,7 +439,8 @@ bool Position::ok (i08 *step) const
                 {
                     if (   !_ok  (_piece_list[c][pt][i])
                         || _board[_piece_list[c][pt][i]] != (c | pt)
-                        || _index[_piece_list[c][pt][i]] != i)
+                        || _index[_piece_list[c][pt][i]] != i
+                       )
                     {
                         return false;
                     }
@@ -452,7 +459,8 @@ bool Position::ok (i08 *step) const
     if (step && ++(*step), test_king_capture)
     {
         if (  (attackers_to (_piece_list[~_active][KING][0]) & _color_bb[_active])
-           || (pop_count<FULL> (_si->checkers)) > 2)
+           || (pop_count<FULL> (_si->checkers)) > 2
+           )
         {
             return false;
         }
@@ -470,7 +478,8 @@ bool Position::ok (i08 *step) const
 
                 if ( (_castle_mask[_piece_list[c][KING][0]] & cr) != cr
                   || (_board[_castle_rook[cr]] != (c | ROOK))
-                  || (_castle_mask[_castle_rook[cr]] != cr))
+                  || (_castle_mask[_castle_rook[cr]] != cr)
+                   )
                 {
                     return false;
                 }
@@ -510,8 +519,9 @@ bool Position::ok (i08 *step) const
     // step 13
     if (step && ++(*step), test_np_material)
     {
-        if (   (compute_non_pawn_material (WHITE) != _si->non_pawn_matl[WHITE])
-            || (compute_non_pawn_material (BLACK) != _si->non_pawn_matl[BLACK]))
+        if (  (compute_non_pawn_material (WHITE) != _si->non_pawn_matl[WHITE])
+           || (compute_non_pawn_material (BLACK) != _si->non_pawn_matl[BLACK])
+           )
         {
             return false;
         }
@@ -520,9 +530,10 @@ bool Position::ok (i08 *step) const
     return true;
 }
 
-// least_valuable_attacker() is an helper function used by see() to locate the least
-// valuable attacker for the side to move, remove the attacker we just found
-// from the bitboards and scan for new X-ray attacks behind it.
+// least_valuable_attacker() is a helper function used by see()
+// to locate the least valuable attacker for the side to move,
+// remove the attacker we just found from the bitboards and
+// scan for new X-ray attacks behind it.
 template<PieceT PT>
 PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
 {
@@ -554,7 +565,7 @@ PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&, Bit
 
 // see() is a Static Exchange Evaluator (SEE):
 // It tries to estimate the material gain or loss resulting from a move.
-Value Position::see (Move m) const
+Value Position::see      (Move m) const
 {
     ASSERT (_ok (m));
 
@@ -650,8 +661,9 @@ Value Position::see_sign (Move m) const
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
-    if (PieceValue[MG][ptype (_board[org_sq (m)])]
-    <=  PieceValue[MG][ptype (_board[dst_sq (m)])])
+    if ( PieceValue[MG][ptype (_board[org_sq (m)])]
+      <= PieceValue[MG][ptype (_board[dst_sq (m)])]
+       )
     {
         return VALUE_KNOWN_WIN;
     }
@@ -665,8 +677,8 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
     // Pinners are sliders that give check when a pinned piece is removed
     Bitboard pinners =
         ( (PieceAttacks[ROOK][ksq] & (_types_bb[QUEN]|_types_bb[ROOK]))
-        | (PieceAttacks[BSHP][ksq] & (_types_bb[QUEN]|_types_bb[BSHP])))
-        &  _color_bb[~king_c];
+        | (PieceAttacks[BSHP][ksq] & (_types_bb[QUEN]|_types_bb[BSHP]))
+        ) &  _color_bb[~king_c];
 
     Bitboard chk_blockers = U64 (0);
     while (pinners != U64 (0))
@@ -729,7 +741,8 @@ bool Position::pseudo_legal (Move m) const
             && (_si->castle_rights & mk_castle_right (_active))
             && (!_si->checkers)
             //&& !castle_impeded (_active)
-             ))
+             )
+           )
         {
             return false;
         }
@@ -760,7 +773,8 @@ bool Position::pseudo_legal (Move m) const
         if (!( (PAWN == pt)
             && (R_7 == r_org)
             && (R_8 == r_dst)
-             ))
+             )
+           )
         {
             return false;
         }
@@ -773,7 +787,8 @@ bool Position::pseudo_legal (Move m) const
             && (R_5 == r_org)
             && (R_6 == r_dst)
             && (EMPTY == _board[dst])
-             ))
+             )
+           )
         {
             return false;
         }
@@ -821,7 +836,9 @@ bool Position::pseudo_legal (Move m) const
         case DEL_S:
             // Pawn push. The destination square must be empty.
             if (!( (EMPTY == _board[dst])
-                && (0 == FileRankDist[_file (dst)][_file (org)])))
+                && (0 == FileRankDist[_file (dst)][_file (org)])
+                 )
+               )
             {
                 return false;
             }
@@ -835,7 +852,9 @@ bool Position::pseudo_legal (Move m) const
             // File distance b/w cap and org must be one, avoids a7h5
             if (!( (NONE != ct)
                 && (pasive == color (_board[cap]))
-                && (1 == FileRankDist[_file (cap)][_file (org)])))
+                && (1 == FileRankDist[_file (cap)][_file (org)])
+                 )
+               )
             {
                 return false;
             }
@@ -849,7 +868,9 @@ bool Position::pseudo_legal (Move m) const
                 && (R_4 == r_dst)
                 && (EMPTY == _board[dst])
                 && (EMPTY == _board[dst - pawn_push (_active)])
-                && (0 == FileRankDist[_file (dst)][_file (org)])))
+                && (0 == FileRankDist[_file (dst)][_file (org)])
+                 )
+               )
             {
                 return false;
             }
@@ -978,7 +999,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
         Bitboard mocc = _types_bb[NONE] - org - cap + dst;
         // If any attacker then in check & not legal
         return !( (attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK])))
-               || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP]))));
+               || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP])))
+                );
     }
 
     ASSERT (false);
@@ -1020,9 +1042,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         dst             = rel_sq (_active, king_side ? SQ_WK_K : SQ_WK_Q);
         Square dst_rook = rel_sq (_active, king_side ? SQ_WR_K : SQ_WR_Q);
 
-        return
-            (PieceAttacks[ROOK][dst_rook] & ci.king_sq) && // First x-ray check then full check
-            (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
+        return (PieceAttacks[ROOK][dst_rook] & ci.king_sq) // First x-ray check then full check
+            && (attacks_bb<ROOK> (dst_rook, (occ - org - org_rook + dst + dst_rook)) & ci.king_sq);
     }
     else if (mt == PROMOTE)
     {
@@ -1038,7 +1059,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         Bitboard mocc = occ - org - cap + dst;
         // if any attacker then in check
         return ( (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
-              || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]))));
+              || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP])))
+               );
     }
 
     ASSERT (false);
@@ -1113,7 +1135,7 @@ void Position::set_castle (Color c, Square org_rook)
     Square dst_rook = rel_sq (c, king_side ? SQ_WR_K : SQ_WR_Q);
     Square dst_king = rel_sq (c, king_side ? SQ_WK_K : SQ_WK_Q);
 
-    _si->castle_rights |= cr;
+    _si->castle_rights     |= cr;
 
     _castle_mask[org_king] |= cr;
     _castle_mask[org_rook] |= cr;
@@ -1164,7 +1186,8 @@ bool Position::can_en_passant (Square ep_sq) const
         Move m = *itr;
         Bitboard mocc = occ - org_sq (m) - cap + dst_sq (m);
         if (!( (attacks_bb<ROOK> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[ROOK])))
-            || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP]))))
+            || (attacks_bb<BSHP> (ksq, mocc) & (_color_bb[pasive]&(_types_bb[QUEN]|_types_bb[BSHP])))
+             )
            )
         {
             return true;
@@ -1173,7 +1196,7 @@ bool Position::can_en_passant (Square ep_sq) const
     return false;
 }
 
-// compute_psq_score () computes the incremental scores for the middle
+// compute_psq_score() computes the incremental scores for the middle
 // game and the endgame. These functions are used to initialize the incremental
 // scores when a new position is set up, and to verify that the scores are correctly
 // updated by do_move and undo_move when the program is running in debug mode.
@@ -1189,7 +1212,7 @@ Score Position::compute_psq_score () const
     return score;
 }
 
-// compute_non_pawn_material () computes the total non-pawn middle
+// compute_non_pawn_material() computes the total non-pawn middle
 // game material value for the given side. Material values are updated
 // incrementally during the search, this function is only used while
 // initializing a new Position object.
@@ -1586,7 +1609,7 @@ void Position::undo_null_move ()
     ASSERT (ok ());
 }
 
-// flip position with the white and black sides reversed.
+// flip() flips position with the white and black sides reversed.
 // This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip ()
 {
@@ -1725,9 +1748,9 @@ Position::operator string () const
 
     oss << "Checkers: ";
     Bitboard chkrs = checkers ();
-    if (chkrs)
+    if (chkrs != U64 (0))
     {
-        while (chkrs)
+        while (chkrs != U64 (0))
         {
             Square chk = pop_lsq (chkrs);
             oss << PieceChar[ptype (_board[chk])] << to_string (chk) << " ";

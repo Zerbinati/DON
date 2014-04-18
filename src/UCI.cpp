@@ -150,7 +150,7 @@ namespace UCI {
                 // consume "startpos" or "fen" token
                 if      (token == "startpos")
                 {
-                    fen = FEN_N;
+                    fen = StartFEN;
                     cstm >> token; // Consume "moves" token if any
                 }
                 else if (token == "fen")
@@ -219,15 +219,15 @@ namespace UCI {
             i32     value;
             while (cstm >> token)
             {
-                if      (token == "wtime")      { cstm >> value; limits.gameclock[WHITE].time = value >= 0 ? value : -value; }
-                else if (token == "btime")      { cstm >> value; limits.gameclock[BLACK].time = value >= 0 ? value : -value; }
-                else if (token == "winc")       { cstm >> value; limits.gameclock[WHITE].inc  = value >= 0 ? value : -value; }
-                else if (token == "binc")       { cstm >> value; limits.gameclock[BLACK].inc  = value >= 0 ? value : -value; }
-                else if (token == "movetime")   { cstm >> value; limits.movetime  = value >= 0 ? value : -value; }
-                else if (token == "movestogo")  { cstm >> value; limits.movestogo = value >= 0 ? value : -value; }
-                else if (token == "depth")      { cstm >> value; limits.depth = value >= 0 ? value : -value; }
-                else if (token == "nodes")      { cstm >> value; limits.nodes = value >= 0 ? value : -value; }
-                else if (token == "mate")       { cstm >> value; limits.mate  = value >= 0 ? value : -value; }
+                if      (token == "wtime")      { cstm >> value; limits.gameclock[WHITE].time = value >= 0 ? +value : -value; }
+                else if (token == "btime")      { cstm >> value; limits.gameclock[BLACK].time = value >= 0 ? +value : -value; }
+                else if (token == "winc")       { cstm >> value; limits.gameclock[WHITE].inc  = value >= 0 ? +value : -value; }
+                else if (token == "binc")       { cstm >> value; limits.gameclock[BLACK].inc  = value >= 0 ? +value : -value; }
+                else if (token == "movetime")   { cstm >> value; limits.movetime  = value >= 0 ? +value : -value; }
+                else if (token == "movestogo")  { cstm >> value; limits.movestogo = value >= 0 ? +value : -value; }
+                else if (token == "depth")      { cstm >> value; limits.depth = value >= 0 ? +value : -value; }
+                else if (token == "nodes")      { cstm >> value; limits.nodes = value >= 0 ? +value : -value; }
+                else if (token == "mate")       { cstm >> value; limits.mate  = value >= 0 ? +value : -value; }
                 else if (token == "infinite")   { limits.infinite  = true; }
                 else if (token == "ponder")     { limits.ponder    = true; }
                 // parse and validate search moves (if any)
@@ -236,10 +236,10 @@ namespace UCI {
                     while (cstm >> token)
                     {
                         Move m = move_from_can (token, RootPos);
-                        
-                        if (MOVE_NONE == m) continue;
-                        
-                        limits.searchmoves.push_back (m);
+                        if (MOVE_NONE != m)
+                        {
+                            limits.searchmoves.push_back (m);
+                        }
                     }
                 }
             }
@@ -399,7 +399,7 @@ namespace UCI {
     // commands, the function also supports a few debug commands.
     void start (const string &args)
     {
-        RootPos.setup (FEN_N, Threadpool.main (), bool (Options["UCI_Chess960"]));
+        RootPos.setup (StartFEN, Threadpool.main (), bool (Options["UCI_Chess960"]));
 
         bool running = args.empty ();
         string cmd   = args;

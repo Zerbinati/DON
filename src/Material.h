@@ -28,7 +28,7 @@ namespace Material {
 
     public:
 
-        Key     _key;
+        Key     _matl_key;
         i16     _value;
         u08     _factor[CLR_NO];
         Score   _space_weight;
@@ -65,7 +65,7 @@ namespace Material {
 
     typedef HashTable<Entry, 8192> Table;
 
-    Entry* probe     (const Position &pos, Table &table, EndGame::Endgames &endgames);
+    Entry* probe     (const Position &pos, Table &table);
     
     Phase game_phase (const Position &pos);
 

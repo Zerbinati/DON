@@ -16,7 +16,7 @@ namespace UCI {
     class Option;
 
     // Our options container is actually a std::map
-    typedef std::map<std::string, Option, std::NoCaseLessComparer> OptionMap;
+    typedef std::map<std::string, Option, std::no_case_less_comparer> OptionMap;
 
     // Option class implements an option as defined by UCI protocol
     class Option
@@ -46,9 +46,9 @@ namespace UCI {
 
     public:
         Option (OnChange on_change = NULL);
-        Option (bool val, OnChange on_change = NULL);
-        Option (const char *val, OnChange on_change = NULL);
-        Option (i32 val, i32 minimum, i32 maximum, OnChange on_change = NULL);
+        Option (const bool         val, OnChange on_change = NULL);
+        Option (const std::string &val, OnChange on_change = NULL);
+        Option (const i32          val, i32 minimum, i32 maximum, OnChange on_change = NULL);
 
         operator bool () const;
         operator i32  () const;

@@ -51,7 +51,7 @@ public:
     Move  move  () const { return Move  (_move);  }
     Depth depth () const { return Depth (_depth); }
     Bound bound () const { return Bound (_bound); }
-    //u08   gen   () const { return u08   (_gen);   }
+    u08   gen   () const { return u08   (_gen);   }
     u16   nodes () const { return u16   (_nodes); }
     Value value () const { return Value (_value); }
     Value eval  () const { return Value (_eval);  }
@@ -71,7 +71,7 @@ public:
 };
 
 // A Transposition Table consists of a 2^power number of clusters
-// and each cluster consists of TOT_CLUSTER_ENTRY number of entry.
+// and each cluster consists of CLUSTER_ENTRIES number of entry.
 // Each non-empty entry contains information of exactly one position.
 // Size of a cluster shall not be bigger than a CACHE_LINE_SIZE.
 // In case it is less, it should be padded to guarantee always aligned accesses.
@@ -112,7 +112,7 @@ private:
 
 public:
     // Number of entries in a cluster
-    static const u08 TOT_CLUSTER_ENTRY;
+    static const u08 CLUSTER_ENTRIES;
 
     // Total size for Transposition entry in byte
     static const u08 TTENTRY_SIZE;
@@ -152,7 +152,7 @@ public:
 
     inline u64 entries () const
     {
-        return (_hash_mask + TOT_CLUSTER_ENTRY);
+        return (_hash_mask + CLUSTER_ENTRIES);
     }
 
     // Returns size in MB
@@ -234,8 +234,8 @@ public:
             u32 mem_size_mb = tt.size ();
             u08 dummy = 0;
             os.write ((const charT *) &mem_size_mb, sizeof (mem_size_mb));
-            os.write ((const charT *) &TranspositionTable::TTENTRY_SIZE, sizeof (dummy));
-            os.write ((const charT *) &TranspositionTable::TOT_CLUSTER_ENTRY, sizeof (dummy));
+            os.write ((const charT *) &TTENTRY_SIZE, sizeof (dummy));
+            os.write ((const charT *) &CLUSTER_ENTRIES, sizeof (dummy));
             os.write ((const charT *) &dummy, sizeof (dummy));
             os.write ((const charT *) &tt._generation, sizeof (tt._generation));
             os.write ((const charT *) &tt._hash_mask, sizeof (tt._hash_mask));

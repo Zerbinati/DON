@@ -336,8 +336,8 @@ namespace Evaluator {
             {
                 ei.king_ring              [C_] = U64 (0);
                 ei.king_attackers_count   [C ] = 0;
-                ei.king_zone_attacks_count[C ] = 0;
-                ei.king_attackers_weight  [C ] = 0;
+                //ei.king_zone_attacks_count[C ] = 0;
+                //ei.king_attackers_weight  [C ] = 0;
             }
         }
 
@@ -447,16 +447,19 @@ namespace Evaluator {
                         // when that pawn is also blocked.
                         if (pos.chess960 ())
                         {
-                            if (s == rel_sq (C, SQ_A1) || s == rel_sq (C, SQ_H1))
+                            if (   s == rel_sq (C, SQ_A1)
+                                || s == rel_sq (C, SQ_H1)
+                               )
                             {
                                 Piece P = (C | PAWN);
                                 Delta d = pawn_push (C) + ((F_A == _file (s)) ? DEL_E : DEL_W);
                                 if (pos[s + d] == P)
                                 {
-                                    score -=
-                                        !pos.empty (s + d + pawn_push (C)) ? BishopTrappedA1H1Penalty * 4
-                                        : (pos[s + d + d] == P)            ? BishopTrappedA1H1Penalty * 2
-                                        :                                    BishopTrappedA1H1Penalty;
+                                    score -= BishopTrappedA1H1Penalty *
+                                        ( (pos[s + d + pawn_push (C)]!=EMPTY) ? 4
+                                        : (pos[s + d + d] == P)               ? 2
+                                        :                                       1
+                                        );
                                 }
                             }
                         }
@@ -499,7 +502,7 @@ namespace Evaluator {
 
                         // Rook piece attacking enemy pawns on the same rank/file
                         Bitboard pawns = pos.pieces<PAWN> (C_) & PieceAttacks[ROOK][s];
-                        if (pawns)
+                        if (pawns != U64 (0))
                         {
                             score += RookOnPawnBonus * i32 (pop_count<MAX15> (pawns));
                         }
@@ -516,12 +519,12 @@ namespace Evaluator {
                     {
                         if (mob <= 3)
                         {
-                            File f = _file (fk_sq); 
+                            File f = _file (fk_sq);
                             // Penalize rooks which are trapped by a king. Penalize more if the
                             // king has lost its castling capability.
-                            if (   ((f < F_E) == (_file (s) < f))
-                                && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
-                                && ei.pi->semiopen_side<C> (f, f < F_E) == 0
+                            if (  ((f < F_E) == (_file (s) < f))
+                               && (_rank (fk_sq) == _rank (s) || R_1 == rel_rank (C, fk_sq))
+                               && (ei.pi->semiopen_side<C> (f, _file (s) < f) == 0)
                                )
                             {
                                 score -= (RookTrappedPenalty - mk_score (mob * 8, 0)) * (1 + !pos.can_castle (C));
@@ -711,7 +714,7 @@ namespace Evaluator {
             Score score = SCORE_ZERO;
 
             Bitboard passed_pawns = ei.pi->passed_pawns<C> ();
-            while (passed_pawns)
+            while (passed_pawns != U64 (0))
             {
                 Square s = pop_lsq (passed_pawns);
 
@@ -724,7 +727,7 @@ namespace Evaluator {
                 Value mg_bonus = Value (17 * rr);
                 Value eg_bonus = Value (7 * (rr + r + 1));
 
-                if (rr)
+                if (rr != 0)
                 {
                     Square block_sq = s + pawn_push (C);
                     Square fk_sq = pos.king_sq (C);
@@ -791,18 +794,6 @@ namespace Evaluator {
                         eg_bonus += Value (k * rr);
                     }
                 } // 0 != rr
-
-                // Increase the bonus if the passed pawn is supported by a friendly pawn
-                // on the same rank and a bit smaller if it's on the previous rank.
-                Bitboard supporting_pawns = pos.pieces<PAWN> (C) & AdjFile_bb[_file (s)];
-                if ((supporting_pawns & rank_bb (s)) != U64 (0))
-                {
-                    eg_bonus += Value (r * 20);
-                }
-                else if ((supporting_pawns & rank_bb (s - pawn_push (C))) != U64 (0))
-                {
-                    eg_bonus += Value (r * 12);
-                }
 
                 // Rook pawns are a special case: They are sometimes worse, and
                 // sometimes better than other passed pawns. It is difficult to find
@@ -897,11 +888,11 @@ namespace Evaluator {
 
             // Initialize score by reading the incrementally updated scores included
             // in the position object (material + piece square tables) and adding Tempo bonus. 
-            score = pos.psq_score () + (WHITE == pos.active () ? TempoBonus : -TempoBonus);
+            score = pos.psq_score () + (WHITE == pos.active () ? +TempoBonus : -TempoBonus);
 
             EvalInfo ei;
             // Probe the material hash table
-            ei.mi = Material::probe (pos, thread->material_table, thread->endgames);
+            ei.mi = Material::probe (pos, thread->material_table);
             score += ei.mi->material_score ();
 
             // If we have a specialized evaluation function for the current material
@@ -988,7 +979,8 @@ namespace Evaluator {
             // colored bishop endgames, and use a lower scale for those.
             if (   (ei.mi->game_phase () < PHASE_MIDGAME)
                 && (pos.opposite_bishops ())
-                && (scale_factor == SCALE_FACTOR_NORMAL || scale_factor == SCALE_FACTOR_ONEPAWN)
+                && (scale_factor == SCALE_FACTOR_NORMAL
+                 || scale_factor == SCALE_FACTOR_ONEPAWN)
                )
             {
                 // Ignoring any pawns, do both sides only have a single bishop
@@ -1016,7 +1008,7 @@ namespace Evaluator {
             // In case of tracing add all single evaluation contributions for both white and black
             if (TRACE)
             {
-                Tracer::add_term (PAWN              , ei.pi->pawn_score ());
+                Tracer::add_term (PAWN             , ei.pi->pawn_score ());
                 Tracer::add_term (Tracer::PST      , pos.psq_score ());
                 Tracer::add_term (Tracer::IMBALANCE, ei.mi->material_score ());
 
@@ -1040,7 +1032,7 @@ namespace Evaluator {
                 Tracer::Scalefactor = scale_factor;
             }
 
-            return (WHITE == pos.active ()) ? value : -value;
+            return (WHITE == pos.active ()) ? +value : -value;
         }
 
         namespace Tracer {
