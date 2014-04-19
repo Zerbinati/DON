@@ -33,7 +33,7 @@ namespace UCI {
     {
         _default = _value = (val ? "true" : "false");
     }
-    Option::Option (const string &val, OnChange on_change)
+    Option::Option (const char *val, OnChange on_change)
         : _type ("string")
         , _minimum (0)
         , _maximum (0)
