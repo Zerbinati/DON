@@ -50,10 +50,10 @@ namespace EndGame {
     };
 
     // Endgame functions can be of two types according if return a Value or a ScaleFactor.
-    // Type eg_fun<i32>::type equals to either ScaleFactor or Value depending if the template parameter is 0 or 1.
-    template<i32> struct eg_fun;
-    template<> struct eg_fun<0> { typedef Value         type; };
-    template<> struct eg_fun<1> { typedef ScaleFactor   type; };
+    // Type eg_fun<bool>::type equals to either ScaleFactor or Value depending if the template parameter is true or false.
+    template<bool> struct eg_fun;
+    template<> struct eg_fun<false> { typedef Value         type; };
+    template<> struct eg_fun<true > { typedef ScaleFactor   type; };
 
     // Base and derived templates for endgame evaluation and scaling functions
     template<typename T>
@@ -61,8 +61,7 @@ namespace EndGame {
     {
     public:
 
-        virtual ~EndgameBase ()
-        {}
+        virtual ~EndgameBase () {}
 
         virtual Color color () const = 0;
 
@@ -75,7 +74,7 @@ namespace EndGame {
 #   pragma warning (disable: 4512) // Assignment operator could not be generated
 #endif
 
-    template<EndgameT E, typename T = typename eg_fun<(E > SCALE_FUNS)>::type>
+    template<EndgameT ET, typename T = typename eg_fun<(ET > SCALE_FUNS)>::type>
     class Endgame
         : public EndgameBase<T>
     {
@@ -87,8 +86,8 @@ namespace EndGame {
     public:
 
         explicit Endgame (Color c)
-            : _stong_side(c)
-            , _weak_side(~c)
+            : _stong_side (c)
+            , _weak_side (~c)
         {}
 
         inline Color color () const { return _stong_side; }
@@ -104,8 +103,8 @@ namespace EndGame {
 
     private:
 
-        typedef std::map<Key, EndgameBase<eg_fun<0>::type>*> M1;
-        typedef std::map<Key, EndgameBase<eg_fun<1>::type>*> M2;
+        typedef std::map<Key, EndgameBase<eg_fun<false>::type>*> M1;
+        typedef std::map<Key, EndgameBase<eg_fun<true >::type>*> M2;
 
         M1 m1;
         M2 m2;
@@ -113,7 +112,7 @@ namespace EndGame {
         inline M1& map (M1::mapped_type) { return m1; }
         inline M2& map (M2::mapped_type) { return m2; }
 
-        template<EndgameT E>
+        template<EndgameT ET>
         void add (const std::string &code);
 
     public:

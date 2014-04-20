@@ -839,7 +839,7 @@ namespace Searcher {
                 // We're betting that the opponent doesn't have a move that will reduce
                 // the score by more than futility_margin (depth) if we do a null move.
                 if (   !((ss)->skip_null_move)
-                    //&& (depth < 7 * ONE_MOVE) // TODO::
+                    && (depth < 7 * ONE_MOVE) // TODO::
                     && (abs (beta) < VALUE_MATES_IN_MAX_PLY)
                     && (abs (eval) < VALUE_KNOWN_WIN)
                     && (pos.non_pawn_material (pos.active ()) != VALUE_ZERO)
@@ -1478,9 +1478,10 @@ namespace Searcher {
 
             i32 depth    =  DEPTH_ZERO;
 
-            MultiPV = i32 (Options["MultiPV"]);
-            u08 lvl = i32 (Options["Skill Level"]);
-            Skill skill (lvl);
+            MultiPV   = i32 (Options["MultiPV"]);
+            u08 level = i32 (Options["Skill Level"]);
+
+            Skill skill (level);
 
             // Do we have to play with skill handicap? In this case enable MultiPV search
             // that we will use behind the scenes to retrieve a set of possible moves.
@@ -1515,7 +1516,7 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (depth > 4)
                     {
-                        window = Value (depth < 32 ? 14 + depth / 8 : 18);
+                        window = Value (depth < 48 ? 14 + depth / 8 : 20);
 
                         alpha = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
                         beta  = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
@@ -1528,6 +1529,10 @@ namespace Searcher {
                     do
                     {
                         best_value = search<Root> (pos, ss, alpha, beta, depth * ONE_MOVE, false);
+
+                        i32 contempt = best_value > VALUE_DRAW ? +96 : -96;
+                        DrawValue[ RootColor] = VALUE_DRAW - Value (contempt);
+                        DrawValue[~RootColor] = VALUE_DRAW + Value (contempt);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1879,12 +1884,12 @@ namespace Searcher {
         }
 
         Threadpool.idle_sleep = bool (Options["Idle Threads Sleep"]);
-        Threadpool.timer->run = true;
+        Threadpool.timer->start();
 
         Threadpool.timer->notify_one ();// Wake up the recurring timer
         iter_deep_loop (RootPos);       // Let's start searching !
 
-        Threadpool.timer->run = false;  // Stop the timer
+        Threadpool.timer->stop();
         Threadpool.idle_sleep = true;   // Send idle threads to sleep
 
         if (RootInTB)

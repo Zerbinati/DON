@@ -1,6 +1,7 @@
 ﻿#include "BitBoard.h"
 
-#include <cstring> // For memset
+#include <cstring>
+#include <algorithm>
 
 #include "BitCount.h"
 #include "BitScan.h"
@@ -12,8 +13,6 @@ namespace BitBoard {
 
     // FRONT SQUARES
     CACHE_ALIGN(64) Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
-
-    // ---
 
     CACHE_ALIGN(64) Bitboard Between_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) Bitboard LineRay_bb[SQ_NO][SQ_NO];
@@ -42,8 +41,8 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard  BMagic_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard  RMagic_bb[SQ_NO];
 
-    CACHE_ALIGN(64) u08       BShift[SQ_NO];
-    CACHE_ALIGN(64) u08       RShift[SQ_NO];
+    CACHE_ALIGN(64) u08       BShift   [SQ_NO];
+    CACHE_ALIGN(64) u08       RShift   [SQ_NO];
 #endif
 
     // FILE & RANK distance
@@ -282,7 +281,6 @@ namespace BitBoard {
                 while ((del = PawnDeltas[c][k++]) != DEL_O)
                 {
                     Square sq = s + del;
-
                     if (_ok (sq) && SquareDist[s][sq] == 1)
                     {
                         PawnAttacks[c][s] += sq;
