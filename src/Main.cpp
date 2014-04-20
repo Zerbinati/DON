@@ -25,5 +25,4 @@ i32 main (i32 argc, const char* const argv[])
     //system ("pause");
     //atexit (report_leak);
     Engine::exit (EXIT_SUCCESS);
-    return EXIT_SUCCESS;
 }
