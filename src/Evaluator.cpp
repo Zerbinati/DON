@@ -345,7 +345,6 @@ namespace Evaluator {
         // evaluate_outposts() evaluates bishop and knight outposts squares
         inline Score evaluate_outposts (const Position &pos, EvalInfo &ei, Square s)
         {
-            //ASSERT (BSHP == PT || NIHT == PT, "PT must be BISHOP or KNIGHT");
             ASSERT (BSHP == PT || NIHT == PT);
 
             const Color C_  = ((WHITE == C) ? BLACK : WHITE);
@@ -554,7 +553,7 @@ namespace Evaluator {
             Score score = ei.pi->king_safety<C> (pos, king_sq);
 
             // Main king safety evaluation
-            if (ei.king_attackers_count[C_])
+            if (ei.king_attackers_count[C_] != 0)
             {
                 // Find the attacked squares around the king which has no defenders
                 // apart from the king itself
@@ -580,7 +579,7 @@ namespace Evaluator {
                 // Analyse enemy's safe queen contact checks. First find undefended
                 // squares around the king attacked by enemy queen...
                 Bitboard undefended_attacked = undefended & ei.attacked_by[C_][QUEN] & ~pos.pieces (C_);
-                if (undefended_attacked)
+                if (undefended_attacked != U64 (0))
                 {
                     // ...then remove squares not supported by another enemy piece
                     undefended_attacked &=
@@ -604,7 +603,7 @@ namespace Evaluator {
                 // Consider only squares where the enemy rook gives check
                 undefended_attacked &= PieceAttacks[ROOK][king_sq];
 
-                if (undefended_attacked)
+                if (undefended_attacked != U64 (0))
                 {
                     // ...and then remove squares not supported by another enemy piece
                     undefended_attacked &=
@@ -686,7 +685,7 @@ namespace Evaluator {
             // Enemy pieces not defended by a pawn and under our attack
             Bitboard weak_enemies = pos.pieces (C_) & ~ei.attacked_by[C_][PAWN] & ei.attacked_by[C][NONE];
             // Add a bonus according if the attacking pieces are minor or major
-            if (weak_enemies)
+            if (weak_enemies != U64 (0))
             {
                 Bitboard attacked_enemies;
                 // Minor
@@ -966,7 +965,8 @@ namespace Evaluator {
             // Evaluate space for both sides, only in middle-game.
             if (space_weight != 0)
             {
-                i32 scr = evaluate_space<WHITE> (pos, ei) - evaluate_space<BLACK> (pos, ei);
+                i32 scr = evaluate_space<WHITE> (pos, ei)
+                        - evaluate_space<BLACK> (pos, ei);
                 score += apply_weight (scr * space_weight, Weights[Space]);
             }
 
@@ -1093,12 +1093,12 @@ namespace Evaluator {
     // and setup king danger tables.
     void initialize ()
     {
-        Weights[Mobility]      = weight_option ("Mobility (Midgame)"       , "Mobility (Endgame)"      , InternalWeights[Mobility     ]);
+        Weights[Mobility     ] = weight_option ("Mobility (Midgame)"       , "Mobility (Endgame)"      , InternalWeights[Mobility     ]);
         Weights[PawnStructure] = weight_option ("Pawn Structure (Midgame)" , "Pawn Structure (Endgame)", InternalWeights[PawnStructure]);
-        Weights[PassedPawns]   = weight_option ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , InternalWeights[PassedPawns  ]);
-        Weights[Space]         = weight_option ("Space"                    , "Space"                   , InternalWeights[Space        ]);
-        Weights[Cowardice]     = weight_option ("Cowardice"                , "Cowardice"               , InternalWeights[Cowardice    ]);
-        Weights[Aggressive]    = weight_option ("Aggressive"               , "Aggressive"              , InternalWeights[Aggressive   ]);
+        Weights[PassedPawns  ] = weight_option ("Passed Pawns (Midgame)"   , "Passed Pawns (Endgame)"  , InternalWeights[PassedPawns  ]);
+        Weights[Space        ] = weight_option ("Space"                    , "Space"                   , InternalWeights[Space        ]);
+        Weights[Cowardice    ] = weight_option ("Cowardice"                , "Cowardice"               , InternalWeights[Cowardice    ]);
+        Weights[Aggressive   ] = weight_option ("Aggressive"               , "Aggressive"              , InternalWeights[Aggressive   ]);
 
         const i32 MaxSlope  =   30;
         const i32 PeakScore = 1280;
