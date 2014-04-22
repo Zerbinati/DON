@@ -538,7 +538,7 @@ template<PieceT PT>
 PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
 {
     Bitboard bb = stm_attackers & _types_bb[PT];
-    if (bb)
+    if (bb != U64 (0))
     {
         occupied ^= (bb & ~(bb - 1));
 
@@ -786,7 +786,7 @@ bool Position::pseudo_legal (Move m) const
             && (_si->en_passant_sq == dst)
             && (R_5 == r_org)
             && (R_6 == r_dst)
-            && (EMPTY == _board[dst])
+            && (empty (dst))
              )
            )
         {
@@ -835,7 +835,7 @@ bool Position::pseudo_legal (Move m) const
         case DEL_N:
         case DEL_S:
             // Pawn push. The destination square must be empty.
-            if (!( (EMPTY == _board[dst])
+            if (!( (empty (dst))
                 && (0 == FileRankDist[_file (dst)][_file (org)])
                  )
                )
@@ -866,8 +866,8 @@ bool Position::pseudo_legal (Move m) const
             // source and destination squares must be empty.
             if (!( (R_2 == r_org)
                 && (R_4 == r_dst)
-                && (EMPTY == _board[dst])
-                && (EMPTY == _board[dst - pawn_push (_active)])
+                && (empty (dst))
+                && (empty (dst - pawn_push (_active)))
                 && (0 == FileRankDist[_file (dst)][_file (org)])
                  )
                )
@@ -1248,13 +1248,13 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     Square dst  = dst_sq (m);
     PieceT pt   = ptype (_board[org]);
 
-    ASSERT ((EMPTY != _board[org])
+    ASSERT ((!empty (org))
         &&  (_active == color (_board[org]))
         &&  (NONE != pt));
     
     MoveT mt   = mtype (m);
     
-    ASSERT ((EMPTY == _board[dst])
+    ASSERT ((empty (dst))
         ||  (pasive == color (_board[dst]))
         ||  (CASTLE == mt));
 
@@ -1299,7 +1299,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         ASSERT (dst == _si->en_passant_sq); // Destination must be en-passant
         ASSERT (R_5 == rel_rank (_active, org));
         ASSERT (R_6 == rel_rank (_active, dst));
-        ASSERT (EMPTY == _board[cap]);      // Capture Square must be empty
+        ASSERT (empty (cap));      // Capture Square must be empty
 
         cap += pawn_push (pasive);
         ASSERT ((pasive | PAWN) == _board[cap]);
@@ -1673,26 +1673,26 @@ string Position::fen (bool c960, bool full) const
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_K>::Right]), false);
-                if (can_castle (CR_W_Q)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_Q>::Right]), false);
+                if (can_castle (CR_WK)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_K>::Right]), false);
+                if (can_castle (CR_WQ)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_Q>::Right]), false);
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_K>::Right]), true);
-                if (can_castle (CR_B_Q)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_Q>::Right]), true);
+                if (can_castle (CR_BK)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_K>::Right]), true);
+                if (can_castle (CR_BQ)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_Q>::Right]), true);
             }
         }
         else
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_W_K)) oss << 'K';
-                if (can_castle (CR_W_Q)) oss << 'Q';
+                if (can_castle (CR_WK)) oss << 'K';
+                if (can_castle (CR_WQ)) oss << 'Q';
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_B_K)) oss << 'k';
-                if (can_castle (CR_B_Q)) oss << 'q';
+                if (can_castle (CR_BK)) oss << 'k';
+                if (can_castle (CR_BQ)) oss << 'q';
             }
         }
     }
@@ -1811,7 +1811,7 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     pos.clear ();
 
     istringstream iss (fen);
-    char ch;
+    unsigned char ch;
 
     iss >> noskipws;
 

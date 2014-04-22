@@ -75,9 +75,9 @@ namespace Pawns {
         {
             { V(+ 0),  V(+64), V(+128), V(+51), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
             { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+160), V(+64), V(+32),  V(+ 0),  V(+ 0),  V(+ 0) }
+            { V(+ 0),  V(+ 0), V(+160), V(+25), V(+13),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
-
+        
         // Max bonus for king safety. Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizont.
         const Value MaxSafetyBonus = V(+263);
@@ -288,11 +288,11 @@ namespace Pawns {
             {
                 mid_pawns = pawns[0] & File_bb[f];
                 
-                Rank w_rk = mid_pawns
+                Rank w_rk = mid_pawns != U64 (0)
                     ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;
 
-                i08 danger = (w_rk != R_1) ? ((b_rk == w_rk + 1) ? 2 : 1) : 0;
+                i08 danger = (w_rk != R_1) ? (b_rk == (w_rk + 1)) ? 2 : 1 : 0;
                 
                 safety -= ShelterWeakness[w_rk]
                        +  StormDanger[danger][b_rk];
