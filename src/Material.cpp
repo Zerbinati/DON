@@ -13,12 +13,11 @@ namespace Material {
 
     namespace {
 
-        // Values modified by Joona Kiiski
         const Value MidgameLimit = Value (15581);
         const Value EndgameLimit = Value ( 3998);
 
         // Polynomial material balance parameters: P      N      B      R      Q     BP
-        const i32 LinearCoefficient[NONE] = { - 162, -1122, - 183, + 249, - 157, +1852, };
+        const i32 LinearCoefficient[NONE] = { - 162, -1122, - 183, + 249, - 154, +1852, };
 
         const i32 OwnColorQuadraticCoefficient[NONE][NONE] =
         {
@@ -27,7 +26,7 @@ namespace Material {
             { +271, -  4, +  0, +  0, +  0, + 35, }, // N
             { +105, +  4, +  0, +  0, +  0, +  0, }, // B
             { -  2, + 46, +100, -141, +  0, - 27, }, // R
-            { + 30, +126, +144, -127, +  0, -161, }, // Q
+            { + 25, +129, +142, -137, +  0, -177, }, // Q
             { +  0, +  0, +  0, +  0, +  0, +  0, }, // BP
         };
 
@@ -39,7 +38,7 @@ namespace Material {
             { + 62, +  0, +  0, +  0, +  0, + 10, }, // N
             { + 64, + 39, +  0, +  0, +  0, + 57, }, // B     OUR PIECES
             { + 40, + 23, - 22, +  0, +  0, + 50, }, // R
-            { + 90, - 40, +142, +268, +  0, +103, }, // Q
+            { +105, - 39, +141, +274, +  0, + 98, }, // Q
             { +  0, +  0, +  0, +  0, +  0, +  0, }, // BP
         };
 
@@ -55,7 +54,7 @@ namespace Material {
 
         // Helper templates used to detect a given material distribution
         template<Color C>
-        inline bool is_KXK(const Position &pos)
+        inline bool is_KXK (const Position &pos)
         {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
@@ -65,7 +64,7 @@ namespace Material {
         }
 
         template<Color C> 
-        inline bool is_KBPsKs(const Position &pos)
+        inline bool is_KBPsKs (const Position &pos)
         {
             return pos.non_pawn_material (C ) == VALUE_MG_BSHP
                 && pos.count<BSHP> (C ) == 1
@@ -73,7 +72,7 @@ namespace Material {
         }
 
         template<Color C>
-        inline bool is_KQKRPs(const Position &pos)
+        inline bool is_KQKRPs (const Position &pos)
         {
             const Color C_ = (WHITE == C) ? BLACK : WHITE;
 
@@ -97,15 +96,15 @@ namespace Material {
 
             // "The Evaluation of Material Imbalances in Chess"
 
-            // Second-degree polynomial material imbalance by Tord Romstad
-            for (PieceT pt1 = PAWN; pt1 < KING; ++pt1)
+            // Second-degree polynomial material imbalance
+            for (i08 pt1 = PAWN; pt1 < KING; ++pt1)
             {
                 i32 pc = count[C ][pt1];
                 if (pc > 0)
                 {
                     i32 v = LinearCoefficient[pt1];
 
-                    for (PieceT pt2 = PAWN; pt2 <= pt1; ++pt2)
+                    for (i08 pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
                         v += count[C ][pt2] * OwnColorQuadraticCoefficient[pt1][pt2]
                           +  count[C_][pt2] * OppColorQuadraticCoefficient[pt1][pt2];
@@ -123,8 +122,8 @@ namespace Material {
 
     } // namespace
 
-    // Material::probe() takes a position object as input, looks up a MaterialEntry object,
-    // and returns a pointer to it.
+    // Material::probe() takes a position object as input,
+    // looks up a MaterialEntry object, and returns a pointer to it.
     // If the material configuration is not already present in the table,
     // it is computed and stored there, so we don't have to recompute everything
     // when the same material configuration occurs again.
@@ -138,7 +137,7 @@ namespace Material {
         // return the information we found the last time instead of recomputing it.
         if (e->_matl_key != matl_key)
         {
-            memset (e, 0, sizeof (*e));
+            memset (e, 0x00, sizeof (*e));
             e->_matl_key      = matl_key;
             e->_factor[WHITE] = e->_factor[BLACK] = SCALE_FACTOR_NORMAL;
             e->_game_phase    = game_phase (pos);
@@ -209,14 +208,12 @@ namespace Material {
                        && (pos.count<PAWN> (WHITE) >= 2)
                    )
                 {
-                    //ASSERT (pos.count<PAWN> (WHITE) >= 2);
                     e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
                 }
                 else if ( (pos.count<PAWN> (WHITE) == 0)
                        && (pos.count<PAWN> (BLACK) >= 2)
                         )
                 {
-                    //ASSERT (pos.count<PAWN> (BLACK) >= 2);
                     e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
                 }
                 else if ( (pos.count<PAWN> (WHITE) == 1)
@@ -268,8 +265,8 @@ namespace Material {
             // Compute the space weight
             if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_NIHT)
             {
-                i32 minor_piece_count = pos.count<NIHT> () + pos.count<BSHP> ();
-                e->_space_weight = mk_score (minor_piece_count * minor_piece_count, 0);
+                i32 minor_count = pos.count<NIHT> () + pos.count<BSHP> ();
+                e->_space_weight = mk_score (minor_count * minor_count, 0);
             }
 
             // Evaluate the material imbalance.
@@ -287,7 +284,7 @@ namespace Material {
                 }
             };
 
-            e->_value = i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 16);
+            e->_value = i16 ((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 0x10);
         }
 
         return e;
@@ -301,7 +298,7 @@ namespace Material {
 
         return npm >= MidgameLimit ? PHASE_MIDGAME
             :  npm <= EndgameLimit ? PHASE_ENDGAME
-            :  Phase (((npm - EndgameLimit) * 0x80) / (MidgameLimit - EndgameLimit));
+            :  Phase (((npm - EndgameLimit) * PHASE_MIDGAME) / (MidgameLimit - EndgameLimit));
     }
 
 } // namespace Material

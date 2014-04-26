@@ -404,8 +404,8 @@ namespace TBSyzygy {
             if (fd == FD_ERR) return;
             close_tb (fd);
 
-            //for (i = 0; i < 16; ++i) pcs[i] = 0;
-            memset (pcs, 0, sizeof (pcs));
+            //for (i = 0; i < 16; ++i) pcs[i] = 0x00;
+            memset (pcs, 0x00, sizeof (pcs));
 
             color = 0;
             for (s = filename; *s; ++s)
@@ -1596,11 +1596,11 @@ namespace TBSyzygy {
             i32 min_len = data[9];
             i32 h = max_len - min_len + 1;
             i32 num_syms = *(u16 *) (&data[10 + 2 * h]);
-            d = (PairsData *) malloc (sizeof (*d) + (h - 1) * sizeof (base_t) + num_syms);
+            d = (PairsData *) malloc (sizeof (*d) + (h - 1)*sizeof (base_t) + num_syms);
             d->blocksize = blocksize;
             d->idxbits = idxbits;
             d->offset = (u16 *) (&data[10]);
-            d->symlen = ((u08 *) d) + sizeof (*d) + (h - 1) * sizeof (base_t);
+            d->symlen = ((u08 *) d) + sizeof (*d) + (h - 1)*sizeof (base_t);
             d->sympat = &data[12 + 2 * h];
             d->min_len = min_len;
             *next = &data[12 + 2 * h + 3 * num_syms + (num_syms & 1)];
@@ -2183,8 +2183,8 @@ namespace TBSyzygy {
             i32 i;
             i32 p[NONE];
             
-            //for (i = 0; i < NONE; ++i) p[i] = 0;
-            memset (p, 0, sizeof (p));
+            //for (i = 0; i < NONE; ++i) p[i] = 0x00;
+            memset (p, 0x00, sizeof (p));
 
             // Obtain the position's material signature key.
             Key key = pos.matl_key ();
@@ -2318,8 +2318,8 @@ namespace TBSyzygy {
             i32 i, res;
             i32 p[NONE];
             
-            //for (i = 0; i < NONE; ++i) p[i] = 0;
-            memset (p, 0, sizeof (p));
+            //for (i = 0; i < NONE; ++i) p[i] = 0x00;
+            memset (p, 0x00, sizeof (p));
 
             // Obtain the position's material signature key.
             u64 key = pos.matl_key ();
@@ -3174,7 +3174,7 @@ namespace TBSyzygy {
             ++i;
         }
 
-        Paths = (char **) malloc (NumPaths * sizeof (*Paths));
+        Paths = (char **) malloc (NumPaths*sizeof (*Paths));
         for (i32 n = i = 0; n < NumPaths; ++n)
         {
             while (!PathString[i])

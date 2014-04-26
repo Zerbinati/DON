@@ -37,7 +37,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) Bitboard   BMask_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard   RMask_bb[SQ_NO];
 
-#ifndef BMI
+#ifndef BM2
     CACHE_ALIGN(64) Bitboard  BMagic_bb[SQ_NO];
     CACHE_ALIGN(64) Bitboard  RMagic_bb[SQ_NO];
 
@@ -94,7 +94,7 @@ namespace BitBoard {
 
         inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
         {
-#   ifndef BMI
+#   ifndef BM2
             const u16 MagicBoosters[R_NO] =
 #       ifdef _64BIT
             { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
@@ -123,7 +123,7 @@ namespace BitBoard {
 
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
-#           ifndef BMI
+#           ifndef BM2
                 shift[s] =
 #               ifdef _64BIT
                     64
@@ -132,7 +132,7 @@ namespace BitBoard {
 #               endif
                     - pop_count<MAX15> (mask);
 #           else
-                (void) shift[s];
+                (void) shift;
 #           endif
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
@@ -141,7 +141,7 @@ namespace BitBoard {
                 Bitboard occ = U64 (0);
                 do
                 {
-#               ifdef BMI
+#               ifdef BM2
                     attacks_bb[s][_pext_u64 (occ, mask)] = sliding_attacks (deltas, s, occ);
 #               else
                     occupancy[size] = occ;
@@ -160,7 +160,7 @@ namespace BitBoard {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
 
-#           ifndef BMI
+#           ifndef BM2
                 u16 booster = MagicBoosters[_rank (s)];
 
                 // Find a magic for square 's' picking up an (almost) random number
@@ -177,7 +177,7 @@ namespace BitBoard {
                     }
                     while (pop_count<MAX15> (index) < 6);
 
-                    memset (attacks_bb[s], U64 (0), size * sizeof (*attacks_bb[s]));
+                    memset (attacks_bb[s], U64 (0), size*sizeof (*attacks_bb[s]));
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
@@ -206,7 +206,7 @@ namespace BitBoard {
 
         inline void initialize_sliding ()
         {
-#       ifndef BMI
+#       ifndef BM2
             initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
             initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, PieceDeltas[ROOK], magic_index<ROOK>);
 #       else
@@ -220,7 +220,7 @@ namespace BitBoard {
     void initialize ()
     {
 
-        //for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        //for (i08 s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;
         //    BSF_Table[bsf_index (Square_bb[s])] = s;
@@ -230,24 +230,24 @@ namespace BitBoard {
         //    MSB_Table[b] = more_than_one (b) ? MSB_Table[b - 1] : scan_lsq (b);
         //}
 
-        for (File f = F_A; f <= F_H; ++f)
+        for (i08 f = F_A; f <= F_H; ++f)
         {
-            for (Rank r = R_1; r <= R_8; ++r)
+            for (i08 r = R_1; r <= R_8; ++r)
             {
-                FileRankDist[f][r] = abs (i08 (f) - i08 (r));
+                FileRankDist[f][r] = abs (f - r);
             }
         }
 
-        for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (i08 s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            for (i08 s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
                 if (s1 != s2)
                 {
-                    File f1 = _file (s1);
-                    Rank r1 = _rank (s1);
-                    File f2 = _file (s2);
-                    Rank r2 = _rank (s2);
+                    File f1 = _file (Square (s1));
+                    Rank r1 = _rank (Square (s1));
+                    File f2 = _file (Square (s2));
+                    Rank r2 = _rank (Square (s2));
 
                     u08 dFile = FileRankDist[f1][f2];
                     u08 dRank = FileRankDist[r1][r2];
@@ -255,17 +255,17 @@ namespace BitBoard {
                     SquareDist[s1][s2]  = max (dFile , dRank);
                     //TaxicabDist[s1][s2] =     (dFile + dRank);
 
-                    DistanceRings[s1][SquareDist[s1][s2] - 1] += s2;
+                    DistanceRings[s1][SquareDist[s1][s2] - 1] += Square (s2);
                 }
             }
         }
 
-        for (Color c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (Square s = SQ_A1; s <= SQ_H8; ++s)
+            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
             {
-                FrontSqs_bb   [c][s] = FrontRank_bb[c][_rank (s)] &    File_bb[_file (s)];
-                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (s)] & AdjFile_bb[_file (s)];
+                FrontSqs_bb   [c][s] = FrontRank_bb[c][_rank (Square (s))] &    File_bb[_file (Square (s))];
+                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (Square (s))] & AdjFile_bb[_file (Square (s))];
                 PasserPawnSpan[c][s] =  FrontSqs_bb[c][s]         | PawnAttackSpan[c][s];
             }
         }
@@ -275,7 +275,7 @@ namespace BitBoard {
             u08 k;
             Delta del;
 
-            for (Color c = WHITE; c <= BLACK; ++c)
+            for (i08 c = WHITE; c <= BLACK; ++c)
             {
                 k = 0;
                 while ((del = PawnDeltas[c][k++]) != DEL_O)
@@ -349,14 +349,14 @@ namespace BitBoard {
         const string row   = "|. . . . . . . .|\n";
         const u16 row_len = row.length () + 1;
         sbb = " /---------------\\\n";
-        for (Rank r = R_8; r >= R_1; --r)
+        for (i08 r = R_8; r >= R_1; --r)
         {
-            sbb += to_char (r) + row;
+            sbb += to_char (Rank (r)) + row;
         }
         sbb += " \\---------------/\n ";
-        for (File f = F_A; f <= F_H; ++f)
+        for (i08 f = F_A; f <= F_H; ++f)
         {
-            sbb += " "; sbb += to_char (f);
+            sbb += " "; sbb += to_char (File (f));
         }
         sbb += "\n";
 

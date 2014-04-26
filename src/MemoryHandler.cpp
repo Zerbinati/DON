@@ -157,7 +157,7 @@ namespace MemoryHandler {
                 if (mem_ref != -1)
                 {
                     UsePages = true;
-                    memset (mem_ref, 0, SHMSZ);
+                    memset (mem_ref, 0x00, SHMSZ);
                     cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << endl;
                     return;
                 }
@@ -176,7 +176,7 @@ namespace MemoryHandler {
         MEMALIGN (mem_ref, align, mem_size);
         if (mem_ref != NULL)
         {
-            memset (mem_ref, 0, mem_size);
+            memset (mem_ref, 0x00, mem_size);
             cout << "info string Hash " << (mem_size >> 20) << " MB." << endl;
             return;
         }
@@ -185,7 +185,7 @@ namespace MemoryHandler {
         Engine::exit (EXIT_FAILURE);
     }
 
-    void free_memory    (void *mem)
+    void   free_memory  (void *mem)
     {
         if (mem == NULL) return;
 
@@ -211,7 +211,7 @@ namespace MemoryHandler {
         ALIGNED_FREE (mem);
     }
     
-    void initialize      ()
+    void initialize     ()
     {
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
@@ -224,4 +224,4 @@ namespace MemoryHandler {
 
 }
 
-#endif
+#endif // LPAGES

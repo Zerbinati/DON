@@ -124,7 +124,7 @@ namespace UCI {
     namespace {
 
 #   ifdef LPAGES
-        void on_large_pages     (const Option &)
+        void on_large_pages (const Option &)
         {
             TT.resize ();
         }
@@ -168,13 +168,13 @@ namespace UCI {
             string syzygy_path = string (opt);
             TBSyzygy::initialize (syzygy_path);
         }
-        
-        void on_config_threadpool(const Option &)
+
+        void on_config_threadpool (const Option &)
         {
             Threadpool.configure ();
         }
 
-        void on_change_evaluation(const Option &)
+        void on_change_evaluation (const Option &)
         {
             Evaluator::initialize ();
         }

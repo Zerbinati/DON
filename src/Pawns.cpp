@@ -73,11 +73,11 @@ namespace Pawns {
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
         const Value StormDanger[3][R_NO] =
         {
-            { V(+ 0),  V(+64), V(+128), V(+51), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+160), V(+64), V(+32),  V(+ 0),  V(+ 0),  V(+ 0) }
+            { V(+ 0),  V(+64), V(+128), V(+56), V(+32),  V(+ 4),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+ 0), V(+  0), V(+48), V(+16),  V(+ 2),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+ 0), V(+168), V(+30), V(+12),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
-        
+
         // Max bonus for king safety. Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizont.
         const Value MaxSafetyBonus = V(+263);
@@ -201,7 +201,7 @@ namespace Pawns {
             if (pos.count<PAWN> (C) > 1)
             {
                 Bitboard b = e->_semiopen_files[C] ^ 0xFF;
-                pawn_score += PawnsFileSpanBonus * i32 (scan_msq (b) - scan_lsq (b));
+                pawn_score += PawnsFileSpanBonus * (i32 (scan_msq (b)) - i32 (scan_lsq (b)));
             }
 
             return pawn_score;
@@ -214,9 +214,9 @@ namespace Pawns {
     {
         const i16 FileBonus[8] = { 1, 3, 3, 4, 4, 3, 3, 1 };
 
-        for (Rank r = R_1; r < R_8; ++r)
+        for (i08 r = R_1; r < R_8; ++r)
         {
-            for (File f = F_A; f <= F_H; ++f)
+            for (i08 f = F_A; f <= F_H; ++f)
             {
                 i16 bonus = 1 * r * (r-1) * (r-2) + FileBonus[f] * (r/2 + 1);
                 ConnectedBonus[f][r] = mk_score (bonus, bonus);
@@ -258,29 +258,20 @@ namespace Pawns {
             front_pawns & pos.pieces (C_),
         };
 
-        File kf = _file (king_sq);
-        if (kf < F_B) kf = F_B;
-        if (kf > F_G) kf = F_G;
-        
-        // TODO::
-        Bitboard edge_pawns = pos.pieces<PAWN> () & (kf <= F_D ? FA_bb : FH_bb);
-        bool dangerous_edge_pawns = 
-               (edge_pawns & pos.pieces (C ) & ((WHITE == C) ? R2_bb : R7_bb))
-            && (edge_pawns & pos.pieces (C_) & ((WHITE == C) ? R3_bb : R6_bb));
-
-        if (dangerous_edge_pawns) safety -= Value(100);
-
-        for (File f = kf - 1; f <= kf + 1; ++f)
+        const i08 kf = _file (king_sq);
+        const i08 w_del = 1 + (kf==F_C || kf==F_H) - (kf==F_A);
+        const i08 e_del = 1 + (kf==F_F || kf==F_A) - (kf==F_H);
+        for (i08 f = kf - w_del; f <= kf + e_del; ++f)
         {
             Bitboard mid_pawns;
 
             mid_pawns  = pawns[1] & File_bb[f];
-            Rank b_rk = (mid_pawns != U64 (0))
+            u08 b_rk = (mid_pawns != U64 (0))
                 ? rel_rank (C, scan_frntmost_sq (C_, mid_pawns))
                 : R_1;
 
             if (   (MIDEDGE_bb & (f | b_rk))
-                && (_file (king_sq) == f)
+                && (kf == f)
                 && (rel_rank (C, king_sq) == b_rk - 1)
                )
             {
@@ -290,14 +281,12 @@ namespace Pawns {
             {
                 mid_pawns = pawns[0] & File_bb[f];
                 
-                Rank w_rk = (mid_pawns != U64 (0))
+                u08 w_rk = (mid_pawns != U64 (0))
                     ? rel_rank (C, scan_backmost_sq (C , mid_pawns))
                     : R_1;
 
-                i08 danger = (w_rk != R_1) ? (b_rk == (w_rk + 1)) ? 2 : 1 : 0;
-                
-                safety -= ShelterWeakness[w_rk]
-                       +  StormDanger[danger][b_rk];
+                u08 danger = (w_rk == R_1 || w_rk > b_rk) ? 0 : ((w_rk + 1) != b_rk) ? 1 : 2;
+                safety -= (ShelterWeakness[w_rk] + StormDanger[danger][b_rk]);
             }
         }
 
@@ -320,18 +309,23 @@ namespace Pawns {
         }
 
         Value bonus = VALUE_ZERO;
-        if (rel_rank (C, king_sq) <= R_4)
+        if (rel_rank (C, king_sq) < R_4)
         {
-            bonus = shelter_storm<C> (pos, king_sq);
-
             // If we can castle use the bonus after the castle if is bigger
-            if (pos.can_castle (Castling<C, CS_K>::Right))
+            if (pos.can_castle (C))
             {
-                bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_G1)));
+                if (pos.can_castle (Castling<C, CS_K>::Right))
+                {
+                    bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_G1)));
+                }
+                if (pos.can_castle (Castling<C, CS_Q>::Right))
+                {
+                    bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_C1)));
+                }
             }
-            if (pos.can_castle (Castling<C, CS_Q>::Right))
+            if (bonus < MaxSafetyBonus)
             {
-                bonus = max (bonus, shelter_storm<C> (pos, rel_sq (C, SQ_C1)));
+                bonus = max (bonus, shelter_storm<C> (pos, king_sq));
             }
         }
 

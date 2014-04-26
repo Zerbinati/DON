@@ -167,7 +167,7 @@ public:
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    Position (const Position &pos , Threads::Thread *th = NULL) { *this = pos; _thread = th; }
+    Position (const Position  &pos, Threads::Thread *th = NULL) { *this = pos; _thread = th; }
     
     explicit Position (i32) {}
 
@@ -185,22 +185,24 @@ public:
     Square king_sq (Color c)    const;
 
     Bitboard pieces (Color c)   const;
+
     Bitboard pieces (PieceT pt) const;
     template<PieceT PT>
     Bitboard pieces ()          const;
+
     Bitboard pieces (Color c, PieceT pt)   const;
     template<PieceT PT>
     Bitboard pieces (Color c)   const;
+
     Bitboard pieces (PieceT p1, PieceT p2) const;
     Bitboard pieces (Color c, PieceT p1, PieceT p2) const;
+
     Bitboard pieces ()          const;
 
     i32      count  (Color c, PieceT pt)   const;
     template<PieceT PT>
     i32      count  (Color c)   const;
-    i32      count  (Color c)   const;
     template<PieceT PT>
-    i32      count  ()          const;
     i32      count  ()          const;
 
     template<PieceT PT>
@@ -217,10 +219,11 @@ public:
     PieceT capture_type  () const;  // Last ptype captured
     Piece  capture_piece () const;  // Last piece captured
     Bitboard checkers    () const;
-    Key matl_key ()         const;
-    Key pawn_key ()         const;
-    Key posi_key ()         const;
-    Key posi_key_exclusion () const;
+
+    Key matl_key      () const;
+    Key pawn_key      () const;
+    Key posi_key      () const;
+    Key posi_key_excl () const;
 
     Value non_pawn_material (Color c) const;    // Incremental piece-square evaluation
 
@@ -229,8 +232,9 @@ public:
     CRight can_castle   (CRight cr) const;
     CRight can_castle   (Color   c) const;
 
-    Square castle_rook  (CRight cr) const;
-    bool castle_impeded (CRight cr) const;
+    Square   castle_rook (CRight cr) const;
+    Bitboard castle_path (CRight cr) const;
+    bool  castle_impeded (CRight cr) const;
 
     Color   active    () const;
     u16     game_ply  () const;
@@ -263,7 +267,7 @@ public:
     bool capture      (Move m)       const;
     bool capture_or_promotion (Move m)    const;
     bool gives_check     (Move m, const CheckInfo &ci) const;
-    bool gives_checkmate (Move m, const CheckInfo &ci) const;
+    //bool gives_checkmate (Move m, const CheckInfo &ci) const;
     bool advanced_pawn_push (Move m)      const;
     Piece moved_piece (Move m)  const;
 
@@ -321,31 +325,28 @@ inline const Square* Position::operator[] (Piece  p)  const { return _piece_list
 INLINE bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
-inline Bitboard Position::pieces  (Color c)  const { return _color_bb[c];  }
-inline Bitboard Position::pieces  (PieceT pt)const { return _types_bb[pt]; }
+inline Bitboard Position::pieces (Color c)   const { return _color_bb[c];  }
+
+inline Bitboard Position::pieces (PieceT pt) const { return _types_bb[pt]; }
 template<PieceT PT>
 inline Bitboard Position::pieces ()                   const { return _types_bb[PT]; }
+
 inline Bitboard Position::pieces (Color c, PieceT pt) const { return _color_bb[c]&_types_bb[pt]; }
 template<PieceT PT>
 inline Bitboard Position::pieces (Color c)            const { return _color_bb[c]&_types_bb[PT]; }
+
 inline Bitboard Position::pieces (PieceT p1, PieceT p2)const { return _types_bb[p1]|_types_bb[p2]; }
 inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c]&(_types_bb[p1]|_types_bb[p2]); }
-inline Bitboard Position::pieces ()                   const { return  _types_bb[NONE]; }
+
+inline Bitboard Position::pieces ()                   const { return _types_bb[NONE]; }
 
 inline i32 Position::count (Color c, PieceT pt)   const { return _piece_count[c][pt]; }
 template<PieceT PT>
+// Count specific piece of color
 inline i32 Position::count (Color c) const { return _piece_count[c][PT]; }
 template<>
-// Count non-pawn pieces
-inline i32 Position::count<NONE> (Color c) const
-{
-    return _piece_count[c][NIHT]
-         + _piece_count[c][BSHP]
-         + _piece_count[c][ROOK]
-         + _piece_count[c][QUEN];
-}
-
-inline i32 Position::count (Color c) const
+// Count total pieces of color
+inline i32 Position::count<NONE>    (Color c) const
 {
     return _piece_count[c][PAWN]
          + _piece_count[c][NIHT]
@@ -354,12 +355,25 @@ inline i32 Position::count (Color c) const
          + _piece_count[c][QUEN]
          + _piece_count[c][KING];
 }
+template<>
+// Count non-pawn pieces of color
+inline i32 Position::count<NONPAWN> (Color c) const
+{
+    return _piece_count[c][NIHT]
+         + _piece_count[c][BSHP]
+         + _piece_count[c][ROOK]
+         + _piece_count[c][QUEN];
+}
+
 template<PieceT PT>
-inline i32 Position::count ()        const
+// Count specific piece
+inline i32 Position::count ()          const
 {
     return _piece_count[WHITE][PT] + _piece_count[BLACK][PT];
 }
-inline i32 Position::count ()        const
+template<>
+// Count total pieces
+inline i32 Position::count<NONE>    () const
 {
     return _piece_count[WHITE][PAWN] + _piece_count[BLACK][PAWN]
          + _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
@@ -368,6 +382,16 @@ inline i32 Position::count ()        const
          + _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN]
          + _piece_count[WHITE][KING] + _piece_count[BLACK][KING];
 }
+template<>
+// Count non-pawn pieces
+inline i32 Position::count<NONPAWN> () const
+{
+    return _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
+         + _piece_count[WHITE][BSHP] + _piece_count[BLACK][BSHP]
+         + _piece_count[WHITE][ROOK] + _piece_count[BLACK][ROOK]
+         + _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN];
+}
+
 
 template<PieceT PT>
 inline const Square* Position::list (Color c) const { return _piece_list[c][PT]; }
@@ -380,13 +404,13 @@ inline Square   Position::en_passant_sq () const { return _si->en_passant_sq; }
 inline u08    Position::clock50       () const { return _si->clock50; }
 inline Move   Position::last_move     () const { return _si->last_move; }
 inline PieceT Position::capture_type  () const { return _si->capture_type; }
-inline Piece  Position::capture_piece () const { return (NONE == capture_type ()) ? EMPTY : (_active | capture_type ()); }
+inline Piece  Position::capture_piece () const { return (NONE == _si->capture_type) ? EMPTY : (_active | _si->capture_type); }
 inline Bitboard Position::checkers    () const { return _si->checkers; }
 
 inline Key    Position::matl_key      () const { return _si->matl_key; }
 inline Key    Position::pawn_key      () const { return _si->pawn_key; }
 inline Key    Position::posi_key      () const { return _si->posi_key; }
-inline Key    Position::posi_key_exclusion () const { return _si->posi_key ^ Zobrist::Exclusion; }
+inline Key    Position::posi_key_excl () const { return _si->posi_key ^ Zobrist::Exclusion; }
 
 inline Score  Position::psq_score     () const { return _si->psq_score; }
 inline Value  Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
@@ -394,8 +418,9 @@ inline Value  Position::non_pawn_material (Color c) const { return _si->non_pawn
 inline CRight Position::can_castle   (CRight cr) const { return _si->castle_rights & cr; }
 inline CRight Position::can_castle   (Color   c) const { return _si->castle_rights & mk_castle_right (c); }
 
-inline Square Position::castle_rook  (CRight cr) const { return _castle_rook[cr]; }
-inline bool Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
+inline Square   Position::castle_rook (CRight cr) const { return _castle_rook[cr]; }
+inline Bitboard Position::castle_path (CRight cr) const { return _castle_path[cr]; }
+inline bool  Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
 // Color of the side on move
 inline Color Position::active   () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
@@ -467,14 +492,9 @@ inline bool Position::bishops_pair (Color c) const
 // check the opposite sides have opposite bishops
 inline bool Position::opposite_bishops () const
 {
-    //return _piece_count[WHITE][BSHP] != 0
-    //    && _piece_count[BLACK][BSHP] != 0
-    //    && opposite_colors (_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
-    return _piece_count[WHITE][BSHP] != 0
-        && _piece_count[BLACK][BSHP] != 0
-        && !( ((pieces<BSHP> (WHITE) & BitBoard::LIHT_bb) && (pieces<BSHP> (BLACK) & BitBoard::LIHT_bb))
-           || ((pieces<BSHP> (WHITE) & BitBoard::DARK_bb) && (pieces<BSHP> (BLACK) & BitBoard::DARK_bb))
-            );
+    return _piece_count[WHITE][BSHP] == 1
+        && _piece_count[BLACK][BSHP] == 1
+        && opposite_colors (_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
 }
 inline bool Position::legal         (Move m) const { return legal (m, pinneds (_active)); }
 // capture(m) tests move is capture
@@ -580,13 +600,11 @@ inline void Position::do_castling (Square org_king, Square &dst_king, Square &or
     // Move the piece. The tricky Chess960 castle is handled earlier
     bool king_side = (dst_king > org_king);
     org_rook = dst_king; // castle is always encoded as "King captures friendly Rook"
-    dst_rook = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
     dst_king = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
-
+    dst_rook = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
     remove_piece (DO ? org_king : dst_king);
     remove_piece (DO ? org_rook : dst_rook);
-
     place_piece (DO ? dst_king : org_king, _active, KING);
     place_piece (DO ? dst_rook : org_rook, _active, ROOK);
 }

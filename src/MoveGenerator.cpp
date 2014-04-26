@@ -110,9 +110,9 @@ namespace MoveGenerator {
                     (dst_king > org_king ? DEL_W : DEL_E) :
                     (KingSide            ? DEL_W : DEL_E);
 
-                for (Square s = dst_king; s != org_king; s += step)
+                for (i08 s = dst_king; s != org_king; s += step)
                 {
-                    if (pos.attackers_to (s) & enemies)
+                    if (pos.attackers_to (Square (s)) & enemies)
                     {
                         return;
                     }
@@ -567,7 +567,7 @@ namespace MoveGenerator {
         SERIALIZE (moves, king_sq, attacks);
 
         // If double check, then only a king move can save the day
-        if (more_than_one (checkers) || pos.count (active) == 1)
+        if (more_than_one (checkers) || pos.count<NONE> (active) == 1)
         {
             return moves;
         }

@@ -15,10 +15,10 @@
 #include "Material.h"
 #include "Pawns.h"
 #include "Evaluator.h"
-#include "TB_Syzygy.h"
 #include "Thread.h"
 #include "Notation.h"
 #include "Debugger.h"
+#include "TB_Syzygy.h"
 
 using namespace std;
 using namespace Time;
@@ -52,7 +52,7 @@ namespace Searcher {
 
         inline Value futility_margin (u16 depth)
         {
-            return Value (depth<<6); // TODO::64/100
+            return Value (depth*100); // TODO::64/100
         }
 
         template<bool PVNode>
@@ -68,7 +68,6 @@ namespace Searcher {
             return Value (512 + (depth<<4));
         }
 
-
         TimeManager TimeMgr;
 
         Value   DrawValue[CLR_NO];
@@ -79,11 +78,11 @@ namespace Searcher {
         u08     MultiPV
             ,   IndexPV;
 
-        GainsStats  Gains;
+        GainsStats   Gains;
         // History heuristic
         HistoryStats History;
-        MovesStats  CounterMoves
-            ,       FollowupMoves;
+        MovesStats   CounterMoves
+            ,        FollowupMoves;
 
         i32     TBCardinality;
         u16     TBHits;
@@ -449,10 +448,10 @@ namespace Searcher {
             {
                 ASSERT (_ok (move));
 
-                bool gives_check=
-                      ((NORMAL == mtype (move)) && !ci.discoverers)
-                    ? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
-                    : (pos.gives_check (move, ci));
+                bool gives_check= pos.gives_check (move, ci);
+                    //  ((NORMAL == mtype (move)) && ci.discoverers == U64 (0))
+                    //? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
+                    //: (pos.gives_check (move, ci));
 
                 if (!PVNode)
                 {
@@ -686,7 +685,7 @@ namespace Searcher {
             excluded_move = (ss)->excluded_move;
 
             posi_key = (excluded_move != MOVE_NONE)
-                     ? pos.posi_key_exclusion ()
+                     ? pos.posi_key_excl ()
                      : pos.posi_key ();
 
             tte      = TT.retrieve (posi_key);
@@ -728,7 +727,7 @@ namespace Searcher {
                 // Step 4-TB. Tablebase probe
                 if (   (depth >= TBProbeDepth)
                     && (pos.clock50 () == 0)
-                    && (pos.count () <= TBCardinality))
+                    && (pos.count<NONE> () <= TBCardinality))
                 {
                     i32 found, v = TBSyzygy::probe_wdl (pos, &found);
 
@@ -846,10 +845,10 @@ namespace Searcher {
                     && (pos.non_pawn_material (pos.active ()) != VALUE_ZERO)
                    )
                 {
-                    Value eval_fut = eval - futility_margin (depth);
-                    if (eval_fut >= beta)
+                    Value fut_eval = eval - futility_margin (depth);
+                    if (fut_eval >= beta)
                     {
-                        return eval_fut;
+                        return fut_eval;
                     }
                 }
 
@@ -1062,9 +1061,9 @@ namespace Searcher {
                             sync_cout
                                 << "info"
                                 //<< " depth "          << u16 (depth>>ONE_PLY)
-                                << " time "           << elapsed
                                 << " currmovenumber " << setw (2) << u16 (moves_count + IndexPV)
                                 << " currmove "       << move_to_can (move, pos.chess960 ())
+                                << " time "           << elapsed
                                 << sync_endl;
                         }
                     }
@@ -1074,10 +1073,10 @@ namespace Searcher {
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
-                bool gives_check=
-                      ((NORMAL == mtype (move)) && !ci.discoverers)
-                    ? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
-                    : (pos.gives_check (move, ci));
+                bool gives_check= pos.gives_check (move, ci);
+                    //  ((NORMAL == mtype (move)) && ci.discoverers == U64 (0))
+                    //? (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move))
+                    //: (pos.gives_check (move, ci));
 
                 bool dangerous  = 
                     (  (gives_check)
@@ -1459,7 +1458,7 @@ namespace Searcher {
             Stack stack[MAX_PLY_6]
                 , *ss = stack+2; // To allow referencing (ss-2)
 
-            memset (ss-2, 0, 5 * sizeof (*ss));
+            memset (ss-2, 0x00, 5*sizeof (*ss));
             (ss-1)->current_move = MOVE_NULL; // Hack to skip update gains
 
             TT.new_gen ();
@@ -1483,13 +1482,14 @@ namespace Searcher {
 
             Skill skill (level);
 
-            // Do we have to play with skill handicap? In this case enable MultiPV search
+            // Do we have to play with skill handicap?
+            // In this case enable MultiPV search to MIN_SKILL_MULTIPV
             // that we will use behind the scenes to retrieve a set of possible moves.
             if (skill.enabled ())
             {
-                if (MultiPV < 4)
+                if (MultiPV < MIN_SKILL_MULTIPV)
                 {
-                    MultiPV = 4;
+                    MultiPV = MIN_SKILL_MULTIPV;
                 }
             }
 
@@ -1518,8 +1518,8 @@ namespace Searcher {
                     {
                         window = Value (depth < 48 ? 14 + (depth>>3) : 20);
 
-                        alpha = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
-                        beta  = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
+                        alpha  = max (RootMoves[IndexPV].value[1] - window, -VALUE_INFINITE);
+                        beta   = min (RootMoves[IndexPV].value[1] + window, +VALUE_INFINITE);
                     }
 
                     point elapsed;
@@ -1700,10 +1700,10 @@ namespace Searcher {
 
         }
         while (tte // Local copy, TT could change
+            && (ply < MAX_PLY)
             && (m = tte->move ()) != MOVE_NONE
             && pos.pseudo_legal (m)
             && pos.legal (m)
-            && (ply < MAX_PLY)
             && (!pos.draw () || ply < 2));
 
         pv.push_back (MOVE_NONE); // Must be zero-terminating
@@ -1819,7 +1819,7 @@ namespace Searcher {
                 << endl;
         }
 
-        piece_cnt = RootPos.count ();
+        piece_cnt = RootPos.count<NONE> ();
         TBCardinality = i32 (Options["Syzygy Probe Limit"]);
         if (TBCardinality > TBSyzygy::TB_Largest)
         {
@@ -1995,7 +1995,7 @@ namespace Searcher {
 
 namespace Threads {
 
-    // check_time () is called by the timer thread when the timer triggers.
+    // check_time() is called by the timer thread when the timer triggers.
     // It is used to print debug info and, more importantly,
     // to detect when out of available time and thus stop the search.
     void check_time ()
@@ -2127,7 +2127,7 @@ namespace Threads {
 
                 Position pos (*(sp)->pos, this);
 
-                memcpy (ss-2, (sp)->ss-2, 5 * sizeof (*ss));
+                memcpy (ss-2, (sp)->ss-2, 5*sizeof (*ss));
                 (ss)->splitpoint = sp;
 
                 // Lock splitpoint

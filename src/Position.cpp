@@ -93,7 +93,7 @@ namespace {
             S(-22,+ 3), S(- 7,+ 3), S(- 2,+ 3), S(+ 2,+ 3), S(+ 2,+ 3), S(- 2,+ 3), S(- 7,+ 3), S(-22,+ 3),
             S(-22,+ 3), S(- 7,+ 3), S(- 2,+ 3), S(+ 2,+ 3), S(+ 2,+ 3), S(- 2,+ 3), S(- 7,+ 3), S(-22,+ 3),
             S(-22,+ 3), S(- 7,+ 3), S(- 2,+ 3), S(+ 2,+ 3), S(+ 2,+ 3), S(- 2,+ 3), S(- 7,+ 3), S(-22,+ 3),
-            S(-22,+ 3), S(- 7,+ 3), S(- 2,+ 3), S(+ 2,+ 3), S(+ 2,+ 3), S(- 2,+ 3), S(- 7,+ 3), S(-22,+ 3),
+            S(-11,+ 3), S(+ 4,+ 3), S(+ 9,+ 3), S(+13,+ 3), S(+13,+ 3), S(+ 9,+ 3), S(+ 4,+ 3), S(-11,+ 3),
             S(-22,+ 3), S(-17,+ 3), S(-12,+ 3), S(- 8,+ 3), S(- 8,+ 3), S(-12,+ 3), S(-17,+ 3), S(-22,+ 3)
         },
         // Queen
@@ -127,32 +127,30 @@ namespace {
     // which can be quite slow.
 #ifdef PREFETCH
 
-#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
     inline void prefetch (const char *addr)
     {
-
-#   if defined(__INTEL_COMPILER)
+#       if defined(__INTEL_COMPILER)
         {
             // This hack prevents prefetches from being optimized away by
             // Intel compiler. Both MSVC and gcc seem not be affected by this.
             __asm__ ("");
         }
-#   endif
-
+#       endif
         _mm_prefetch (addr, _MM_HINT_T0);
     }
 
-#else
+#   else
 
     inline void prefetch (const char *addr)
     {
         __builtin_prefetch (addr);
     }
 
-#endif
+#   endif
 
 #else
 
@@ -168,17 +166,17 @@ u08 Position::_50_move_dist;
 
 void Position::initialize ()
 {
-    _50_move_dist = 2 * i32 (Options["50 Move Distance"]);
+    _50_move_dist = 2*i32 (Options["50 Move Distance"]);
 
-    for (PieceT pt = PAWN; pt <= KING; ++pt)
+    for (u08 pt = PAWN; pt <= KING; ++pt)
     {
         Score score = mk_score (PieceValue[MG][pt], PieceValue[EG][pt]);
 
-        for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        for (i08 s = SQ_A1; s <= SQ_H8; ++s)
         {
             Score psq_score = score + PSQT[pt][s];
-            PSQ[WHITE][pt][ s] = +psq_score;
-            PSQ[BLACK][pt][~s] = -psq_score;
+            PSQ[WHITE][pt][ Square (s)] = +psq_score;
+            PSQ[BLACK][pt][~Square (s)] = -psq_score;
         }
     }
 }
@@ -301,9 +299,9 @@ bool Position::ok (i08 *step) const
     // step 2
     if (step && ++(*step), test_king_count)
     {
-        for (Color c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            if (1 != std::count (_board, _board + SQ_NO, c|KING))
+            if (1 != std::count (_board, _board + SQ_NO, Color (c)|KING))
             {
                 return false;
             }
@@ -317,16 +315,16 @@ bool Position::ok (i08 *step) const
     if (step && ++(*step), test_piece_count)
     {
         if (   pop_count<FULL> (_types_bb[NONE]) > 32
-            || count () > 32
-            || count () != pop_count<FULL> (_types_bb[NONE])
+            || count<NONE> () > 32
+            || count<NONE> () != pop_count<FULL> (_types_bb[NONE])
            )
         {
             return false;
         }
 
-        for (Color c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (PieceT pt = PAWN; pt <= KING; ++pt)
+            for (u08 pt = PAWN; pt <= KING; ++pt)
             {
                 if (_piece_count[c][pt] != pop_count<FULL> (_color_bb[c]&_types_bb[pt]))
                 {
@@ -344,9 +342,9 @@ bool Position::ok (i08 *step) const
             return false;
         }
         // The intersection of separate piece type must be empty
-        for (PieceT pt1 = PAWN; pt1 <= KING; ++pt1)
+        for (u08 pt1 = PAWN; pt1 <= KING; ++pt1)
         {
-            for (PieceT pt2 = PAWN; pt2 <= KING; ++pt2)
+            for (u08 pt2 = PAWN; pt2 <= KING; ++pt2)
             {
                 if (pt1 != pt2 && (_types_bb[pt1]&_types_bb[pt2]))
                 {
@@ -381,7 +379,7 @@ bool Position::ok (i08 *step) const
             return false;
         }
 
-        for (Color c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
             Bitboard colors = _color_bb[c];
 
@@ -431,14 +429,14 @@ bool Position::ok (i08 *step) const
     // step 5
     if (step && ++(*step), test_piece_list)
     {
-        for (Color c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (PieceT pt = PAWN; pt <= KING; ++pt)
+            for (u08 pt = PAWN; pt <= KING; ++pt)
             {
                 for (i32 i = 0; i < _piece_count[c][pt]; ++i)
                 {
                     if (   !_ok  (_piece_list[c][pt][i])
-                        || _board[_piece_list[c][pt][i]] != (c | pt)
+                        || _board[_piece_list[c][pt][i]] != (Color (c) | PieceT (pt))
                         || _index[_piece_list[c][pt][i]] != i
                        )
                     {
@@ -447,7 +445,7 @@ bool Position::ok (i08 *step) const
                 }
             }
         }
-        for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        for (i08 s = SQ_A1; s <= SQ_H8; ++s)
         {
             if (_index[s] >= 16)
             {
@@ -468,16 +466,16 @@ bool Position::ok (i08 *step) const
     // step 7
     if (step && ++(*step), test_castle_rights)
     {
-        for (Color c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (CSide cs = CS_K; cs <= CS_Q; ++cs)
+            for (i08 cs = CS_K; cs <= CS_Q; ++cs)
             {
-                CRight cr = mk_castle_right (c, cs);
+                CRight cr = mk_castle_right (Color (c), CSide (cs));
 
                 if (!can_castle (cr)) continue;
 
                 if ( (_castle_mask[_piece_list[c][KING][0]] & cr) != cr
-                  || (_board[_castle_rook[cr]] != (c | ROOK))
+                  || (_board[_castle_rook[cr]] != (Color (c) | ROOK))
                   || (_castle_mask[_castle_rook[cr]] != cr)
                    )
                 {
@@ -747,7 +745,7 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
 
-        bool king_side  = (dst > org); 
+        bool king_side = (dst > org); 
         if (castle_impeded (mk_castle_right (_active, king_side ? CS_K : CS_Q)))
         {
             return false;
@@ -757,9 +755,9 @@ bool Position::pseudo_legal (Move m) const
         dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
 
         Delta step = (king_side ? DEL_W : DEL_E);
-        for (Square s = dst; s != org; s += step)
+        for (i08 s = dst; s != org; s += step)
         {
-            if (attackers_to (s) & _color_bb[pasive])
+            if (attackers_to (Square (s)) & _color_bb[pasive])
             {
                 return false;
             }
@@ -953,9 +951,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
     Color pasive = ~_active;
 
-    Piece  p  = _board[org];
-    PieceT pt = ptype  (p);
-    ASSERT ((_active == color (p)) && (NONE != pt));
+    PieceT pt = ptype (_board[org]);
+    ASSERT ((_active == color (_board[org])) && (NONE != pt));
 
     Square ksq = _piece_list[_active][KING][0];
 
@@ -973,10 +970,10 @@ bool Position::legal        (Move m, Bitboard pinned) const
             return !(attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasive]); // Remove 'org' but not place 'dst'
         }
 
-        // A non-king move is legal if and only if it is not pinned or it
-        // is moving along the ray towards or away from the king or
-        // is a blocking evasion or a capture of the checking piece.
-        return !(pinned)
+        // A non-king move is legal if and only if it is not pinned or
+        // it is moving along the ray towards or away from the king or
+        // it is a blocking evasion or a capture of the checking piece.
+        return  (pinned == U64 (0))
             || !(pinned & org)
             || sqrs_aligned (org, dst, ksq);
     }
@@ -1010,14 +1007,13 @@ bool Position::legal        (Move m, Bitboard pinned) const
 // gives_check() tests whether a pseudo-legal move gives a check
 bool Position::gives_check  (Move m, const CheckInfo &ci) const
 {
-    ASSERT (color (_board[org_sq (m)]) == _active);
-    ASSERT (ci.discoverers == discoverers (_active));
-
     Square org = org_sq (m);
     Square dst = dst_sq (m);
 
-    Piece  p  = _board[org];
-    PieceT pt = ptype  (p);
+    ASSERT (color (_board[org]) == _active);
+    ASSERT (ci.discoverers == discoverers (_active));
+
+    PieceT pt = ptype (_board[org]);
 
     // Direct check ?
     if (ci.checking_bb[pt] & dst) return true;
@@ -1067,32 +1063,32 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     return false;
 }
 
-// gives_checkmate() tests whether a pseudo-legal move gives a checkmate
-bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
-{
-    if (gives_check (m, ci))
-    {
-        Position pos = *this;
-        StateInfo si;
-        pos.do_move (m, si, &ci);
-        return (MoveList<LEGAL> (pos).size () == 0);
-    }
-    return false;
-}
+//// gives_checkmate() tests whether a pseudo-legal move gives a checkmate
+//bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
+//{
+//    if (gives_check (m, ci))
+//    {
+//        Position pos = *this;
+//        StateInfo si;
+//        pos.do_move (m, si, &ci);
+//        return (MoveList<LEGAL> (pos).size () == 0);
+//    }
+//    return false;
+//}
 
 // clear() clear the position
 void Position::clear ()
 {
-    memset (this, 0, sizeof (*this));
+    memset (this, 0x00, sizeof (*this));
 
-    for (Square s = SQ_A1; s <= SQ_H8; ++s)
+    for (i08 s = SQ_A1; s <= SQ_H8; ++s)
     {
         _board[s] = EMPTY;
         _index[s] = -1;
     }
-    for (Color c = WHITE; c <= BLACK; ++c)
+    for (i08 c = WHITE; c <= BLACK; ++c)
     {
-        for (PieceT pt = PAWN; pt <= KING; ++pt)
+        for (u08 pt = PAWN; pt <= KING; ++pt)
         {
             for (i08 i = 0; i < 16; ++i)
             {
@@ -1141,18 +1137,18 @@ void Position::set_castle (Color c, Square org_rook)
     _castle_mask[org_rook] |= cr;
     _castle_rook[cr] = org_rook;
 
-    for (Square s = min (org_rook, dst_rook); s <= max (org_rook, dst_rook); ++s)
+    for (i08 s = min (org_rook, dst_rook); s <= max (org_rook, dst_rook); ++s)
     {
         if (org_king != s && org_rook != s)
         {
-            _castle_path[cr] += s;
+            _castle_path[cr] += Square (s);
         }
     }
-    for (Square s = min (org_king, dst_king); s <= max (org_king, dst_king); ++s)
+    for (i08 s = min (org_king, dst_king); s <= max (org_king, dst_king); ++s)
     {
         if (org_king != s && org_rook != s)
         {
-            _castle_path[cr] += s;
+            _castle_path[cr] += Square (s);
         }
     }
 }
@@ -1219,7 +1215,7 @@ Score Position::compute_psq_score () const
 Value Position::compute_non_pawn_material (Color c) const
 {
     Value value = VALUE_ZERO;
-    for (PieceT pt = NIHT; pt <= QUEN; ++pt)
+    for (u08 pt = NIHT; pt <= QUEN; ++pt)
     {
         value += PieceValue[MG][pt] * i32 (_piece_count[c][pt]);
     }
@@ -1232,7 +1228,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     ASSERT (_ok (m));
     ASSERT (&si != _si);
 
-    Key posi_k = _si->posi_key;
+    Key p_key = _si->posi_key;
 
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
@@ -1331,7 +1327,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         prefetch ((char *) _thread->material_table[_si->matl_key]);
 
         // Update Hash key of position
-        posi_k ^= Zob._.piecesq[pasive][ct][cap];
+        p_key ^= Zob._.piecesq[pasive][ct][cap];
         // Update incremental scores
         _si->psq_score -= PSQ[pasive][ct][cap];
         // Reset Rule-50 draw counter
@@ -1352,7 +1348,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     // Reset old en-passant square
     if (SQ_NO != _si->en_passant_sq)
     {
-        posi_k ^= Zob._.en_passant[_file (_si->en_passant_sq)];
+        p_key ^= Zob._.en_passant[_file (_si->en_passant_sq)];
         _si->en_passant_sq = SQ_NO;
     }
 
@@ -1371,17 +1367,17 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
                 Zob._.piecesq[_active][PAWN][dst];
         }
         
-        posi_k ^= Zob._.piecesq[_active][pt][org] ^ Zob._.piecesq[_active][pt][dst];
+        p_key ^= Zob._.piecesq[_active][pt][org] ^ Zob._.piecesq[_active][pt][dst];
         
         _si->psq_score += PSQ[_active][pt][dst] - PSQ[_active][pt][org];
     }
     else if (mt == CASTLE)
     {
         Square org_rook, dst_rook;
-        do_castling<true>(org, dst, org_rook, dst_rook);
+        do_castling<true> (org, dst, org_rook, dst_rook);
 
-        posi_k ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
-        posi_k ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
+        p_key ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
+        p_key ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
 
         _si->psq_score += PSQ[_active][KING][dst     ] - PSQ[_active][KING][org     ];
         _si->psq_score += PSQ[_active][ROOK][dst_rook] - PSQ[_active][ROOK][org_rook];
@@ -1399,7 +1395,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
         _si->pawn_key ^= Zob._.piecesq[_active][PAWN][org];
 
-        posi_k ^= Zob._.piecesq[_active][PAWN][org] ^ Zob._.piecesq[_active][ppt][dst];
+        p_key ^= Zob._.piecesq[_active][PAWN][org] ^ Zob._.piecesq[_active][ppt][dst];
 
         // Update incremental score
         _si->psq_score += PSQ[_active][ppt][dst] - PSQ[_active][PAWN][org];
@@ -1415,7 +1411,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         _si->castle_rights &= ~cr;
         while (b != U64 (0))
         {
-            posi_k ^= Zob._.castle_right[0][pop_lsq (b)];
+            p_key ^= Zob._.castle_right[0][pop_lsq (b)];
         }
     }
 
@@ -1458,7 +1454,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
     // Switch side to move
     _active = pasive;
-    posi_k ^= Zob._.mover_side;
+    p_key ^= Zob._.mover_side;
 
     // Handle pawn en-passant square setting
     if (PAWN == pt)
@@ -1471,7 +1467,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
             if (can_en_passant (ep_sq))
             {
                 _si->en_passant_sq = ep_sq;
-                posi_k ^= Zob._.en_passant[_file (ep_sq)];
+                p_key ^= Zob._.en_passant[_file (ep_sq)];
             }
         }
 
@@ -1480,10 +1476,10 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     }
 
     // Prefetch TT access as soon as we know the new hash key
-    prefetch((char*) TT.cluster_entry (posi_k));
+    prefetch ((char*) TT.cluster_entry (p_key));
 
     // Update the key with the final value
-    _si->posi_key     = posi_k;
+    _si->posi_key     = p_key;
     _si->capture_type = ct;
     _si->last_move    = m;
     ++_si->null_ply;
@@ -1530,7 +1526,7 @@ void Position::undo_move ()
     else if (mt == CASTLE)
     {
         Square org_rook, dst_rook;
-        do_castling<false>(org, dst, org_rook, dst_rook);
+        do_castling<false> (org, dst, org_rook, dst_rook);
         //ct  = NONE;
     }
     else if (mt == ENPASSANT)
@@ -1616,7 +1612,7 @@ void Position::flip ()
     string fen_, s;
     stringstream ss (fen ());
     // 1. Piece placement
-    for (Rank rank = R_8; rank >= R_1; --rank)
+    for (i08 rank = R_8; rank >= R_1; --rank)
     {
         getline (ss, s, rank > R_1 ? '/' : ' ');
         fen_.insert (0, s + (fen_.empty () ? " " : "/"));
@@ -1646,11 +1642,11 @@ string Position::fen (bool c960, bool full) const
 {
     ostringstream oss;
 
-    for (Rank r = R_8; r >= R_1; --r)
+    for (i08 r = R_8; r >= R_1; --r)
     {
-        for (File f = F_A; f <= F_H; ++f)
+        for (i08 f = F_A; f <= F_H; ++f)
         {
-            Square s = f | r;
+            Square s = File (f) | Rank (r);
             i16 empty_count = 0;
             while (F_H >= f && empty (s))
             {
@@ -1719,14 +1715,14 @@ Position::operator string () const
 
     string board = edge;
 
-    for (Rank r = R_8; r >= R_1; --r)
+    for (i08 r = R_8; r >= R_1; --r)
     {
-        board += to_char (r) + ((r % 2) ? row_1 : row_2);
+        board += to_char (Rank (r)) + ((r % 2) ? row_1 : row_2);
     }
-    for (File f = F_A; f <= F_H; ++f)
+    for (i08 f = F_A; f <= F_H; ++f)
     {
         board += "   ";
-        board += to_char (f, false);
+        board += to_char (File (f), false);
     }
 
     Bitboard occ = _types_bb[NONE];
@@ -1874,24 +1870,24 @@ bool Position::parse (Position &pos, const string &fen, Thread *thread, bool c96
     {
         while ((iss >> ch) && !isspace (ch))
         {
-            Square rook;
+            i08 rook;
             Color c = isupper (ch) ? WHITE : BLACK;
             switch (toupper (ch))
             {
             case 'K':
                 rook = rel_sq (c, SQ_H1);
-                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != ptype (pos[rook]))) --rook;
+                while ((rel_sq (c, SQ_A1) <= rook) && (ROOK != ptype (pos[Square (rook)]))) --rook;
                 break;
             case 'Q':
                 rook = rel_sq (c, SQ_A1);
-                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != ptype (pos[rook]))) ++rook;
+                while ((rel_sq (c, SQ_H1) >= rook) && (ROOK != ptype (pos[Square (rook)]))) ++rook;
                 break;
             default:
                 continue;
             }
 
             //if (ROOK != ptype (pos[rook])) return false;
-            pos.set_castle (c, rook);
+            pos.set_castle (c, Square (rook));
         }
     }
 
