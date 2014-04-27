@@ -1,7 +1,6 @@
 ﻿#include "Searcher.h"
 
 #include <cfloat>
-#include <cmath>
 #include <algorithm>
 #include <iostream>
 #include <sstream>
@@ -432,7 +431,7 @@ namespace Searcher {
                     }
                 }
 
-                futility_base = best_value + Value (128);
+                futility_base = best_value + 128;
             }
 
             // Initialize a MovePicker object for the current position, and prepare
@@ -955,7 +954,7 @@ namespace Searcher {
             // Step 10. Internal iterative deepening (skipped when in check)
             if (   (depth >= ((PVNode ? 5 : 8)*ONE_MOVE))
                 && (tt_move == MOVE_NONE)
-                && (PVNode || (ss)->static_eval + Value (256) >= beta)
+                && (PVNode || (ss)->static_eval + 256 >= beta)
                )
             {
                 Depth d = depth - Depth ((2*ONE_MOVE) + (PVNode ? 0 : depth>>2)); // TODO::
@@ -1152,7 +1151,7 @@ namespace Searcher {
                         if (predicted_depth < (7*ONE_MOVE))
                         {
                             Value futility_value = (ss)->static_eval + futility_margin (predicted_depth)
-                                                 + Gains[pos[org_sq (move)]][dst_sq (move)] + Value (128);
+                                                 + Gains[pos[org_sq (move)]][dst_sq (move)] + 128;
 
                             if (futility_value <= alpha)
                             {
@@ -1967,8 +1966,8 @@ namespace Searcher {
             {
                 double     pv_red = 0.00 + log (double (hd)) * log (double (mc)) / 3.00;
                 double non_pv_red = 0.33 + log (double (hd)) * log (double (mc)) / 2.25;
-                Reductions[1][1][hd][mc] =     pv_red >= 1.0 ? floor (    pv_red * i32 (ONE_MOVE)) : 0;
-                Reductions[0][1][hd][mc] = non_pv_red >= 1.0 ? floor (non_pv_red * i32 (ONE_MOVE)) : 0;
+                Reductions[1][1][hd][mc] =     pv_red >= 1.0 ? i32 (    pv_red * i32 (ONE_MOVE)) : 0;
+                Reductions[0][1][hd][mc] = non_pv_red >= 1.0 ? i32 (non_pv_red * i32 (ONE_MOVE)) : 0;
 
                 Reductions[1][0][hd][mc] = Reductions[1][1][hd][mc];
                 Reductions[0][0][hd][mc] = Reductions[0][1][hd][mc];
