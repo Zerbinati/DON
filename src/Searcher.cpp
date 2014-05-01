@@ -1316,7 +1316,7 @@ namespace Searcher {
                 // and return immediately without updating best move, PV and TT.
                 if (Signals.stop || thread->cutoff_occurred ())
                 {
-                    return VALUE_DRAW;
+                    return value;
                 }
 
                 if (RootNode)
