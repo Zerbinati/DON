@@ -1,15 +1,14 @@
 #include "MovePicker.h"
 
-#include "Position.h"
 #include "Thread.h"
 
 using namespace std;
 using namespace Searcher;
 using namespace MoveGenerator;
 
-// Constructors of the MovePicker class. As arguments we pass information
+// Constructors of the MovePicker class. As arguments pass information
 // to help it to return the (presumably) good moves first, to decide which
-// moves to return (in the quiescence search, for instance, we only want to
+// moves to return (in the quiescence search, for instance, only want to
 // search captures, promotions and some checks) and about how important good
 // move ordering is at the current node.
 
@@ -92,7 +91,7 @@ MovePicker::MovePicker (const Position &p, const HistoryStats &h, Move ttm,     
 
     stage = PROBCUT;
 
-    // In ProbCut we generate only captures better than parent's captured piece
+    // In ProbCut generate only captures better than parent's captured piece
     capture_threshold = PieceValue[MG][pt];
 
     tt_move = (ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE);
@@ -121,10 +120,10 @@ void MovePicker::value<CAPTURE> ()
     // where it is possible to recapture with the hanging piece). Exchanging
     // big pieces before capturing a hanging piece probably helps to reduce
     // the subtree size.
-    // In main search we want to push captures with negative SEE values to
-    // bad_captures[] array, but instead of doing it now we delay till when
-    // the move has been picked up in pick_move(), this way we save
-    // some SEE calls in case we get a cutoff (idea from Pablo Vazquez).
+    // In main search want to push captures with negative SEE values to
+    // bad_captures[] array, but instead of doing it now delay till when
+    // the move has been picked up in pick_move(), this way save
+    // some SEE calls in case get a cutoff (idea from Pablo Vazquez).
     for (ValMove *itr = moves; itr != end; ++itr)
     {
         Move m = itr->move;
@@ -139,7 +138,6 @@ void MovePicker::value<CAPTURE> ()
         {
             itr->value += PieceValue[MG][promote (m)] - PieceValue[MG][PAWN];
         }
-
     }
 }
 
@@ -439,7 +437,7 @@ Move MovePicker::next_move<false> ()
             {
                 pick_best ();
                 move = (cur++)->move;
-                if (dst_sq (move) == recapture_sq)
+                if (recapture_sq == dst_sq (move))
                 {
                     return move;
                 }

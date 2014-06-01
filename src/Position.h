@@ -10,14 +10,13 @@
 #include <stack>
 
 #include "BitBoard.h"
-#include "BitScan.h"
 #include "Zobrist.h"
-
-class Position;
 
 namespace Threads {
     class Thread;
 }
+
+class Position;
 
 // FORSYTH-EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
 // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
@@ -149,7 +148,7 @@ private:
 
     Bitboard check_blockers (Color piece_c, Color king_c) const;
 
-    template<bool DO>
+    template<bool Do>
     void do_castling (Square org_king, Square &dst_king, Square &org_rook, Square &dst_rook);
 
     template<PieceT PT>
@@ -157,7 +156,7 @@ private:
 
 public:
 
-    static u08 _50_move_dist;
+    static u08 _fifty_move_dist;
 
     static void initialize ();
 
@@ -305,9 +304,9 @@ public:
 
     static bool parse (Position &pos, const std::string &fen, Threads::Thread *thread = NULL, bool c960 = false, bool full = true);
 
-    template<class charT, class Traits>
-    friend std::basic_ostream<charT, Traits>&
-        operator<< (std::basic_ostream<charT, Traits> &os, const Position &pos)
+    template<class CharT, class Traits>
+    friend std::basic_ostream<CharT, Traits>&
+        operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
     {
         os << std::string (pos);
         return os;
@@ -470,11 +469,11 @@ inline Bitboard Position::discoverers (Color c) const
 }
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return !(pieces<PAWN> (~c) & BitBoard::PasserPawnSpan[c][s]);
+    return !((_color_bb[~c]&_types_bb[PAWN]) & BitBoard::PawnPassSpan[c][s]);
 }
 inline bool Position::pawn_on_7thR (Color c) const
 {
-    return pieces<PAWN> (c) & BitBoard::Rank_bb[rel_rank (c, R_7)];
+    return (_color_bb[c]&_types_bb[PAWN]) & BitBoard::Rank_bb[rel_rank (c, R_7)];
 }
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
@@ -541,8 +540,8 @@ inline void  Position::remove_piece (Square s)
 {
     ASSERT (EMPTY != _board[s]);
 
-    // WARNING: This is not a reversible operation. If we remove a piece in
-    // do_move() and then replace it in undo_move() we will put it at the end of
+    // WARNING: This is not a reversible operation. If remove a piece in
+    // do_move() and then replace it in undo_move() will put it at the end of
     // the list and not in its original place, it means index[] and pieceList[]
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
@@ -594,7 +593,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
 }
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.
-template<bool DO>
+template<bool Do>
 inline void Position::do_castling (Square org_king, Square &dst_king, Square &org_rook, Square &dst_rook)
 {
     // Move the piece. The tricky Chess960 castle is handled earlier
@@ -603,10 +602,10 @@ inline void Position::do_castling (Square org_king, Square &dst_king, Square &or
     dst_king = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
     dst_rook = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
-    remove_piece (DO ? org_king : dst_king);
-    remove_piece (DO ? org_rook : dst_rook);
-    place_piece (DO ? dst_king : org_king, _active, KING);
-    place_piece (DO ? dst_rook : org_rook, _active, ROOK);
+    remove_piece (Do ? org_king : dst_king);
+    remove_piece (Do ? org_rook : dst_rook);
+    place_piece (Do ? dst_king : org_king, _active, KING);
+    place_piece (Do ? dst_rook : org_rook, _active, ROOK);
 }
 
 // ----------------------------------------------

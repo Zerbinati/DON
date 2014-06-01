@@ -1,7 +1,6 @@
 #include "MoveGenerator.h"
 
 #include "Position.h"
-#include "BitCount.h"
 
 #ifdef _MSC_VER
 #   pragma warning (disable: 4189) // 'argument' : local variable is initialized but not referenced
@@ -83,9 +82,9 @@ namespace MoveGenerator {
             Generator () {}
 
             // template<GenT GT, Color C>
-            // template<CSide SIDE, bool CHESS960>
+            // template<CSide SIDE, bool Chess960>
             // void Generator<GT, KING>::generate_castling()
-            template<CRight CR, bool CHESS960>
+            template<CRight CR, bool Chess960>
             // Generates KING castling move
             static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= NULL*/)
             {
@@ -104,7 +103,7 @@ namespace MoveGenerator {
 
                 Square dst_king = rel_sq (C, KingSide ? SQ_G1 : SQ_C1);
 
-                Delta step = CHESS960 ? 
+                Delta step = Chess960 ? 
                     (dst_king > org_king ? DEL_W : DEL_E) :
                     (KingSide            ? DEL_W : DEL_E);
 
@@ -116,10 +115,10 @@ namespace MoveGenerator {
                     }
                 }
 
-                if (CHESS960)
+                if (Chess960)
                 {
-                    // Because we generate only legal castling moves we need to verify that
-                    // when moving the castling rook we do not discover some hidden checker.
+                    // Because generate only legal castling moves needed to verify that
+                    // when moving the castling rook do not discover some hidden checker.
                     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
                     if (pos.attackers_to (dst_king, pos.pieces () - org_rook) & pos.pieces (C_, ROOK, QUEN))
                     {
@@ -304,7 +303,7 @@ namespace MoveGenerator {
                             // pawns which give discovered check
                             Bitboard pawns_chk_dis = pawns_on_Rx & ci->discoverers;
                             // Add pawn pushes which give discovered check. This is possible only
-                            // if the pawn is not on the same file as the enemy king, because we
+                            // if the pawn is not on the same file as the enemy king, because
                             // don't generate captures. Note that a possible discovery check
                             // promotion has been already generated among captures.
                             if (pawns_chk_dis != U64 (0))
@@ -343,7 +342,7 @@ namespace MoveGenerator {
                         {
                             // An en-passant capture can be an evasion only if the checking piece
                             // is the double pushed pawn and so is in the target. Otherwise this
-                            // is a discovery check and we are forced to do otherwise.
+                            // is a discovery check and are forced to do otherwise.
                             // All time except when EVASION then 2nd condition must true
                             if (EVASION != GT || (targets & (ep_sq - PUSH)))
                             {
@@ -385,10 +384,10 @@ namespace MoveGenerator {
         INLINE ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
         {
             Generator<GT, C, PAWN>::generate (moves, pos, targets, ci);
-            Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
-            Generator<GT, C, BSHP>::generate (moves, pos, targets, ci);
-            Generator<GT, C, ROOK>::generate (moves, pos, targets, ci);
-            Generator<GT, C, QUEN>::generate (moves, pos, targets, ci);
+            /*if (pos.count<NIHT> (C) != 0)*/ Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
+            /*if (pos.count<BSHP> (C) != 0)*/ Generator<GT, C, BSHP>::generate (moves, pos, targets, ci);
+            /*if (pos.count<ROOK> (C) != 0)*/ Generator<GT, C, ROOK>::generate (moves, pos, targets, ci);
+            /*if (pos.count<QUEN> (C) != 0)*/ Generator<GT, C, QUEN>::generate (moves, pos, targets, ci);
             Generator<GT, C, KING>::generate (moves, pos, targets, ci);
 
             return moves;
@@ -432,14 +431,14 @@ namespace MoveGenerator {
         Color active = pos.active ();
 
         Bitboard targets = 
-              CAPTURE == GT ?  pos.pieces (~active)
-            : QUIET   == GT ? ~pos.pieces ()
-            : RELAX   == GT ? ~pos.pieces (active)
-            : U64 (0);
+            CAPTURE == GT ?  pos.pieces (~active) :
+            QUIET   == GT ? ~pos.pieces () :
+            RELAX   == GT ? ~pos.pieces (active) :
+            U64 (0);
 
-        return WHITE == active ? generate_moves<GT, WHITE> (moves, pos, targets)
-            :  BLACK == active ? generate_moves<GT, BLACK> (moves, pos, targets)
-            :  moves;
+        return WHITE == active ? generate_moves<GT, WHITE> (moves, pos, targets) :
+               BLACK == active ? generate_moves<GT, BLACK> (moves, pos, targets) :
+               moves;
     }
 
     // --------------------------------
@@ -447,13 +446,13 @@ namespace MoveGenerator {
 
     // generate<RELAX> generates all pseudo-legal captures and non-captures.
     // Returns a pointer to the end of the move list.
-    template ValMove* generate<RELAX>   (ValMove *moves, const Position &pos);
+    template ValMove* generate<RELAX  > (ValMove *moves, const Position &pos);
     // generate<CAPTURES> generates all pseudo-legal captures and queen promotions.
     // Returns a pointer to the end of the move list.
     template ValMove* generate<CAPTURE> (ValMove *moves, const Position &pos);
     // generate<QUIETS> generates all pseudo-legal non-captures and underpromotions.
     // Returns a pointer to the end of the move list.
-    template ValMove* generate<QUIET>   (ValMove *moves, const Position &pos);
+    template ValMove* generate<QUIET  > (ValMove *moves, const Position &pos);
     // --------------------------------
 
     template<>
@@ -480,15 +479,15 @@ namespace MoveGenerator {
             SERIALIZE (moves, org, attacks);
         }
 
-        return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, empties, &ci)
-            :  BLACK == active ? generate_moves<QUIET_CHECK, BLACK> (moves, pos, empties, &ci)
-            :  moves;
+        return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, empties, &ci) :
+               BLACK == active ? generate_moves<QUIET_CHECK, BLACK> (moves, pos, empties, &ci) :
+               moves;
     }
 
     template<>
     // Generates all pseudo-legal check giving moves.
     // Returns a pointer to the end of the move list.
-    ValMove* generate<CHECK>       (ValMove *moves, const Position &pos)
+    ValMove* generate<CHECK      > (ValMove *moves, const Position &pos)
     {
         Color active    = pos.active ();
         Bitboard occ    = pos.pieces ();
@@ -507,15 +506,15 @@ namespace MoveGenerator {
             SERIALIZE (moves, org, attacks);
         }
 
-        return WHITE == active ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci)
-            :  BLACK == active ? generate_moves<CHECK, BLACK> (moves, pos, targets, &ci)
-            :  moves;
+        return WHITE == active ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
+               BLACK == active ? generate_moves<CHECK, BLACK> (moves, pos, targets, &ci) :
+               moves;
     }
 
     template<>
     // Generates all pseudo-legal check evasions moves when the side to move is in check.
     // Returns a pointer to the end of the move list.
-    ValMove* generate<EVASION>     (ValMove *moves, const Position &pos)
+    ValMove* generate<EVASION    > (ValMove *moves, const Position &pos)
     {
         Bitboard checkers = pos.checkers ();
         ASSERT (checkers != U64 (0)); // If any checker exists
@@ -548,7 +547,7 @@ namespace MoveGenerator {
         check_sq = SQ_NO;
         Bitboard slid_attacks = U64 (0);
         Bitboard sliders = checkers & ~(pos.pieces (NIHT, PAWN));
-        // Find squares attacked by slider checkers, we will remove them from the king
+        // Find squares attacked by slider checkers, will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
         while (sliders != U64 (0))
         {
@@ -574,18 +573,18 @@ namespace MoveGenerator {
         // Generates blocking evasions or captures of the checking piece
         Bitboard targets = Between_bb[check_sq][king_sq] + check_sq;
 
-        return WHITE == active ? generate_moves<EVASION, WHITE> (moves, pos, targets)
-            :  BLACK == active ? generate_moves<EVASION, BLACK> (moves, pos, targets)
-            :  moves;
+        return WHITE == active ? generate_moves<EVASION, WHITE> (moves, pos, targets) :
+               BLACK == active ? generate_moves<EVASION, BLACK> (moves, pos, targets) :
+               moves;
     }
 
     template<>
     // Generates all legal moves.
-    ValMove* generate<LEGAL>       (ValMove *moves, const Position &pos)
+    ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
-        ValMove *end = pos.checkers () != U64 (0)
-            ? generate<EVASION> (moves, pos)
-            : generate<RELAX  > (moves, pos);
+        ValMove *end = pos.checkers () != U64 (0) ?
+            generate<EVASION> (moves, pos) :
+            generate<RELAX  > (moves, pos);
 
         Square   king_sq = pos.king_sq (pos.active ());
         Bitboard pinneds = pos.pinneds (pos.active ());

@@ -6,6 +6,8 @@
 #define _BITBOARD_H_INC_
 
 #include "Type.h"
+#include "BitCount.h"
+#include "BitScan.h"
 
 #ifdef BM2
 #   include <immintrin.h> // Header for bmi2 instructions
@@ -39,12 +41,20 @@ namespace BitBoard {
     const Bitboard D18_bb = U64 (0x8040201008040201);             // 08 DIAG-18 squares.
     const Bitboard D81_bb = U64 (0x0102040810204080);             // 08 DIAG-81 squares.
 
-    const Bitboard LIHT_bb = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
-    const Bitboard DARK_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
+    const Bitboard Liht_bb = U64 (0x55AA55AA55AA55AA);            // 32 LIGHT squares.
+    const Bitboard Dark_bb = U64 (0xAA55AA55AA55AA55);            // 32 DARK  squares.
 
-    const Bitboard CRNR_bb = U64 (0x8100000000000081);            // 04 CORNER squares.
-    const Bitboard RIMEDGE_bb = (R1_bb | R8_bb | FA_bb | FH_bb);
-    const Bitboard MIDEDGE_bb = (FA_bb | FH_bb)&(R2_bb | R3_bb);
+    const Bitboard Corner_bb  = (FA_bb | FH_bb)&(R1_bb | R8_bb);    // 04 CORNER squares.
+    const Bitboard RimEdge_bb = (FA_bb | FH_bb | R1_bb | R8_bb);
+    const Bitboard MidEdge_bb = (FA_bb | FH_bb)&(R2_bb | R3_bb);
+    const Bitboard WingABC_bb = (FA_bb | FB_bb | FC_bb);
+    const Bitboard WingFGH_bb = (FF_bb | FG_bb | FH_bb);
+    const Bitboard WingDE_bb  = (FD_bb | FE_bb);
+    const Bitboard Center_bb[CLR_NO] =
+    {
+        (FC_bb | FD_bb | FE_bb | FF_bb)&(R4_bb | R5_bb | R6_bb | R7_bb | R8_bb),
+        (FC_bb | FD_bb | FE_bb | FF_bb)&(R5_bb | R4_bb | R3_bb | R2_bb | R1_bb)
+    };
 
     const Delta PawnDeltas[CLR_NO][3] =
     {
@@ -138,7 +148,7 @@ namespace BitBoard {
         }
     };
 
-    CACHE_ALIGN(64) extern Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
 
     CACHE_ALIGN(64) extern Bitboard Between_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) extern Bitboard LineRay_bb[SQ_NO][SQ_NO];
@@ -146,7 +156,7 @@ namespace BitBoard {
     CACHE_ALIGN(64) extern Bitboard DistanceRings[SQ_NO][F_NO];
 
     CACHE_ALIGN(64) extern Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard PasserPawnSpan[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) extern Bitboard PawnPassSpan[CLR_NO][SQ_NO];
 
     // attacks of the pawns & pieces
     CACHE_ALIGN(64) extern Bitboard PawnAttacks[CLR_NO][SQ_NO];
@@ -221,18 +231,18 @@ namespace BitBoard {
     inline Bitboard rel_rank_bb (Color c, Square s) { return Rank_bb[rel_rank (c, s)]; }
 
     // Bitboard of ranks in front of the rank, from the point of view of the given color.
-    //inline Bitboard front_ranks_bb   (Color c, Rank   r) { return FrontRank_bb[c][r]; }
+    //inline Bitboard front_rank_bb (Color c, Rank   r) { return FrontRank_bb[c][r]; }
     // Bitboard of squares along the line in front of the square, from the point of view of the given color.
-    //inline Bitboard front_sqs_bb (Color c, Square s) { return FrontSqs_bb[c][s]; }
+    //inline Bitboard front_sqrs_bb (Color c, Square s) { return FrontSqrs_bb[c][s]; }
 
     // Ring on the square with the distance 'd'
     //inline Bitboard distance_rings   (Square s, u08 d) { return DistanceRings[s][d]; }
 
-    // Edges of the board
+    // board_edges() returns a bitboard of edges of the board
     inline Bitboard board_edges (Square s) { return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s))); }
 
     // squares_of_color() returns a bitboard of all squares with the same color of the given square.
-    inline Bitboard squares_of_color (Square s) { return (DARK_bb & s) ? DARK_bb : LIHT_bb; }
+    inline Bitboard squares_of_color (Square s) { return (Dark_bb & s) ? Dark_bb : Liht_bb; }
 
     // pawn_attack_span() takes a color and a square as input, and returns a bitboard
     // representing all squares that can be attacked by a pawn of the given color
@@ -244,7 +254,7 @@ namespace BitBoard {
     // bitboard mask which can be used to test if a pawn of the given color on
     // the given square is a passed pawn. Definition of the table is:
     // PassedPawnMask[c][s] = PawnAttackSpan[c][s] | forward_bb(c, s)
-    //inline Bitboard passer_pawn_span (Color c, Square s) { return PasserPawnSpan[c][s]; }
+    //inline Bitboard passer_pawn_span (Color c, Square s) { return PawnPassSpan[c][s]; }
 
     // between_bb() returns a bitboard representing all squares between two squares.
     // For instance,
@@ -264,15 +274,15 @@ namespace BitBoard {
 #endif
     }
 
-    // Shift the Bitboard using delta
-    template<Delta DEL> inline Bitboard shift_del (Bitboard bb);
+    // Shift the bitboard using delta
+    template<Delta Delta> inline Bitboard shift_del (Bitboard bb);
 
     template<> inline Bitboard shift_del<DEL_N > (Bitboard bb) { return (bb) << (+DEL_N); }
     template<> inline Bitboard shift_del<DEL_S > (Bitboard bb) { return (bb) >> (-DEL_S); }
     template<> inline Bitboard shift_del<DEL_NN> (Bitboard bb) { return (bb) << (+DEL_NN); }
     template<> inline Bitboard shift_del<DEL_SS> (Bitboard bb) { return (bb) >> (-DEL_SS); }
-    //template<> inline Bitboard shift_del<DEL_E > (Bitboard bb) { return (bb & FH_bb_) << (+DEL_E); }
-    //template<> inline Bitboard shift_del<DEL_W > (Bitboard bb) { return (bb & FA_bb_) >> (-DEL_W); }
+    template<> inline Bitboard shift_del<DEL_E > (Bitboard bb) { return (bb & FH_bb_) << (+DEL_E); }
+    template<> inline Bitboard shift_del<DEL_W > (Bitboard bb) { return (bb & FA_bb_) >> (-DEL_W); }
     template<> inline Bitboard shift_del<DEL_NE> (Bitboard bb) { return (bb & FH_bb_) << (+DEL_NE); } //(bb << +DEL_NE) & FA_bb_;
     template<> inline Bitboard shift_del<DEL_SE> (Bitboard bb) { return (bb & FH_bb_) >> (-DEL_SE); } //(bb >> -DEL_SE) & FA_bb_;
     template<> inline Bitboard shift_del<DEL_NW> (Bitboard bb) { return (bb & FA_bb_) << (+DEL_NW); } //(bb << +DEL_NW) & FH_bb_;
@@ -373,12 +383,13 @@ namespace BitBoard {
     INLINE Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {
         PieceT pt = ptype (p);
-        return (PAWN == pt) ? PawnAttacks[color (p)][s]
-             : (BSHP == pt) ? attacks_bb<BSHP> (s, occ)
-             : (ROOK == pt) ? attacks_bb<ROOK> (s, occ)
-             : (QUEN == pt) ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ)
-             : (NIHT == pt || KING == pt) ? PieceAttacks[pt][s]
-             : U64 (0);
+        return (PAWN == pt) ? PawnAttacks[color (p)][s] :
+               (BSHP == pt) ? attacks_bb<BSHP> (s, occ) :
+               (ROOK == pt) ? attacks_bb<ROOK> (s, occ) :
+               (QUEN == pt) ? attacks_bb<BSHP> (s, occ)
+                            | attacks_bb<ROOK> (s, occ) :
+               (NIHT == pt || KING == pt) ? PieceAttacks[pt][s] :
+               U64 (0);
     }
 
     extern void initialize ();

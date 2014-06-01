@@ -123,9 +123,7 @@ namespace UCI {
                     {
                         code += string (" ", !code.empty ()) + token;
                     }
-
-                    
-                    cout << name << "\n" << code << endl;
+                    //cout << name << "\n" << code << endl;
                 }
                 else if (token == "later")
                 {
@@ -237,7 +235,7 @@ namespace UCI {
                         Move m = move_from_can (token, RootPos);
                         if (MOVE_NONE != m)
                         {
-                            limits.searchmoves.push_back (m);
+                            limits.root_moves.push_back (m);
                         }
                     }
                 }
@@ -361,20 +359,33 @@ namespace UCI {
 
         inline void exe_eval ()
         {
-            RootColor = RootPos.active (); // Ensure it is set
             sync_cout << Evaluator::trace (RootPos) << sync_endl;
         }
 
         inline void exe_perft (cmdstream &cmds)
         {
-            string token;
+            i32 depth;
             // Read perft 'depth'
-            if (cmds >> token)
+            if (cmds >> depth)
             {
                 stringstream ss;
                 ss  << i32 (Options["Hash"])    << " "
                     << i32 (Options["Threads"]) << " "
-                    << token << " perft current";
+                    << depth << " perft current";
+
+                benchmark (ss, RootPos);
+            }
+        }
+        inline void exe_perftdiv (cmdstream &cmds)
+        {
+            i32 depth;
+            // Read perft 'depth'
+            if (cmds >> depth)
+            {
+                stringstream ss;
+                ss  << i32 (Options["Hash"])    << " "
+                    << i32 (Options["Threads"]) << " "
+                    << depth << " perftdiv current";
 
                 benchmark (ss, RootPos);
             }
@@ -395,7 +406,7 @@ namespace UCI {
 
     // Wait for a command from the user, parse this text string as an UCI command,
     // and call the appropriate functions. Also intercepts EOF from stdin to ensure
-    // that we exit gracefully if the GUI dies unexpectedly. In addition to the UCI
+    // that exit gracefully if the GUI dies unexpectedly. In addition to the UCI
     // commands, the function also supports a few debug commands.
     void start (const string &arg)
     {
@@ -423,9 +434,9 @@ namespace UCI {
             else if (token == "ponderhit")
             {
                 // GUI sends 'ponderhit' to tell us to ponder on the same move the
-                // opponent has played. In case Signals.stop_ponderhit stream set we are
-                // waiting for 'ponderhit' to stop the search (for instance because we
-                // already ran out of time), otherwise we should continue searching but
+                // opponent has played. In case Signals.stop_ponderhit stream set are
+                // waiting for 'ponderhit' to stop the search (for instance because
+                // already ran out of time), otherwise should continue searching but
                 // switching from pondering to normal search.
                 Signals.stop_ponderhit ? exe_stop () : exe_ponderhit ();
             }
@@ -436,6 +447,7 @@ namespace UCI {
             else if (token == "flip")       exe_flip ();
             else if (token == "eval")       exe_eval ();
             else if (token == "perft")      exe_perft (cmds);
+            else if (token == "perftdiv")   exe_perftdiv (cmds);
             else if (token == "bench")      exe_bench (cmds);
             else if (token == "cls")        system ("cls");
             else if (token == "stop"

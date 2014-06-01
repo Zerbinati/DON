@@ -3,8 +3,6 @@
 #include <cstring>
 #include <algorithm>
 
-#include "BitCount.h"
-#include "BitScan.h"
 #include "RKISS.h"
 
 namespace BitBoard {
@@ -12,18 +10,18 @@ namespace BitBoard {
     using namespace std;
 
     // FRONT SQUARES
-    CACHE_ALIGN(64) Bitboard FrontSqs_bb[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
 
     CACHE_ALIGN(64) Bitboard Between_bb[SQ_NO][SQ_NO];
     CACHE_ALIGN(64) Bitboard LineRay_bb[SQ_NO][SQ_NO];
 
-    CACHE_ALIGN (64) Bitboard DistanceRings[SQ_NO][F_NO];
+    CACHE_ALIGN(64) Bitboard DistanceRings[SQ_NO][F_NO];
 
     // Span of the attacks of pawn
     CACHE_ALIGN(64) Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
 
     // Path of the passed pawn
-    CACHE_ALIGN(64) Bitboard PasserPawnSpan[CLR_NO][SQ_NO];
+    CACHE_ALIGN(64) Bitboard PawnPassSpan[CLR_NO][SQ_NO];
 
     // Attacks of the pawns
     CACHE_ALIGN(64) Bitboard PawnAttacks[CLR_NO][SQ_NO];
@@ -92,7 +90,7 @@ namespace BitBoard {
 
         typedef u16 (*Indexer) (Square s, Bitboard occ);
 
-        inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard magics_bb[], Bitboard masks_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
+        inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
         {
 #   ifndef BM2
             const u16 MagicBoosters[R_NO] =
@@ -117,7 +115,7 @@ namespace BitBoard {
                 // Given a square 's', the mask is the bitboard of sliding attacks from
                 // 's' computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
-                // the number of 1s of the mask. Hence we deduce the size of the shift to
+                // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
                 Bitboard moves = sliding_attacks (deltas, s);
 
@@ -153,7 +151,7 @@ namespace BitBoard {
                 }
                 while (occ);
 
-                // Set the offset for the table_bb of the next square. We have individual
+                // Set the offset for the table_bb of the next square. Have individual
                 // table_bb sizes for each square with "Fancy Magic Bitboards".
                 if (s < SQ_H8)
                 {
@@ -164,7 +162,7 @@ namespace BitBoard {
                 u16 booster = MagicBoosters[_rank (s)];
 
                 // Find a magic for square 's' picking up an (almost) random number
-                // until we find the one that passes the verification test.
+                // until found the one that passes the verification test.
                 u32 i;
 
                 do
@@ -181,7 +179,7 @@ namespace BitBoard {
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
-                    // Note that we build up the database for square 's' as a side
+                    // Note that build up the database for square 's' as a side
                     // effect of verifying the magic.
                     for (i = 0; i < size; ++i)
                     {
@@ -207,11 +205,11 @@ namespace BitBoard {
         inline void initialize_sliding ()
         {
 #       ifndef BM2
-            initialize_table (BTable_bb, BAttack_bb, BMagic_bb, BMask_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
-            initialize_table (RTable_bb, RAttack_bb, RMagic_bb, RMask_bb, RShift, PieceDeltas[ROOK], magic_index<ROOK>);
+            initialize_table (BTable_bb, BAttack_bb, BMask_bb, BMagic_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
+            initialize_table (RTable_bb, RAttack_bb, RMask_bb, RMagic_bb, RShift, PieceDeltas[ROOK], magic_index<ROOK>);
 #       else
-            initialize_table (BTable_bb, BAttack_bb, NULL, BMask_bb, NULL, PieceDeltas[BSHP], magic_index<BSHP>);
-            initialize_table (RTable_bb, RAttack_bb, NULL, RMask_bb, NULL, PieceDeltas[ROOK], magic_index<ROOK>);
+            initialize_table (BTable_bb, BAttack_bb, BMask_bb, NULL, NULL, PieceDeltas[BSHP], magic_index<BSHP>);
+            initialize_table (RTable_bb, RAttack_bb, RMask_bb, NULL, NULL, PieceDeltas[ROOK], magic_index<ROOK>);
 #       endif
         }
 
@@ -253,8 +251,6 @@ namespace BitBoard {
                     u08 dRank = FileRankDist[r1][r2];
 
                     SquareDist[s1][s2]  = max (dFile , dRank);
-                    //TaxicabDist[s1][s2] =     (dFile + dRank);
-
                     DistanceRings[s1][SquareDist[s1][s2] - 1] += Square (s2);
                 }
             }
@@ -264,9 +260,9 @@ namespace BitBoard {
         {
             for (i08 s = SQ_A1; s <= SQ_H8; ++s)
             {
-                FrontSqs_bb   [c][s] = FrontRank_bb[c][_rank (Square (s))] &    File_bb[_file (Square (s))];
+                FrontSqrs_bb  [c][s] = FrontRank_bb[c][_rank (Square (s))] &    File_bb[_file (Square (s))];
                 PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (Square (s))] & AdjFile_bb[_file (Square (s))];
-                PasserPawnSpan[c][s] =  FrontSqs_bb[c][s]         | PawnAttackSpan[c][s];
+                PawnPassSpan[c][s]   = FrontSqrs_bb[c][s] | PawnAttackSpan[c][s];
             }
         }
 
@@ -325,9 +321,10 @@ namespace BitBoard {
             {
                 // NOTE:: must be called after initialize_sliding()
 
-                PieceT pt =  (PieceAttacks[BSHP][s1] & s2)
-                    ? BSHP : (PieceAttacks[ROOK][s1] & s2)
-                    ? ROOK : NONE;
+                PieceT pt =  
+                    (PieceAttacks[BSHP][s1] & s2) ? BSHP :
+                    (PieceAttacks[ROOK][s1] & s2) ? ROOK :
+                    NONE;
 
                 if (NONE == pt) continue;
 

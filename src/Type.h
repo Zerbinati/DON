@@ -184,7 +184,7 @@ enum MoveT : u16
 // bit 14-15: special move flag: (1) CASTLE, (2) EN-PASSANT, (3) PROMOTION
 // NOTE: EN-PASSANT bit is set only when a pawn can be captured
 //
-// Special cases are MOVE_NONE and MOVE_NULL. We can sneak these in because in
+// Special cases are MOVE_NONE and MOVE_NULL. Can sneak these in because in
 // any normal move destination square is always different from origin square
 // while MOVE_NONE and MOVE_NULL have the same origin and destination square.
 enum Move : u16
@@ -260,7 +260,7 @@ enum Bound : u08
 
     // EXACT (-) BOUND      - PV_NODE
     // EXACT evaluation, when receive a definite evaluation,
-    // that is we searched all possible moves and received a new best move
+    // that is searched all possible moves and received a new best move
     // (or received an evaluation from quiescent search that was between ALPHA and BETA).
     // if score for max-player was improved (score > alpha), alpha the max so far,
     // while the min-player improved his score as well (score < beta), beta the min so far.
@@ -284,20 +284,41 @@ enum ScaleFactor : u08
 {
     SCALE_FACTOR_DRAW    =   0,
 
-    SCALE_FACTOR_ONEPAWN =  48,
+    SCALE_FACTOR_PAWNS   =  48,
     SCALE_FACTOR_NORMAL  =  64,
     SCALE_FACTOR_MAX     = 128,
     SCALE_FACTOR_NONE    = 255
 };
 
-inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 0x10) + eg); }
+union ScoreUnion
+{
+    u32 score;
+    struct { i16 eg, mg; } _;
+};
+
+inline Score mk_score (i32 mg, i32 eg)
+{
+    ScoreUnion u;
+    u._.mg = i16 (mg - (i16 (eg) >> 15));
+    u._.eg = i16 (eg);
+    return Score (u.score);
+}
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
 // and so is a right shift of a signed integer.
 
-inline Value mg_value (Score s) { return Value (((s + 0x8000) & ~0xFFFF) >> 0x10); }
-inline Value eg_value (Score s) { return Value (i32 (u32 (s) & 0x7FFFU) - i32 (u32 (s) & 0x8000U)); }
+inline Value mg_value (Score s)
+{
+    ScoreUnion u = { u32 (s) };
+    return Value (u._.mg + (i16 (u._.eg) >> 15));
+}
+
+inline Value eg_value (Score s)
+{
+    ScoreUnion u = { u32 (s) };
+    return Value (u._.eg);
+}
 
 #undef BASIC_OPERATORS
 #undef ARTHMAT_OPERATORS
@@ -379,11 +400,13 @@ inline Value  operator*  (Value  v, double f) { return Value (i32 (i32 (v) * f))
 inline Value& operator*= (Value &v, double f) { v = Value (i32 (i32 (v) * f)); return v; }
 
 ARTHMAT_OPERATORS (Score)
-/// Only declared but not defined. We don't want to multiply two scores due to
+/// Only declared but not defined. Don't want to multiply two scores due to
 /// a very high risk of overflow. So user should explicitly convert to integer.
 inline Score operator* (Score s1, Score s2);
 /// Division of a Score must be handled separately for each term
 inline Score operator/ (Score s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+inline Score  operator*  (Score  s, double f) { return mk_score (mg_value (s) * f, eg_value (s) * f); }
+inline Score& operator*= (Score &s, double f) { s = mk_score (mg_value (s) * f, eg_value (s) * f); return s; }
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)
@@ -402,9 +425,9 @@ extern const Value PieceValue[PHASE_NO][TOTL];
 
 inline bool  _ok       (Color c) { return (WHITE == c) || (BLACK == c); }
 inline Color operator~ (Color c) { return Color (c^BLACK); }
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, Color c)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, Color c)
 //{
 //    os << ColorChar[c];
 //    return os;
@@ -414,9 +437,9 @@ inline bool _ok       (File f) { return !(f & ~i08 (F_H)); }
 inline File operator~ (File f) { return File (f ^ i08 (F_H)); }
 inline File to_file   (char f) { return File (f - 'a'); }
 inline char to_char   (File f, bool lower = true) { return char (i08 (f) - i08 (F_A)) + (lower ? 'a' : 'A'); }
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, File f)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, File f)
 //{
 //    os << to_char (f);
 //    return os;
@@ -426,9 +449,9 @@ inline bool _ok       (Rank r) { return !(r & ~i08 (R_8)); }
 inline Rank operator~ (Rank r) { return Rank (r ^ i08 (R_8)); }
 inline Rank to_rank   (char r) { return Rank (r - '1'); }
 inline char to_char   (Rank r) { return char (i08 (r) - i08 (R_1)) + '1'; }
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, Rank r)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, Rank r)
 //{
 //    os << to_char (r);
 //    return os;
@@ -464,9 +487,9 @@ inline std::string to_string (Square s)
     return sq;
     //return { to_char (_file (s)), to_char (_rank (s)), '\0' };
 }
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, Square s)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, Square s)
 //{
 //    os << to_string (s);
 //    return os;
@@ -504,9 +527,9 @@ inline CRight operator~ (CRight cr) { return CRight (((cr >> 2) & 0x3) | ((cr <<
 //    return scastle;
 //}
 //
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//operator<< (std::basic_ostream<charT, Traits> &os, const CRight cr)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//operator<< (std::basic_ostream<CharT, Traits> &os, const CRight cr)
 //{
 //    os << to_string (cr);
 //    return os;
@@ -531,9 +554,9 @@ inline PieceT ptype (Piece p) { return PieceT (p & TOTL); }
 inline Color  color (Piece p) { return Color (p >> 3); }
 inline Piece  operator~ (Piece p) { return Piece (p ^ (BLACK << 3)); }
 
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, const Piece p)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, const Piece p)
 //{
 //    os << PieceChar[p];
 //    return os;
@@ -580,20 +603,7 @@ inline void   promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | ((pt 
 //}
 
 template<MoveT MT>
-extern Move mk_move (Square org, Square dst, PieceT pt);
-template<MoveT MT>
-extern Move mk_move (Square org, Square dst);
-
-template<>
-inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt)
-{
-    return Move (PROMOTE | (( i08 (pt) - i08 (NIHT)) << 12) | (org << 6) | (dst << 0));
-}
-template<MoveT MT>
-inline Move mk_move (Square org, Square dst)
-{
-    return Move (MT | (org << 6) | (dst << 0));
-}
+inline Move mk_move (Square org, Square dst) { return Move (MT | (org << 6) | (dst << 0)); }
 // --------------------------------
 // explicit template instantiations
 template Move mk_move<NORMAL>    (Square org, Square dst);
@@ -602,22 +612,28 @@ template Move mk_move<ENPASSANT> (Square org, Square dst);
 // --------------------------------
 //template<>
 //inline Move mk_move<PROMOTE> (Square org, Square dst) { return mk_move<PROMOTE> (org, dst, QUEN); }
+
+template<MoveT MT>
+inline Move mk_move (Square org, Square dst, PieceT pt) { return MOVE_NONE; }
+template<>
+inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move (PROMOTE | (( i08 (pt) - i08 (NIHT)) << 12) | (org << 6) | (dst << 0)); }
+
 //inline Move mk_move (Square org, Square dst)          { return mk_move<NORMAL> (org, dst); }
 
 
 inline Value mates_in (i32 ply) { return (+VALUE_MATE - ply); }
 inline Value mated_in (i32 ply) { return (-VALUE_MATE + ply); }
 
-//template<class charT, class Traits>
-//inline std::basic_ostream<charT, Traits>&
-//    operator<< (std::basic_ostream<charT, Traits> &os, const std::vector<Square> &sq_list)
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, const std::vector<Square> &sq_list)
 //{
 //    std::for_each (sq_list.begin (), sq_list.end (), [&os] (Square s) { os << s << std::endl; });
 //    return os;
 //}
 
 
-template<class Entry, u32 SIZE>
+template<class Entry, u32 Size>
 struct HashTable
 {
 
@@ -627,11 +643,18 @@ private:
 public:
 
     HashTable ()
-        : _table (SIZE, Entry ())
+        : _table (Size, Entry ())
     {}
 
-    inline Entry* operator[] (Key k) { return &_table[u32 (k) & (SIZE - 1)]; }
+    inline Entry* operator[] (Key k) { return &_table[u32 (k) & (Size - 1)]; }
 
 };
+
+enum SyncT { IO_LOCK, IO_UNLOCK };
+
+#define sync_cout std::cout << IO_LOCK
+#define sync_endl std::endl << IO_UNLOCK
+
+extern std::ostream& operator<< (std::ostream &os, const SyncT &sync);
 
 #endif // _TYPE_H_INC_

@@ -5,9 +5,6 @@
 #include <iomanip>
 #include <sstream>
 
-#include "BitBoard.h"
-#include "BitScan.h"
-#include "BitCount.h"
 #include "MoveGenerator.h"
 #include "Transposition.h"
 #include "Thread.h"
@@ -162,11 +159,11 @@ namespace {
 
 } // namespace
 
-u08 Position::_50_move_dist;
+u08 Position::_fifty_move_dist;
 
 void Position::initialize ()
 {
-    _50_move_dist = 2*i32 (Options["50 Move Distance"]);
+    _fifty_move_dist = 2 * i32 (Options["Fifty Move Distance"]);
 
     for (i08 pt = PAWN; pt <= KING; ++pt)
     {
@@ -209,8 +206,8 @@ bool Position::draw () const
     }
 
     // Draw by 50 moves Rule?
-    if (    _50_move_dist <  _si->clock50
-        || (_50_move_dist == _si->clock50
+    if (    _fifty_move_dist <  _si->clock50
+        || (_fifty_move_dist == _si->clock50
           && (_si->checkers == U64 (0) || MoveList<LEGAL> (*this).size () != 0)
            )
        )
@@ -405,8 +402,8 @@ bool Position::ok (i08 *step) const
                 Bitboard bishops = colors & _types_bb[BSHP];
                 u08 bishop_count[CLR_NO] =
                 {
-                    pop_count<FULL> (LIHT_bb & bishops),
-                    pop_count<FULL> (DARK_bb & bishops),
+                    pop_count<FULL> (Liht_bb & bishops),
+                    pop_count<FULL> (Dark_bb & bishops),
                 };
 
                 if (    (_piece_count[c][PAWN] +
@@ -530,7 +527,7 @@ bool Position::ok (i08 *step) const
 
 // least_valuable_attacker() is a helper function used by see()
 // to locate the least valuable attacker for the side to move,
-// remove the attacker we just found from the bitboards and
+// remove the attacker just found from the bitboards and
 // scan for new X-ray attacks behind it.
 template<PieceT PT>
 PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
@@ -600,16 +597,16 @@ Value Position::see      (Move m) const
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, occupied) & occupied;
 
-    // If the opponent has no attackers we are finished
+    // If the opponent has no attackers are finished
     stm = ~stm;
     Bitboard stm_attackers = attackers & _color_bb[stm];
     if (stm_attackers != U64 (0))
     {
         // The destination square is defended, which makes things rather more
-        // difficult to compute. We proceed by building up a "swap list" containing
+        // difficult to compute. Proceed by building up a "swap list" containing
         // the material gain or loss at each stop in a sequence of captures to the
         // destination square, where the sides alternately capture, and always
-        // capture with the least valuable piece. After each capture, we look for
+        // capture with the least valuable piece. After each capture, look for
         // new X-ray attacks from behind the capturing piece.
         do
         {
@@ -638,7 +635,7 @@ Value Position::see      (Move m) const
         }
         while (stm_attackers != U64 (0));
 
-        // Having built the swap list, we negamax through it to find the best
+        // Having built the swap list, negamax through it to find the best
         // achievable score from the point of view of the side to move.
         while (--depth > 0)
         {
@@ -812,7 +809,7 @@ bool Position::pseudo_legal (Move m) const
     // Handle the special case of a piece move
     if (PAWN == pt)
     {
-        // We have already handled promotion moves, so destination
+        // Have already handled promotion moves, so destination
         // cannot be on the 8th/1st rank.
         if ((R_1 == r_org) || (R_8 == r_org)) return false;
         if ((R_1 == r_dst) || (R_2 == r_dst)) return false;
@@ -899,7 +896,7 @@ bool Position::pseudo_legal (Move m) const
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves
-    // and legal() relies on this. So we have to take care that the
+    // and legal() relies on this. So have to take care that the
     // same kind of moves are filtered out here.
     Bitboard chkrs = checkers ();
     if (chkrs != U64 (0))
@@ -964,7 +961,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // If the moving piece is a king.
         if (KING == pt)
         {
-            // In case of king moves under check we have to remove king so to catch
+            // In case of king moves under check have to remove king so to catch
             // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
             // check whether the destination square is attacked by the opponent.
             return !(attackers_to (dst, _types_bb[NONE] - org) & _color_bb[pasive]); // Remove 'org' but not place 'dst'
@@ -985,7 +982,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
     else if (mt == ENPASSANT)
     {
         // En-passant captures are a tricky special case. Because they are rather uncommon,
-        // we do it simply by testing whether the king is attacked after the move is made.
+        // do it simply by testing whether the king is attacked after the move is made.
         Square cap = dst + pawn_push (pasive);
 
         ASSERT (dst == _si->en_passant_sq);
@@ -1025,7 +1022,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     }
 
     MoveT mt  = mtype (m);
-    // Can we skip the ugly special cases ?
+    // Can skip the ugly special cases ?
     if (mt == NORMAL) return false;
 
     const Bitboard occ = _types_bb[NONE];
@@ -1226,6 +1223,25 @@ Value Position::compute_non_pawn_material (Color c) const
     return value;
 }
 
+#undef do_capture
+
+#define do_capture() {                                                       \
+    remove_piece (cap);                                                      \
+    if (PAWN == ct)                                                          \
+    {                                                                        \
+        _si->pawn_key ^= Zob._.piecesq[pasive][PAWN][cap];                  \
+    }                                                                        \
+    else                                                                     \
+    {                                                                        \
+        _si->non_pawn_matl[pasive] -= PieceValue[MG][ct];                    \
+    }                                                                        \
+    _si->matl_key ^= Zob._.piecesq[pasive][ct][_piece_count[pasive][ct]];    \
+    prefetch ((char *) _thread->material_table[_si->matl_key]);              \
+    p_key ^= Zob._.piecesq[pasive][ct][cap];                                 \
+    _si->psq_score -= PSQ[pasive][ct][cap];                                  \
+    _si->clock50 = 0;                                                        \
+}
+
 // do_move() do the move with checking info
 void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 {
@@ -1261,7 +1277,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     Square cap = dst;
     PieceT  ct = NONE;
 
-    // Pick capture piece and check validation
+    // Do move according to move type
     if      (mt == NORMAL)
     {
         ASSERT (PAWN == (promote (m) - NIHT));
@@ -1276,13 +1292,55 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         {
             ct = ptype (_board[cap]);
         }
+
+        ASSERT (KING != ct);   // can't capture the KING
+        if (NONE != ct)
+        {
+            do_capture ();
+        }
+        else
+        {
+            if (PAWN == pt)
+            {
+                _si->clock50 = 0;
+            }
+            else
+            {
+                _si->clock50++;
+            }
+        }
+
+        // Move the piece
+        move_piece (org, dst);
+
+        // Update pawns hash key
+        if (PAWN == pt)
+        {
+            _si->pawn_key ^=
+                Zob._.piecesq[_active][PAWN][org] ^
+                Zob._.piecesq[_active][PAWN][dst];
+        }
+
+        p_key ^= Zob._.piecesq[_active][pt][org] ^ Zob._.piecesq[_active][pt][dst];
+
+        _si->psq_score += PSQ[_active][pt][dst] - PSQ[_active][pt][org];
     }
     else if (mt == CASTLE)
     {
         ASSERT (KING == pt);
         ASSERT (ROOK == ptype (_board[dst]));
+        //ct = NONE;
 
-        ct = NONE;
+        Square org_rook, dst_rook;
+        do_castling<true> (org, dst, org_rook, dst_rook);
+
+        p_key ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
+        p_key ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
+
+        _si->psq_score += PSQ[_active][KING][dst     ] - PSQ[_active][KING][org     ];
+        _si->psq_score += PSQ[_active][ROOK][dst_rook] - PSQ[_active][ROOK][org_rook];
+        
+        _si->clock50++;
     }
     else if (mt == ENPASSANT)
     {
@@ -1295,71 +1353,9 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         cap += pawn_push (pasive);
         ASSERT ((pasive | PAWN) == _board[cap]);
         ct = PAWN;
-    }
-    else if (mt == PROMOTE)
-    {
-        ASSERT (PAWN == pt);        // Moving type must be PAWN
-        ASSERT (R_7 == rel_rank (_active, org));
-        ASSERT (R_8 == rel_rank (_active, dst));
 
-        ct = ptype (_board[cap]);
-        ASSERT (PAWN != ct);
-    }
+        do_capture ();
 
-    ASSERT (KING != ct);   // can't capture the KING
-
-    // ------------------------
-
-    // Handle all captures
-    if (NONE != ct)
-    {
-        // Remove captured piece
-        remove_piece (cap);
-        // If the captured piece is a pawn
-        if (PAWN == ct) // Update pawn hash key
-        {
-            _si->pawn_key ^= Zob._.piecesq[pasive][PAWN][cap];
-        }
-        else            // Update non-pawn material
-        {
-            _si->non_pawn_matl[pasive] -= PieceValue[MG][ct];
-        }
-        // Update Hash key of material situation
-        _si->matl_key ^= Zob._.piecesq[pasive][ct][_piece_count[pasive][ct]];
-
-        // Update prefetch access to material_table
-        prefetch ((char *) _thread->material_table[_si->matl_key]);
-
-        // Update Hash key of position
-        p_key ^= Zob._.piecesq[pasive][ct][cap];
-        // Update incremental scores
-        _si->psq_score -= PSQ[pasive][ct][cap];
-        // Reset Rule-50 draw counter
-        _si->clock50 = 0;
-    }
-    else
-    {
-        if (PAWN == pt)
-        {
-            _si->clock50 = 0;
-        }
-        else
-        {
-            _si->clock50++;
-        }
-    }
-
-    // Reset old en-passant square
-    if (SQ_NO != _si->en_passant_sq)
-    {
-        p_key ^= Zob._.en_passant[_file (_si->en_passant_sq)];
-        _si->en_passant_sq = SQ_NO;
-    }
-
-    // Do move according to move type
-    if      (mt == NORMAL
-        ||   mt == ENPASSANT)
-    {
         // Move the piece
         move_piece (org, dst);
 
@@ -1375,19 +1371,25 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         
         _si->psq_score += PSQ[_active][pt][dst] - PSQ[_active][pt][org];
     }
-    else if (mt == CASTLE)
-    {
-        Square org_rook, dst_rook;
-        do_castling<true> (org, dst, org_rook, dst_rook);
-
-        p_key ^= Zob._.piecesq[_active][KING][org     ] ^ Zob._.piecesq[_active][KING][dst     ];
-        p_key ^= Zob._.piecesq[_active][ROOK][org_rook] ^ Zob._.piecesq[_active][ROOK][dst_rook];
-
-        _si->psq_score += PSQ[_active][KING][dst     ] - PSQ[_active][KING][org     ];
-        _si->psq_score += PSQ[_active][ROOK][dst_rook] - PSQ[_active][ROOK][org_rook];
-    }
     else if (mt == PROMOTE)
     {
+        ASSERT (PAWN == pt);        // Moving type must be PAWN
+        ASSERT (R_7 == rel_rank (_active, org));
+        ASSERT (R_8 == rel_rank (_active, dst));
+
+        ct = ptype (_board[cap]);
+        ASSERT (PAWN != ct);
+
+        ASSERT (KING != ct);   // can't capture the KING
+        if (NONE != ct)
+        {
+            do_capture ();
+        }
+        else
+        {
+            _si->clock50 = 0;
+        }
+
         PieceT ppt = promote (m);
         // Replace the PAWN with the Promoted piece
         remove_piece (org);
@@ -1460,6 +1462,12 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     _active = pasive;
     p_key ^= Zob._.mover_side;
 
+    // Reset old en-passant square
+    if (SQ_NO != _si->en_passant_sq)
+    {
+        p_key ^= Zob._.en_passant[_file (_si->en_passant_sq)];
+        _si->en_passant_sq = SQ_NO;
+    }
     // Handle pawn en-passant square setting
     if (PAWN == pt)
     {
@@ -1479,7 +1487,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         prefetch ((char *) _thread->pawns_table[_si->pawn_key]);
     }
 
-    // Prefetch TT access as soon as we know the new hash key
+    // Prefetch TT access as soon as know the new hash key
     prefetch ((char*) TT.cluster_entry (p_key));
 
     // Update the key with the final value
@@ -1492,6 +1500,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
     ASSERT (ok ());
 }
+#undef do_capture
 void Position::  do_move (Move m, StateInfo &si)
 {
     CheckInfo ci (*this);
@@ -1662,7 +1671,7 @@ string Position::fen (bool c960, bool full) const
             if (F_H >= f)  oss << PieceChar[_board[s]];
         }
 
-        if (R_1 < r) oss << '/';
+        if (R_1 < r) oss << "/";
     }
 
     oss << " " << ColorChar[_active] << " ";
@@ -1686,19 +1695,19 @@ string Position::fen (bool c960, bool full) const
         {
             if (can_castle (WHITE))
             {
-                if (can_castle (CR_WK)) oss << 'K';
-                if (can_castle (CR_WQ)) oss << 'Q';
+                if (can_castle (CR_WK)) oss << "K";
+                if (can_castle (CR_WQ)) oss << "Q";
             }
             if (can_castle (BLACK))
             {
-                if (can_castle (CR_BK)) oss << 'k';
-                if (can_castle (CR_BQ)) oss << 'q';
+                if (can_castle (CR_BK)) oss << "k";
+                if (can_castle (CR_BQ)) oss << "q";
             }
         }
     }
     else
     {
-        oss << '-';
+        oss << "-";
     }
 
     oss << " " << ((SQ_NO == _si->en_passant_sq) ? "-" : to_string (_si->en_passant_sq)) << " ";

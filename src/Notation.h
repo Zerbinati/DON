@@ -13,18 +13,6 @@ class Position;
 
 namespace Notation {
 
-    // Type of the Ambiguity
-    enum AmbiguityT : u08
-    {
-        AMB_NONE = 0,
-        AMB_RANK = 1,
-        AMB_FILE = 2,
-        AMB_SQR  = 3,
-
-    };
-
-    extern AmbiguityT ambiguity (Move m, const Position &pos);
-
     extern Move move_from_can (const std::string &can, const Position &pos);
     extern Move move_from_san (const std::string &san, Position &pos);
     //extern Move move_from_lan (const std::string &lan, const Position &pos);
@@ -41,9 +29,9 @@ namespace Notation {
     
 }
 
-template<class charT, class Traits>
-inline std::basic_ostream<charT, Traits>&
-operator<< (std::basic_ostream<charT, Traits> &os, const Move m)
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<< (std::basic_ostream<CharT, Traits> &os, const Move m)
 {
     os << Notation::move_to_can (m);
     return os;

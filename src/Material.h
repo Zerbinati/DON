@@ -22,9 +22,7 @@ namespace Material {
     // of 4, which will result in scores of absolute value less than one pawn.
     struct Entry
     {
-
     private:
-
 
     public:
 
@@ -46,7 +44,7 @@ namespace Material {
         
         template<Color C>
         // Entry::scale_factor() takes a position and a color as input, and
-        // returns a scale factor for the given color. We have to provide the
+        // returns a scale factor for the given color. Have to provide the
         // position in addition to the color, because the scale factor need not
         // to be a constant: It can also be a function which should be applied to
         // the position. For instance, in KBP vs K endgames, a scaling function

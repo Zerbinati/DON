@@ -3,19 +3,16 @@
 #include <sstream>
 #include <iomanip>
 
-#include "BitBoard.h"
+#include "UCI.h"
 #include "BitBases.h"
 #include "Pawns.h"
 #include "Material.h"
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Transposition.h"
-#include "TB_Syzygy.h"
 #include "Debugger.h"
 #include "Thread.h"
-#include "UCI.h"
 #include "Notation.h"
-#include "Tester.h"
 
 namespace Engine {
 
@@ -30,7 +27,17 @@ namespace Engine {
         const string Version   = "";
         const string Author    = "Ehsan Rashid";
 
-        const string Months ("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec");
+        const i08 MONTHS = 12;
+        const string Months[MONTHS] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+        i16 find_month (const string &month)
+        { 
+            for (i08 m = 0; m < MONTHS; ++m)
+            { 
+                if (month == Months[m]) return m+1;
+            }
+            return 0;
+        }
 
     }
 
@@ -59,7 +66,7 @@ namespace Engine {
 
             oss << setfill ('0')
                 << setw (2) << (day) //<< '-'
-                << setw (2) << (Months.find (month) / 4 + 1) //<< '-'
+                << setw (2) << (find_month (month)) //<< '-'
                 << setw (2) << (year.substr (2))
                 << setfill (' ');
         }
@@ -108,7 +115,7 @@ namespace Engine {
         MemoryHandler::initialize ();
 #endif
 
-        cout << "info string Processor(s) found " << cpu_count () << "." << endl;
+        //cout << "info string Processor(s) found " << cpu_count () << "." << endl;
 
         UCI      ::initialize ();
         BitBoard ::initialize ();

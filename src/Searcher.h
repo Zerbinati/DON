@@ -59,7 +59,7 @@ namespace Searcher {
     public:
 
         GameClock gameclock[CLR_NO];
-        std::vector<Move>  searchmoves;   // search these moves only restrict
+        std::vector<Move> root_moves;   // search these moves only restrict
 
         u32  movetime;  // search <x> time in milli-seconds
         u08  movestogo; // search <x> moves to the next time control
@@ -99,10 +99,6 @@ namespace Searcher {
             , root_failedlow;   // Failed low at Root
 
         SignalsT ()
-            //: stop           (false)
-            //, stop_ponderhit (false)
-            //, root_1stmove   (false)
-            //, root_failedlow (false)
         {
             memset (this, 0x00, sizeof (*this));
         }
@@ -116,7 +112,7 @@ namespace Searcher {
     // the children have to be explored. The successors of an ALL node are CUT nodes.
     // NonPV nodes = CUT nodes + ALL nodes
     // Node types, used as template parameter
-    enum NodeT { Root, PV, NonPV, SplitPointRoot, SplitPointPV, SplitPointNonPV };
+    enum NodeT { Root, PV, NonPV };
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
@@ -127,11 +123,11 @@ namespace Searcher {
     struct RootMove
     {
         Value value[2];
-        //u64   nodes;
+        u64   nodes;
         std::vector<Move> pv;
 
         RootMove (Move m = MOVE_NONE)
-            //: nodes (U64 (0))
+            : nodes (U64 (0))
         {
             value[0] = -VALUE_INFINITE;
             value[1] = -VALUE_INFINITE;
@@ -156,7 +152,7 @@ namespace Searcher {
 
     };
 
-    // The Stack struct keeps track of the information we need to remember from
+    // The Stack struct keeps track of the information needed to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
     // has its own array of Stack objects, indexed by the current ply.
     struct Stack
@@ -183,7 +179,6 @@ namespace Searcher {
 
     extern std::vector<RootMove> RootMoves;
     extern Position              RootPos;
-    extern Color                 RootColor;
     extern StateInfoStackPtr     SetupStates;
 
     extern Time::point           SearchTime;

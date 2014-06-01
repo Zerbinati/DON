@@ -103,10 +103,10 @@ PolyglotBook& PolyglotBook::operator>> (PBEntry &pbe)
 template<class T>
 PolyglotBook& PolyglotBook::operator<< (T &t)
 {
-    const u08 SIZE = sizeof (t);
-    for (u08 i = 0; i < SIZE && good (); ++i)
+    const u08 Size = sizeof (t);
+    for (u08 i = 0; i < Size && good (); ++i)
     {
-        u08 byte = u08 (t >> (8*(SIZE - 1 - i)));
+        u08 byte = u08 (t >> (8*(Size - 1 - i)));
         put (byte);
     }
     return *this;
@@ -317,13 +317,13 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
 
     // Castling moves follow "king captures rook" representation.
     // Promotion moves have promotion piece different then our structure of move
-    // So in case book move is a promotion we have to convert to our representation,
-    // in all the other cases we can directly compare with a Move after having masked out
+    // So in case book move is a promotion have to convert to our representation,
+    // in all the other cases can directly compare with a Move after having masked out
     // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
-    // Polyglot use 3 bits while we use 2 bits
-    PieceT pt = PieceT ((move >> 12) & 0x7);
+    // Polyglot use 3 bits while use 2 bits
+    PieceT pt = PieceT ((move >> 12) & TOTL);
     // Set new type for promotion piece
-    if (pt) promote (move, pt);
+    if (pt != PAWN) promote (move, pt);
 
     // Add 'special move' flags and verify it is legal
     for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)

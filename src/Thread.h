@@ -30,7 +30,7 @@
 #   undef NOMINMAX
 
 
-// We use critical sections on Windows to support Windows XP and older versions,
+// Use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
 // but apart from this they have the same speed performance of SRW locks.
 typedef CRITICAL_SECTION    Lock;
@@ -165,6 +165,7 @@ namespace Threads {
 
         // Shared data
         std::bitset<MAX_THREADS> slaves_mask;
+        volatile bool  slave_searching;
         volatile u08   moves_count;
         volatile Value alpha;
         volatile Value best_value;
@@ -174,7 +175,7 @@ namespace Threads {
     };
 
     // ThreadBase class is the base of the hierarchy from where
-    // we derive all the specialized thread classes.
+    // derive all the specialized thread classes.
     class ThreadBase
     {
     protected:
@@ -192,7 +193,7 @@ namespace Threads {
 
         virtual ~ThreadBase () {}
 
-        void stop () { exit = true; }
+        void quit () { exit = true; }
         void notify_one ();
 
         void wait_for (const volatile bool &condition);
@@ -224,9 +225,9 @@ namespace Threads {
 
     // Thread is derived from ThreadBase class
     // Thread class keeps together all the thread related stuff like locks, state
-    // and especially splitpoints. We also use per-thread pawn-hash and material-hash tables
+    // and especially splitpoints. Also use per-thread pawn-hash and material-hash tables
     // so that once get a pointer to a thread entry its life time is unlimited
-    // and we don't have to care about someone changing the entry under our feet.
+    // and don't have to care about someone changing the entry under our feet.
     class Thread
         : public ThreadBase
     {
@@ -237,10 +238,9 @@ namespace Threads {
         Material::Table  material_table;
         Pawns   ::Table  pawns_table;
 
-        Position        *active_pos;
+        Position *active_pos;
 
-        u08              idx
-            ,            max_ply;
+        u08     idx;
 
         SplitPoint* volatile active_splitpoint;
         volatile    u08      splitpoint_threads;
@@ -269,7 +269,7 @@ namespace Threads {
     public:
         volatile bool thinking;
 
-        MainThread () : thinking (true) {} // Avoid a race with start_thinking ()
+        MainThread () : thinking (true) {} // Avoid a race with start_thinking()
 
         virtual void idle_loop ();
 
@@ -284,13 +284,13 @@ namespace Threads {
     {
 
     public:
-        bool    idle_sleep;
-        Depth   split_depth;
-        Mutex   mutex;
-
+        Mutex       mutex;
         Condition   sleep_condition;
-        
         TimerThread *timer;
+
+        Depth   split_depth;
+        u08     max_ply;
+        
         MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
 
         // No c'tor and d'tor, threads rely on globals that should
@@ -357,11 +357,6 @@ inline u32 cpu_count ()
 
 #endif
 }
-
-enum SyncT { IO_LOCK, IO_UNLOCK };
-
-#define sync_cout std::cout << IO_LOCK
-#define sync_endl std::endl << IO_UNLOCK
 
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream &os, const SyncT &sync)
