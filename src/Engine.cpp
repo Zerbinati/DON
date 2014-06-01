@@ -13,6 +13,7 @@
 #include "Debugger.h"
 #include "Thread.h"
 #include "Notation.h"
+#include "TB_Syzygy.h"
 
 namespace Engine {
 
