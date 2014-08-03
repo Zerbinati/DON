@@ -797,11 +797,12 @@ namespace Searcher {
                                 {
                                     (ss)->current_move = MOVE_NULL;
 
-                                    // Null move dynamic (variable) reduction based on depth and value
-                                    Depth rdepth = depth -
-                                                 ( (3*ONE_MOVE)
-                                                 + (depth/4)
-                                                 + (abs (beta) < VALUE_KNOWN_WIN ? i32 (eval - beta) / VALUE_MG_PAWN * ONE_MOVE : DEPTH_ZERO));
+                                    // Null move dynamic reduction based on depth and value
+                                    Depth R = (3*ONE_MOVE)
+                                            + (depth/4)
+                                            + (abs (beta) < VALUE_KNOWN_WIN ? i32 (eval - beta) / VALUE_MG_PAWN * ONE_MOVE : DEPTH_ZERO);
+
+                                    Depth rdepth = depth - R;
 
                                     // Do null move
                                     pos.do_null_move (si);
@@ -818,29 +819,25 @@ namespace Searcher {
 
                                     if (null_value >= beta)
                                     {
-                                        // Do not return unproven mate scores
-                                        if (null_value >= VALUE_MATES_IN_MAX_PLY)
-                                        {
-                                            null_value = beta;
-                                        }
-
-                                        if (   (depth < (12*ONE_MOVE))
-                                            && (abs(beta) < VALUE_KNOWN_WIN)
+                                        if (  ((depth < (12*ONE_MOVE)) && (abs(beta) < VALUE_KNOWN_WIN))
+                                           || (rdepth < (1*ONE_MOVE))
                                            )
                                         {
-                                            return null_value;
+                                            rdepth = ONE_MOVE;
                                         }
 
-                                        // Do verification search at high depths
+                                        // Do verification search of at least ONE_MOVE
                                         (ss)->skip_null_move = true;
 
-                                        Value veri_value = (rdepth < ONE_MOVE) ?
-                                            search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
-                                            search_depth<NonPV, false> (pos, ss, beta-1, beta, rdepth, false);
+                                        Value veri_value = search_depth<NonPV, false> (pos, ss, beta-1, beta, rdepth, false);
 
                                         (ss)->skip_null_move = false;
 
-                                        if (veri_value >= beta) return null_value;
+                                        if (veri_value >= beta)
+                                        {
+                                            // Do not return unproven mate scores
+                                            return null_value < VALUE_MATES_IN_MAX_PLY ? null_value : beta;
+                                        }
                                     }
                                 }
                             }
