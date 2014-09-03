@@ -82,16 +82,6 @@ namespace Search {
         }
     };
 
-    // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
-    // all the children have to be investigated. The best move found at a PV node leads
-    // to a successor PV node, while all the other investigated children are CUT nodes
-    // At a CUT node the child causing a beta cut-off is an ALL node. In a perfectly
-    // ordered tree only one child of a CUT node has to be explored. At an ALL node all
-    // the children have to be explored. The successors of an ALL node are CUT nodes.
-    // NonPV nodes = CUT nodes + ALL nodes
-    // Node types, used as template parameter
-    enum NodeT { Root, PV, NonPV };
-
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
     //  - Value[] { new , old }.

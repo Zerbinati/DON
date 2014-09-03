@@ -159,8 +159,8 @@ namespace Threads {
         Thread *master;
         Value   beta;
         Depth   depth;
-        NodeT   node_type;
-        bool    cut_node;
+        bool     root_node;
+        bool     cut_node;
         Mutex   mutex;
 
         // Const pointers to shared data
@@ -261,7 +261,7 @@ namespace Threads {
         bool available_to (const Thread *master) const;
 
         void split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-            Depth depth, u08 legals, MovePicker &movepicker, NodeT node_type, bool cut_node);
+            Depth depth, u08 legals, MovePicker &movepicker, bool root_node, bool cut_node);
 
     };
 

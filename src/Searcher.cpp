@@ -48,8 +48,7 @@ namespace Search {
         // Reductions lookup table (initialized at startup)
         CACHE_ALIGN(4) u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
 
-        template<bool PVNode>
-        inline Depth reduction (bool imp, Depth d, i32 mn)
+        inline Depth reduction (bool PVNode, bool imp, Depth d, i32 mn)
         {
             return (Depth) Reductions[PVNode][imp][min (d/i32(ONE_MOVE), ReductionDepth-1)][min (mn, ReductionMoveCount-1)];
         }
@@ -271,7 +270,7 @@ namespace Search {
 
             ASSERT (InCheck == !!pos.checkers ());
             ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
-            //ASSERT (alpha < beta-1);
+            //ASSERT (PVNode || alpha == beta-1);
             ASSERT (depth <= DEPTH_ZERO);
 
             Move best_move;
@@ -529,7 +528,7 @@ namespace Search {
             return best_value;
         }
 
-        template<NodeT NT, bool SPNode, bool MoveNull>
+        template<bool RootNode, bool SPNode, bool MoveNull>
         // search<>() is the main depth limited search function
         // for PV/NonPV nodes also for normal/splitpoint nodes.
         // It calls itself recursively with decreasing (remaining) depth
@@ -541,11 +540,10 @@ namespace Search {
         // This is taken care of after return from the splitpoint.
         inline Value search_depth  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
         {
-            const bool RootNode = NT == Root;
-            const bool   PVNode = NT == Root || NT == PV;
+            const bool   PVNode = alpha < beta - 1;
 
             ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
-            ASSERT (PVNode || alpha == beta-1);
+            //ASSERT (PVNode || alpha == beta-1);
             ASSERT (depth > DEPTH_ZERO);
 
             Key   posi_key;
@@ -781,7 +779,7 @@ namespace Search {
                                     // Null window (alpha, beta) = (beta-1, beta):
                                     Value null_value = rdepth < 1*i16(ONE_MOVE) ?
                                         -search_quien<false> (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
-                                        -search_depth<NonPV, false, false> (pos, ss+1, -beta, -beta+1, rdepth, !cut_node);
+                                        -search_depth<false, false, false> (pos, ss+1, -beta, -beta+1, rdepth, !cut_node);
 
                                     // Undo null move
                                     pos.undo_null_move ();
@@ -804,7 +802,7 @@ namespace Search {
                                         // Do verification search at high depths
                                         Value veri_value = rdepth < 1*i16(ONE_MOVE) ?
                                             search_quien<false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
-                                            search_depth<NonPV, false, false> (pos, ss, beta-1, beta, rdepth, false);
+                                            search_depth<false, false, false> (pos, ss, beta-1, beta, rdepth, false);
 
                                         if (veri_value >= beta) return null_value;
                                     }
@@ -838,7 +836,7 @@ namespace Search {
 
                                     (ss)->current_move = move;
                                     pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
-                                    Value value = -search_depth<NonPV, false, true> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
+                                    Value value = -search_depth<false, false, true> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
                                     pos.undo_move ();
 
                                     if (value >= rbeta) return value;
@@ -856,7 +854,7 @@ namespace Search {
                     {
                         Depth iid_depth = depth - (PVNode ? 2*i16(ONE_MOVE) : 2*i16(ONE_MOVE) + depth/4); // IID Reduced Depth
 
-                        search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
+                        search_depth<false, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
                         tte = TT.retrieve (posi_key);
                         if (tte != NULL)
@@ -1020,7 +1018,7 @@ namespace Search {
                     Value rbeta = tt_value - i32(depth); // TODO::
 
                     (ss)->exclude_move = move;
-                    value = search_depth<NonPV, false, false> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
+                    value = search_depth<false, false, false> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
                     (ss)->exclude_move = MOVE_NONE;
 
                     if (value < rbeta) ext = 1*ONE_MOVE;
@@ -1049,7 +1047,7 @@ namespace Search {
                         }
 
                         // Value based pruning
-                        Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth, legals);
+                        Depth predicted_depth = new_depth - reduction (PVNode, improving, depth, legals);
 
                         // Futility pruning: parent node
                         if (predicted_depth < FutilityMarginDepth)
@@ -1120,7 +1118,7 @@ namespace Search {
                        && !capture_or_promotion
                        )
                     {
-                        Depth reduction_depth = reduction<PVNode> (improving, depth, legals);
+                        Depth reduction_depth = reduction (PVNode, improving, depth, legals);
 
                         if (!PVNode && cut_node)
                         {
@@ -1155,7 +1153,7 @@ namespace Search {
                         if (SPNode) alpha = splitpoint->alpha;
                         Depth reduced_depth = max (new_depth - reduction_depth, 1*ONE_MOVE);
                         // Search with reduced depth
-                        value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
+                        value = -search_depth<false, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
                         // Multi Re-search
                         for (i08 i = 0; i <= 2; ++i)
                         {
@@ -1166,7 +1164,7 @@ namespace Search {
                                 if (SPNode) alpha = splitpoint->alpha;
                                 reduced_depth = max (new_depth - reduction_depth/(1*t*i16(ONE_MOVE)), 1*ONE_MOVE);
                                 // Search with reduced depth
-                                value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
+                                value = -search_depth<false, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
                             }
                             else break;
                         }
@@ -1184,7 +1182,7 @@ namespace Search {
                                 gives_check ?
                                     -search_quien<true > (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
                                     -search_quien<false> (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                                -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
+                                -search_depth<false, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
                     }
                 }
 
@@ -1203,7 +1201,7 @@ namespace Search {
                                 gives_check ?
                                     -search_quien<true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
                                     -search_quien<false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                                -search_depth<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
+                                -search_depth<false, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                     }
                 }
 
@@ -1289,7 +1287,7 @@ namespace Search {
                     {
                         ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
 
-                        thread->split (pos, ss, alpha, beta, best_value, best_move, depth, legals, mp, NT, cut_node);
+                        thread->split (pos, ss, alpha, beta, best_value, best_move, depth, legals, mp, RootNode, cut_node);
                         
                         if (Signals.force_stop || thread->cutoff_occurred ())
                         {
@@ -1433,7 +1431,7 @@ namespace Search {
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search_depth<Root, false, true> (RootPos, ss, bound[0], bound[1], i32(dep)*ONE_MOVE, false);
+                        best_value = search_depth<true, false, true> (RootPos, ss, bound[0], bound[1], i32(dep)*ONE_MOVE, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -2139,13 +2137,13 @@ namespace Threads {
                 ASSERT (active_pos == NULL);
 
                 active_pos = &pos;
-
-                switch ((sp)->node_type)
+                if ((sp)->root_node)
                 {
-                case  Root: search_depth<Root , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                case    PV: search_depth<PV   , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                case NonPV: search_depth<NonPV, true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                default: ASSERT (false);
+                    search_depth<true, true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node);
+                }
+                else
+                {
+                    search_depth<false, true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node);
                 }
 
                 ASSERT (searching);
