@@ -26,7 +26,7 @@ namespace Transpose {
 
     const u32 TranspositionTable::DefTTSize   = 16;
 
-    bool TranspositionTable::ClearHash = true;
+    bool TranspositionTable::ClearHash        = true;
 
     void TranspositionTable::alloc_aligned_memory (size_t mem_size, size_t alignment)
     {
@@ -90,7 +90,7 @@ namespace Transpose {
         if (mem_size_mb > MaxTTSize) mem_size_mb = MaxTTSize;
 
         size_t mem_size = mem_size_mb << 20;
-        u08 hash_bit    = BitBoard::scan_msq ((mem_size) / TTClusterSize);
+        u08 hash_bit    = BitBoard::scan_msq (mem_size / TTClusterSize);
 
         ASSERT (hash_bit < MaxHashBit);
 
@@ -149,7 +149,7 @@ namespace Transpose {
     // * if the depth of e1 is bigger than the depth of e2.
     void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval)
     {
-        u16 key16    = (key >> (64-16)); // 16 upper-bit of key inside cluster
+        u16 key16    = key >> (64-16); // 16 upper-bit of key inside cluster
         TTEntry *fte = cluster_entry (key);
         TTEntry *rte = fte;
         for (TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
@@ -189,7 +189,7 @@ namespace Transpose {
     // Returns a pointer to the entry found or NULL if not found.
     const TTEntry* TranspositionTable::retrieve (Key key) const
     {
-        u16 key16    = (key >> (64-16));
+        u16 key16    = key >> (64-16);
         TTEntry *fte = cluster_entry (key);
         for (TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
         {
