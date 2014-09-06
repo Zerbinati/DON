@@ -3,6 +3,7 @@
 #include <string>
 #include <fstream>
 #include "BitScan.h"
+#include "Thread.h"
 #include "Engine.h"
 
 TranspositionTable  TT; // Global Transposition Table
@@ -59,7 +60,7 @@ void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
     u08 offset = max<i08> (alignment, sizeof (void *));
 
     void *mem = calloc (mem_size + offset, 1);
-    if (mem == NULL)
+    if (mem == nullptr)
     {
         cerr << "ERROR: Failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
         Engine::exit (EXIT_FAILURE);
@@ -176,16 +177,16 @@ const TTEntry* TranspositionTable::retrieve (Key key) const
             ite->_gen_bnd = _generation | ite->bound (); // Refresh
             return ite;
         }
-        if (ite->_key == 0) return NULL;
+        if (ite->_key == 0) return nullptr;
     }
-    return NULL;
+    return nullptr;
 }
 
 void TranspositionTable::save (string &hash_fn)
 {
     convert_path (hash_fn);
     if (hash_fn.empty ()) return;
-    ofstream ofhash (hash_fn.c_str (), ios_base::out|ios_base::binary);
+    ofstream ofhash (hash_fn, ios_base::out|ios_base::binary);
     if (!ofhash.is_open ()) return;
     ofhash << (*this);
     ofhash.close ();
@@ -196,7 +197,7 @@ void TranspositionTable::load (string &hash_fn)
 {
     convert_path (hash_fn);
     if (hash_fn.empty ()) return;
-    ifstream ifhash (hash_fn.c_str (), ios_base::in|ios_base::binary);
+    ifstream ifhash (hash_fn, ios_base::in|ios_base::binary);
     if (!ifhash.is_open ()) return;
     ifhash >> (*this);
     ifhash.close ();

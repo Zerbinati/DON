@@ -59,11 +59,11 @@ namespace {
 void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply)
 {
     // Read uci parameters
-    //EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
-    //EmergencyMoveHorizon = i32(Options["Emergency Move Horizon"]);
-    //EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
-    //MinimumThinkingTime  = i32(Options["Minimum Thinking Time"]);
-    Slowness             = i32(Options["Slowness"]);
+    //MaximumMoveHorizon    = i32(*(Options["Clock Time"]));
+    //EmergencyMoveHorizon  = i32(*(Options["Move Horizon"]));
+    //EmergencyMoveTime     = i32(*(Options["Move Time"]));
+    //MinimumThinkingTime   = i32(*(Options["Thinking Time"]));
+    Slowness                = i32(*(Options["Slowness"]));
 
     // Initialize:
     // instability factor to 1.0
@@ -94,7 +94,7 @@ void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 gam
         _maximum_time = min (max_time, _maximum_time);
     }
 
-    if (bool(Options["Ponder"])) _optimum_time += _optimum_time / 4;
+    if (bool(*(Options["Ponder"]))) _optimum_time += _optimum_time / 4;
 
     // Make sure that _optimum_time is not over _maximum_time
     _optimum_time = min (_maximum_time, _optimum_time);

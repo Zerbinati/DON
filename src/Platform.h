@@ -18,42 +18,7 @@
 ///             | For compiling requires hardware with BM2 support.
 /// -DLPAGES    | Add runtime support for large pages.
 
-#ifdef _MSC_VER
-// Disable some silly and noisy warning from MSVC compiler
-#   pragma warning (disable: 4127) // Conditional expression is constant
-#   pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
-#   pragma warning (disable: 4267) // 'argument' : conversion from '-' to '-', possible loss of data
-#   pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
-#   pragma warning (disable: 6326) // Constant comparison
-
-// MSVC does not support <inttypes.h>
-//#   include <stdint.h>
-//typedef         int8_t     i08;
-//typedef        uint8_t     u08;
-//typedef         int16_t    i16;
-//typedef        uint16_t    u16;
-//typedef         int32_t    i32;
-//typedef        uint32_t    u32;
-//typedef         int64_t    i64;
-//typedef        uint64_t    u64;
-
-typedef   signed __int8     i08;
-typedef unsigned __int8     u08;
-typedef   signed __int16    i16;
-typedef unsigned __int16    u16;
-typedef   signed __int32    i32;
-typedef unsigned __int32    u32;
-typedef   signed __int64    i64;
-typedef unsigned __int64    u64;
-
-#   define  S32(X) (X##i32)
-#   define  U32(X) (X##ui32)
-#   define  S64(X) (X##i64)
-#   define  U64(X) (X##ui64)
-
-#else
-
-#   include <inttypes.h>
+#include <cstdint>
 
 typedef         int8_t     i08;
 typedef        uint8_t     u08;
@@ -63,6 +28,22 @@ typedef         int32_t    i32;
 typedef        uint32_t    u32;
 typedef         int64_t    i64;
 typedef        uint64_t    u64;
+
+
+#ifdef _MSC_VER
+// Disable some silly and noisy warning from MSVC compiler
+#   pragma warning (disable: 4127) // Conditional expression is constant
+#   pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
+#   pragma warning (disable: 4267) // 'argument' : conversion from '-' to '-', possible loss of data
+#   pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
+#   pragma warning (disable: 6326) // Constant comparison
+
+#   define  S32(X) (X##i32)
+#   define  U32(X) (X##ui32)
+#   define  S64(X) (X##i64)
+#   define  U64(X) (X##ui64)
+
+#else
 
 #   define S32(X) (X##L)
 #   define U32(X) (X##UL)

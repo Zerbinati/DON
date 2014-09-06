@@ -30,9 +30,9 @@ namespace MoveGenerator {
             // template<GenT GT, Color C, PieceT PT>
             // void Generator<GT, C, PT>::generate()
             // Generates piece common move
-            static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
+            static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
-                ASSERT (KING != PT && PAWN != PT);
+                static_assert (KING != PT && PAWN != PT, "PT must not be 'KING | PAWN'");
 
                 const Square *pl = pos.list<PT> (C);
                 Square s;
@@ -40,7 +40,7 @@ namespace MoveGenerator {
                 {
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (ci != NULL)
+                        if (ci != nullptr)
                         {
                             if (  (BSHP == PT || ROOK == PT || QUEN == PT)
                                && !(PieceAttacks[PT][s] & targets & ci->checking_bb[PT])
@@ -58,7 +58,7 @@ namespace MoveGenerator {
                     Bitboard attacks = attacks_bb<PT> (s, pos.pieces ()) & targets;
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (ci != NULL) attacks &= ci->checking_bb[PT];
+                        if (ci != nullptr) attacks &= ci->checking_bb[PT];
                     }
 
                     serialize_moves (moves, s, attacks);
@@ -81,7 +81,7 @@ namespace MoveGenerator {
             // void Generator<GT, KING>::generate_castling()
             template<CRight CR, bool Chess960>
             // Generates KING castling move
-            static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= NULL*/)
+            static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= nullptr*/)
             {
                 ASSERT (EVASION != GT);
                 ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && !pos.checkers ());
@@ -122,7 +122,7 @@ namespace MoveGenerator {
 
                 if (CHECK == GT || QUIET_CHECK == GT)
                 {
-                    if (ci != NULL && !pos.gives_check (m, *ci))
+                    if (ci != nullptr && !pos.gives_check (m, *ci))
                     {
                         return;
                     }
@@ -135,7 +135,7 @@ namespace MoveGenerator {
             // template<GenT GT, Color C>
             // void Generator<GT, C, KING>::generate()
             // Generates KING common move
-            static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
+            static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
                 if (EVASION == GT) return;
 
@@ -152,7 +152,7 @@ namespace MoveGenerator {
                     if (pos.can_castle (C) && !pos.checkers ())
                     {
                         CheckInfo cc;
-                        if (ci == NULL)
+                        if (ci == nullptr)
                         {
                             cc = CheckInfo (pos);
                             ci = &cc;
@@ -193,7 +193,7 @@ namespace MoveGenerator {
             // Generates PAWN promotion move
             static INLINE void generate_promotion (ValMove *&moves, Bitboard pawns_on_R7, Bitboard targets, const CheckInfo *ci)
             {
-                ASSERT ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D));
+                static_assert ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D), "Value of Delta is wrong");
 
                 Bitboard promotes = shift_del<D> (pawns_on_R7) & targets;
                 while (promotes)
@@ -217,14 +217,14 @@ namespace MoveGenerator {
                     // not already included in the queen-promotion (queening).
                     if (QUIET_CHECK == GT || CHECK == GT)
                     {
-                        if (ci != NULL)
+                        if (ci != nullptr)
                         {
                             if (PieceAttacks[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
                         }
 
                         if (CHECK == GT)
                         {
-                            if (ci != NULL)
+                            if (ci != nullptr)
                             {
                                 //if (PieceAttacks[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
                                 if (attacks_bb<BSHP> (dst, targets) & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, BSHP);
@@ -244,7 +244,7 @@ namespace MoveGenerator {
             // template<GenT GT, Color C>
             // void Generator<GT, C, PAWN>::generate()
             // Generates PAWN common move
-            static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
+            static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
                 const Color C_   = WHITE == C ? BLACK : WHITE;
                 const Delta PUSH = WHITE == C ? DEL_N  : DEL_S;
@@ -283,7 +283,7 @@ namespace MoveGenerator {
 
                     case CHECK:
                     case QUIET_CHECK:
-                        if (ci != NULL)
+                        if (ci != nullptr)
                         {
                             Bitboard pawn_attacks = PawnAttacks[C_][ci->king_sq];
 
@@ -366,7 +366,7 @@ namespace MoveGenerator {
 
         template<GenT GT, Color C>
         // Generates all pseudo-legal moves of color for targets.
-        INLINE ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
+        INLINE ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
             Generator<GT, C, PAWN>::generate (moves, pos, targets, ci);
             if (pos.count<NIHT> (C)) Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
@@ -411,7 +411,7 @@ namespace MoveGenerator {
     // Generates all pseudo-legal moves.
     ValMove* generate (ValMove *moves, const Position &pos)
     {
-        ASSERT (RELAX == GT || CAPTURE == GT || QUIET == GT);
+        static_assert (RELAX == GT || CAPTURE == GT || QUIET == GT, "GT must be 'RELAX | CAPTURE | QUIET'");
         ASSERT (!pos.checkers ());
 
         Color active = pos.active ();

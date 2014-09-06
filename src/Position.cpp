@@ -32,7 +32,7 @@ const string StartingFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 
 bool _ok (const string &fen, bool c960, bool full)
 {
     if (fen.empty ()) return false;
-    Position pos (fen, NULL, c960, full);
+    Position pos (fen, nullptr, c960, full);
     return pos.ok ();
 }
 
@@ -161,7 +161,7 @@ u08 Position::_fifty_move_dist;
 
 void Position::initialize ()
 {
-    _fifty_move_dist = u08(2 * i32(Options["Fifty Move Distance"]));
+    _fifty_move_dist = u08(2 * i32(*(Options["Fifty Move Distance"])));
 
     for (i08 pt = PAWN; pt <= KING; ++pt)
     {
@@ -199,8 +199,8 @@ bool Position::draw () const
     u08 ply = min (_si->clock50, _si->null_ply);
     while (ply >= 2)
     {
-        //psi = psi->p_si; if (psi == NULL) break; 
-        //psi = psi->p_si; if (psi == NULL) break;
+        //psi = psi->p_si; if (psi == nullptr) break; 
+        //psi = psi->p_si; if (psi == nullptr) break;
         psi = psi->p_si->p_si;
         if (psi->posi_key == _si->posi_key)
         {
@@ -246,7 +246,7 @@ bool Position::draw () const
 bool Position::repeated () const
 {
     StateInfo *si = _si;
-    while (si != NULL)
+    while (si != nullptr)
     {
         u08 i = 4, e = min (si->clock50, si->null_ply);
         if (e < i) return false;
@@ -1583,7 +1583,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
     // Update checkers bitboard: piece must be already moved due to attacks_bb()
     _si->checkers = U64 (0);
-    if (ci != NULL)
+    if (ci != nullptr)
     {
         if (mt == NORMAL)
         {
@@ -1662,7 +1662,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 void Position::  do_move (Move m, StateInfo &si)
 {
     CheckInfo ci (*this);
-    do_move (m, si, gives_check (m, ci) ? &ci : NULL);
+    do_move (m, si, gives_check (m, ci) ? &ci : nullptr);
 }
 // do_move() do the move from string (CAN)
 void Position::  do_move (string &can, StateInfo &si)
@@ -1931,14 +1931,12 @@ Position::operator string () const
         oss << "<none>";
     }
     
-    oss << "\n";
-    /*
-    MoveList<LEGAL> ms (*this);
-    oss << "Legal moves (" << ms.size () << "): ";
-    for ( ; *ms; ++ms)
+    MoveList<LEGAL> moves (*this);
+    oss << "Legal moves (" << moves.size () << "): ";
+    for (const ValMove &ms : moves)
     {
-        oss << move_to_san (*ms, *const_cast<Position*> (this)) << " ";
+        oss << move_to_san (ms.move, *const_cast<Position*> (this)) << " ";
     }
-    */
+
     return oss.str ();
 }

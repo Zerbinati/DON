@@ -1430,11 +1430,11 @@ namespace Evaluator {
     // and setup king danger tables.
     void initialize ()
     {
-        Weights[MOBILITY   ] = weight_option (0                          , InternalWeights[MOBILITY   ]);
-        Weights[PAWN_STRUCT] = weight_option (0                          , InternalWeights[PAWN_STRUCT]);
-        Weights[PASSED_PAWN] = weight_option (0                          , InternalWeights[PASSED_PAWN]);
-        Weights[SPACE      ] = weight_option (i32(Options["Space"      ]), InternalWeights[SPACE      ]);
-        Weights[KING_SAFETY] = weight_option (i32(Options["King Safety"]), InternalWeights[KING_SAFETY]);
+        Weights[MOBILITY   ] = weight_option (0                             , InternalWeights[MOBILITY   ]);
+        Weights[PAWN_STRUCT] = weight_option (0                             , InternalWeights[PAWN_STRUCT]);
+        Weights[PASSED_PAWN] = weight_option (0                             , InternalWeights[PASSED_PAWN]);
+        Weights[SPACE      ] = weight_option (i32(*(Options["Space"      ])), InternalWeights[SPACE      ]);
+        Weights[KING_SAFETY] = weight_option (i32(*(Options["King Safety"])), InternalWeights[KING_SAFETY]);
 
         const i32 MaxSlope  =   30;
         const i32 PeakScore = 1280;

@@ -2,74 +2,16 @@
 #define _THREAD_H_INC_
 
 #include <bitset>
+#include <vector>
+#include <mutex>
+#include <condition_variable>
+#include <thread>
 
 #include "Position.h"
 #include "Pawns.h"
 #include "Material.h"
 #include "MovePicker.h"
 #include "Searcher.h"
-
-// Windows or MinGW
-#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-
-#   ifndef  NOMINMAX
-#       define NOMINMAX // disable macros min() and max()
-#   endif
-#   ifndef  WIN32_LEAN_AND_MEAN
-#       define WIN32_LEAN_AND_MEAN
-#   endif
-
-#   include <windows.h>
-
-#   undef WIN32_LEAN_AND_MEAN
-#   undef NOMINMAX
-
-
-// Use critical sections on Windows to support Windows XP and older versions,
-// unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
-// but apart from this they have the same speed performance of SRW locks.
-typedef CRITICAL_SECTION    Lock;
-typedef HANDLE              WaitCondition;
-typedef HANDLE              Handle;
-
-// On Windows 95 and 98 parameter lpThreadId my not be null
-inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
-
-#   define lock_create(x)        InitializeCriticalSection (&(x))
-#   define lock_grab(x)          EnterCriticalSection (&(x))
-#   define lock_release(x)       LeaveCriticalSection (&(x))
-#   define lock_destroy(x)       DeleteCriticalSection (&(x))
-#   define cond_create(h)        h = CreateEvent (NULL, FALSE, FALSE, NULL);
-#   define cond_destroy(h)       CloseHandle (h)
-#   define cond_signal(h)        SetEvent (h)
-#   define cond_wait(c,l)        { lock_release (l); WaitForSingleObject (c, INFINITE); lock_grab (l); }
-#   define cond_timedwait(c,l,t) { lock_release (l); WaitForSingleObject (c, t); lock_grab (l); }
-#   define thread_create(h,f,t)  h = CreateThread (NULL, 0, LPTHREAD_START_ROUTINE (f), t, 0, dwWin9xKludge ())
-#   define thread_join(h)        { WaitForSingleObject (h, INFINITE); CloseHandle (h); }
-
-#else    // Linux - Unix
-
-#   include <pthread.h>
-#   include <unistd.h>  // for sysconf()
-
-typedef pthread_mutex_t     Lock;
-typedef pthread_cond_t      WaitCondition;
-typedef pthread_t           Handle;
-typedef void* (*StartRoutine) (void*);
-
-#   define lock_create(x)        pthread_mutex_init (&(x), NULL)
-#   define lock_grab(x)          pthread_mutex_lock (&(x))
-#   define lock_release(x)       pthread_mutex_unlock (&(x))
-#   define lock_destroy(x)       pthread_mutex_destroy (&(x))
-#   define cond_create(h)        pthread_cond_init (&(h), NULL)
-#   define cond_destroy(h)       pthread_cond_destroy (&(h))
-#   define cond_signal(h)        pthread_cond_signal (&(h))
-#   define cond_wait(c,l)        pthread_cond_wait (&(c), &(l))
-#   define cond_timedwait(c,l,t) pthread_cond_timedwait (&(c), &(l), t)
-#   define thread_create(h,f,t)  pthread_create (&(h), NULL, StartRoutine (f), t)
-#   define thread_join(h)        pthread_join (h, NULL)
-
-#endif
 
 namespace Threads {
 
@@ -87,63 +29,6 @@ namespace Threads {
     template<class T>
     extern void delete_thread (T *th);
 
-    struct Mutex
-    {
-    private:
-        Lock _lock;
-        
-        friend struct Condition;
-
-    public:
-        Mutex () { lock_create (_lock); }
-       ~Mutex () { lock_destroy (_lock); }
-
-        void   lock () { lock_grab (_lock); }
-        void unlock () { lock_release (_lock); }
-    };
-
-    // cond_timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
-    // conversion from milliseconds to struct timespec, as used by pthreads.
-    inline void cond_timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec)
-    {
-
-#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-
-        i32 tm = msec;
-
-#else    // Linux - Unix
-
-        timespec ts
-            ,   *tm = &ts;
-        u64 ms = Time::now() + msec;
-
-        ts.tv_sec = ms / Time::MilliSec;
-        ts.tv_nsec = (ms % Time::MilliSec) * 1000000LL;
-
-#endif
-
-        cond_timedwait (sleep_cond, sleep_lock, tm);
-
-    }
-
-    struct Condition
-    {
-    private:
-        WaitCondition _condition;
-
-    public:
-        Condition () { cond_create  (_condition); }
-       ~Condition () { cond_destroy (_condition); }
-
-        void wait (Mutex &mutex) { cond_wait (_condition, mutex._lock); }
-
-        void wait_for (Mutex &mutex, i32 ms) { cond_timed_wait (_condition, mutex._lock, ms); }
-
-        void notify_one () { cond_signal (_condition); }
-
-    };
-
-
     class Thread;
 
     // SplitPoint struct
@@ -160,7 +45,7 @@ namespace Threads {
         Depth   depth;
         NodeT   node_type;
         bool    cut_node;
-        Mutex   mutex;
+        std::mutex   mutex;
 
         // Const pointers to shared data
         MovePicker  *movepicker;
@@ -182,16 +67,15 @@ namespace Threads {
     class ThreadBase
     {
     protected:
-        Condition     sleep_condition;
-        volatile bool  exit;
+        std::condition_variable sleep_condition;
+        volatile bool exit;
 
     public:
-        Mutex   mutex;
-        Handle  native_handle;
+        std::mutex   mutex;
+        std::thread  native_thread;
 
         ThreadBase ()
             : exit (false)
-            , native_handle (Handle ())
         {}
 
         virtual ~ThreadBase () {}
@@ -200,7 +84,7 @@ namespace Threads {
         void notify_one ();
 
         void wait_for (const volatile bool &condition);
-
+      
         virtual void idle_loop () = 0;
     };
 
@@ -288,8 +172,9 @@ namespace Threads {
     {
 
     public:
-        Mutex       mutex;
-        Condition   sleep_condition;
+        std::mutex   mutex;
+        std::condition_variable   sleep_condition;
+
         TimerThread *timer;
         TimerThread *auto_save;
 
@@ -317,13 +202,19 @@ namespace Threads {
 
 inline u32 cpu_count ()
 {
-#ifdef WIN32
+#if __cplusplus > 199711L
+    // May return 0 when not able to detect
+    return std::thread::hardware_concurrency ();
+
+#else    
+
+#   ifdef WIN32
 
     SYSTEM_INFO sys_info;
     GetSystemInfo (&sys_info);
     return sys_info.dwNumberOfProcessors;
 
-#elif MACOS
+#   elif MACOS
 
     u32 count;
     u32 len = sizeof (count);
@@ -331,34 +222,36 @@ inline u32 cpu_count ()
     i32 nm[2];
     nm[0] = CTL_HW;
     nm[1] = HW_AVAILCPU;
-    sysctl (nm, 2, &count, &len, NULL, 0);
+    sysctl (nm, 2, &count, &len, nullptr, 0);
     if (count < 1)
     {
         nm[1] = HW_NCPU;
-        sysctl (nm, 2, &count, &len, NULL, 0);
+        sysctl (nm, 2, &count, &len, nullptr, 0);
         if (count < 1) count = 1;
     }
     return count;
 
-#elif _SC_NPROCESSORS_ONLN // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
+#   elif _SC_NPROCESSORS_ONLN // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
 
     return sysconf (_SC_NPROCESSORS_ONLN);
 
-#elif __IRIX
+#   elif __IRIX
 
     return sysconf (_SC_NPROC_ONLN);
 
-#elif __HPUX
+#   elif __HPUX
 
     pst_dynamic psd;
     return (pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1)
         ? 1 : psd.psd_proc_cnt;
 
-    //return mpctl (MPC_GETNUMSPUS, NULL, NULL);
+    //return mpctl (MPC_GETNUMSPUS, nullptr, nullptr);
 
-#else
+#   else
 
     return 1;
+
+#   endif
 
 #endif
 }
@@ -366,7 +259,7 @@ inline u32 cpu_count ()
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream &os, const SyncT &sync)
 {
-    static Threads::Mutex mutex;
+    static std::mutex mutex;
 
     if (sync == IO_LOCK)
     {

@@ -5,7 +5,7 @@
 #include "BitBases.h"
 #include "MoveGenerator.h"
 
-EndGame::Endgames *EndGames = NULL; // Global Endgames
+EndGame::Endgames *EndGames = nullptr; // Global Endgames
 
 namespace EndGame {
 
@@ -96,13 +96,10 @@ namespace EndGame {
             return Position (fen).matl_key ();
         }
 
-        template<class M>
-        inline void delete_endgame (const typename M::value_type &p) { delete p.second; }
-
     } // namespace
 
     // Endgames members definitions
-    Endgames:: Endgames ()
+    Endgames::Endgames ()
     {
         add<KPK>     ("KPK");
         add<KNNK>    ("KNNK");
@@ -124,17 +121,11 @@ namespace EndGame {
         add<KRPPKRP> ("KRPPKRP");
     }
 
-    Endgames::~Endgames ()
-    {
-        for_each (m1.begin (), m1.end (), delete_endgame<M1>);
-        for_each (m2.begin (), m2.end (), delete_endgame<M2>);
-    }
-
-    template<EndgameT ET>
+    template<EndgameT ET, typename T>
     void Endgames::add (const string &code)
     {
-        map ((Endgame<ET>*) NULL)[key<WHITE> (code)] = new Endgame<ET> (WHITE);
-        map ((Endgame<ET>*) NULL)[key<BLACK> (code)] = new Endgame<ET> (BLACK);
+        map<T> ()[key<WHITE> (code)] = unique_ptr<T> (new Endgame<ET> (WHITE));
+        map<T> ()[key<BLACK> (code)] = unique_ptr<T> (new Endgame<ET> (BLACK));
     }
 
     template<>
@@ -1077,19 +1068,19 @@ namespace EndGame {
 
     void   initialize ()
     {
-        if (EndGames == NULL)
+        if (EndGames == nullptr)
         {
             EndGames = new Endgames ();
-            ASSERT (EndGames != NULL);
+            ASSERT (EndGames != nullptr);
         }
     }
 
     void deinitialize ()
     {
-        if (EndGames != NULL)
+        if (EndGames != nullptr)
         {
             delete EndGames;
-            EndGames = NULL;
+            EndGames = nullptr;
         }
     }
 

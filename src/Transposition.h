@@ -91,7 +91,7 @@ private:
     // free_aligned_memory() free the allocated memory
     void free_aligned_memory ()
     {
-        if (_hash_table != NULL)
+        if (_hash_table != nullptr)
         {
 
 #   ifdef LPAGES
@@ -101,7 +101,7 @@ private:
             free (((void **) _hash_table)[-1]);
 #   endif
 
-            _hash_table     = NULL;
+            _hash_table     = nullptr;
             _cluster_count  = 0;
             _cluster_mask   = 0;
             _generation     = 0;
@@ -130,14 +130,14 @@ public:
     static bool ClearHash;
 
     TranspositionTable ()
-        : _hash_table (NULL)
+        : _hash_table (nullptr)
         , _cluster_count (0)
         , _cluster_mask (0)
         , _generation (0)
     {}
 
     explicit TranspositionTable (u32 mem_size_mb)
-        : _hash_table (NULL)
+        : _hash_table (nullptr)
         , _cluster_count (0)
         , _cluster_mask (0)
         , _generation (0)
@@ -167,7 +167,7 @@ public:
     // 'ucinewgame' (from the UCI interface).
     inline void clear ()
     {
-        if (ClearHash && _hash_table != NULL)
+        if (ClearHash && _hash_table != nullptr)
         {
             memset (_hash_table, 0x00, _cluster_count * TTClusterSize);
             _generation = 0;

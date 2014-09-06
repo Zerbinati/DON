@@ -225,7 +225,7 @@ endif
 ifeq ($(debug),no)
 	CXXFLAGS += -DNDEBUG
 else
-	CXXFLAGS += -g
+	CXXFLAGS += -g -DTRI_LOGGER
 endif
 
 ### 3.5 Optimization

@@ -36,8 +36,8 @@ namespace LeakDetector {
         };
 
 
-        LEAK_INFO *pHead = NULL;
-        LEAK_INFO *pCurr = NULL;
+        LEAK_INFO *pHead = nullptr;
+        LEAK_INFO *pCurr = nullptr;
 
         // Makes and appends the allocated memory info to the list
         void append_mem_info (void *mem_ref, size_t size, const char filename[], u32 line_no)
@@ -52,9 +52,9 @@ namespace LeakDetector {
                 p_new->mem_info.size      = size;
                 strncpy_s (p_new->mem_info.filename, FN_SIZE, filename, FN_SIZE);
                 p_new->mem_info.line_no   = line_no;
-                p_new->next = NULL;
+                p_new->next = nullptr;
 
-                if (pCurr != NULL)
+                if (pCurr != nullptr)
                 {
                     pCurr->next = p_new;
                     pCurr       = pCurr->next;
@@ -68,14 +68,14 @@ namespace LeakDetector {
         // Removes the allocated memory info if is part of the list
         void remove_mem_info (void *mem_ref)
         {
-            LEAK_INFO *p_old = NULL;
+            LEAK_INFO *p_old = nullptr;
             LEAK_INFO *p_cur = pHead;
             // check if allocate memory is in list
-            while (p_cur != NULL)
+            while (p_cur != nullptr)
             {
                 if (p_cur->mem_info.address == mem_ref)
                 {
-                    if (p_old != NULL)
+                    if (p_old != nullptr)
                     {
                         p_old->next = p_cur->next;
                         free (p_cur);
@@ -101,7 +101,7 @@ namespace LeakDetector {
         void clear_mem_info ()
         {
             pCurr = pHead;
-            while (pCurr != NULL)
+            while (pCurr != nullptr)
             {
                 LEAK_INFO *p_tmp = pCurr;
                 pCurr = pCurr->next;
@@ -116,7 +116,7 @@ namespace LeakDetector {
     void* xmalloc (u64 mem_size, const char filename[], u32 line_no)
     {
         void *mem_ref = malloc (mem_size);
-        if (mem_ref != NULL)
+        if (mem_ref != nullptr)
         {
             append_mem_info (mem_ref, mem_size, filename, line_no);
         }
@@ -126,7 +126,7 @@ namespace LeakDetector {
     void* xcalloc (u64 count, u64 mem_size, const char filename[], u32 line_no)
     {
         void *mem_ref = calloc (count, mem_size);
-        if (mem_ref != NULL)
+        if (mem_ref != nullptr)
         {
             append_mem_info (mem_ref, count * mem_size, filename, line_no);
         }
@@ -145,7 +145,7 @@ namespace LeakDetector {
         FILE *fp_write = fopen (INFO_FN, "wb");
         //errno_t err = fopen_s (&fp_write, INFO_FN, "wb");
 
-        if (fp_write != NULL)
+        if (fp_write != nullptr)
         {
             char info_buf[1024];
             LEAK_INFO *leak_info;
@@ -159,7 +159,7 @@ namespace LeakDetector {
             //x = sprintf_s (info_buf, BUF_SIZE, "%s\n", "-----------------------------------");
             copied = fwrite (info_buf, strlen (info_buf), 1, fp_write);
 
-            while (leak_info != NULL)
+            while (leak_info != nullptr)
             {
                 x = sprintf (info_buf, "Address : %p\n", leak_info->mem_info.address);
                 //x = sprintf_s (info_buf, BUF_SIZE, "Address : %p\n", leak_info->mem_info.address);

@@ -75,9 +75,9 @@ MovePicker::MovePicker (const Position &p, HistoryStats &h, Move ttm, Depth d, S
     , end (moves)
     , pos (p)
     , history (h)
-    , ss (NULL)
-    , counter_moves (NULL)
-    , followup_moves (NULL)
+    , ss (nullptr)
+    , counter_moves (nullptr)
+    , followup_moves (nullptr)
     , depth (d)
 {
     ASSERT (d <= DEPTH_ZERO);
@@ -122,9 +122,9 @@ MovePicker::MovePicker (const Position &p, HistoryStats &h, Move ttm,          P
     , end (moves)
     , pos (p)
     , history (h)
-    , ss (NULL)
-    , counter_moves (NULL)
-    , followup_moves (NULL)
+    , ss (nullptr)
+    , counter_moves (nullptr)
+    , followup_moves (nullptr)
     , depth (DEPTH_ZERO)
 {
     ASSERT (!pos.checkers ());

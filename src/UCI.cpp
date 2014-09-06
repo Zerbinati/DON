@@ -72,7 +72,7 @@ namespace UCI {
 
                     if (Options.count (name) > 0)
                     {
-                        Options[name] = value;
+                        *Options[name] = value;
                     }
                     else
                     {
@@ -158,7 +158,7 @@ namespace UCI {
             }
             else return;
             
-            RootPos.setup (fen, Threadpool.main (), bool(Options["UCI_Chess960"]));
+            RootPos.setup (fen, Threadpool.main (), bool(*(Options["UCI_Chess960"])));
             
             SetupStates = StateInfoStackPtr (new StateInfoStack ());
             
@@ -267,9 +267,9 @@ namespace UCI {
             if (RootPos.checkers ())
             {
                 cout << "\nEvasion moves: ";
-                for (MoveList<EVASION> ms (RootPos); *ms != MOVE_NONE; ++ms)
+                for (const ValMove &ms : MoveList<QUIET> (RootPos))
                 {
-                    Move m = *ms;
+                    Move m = ms.move;
                     if (RootPos.legal (m))
                     {
                         cout << move_to_san (m, RootPos) << " ";
@@ -279,9 +279,9 @@ namespace UCI {
             else
             {
                 cout << "\nQuiet moves: ";
-                for (MoveList<QUIET> ms (RootPos); *ms != MOVE_NONE; ++ms)
+                for (const ValMove &ms : MoveList<QUIET> (RootPos))
                 {
-                    Move m = *ms;
+                    Move m = ms.move;
                     if (RootPos.legal (m))
                     {
                         cout << move_to_san (m, RootPos) << " ";
@@ -289,9 +289,9 @@ namespace UCI {
                 }
 
                 cout << "\nCheck moves: ";
-                for (MoveList<CHECK> ms (RootPos); *ms != MOVE_NONE; ++ms)
+                for (const ValMove &ms : MoveList<CHECK> (RootPos))
                 {
-                    Move m = *ms;
+                    Move m = ms.move;
                     if (RootPos.legal (m))
                     {
                         cout << move_to_san (m, RootPos) << " ";
@@ -299,9 +299,9 @@ namespace UCI {
                 }
 
                 cout << "\nQuiet Check moves: ";
-                for (MoveList<QUIET_CHECK> ms (RootPos); *ms != MOVE_NONE; ++ms)
+                for (const ValMove &ms : MoveList<QUIET_CHECK> (RootPos))
                 {
-                    Move m = *ms;
+                    Move m = ms.move;
                     if (RootPos.legal (m))
                     {
                         cout << move_to_san (m, RootPos) << " ";
@@ -309,9 +309,9 @@ namespace UCI {
                 }
 
                 cout << "\nCapture moves: ";
-                for (MoveList<CAPTURE> ms (RootPos); *ms != MOVE_NONE; ++ms)
+                for (const ValMove &ms : MoveList<CAPTURE> (RootPos))
                 {
-                    Move m = *ms;
+                    Move m = ms.move;
                     if (RootPos.legal (m))
                     {
                         cout << move_to_san (m, RootPos) << " ";
@@ -320,9 +320,9 @@ namespace UCI {
             }
 
             cout << "\nLegal moves: ";
-            for (MoveList<LEGAL> ms (RootPos); *ms != MOVE_NONE; ++ms)
+            for (const ValMove &ms : MoveList<LEGAL> (RootPos))
             {
-                Move m = *ms;
+                Move m = ms.move;
                 cout << move_to_san (m, RootPos) << " ";
             }
 
@@ -347,8 +347,8 @@ namespace UCI {
             {
                 stringstream ss;
                 string fen_fn;
-                ss  << i32(Options["Hash"])    << " "
-                    << i32(Options["Threads"]) << " "
+                ss  << i32(*(Options["Hash"]))    << " "
+                    << i32(*(Options["Threads"])) << " "
                     << depth << " perft " << ((cmds >> fen_fn) ? fen_fn : "");
 
                 benchmark (ss, RootPos);
@@ -374,6 +374,7 @@ namespace UCI {
     // commands, the function also supports a few debug commands.
     void start (const string &arg)
     {
+
         RootPos.setup (StartingFEN, Threadpool.main ());
 
         bool running = arg.empty ();

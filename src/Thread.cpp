@@ -3,7 +3,6 @@
 #include "Position.h"
 #include "MoveGenerator.h"
 #include "Searcher.h"
-#include "Endgame.h"
 #include "UCI.h"
 
 Threads::ThreadPool     Threadpool; // Global ThreadPool
@@ -27,8 +26,8 @@ namespace Threads {
     template<class T>
     T* new_thread ()
     {
-        T *th = new T ();
-        thread_create (th->native_handle, start_routine, th); // Will go to sleep
+        T* th = new T ();
+        th->native_thread = thread (&ThreadBase::idle_loop, th); // Will go to sleep
         return th;
     }
 
@@ -37,7 +36,7 @@ namespace Threads {
     {
         th->quit ();                // Search must be already finished
         th->notify_one ();
-        thread_join (th->native_handle);   // Wait for thread termination
+        th->native_thread.join (); // Wait for thread termination
         delete th;
     }
 
@@ -51,20 +50,15 @@ namespace Threads {
     // notify_one () wakes up the thread when there is some work to do
     void ThreadBase::notify_one ()
     {
-        mutex.lock ();
+        unique_lock<std::mutex> (this->mutex);
         sleep_condition.notify_one ();
-        mutex.unlock ();
     }
 
     // wait_for() set the thread to sleep until condition turns true
     void ThreadBase::wait_for (const volatile bool &condition)
     {
-        mutex.lock ();
-        while (!condition)
-        {
-            sleep_condition.wait (mutex);
-        }
-        mutex.unlock ();
+        unique_lock<std::mutex> lock (this->mutex);
+        sleep_condition.wait (lock, [&]{ return condition; });
     }
 
     // ------------------------------------
@@ -72,9 +66,9 @@ namespace Threads {
     // Thread c'tor just inits data but does not launch any thread of execution that
     // instead will be started only upon c'tor returns.
     Thread::Thread () //: splitpoints ()  // Value-initialization bug in MSVC
-        : active_pos (NULL)
+        : active_pos (nullptr)
         , idx (Threadpool.size ())  // Starts from 0
-        , active_splitpoint (NULL)
+        , active_splitpoint (nullptr)
         , splitpoint_threads (0)
         , searching (false)
     {}
@@ -84,7 +78,7 @@ namespace Threads {
     bool Thread::cutoff_occurred () const
     {
         for (SplitPoint *sp = active_splitpoint;
-             sp != NULL;
+             sp != nullptr;
              sp = sp->parent_splitpoint)
         {
             if (sp->cut_off) return true;
@@ -156,10 +150,10 @@ namespace Threads {
         sp.slave_searching = true;
         ++splitpoint_threads;
         active_splitpoint = &sp;
-        active_pos = NULL;
+        active_pos = nullptr;
 
         Thread *slave;
-        while ((slave = Threadpool.available_slave (this)) != NULL)
+        while ((slave = Threadpool.available_slave (this)) != nullptr)
         {
             sp.slaves_mask.set (slave->idx);
             slave->active_splitpoint = &sp;
@@ -210,12 +204,12 @@ namespace Threads {
     {
         do
         {
-            mutex.lock ();
+            unique_lock<std::mutex> lock (mutex);
             if (!exit)
             {
-                sleep_condition.wait_for (mutex, run ? resolution : INT_MAX);
+                sleep_condition.wait_for (lock, chrono::milliseconds (run ? resolution : INT_MAX));
             }
-            mutex.unlock ();
+            lock.unlock ();
 
             if (run)
             {
@@ -233,14 +227,14 @@ namespace Threads {
     {
         do
         {
-            mutex.lock ();
+            unique_lock<std::mutex> lock (mutex);
             thinking = false;
             while (!thinking && !exit)
             {
-                Threadpool.sleep_condition.notify_one (); // Wake up UI thread if needed
-                sleep_condition.wait (mutex);
+                Threadpool.sleep_condition.notify_one (); // Wake up the UI thread if needed
+                sleep_condition.wait (lock);
             }
-            mutex.unlock ();
+            lock.unlock ();
 
             if (exit) return;
 
@@ -266,7 +260,7 @@ namespace Threads {
         timer           = new_thread<TimerThread> ();
         timer->task     = check_time;
         timer->resolution = TimerResolution;
-        auto_save        = NULL;
+        auto_save        = nullptr;
     }
 
     // deinitialize() cleanly terminates the threads before the program exits
@@ -276,9 +270,9 @@ namespace Threads {
     {
         delete_thread (timer); // As first because check_time() accesses threads data
         if (Threadpool.auto_save) delete_thread (auto_save);
-        for (iterator itr = begin (); itr != end (); ++itr)
+        for (Thread *th : *this)
         {
-            delete_thread (*itr);
+            delete_thread (th);
         }
     }
 
@@ -288,8 +282,9 @@ namespace Threads {
     // threads, with included pawns and material tables, if only few are used.
     void ThreadPool::configure ()
     {
-        u32 threads = i32(Options["Threads"]);
-        split_depth = i32(Options["Split Depth"])*ONE_MOVE;
+
+        split_depth = i32(*(Options["Split Depth"]))*ONE_MOVE;
+        u08 threads = i32(*(Options["Threads"]));
 
         ASSERT (threads > 0);
 
@@ -320,15 +315,14 @@ namespace Threads {
     // which is available as a slave for the thread 'master'.
     Thread* ThreadPool::available_slave (const Thread *master) const
     {
-        for (const_iterator itr = begin (); itr != end (); ++itr)
+        for (Thread *slave : *this)
         {
-            Thread *slave = *itr;
             if (slave->available_to (master))
             {
                 return slave;
             }
         }
-        return NULL;
+        return nullptr;
     }
     
     // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
@@ -342,12 +336,12 @@ namespace Threads {
         RootPos     = pos;
         RootMoves.initialize (pos, limits.root_moves);
         Limits      = limits;
-        if (states.get () != NULL) // If don't set a new position, preserve current state
+        if (states.get () != nullptr) // If we don't set a new position, preserve current state
         {
-            SetupStates = states;  // Ownership transfer here
-            ASSERT (states.get () == NULL);
+            SetupStates = move (states);   // Ownership transfer here
+            ASSERT (states.get () == nullptr);
         }
-
+        
         Signals.force_stop     = false;
         Signals.ponderhit_stop = false;
         Signals.root_1stmove   = false;
@@ -361,13 +355,8 @@ namespace Threads {
     // wait_for_think_finished() waits for main thread to go to sleep then returns
     void ThreadPool::wait_for_think_finished ()
     {
-        MainThread *main_th = main ();
-        main_th->mutex.lock ();
-        while (main_th->thinking)
-        {
-            sleep_condition.wait (main_th->mutex);
-        }
-        main_th->mutex.unlock ();
+        unique_lock<std::mutex> lock (main ()->mutex);
+        sleep_condition.wait (lock, [&]{ return !main ()->thinking; });
     }
 
 }

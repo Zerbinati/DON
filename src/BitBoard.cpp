@@ -207,8 +207,8 @@ namespace BitBoard {
             initialize_table (BTable_bb, BAttack_bb, BMask_bb, BMagic_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
             initialize_table (RTable_bb, RAttack_bb, RMask_bb, RMagic_bb, RShift, PieceDeltas[ROOK], magic_index<ROOK>);
 #       else
-            initialize_table (BTable_bb, BAttack_bb, BMask_bb, NULL, NULL, PieceDeltas[BSHP], magic_index<BSHP>);
-            initialize_table (RTable_bb, RAttack_bb, RMask_bb, NULL, NULL, PieceDeltas[ROOK], magic_index<ROOK>);
+            initialize_table (BTable_bb, BAttack_bb, BMask_bb, nullptr, nullptr, PieceDeltas[BSHP], magic_index<BSHP>);
+            initialize_table (RTable_bb, RAttack_bb, RMask_bb, nullptr, nullptr, PieceDeltas[ROOK], magic_index<ROOK>);
 #       endif
         }
 

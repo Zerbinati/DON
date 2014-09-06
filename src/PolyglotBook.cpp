@@ -124,7 +124,7 @@ PolyglotBook::PolyglotBook ()
 {}
 
 PolyglotBook::PolyglotBook (const string &book_fn, ios_base::openmode mode)
-    : fstream (book_fn.c_str (), mode|ios_base::binary)
+    : fstream (book_fn, mode|ios_base::binary)
     , _book_fn (book_fn)
     , _mode (mode)
     , _size_book (0)
@@ -142,7 +142,7 @@ PolyglotBook::~PolyglotBook ()
 bool PolyglotBook::open (const string &book_fn, ios_base::openmode mode)
 {
     close ();
-    fstream::open (book_fn.c_str (), mode|ios_base::binary);
+    fstream::open (book_fn, mode|ios_base::binary);
     clear (); // Reset any error flag to allow retry open()
     _book_fn = book_fn;
     _mode    = mode;
@@ -325,13 +325,13 @@ Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     if (pt != PAWN) promote (move, pt);
 
     // Add 'special move' flags and verify it is legal
-    for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
+    for (const ValMove &ms : MoveList<LEGAL> (pos))
     {
-        Move m = *ms;
+        Move m = ms.move;
         //if ((m ^ mtype (m)) == move)
         if ((m & ~PROMOTE) == move)
         {
-            return m;
+            return ms.move;
         }
     }
 
@@ -366,15 +366,14 @@ string PolyglotBook::read_entries (const Position &pos)
         weight_sum += pbe.weight;
     }
 
-    //TODO::
     ostringstream oss;
-    //for_each (pe_list.begin (), pe_list.end (), [&oss, &weight_sum] (PBEntry _pbe)
-    //{
-    //    oss << setfill ('0')
-    //        << _pbe << " prob: " << right << fixed << width_prec (6, 2)
-    //        << (weight_sum ? 100 * (float) _pbe.weight / weight_sum : 0.0)
-    //        << endl;
-    //});
+    for_each (pe_list.begin (), pe_list.end (), [&oss, &weight_sum] (PBEntry _pbe)
+    {
+        oss << setfill ('0')
+            << _pbe << " prob: " << right << fixed << width_prec (6, 2)
+            << (weight_sum ? 100 * (float) _pbe.weight / weight_sum : 0.0f)
+            << endl;
+    });
 
     return oss.str ();
 }

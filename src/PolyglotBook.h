@@ -76,6 +76,7 @@ public:
     // Returns the index of the 1st book entry with the same key as the input.
     u64 find_index (const Key key);
     u64 find_index (const Position &pos);
+
     u64 find_index (const std::string &fen, bool c960 = false);
 
 public:

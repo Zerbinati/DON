@@ -158,15 +158,15 @@ public:
 
     Position () { clear (); }
 
-    explicit Position (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
+    explicit Position (const std::string &f, Threads::Thread *th = nullptr, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    explicit Position (const Position  &pos, Threads::Thread *th = NULL) { *this = pos; _thread = th; }
+    explicit Position (const Position  &pos, Threads::Thread *th = nullptr) { *this = pos; _thread = th; }
     
     explicit Position (i32) {}
 
-   ~Position() { _thread = NULL; }
+   ~Position() { _thread = nullptr; }
 
     Position& operator= (const Position &pos);
 
@@ -245,7 +245,7 @@ public:
 
     Threads::Thread* thread () const;
 
-    bool ok (i08 *step = NULL) const;
+    bool ok (i08 *step = nullptr) const;
 
     // Static Exchange Evaluation (SEE)
     Value see      (Move m) const;
@@ -281,7 +281,7 @@ public:
     void remove_piece (Square s);
     void   move_piece (Square s1, Square s2);
 
-    bool setup (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true);
+    bool setup (const std::string &f, Threads::Thread *th = nullptr, bool c960 = false, bool full = true);
 
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
@@ -344,12 +344,12 @@ template<>
 // Count total pieces of color
 inline i32 Position::count<NONE>    (Color c) const
 {
-    return _piece_count[c][PAWN]
-         + _piece_count[c][NIHT]
-         + _piece_count[c][BSHP]
-         + _piece_count[c][ROOK]
-         + _piece_count[c][QUEN]
-         + _piece_count[c][KING];
+    return  _piece_count[c][PAWN]
+          + _piece_count[c][NIHT]
+          + _piece_count[c][BSHP]
+          + _piece_count[c][ROOK]
+          + _piece_count[c][QUEN]
+          + _piece_count[c][KING];
 }
 template<>
 // Count non-pawn pieces of color
@@ -371,12 +371,12 @@ template<>
 // Count total pieces
 inline i32 Position::count<NONE>    () const
 {
-    return _piece_count[WHITE][PAWN] + _piece_count[BLACK][PAWN]
-         + _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
-         + _piece_count[WHITE][BSHP] + _piece_count[BLACK][BSHP]
-         + _piece_count[WHITE][ROOK] + _piece_count[BLACK][ROOK]
-         + _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN]
-         + _piece_count[WHITE][KING] + _piece_count[BLACK][KING];
+    return  _piece_count[WHITE][PAWN] + _piece_count[BLACK][PAWN]
+          + _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
+          + _piece_count[WHITE][BSHP] + _piece_count[BLACK][BSHP]
+          + _piece_count[WHITE][ROOK] + _piece_count[BLACK][ROOK]
+          + _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN]
+          + _piece_count[WHITE][KING] + _piece_count[BLACK][KING];
 }
 template<>
 // Count non-pawn pieces

@@ -30,7 +30,7 @@ INLINE u64 system_time_msec ()
 INLINE u64 system_time_msec ()
 {
     timeval timebuf;
-    gettimeofday (&timebuf, NULL);
+    gettimeofday (&timebuf, nullptr);
     return ((timebuf.tv_sec * 1000LL) + (timebuf.tv_usec / 1000));
 }
 

@@ -2,6 +2,7 @@
 #define _UCI_H_INC_
 
 #include <map>
+#include <memory>
 #include <iostream>
 
 #include "Type.h"
@@ -11,14 +12,18 @@ namespace UCI {
 
     class Option;
 
+    typedef std::unique_ptr<Option> OptionPtr;
+
     // Our options container is actually a std::map
-    typedef std::map<std::string, Option, std::no_case_less_comparer> OptionMap;
+    typedef std::map<std::string, OptionPtr, std::no_case_less_comparer> OptionMap;
 
     // Option class implements an option as defined by UCI protocol
-    class Option
+    class       Option
     {
+
     private:
-        typedef void (*OnChange) (const Option&);
+
+        u08 _idx;
 
         template<class CharT, class Traits>
         friend std::basic_ostream<CharT, Traits>&
@@ -28,33 +33,81 @@ namespace UCI {
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap);
 
-        u08 _idx;
-        std::string _type;
+    protected:
 
-        std::string
-              _default
-            , _value;
-
-        i32   _minimum
-            , _maximum;
-
+        typedef void (*OnChange) (const Option &);
         OnChange _on_change;
 
     public:
-        Option (OnChange on_change = NULL);
-        Option (const bool  val, OnChange on_change = NULL);
-        Option (const char *val, OnChange on_change = NULL);
-        Option (const i32   val, i32 minimum, i32 maximum, OnChange on_change = NULL);
 
-        operator bool () const;
-        operator i32  () const;
-        operator std::string () const;
+        Option (const OnChange on_change = nullptr);
+        virtual ~Option ();
 
-        Option& operator=  (const std::string &value);
+        virtual std::string operator() ()  const   = 0;
 
-        void    operator<< (const Option &opt);
+        virtual operator bool ()        const { return bool (); }
+        virtual operator i32 ()         const { return i32 (); }
+        virtual operator std::string () const { return std::string (); }
+        virtual Option& operator= (std::string &value) = 0;
+
+    };
+
+    class ButtonOption : public Option
+    {
+    public:
+        ButtonOption (const OnChange on_change = nullptr);
 
         std::string operator() ()  const;
+
+        Option& operator= (std::string &value);
+
+    };
+
+    class  CheckOption : public Option
+    {
+    public:
+        bool _default
+            , _value;
+
+        CheckOption (const bool val, const OnChange on_change = nullptr);
+
+        std::string operator() ()  const;
+        virtual operator bool () const;
+
+        Option& operator= (std::string &value);
+
+    };
+
+    class StringOption : public Option
+    {
+    public:
+        std::string _default
+            , _value;
+
+        StringOption (const char *val, const OnChange on_change = nullptr);
+
+        std::string operator() ()  const;
+        operator std::string () const;
+
+        Option& operator= (std::string &value);
+
+    };
+
+    class   SpinOption : public Option
+    {
+    public:
+        i32 _default
+            , _value
+            , _minimum
+            , _maximum;
+
+        SpinOption (const i32 val, i32 minimum, i32 maximum, const OnChange on_change = nullptr);
+
+        std::string operator() ()  const;
+        operator i32 () const;
+
+        Option& operator= (std::string &value);
+
     };
 
     template<class CharT, class Traits>
@@ -71,22 +124,22 @@ namespace UCI {
     inline std::basic_ostream<CharT, Traits>&
         operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap)
     {
-        for (u08 idx = 0; idx < optmap.size (); ++idx)
+        for (u08 idx = 0; idx <= optmap.size (); ++idx)
         {
-            for (OptionMap::const_iterator
-                pair  = optmap.begin ();
-                pair != optmap.end (); ++pair)
+            //for (const auto &pair : optmap)
+            for (const std::pair<const std::string, OptionPtr> &pair : optmap)
             {
-                const Option &option = pair->second;
+                const Option &option = *(pair.second.get ());
                 if (idx == option._idx)
                 {
-                    os << "option name " << pair->first << option << std::endl;
+                    os << "option name " << pair.first << option << std::endl;
                     break;
                 }
             }
         }
         return os;
     }
+
 
     extern void   initialize ();
     extern void deinitialize ();

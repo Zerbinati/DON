@@ -19,7 +19,7 @@ namespace {
 
     const u08   PosCount   = 30;
 
-    const char *DefaultFEN[PosCount] =
+    const vector<string> DefaultFens =
     {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq -",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -",
@@ -83,11 +83,11 @@ void benchmark (istream &is, const Position &pos)
     string fen_fn     = (is >> token) ? token : "default";
     string boolean    = "false";
 
-    Options["Hash"]    = hash;
-    Options["Never Clear Hash"] = boolean;
-    Options["Threads"] = threads;
+    *Options["Hash"]    = hash;
+    *Options["Never Clear Hash"] = boolean;
+    *Options["Threads"] = threads;
 
-    i32 value = abs (atoi (limit_val.c_str ()));
+    i32 value = abs (stoi (limit_val));
     //value = value >= 0 ? +value : -value;
 
     LimitsT limits;
@@ -100,7 +100,7 @@ void benchmark (istream &is, const Position &pos)
 
     if (fen_fn == "default")
     {
-        fens.assign (DefaultFEN, DefaultFEN + PosCount);
+        fens = DefaultFens;
     }
     else
     if (fen_fn == "current")
@@ -109,7 +109,7 @@ void benchmark (istream &is, const Position &pos)
     }
     else
     {
-        ifstream ifs (fen_fn.c_str ());
+        ifstream ifs (fen_fn);
 
         if (!ifs.is_open ())
         {
@@ -129,7 +129,7 @@ void benchmark (istream &is, const Position &pos)
         ifs.close ();
     }
     
-    bool  chess960 = bool(Options["UCI_Chess960"]);
+    bool chess960  = bool(*(Options["UCI_Chess960"]));
     u64   nodes    = 0;
     point time     = now ();
 

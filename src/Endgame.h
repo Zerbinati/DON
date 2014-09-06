@@ -2,6 +2,10 @@
 #define _ENDGAME_H_INC_
 
 #include <map>
+#include <memory>
+#include <string>
+#include <type_traits>
+#include <utility>
 
 #include "Type.h"
 
@@ -45,10 +49,9 @@ namespace EndGame {
     };
 
     // Endgame functions can be of two types according if return a Value or a ScaleFactor.
-    // Type eg_fun<bool>::type equals to either ScaleFactor or Value depending if the template parameter is true or false.
-    template<bool> struct eg_fun;
-    template<> struct eg_fun<false> { typedef Value         type; };
-    template<> struct eg_fun<true > { typedef ScaleFactor   type; };
+    // Type eg_fun<i32>::type equals to either ScaleFactor or Value depending if the template parameter is 0 or 1.
+    template<EndgameT ET>
+    using eg_fun = std::conditional<(ET < SCALE_FUNS), Value, ScaleFactor>;
 
     // Base and derived templates for endgame evaluation and scaling functions
     template<typename T>
@@ -64,7 +67,7 @@ namespace EndGame {
 
     };
 
-    template<EndgameT ET, typename T = typename eg_fun<(ET > SCALE_FUNS)>::type>
+    template<EndgameT ET, typename T = typename eg_fun<ET>::type>
     class Endgame
         : public EndgameBase<T>
     {
@@ -93,27 +96,27 @@ namespace EndGame {
 
     private:
 
-        typedef std::map<Key, EndgameBase<eg_fun<false>::type>*> M1;
-        typedef std::map<Key, EndgameBase<eg_fun<true >::type>*> M2;
+        template<typename T> using Map = std::map<Key, std::unique_ptr<T> >;
 
-        M1 m1;
-        M2 m2;
-
-        inline M1& map (M1::mapped_type) { return m1; }
-        inline M2& map (M2::mapped_type) { return m2; }
-
-        template<EndgameT ET>
+        std::pair<Map<EndgameBase<Value> >, Map<EndgameBase<ScaleFactor> > > maps;
+        
+        template<EndgameT ET, typename T = EndgameBase<typename eg_fun<ET>::type> >
         void add (const std::string &code);
+
+        template<typename T, i32 I = std::is_same< T, EndgameBase<ScaleFactor> >::value>
+        inline Map<T>& map ()
+        {
+            return std::get<I> (maps);
+        }
 
     public:
 
         Endgames ();
-       ~Endgames ();
 
-        template<class T>
-        inline T probe (Key matl_key, T &eg)
+        template<typename T>
+        inline T* probe (Key key, T *&eg)
         {
-            return eg = (map (eg).count (matl_key) ? map (eg)[matl_key] : NULL);
+            return eg = (map<T> ().count (key) ? map<T> ()[key].get () : nullptr);
         }
     };
 

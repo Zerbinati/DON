@@ -126,12 +126,11 @@ namespace Notation {
             if (isupper (u08(scan[4]))) scan[4] = u08(tolower (scan[4]));
         }
 
-        for (MoveList<LEGAL> moves (pos); *moves != MOVE_NONE; ++moves)
+        for (const ValMove &ms : MoveList<LEGAL> (pos))
         {
-            Move m = *moves;
-            if (scan == move_to_can (m, pos.chess960 ()))
+            if (scan == move_to_can (ms.move, pos.chess960 ()))
             {
-                return m;
+                return ms.move;
             }
         }
         return MOVE_NONE;
@@ -141,12 +140,11 @@ namespace Notation {
     // single algebraic notation and returns an equivalent legal move if any.
     Move move_from_san (const string &san, Position &pos)
     {
-        for (MoveList<LEGAL> moves (pos); *moves != MOVE_NONE; ++moves)
+        for (const ValMove &ms : MoveList<LEGAL> (pos))
         {
-            Move m = *moves;
-            if (san == move_to_san (m, pos))
+            if (san == move_to_san (ms.move, pos))
             {
-                return m;
+                return ms.move;
             }
         }
         return MOVE_NONE;

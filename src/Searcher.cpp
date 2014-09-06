@@ -300,7 +300,7 @@ namespace Searcher {
 
             posi_key = pos.posi_key ();
             tte      = TT.retrieve (posi_key);
-            if (tte != NULL)
+            if (tte != nullptr)
             {
                 tt_move  = tte->move ();
                 tt_value = value_of_tt (tte->value (), (ss)->ply);
@@ -316,9 +316,9 @@ namespace Searcher {
                                DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             CheckInfo cc
-                ,    *ci = NULL;
+                ,    *ci = nullptr;
 
-            if (  tte != NULL
+            if (  tte != nullptr
                && tt_depth >= qs_depth
                && tt_value != VALUE_NONE // Only in case of TT access race
                && (         PVNode ? tt_bound == BND_EXACT :
@@ -341,7 +341,7 @@ namespace Searcher {
             }
             else
             {
-                if (tte != NULL)
+                if (tte != nullptr)
                 {
                     // Never assume anything on values stored in TT
                     if (VALUE_NONE == best_value) best_value = evaluate (pos);
@@ -367,7 +367,7 @@ namespace Searcher {
                     // Stand pat. Return immediately if static value is at least beta
                     if (best_value >= beta)
                     {
-                        if (tte == NULL)
+                        if (tte == nullptr)
                         {
                             TT.store (
                                 posi_key,
@@ -397,7 +397,7 @@ namespace Searcher {
             // be generated.
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, dst_sq ((ss-1)->current_move));
             StateInfo si;
-            if (ci == NULL)
+            if (ci == nullptr)
             {
                 cc = CheckInfo (pos);
                 ci = &cc;
@@ -466,7 +466,7 @@ namespace Searcher {
                 (ss)->current_move = move;
 
                 // Make and search the move
-                pos.do_move (move, si, gives_check ? ci : NULL);
+                pos.do_move (move, si, gives_check ? ci : nullptr);
 
                 Value value = gives_check ?
                     -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-1*i16(ONE_MOVE)) :
@@ -549,7 +549,7 @@ namespace Searcher {
             ASSERT (depth > DEPTH_ZERO);
 
             Key   posi_key;
-            const TTEntry *tte = NULL;
+            const TTEntry *tte = nullptr;
             Move  tt_move     = MOVE_NONE;
             Value tt_value    = VALUE_NONE;
             Depth tt_depth    = DEPTH_NONE;
@@ -567,7 +567,7 @@ namespace Searcher {
                 , best_move     = MOVE_NONE;
 
             CheckInfo cc
-                ,    *ci = NULL;
+                ,    *ci = nullptr;
 
             if (SPNode)
             {
@@ -622,22 +622,21 @@ namespace Searcher {
                 tte      = TT.retrieve (posi_key);
                 (ss)->tt_move =
                 tt_move  = RootNode ? RootMoves[CurPV].pv[0] :
-                           tte != NULL ? tte->move () : MOVE_NONE;
-                if (tte != NULL)
+                           tte != nullptr ? tte->move () : MOVE_NONE;
+                if (tte != nullptr)
                 {
                     tt_value = value_of_tt (tte->value (), (ss)->ply);
                     tt_depth = tte->depth ();
                     tt_bound = tte->bound ();
                     if (!in_check) static_eval = tte->eval ();
                 }
-                
                 if (!RootNode)
                 {
                     // At PV nodes check for exact scores, while at non-PV nodes check for
                     // a fail high/low. Biggest advantage at probing at PV nodes is to have a
                     // smooth experience in analysis mode. Don't probe at Root nodes otherwise
                     // should also update RootMoveList to avoid bogus output.
-                    if (  tte != NULL
+                    if (  tte != nullptr
                        && tt_value != VALUE_NONE // Only in case of TT access race
                        && tt_depth >= depth
                        && (         PVNode ? tt_bound == BND_EXACT :
@@ -655,7 +654,7 @@ namespace Searcher {
                            && !pos.capture_or_promotion (tt_move)
                            )
                         {
-                            update_stats (pos, ss, tt_move, depth, NULL, 0);
+                            update_stats (pos, ss, tt_move, depth, nullptr, 0);
                         }
 
                         return tt_value;
@@ -669,7 +668,7 @@ namespace Searcher {
                 }
                 else
                 {
-                    if (tte != NULL)
+                    if (tte != nullptr)
                     {
                         // Never assume anything on values stored in TT
                         if (VALUE_NONE == static_eval) static_eval = evaluate (pos);
@@ -828,7 +827,7 @@ namespace Searcher {
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
                                 MovePicker mp (pos, HistoryStatistics, tt_move, pos.capture_type ());
-                                if (ci == NULL)
+                                if (ci == nullptr)
                                 {
                                     cc = CheckInfo (pos);
                                     ci = &cc;
@@ -838,7 +837,7 @@ namespace Searcher {
                                     if (!pos.legal (move, ci->pinneds)) continue;
 
                                     (ss)->current_move = move;
-                                    pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
+                                    pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : nullptr);
                                     Value value = -search_depth<NonPV, false, true> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
                                     pos.undo_move ();
 
@@ -860,7 +859,7 @@ namespace Searcher {
                         search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
                         tte = TT.retrieve (posi_key);
-                        if (tte != NULL)
+                        if (tte != nullptr)
                         {
                             tt_move  = tte->move ();
                             tt_value = value_of_tt (tte->value (), (ss)->ply);
@@ -915,12 +914,12 @@ namespace Searcher {
                 }
             }
 
-            Move *counter_moves  = _ok ((ss-1)->current_move) ?  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)) : NULL;
-            Move *followup_moves = _ok ((ss-2)->current_move) ? FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)) : NULL;
+            Move *counter_moves  = _ok ((ss-1)->current_move) ?  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)) : nullptr;
+            Move *followup_moves = _ok ((ss-2)->current_move) ? FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)) : nullptr;
 
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
             StateInfo si;
-            if (ci == NULL)
+            if (ci == nullptr)
             {
                 cc = CheckInfo (pos);
                 ci = &cc;
@@ -1103,7 +1102,7 @@ namespace Searcher {
                 (ss)->current_move = move;
                 
                 // Step 15. Make the move
-                pos.do_move (move, si, gives_check ? ci : NULL);
+                pos.do_move (move, si, gives_check ? ci : nullptr);
 
                 // Step 16, 17.
                 if (!move_pv)
@@ -1283,7 +1282,7 @@ namespace Searcher {
                     if (  Threadpool.split_depth <= depth
                        && Threadpool.size () > 1
                        && thread->splitpoint_threads < MaxSplitPointThreads
-                       && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
+                       && (thread->active_splitpoint == nullptr || !thread->active_splitpoint->slave_searching)
                        )
                     {
                         ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
@@ -1365,13 +1364,13 @@ namespace Searcher {
             PieceT cap_pt  = RootPos.capture_type ();
             Move last_move = RootPos.last_move ();
 
-            u08 level = u08(i32(Options["Skill Level"]));
+            u08 level = u08(i32(*(Options["Skill Level"])));
             Skill skill (level);
 
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill candidates size
             // that will use behind the scenes to retrieve a set of possible moves.
-            u08 MultiPV = min (max (u08(i32(Options["MultiPV"])), skill.candidates_size ()), RootSize);
+            u08 MultiPV = min (max (u08(i32(*(Options["MultiPV"]))), skill.candidates_size ()), RootSize);
             LimitPV = MultiPV;
 
             Value best_value = VALUE_ZERO
@@ -1393,9 +1392,9 @@ namespace Searcher {
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
-                for (u08 i = 0; i < RootSize; ++i)
+                for (RootMove &rm : RootMoves)
                 {
-                    RootMoves[i].value[1] = RootMoves[i].value[0];
+                    rm.value[1] = rm.value[0];
                 }
                 
                 const bool aspiration = dep > 2*i16(ONE_MOVE);
@@ -1627,7 +1626,7 @@ namespace Searcher {
                 else
                 {
                     Move m = *ms;
-                    pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
+                    pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : nullptr);
                     inter_nodes = depth <= 2*i16(ONE_MOVE) ? MoveList<LEGAL>(pos).size () : perft<false> (pos, depth-1*i16(ONE_MOVE));
                     pos.undo_move ();
                 }
@@ -1683,7 +1682,7 @@ namespace Searcher {
             expected_value = -expected_value;
             tte = TT.retrieve (pos.posi_key ());
         }
-        while (  tte != NULL
+        while (  tte != nullptr
               && expected_value == value_of_tt (tte->value (), ply+1)
               && (m = tte->move ()) != MOVE_NONE // Local copy, TT could change
               && pos.pseudo_legal (m)
@@ -1717,7 +1716,8 @@ namespace Searcher {
 
             tte = TT.retrieve (pos.posi_key ());
             // Don't overwrite correct entries
-            if (tte == NULL || tte->move () != m)
+
+            if (tte == nullptr || tte->move () != m)
             {
                 TT.store (
                     pos.posi_key (),
@@ -1781,7 +1781,7 @@ namespace Searcher {
         RootPly   = RootPos.game_ply ();
         RootSize  = RootMoves.size ();
 
-        SearchLog = string(Options["Search Log"]);
+        SearchLog = string(*(Options["Search Log"]));
         if (!SearchLog.empty ())
         {
             trim (SearchLog);
@@ -1816,7 +1816,7 @@ namespace Searcher {
 
         if (RootSize)
         {
-            string book_fn = string(Options["Opening Book"]);
+            string book_fn = string(*(Options["Opening Book"]));
             if (!book_fn.empty () && !Limits.infinite && !MateSearch)
             {
                 trim (book_fn);
@@ -1828,7 +1828,7 @@ namespace Searcher {
                 }
                 if (Book.is_open ())
                 {
-                    Move book_move = Book.probe_move (RootPos, bool(Options["Best Book Move"]));
+                    Move book_move = Book.probe_move (RootPos, bool(*(Options["Best Book Move"])));
                     if (  book_move != MOVE_NONE
                        && count (RootMoves.begin (), RootMoves.end (), book_move)
                        )
@@ -1841,12 +1841,12 @@ namespace Searcher {
 
             TimeMgr.initialize (Limits.gameclock[RootColor], Limits.movestogo, RootPly);
 
-            i16 fixed_contempt = i16(i32(Options["Fixed Contempt"]));
+            i16 fixed_contempt = i16(i32(*(Options["Fixed Contempt"])));
 
             i16 timed_contempt = 0;
             i16 diff_time = 0;
             u16 contempt_time = 0;
-            if (  (contempt_time = u16(i32(Options["Timed Contempt (sec)"]))) > 0
+            if (  (contempt_time = u16(i32(*(Options["Timed Contempt (sec)"])))) > 0
                && (diff_time = i16(Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time)/MilliSec) != 0
                //&& contempt_time <= abs (diff_time)
                )
@@ -1858,12 +1858,12 @@ namespace Searcher {
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 
-            ContemptValue = i16(i32(Options["Valued Contempt (cp)"]));
+            ContemptValue = i16(i32(*(Options["Valued Contempt (cp)"])));
 
             // Reset the threads, still sleeping: will wake up at split time
             Threadpool.max_ply = 0;
 
-            u16 auto_save_time = u16(i32(Options["Auto Save Hash (min)"]));
+            u16 auto_save_time = u16(i32(*(Options["Auto Save Hash (min)"])));
             if (auto_save_time)
             {
                 Threadpool.auto_save        = new_thread<TimerThread> ();
@@ -1885,7 +1885,7 @@ namespace Searcher {
                 Threadpool.auto_save->stop ();
                 Threadpool.auto_save->quit ();
                 delete_thread (Threadpool.auto_save);
-                Threadpool.auto_save = NULL;
+                Threadpool.auto_save = nullptr;
             }
 
             if (!SearchLog.empty ())
@@ -2050,11 +2050,11 @@ namespace Threads {
             nodes = RootPos.game_nodes ();
             // Loop across all splitpoints and sum accumulated splitpoint nodes plus
             // all the currently active positions nodes.
-            for (u08 t = 0; t < Threadpool.size (); ++t)
+            for (Thread *th : Threadpool)
             {
-                for (u08 s = 0; s < Threadpool[t]->splitpoint_threads; ++s)
+                for (u08 s = 0; s < th->splitpoint_threads; ++s)
                 {
-                    SplitPoint &sp = Threadpool[t]->splitpoints[s];
+                    SplitPoint &sp = th->splitpoints[s];
                     sp.mutex.lock ();
 
                     nodes += sp.nodes;
@@ -2063,7 +2063,7 @@ namespace Threads {
                         if (sp.slaves_mask.test (idx))
                         {
                             const Position *pos = Threadpool[idx]->active_pos;
-                            if (pos != NULL) nodes += pos->game_nodes ();
+                            if (pos != nullptr) nodes += pos->game_nodes ();
                         }
                     }
 
@@ -2096,7 +2096,7 @@ namespace Threads {
 
     void auto_save_hash ()
     {
-        string hash_fn = string(Options["Hash File"]);
+        string hash_fn = string(*(Options["Hash File"]));
         TT.save (hash_fn);
     }
 
@@ -2105,8 +2105,8 @@ namespace Threads {
     {
         // Pointer 'splitpoint' is not null only if called from split<>(), and not
         // at the thread creation. So it means this is the splitpoint's master.
-        SplitPoint *splitpoint = ((splitpoint_threads) ? active_splitpoint : NULL);
-        ASSERT ((splitpoint == NULL) || ((splitpoint->master == this) && searching));
+        SplitPoint *splitpoint = ((splitpoint_threads) ? active_splitpoint : nullptr);
+        ASSERT ((splitpoint == nullptr) || ((splitpoint->master == this) && searching));
 
         do
         {
@@ -2115,12 +2115,11 @@ namespace Threads {
             while (!searching)
             {
                 // Grab the lock to avoid races with Thread::notify_one()
-                mutex.lock ();
+                std::unique_lock<std::mutex> lock (mutex);
 
                 // If master and all slaves have finished then exit idle_loop
-                if (splitpoint != NULL && splitpoint->slaves_mask.none ())
+                if (splitpoint != nullptr && splitpoint->slaves_mask.none ())
                 {
-                    mutex.unlock ();
                     break;
                 }
 
@@ -2130,14 +2129,12 @@ namespace Threads {
                 // the chance to grab the lock.
                 if (!searching && !exit)
                 {
-                    sleep_condition.wait (mutex);
+                    sleep_condition.wait (lock);
                 }
-                
-                mutex.unlock ();
                 
                 if (exit)
                 {
-                    ASSERT (splitpoint == NULL);
+                    ASSERT (splitpoint == nullptr);
                     return;
                 }
             }
@@ -2150,7 +2147,7 @@ namespace Threads {
                 Threadpool.mutex.lock ();
 
                 ASSERT (searching);
-                ASSERT (active_splitpoint != NULL);
+                ASSERT (active_splitpoint != nullptr);
                 
                 SplitPoint *sp = active_splitpoint;
 
@@ -2167,7 +2164,7 @@ namespace Threads {
                 // Lock splitpoint
                 (sp)->mutex.lock ();
 
-                ASSERT (active_pos == NULL);
+                ASSERT (active_pos == nullptr);
 
                 active_pos = &pos;
 
@@ -2181,7 +2178,7 @@ namespace Threads {
 
                 ASSERT (searching);
                 searching  = false;
-                active_pos = NULL;
+                active_pos = nullptr;
                 (sp)->slaves_mask.reset (idx);
                 (sp)->slave_searching = false;
                 (sp)->nodes += pos.game_nodes ();
@@ -2204,13 +2201,12 @@ namespace Threads {
                 // Try to late join to another split point if none of its slaves has already finished.
                 if (Threadpool.size () > 2)
                 {
-                    for (u08 t = 0; t < Threadpool.size (); ++t)
+                    for (Thread *thread : Threadpool)
                     {
-                        Thread *thread = Threadpool[t];
                         const u08 size = thread->splitpoint_threads; // Local copy
-                        sp = (size > 0) ? &thread->splitpoints[size - 1] : NULL;
+                        sp = (size > 0) ? &thread->splitpoints[size - 1] : nullptr;
 
-                        if (  sp != NULL
+                        if (  sp != nullptr
                            && (sp)->slave_searching
                            && available_to (thread)
                            )
@@ -2239,7 +2235,7 @@ namespace Threads {
 
             // If this thread is the master of a splitpoint and all slaves have finished
             // their work at this splitpoint, return from the idle loop.
-            if (splitpoint != NULL && splitpoint->slaves_mask.none ())
+            if (splitpoint != nullptr && splitpoint->slaves_mask.none ())
             {
                 splitpoint->mutex.lock ();
                 bool finished = splitpoint->slaves_mask.none (); // Retest under lock protection

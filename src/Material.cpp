@@ -184,6 +184,7 @@ namespace Material {
             // Generic scaling functions that refer to more than one material distribution.
             // Should be probed after the specialized ones.
             // Note that these ones don't return after setting the function.
+
             if (is_KBPsKs<WHITE> (pos))
             {
                 e->scaling_func[WHITE] = &ScaleKBPsKs[WHITE];
@@ -285,12 +286,12 @@ namespace Material {
             {
                 {
                     pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
-                    pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.bishops_pair (WHITE)
+                    pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.bishops_pair (WHITE),
                 },
                 {
                     pos.count<PAWN> (BLACK), pos.count<NIHT> (BLACK), pos.count<BSHP> (BLACK),
-                    pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.bishops_pair (BLACK)
-                }
+                    pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.bishops_pair (BLACK),
+                },
             };
 
             Value value = Value(i16((imbalance<WHITE> (count) - imbalance<BLACK> (count)) >> 4));

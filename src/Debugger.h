@@ -21,8 +21,9 @@ class LogFile
 {
 
 public:
+
     explicit LogFile (const std::string &fn = "Log.txt")
-        : std::ofstream (fn.c_str (), std::ios_base::out|std::ios_base::app)
+        : std::ofstream (fn, std::ios_base::out|std::ios_base::app)
     {}
     
     ~LogFile ()
@@ -71,7 +72,7 @@ public:
     {
         if (!_fstm.is_open ())
         {
-            _log_fn = std::string(Options["Debug Log"]);
+            _log_fn = std::string(*(Options["Debug Log"]));
             if (!_log_fn.empty ())
             {
                 trim (_log_fn);
@@ -84,7 +85,7 @@ public:
             }
             if (_log_fn.empty ()) _log_fn = "DebugLog.txt";
             
-            _fstm.open (_log_fn.c_str (), std::ios_base::out|std::ios_base::app);
+            _fstm.open (_log_fn, std::ios_base::out|std::ios_base::app);
             _fstm << "[" << Time::to_string (Time::now ()) << "] ->" << std::endl;
 
             std::cin .rdbuf (&_inbuf);
