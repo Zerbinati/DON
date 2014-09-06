@@ -31,7 +31,7 @@ namespace Search {
 
     namespace {
 
-        const Depth           FutilityMarginDepth = Depth(7*i16(ONE_MOVE));
+        const Depth           FutilityMarginDepth = Depth(9*i16(ONE_MOVE));
         // Futility margin lookup table (initialized at startup)
         CACHE_ALIGN(4) Value FutilityMargins[FutilityMarginDepth];  // [depth]
 
@@ -1048,7 +1048,7 @@ namespace Search {
                         Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth, legals);
 
                         // Futility pruning: parent node
-                        if (predicted_depth < FutilityMarginDepth)
+                        if (predicted_depth < 7*i16(ONE_MOVE))
                         {
                             Value futility_value = (ss)->static_eval + FutilityMargins[predicted_depth]
                                                  + GainStatistics[pos[org_sq (move)]][dst_sq (move)] + VALUE_EG_PAWN/2;
@@ -1467,7 +1467,7 @@ namespace Search {
                         // re-search, otherwise exit the loop.
                         if (best_value <= bound[0])
                         {
-                            window[0] *= 1.365f;
+                            window[0] *= 1.250f;
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
                             if (window[1] > 1) window[1] *= 0.925f;
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
@@ -1478,7 +1478,7 @@ namespace Search {
                         else
                         if (best_value >= bound[1])
                         {
-                            window[1] *= 1.365f;
+                            window[1] *= 1.250f;
                             bound [1] = min (best_value + window[1], +VALUE_INFINITE);
                             if (window[0] > 1) window[0] *= 0.925f;
                             bound [0] = max (best_value - window[0], -VALUE_INFINITE);
@@ -1547,7 +1547,7 @@ namespace Search {
                         Move best_move = RootMoves[0].pv[0];
                         // Take less time for recaptures if good
                         bool recapture_good = false;
-                        if (  RootMoves.best_move_change < 0.05f
+                        if (  RootMoves.best_move_change < 0.4f
                            && cap_pt != NONE
                            && last_move != MOVE_NONE
                            && dst_sq (last_move) == dst_sq (best_move)
@@ -1980,8 +1980,8 @@ namespace Search {
         }
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
-            FutilityMargins      [d] = Value(i32(  0 + (0x64 - FutilityMarginDepth/2 -1 + 1*d)*d));
-            //FutilityMargins      [d] = Value(i32(  5 + (0x5A - FutilityMarginDepth/2 -1 + 1*d)*d));
+            //FutilityMargins      [d] = Value(i32(  0 + (0x64 - FutilityMarginDepth/2 -1 + 1*d)*d));
+            FutilityMargins      [d] = Value(i32(  5 + (0x5A - FutilityMarginDepth/2 -1 + 1*d)*d));
         }
         for (d = 0; d < FutilityMoveCountDepth; ++d)
         {

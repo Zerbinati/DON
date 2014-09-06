@@ -20,7 +20,7 @@ namespace Engine {
 
     namespace {
 
-        const string NAME      = "DON";
+        const string NAME      = "DON-ST";
 
         // Version number.
         // If Version is left empty, then compile date in the format DD-MM-YY.
