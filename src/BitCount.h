@@ -7,12 +7,9 @@ namespace BitBoard {
 
 enum BitCountT
 {
-    CNT_64_FULL,
-    CNT_64_MAX15,
-    CNT_32_FULL,
-    CNT_32_MAX15,
-    CNT_HARDWARE
-
+    CNT_FULL,
+    CNT_MAX15,
+    CNT_HW
 };
 
 template<BitCountT>
@@ -20,14 +17,13 @@ template<BitCountT>
 INLINE u08 pop_count (Bitboard bb);
 
 // Determine at compile time the best pop_count<> specialization 
-// according if platform is 32 or 64 bit,
-// the maximum number of nonzero bits to count
-// and if hardware popcnt instruction is available.
+// according if platform is 32-bit or 64-bit, and if hardware popcnt instruction is available.
+// return the maximum number of nonzero bits to count
 
 #ifdef ABM
 
-const BitCountT FULL  = CNT_HARDWARE;
-const BitCountT MAX15 = CNT_HARDWARE;
+const BitCountT FULL  = CNT_HW;
+const BitCountT MAX15 = CNT_HW;
 
 #ifdef _MSC_VER
 
@@ -38,7 +34,7 @@ const BitCountT MAX15 = CNT_HARDWARE;
 // _mm_popcnt_u64() & _mm_popcnt_u32()
 
 template<>
-INLINE u08 pop_count<CNT_HARDWARE> (Bitboard bb)
+INLINE u08 pop_count<CNT_HW> (Bitboard bb)
 {
     //if (!bb) return 0;
 
@@ -58,7 +54,7 @@ INLINE u08 pop_count<CNT_HARDWARE> (Bitboard bb)
 #       include <intrin.h> // MSVC popcnt and bsfq instrinsics __popcnt64() & __popcnt()
 
 template<>
-INLINE u08 pop_count<CNT_HARDWARE> (Bitboard bb)
+INLINE u08 pop_count<CNT_HW> (Bitboard bb)
 {
     //if (!bb) return 0;
 
@@ -80,7 +76,7 @@ INLINE u08 pop_count<CNT_HARDWARE> (Bitboard bb)
 //#   include <intrin.h> // MSVC popcnt and  __popcnt()
 //
 //template<>
-//INLINE u08 pop_count<CNT_HARDWARE> (Bitboard bb)
+//INLINE u08 pop_count<CNT_HW> (Bitboard bb)
 //{
 //    return u08(__m64_popcnt (bb));
 //}
@@ -88,7 +84,7 @@ INLINE u08 pop_count<CNT_HARDWARE> (Bitboard bb)
 #else
 
 template<>
-INLINE u08 pop_count<CNT_HARDWARE> (Bitboard bb)
+INLINE u08 pop_count<CNT_HW> (Bitboard bb)
 {
     // Assembly code by Heinz van Saanen
     //__asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
@@ -102,9 +98,9 @@ INLINE u08 pop_count<CNT_HARDWARE> (Bitboard bb)
 
 #   ifdef POP
 
-    const BitCountT FULL  = CNT_HARDWARE;
-    const BitCountT MAX15 = CNT_HARDWARE;
-    CACHE_ALIGN(128) const u08 POP_CNT_TABLE[USHRT_MAX+1] =
+    const BitCountT FULL  = CNT_HW;
+    const BitCountT MAX15 = CNT_HW;
+    CACHE_ALIGN(4) const u08 POP_CNT_TABLE[USHRT_MAX+1] =
     {
         0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
         1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
@@ -2157,20 +2153,20 @@ INLINE u08 pop_count<CNT_HARDWARE> (Bitboard bb)
     };
 
 template<>
-INLINE u08 pop_count<CNT_HARDWARE> (Bitboard bb)
+INLINE u08 pop_count<CNT_HW> (Bitboard bb)
 {
-    return POP_CNT_TABLE[(bb >> 0x00) & 0xFFFF]
-         + POP_CNT_TABLE[(bb >> 0x10) & 0xFFFF]
-         + POP_CNT_TABLE[(bb >> 0x20) & 0xFFFF]
-         + POP_CNT_TABLE[(bb >> 0x30) & 0xFFFF];
+    return POP_CNT_TABLE[(bb >> 0x00) & USHRT_MAX]
+         + POP_CNT_TABLE[(bb >> 0x10) & USHRT_MAX]
+         + POP_CNT_TABLE[(bb >> 0x20) & USHRT_MAX]
+         + POP_CNT_TABLE[(bb >> 0x30) & USHRT_MAX];
 }
 
 #   else
 
 #       ifdef BIT64
 
-const BitCountT FULL  = CNT_64_FULL;
-const BitCountT MAX15 = CNT_64_MAX15;
+const BitCountT FULL  = CNT_FULL;
+const BitCountT MAX15 = CNT_MAX15;
 
 namespace {
 
@@ -2184,8 +2180,8 @@ namespace {
 }
 
 template<>
-// Pop count of the Bitboard (64-bit)
-INLINE u08 pop_count<CNT_64_FULL> (Bitboard bb)
+// Full pop count of the bitboard (64-bit)
+INLINE u08 pop_count<CNT_FULL> (Bitboard bb)
 {
     if (!bb) return 0;
     
@@ -2196,8 +2192,8 @@ INLINE u08 pop_count<CNT_64_FULL> (Bitboard bb)
 }
 
 template<>
-// Pop count max 15 of the Bitboard (64-bit)
-INLINE u08 pop_count<CNT_64_MAX15> (Bitboard bb)
+// Max15 pop count of the bitboard (64-bit)
+INLINE u08 pop_count<CNT_MAX15> (Bitboard bb)
 {
     if (!bb) return 0;
 
@@ -2208,8 +2204,8 @@ INLINE u08 pop_count<CNT_64_MAX15> (Bitboard bb)
 
 #       else
 
-const BitCountT FULL  = CNT_32_FULL;
-const BitCountT MAX15 = CNT_32_MAX15;
+const BitCountT FULL  = CNT_FULL;
+const BitCountT MAX15 = CNT_MAX15;
 
 namespace {
 
@@ -2222,8 +2218,8 @@ namespace {
 }
 
 template<>
-// Pop count of the Bitboard (32-bit)
-INLINE u08 pop_count<CNT_32_FULL> (Bitboard bb)
+// Full pop count of the bitboard (32-bit)
+INLINE u08 pop_count<CNT_FULL> (Bitboard bb)
 {
     if (!bb) return 0;
 
@@ -2239,8 +2235,8 @@ INLINE u08 pop_count<CNT_32_FULL> (Bitboard bb)
 }
 
 template<>
-// Pop count max 15 of the Bitboard (32-bit)
-INLINE u08 pop_count<CNT_32_MAX15> (Bitboard bb)
+// Max15 pop count of the bitboard (32-bit)
+INLINE u08 pop_count<CNT_MAX15> (Bitboard bb)
 {
     if (!bb) return 0;
 
