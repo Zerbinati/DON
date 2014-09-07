@@ -99,7 +99,7 @@ namespace MovePick {
             {
                 i16 succ = _counts[p][s][0];
                 i16 fail = _counts[p][s][1];
-                _values[p][s] = (succ + fail > 0) ? MaxValue * i32(succ-fail) / (succ+fail) : VALUE_ZERO;
+                _values[p][s] = (succ + fail > 0) ? MaxValue * i32((succ) / (succ+fail)) : VALUE_ZERO;
             }
 
             return _values[p][s];
@@ -169,8 +169,8 @@ namespace MovePick {
             ,  *kcur
             ,  *kend;
         Bitboard killers_org
-            ,     killers_dst;
-        u08     killers_size;
+            ,    killers_dst;
+        u08      killers_size;
 
         Move    tt_move;
         Depth   depth;

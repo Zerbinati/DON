@@ -33,20 +33,20 @@ namespace Search {
 
         const Depth           FutilityMarginDepth = Depth(9*i16(ONE_MOVE));
         // Futility margin lookup table (initialized at startup)
-        CACHE_ALIGN(4) Value FutilityMargins[FutilityMarginDepth];  // [depth]
+        CACHE_ALIGN(16) Value FutilityMargins[FutilityMarginDepth];  // [depth]
 
         const Depth           RazorDepth = Depth(4*i16(ONE_MOVE));
         // Razoring margin lookup table (initialized at startup)
-        CACHE_ALIGN(4) Value RazorMargins[RazorDepth];              // [depth]
+        CACHE_ALIGN(16) Value RazorMargins[RazorDepth];              // [depth]
 
         const Depth           FutilityMoveCountDepth = Depth(16*i16(ONE_MOVE));
         // Futility move count lookup table (initialized at startup)
-        CACHE_ALIGN(8) u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
+        CACHE_ALIGN(16) u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
 
         const Depth           ReductionDepth     = Depth(32*i16(ONE_MOVE));
         const u08             ReductionMoveCount = 64;
         // Reductions lookup table (initialized at startup)
-        CACHE_ALIGN(8) u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
+        CACHE_ALIGN(16) u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
 
         template<bool PVNode>
         inline Depth reduction (bool imp, Depth d, i32 mn)
@@ -858,7 +858,7 @@ namespace Search {
                     {
                         Depth iid_depth = depth - (PVNode ? 2*i16(ONE_MOVE) : 2*i16(ONE_MOVE) + depth/4); // IID Reduced Depth
 
-                        search_depth<PVNode ? PV : NonPV, false, true> (pos, ss, alpha, beta, iid_depth, true);
+                        search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
                         tte = TT.retrieve (posi_key);
                         if (tte != NULL)
@@ -873,7 +873,7 @@ namespace Search {
 
                 singular_ext_node =
                        !RootNode
-                    && depth >= 8*i16(ONE_MOVE)
+                    && depth >= (PVNode ? 6*i16(ONE_MOVE) : 8*i16(ONE_MOVE))
                     && tt_move != MOVE_NONE
                     && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                     && abs (beta)     < VALUE_KNOWN_WIN
@@ -891,7 +891,11 @@ namespace Search {
             bool improving =
                    ((ss-2)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval == VALUE_NONE)
-                || ((ss-0)->static_eval >= (ss-2)->static_eval);
+                || ((ss-0)->static_eval >= (ss-2)->static_eval)
+                || (  (ss-1)->current_move != MOVE_NULL
+                   && (ss-0)->static_eval != VALUE_NONE
+                   && (ss-0)->static_eval > -(ss-1)->static_eval
+                   );
 
             Thread *thread  = pos.thread ();
             point time;
@@ -1567,7 +1571,7 @@ namespace Search {
                                    )
                                 {
                                     //capture_adjustment = RootMoves.best_move_change < 0.001f ? 0.90f : 0.80f; // Easy recapture
-                                    capture_adjustment = (0.20f - RootMoves.best_move_change) * 4.52; // Easy recapture
+                                    capture_adjustment = (0.20f - RootMoves.best_move_change) * 4.52f; // Easy recapture
                                 }
                                 else
                                 if (  RootMoves.best_move_change < 0.01f
@@ -1880,7 +1884,7 @@ namespace Search {
             {
                 Threadpool.auto_save        = new_thread<TimerThread> ();
                 Threadpool.auto_save->task  = auto_save_hash;
-                Threadpool.auto_save->resolution = auto_save_time*60*MILLI_SEC;
+                Threadpool.auto_save->resolution = auto_save_time*MINUTE_MILLI_SEC;
                 Threadpool.auto_save->start ();
                 Threadpool.auto_save->notify_one ();
             }
@@ -1985,7 +1989,7 @@ namespace Search {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        NormalCaptureAdjustment = i32(Options["Capture Time Adjustment"]) / 100;
+        NormalCaptureAdjustment = i32(Options["Capture Adjustment"]) / 100;
 
         u08 d;  // depth (ONE_PLY == 2)
         u08 hd; // half depth (ONE_PLY == 1)
@@ -2213,7 +2217,7 @@ namespace Threads {
                             (sp)->mutex.unlock ();
                             Threadpool.mutex.unlock ();
 
-                            //if (searching)
+                            if (searching)
                             break; // Just a single attempt
                         }
                     }
