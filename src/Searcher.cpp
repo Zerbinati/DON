@@ -66,7 +66,7 @@ namespace Search {
 
         TimeManager TimeMgr;
 
-        float NormalCaptureAdjustment;
+        float   CaptureAdjustment;
 
         Value   DrawValue[CLR_NO]
             ,   BaseContempt[CLR_NO];
@@ -916,10 +916,8 @@ namespace Search {
                 }
             }
 
-            Move *cm = CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move));
-            Move *fm = FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move));
-            Move counter_moves[] = { cm[0], cm[1] };
-            Move followup_moves[] = { fm[0], fm[1] };
+            Move *counter_moves  = _ok ((ss-1)->current_move) ?  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)) : NULL;
+            Move *followup_moves = _ok ((ss-2)->current_move) ? FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)) : NULL;
 
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
             StateInfo si;
@@ -1135,7 +1133,7 @@ namespace Search {
                         }
 
                         if (  reduction_depth > DEPTH_ZERO
-                           && (move == counter_moves[0] || move == counter_moves[1])
+                           && counter_moves != NULL && (move == counter_moves[0] || move == counter_moves[1])
                            )
                         {
                             reduction_depth = max (reduction_depth - 1*i16(ONE_MOVE), DEPTH_ZERO);
@@ -1578,7 +1576,7 @@ namespace Search {
                                    && iteration_time > TimeMgr.available_time () * 30 / 100
                                    )
                                 {
-                                    capture_adjustment = NormalCaptureAdjustment; // Normal capture
+                                    capture_adjustment = CaptureAdjustment; // Normal capture
                                 }
                             }
                         }
@@ -1989,7 +1987,7 @@ namespace Search {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        NormalCaptureAdjustment = i32(Options["Capture Adjustment"]) / 100;
+        CaptureAdjustment = i32(Options["Capture Adjustment"]) / 100;
 
         u08 d;  // depth (ONE_PLY == 2)
         u08 hd; // half depth (ONE_PLY == 1)
