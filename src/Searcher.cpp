@@ -1551,7 +1551,7 @@ namespace Search {
                         iteration_time = now () - SearchTime;
                         // Take less time for recaptures if good
                         float capture_adjustment = 0.0f;
-                        if (  RootMoves.best_move_change < 0.20f
+                        if (  RootMoves.best_move_change < 0.08f
                            && iteration_time > TimeMgr.available_time () * 10 / 100
                            )
                         {
@@ -1569,7 +1569,7 @@ namespace Search {
                                    )
                                 {
                                     //capture_adjustment = RootMoves.best_move_change < 0.001f ? 0.90f : 0.80f; // Easy recapture
-                                    capture_adjustment = (0.20f - RootMoves.best_move_change) * 4.52f; // Easy recapture
+                                    capture_adjustment = (0.08f - RootMoves.best_move_change) * 11.39f; // Easy recapture
                                 }
                                 else
                                 if (  RootMoves.best_move_change < 0.01f
