@@ -167,22 +167,22 @@ namespace MovePick {
     // some SEE calls in case get a cutoff (idea from Pablo Vazquez).
     void MovePicker::value<CAPTURE> ()
     {
+        Move m;
         for (ValMove *itr = moves; itr != end; ++itr)
         {
-            Move m = itr->move;
+            m = itr->move;
 
-            MoveT mt = mtype (m);
-            if (mt == NORMAL)
+            if (mtype (m) == NORMAL)
             {
                 itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)]));
             }
             else
-            if (mt == ENPASSANT)
+            if (mtype (m) == ENPASSANT)
             {
                 itr->value = PIECE_VALUE[MG][PAWN];
             }
             else
-            if (mt == PROMOTE)
+            if (mtype (m) == PROMOTE)
             {
                 itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] + PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN];
             }
@@ -192,9 +192,10 @@ namespace MovePick {
     template<>
     void MovePicker::value<QUIET>   ()
     {
+        Move m;
         for (ValMove *itr = moves; itr != end; ++itr)
         {
-            Move m = itr->move;
+            m = itr->move;
             itr->value = history.value (pos[org_sq (m)], dst_sq (m));
         }
     }
@@ -205,9 +206,10 @@ namespace MovePick {
     // moves with a negative SEE. This last group is ordered by the SEE value.
     void MovePicker::value<EVASION> ()
     {
+        Move m;
         for (ValMove *itr = moves; itr != end; ++itr)
         {
-            Move m = itr->move;
+            m = itr->move;
 
             Value gain_value = pos.see_sign (m);
             if (gain_value < VALUE_ZERO)
@@ -217,18 +219,17 @@ namespace MovePick {
             else
             if (pos.capture (m))
             {
-                MoveT mt = mtype (m);
-                if (mt == NORMAL)
+                if (mtype (m) == NORMAL)
                 {
                     itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)])) + HistoryStats::MaxValue;
                 }
                 else
-                if (mt == ENPASSANT)
+                if (mtype (m) == ENPASSANT)
                 {
                     itr->value = PIECE_VALUE[MG][PAWN] + HistoryStats::MaxValue;
                 }
                 else
-                if (mt == PROMOTE)
+                if (mtype (m) == PROMOTE)
                 {
                     itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] + PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] + HistoryStats::MaxValue;
                 }
