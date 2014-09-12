@@ -898,6 +898,7 @@ namespace Search {
                 //|| (  (ss-1)->current_move != MOVE_NULL
                 //   && (ss-0)->static_eval != VALUE_NONE
                 //   && (ss-0)->static_eval > -(ss-1)->static_eval
+                //   && pos.capture_type () == NONE
                 //   );
 
             Thread *thread  = pos.thread ();
@@ -1323,8 +1324,8 @@ namespace Search {
                 }
                 else
                 // Quiet best move: Update history, killer, counter & followup moves
-                if (  best_value >= beta
-                   && !in_check
+                if (  !in_check
+                   && best_value >= beta
                    && best_move != MOVE_NONE
                    && !pos.capture_or_promotion (best_move)
                    )
