@@ -148,7 +148,7 @@ namespace BitBoard {
                     ++size;
                     occ = (occ - mask) & mask;
                 }
-                while (occ);
+                while (occ != U64(0));
 
                 // Set the offset for the table_bb of the next square. Have individual
                 // table_bb sizes for each square with "Fancy Magic Bitboards".
@@ -355,7 +355,7 @@ namespace BitBoard {
         }
         sbb += "\n";
 
-        while (bb)
+        while (bb != U64(0))
         {
             Square s = pop_lsq (bb);
             i08 r = _rank (s);
