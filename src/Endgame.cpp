@@ -133,8 +133,8 @@ namespace EndGame {
     template<EndgameT ET>
     void Endgames::add (const string &code)
     {
-        map ((Endgame<ET>*) NULL)[key<WHITE> (code)] = new Endgame<ET> (WHITE);
-        map ((Endgame<ET>*) NULL)[key<BLACK> (code)] = new Endgame<ET> (BLACK);
+        map (static_cast<Endgame<ET>*>(NULL))[key<WHITE> (code)] = new Endgame<ET> (WHITE);
+        map (static_cast<Endgame<ET>*>(NULL))[key<BLACK> (code)] = new Endgame<ET> (BLACK);
     }
 
     template<>
@@ -588,15 +588,8 @@ namespace EndGame {
             if (r == R_5 && !opposite_colors (wb_sq, sp_sq))
             {
                 u08 d = SQR_DIST[sp_sq + 3 * push][wk_sq];
-
-                if (d <= 2 && !(d == 0 && wk_sq == pos.king_sq(_stong_side) + 2 * push))
-                {
-                    return ScaleFactor (24);
-                }
-                else
-                {
-                    return ScaleFactor (48);
-                }
+                return (d <= 2 && !(d == 0 && wk_sq == pos.king_sq(_stong_side) + 2 * push)) ?
+                    ScaleFactor (24) : ScaleFactor (48);
             }
 
             // When the pawn has moved to the 6th rank can be fairly sure it's drawn

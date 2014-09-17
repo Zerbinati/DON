@@ -239,7 +239,7 @@ namespace BitBoard {
     }
 
     // Shift the bitboard using delta
-    template<Delta Delta> inline Bitboard shift_del (Bitboard bb);
+    template<Delta DEL> inline Bitboard shift_del (Bitboard bb);
 
     template<> inline Bitboard shift_del<DEL_N > (Bitboard bb) { return (bb) << (+DEL_N); }
     template<> inline Bitboard shift_del<DEL_S > (Bitboard bb) { return (bb) >> (-DEL_S); }
@@ -359,7 +359,7 @@ namespace BitBoard {
     extern void initialize ();
 
 #ifndef NDEBUG
-    extern const std::string pretty (Bitboard bb, char p = 'o');
+    extern std::string pretty (Bitboard bb, char p = 'o');
 #endif
 
 }

@@ -15,7 +15,6 @@ namespace Time {
     //increment >  0 && moves_to_go != 0 means: x moves in y minutes + z increment
     class TimeManager
     {
-
     private:
 
         u32   _optimum_time;
@@ -36,6 +35,8 @@ namespace Time {
         void initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply);
     
     };
+
+    extern void configure ();
 
 }
 

@@ -12,6 +12,7 @@
 #include "Transposition.h"
 #include "Debugger.h"
 #include "Thread.h"
+#include "TimeManager.h"
 #include "Notation.h"
 
 namespace Engine {
@@ -48,33 +49,26 @@ namespace Engine {
         if (uci) oss << "id name ";
         oss << NAME << " ";
 
+        oss << setfill ('0');
 #if defined (VER)
-        oss << VER << setfill ('0');
+        oss << VER;
 #else
         if (VERSION.empty ())
         {
             // From compiler, format is "Sep 2 2013"
             istringstream iss (__DATE__);
-
-            string month
-                ,  day
-                ,  year;
-
-            iss >> month
-                >> day
-                >> year;
-
-            oss << setfill ('0')
-                << setw (2) << (day) //<< '-'
-                << setw (2) << (find_month (month)) //<< '-'
-                << setw (2) << (year.substr (2))
-                << setfill (' ');
+            string month, day, year;
+            iss >> month >> day >> year;
+            oss << setw (2) << (day)
+                << setw (2) << (find_month (month))
+                << setw (2) << (year.substr (2));
         }
         else
         {
             oss << VERSION;
         }
 #endif
+        oss << setfill (' ');
 
 #ifdef BIT64
         oss << " x64";
@@ -102,9 +96,9 @@ namespace Engine {
         return oss.str ();
     }
 
-    void run (const std::string &arg)
+    void run (const string &arg)
     {
-        cout << Engine::info (false) << endl;
+        cout << info (false) << endl;
 
 #ifdef LPAGES
         Memory::initialize ();
@@ -119,10 +113,12 @@ namespace Engine {
         BitBases ::initialize ();
         Search ::initialize ();
         Pawns    ::initialize ();
-        Evaluate ::initialize ();
         EndGame  ::initialize ();
         Threadpool.initialize ();
-        
+        Threadpool.configure ();
+        Evaluate ::configure ();
+        Time     ::configure ();
+
         TT.auto_size (i32(Options["Hash"]), true);
 
         cout << endl;

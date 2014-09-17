@@ -51,7 +51,7 @@ namespace Search {
         template<bool PVNode>
         inline Depth reduction (bool imp, Depth d, i32 mn)
         {
-            return (Depth) Reductions[PVNode][imp][min (d/i32(ONE_MOVE), ReductionDepth-1)][min (mn, ReductionMoveCount-1)];
+            return Depth (Reductions[PVNode][imp][min (d/i32(ONE_MOVE), ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
         }
 
         const u08   MAX_QUIETS      = 64;
@@ -291,11 +291,10 @@ namespace Search {
             if ((ss)->ply > MAX_DEPTH) return IN_CHECK ? DrawValue[pos.active ()] : evaluate (pos);
 
             // To flag EXACT a node with eval above alpha and no available moves
-            Value old_alpha;
-            if (PVNode) old_alpha = alpha;
+            Value pv_alpha = PVNode ? alpha : -VALUE_INFINITE;
 
             // Transposition table lookup
-            Key posi_key;
+            Key posi_key;// = U64(0);
             const TTEntry *tte;
             Move  tt_move    = MOVE_NONE;
             Value tt_value   = VALUE_NONE
@@ -526,7 +525,7 @@ namespace Search {
                 posi_key,
                 best_move,
                 qs_depth,
-                PVNode && old_alpha < best_value ? BND_EXACT : BND_UPPER,
+                PVNode && pv_alpha < best_value ? BND_EXACT : BND_UPPER,
                 value_to_tt (best_value, (ss)->ply),
                 (ss)->static_eval);
 
@@ -553,8 +552,8 @@ namespace Search {
             ASSERT (PVNode || alpha == beta-1);
             ASSERT (depth > DEPTH_ZERO);
 
-            Key   posi_key;
-            const TTEntry *tte = NULL;
+            Key   posi_key;// = U64(0);
+            const TTEntry *tte;// = NULL;
             Move  tt_move     = MOVE_NONE;
             Value tt_value    = VALUE_NONE;
             Depth tt_depth    = DEPTH_NONE;
@@ -566,7 +565,7 @@ namespace Search {
             bool in_check = pos.checkers () != U64(0);
             bool singular_ext_node = false;
 
-            SplitPoint *splitpoint;
+            SplitPoint *splitpoint = SP_NODE ? (ss)->splitpoint : NULL;
             Move  move
                 , exclude_move = MOVE_NONE
                 , best_move    = MOVE_NONE;
@@ -576,7 +575,6 @@ namespace Search {
 
             if (SP_NODE)
             {
-                splitpoint  = (ss)->splitpoint;
                 best_value  = splitpoint->best_value;
                 best_move   = splitpoint->best_move;
 
@@ -775,10 +773,12 @@ namespace Search {
                                     (ss)->current_move = MOVE_NULL;
 
                                     // Null move dynamic (variable) reduction based on depth and value
-                                    Depth rdepth = depth -
-                                                 ( 3*i16(ONE_MOVE)
-                                                 + depth/4
-                                                 + (abs (beta) < VALUE_KNOWN_WIN ? i32(static_eval - beta)/i32(VALUE_MG_PAWN)*ONE_MOVE : DEPTH_ZERO));
+                                    Depth R = Depth(
+                                             + 3*i16(ONE_MOVE)
+                                             + 1*i16(depth)/4
+                                             + min (i32(static_eval - beta)/VALUE_MG_PAWN, 3)*i16(ONE_MOVE));
+
+                                    Depth rdepth = depth - R;
 
                                     // Do null move
                                     pos.do_null_move (si);
@@ -806,9 +806,11 @@ namespace Search {
                                             return null_value;
                                         }
 
+                                        rdepth = max (2*depth/3, rdepth);
+
                                         // Do verification search at high depths
-                                        Value veri_value = rdepth < 1*i16(ONE_MOVE) ?
-                                            search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
+                                        Value veri_value = //rdepth < 1*i16(ONE_MOVE) ?
+                                            //search_quien<NonPV, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
                                             search_depth<NonPV, false, false> (pos, ss, beta-1, beta, rdepth, false);
 
                                         if (veri_value >= beta) return null_value;
@@ -849,7 +851,6 @@ namespace Search {
                                     if (value >= rbeta) return value;
                                 }
                             }
-
                         }
                     }
 
@@ -895,11 +896,6 @@ namespace Search {
                    ((ss-2)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval >= (ss-2)->static_eval);
-                //|| (  (ss-1)->current_move != MOVE_NULL
-                //   && (ss-0)->static_eval != VALUE_NONE
-                //   && (ss-0)->static_eval > -(ss-1)->static_eval
-                //   && pos.capture_type () == NONE
-                //   );
 
             Thread *thread  = pos.thread ();
             point time;
@@ -1436,7 +1432,7 @@ namespace Search {
                         // that goes to the front. Note that in case of MultiPV search
                         // the already searched PV lines are preserved.
                         //RootMoves.sort_end (PVIndex);
-                        std::stable_sort (RootMoves.begin () + PVIndex, RootMoves.end ());
+                        stable_sort (RootMoves.begin () + PVIndex, RootMoves.end ());
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
@@ -1492,7 +1488,7 @@ namespace Search {
 
                     // Sort the PV lines searched so far and update the GUI
                     //RootMoves.sort_beg (PVIndex + 1);
-                    std::stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
+                    stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
 
                     if (  PVIndex + 1 == PVLimit
                        || iteration_time > INFO_INTERVAL
@@ -1539,14 +1535,10 @@ namespace Search {
                     // Time adjustments
                     if (aspiration && MultiPV == 1)
                     {
-                        // Take in account some extra time if the best move has changed
-                        TimeMgr.instability (RootMoves.best_move_change);
                         
-                        iteration_time = now () - SearchTime;
-                        // Take less time for recaptures if good
                         float capture_factor = 0.0f;
                         if (  RootMoves.best_move_change < 0.05f
-                           && iteration_time > TimeMgr.available_time () * 20 / 100
+                           && (iteration_time = now () - SearchTime) > TimeMgr.available_time () * 20 / 100
                            )
                         {
                             Move best_move = RootMoves[0].pv[0];
@@ -1554,9 +1546,9 @@ namespace Search {
                             PieceT dst_pt = ptype (RootPos[dst_sq (best_move)]);
                             if (org_pt == KING) org_pt = QUEN;
 
-                            if (  dst_pt != NONE && cap_pt != NONE && cap_pt != dst_pt
-                               && (  abs (PIECE_VALUE[MG][org_pt] - PIECE_VALUE[MG][cap_pt]) <= VALUE_MG_BSHP - VALUE_MG_NIHT     
-                                  ||      PIECE_VALUE[MG][dst_pt] - PIECE_VALUE[MG][org_pt] > VALUE_MG_BSHP - VALUE_MG_NIHT
+                            if (  dst_pt != NONE && cap_pt != NONE //&& cap_pt != dst_pt
+                               && (  abs (PIECE_VALUE[MG][org_pt] - PIECE_VALUE[MG][cap_pt]) <= VALUE_MARGIN     
+                                  ||      PIECE_VALUE[MG][dst_pt] - PIECE_VALUE[MG][org_pt] > VALUE_MARGIN
                                   )
                                )
                             {
@@ -1564,7 +1556,10 @@ namespace Search {
                             }
                             
                         }
-                        
+
+                        // Take in account some extra time if the best move has changed
+                        TimeMgr.instability (RootMoves.best_move_change);
+                        // Take less time for captures if the capture is good
                         TimeMgr.capturability (capture_factor);
 
                     }
@@ -1809,7 +1804,7 @@ namespace Search {
                 << endl;
         }
 
-        MateSearch = bool(Limits.mate);
+        MateSearch = Limits.mate != 0;
 
         if (RootSize != 0)
         {
@@ -1861,26 +1856,26 @@ namespace Search {
             u16 auto_save_time = u16(i32(Options["Auto Save Hash (min)"]));
             if (auto_save_time > 0)
             {
-                Threadpool.auto_save        = new_thread<TimerThread> ();
-                Threadpool.auto_save->task  = auto_save_hash;
-                Threadpool.auto_save->resolution = auto_save_time*MINUTE_MILLI_SEC;
-                Threadpool.auto_save->start ();
-                Threadpool.auto_save->notify_one ();
+                Threadpool.auto_save_th        = new_thread<TimerThread> ();
+                Threadpool.auto_save_th->task  = auto_save_hash;
+                Threadpool.auto_save_th->resolution = auto_save_time*MINUTE_MILLI_SEC;
+                Threadpool.auto_save_th->start ();
+                Threadpool.auto_save_th->notify_one ();
             }
 
-            Threadpool.timer->start ();
-            Threadpool.timer->notify_one (); // Wake up the recurring timer
+            Threadpool.timer_th->start ();
+            Threadpool.timer_th->notify_one (); // Wake up the recurring timer
 
             search_iter_deepening (); // Let's start searching !
 
-            Threadpool.timer->stop ();
+            Threadpool.timer_th->stop ();
 
             if (auto_save_time > 0)
             {
-                Threadpool.auto_save->stop ();
-                Threadpool.auto_save->kill ();
-                delete_thread (Threadpool.auto_save);
-                Threadpool.auto_save = NULL;
+                Threadpool.auto_save_th->stop ();
+                Threadpool.auto_save_th->kill ();
+                delete_thread (Threadpool.auto_save_th);
+                Threadpool.auto_save_th = NULL;
             }
 
             if (!SearchLog.empty ())
@@ -2031,7 +2026,7 @@ namespace Threads {
         if (now_time - last_time >= MILLI_SEC)
         {
             last_time = now_time;
-            Debug::dbg_print ();
+            dbg_print ();
         }
 
         if (Limits.ponder || Signals.force_stop)

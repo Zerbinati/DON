@@ -186,16 +186,16 @@ namespace Threads {
         Condition     sleep_condition;
         volatile bool  alive;
 
-    public:
-        Mutex   mutex;
-        Handle  native_handle;
-
         ThreadBase ()
             : alive (true)
             , native_handle (Handle ())
         {}
 
         virtual ~ThreadBase () { kill (); }
+
+    public:
+        Mutex   mutex;
+        Handle  native_handle;
 
         void kill () { alive = false; }
         void notify_one ();
@@ -212,8 +212,6 @@ namespace Threads {
     class TimerThread
         : public ThreadBase
     {
-    private:
-
     public:
         // This is the minimum interval in msec between two check_time() calls
         bool run;
@@ -291,8 +289,8 @@ namespace Threads {
     public:
         Mutex       mutex;
         Condition   sleep_condition;
-        TimerThread *timer;
-        TimerThread *auto_save;
+        TimerThread *timer_th;
+        TimerThread *auto_save_th;
 
         Depth   split_depth;
         u08     max_ply;
