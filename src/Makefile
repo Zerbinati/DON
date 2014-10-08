@@ -42,7 +42,7 @@ PGOBENCH  = ./$(EXE) bench 32 1 1 movetime default
 OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
 	MoveGenerator.o MovePicker.o Notation.o Pawns.o PolyglotBook.o Position.o Searcher.o  \
 	Thread.o TimeManager.o Transposition.o UCI.o UCI.Option.o Zobrist.o MemoryHandler.o   \
-	Debugger.o
+	Debugger.o Game.o PGN.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration

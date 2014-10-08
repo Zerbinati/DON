@@ -157,15 +157,15 @@ public:
 
     static void initialize ();
 
+    explicit Position (i32) {}
+
     Position () { clear (); }
 
-    explicit Position (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
+    Position (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    explicit Position (const Position  &pos, Threads::Thread *th = NULL) { *this = pos; _thread = th; }
-    
-    explicit Position (i32) {}
+    Position (const Position  &pos, Threads::Thread *th = NULL) { *this = pos; _thread = th; }
 
    ~Position() { _thread = NULL; }
 

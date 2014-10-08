@@ -31,34 +31,34 @@ namespace OpeningBook {
 
     inline bool operator>  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
-        return (pe1.key != pe2.key)
-            ? (pe1.key > pe2.key)
-            : (pe1.move > pe2.move);      // order by move value
-        //: (pe1.weight > pe2.weight);  // order by weight value
+        return (pe1.key != pe2.key) ?
+            (pe1.key > pe2.key) :
+            //(pe1.move > pe2.move);      // order by move value
+            (pe1.weight > pe2.weight);  // order by weight value
     }
 
     inline bool operator<  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
-        return (pe1.key != pe2.key)
-            ? (pe1.key < pe2.key)
-            : (pe1.move < pe2.move);      // order by move value
-        //: (pe1.weight < pe2.weight);  // order by weight value
+        return (pe1.key != pe2.key) ?
+            (pe1.key < pe2.key) :
+            //(pe1.move < pe2.move);      // order by move value
+            (pe1.weight < pe2.weight);  // order by weight value
     }
 
     inline bool operator>= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
-        return (pe1.key != pe2.key)
-            ? (pe1.key >= pe2.key)
-            : (pe1.move >= pe2.move);      // order by move value
-        //: (pe1.weight >= pe2.weight);  // order by weight value
+        return (pe1.key != pe2.key) ?
+            (pe1.key >= pe2.key) :
+            //(pe1.move >= pe2.move);      // order by move value
+            (pe1.weight >= pe2.weight);  // order by weight value
     }
 
     inline bool operator<= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
-        return (pe1.key != pe2.key)
-            ? (pe1.key <= pe2.key)
-            : (pe1.move <= pe2.move);      // order by move value
-        //: (pe1.weight <= pe2.weight);  // order by weight value
+        return (pe1.key != pe2.key) ?
+            (pe1.key <= pe2.key) :
+            //(pe1.move <= pe2.move);      // order by move value
+            (pe1.weight <= pe2.weight);  // order by weight value
     }
 
     PolyglotBook::PBEntry::operator string () const

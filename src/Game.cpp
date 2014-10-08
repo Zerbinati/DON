@@ -7,7 +7,7 @@
 using namespace std;
 
 Game::Game ()
-    : _last_pos (FEN_N)
+    : _last_pos (STARTUP_FEN)
     , _result (NO_RES)
 {}
 

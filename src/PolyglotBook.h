@@ -66,7 +66,7 @@ private:
 
     u64    _size_book;
 
-    RKISS       _rkiss;
+    RKISS  _rkiss;
 
     template<class T>
     PolyglotBook& operator>> (T &t);
