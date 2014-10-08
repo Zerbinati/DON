@@ -12,7 +12,7 @@ Game::Game ()
 {}
 
 Game::Game (i08 dummy)
-{}
+{ ++ dummy; }
 
 Game::Game (const char   *text)
 {
@@ -171,78 +171,78 @@ void Game::print_tags (ostream &ostream) const
     }
 }
 
-bool Game::parse (Game &game, const char   *text)
-{
-    bool is_ok = false;
-    char *c = strdup (text);
-
-    //char name[40];
-    //char value[80];
-    //i32 n;
-
-    //// Tag section
-    //do
-    //{
-    //    // " [ %s \"%[^\"]\" ] %n" or " [ %[^ ] \"%[^\"]\" ] %n"
-    //    i08 read = _snscanf_s (c, 256, " [ %s \"%[^\"]\" ] %n", name, 40, value, 80, &n);
-    //    if (read != 2) break;
-    //    c += n;
-
-    //    cout << name << " " << value << endl;
-    //    //game.AddTag(name, value);
-    //}
-    //while ('\0' != *c);
-
-    //char *m = c;
-    //// modify he move section
-    //do
-    //{
-    //    if (';' == *m)
-    //    {
-    //        while ('\n' != *m)
-    //        {
-    //            *m++ = ' ';
-    //            if ('\0' == *m) goto end_modify;
-    //        }
-    //    }
-
-    //    if ('\n' == *m)
-    //    {
-    //        *m++ = ' ';
-    //        //while (' ' == *m) ++m;
-
-    //        if ('%' == *m)
-    //        {
-    //            while ('\n' != *m)
-    //            {
-    //                *m++ = ' ';
-    //                if ('\0' == *m) goto end_modify;
-    //            }
-    //            *m++ = ' ';
-    //        }
-    //    }
-    //    ++m;
-    //}
-    //while ('\0' != *m);
-
-    //end_modify:
-
-    // Move section
-    do
-    {
-
-        c++;
-    }
-    while ('\0' != *c);
-
-    free (c);
-
-    return is_ok;
-}
+//bool Game::parse (Game &game, const char   *text)
+//{
+//    bool is_ok = false;
+//    char *c = NULL;//strdup (text);
+//
+//    //char name[40];
+//    //char value[80];
+//    //i32 n;
+//
+//    //// Tag section
+//    //do
+//    //{
+//    //    // " [ %s \"%[^\"]\" ] %n" or " [ %[^ ] \"%[^\"]\" ] %n"
+//    //    i08 read = _snscanf_s (c, 256, " [ %s \"%[^\"]\" ] %n", name, 40, value, 80, &n);
+//    //    if (read != 2) break;
+//    //    c += n;
+//
+//    //    cout << name << " " << value << endl;
+//    //    //game.AddTag(name, value);
+//    //}
+//    //while ('\0' != *c);
+//
+//    //char *m = c;
+//    //// modify he move section
+//    //do
+//    //{
+//    //    if (';' == *m)
+//    //    {
+//    //        while ('\n' != *m)
+//    //        {
+//    //            *m++ = ' ';
+//    //            if ('\0' == *m) goto end_modify;
+//    //        }
+//    //    }
+//
+//    //    if ('\n' == *m)
+//    //    {
+//    //        *m++ = ' ';
+//    //        //while (' ' == *m) ++m;
+//
+//    //        if ('%' == *m)
+//    //        {
+//    //            while ('\n' != *m)
+//    //            {
+//    //                *m++ = ' ';
+//    //                if ('\0' == *m) goto end_modify;
+//    //            }
+//    //            *m++ = ' ';
+//    //        }
+//    //    }
+//    //    ++m;
+//    //}
+//    //while ('\0' != *m);
+//
+//    //end_modify:
+//
+//    // Move section
+//    do
+//    {
+//
+//        c++;
+//    }
+//    while ('\0' != *c);
+//
+//    free (c);
+//
+//    return is_ok;
+//}
 bool Game::parse (Game &game, const string &text)
 {
     bool is_ok = false;
-
+/*
     // TODO::
 
     ////string seq("[Event \"Blitz 4m+2s\"]\n[Site \"?\"]\n[Date \"2001.12.05\"]\n[Round \"4\"]\n[White \"Deep Fritz 13\"]\n[Black \"aquil, muzaffar\"]\n[Result \"1/2-1/2\"]\n[ECO \"C80\"]\n[WhiteElo \"2839\"]\n[BlackElo \"2808\"]\n[PlyCount \"37\"]\n");
@@ -307,6 +307,6 @@ bool Game::parse (Game &game, const string &text)
     //    cout << endl;
     //    seq = match.suffix().str();
     //}
-
+*/
     return is_ok;
 }

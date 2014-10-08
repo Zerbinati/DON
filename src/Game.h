@@ -77,9 +77,8 @@ public:
     //~Game ();
     //Game& operator= (const Game &game);
 
-    Position Position () const { return _last_pos; }
-
-    Result Result ()     const { return _result; }
+    Position position () const { return _last_pos; }
+    Result   result ()   const { return _result; }
 
     void add_tag (const Tag &tag);
     void add_tag (const std::string &name, const std::string &value);
@@ -97,7 +96,7 @@ public:
     std::string pgn () const;
     operator std::string () const;
 
-    static bool parse (Game &game, const        char *text);
+    //static bool parse (Game &game, const        char *text);
     static bool parse (Game &game, const std::string &text);
 
     template<class charT, class Traits>

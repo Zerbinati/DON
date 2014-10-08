@@ -1,7 +1,7 @@
 #include "PGN.h"
 
+#include <string.h>
 #include <iostream>
-
 #include "Game.h"
 
 using namespace std;
@@ -9,7 +9,7 @@ using namespace std;
 PGN::PGN ()
     : fstream()
     , _fn_pgn ("")
-    , _mode (0)
+    , _mode (ios_base::openmode(0))
     , _size_pgn (0)
 {}
 
@@ -57,7 +57,7 @@ void PGN::build_indexes ()
 
         size ();
 
-        try
+        //try
         {
 
             // 32*1024 = 32K
@@ -94,8 +94,8 @@ void PGN::build_indexes ()
             #undef BUF_SIZE
 
         }
-        catch (...)
-        {}
+        //catch (...)
+        //{}
     }
 }
 
@@ -375,7 +375,7 @@ string PGN::read_text (u64 index)
             u64 pos_beg = (1 == index) ? 0 : _indexes_game[index - 2];
             u64 pos_end = _indexes_game[index - 1];
 
-            size_t size = size_t (pos_end - pos_beg);
+            size_t text_size = size_t (pos_end - pos_beg);
             //char *buf = new char[(size + 1)];
             //if (buf)
             //{
@@ -393,9 +393,9 @@ string PGN::read_text (u64 index)
             //    return text;
             //}
 
-            string text (size, ' ');
+            string text (text_size, ' ');
             seekg (pos_beg);
-            read (&text[0], size);
+            read (&text[0], text_size);
             //remove_substring (text, "\r");
             return text;
         }
@@ -415,7 +415,7 @@ string PGN::read_text (u64 index_beg, u64 index_end)
             u64 pos_beg = (1 == index_beg) ? 0 : _indexes_game[index_beg - 2];
             u64 pos_end = _indexes_game[index_end - 1];
 
-            size_t size = size_t (pos_end - pos_beg);
+            size_t text_size = size_t (pos_end - pos_beg);
             //char *buf = new char[(size + 1)];
             //if (buf)
             //{
@@ -434,9 +434,9 @@ string PGN::read_text (u64 index_beg, u64 index_end)
             //}
 
 
-            string text (size, ' ');
+            string text (text_size, ' ');
             seekg (pos_beg);
-            read (&text[0], size);
+            read (&text[0], text_size);
             //remove_substring (text, "\r");
             return text;
         }
