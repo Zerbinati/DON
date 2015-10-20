@@ -43,10 +43,10 @@ namespace LeakDetector {
         void append_mem_info (void *mem_ref, size_t size, const char filename[], u32 line_no)
         {
             // append the above info to the list
-            LEAK_INFO *p_new = 
-                (LEAK_INFO *) malloc (sizeof (*p_new));
+            LEAK_INFO *p_new =
+                (LEAK_INFO*) malloc (sizeof (*p_new));
                 //new LEAK_INFO ();
-            if (p_new)
+            if (p_new != NULL)
             {
                 p_new->mem_info.address   = mem_ref;
                 p_new->mem_info.size      = size;
@@ -88,15 +88,13 @@ namespace LeakDetector {
                         free (p_tmp);
                         //delete p_tmp;
                     }
-
-                    return;
+                    break;
                 }
 
                 p_old = p_cur;
                 p_cur = p_cur->next;
             }
         }
-
         // Clears all the allocated memory info from the list
         void clear_mem_info ()
         {

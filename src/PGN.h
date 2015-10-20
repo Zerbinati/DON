@@ -55,11 +55,11 @@ public:
 
     PGN ();
     // mode = std::ios_base::in|std::ios_base::out
-    PGN (const        char *fn_pgn, std::ios_base::openmode mode);
+    //PGN (const        char *fn_pgn, std::ios_base::openmode mode);
     PGN (const std::string &fn_pgn, std::ios_base::openmode mode);
     ~PGN ();
 
-    bool open (const        char *fn_pgn, std::ios_base::openmode mode);
+    //bool open (const        char *fn_pgn, std::ios_base::openmode mode);
     bool open (const std::string &fn_pgn, std::ios_base::openmode mode);
 
     void close ();

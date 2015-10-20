@@ -12,15 +12,15 @@ PGN::PGN ()
     , _mode (0)
     , _size_pgn (0)
 {}
-PGN::PGN (const   char *fn_pgn, ios_base::openmode mode)
-    : fstream (fn_pgn, mode | ios_base::binary)
-    , _fn_pgn (fn_pgn)
-    , _mode (mode)
-    , _size_pgn (0)
-{
-    clear (); // Reset any error flag to allow retry open()
-    _build_indexes ();
-}
+//PGN::PGN (const   char *fn_pgn, ios_base::openmode mode)
+//    : fstream (fn_pgn, mode | ios_base::binary)
+//    , _fn_pgn (fn_pgn)
+//    , _mode (mode)
+//    , _size_pgn (0)
+//{
+//    clear (); // Reset any error flag to allow retry open()
+//    _build_indexes ();
+//}
 
 PGN::PGN (const string &fn_pgn, ios_base::openmode mode)
     : fstream (fn_pgn, mode | ios_base::binary)
@@ -34,19 +34,19 @@ PGN::PGN (const string &fn_pgn, ios_base::openmode mode)
 
 PGN::~PGN () { close (); }
 
-// open the file in mode
-// Read -> ios_base::in
-// Write-> ios_base::out
-bool PGN::open (const   char *fn_pgn, ios_base::openmode mode)
-{
-    close ();
-    fstream::open (fn_pgn, mode | ios_base::binary);
-    clear (); // Reset any error flag to allow retry open()
-    _fn_pgn = fn_pgn;
-    _mode   = mode;
-    _build_indexes ();
-    return is_open ();
-}
+//// open the file in mode
+//// Read -> ios_base::in
+//// Write-> ios_base::out
+//bool PGN::open (const   char *fn_pgn, ios_base::openmode mode)
+//{
+//    close ();
+//    fstream::open (fn_pgn, mode | ios_base::binary);
+//    clear (); // Reset any error flag to allow retry open()
+//    _fn_pgn = fn_pgn;
+//    _mode   = mode;
+//    _build_indexes ();
+//    return is_open ();
+//}
 bool PGN::open (const string &fn_pgn, ios_base::openmode mode)
 {
     close ();
@@ -79,8 +79,7 @@ void PGN::_build_indexes ()
         try
         {
 
-            // 32768 = 32*1024 = 32 K
-#define MAX_SIZE    32768
+        #define MAX_SIZE    32*1024 // 32K
 
             char buf[MAX_SIZE + 1];
             buf[MAX_SIZE] = '\0';
@@ -121,7 +120,7 @@ void PGN::_build_indexes ()
 #undef SKIP_WHITESPACE
 #undef CHECK_INCOMPLETE
 
-#define SKIP_WHITESPACE() do { if (length == offset) goto done; c = buf[offset++]; } while (isspace (c))
+#define SKIP_WHITESPACE() do { if (length == offset) goto done; c = buf[offset++]; } while (isspace (c) && c != '\n')
 #define CHECK_INCOMPLETE() do { if (!c) { cerr << "ERROR: incomplete game"; pgn_state = PGN_ERR; goto done; } } while (false)
 
 void PGN::_scan_index (const char *buf, u64 &pos, PGN_State &pgn_state)
@@ -225,6 +224,11 @@ void PGN::_scan_index (const char *buf, u64 &pos, PGN_State &pgn_state)
             case  '[':
                 pgn_state = PGN_TAG_BEG;
                 break;
+            //case  '0': case  '1': case  '2': case  '3': case  '4':
+            //case  '5': case  '6': case  '7': case  '8': case  '9':
+            //case  '*':
+            //    pgn_state = PGN_MOV_LST;
+            //    break;
             }
             break;
 
