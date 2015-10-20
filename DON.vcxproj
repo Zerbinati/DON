@@ -588,9 +588,12 @@
     <ClCompile Include="src\BitBases.cpp" />
     <ClCompile Include="src\BitBoard.cpp" />
     <ClCompile Include="src\Debugger.cpp" />
+    <ClCompile Include="src\ECO.cpp" />
     <ClCompile Include="src\Endgame.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Evaluator.cpp" />
+    <ClCompile Include="src\Game.cpp" />
+    <ClCompile Include="src\LeakDetector.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Material.cpp" />
     <ClCompile Include="src\MemoryHandler.cpp" />
@@ -598,6 +601,7 @@
     <ClCompile Include="src\MovePicker.cpp" />
     <ClCompile Include="src\Notation.cpp" />
     <ClCompile Include="src\Pawns.cpp" />
+    <ClCompile Include="src\PGN.cpp" />
     <ClCompile Include="src\PolyglotBook.cpp" />
     <ClCompile Include="src\Position.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
@@ -614,10 +618,14 @@
     <ClInclude Include="src\BitCount.h" />
     <ClInclude Include="src\BitScan.h" />
     <ClInclude Include="src\Debugger.h" />
+    <ClInclude Include="src\ECO.h" />
     <ClInclude Include="src\Endgame.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
+    <ClInclude Include="src\Forest.h" />
     <ClInclude Include="src\functor.h" />
+    <ClInclude Include="src\Game.h" />
+    <ClInclude Include="src\LeakDetector.h" />
     <ClInclude Include="src\manipulator.h" />
     <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\MemoryHandler.h" />
@@ -627,6 +635,7 @@
     <ClInclude Include="src\Notation.h" />
     <ClInclude Include="src\nullstream.h" />
     <ClInclude Include="src\Pawns.h" />
+    <ClInclude Include="src\PGN.h" />
     <ClInclude Include="src\PolyglotBook.h" />
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\PRNG.h" />
