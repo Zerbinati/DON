@@ -12,7 +12,7 @@ PGN::PGN ()
     , _mode (0)
     , _size_pgn (0)
 {}
-PGN::PGN (const          char *fn_pgn, ios_base::openmode mode)
+PGN::PGN (const   char *fn_pgn, ios_base::openmode mode)
     : fstream (fn_pgn, mode | ios_base::binary)
     , _fn_pgn (fn_pgn)
     , _mode (mode)
@@ -37,7 +37,7 @@ PGN::~PGN () { close (); }
 // open the file in mode
 // Read -> ios_base::in
 // Write-> ios_base::out
-bool PGN::open (const          char *fn_pgn, ios_base::openmode mode)
+bool PGN::open (const   char *fn_pgn, ios_base::openmode mode)
 {
     close ();
     fstream::open (fn_pgn, mode | ios_base::binary);
@@ -122,11 +122,7 @@ void PGN::_build_indexes ()
 #undef CHECK_INCOMPLETE
 
 #define SKIP_WHITESPACE() do { if (length == offset) goto done; c = buf[offset++]; } while (isspace (c))
-
-#define CHECK_INCOMPLETE() do { if (!c) { \
-    cerr << "ERROR: incomplete game";      \
-    pgn_state = PGN_ERR; goto done;       \
-} } while (false)
+#define CHECK_INCOMPLETE() do { if (!c) { cerr << "ERROR: incomplete game"; pgn_state = PGN_ERR; goto done; } } while (false)
 
 void PGN::_scan_index (const char *buf, u64 &pos, PGN_State &pgn_state)
 {
@@ -458,7 +454,7 @@ string PGN::read_text (u64 index_beg, u64 index_end)
     return "";
 }
 // Write the text and return index of the text
-u64 PGN::write_text (const string &text)
+u64    PGN::write_text (const string &text)
 {
     if (is_open () && good ())
     {
@@ -472,7 +468,7 @@ Game   PGN::read_game (u64 index)
     return Game (read_text (index));
 }
 // Write the game and return index of the game
-u64 PGN::write_game (const Game &game)
+u64    PGN::write_game (const Game &game)
 {
     // TODO::
     string pgn = game.pgn ();

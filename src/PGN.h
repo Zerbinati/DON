@@ -1,7 +1,3 @@
-#ifdef _MSC_VER
-#   pragma once
-#endif
-
 #ifndef _PGN_H_INC_
 #define _PGN_H_INC_
 
@@ -12,11 +8,7 @@
 #include "Type.h"
 #include "noncopyable.h"
 
-
 class Game;
-
-#pragma warning (push)
-#pragma warning (disable: 4250)
 
 // PGN file with *.pgn extension
 class PGN
@@ -63,11 +55,11 @@ public:
 
     PGN ();
     // mode = std::ios_base::in|std::ios_base::out
-    PGN (const         char *fn_pgn, std::ios_base::openmode mode);
+    PGN (const        char *fn_pgn, std::ios_base::openmode mode);
     PGN (const std::string &fn_pgn, std::ios_base::openmode mode);
     ~PGN ();
 
-    bool open (const         char *fn_pgn, std::ios_base::openmode mode);
+    bool open (const        char *fn_pgn, std::ios_base::openmode mode);
     bool open (const std::string &fn_pgn, std::ios_base::openmode mode);
 
     void close ();
@@ -97,7 +89,5 @@ public:
     u64 write_game (const Game &game);
 
 };
-
-#pragma warning (pop)
 
 #endif // _PGN_H_INC_

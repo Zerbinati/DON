@@ -644,6 +644,7 @@
     <ClInclude Include="src\thread_win32.h" />
     <ClInclude Include="src\tiebuffer.h" />
     <ClInclude Include="src\Transposition.h" />
+    <ClInclude Include="src\Tree.h" />
     <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\UCI.h" />
     <ClInclude Include="src\Zobrist.h" />
