@@ -600,6 +600,7 @@
     <ClCompile Include="src\MoveGenerator.cpp" />
     <ClCompile Include="src\MovePicker.cpp" />
     <ClCompile Include="src\Notation.cpp" />
+    <ClCompile Include="src\Parser.cpp" />
     <ClCompile Include="src\Pawns.cpp" />
     <ClCompile Include="src\PGN.cpp" />
     <ClCompile Include="src\PolyglotBook.cpp" />
@@ -634,6 +635,7 @@
     <ClInclude Include="src\noncopyable.h" />
     <ClInclude Include="src\Notation.h" />
     <ClInclude Include="src\nullstream.h" />
+    <ClInclude Include="src\Parser.h" />
     <ClInclude Include="src\Pawns.h" />
     <ClInclude Include="src\PGN.h" />
     <ClInclude Include="src\PolyglotBook.h" />

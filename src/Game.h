@@ -24,19 +24,20 @@ private:
 
 public:
 
-    i08 index;
+    i32 index;
 
-    Tag (std::string val, i08 idx)
+    Tag ()
+        : value ("")
+        , index (0)
+    {}
+    Tag (std::string val, i32 idx)
         : value (val)
         , index (idx)
     {}
 
     operator std::string () const { return value; }
 
-    //std::string Tag::to_string () const
-    //{
-    //    return (*this);
-    //}
+    std::string Tag::to_string () const { return *this; }
 
     template<class charT, class Traits>
     friend std::basic_ostream<charT, Traits>&
@@ -54,32 +55,35 @@ class Game
 public:
 
     typedef std::map<std::string, Tag, std::no_case_less_comparer> TagMap;
+    //typedef std::map<std::string, std::string, std::no_case_less_comparer> TagMap;
 
 private:
 
-    TagMap              _tag_map;
+    TagMap     _tag_map;
 
-    std::vector<Move>   _move_list;
-    StateStack          _state_stk;
+    MoveVector _move_list;
+    StateStack _state_stk;
 
-    Position   _last_pos;
+    Position   _current_pos;
+
     Result     _result;
 
-    void print_tags (std::ostream &ostream) const;
+    std::string print_tags () const;
+    std::string print_moves () const;
 
 public:
 
     Game ();
-    explicit Game (i08 dummy);
+    explicit Game (i32 dummy);
 
-    Game (const        char *text);
+    //Game (const        char *text);
     Game (const std::string &text);
 
     Game (const Game &game);
     ~Game ();
     Game& operator= (const Game &game);
 
-    //Position Position () const { return _last_pos; }
+    //Position Position () const { return _current_pos; }
 
     Result Result ()     const { return _result; }
 
@@ -99,7 +103,7 @@ public:
     std::string pgn () const;
     operator std::string () const;
 
-    static bool parse (Game &game, const        char *text);
+    //static bool parse (Game &game, const        char *text);
     static bool parse (Game &game, const std::string &text);
 
     template<class charT, class Traits>

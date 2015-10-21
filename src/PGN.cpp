@@ -2,8 +2,6 @@
 
 #include <iostream>
 
-#include "Game.h"
-
 using namespace std;
 
 PGN::PGN ()
@@ -379,6 +377,31 @@ void PGN::_add_index (u64 pos)
     _indexes_game.emplace_back (pos);
 }
 
+// Remove (first occurence of) sub
+char* remove_substrs (char *str, const char sub[])
+{
+    const size_t length = strlen (sub);
+    char *p = strstr (str, sub);
+    while (p != NULL)
+    {
+        strcpy (p, p + length);
+        //memmove (p, p + length, strlen (p + length) + 1);
+        p = strstr (p, sub);
+    }
+    return str;
+}
+void remove_substrs (string &str, const string &sub)
+{
+    auto len = sub.length ();
+    for (auto i = str.find (sub);
+              i != string::npos;
+              i = str.find (sub)
+        )
+    {
+        str.erase (i, len);
+    }
+}
+
 // Read the text index (1...n)
 string PGN::read_text (u64 index)
 {
@@ -389,28 +412,33 @@ string PGN::read_text (u64 index)
             u64 pos_beg = (1 == index) ? 0 : _indexes_game[index - 2];
             u64 pos_end = _indexes_game[index - 1];
 
-            size_t size = size_t (pos_end - pos_beg);
-            //char *buf = new char[(size + 1)];
-            //if (buf)
-            //{
-            //    seekg (pos_beg);
-            //    read (buf, size);
-            //    buf[size] = '\0';
-            //
-            //    //remove_substring (buf, "\r");
-            //    remove_all (buf, '\r');
-            //
-            //    string text = buf;
-            //    delete[] buf; buf = NULL;
-            //
-            //    //remove_substring (text, "\r");
-            //    return text;
-            //}
+            auto size = size_t (pos_end - pos_beg);
+            
+            /*
+            // char *
+            auto buf = new char[(size + 1)];
+            if (buf != NULL)
+            {
+                seekg (pos_beg);
+                read (buf, size);
+                buf[size] = '\0';
+            
+                remove_substrs (buf, "\r");
+            
+                string text = buf;
+                delete[] buf; buf = NULL;
+            
+                //remove_substrs (text, "\r");
+                return text;
+            }
+            */
 
+            // string
             string text (size, ' ');
             seekg (pos_beg);
             read (&text[0], size);
-            //remove_substring (text, "\r");
+            remove_substrs (text, "\r");
+
             return text;
         }
     }
@@ -430,28 +458,32 @@ string PGN::read_text (u64 index_beg, u64 index_end)
             u64 pos_end = _indexes_game[index_end - 1];
 
             size_t size = size_t (pos_end - pos_beg);
-            //char *buf = new char[(size + 1)];
-            //if (buf)
-            //{
-            //    seekg (pos_beg);
-            //    read (buf, size);
-            //    buf[size] = '\0';
-            //
-            //    //remove_substring (buf, "\r");
-            //    remove_all (buf, '\r');
-            //
-            //    string text = buf;
-            //    delete[] buf; buf = NULL;
-            //
-            //    //remove_substring (text, "\r");
-            //    return text;
-            //}
 
+            /*
+            // char *
+            auto *buf = new char[(size + 1)];
+            if (buf)
+            {
+                seekg (pos_beg);
+                read (buf, size);
+                buf[size] = '\0';
+            
+                remove_substrs (buf, "\r");
+            
+                string text = buf;
+                delete[] buf; buf = NULL;
+            
+                //remove_substrs (text, "\r");
+                return text;
+            }
+            */
 
+            // string
             string text (size, ' ');
             seekg (pos_beg);
             read (&text[0], size);
-            //remove_substring (text, "\r");
+            remove_substrs (text, "\r");
+
             return text;
         }
     }

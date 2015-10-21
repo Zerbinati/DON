@@ -1,6 +1,6 @@
 #include "Engine.h"
-#include "LeakDetector.h"
-#include "PGN.h"
+//#include "LeakDetector.h"
+#include "Parser.h"
 
 using namespace std;
 
@@ -28,16 +28,8 @@ i32 main (i32 argc, const char *const *argv)
     Engine::exit (EXIT_SUCCESS);
     */
 
-    PGN pgn("test.pgn", std::ios::in);
-    string text;
-
-    text = pgn.read_text (1);
-    cout << text << endl;
-    text = pgn.read_text (2);
-    cout << text << endl;
-    text = pgn.read_text (3);
-    cout << text << endl;
-
+    Parser::parse ();
+    
     system ("PAUSE");
     return EXIT_SUCCESS;
 }

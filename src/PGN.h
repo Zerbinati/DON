@@ -7,8 +7,7 @@
 
 #include "Type.h"
 #include "noncopyable.h"
-
-class Game;
+#include "Game.h"
 
 // PGN file with *.pgn extension
 class PGN
