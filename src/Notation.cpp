@@ -118,6 +118,7 @@ namespace Notation {
     {
         for (const auto &m : MoveList<LEGAL> (pos))
         {
+            string s = move_to_san (m, pos);
             if (san == move_to_san (m, pos))
             {
                 return m;

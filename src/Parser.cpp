@@ -12,7 +12,8 @@ void Parser::parse ()
     //Position::initialize ();
     
     
-    PGN pgn ("test.pgn", std::ios::in);
+    //PGN pgn ("test.pgn", std::ios::in);
+    PGN pgn ("book.pgn", std::ios::in);
     //PGN pgn ("5lac.pgn", std::ios::in);
     
     cout << pgn.game_count () << endl;
@@ -30,9 +31,8 @@ void Parser::parse ()
 
     Game game;
     game.parse (text);
-    cout << game.pgn();
+    cout << game;
     
-
     /*
     Tag tag1 ("Hello1", 1);
     Tag tag2 ("Hello2", 2);

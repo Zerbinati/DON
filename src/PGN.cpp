@@ -378,7 +378,7 @@ void PGN::_add_index (u64 pos)
 }
 
 // Remove (first occurence of) sub
-char* remove_substrs (char *str, const char sub[])
+char* remove_substrs (  char *str, const   char *sub)
 {
     const size_t length = strlen (sub);
     char *p = strstr (str, sub);
@@ -390,7 +390,7 @@ char* remove_substrs (char *str, const char sub[])
     }
     return str;
 }
-void remove_substrs (string &str, const string &sub)
+void  remove_substrs (string &str, const string &sub)
 {
     auto len = sub.length ();
     for (auto i = str.find (sub);
