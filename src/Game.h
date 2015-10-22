@@ -17,27 +17,22 @@ enum Result : u08
 
 struct Tag
 {
-private:
-
-private:
-    std::string value;
-
 public:
 
+    std::string value;
     i32 index;
 
     Tag ()
         : value ("")
         , index (0)
     {}
+
     Tag (std::string val, i32 idx)
         : value (val)
         , index (idx)
     {}
 
     operator std::string () const { return value; }
-
-    std::string Tag::to_string () const { return *this; }
 
     template<class charT, class Traits>
     friend std::basic_ostream<charT, Traits>&
@@ -49,62 +44,98 @@ public:
 
 };
 
+typedef std::map<std::string, Tag, std::no_case_less_comparer> TagMap;
+
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<< (std::basic_ostream<CharT, Traits> &os, const TagMap &tagmap)
+{
+    for (auto idx = 1; idx <= tagmap.size (); ++idx)
+    {
+        /*
+        auto pair = tagmap.begin ();
+        while (pair != tagmap.end ())
+        {
+            const auto &tag = pair->second;
+            if (idx == tag.index)
+            {
+                os << "[" << pair->first << " \"" << tag << "\"]" << endl;
+            }
+            ++pair;
+        }
+        */
+        for (auto &pair : tagmap)
+        {
+            const auto &tag = pair.second;
+            if (idx == tag.index)
+            {
+                os << "[" << pair.first << " \"" << tag << "\"]" << std::endl;
+                break;
+            }
+        }
+    }
+    return os;
+}
 
 class Game
 {
-public:
-
-    typedef std::map<std::string, Tag, std::no_case_less_comparer> TagMap;
-    //typedef std::map<std::string, std::string, std::no_case_less_comparer> TagMap;
 
 private:
 
-    TagMap     _tag_map;
-
-    MoveVector _move_list;
-    StateStack _state_stk;
-
-    Position   _current_pos;
-
-    Result     _result;
-
-    std::string print_tags () const;
-    std::string print_moves () const;
+    bool setup (const std::string &fen, bool c960 = false, bool full = true);
 
 public:
 
-    Game ();
-    explicit Game (i32 dummy);
+    TagMap      tags;
+    MoveVector  moves;
+    StateStack  states;
+    Position    position;
+    Result      result;
 
-    //Game (const        char *text);
-    Game (const std::string &text);
+    Game ()
+        : position (STARTUP_FEN)
+        , result (NO_RES)
+    {}
+    Game (i32)
+    {}
+    //Game (const char   *text)
+    //{
+    //    if (!parse (text)) clear ();
+    //}
+    Game (const std::string &text)
+    {
+        if (!parse (text)) clear ();
+    }
+    Game (const Game &game)
+    {
+        *this = game;
+    }
 
-    Game (const Game &game);
-    ~Game ();
-    Game& operator= (const Game &game);
+    ~Game ()
+    {}
 
-    //Position Position () const { return _current_pos; }
+    Result Result ()     const { return result; }
 
-    Result Result ()     const { return _result; }
-
-    void add_tag (const Tag &tag);
+    void add_tag (const std::string &name, const Tag &tag);
     void add_tag (const std::string &name, const std::string &value);
 
     bool append_move (Move m);
     bool append_move (const std::string &smove);
 
-    bool remove_move ();
-
-    bool setup (const std::string &fen, bool c960 = false, bool full = true);
+    bool remove_last_move ();
 
     void clear ();
     void reset ();
 
+    //bool parse (const        char *text);
+    bool parse (const std::string &text);
+
+    std::string print_moves (bool is_pos = false) const;
+
+    
+
     std::string pgn () const;
     operator std::string () const;
-
-    //static bool parse (Game &game, const        char *text);
-    static bool parse (Game &game, const std::string &text);
 
     template<class charT, class Traits>
     friend std::basic_ostream<charT, Traits>&
@@ -118,7 +149,7 @@ public:
     friend std::basic_istream<charT, Traits>&
         operator>> (std::basic_istream<charT, Traits> &is, Game &game)
     {
-        //is >> std::string (game);
+        //is >> game;
         return is;
     }
 

@@ -368,7 +368,7 @@ done:
 
 void PGN::_add_index (u64 pos)
 {
-    //size_t g_count = game_count ();
+    //u64 g_count = game_count ();
     //if (0 < g_count)
     //{
     //    if (pos <= _indexes_game[g_count - 1]) return;
@@ -415,7 +415,7 @@ string PGN::read_text (u64 index)
             auto size = size_t (pos_end - pos_beg);
             
             /*
-            // char *
+            // using char *
             auto buf = new char[(size + 1)];
             if (buf != NULL)
             {
@@ -433,7 +433,7 @@ string PGN::read_text (u64 index)
             }
             */
 
-            // string
+            // using string
             string text (size, ' ');
             seekg (pos_beg);
             read (&text[0], size);
@@ -444,23 +444,24 @@ string PGN::read_text (u64 index)
     }
     return "";
 }
-// Read the text index_beg (1...n), index_end (1...n)
-string PGN::read_text (u64 index_beg, u64 index_end)
+// Read the text beg_index (1...n), end_index (1...n)
+string PGN::read_text (u64 beg_index, u64 end_index)
 {
-    size_t g_count = game_count ();
+    u64 g_count = game_count ();
 
-    if (index_beg <= index_end &&
-        g_count >= index_beg && index_end <= g_count)
+    if (   beg_index <= end_index
+        && g_count >= beg_index && end_index <= g_count
+       )
     {
         if (is_open () && good ())
         {
-            u64 pos_beg = (1 == index_beg) ? 0 : _indexes_game[index_beg - 2];
-            u64 pos_end = _indexes_game[index_end - 1];
+            u64 pos_beg = (1 == beg_index) ? 0 : _indexes_game[beg_index - 2];
+            u64 pos_end = _indexes_game[end_index - 1];
 
             size_t size = size_t (pos_end - pos_beg);
 
             /*
-            // char *
+            // using char *
             auto *buf = new char[(size + 1)];
             if (buf)
             {
@@ -478,7 +479,7 @@ string PGN::read_text (u64 index_beg, u64 index_end)
             }
             */
 
-            // string
+            // using string
             string text (size, ' ');
             seekg (pos_beg);
             read (&text[0], size);
@@ -498,6 +499,7 @@ u64    PGN::write_text (const string &text)
     }
     return 0;
 }
+
 // Read the game from index (1...n)
 Game   PGN::read_game (u64 index)
 {
@@ -508,7 +510,7 @@ u64    PGN::write_game (const Game &game)
 {
     // TODO::
     string pgn = game.pgn ();
-    (*this) << pgn;
+    *this << pgn;
 
     return 0;
 }

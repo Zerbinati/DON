@@ -6,13 +6,11 @@
 #include <stack>
 
 #include "Type.h"
-#include "noncopyable.h"
 #include "Game.h"
 
 // PGN file with *.pgn extension
 class PGN
     : private std::fstream
-    , public std::noncopyable
 {
 
 private:
@@ -52,10 +50,16 @@ private:
 
 public:
 
+    PGN (const PGN&) = delete;
+    PGN& operator= (const PGN&) = delete;
+
     PGN ();
+
     // mode = std::ios_base::in|std::ios_base::out
+
     //PGN (const        char *fn_pgn, std::ios_base::openmode mode);
     PGN (const std::string &fn_pgn, std::ios_base::openmode mode);
+
     ~PGN ();
 
     //bool open (const        char *fn_pgn, std::ios_base::openmode mode);
@@ -84,7 +88,7 @@ public:
     std::string read_text (u64 index_beg, u64 index_end);
     u64 write_text (const std::string &text);
 
-    Game   read_game (u64 index);
+    Game read_game (u64 index);
     u64 write_game (const Game &game);
 
 };

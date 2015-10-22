@@ -4,72 +4,29 @@
 #include <regex>
 #include <iterator>
 
+#include "MoveGenerator.h"
 #include "Notation.h"
 
 using namespace std;
+using namespace MoveGen;
 using namespace Notation;
 
-Game::Game ()
-    : _current_pos (STARTUP_FEN)
-    , _result (NO_RES)
-{}
-
-Game::Game (i32 dummy)
-{}
-
-//Game::Game (const char   *text)
-//{
-//    Game game (0);
-//    if (parse (game, text))
-//    {
-//        *this = game;
-//    }
-//    else
-//    {
-//        clear ();
-//    }
-//}
-Game::Game (const string &text)
+void Game::add_tag (const string &name, const Tag &tag)
 {
-    Game game (0);
-    if (parse (game, text))
-    {
-        *this = game;
-    }
-    else
-    {
-        clear ();
-    }
-}
-
-Game::Game (const Game &game)
-{
-    *this = game;
-}
-Game::~Game ()
-{}
-Game& Game::operator= (const Game &game)
-{
-    return *this;
-}
-
-void Game::add_tag (const Tag &tag)
-{
-}
-void Game::add_tag (const string &name, const string &value)
-{
-    auto find = _tag_map.find (name);
-    
-    _tag_map[name] = Tag (value, find != _tag_map.end () ? distance (_tag_map.begin (), find) : _tag_map.size ());
-
+    tags[name] = tag;
     if (name == "FEN")
     {
-        setup (value);
+        string set_name = "SetUp";
+        string set_value = "1";
+        auto find = tags.find (set_name);
+        tags[set_name] = Tag (set_value, i32(find != tags.end () ? distance (tags.begin (), find) : tags.size ()));
+
+        setup (tag.value);
     }
 
-    //p = _tag_map.find (); if (p != _tag_map.end ())
+    //p = tags.find (); if (p != tags.end ())
     //    //this line produce error for insert
-    //    pair<map<string, string>::iterator, bool> test = _tag_map.insert (make_pair (name, value));
+    //    pair<map<string, string>::iterator, bool> test = tags.insert (make_pair (name, tag.value));
     //if (test.second)
     //{
     //    pair<string, string> tag = *(test.first);
@@ -79,125 +36,106 @@ void Game::add_tag (const string &name, const string &value)
     //        setup (fen);
     //    }
     //}
-
+}
+void Game::add_tag (const string &name, const string &value)
+{
+    auto find = tags.find (name);
+    auto tag = Tag (value, i32(find != tags.end () ? distance (tags.begin (), find) : tags.size ()));
+    add_tag (name, tag);
 }
 
 bool Game::append_move (Move m)
 {
-    // TODO:: check legal move
-    if (_current_pos.legal (m))
+    if (   m != MOVE_NONE
+        && MoveList<LEGAL> (position).contains (m)
+       )
     {
-        StateInfo si;
-        _state_stk.push (si);
-        //_move_list.emplace_back (m);
-
-        _current_pos.do_move (m, _state_stk.top (), _current_pos.gives_check (m, CheckInfo (_current_pos)));
-
+        moves.push_back (m);
+        states.push (StateInfo ());
+        position.do_move (m, states.top (), position.gives_check (m, CheckInfo (position)));
         return true;
     }
     return false;
 }
-bool Game::append_move (const string &smove)
+bool Game::append_move (const string &move)
 {
-    // TODO::
-    Move m = move_from_san (smove, _current_pos);
-    
+    Move m = move_from_san (move, position);
     if (MOVE_NONE == m)
     {
-        cerr << "ERROR: Illegal Move '" + smove << "'" << endl;
+        cerr << "ERROR: Illegal Move '" + move << "'" << endl;
         return false;
     }
-    
-    _move_list.push_back (m);
-    _state_stk.push (StateInfo ());
-    _current_pos.do_move (m, _state_stk.top (), _current_pos.gives_check (m, CheckInfo (_current_pos)));
-    
-    return true;
+    return append_move (m);
 }
 
 // Remove last move
-bool Game::remove_move ()
+bool Game::remove_last_move ()
 {
-    _current_pos.undo_move ();
-    //Move m = _state_stk.top ().last_move;
-    _state_stk.pop ();
-    _move_list.pop_back ();
+    position.undo_move ();
+    //Move m = states.top ().last_move;
+    states.pop ();
+    moves.pop_back ();
     return true;
 }
 
 bool Game::setup (const string &fen, bool c960, bool full)
 {
-    return _current_pos.setup (fen, nullptr, c960, full);
+    return position.setup (fen, nullptr, c960, full);
 }
 
 void Game::clear ()
 {
-    _tag_map.clear ();
-    _move_list.clear ();
-    _current_pos.clear ();
-    _result = NO_RES;
+    tags.clear ();
+    moves.clear ();
+    position.clear ();
+    result = NO_RES;
 }
 void Game::reset ()
 {
-    size_t size = _move_list.size ();
-    while (!_move_list.empty ())
+    size_t size = moves.size ();
+    while (!moves.empty ())
     {
-        if (!remove_move ())
+        if (!remove_last_move ())
         {
-            //cout << "ERROR: Undo move " << _move_list.back ();
+            //cout << "ERROR: Undo move " << moves.back ();
             break;
         }
     }
 
-    if (size != _move_list.size ())
+    if (size != moves.size ())
     {
-        _result = NO_RES;
+        result = NO_RES;
     }
 }
 
-string Game::print_tags () const
-{
-    ostringstream oss;
-    for (auto idx = 0; idx < _tag_map.size (); ++idx)
-    {
-        auto itr = _tag_map.begin ();
-        while (itr != _tag_map.end ())
-        {
-            const auto &tag = itr->second;
-            if (idx == tag.index)
-            {
-                oss << "[" << itr->first << " \"" << tag << "\"]" << endl;
-            }
-            ++itr;
-        }
-    }
-    return oss.str ();
-}
-string Game::print_moves () const
+
+string Game::print_moves (bool is_pos) const
 {
     ostringstream oss;
     string name = "FEN";
-    Position pos (_tag_map.find (name) != _tag_map.end () ? _tag_map.at (name) : STARTUP_FEN, nullptr);
+    Position pos (tags.find (name) != tags.end () ? tags.at (name) : STARTUP_FEN, nullptr);
     
-    StateStack states;
+    StateStack st;
     u08 ply = 0;
-    for (auto m : _move_list)
+    for (auto m : moves)
     {
         oss << move_to_san (m, pos) << " ";
-        states.push (StateInfo ());
-        pos.do_move (m, states.top (), pos.gives_check (m, CheckInfo (pos)));
+        st.push (StateInfo ());
+        pos.do_move (m, st.top (), pos.gives_check (m, CheckInfo (pos)));
         ++ply;
         ////---------------------------------
         //oss << move_to_can (m, pos.chess960 ()) << " ";
     }
 
+    if (is_pos) oss << "\n" << pos; // current position
+
     while (ply != 0)
     {
         pos.undo_move ();
-        states.pop ();
+        st.pop ();
         --ply;
     }
-
+    
     return oss.str ();
 }
 
@@ -205,26 +143,21 @@ string Game::pgn () const
 {
     ostringstream oss;
     // pgn format
-    oss << print_tags ();
-
+    oss << tags                 << "\n"
+        << print_moves (false)  << "\n";
     return oss.str ();
 }
 
 Game::operator string ()  const
 {
     ostringstream oss;
-    // tag list
-    // starting fen
-    // move list
-    // last position
-    oss << print_tags ();
-    oss << print_moves ();
-
+    oss << tags                 << "\n"  // tag list + starting fen
+        << print_moves (true)   << "\n"; // move list
     return oss.str ();
 }
 
 /*
-bool Game::parse (Game &game, const char   *text)
+bool Game::parse (const char   *text)
 {
     bool is_ok = false;
     char *c = strdup (text);
@@ -242,7 +175,7 @@ bool Game::parse (Game &game, const char   *text)
     //    c += n;
 
     //    cout << name << " " << value << endl;
-    //    //game.AddTag(name, value);
+    //    //AddTag(name, value);
     //}
     //while ('\0' != *c);
 
@@ -293,19 +226,14 @@ bool Game::parse (Game &game, const char   *text)
     return is_ok;
 }
 */
-bool Game::parse (Game &game, const string &text)
+bool Game::parse (const string &text)
 {
-    bool is_ok = false;
-
     // TODO::
 
     ////string seq("[Event \"Blitz 4m+2s\"]\n[Site \"?\"]\n[Date \"2001.12.05\"]\n[Round \"4\"]\n[White \"Deep Fritz 13\"]\n[Black \"aquil, muzaffar\"]\n[Result \"1/2-1/2\"]\n[ECO \"C80\"]\n[WhiteElo \"2839\"]\n[BlackElo \"2808\"]\n[PlyCount \"37\"]\n");
     //char *pat = "[Event \"Blitz 4m+2s\"]\n[Site \"?\"]\n1. e4 e5 2. Nf3 {a}  {b} Nc6 3. Bb5 a6 4...d5 1-0";
     //"11... Bxe3 12. Qxe3 Nxc3  13. Qxc3 {dfs} {sfsf} Qd7 14. Rad1 Nd8";
     //string seq (text);
-
-    string tag_regexp  = "(?:^\\s*\\[\\s*(\\w+)\\s+\"([^\"]+)\"\\s*\\]\\s*)";
-    string move_regexp = "(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(\\d+)(\\.|\\.{3})\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*)?|\\s*(\\*|1-0|0-1|1\\/2-1\\/2)\\s*)";
 
     //string reg_esp =
     //    /// tag
@@ -322,6 +250,10 @@ bool Game::parse (Game &game, const string &text)
     //// endMarker
     ////\\s+(1\\-?0|0\\-?1|1\\/2\\-?1\\/2|\\*)\\s+
 
+
+    string tag_regexp  = "(?:^\\s*\\[\\s*(\\w+)\\s+\"([^\"]+)\"\\s*\\]\\s*)";
+    string move_regexp = "(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(\\d+)(\\.|\\.{3})\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*)?|\\s*(\\*|1-0|0-1|1\\/2-1\\/2)\\s*)";
+
     regex tag_regex (tag_regexp);//, regex_constants::match_flag_type::match_continuous);
     for (sregex_iterator itr (text.begin (), text.end (), tag_regex), end; itr != end; ++itr)
     {
@@ -335,13 +267,13 @@ bool Game::parse (Game &game, const string &text)
                 continue;
             }
             
-            //game.add_tag (string(x.first), string(x.second));
+            //add_tag (string(x.first), string(x.second));
             cout << x << "   ";
         }
         cout << endl;
         */
 
-        game.add_tag ((*itr)[1].str (), (*itr)[2].str ());
+        add_tag ((*itr)[1].str (), (*itr)[2].str ());
     }
 
     regex move_regex (move_regexp);//, regex_constants::match_flag_type::match_continuous);
@@ -353,17 +285,17 @@ bool Game::parse (Game &game, const string &text)
 
         if (match.size () > 3 && match[3].matched && match[3].length () != 0)
         {
-            cout << match[3];
-            game.append_move (match[3]);
+            //cout << match[3];
+            append_move (match[3]);
         }
         
         if (match.size () > 4 && match[4].matched && match[4].length () != 0)
         {
-            cout << match[4];
-            game.append_move (match[4]);
+            //cout << match[4];
+            append_move (match[4]);
         }
 
-        cout << endl;
+        //cout << endl;
     }
 
     //cout << "--------" << endl;
@@ -387,5 +319,5 @@ bool Game::parse (Game &game, const string &text)
     //    seq = match.suffix().str();
     //}
 
-    return is_ok;
+    return true;
 }
