@@ -2,16 +2,26 @@
 
 #include "Position.h"
 #include "Notation.h"
+#include "PolyglotBook.h"
 #include "PGN.h"
 
 using namespace std;
+using namespace OpeningBook;
 
+void print_key (Key key)
+{
+    cout
+        << hex << uppercase << setfill ('0')
+        << "Posi key: " << setw (16) << key << "\n"
+        << setfill (' ') << nouppercase << dec
+        << endl;
+}
 void Parser::parse ()
 {
     BitBoard::initialize ();
     //Position::initialize ();
     
-    
+    /*
     //PGN pgn ("test.pgn", std::ios::in);
     PGN pgn ("book.pgn", std::ios::in);
     //PGN pgn ("5lac.pgn", std::ios::in);
@@ -32,7 +42,7 @@ void Parser::parse ()
     Game game;
     game.parse (text);
     cout << game;
-    
+    */
     /*
     Tag tag1 ("Hello1", 1);
     Tag tag2 ("Hello2", 2);
@@ -51,5 +61,45 @@ void Parser::parse ()
     //MoveVector moves;
     //moves.push_back (Move(634));
     //cout << moves;
+
+    PolyglotBook book;
+    book.open ("book.bin", ios_base::in|ios_base::binary);
+    
+    string move;
+    StateStack states;
+    Position pos(STARTUP_FEN, nullptr);
+
+    print_key (pos.posi_key ());
+    
+    states.push (StateInfo ());
+    move = "e2e4";
+    pos.do_move (move, states.top ());
+    print_key (pos.posi_key ());
+ 
+    states.push (StateInfo ());
+    move = "d7d5";
+    pos.do_move (move, states.top ());
+    print_key (pos.posi_key ());
+    /*
+    states.push (StateInfo ());
+    move = "e4e5";
+    pos.do_move (move, states.top ());
+    print_key (pos.posi_key ());
+
+    states.push (StateInfo ());
+    move = "f7f5";
+    pos.do_move (move, states.top ());
+    print_key (pos.posi_key ());
+    
+    states.push (StateInfo ());
+    move = "e1e2";
+    pos.do_move (move, states.top ());
+    print_key (pos.posi_key ());
+    */
+
+    //auto book_move = book.probe_move (pos, false);
+    //cout << book_move << endl;
+
+    cout << book.read_entries (pos);
 
 }

@@ -38,7 +38,7 @@ namespace OpeningBook {
             friend std::basic_ostream<CharT, Traits>&
                 operator<< (std::basic_ostream<CharT, Traits> &os, const PBEntry &pbe)
             {
-                os << std::string (pbe);
+                os << std::string(pbe);
                 return os;
             }
 
@@ -46,7 +46,6 @@ namespace OpeningBook {
 
         static const streampos EntrySize;
         static const streampos HeaderSize;
-        static const streampos ErrorIndex;
 
     private:
 
