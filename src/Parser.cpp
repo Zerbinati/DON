@@ -70,7 +70,7 @@ void Parser::parse ()
     Position pos(STARTUP_FEN, nullptr);
 
     print_key (pos.posi_key ());
-    
+    /*
     states.push (StateInfo ());
     move = "e2e4";
     pos.do_move (move, states.top ());
