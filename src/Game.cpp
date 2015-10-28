@@ -112,9 +112,9 @@ void Game::reset ()
 string Game::print_moves (bool is_pos) const
 {
     ostringstream oss;
+
     string name = "FEN";
     Position pos (tags.find (name) != tags.end () ? tags.at (name) : STARTUP_FEN, nullptr);
-    
     StateStack st;
     u08 ply = 0;
     for (auto m : moves)
@@ -154,6 +154,51 @@ Game::operator string ()  const
     oss << tags                 << "\n"  // tag list + starting fen
         << print_moves (true)   << "\n"; // move list
     return oss.str ();
+}
+
+namespace {
+
+    vector<vector<string>> find_groups (const string &s, const string &regexp, bool case_sensitive = true)
+    {
+        regex *reg = nullptr;
+        if (case_sensitive)
+        {
+            reg = new regex (regexp);
+        }
+        else
+        {
+            reg = new regex (regexp, regex_constants::syntax_option_type::icase);
+        }
+
+        vector<vector<string>> groups;
+        vector<string> subgroups;
+
+        const std::sregex_token_iterator end_i;
+        for (std::sregex_token_iterator beg_i (s.cbegin (), s.cend (), *reg); beg_i != end_i; ++beg_i)
+        {
+            subgroups.clear ();
+            string group = *beg_i;
+            //cout << group << endl;
+            smatch match;
+            if (std::regex_search (group, match, *reg))
+            {
+                for (auto sm : match)
+                //for (unsigned i = 0; i < match.size (); ++i)
+                {
+                    //subgroups.push_back (match[i]);
+                    subgroups.push_back (sm);
+                }
+                if (subgroups.size () > 0)
+                {
+                    groups.push_back (subgroups);
+                }
+            }
+        }
+        //groups.push_back (subgroups);
+
+        if (reg != nullptr) delete reg;
+        return groups;
+    }
 }
 
 /*
@@ -250,7 +295,6 @@ bool Game::parse (const string &text)
     //// endMarker
     ////\\s+(1\\-?0|0\\-?1|1\\/2\\-?1\\/2|\\*)\\s+
 
-
     string tag_regexp  = "(?:^\\s*\\[\\s*(\\w+)\\s+\"([^\"]+)\"\\s*\\]\\s*)";
     //string move_regexp = "(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(\\d+)(\\.|\\.{3})\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*)?|\\s*(\\*|1-0|0-1|1\\/2-1\\/2)\\s*)";
     string move_regexp = "(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(\\d+)(\\.|\\.{3})\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:((?:[NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?)(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:((?:[NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?)(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*)?|\\s*(\\*|1-0|0-1|1\\/2-1\\/2)\\s*)";
@@ -277,6 +321,7 @@ bool Game::parse (const string &text)
         add_tag ((*itr)[1].str (), (*itr)[2].str ());
     }
 
+    /*
     regex move_regex (move_regexp);//, regex_constants::match_flag_type::match_continuous);
     for (sregex_iterator itr (text.begin (), text.end (), move_regex), end; itr != end; ++itr)
     {
@@ -298,6 +343,36 @@ bool Game::parse (const string &text)
 
         //cout << endl;
     }
+    */
+
+    auto groups = find_groups (text, move_regexp, true);
+
+    for (auto group : groups)
+    //for (auto itr = groups.begin (); itr != groups.end (); ++itr)
+    {
+        //auto group = *itr;
+
+        if (group.size () > 3 && group[3].length () != 0)
+        {
+            //cout << group[3] << " ";
+            append_move (group[3]);
+        }
+        if (group.size () > 4 && group[4].length () != 0)
+        {
+            //cout << group[4] << " ";
+            append_move (group[4]);
+        }
+        if (group.size () > 5 && group[5].length () != 0)
+        {
+            cout << group[5] << "\n";
+        }
+    }
+
+    //string s = "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6 5. d4 exd4 6. cxd4 Bb4+ 7. Nc3 Nxe4 8. O-O Nxc3 9. bxc3 Bxc3 10. Qb3 Bxa1 11. Bxf7+ Kf8 12. Bg5 Ne7 13. Ne5 Bxd4 14. Bg6 d5 15. Qf3+ Bf5 16. Bxf5 Bxe5 17. Be6+ Bf6 18. Bxf6 Ke8 19. Bxg7 1-0";
+
+    //copy (sregex_token_iterator (s.begin (), s.end (), move_regex, -1),
+    //      sregex_token_iterator (),
+    //      ostream_iterator<string> (cout, "\n"));
 
     //cout << "--------" << endl;
 

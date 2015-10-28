@@ -1,9 +1,14 @@
 #include "Parser.h"
 
+#include <iostream>
+#include <string>
+#include <regex>
+
 #include "Position.h"
 #include "Notation.h"
 #include "PolyglotBook.h"
 #include "PGN.h"
+#include "PGNFile.h"
 
 using namespace std;
 using namespace OpeningBook;
@@ -20,7 +25,29 @@ void Parser::parse ()
 {
     BitBoard::initialize ();
     //Position::initialize ();
-    
+    //std::string lines[] = { "Roses are #ff0000",
+    //    "violets are #0000ff",
+    //    "all of my base are belong to you" };
+
+    //std::regex color_regex ("#([a-f0-9]{2})"
+    //                        "([a-f0-9]{2})"
+    //                        "([a-f0-9]{2})");
+
+    //for (const auto &line : lines)
+    //{
+    //    std::cout << line << ": "
+    //        << std::regex_search (line, color_regex) << '\n';
+    //}
+
+    //std::smatch color_match;
+    //for (const auto &line : lines)
+    //{
+    //    std::regex_search (line, color_match, color_regex);
+    //    std::cout << "matches for '" << line << "'\n";
+    //    for (size_t i = 0; i < color_match.size (); ++i)
+    //        std::cout << i << ": " << color_match[i] << '\n';
+    //}
+
     /*
     //PGN pgn ("test.pgn", std::ios::in);
     PGN pgn ("book.pgn", std::ios::in);
@@ -42,7 +69,7 @@ void Parser::parse ()
     Game game;
     game.parse (text);
     cout << game;
-    */
+    
     /*
     Tag tag1 ("Hello1", 1);
     Tag tag2 ("Hello2", 2);
@@ -58,10 +85,8 @@ void Parser::parse ()
     game.tags = tags;
     cout << game;
     */
-    //MoveVector moves;
-    //moves.push_back (Move(634));
-    //cout << moves;
-
+    
+    /*
     PolyglotBook book;
     book.open ("book.bin", ios_base::in|ios_base::binary);
     
@@ -95,11 +120,26 @@ void Parser::parse ()
     move = "e1e2";
     pos.do_move (move, states.top ());
     print_key (pos.posi_key ());
-    */
 
     //auto book_move = book.probe_move (pos, false);
     //cout << book_move << endl;
+    //cout << book.read_entries (pos);
+    */
+    
+    const char fn_pgn[] = "book.pgn";
 
-    cout << book.read_entries (pos);
+    pgn_t pgn[1];
+    char move_s[STRING_SIZE];
+    open_pgn (pgn, fn_pgn);
+    pgn->game_nb = 0;
+    while (next_game_pgn (pgn))
+    {
 
+        pgn->game_nb++;
+    
+        while (next_move_pgn (pgn, move_s, STRING_SIZE));
+
+    }
+
+    cout << pgn->game_nb << endl;
 }

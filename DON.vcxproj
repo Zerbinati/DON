@@ -603,6 +603,7 @@
     <ClCompile Include="src\Parser.cpp" />
     <ClCompile Include="src\Pawns.cpp" />
     <ClCompile Include="src\PGN.cpp" />
+    <ClCompile Include="src\PGNFile.cpp" />
     <ClCompile Include="src\PolyglotBook.cpp" />
     <ClCompile Include="src\Position.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
@@ -638,6 +639,7 @@
     <ClInclude Include="src\Parser.h" />
     <ClInclude Include="src\Pawns.h" />
     <ClInclude Include="src\PGN.h" />
+    <ClInclude Include="src\PGNFile.h" />
     <ClInclude Include="src\PolyglotBook.h" />
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\PRNG.h" />

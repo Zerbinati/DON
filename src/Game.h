@@ -38,7 +38,7 @@ public:
     friend std::basic_ostream<charT, Traits>&
         operator<< (std::basic_ostream<charT, Traits> &os, const Tag &tag)
     {
-        os << std::string (tag);
+        os << std::string(tag);
         return os;
     }
 
@@ -50,14 +50,14 @@ template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
 operator<< (std::basic_ostream<CharT, Traits> &os, const TagMap &tagmap)
 {
-    for (auto idx = 1; idx <= tagmap.size (); ++idx)
+    for (auto index = 0; index < tagmap.size (); ++index)
     {
         /*
         auto pair = tagmap.begin ();
         while (pair != tagmap.end ())
         {
             const auto &tag = pair->second;
-            if (idx == tag.index)
+            if (index == tag.index)
             {
                 os << "[" << pair->first << " \"" << tag << "\"]" << endl;
             }
@@ -67,7 +67,7 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const TagMap &tagmap)
         for (auto &pair : tagmap)
         {
             const auto &tag = pair.second;
-            if (idx == tag.index)
+            if (index == tag.index)
             {
                 os << "[" << pair.first << " \"" << tag << "\"]" << std::endl;
                 break;
@@ -132,8 +132,6 @@ public:
 
     std::string print_moves (bool is_pos = false) const;
 
-    
-
     std::string pgn () const;
     operator std::string () const;
 
@@ -141,7 +139,7 @@ public:
     friend std::basic_ostream<charT, Traits>&
         operator<< (std::basic_ostream<charT, Traits> &os, const Game &game)
     {
-        os << std::string (game);
+        os << std::string(game);
         return os;
     }
 
