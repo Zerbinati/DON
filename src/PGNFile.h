@@ -23,11 +23,11 @@ typedef struct pgn_t
     bool token_unread;
     bool token_first;
 
-    char result[STRING_SIZE];
-    char fen[STRING_SIZE];
+    std::string result;
+    std::string fen;
 
-    char WhiteELO[STRING_SIZE];
-    char BlackELO[STRING_SIZE];
+    std::string WhiteELO;
+    std::string BlackELO;
 
     int move_line;
     int move_column;

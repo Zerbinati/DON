@@ -32,9 +32,9 @@ namespace {
     }                                                                \
 } 
 
-    const bool DispMove = false;
-    const bool DispToken = false;
-    const bool DispChar = false;
+    const bool DispMove     = false;
+    const bool DispToken    = false;
+    const bool DispChar     = false;
 
     const int TAB_SIZE = 8;
 
@@ -178,12 +178,13 @@ namespace {
         // read a new token
         pgn_read_token (pgn);
         if (pgn->token_type == TOKEN_ERROR)
-            log_fatal ("pgn_token_read(): lexical error at line %d, column %d, game %d\n",
-                       pgn->char_line, pgn->char_column, pgn->game_nb);
-
+        {
+            log_fatal ("pgn_token_read(): lexical error at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+        }
         if (DispToken)
-            printf ("< L%d C%d \"%s\" (%03X)\n",
-                    pgn->token_line, pgn->token_column, pgn->token_string, pgn->token_type);
+        {
+            printf ("< L%d C%d \"%s\" (%03X)\n", pgn->token_line, pgn->token_column, pgn->token_string, pgn->token_type);
+        }
     }
 
     void pgn_token_unread (pgn_t *pgn)
@@ -442,13 +443,11 @@ namespace {
                 do
                 {
                     pgn_char_read (pgn);
-
                     if (pgn->char_hack == CHAR_EOF)
                     {
                         log_fatal ("pgn_skip_blanks(): EOF in comment at line %d, column %d, game %d\n",
                                    pgn->char_line, pgn->char_column, pgn->game_nb);
                     }
-
                 }
                 while (pgn->char_hack != '\n');
             }
@@ -532,8 +531,9 @@ namespace {
         }
 
         if (DispChar)
-            printf ("< L%d C%d '%c' (%02X)\n",
-                    pgn->char_line, pgn->char_column, pgn->char_hack, pgn->char_hack);
+        {
+            printf ("< L%d C%d '%c' (%02X)\n", pgn->char_line, pgn->char_column, pgn->char_hack, pgn->char_hack);
+        }
     }
 
     void pgn_char_unread (pgn_t *pgn)
@@ -570,10 +570,10 @@ void open_pgn (pgn_t *pgn, const char *fn_pgn)
     pgn->token_unread   = false;
     pgn->token_first    = true;
 
-    strcpy (pgn->result, "?"); // DEBUG
-    strcpy (pgn->fen, "?"); // DEBUG
-    strcpy (pgn->WhiteELO, "?"); // DEBUG
-    strcpy (pgn->BlackELO, "?"); // DEBUG
+    pgn->result   = "?"; // DEBUG
+    pgn->fen      = "?"; // DEBUG
+    pgn->WhiteELO = "?"; // DEBUG
+    pgn->BlackELO = "?"; // DEBUG
 
     pgn->move_line      = -1; // DEBUG
     pgn->move_column    = -1; // DEBUG
@@ -593,10 +593,10 @@ bool next_game_pgn (pgn_t *pgn)
     assert (pgn != NULL);
 
     // init
-    strcpy (pgn->result, "*");
-    strcpy (pgn->fen, "");
-    strcpy (pgn->WhiteELO, "0");
-    strcpy (pgn->BlackELO, "0");
+    pgn->result   = "*";
+    pgn->fen      = "";
+    pgn->WhiteELO = "0";
+    pgn->BlackELO = "0";
 
     while (true)
     {
@@ -608,8 +608,7 @@ bool next_game_pgn (pgn_t *pgn)
         pgn_token_read (pgn);
         if (pgn->token_type != TOKEN_SYMBOL)
         {
-            log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n",
-                       pgn->token_line, pgn->token_column, pgn->game_nb);
+            log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", pgn->token_line, pgn->token_column, pgn->game_nb);
         }
         strcpy (name, pgn->token_string);
 
@@ -634,25 +633,26 @@ bool next_game_pgn (pgn_t *pgn)
         }
         else if (is_equal (name, "Result"))
         {
-            strcpy (pgn->result, value);
+            pgn->result = value;
         }
         else if (is_equal (name, "FEN"))
         {
-            strcpy (pgn->fen, value);
+            pgn->fen = value;
         }
         else if (is_equal (name, "WhiteElo"))
         {
-            strcpy (pgn->WhiteELO, value);
+            pgn->WhiteELO =  value;
         }
         else if (is_equal (name, "BlackElo"))
         {
-            strcpy (pgn->BlackELO, value);
+            pgn->BlackELO = value;
         }
     }
     if (pgn->token_type == TOKEN_EOF) return false;
 
     pgn_token_unread (pgn);
-
+    
+    pgn->game_nb++;
     return true;
 }
 

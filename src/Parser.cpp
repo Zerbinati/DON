@@ -5,12 +5,15 @@
 #include <regex>
 
 #include "Position.h"
+#include "MoveGenerator.h"
 #include "Notation.h"
 #include "PolyglotBook.h"
 #include "PGN.h"
 #include "PGNFile.h"
 
 using namespace std;
+using namespace MoveGen;
+using namespace Notation;
 using namespace OpeningBook;
 
 void print_key (Key key)
@@ -134,11 +137,22 @@ void Parser::parse ()
     pgn->game_nb = 0;
     while (next_game_pgn (pgn))
     {
-
-        pgn->game_nb++;
+        Position pos(STARTUP_FEN, nullptr);
+        //pgn->game_nb++;
     
-        while (next_move_pgn (pgn, move_s, STRING_SIZE));
 
+        while (next_move_pgn (pgn, move_s, STRING_SIZE))
+        {
+            string san = move_s;
+            Move m = move_from_san (san, pos);
+
+            
+            cout << m << " ";
+            //cout << move_s << " ";
+        }
+
+
+        cout << endl << endl;
     }
 
     cout << pgn->game_nb << endl;
