@@ -146,7 +146,7 @@ namespace {
     void pgn_char_unread (pgn_t *pgn);
     // ------------------------------------
 
-    bool is_equal (const char string_1[], const char string_2[])
+    bool equal (const char string_1[], const char string_2[])
     {
         assert (string_1 != NULL);
         assert (string_2 != NULL);
@@ -310,9 +310,9 @@ namespace {
             assert (pgn->token_length > 0 && pgn->token_length < STRING_SIZE);
             pgn->token_string[pgn->token_length] = '\0';
 
-            if (   is_equal (pgn->token_string, "1-0")
-                || is_equal (pgn->token_string, "0-1")
-                || is_equal (pgn->token_string, "1/2-1/2")
+            if (   equal (pgn->token_string, "1-0")
+                || equal (pgn->token_string, "0-1")
+                || equal (pgn->token_string, "1/2-1/2")
                )
             {
                 pgn->token_type = TOKEN_RESULT;
@@ -587,8 +587,8 @@ void close_pgn (pgn_t *pgn)
 
 bool next_game_pgn (pgn_t *pgn)
 {
-    char name[STRING_SIZE];
-    char value[STRING_SIZE];
+    std::string name;
+    std::string value;
 
     assert (pgn != NULL);
 
@@ -610,7 +610,7 @@ bool next_game_pgn (pgn_t *pgn)
         {
             log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", pgn->token_line, pgn->token_column, pgn->game_nb);
         }
-        strcpy (name, pgn->token_string);
+        name = pgn->token_string;
 
         pgn_token_read (pgn);
         if (pgn->token_type != TOKEN_STRING)
@@ -618,7 +618,7 @@ bool next_game_pgn (pgn_t *pgn)
             log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n",
                        pgn->token_line, pgn->token_column, pgn->game_nb);
         }
-        strcpy (value, pgn->token_string);
+        value = pgn->token_string;
 
         pgn_token_read (pgn);
         if (pgn->token_type != ']')
@@ -631,19 +631,19 @@ bool next_game_pgn (pgn_t *pgn)
         if (false)
         {
         }
-        else if (is_equal (name, "Result"))
+        else if (name == "Result")
         {
             pgn->result = value;
         }
-        else if (is_equal (name, "FEN"))
+        else if (name == "FEN")
         {
             pgn->fen = value;
         }
-        else if (is_equal (name, "WhiteElo"))
+        else if (name == "WhiteElo")
         {
             pgn->WhiteELO =  value;
         }
-        else if (is_equal (name, "BlackElo"))
+        else if (name == "BlackElo")
         {
             pgn->BlackELO = value;
         }
@@ -658,7 +658,6 @@ bool next_game_pgn (pgn_t *pgn)
 
 bool next_move_pgn (pgn_t *pgn, std::string &move)
 {
-    int depth;
     assert (pgn != NULL);
 
     // init
@@ -666,7 +665,7 @@ bool next_move_pgn (pgn_t *pgn, std::string &move)
     pgn->move_column    = -1;  // DEBUG
     
     move = "";
-    depth = 0;
+    int depth = 0;
 
     while (true)
     {
