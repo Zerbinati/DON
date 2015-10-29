@@ -98,10 +98,6 @@ public:
     {}
     Game (i32)
     {}
-    //Game (const char   *text)
-    //{
-    //    if (!parse (text)) clear ();
-    //}
     Game (const std::string &text)
     {
         if (!parse (text)) clear ();
@@ -127,7 +123,6 @@ public:
     void clear ();
     void reset ();
 
-    //bool parse (const        char *text);
     bool parse (const std::string &text);
 
     std::string print_moves (bool is_pos = false) const;

@@ -39,6 +39,6 @@ extern void open_pgn  (pgn_t *pgn, const char *fn_pgn);
 extern void close_pgn (pgn_t *pgn);
 
 extern bool next_game_pgn (pgn_t *pgn);
-extern bool next_move_pgn (pgn_t *pgn, char *move_s, int size);
+extern bool next_move_pgn (pgn_t *pgn, std::string &moves);
 
 #endif

@@ -15,23 +15,21 @@ class PGN
 
 private:
 
-    enum PGN_State : i08
+    enum State : i08
     {
+        S_ERR = -1,
+        S_NEW = 0,
 
-        PGN_NEW = 0,
+        S_TAG_NEW,
+        S_TAG_BEG,
+        S_TAG_END,
 
-        PGN_TAG_NEW,
-        PGN_TAG_BEG,
-        PGN_TAG_END,
+        S_MOV_NEW,
+        S_MOV_LST,
+        S_MOV_COM,
 
-        PGN_MOV_NEW,
-        PGN_MOV_LST,
-        PGN_MOV_COM,
-
-        PGN_VAR_LST,
-        PGN_VAR_COM,
-        
-        PGN_ERR = 32,
+        S_VAR_LST,
+        S_VAR_COM,
 
     };
 
@@ -45,7 +43,8 @@ private:
 
     void _reset ();
     void _build_indexes ();
-    void _scan_index (const char *buf, u64 &pos, PGN_State &pgn_state);
+    
+    void _scan_index (const std::string &str, u64 &pos, State &state);
     void _add_index (u64 pos);
 
 public:
@@ -57,12 +56,10 @@ public:
 
     // mode = std::ios_base::in|std::ios_base::out
 
-    //PGN (const        char *fn_pgn, std::ios_base::openmode mode);
     PGN (const std::string &fn_pgn, std::ios_base::openmode mode);
 
     ~PGN ();
 
-    //bool open (const        char *fn_pgn, std::ios_base::openmode mode);
     bool open (const std::string &fn_pgn, std::ios_base::openmode mode);
 
     void close ();

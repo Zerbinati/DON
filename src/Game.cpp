@@ -19,7 +19,7 @@ void Game::add_tag (const string &name, const Tag &tag)
         string set_name = "SetUp";
         string set_value = "1";
         auto find = tags.find (set_name);
-        tags[set_name] = Tag (set_value, i32(find != tags.end () ? distance (tags.begin (), find) : tags.size ()));
+        tags[set_name] = Tag (set_value, i32 (find != tags.end () ? distance (tags.begin (), find) : tags.size ()));
 
         setup (tag.value);
     }
@@ -40,13 +40,13 @@ void Game::add_tag (const string &name, const Tag &tag)
 void Game::add_tag (const string &name, const string &value)
 {
     auto find = tags.find (name);
-    auto tag = Tag (value, i32(find != tags.end () ? distance (tags.begin (), find) : tags.size ()));
+    auto tag = Tag (value, i32 (find != tags.end () ? distance (tags.begin (), find) : tags.size ()));
     add_tag (name, tag);
 }
 
 bool Game::append_move (Move m)
 {
-    if (   m != MOVE_NONE
+    if (m != MOVE_NONE
         && MoveList<LEGAL> (position).contains (m)
        )
     {
@@ -135,7 +135,7 @@ string Game::print_moves (bool is_pos) const
         st.pop ();
         --ply;
     }
-    
+
     return oss.str ();
 }
 
@@ -183,7 +183,7 @@ namespace {
             if (std::regex_search (group, match, *reg))
             {
                 for (auto sm : match)
-                //for (unsigned i = 0; i < match.size (); ++i)
+                    //for (unsigned i = 0; i < match.size (); ++i)
                 {
                     //subgroups.push_back (match[i]);
                     subgroups.push_back (sm);
@@ -295,6 +295,7 @@ bool Game::parse (const string &text)
     //// endMarker
     ////\\s+(1\\-?0|0\\-?1|1\\/2\\-?1\\/2|\\*)\\s+
 
+
     string tag_regexp  = "(?:^\\s*\\[\\s*(\\w+)\\s+\"([^\"]+)\"\\s*\\]\\s*)";
     //string move_regexp = "(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(\\d+)(\\.|\\.{3})\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*)?|\\s*(\\*|1-0|0-1|1\\/2-1\\/2)\\s*)";
     string move_regexp = "(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(\\d+)(\\.|\\.{3})\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:((?:[NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?)(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:((?:[NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?)(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*)?|\\s*(\\*|1-0|0-1|1\\/2-1\\/2)\\s*)";
@@ -302,48 +303,45 @@ bool Game::parse (const string &text)
     regex tag_regex (tag_regexp);//, regex_constants::match_flag_type::match_continuous);
     for (sregex_iterator itr (text.begin (), text.end (), tag_regex), end; itr != end; ++itr)
     {
-        /*
-        bool first = true;
-        for (auto x : (*itr))
-        {
-            if (first)
-            {
-                first = false;
-                continue;
-            }
-            
-            //add_tag (string(x.first), string(x.second));
-            cout << x << "   ";
-        }
-        cout << endl;
-        */
+
+        //bool first = true;
+        //for (auto x : (*itr))
+        //{
+        //    if (first)
+        //    {
+        //        first = false;
+        //        continue;
+        //    }
+        //
+        //    //add_tag (string(x.first), string(x.second));
+        //    cout << x << "   ";
+        //}
+        //cout << endl;
+
 
         add_tag ((*itr)[1].str (), (*itr)[2].str ());
     }
 
-    /*
-    regex move_regex (move_regexp);//, regex_constants::match_flag_type::match_continuous);
-    for (sregex_iterator itr (text.begin (), text.end (), move_regex), end; itr != end; ++itr)
-    {
-        //cout << std::distance (itr, end);
-        smatch match = *itr;
-        //cout << match.size ();
-
-        if (match.size () > 3 && match[3].matched && match[3].length () != 0)
-        {
-            //cout << match[3];
-            append_move (match[3]);
-        }
-        
-        if (match.size () > 4 && match[4].matched && match[4].length () != 0)
-        {
-            //cout << match[4];
-            append_move (match[4]);
-        }
-
-        //cout << endl;
-    }
-    */
+    //regex move_regex (move_regexp);//, regex_constants::match_flag_type::match_continuous);
+    //for (sregex_iterator itr (text.begin (), text.end (), move_regex), end; itr != end; ++itr)
+    //{
+    //    //cout << std::distance (itr, end);
+    //    smatch match = *itr;
+    //    //cout << match.size ();
+    //    if (match.size () > 3 && match[3].matched && match[3].length () != 0)
+    //    {
+    //        //cout << match[3];
+    //        append_move (match[3]);
+    //    }
+    //
+    //    if (match.size () > 4 && match[4].matched && match[4].length () != 0)
+    //    {
+    //        //cout << match[4];
+    //        append_move (match[4]);
+    //    }
+    //
+    //    //cout << endl;
+    //}
 
     auto groups = find_groups (text, move_regexp, true);
 
@@ -395,5 +393,7 @@ bool Game::parse (const string &text)
     //    seq = match.suffix().str();
     //}
 
+
     return true;
 }
+

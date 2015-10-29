@@ -396,7 +396,7 @@ namespace {
                 log_fatal ("pgn_read_token(): malformed NAG at line %d, column %d, game %d\n",
                            pgn->char_line, pgn->char_column, pgn->game_nb);
             }
-            assert (pgn->token_length>0&&pgn->token_length<=3);
+            assert (pgn->token_length > 0 && pgn->token_length <= 3);
             pgn->token_string[pgn->token_length] = '\0';
         }
         else
@@ -648,26 +648,24 @@ bool next_game_pgn (pgn_t *pgn)
             pgn->BlackELO = value;
         }
     }
-    if (pgn->token_type == TOKEN_EOF) return false;
 
+    if (pgn->token_type == TOKEN_EOF) return false;
     pgn_token_unread (pgn);
     
     pgn->game_nb++;
     return true;
 }
 
-bool next_move_pgn (pgn_t *pgn, char *move_s, int size)
+bool next_move_pgn (pgn_t *pgn, std::string &move)
 {
     int depth;
-
     assert (pgn != NULL);
-    assert (move_s != NULL);
-    assert (size >= STRING_SIZE);
 
     // init
     pgn->move_line      = -1;  // DEBUG
     pgn->move_column    = -1;  // DEBUG
-
+    
+    move = "";
     depth = 0;
 
     while (true)
@@ -724,13 +722,7 @@ bool next_move_pgn (pgn_t *pgn, char *move_s, int size)
             // store move for later use
             if (depth == 0)
             {
-                if (pgn->token_length >= size)
-                {
-                    log_fatal ("next_move_pgn(): move too long at line %d, column %d, game %d\n",
-                               pgn->token_line, pgn->token_column, pgn->game_nb);
-                }
-
-                strcpy (move_s, pgn->token_string);
+                move = pgn->token_string;
                 pgn->move_line = pgn->token_line;
                 pgn->move_column = pgn->token_column;
             }
@@ -746,7 +738,7 @@ bool next_move_pgn (pgn_t *pgn, char *move_s, int size)
             // return move
             if (depth == 0)
             {
-                if (DispMove) printf ("move=\"%s\"\n", move_s);
+                if (DispMove) printf ("move=\"%s\"\n", move);
                 return true;
             }
         }
@@ -754,4 +746,3 @@ bool next_move_pgn (pgn_t *pgn, char *move_s, int size)
     assert (false);
     return false;
 }
-

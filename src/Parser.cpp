@@ -69,9 +69,9 @@ void Parser::parse ()
     //text = pgn.read_text (3);
     //cout << text << endl;
 
-    Game game;
-    game.parse (text);
-    cout << game;
+    //Game game;
+    //game.parse (text);
+    //cout << game;
     
     /*
     Tag tag1 ("Hello1", 1);
@@ -129,10 +129,10 @@ void Parser::parse ()
     //cout << book.read_entries (pos);
     */
     
+
     const char fn_pgn[] = "book.pgn";
 
     pgn_t pgn[1];
-    char move_s[STRING_SIZE];
     open_pgn (pgn, fn_pgn);
     pgn->game_nb = 0;
     while (next_game_pgn (pgn))
@@ -140,15 +140,18 @@ void Parser::parse ()
         Position pos(STARTUP_FEN, nullptr);
         //pgn->game_nb++;
     
-
-        while (next_move_pgn (pgn, move_s, STRING_SIZE))
+        std::string move;
+        StateStack states;
+        while (next_move_pgn (pgn, move))
         {
-            string san = move_s;
-            Move m = move_from_san (san, pos);
+            Move m = move_from_san (move, pos);
 
             
             cout << m << " ";
-            //cout << move_s << " ";
+
+            states.push (StateInfo ());
+            pos.do_move (m, states.top (), pos.gives_check (m, CheckInfo (pos)));
+            
         }
 
 
@@ -156,4 +159,5 @@ void Parser::parse ()
     }
 
     cout << pgn->game_nb << endl;
+
 }
