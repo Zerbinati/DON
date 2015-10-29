@@ -199,7 +199,23 @@ namespace {
         if (reg != nullptr) delete reg;
         return groups;
     }
+
 }
+
+namespace {
+
+
+    int char_row, char_col;
+
+    char read_char ()
+    {
+
+        return ' ';
+    }
+}
+
+
+//#define SKIP_WHITESPACE() do { if (length == index) goto finish; c = text[index++]; } while (isspace (c) && c != '\n')
 
 /*
 bool Game::parse (const char   *text)
@@ -296,6 +312,9 @@ bool Game::parse (const string &text)
     ////\\s+(1\\-?0|0\\-?1|1\\/2\\-?1\\/2|\\*)\\s+
 
 
+#pragma region final
+    /*
+    /// final code
     string tag_regexp  = "(?:^\\s*\\[\\s*(\\w+)\\s+\"([^\"]+)\"\\s*\\]\\s*)";
     //string move_regexp = "(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(\\d+)(\\.|\\.{3})\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:([NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*)?|\\s*(\\*|1-0|0-1|1\\/2-1\\/2)\\s*)";
     string move_regexp = "(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(\\d+)(\\.|\\.{3})\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:((?:[NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?)(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*(?:((?:[NBRQK]?[a-h]?[1-8]?x?[a-h][1-8](?:\\=[NBRQ])?|O(?:-?O){1,2})(?:[+][+]?|[#])?)(?:\\s*[!?]+)?)\\s*(?:\\{[^\\}]*?\\}\\s*)?\\s*)?|\\s*(\\*|1-0|0-1|1\\/2-1\\/2)\\s*)";
@@ -346,7 +365,7 @@ bool Game::parse (const string &text)
     auto groups = find_groups (text, move_regexp, true);
 
     for (auto group : groups)
-    //for (auto itr = groups.begin (); itr != groups.end (); ++itr)
+        //for (auto itr = groups.begin (); itr != groups.end (); ++itr)
     {
         //auto group = *itr;
 
@@ -365,6 +384,26 @@ bool Game::parse (const string &text)
             cout << group[5] << "\n";
         }
     }
+    */
+#pragma endregion
+
+    /// todo::
+//    size_t index = 0;
+//    auto length = text.length ();
+//    while (index < length)
+//    {
+//
+//        u08 c;
+//
+//        //SKIP_WHITESPACE ();
+//
+//        if (c != '[') break;
+//
+//
+//
+//    }
+//
+//finish:
 
     //string s = "1. e4 e5 2. Nf3 Nc6 3. Bc4 Bc5 4. c3 Nf6 5. d4 exd4 6. cxd4 Bb4+ 7. Nc3 Nxe4 8. O-O Nxc3 9. bxc3 Bxc3 10. Qb3 Bxa1 11. Bxf7+ Kf8 12. Bg5 Ne7 13. Ne5 Bxd4 14. Bg6 d5 15. Qf3+ Bf5 16. Bxf5 Bxe5 17. Be6+ Bf6 18. Bxf6 Ke8 19. Bxg7 1-0";
 
@@ -393,6 +432,7 @@ bool Game::parse (const string &text)
     //    seq = match.suffix().str();
     //}
 
+    
 
     return true;
 }

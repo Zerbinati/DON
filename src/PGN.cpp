@@ -21,7 +21,10 @@ PGN::PGN (const string &fn_pgn, ios_base::openmode mode)
     _build_indexes ();
 }
 
-PGN::~PGN () { close (); }
+PGN::~PGN ()
+{
+    close ();
+}
 
 bool PGN::open (const string &fn_pgn, ios_base::openmode mode)
 {
@@ -367,7 +370,7 @@ void  remove_substrs (string &str, const string &sub)
     auto len = sub.length ();
     for (auto i = str.find (sub);
               i != string::npos;
-              i = str.find (sub)
+              i = str.find (sub, i)
         )
     {
         str.erase (i, len);
@@ -407,7 +410,7 @@ string PGN::read_text (u64 index)
 
             // using string
             string text (size, '\0');
-            seekg (beg_pos);
+            seekg (beg_pos, ios_base::beg);
             read (&text[0], size);
             remove_substrs (text, "\r");
 
@@ -419,18 +422,16 @@ string PGN::read_text (u64 index)
 // Read the text beg_index (1...n), end_index (1...n)
 string PGN::read_text (u64 beg_index, u64 end_index)
 {
-    u64 g_count = game_count ();
-
     if (   beg_index <= end_index
-        && g_count >= beg_index && end_index <= g_count
+        && game_count () >= beg_index && end_index <= game_count ()
        )
     {
         if (is_open () && good ())
         {
-            u64 beg_pos = 1 == beg_index ? 0 : _indexes_game[beg_index - 2];
-            u64 end_pos = _indexes_game[end_index - 1];
+            auto beg_pos = 1 == beg_index ? 0 : _indexes_game[beg_index - 2];
+            auto end_pos = _indexes_game[end_index - 1];
 
-            size_t size = size_t(end_pos - beg_pos);
+            auto size = end_pos - beg_pos;
 
             /*
             // using char *
@@ -453,7 +454,7 @@ string PGN::read_text (u64 beg_index, u64 end_index)
 
             // using string
             string text (size, '\0');
-            seekg (beg_pos);
+            seekg (beg_pos, ios_base::beg);
             read (&text[0], size);
             remove_substrs (text, "\r");
 
@@ -467,7 +468,7 @@ u64    PGN::write_text (const string &text)
 {
     if (is_open () && good ())
     {
-
+        *this << text;
     }
     return 0;
 }

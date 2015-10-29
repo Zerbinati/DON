@@ -82,10 +82,12 @@ public:
     u64 game_count () const { return _indexes_game.size (); }
 
     std::string read_text (u64 index);
-    std::string read_text (u64 index_beg, u64 index_end);
+    std::string read_text (u64 beg_index, u64 end_index);
+    
     u64 write_text (const std::string &text);
 
     Game read_game (u64 index);
+    
     u64 write_game (const Game &game);
 
 };
