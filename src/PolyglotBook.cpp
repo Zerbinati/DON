@@ -325,7 +325,7 @@ namespace OpeningBook  {
     {
         ostringstream oss;
 
-        if (is_open () && (_mode & in))
+        if (is_open () && (_mode & ios_base::in))
         {
             Key key = pos.posi_key ();
 
@@ -342,18 +342,17 @@ namespace OpeningBook  {
                 weight_sum += pbe.weight;
             }
         
-            if (pbes.size () == 0)
+            if (pbes.empty ())
             {
-                cerr << "ERROR: no such key... "
-                    << std::hex << std::uppercase << key << std::nouppercase << std::dec
-                    << endl;
+                std::cerr << "ERROR: no such key... "
+                          << std::hex << std::uppercase << key << std::nouppercase << std::dec
+                          << std::endl;
             }
             else
             {
-                for_each (pbes.begin (), pbes.end (), [&oss, &weight_sum] (PBEntry pbe)
+                for_each (pbes.begin (), pbes.end (), [&oss, &weight_sum] (PBEntry p)
                 {
-                    oss << pbe 
-                        << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * pbe.weight / weight_sum : 0.0) << std::setfill (' ')
+                    oss << p << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * p.weight / weight_sum : 0.0) << std::setfill (' ')
                         << endl;
                 });
             }
