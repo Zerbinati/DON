@@ -739,7 +739,7 @@ bool next_move_pgn (pgn_t *pgn, std::string &move)
             // return move
             if (depth == 0)
             {
-                if (DispMove) printf ("move=\"%s\"\n", move);
+                if (DispMove) printf ("move=\"%s\"\n", move.c_str ());
                 return true;
             }
         }

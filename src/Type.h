@@ -473,7 +473,7 @@ inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1) / i32(v2); }
 
 // Make score from mid and end values
-inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 0x10) + eg); }
+inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
@@ -481,8 +481,8 @@ inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 0x10) + eg); }
 
 union ValueUnion { u16 u; i16 s; };
 
-inline Value mg_value (Score s) { ValueUnion mg = { u16(u32(s + 0x8000) >> 0x10) }; return Value(mg.s); }
-inline Value eg_value (Score s) { ValueUnion eg = { u16(u32(s         )        ) }; return Value(eg.s); }
+inline Value mg_value (Score s) { ValueUnion mg = { u16(u32(s + 0x8000) >> 16) }; return Value(mg.s); }
+inline Value eg_value (Score s) { ValueUnion eg = { u16(u32(s         )      ) }; return Value(eg.s); }
 
 ARTHMAT_OPERATORS (Score)
 // Only declared but not defined. Don't want to multiply two scores due to
@@ -570,12 +570,11 @@ struct Castling
 inline bool   _ok   (PieceT pt) { return PAWN <= pt && pt <= KING; }
 
 inline Piece  operator| (Color c, PieceT pt) { return Piece((c << 3) | pt); }
-//inline Piece  mk_piece  (Color c, PieceT pt) { return (c|pt); }
 
 inline bool   _ok   (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
 inline PieceT ptype (Piece p) { return PieceT(p & TOTL); }
 inline Color  color (Piece p) { return Color(p >> 3); }
-inline Piece  operator~ (Piece p) { return Piece(p ^ 8/*(BLACK << 3)*/); }
+inline Piece  operator~ (Piece p) { return Piece(p ^ (BLACK << 3)); }
 
 inline Square org_sq  (Move m) { return Square((m >> 6) & SQ_H8); }
 inline Square dst_sq  (Move m) { return Square((m >> 0) & SQ_H8); }

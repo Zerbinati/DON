@@ -2204,14 +2204,6 @@ namespace Searcher {
 
     }
 
-    // reset() clears all search memory to obtain reproducible search results
-    void reset ()
-    {
-        TT.clear ();
-        HistoryValues.clear ();
-        CounterMoves.clear ();
-        CounterMovesHistoryValues.clear ();
-    }
 
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
@@ -2258,9 +2250,16 @@ namespace Searcher {
                 }
             }
         }
-
     }
 
+    // clear() resets to zero search state, to obtain reproducible results
+    void clear ()
+    {
+        TT.clear ();
+        HistoryValues.clear ();
+        CounterMoves.clear ();
+        CounterMovesHistoryValues.clear ();
+    }
 }
 
 namespace Threading {

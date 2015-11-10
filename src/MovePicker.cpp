@@ -51,7 +51,7 @@ namespace MovePick {
         // e.g. the possible captures.
         Move pick_best (ValMove *beg, ValMove *end)
         {
-            swap (*beg, *max_element (beg, end));
+            std::swap (*beg, *std::max_element (beg, end));
             return *beg;
         }
 
@@ -182,10 +182,10 @@ namespace MovePick {
     {
         for (auto &m : *this)
         {
-            auto gain_value = _Pos.see_sign (m);
-            if (gain_value < VALUE_ZERO)
+            auto see_value = _Pos.see_sign (m);
+            if (see_value < VALUE_ZERO)
             {
-                m.value = gain_value - MAX_STATS_VALUE; // At the bottom
+                m.value = see_value - MAX_STATS_VALUE; // At the bottom
             }
             else
             if (_Pos.capture (m))
@@ -242,7 +242,7 @@ namespace MovePick {
             {
                 value<QUIET> ();
                 // Split positive(+ve) value from the list
-                _moves_end = partition (_moves_cur, _moves_end, [](const ValMove &m) { return m.value > VALUE_ZERO; });
+                _moves_end = std::partition (_moves_cur, _moves_end, [](const ValMove &m) { return m.value > VALUE_ZERO; });
                 if (_moves_cur < _moves_end-1)
                 {
                     insertion_sort (_moves_cur, _moves_end);

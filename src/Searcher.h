@@ -199,10 +199,9 @@ namespace Searcher {
     extern u64  perft (Position &pos, Depth depth);
 
     extern void think ();
-    extern void reset ();
 
     extern void initialize ();
-
+    extern void clear ();
 }
 
 #endif // SEARCHER_H_INC_
