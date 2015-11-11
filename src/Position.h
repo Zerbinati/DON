@@ -60,7 +60,8 @@ public:
 
 typedef std::stack<StateInfo>   StateStack;
 
-// CheckInfo stores critical information used to detect if a move gives check.
+// CheckInfo struct is initialized at constructor time
+// and stores critical information used to detect if a move gives check.
 //
 //  - Checking squares from which the enemy king can be checked
 //  - Pinned pieces.
@@ -230,7 +231,6 @@ public:
     Value see      (Move m) const;
     Value see_sign (Move m) const;
     
-
     Bitboard attackers_to (Square s, Color c, Bitboard occ) const;
     Bitboard attackers_to (Square s, Color c) const;
     Bitboard attackers_to (Square s, Bitboard occ) const;
@@ -266,11 +266,14 @@ public:
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
 
-    // Do/Undo move
-    void do_move (Move m, StateInfo &si, bool check);
+    // Do natural-move
+    void do_move (Move m, StateInfo &si, bool gives_check);
     void do_move (std::string &can, StateInfo &si);
+    // Undo natural-move
     void undo_move ();
+    // Do null-move
     void do_null_move (StateInfo &si);
+    // Undo null-move
     void undo_null_move ();
 
     void flip ();
@@ -278,14 +281,6 @@ public:
     std::string fen (bool c960 = false, bool full = true) const;
     
     operator std::string () const;
-
-    template<class CharT, class Traits>
-    friend std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
-    {
-        os << std::string(pos);
-        return os;
-    }
 
 };
 
@@ -393,7 +388,7 @@ inline Key    Position::move_posi_key (Move m) const
     return _si->posi_key ^  Zob._.act_side
         ^  Zob._.piece_square[_active][mpt][org]
         ^  Zob._.piece_square[_active][ppt][dst]
-        ^ (cpt != NONE ? Zob._.piece_square[~_active][cpt][dst] : U64 (0));
+        ^ (cpt != NONE ? Zob._.piece_square[~_active][cpt][dst] : U64(0));
 }
 
 inline Score  Position::psq_score     () const { return _si->psq_score; }
@@ -605,8 +600,16 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     place_piece (Do ? rook_dst : rook_org, _active, ROOK);
 }
 
-// ----------------------------------------------
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
+{
+    os << std::string(pos);
+    return os;
+}
 
+// ----------------------------------------------
+// CheckInfo constructor
 inline CheckInfo::CheckInfo (const Position &pos)
 {
     king_sq = pos.square<KING> (~pos.active ());

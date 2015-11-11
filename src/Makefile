@@ -477,7 +477,7 @@ profile-build:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_clean)
 
 strip:
-	strip $(EXE).exe
+	strip $(EXE)
 
 install:
 	-mkdir -p -m 755 $(BINDIR)
