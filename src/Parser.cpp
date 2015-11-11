@@ -33,12 +33,13 @@ namespace Parser {
         Position::initialize ();
 
     
+        /*
         PGN pgn ("test.pgn", ios_base::in|ios_base::out);
         //PGN pgn ("book.pgn", ios_base::in);
         //PGN pgn ("5lac.pgn", ios_base::in);
     
         cout << pgn.game_count () << endl;
-    
+        */
 
         string text = "";
         /*
@@ -67,8 +68,8 @@ namespace Parser {
     Bg6 d5 15. Qf3+ Bf5 16. Bxf5 Bxe5 17. Be6+ Bf6 18. Bxf6 Ke8 19. Bxg7 1-0 ffff";
     */
         //pgn.write_text (text);
-        text = pgn.read_text (1);
-        cout << text << "------------------------------------" << endl;
+        //text = pgn.read_text (1);
+        //cout << text << "------------------------------------" << endl;
         //text = pgn.read_text (500000);
         //cout << text << endl;
         //text = pgn.read_text (2);
@@ -81,15 +82,19 @@ namespace Parser {
         //cout << game;
     
    
-        /*
+        
         PolyglotBook book;
         book.open ("book.bin", ios_base::in|ios_base::binary);
     
+
         string move;
         StateStack states;
-        Position pos(STARTUP_FEN, nullptr);
+        Position pos(STARTUP_FEN);
 
         print_key (pos.posi_key ());
+        cout << book.read_entries (pos);
+        
+
         /*
         states.push (StateInfo ());
         move = "e2e4";
