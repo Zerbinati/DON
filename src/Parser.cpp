@@ -30,29 +30,7 @@ namespace Parser {
     void parse ()
     {
         BitBoard::initialize ();
-        //Position::initialize ();
-        //std::string lines[] = { "Roses are #ff0000",
-        //    "violets are #0000ff",
-        //    "all of my base are belong to you" };
-
-        //std::regex color_regex ("#([a-f0-9]{2})"
-        //                        "([a-f0-9]{2})"
-        //                        "([a-f0-9]{2})");
-
-        //for (const auto &line : lines)
-        //{
-        //    std::cout << line << ": "
-        //        << std::regex_search (line, color_regex) << '\n';
-        //}
-
-        //std::smatch color_match;
-        //for (const auto &line : lines)
-        //{
-        //    std::regex_search (line, color_match, color_regex);
-        //    std::cout << "matches for '" << line << "'\n";
-        //    for (size_t i = 0; i < color_match.size (); ++i)
-        //        std::cout << i << ": " << color_match[i] << '\n';
-        //}
+        Position::initialize ();
 
     
         PGN pgn ("test.pgn", ios_base::in|ios_base::out);
@@ -61,6 +39,7 @@ namespace Parser {
     
         cout << pgn.game_count () << endl;
     
+
         string text = "";
         /*
     "[Event \"approx\"]\n\
@@ -97,26 +76,11 @@ namespace Parser {
         //text = pgn.read_text (3);
         //cout << text << endl;
 
-        Game game;
-        game.parse (text);
-        cout << game;
+        //Game game;
+        //game.parse (text);
+        //cout << game;
     
-        /*
-        Tag tag1 ("Hello1", 1);
-        Tag tag2 ("Hello2", 2);
-        Tag tag3 ("Hello3", 3);
-
-        TagMap tags;
-        tags["Event1"] = tag1;
-        tags["Event2"] = tag2;
-        tags["Event3"] = tag3;
-        //cout << tags;
-
-        Game game;
-        game.tags = tags;
-        cout << game;
-        */
-    
+   
         /*
         PolyglotBook book;
         book.open ("book.bin", ios_base::in|ios_base::binary);

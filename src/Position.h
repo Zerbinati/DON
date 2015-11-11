@@ -78,12 +78,6 @@ public:
     explicit CheckInfo (const Position &pos);
 };
 
-namespace Threading {
-    class Thread;
-}
-
-using namespace Threading;
-
 // The position data structure. A position consists of the following data:
 //
 // Board consits of data about piece placement
@@ -135,8 +129,6 @@ private:
 
     bool     _chess960;
 
-    Thread  *_thread;
-
     // ------------------------
 
     void set_castle (Color c, Square rook_org);
@@ -160,14 +152,9 @@ public:
 
     Position () = default; // To define the global object RootPos
     Position (const Position&) = delete;
-    Position (const std::string &f, Thread *const th = nullptr, bool c960 = false, bool full = true)
+    Position (const std::string &f, bool c960 = false, bool full = true)
     {
-        if (!setup (f, th, c960, full)) clear ();
-    }
-    Position (const Position &pos, Thread *const th)
-    {
-        *this = pos;
-        _thread = th;
+        if (!setup (f, c960, full)) clear ();
     }
 
     Position& operator= (const Position &pos); // To assign RootPos from UCI
@@ -237,8 +224,6 @@ public:
     void  game_nodes (u64 nodes);
     Phase game_phase ()  const;
 
-    Thread* thread   ()  const;
-
     bool ok (i08 *failed_step = nullptr) const;
 
     // Static Exchange Evaluation (SEE)
@@ -276,7 +261,7 @@ public:
     void remove_piece (Square s);
     void   move_piece (Square s1, Square s2);
 
-    bool setup (const std::string &f, Thread *const th = nullptr, bool c960 = false, bool full = true);
+    bool setup (const std::string &f, bool c960 = false, bool full = true);
 
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
@@ -435,7 +420,6 @@ inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
 
 inline bool Position::chess960  () const { return _chess960; }
-inline Thread* Position::thread () const { return _thread; }
 
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const

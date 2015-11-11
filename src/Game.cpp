@@ -80,7 +80,7 @@ bool Game::remove_last_move ()
 
 bool Game::setup (const string &fen, bool c960, bool full)
 {
-    return position.setup (fen, nullptr, c960, full);
+    return position.setup (fen, c960, full);
 }
 
 void Game::clear ()
@@ -114,7 +114,7 @@ string Game::print_moves (bool is_pos) const
     ostringstream oss;
 
     string name = "FEN";
-    Position pos (tags.find (name) != tags.end () ? tags.at (name) : STARTUP_FEN, nullptr);
+    Position pos (tags.find (name) != tags.end () ? tags.at (name) : STARTUP_FEN);
     StateStack st;
     u08 ply = 0;
     for (auto m : moves)

@@ -4,16 +4,12 @@
 #include <iomanip>
 #include <sstream>
 
-#include "Transposition.h"
 #include "MoveGenerator.h"
-#include "Thread.h"
 #include "Notation.h"
 
 using namespace std;
 using namespace BitBoard;
-using namespace Transposition;
 using namespace MoveGen;
-using namespace Threading;
 using namespace Notation;
 
 const Value PIECE_VALUE[PHASE_NO][TOTL] =
@@ -31,7 +27,7 @@ const string STARTUP_FEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 
 
 bool _ok (const string &fen, bool c960, bool full)
 {
-    return Position (fen, nullptr, c960, full).ok ();
+    return Position (fen, c960, full).ok ();
 }
 
 namespace {
@@ -947,7 +943,7 @@ void Position::clear ()
 //
 // 6) Fullmove number. The number of the full move.
 //    It starts at 1, and is incremented after Black's move.
-bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
+bool Position::setup (const string &f, bool c960, bool full)
 {
     if (white_spaces (f)) return false;
 
@@ -1070,7 +1066,6 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     _si->checkers = checkers (_active);
     _game_nodes   = 0;
     _chess960     = c960;
-    _thread       = th;
 
     return true;
 }
@@ -1549,7 +1544,7 @@ void Position::flip ()
     getline (ss, token);
     flip_fen += token;
 
-    setup (flip_fen, _thread, _chess960);
+    setup (flip_fen, _chess960, true);
 
     assert (ok ());
 }

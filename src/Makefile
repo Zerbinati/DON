@@ -18,12 +18,11 @@ PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
-PGOBENCH  = ./$(EXE) bench 16 1 1000 movetime default
+PGOBENCH  = ./$(EXE)
 
 ### Object files
-OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
-	MoveGenerator.o MovePicker.o Notation.o Pawns.o PolyglotBook.o Position.o Parser.o PGN.o Game.o  \
-	Searcher.o Thread.o Transposition.o UCI.o UCI.Option.o Zobrist.o MemoryHandler.o Debugger.o  \
+OBJS = BitBoard.o Main.o MoveGenerator.o Notation.o PolyglotBook.o \
+	Position.o Parser.o PGN.o Game.o Zobrist.o Debugger.o  \
 
 ### ==========================================================================
 ### Section 2. High-level Configuration

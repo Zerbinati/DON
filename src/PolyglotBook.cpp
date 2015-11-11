@@ -195,7 +195,7 @@ namespace OpeningBook  {
 
     size_t PolyglotBook::find_index (const string &fen, bool c960)
     {
-        return find_index (Position (fen, nullptr, c960).posi_key ());
+        return find_index (Position (fen, c960).posi_key ());
     }
 
     Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
