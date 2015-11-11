@@ -50,7 +50,7 @@ template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
 operator<< (std::basic_ostream<CharT, Traits> &os, const TagMap &tagmap)
 {
-    for (auto index = 0; index < tagmap.size (); ++index)
+    for (auto index = 0; index < i32(tagmap.size ()); ++index)
     {
         /*
         auto pair = tagmap.begin ();

@@ -167,7 +167,7 @@ namespace {
         }
         else
         {
-            reg = new regex (regexp, regex_constants::syntax_option_type::icase);
+            //reg = new regex (regexp, regex_constants::syntax_option_type::icase);
         }
 
         vector<vector<string>> groups;
@@ -200,18 +200,6 @@ namespace {
         return groups;
     }
 
-}
-
-namespace {
-
-
-    int char_row, char_col;
-
-    char read_char ()
-    {
-
-        return ' ';
-    }
 }
 
 
@@ -312,7 +300,7 @@ bool Game::parse (const string &text)
     ////\\s+(1\\-?0|0\\-?1|1\\/2\\-?1\\/2|\\*)\\s+
 
 
-#pragma region final
+    // --- final
     /*
     /// final code
     string tag_regexp  = "(?:^\\s*\\[\\s*(\\w+)\\s+\"([^\"]+)\"\\s*\\]\\s*)";
@@ -385,7 +373,7 @@ bool Game::parse (const string &text)
         }
     }
     */
-#pragma endregion
+    // ---
 
     /// todo::
 //    size_t index = 0;

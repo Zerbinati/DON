@@ -335,9 +335,9 @@ namespace Evaluator {
             if (pos.non_pawn_material (Own) >= VALUE_MG_QUEN)
             {
                 ei.king_ring[Opp] = king_attacks|(DIST_RINGS_bb[pos.square<KING> (Opp)][1] &
-                                                        (rel_rank (Opp, pos.square<KING> (Opp)) < R_5 ? (PAWN_PASS_SPAN[Opp][pos.square<KING> (Opp)]) :
-                                                         rel_rank (Opp, pos.square<KING> (Opp)) < R_7 ? (PAWN_PASS_SPAN[Opp][pos.square<KING> (Opp)]|PAWN_PASS_SPAN[Own][pos.square<KING> (Opp)]) :
-                                                                                                         (PAWN_PASS_SPAN[Own][pos.square<KING> (Opp)])));
+                                                        (rel_rank (Opp, pos.square<KING> (Opp)) < R_5 ? PAWN_PASS_SPAN[Opp][pos.square<KING> (Opp)] :
+                                                         rel_rank (Opp, pos.square<KING> (Opp)) < R_7 ? PAWN_PASS_SPAN[Opp][pos.square<KING> (Opp)]|PAWN_PASS_SPAN[Own][pos.square<KING> (Opp)] :
+                                                                                                        PAWN_PASS_SPAN[Own][pos.square<KING> (Opp)]));
 
                 if ((king_attacks & ei.pin_attacked_by[Own][PAWN]) != U64(0))
                 {
@@ -782,11 +782,13 @@ namespace Evaluator {
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
+            const i32 nonpawn[CLR_NO] =
+            {
+                pos.count<NONPAWN> (WHITE),
+                pos.count<NONPAWN> (BLACK)
+            };
 
             auto score = SCORE_ZERO;
-
-            auto own_nonpawn = pos.count<NONPAWN> (Own);
-            auto opp_nonpawn = pos.count<NONPAWN> (Opp);
 
             auto passed_pawns = ei.pe->passed_pawns[Own];
             while (passed_pawns != U64(0))
@@ -875,7 +877,7 @@ namespace Evaluator {
                 }
 
                 // If non-pawn pieces difference
-                eg_value += eg_value * (double(own_nonpawn-opp_nonpawn) / std::max (own_nonpawn+opp_nonpawn, 1))/2;
+                eg_value *= 1.0 + (double)(nonpawn[Own]-nonpawn[Opp]) / (nonpawn[Own]+nonpawn[Opp]+2) / 2;
 
                 score += mk_score (mg_value, eg_value) + PAWN_PASSED_FILE[_file (s)];
             }
@@ -1009,8 +1011,8 @@ namespace Evaluator {
             // Do not include in mobility squares protected by enemy pawns or occupied by friend fixed pawns or king
             const Bitboard mobility_area[CLR_NO] =
             {
-                ~(ei.pin_attacked_by[BLACK][PAWN] | fixed_pawns[WHITE] | pos.pieces (WHITE, KING)),
-                ~(ei.pin_attacked_by[WHITE][PAWN] | fixed_pawns[BLACK] | pos.pieces (BLACK, KING))
+                ~(ei.pin_attacked_by[BLACK][PAWN] | fixed_pawns[WHITE] | pos.square<KING> (WHITE)),
+                ~(ei.pin_attacked_by[WHITE][PAWN] | fixed_pawns[BLACK] | pos.square<KING> (BLACK))
             };
 
             // Evaluate pieces and mobility

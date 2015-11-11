@@ -7,7 +7,7 @@ using namespace std;
 PGN::PGN ()
     : fstream()
     , _fn_pgn ("")
-    , _mode (0)
+    , _mode (ios_base::openmode(0))
     , _size_pgn (0)
 {}
 
@@ -58,45 +58,42 @@ void PGN::_build_indexes ()
 
         size ();
 
-        try
+
+        u64 pos = 0;
+        State state = S_NEW;
+
+        // Clear the char stack
+        while (!_stk_char.empty ()) _stk_char.pop ();
+
+        seekg (0L);
+        do
         {
-            u64 pos = 0;
-            State state = S_NEW;
+            const i32 MaxBuff = 32*1024;
+            //std::string str;
+            //std::getline (*this, str);
 
-            // Clear the char stack
-            while (!_stk_char.empty ()) _stk_char.pop ();
-
-            seekg (0L);
-            do
-            {
-                const i32 MaxBuff = 32*1024;
-                //std::string str;
-                //std::getline (*this, str);
-
-                std::string str (MaxBuff, '\0');
-                read (&str[0], MaxBuff);
+            std::string str (MaxBuff, '\0');
+            read (&str[0], MaxBuff);
                 
-                _scan_index (str, pos, state);
-            }
-            while (!eof () && good () && S_ERR != state);
-            clear ();
+            _scan_index (str, pos, state);
+        }
+        while (!eof () && good () && S_ERR != state);
+        clear ();
 
-            if (S_ERR == state)
-            {
-                // error at offset
-            }
-            if (   S_MOV_NEW == state
-                || S_MOV_LST == state
-               )
-            {
-                _add_index (pos);
-            }
+        if (S_ERR == state)
+        {
+            // error at offset
+        }
+        if (   S_MOV_NEW == state
+            || S_MOV_LST == state
+            )
+        {
+            _add_index (pos);
+        }
 
 #undef MAX_SIZE
 
-        }
-        catch (...)
-        {}
+        
     }
 }
 
@@ -104,7 +101,7 @@ void PGN::_build_indexes ()
 #undef CHECK_INCOMPLETE
 
 #define SKIP_WHITESPACE() do { if (length == offset) goto finish; c = str[offset++]; } while (isspace (c) && c != '\n')
-#define CHECK_INCOMPLETE() if ('\0' == c) { cerr << "ERROR: incomplete game"; state = S_ERR; goto finish; } else
+#define CHECK_INCOMPLETE() do { if ('\0' == c) { cerr << "ERROR: incomplete game"; state = S_ERR; goto finish; } } while (false)
 
 void PGN::_scan_index (const string &str, u64 &pos, State &state)
 {
@@ -352,6 +349,7 @@ void PGN::_add_index (u64 pos)
     _indexes_game.push_back (pos);
 }
 
+/*
 // Remove (first occurence of) sub
 char* remove_substrs (  char *str, const   char *sub)
 {
@@ -365,6 +363,7 @@ char* remove_substrs (  char *str, const   char *sub)
     }
     return str;
 }
+*/
 void  remove_substrs (string &str, const string &sub)
 {
     auto len = sub.length ();
