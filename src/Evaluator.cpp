@@ -295,6 +295,7 @@ namespace Evaluator {
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
+            const auto Pull = WHITE == Own ? DEL_S : DEL_N;
             const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 
@@ -331,10 +332,7 @@ namespace Evaluator {
             // Do not evaluate king safety when you are close to the endgame so the weight of king safety is small
             if (pos.non_pawn_material (Own) >= VALUE_MG_QUEN)
             {
-                ei.king_ring[Opp] = king_attacks|(DIST_RINGS_bb[pos.square<KING> (Opp)][1] &
-                                                        (rel_rank (Opp, pos.square<KING> (Opp)) < R_5 ? PAWN_PASS_SPAN[Opp][pos.square<KING> (Opp)] :
-                                                         rel_rank (Opp, pos.square<KING> (Opp)) < R_7 ? PAWN_PASS_SPAN[Opp][pos.square<KING> (Opp)]|PAWN_PASS_SPAN[Own][pos.square<KING> (Opp)] :
-                                                                                                        PAWN_PASS_SPAN[Own][pos.square<KING> (Opp)]));
+                ei.king_ring[Opp] = king_attacks | shift_bb<Pull> (king_attacks);
 
                 if ((king_attacks & ei.pin_attacked_by[Own][PAWN]) != U64(0))
                 {

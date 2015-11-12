@@ -287,7 +287,7 @@ namespace Searcher {
             if (   (ss-1)->move_count == 1
                 && opp_move_dst != SQ_NO
                 && pos.capture_type () == NONE
-                && mtype (opp_move) != PROMOTE
+                //&& mtype (opp_move) != PROMOTE
                )
             {
                 auto own_move = (ss-2)->current_move;
@@ -1382,7 +1382,7 @@ namespace Searcher {
                 && best_move == MOVE_NONE
                 && opp_move_dst != SQ_NO
                 && pos.capture_type () == NONE
-                && mtype (opp_move) != PROMOTE
+                //&& mtype (opp_move) != PROMOTE
                )
             {
                 auto own_move = (ss-2)->current_move;
