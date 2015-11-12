@@ -268,7 +268,7 @@ namespace EndGame {
                )
            )
         {
-            value = VALUE_EG_ROOK - i32(dist (sk_sq, wp_sq));
+            value = VALUE_EG_ROOK - dist (sk_sq, wp_sq);
         }
         // If the pawn is far advanced and supported by the defending king, it's a drawish.
         else
@@ -282,10 +282,11 @@ namespace EndGame {
         }
         else
         {
-            value = Value(200
-                  - 8 * dist (sk_sq, wp_sq+DEL_S)
-                  + 8 * dist (wk_sq, wp_sq+DEL_S)
-                  + 8 * dist (wp_sq, promote_sq));
+            value = Value(200 - 8 * (  dist (sk_sq, wp_sq+DEL_S)
+                                     - dist (wk_sq, wp_sq+DEL_S)
+                                     - dist (wp_sq, promote_sq)
+                                    )
+                         );
         }
 
         return pos.active () == _strong_side ? +value : -value;
@@ -569,7 +570,6 @@ namespace EndGame {
 
     template<>
     // KRP vs KB.
-    // TODO::
     ScaleFactor Endgame<KRPKB>::operator() (const Position &pos) const
     {
         assert (verify_material (pos, _strong_side, VALUE_MG_ROOK, 1));
@@ -1032,7 +1032,6 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_DRAW;
             }
-
         }
 
         return SCALE_FACTOR_NONE;
