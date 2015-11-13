@@ -1404,7 +1404,7 @@ namespace Searcher {
         // Data was extracted from CCRL game database with some simple filtering criteria.
         double move_importance (i32 ply)
         {
-            //                               PLY_SHIFT  PLY_SCALE  SKEW_RATE
+            //                        PLY_SHIFT  PLY_SCALE  SKEW_RATE
             return pow ((1 + exp ((ply - 59.800) / 09.300)), -00.172) + DBL_MIN; // Ensure non-zero
         }
 
@@ -1457,12 +1457,12 @@ namespace Searcher {
 
     // ------------------------------------
 
-    u08  MaximumMoveHorizon  =  50; // Plan time management at most this many moves ahead, in num of moves.
-    u08  ReadyMoveHorizon    =  40; // Be prepared to always play at least this many moves, in num of moves.
-    u32  OverheadClockTime   =  60; // Attempt to keep at least this much time at clock, in milliseconds.
-    u32  OverheadMoveTime    =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
-    u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
-    u32  MoveSlowness        =  80; // Move Slowness, in %age.
+    u08  MaximumMoveHorizon  =  50; // Plan time management at most this many moves ahead.
+    u08  ReadyMoveHorizon    =  40; // Be prepared to always play at least this many moves.
+    u32  OverheadClockTime   =  60; // Attempt to keep at least this much time at clock, (milliseconds).
+    u32  OverheadMoveTime    =  30; // Attempt to keep at least this much time for each remaining move, (milliseconds).
+    u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, (milliseconds).
+    u32  MoveSlowness        =  80; // Move Slowness, (%age).
     u32  NodesTime           =   0;
     bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
@@ -1621,7 +1621,10 @@ namespace Searcher {
             _maximum_time = std::min (max_time, _maximum_time);
         }
 
-        if (Ponder) _optimum_time += _optimum_time / 4;
+        if (Ponder)
+        {
+            _optimum_time += _optimum_time / 4;
+        }
 
         // Make sure that _optimum_time is not over _maximum_time
         _optimum_time = std::min (_maximum_time, _optimum_time);
@@ -1768,9 +1771,11 @@ namespace Searcher {
 
 namespace Threading {
 
-    // Thread::search() is the main iterative deepening loop. It calls search()
-    // repeatedly with increasing depth until the allocated thinking time has been
-    // consumed, user stops the search, or the maximum search depth is reached.
+    // Thread::search() is the main iterative deepening loop.
+    // It calls depth_search<>() repeatedly with increasing depth until
+    // - the allocated thinking time has been consumed,
+    // - the maximum search depth is reached,
+    // - user stops the search
     void Thread::search ()
     {
         Stack stacks[MAX_DEPTH+4], *ss = stacks+2; // To allow referencing (ss-2)
