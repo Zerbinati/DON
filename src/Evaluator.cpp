@@ -314,7 +314,7 @@ namespace Evaluator {
             ei.ful_attacked_by[Own][NONE] |=
             ei.ful_attacked_by[Own][PAWN]  =
             ei.pin_attacked_by[Own][NONE] |=
-            ei.pin_attacked_by[Own][PAWN]  = ei.pe->pawns_attacks[Own];
+            ei.pin_attacked_by[Own][PAWN]  = ei.pe->pawn_attacks[Own];
 
             auto king_attacks             =
             ei.ful_attacked_by[Opp][KING] =
