@@ -308,32 +308,13 @@ namespace Evaluator {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto Pull = WHITE == Own ? DEL_S : DEL_N;
-            const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
-            const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 
-            auto pinneds = ei.pinneds[Own] = pos.pinneds (Own);
+            ei.pinneds[Own] = pos.pinneds (Own);
             
             ei.ful_attacked_by[Own][NONE] |=
-            ei.ful_attacked_by[Own][PAWN]  = ei.pe->pawns_attacks[Own];
-            
-            auto pinned_pawns = pinneds & pos.pieces (Own, PAWN);
-            if (pinned_pawns != U64(0))
-            {
-                auto free_pawns    = pos.pieces (Own, PAWN) & ~pinned_pawns;
-                auto pawns_attacks = shift_bb<LCap> (free_pawns) | shift_bb<RCap> (free_pawns);
-                while (pinned_pawns != U64(0))
-                {
-                    auto s = pop_lsq (pinned_pawns);
-                    pawns_attacks |= PAWN_ATTACKS[Own][s] & RAYLINE_bb[pos.square<KING> (Own)][s];
-                }
-                ei.pin_attacked_by[Own][NONE] |=
-                ei.pin_attacked_by[Own][PAWN]  = pawns_attacks;
-            }
-            else
-            {
-                ei.pin_attacked_by[Own][NONE] |=
-                ei.pin_attacked_by[Own][PAWN]  = ei.pe->pawns_attacks[Own];
-            }
+            ei.ful_attacked_by[Own][PAWN]  =
+            ei.pin_attacked_by[Own][NONE] |=
+            ei.pin_attacked_by[Own][PAWN]  = ei.pe->pawns_attacks[Own];
 
             auto king_attacks             =
             ei.ful_attacked_by[Opp][KING] =
