@@ -910,7 +910,7 @@ namespace Searcher {
                        )
                     {
                         auto reduced_depth = depth - ProbCutDepth*DEPTH_ONE; // Shallow Depth
-                        auto extended_beta = std::min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
+                        auto extended_beta = std::min (beta + VALUE_MG_PAWN,  VALUE_INFINITE); // ProbCut Threshold
 
                         assert (reduced_depth >= DEPTH_ONE);
                         assert ((ss-1)->current_move != MOVE_NONE);
