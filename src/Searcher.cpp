@@ -1804,7 +1804,7 @@ namespace Threading {
         Value best_value = VALUE_ZERO
             , window     = VALUE_ZERO
             , bound_a    = -VALUE_INFINITE
-            , bound_b    = +VALUE_INFINITE;
+            , bound_b    =  VALUE_INFINITE;
         
         leaf_depth = DEPTH_ZERO;
 
@@ -1842,7 +1842,7 @@ namespace Threading {
                         //Value(depth <= 32*DEPTH_ONE ? 14 + (u16 (depth)-1)/4 : 22); // Increasing window
 
                     bound_a = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
-                    bound_b = std::min (root_moves[pv_index].old_value + window, +VALUE_INFINITE);
+                    bound_b = std::min (root_moves[pv_index].old_value + window,  VALUE_INFINITE);
                 }
 
                 // Start with a small aspiration window and, in case of fail high/low,
@@ -1899,7 +1899,7 @@ namespace Threading {
                     if (best_value >= bound_b)
                     {
                         bound_a = (bound_a + bound_b)/2;
-                        bound_b = std::min (best_value + window, +VALUE_INFINITE);
+                        bound_b = std::min (best_value + window,  VALUE_INFINITE);
                     }
                     else
                         break;

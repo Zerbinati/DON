@@ -407,13 +407,13 @@ enum ScaleFactor : u08
     inline T  operator+  (T  d1, T d2) { return T(i32(d1) + i32(d2)); }          \
     inline T  operator-  (T  d1, T d2) { return T(i32(d1) - i32(d2)); }          \
     inline T  operator*  (T  d, i32 i) { return T(i32(d) * i); }                 \
-    inline T  operator+  (T  d       ) { return T(+i32(d)); }                    \
     inline T  operator-  (T  d       ) { return T(-i32(d)); }                    \
     inline T& operator+= (T &d1, T d2) { d1 = T(i32(d1) + i32(d2)); return d1; } \
     inline T& operator-= (T &d1, T d2) { d1 = T(i32(d1) - i32(d2)); return d1; } \
     inline T  operator*  (i32 i, T  d) { return T(i * i32(d)); }                 \
     inline T& operator*= (T &d, i32 i) { d = T(i32(d) * i); return d; }
 
+//inline T  operator+  (T  d       ) { return T(+i32(d)); }
 //inline T  operator+  (i32 i, T d) { return T(i + i32(d)); }                  
 //inline T  operator-  (i32 i, T d) { return T(i - i32(d)); }                  
 //inline T  operator/  (T  d, i32 i) { return T(i32(d) / i); }                 
@@ -632,7 +632,7 @@ inline Move mk_move              (Square org, Square dst) { return Move(dst | or
 inline double value_to_cp (Value   v) { return double   (v) / i32(VALUE_EG_PAWN); }
 inline Value  cp_to_value (double cp) { return Value(i32(cp * i32(VALUE_EG_PAWN))); }
 
-inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
+inline Value mates_in (i32 ply) { return  VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
 //typedef std::vector<Square> SquareVector;

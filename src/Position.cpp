@@ -121,7 +121,7 @@ void Position::initialize ()
         for (auto s = SQ_A1; s <= SQ_H8; ++s)
         {
             auto psq_bonus = score + PSQ_BONUS[pt][_rank (s)][_file (s) < F_E ? _file (s) : F_H - _file (s)];
-            PSQ[WHITE][pt][ s] = +psq_bonus;
+            PSQ[WHITE][pt][ s] =  psq_bonus;
             PSQ[BLACK][pt][~s] = -psq_bonus;
         }
     }

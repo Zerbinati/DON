@@ -112,7 +112,7 @@ namespace Evaluator {
                 std::memset (cp, 0x00, sizeof (cp));
                 
                 auto value = pos.active () == WHITE ?  // White's point of view
-                                +evaluate<true> (pos) :
+                                 evaluate<true> (pos) :
                                 -evaluate<true> (pos);
 
                 stringstream ss;

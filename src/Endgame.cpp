@@ -165,7 +165,7 @@ namespace EndGame {
             value += pos.non_pawn_material (_strong_side) + VALUE_KNOWN_WIN;
         }
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active () == _strong_side ? value : -value;
     }
 
     template<>
@@ -187,7 +187,7 @@ namespace EndGame {
 
         Value value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + _rank (sp_sq);
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active () == _strong_side ? value : -value;
     }
 
     template<>
@@ -215,7 +215,7 @@ namespace EndGame {
                     + PUSH_CLOSE[dist (sk_sq, wk_sq)]
                     + PUSH_TO_CORNER[wk_sq];
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active () == _strong_side ? value : -value;
     }
 
     template<>
@@ -273,7 +273,7 @@ namespace EndGame {
                          );
         }
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active () == _strong_side ? value : -value;
     }
 
     template<>
@@ -302,7 +302,7 @@ namespace EndGame {
         // When the weaker side ended up in the same corner as bishop.
         Value value  = Value (PUSH_TO_EDGE[wk_sq]);
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active () == _strong_side ? value : -value;
     }
 
     template<>
@@ -327,7 +327,7 @@ namespace EndGame {
 
         Value value  = Value (PUSH_AWAY[dist (wk_sq, wn_sq)] + PUSH_TO_EDGE[wk_sq]);
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active () == _strong_side ? value : -value;
     }
 
     template<>
@@ -354,7 +354,7 @@ namespace EndGame {
             value += VALUE_EG_QUEN - VALUE_EG_PAWN;
         }
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active () == _strong_side ? value : -value;
     }
 
     template<>
@@ -374,7 +374,7 @@ namespace EndGame {
                     + PUSH_CLOSE[dist (sk_sq, wk_sq)]
                     + PUSH_TO_EDGE[wk_sq];
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active () == _strong_side ? value : -value;
     }
 
     template<>
@@ -416,7 +416,7 @@ namespace EndGame {
             value = Value(PUSH_CLOSE[dist (sk_sq, wk_sq)]);
         }
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active () == _strong_side ? value : -value;
     }
 
 

@@ -329,7 +329,7 @@ namespace Pawns {
         {
             e->pawn_key   = pawn_key;
             e->pawn_score =
-                + evaluate<WHITE> (pos, e)
+                  evaluate<WHITE> (pos, e)
                 - evaluate<BLACK> (pos, e);
             e->asymmetry = pop_count<MAX15> (e->semiopen_files[WHITE] ^ e->semiopen_files[BLACK]);
         }
