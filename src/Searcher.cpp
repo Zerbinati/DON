@@ -966,18 +966,6 @@ namespace Searcher {
 
             u32 elapsed_time;
             // When in check search starts from here
-            if (   RootNode
-                && Threadpool.main () == thread
-                && (elapsed_time = TimeMgr.elapsed_time ()) > 3*MILLI_SEC
-               )
-            {
-                sync_cout
-                    << "info"
-                    << " depth " << depth/DEPTH_ONE
-                    << " time "  << elapsed_time
-                    << sync_endl;
-            }
-
             auto value = best_value;
 
             bool improving =
