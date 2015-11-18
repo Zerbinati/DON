@@ -423,8 +423,7 @@ namespace Searcher {
             Move  tt_move    = MOVE_NONE
                 , best_move  = MOVE_NONE;
             Value tt_value   = VALUE_NONE
-                , tt_eval    = VALUE_NONE
-                , best_value = -VALUE_INFINITE;
+                , tt_eval    = VALUE_NONE;
             Depth tt_depth   = DEPTH_NONE;
             Bound tt_bound   = BOUND_NONE;
 
@@ -453,55 +452,57 @@ namespace Searcher {
                 return tt_value;
             }
 
-            auto futility_base = -VALUE_INFINITE;
+            Value best_value
+                , futility_base;
 
             // Evaluate the position statically
             if (in_check)
             {
                 ss->static_eval = VALUE_NONE;
+                best_value = futility_base = -VALUE_INFINITE;
             }
             else
             {
                 if (tt_hit)
                 {
-                    best_value = tt_eval;
                     // Never assume anything on values stored in TT
-                    if (VALUE_NONE == best_value) best_value = evaluate (pos);
-                    ss->static_eval = best_value;
+                    if (VALUE_NONE == tt_eval) tt_eval = evaluate (pos);
+                    ss->static_eval = tt_eval;
 
                     // Can tt_value be used as a better position evaluation?
                     if (   tt_value != VALUE_NONE
-                        && (tt_bound & (best_value < tt_value ? BOUND_LOWER : BOUND_UPPER))
+                        && (tt_bound & (tt_eval < tt_value ? BOUND_LOWER : BOUND_UPPER))
                        )
                     {
-                        best_value = tt_value;
+                        tt_eval = tt_value;
                     }
                 }
                 else
                 {
-                    ss->static_eval = best_value = (ss-1)->current_move != MOVE_NULL ?
+                    ss->static_eval = tt_eval = (ss-1)->current_move != MOVE_NULL ?
                                                         evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
                 }
 
-                if (alfa < best_value)
+                if (alfa < tt_eval)
                 {
                     // Stand pat. Return immediately if static value is at least beta
-                    if (best_value >= beta)
+                    if (tt_eval >= beta)
                     {
                         if (!tt_hit)
                         {
-                            tte->save (posi_key, MOVE_NONE, value_to_tt (best_value, ss->ply), ss->static_eval, DEPTH_NONE, BOUND_LOWER, TT.generation ());
+                            tte->save (posi_key, MOVE_NONE, value_to_tt (tt_eval, ss->ply), ss->static_eval, DEPTH_NONE, BOUND_LOWER, TT.generation ());
                         }
 
-                        assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
-                        return best_value;
+                        assert(-VALUE_INFINITE < tt_eval && tt_eval < +VALUE_INFINITE);
+                        return tt_eval;
                     }
 
-                    assert(best_value < beta);
+                    assert(tt_eval < beta);
                     // Update alfa! Always alfa < beta
-                    if (PVNode) alfa = best_value;
+                    if (PVNode) alfa = tt_eval;
                 }
 
+                best_value = tt_eval;
                 futility_base = best_value + i32(VALUE_EG_PAWN)/2; // QS Futility Margin
             }
 
@@ -649,9 +650,7 @@ namespace Searcher {
                 , best_move   = MOVE_NONE;
 
             Value tt_value    = VALUE_NONE
-                , tt_eval     = VALUE_NONE
-                , static_eval = VALUE_NONE
-                , best_value  = -VALUE_INFINITE;
+                , tt_eval     = VALUE_NONE;
 
             Depth tt_depth    = DEPTH_NONE;
             Bound tt_bound    = BOUND_NONE;
@@ -769,28 +768,27 @@ namespace Searcher {
             // Step 5. Evaluate the position statically
             if (in_check)
             {
-                ss->static_eval = static_eval = VALUE_NONE;
+                ss->static_eval = tt_eval = VALUE_NONE;
             }
             else
             {
                 if (tt_hit)
                 {
-                    static_eval = tt_eval;
                     // Never assume anything on values stored in TT
-                    if (VALUE_NONE == static_eval) static_eval = evaluate (pos);
-                    ss->static_eval = static_eval;
+                    if (VALUE_NONE == tt_eval) tt_eval = evaluate (pos);
+                    ss->static_eval = tt_eval;
 
                     // Can tt_value be used as a better position evaluation?
                     if (   tt_value != VALUE_NONE
-                        && (tt_bound & (static_eval < tt_value ? BOUND_LOWER : BOUND_UPPER))
+                        && (tt_bound & (tt_eval < tt_value ? BOUND_LOWER : BOUND_UPPER))
                        )
                     {
-                        static_eval = tt_value;
+                        tt_eval = tt_value;
                     }
                 }
                 else
                 {
-                    ss->static_eval = static_eval = (ss-1)->current_move != MOVE_NULL ?
+                    ss->static_eval = tt_eval = (ss-1)->current_move != MOVE_NULL ?
                                                         evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
 
                     tte->save (posi_key, MOVE_NONE, VALUE_NONE, ss->static_eval, DEPTH_NONE, BOUND_NONE, TT.generation ());
@@ -803,12 +801,12 @@ namespace Searcher {
                     if (   !PVNode
                         && !MateSearch
                         && depth < RazorDepth*DEPTH_ONE
-                        && static_eval + RazorMargins[depth/DEPTH_ONE] <= alfa
+                        && tt_eval + RazorMargins[depth/DEPTH_ONE] <= alfa
                         && tt_move == MOVE_NONE
                        )
                     {
                         if (   depth <= 1*DEPTH_ONE
-                            && static_eval + RazorMargins[3] <= alfa
+                            && tt_eval + RazorMargins[3] <= alfa
                            )
                         {
                             return quien_search<NonPV> (pos, ss, alfa, beta, DEPTH_ZERO, false);
@@ -830,11 +828,11 @@ namespace Searcher {
                     if (   !RootNode
                         && !MateSearch
                         && depth < FutilityMarginDepth*DEPTH_ONE
-                        && static_eval < +VALUE_KNOWN_WIN // Do not return unproven wins
+                        && tt_eval < +VALUE_KNOWN_WIN // Do not return unproven wins
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                        )
                     {
-                        auto stand_pat = static_eval - FutilityMargins[depth/DEPTH_ONE];
+                        auto stand_pat = tt_eval - FutilityMargins[depth/DEPTH_ONE];
 
                         if (stand_pat >= beta)
                         {
@@ -846,7 +844,7 @@ namespace Searcher {
                     if (   !PVNode
                         && !MateSearch
                         && depth >= 2*DEPTH_ONE
-                        && static_eval >= beta
+                        && tt_eval >= beta
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                        )
                     {
@@ -856,7 +854,7 @@ namespace Searcher {
                         ss->current_move = MOVE_NULL;
 
                         // Null move dynamic reduction based on depth and static evaluation
-                        auto reduced_depth = depth - ((823 + 67 * depth) / 256 + std::min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
+                        auto reduced_depth = depth - ((823 + 67 * depth) / 256 + std::min ((tt_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
 
                         // Do null move
                         pos.do_null_move (si);
@@ -971,7 +969,8 @@ namespace Searcher {
 
             u32 elapsed_time;
             // When in check search starts from here
-            auto value = best_value;
+            Value value     = -VALUE_INFINITE
+                , best_value= -VALUE_INFINITE;
 
             bool improving =
                    (ss-0)->static_eval >= (ss-2)->static_eval
