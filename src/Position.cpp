@@ -1145,15 +1145,15 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
 // updated by do_move and undo_move when the program is running in debug mode.
 Score Position::compute_psq_score () const
 {
-    auto psq_score = SCORE_ZERO;
+    auto psq_bonus = SCORE_ZERO;
     auto occ = _types_bb[NONE];
     while (occ != U64(0))
     {
         auto s = pop_lsq (occ);
         auto p = _board[s];
-        psq_score += PSQ[color (p)][ptype (p)][s];
+        psq_bonus += PSQ[color (p)][ptype (p)][s];
     }
-    return psq_score;
+    return psq_bonus;
 }
 
 // compute_non_pawn_material() computes the total non-pawn middle
@@ -1188,7 +1188,7 @@ Value Position::compute_non_pawn_material (Color c) const
     _psi->clock50 = 0;                                                               \
 }
 // do_move() do the move
-void Position::do_move (Move m, StateInfo &nsi, bool gives_check)
+void Position::do_move (Move m, StateInfo &nsi, bool give_check)
 {
     assert(_ok (m));
     assert(&nsi != _psi);
@@ -1196,7 +1196,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool gives_check)
     Key key = _psi->posi_key ^ Zob._.act_side;
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    std::memcpy (&nsi, _psi, offsetof(StateInfo, last_move));
+    std::memcpy (&nsi, _psi, offsetof(StateInfo, posi_key));
 
     // Switch state pointer to point to the new, ready to be updated, state.
     nsi.ptr = _psi;
@@ -1309,6 +1309,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool gives_check)
         _psi->psq_score +=
             -PSQ[_active][PAWN][org]
             +PSQ[_active][PAWN][dst];
+
+        //_psi->clock50 = 0; // No need as last move is also pawn
     }
         break;
 
@@ -1361,9 +1363,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool gives_check)
         break;
     }
     // Update castling rights if needed
-    u08 cr = _psi->castle_rights & (_castle_mask[org]|_castle_mask[dst]);
-    if (cr != 0)
+    if (_psi->castle_rights != CR_NO && (_castle_mask[org] | _castle_mask[dst]) != CR_NO)
     {
+        i32 cr = _psi->castle_rights & (_castle_mask[org] | _castle_mask[dst]);
         Bitboard b = cr;
         _psi->castle_rights &= ~cr;
         while (b != U64(0))
@@ -1372,7 +1374,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool gives_check)
         }
     }
     // Calculate checkers bitboard (if move is check)
-    _psi->checkers = gives_check ? attackers_to (_piece_square[pasive][KING][0], _active) : U64(0);
+    _psi->checkers = give_check ? attackers_to (_piece_square[pasive][KING][0], _active) : U64(0);
     // Switch sides
     _active = pasive;
     // Reset en-passant square
