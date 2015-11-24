@@ -38,6 +38,26 @@ namespace OpeningBook {
 
         };
 
+        struct Book
+        {
+            u32     alloc;
+            u32     mask;
+            u32     size;
+            PBEntry *entries;
+            i32     *hash;
+
+            static const int NullHash = -1;
+
+            void clear ();
+            void free ();
+
+            void clean ();
+
+            void rebuild_hash_table ();
+            void resize ();
+
+        };
+
         static const size_t EntrySize;
         static const size_t HeaderSize;
 
@@ -46,6 +66,8 @@ namespace OpeningBook {
         std::string _book_fn;
         openmode    _mode;
         size_t      _size;
+
+        Book        _book;
 
         template<class T>
         PolyglotBook& operator>> (T &t);
@@ -78,9 +100,9 @@ namespace OpeningBook {
             if (0 >= _size)
             {
                 size_t cur_pos = tellg ();
-                seekg (0L, end);
+                seekg (0L, ios_base::end);
                 _size = tellg ();
-                seekg (cur_pos, beg);
+                seekg (cur_pos, ios_base::beg);
                 clear ();
             }
             return _size;
@@ -94,8 +116,9 @@ namespace OpeningBook {
 
         std::string read_entries (const Position &pos);
 
+        void load ();
+        void save ();
     };
-
 
     template<class CharT, class Traits>
     inline std::basic_ostream<CharT, Traits>&

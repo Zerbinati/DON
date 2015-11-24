@@ -18,7 +18,7 @@ namespace OpeningBook  {
     #define OFFSET(x)  HeaderSize + (x)*EntrySize
 
     const size_t PolyglotBook::EntrySize  = sizeof (PBEntry);
-    const size_t PolyglotBook::HeaderSize = 0*EntrySize;
+    const size_t PolyglotBook::HeaderSize = 6*EntrySize;
 
     bool operator== (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
@@ -359,5 +359,165 @@ namespace OpeningBook  {
         }
         return oss.str ();
     }
+
+
+    namespace {
+
+        void* realloc_ex (void *old_address, size_t size)
+        {
+            assert(old_address != nullptr);
+            assert(size > 0);
+
+            void *newaddress = realloc (old_address, size);
+
+            if (newaddress == nullptr)
+            {
+                free (old_address);
+            }
+            old_address = newaddress;
+            return old_address;
+        }
+
+    }
+
+    void PolyglotBook::Book::clear ()
+    {
+        alloc   = 1;
+        mask    = alloc * 2 - 1;
+        size    = 0;
+
+        entries = (PBEntry*) malloc (alloc * EntrySize);
+        hash    = (i32 *)    malloc (alloc * 2 * sizeof (i32));
+
+        for (u32 index = 0; index < alloc * 2; ++index)
+        {
+            hash[index] = NullHash;
+        }
+    }
+
+    void PolyglotBook::Book::free ()
+    {
+        if (entries != nullptr)
+        {
+            ::free (entries);
+            entries = nullptr;
+        }
+        if (hash != nullptr)
+        {
+            ::free (hash);
+            hash = nullptr;
+        }
+        alloc   = 1;
+        mask    = alloc * 2 - 1;
+        size    = 0;
+    }
+
+    void PolyglotBook::Book::clean ()
+    {
+        u32 read_index  = 0;
+        u32 write_index = 0;
+        while (read_index < size)
+        {
+            if (entries[read_index].move != MOVE_NONE)
+            {
+                entries[write_index] = entries[read_index];
+                ++write_index;
+            }
+            ++read_index;
+        }
+        size = write_index;
+    }
+
+    void PolyglotBook::Book::rebuild_hash_table ()
+    {
+        for (u32 index = 0; index < alloc * 2; ++index)
+        {
+            hash[index] = NullHash;
+        }
+        for (i32 pos = 0; pos < (i32)size; ++pos)
+        {
+            u32 index;
+            for (index = (u32)entries[pos].key & mask; hash[index] != NullHash; index = (index + 1) & mask)
+            {}
+
+            assert(index >= 0 && index < alloc * 2);
+            hash[index] = pos;
+        }
+
+    }
+
+    void PolyglotBook::Book::resize ()
+    {
+        assert(size == alloc);
+
+        alloc *= 2;
+        mask = (alloc * 2) - 1;
+
+        //int alloc_size = 0;
+        //alloc_size += alloc * EntrySize;
+        //alloc_size += alloc * sizeof (i32) * 2;
+        //if (size >= 0x100000)
+        //{
+        //    if (!DebugInfo)
+        //    {
+        //        printf ("Allocating %gMB ...\n", (double)alloc_size / 0x100000);
+        //    }
+        //}
+
+        entries = (PBEntry *)realloc_ex (entries, alloc * EntrySize);
+        hash    = (i32 *)    realloc_ex (hash   , alloc * 2 * sizeof (i32));
+
+        rebuild_hash_table ();
+    }
+
+
+    void PolyglotBook::load ()
+    {
+        if (!is_open ()) return;
+
+        _book.clear ();
+
+        seekg (OFFSET(0), ios_base::beg);
+
+        PBEntry pbe;
+        for (size_t i = 0; i < size (); ++i)
+        {
+            assert(_book.size <= _book.alloc);
+
+            if (_book.size == _book.alloc)
+            {
+                // allocate more memoryx
+                _book.resize ();
+            }
+
+            *this >> pbe;
+
+            // Insert into the book
+            u32 pos = _book.size++;
+
+            auto &e = _book.entries[pos];
+            e.key    = pbe.key;
+            e.move   = pbe.move;
+            e.weight = pbe.weight;
+            e.learn  = pbe.learn;
+
+            u32 index;
+            // Find free hash table spot
+            for (index = (u32)pbe.key & _book.mask; _book.hash[index] != Book::NullHash; index = (index + 1) & _book.mask)
+            {}
+
+            // Insert into the hash table
+            assert (index >= 0 && index < _book.alloc * 2);
+            assert (_book.hash[index] == Book::NullHash);
+            assert (pos >= 0 && pos < _book.size);
+            _book.hash[index] = pos;
+        }
+    }
+
+    void PolyglotBook::save ()
+    {
+    }
+
+
 
 }

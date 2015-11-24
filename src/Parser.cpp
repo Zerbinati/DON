@@ -86,14 +86,16 @@ namespace Parser {
         PolyglotBook book;
         book.open ("book.bin", ios_base::in|ios_base::binary);
     
+        book.load ();
 
+        /*
         string move;
         StateStack states;
         Position pos(STARTUP_FEN);
 
         print_key (pos.posi_key ());
         cout << book.read_entries (pos);
-        
+        */
 
         /*
         states.push (StateInfo ());
