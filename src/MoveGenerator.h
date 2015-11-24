@@ -13,10 +13,14 @@ namespace MoveGen {
     public:
         Move  move  = MOVE_NONE;
         Value value = VALUE_ZERO;
+        
+        //ValMove& operator= (const ValMove&) = default;
 
         operator Move () const  { return move; }
-        void operator= (Move m) { move = m; }
-
+        void operator= (Move  m) { move  = m; }
+        void operator= (Value v) { value = v; }
+        
+        // Ascending sort
         bool operator<  (const ValMove &vm) const { return value <  vm.value; }
         bool operator>  (const ValMove &vm) const { return value >  vm.value; }
         bool operator<= (const ValMove &vm) const { return value <= vm.value; }
@@ -92,6 +96,7 @@ namespace MoveGen {
             return false;
         }
 
+        //explicit operator std::string () const;
     };
 
     //template<class CharT, class Traits, GenT GT>

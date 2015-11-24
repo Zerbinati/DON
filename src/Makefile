@@ -216,7 +216,11 @@ endif
 
 ifeq ($(COMP),mingw)
 	comp= mingw
-	CXX = g++
+	ifeq ($(UNAME),Linux)
+		CXX=x86_64-w64-mingw32-g++-posix
+	else
+		CXX = g++
+	endif
 	CXXFLAGS += -Wextra -Wshadow
 	LDFLAGS  += -static
 endif
@@ -374,15 +378,26 @@ ifeq ($(pop),yes)
 	CXXFLAGS += -DPOP
 endif
 
-### 3.13 Link Time Optimization, it works since gcc 4.5 but not on mingw.
+### 3.13 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(comp),gcc)
 	ifeq ($(optimize),yes)
-	ifeq ($(debug),no)
-		CXXFLAGS += -flto
-		LDFLAGS += $(CXXFLAGS)
+		ifeq ($(debug),no)
+			CXXFLAGS += -flto
+			LDFLAGS  += $(CXXFLAGS)
+		endif
 	endif
+endif
+
+ifeq ($(UNAME),Linux)
+	ifeq ($(comp),mingw)
+		ifeq ($(optimize),yes)
+			ifeq ($(debug),no)
+				CXXFLAGS += -flto
+				LDFLAGS  += $(CXXFLAGS)
+			endif
+		endif
 	endif
 endif
 
@@ -393,6 +408,7 @@ ifeq ($(arch),armv7)
 	LDFLAGS  += -fPIE -pie
 endif
 
+### 3.15 Custom Version.
 ifneq ($(VER),)
 	CXXFLAGS += -DVER=$(VER)
 endif
@@ -467,7 +483,7 @@ profile-build:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_make)
 	@echo ""
 	@echo "Step 2/4. Running benchmark for pgo-build ..."
-	@$(PGOBENCH) > /dev/null
+	$(PGOBENCH) > /dev/null
 	@echo ""
 	@echo "Step 3/4. Building final executable ..."
 	@touch *.cpp *.h
