@@ -98,10 +98,11 @@ namespace OpeningBook  {
     // Write-> ios_base::out
     bool PolyglotBook::open (const string &filename, openmode mode)
     {
-        fstream::open (filename, mode|ios_base::binary);
-        clear (); // Reset any error flag to allow retry open()
         _filename = filename;
         _mode     = mode;
+        _size     = 0;
+        fstream::open (filename, mode|ios_base::binary);
+        clear (); // Reset any error flag to allow retry open()
         return is_open ();
     }
     void PolyglotBook::close ()
@@ -343,16 +344,21 @@ namespace OpeningBook  {
 
     }
 
-    void PolyglotBook::Book::init ()
+    PolyglotBook::Book::Book (size_t alloc)
     {
-        alloc   = 1;
-        mask    = alloc * 2 - 1;
-        size    = 0;
+        init (alloc);
+    }
 
-        entries = (PBEntry  *) malloc (alloc * PBEntry::Size);
-        hash    = (intptr_t *) malloc (alloc * 2 * sizeof (intptr_t));
+    void PolyglotBook::Book::init (size_t alloc)
+    {
+        _alloc  = alloc;
+        _mask   = _alloc * 2 - 1;
+        _size   = 0;
 
-        for (size_t index = 0; index < alloc * 2; ++index)
+        entries = (PBEntry  *) malloc (_alloc * PBEntry::Size);
+        hash    = (intptr_t *) malloc (_alloc * 2 * sizeof (intptr_t));
+
+        for (size_t index = 0; index < _alloc * 2; ++index)
         {
             hash[index] = NullHash;
         }
@@ -370,16 +376,16 @@ namespace OpeningBook  {
             ::free (hash);
             hash = nullptr;
         }
-        alloc   = 1;
-        mask    = alloc * 2 - 1;
-        size    = 0;
+        _alloc  = 1;
+        _mask   = _alloc * 2 - 1;
+        _size   = 0;
     }
 
     void PolyglotBook::Book::clean ()
     {
         size_t read_index  = 0;
         size_t write_index = 0;
-        while (read_index < size)
+        while (read_index < _size)
         {
             if (entries[read_index].move != MOVE_NONE)
             {
@@ -388,22 +394,25 @@ namespace OpeningBook  {
             }
             ++read_index;
         }
-        size = write_index;
+        _size = write_index;
     }
 
     void PolyglotBook::Book::rebuild_hash_table ()
     {
-        for (size_t index = 0; index < alloc * 2; ++index)
+        for (size_t index = 0; index < _alloc * 2; ++index)
         {
             hash[index] = NullHash;
         }
-        for (size_t pos = 0; pos < size; ++pos)
+        for (intptr_t pos = 0; (size_t)pos < _size; ++pos)
         {
-            u32 index;
-            for (index = (u32)entries[pos].key & mask; hash[index] != NullHash; index = (index + 1) & mask)
-            {}
+            // Find free hash table spot
+            size_t index = (u32)entries[pos].key & _mask;
+            while (hash[index] != NullHash)
+            {
+                index = (index + 1) & _mask;
+            }
 
-            assert(index >= 0 && index < alloc * 2);
+            assert(0 <= index && index < _alloc * 2);
             hash[index] = pos;
         }
 
@@ -411,14 +420,14 @@ namespace OpeningBook  {
 
     void PolyglotBook::Book::resize ()
     {
-        assert(size == alloc);
+        assert(_size == _alloc);
 
-        alloc *= 2;
-        mask = (alloc * 2) - 1;
+        _alloc = _alloc * 2;
+        _mask  = _alloc * 2 - 1;
 
         //int alloc_size = 0;
-        //alloc_size += alloc * EntrySize;
-        //alloc_size += alloc * sizeof (i32) * 2;
+        //alloc_size += _alloc * EntrySize;
+        //alloc_size += _alloc * sizeof (i32) * 2;
         //if (size >= 0x100000)
         //{
         //    if (!DebugInfo)
@@ -427,10 +436,59 @@ namespace OpeningBook  {
         //    }
         //}
 
-        entries = (PBEntry  *) realloc_ex (entries, alloc * PBEntry::Size);
-        hash    = (intptr_t *) realloc_ex (hash   , alloc * 2 * sizeof (intptr_t));
+        entries = (PBEntry  *) realloc_ex (entries, _alloc * PBEntry::Size);
+        hash    = (intptr_t *) realloc_ex (hash   , _alloc * 2 * sizeof (intptr_t));
 
         rebuild_hash_table ();
+    }
+
+    intptr_t PolyglotBook::Book::new_entry_pos (const PBEntry &pbe)
+    {
+        assert(_size <= _alloc);
+        if (_size == _alloc)
+        {
+            // Allocate more memory
+            resize ();
+        }
+
+        // Insert a new entry
+        assert(_size < _alloc);
+        intptr_t pos = _size++;
+
+        entries[pos] = pbe;
+
+        // Find free hash table spot
+        size_t index = (u32)pbe.key & _mask;
+        while (hash[index] != NullHash)
+        {
+            index = (index + 1) & _mask;
+        }
+        // Insert into the hash table
+        assert(0 <= index && index < _alloc * 2);
+        assert(hash[index] == NullHash);
+        assert(0 <= pos && (size_t)pos < _size);
+        hash[index] = pos;
+        return pos;
+    }
+
+    intptr_t PolyglotBook::Book::find_entry_pos (const PBEntry &pbe) const
+    {
+        size_t index = (u32)pbe.key & _mask;
+        while (hash[index] != NullHash)
+        {
+            intptr_t pos = hash[index];
+            assert(0 <= pos && (size_t)pos < _size);
+            const auto &e = entries[pos];
+            if (   e.key == pbe.key
+                && e.move == pbe.move
+               )
+            {
+                return pos;
+            }
+
+            index = (index + 1) & _mask;
+        }
+        return NullHash;
     }
 
 
@@ -448,39 +506,15 @@ namespace OpeningBook  {
     {
         if (!is_open ()) return;
 
-        _book.init ();
-
         seekg (OFFSET(0), ios_base::beg);
-
-        PBEntry pbe;
+        
         size_t count = (size () - HeaderSize) / PBEntry::Size;
         for (size_t i = 0; i < count; ++i)
         {
-            assert(_book.size <= _book.alloc);
-
-            if (_book.size == _book.alloc)
-            {
-                // Allocate more memory
-                _book.resize ();
-            }
-
+            PBEntry pbe;
             *this >> pbe;
-
-            // Insert into the book
-            size_t pos = _book.size++;
-
-            _book.entries[pos] = pbe;
-
-            u32 index;
-            // Find free hash table spot
-            for (index = (u32)pbe.key & _book.mask; _book.hash[index] != Book::NullHash; index = (index + 1) & _book.mask)
-            {}
-
-            // Insert into the hash table
-            assert (index >= 0 && index < _book.alloc * 2);
-            assert (_book.hash[index] == Book::NullHash);
-            assert (pos >= 0 && pos < _book.size);
-            _book.hash[index] = pos;
+            assert(pbe.key != U64(0));
+            _book.new_entry_pos (pbe);
         }
     }
 
@@ -495,7 +529,7 @@ namespace OpeningBook  {
         }
 
         // Loop Entry
-        for (size_t pos = 0; pos < _book.size; ++pos)
+        for (size_t pos = 0; pos < _book.size (); ++pos)
         {
             const auto &e = _book.entries[pos];
             //assert(entry_keep (e));

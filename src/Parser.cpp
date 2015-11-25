@@ -87,7 +87,7 @@ namespace Parser {
         book.open ("book.bin", ios_base::in|ios_base::out|ios_base::binary);
     
         book.load ();
-        book.save ();
+        //book.save ();
 
         /*
         string move;
@@ -95,20 +95,17 @@ namespace Parser {
         Position pos(STARTUP_FEN);
 
         print_key (pos.posi_key ());
-        cout << book.read_entries (pos);
-        */
 
-        /*
         states.push (StateInfo ());
         move = "e2e4";
         pos.do_move (move, states.top ());
         print_key (pos.posi_key ());
- 
+        
         states.push (StateInfo ());
-        move = "d7d5";
+        move = "e7e5";
         pos.do_move (move, states.top ());
         print_key (pos.posi_key ());
-        /*
+        
         states.push (StateInfo ());
         move = "e4e5";
         pos.do_move (move, states.top ());
@@ -123,10 +120,10 @@ namespace Parser {
         move = "e1e2";
         pos.do_move (move, states.top ());
         print_key (pos.posi_key ());
-
-        //auto book_move = book.probe_move (pos, false);
-        //cout << book_move << endl;
-        //cout << book.read_entries (pos);
+        
+        auto book_move = book.probe_move (pos, false);
+        cout << book_move << endl;
+        cout << book.read_entries (pos);
         */
     
         /*

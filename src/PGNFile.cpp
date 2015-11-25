@@ -78,7 +78,7 @@ namespace {
     {
         char string[FormatBufferSize];
 
-        assert (format != NULL);
+        assert(format != NULL);
         //  format
         CONSTRUCT_ARG_STRING (format, string);
         if (LogFile != NULL)
@@ -108,7 +108,7 @@ namespace {
     void log_fatal (const char format[], ...)
     {
         char string[FormatBufferSize];
-        assert (format != NULL);
+        assert(format != NULL);
         // format
         CONSTRUCT_ARG_STRING (format, string);
 
@@ -148,14 +148,14 @@ namespace {
 
     bool equal (const char string_1[], const char string_2[])
     {
-        assert (string_1 != NULL);
-        assert (string_2 != NULL);
+        assert(string_1 != NULL);
+        assert(string_2 != NULL);
         return strcmp (string_1, string_2) == 0;
     }
 
     void read_token (pgn_t *pgn)
     {
-        assert (pgn != NULL);
+        assert(pgn != NULL);
 
         // token "stack"
         if (pgn->token_unread)
@@ -171,8 +171,8 @@ namespace {
         }
         else
         {
-            assert (pgn->token_type != TOKEN_ERROR);
-            assert (pgn->token_type != TOKEN_EOF);
+            assert(pgn->token_type != TOKEN_ERROR);
+            assert(pgn->token_type != TOKEN_EOF);
         }
 
         // read a new token
@@ -190,15 +190,15 @@ namespace {
 
     void unread_token (pgn_t *pgn)
     {
-        assert (pgn != NULL);
-        assert (!pgn->token_unread);
-        assert (!pgn->token_first);
+        assert(pgn != NULL);
+        assert(!pgn->token_unread);
+        assert(!pgn->token_first);
         pgn->token_unread = true;
     }
 
     void read_tok (pgn_t *pgn)
     {
-        assert (pgn != NULL);
+        assert(pgn != NULL);
 
         // skip white-space characters
         read_skip_blanks (pgn);
@@ -308,7 +308,7 @@ namespace {
 
             unread_char (pgn);
 
-            assert (pgn->token_length > 0 && pgn->token_length < STRING_SIZE);
+            assert(pgn->token_length > 0 && pgn->token_length < STRING_SIZE);
             pgn->token_string[pgn->token_length] = '\0';
 
             if (   equal (pgn->token_string, "1-0")
@@ -366,7 +366,7 @@ namespace {
                 pgn->token_string[pgn->token_length++] = pgn->char_hack;
             }
 
-            assert (pgn->token_length >= 0 && pgn->token_length < STRING_SIZE);
+            assert(pgn->token_length >= 0 && pgn->token_length < STRING_SIZE);
             pgn->token_string[pgn->token_length] = '\0';
 
         }
@@ -398,7 +398,7 @@ namespace {
                            pgn->char_line, pgn->char_column, pgn->game_nb);
             }
 
-            assert (pgn->token_length > 0 && pgn->token_length <= 3);
+            assert(pgn->token_length > 0 && pgn->token_length <= 3);
             pgn->token_string[pgn->token_length] = '\0';
         }
         else
@@ -410,7 +410,7 @@ namespace {
 
     void read_skip_blanks (pgn_t *pgn)
     {
-        assert (pgn != NULL);
+        assert(pgn != NULL);
         while (true)
         {
             read_char (pgn);
@@ -487,7 +487,7 @@ namespace {
 
     void read_char (pgn_t *pgn)
     {
-        assert (pgn != NULL);
+        assert(pgn != NULL);
         // char "stack"
         if (pgn->char_unread)
         {
@@ -503,7 +503,7 @@ namespace {
         else
         {
             // update counters
-            assert (pgn->char_hack != CHAR_EOF);
+            assert(pgn->char_hack != CHAR_EOF);
 
             if (false)
             {
@@ -540,9 +540,9 @@ namespace {
 
     void unread_char (pgn_t *pgn)
     {
-        assert (pgn != NULL);
-        assert (!pgn->char_unread);
-        assert (!pgn->char_first);
+        assert(pgn != NULL);
+        assert(!pgn->char_unread);
+        assert(!pgn->char_first);
 
         pgn->char_unread = true;
     }
@@ -552,8 +552,8 @@ namespace {
 
 void open_pgn (pgn_t *pgn, const char *fn_pgn)
 {
-    assert (pgn != NULL);
-    assert (fn_pgn != NULL);
+    assert(pgn != NULL);
+    assert(fn_pgn != NULL);
 
     pgn->file = fopen (fn_pgn, "r");
     if (pgn->file == NULL) log_fatal ("open_pgn(): can't open file \"%s\": %s\n", fn_pgn, strerror (errno));
@@ -583,7 +583,7 @@ void open_pgn (pgn_t *pgn, const char *fn_pgn)
 
 void close_pgn (pgn_t *pgn)
 {
-    assert (pgn != NULL);
+    assert(pgn != NULL);
     fclose (pgn->file);
 }
 
@@ -592,7 +592,7 @@ bool next_game_pgn (pgn_t *pgn)
     std::string name;
     std::string value;
 
-    assert (pgn != NULL);
+    assert(pgn != NULL);
 
     // init
     pgn->result   = "*";
@@ -660,7 +660,7 @@ bool next_game_pgn (pgn_t *pgn)
 
 bool next_move_pgn (pgn_t *pgn, std::string &move)
 {
-    assert (pgn != NULL);
+    assert(pgn != NULL);
 
     // init
     pgn->move_line      = -1;  // DEBUG
@@ -689,7 +689,7 @@ bool next_move_pgn (pgn_t *pgn, std::string &move)
                            pgn->token_line, pgn->token_column, pgn->game_nb);
             }
             --depth;
-            assert (depth >= 0);
+            assert(depth >= 0);
         }
         else if (pgn->token_type == TOKEN_RESULT)
         {
@@ -744,6 +744,6 @@ bool next_move_pgn (pgn_t *pgn, std::string &move)
             }
         }
     }
-    assert (false);
+    assert(false);
     return false;
 }

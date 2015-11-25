@@ -94,21 +94,32 @@ namespace OpeningBook {
 
         struct Book
         {
-            size_t   alloc;
-            size_t   mask;
-            size_t   size;
-            PBEntry  *entries;
-            intptr_t *hash;
+        private:
+            size_t   _alloc = 1;
+            size_t   _mask  = 1;
+            size_t   _size  = 0;
 
-            static const int NullHash = -1;
+        public:
+            PBEntry  *entries = nullptr;
+            intptr_t *hash    = nullptr;
 
-            void init ();
+            static const intptr_t NullHash = -1;
+
+            explicit Book (size_t alloc = 1);
+
+            size_t size () const { return _size; }
+
+            void init (size_t alloc = 1);
             void free ();
 
             void clean ();
 
             void rebuild_hash_table ();
             void resize ();
+
+            intptr_t new_entry_pos (const PBEntry &pbe);
+            intptr_t find_entry_pos (const PBEntry &pbe) const;
+            
 
         };
 
