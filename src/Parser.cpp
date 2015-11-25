@@ -84,9 +84,10 @@ namespace Parser {
    
         
         PolyglotBook book;
-        book.open ("book.bin", ios_base::in|ios_base::binary);
+        book.open ("book.bin", ios_base::in|ios_base::out|ios_base::binary);
     
         book.load ();
+        book.save ();
 
         /*
         string move;

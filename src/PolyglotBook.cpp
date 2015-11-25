@@ -17,52 +17,7 @@ namespace OpeningBook  {
 
     #define OFFSET(x)  HeaderSize + (x)*EntrySize
 
-    const size_t PolyglotBook::EntrySize  = sizeof (PBEntry);
-    const size_t PolyglotBook::HeaderSize = 6*EntrySize;
-
-    bool operator== (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return pe1.key == pe2.key
-            && pe1.move == pe2.move
-            && pe1.weight == pe2.weight;
-    }
-
-    bool operator!= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return !(pe1 == pe2);
-    }
-
-    bool operator>  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return pe1.key != pe2.key ?
-                pe1.key > pe2.key :
-                //pe1.move > pe2.move;      // order by move value
-                pe1.weight > pe2.weight;  // order by weight value
-    }
-
-    bool operator<  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return pe1.key != pe2.key ?
-                pe1.key < pe2.key :
-                //pe1.move < pe2.move;      // order by move value
-                pe1.weight < pe2.weight;  // order by weight value
-    }
-
-    bool operator>= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return pe1.key != pe2.key ?
-                pe1.key >= pe2.key :
-                //pe1.move >= pe2.move;      // order by move value
-                pe1.weight >= pe2.weight;  // order by weight value
-    }
-
-    bool operator<= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return pe1.key != pe2.key ?
-                pe1.key <= pe2.key :
-                //pe1.move <= pe2.move;      // order by move value
-                pe1.weight <= pe2.weight;  // order by weight value
-    }
+    const PolyglotBook::PBEntry PolyglotBook::PBEntry::NullEntry = { 0 , 0 , 0 , 0 };
 
     PolyglotBook::PBEntry::operator string () const
     {
@@ -83,7 +38,7 @@ namespace OpeningBook  {
     }
 
     template<class T>
-    PolyglotBook& PolyglotBook::operator>> (T &t)
+    PolyglotBook& PolyglotBook::operator>> (      T &t)
     {
         t = T();
         for (u08 i = 0; i < sizeof (t) && good (); ++i)
@@ -94,7 +49,7 @@ namespace OpeningBook  {
         return *this;
     }
     template<>
-    PolyglotBook& PolyglotBook::operator>> (PBEntry &pbe)
+    PolyglotBook& PolyglotBook::operator>> (      PBEntry &pbe)
     {
         *this >> pbe.key
               >> pbe.move
@@ -104,7 +59,7 @@ namespace OpeningBook  {
     }
 
     template<class T>
-    PolyglotBook& PolyglotBook::operator<< (T &t)
+    PolyglotBook& PolyglotBook::operator<< (const T &t)
     {
         for (u08 i = 0; i < sizeof (t) && good (); ++i)
         {
@@ -114,7 +69,7 @@ namespace OpeningBook  {
         return *this;
     }
     template<>
-    PolyglotBook& PolyglotBook::operator<< (PBEntry &pbe)
+    PolyglotBook& PolyglotBook::operator<< (const PBEntry &pbe)
     {
         *this << pbe.key
               << pbe.move
@@ -125,14 +80,14 @@ namespace OpeningBook  {
 
     PolyglotBook::PolyglotBook ()
         : fstream ()
-        , _book_fn ("")
+        , _filename ("")
         , _mode (openmode(0))
         , _size (0)
     {}
 
-    PolyglotBook::PolyglotBook (const string &book_fn, openmode mode)
-        : fstream (book_fn, mode|ios_base::binary)
-        , _book_fn (book_fn)
+    PolyglotBook::PolyglotBook (const string &filename, openmode mode)
+        : fstream (filename, mode|ios_base::binary)
+        , _filename (filename)
         , _mode (mode)
         , _size (0)
     {}
@@ -146,13 +101,13 @@ namespace OpeningBook  {
     // mode:
     // Read -> ios_base::in
     // Write-> ios_base::out
-    bool PolyglotBook::open (const string &book_fn, openmode mode)
+    bool PolyglotBook::open (const string &filename, openmode mode)
     {
         close ();
-        fstream::open (book_fn, mode|ios_base::binary);
+        fstream::open (filename, mode|ios_base::binary);
         clear (); // Reset any error flag to allow retry open()
-        _book_fn = book_fn;
-        _mode    = mode;
+        _filename = filename;
+        _mode     = mode;
         return is_open ();
     }
 
@@ -171,7 +126,7 @@ namespace OpeningBook  {
             auto mid_index = size_t((beg_index + end_index) / 2);
             assert(mid_index >= beg_index && mid_index < end_index);
 
-            seekg (OFFSET (mid_index), ios_base::beg);
+            seekg (OFFSET(mid_index), ios_base::beg);
             *this >> pbe;
 
             if (key <= pbe.key)
@@ -206,7 +161,7 @@ namespace OpeningBook  {
 
         auto index = find_index (key);
 
-        seekg (OFFSET (index));
+        seekg (OFFSET(index));
 
         auto move = MOVE_NONE;
 
@@ -304,7 +259,7 @@ namespace OpeningBook  {
         // So in case book move is a promotion have to convert to our representation,
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
-        // Polyglot use 3 bits while use 2 bits
+        // Polyglot use 3 bits while engine use 2 bits.
         auto pt = PieceT((move >> 12) & TOTL);
         // Set new type for promotion piece
         if (pt != PAWN) promote (move, pt);
@@ -325,43 +280,46 @@ namespace OpeningBook  {
     {
         ostringstream oss;
 
-        if (is_open () && (_mode & ios_base::in))
+        if (!is_open () || !(_mode & ios_base::in)) return oss.str ();
+
+        Key key = pos.posi_key ();
+
+        auto index = find_index (key);
+
+        seekg (OFFSET(index));
+
+        vector<PBEntry> pbes;
+        PBEntry pbe;
+        u32 weight_sum = 0;
+        while ((*this >> pbe), (pbe.key == key))
         {
-            Key key = pos.posi_key ();
-
-            auto index = find_index (key);
-
-            seekg (OFFSET (index));
-
-            vector<PBEntry> pbes;
-            PBEntry pbe;
-            u32 weight_sum = 0;
-            while ((*this >> pbe), (pbe.key == key))
-            {
-                pbes.push_back (pbe);
-                weight_sum += pbe.weight;
-            }
+            pbes.push_back (pbe);
+            weight_sum += pbe.weight;
+        }
         
-            if (pbes.empty ())
+        if (pbes.empty ())
+        {
+            std::cerr << "ERROR: no such key... "
+                        << std::hex << std::uppercase << key << std::nouppercase << std::dec
+                        << std::endl;
+        }
+        else
+        {
+            for_each (pbes.begin (), pbes.end (), [&oss, &weight_sum] (PBEntry p)
             {
-                std::cerr << "ERROR: no such key... "
-                          << std::hex << std::uppercase << key << std::nouppercase << std::dec
-                          << std::endl;
-            }
-            else
-            {
-                for_each (pbes.begin (), pbes.end (), [&oss, &weight_sum] (PBEntry p)
-                {
-                    oss << p << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * p.weight / weight_sum : 0.0) << std::setfill (' ')
-                        << endl;
-                });
-            }
+                oss << p << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * p.weight / weight_sum : 0.0) << std::setfill (' ')
+                    << endl;
+            });
         }
         return oss.str ();
     }
 
 
     namespace {
+
+        u32 BegGame = 1;
+        u32 EndGame = 100;
+        u32 MinGame = 3;
 
         void* realloc_ex (void *old_address, size_t size)
         {
@@ -386,10 +344,10 @@ namespace OpeningBook  {
         mask    = alloc * 2 - 1;
         size    = 0;
 
-        entries = (PBEntry*) malloc (alloc * EntrySize);
-        hash    = (i32 *)    malloc (alloc * 2 * sizeof (i32));
+        entries = (PBEntry  *) malloc (alloc * EntrySize);
+        hash    = (intptr_t *) malloc (alloc * 2 * sizeof (intptr_t));
 
-        for (u32 index = 0; index < alloc * 2; ++index)
+        for (size_t index = 0; index < alloc * 2; ++index)
         {
             hash[index] = NullHash;
         }
@@ -414,8 +372,8 @@ namespace OpeningBook  {
 
     void PolyglotBook::Book::clean ()
     {
-        u32 read_index  = 0;
-        u32 write_index = 0;
+        size_t read_index  = 0;
+        size_t write_index = 0;
         while (read_index < size)
         {
             if (entries[read_index].move != MOVE_NONE)
@@ -430,11 +388,11 @@ namespace OpeningBook  {
 
     void PolyglotBook::Book::rebuild_hash_table ()
     {
-        for (u32 index = 0; index < alloc * 2; ++index)
+        for (size_t index = 0; index < alloc * 2; ++index)
         {
             hash[index] = NullHash;
         }
-        for (i32 pos = 0; pos < (i32)size; ++pos)
+        for (size_t pos = 0; pos < size; ++pos)
         {
             u32 index;
             for (index = (u32)entries[pos].key & mask; hash[index] != NullHash; index = (index + 1) & mask)
@@ -464,12 +422,23 @@ namespace OpeningBook  {
         //    }
         //}
 
-        entries = (PBEntry *)realloc_ex (entries, alloc * EntrySize);
-        hash    = (i32 *)    realloc_ex (hash   , alloc * 2 * sizeof (i32));
+        entries = (PBEntry  *) realloc_ex (entries, alloc * EntrySize);
+        hash    = (intptr_t *) realloc_ex (hash   , alloc * 2 * sizeof (intptr_t));
 
         rebuild_hash_table ();
     }
 
+
+    bool PolyglotBook::keep_entry (PBEntry & pbe) const
+    {
+        //if (pbe._.n < MinGame) return false;
+
+        // Remove zero sum entry
+        //if (pbe._.sum == 0) return false;
+
+
+        return false;
+    }
 
     void PolyglotBook::load ()
     {
@@ -480,26 +449,23 @@ namespace OpeningBook  {
         seekg (OFFSET(0), ios_base::beg);
 
         PBEntry pbe;
-        for (size_t i = 0; i < size (); ++i)
+        size_t count = (size () - HeaderSize) / EntrySize;
+        for (size_t i = 0; i < count; ++i)
         {
             assert(_book.size <= _book.alloc);
 
             if (_book.size == _book.alloc)
             {
-                // allocate more memoryx
+                // allocate more memory
                 _book.resize ();
             }
 
             *this >> pbe;
 
             // Insert into the book
-            u32 pos = _book.size++;
+            size_t pos = _book.size++;
 
-            auto &e = _book.entries[pos];
-            e.key    = pbe.key;
-            e.move   = pbe.move;
-            e.weight = pbe.weight;
-            e.learn  = pbe.learn;
+            _book.entries[pos] = pbe;
 
             u32 index;
             // Find free hash table spot
@@ -516,8 +482,27 @@ namespace OpeningBook  {
 
     void PolyglotBook::save ()
     {
+        //seekg (0L, ios_base::beg);
+        //// Save header
+        for (size_t i = 0; i < 6; ++i)
+        {
+            *this << PBEntry::NullEntry;
+        }
+
+        seekg (OFFSET(0), ios_base::beg);
+
+        // Loop Entry
+        for (size_t pos = 0; pos < _book.size; ++pos)
+        {
+            const auto &e = _book.entries[pos];
+            //assert(entry_keep (e));
+
+            // Null keys are reserved for the header
+            if (e.key != U64 (0))
+            {
+                *this << e;
+            }
+        }
     }
-
-
 
 }
