@@ -493,8 +493,6 @@ namespace OpeningBook  {
             *this << PBEntry::NullEntry;
         }
 
-        seekg (OFFSET(0), ios_base::beg);
-
         // Loop Entry
         for (size_t pos = 0; pos < _book.size; ++pos)
         {
