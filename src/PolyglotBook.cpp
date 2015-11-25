@@ -31,7 +31,7 @@ namespace OpeningBook  {
         oss << " key: "    << std::setw (16) << std::setfill ('0') << std::hex << std::uppercase << key << std::nouppercase
             << " move: "   << std::setw ( 5) << std::setfill (' ') << std::left << move_to_can (m) << std::right
             << " weight: " << std::setw ( 4) << std::setfill ('0') << std::dec << weight
-            << " learn: "  << std::setw ( 2) << std::setfill ('0') << std::dec << learn
+            << " learn: "  << std::setw ( 2) << std::setfill ('0') << std::dec << _.learn
             << std::setfill (' ');
 
         return oss.str ();
@@ -54,7 +54,7 @@ namespace OpeningBook  {
         *this >> pbe.key
               >> pbe.move
               >> pbe.weight
-              >> pbe.learn;
+              >> pbe._.learn;
         return *this;
     }
 
@@ -74,7 +74,7 @@ namespace OpeningBook  {
         *this << pbe.key
               << pbe.move
               << pbe.weight
-              << pbe.learn;
+              << pbe._.learn;
         return *this;
     }
 
@@ -431,11 +431,10 @@ namespace OpeningBook  {
 
     bool PolyglotBook::keep_entry (PBEntry & pbe) const
     {
-        //if (pbe._.n < MinGame) return false;
+        if (pbe._.n < MinGame) return false;
 
         // Remove zero sum entry
-        //if (pbe._.sum == 0) return false;
-
+        if (pbe._.sum == 0) return false;
 
         return false;
     }

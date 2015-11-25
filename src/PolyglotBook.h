@@ -32,15 +32,26 @@ namespace OpeningBook {
             u64 key     = U64(0);
             u16 move    = MOVE_NONE;
             u16 weight  = 0;
-            u32 learn   = 0;
+
+            union
+            {
+                u32 learn   = 0;
+                struct
+                {
+                    u16 n;
+                    u16 sum;
+                };
+            } _;
+            
 
             PBEntry () = default;
             PBEntry (u64 k, u16 m, u16 w, u32 l)
                 : key (k)
                 , move (m)
                 , weight (w)
-                , learn (l)
-            {}
+            {
+                _.learn = l;
+            }
 
             operator Move () const { return Move(move); }
 
