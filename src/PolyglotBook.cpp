@@ -222,7 +222,7 @@ namespace OpeningBook  {
 
         while ((*this >> pbe), (pbe.key == key))
         {
-            if (MOVE_NONE == pbe) continue;
+            if (pbe == MOVE_NONE) continue;
 
             max_weight = max (max_weight, pbe.weight);
             weight_sum += pbe.weight;
@@ -242,13 +242,13 @@ namespace OpeningBook  {
             }
             // Note that first entry is always chosen if not pick best and sum of weight = 0
             else
-            if (MOVE_NONE == move)
+            if (move == MOVE_NONE)
             {
                 move = Move(pbe);
             }
         }
 
-        if (MOVE_NONE == move) return MOVE_NONE;
+        if (move == MOVE_NONE) return MOVE_NONE;
 
         // A PolyGlot book move is encoded as follows:
         //

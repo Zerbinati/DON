@@ -60,7 +60,7 @@ bool Game::append_move (Move m)
 bool Game::append_move (const string &move)
 {
     Move m = move_from_san (move, position);
-    if (MOVE_NONE == m)
+    if (m == MOVE_NONE)
     {
         cerr << "ERROR: Illegal Move '" + move << "'" << endl;
         return false;

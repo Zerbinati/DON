@@ -41,7 +41,7 @@ namespace OpeningBook {
                 , learn (l)
             {}
 
-            operator Move () const { return Move(move); }
+            explicit operator Move () const { return Move(move); }
 
             bool operator== (const PolyglotBook::PBEntry &pe)
             {
@@ -84,6 +84,9 @@ namespace OpeningBook {
                         //move <= pe.move;      // order by move
                         weight <= pe.weight;  // order by weight
             }
+
+            bool operator== (Move m) { return move == m; }
+            bool operator!= (Move m) { return move != m; }
 
             explicit operator std::string () const;
 
