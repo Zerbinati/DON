@@ -52,6 +52,14 @@ namespace OpeningBook {
                 _.learn = l;
             }
 
+            PBEntry () = default;
+            PBEntry (u64 k, u16 m, u16 w, u32 l)
+                : key (k)
+                , move (m)
+                , weight (w)
+                , learn (l)
+            {}
+
             operator Move () const { return Move(move); }
 
             bool operator== (const PolyglotBook::PBEntry &pe)
