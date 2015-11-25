@@ -343,7 +343,7 @@ namespace OpeningBook  {
 
     }
 
-    void PolyglotBook::Book::clear ()
+    void PolyglotBook::Book::init ()
     {
         alloc   = 1;
         mask    = alloc * 2 - 1;
@@ -448,7 +448,7 @@ namespace OpeningBook  {
     {
         if (!is_open ()) return;
 
-        _book.clear ();
+        _book.init ();
 
         seekg (OFFSET(0), ios_base::beg);
 
@@ -460,7 +460,7 @@ namespace OpeningBook  {
 
             if (_book.size == _book.alloc)
             {
-                // allocate more memory
+                // Allocate more memory
                 _book.resize ();
             }
 
@@ -486,8 +486,9 @@ namespace OpeningBook  {
 
     void PolyglotBook::save ()
     {
-        //seekg (0L, ios_base::beg);
-        //// Save header
+        seekg (0L, ios_base::beg);
+
+        // Save header
         for (size_t i = 0; i < 6; ++i)
         {
             *this << PBEntry::NullEntry;
@@ -500,7 +501,7 @@ namespace OpeningBook  {
             //assert(entry_keep (e));
 
             // Null keys are reserved for the header
-            if (e.key != U64 (0))
+            if (e.key != U64(0))
             {
                 *this << e;
             }
