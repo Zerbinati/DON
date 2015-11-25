@@ -99,7 +99,7 @@ namespace OpeningBook {
 
             static const int NullHash = -1;
 
-            void clear ();
+            void init ();
             void free ();
 
             void clean ();
