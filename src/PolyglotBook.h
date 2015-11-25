@@ -118,8 +118,11 @@ namespace OpeningBook {
             void resize ();
 
             intptr_t new_entry_pos (const PBEntry &pbe);
-            intptr_t find_entry_pos (const PBEntry &pbe) const;
             
+            size_t   find_free_index (Key key) const;
+
+            intptr_t find_entry_pos (Key key, Move move) const;
+            intptr_t find_entry_pos (const PBEntry &pbe) const;
 
         };
 
