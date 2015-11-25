@@ -17,9 +17,7 @@ namespace OpeningBook {
     class PolyglotBook
         : public std::fstream
     {
-
     public:
-
         // Polyglot Book entry needs 16 bytes to be stored.
         //  - Key       8 bytes
         //  - Move      2 bytes
@@ -27,6 +25,7 @@ namespace OpeningBook {
         //  - Learn     4 bytes
         struct PBEntry
         {
+            static const u08 Size;
             static const PBEntry NullEntry;
 
             u64 key     = U64(0);
@@ -122,16 +121,12 @@ namespace OpeningBook {
         };
 
         static const u08 HeaderSize = 96;
-        static_assert (HeaderSize == 96, "Header size incorrect");
-
-        static const u08 EntrySize  = sizeof (PBEntry);
-        static_assert (EntrySize == 16, "Entry size incorrect");
 
     private:
 
-        std::string _filename;
-        openmode    _mode;
-        size_t      _size;
+        std::string _filename = "";
+        openmode    _mode     = openmode(0);
+        size_t      _size     = 0UL;
 
         Book        _book;
 
@@ -141,14 +136,8 @@ namespace OpeningBook {
         PolyglotBook& operator<< (const T &t);
 
     public:
-        // find_index() takes a hash-key as input, and search through the book file for the given key.
-        // Returns the index of the 1st book entry with the same key as the input.
-        size_t find_index (const Key key);
-        size_t find_index (const Position &pos);
-        size_t find_index (const std::string &fen, bool c960 = false);
-
-        PolyglotBook ();
-        PolyglotBook (const std::string &book_fn, openmode mode);
+        PolyglotBook () = default;
+        PolyglotBook (const std::string &filename, openmode mode);
 
         PolyglotBook (const PolyglotBook&) = delete;
         PolyglotBook& operator= (const PolyglotBook&) = delete;
@@ -169,20 +158,13 @@ namespace OpeningBook {
             return _size;
         }
 
-        bool open (const std::string &book_fn, openmode mode);
+        bool open (const std::string &filename, openmode mode);
+        void close ();
 
-        void close ()
-        {
-            if (is_open ())
-            {
-                std::fstream::close ();
-            }
-        }
+        size_t find_index (      Key key);
+        size_t find_index (const Position &pos);
+        size_t find_index (const std::string &fen, bool c960 = false);
 
-        // probe_move() tries to find a book move for the given position.
-        // If no move is found returns MOVE_NONE.
-        // If pick_best is true returns always the highest rated move,
-        // otherwise randomly chooses one, based on the move score.
         Move probe_move (const Position &pos, bool pick_best = true);
 
         std::string read_entries (const Position &pos);

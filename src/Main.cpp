@@ -9,7 +9,7 @@ namespace {
     string strarg (i32 argc, const char *const *argv)
     {
         string arg;
-        for (auto i = 1; i < argc; ++i)
+        for (i32 i = 1; i < argc; ++i)
         {
             arg += string(argv[i]) + " ";
         }
@@ -17,7 +17,6 @@ namespace {
     }
 
 }
-
 
 i32 main (i32 argc, const char *const *argv)
 {

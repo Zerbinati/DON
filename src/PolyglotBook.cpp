@@ -15,8 +15,10 @@ namespace OpeningBook  {
     using namespace MoveGen;
     using namespace Notation;
 
-    #define OFFSET(x)  HeaderSize + (x)*EntrySize
+    #define OFFSET(x)  (PolyglotBook::HeaderSize + (x)*PolyglotBook::PBEntry::Size)
 
+    const u08 PolyglotBook::PBEntry::Size = sizeof (PolyglotBook::PBEntry);
+    static_assert (PolyglotBook::PBEntry::Size == 16, "Incorrect PBEntry::size");
     const PolyglotBook::PBEntry PolyglotBook::PBEntry::NullEntry = { 0 , 0 , 0 , 0 };
 
     PolyglotBook::PBEntry::operator string () const
@@ -78,13 +80,6 @@ namespace OpeningBook  {
         return *this;
     }
 
-    PolyglotBook::PolyglotBook ()
-        : fstream ()
-        , _filename ("")
-        , _mode (openmode(0))
-        , _size (0)
-    {}
-
     PolyglotBook::PolyglotBook (const string &filename, openmode mode)
         : fstream (filename, mode|ios_base::binary)
         , _filename (filename)
@@ -103,20 +98,28 @@ namespace OpeningBook  {
     // Write-> ios_base::out
     bool PolyglotBook::open (const string &filename, openmode mode)
     {
-        close ();
         fstream::open (filename, mode|ios_base::binary);
         clear (); // Reset any error flag to allow retry open()
         _filename = filename;
         _mode     = mode;
         return is_open ();
     }
+    void PolyglotBook::close ()
+    {
+        if (is_open ())
+        {
+            std::fstream::close ();
+        }
+    }
 
-    size_t PolyglotBook::find_index (const Key key)
+    // find_index() takes a hash-key as input, and search through the book file for the given key.
+    // Returns the index of the 1st book entry with the same key as the input.
+    size_t PolyglotBook::find_index (      Key key)
     {
         if (!is_open ()) return streampos(-1);
 
         auto beg_index = size_t(0);
-        auto end_index = size_t((size () - HeaderSize) / EntrySize - 1);
+        auto end_index = size_t((size () - HeaderSize) / PBEntry::Size - 1);
 
         PBEntry pbe;
 
@@ -142,17 +145,19 @@ namespace OpeningBook  {
 
         return beg_index;
     }
-
     size_t PolyglotBook::find_index (const Position &pos)
     {
         return find_index (pos.posi_key ());
     }
-
     size_t PolyglotBook::find_index (const string &fen, bool c960)
     {
         return find_index (Position (fen, c960).posi_key ());
     }
 
+    // probe_move() tries to find a book move for the given position.
+    // If no move is found returns MOVE_NONE.
+    // If pick_best is true returns always the highest rated move,
+    // otherwise randomly chooses one, based on the move score.
     Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     {
         static PRNG pr (now ());
@@ -344,7 +349,7 @@ namespace OpeningBook  {
         mask    = alloc * 2 - 1;
         size    = 0;
 
-        entries = (PBEntry  *) malloc (alloc * EntrySize);
+        entries = (PBEntry  *) malloc (alloc * PBEntry::Size);
         hash    = (intptr_t *) malloc (alloc * 2 * sizeof (intptr_t));
 
         for (size_t index = 0; index < alloc * 2; ++index)
@@ -422,7 +427,7 @@ namespace OpeningBook  {
         //    }
         //}
 
-        entries = (PBEntry  *) realloc_ex (entries, alloc * EntrySize);
+        entries = (PBEntry  *) realloc_ex (entries, alloc * PBEntry::Size);
         hash    = (intptr_t *) realloc_ex (hash   , alloc * 2 * sizeof (intptr_t));
 
         rebuild_hash_table ();
@@ -448,7 +453,7 @@ namespace OpeningBook  {
         seekg (OFFSET(0), ios_base::beg);
 
         PBEntry pbe;
-        size_t count = (size () - HeaderSize) / EntrySize;
+        size_t count = (size () - HeaderSize) / PBEntry::Size;
         for (size_t i = 0; i < count; ++i)
         {
             assert(_book.size <= _book.alloc);
@@ -487,8 +492,6 @@ namespace OpeningBook  {
         {
             *this << PBEntry::NullEntry;
         }
-
-        seekg (OFFSET(0), ios_base::beg);
 
         // Loop Entry
         for (size_t pos = 0; pos < _book.size; ++pos)
