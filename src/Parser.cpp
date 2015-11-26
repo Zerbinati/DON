@@ -7,14 +7,14 @@
 #include "Position.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
-#include "PolyglotBook.h"
+#include "Polyglot.h"
 #include "PGN.h"
 #include "PGNFile.h"
 
 using namespace std;
 using namespace MoveGen;
 using namespace Notation;
-using namespace OpeningBook;
+using namespace Polyglot;
 
 void print_key (Key key)
 {
@@ -80,14 +80,14 @@ namespace Parser {
         //Game game;
         //game.parse (text);
         //cout << game;
-    
-   
-        
-        PolyglotBook book;
-        book.open ("book.bin", ios_base::in|ios_base::out|ios_base::binary);
-    
-        book.load ();
-        book.save ();
+
+
+        //Book book;
+        //book.open ("book.bin", ios_base::in|ios_base::out|ios_base::binary);
+
+        Table table;
+        table.load ("book.bin");
+        table.save ("book1.bin");
 
         /*
         string move;

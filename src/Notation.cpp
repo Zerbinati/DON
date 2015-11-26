@@ -144,7 +144,7 @@ namespace Notation {
     string move_to_can (Move m, bool c960)
     {
         if (m == MOVE_NONE) return "(none)";
-        if (MOVE_NULL == m) return "(null)";
+        if (m == MOVE_NULL) return "(null)";
 
         auto org = org_sq (m);
         auto dst = dst_sq (m);

@@ -148,11 +148,11 @@
       <Field Name="_killers" />
     </ShowAsCollectionAssociation>
   </Class>
-  <Class Name="OpeningBook::PolyglotBook" Collapsed="true">
+  <Class Name="OpeningBook::Book" Collapsed="true">
     <Position X="50" Y="0.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAABAAAAIAAAIAqCAAgAAAAAAAABAAIAkEEIAASA=</HashCode>
-      <FileName>src\PolyglotBook.h</FileName>
+      <FileName>src\Book.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Threading::ThreadBase" Collapsed="true">

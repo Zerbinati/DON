@@ -21,7 +21,7 @@ BINDIR = $(PREFIX)/bin
 PGOBENCH  = ./$(EXE)
 
 ### Object files
-OBJS = BitBoard.o Main.o MoveGenerator.o Notation.o PolyglotBook.o \
+OBJS = BitBoard.o Main.o MoveGenerator.o Notation.o Polyglot.o \
 	Position.o Parser.o PGN.o Game.o Zobrist.o Debugger.o  \
 
 ### ==========================================================================
