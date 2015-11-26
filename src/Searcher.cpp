@@ -9,8 +9,8 @@
 #include "MoveGenerator.h"
 #include "MovePicker.h"
 #include "Transposition.h"
-#include "PolyglotBook.h"
 #include "Evaluator.h"
+#include "Polyglot.h"
 #include "Notation.h"
 #include "Debugger.h"
 
@@ -22,7 +22,6 @@ namespace Searcher {
     using namespace MoveGen;
     using namespace MovePick;
     using namespace Transposition;
-    using namespace OpeningBook;
     using namespace Evaluator;
     using namespace Notation;
     using namespace Debugger;
@@ -1942,7 +1941,7 @@ namespace Threading {
 
                 if (!SearchFile.empty ())
                 {
-                    SearchLog << pretty_pv_info (root_pos, root_depth, root_moves[0].new_value, TimeMgr.elapsed_time (), root_moves[0].pv) << std::endl;
+                    SearchLog << pretty_pv_info (root_pos, root_depth, root_moves[0].new_value, TimeMgr.elapsed_time (), root_moves[0]) << std::endl;
                 }
 
                 if (!Signals.force_stop && !Signals.ponderhit_stop)
@@ -1976,7 +1975,7 @@ namespace Threading {
 
                         if (root_moves[0].size () >= 3)
                         {
-                            MoveMgr.update (root_pos, root_moves[0].pv);
+                            MoveMgr.update (root_pos, root_moves[0]);
                         }
                         else
                         {
@@ -2033,7 +2032,7 @@ namespace Threading {
     // the "bestmove" to output.
     void MainThread::search ()
     {
-        static PolyglotBook book; // Defined static to initialize the PRNG only once
+        static Polyglot::Book book; // Defined static to initialize the PRNG only once
 
         RootColor = root_pos.active ();
         UseTimeManagment = Limits.use_time_management ();

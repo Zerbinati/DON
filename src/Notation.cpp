@@ -165,18 +165,13 @@ namespace Notation {
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
-        assert(pos.legal (m));
         assert(MoveList<LEGAL> (pos).contains (m));
 
         string san;
         auto org = org_sq (m);
         auto dst = dst_sq (m);
 
-        if (CASTLE == mtype (m))
-        {
-            san = (dst > org ? "O-O" : "O-O-O");
-        }
-        else
+        if (CASTLE != mtype (m))
         {
             auto pt = ptype (pos[org]);
 
@@ -191,7 +186,7 @@ namespace Notation {
                 case AMB_RANK: san += to_char (_file (org)); break;
                 case AMB_FILE: san += to_char (_rank (org)); break;
                 case AMB_SQR:  san += to_string (org);       break;
-                default:       assert(false);               break;
+                default:       assert(false);                break;
                 }
             }
 
@@ -211,6 +206,10 @@ namespace Notation {
                 san += "=";
                 san += PIECE_CHAR[WHITE|promote (m)]; // Uppercase (White)
             }
+        }
+        else
+        {
+            san = (dst > org ? "O-O" : "O-O-O");
         }
 
         // Move marker for check & checkmate

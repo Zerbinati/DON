@@ -1,4 +1,4 @@
-#include "PolyglotBook.h"
+#include "Polyglot.h"
 
 #include <iomanip>
 
@@ -9,17 +9,19 @@
 #include "manipulator.h"
 #include "Notation.h"
 
-namespace OpeningBook  {
+namespace Polyglot {
 
     using namespace std;
     using namespace MoveGen;
     using namespace Notation;
 
-    #define OFFSET(x)  HeaderSize + (x)*EntrySize
+    #define OFFSET(x)  (Book::HeaderSize + (x)*Entry::Size)
 
-    const PolyglotBook::PBEntry PolyglotBook::PBEntry::NullEntry = { 0 , 0 , 0 , 0 };
+    const u08 Entry::Size = sizeof (Entry);
+    static_assert (Entry::Size == 16, "Incorrect Entry::size");
+    const Entry Entry::NullEntry = { 0 , 0 , 0 , 0 };
 
-    PolyglotBook::PBEntry::operator string () const
+    Entry::operator string () const
     {
         ostringstream oss;
 
@@ -38,7 +40,7 @@ namespace OpeningBook  {
     }
 
     template<class T>
-    PolyglotBook& PolyglotBook::operator>> (      T &t)
+    Book& Book::operator>> (      T &t)
     {
         t = T();
         for (u08 i = 0; i < sizeof (t) && good (); ++i)
@@ -49,17 +51,17 @@ namespace OpeningBook  {
         return *this;
     }
     template<>
-    PolyglotBook& PolyglotBook::operator>> (      PBEntry &pbe)
+    Book& Book::operator>> (      Entry &pe)
     {
-        *this >> pbe.key
-              >> pbe.move
-              >> pbe.weight
-              >> pbe.learn;
+        *this >> pe.key
+              >> pe.move
+              >> pe.weight
+              >> pe.learn;
         return *this;
     }
 
     template<class T>
-    PolyglotBook& PolyglotBook::operator<< (const T &t)
+    Book& Book::operator<< (const T &t)
     {
         for (u08 i = 0; i < sizeof (t) && good (); ++i)
         {
@@ -69,30 +71,23 @@ namespace OpeningBook  {
         return *this;
     }
     template<>
-    PolyglotBook& PolyglotBook::operator<< (const PBEntry &pbe)
+    Book& Book::operator<< (const Entry &pe)
     {
-        *this << pbe.key
-              << pbe.move
-              << pbe.weight
-              << pbe.learn;
+        *this << pe.key
+              << pe.move
+              << pe.weight
+              << pe.learn;
         return *this;
     }
 
-    PolyglotBook::PolyglotBook ()
-        : fstream ()
-        , _filename ("")
-        , _mode (openmode(0))
-        , _size (0)
-    {}
-
-    PolyglotBook::PolyglotBook (const string &filename, openmode mode)
+    Book::Book (const string &filename, openmode mode)
         : fstream (filename, mode|ios_base::binary)
         , _filename (filename)
         , _mode (mode)
         , _size (0)
     {}
 
-    PolyglotBook::~PolyglotBook ()
+    Book::~Book ()
     {
         close ();
     }
@@ -101,24 +96,33 @@ namespace OpeningBook  {
     // mode:
     // Read -> ios_base::in
     // Write-> ios_base::out
-    bool PolyglotBook::open (const string &filename, openmode mode)
+    bool Book::open (const string &filename, openmode mode)
     {
-        close ();
-        fstream::open (filename, mode|ios_base::binary);
-        clear (); // Reset any error flag to allow retry open()
         _filename = filename;
         _mode     = mode;
+        _size     = 0;
+        fstream::open (filename, mode|ios_base::binary);
+        clear (); // Reset any error flag to allow retry open()
         return is_open ();
     }
+    void Book::close ()
+    {
+        if (is_open ())
+        {
+            std::fstream::close ();
+        }
+    }
 
-    size_t PolyglotBook::find_index (const Key key)
+    // find_index() takes a hash-key as input, and search through the book file for the given key.
+    // Returns the index of the 1st book entry with the same key as the input.
+    size_t Book::find_index (      Key key)
     {
         if (!is_open ()) return streampos(-1);
 
         auto beg_index = size_t(0);
-        auto end_index = size_t((size () - HeaderSize) / EntrySize - 1);
+        auto end_index = size_t((size () - HeaderSize) / Entry::Size - 1);
 
-        PBEntry pbe;
+        Entry pe;
 
         assert(beg_index <= end_index);
         while (beg_index < end_index && good ())
@@ -127,9 +131,9 @@ namespace OpeningBook  {
             assert(mid_index >= beg_index && mid_index < end_index);
 
             seekg (OFFSET(mid_index), ios_base::beg);
-            *this >> pbe;
+            *this >> pe;
 
-            if (key <= pbe.key)
+            if (key <= pe.key)
             {
                 end_index = mid_index;
             }
@@ -142,18 +146,20 @@ namespace OpeningBook  {
 
         return beg_index;
     }
-
-    size_t PolyglotBook::find_index (const Position &pos)
+    size_t Book::find_index (const Position &pos)
     {
         return find_index (pos.posi_key ());
     }
-
-    size_t PolyglotBook::find_index (const string &fen, bool c960)
+    size_t Book::find_index (const string &fen, bool c960)
     {
         return find_index (Position (fen, nullptr, c960).posi_key ());
     }
 
-    Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
+    // probe_move() tries to find a book move for the given position.
+    // If no move is found returns MOVE_NONE.
+    // If pick_best is true returns always the highest rated move,
+    // otherwise randomly chooses one, based on the move score.
+    Move Book::probe_move (const Position &pos, bool pick_best)
     {
         static PRNG pr (now ());
 
@@ -165,29 +171,29 @@ namespace OpeningBook  {
 
         auto move = MOVE_NONE;
 
-        PBEntry pbe;
+        Entry pe;
 
         u16 max_weight = 0;
         u32 weight_sum = 0;
 
-        //vector<PBEntry> pbes;
-        //while ((*this >> pbe), (pbe.key == key))
+        //vector<Entry> pes;
+        //while ((*this >> pe), (pe.key == key))
         //{
-        //    pbes.push_back (pbe);
-        //    max_weight = max (max_weight, pbe.weight);
-        //    weight_sum += pbe.weight;
+        //    pes.push_back (pe);
+        //    max_weight = max (max_weight, pe.weight);
+        //    weight_sum += pe.weight;
         //}
-        //if (!pbes.size ()) return MOVE_NONE;
+        //if (!pes.size ()) return MOVE_NONE;
         //
         //if (pick_best)
         //{
-        //    vector<PBEntry>::const_iterator ms = pbes.begin ();
-        //    while (ms != pbes.end ())
+        //    vector<Entry>::const_iterator ms = pes.begin ();
+        //    while (ms != pes.end ())
         //    {
-        //        pbe = *ms;
-        //        if (pbe.weight == max_weight)
+        //        pe = *ms;
+        //        if (pe.weight == max_weight)
         //        {
-        //            move = Move(pbe.move);
+        //            move = Move(pe.move);
         //            break;
         //        }
         //        ++ms;
@@ -201,30 +207,30 @@ namespace OpeningBook  {
         //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
         //
         //    u32 rand = (pr.rand<u32> () % weight_sum);
-        //    auto ms = pbes.begin ();
-        //    while (ms != pbes.end ())
+        //    auto ms = pes.begin ();
+        //    while (ms != pes.end ())
         //    {
-        //        pbe = *ms;
-        //        if (pbe.weight > rand)
+        //        pe = *ms;
+        //        if (pe.weight > rand)
         //        {
-        //            move = Move(pbe.move);
+        //            move = Move(pe.move);
         //            break;
         //        }
-        //        rand -= pbe.weight;
+        //        rand -= pe.weight;
         //        ++ms;
         //    }
         //}
 
-        while ((*this >> pbe), (pbe.key == key))
+        while ((*this >> pe), (pe.key == key))
         {
-            if (MOVE_NONE == pbe) continue;
+            if (pe == MOVE_NONE) continue;
 
-            max_weight = max (max_weight, pbe.weight);
-            weight_sum += pbe.weight;
+            max_weight = max (max_weight, pe.weight);
+            weight_sum += pe.weight;
 
             if (pick_best)
             {
-                if (pbe.weight == max_weight) move = Move(pbe);
+                if (pe.weight == max_weight) move = Move(pe);
             }
             // Choose book move according to its score.
             // If a move has a very high score it has a higher probability
@@ -233,17 +239,17 @@ namespace OpeningBook  {
             if (weight_sum != 0)
             {
                 u16 rand = pr.rand<u16> () % weight_sum;
-                if (pbe.weight > rand) move = Move(pbe);
+                if (pe.weight > rand) move = Move(pe);
             }
             // Note that first entry is always chosen if not pick best and sum of weight = 0
             else
-            if (MOVE_NONE == move)
+            if (move == MOVE_NONE)
             {
-                move = Move(pbe);
+                move = Move(pe);
             }
         }
 
-        if (MOVE_NONE == move) return MOVE_NONE;
+        if (move == MOVE_NONE) return MOVE_NONE;
 
         // A PolyGlot book move is encoded as follows:
         //
@@ -276,7 +282,7 @@ namespace OpeningBook  {
         return MOVE_NONE;
     }
 
-    string PolyglotBook::read_entries (const Position &pos)
+    string Book::read_entries (const Position &pos)
     {
         ostringstream oss;
 
@@ -288,16 +294,16 @@ namespace OpeningBook  {
 
         seekg (OFFSET(index));
 
-        vector<PBEntry> pbes;
-        PBEntry pbe;
+        vector<Entry> pes;
+        Entry pe;
         u32 weight_sum = 0;
-        while ((*this >> pbe), (pbe.key == key))
+        while ((*this >> pe), (pe.key == key))
         {
-            pbes.push_back (pbe);
-            weight_sum += pbe.weight;
+            pes.push_back (pe);
+            weight_sum += pe.weight;
         }
         
-        if (pbes.empty ())
+        if (pes.empty ())
         {
             std::cerr << "ERROR: no such key... "
                         << std::hex << std::uppercase << key << std::nouppercase << std::dec
@@ -305,9 +311,9 @@ namespace OpeningBook  {
         }
         else
         {
-            for_each (pbes.begin (), pbes.end (), [&oss, &weight_sum] (PBEntry p)
+            for_each (pes.begin (), pes.end (), [&oss, &weight_sum] (Entry e)
             {
-                oss << p << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * p.weight / weight_sum : 0.0) << std::setfill (' ')
+                oss << e << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0) << std::setfill (' ')
                     << endl;
             });
         }
