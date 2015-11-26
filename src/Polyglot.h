@@ -32,6 +32,8 @@ namespace Polyglot {
             , learn (l)
         {}
 
+        Entry& operator= (const Entry&) = default;
+
         explicit operator Move () const { return Move (move); }
 
         bool operator== (const Entry &pe)
@@ -49,31 +51,39 @@ namespace Polyglot {
         }
         bool operator>  (const Entry &pe)
         {
-            return key != pe.key ?
-                key > pe.key :
-            //move > pe.move;      // order by move
-            weight > pe.weight;  // order by weight
+            return
+                key != pe.key ?
+                    key > pe.key :
+                    weight != pe.weight ?
+                        weight > pe.weight :
+                        move > pe.move;
         }
         bool operator<  (const Entry &pe)
         {
-            return key != pe.key ?
-                key < pe.key :
-                //move < pe.move;      // order by move
-                weight < pe.weight;  // order by weight
+            return
+                key != pe.key ?
+                    key < pe.key :
+                    weight != pe.weight ?
+                        weight < pe.weight :
+                        move < pe.move;
         }
         bool operator>= (const Entry &pe)
         {
-            return key != pe.key ?
-                key >= pe.key :
-                //move >= pe.move;      // order by move
-                weight >= pe.weight;  // order by weight
+            return
+                key != pe.key ?
+                    key >= pe.key :
+                    weight != pe.weight ?
+                        weight >= pe.weight :
+                        move >= pe.move;
         }
         bool operator<= (const Entry &pe)
         {
-            return key != pe.key ?
-                key <= pe.key :
-                //move <= pe.move;      // order by move
-                weight <= pe.weight;  // order by weight
+            return
+                key != pe.key ?
+                    key <= pe.key :
+                    weight != pe.weight ?
+                        weight <= pe.weight :
+                        move <= pe.move;
         }
 
         bool operator== (Move m) { return move == m; }
@@ -101,26 +111,26 @@ namespace Polyglot {
     {
     private:
 
-        std::string _filename = "";
-        openmode    _mode     = openmode(0);
-        size_t      _size     = 0UL;
+        std::string _book_fn = "";
+        openmode    _mode    = openmode(0);
+        size_t      _size    = 0U;
 
     public:
         static const u08 HeaderSize = 96;
 
         Book () = default;
-        Book (const std::string &filename, openmode mode);
+        Book (const std::string &book_fn, openmode mode);
 
         Book (const Book&) = delete;
         Book& operator= (const Book&) = delete;
 
         ~Book ();
 
-        std::string filename () const { return _filename; }
+        std::string book_fn () const { return _book_fn; }
 
         size_t size ()
         {
-            if (_size != 0) return _size;
+            if (_size != 0U) return _size;
 
             size_t cur_pos = tellg ();
             seekg (0L, ios_base::end);
@@ -130,7 +140,7 @@ namespace Polyglot {
             return _size;
         }
 
-        bool open (const std::string &filename, openmode mode);
+        bool open (const std::string &book_fn, openmode mode);
         void close ();
 
         template<class T>
@@ -151,18 +161,18 @@ namespace Polyglot {
     class Table
     {
     private:
-        size_t   _entry_alloc = 1;
-        size_t   _hash_mask  = 1;
-        size_t   _entry_count  = 0;
+        size_t   _entry_alloc   = 1;
+        size_t   _hash_mask     = 1;
+        size_t   _entry_count   = 0;
+        Entry    *_entries      = nullptr;
+        intptr_t *_hashes       = nullptr;
+
+        static const intptr_t NullHash = -1;
 
         void empty_hash_table ();
         void rebuild_hash_table ();
 
     public:
-        Entry    *entries = nullptr;
-        intptr_t *hash    = nullptr;
-
-        static const intptr_t NullHash = -1;
 
         explicit Table (size_t entry_alloc = 1);
 
@@ -171,8 +181,6 @@ namespace Polyglot {
         void init (size_t entry_alloc = 1);
         void free ();
 
-        void clean ();
-        
         void resize ();
 
         size_t   find_null_index (Key key) const;
@@ -182,6 +190,13 @@ namespace Polyglot {
 
         intptr_t new_entry_pos (const Entry &pe);
 
+        void clean ();
+        
+        bool keep_entry (const Entry &pe) const;
+
+        void filter ();
+        void sort ();
+
         void save (const std::string &book_fn) const;
         void load (const std::string &book_fn);
 
@@ -190,19 +205,23 @@ namespace Polyglot {
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const Table &pt)
         {
-            //u32 mem_size_mb = tt.size ();
-            //u08 dummy = 0;
-            //os.write (reinterpret_cast<const CharT*> (&mem_size_mb), sizeof (mem_size_mb));
-            //os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-            //os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-            //os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-            //os.write (reinterpret_cast<const CharT*> (&tt._generation), sizeof (tt._generation));
-            //os.write (reinterpret_cast<const CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
-            //u32 cluster_bulk = u32 (tt._cluster_count / BufferSize);
-            //for (u32 i = 0; i < cluster_bulk; ++i)
-            //{
-            //    os.write (reinterpret_cast<const CharT*> (tt._clusters+i*BufferSize), Cluster::Size*BufferSize);
-            //}
+            // Save header
+            for (size_t i = 0; i < 6; ++i)
+            {
+                os << Entry::NullEntry;
+            }
+            // Loop Entry
+            for (size_t pos = 0; pos < size (); ++pos)
+            {
+                const auto &pe = entries[pos];
+                //assert(entry_keep (pe));
+
+                // Null keys are reserved for the header
+                if (pe.key != U64 (0))
+                {
+                    os << pe;
+                }
+            }
             return os;
         }
 
@@ -210,22 +229,15 @@ namespace Polyglot {
         friend std::basic_istream<CharT, Traits>&
             operator>> (std::basic_istream<CharT, Traits> &is, Table &pt)
         {
-            //u32 mem_size_mb;
-            //u08 generation;
-            //u08 dummy;
-            //is.read (reinterpret_cast<CharT*> (&mem_size_mb), sizeof (mem_size_mb));
-            //is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-            //is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-            //is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-            //is.read (reinterpret_cast<CharT*> (&generation), sizeof (generation));
-            //is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
-            //tt.resize (mem_size_mb);
-            //tt._generation = generation;
-            //u32 cluster_bulk = u32 (tt._cluster_count / BufferSize);
-            //for (u32 i = 0; i < cluster_bulk; ++i)
-            //{
-            //    is.read (reinterpret_cast<CharT*> (tt._clusters+i*BufferSize), Cluster::Size*BufferSize);
-            //}
+            //is.seekg (OFFSET(0), ios_base::beg);
+            size_t entry_count = (is.size () - Book::HeaderSize) / Entry::Size;
+            for (size_t i = 0; i < entry_count; ++i)
+            {
+                Entry pe;
+                is >> pe;
+                assert (pe.key != U64 (0));
+                new_entry_pos (pe);
+            }
             return is;
         }
         */

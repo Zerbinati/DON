@@ -14,22 +14,22 @@ extern const std::string STARTUP_FEN;
 
 namespace Notation {
 
-    inline char to_char (File f, bool low_case = true) { return char (i08(f) - i08(F_A)) + (low_case ? 'a' : 'A'); }
+    inline char to_char (File f, bool low_case = true) { return char(i08(f) - i08(F_A)) + (low_case ? 'a' : 'A'); }
 
-    inline char to_char (Rank r) { return char (i08(r) - i08(R_1)) + '1'; }
+    inline char to_char (Rank r  /*                */) { return char(i08(r) - i08(R_1)) + '1'; }
 
     inline std::string to_string (Square s)
     {
         return std::string{ to_char (_file (s)), to_char (_rank (s)) };
     }
 
-    extern Move move_from_can (      std::string &can, const Position &pos);
-    extern Move move_from_san (const std::string &san,       Position &pos);
-    //extern Move move_from_lan (const std::string &lan, const Position &pos);
-
     extern std::string move_to_can (Move m, bool c960 = false);
     extern std::string move_to_san (Move m, Position &pos);
     //extern std::string move_to_lan (Move m, Position &pos);
+
+    extern Move move_from_can (const std::string &can, const Position &pos);
+    extern Move move_from_san (const std::string &san,       Position &pos);
+    //extern Move move_from_lan (const std::string &lan,       Position &pos);
 
     extern std::string to_string (Value v);
 

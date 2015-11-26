@@ -82,25 +82,26 @@ namespace Parser {
         //cout << game;
 
 
-        //Book book;
-        //book.open ("book.bin", ios_base::in|ios_base::out|ios_base::binary);
-
         Table table;
         table.load ("book.bin");
+        table.filter ();
+        table.sort ();
         table.save ("book1.bin");
 
-        /*
+        Book book;
+        book.open ("book1.bin", ios_base::in);
+        
         string move;
         StateStack states;
         Position pos(STARTUP_FEN);
 
         print_key (pos.posi_key ());
-
+        /*
         states.push (StateInfo ());
         move = "e2e4";
         pos.do_move (move, states.top ());
         print_key (pos.posi_key ());
-        
+        /*
         states.push (StateInfo ());
         move = "e7e5";
         pos.do_move (move, states.top ());
@@ -120,11 +121,11 @@ namespace Parser {
         move = "e1e2";
         pos.do_move (move, states.top ());
         print_key (pos.posi_key ());
-        
+        */
         auto book_move = book.probe_move (pos, false);
         cout << book_move << endl;
         cout << book.read_entries (pos);
-        */
+        
     
         /*
         const char fn_pgn[] = "book.pgn";
