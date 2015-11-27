@@ -3,7 +3,7 @@
 
 #include "Type.h"
 
-#define STRING_SIZE 256
+//#define STRING_SIZE 256
 
 typedef struct pgn_t
 {
@@ -15,9 +15,8 @@ typedef struct pgn_t
     bool char_unread;
     bool char_first;
 
+    std::string token;
     int token_type;
-    char token_string[STRING_SIZE];
-    int token_length;
     int token_line;
     int token_column;
     bool token_unread;
@@ -26,19 +25,19 @@ typedef struct pgn_t
     std::string result;
     std::string fen;
 
-    std::string WhiteELO;
-    std::string BlackELO;
+    std::string white_elo;
+    std::string black_elo;
 
     int move_line;
     int move_column;
     int game_nb;
 
+    void open (const char *fn_pgn);
+    void close ();
+
+    bool next_game ();
+    bool next_move (std::string &moves);
+
 } pgn_t;
-
-extern void open_pgn  (pgn_t *pgn, const char *fn_pgn);
-extern void close_pgn (pgn_t *pgn);
-
-extern bool next_game_pgn (pgn_t *pgn);
-extern bool next_move_pgn (pgn_t *pgn, std::string &moves);
 
 #endif

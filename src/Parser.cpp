@@ -32,7 +32,7 @@ namespace Parser {
         BitBoard::initialize ();
         Position::initialize ();
 
-    
+
         /*
         PGN pgn ("test.pgn", ios_base::in|ios_base::out);
         //PGN pgn ("book.pgn", ios_base::in);
@@ -81,7 +81,7 @@ namespace Parser {
         //game.parse (text);
         //cout << game;
 
-
+        /*
         Table table;
         table.load ("book.bin");
         table.filter ();
@@ -96,12 +96,12 @@ namespace Parser {
         Position pos(STARTUP_FEN);
 
         print_key (pos.posi_key ());
-        /*
+
         states.push (StateInfo ());
         move = "e2e4";
         pos.do_move (move, states.top ());
         print_key (pos.posi_key ());
-        /*
+
         states.push (StateInfo ());
         move = "e7e5";
         pos.do_move (move, states.top ());
@@ -121,26 +121,24 @@ namespace Parser {
         move = "e1e2";
         pos.do_move (move, states.top ());
         print_key (pos.posi_key ());
-        */
+        
         auto book_move = book.probe_move (pos, false);
         cout << book_move << endl;
         cout << book.read_entries (pos);
-        
+        */
     
-        /*
+        
         const char fn_pgn[] = "book.pgn";
 
         pgn_t pgn[1];
-        open_pgn (pgn, fn_pgn);
-        pgn->game_nb = 0;
-        while (next_game_pgn (pgn))
+        pgn->open (fn_pgn);
+        while (pgn->next_game ())
         {
             Position pos(STARTUP_FEN, nullptr);
-            //pgn->game_nb++;
     
             std::string move;
             StateStack states;
-            while (next_move_pgn (pgn, move))
+            while (pgn->next_move (move))
             {
                 Move m = move_from_san (move, pos);
 
@@ -155,9 +153,10 @@ namespace Parser {
 
             cout << endl << endl;
         }
+        pgn->close ();
 
         cout << pgn->game_nb << endl;
-        */
+
     }
 
 }
