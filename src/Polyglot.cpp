@@ -46,8 +46,8 @@ namespace Polyglot {
             assert(p1 != NULL);
             assert(p2 != NULL);
 
-            auto pe1 = static_cast <const Entry*> (p1);
-            auto pe2 = static_cast <const Entry*> (p2);
+            auto pe1 = static_cast<const Entry*> (p1);
+            auto pe2 = static_cast<const Entry*> (p2);
 
             if (false) {}
             else if (pe1->key > pe2->key) return +1;
@@ -99,6 +99,9 @@ namespace Polyglot {
     }
 
     // -------------------------
+
+    const u08 Book::HeaderSize = 96;
+    static_assert (Book::HeaderSize == 96, "Incorrect Book::HeaderSize");
 
     Book::Book (const string &book_fn, openmode mode)
         : fstream (book_fn, mode|ios_base::binary)
@@ -181,7 +184,7 @@ namespace Polyglot {
 
     // find_index() takes a hash-key as input, and search through the book file for the given key.
     // Returns the index of the 1st book entry with the same key as the input.
-    size_t Book::find_index (      Key key)
+    size_t Book::find_index (const Key key)
     {
         if (!is_open ()) return streampos(-1);
 
@@ -193,7 +196,7 @@ namespace Polyglot {
         while (beg_index < end_index && good ())
         {
             auto mid_index = size_t((beg_index + end_index) / 2);
-            assert(mid_index >= beg_index && mid_index < end_index);
+            assert(beg_index <= mid_index && mid_index < end_index);
 
             seekg (OFFSET(mid_index), ios_base::beg);
             *this >> pe;
@@ -369,7 +372,7 @@ namespace Polyglot {
                 pes.push_back (pe);
                 weight_sum += pe.weight;
             }
-        
+
             if (pes.empty ())
             {
                 std::cerr
@@ -381,8 +384,10 @@ namespace Polyglot {
             {
                 for_each (pes.begin (), pes.end (), [&oss, &weight_sum] (Entry e)
                 {
-                    oss << e << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0) << std::setfill (' ')
-                        << endl;
+                    oss << e << " prob: "
+                        << std::setfill ('0') << std::fixed << std::width_prec (6, 2)
+                        << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0)
+                        << std::defaultfloat << std::setfill (' ') << endl;
                 });
             }
         }
@@ -402,8 +407,8 @@ namespace Polyglot {
         _entry_count = 0;
         _hash_mask   = _entry_alloc * 2 - 1;
 
-        _entries = (Entry    *)malloc (_entry_alloc * Entry::Size);
-        _hashes  = (intptr_t *)malloc (_entry_alloc * 2 * sizeof (intptr_t));
+        _entries = static_cast<Entry   *> (malloc (_entry_alloc * Entry::Size));
+        _hashes  = static_cast<intptr_t*> (malloc (_entry_alloc * 2 * sizeof (intptr_t)));
 
         empty_hash_table ();
     }
@@ -462,8 +467,8 @@ namespace Polyglot {
         //    }
         //}
 
-        _entries = (Entry    *)realloc_ex (_entries, _entry_alloc * Entry::Size);
-        _hashes  = (intptr_t *)realloc_ex (_hashes   , _entry_alloc * 2 * sizeof (intptr_t));
+        _entries = static_cast<Entry   *> (realloc_ex (_entries, _entry_alloc * Entry::Size));
+        _hashes  = static_cast<intptr_t*> (realloc_ex (_hashes , _entry_alloc * 2 * sizeof (intptr_t)));
 
         rebuild_hash_table ();
     }
@@ -488,9 +493,9 @@ namespace Polyglot {
         {
             intptr_t pos = _hashes[index];
             assert(0 <= pos && (size_t)pos < _entry_count);
-            const auto &e = _entries[pos];
-            if (   e.key == key
-                && e.move == move
+            const auto &pe = _entries[pos];
+            if (   pe.key == key
+                && pe.move == move
                )
             {
                 return pos;

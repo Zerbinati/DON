@@ -6,7 +6,6 @@
 
 #include "BitBoard.h"
 #include "Zobrist.h"
-#include "Notation.h"
 
 class Position;
 

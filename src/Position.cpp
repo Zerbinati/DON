@@ -5,6 +5,7 @@
 #include <sstream>
 
 #include "MoveGenerator.h"
+#include "Notation.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -206,15 +207,15 @@ bool Position::repeated () const
 // Position consistency test, for debugging
 bool Position::ok (i08 *failed_step) const
 {
-    const bool Fast = true; // Quick (default) or full check?
+    const bool Fast = true; // Basic (default)
 
-    enum { Quick, King, Bitboards, State, Lists, Castling };
+    enum { Basic, King, Bitboards, State, Lists, Castling };
 
-    for (i08 step = Quick; step <= (Fast ? Quick : Castling); ++step)
+    for (i08 step = Basic; step <= (Fast ? Basic : Castling); ++step)
     {
         if (failed_step != nullptr) *failed_step = step;
 
-        if (step == Quick)
+        if (step == Basic)
         {
             if (   (WHITE != _active && BLACK != _active)
                 || (W_KING != _board[_piece_square[WHITE][KING][0]])
@@ -227,7 +228,6 @@ bool Position::ok (i08 *failed_step) const
                 return false;
             }
         }
-
         if (step == King)
         {
             if (   1 != std::count (_board, _board + SQ_NO, W_KING)
@@ -239,7 +239,6 @@ bool Position::ok (i08 *failed_step) const
                 return false;
             }
         }
-
         if (step == Bitboards)
         {
             if (   (_color_bb[WHITE] & _color_bb[BLACK]) != U64(0)
@@ -319,7 +318,6 @@ bool Position::ok (i08 *failed_step) const
                 }
             }
         }
-
         if (step == State)
         {
             if (   Zob.compute_matl_key (*this) != _psi->matl_key
@@ -333,7 +331,6 @@ bool Position::ok (i08 *failed_step) const
                 return false;
             }
         }
-
         if (step == Lists)
         {
             for (auto c = WHITE; c <= BLACK; ++c)
@@ -365,7 +362,6 @@ bool Position::ok (i08 *failed_step) const
                 }
             }
         }
-
         if (step == Castling)
         {
             for (auto c = WHITE; c <= BLACK; ++c)
@@ -387,7 +383,6 @@ bool Position::ok (i08 *failed_step) const
             }
         }
     }
-
     return true;
 }
 
@@ -1221,7 +1216,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
 
         assert(PAWN == promote (m) - NIHT
             && KING != cpt);
-        
+
         if (NONE != cpt)
         {
             do_capture ();
@@ -1283,13 +1278,13 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
             && R_6 == rel_rank (_active, dst));
 
         cap += pawn_push (pasive);
-        assert(!empty (cap)
-            && (pasive|PAWN) == _board[cap]);
-
         cpt = PAWN;
+        assert(!empty (cap)
+            && (pasive|cpt) == _board[cap]);
+
         do_capture ();
         _board[cap] = EMPTY; // Not done by remove_piece()
-        
+
         move_piece (org, dst);
 
         _psi->pawn_key ^=
@@ -1304,7 +1299,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
             -PSQ[_active][PAWN][org]
             +PSQ[_active][PAWN][dst];
 
-        //_psi->clock50 = 0; // No need as last move is also pawn
+        //_psi->clock50 = 0; // No need as pawn is the last piece moved
     }
         break;
 
