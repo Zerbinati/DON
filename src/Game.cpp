@@ -46,7 +46,7 @@ void Game::add_tag (const string &name, const string &value)
 
 bool Game::append_move (Move m)
 {
-    if (m != MOVE_NONE
+    if (   m != MOVE_NONE
         && MoveList<LEGAL> (position).contains (m)
        )
     {
@@ -59,7 +59,7 @@ bool Game::append_move (Move m)
 }
 bool Game::append_move (const string &move)
 {
-    Move m = move_from_san (move, position);
+    auto m = move_from_san (move, position);
     if (m == MOVE_NONE)
     {
         cerr << "ERROR: Illegal Move '" + move << "'" << endl;

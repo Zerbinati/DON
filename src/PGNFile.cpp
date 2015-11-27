@@ -9,6 +9,8 @@
 #include <sys/timeb.h>
 #include <sys/stat.h>
 
+using namespace std;
+
 namespace {
     
     bool Error;
@@ -146,13 +148,6 @@ namespace {
     void unread_char (pgn_t *pgn);
     // ------------------------------------
 
-    bool equal (const char string_1[], const char string_2[])
-    {
-        assert(string_1 != NULL);
-        assert(string_2 != NULL);
-        return strcmp (string_1, string_2) == 0;
-    }
-
     void read_token (pgn_t *pgn)
     {
         assert(pgn != NULL);
@@ -180,7 +175,7 @@ namespace {
 
         if (pgn->token_type == TOKEN_ERROR)
         {
-            log_fatal ("read_token(): lexical error at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+            log_fatal ("read_token(): lexical error at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
         }
         if (DispToken)
         {
@@ -284,7 +279,7 @@ namespace {
             {
                 //if (pgn->token.length () >= STRING_SIZE-1)
                 //{
-                //    log_fatal ("read_tok(): symbol too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+                //    log_fatal ("read_tok(): symbol too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
                 //}
 
                 if (!isdigit (pgn->char_hack)) pgn->token_type = TOKEN_SYMBOL;
@@ -322,7 +317,7 @@ namespace {
                 read_char (pgn);
                 if (pgn->char_hack == CHAR_EOF)
                 {
-                    log_fatal ("read_tok(): EOF in string at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+                    log_fatal ("read_tok(): EOF in string at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
                 }
 
                 if (pgn->char_hack == '"') break;
@@ -332,7 +327,7 @@ namespace {
                     read_char (pgn);
                     if (pgn->char_hack == CHAR_EOF)
                     {
-                        log_fatal ("read_tok(): EOF in string at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+                        log_fatal ("read_tok(): EOF in string at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
                     }
 
                     if (pgn->char_hack != '"' && pgn->char_hack != '\\')
@@ -340,7 +335,7 @@ namespace {
                         // bad escape, ignore
                         //if (pgn->token.length () >= STRING_SIZE-1)
                         //{
-                        //    log_fatal ("read_tok(): string too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+                        //    log_fatal ("read_tok(): string too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
                         //}
                         pgn->token += '\\';
                     }
@@ -348,7 +343,7 @@ namespace {
 
                 //if (pgn->token.length () >= STRING_SIZE-1)
                 //{
-                //    log_fatal ("read_tok(): string too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+                //    log_fatal ("read_tok(): string too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
                 //}
 
                 pgn->token += pgn->char_hack;
@@ -373,7 +368,7 @@ namespace {
 
                 if (pgn->token.length () >= 3)
                 {
-                    log_fatal ("read_tok(): NAG too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+                    log_fatal ("read_tok(): NAG too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
                 }
                 pgn->token += pgn->char_hack;
             }
@@ -382,7 +377,7 @@ namespace {
 
             if (pgn->token.length () == 0)
             {
-                log_fatal ("read_tok(): malformed NAG at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+                log_fatal ("read_tok(): malformed NAG at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
             }
 
             assert(0 < pgn->token.length () && pgn->token.length () <= 3);
@@ -391,7 +386,7 @@ namespace {
         else
         {
             // unknown token
-            log_fatal ("lexical error at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+            log_fatal ("lexical error at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
         }
     }
 
@@ -420,7 +415,7 @@ namespace {
                     read_char (pgn);
                     if (pgn->char_hack == CHAR_EOF)
                     {
-                        log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+                        log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
                     }
                 }
                 while (pgn->char_hack != '\n');
@@ -433,7 +428,7 @@ namespace {
                     read_char (pgn);
                     if (pgn->char_hack == CHAR_EOF)
                     {
-                        log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+                        log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
                     }
                 }
                 while (pgn->char_hack != '\n');
@@ -447,7 +442,7 @@ namespace {
 
                     if (pgn->char_hack == CHAR_EOF)
                     {
-                        log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->game_nb);
+                        log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
                     }
                 }
                 while (pgn->char_hack != '}');
@@ -512,7 +507,10 @@ namespace {
 
         if (pgn->char_hack == EOF)
         {
-            if (ferror (pgn->file)) log_fatal ("read_char(): fgetc(): %s\n", strerror (errno));
+            if (ferror (pgn->file))
+            {
+                log_fatal ("read_char(): fgetc(): %s\n", strerror (errno));
+            }
             pgn->char_hack = CHAR_EOF;
         }
 
@@ -533,13 +531,13 @@ namespace {
 
 }
 
-
-void pgn_t::open (const char *fn_pgn)
+void pgn_t::open (const string &pgn_fn)
 {
-    assert(fn_pgn != NULL);
-
-    file = fopen (fn_pgn, "r");
-    if (file == NULL) log_fatal ("open_pgn(): can't open file \"%s\": %s\n", fn_pgn, strerror (errno));
+    file = fopen (pgn_fn.c_str (), "r");
+    if (file == NULL)
+    {
+        log_fatal ("open_pgn(): can't open file \"%s\": %s\n", pgn_fn.c_str (), strerror (errno));
+    }
 
     char_hack      = CHAR_EOF; // DEBUG
     char_line      = 1;
@@ -554,14 +552,15 @@ void pgn_t::open (const char *fn_pgn)
     token_unread   = false;
     token_first    = true;
 
+    games          = 0;
     result         = "?"; // DEBUG
     fen            = "?"; // DEBUG
     white_elo      = "?"; // DEBUG
     black_elo      = "?"; // DEBUG
 
+    moves          = 0;
     move_line      = -1; // DEBUG
     move_column    = -1; // DEBUG
-    game_nb        = 0;
 }
 void pgn_t::close ()
 {
@@ -570,8 +569,8 @@ void pgn_t::close ()
 
 bool pgn_t::next_game ()
 {
-    std::string name;
-    std::string value;
+    string name;
+    string value;
 
     // init
     result    = "*";
@@ -589,27 +588,26 @@ bool pgn_t::next_game ()
         read_token (this);
         if (token_type != TOKEN_SYMBOL)
         {
-            log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, game_nb);
+            log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
         }
         name = token;
 
         read_token (this);
         if (token_type != TOKEN_STRING)
         {
-            log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, game_nb);
+            log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
         }
         value = token;
 
         read_token (this);
         if (token_type != ']')
         {
-            log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, game_nb);
+            log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
         }
 
         // special tag?
         if (false)
-        {
-        }
+        {}
         else if (name == "Result")
         {
             result = value;
@@ -629,12 +627,14 @@ bool pgn_t::next_game ()
     }
 
     if (token_type == TOKEN_EOF) return false;
-    unread_token (this);
     
-    game_nb++;
+    unread_token (this);
+    ++games;
+    moves = 0;
+
     return true;
 }
-bool pgn_t::next_move (std::string &move)
+bool pgn_t::next_move (string &move)
 {
     // init
     move_line      = -1;  // DEBUG
@@ -659,7 +659,7 @@ bool pgn_t::next_move (std::string &move)
             // close RAV
             if (depth == 0)
             {
-                log_fatal ("next_move_pgn(): malformed variation at line %d, column %d, game %d\n", token_line, token_column, game_nb);
+                log_fatal ("next_move_pgn(): malformed variation at line %d, column %d, game %d\n", token_line, token_column, games);
             }
             --depth;
             assert(depth >= 0);
@@ -669,7 +669,7 @@ bool pgn_t::next_move (std::string &move)
             // game finished
             if (depth > 0)
             {
-                log_fatal ("next_move_pgn(): malformed variation at line %d, column %d, game %d\n", token_line, token_column, game_nb);
+                log_fatal ("next_move_pgn(): malformed variation at line %d, column %d, game %d\n", token_line, token_column, games);
             }
             return false;
         }
@@ -688,14 +688,14 @@ bool pgn_t::next_move (std::string &move)
             // move must be a symbol
             if (token_type != TOKEN_SYMBOL)
             {
-                log_fatal ("next_move_pgn(): malformed move at line %d, column %d, game %d\n", token_line, token_column, game_nb);
+                log_fatal ("next_move_pgn(): malformed move at line %d, column %d, game %d\n", token_line, token_column, games);
             }
 
             // store move for later use
             if (depth == 0)
             {
                 move = token;
-
+                ++moves;
                 move_line = token_line;
                 move_column = token_column;
             }

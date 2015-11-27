@@ -128,20 +128,18 @@ namespace Parser {
         */
     
         
-        const char fn_pgn[] = "book.pgn";
-
-        pgn_t pgn[1];
-        pgn->open (fn_pgn);
-        while (pgn->next_game ())
+        pgn_t pgn;
+        string pgn_fn = "book.pgn";
+        pgn.open (pgn_fn);
+        while (pgn.next_game ())
         {
-            Position pos(STARTUP_FEN, nullptr);
-    
-            std::string move;
+            Position pos (pgn.fen.empty () ? STARTUP_FEN : pgn.fen);
+   
+            string move;
             StateStack states;
-            while (pgn->next_move (move))
+            while (pgn.next_move (move))
             {
-                Move m = move_from_san (move, pos);
-
+                auto m = move_from_san (move, pos);
             
                 cout << m << " ";
 
@@ -150,12 +148,11 @@ namespace Parser {
             
             }
 
-
-            cout << endl << endl;
+            cout << pgn.moves << endl;
         }
-        pgn->close ();
+        pgn.close ();
 
-        cout << pgn->game_nb << endl;
+        cout << pgn.games << endl;
 
     }
 

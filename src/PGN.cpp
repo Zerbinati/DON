@@ -4,18 +4,11 @@
 
 using namespace std;
 
-PGN::PGN ()
-    : fstream()
-    , _fn_pgn ("")
-    , _mode (ios_base::openmode(0))
-    , _size_pgn (0)
-{}
-
-PGN::PGN (const string &fn_pgn, ios_base::openmode mode)
-    : fstream (fn_pgn, mode | ios_base::binary)
-    , _fn_pgn (fn_pgn)
+PGN::PGN (const string &pgn_fn, ios_base::openmode mode)
+    : fstream (pgn_fn, mode | ios_base::binary)
+    , _pgn_fn (pgn_fn)
     , _mode (mode)
-    , _size_pgn (0)
+    , _size (0)
 {
     clear (); // Reset any error flag to allow retry open()
     _build_indexes ();
@@ -26,12 +19,12 @@ PGN::~PGN ()
     close ();
 }
 
-bool PGN::open (const string &fn_pgn, ios_base::openmode mode)
+bool PGN::open (const string &pgn_fn, ios_base::openmode mode)
 {
     close ();
-    fstream::open (fn_pgn, mode | ios_base::binary);
+    fstream::open (pgn_fn, mode | ios_base::binary);
     clear (); // Reset any error flag to allow retry open()
-    _fn_pgn = fn_pgn;
+    _pgn_fn = pgn_fn;
     _mode   = mode;
     _build_indexes ();
     return is_open ();
@@ -41,15 +34,15 @@ void PGN::close () { if (is_open ()) { fstream::close (); _reset (); } }
 
 void PGN::_reset ()
 {
-    //_fn_pgn.clear ();
+    //_pgn_fn.clear ();
     //_mode       = 0;
-    _size_pgn   = 0;
-    _indexes_game.clear ();
+    _size   = 0;
+    _game_indexes.clear ();
 }
 
 void PGN::_build_indexes ()
 {
-    if (is_open () && (_mode & ios_base::in) && good ())
+    if (is_open () && good ())
     {
         if (0 < game_count ())
         {
@@ -58,22 +51,26 @@ void PGN::_build_indexes ()
 
         size ();
 
-
         u64 pos = 0;
         State state = S_NEW;
-
+        
         // Clear the char stack
-        while (!_stk_char.empty ()) _stk_char.pop ();
+        while (!_char_stack.empty ())
+        {
+            _char_stack.pop ();
+        }
+        //std::stack<char> empty;
+        //_char_stack.swap (empty);
 
         seekg (0L);
         do
         {
-            const i32 MaxBuff = 32*1024;
+            const i32 MAX_BUFF = 32*1024;
             //std::string str;
             //std::getline (*this, str);
 
-            std::string str (MaxBuff, '\0');
-            read (&str[0], MaxBuff);
+            std::string str (MAX_BUFF, '\0');
+            read (&str[0], MAX_BUFF);
                 
             _scan_index (str, pos, state);
         }
@@ -116,9 +113,9 @@ void PGN::_scan_index (const string &str, u64 &pos, State &state)
 
         if ('\0' == c)
         {
-            if (!_stk_char.empty ())
+            if (!_char_stack.empty ())
             {
-                cerr << "ERROR: missing closing character of: " << _stk_char.top () << "at location: " << (pos + offset);
+                cerr << "ERROR: missing closing character of: " << _char_stack.top () << "at location: " << (pos + offset);
                 state = S_ERR;
                 goto finish;
             }
@@ -214,7 +211,7 @@ void PGN::_scan_index (const string &str, u64 &pos, State &state)
                 break;
             case  '(':
                 state = S_VAR_LST;
-                _stk_char.push (c);
+                _char_stack.push (c);
                 break;
             case  '{':
                 state = S_MOV_COM;
@@ -247,7 +244,7 @@ void PGN::_scan_index (const string &str, u64 &pos, State &state)
                 break;
             case  '(':
                 state = S_VAR_LST;
-                _stk_char.push (c);
+                _char_stack.push (c);
                 break;
             case  '{':
                 state = S_MOV_COM;
@@ -277,10 +274,10 @@ void PGN::_scan_index (const string &str, u64 &pos, State &state)
             switch (c)
             {
             case  '(':
-                _stk_char.push (c);
+                _char_stack.push (c);
                 break;
             case  ')':
-                if (_stk_char.empty () || '(' != _stk_char.top ())
+                if (_char_stack.empty () || '(' != _char_stack.top ())
                 {
                     cerr << ("ERROR: missing opening of variation");
                     state = S_ERR;
@@ -288,15 +285,15 @@ void PGN::_scan_index (const string &str, u64 &pos, State &state)
                 }
                 else
                 {
-                    _stk_char.pop ();
+                    _char_stack.pop ();
                 }
                 break;
             case  '{':
                 state = S_VAR_COM;
-                _stk_char.push (c);
+                _char_stack.push (c);
                 break;
             default:
-                if (_stk_char.empty ())
+                if (_char_stack.empty ())
                 {
                     state = S_MOV_LST;
                 }
@@ -308,7 +305,7 @@ void PGN::_scan_index (const string &str, u64 &pos, State &state)
             switch (c)
             {
             case  '}':
-                if (_stk_char.empty () || '{' != _stk_char.top ())
+                if (_char_stack.empty () || '{' != _char_stack.top ())
                 {
                     cerr << ("ERROR:: missing opening of variation comment");
                     state = S_ERR;
@@ -317,7 +314,7 @@ void PGN::_scan_index (const string &str, u64 &pos, State &state)
                 else
                 {
                     state = S_VAR_LST;
-                    _stk_char.pop ();
+                    _char_stack.pop ();
                 }
                 break;
             }
@@ -343,10 +340,10 @@ void PGN::_add_index (u64 pos)
     //u64 g_count = game_count ();
     //if (0 < g_count)
     //{
-    //    if (pos <= _indexes_game[g_count - 1]) return;
+    //    if (pos <= _game_indexes[g_count - 1]) return;
     //}
 
-    _indexes_game.push_back (pos);
+    _game_indexes.push_back (pos);
 }
 
 /*
@@ -383,8 +380,8 @@ string PGN::read_text (u64 index)
     {
         if (is_open () && good ())
         {
-            auto beg_pos = 1 == index ? 0 : _indexes_game[index - 2];
-            auto end_pos = _indexes_game[index - 1];
+            auto beg_pos = 1 == index ? 0 : _game_indexes[index - 2];
+            auto end_pos = _game_indexes[index - 1];
 
             auto size = end_pos - beg_pos;
             
@@ -427,8 +424,8 @@ string PGN::read_text (u64 beg_index, u64 end_index)
     {
         if (is_open () && good ())
         {
-            auto beg_pos = 1 == beg_index ? 0 : _indexes_game[beg_index - 2];
-            auto end_pos = _indexes_game[end_index - 1];
+            auto beg_pos = 1 == beg_index ? 0 : _game_indexes[beg_index - 2];
+            auto end_pos = _game_indexes[end_index - 1];
 
             auto size = end_pos - beg_pos;
 

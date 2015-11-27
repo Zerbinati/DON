@@ -5,7 +5,7 @@
 
 //#define STRING_SIZE 256
 
-typedef struct pgn_t
+struct pgn_t
 {
     FILE *file;
 
@@ -22,22 +22,22 @@ typedef struct pgn_t
     bool token_unread;
     bool token_first;
 
+    int games;
     std::string result;
     std::string fen;
-
     std::string white_elo;
     std::string black_elo;
 
+    int moves;
     int move_line;
     int move_column;
-    int game_nb;
 
-    void open (const char *fn_pgn);
+    void open (const std::string &pgn_fn);
     void close ();
 
     bool next_game ();
     bool next_move (std::string &moves);
 
-} pgn_t;
+};
 
 #endif

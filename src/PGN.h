@@ -33,13 +33,12 @@ private:
 
     };
 
-    std::string _fn_pgn;
-    std::ios_base::openmode _mode;
+    std::string _pgn_fn = "";
+    openmode    _mode   = openmode(0);
+    size_t      _size   = 0;
 
-    u64 _size_pgn;
-
-    std::vector<u64> _indexes_game;
-    std::stack<char> _stk_char;
+    std::vector<u64> _game_indexes;
+    std::stack<char> _char_stack;
 
     void _reset ();
     void _build_indexes ();
@@ -49,37 +48,30 @@ private:
 
 public:
 
+    PGN () = default;
     PGN (const PGN&) = delete;
     PGN& operator= (const PGN&) = delete;
-
-    PGN ();
-
-    // mode = std::ios_base::in|std::ios_base::out
-
-    PGN (const std::string &fn_pgn, std::ios_base::openmode mode);
-
+    
+    PGN (const std::string &pgn_fn, std::ios_base::openmode mode);
     ~PGN ();
 
-    bool open (const std::string &fn_pgn, std::ios_base::openmode mode);
-
+    bool open (const std::string &pgn_fn, std::ios_base::openmode mode);
     void close ();
 
-    u64 size ()
+    std::string pgn_fn () const { return _pgn_fn; }
+    size_t size ()
     {
-        if (0 >= _size_pgn)
-        {
-            u64 pos_cur = tellg ();
-            seekg (0L, std::ios_base::end);
-            _size_pgn = tellg ();
-            seekg (pos_cur, std::ios_base::beg);
-            clear ();
-        }
-        return _size_pgn;
+        if (_size != 0) return _size;
+
+        u64 pos_cur = tellg ();
+        seekg (0L, std::ios_base::end);
+        _size = tellg ();
+        seekg (pos_cur, std::ios_base::beg);
+        clear ();
+        return _size;
     }
 
-    std::string filename () const { return _fn_pgn; }
-
-    u64 game_count () const { return _indexes_game.size (); }
+    u64 game_count () const { return _game_indexes.size (); }
 
     std::string read_text (u64 index);
     std::string read_text (u64 beg_index, u64 end_index);
