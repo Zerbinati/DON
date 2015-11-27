@@ -133,402 +133,369 @@ namespace {
         }
     }
 
-    // ------------------------------------
-    void read_token (pgn_t *pgn);
-    void unread_token (pgn_t *pgn);
-
-    void read_tok (pgn_t *pgn);
-
-    bool symbol_start (int c);
-    bool symbol_next (int c);
-
-    void read_skip_blanks (pgn_t *pgn);
-
-    void read_char (pgn_t *pgn);
-    void unread_char (pgn_t *pgn);
-    // ------------------------------------
-
-    void read_token (pgn_t *pgn)
-    {
-        assert(pgn != NULL);
-
-        // token "stack"
-        if (pgn->token_unread)
-        {
-            pgn->token_unread = false;
-            return;
-        }
-
-        // consume the current token
-        if (pgn->token_first)
-        {
-            pgn->token_first = false;
-        }
-        else
-        {
-            assert(pgn->token_type != TOKEN_ERROR);
-            assert(pgn->token_type != TOKEN_EOF);
-        }
-
-        // read a new token
-        read_tok (pgn);
-
-        if (pgn->token_type == TOKEN_ERROR)
-        {
-            log_fatal ("read_token(): lexical error at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-        }
-        if (DispToken)
-        {
-            printf ("< L%d C%d \"%s\" (%03X)\n", pgn->token_line, pgn->token_column, pgn->token.c_str (), pgn->token_type);
-        }
-    }
-
-    void unread_token (pgn_t *pgn)
-    {
-        assert(pgn != NULL);
-        assert(!pgn->token_unread);
-        assert(!pgn->token_first);
-        pgn->token_unread = true;
-    }
-
-    void read_tok (pgn_t *pgn)
-    {
-        assert(pgn != NULL);
-
-        // skip white-space characters
-        read_skip_blanks (pgn);
-
-        // init
-        pgn->token = "";
-        pgn->token_type = TOKEN_ERROR;
-        pgn->token_line = pgn->char_line;
-        pgn->token_column = pgn->char_column;
-
-        // determine token type
-        if (false)
-        {
-        }
-        else if (pgn->char_hack == CHAR_EOF)
-        {
-            pgn->token_type = TOKEN_EOF;
-        }
-        else if (strchr (".[]()<>", pgn->char_hack) != NULL)
-        {
-            // single-character token
-            pgn->token_type = pgn->char_hack;
-            pgn->token = pgn->char_hack;
-        }
-        else if (pgn->char_hack == '*')
-        {
-            pgn->token_type = TOKEN_RESULT;
-            pgn->token = pgn->char_hack;
-        }
-        else if (pgn->char_hack == '!')
-        {
-            read_char (pgn);
-            if (false)
-            {
-            }
-            else if (pgn->char_hack == '!')
-            { // "!!"
-                pgn->token_type = TOKEN_NAG;
-                pgn->token = "3";
-            }
-            else if (pgn->char_hack == '?')
-            { // "!?"
-                pgn->token_type = TOKEN_NAG;
-                pgn->token = "5";
-            }
-            else
-            { // "!"
-                unread_char (pgn);
-                pgn->token_type = TOKEN_NAG;
-                pgn->token = "1";
-            }
-        }
-        else if (pgn->char_hack == '?')
-        {
-            read_char (pgn);
-
-            if (false)
-            {
-            }
-            else if (pgn->char_hack == '?')
-            { // "??"
-                pgn->token_type = TOKEN_NAG;
-                pgn->token = "4";
-            }
-            else if (pgn->char_hack == '!')
-            { // "?!"
-                pgn->token_type = TOKEN_NAG;
-                pgn->token = "6";
-            }
-            else
-            { // "?"
-                unread_char (pgn);
-                pgn->token_type = TOKEN_NAG;
-                pgn->token = "2";
-            }
-        }
-        else if (symbol_start (pgn->char_hack))
-        {
-            // symbol, integer, or result
-            pgn->token_type = TOKEN_INTEGER;
-            pgn->token = "";
-            do
-            {
-                //if (pgn->token.length () >= STRING_SIZE-1)
-                //{
-                //    log_fatal ("read_tok(): symbol too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-                //}
-
-                if (!isdigit (pgn->char_hack)) pgn->token_type = TOKEN_SYMBOL;
-
-                pgn->token += pgn->char_hack;
-
-                read_char (pgn);
-                if (pgn->char_hack == CHAR_EOF) break;
-            }
-            while (symbol_next (pgn->char_hack));
-
-            unread_char (pgn);
-
-            assert(0 < pgn->token.length ()
-                //&& pgn->token.length () < STRING_SIZE
-                );
-            //pgn->token += '\0';
-
-            if (   pgn->token == "1-0"
-                || pgn->token == "0-1"
-                || pgn->token == "1/2-1/2"
-               )
-            {
-                pgn->token_type = TOKEN_RESULT;
-            }
-        }
-        else if (pgn->char_hack == '"')
-        {
-            // string
-            pgn->token_type = TOKEN_STRING;
-            pgn->token = "";
-
-            while (true)
-            {
-                read_char (pgn);
-                if (pgn->char_hack == CHAR_EOF)
-                {
-                    log_fatal ("read_tok(): EOF in string at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-                }
-
-                if (pgn->char_hack == '"') break;
-
-                if (pgn->char_hack == '\\')
-                {
-                    read_char (pgn);
-                    if (pgn->char_hack == CHAR_EOF)
-                    {
-                        log_fatal ("read_tok(): EOF in string at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-                    }
-
-                    if (pgn->char_hack != '"' && pgn->char_hack != '\\')
-                    {
-                        // bad escape, ignore
-                        //if (pgn->token.length () >= STRING_SIZE-1)
-                        //{
-                        //    log_fatal ("read_tok(): string too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-                        //}
-                        pgn->token += '\\';
-                    }
-                }
-
-                //if (pgn->token.length () >= STRING_SIZE-1)
-                //{
-                //    log_fatal ("read_tok(): string too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-                //}
-
-                pgn->token += pgn->char_hack;
-            }
-
-            assert(0 <= pgn->token.length ()
-                //&& pgn->token.length () < STRING_SIZE
-                );
-            //pgn->token += '\0';
-        }
-        else if (pgn->char_hack == '$')
-        {
-            // NAG
-            pgn->token_type = TOKEN_NAG;
-            pgn->token = "";
-
-            while (true)
-            {
-                read_char (pgn);
-
-                if (!isdigit (pgn->char_hack)) break;
-
-                if (pgn->token.length () >= 3)
-                {
-                    log_fatal ("read_tok(): NAG too long at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-                }
-                pgn->token += pgn->char_hack;
-            }
-
-            unread_char (pgn);
-
-            if (pgn->token.length () == 0)
-            {
-                log_fatal ("read_tok(): malformed NAG at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-            }
-
-            assert(0 < pgn->token.length () && pgn->token.length () <= 3);
-            //pgn->token += '\0';
-        }
-        else
-        {
-            // unknown token
-            log_fatal ("lexical error at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-        }
-    }
-
-    void read_skip_blanks (pgn_t *pgn)
-    {
-        assert(pgn != NULL);
-        while (true)
-        {
-            read_char (pgn);
-            if (false)
-            {
-            }
-            else if (pgn->char_hack == CHAR_EOF)
-            {
-                break;
-            }
-            else if (isspace (pgn->char_hack))
-            {
-                // skip white space
-            }
-            else if (pgn->char_hack == ';')
-            {
-                // skip comment to EOL
-                do
-                {
-                    read_char (pgn);
-                    if (pgn->char_hack == CHAR_EOF)
-                    {
-                        log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-                    }
-                }
-                while (pgn->char_hack != '\n');
-            }
-            else if (pgn->char_hack == '%' && pgn->char_column == 0)
-            {
-                // skip comment to EOL
-                do
-                {
-                    read_char (pgn);
-                    if (pgn->char_hack == CHAR_EOF)
-                    {
-                        log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-                    }
-                }
-                while (pgn->char_hack != '\n');
-            }
-            else if (pgn->char_hack == '{')
-            {
-                // skip comment to next '}'
-                do
-                {
-                    read_char (pgn);
-
-                    if (pgn->char_hack == CHAR_EOF)
-                    {
-                        log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", pgn->char_line, pgn->char_column, pgn->games);
-                    }
-                }
-                while (pgn->char_hack != '}');
-            }
-            else
-            { // not a white space
-                break;
-            }
-        }
-    }
-
     bool symbol_start (int c)
     {
         return strchr ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", c) != NULL;
     }
-
     bool symbol_next (int c)
     {
         return strchr ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_+#=:-/", c) != NULL;
     }
+    
+}
 
-    void read_char (pgn_t *pgn)
+void pgn_t::read_char ()
+{
+    // char "stack"
+    if (char_unread)
     {
-        assert(pgn != NULL);
-        // char "stack"
-        if (pgn->char_unread)
-        {
-            pgn->char_unread = false;
-            return;
-        }
+        char_unread = false;
+        return;
+    }
 
-        // consume the current character
-        if (pgn->char_first)
+    // consume the current character
+    if (char_first)
+    {
+        char_first = false;
+    }
+    else
+    {
+        // update counters
+        assert (char_hack != CHAR_EOF);
+        if (false)
+        {}
+        else if (char_hack == '\n')
         {
-            pgn->char_first = false;
+            char_line++;
+            char_column = 0;
+        }
+        else if (char_hack == '\t')
+        {
+            char_column += TAB_SIZE - (char_column % TAB_SIZE);
         }
         else
         {
-            // update counters
-            assert(pgn->char_hack != CHAR_EOF);
-
-            if (false)
-            {
-            }
-            else if (pgn->char_hack == '\n')
-            {
-                pgn->char_line++;
-                pgn->char_column = 0;
-            }
-            else if (pgn->char_hack == '\t')
-            {
-                pgn->char_column += TAB_SIZE - (pgn->char_column % TAB_SIZE);
-            }
-            else
-            {
-                pgn->char_column++;
-            }
-        }
-
-        // read a new character
-        pgn->char_hack = fgetc (pgn->file);
-
-        if (pgn->char_hack == EOF)
-        {
-            if (ferror (pgn->file))
-            {
-                log_fatal ("read_char(): fgetc(): %s\n", strerror (errno));
-            }
-            pgn->char_hack = CHAR_EOF;
-        }
-
-        if (DispChar)
-        {
-            printf ("< L%d C%d '%c' (%02X)\n", pgn->char_line, pgn->char_column, pgn->char_hack, pgn->char_hack);
+            char_column++;
         }
     }
 
-    void unread_char (pgn_t *pgn)
+    // read a new character
+    char_hack = fgetc (file);
+
+    if (char_hack == EOF)
     {
-        assert(pgn != NULL);
-        assert(!pgn->char_unread);
-        assert(!pgn->char_first);
-
-        pgn->char_unread = true;
+        if (ferror (file))
+        {
+            log_fatal ("read_char(): fgetc(): %s\n", strerror (errno));
+        }
+        char_hack = CHAR_EOF;
     }
 
+    if (DispChar)
+    {
+        printf ("< L%d C%d '%c' (%02X)\n", char_line, char_column, char_hack, char_hack);
+    }
+}
+void pgn_t::unread_char ()
+{
+    assert (!char_unread);
+    assert (!char_first);
+    char_unread = true;
+}
+
+void pgn_t::read_skip_blanks ()
+{
+    while (true)
+    {
+        read_char ();
+        if (false)
+        {
+        }
+        else if (char_hack == CHAR_EOF)
+        {
+            break;
+        }
+        else if (isspace (char_hack))
+        {
+            // skip white space
+        }
+        else if (char_hack == ';')
+        {
+            // skip comment to EOL
+            do
+            {
+                read_char ();
+                if (char_hack == CHAR_EOF)
+                {
+                    log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", char_line, char_column, games);
+                }
+            } while (char_hack != '\n');
+        }
+        else if (char_hack == '%' && char_column == 0)
+        {
+            // skip comment to EOL
+            do
+            {
+                read_char ();
+                if (char_hack == CHAR_EOF)
+                {
+                    log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", char_line, char_column, games);
+                }
+            } while (char_hack != '\n');
+        }
+        else if (char_hack == '{')
+        {
+            // skip comment to next '}'
+            do
+            {
+                read_char ();
+
+                if (char_hack == CHAR_EOF)
+                {
+                    log_fatal ("read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", char_line, char_column, games);
+                }
+            } while (char_hack != '}');
+        }
+        else
+        { // not a white space
+            break;
+        }
+    }
+}
+
+void pgn_t::read_token ()
+{
+
+    // token "stack"
+    if (token_unread)
+    {
+        token_unread = false;
+        return;
+    }
+
+    // consume the current token
+    if (token_first)
+    {
+        token_first = false;
+    }
+    else
+    {
+        assert (token_type != TOKEN_ERROR);
+        assert (token_type != TOKEN_EOF);
+    }
+
+    // read a new token
+    read_tok ();
+
+    if (token_type == TOKEN_ERROR)
+    {
+        log_fatal ("read_token(): lexical error at line %d, column %d, game %d\n", char_line, char_column, games);
+    }
+    if (DispToken)
+    {
+        printf ("< L%d C%d \"%s\" (%03X)\n", token_line, token_column, token.c_str (), token_type);
+    }
+}
+void pgn_t::unread_token ()
+{
+    assert (!token_unread);
+    assert (!token_first);
+    token_unread = true;
+}
+
+void pgn_t::read_tok ()
+{
+    // skip white-space characters
+    read_skip_blanks ();
+
+    // init
+    token = "";
+    token_type = TOKEN_ERROR;
+    token_line = char_line;
+    token_column = char_column;
+
+    // determine token type
+    if (false)
+    {
+    }
+    else if (char_hack == CHAR_EOF)
+    {
+        token_type = TOKEN_EOF;
+    }
+    else if (strchr (".[]()<>", char_hack) != NULL)
+    {
+        // single-character token
+        token_type = char_hack;
+        token = char_hack;
+    }
+    else if (char_hack == '*')
+    {
+        token_type = TOKEN_RESULT;
+        token = char_hack;
+    }
+    else if (char_hack == '!')
+    {
+        read_char ();
+        if (false)
+        {
+        }
+        else if (char_hack == '!')
+        { // "!!"
+            token_type = TOKEN_NAG;
+            token = "3";
+        }
+        else if (char_hack == '?')
+        { // "!?"
+            token_type = TOKEN_NAG;
+            token = "5";
+        }
+        else
+        { // "!"
+            unread_char ();
+            token_type = TOKEN_NAG;
+            token = "1";
+        }
+    }
+    else if (char_hack == '?')
+    {
+        read_char ();
+        if (false)
+        {
+        }
+        else if (char_hack == '?')
+        { // "??"
+            token_type = TOKEN_NAG;
+            token = "4";
+        }
+        else if (char_hack == '!')
+        { // "?!"
+            token_type = TOKEN_NAG;
+            token = "6";
+        }
+        else
+        { // "?"
+            unread_char ();
+            token_type = TOKEN_NAG;
+            token = "2";
+        }
+    }
+    else if (symbol_start (char_hack))
+    {
+        // symbol, integer, or result
+        token_type = TOKEN_INTEGER;
+        token = "";
+        do
+        {
+            //if (token.length () >= STRING_SIZE-1)
+            //{
+            //    log_fatal ("read_tok(): symbol too long at line %d, column %d, game %d\n", char_line, char_column, games);
+            //}
+
+            if (!isdigit (char_hack)) token_type = TOKEN_SYMBOL;
+
+            token += char_hack;
+
+            read_char ();
+            if (char_hack == CHAR_EOF) break;
+        } while (symbol_next (char_hack));
+
+        unread_char ();
+
+        assert (0 < token.length ()
+            //&& token.length () < STRING_SIZE
+            );
+        //token += '\0';
+
+        if (   token == "1-0"
+            || token == "0-1"
+            || token == "1/2-1/2"
+            )
+        {
+            token_type = TOKEN_RESULT;
+        }
+    }
+    else if (char_hack == '"')
+    {
+        // string
+        token_type = TOKEN_STRING;
+        token = "";
+
+        while (true)
+        {
+            read_char ();
+            if (char_hack == CHAR_EOF)
+            {
+                log_fatal ("read_tok(): EOF in string at line %d, column %d, game %d\n", char_line, char_column, games);
+            }
+
+            if (char_hack == '"') break;
+
+            if (char_hack == '\\')
+            {
+                read_char ();
+                if (char_hack == CHAR_EOF)
+                {
+                    log_fatal ("read_tok(): EOF in string at line %d, column %d, game %d\n", char_line, char_column, games);
+                }
+
+                if (char_hack != '"' && char_hack != '\\')
+                {
+                    // bad escape, ignore
+                    //if (token.length () >= STRING_SIZE-1)
+                    //{
+                    //    log_fatal ("read_tok(): string too long at line %d, column %d, game %d\n", char_line, char_column, games);
+                    //}
+                    token += '\\';
+                }
+            }
+
+            //if (token.length () >= STRING_SIZE-1)
+            //{
+            //    log_fatal ("read_tok(): string too long at line %d, column %d, game %d\n", char_line, char_column, games);
+            //}
+
+            token += char_hack;
+        }
+
+        assert (0 <= token.length ()
+            //&& token.length () < STRING_SIZE
+            );
+        //token += '\0';
+    }
+    else if (char_hack == '$')
+    {
+        // NAG
+        token_type = TOKEN_NAG;
+        token = "";
+
+        while (true)
+        {
+            read_char ();
+
+            if (!isdigit (char_hack)) break;
+
+            if (token.length () >= 3)
+            {
+                log_fatal ("read_tok(): NAG too long at line %d, column %d, game %d\n", char_line, char_column, games);
+            }
+            token += char_hack;
+        }
+
+        unread_char ();
+
+        if (token.length () == 0)
+        {
+            log_fatal ("read_tok(): malformed NAG at line %d, column %d, game %d\n", char_line, char_column, games);
+        }
+
+        assert (0 < token.length () && token.length () <= 3);
+        //token += '\0';
+    }
+    else
+    {
+        // unknown token
+        log_fatal ("lexical error at line %d, column %d, game %d\n", char_line, char_column, games);
+    }
 }
 
 void pgn_t::open (const string &pgn_fn)
@@ -580,26 +547,26 @@ bool pgn_t::next_game ()
 
     while (true)
     {
-        read_token (this);
+        read_token ();
 
         if (token_type != '[') break;
 
         // tag
-        read_token (this);
+        read_token ();
         if (token_type != TOKEN_SYMBOL)
         {
             log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
         }
         name = token;
 
-        read_token (this);
+        read_token ();
         if (token_type != TOKEN_STRING)
         {
             log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
         }
         value = token;
 
-        read_token (this);
+        read_token ();
         if (token_type != ']')
         {
             log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
@@ -628,7 +595,7 @@ bool pgn_t::next_game ()
 
     if (token_type == TOKEN_EOF) return false;
     
-    unread_token (this);
+    unread_token ();
     ++games;
     moves = 0;
 
@@ -645,10 +612,9 @@ bool pgn_t::next_move (string &move)
 
     while (true)
     {
-        read_token (this);
+        read_token ();
         if (false)
-        {
-        }
+        {}
         else if (token_type == '(')
         {
             // open RAV
@@ -680,7 +646,7 @@ bool pgn_t::next_move (string &move)
             {
                 do
                 {
-                    read_token (this);
+                    read_token ();
                 }
                 while (token_type == '.');
             }
@@ -703,10 +669,10 @@ bool pgn_t::next_move (string &move)
             // skip optional NAGs
             do
             {
-                read_token (this);
+                read_token ();
             }
             while (token_type == TOKEN_NAG);
-            unread_token (this);
+            unread_token ();
 
             // return move
             if (depth == 0)

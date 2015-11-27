@@ -7,6 +7,19 @@
 
 struct pgn_t
 {
+private:
+
+    void read_char ();
+    void unread_char ();
+
+    void read_skip_blanks ();
+
+    void read_token ();
+    void unread_token ();
+
+    void read_tok ();
+
+public:
     FILE *file;
 
     int char_hack;
