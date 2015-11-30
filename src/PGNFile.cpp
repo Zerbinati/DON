@@ -14,7 +14,7 @@ using namespace std;
 namespace {
     
     bool Error;
-    FILE *LogFile = NULL;
+    FILE *LogFile = nullptr;
 
     void log_fatal (const char format[], ...);
 
@@ -135,11 +135,11 @@ namespace {
 
     bool symbol_start (int c)
     {
-        return strchr ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", c) != NULL;
+        return strchr ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", c) != nullptr;
     }
     bool symbol_next (int c)
     {
-        return strchr ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_+#=:-/", c) != NULL;
+        return strchr ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_+#=:-/", c) != nullptr;
     }
     
 }
@@ -322,16 +322,16 @@ void pgn_t::read_tok ()
     {
         token_type = TOKEN_EOF;
     }
-    else if (strchr (".[]()<>", char_hack) != NULL)
+    else if (strchr (".[]()<>", char_hack) != nullptr)
     {
         // single-character token
         token_type = char_hack;
-        token = char_hack;
+        token = (char)char_hack;
     }
     else if (char_hack == '*')
     {
         token_type = TOKEN_RESULT;
-        token = char_hack;
+        token = (char)char_hack;
     }
     else if (char_hack == '!')
     {
@@ -393,7 +393,7 @@ void pgn_t::read_tok ()
 
             if (!isdigit (char_hack)) token_type = TOKEN_SYMBOL;
 
-            token += char_hack;
+            token += (char)char_hack;
 
             read_char ();
             if (char_hack == CHAR_EOF) break;
@@ -454,7 +454,7 @@ void pgn_t::read_tok ()
             //    log_fatal ("read_tok(): string too long at line %d, column %d, game %d\n", char_line, char_column, games);
             //}
 
-            token += char_hack;
+            token += (char)char_hack;
         }
 
         assert (0 <= token.length ()
@@ -478,7 +478,7 @@ void pgn_t::read_tok ()
             {
                 log_fatal ("read_tok(): NAG too long at line %d, column %d, game %d\n", char_line, char_column, games);
             }
-            token += char_hack;
+            token += (char)char_hack;
         }
 
         unread_char ();
@@ -501,7 +501,7 @@ void pgn_t::read_tok ()
 void pgn_t::open (const string &pgn_fn)
 {
     file = fopen (pgn_fn.c_str (), "r");
-    if (file == NULL)
+    if (file == nullptr)
     {
         log_fatal ("open_pgn(): can't open file \"%s\": %s\n", pgn_fn.c_str (), strerror (errno));
     }
@@ -532,6 +532,7 @@ void pgn_t::open (const string &pgn_fn)
 void pgn_t::close ()
 {
     fclose (file);
+    file = nullptr;
 }
 
 bool pgn_t::next_game ()

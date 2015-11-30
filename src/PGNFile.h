@@ -19,8 +19,9 @@ private:
 
     void read_tok ();
 
+    FILE *file = nullptr;
+
 public:
-    FILE *file;
 
     int char_hack;
     int char_line;
