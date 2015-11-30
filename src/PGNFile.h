@@ -9,17 +9,17 @@ struct pgn_t
 {
 private:
 
-    void read_char ();
-    void unread_char ();
+    void _read_char ();
+    void _unread_char ();
 
-    void read_skip_blanks ();
+    void _read_skip_blanks ();
 
-    void read_token ();
-    void unread_token ();
+    void _read_token ();
+    void _unread_token ();
 
-    void read_tok ();
+    void _read_tok ();
 
-    FILE *file = nullptr;
+    FILE *_file = nullptr;
 
 public:
 
