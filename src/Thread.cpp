@@ -50,15 +50,14 @@ namespace Threading {
     }
 
     // ThreadPool::deinitialize() cleanly terminates the threads before the program exits
-    // Cannot be done in destructor because threads must be terminated before freeing threadpool.
+    // Cannot be done in destructor because threads must be terminated before freeing Threadpool.
     void ThreadPool::deinitialize ()
     {
-        for (auto *th : *this)
+        while (!empty ())
         {
-            delete th;
+            delete back ();
+            pop_back ();    // Get rid of stale pointer
         }
-
-        clear (); // Get rid of stale pointers
     }
 
     // ThreadPool::configure() updates internal threads parameters from the corresponding
