@@ -627,9 +627,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".travis.yml" />
-    <None Include="AssemblyDependencies.dgml">
-      <SubType>Designer</SubType>
-    </None>
     <None Include="ClassDiagram.cd" />
     <None Include="CodeMap.dgml">
       <SubType>Designer</SubType>
