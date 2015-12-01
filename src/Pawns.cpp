@@ -60,12 +60,6 @@ namespace Pawns {
 
     #define S(mg, eg) mk_score(mg, eg)
 
-        const Bitboard EXT_CENTER_bb[CLR_NO] =
-        {
-            (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R2_bb|R3_bb|R4_bb|R5_bb|R6_bb),
-            (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R3_bb|R4_bb|R5_bb|R6_bb|R7_bb)
-        };
-
         // Connected pawn bonus by [opposed][phalanx][rank] (by formula)
         Score CONNECTED[2][2][2][R_NO];
 
@@ -116,6 +110,9 @@ namespace Pawns {
             const auto CenterBindMask = WHITE == Own ?
                 (FD_bb|FE_bb) & (R5_bb|R6_bb|R7_bb) :
                 (FD_bb|FE_bb) & (R4_bb|R3_bb|R2_bb);
+            const auto CenterExtMask =  WHITE == Own ?
+                (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R2_bb|R3_bb|R4_bb|R5_bb|R6_bb) :
+                (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R3_bb|R4_bb|R5_bb|R6_bb|R7_bb);
 
             const auto own_pawns = pos.pieces (Own, PAWN);
             const auto opp_pawns = pos.pieces (Opp, PAWN);
@@ -126,7 +123,7 @@ namespace Pawns {
             e->semiopen_files  [Own] = 0xFF;
             e->king_sq         [Own] = SQ_NO;
 
-            auto center_pawns = own_pawns & EXT_CENTER_bb[Own];
+            auto center_pawns = own_pawns & CenterExtMask;
             if (center_pawns != U64(0))
             {
                 Bitboard color_pawns;

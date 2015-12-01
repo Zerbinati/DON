@@ -1390,7 +1390,7 @@ namespace Searcher {
         // analysis of "how many games are still undecided after 'n' half-moves".
         // Game is considered "undecided" as long as neither side has >275cp advantage.
         // Data was extracted from CCRL game database with some simple filtering criteria.
-        double move_importance (i32 ply)
+        double move_importance (i16 ply)
         {
             //                               PLY_SHIFT  PLY_SCALE  SKEW_RATE
             return pow ((1 + exp ((ply - 59.800) / 09.300)), -00.172) + DBL_MIN; // Ensure non-zero
@@ -1398,7 +1398,7 @@ namespace Searcher {
 
         template<RemainTimeT TT>
         // remaining_time<>() calculate the time remaining
-        u32 remaining_time (u32 time, u08 movestogo, i32 ply)
+        u32 remaining_time (u32 time, u08 movestogo, i16 ply)
         {
             // When in trouble, can step over reserved time with this ratio
             const double  StepRatio = RT_OPTIMUM == TT ? 1.0 : 7.00;
@@ -1439,7 +1439,7 @@ namespace Searcher {
     string          BookFile        = "Book.bin";
     bool            BookMoveBest    = true;
 
-    string          SearchFile      = "";
+    string          SearchLogFile   = "";
 
     SkillManager    SkillMgr;
 
@@ -1564,7 +1564,7 @@ namespace Searcher {
 
     // TimeManager::initialize() is called at the beginning of the search and
     // calculates the allowed thinking time out of the time control and current game ply.
-    void TimeManager::initialize (LimitsT &limits, Color own, i32 ply)
+    void TimeManager::initialize (LimitsT &limits, Color own, i16 ply)
     {
         // If we have to play in 'nodes as time' mode, then convert from time
         // to nodes, and use resulting values in time management formulas.
@@ -1939,7 +1939,7 @@ namespace Threading {
                     SkillMgr.pick_best_move (root_moves);
                 }
 
-                if (!SearchFile.empty ())
+                if (!SearchLogFile.empty ())
                 {
                     SearchLog << pretty_pv_info (root_pos, root_depth, root_moves[0].new_value, TimeMgr.elapsed_time (), root_moves[0]) << std::endl;
                 }
@@ -2034,6 +2034,8 @@ namespace Threading {
     {
         static Polyglot::Book book; // Defined static to initialize the PRNG only once
 
+        assert(this == Threadpool[0]);
+
         RootColor = root_pos.active ();
         UseTimeManagment = Limits.use_time_management ();
         if (UseTimeManagment)
@@ -2043,9 +2045,9 @@ namespace Threading {
 
         MateSearch  = 0 != Limits.mate;
 
-        if (!SearchFile.empty ())
+        if (!SearchLogFile.empty ())
         {
-            SearchLog.open (SearchFile, ios_base::out|ios_base::app);
+            SearchLog.open (SearchLogFile, ios_base::out|ios_base::app);
 
             SearchLog
                 << "----------->\n" << boolalpha
@@ -2163,16 +2165,13 @@ namespace Threading {
             }
         }
 
-        // Check if there are threads with a better value than main thread.
+        // Check if there are threads with bigger depth than main thread.
         Thread *best_thread = this;
-        for (auto *th : Threadpool)
+        for (size_t i = 1; i < Threadpool.size (); ++i)
         {
-            //if (best_thread == this) continue;
-            if (   best_thread->leaf_depth < th->leaf_depth
-                //&& best_thread->root_moves[0].new_value < th->root_moves[0].new_value
-               )
+            if (best_thread->leaf_depth < Threadpool[i]->leaf_depth)
             {
-                best_thread = th;
+                best_thread = Threadpool[i];
             }
         }
 
@@ -2185,7 +2184,7 @@ namespace Threading {
             sync_cout << multipv_info (best_thread->root_pos, best_thread->leaf_depth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
         }
 
-        if (!SearchFile.empty ())
+        if (!SearchLogFile.empty ())
         {
             auto elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
 

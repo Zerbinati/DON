@@ -12,16 +12,14 @@ namespace Transposition {
 
     using namespace std;
 
-    const u08 CacheLineSize = 64;
-
     // Size of Transposition entry (bytes)
     // 10 bytes
     const u08 Entry::Size = sizeof (Entry);
-    static_assert (CacheLineSize % (Cluster::EntryCount*Entry::Size + 2) == 0, "Incorrect Entry::Size");
+    static_assert (Entry::Size == 10, "Incorrect Entry::Size");
     // Size of Transposition cluster in (bytes)
     // 32 bytes
     const u08 Cluster::Size = sizeof (Cluster);
-    static_assert (CacheLineSize % Cluster::Size == 0, "Incorrect Cluster::Size");
+    static_assert (CACHE_LINE_SIZE % Cluster::Size == 0, "Incorrect Cluster::Size");
     // Minimum size of Transposition table (mega-byte)
     // 4 MB
     const u32 Table::MinSize = 4;
@@ -105,7 +103,7 @@ namespace Transposition {
         {
             free_aligned_memory ();
 
-            alloc_aligned_memory (mem_size, CacheLineSize); // Cache Line Size
+            alloc_aligned_memory (mem_size, CACHE_LINE_SIZE); // Cache Line Size
 
             if (_clusters == nullptr) return 0;
 
@@ -148,11 +146,11 @@ namespace Transposition {
         }
         // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte;
-        auto rem = rte->_depth + ((rte->bound () == BOUND_EXACT) - ((0x103 + _generation - rte->_gen_bnd)&0xFC))*2*DEPTH_ONE;
+        auto rem = rte->_depth + ((rte->bound () == BOUND_EXACT) - ((0x100+BOUND_EXACT + _generation - rte->_gen_bnd)&u08(~BOUND_EXACT)))*2*u08(DEPTH_ONE);
         for (auto *ite = fte+1; ite < fte+Cluster::EntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
-            auto iem = ite->_depth + ((ite->bound () == BOUND_EXACT) - ((0x103 + _generation - ite->_gen_bnd)&0xFC))*2*DEPTH_ONE;
+            auto iem = ite->_depth + ((ite->bound () == BOUND_EXACT) - ((0x100+BOUND_EXACT + _generation - ite->_gen_bnd)&u08(~BOUND_EXACT)))*2*u08(DEPTH_ONE);
             if (rem > iem)
             {
                 rem = iem;

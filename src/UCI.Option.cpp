@@ -232,11 +232,11 @@ namespace UCI {
                 Logger::instance ().stop ();
         }
 
-        void search_log ()
+        void search_log_file ()
         {
-            SearchFile = string(Options["Search File"]);
-            trim (SearchFile);
-            if (!SearchFile.empty ()) convert_path (SearchFile);
+            SearchLogFile = string(Options["Search Log File"]);
+            trim (SearchLogFile);
+            if (!SearchLogFile.empty ()) convert_path (SearchLogFile);
         }
 
         void uci_chess960 ()
@@ -428,7 +428,7 @@ namespace UCI {
         // -------------
         Options["Debug Log"]                    << Option (false, debug_log);
         // The filename of the search log.
-        Options["Search File"]                  << Option (SearchFile, search_log);
+        Options["Search Log File"]              << Option (SearchLogFile, search_log_file);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.

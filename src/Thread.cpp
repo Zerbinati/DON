@@ -92,7 +92,7 @@ namespace Threading {
         return nodes;
     }
 
-    // ThreadPool::start_searching() wakes up the main thread sleeping in
+    // ThreadPool::start_thinking() wakes up the main thread sleeping in
     // Thread::idle_loop() and starts a new search, then returns immediately.
     void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, StateStackPtr &states)
     {
@@ -114,7 +114,7 @@ namespace Threading {
 
         main ()->start_searching (false);
     }
-
+    // ThreadPool::wait_while_thinking() waits for the main thread while searching
     void ThreadPool::wait_while_thinking ()
     {
         Threadpool.main ()->wait_while_searching ();

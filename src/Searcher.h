@@ -61,10 +61,10 @@ namespace Searcher {
     struct SignalsT
     {
         std::atomic_bool
-              force_stop        { false }  // Stop search on request
-            , ponderhit_stop    { false }  // Stop search on ponder-hit
-            , firstmove_root    { false }  // First move at root
-            , failedlow_root    { false }; // Failed low at root
+              force_stop     { false }  // Stop search on request
+            , ponderhit_stop { false }  // Stop search on ponder-hit
+            , firstmove_root { false }  // First move at root
+            , failedlow_root { false }; // Failed low at root
     };
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
@@ -112,7 +112,7 @@ namespace Searcher {
         void operator-= (Move m) { pv.erase (std::remove (pv.begin (), pv.end (), m), pv.end ()); }
 
         size_t size () const { return pv.size (); }
-        bool empty () const { return pv.empty (); }
+        bool  empty () const { return pv.empty (); }
 
         void backup () { old_value = new_value; }
         void insert_pv_into_tt (Position &pos);
@@ -254,7 +254,7 @@ namespace Searcher {
 
         void instability () { _instability_factor = 1.0 + best_move_change; }
 
-        void initialize (LimitsT &limits, Color own, i32 ply);
+        void initialize (LimitsT &limits, Color own, i16 ply);
 
     };
 
@@ -279,7 +279,7 @@ namespace Searcher {
     extern std::string      BookFile;
     extern bool             BookMoveBest;
 
-    extern std::string      SearchFile;
+    extern std::string      SearchLogFile;
 
     extern SkillManager     SkillMgr;
 
