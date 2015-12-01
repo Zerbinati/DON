@@ -275,6 +275,8 @@ namespace UCI {
                 if (token == "on")  Logger::instance ().start ();
                 else
                 if (token == "off") Logger::instance ().stop ();
+                else
+                    sync_cout << "Invalid option." << sync_endl;
             }
             // Print the root position
             else

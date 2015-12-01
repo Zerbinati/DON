@@ -133,7 +133,7 @@ typedef        uint64_t    u64;
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const i32 MAX_DEPTH = 128; // Maximum Depth (Ply)
+const u16 MAX_DEPTH = 128; // Maximum Depth (Ply)
 
 // File
 enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
@@ -563,8 +563,8 @@ struct Castling
 {
     static const CRight
     Right = C == WHITE ?
-                CS == CS_QUEN ? CR_WQ : CR_WK :
-                CS == CS_QUEN ? CR_BQ : CR_BK;
+        CS == CS_KING ? CR_WK : CR_WQ :
+        CS == CS_KING ? CR_BK : CR_BQ;
 };
 
 inline bool   _ok   (PieceT pt) { return PAWN <= pt && pt <= KING; }

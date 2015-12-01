@@ -50,15 +50,14 @@ namespace Threading {
     }
 
     // ThreadPool::deinitialize() cleanly terminates the threads before the program exits
-    // Cannot be done in destructor because threads must be terminated before freeing threadpool.
+    // Cannot be done in destructor because threads must be terminated before freeing Threadpool.
     void ThreadPool::deinitialize ()
     {
-        for (auto *th : *this)
+        while (!empty ())
         {
-            delete th;
+            delete back ();
+            pop_back ();    // Get rid of stale pointer
         }
-
-        clear (); // Get rid of stale pointers
     }
 
     // ThreadPool::configure() updates internal threads parameters from the corresponding
@@ -93,7 +92,7 @@ namespace Threading {
         return nodes;
     }
 
-    // ThreadPool::start_searching() wakes up the main thread sleeping in
+    // ThreadPool::start_thinking() wakes up the main thread sleeping in
     // Thread::idle_loop() and starts a new search, then returns immediately.
     void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, StateStackPtr &states)
     {
@@ -115,7 +114,7 @@ namespace Threading {
 
         main ()->start_searching (false);
     }
-
+    // ThreadPool::wait_while_thinking() waits for the main thread while searching
     void ThreadPool::wait_while_thinking ()
     {
         Threadpool.main ()->wait_while_searching ();
