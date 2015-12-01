@@ -110,9 +110,6 @@ namespace Pawns {
             const auto CenterBindMask = WHITE == Own ?
                 (FD_bb|FE_bb) & (R5_bb|R6_bb|R7_bb) :
                 (FD_bb|FE_bb) & (R4_bb|R3_bb|R2_bb);
-            const auto CenterExtMask =  WHITE == Own ?
-                (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R2_bb|R3_bb|R4_bb|R5_bb|R6_bb) :
-                (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R3_bb|R4_bb|R5_bb|R6_bb|R7_bb);
 
             const auto own_pawns = pos.pieces (Own, PAWN);
             const auto opp_pawns = pos.pieces (Opp, PAWN);
@@ -123,11 +120,10 @@ namespace Pawns {
             e->semiopen_files  [Own] = 0xFF;
             e->king_sq         [Own] = SQ_NO;
 
-            auto center_pawns = own_pawns & CenterExtMask;
             Bitboard color_pawns;
-            color_pawns = center_pawns & LIHT_bb;
+            color_pawns = own_pawns & LIHT_bb;
             e->pawns_on_sqrs[Own][WHITE] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
-            color_pawns = center_pawns & DARK_bb;
+            color_pawns = own_pawns & DARK_bb;
             e->pawns_on_sqrs[Own][BLACK] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
 
             auto pawn_score = SCORE_ZERO;
