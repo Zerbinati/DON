@@ -124,19 +124,11 @@ namespace Pawns {
             e->king_sq         [Own] = SQ_NO;
 
             auto center_pawns = own_pawns & CenterExtMask;
-            if (center_pawns != U64(0))
-            {
-                Bitboard color_pawns;
-                color_pawns = center_pawns & LIHT_bb;
-                e->pawns_on_sqrs[Own][WHITE] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
-                color_pawns = center_pawns & DARK_bb;
-                e->pawns_on_sqrs[Own][BLACK] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
-            }
-            else
-            {
-                e->pawns_on_sqrs[Own][WHITE] = 0;
-                e->pawns_on_sqrs[Own][BLACK] = 0;
-            }
+            Bitboard color_pawns;
+            color_pawns = center_pawns & LIHT_bb;
+            e->pawns_on_sqrs[Own][WHITE] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
+            color_pawns = center_pawns & DARK_bb;
+            e->pawns_on_sqrs[Own][BLACK] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
 
             auto pawn_score = SCORE_ZERO;
 
