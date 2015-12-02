@@ -123,7 +123,7 @@ namespace Pawns {
             e->semiopen_files  [Own] = 0xFF;
             e->king_sq         [Own] = SQ_NO;
             e->pawns_on_sqrs   [Own][WHITE] = u08(pop_count<MAX15> (own_pawns & CenterExtMask & LIHT_bb));
-            e->pawns_on_sqrs   [Own][BLACK] = u08(pos.count<PAWN> (Own)) - e->pawns_on_sqrs[Own][WHITE];
+            e->pawns_on_sqrs   [Own][BLACK] = u08(pop_count<MAX15> (own_pawns & CenterExtMask & DARK_bb));
 
             auto pawn_score = SCORE_ZERO;
 
