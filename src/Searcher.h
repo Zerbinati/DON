@@ -42,7 +42,6 @@ namespace Searcher {
         u08  depth      = 0; // Search <x> depth (plies) only
         u64  nodes      = 0; // Search <x> nodes only
         u08  mate       = 0; // Search mate in <x> moves
-        u32  npmsec     = 0;
         bool ponder     = false; // Search on ponder move until the "stop" command
         bool infinite   = false; // Search until the "stop" command
         

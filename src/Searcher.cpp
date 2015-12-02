@@ -1561,7 +1561,7 @@ namespace Searcher {
 
     // ------------------------------------
 
-    u32 TimeManager::elapsed_time () const { return u32(Limits.npmsec != 0 ? Threadpool.game_nodes () : now () - Limits.start_time); }
+    u32 TimeManager::elapsed_time () const { return u32(NodesTime != 0 ? Threadpool.game_nodes () : now () - Limits.start_time); }
 
     // TimeManager::initialize() is called at the beginning of the search and
     // calculates the allowed thinking time out of the time control and current game ply.
@@ -1582,7 +1582,6 @@ namespace Searcher {
             // Convert from millisecs to nodes
             limits.clock[own].time = i32(available_nodes);
             limits.clock[own].inc *= NodesTime;
-            limits.npmsec = NodesTime;
         }
 
         _instability_factor = 1.0;
@@ -2142,7 +2141,7 @@ namespace Threading {
 
         // When playing in 'nodes as time' mode, subtract the searched nodes from
         // the available ones before to exit.
-        if (Limits.npmsec != 0)
+        if (NodesTime != 0)
         {
             TimeMgr.available_nodes += Limits.clock[RootColor].inc - Threadpool.game_nodes ();
         }
