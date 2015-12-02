@@ -48,7 +48,11 @@ namespace Searcher {
         
         bool use_time_management () const
         {
-            return !(infinite || movetime != 0 || depth != 0 || nodes != 0 || mate != 0);
+            return !infinite
+                && movetime == 0
+                && depth    == 0
+                && nodes    == 0
+                && mate     == 0;
         }
     };
 
@@ -217,7 +221,9 @@ namespace Searcher {
 
         Move best_move (const RootMoveVector &root_moves)
         {
-            return _best_move != MOVE_NONE ? _best_move : pick_best_move (root_moves);
+            return _best_move != MOVE_NONE ?
+                _best_move :
+                pick_best_move (root_moves);
         }
 
         Move pick_best_move (const RootMoveVector &root_moves);
@@ -278,6 +284,7 @@ namespace Searcher {
     extern bool             OwnBook;
     extern std::string      BookFile;
     extern bool             BookMoveBest;
+    extern i16              BookUptoMove;
 
     extern std::string      SearchLogFile;
 

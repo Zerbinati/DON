@@ -141,6 +141,8 @@ private:
 
     Bitboard check_blockers (Color piece_c, Color king_c) const;
 
+    static const Score PSQ_BONUS[NONE][R_NO][F_NO/2];
+
 public:
 
     static u08   DrawClockPly;

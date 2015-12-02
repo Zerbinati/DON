@@ -110,7 +110,7 @@ namespace Pawns {
             const auto CenterBindMask = WHITE == Own ?
                 (FD_bb|FE_bb) & (R5_bb|R6_bb|R7_bb) :
                 (FD_bb|FE_bb) & (R4_bb|R3_bb|R2_bb);
-            const auto CenterExtMask =  WHITE == Own ?
+            const auto CenterExtMask = WHITE == Own ?
                 (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R2_bb|R3_bb|R4_bb|R5_bb|R6_bb) :
                 (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R3_bb|R4_bb|R5_bb|R6_bb|R7_bb);
 
@@ -157,7 +157,7 @@ namespace Pawns {
                 // If it is sufficiently advanced (Rank 6), then it cannot be backward either.
                 if (   passed || isolated || levered || connected || rel_rank (Own, s) >= R_6
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
-                    || (own_pawns & PAWN_ATTACK_SPAN[Opp][s] && !(opp_pawns & (s-Push)))
+                    || ((own_pawns & PAWN_ATTACK_SPAN[Opp][s]) != U64(0) && (opp_pawns & (s-Push)) == U64(0))
                    )
                 {
                     backward = false;
@@ -224,8 +224,8 @@ namespace Pawns {
                 pawn_score += score;
             }
 
-            b = e->semiopen_files[Own] ^ 0xFF;
-            e->pawn_span[Own] = b != U64(0) ? u08(scan_msq (b) - scan_lsq (b)) : 0;
+            b = e->semiopen_files[Own] ^ u08(0xFF);
+            e->pawn_span[Own] = u08(b != U64(0) ? scan_msq (b) - scan_lsq (b) : 0);
 
             // Center binds: Two pawns controlling the same central square
             b = CenterBindMask

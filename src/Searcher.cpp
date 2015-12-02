@@ -165,7 +165,7 @@ namespace Searcher {
         MoveManager     MoveMgr;
 
 
-        const i32 TIMER_RESOLUTION = 5; // Millisec between two check_limits() calls
+        const i32 TimerResolution = 5; // Millisec between two check_limits() calls
 
         // check_limits() is called by the timer thread when the timer triggers.
         // It is used to print debug info and, more importantly,
@@ -189,7 +189,7 @@ namespace Searcher {
 
             if (UseTimeManagment)
             {
-                if (   elapsed_time > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
+                if (   elapsed_time > TimeMgr.maximum_time () - 2 * TimerResolution
                        // Still at first move
                     || (    Signals.firstmove_root
                         && !Signals.failedlow_root
@@ -664,7 +664,7 @@ namespace Searcher {
                 thread->reset_check = false;
                 thread->chk_count = 0;
             }
-            if (++thread->chk_count > TIMER_RESOLUTION*MILLI_SEC)
+            if (++thread->chk_count > TimerResolution*MILLI_SEC)
             {
                 for (auto *th : Threadpool)
                 {
@@ -1438,6 +1438,7 @@ namespace Searcher {
     bool            OwnBook         = false;
     string          BookFile        = "Book.bin";
     bool            BookMoveBest    = true;
+    i16             BookUptoMove     = 20;
 
     string          SearchLogFile   = "";
 
@@ -1700,10 +1701,9 @@ namespace Searcher {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        u08 d;  // depth
-        u08 mc; // move count
-
         // Initialize lookup tables
+
+        i32 d; // depth
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
             FutilityMargins      [d] = Value(0 + (200 + 0*d)*d);
@@ -1721,7 +1721,7 @@ namespace Searcher {
             {
                 for (d = 1; d < ReductionDepth; ++d)
                 {
-                    for (mc = 1; mc < ReductionMoveCount; ++mc)
+                    for (u08 mc = 1; mc < ReductionMoveCount; ++mc) // move count
                     {
                         double r = K[pv][0] + log (d) * log (mc) / K[pv][1];
 
@@ -1794,7 +1794,7 @@ namespace Threading {
             , window     = VALUE_ZERO
             , alfa       = -VALUE_INFINITE
             , beta       = +VALUE_INFINITE;
-        
+
         leaf_depth = DEPTH_ZERO;
 
         // Iterative deepening loop until target depth reached
@@ -1912,7 +1912,9 @@ namespace Threading {
                             << sync_endl;
                     }
                     else
-                    if (pv_index + 1 == PVLimit || TimeMgr.elapsed_time () > 3*MILLI_SEC)
+                    if (   pv_index + 1 == PVLimit
+                        || TimeMgr.elapsed_time () > 3*MILLI_SEC
+                       )
                     {
                         sync_cout << multipv_info (root_pos, root_depth, alfa, beta) << sync_endl;
                     }
@@ -2014,7 +2016,9 @@ namespace Threading {
             // Clear any candidate easy move that wasn't stable for the last search iterations;
             // the second condition prevents consecutive fast moves.
             if (   UseTimeManagment
-                && (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
+                && (   MoveMgr.stable_count < 6
+                    || TimeMgr.elapsed_time () < TimeMgr.available_time ()
+                   )
                )
             {
                 MoveMgr.clear ();
@@ -2043,7 +2047,7 @@ namespace Threading {
             TimeMgr.initialize (Limits, RootColor, root_pos.game_ply ());
         }
 
-        MateSearch  = 0 != Limits.mate;
+        MateSearch = 0 != Limits.mate;
 
         if (!SearchLogFile.empty ())
         {
@@ -2080,9 +2084,9 @@ namespace Threading {
             // Check if can play with own book
             if (   OwnBook
                 && !BookFile.empty ()
+                && (BookUptoMove == 0 || root_pos.game_move () <= BookUptoMove)
                 && !MateSearch
                 && !Limits.infinite
-                && root_pos.game_ply () <= 20
                )
             {
                 book.open (BookFile, ios_base::in);
@@ -2108,7 +2112,7 @@ namespace Threading {
             i32 diff_time = 0;
             if (   ContemptTime != 0
                 && UseTimeManagment
-                && (diff_time = (Limits.clock[RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
+                && (diff_time = (Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
                 //&& ContemptTime <= abs (diff_time)
                )
             {
@@ -2157,12 +2161,9 @@ namespace Threading {
         Signals.force_stop = true;
 
         // Wait until all threads have finished
-        for (auto *th : Threadpool)
+        for (size_t i = 1; i < Threadpool.size (); ++i)
         {
-            if (th != this)
-            {
-                th->wait_while_searching ();
-            }
+            Threadpool[i]->wait_while_searching ();
         }
 
         // Check if there are threads with bigger depth than main thread.

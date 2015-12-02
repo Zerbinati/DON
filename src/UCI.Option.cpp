@@ -204,6 +204,7 @@ namespace UCI {
             OwnBook      = bool(Options["Own Book"]);
             BookFile     = string(Options["Book File"]);
             BookMoveBest = bool(Options["Book Move Best"]);
+            BookUptoMove  = i16(i32(Options["Book Upto Ply"]));
             trim (BookFile);
             if (!BookFile.empty ()) convert_path (BookFile);
         }
@@ -327,16 +328,18 @@ namespace UCI {
         // Position Learning Options
         // -------------------------
 
-        // Opening Book Options
+        // Book Options
         // ---------------------
-        // Whether or not to always play with the Opening Book.
+        // Whether or not to always play with the book.
         Options["Own Book"]                     << Option (OwnBook, configure_book);
-        // The filename of the Opening Book.
+        // The filename of the Book.
         Options["Book File"]                    << Option (BookFile, configure_book);
-        // Whether or not to always play the best move from the Opening Book.
-        // False will lead to more variety in opening play.
+        // Whether or not to always play the best move from the book.
+        // False will lead to more variety in book play.
         Options["Book Move Best"]               << Option (BookMoveBest, configure_book);
-
+        // Play book upto move
+        // Zero will lead to play till move present in book.
+        Options["Book Upto Move"]               << Option (BookUptoMove, 0, 50, configure_book);
 
         // End-Game Table Bases Options
         // ----------------------------
