@@ -117,14 +117,10 @@ namespace Pawns {
             e->pawn_attacks    [Own] = shift_bb<LCap> (own_pawns) | shift_bb<RCap> (own_pawns);
             e->passed_pawns    [Own] = U64(0);
             e->pawn_attack_span[Own] = U64(0);
-            e->semiopen_files  [Own] = 0xFF;
+            e->semiopen_files  [Own] = u08(0xFF);
             e->king_sq         [Own] = SQ_NO;
-
-            Bitboard color_pawns;
-            color_pawns = own_pawns & LIHT_bb;
-            e->pawns_on_sqrs[Own][WHITE] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
-            color_pawns = own_pawns & DARK_bb;
-            e->pawns_on_sqrs[Own][BLACK] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
+            e->pawns_on_sqrs   [Own][WHITE] = u08(pop_count<MAX15> (own_pawns & LIHT_bb));
+            e->pawns_on_sqrs   [Own][BLACK] = u08(pop_count<MAX15> (own_pawns & DARK_bb));
 
             auto pawn_score = SCORE_ZERO;
 
@@ -138,7 +134,7 @@ namespace Pawns {
 
                 auto f = _file (s);
 
-                e->semiopen_files[Own] &= ~(1 << f);
+                e->semiopen_files[Own] &= ~(u08(1) << f);
                 e->pawn_attack_span[Own] |= PAWN_ATTACK_SPAN[Own][s];
 
                 auto adjacents = (own_pawns & ADJ_FILE_bb[f]);
