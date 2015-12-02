@@ -111,12 +111,19 @@ namespace Evaluator {
         enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PAWN_PASSING, THREATS, KING_SAFETY, SPACE_ACTIVITY };
 
         struct Weight { i32 mg, eg; };
-        // Overload * for score, weight
-        Score operator* (Score score, const Weight &weight)
+        // Overload * for score with weight
+        Score  operator*  (Score  score, const Weight &weight)
         {
             return mk_score (
                 mg_value (score) * weight.mg / 256,
                 eg_value (score) * weight.eg / 256);
+        }
+        Score& operator*= (Score &score, const Weight &weight)
+        {
+            score = mk_score (
+                mg_value (score) * weight.mg / 256,
+                eg_value (score) * weight.eg / 256);
+            return score;
         }
 
         // Evaluation weights, indexed by the corresponding evaluation term
@@ -729,7 +736,7 @@ namespace Evaluator {
                 score += PAWN_SAFEATTACK * pop_count<MAX15> (b);
             }
 
-            score = score * WEIGHTS[THREATS];
+            score *= WEIGHTS[THREATS];
 
             if (Trace)
             {
@@ -834,7 +841,7 @@ namespace Evaluator {
                 score += mk_score (mg_value, eg_value) + PAWN_PASSED_FILE[_file (s)];
             }
 
-            score = score * WEIGHTS[PAWN_PASSING];
+            score *= WEIGHTS[PAWN_PASSING];
 
             if (Trace)
             {
