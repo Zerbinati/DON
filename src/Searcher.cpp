@@ -2090,17 +2090,17 @@ namespace Threading {
             {
                 book.open (BookFile, ios_base::in);
                 bool found = false;
-                auto book_move = book.probe_move (root_pos, BookMoveBest);
-                if (   book_move != MOVE_NONE
-                    && std::count (root_moves.begin (), root_moves.end (), book_move) != 0
+                auto book_best_move = book.probe_move (root_pos, BookMoveBest);
+                if (   book_best_move != MOVE_NONE
+                    && std::count (root_moves.begin (), root_moves.end (), book_best_move) != 0
                    )
                 {
                     found = true;
-                    std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), book_move));
+                    std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), book_best_move));
                     StateInfo si;
-                    root_pos.do_move (root_moves[0][0], si, root_pos.gives_check (root_moves[0][0], CheckInfo (root_pos)));
-                    book_move = book.probe_move (root_pos, BookMoveBest);
-                    root_moves[0] += book_move;
+                    root_pos.do_move (book_best_move, si, root_pos.gives_check (book_best_move, CheckInfo (root_pos)));
+                    auto book_ponder_move = book.probe_move (root_pos, BookMoveBest);
+                    root_moves[0] += book_ponder_move;
                     root_pos.undo_move ();
                 }
                 book.close ();
