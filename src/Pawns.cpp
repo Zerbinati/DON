@@ -120,7 +120,7 @@ namespace Pawns {
             e->pawn_attacks    [Own] = shift_bb<LCap> (own_pawns) | shift_bb<RCap> (own_pawns);
             e->passed_pawns    [Own] = U64(0);
             e->pawn_attack_span[Own] = U64(0);
-            e->semiopen_files  [Own] = 0xFF;
+            e->semiopen_files  [Own] = u08(0xFF);
             e->king_sq         [Own] = SQ_NO;
             e->pawns_on_sqrs   [Own][WHITE] = u08(pop_count<MAX15> (own_pawns & CenterExtMask & LIHT_bb));
             e->pawns_on_sqrs   [Own][BLACK] = u08(pop_count<MAX15> (own_pawns & CenterExtMask & DARK_bb));
@@ -137,7 +137,7 @@ namespace Pawns {
 
                 auto f = _file (s);
 
-                e->semiopen_files[Own] &= ~(1 << f);
+                e->semiopen_files[Own] &= ~(u08(1) << f);
                 e->pawn_attack_span[Own] |= PAWN_ATTACK_SPAN[Own][s];
 
                 auto adjacents = (own_pawns & ADJ_FILE_bb[f]);
