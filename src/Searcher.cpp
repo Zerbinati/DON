@@ -35,7 +35,7 @@ namespace Searcher {
         Move _pv[3];
 
     public:
-        i08 stable_count = 0;
+        u08 stable_count = 0;
 
         MoveManager () { clear (); }
 
@@ -46,9 +46,9 @@ namespace Searcher {
             std::fill (std::begin (_pv), std::end (_pv), MOVE_NONE);
         }
 
-        Move easy_move (Key posi_key) const
+        Move easy_move (const Key posi_key) const
         {
-            return _posi_key == posi_key ? _pv[2] : MOVE_NONE;
+            return posi_key == _posi_key ? _pv[2] : MOVE_NONE;
         }
 
         void update (Position& pos, const MoveVector &pv)
@@ -59,10 +59,10 @@ namespace Searcher {
             
             if (!equal (pv.begin (), pv.begin () + 3, _pv))
             {
-                std::copy (pv.begin (), pv.begin () + 3, _pv);
                 StateInfo si[2];
                 pos.do_move (pv[0], si[0], pos.gives_check (pv[0], CheckInfo (pos)));
                 pos.do_move (pv[1], si[1], pos.gives_check (pv[1], CheckInfo (pos)));
+                std::copy (pv.begin (), pv.begin () + 3, _pv);
                 _posi_key = pos.posi_key ();
                 pos.undo_move ();
                 pos.undo_move ();
@@ -411,7 +411,7 @@ namespace Searcher {
                         DrawValue[pos.active ()];
             }
 
-            assert(0 <= ss->ply && ss->ply < MAX_DEPTH);
+            assert(/*0 <= ss->ply && */ss->ply < MAX_DEPTH);
 
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in quien_search use
@@ -710,7 +710,7 @@ namespace Searcher {
                 if (alfa >= beta) return alfa;
             }
 
-            assert(0 <= ss->ply && ss->ply < MAX_DEPTH);
+            assert(/*0 <= ss->ply && */ss->ply < MAX_DEPTH);
 
             ss->move_count = 0;
             ss->current_move =
@@ -1401,19 +1401,19 @@ namespace Searcher {
         u32 remaining_time (u32 time, u08 movestogo, i16 ply)
         {
             // When in trouble, can step over reserved time with this ratio
-            const double  StepRatio = RT_OPTIMUM == TT ? 1.0 : 7.00;
+            const auto  StepRatio = RT_OPTIMUM == TT ? 1.0 : 7.00;
             // However must not steal time from remaining moves over this ratio
-            const double StealRatio = RT_MAXIMUM == TT ? 0.0 : 0.33;
+            const auto StealRatio = RT_MAXIMUM == TT ? 0.0 : 0.33;
 
-            double move_imp = move_importance (ply) * MoveSlowness / 100;
-            double remain_move_imp = 0.0;
+            auto move_imp = move_importance (ply) * MoveSlowness / 100.0;
+            auto remain_move_imp = 0.0;
             for (u08 i = 1; i < movestogo; ++i)
             {
                 remain_move_imp += move_importance (ply + 2 * i);
             }
 
-            double  step_time_ratio = (0        +        move_imp * StepRatio ) / (move_imp * StepRatio + remain_move_imp);
-            double steal_time_ratio = (move_imp + remain_move_imp * StealRatio) / (move_imp * 1         + remain_move_imp);
+            auto  step_time_ratio = (0.0      +        move_imp * StepRatio ) / (move_imp * StepRatio + remain_move_imp);
+            auto steal_time_ratio = (move_imp + remain_move_imp * StealRatio) / (move_imp * 1         + remain_move_imp);
 
             return u32(time * std::min (step_time_ratio, steal_time_ratio));
         }
@@ -1703,17 +1703,31 @@ namespace Searcher {
         // Initialize lookup tables
 
         i32 d; // depth
+
+        const i32 K0[3] = { 0, 200, 0};
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
-            FutilityMargins      [d] = Value(0 + (200 + 0*d)*d);
-        }
-        for (d = 0; d < FutilityMoveCountDepth; ++d)
-        {
-            FutilityMoveCounts[0][d] = u08(2.40 + 0.773 * pow (0.00 + d, 1.80));
-            FutilityMoveCounts[1][d] = u08(2.90 + 1.045 * pow (0.49 + d, 1.80));
+            FutilityMargins[d] = Value(K0[0] + (K0[1] + K0[2]*d)*d);
         }
 
-        const double K[2][2] = {{ 0.799, 2.281 }, { 0.484, 3.023 }};
+        const double K1[2][4] =
+        {
+            { 2.40, 0.773, 0.00, 1.8 },
+            { 2.90, 1.045, 0.49, 1.8 }
+        };
+        for (u08 imp = 0; imp <= 1; ++imp)
+        {
+            for (d = 0; d < FutilityMoveCountDepth; ++d)
+            {
+                FutilityMoveCounts[imp][d] = u08(K1[imp][0] + K1[imp][1] * pow (d + K1[imp][2], K1[imp][3]));
+            }
+        }
+
+        const double K2[2][2] =
+        {
+            { 0.799, 2.281 },
+            { 0.484, 3.023 }
+        };
         for (u08 pv = 0; pv <= 1; ++pv)
         {
             for (u08 imp = 0; imp <= 1; ++imp)
@@ -1722,7 +1736,7 @@ namespace Searcher {
                 {
                     for (u08 mc = 1; mc < ReductionMoveCount; ++mc) // move count
                     {
-                        double r = K[pv][0] + log (d) * log (mc) / K[pv][1];
+                        auto r = K2[pv][0] + log (d) * log (mc) / K2[pv][1];
 
                         if (r >= 1.5)
                         {
@@ -1810,7 +1824,7 @@ namespace Threading {
             else
             {
                 // Set up the new depth for the helper threads
-                root_depth = std::min (Threadpool.main ()->root_depth + Depth(i32(2.2 * log (1 + this->index))), DEPTH_MAX - DEPTH_ONE);
+                root_depth = std::min (Threadpool.main ()->root_depth + Depth(i32(2.2 * log (1 + index))), DEPTH_MAX - DEPTH_ONE);
             }
 
             // Save last iteration's scores before first PV line is searched and
@@ -1934,8 +1948,8 @@ namespace Threading {
                     DrawValue[~RootColor] = BaseContempt[~RootColor] + valued_contempt;
                 }
 
-                // If skill level is enabled and time is up, pick a sub-optimal best move
-                if (SkillMgr.enabled () && SkillMgr.depth_to_pick (root_depth))
+                // If skill level is enabled and can pick move, pick a sub-optimal best move
+                if (SkillMgr.enabled () && SkillMgr.can_pick (root_depth))
                 {
                     SkillMgr.pick_best_move (root_moves);
                 }
@@ -2118,7 +2132,7 @@ namespace Threading {
                 timed_contempt = i16(diff_time/ContemptTime);
             }
 
-            Value contempt = cp_to_value (double(FixedContempt + timed_contempt) / 100);
+            Value contempt = cp_to_value ((FixedContempt + timed_contempt) / 100.0);
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 

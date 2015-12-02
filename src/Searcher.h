@@ -213,7 +213,7 @@ namespace Searcher {
             return _level < MAX_SKILL_LEVEL;
         }
 
-        bool depth_to_pick (Depth depth) const
+        bool can_pick (Depth depth) const
         {
             return depth/DEPTH_ONE == (1 + _level);
         }
