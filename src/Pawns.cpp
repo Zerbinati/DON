@@ -122,13 +122,8 @@ namespace Pawns {
             e->pawn_attack_span[Own] = U64(0);
             e->semiopen_files  [Own] = 0xFF;
             e->king_sq         [Own] = SQ_NO;
-
-            auto center_pawns = own_pawns & CenterExtMask;
-            Bitboard color_pawns;
-            color_pawns = center_pawns & LIHT_bb;
-            e->pawns_on_sqrs[Own][WHITE] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
-            color_pawns = center_pawns & DARK_bb;
-            e->pawns_on_sqrs[Own][BLACK] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
+            e->pawns_on_sqrs   [Own][WHITE] = u08(pop_count<MAX15> (own_pawns & CenterExtMask & LIHT_bb));
+            e->pawns_on_sqrs   [Own][BLACK] = u08(pos.count<PAWN> (Own)) - e->pawns_on_sqrs[Own][WHITE];
 
             auto pawn_score = SCORE_ZERO;
 
