@@ -6,12 +6,12 @@
 
 namespace TBSyzygy {
 
-    extern i32      MaxProbeLimit;
-    extern i32      ProbeLimit;
-    extern Depth    ProbeDepth;
+    extern i32      PieceLimit;
+    extern Depth    DepthLimit;
     extern bool     UseRule50;
 
-    extern u64      Hits;
+    extern i32      MaxPieceLimit;
+    extern u16      Hits;
     extern bool     RootInTB;
     extern Value    ProbeValue;
 

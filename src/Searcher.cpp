@@ -365,12 +365,14 @@ namespace Searcher {
                     << " multipv "  << i + 1
                     << " depth "    << d/DEPTH_ONE
                     << " seldepth " << pos.thread ()->max_ply
-                    << " score "    << to_string (v)
-                    << (i == pv_index ? beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "" : "")
+                    << " score "    << to_string (v);
+                if (!tb && i == pv_index)
+                    ss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
+                ss  << " nodes "    << game_nodes
                     << " time "     << elapsed_time
-                    << " nodes "    << game_nodes
                     << " nps "      << game_nodes * MILLI_SEC / elapsed_time;
-                if (elapsed_time > MILLI_SEC) ss  << " hashfull " << TT.hash_full (); // Earlier makes little sense
+                if (elapsed_time > MILLI_SEC)
+                    ss  << " hashfull " << TT.hash_full (); // Earlier makes little sense
                 ss  << "tbhits"     << Hits
                     << " pv"        << root_moves[i];
 
@@ -769,29 +771,31 @@ namespace Searcher {
             }
 
             // Step 4A. Tablebase probe
-            if (!RootNode && ProbeLimit != 0)
+            if (!RootNode && PieceLimit != 0)
             {
-                int piecesCnt = pos.count<NONE> ();
+                i32 piece_count = pos.count<NONE> ();
 
-                if (    piecesCnt <= ProbeLimit
-                    && (piecesCnt < ProbeLimit || depth >= ProbeDepth)
+                if (    piece_count <= PieceLimit
+                    && (piece_count < PieceLimit || depth >= DepthLimit)
                     &&  pos.clock_ply () == 0
                    )
                 {
-                    int found, v = probe_wdl (pos, &found);
+                    i32 found;
+                    i32 v = probe_wdl (pos, &found);
 
-                    if (found)
+                    if (found != 0)
                     {
                         Hits++;
 
-                        auto value = Value(UseRule50 ? 1 : 0);
+                        i32 draw_v = UseRule50 ? 1 : 0;
 
-                        value = v < -value ? -VALUE_MATE + i32(MAX_DEPTH + ss->ply) :
-                                v >  value ? +VALUE_MATE - i32(MAX_DEPTH + ss->ply) :
-                                VALUE_DRAW + 2 * v * value;
+                        Value value =
+                                v < -draw_v ? -VALUE_MATE + i32(MAX_DEPTH + ss->ply) :
+                                v > +draw_v ? +VALUE_MATE - i32(MAX_DEPTH + ss->ply) :
+                                VALUE_DRAW + 2 * v * draw_v;
 
                         tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), VALUE_NONE,
-                            std::min (DEPTH_MAX - DEPTH_ONE, depth + 6 * DEPTH_ONE), BOUND_EXACT, TT.generation ());
+                            std::min (depth + 6 * DEPTH_ONE, DEPTH_MAX - DEPTH_ONE), BOUND_EXACT, TT.generation ());
 
                         return value;
                     }
@@ -2119,11 +2123,11 @@ namespace Threading {
 
         Hits = 0;
         RootInTB = false;
-        // Skip TB probing when no TB found: !MaxProbeLimit -> !TB::ProbeLimit
-        if (ProbeLimit > MaxProbeLimit)
+        // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit
+        if (PieceLimit > MaxPieceLimit)
         {
-            ProbeLimit = MaxProbeLimit;
-            ProbeDepth = DEPTH_ZERO;
+            PieceLimit = MaxPieceLimit;
+            DepthLimit = DEPTH_ZERO;
         }
 
         if (root_moves.empty())
@@ -2166,7 +2170,7 @@ namespace Threading {
                 if (found) goto finish;
             }
 
-            if (ProbeLimit >=  root_pos.count<NONE> ())
+            if (PieceLimit >=  root_pos.count<NONE> ())
             {
                 // If the current root position is in the tablebases then RootMoves
                 // contains only moves that preserve the draw or win.
@@ -2174,7 +2178,7 @@ namespace Threading {
 
                 if (RootInTB)
                 {
-                    ProbeLimit = 0; // Do not probe tablebases during the search
+                    PieceLimit = 0; // Do not probe tablebases during the search
                 }
                 else // If DTZ tables are missing, use WDL tables as a fallback
                 {
@@ -2184,17 +2188,17 @@ namespace Threading {
                     // Only probe during search if winning
                     if (ProbeValue <= VALUE_DRAW)
                     {
-                        ProbeLimit = 0;
+                        PieceLimit = 0;
                     }
                 }
 
                 if (RootInTB)
                 {
-                    Hits = root_moves.size ();
+                    Hits = u16(root_moves.size ());
 
                     if (!UseRule50)
                     {
-                        ProbeValue = ProbeValue > VALUE_DRAW ? VALUE_MATE - i32(MAX_DEPTH) - 1 :
+                        ProbeValue = ProbeValue > VALUE_DRAW ? +VALUE_MATE - i32(MAX_DEPTH) - 1 :
                                      ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MAX_DEPTH) + 1 :
                                      VALUE_DRAW;
                     }

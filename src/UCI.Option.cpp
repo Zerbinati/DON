@@ -246,9 +246,9 @@ namespace UCI {
         void config_endgame_table ()
         {
             string syzygy_path = string(Options["Syzygy Path"]);
-            ProbeDepth = i32 (Options["Syzygy Probe Depth"]) * DEPTH_ONE;
-            ProbeLimit = i32 (Options["Syzygy Probe Limit"]);
-            UseRule50  = bool (Options["Syzygy Use Rule 50"]);
+            DepthLimit = i32(Options["Syzygy Depth Limit"]) * DEPTH_ONE;
+            PieceLimit = i32(Options["Syzygy Piece Limit"]);
+            UseRule50  = bool(Options["Syzygy Use Rule 50"]);
 
             trim (syzygy_path);
             if (!syzygy_path.empty ())
@@ -451,8 +451,8 @@ namespace UCI {
         // End-Game Table Bases Options
         // ----------------------------
         Options["Syzygy Path"]                  << Option ("<empty>", config_endgame_table);
-        Options["Syzygy Probe Depth"]           << Option (ProbeDepth, 1, 100, config_endgame_table);
-        Options["Syzygy Probe Limit"]           << Option (ProbeLimit, 0, 6, config_endgame_table);
+        Options["Syzygy Depth Limit"]           << Option (DepthLimit, 1, 100, config_endgame_table);
+        Options["Syzygy Piece Limit"]           << Option (PieceLimit, 0, 6, config_endgame_table);
         Options["Syzygy Use Rule 50"]           << Option (UseRule50, config_endgame_table);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
