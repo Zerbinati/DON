@@ -11,6 +11,7 @@
 #include "Transposition.h"
 #include "Evaluator.h"
 #include "Polyglot.h"
+#include "TB_syzygy.h"
 #include "Notation.h"
 #include "Debugger.h"
 
@@ -23,6 +24,7 @@ namespace Searcher {
     using namespace MovePick;
     using namespace Transposition;
     using namespace Evaluator;
+    using namespace TBSyzygy;
     using namespace Notation;
     using namespace Debugger;
 
@@ -352,6 +354,9 @@ namespace Searcher {
                     d = depth - DEPTH_ONE;
                     v = root_moves[i].old_value;
                 }
+                
+                bool tb = RootInTB && abs (v) < VALUE_MATE - i32(MAX_DEPTH);
+                v = tb ? ProbeValue : v;
 
                 // Not at first line
                 if (ss.rdbuf ()->in_avail ()) ss << "\n";
@@ -366,7 +371,8 @@ namespace Searcher {
                     << " nodes "    << game_nodes
                     << " nps "      << game_nodes * MILLI_SEC / elapsed_time;
                 if (elapsed_time > MILLI_SEC) ss  << " hashfull " << TT.hash_full (); // Earlier makes little sense
-                ss  << " pv"        << root_moves[i];
+                ss  << "tbhits"     << Hits
+                    << " pv"        << root_moves[i];
 
             }
 
@@ -760,6 +766,36 @@ namespace Searcher {
                 }
 
                 return tt_value;
+            }
+
+            // Step 4A. Tablebase probe
+            if (!RootNode && ProbeLimit != 0)
+            {
+                int piecesCnt = pos.count<NONE> ();
+
+                if (    piecesCnt <= ProbeLimit
+                    && (piecesCnt < ProbeLimit || depth >= ProbeDepth)
+                    &&  pos.clock_ply () == 0
+                   )
+                {
+                    int found, v = probe_wdl (pos, &found);
+
+                    if (found)
+                    {
+                        Hits++;
+
+                        auto value = Value(UseRule50 ? 1 : 0);
+
+                        value = v < -value ? -VALUE_MATE + i32(MAX_DEPTH + ss->ply) :
+                                v >  value ? +VALUE_MATE - i32(MAX_DEPTH + ss->ply) :
+                                VALUE_DRAW + 2 * v * value;
+
+                        tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), VALUE_NONE,
+                            std::min (DEPTH_MAX - DEPTH_ONE, depth + 6 * DEPTH_ONE), BOUND_EXACT, TT.generation ());
+
+                        return value;
+                    }
+                }
             }
 
             CheckInfo ci (pos);
@@ -1456,7 +1492,7 @@ namespace Searcher {
     bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
     TimeManager TimeMgr;
-
+    
     // ------------------------------------
 
     // RootMove::insert_pv_into_tt() is called at the end of a search iteration, and
@@ -2081,6 +2117,15 @@ namespace Threading {
                 << noboolalpha << std::endl;
         }
 
+        Hits = 0;
+        RootInTB = false;
+        // Skip TB probing when no TB found: !MaxProbeLimit -> !TB::ProbeLimit
+        if (ProbeLimit > MaxProbeLimit)
+        {
+            ProbeLimit = MaxProbeLimit;
+            ProbeDepth = DEPTH_ZERO;
+        }
+
         if (root_moves.empty())
         {
             root_moves += RootMove ();
@@ -2119,6 +2164,41 @@ namespace Threading {
                 }
                 book.close ();
                 if (found) goto finish;
+            }
+
+            if (ProbeLimit >=  root_pos.count<NONE> ())
+            {
+                // If the current root position is in the tablebases then RootMoves
+                // contains only moves that preserve the draw or win.
+                RootInTB = root_probe_dtz (root_pos, root_moves);
+
+                if (RootInTB)
+                {
+                    ProbeLimit = 0; // Do not probe tablebases during the search
+                }
+                else // If DTZ tables are missing, use WDL tables as a fallback
+                {
+                    // Filter out moves that do not preserve a draw or win
+                    RootInTB = root_probe_wdl (root_pos, root_moves);
+
+                    // Only probe during search if winning
+                    if (ProbeValue <= VALUE_DRAW)
+                    {
+                        ProbeLimit = 0;
+                    }
+                }
+
+                if (RootInTB)
+                {
+                    Hits = root_moves.size ();
+
+                    if (!UseRule50)
+                    {
+                        ProbeValue = ProbeValue > VALUE_DRAW ? VALUE_MATE - i32(MAX_DEPTH) - 1 :
+                                     ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MAX_DEPTH) + 1 :
+                                     VALUE_DRAW;
+                    }
+                }
             }
 
             i16 timed_contempt = 0;

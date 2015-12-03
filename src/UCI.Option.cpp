@@ -7,6 +7,7 @@
 #include "Transposition.h"
 #include "Thread.h"
 #include "Searcher.h"
+#include "TB_syzygy.h"
 #include "Debugger.h"
 
 UCI::OptionMap  Options; // Global string mapping of Options
@@ -16,6 +17,7 @@ namespace UCI {
     using namespace std;
     using namespace Transposition;
     using namespace Searcher;
+    using namespace TBSyzygy;
     using namespace Debugger;
 
     Option::Option (OnChange on_change)
@@ -205,10 +207,11 @@ namespace UCI {
             BookFile     = string(Options["Book File"]);
             BookMoveBest = bool(Options["Book Move Best"]);
             BookUptoMove  = i16(i32(Options["Book Upto Ply"]));
+
             trim (BookFile);
             if (!BookFile.empty ()) convert_path (BookFile);
         }
-
+        
         void configure_skill ()
         {
             SkillMgr.change_level (u08(i32(Options["Skill Level"])));
@@ -238,6 +241,21 @@ namespace UCI {
             SearchLogFile = string(Options["Search Log File"]);
             trim (SearchLogFile);
             if (!SearchLogFile.empty ()) convert_path (SearchLogFile);
+        }
+
+        void config_endgame_table ()
+        {
+            string syzygy_path = string(Options["Syzygy Path"]);
+            ProbeDepth = i32 (Options["Syzygy Probe Depth"]) * DEPTH_ONE;
+            ProbeLimit = i32 (Options["Syzygy Probe Limit"]);
+            UseRule50  = bool (Options["Syzygy Use Rule 50"]);
+
+            trim (syzygy_path);
+            if (!syzygy_path.empty ())
+            {
+                convert_path (syzygy_path);
+                TBSyzygy::initialize (syzygy_path);
+            }
         }
 
         void uci_chess960 ()
@@ -341,9 +359,6 @@ namespace UCI {
         // Zero will lead to play till move present in book.
         Options["Book Upto Move"]               << Option (BookUptoMove, 0, 50, configure_book);
 
-        // End-Game Table Bases Options
-        // ----------------------------
-
         // Cores and Threads Options
         // -------------------------
 
@@ -432,6 +447,13 @@ namespace UCI {
         Options["Debug Log"]                    << Option (false, debug_log);
         // The filename of the search log.
         Options["Search Log File"]              << Option (SearchLogFile, search_log_file);
+
+        // End-Game Table Bases Options
+        // ----------------------------
+        Options["Syzygy Path"]                  << Option ("<empty>", config_endgame_table);
+        Options["Syzygy Probe Depth"]           << Option (ProbeDepth, 1, 100, config_endgame_table);
+        Options["Syzygy Probe Limit"]           << Option (ProbeLimit, 0, 6, config_endgame_table);
+        Options["Syzygy Use Rule 50"]           << Option (UseRule50, config_endgame_table);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.

@@ -96,6 +96,7 @@ namespace Searcher {
         MoveVector pv;
 
         explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
+        RootMove& operator= (const RootMove&) = default;
 
         // Descending sort
         bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
@@ -138,6 +139,7 @@ namespace Searcher {
     {
 
     public:
+        RootMoveVector& operator= (const RootMoveVector&) = default;
 
         void operator+= (const RootMove &rm) { push_back (rm); }
         void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }

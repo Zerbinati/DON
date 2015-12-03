@@ -9,6 +9,7 @@
 #include "Material.h"
 #include "Evaluator.h"
 #include "Searcher.h"
+#include "TB_syzygy.h"
 #include "Transposition.h"
 #include "Thread.h"
 
@@ -103,7 +104,7 @@ namespace Engine {
         EndGame  ::initialize ();
         Threadpool.initialize ();
         Searcher ::initialize ();
-
+        TBSyzygy ::initialize (string(Options["Syzygy Path"]));
         TT.auto_size (i32(Options["Hash"]), true);
 
         std::cout << std::endl;
