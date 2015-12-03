@@ -781,7 +781,7 @@ namespace Searcher {
                    )
                 {
                     i32 found;
-                    i32 v = probe_wdl (pos, &found);
+                    Value v = probe_wdl (pos, found);
 
                     if (found != 0)
                     {
@@ -792,7 +792,7 @@ namespace Searcher {
                         Value value =
                                 v < -draw_v ? -VALUE_MATE + i32(MAX_DEPTH + ss->ply) :
                                 v > +draw_v ? +VALUE_MATE - i32(MAX_DEPTH + ss->ply) :
-                                VALUE_DRAW + 2 * v * draw_v;
+                                VALUE_DRAW + 2 * draw_v * v;
 
                         tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), VALUE_NONE,
                             std::min (depth + 6 * DEPTH_ONE, DEPTH_MAX - DEPTH_ONE), BOUND_EXACT, TT.generation ());

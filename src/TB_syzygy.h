@@ -15,8 +15,8 @@ namespace TBSyzygy {
     extern bool     RootInTB;
     extern Value    ProbeValue;
 
-    i32 probe_dtz (Position &pos, i32 *success);
-    i32 probe_wdl (Position &pos, i32 *success);
+    Value probe_dtz (Position &pos, i32 &success);
+    Value probe_wdl (Position &pos, i32 &success);
 
     bool root_probe_dtz (Position &pos, Searcher::RootMoveVector &root_moves);
     bool root_probe_wdl (Position &pos, Searcher::RootMoveVector &root_moves);

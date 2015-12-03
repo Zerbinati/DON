@@ -1755,7 +1755,7 @@ namespace TBSyzygy {
         }
 
         // probe_wdl_table and probe_dtz_table require similar adaptations.
-        i32 probe_wdl_table (Position &pos, i32 *success)
+        Value probe_wdl_table (Position &pos, i32 &success)
         {
             TBEntry *ptr;
             TBHashEntry *ptr2;
@@ -1770,15 +1770,15 @@ namespace TBSyzygy {
 
             // Test for KvK.
             if (key == (Zob._.piece_square[WHITE][KING][0] ^ Zob._.piece_square[BLACK][KING][0]))
-                return 0;
+                return VALUE_DRAW;
 
             ptr2 = TB_hash[key >> (64 - TBHASHBITS)];
             for (i = 0; i < HSHMAX; ++i)
                 if (ptr2[i].key == key) break;
             if (i == HSHMAX)
             {
-                *success = 0;
-                return 0;
+                success = 0;
+                return VALUE_DRAW;
             }
 
             ptr = ptr2[i].tbe;
@@ -1792,9 +1792,9 @@ namespace TBSyzygy {
                     if (!init_table_wdl (ptr, str))
                     {
                         ptr2[i].key = 0ULL;
-                        *success = 0;
+                        success = 0;
                         UNLOCK (TB_mutex);
-                        return 0;
+                        return VALUE_DRAW;
                     }
                     // Memory barrier to ensure ptr->ready = 1 is not reordered.
 #ifdef _MSC_VER
@@ -1870,10 +1870,10 @@ namespace TBSyzygy {
                 idx = encode_piece (entry, entry->norm[bside], p, entry->factor[bside]);
                 res = decompress_pairs (entry->precomp[bside], idx);
             }
-            return ((i32)res) - 2;
+            return Value((i32)res - 2);
         }
 
-        i32 probe_dtz_table (Position &pos, i32 wdl, i32 *success)
+        i32 probe_dtz_table (Position &pos, i32 wdl, i32 &success)
         {
             u64 idx;
             i32 i, res;
@@ -1910,7 +1910,7 @@ namespace TBSyzygy {
                     }
                     if (i == HSHMAX)
                     {
-                        *success = 0;
+                        success = 0;
                         return 0;
                     }
                     auto tbe = tbhe[i].tbe;
@@ -1932,7 +1932,7 @@ namespace TBSyzygy {
             auto tbe = DTZ_table[0].tbe;
             if (tbe == nullptr)
             {
-                *success = 0;
+                success = 0;
                 return 0;
             }
 
@@ -1970,7 +1970,7 @@ namespace TBSyzygy {
                 i32 f = pawn_file ((TBEntry_pawn *)dtzep, p);
                 if ((dtzep->flags[f] & 1) != bside)
                 {
-                    *success = -1;
+                    success = -1;
                     return 0;
                 }
                 u08 *pc = dtzep->file[f].pieces;
@@ -1996,7 +1996,7 @@ namespace TBSyzygy {
                 DTZEntry_piece *entry = (DTZEntry_piece *)tbe;
                 if ((entry->flags & 1) != bside && !entry->symmetric)
                 {
-                    *success = -1;
+                    success = -1;
                     return 0;
                 }
                 u08 *pc = entry->pieces;
@@ -2021,33 +2021,33 @@ namespace TBSyzygy {
         }
 
         // Add underpromotion captures to list of captures.
-        ValMove *generate_underprom_cap (Position &pos, ValMove *moves, ValMove *end)
+        ValMove *generate_underprom_cap (const Position &pos, ValMove *moves, ValMove *end)
         {
-            ValMove *cur, *extra = end;
-            for (cur = moves; cur < end; ++cur)
+            ValMove *extra = end;
+            for (ValMove *cur = moves; cur < end; ++cur)
             {
                 auto move = cur->move;
                 if (   mtype (move) == PROMOTE
                     && !pos.empty (dst_sq (move))
                    )
                 {
-                    (*extra++).move = Move(move - (NIHT << 12));
-                    (*extra++).move = Move(move - (BSHP << 12));
-                    (*extra++).move = Move(move - (ROOK << 12));
+                    (*extra++) = Move(move - (NIHT << 12));
+                    (*extra++) = Move(move - (BSHP << 12));
+                    (*extra++) = Move(move - (ROOK << 12));
                 }
             }
 
             return extra;
         }
 
-        i32 probe_ab (Position &pos, i32 alpha, i32 beta, i32 *success)
+        Value probe_ab (Position &pos, Value alfa, Value beta, i32 &success)
         {
-            ValMove moves[64];
+            ValMove moves[MAX_MOVES];
             ValMove *end;
             
             // Generate (at least) all legal non-ep captures including (under)promotions.
             // It is OK to generate more, as long as they are filtered out below.
-            if (pos.checkers () == U64 (0))
+            if (pos.checkers () == U64(0))
             {
                 end = generate<CAPTURE> (moves, pos);
                 // Since underpromotion captures are not included, we need to add them.
@@ -2058,10 +2058,10 @@ namespace TBSyzygy {
                 end = generate<EVASION> (moves, pos);
             }
 
-            i32 v;
+            Value v;
             CheckInfo ci (pos);
-            ValMove *cur;
-            for (cur = moves; cur < end; ++cur)
+            
+            for (ValMove *cur = moves; cur < end; ++cur)
             {
                 Move capture = cur->move;
                 if (   !pos.capture (capture)
@@ -2074,99 +2074,96 @@ namespace TBSyzygy {
 
                 StateInfo si;
                 pos.do_move (capture, si, pos.gives_check (capture, ci));
-                v = -probe_ab (pos, -beta, -alpha, success);
+                v = -probe_ab (pos, -beta, -alfa, success);
                 pos.undo_move ();
-                if (*success == 0) return 0;
-                if (v > alpha)
+                if (success == 0) return VALUE_DRAW;
+                if (v > alfa)
                 {
                     if (v >= beta)
                     {
-                        *success = 2;
+                        success = 2;
                         return v;
                     }
-                    alpha = v;
+                    alfa = v;
                 }
             }
 
             v = probe_wdl_table (pos, success);
-            if (*success == 0) return 0;
-            if (alpha >= v)
+            if (success == 0) return VALUE_DRAW;
+            if (alfa >= v)
             {
-                *success = 1 + (alpha > 0);
-                return alpha;
+                success = 1 + (alfa > 0);
+                return alfa;
             }
             else
             {
-                *success = 1;
+                success = 1;
                 return v;
             }
         }
 
         // This routine treats a position with en passant captures as one without.
-        i32 probe_dtz_no_ep (Position &pos, i32 *success)
+        Value probe_dtz_no_ep (Position &pos, i32 &success)
         {
-            i32 wdl, dtz;
+            Value wdl = probe_ab (pos, Value(-2), Value(2), success);
+            if (success == 0) return VALUE_DRAW;
 
-            wdl = probe_ab (pos, -2, 2, success);
-            if (*success == 0) return 0;
+            if (wdl == 0) return VALUE_DRAW;
 
-            if (wdl == 0) return 0;
-
-            if (*success == 2)
+            if (success == 2)
             {
-                return wdl == 2 ? 1 : 101;
+                return Value(wdl == 2 ? 1 : 101);
             }
-            ValMove stack[MAX_MOVES];
-            ValMove *moves, *end = nullptr;
-            StateInfo st;
+
+            ValMove moves[MAX_MOVES];
+            ValMove *end = nullptr;
+            
             CheckInfo ci (pos);
 
             if (wdl > 0)
             {
                 // Generate at least all legal non-capturing pawn moves
                 // including non-capturing promotions.
-                if (!pos.checkers ())
+                end = pos.checkers () == U64(0) ?
+                    generate<RELAX> (moves, pos) :
+                    generate<EVASION> (moves, pos);
+
+                for (ValMove *cur = moves; cur < end; ++cur)
                 {
-                    end = generate<RELAX> (stack, pos);
-                }
-                else
-                {
-                    end = generate<EVASION> (stack, pos);
-                }
-                for (moves = stack; moves < end; ++moves)
-                {
-                    Move move = moves->move;
-                    if (ptype (pos[org_sq (move)]) != PAWN
+                    auto move = cur->move;
+                    if (   ptype (pos[org_sq (move)]) != PAWN
                         || pos.capture (move)
                         || !pos.legal (move, ci.pinneds)
-                        )
+                       )
                     {
                         continue;
                     }
-                    pos.do_move (move, st, pos.gives_check (move, ci));
-                    i32 v = -probe_ab (pos, -2, -wdl + 1, success);
+
+                    StateInfo si;
+                    pos.do_move (move, si, pos.gives_check (move, ci));
+                    Value v = -probe_ab (pos, Value(-2), Value(-wdl + 1), success);
                     pos.undo_move ();
-                    if (*success == 0) return 0;
+                    if (success == 0) return VALUE_DRAW;
                     if (v == wdl)
                     {
-                        return v == 2 ? 1 : 101;
+                        return Value(v == 2 ? 1 : 101);
                     }
                 }
             }
 
-            dtz = 1 + probe_dtz_table (pos, wdl, success);
-            if (*success >= 0)
+            i32 dtz = 1 + probe_dtz_table (pos, wdl, success);
+            if (success >= 0)
             {
                 if (wdl & 1) dtz += 100;
-                return wdl >= 0 ? dtz : -dtz;
+                return Value(wdl >= 0 ? dtz : -dtz);
             }
 
             if (wdl > 0)
             {
-                i32 best = 0xFFFF;
-                for (moves = stack; moves < end; ++moves)
+                Value best_value = VALUE_NONE;
+                for (ValMove *cur = moves; cur < end; ++cur)
                 {
-                    Move move = moves->move;
+                    auto move = cur->move;
                     if (   pos.capture (move)
                         || ptype (pos[org_sq (move)]) == PAWN
                         || !pos.legal (move, ci.pinneds)
@@ -2174,41 +2171,43 @@ namespace TBSyzygy {
                     {
                         continue;
                     }
-                    pos.do_move (move, st, pos.gives_check (move, ci));
-                    i32 v = -probe_dtz (pos, success);
+
+                    StateInfo si;
+                    pos.do_move (move, si, pos.gives_check (move, ci));
+                    Value v = -probe_dtz (pos, success);
                     pos.undo_move ();
-                    if (*success == 0) return 0;
-                    if (v > 0 && best > v + 1)
+                    if (success == 0) return VALUE_DRAW;
+                    if (v > 0 && best_value > v + 1)
                     {
-                        best = v + 1;
+                        best_value = v + 1;
                     }
                 }
-                return best;
+                return best_value;
             }
             else
             {
-                i32 best = -1;
-                if (!pos.checkers ())
+                Value best_value = VALUE_NONE;
+                end = pos.checkers () == U64(0) ?
+                    generate<RELAX> (moves, pos) :
+                    generate<EVASION> (moves, pos);
+               
+                for (ValMove *cur = moves; cur < end; ++cur)
                 {
-                    end = generate<RELAX> (stack, pos);
-                }
-                else
-                {
-                    end = generate<EVASION> (stack, pos);
-                }
-                for (moves = stack; moves < end; ++moves)
-                {
-                    i32 v;
-                    Move move = moves->move;
+                    Value v;
+                    auto move = cur->move;
                     if (!pos.legal (move, ci.pinneds)) continue;
-                    pos.do_move (move, st, pos.gives_check (move, ci));
-                    if (st.clock_ply == 0)
+                    StateInfo si;
+                    pos.do_move (move, si, pos.gives_check (move, ci));
+                    if (si.clock_ply == 0)
                     {
-                        if (wdl == -2) v = -1;
+                        if (wdl == -2)
+                        {
+                            v = Value(-1);
+                        }
                         else
                         {
-                            v = probe_ab (pos, 1, 2, success);
-                            v = (v == 2) ? 0 : -101;
+                            v = probe_ab (pos, Value(1), Value(2), success);
+                            v = (v == 2) ? VALUE_DRAW : Value(-101);
                         }
                     }
                     else
@@ -2216,46 +2215,49 @@ namespace TBSyzygy {
                         v = -probe_dtz (pos, success) - 1;
                     }
                     pos.undo_move ();
-                    if (*success == 0) return 0;
-                    if (best > v)
+                    if (success == 0) return VALUE_DRAW;
+                    if (best_value > v)
                     {
-                        best = v;
+                        best_value = v;
                     }
                 }
-                return best;
+                return best_value;
             }
         }
 
         // Check whether there has been at least one repetition of positions
         // since the last capture or pawn move.
-        i32 has_repeated (StateInfo *st)
+        i32 has_repeated (StateInfo *si)
         {
             while (true)
             {
-                i32 i = 4, e = std::min (st->clock_ply, st->null_ply);
+                i32 i = 4, e = std::min (si->clock_ply, si->null_ply);
                 if (e < i)
                 {
                     return 0;
                 }
-                StateInfo *stp = st->ptr->ptr;
+                StateInfo *psi = si->ptr->ptr;
                 do
                 {
-                    stp = stp->ptr->ptr;
-                    if (stp->posi_key == st->posi_key)
+                    psi = psi->ptr->ptr;
+                    if (psi->posi_key == si->posi_key)
                     {
                         return 1;
                     }
                     i += 2;
                 } while (i <= e);
-                st = st->ptr;
+                si = si->ptr;
             }
         }
 
-        i32 Wdl_to_Dtz[] =
+        Value Wdl_to_Dtz[] =
         {
-            -1, -101, 0, 101, 1
+            Value(-1),
+            Value(-101),
+            Value(0),
+            Value(101),
+            Value(1)
         };
-
 
         Value Wdl_to_Value[5] =
         {
@@ -2293,44 +2295,37 @@ namespace TBSyzygy {
     // In short, if a move is available resulting in dtz + 50-move-counter <= 99,
     // then do not accept moves leading to dtz + 50-move-counter == 100.
     //
-    i32 probe_dtz (Position &pos, i32 *success)
+    Value probe_dtz (Position &pos, i32 &success)
     {
-        *success = 1;
-        i32 v = probe_dtz_no_ep (pos, success);
+        success = 1;
+        Value v = probe_dtz_no_ep (pos, success);
 
         if (pos.en_passant_sq () == SQ_NO) return v;
-        if (*success == 0) return 0;
+        if (success == 0) return VALUE_DRAW;
 
         // Now handle en passant.
-        i32 v1 = -3;
+        Value v1 = Value(-3);
 
-        ValMove stack[MAX_MOVES];
-        ValMove *moves, *end;
-        StateInfo st;
+        ValMove moves[MAX_MOVES];
+        ValMove *end = pos.checkers () == U64 (0) ?
+            generate<CAPTURE> (moves, pos) :
+            generate<EVASION> (moves, pos);
 
-        if (!pos.checkers ())
-        {
-            end = generate<CAPTURE> (stack, pos);
-        }
-        else
-        {
-            end = generate<EVASION> (stack, pos);
-        }
         CheckInfo ci (pos);
-
-        for (moves = stack; moves < end; ++moves)
+        for (ValMove *cur = moves; cur < end; ++cur)
         {
-            Move capture = moves->move;
-            if (mtype (capture) != ENPASSANT
-                || !pos.legal (capture, ci.pinneds)
-                )
+            auto move = cur->move;
+            if (   mtype (move) != ENPASSANT
+                || !pos.legal (move, ci.pinneds)
+               )
             {
                 continue;
             }
-            pos.do_move (capture, st, pos.gives_check (capture, ci));
-            i32 v0 = -probe_ab (pos, -2, 2, success);
+            StateInfo si;
+            pos.do_move (move, si, pos.gives_check (move, ci));
+            Value v0 = -probe_ab (pos, Value(-2), Value(+2), success);
             pos.undo_move ();
-            if (*success == 0) return 0;
+            if (success == 0) return VALUE_DRAW;
             if (v1 < v0) v1 = v0;
         }
         if (v1 > -3)
@@ -2362,23 +2357,26 @@ namespace TBSyzygy {
             }
             else
             {
-                for (moves = stack; moves < end; ++moves)
+                ValMove *cur;
+                for (cur = moves; cur < end; ++cur)
                 {
-                    Move move = moves->move;
+                    auto move = cur->move;
                     if (mtype (move) == ENPASSANT) continue;
                     if (pos.legal (move, ci.pinneds)) break;
                 }
-                if (moves == end && !pos.checkers ())
+                if (cur == end && pos.checkers () == U64(0))
                 {
                     end = generate<QUIET> (end, pos);
-                    for (; moves < end; ++moves)
+                    for (; cur < end; ++cur)
                     {
-                        Move move = moves->move;
+                        auto move = cur->move;
                         if (pos.legal (move, ci.pinneds)) break;
                     }
                 }
-                if (moves == end)
+                if (cur == end)
+                {
                     v = v1;
+                }
             }
         }
 
@@ -2393,43 +2391,42 @@ namespace TBSyzygy {
     //  0 : draw
     //  1 : win, but draw under 50-move rule
     //  2 : win
-    i32 probe_wdl (Position &pos, i32 *success)
+    Value probe_wdl (Position &pos, i32 &success)
     {
-        *success = 1;
-        i32 v = probe_ab (pos, -2, 2, success);
+        success = 1;
+        Value v = probe_ab (pos, Value(-2), Value(+2), success);
 
         // If en passant is not possible, we are done.
         if (pos.en_passant_sq () == SQ_NO)
         {
             return v;
         }
-        if (!(*success)) return 0;
+        if (success == 0) return VALUE_DRAW;
 
         // Now handle en passant.
-        i32 v1 = -3;
+        Value v1 = Value(-3);
         // Generate (at least) all legal en passant captures.
         ValMove moves[MAX_MOVES];
-        ValMove *end = pos.checkers () != U64 (0) ?
-            generate<EVASION> (moves, pos) :
-            generate<CAPTURE> (moves, pos);
+        ValMove *end = pos.checkers () == U64(0) ?
+            generate<CAPTURE> (moves, pos) :
+            generate<EVASION> (moves, pos);
 
         CheckInfo ci (pos);
         
-        ValMove *cur;
-        for (cur = moves; cur < end; ++cur)
+        for (ValMove *cur = moves; cur < end; ++cur)
         {
-            Move capture = cur->move;
-            if (   mtype (capture) != ENPASSANT
-                || !pos.legal (capture, ci.pinneds)
+            auto move = cur->move;
+            if (   mtype (move) != ENPASSANT
+                || !pos.legal (move, ci.pinneds)
                )
             {
                 continue;
             }
             StateInfo si;
-            pos.do_move (capture, si, pos.gives_check (capture, ci));
-            i32 v0 = -probe_ab (pos, -2, 2, success);
+            pos.do_move (move, si, pos.gives_check (move, ci));
+            Value v0 = -probe_ab (pos, Value(-2), Value(+2), success);
             pos.undo_move ();
-            if (*success == 0) return 0;
+            if (success == 0) return VALUE_DRAW;
             if (v0 > v1) v1 = v0;
         }
         if (v1 > -3)
@@ -2441,20 +2438,26 @@ namespace TBSyzygy {
             else if (v == 0)
             {
                 // Check whether there is at least one legal non-ep move.
+                ValMove *cur;
                 for (cur = moves; cur < end; ++cur)
                 {
-                    Move capture = cur->move;
-                    if (mtype (capture) == ENPASSANT) continue;
-                    if (pos.legal (capture, ci.pinneds)) break;
+                    auto move = cur->move;
+                    if (mtype (move) == ENPASSANT) continue;
+                    if (pos.legal (move, ci.pinneds))
+                    {
+                        break;
+                    }
                 }
                 if (cur == end && pos.checkers () == U64(0))
                 {
                     end = generate<QUIET> (end, pos);
                     for (; cur < end; ++cur)
                     {
-                        Move move = cur->move;
+                        auto move = cur->move;
                         if (pos.legal (move, ci.pinneds))
+                        {
                             break;
+                        }
                     }
                 }
                 // If not, then we are forced to play the losing ep capture.
@@ -2478,46 +2481,54 @@ namespace TBSyzygy {
     {
         i32 success;
 
-        i32 dtz = probe_dtz (pos, &success);
-        if (!success) return false;
+        i32 dtz = probe_dtz (pos, success);
+        if (success == 0) return false;
 
-        StateInfo st;
+        StateInfo si;
         CheckInfo ci (pos);
 
         // Probe each move.
         for (size_t i = 0; i < root_moves.size (); ++i)
         {
-            Move move = root_moves[i].pv[0];
-            pos.do_move (root_moves[i].pv[0], st, pos.gives_check (move, ci));
-            i32 v = 0;
-            if (pos.checkers () && dtz > 0)
+            auto move = root_moves[i][0];
+            pos.do_move (move, si, pos.gives_check (move, ci));
+            Value v = VALUE_DRAW;
+            if (pos.checkers () != U64(0) && dtz > 0)
             {
-                ValMove s[192];
-                if (generate<LEGAL> (s, pos) == s)
-                    v = 1;
-            }
-            if (!v)
-            {
-                if (st.clock_ply != 0)
+                ValMove moves[MAX_MOVES];
+                if (generate<LEGAL> (moves, pos) == moves)
                 {
-                    v = -probe_dtz (pos, &success);
-                    if (v > 0) v++;
-                    else if (v < 0) v--;
+                    v = Value(1);
+                }
+            }
+            if (v == VALUE_DRAW)
+            {
+                if (si.clock_ply != 0)
+                {
+                    v = -probe_dtz (pos, success);
+                    if (v > 0)
+                    {
+                        v++;
+                    }
+                    else if (v < 0)
+                    {
+                        v--;
+                    }
                 }
                 else
                 {
-                    v = -probe_wdl (pos, &success);
+                    v = -probe_wdl (pos, success);
                     v = Wdl_to_Dtz[v + 2];
                 }
             }
             pos.undo_move ();
-            if (!success) return false;
+            if (success == 0) return false;
             root_moves[i].new_value = Value (v);
         }
 
         // Obtain 50-move counter for the root position.
         // In Stockfish there seems to be no clean way, so we do it like this:
-        i32 cnt50 = st.ptr->clock_ply;
+        i32 cnt50 = si.ptr->clock_ply;
 
         // Use 50-move counter to determine whether the root position is
         // won, lost or drawn.
@@ -2556,7 +2567,7 @@ namespace TBSyzygy {
             i32 max = best;
             // If the current phase has not seen repetitions, then try all moves
             // that stay safely within the 50-move budget, if there are any.
-            if (!has_repeated (st.ptr) && best + cnt50 <= 99)
+            if (!has_repeated (si.ptr) && best + cnt50 <= 99)
                 max = 99 - cnt50;
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
@@ -2576,11 +2587,15 @@ namespace TBSyzygy {
             }
             // Try all moves, unless we approach or have a 50-move rule draw.
             if (-best * 2 + cnt50 < 100)
+            {
                 return true;
+            }
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
                 if (root_moves[i].new_value == best)
+                {
                     root_moves[j++] = root_moves[i];
+                }
             }
         }
         else
@@ -2589,7 +2604,9 @@ namespace TBSyzygy {
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
                 if (root_moves[i].new_value == 0)
+                {
                     root_moves[j++] = root_moves[i];
+                }
             }
         }
         root_moves.resize (j, RootMove (MOVE_NONE));
@@ -2606,11 +2623,11 @@ namespace TBSyzygy {
     {
         i32 success;
 
-        i32 wdl = probe_wdl (pos, &success);
-        if (!success) return false;
+        i32 wdl = probe_wdl (pos, success);
+        if (success == 0) return false;
         ProbeValue = Wdl_to_Value[wdl + 2];
 
-        StateInfo st;
+        StateInfo si;
         CheckInfo ci (pos);
 
         i32 best = -2;
@@ -2618,11 +2635,11 @@ namespace TBSyzygy {
         // Probe each move.
         for (size_t i = 0; i < root_moves.size (); ++i)
         {
-            Move move = root_moves[i][0];
-            pos.do_move (move, st, pos.gives_check (move, ci));
-            i32 v = -probe_wdl (pos, &success);
+            auto move = root_moves[i][0];
+            pos.do_move (move, si, pos.gives_check (move, ci));
+            i32 v = -probe_wdl (pos, success);
             pos.undo_move ();
-            if (!success) return false;
+            if (success == 0) return false;
             root_moves[i].new_value = Value (v);
             if (best < v)
             {
@@ -2639,7 +2656,6 @@ namespace TBSyzygy {
             }
         }
         root_moves.resize (j, RootMove ());
-
         return true;
     }
 
