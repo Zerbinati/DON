@@ -216,12 +216,12 @@ namespace TBSyzygy {
 #define TBMAX_PAWN 256
 #define HSHMAX 5
 
-#define TB_PAWN 1
-#define TB_KNIGHT 2
-#define TB_BISHOP 3
-#define TB_ROOK 4
-#define TB_QUEEN 5
-#define TB_KING 6
+#define TB_PAWN     1
+#define TB_KNIGHT   2
+#define TB_BISHOP   3
+#define TB_ROOK     4
+#define TB_QUEEN    5
+#define TB_KING     6
 
 #define TB_WPAWN TB_PAWN
 #define TB_BPAWN (TB_PAWN | 8)
@@ -329,9 +329,9 @@ namespace TBSyzygy {
 
         void add_to_hash (TBEntry *tbe, Key key)
         {
-            u16 hshidx = key >> (64 - TBHASHBITS);
+            i16 hshidx = key >> (64 - TBHASHBITS);
             u08 i = 0;
-            while (i < HSHMAX && TB_hash[hshidx][i].tbe)
+            while (i < HSHMAX && TB_hash[hshidx][i].tbe != nullptr)
             {
                 ++i;
             }
@@ -356,10 +356,9 @@ namespace TBSyzygy {
             close_tb (fd);
 
             u08 pcs[16];
-            memset (pcs, 0x00, sizeof (pcs));
-            
+            std::memset (pcs, 0x00, sizeof (pcs));
             u08 color = 0;
-            for (auto s = filename; *s; s++)
+            for (auto s = filename; *s; ++s)
             {
                 switch (*s)
                 {
@@ -386,24 +385,19 @@ namespace TBSyzygy {
                     break;
                 }
             }
-            for (u08 i = 0; i < 8; ++i)
-            {
-                if (pcs[i] != pcs[i+8])
-                {
-                    break;
-                }
-            }
+
             Key key1 = calc_key_from_pcs (pcs, false);
             Key key2 = calc_key_from_pcs (pcs, true);
+
             TBEntry *tbe;
-            if (pcs[TB_WPAWN] + pcs[TB_BPAWN] == 0)
+            if ((pcs[TB_WPAWN] + pcs[TB_BPAWN]) == 0)
             {
                 if (TB_piece_count == TBMAX_PIECE)
                 {
                     std::cout << "TBMAX_PIECE limit too low!." << std::endl;
                     exit (1);
                 }
-                tbe = (TBEntry *)&TB_piece[TB_piece_count++];
+                tbe = reinterpret_cast<TBEntry *> (&TB_piece[TB_piece_count++]);
             }
             else
             {
@@ -412,7 +406,7 @@ namespace TBSyzygy {
                     std::cout << "TBMAX_PAWN limit too low!" << std::endl;
                     exit (1);
                 }
-                tbe = (TBEntry *)&TB_pawn[TB_pawn_count++];
+                tbe = reinterpret_cast<TBEntry *> (&TB_pawn[TB_pawn_count++]);
             }
 
             tbe->key = key1;
@@ -423,8 +417,8 @@ namespace TBSyzygy {
                 tbe->num += pcs[i];
             }
 
-            tbe->symmetric = key1 == key2;
-            tbe->has_pawns = pcs[TB_WPAWN] + pcs[TB_BPAWN] > 0;
+            tbe->symmetric = (key1 == key2);
+            tbe->has_pawns = (pcs[TB_WPAWN] + pcs[TB_BPAWN]) > 0;
 
             if (MaxPieceLimit < tbe->num)
             {
@@ -477,8 +471,12 @@ namespace TBSyzygy {
                     }
                 }
             }
+
             add_to_hash (tbe, key1);
-            if (key2 != key1) add_to_hash (tbe, key2);
+            if (key1 != key2)
+            {
+                add_to_hash (tbe, key2);
+            }
         }
 
         const signed char OffDiag[] =
@@ -1752,7 +1750,7 @@ namespace TBSyzygy {
             auto color = mirror ? BLACK : WHITE;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (i32 i = 0; i < pcs[color | PieceT(pt + 1)]; ++i)
+                for (u08 i = 0; i < pcs[color | PieceT(pt + 1)]; ++i)
                 {
                     key ^= Zob._.piece_square[WHITE][pt][i];
                 }
@@ -1760,7 +1758,7 @@ namespace TBSyzygy {
             color = ~color;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (i32 i = 0; i < pcs[color | PieceT (pt + 1)]; ++i)
+                for (u08 i = 0; i < pcs[color | PieceT(pt + 1)]; ++i)
                 {
                     key ^= Zob._.piece_square[BLACK][pt][i];
                 }
@@ -2777,11 +2775,9 @@ namespace TBSyzygy {
         TB_pawn_count   = 0;
         MaxPieceLimit   = 0;
 
-        i32 j, k, l;
-
         for (i = 0; i < (1 << TBHASHBITS); ++i)
         {
-            for (j = 0; j < HSHMAX; ++j)
+            for (i08 j = 0; j < HSHMAX; ++j)
             {
                 TB_hash[i][j].key = 0ULL;
                 TB_hash[i][j].tbe = nullptr;
@@ -2793,92 +2789,98 @@ namespace TBSyzygy {
         }
 
         char filename[16];
-        for (i = 1; i < NONE; ++i)
+
+        // 3-piece
+        for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
-            sprintf (filename, "K%cvK", PieceChar[i]);
+            sprintf (filename, "K%cvK", PieceChar[wp1]);
             init_tb (filename);
         }
-
-        for (i = 1; i < NONE; ++i)
+        // 4-piece
+        for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
-            for (j = i; j < NONE; ++j)
+            for (u08 bp1 = wp1; bp1 < NONE; ++bp1)
             {
-                sprintf (filename, "K%cvK%c", PieceChar[i], PieceChar[j]);
+                sprintf (filename, "K%cvK%c", PieceChar[wp1], PieceChar[bp1]);
                 init_tb (filename);
             }
         }
-        for (i = 1; i < NONE; ++i)
+        for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
-            for (j = i; j < NONE; ++j)
+            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
             {
-                sprintf (filename, "K%c%cvK", PieceChar[i], PieceChar[j]);
+                sprintf (filename, "K%c%cvK", PieceChar[wp1], PieceChar[wp2]);
                 init_tb (filename);
             }
         }
-        for (i = 1; i < NONE; ++i)
+        // 5-piece
+        for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
-            for (j = i; j < NONE; ++j)
+            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
             {
-                for (k = 1; k < NONE; ++k)
+                for (u08 bp1 = 1; bp1 < NONE; ++bp1)
                 {
-                    sprintf (filename, "K%c%cvK%c", PieceChar[i], PieceChar[j], PieceChar[k]);
+                    sprintf (filename, "K%c%cvK%c", PieceChar[wp1], PieceChar[wp2], PieceChar[bp1]);
                     init_tb (filename);
                 }
             }
         }
-        for (i = 1; i < NONE; ++i)
+        for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
-            for (j = i; j < NONE; ++j)
+            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
             {
-                for (k = j; k < NONE; ++k)
+                for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
                 {
-                    sprintf (filename, "K%c%c%cvK", PieceChar[i], PieceChar[j], PieceChar[k]);
+                    sprintf (filename, "K%c%c%cvK", PieceChar[wp1], PieceChar[wp2], PieceChar[wp3]);
                     init_tb (filename);
                 }
             }
         }
-        for (i = 1; i < NONE; ++i)
+        // 6-piece
+        /*
+        for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
-            for (j = i; j < NONE; ++j)
+            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
             {
-                for (k = i; k < NONE; ++k)
+                for (u08 bp1 = wp1; bp1 < NONE; ++bp1)
                 {
-                    for (l = (i == k) ? j : k; l < NONE; ++l)
+                    for (u08 bp2 = (wp1 == bp1) ? wp2 : bp1; bp2 < NONE; ++bp2)
                     {
-                        sprintf (filename, "K%c%cvK%c%c", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
+                        sprintf (filename, "K%c%cvK%c%c", PieceChar[wp1], PieceChar[wp2], PieceChar[bp1], PieceChar[bp2]);
                         init_tb (filename);
                     }
                 }
             }
         }
-        for (i = 1; i < NONE; ++i)
+        for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
-            for (j = i; j < NONE; ++j)
+            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
             {
-                for (k = j; k < NONE; ++k)
+                for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
                 {
-                    for (l = 1; l < NONE; ++l)
+                    for (u08 bp1 = 1; bp1 < NONE; ++bp1)
                     {
-                        sprintf (filename, "K%c%c%cvK%c", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
+                        sprintf (filename, "K%c%c%cvK%c", PieceChar[wp1], PieceChar[wp2], PieceChar[wp3], PieceChar[bp1]);
                         init_tb (filename);
                     }
                 }
             }
         }
-        for (i = 1; i < NONE; ++i)
+        for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
-            for (j = i; j < NONE; ++j)
+            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
             {
-                for (k = j; k < NONE; ++k)
+                for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
                 {
-                    for (l = k; l < NONE; ++l)
+                    for (u08 wp4 = wp3; wp4 < NONE; ++wp4)
                     {
-                        sprintf (filename, "K%c%c%c%cvK", PieceChar[i], PieceChar[j], PieceChar[k], PieceChar[l]);
+                        sprintf (filename, "K%c%c%c%cvK", PieceChar[wp1], PieceChar[wp2], PieceChar[wp3], PieceChar[wp4]);
                         init_tb (filename);
                     }
                 }
             }
         }
+        */
 
         std::cout << "info string " << (TB_piece_count + TB_pawn_count) << " Syzygy Tablebases found." << std::endl;
     }
