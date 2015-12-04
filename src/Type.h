@@ -684,20 +684,83 @@ inline std::string& trim_right (std::string &str)
 }
 inline std::string& trim (std::string &str)
 {
-    //size_t p0 = str.find_first_not_of (" \t\n");
-    //size_t p1 = str.find_last_not_of (" \t\n");
-    //p0  = p0 == std::string::npos ?  0 : p0;
-    //p1  = p1 == std::string::npos ? p0 : p1 - p0 + 1;
-    //str = str.substr (p0, p1);
-    //return str;
-
+    /*
+    size_t p0 = str.find_first_not_of (" \t\n");
+    size_t p1 = str.find_last_not_of (" \t\n");
+    p0  = p0 == std::string::npos ?  0 : p0;
+    p1  = p1 == std::string::npos ? p0 : p1 - p0 + 1;
+    str = str.substr (p0, p1);
+    return str;
+    */
     return trim_left (trim_right (str));
+}
+
+inline std::vector<std::string> split (const std::string str, char delimiter = ' ', bool keep_empty = true)
+{
+    std::vector<std::string> tokens;
+    
+    /*
+    size_t beg = 0;
+    do
+    {
+        // Find next non-delimiter.
+        size_t end = str.find_first_of (delimiter, beg);
+        std::string token = str.substr (beg, end != std::string::npos ? end - beg : std::string::npos);
+        if (keep_empty || !token.empty ())
+        {
+            tokens.push_back (token);
+        }
+        // Skip delimiter.
+        beg = str.find_first_not_of (delimiter, end);
+    }
+    while (beg != std::string::npos);
+    */
+    /*
+    size_t beg = 0;
+    do
+    {
+        size_t end = str.find (delimiter, beg);
+        std::string token = str.substr (beg, end != std::string::npos ? end - beg : std::string::npos);
+        if (keep_empty || !token.empty ())
+        {
+            tokens.push_back (token);
+        }
+        if (end == std::string::npos)
+        {
+            break;
+        }
+        beg = end + 1;
+    }
+    while (true);
+    */
+    
+    std::istringstream buf (str);
+    do
+    {
+        std::string token;
+        getline (buf, token, delimiter);
+        if (keep_empty || !token.empty ())
+        {
+            tokens.push_back (token);
+        }
+    }
+    while (buf.good ());
+
+    return tokens;
 }
 
 inline void remove_extension (std::string &filename)
 {
     size_t last_dot = filename.find_last_of ('.');
     if (last_dot != std::string::npos) filename = filename.substr (0, last_dot); 
+}
+
+inline std::string append_path (const std::string &path1, const std::string &path2)
+{
+    const char sep = '/';
+    return path1[path1.length ()] != sep ?
+        path1 + sep + path2 :
+        path1 + path2;
 }
 
 inline void convert_path (std::string &path)

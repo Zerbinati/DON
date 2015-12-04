@@ -245,16 +245,16 @@ namespace UCI {
 
         void config_endgame_table ()
         {
-            string syzygy_path = string(Options["Syzygy Path"]);
+            string path_string = string(Options["Syzygy Path"]);
             DepthLimit = i32(Options["Syzygy Depth Limit"]) * DEPTH_ONE;
             PieceLimit = i32(Options["Syzygy Piece Limit"]);
             UseRule50  = bool(Options["Syzygy Use Rule 50"]);
 
-            trim (syzygy_path);
-            if (!syzygy_path.empty ())
+            trim (path_string);
+            if (!path_string.empty ())
             {
-                convert_path (syzygy_path);
-                TBSyzygy::initialize (syzygy_path);
+                convert_path (path_string);
+                TBSyzygy::initialize (path_string);
             }
         }
 

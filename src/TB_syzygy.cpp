@@ -202,8 +202,8 @@ namespace TBSyzygy {
 
         // ---
 
-#define WDLSUFFIX ".rtbw"
-#define DTZSUFFIX ".rtbz"
+        const string WDLSUFFIX = ".rtbw";
+        const string DTZSUFFIX = ".rtbz";
 
 #define TBMAX_PIECE 254
 #define TBMAX_PAWN  256
@@ -225,11 +225,10 @@ namespace TBSyzygy {
 
         LOCK_T TB_mutex;
 
-        i32 PathCount = 0;
-        char **Paths = nullptr;
+        vector<string> Paths;
 
-        u32 TB_piece_count,
-            TB_pawn_count;
+        u32 TB_piece_count = 0,
+            TB_pawn_count = 0;
 
         TBEntry_piece TB_piece[TBMAX_PIECE];
         TBEntry_pawn  TB_pawn [TBMAX_PAWN];
@@ -245,21 +244,17 @@ namespace TBSyzygy {
         void free_wdl_entry (TBEntry *tbe);
         void free_dtz_entry (TBEntry *tbe);
 
-        FD open_tb (const char *filename, const char *suffix)
+        FD open_tb (const string &filename, const string &suffix)
         {
-            for (i32 i = 0; i < PathCount; ++i)
+            for (auto path : Paths)
             {
-                char fullname[256];
-                strcpy (fullname, Paths[i]);
-                strcat (fullname, "/");
-                strcat (fullname, filename);
-                strcat (fullname, suffix);
-
+                string fullpath = append_path (path, filename + suffix);
+                cout << fullpath << endl;
                 FD fd;
 #ifndef _WIN32
-                fd = open (fullname, O_RDONLY);
+                fd = open (fullpath.c_str (), O_RDONLY);
 #else
-                fd = CreateFile (fullname, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+                fd = CreateFile (fullpath.c_str (), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
 #endif
                 if (fd != FD_ERR) return fd;
             }
@@ -275,7 +270,7 @@ namespace TBSyzygy {
 #endif
         }
 
-        i08 *map_file (const char *filename, const char *suffix, u64 *mapping)
+        i08 *map_file (const string &filename, const string &suffix, u64 *mapping)
         {
             FD fd = open_tb (filename, suffix);
             if (fd == FD_ERR)
@@ -350,7 +345,7 @@ namespace TBSyzygy {
 
         char PieceChar[] ={ 'K', 'Q', 'R', 'B', 'N', 'P' };
 
-        void init_tb (const char *filename)
+        void init_tb (const string &filename)
         {
             FD fd = open_tb (filename, WDLSUFFIX);
             if (fd == FD_ERR) return;
@@ -359,9 +354,9 @@ namespace TBSyzygy {
             u08 pcs[16];
             std::memset (pcs, 0x00, sizeof (pcs));
             u08 color = 0;
-            for (auto s = filename; *s != '\0'; ++s)
+            for (auto ch : filename)
             {
-                switch (*s)
+                switch (ch)
                 {
                 case 'P':
                     pcs[TB_PAWN | color]++;
@@ -386,7 +381,7 @@ namespace TBSyzygy {
                     break;
                 }
             }
-            //for (u08 i = 0; i < 8; i++)
+            //for (u08 i = 0; i < 8; ++i)
             //{
             //    if (pcs[i] != pcs[i+8])
             //    {
@@ -420,7 +415,7 @@ namespace TBSyzygy {
             tbe->key = key1;
             tbe->ready = false;
             tbe->num = 0;
-            for (u08 i = 0; i < 16; ++i)
+            for (u08 i = 0; i < sizeof (pcs); ++i)
             {
                 tbe->num += pcs[i];
             }
@@ -451,13 +446,14 @@ namespace TBSyzygy {
                 auto tbep = reinterpret_cast<TBEntry_piece *> (tbe);
                 
                 u08 i, j;
-                for (i = 0, j = 0; i < 16; ++i)
+                for (i = 0, j = 0; i < sizeof (pcs); ++i)
                 {
                     if (pcs[i] == 1)
                     {
                         ++j;
                     }
                 }
+                
                 if (j >= 3)
                 {
                     tbep->enc_type = 0;
@@ -469,9 +465,9 @@ namespace TBSyzygy {
                 else
                 { /* only for suicide */
                     j = 16;
-                    for (i = 0; i < 16; ++i)
+                    for (i = 0; i < sizeof (pcs); ++i)
                     {
-                        if (pcs[i] < j && pcs[i] > 1)
+                        if (pcs[i] > 1 && pcs[i] < j)
                         {
                             j = pcs[i];
                         }
@@ -1265,7 +1261,7 @@ namespace TBSyzygy {
             return d;
         }
 
-        bool init_table_wdl (TBEntry *tbe, char *filename)
+        bool init_table_wdl (TBEntry *tbe, const string &filename)
         {
             u08 *next;
             u64 tb_size[8];
@@ -1608,7 +1604,7 @@ namespace TBSyzygy {
             return sympat[3 * sym];
         }
 
-        void load_dtz_table (char *filename, u64 key1, u64 key2)
+        void load_dtz_table (const string &filename, u64 key1, u64 key2)
         {
             DTZ_table[0].key1 = key1;
             DTZ_table[0].key2 = key2;
@@ -1718,30 +1714,28 @@ namespace TBSyzygy {
 
     namespace {
 
-        char *PathString = nullptr;
-
         // Given a position with 6 or fewer pieces, produce a text string of the form KQPvKRP,
         // where "KQP" represents the white pieces if mirror == false and the black pieces if mirror == true.
-        void prt_filename (Position &pos, char *filename, bool mirror)
+        void prt_filename (Position &pos, string filename, bool mirror)
         {
             Color color = mirror ? BLACK : WHITE;
             for (auto pt = KING; pt >= PAWN; --pt)
             {
                 for (i32 i = pop_count<MAX15> (pos.pieces (color, pt)); i > 0; --i)
                 {
-                    *filename++ = PieceChar[NONE - (pt + 1)];
+                    filename += PieceChar[NONE - (pt + 1)];
                 }
             }
-            *filename++ = 'v';
+            filename += 'v';
             color = ~color;
             for (auto pt = KING; pt >= PAWN; --pt)
             {
                 for (i32 i = pop_count<MAX15> (pos.pieces (color, pt)); i > 0; --i)
                 {
-                    *filename++ = PieceChar[NONE - (pt + 1)];
+                    filename += PieceChar[NONE - (pt + 1)];
                 }
             }
-            *filename = '\0';
+            //filename += '\0';
         }
 
         // Given a position, produce a 64-bit material signature key.
@@ -2680,7 +2674,7 @@ namespace TBSyzygy {
         }
         else
         { // drawing
-       // Try all moves that preserve the draw.
+            // Try all moves that preserve the draw.
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
                 if (root_moves[i].new_value == VALUE_ZERO)
@@ -2739,101 +2733,73 @@ namespace TBSyzygy {
         return true;
     }
 
-    void initialize (const string syzygy_path)
+    void initialize (const string path_string)
     {
         static bool initialized = false;
-        if (initialized)
-        {
-            if (PathString != nullptr)
-            {
-                free (PathString);
-            }
-            if (Paths != nullptr)
-            {
-                free (Paths);
-            }
-            
-            for (u32 i = 0; i < TB_piece_count; ++i)
-            {
-                auto tbe = reinterpret_cast<TBEntry *> (&TB_piece[i]);
-                if (tbe != nullptr)
-                {
-                    free_wdl_entry (tbe);
-                }
-            }
-            for (u32 i = 0; i < TB_pawn_count; ++i)
-            {
-                auto tbe = reinterpret_cast<TBEntry *> (&TB_pawn[i]);
-                if (tbe != nullptr)
-                {
-                    free_wdl_entry (tbe);
-                }
-            }
-            for (u32 i = 0; i < DTZ_ENTRIES; ++i)
-            {
-                if (DTZ_table[i].tbe != nullptr)
-                {
-                    free_dtz_entry (DTZ_table[i].tbe);
-                }
-            }
-        }
-        else
+        if (!initialized)
         {
             init_indices ();
             initialized = true;
         }
 
-        if (white_spaces (syzygy_path) || syzygy_path == "<empty>") return;
-
-        PathString = strdup (syzygy_path.c_str ());
-        PathCount = 0;
+        for (u32 i = 0; i < TB_piece_count; ++i)
+        {
+            auto tbe = reinterpret_cast<TBEntry *> (&TB_piece[i]);
+            if (tbe != nullptr)
+            {
+                free_wdl_entry (tbe);
+            }
+        }
+        for (u32 i = 0; i < TB_pawn_count; ++i)
+        {
+            auto tbe = reinterpret_cast<TBEntry *> (&TB_pawn[i]);
+            if (tbe != nullptr)
+            {
+                free_wdl_entry (tbe);
+            }
+        }
+        for (u32 i = 0; i < DTZ_ENTRIES; ++i)
+        {
+            if (DTZ_table[i].tbe != nullptr)
+            {
+                free_dtz_entry (DTZ_table[i].tbe);
+            }
+        }
         
-        i32 i = 0;
-        while (i < i32(syzygy_path.length ()))
-        {
-            while (PathString[i] != '\0' && isspace (PathString[i])) PathString[i++] = '\0';
-            if (PathString[i] == '\0') break;
-            if (PathString[i] != SEP_CHAR) ++PathCount;
-            while (PathString[i] != '\0' && PathString[i] != SEP_CHAR) ++i;
-            if (PathString[i] == '\0') break;
-            PathString[i++] = '\0';
-        }
+        if (white_spaces (path_string) || path_string == "<empty>") return;
 
-        Paths = (char **)malloc (PathCount * sizeof (char *));
-        for (i32 n = i = 0; n < PathCount; ++n)
-        {
-            while (PathString[i] == '\0') ++i;
-            Paths[n] = &PathString[i];
-            while (PathString[i] != '\0') ++i;
-        }
+        Paths = split (path_string, ';', false);
+        cout << Paths.size () << endl;
 
         LOCK_INIT (TB_mutex);
 
         clear_tb ();
 
-        char filename[16];
-
+        ostringstream ss;
         // 3-piece
         for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
-            sprintf (filename, "K%cvK", PieceChar[wp1]);
-            init_tb (filename);
+            ss.str ("");
+            ss << "K" << PieceChar[wp1] << "vK";
+            init_tb (ss.str ());
         }
         // 4-piece
         for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
             for (u08 bp1 = wp1; bp1 < NONE; ++bp1)
             {
-                sprintf (filename, "K%cvK%c", PieceChar[wp1], PieceChar[bp1]);
-                init_tb (filename);
+                ss.str ("");
+                ss << "K" << PieceChar[wp1] << "vK" << PieceChar[bp1];
+                init_tb (ss.str ());
             }
         }
         for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
             for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
             {
-                sprintf (filename, "K%c%cvK", PieceChar[wp1], PieceChar[wp2]);
-                init_tb (filename);
+                ss.str ("");
+                ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK";
+                init_tb (ss.str ());
             }
         }
         // 5-piece
@@ -2843,8 +2809,9 @@ namespace TBSyzygy {
             {
                 for (u08 bp1 = 1; bp1 < NONE; ++bp1)
                 {
-                    sprintf (filename, "K%c%cvK%c", PieceChar[wp1], PieceChar[wp2], PieceChar[bp1]);
-                    init_tb (filename);
+                    ss.str ("");
+                    ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1];
+                    init_tb (ss.str ());
                 }
             }
         }
@@ -2854,13 +2821,13 @@ namespace TBSyzygy {
             {
                 for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
                 {
-                    sprintf (filename, "K%c%c%cvK", PieceChar[wp1], PieceChar[wp2], PieceChar[wp3]);
-                    init_tb (filename);
+                    ss.str ("");
+                    ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK";
+                    init_tb (ss.str ());
                 }
             }
         }
         // 6-piece
-        
         for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
             for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
@@ -2869,8 +2836,9 @@ namespace TBSyzygy {
                 {
                     for (u08 bp2 = (wp1 == bp1) ? wp2 : bp1; bp2 < NONE; ++bp2)
                     {
-                        sprintf (filename, "K%c%cvK%c%c", PieceChar[wp1], PieceChar[wp2], PieceChar[bp1], PieceChar[bp2]);
-                        init_tb (filename);
+                        ss.str ("");
+                        ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1] << PieceChar[bp2];
+                        init_tb (ss.str ());
                     }
                 }
             }
@@ -2883,8 +2851,9 @@ namespace TBSyzygy {
                 {
                     for (u08 bp1 = 1; bp1 < NONE; ++bp1)
                     {
-                        sprintf (filename, "K%c%c%cvK%c", PieceChar[wp1], PieceChar[wp2], PieceChar[wp3], PieceChar[bp1]);
-                        init_tb (filename);
+                        ss.str ("");
+                        ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1];
+                        init_tb (ss.str ());
                     }
                 }
             }
@@ -2897,8 +2866,9 @@ namespace TBSyzygy {
                 {
                     for (u08 wp4 = wp3; wp4 < NONE; ++wp4)
                     {
-                        sprintf (filename, "K%c%c%c%cvK", PieceChar[wp1], PieceChar[wp2], PieceChar[wp3], PieceChar[wp4]);
-                        init_tb (filename);
+                        ss.str ("");
+                        ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK";
+                        init_tb (ss.str ());
                     }
                 }
             }
