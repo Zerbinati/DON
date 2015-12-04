@@ -78,16 +78,6 @@ namespace TBSyzygy {
         // This should not need to much adaptation to add tablebase probing to
         // a particular engine, provided the engine is written in C or C++.
 
-#define WDLSUFFIX ".rtbw"
-#define DTZSUFFIX ".rtbz"
-#define WDLDIR "RTBWDIR"
-#define DTZDIR "RTBZDIR"
-
-        const u08 WDL_MAGIC[4] ={ 0x71, 0xe8, 0x23, 0x5D };
-        const u08 DTZ_MAGIC[4] ={ 0xD7, 0x66, 0x0C, 0xA5 };
-
-#define TBHASHBITS 10
-
         struct TBHashEntry;
 
         typedef u64 base_t;
@@ -212,9 +202,13 @@ namespace TBSyzygy {
 
         // ---
 
+#define WDLSUFFIX ".rtbw"
+#define DTZSUFFIX ".rtbz"
+
 #define TBMAX_PIECE 254
-#define TBMAX_PAWN 256
-#define HSHMAX 5
+#define TBMAX_PAWN  256
+#define TBHASHBITS  10
+#define HSHMAX      5
 
 #define TB_PAWN     1
 #define TB_KNIGHT   2
@@ -226,14 +220,19 @@ namespace TBSyzygy {
 #define TB_WPAWN TB_PAWN
 #define TB_BPAWN (TB_PAWN | 8)
 
+        const u08 WDL_MAGIC[4] ={ 0x71, 0xe8, 0x23, 0x5D };
+        const u08 DTZ_MAGIC[4] ={ 0xD7, 0x66, 0x0C, 0xA5 };
+
         LOCK_T TB_mutex;
 
         i32 PathCount = 0;
         char **Paths = nullptr;
 
-        u32 TB_piece_count, TB_pawn_count;
+        u32 TB_piece_count,
+            TB_pawn_count;
+
         TBEntry_piece TB_piece[TBMAX_PIECE];
-        TBEntry_pawn TB_pawn[TBMAX_PAWN];
+        TBEntry_pawn  TB_pawn [TBMAX_PAWN];
 
         TBHashEntry TB_hash[1 << TBHASHBITS][HSHMAX];
 
@@ -327,11 +326,13 @@ namespace TBSyzygy {
 #endif
         }
 
-        void add_to_hash (TBEntry *tbe, Key key)
+        void add_to_hash (Key key, TBEntry *tbe)
         {
-            i16 hshidx = key >> (64 - TBHASHBITS);
+            i32 hash_idx = i32(key >> (64 - TBHASHBITS));
+            assert(hash_idx < (1 << TBHASHBITS));
+
             u08 i = 0;
-            while (i < HSHMAX && TB_hash[hshidx][i].tbe != nullptr)
+            while (i < HSHMAX && TB_hash[hash_idx][i].tbe != nullptr)
             {
                 ++i;
             }
@@ -342,8 +343,8 @@ namespace TBSyzygy {
             }
             else
             {
-                TB_hash[hshidx][i].key = key;
-                TB_hash[hshidx][i].tbe = tbe;
+                TB_hash[hash_idx][i].key = key;
+                TB_hash[hash_idx][i].tbe = tbe;
             }
         }
 
@@ -358,7 +359,7 @@ namespace TBSyzygy {
             u08 pcs[16];
             std::memset (pcs, 0x00, sizeof (pcs));
             u08 color = 0;
-            for (auto s = filename; *s; ++s)
+            for (auto s = filename; *s != '\0'; ++s)
             {
                 switch (*s)
                 {
@@ -385,11 +386,17 @@ namespace TBSyzygy {
                     break;
                 }
             }
-
+            //for (u08 i = 0; i < 8; i++)
+            //{
+            //    if (pcs[i] != pcs[i+8])
+            //    {
+            //        break;
+            //    }
+            //}
             Key key1 = calc_key_from_pcs (pcs, false);
             Key key2 = calc_key_from_pcs (pcs, true);
 
-            TBEntry *tbe;
+            TBEntry *tbe = nullptr;
             if ((pcs[TB_WPAWN] + pcs[TB_BPAWN]) == 0)
             {
                 if (TB_piece_count == TBMAX_PIECE)
@@ -408,6 +415,7 @@ namespace TBSyzygy {
                 }
                 tbe = reinterpret_cast<TBEntry *> (&TB_pawn[TB_pawn_count++]);
             }
+            assert (tbe != nullptr);
 
             tbe->key = key1;
             tbe->ready = false;
@@ -431,7 +439,7 @@ namespace TBSyzygy {
                 tbep->pawns[0] = pcs[TB_WPAWN];
                 tbep->pawns[1] = pcs[TB_BPAWN];
                 if (   pcs[TB_BPAWN] > 0
-                    && (pcs[TB_WPAWN] == 0 || pcs[TB_BPAWN] < pcs[TB_WPAWN])
+                    && (pcs[TB_WPAWN] == 0 || pcs[TB_WPAWN] > pcs[TB_BPAWN])
                    )
                 {
                     tbep->pawns[0] = pcs[TB_BPAWN];
@@ -472,10 +480,30 @@ namespace TBSyzygy {
                 }
             }
 
-            add_to_hash (tbe, key1);
+            add_to_hash (key1, tbe);
             if (key1 != key2)
             {
-                add_to_hash (tbe, key2);
+                add_to_hash (key2, tbe);
+            }
+        }
+
+        void clear_tb ()
+        {
+            TB_piece_count  = 0;
+            TB_pawn_count   = 0;
+            MaxPieceLimit   = 0;
+
+            for (u16 i = 0; i < (1 << TBHASHBITS); ++i)
+            {
+                for (u08 j = 0; j < HSHMAX; ++j)
+                {
+                    TB_hash[i][j].key = U64 (0);
+                    TB_hash[i][j].tbe = nullptr;
+                }
+            }
+            for (u08 i = 0; i < DTZ_ENTRIES; ++i)
+            {
+                DTZ_table[i].tbe = nullptr;
             }
         }
 
@@ -753,7 +781,7 @@ namespace TBSyzygy {
                 }
             }
 
-            u08 i;
+            i32 i;
             for (i = 0; i < n; ++i)
             {
                 if (OffDiag[pos[i]]) break;
@@ -826,7 +854,7 @@ namespace TBSyzygy {
                     }
                 }
                 i32 s = 0;
-                for (u08 m = i; m < i + t; ++m)
+                for (i32 m = i; m < i + t; ++m)
                 {
                     i32 p = pos[m], l;
                     for (l = 0, j = 0; l < i; ++l)
@@ -1856,7 +1884,7 @@ namespace TBSyzygy {
 
             u16 res;
             Square sq[NONE];
-            memset (sq, SQ_NO, sizeof (sq));
+            std::memset (sq, SQ_NO, sizeof (sq));
             // sq[i] is to contain the square 0-63 (A1-H8) for a piece of type
             // pc[i] ^ opp, where 1 = white pawn, ..., 14 = black king.
             // Pieces of the same type are guaranteed to be consecutive.
@@ -1980,8 +2008,7 @@ namespace TBSyzygy {
 
             u16 res;
             Square sq[NONE];
-            memset (sq, SQ_NO, sizeof (sq));
-            
+            std::memset (sq, SQ_NO, sizeof (sq));
             if (tbe->has_pawns)
             {
                 auto dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
@@ -2715,23 +2742,32 @@ namespace TBSyzygy {
     void initialize (const string syzygy_path)
     {
         static bool initialized = false;
-
-        if (white_spaces (syzygy_path) || syzygy_path == "<empty>") return;
-
         if (initialized)
         {
-            free (PathString);
-            free (Paths);
+            if (PathString != nullptr)
+            {
+                free (PathString);
+            }
+            if (Paths != nullptr)
+            {
+                free (Paths);
+            }
             
             for (u32 i = 0; i < TB_piece_count; ++i)
             {
-                auto tbe = (TBEntry *)&TB_piece[i];
-                free_wdl_entry (tbe);
+                auto tbe = reinterpret_cast<TBEntry *> (&TB_piece[i]);
+                if (tbe != nullptr)
+                {
+                    free_wdl_entry (tbe);
+                }
             }
             for (u32 i = 0; i < TB_pawn_count; ++i)
             {
-                auto tbe = (TBEntry *)&TB_pawn[i];
-                free_wdl_entry (tbe);
+                auto tbe = reinterpret_cast<TBEntry *> (&TB_pawn[i]);
+                if (tbe != nullptr)
+                {
+                    free_wdl_entry (tbe);
+                }
             }
             for (u32 i = 0; i < DTZ_ENTRIES; ++i)
             {
@@ -2746,6 +2782,8 @@ namespace TBSyzygy {
             init_indices ();
             initialized = true;
         }
+
+        if (white_spaces (syzygy_path) || syzygy_path == "<empty>") return;
 
         PathString = strdup (syzygy_path.c_str ());
         PathCount = 0;
@@ -2771,22 +2809,7 @@ namespace TBSyzygy {
 
         LOCK_INIT (TB_mutex);
 
-        TB_piece_count  = 0;
-        TB_pawn_count   = 0;
-        MaxPieceLimit   = 0;
-
-        for (i = 0; i < (1 << TBHASHBITS); ++i)
-        {
-            for (i08 j = 0; j < HSHMAX; ++j)
-            {
-                TB_hash[i][j].key = 0ULL;
-                TB_hash[i][j].tbe = nullptr;
-            }
-        }
-        for (i = 0; i < DTZ_ENTRIES; ++i)
-        {
-            DTZ_table[i].tbe = nullptr;
-        }
+        clear_tb ();
 
         char filename[16];
 
@@ -2837,7 +2860,7 @@ namespace TBSyzygy {
             }
         }
         // 6-piece
-        /*
+        
         for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {
             for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
@@ -2880,7 +2903,6 @@ namespace TBSyzygy {
                 }
             }
         }
-        */
 
         std::cout << "info string " << (TB_piece_count + TB_pawn_count) << " Syzygy Tablebases found." << std::endl;
     }
