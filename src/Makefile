@@ -67,50 +67,50 @@ lpg  = no
 
 ### 2.2 Architecture specific
 
-ifeq ($(ARCH),general-32)
+ifeq ($(ARCH), general-32)
 	arch = any
 endif
 
-ifeq ($(ARCH),x86-32-old)
+ifeq ($(ARCH), x86-32-old)
 	arch = i386
 endif
 
-ifeq ($(ARCH),x86-32)
+ifeq ($(ARCH), x86-32)
 	arch = i386
 	pfch = yes
 	sse  = yes
 endif
 
-ifeq ($(ARCH),general-32-pop)
+ifeq ($(ARCH), general-32-pop)
 	arch = any
 	pop  = yes
 endif
 
-ifeq ($(ARCH),x86-32-old-pop)
+ifeq ($(ARCH), x86-32-old-pop)
 	arch = i386
 	pop  = yes
 endif
 
-ifeq ($(ARCH),x86-32-pop)
+ifeq ($(ARCH), x86-32-pop)
 	arch = i386
 	pfch = yes
 	sse  = yes
 	pop  = yes
 endif
 
-ifeq ($(ARCH),x86-32-abm)
+ifeq ($(ARCH), x86-32-abm)
 	arch = i386
 	pfch = yes
 	sse  = yes
 	abm  = yes
 endif
 
-ifeq ($(ARCH),general-64)
+ifeq ($(ARCH), general-64)
 	arch = any
 	bits = 64
 endif
 
-ifeq ($(ARCH),x86-64)
+ifeq ($(ARCH), x86-64)
 	arch = x86_64
 	bits = 64
 	pfch = yes
@@ -118,14 +118,14 @@ ifeq ($(ARCH),x86-64)
 	bsfq = yes
 endif
 
-ifeq ($(ARCH),general-64-pop)
+ifeq ($(ARCH), general-64-pop)
 	arch = any
 	bits = 64
 	lpg  = yes
 	pop  = yes
 endif
 
-ifeq ($(ARCH),x86-64-pop)
+ifeq ($(ARCH), x86-64-pop)
 	arch = x86_64
 	bits = 64
 	pfch = yes
@@ -135,7 +135,7 @@ ifeq ($(ARCH),x86-64-pop)
 	lpg  = yes
 endif
 
-ifeq ($(ARCH),x86-64-abm)
+ifeq ($(ARCH), x86-64-abm)
 	arch = x86_64
 	bits = 64
 	pfch = yes
@@ -145,7 +145,7 @@ ifeq ($(ARCH),x86-64-abm)
 	lpg  = yes
 endif
 
-ifeq ($(ARCH),x86-64-bm2)
+ifeq ($(ARCH), x86-64-bm2)
 	arch = x86_64
 	bits = 64
 	pfch = yes
@@ -156,35 +156,35 @@ ifeq ($(ARCH),x86-64-bm2)
 	lpg  = yes
 endif
 
-ifeq ($(ARCH),ppc-32)
+ifeq ($(ARCH), ppc-32)
 	arch = ppc
 endif
 
-ifeq ($(ARCH),ppc-64)
+ifeq ($(ARCH), ppc-64)
 	arch = ppc64
 	bits = 64
 	lpg  = yes
 endif
 
-ifeq ($(ARCH),ppc-32-pop)
+ifeq ($(ARCH), ppc-32-pop)
 	arch = ppc
 	pop  = yes
 endif
 
-ifeq ($(ARCH),ppc-64-pop)
+ifeq ($(ARCH), ppc-64-pop)
 	arch = ppc64
 	bits = 64
 	pop  = yes
 	lpg  = yes
 endif
 
-ifeq ($(ARCH),armv7)
+ifeq ($(ARCH), armv7)
 	arch = armv7
 	pfch = yes
 	bsfq = yes
 endif
 
-ifeq ($(ARCH),armv7-pop)
+ifeq ($(ARCH), armv7-pop)
 	arch = armv7
 	pfch = yes
 	pop  = yes
@@ -197,52 +197,66 @@ endif
 
 ### 3.1 Selecting compiler (default = gcc)
 
-CXXFLAGS	+= -std=c++11 -Wall -Wcast-qual -fno-exceptions -fno-rtti -Wno-type-limits $(EXTRACXXFLAGS)
+CXXFLAGS    += -std=c++11 -Wall -Wcast-qual -fno-exceptions -fno-rtti -Wno-type-limits $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
-LDFLAGS		+= $(EXTRALDFLAGS)
+LDFLAGS     += $(EXTRALDFLAGS)
 
 # gcc (default)
-ifeq ($(COMP),)
-	COMP= gcc
+ifeq ($(COMP), )
+	COMP = gcc
 endif
 
-ifeq ($(COMP),gcc)
-	comp= gcc
-	CXX = g++
+ifeq ($(COMP), gcc)
+	comp = gcc
+	CXX  = g++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
-	ifneq ($(UNAME),Darwin)
+	ifneq ($(UNAME), Darwin)
 		LDFLAGS  += -Wl,--no-as-needed
 	endif
 endif
 
-ifeq ($(COMP),mingw)
-	comp= mingw
-	ifeq ($(UNAME),Linux)
-		CXX=x86_64-w64-mingw32-g++-posix
+ifeq ($(COMP), mingw)
+	comp = mingw
+
+	ifeq ($(UNAME), Linux)
+		ifeq ($(bits), 64)
+			ifeq ($(shell which x86_64-w64-mingw32-c++-posix), )
+				CXX = x86_64-w64-mingw32-c++
+			else
+				CXX = x86_64-w64-mingw32-c++-posix
+			endif
+		else
+			ifeq ($(shell which i686-w64-mingw32-c++-posix), )
+				CXX = i686-w64-mingw32-c++
+			else
+				CXX = i686-w64-mingw32-c++-posix
+			endif
+		endif
 	else
 		CXX = g++
 	endif
+
 	CXXFLAGS += -Wextra -Wshadow
 	LDFLAGS  += -static
 endif
 
-ifeq ($(COMP),icc)
-	comp= icc
-	CXX = icpc
+ifeq ($(COMP), icc)
+	comp = icc
+	CXX  = icpc
 	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
 endif
 
-ifeq ($(COMP),clang)
-	comp= clang
-	CXX = clang++
+ifeq ($(COMP), clang)
+	comp = clang
+	CXX  = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
-	ifeq ($(UNAME),Darwin)
+	ifeq ($(UNAME), Darwin)
 		CXXFLAGS    += -std=c++0x -stdlib=libc++
 		DEPENDFLAGS += -std=c++0x -stdlib=libc++
 	endif
 endif
 
-ifeq ($(comp),icc)
+ifeq ($(comp), icc)
 	profile_prepare = icc-profile-prepare
 	profile_make    = icc-profile-make
 	profile_use     = icc-profile-use
@@ -254,78 +268,78 @@ else
 	profile_clean   = gcc-profile-clean
 endif
 
-ifeq ($(UNAME),Darwin)
+ifeq ($(UNAME), Darwin)
 	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.9
 	LDFLAGS  += -arch $(arch) -mmacosx-version-min=10.9
 endif
 
 ### Travis CI script uses COMPILER to overwrite CXX
 ifdef COMPILER
-	CXX=$(COMPILER)
+	CXX = $(COMPILER)
 endif
 
 ### On mingw use Windows threads, otherwise POSIX
-ifneq ($(comp),mingw)
+ifneq ($(comp), mingw)
 	# On Android Bionic's C library comes with its own pthread implementation bundled in
-	ifneq ($(arch),armv7)
+	ifneq ($(arch), armv7)
 		# Haiku has pthreads in its libroot, so only link it in on other platforms
-		ifneq ($(UNAME),Haiku)
+		ifneq ($(UNAME), Haiku)
 			LDFLAGS += -lpthread
 		endif
 	endif
 endif
 
 ### 3.4 Debugging
-ifeq ($(debug),no)
+ifeq ($(debug), no)
 	CXXFLAGS += -DNDEBUG
 else
 	CXXFLAGS += -g
 endif
 
 ### 3.5 Optimization
-ifeq ($(optimize),yes)
+ifeq ($(optimize), yes)
 
-	ifeq ($(comp),gcc)
+	ifeq ($(comp), gcc)
 		CXXFLAGS += -O3
 
-		ifeq ($(UNAME),Darwin)
-			ifeq ($(arch),i386)
+		ifeq ($(UNAME), Darwin)
+			ifeq ($(arch), i386)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
-			ifeq ($(arch),x86_64)
+			ifeq ($(arch), x86_64)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
 		endif
 
-		ifeq ($(arch),armv7)
+		ifeq ($(arch), armv7)
 			CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
 		endif
 	endif
 
-	ifeq ($(comp),mingw)
+	ifeq ($(comp), mingw)
 		CXXFLAGS += -O3
 	endif
 
-	ifeq ($(comp),icc)
-		ifeq ($(UNAME),Darwin)
+	ifeq ($(comp), icc)
+		ifeq ($(UNAME), Darwin)
 			CXXFLAGS += -fast -mdynamic-no-pic
 		else
 			CXXFLAGS += -fast
 		endif
 	endif
 
-	ifeq ($(comp),clang)
+	ifeq ($(comp), clang)
 		CXXFLAGS += -O3
 
-		ifeq ($(UNAME),Darwin)
-			ifeq ($(bm2),no)
+		ifeq ($(UNAME), Darwin)
+			ifeq ($(bm2), no)
 				CXXFLAGS += -flto
-				LDFLAGS += $(CXXFLAGS)
+				LDFLAGS  += $(CXXFLAGS)
 			endif
-			ifeq ($(arch),i386)
+			ifeq ($(arch), i386)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
-			ifeq ($(arch),x86_64)
+			ifeq ($(arch), x86_64)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
 		endif
@@ -333,28 +347,28 @@ ifeq ($(optimize),yes)
 endif
 
 ### 3.6 Bits
-ifeq ($(bits),64)
+ifeq ($(bits), 64)
 	CXXFLAGS += -DBIT64
 endif
 
 ### 3.7 Prefetch
-ifeq ($(pfch),yes)
+ifeq ($(pfch), yes)
 	CXXFLAGS += -DPREFETCH
-	ifeq ($(sse),yes)
+	ifeq ($(sse), yes)
 		CXXFLAGS    += -msse
 		DEPENDFLAGS += -msse
 	endif
 endif
 
 ### 3.8 Bitscans
-ifeq ($(bsfq),yes)
+ifeq ($(bsfq), yes)
 	CXXFLAGS += -DBSFQ
 endif
 
 ### 3.9 ABM (Adv Bit Manipulation)
-ifeq ($(abm),yes)
+ifeq ($(abm), yes)
 	CXXFLAGS += -DABM
-	ifeq ($(comp),icc)
+	ifeq ($(comp), icc)
 		CXXFLAGS += -msse3
 	else
 		CXXFLAGS += -msse3 -mpopcnt
@@ -362,39 +376,39 @@ ifeq ($(abm),yes)
 endif
 
 ### 3.10 BM2 (Bit Manipulation 2)
-ifeq ($(bm2),yes)
+ifeq ($(bm2), yes)
 	CXXFLAGS += -DBM2
-	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mbmi -mbmi2
 	endif
 endif
 
 ### 3.11 Large Pages
-ifeq ($(lpg),yes)
+ifeq ($(lpg), yes)
 	CXXFLAGS += -DLPAGES
 endif
 
 ### 3.12 Pop Tables
-ifeq ($(pop),yes)
+ifeq ($(pop), yes)
 	CXXFLAGS += -DPOP
 endif
 
 ### 3.13 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
-ifeq ($(comp),gcc)
-	ifeq ($(optimize),yes)
-		ifeq ($(debug),no)
+ifeq ($(comp), gcc)
+	ifeq ($(optimize), yes)
+		ifeq ($(debug), no)
 			CXXFLAGS += -flto
 			LDFLAGS  += $(CXXFLAGS)
 		endif
 	endif
 endif
 
-ifeq ($(UNAME),Linux)
-	ifeq ($(comp),mingw)
-		ifeq ($(optimize),yes)
-			ifeq ($(debug),no)
+ifeq ($(comp), mingw)
+	ifeq ($(UNAME), Linux)
+		ifeq ($(optimize), yes)
+			ifeq ($(debug), no)
 				CXXFLAGS += -flto
 				LDFLAGS  += $(CXXFLAGS)
 			endif
@@ -404,13 +418,13 @@ endif
 
 ### 3.14 Android 5 can only run position independent executables.
 ### Note that this breaks Android 4.0 and earlier.
-ifeq ($(arch),armv7)
+ifeq ($(arch), armv7)
 	CXXFLAGS += -fPIE
 	LDFLAGS  += -fPIE -pie
 endif
 
 ### 3.15 Custom Version.
-ifneq ($(VER),)
+ifneq ($(VER), )
 	CXXFLAGS += -DVER=$(VER)
 endif
 
