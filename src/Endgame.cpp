@@ -82,6 +82,7 @@ namespace EndGame {
         {
             assert(0 < code.length () && code.length () <= 8);
             assert(code[0] == 'K');
+            assert(code.find ('K', 1) != string::npos);
 
             string sides[CLR_NO] =
             {

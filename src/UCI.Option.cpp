@@ -7,7 +7,7 @@
 #include "Transposition.h"
 #include "Thread.h"
 #include "Searcher.h"
-#include "TB_syzygy.h"
+#include "TBsyzygy.h"
 #include "Debugger.h"
 
 UCI::OptionMap  Options; // Global string mapping of Options

@@ -62,7 +62,7 @@ namespace Transposition {
                 || b == BOUND_EXACT
                )
             {
-                _key16      = u64 (k >> 0x30);
+                _key16      = u16(k >> 0x30);
                 _value      = i16(v);
                 _eval       = i16(e);
                 _depth      = i08(d);

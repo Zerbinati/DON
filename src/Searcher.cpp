@@ -11,7 +11,7 @@
 #include "Transposition.h"
 #include "Evaluator.h"
 #include "Polyglot.h"
-#include "TB_syzygy.h"
+#include "TBsyzygy.h"
 #include "Notation.h"
 #include "Debugger.h"
 
@@ -373,7 +373,7 @@ namespace Searcher {
                     << " nps "      << game_nodes * MILLI_SEC / elapsed_time;
                 if (elapsed_time > MILLI_SEC)
                     ss  << " hashfull " << TT.hash_full (); // Earlier makes little sense
-                ss  << "tbhits"     << Hits
+                ss  << " tbhits "   << Hits
                     << " pv"        << root_moves[i];
 
             }

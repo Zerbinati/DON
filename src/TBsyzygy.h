@@ -21,7 +21,7 @@ namespace TBSyzygy {
     bool root_probe_dtz (Position &pos, Searcher::RootMoveVector &root_moves);
     bool root_probe_wdl (Position &pos, Searcher::RootMoveVector &root_moves);
 
-    void initialize (const std::string syzygy_path);
+    void initialize (const std::string path_string);
 }
 
 #endif // _TB_SYZYGY_H_INC_

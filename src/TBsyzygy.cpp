@@ -1,4 +1,4 @@
-#include "TB_syzygy.h"
+#include "TBsyzygy.h"
 
 #include <stdio.h>
 #include <stdint.h>
@@ -6,22 +6,26 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <string>
+#include <sstream>
+#include <fstream>
 #include <algorithm>
+
 #ifndef _WIN32
 #   include <unistd.h>
 #   include <sys/mman.h>
-#endif
 
-#ifndef _WIN32
 #   include <pthread.h>
-#   define SEP_CHAR ':'
-#   define FD i32
-#   define FD_ERR -1
+#   define FD       i32
+#   define FD_ERR   -1
 
 #   define LOCK_T       pthread_mutex_t
 #   define LOCK_INIT(x) pthread_mutex_init(&(x), nullptr)
 #   define LOCK(x)      pthread_mutex_lock(&(x))
 #   define UNLOCK(x)    pthread_mutex_unlock(&(x))
+
+const char SEP_CHAR = ':';
+
 #else
 #   ifndef NOMINMAX
 #       define NOMINMAX // Disable macros min() and max()
@@ -30,16 +34,17 @@
 #   include <windows.h>
 #   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
-#   define SEP_CHAR ';'
-#   define FD HANDLE
-#   define FD_ERR INVALID_HANDLE_VALUE
+#   define FD       HANDLE
+#   define FD_ERR   INVALID_HANDLE_VALUE
 
-#   define LOCK_T HANDLE
+#   define LOCK_T   HANDLE
 #   define LOCK_INIT(x) do { x = CreateMutex(nullptr, FALSE, nullptr); } while (false)
-#   define LOCK(x) WaitForSingleObject(x, INFINITE)
-#   define UNLOCK(x) ReleaseMutex(x)
-#endif
+#   define LOCK(x)      WaitForSingleObject(x, INFINITE)
+#   define UNLOCK(x)    ReleaseMutex(x)
 
+const char SEP_CHAR = ';';
+
+#endif
 
 #ifndef _MSC_VER
 #   define BSWAP32(v) __builtin_bswap32(v)
@@ -71,8 +76,10 @@ namespace TBSyzygy {
     bool    RootInTB        = false;
     Value   ProbeValue      = VALUE_NONE;
 
-    // Core
+    
     namespace {
+
+        // Core
 
         // CORE contains engine-independent routines of the tablebase probing code.
         // This should not need to much adaptation to add tablebase probing to
@@ -201,42 +208,43 @@ namespace TBSyzygy {
         };
 
         // ---
+        enum TB
+        {
+            TB_PAWN     = 1,
+            TB_KNIGHT   = 2,
+            TB_BISHOP   = 3,
+            TB_ROOK     = 4,
+            TB_QUEEN    = 5,
+            TB_KING     = 6,
 
-        const string WDLSUFFIX = ".rtbw";
-        const string DTZSUFFIX = ".rtbz";
+            TB_WPAWN    = 0|TB_PAWN,
+            TB_BPAWN    = 8|TB_PAWN,
+        };
 
-#define TBMAX_PIECE 254
-#define TBMAX_PAWN  256
-#define TBHASHBITS  10
-#define HSHMAX      5
-
-#define TB_PAWN     1
-#define TB_KNIGHT   2
-#define TB_BISHOP   3
-#define TB_ROOK     4
-#define TB_QUEEN    5
-#define TB_KING     6
-
-#define TB_WPAWN TB_PAWN
-#define TB_BPAWN (TB_PAWN | 8)
+        const u08 TBHASHBITS  = 10;
+        const u08 HSHMAX       = 6;
+        
+        const string WDL_SUFFIX = ".rtbw";
+        const string DTZ_SUFFIX = ".rtbz";
 
         const u08 WDL_MAGIC[4] ={ 0x71, 0xe8, 0x23, 0x5D };
         const u08 DTZ_MAGIC[4] ={ 0xD7, 0x66, 0x0C, 0xA5 };
 
-        LOCK_T TB_mutex;
-
         vector<string> Paths;
 
-        u32 TB_piece_count = 0,
-            TB_pawn_count = 0;
+        LOCK_T TB_mutex;
 
+        u16 TB_piece_count = 0,
+            TB_pawn_count = 0;
+        
+        const u16 TBMAX_PIECE = 254;
         TBEntry_piece TB_piece[TBMAX_PIECE];
+        const u16 TBMAX_PAWN  = 256;
         TBEntry_pawn  TB_pawn [TBMAX_PAWN];
 
         TBHashEntry TB_hash[1 << TBHASHBITS][HSHMAX];
 
-#define DTZ_ENTRIES 64
-
+        const u08 DTZ_ENTRIES = 64;
         DTZTableEntry DTZ_table[DTZ_ENTRIES];
 
         void init_indices ();
@@ -249,7 +257,7 @@ namespace TBSyzygy {
             for (auto path : Paths)
             {
                 string fullpath = append_path (path, filename + suffix);
-                cout << fullpath << endl;
+
                 FD fd;
 #ifndef _WIN32
                 fd = open (fullpath.c_str (), O_RDONLY);
@@ -323,7 +331,7 @@ namespace TBSyzygy {
 
         void add_to_hash (Key key, TBEntry *tbe)
         {
-            i32 hash_idx = i32(key >> (64 - TBHASHBITS));
+            u16 hash_idx = u16(key >> (64 - TBHASHBITS));
             assert(hash_idx < (1 << TBHASHBITS));
 
             u08 i = 0;
@@ -344,10 +352,30 @@ namespace TBSyzygy {
         }
 
         char PieceChar[] ={ 'K', 'Q', 'R', 'B', 'N', 'P' };
+        
+        Key key (const string &code, Color c)
+        {
+            assert(0 < code.length () && code.length () <= 8);
+            assert(code[0] == 'K');
+            assert(code.find ('K', 1) != string::npos);
+
+            string sides[CLR_NO] =
+            {
+                code.substr (   code.find ('K', 1)), // Weak
+                code.substr (0, code.find ('K', 1)-1), // Strong
+            };
+
+            transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
+
+            string fen = sides[0] + char (8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
+                + sides[1] + char (8 - sides[1].length () + '0') + " w - - 0 1";
+
+            return Position (fen).matl_key ();
+        }
 
         void init_tb (const string &filename)
         {
-            FD fd = open_tb (filename, WDLSUFFIX);
+            FD fd = open_tb (filename, WDL_SUFFIX);
             if (fd == FD_ERR) return;
             close_tb (fd);
 
@@ -388,8 +416,23 @@ namespace TBSyzygy {
             //        break;
             //    }
             //}
+
+            cout << filename << endl;
+            //for (u08 i = 1; i < sizeof (pcs)-1; ++i)
+            //{
+            //    if (i == 7 || i == 8)
+            //    {
+            //        cout << " -";
+            //        continue;
+            //    }
+            //    cout << " " << int(pcs[i]);
+            //}
+
             Key key1 = calc_key_from_pcs (pcs, false);
             Key key2 = calc_key_from_pcs (pcs, true);
+            
+            assert(key1 == key (filename, WHITE));
+            assert(key2 == key (filename, BLACK));
 
             TBEntry *tbe = nullptr;
             if ((pcs[TB_WPAWN] + pcs[TB_BPAWN]) == 0)
@@ -415,7 +458,7 @@ namespace TBSyzygy {
             tbe->key = key1;
             tbe->ready = false;
             tbe->num = 0;
-            for (u08 i = 0; i < sizeof (pcs); ++i)
+            for (u08 i = 1; i < sizeof (pcs)-1; ++i)
             {
                 tbe->num += pcs[i];
             }
@@ -702,6 +745,9 @@ namespace TBSyzygy {
             -1, -1, -1, -1, -1, -1, -1,461 }
         };
 
+        const i32 WdlToMap[5] ={ 1, 3, 0, 2, 0 };
+        const u08 PAFlags[5] ={ 8, 0, 0, 0, 4 };
+
         i32 Binomial[5][64];
         i32 PawnIdx[5][24];
         i32 PFactor[5][4];
@@ -715,14 +761,14 @@ namespace TBSyzygy {
             {
                 for (j = 0; j < 64; ++j)
                 {
-                    i32 f = j;
-                    i32 l = 1;
+                    u32 numerator = j;
+                    u32 denominator = 1;
                     for (k = 1; k <= i; ++k)
                     {
-                        f *= (j - k);
-                        l *= (k + 1);
+                        numerator *= (j - k);
+                        denominator *= (k + 1);
                     }
-                    Binomial[i][j] = f / l;
+                    Binomial[i][j] = numerator / denominator;
                 }
             }
             for (i = 0; i < 5; ++i)
@@ -1270,10 +1316,10 @@ namespace TBSyzygy {
 
             // first mmap the table into memory
 
-            tbe->data = map_file (filename, WDLSUFFIX, &tbe->mapping);
+            tbe->data = map_file (filename, WDL_SUFFIX, &tbe->mapping);
             if (tbe->data == nullptr)
             {
-                std::cout << "Could not find " << filename << WDLSUFFIX << std::endl;
+                std::cout << "Could not find " << filename << WDL_SUFFIX << std::endl;
                 return false;
             }
 
@@ -1624,7 +1670,7 @@ namespace TBSyzygy {
                 sizeof (DTZEntry_pawn) :
                 sizeof (DTZEntry_piece));
 
-            ptbe->data = map_file (filename, DTZSUFFIX, &ptbe->mapping);
+            ptbe->data = map_file (filename, DTZ_SUFFIX, &ptbe->mapping);
             ptbe->key = tbe->key;
             ptbe->num = tbe->num;
             ptbe->symmetric = tbe->symmetric;
@@ -1708,11 +1754,9 @@ namespace TBSyzygy {
             free (tbe);
         }
 
-        i32 wdl_to_map[5] ={ 1, 3, 0, 2, 0 };
-        u08 pa_flags[5] ={ 8, 0, 0, 0, 4 };
-    }
 
-    namespace {
+
+        // ---Core
 
         // Given a position with 6 or fewer pieces, produce a text string of the form KQPvKRP,
         // where "KQP" represents the white pieces if mirror == false and the black pieces if mirror == true.
@@ -1772,17 +1816,17 @@ namespace TBSyzygy {
             auto color = mirror ? BLACK : WHITE;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (u08 i = 0; i < pcs[color | PieceT(pt + 1)]; ++i)
+                for (u08 pc = 0; pc < pcs[color | PieceT(pt + 1)]; ++pc)
                 {
-                    key ^= Zob._.piece_square[WHITE][pt][i];
+                    key ^= Zob._.piece_square[WHITE][pt][pc];
                 }
             }
             color = ~color;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (u08 i = 0; i < pcs[color | PieceT(pt + 1)]; ++i)
+                for (u08 pc = 0; pc < pcs[color | PieceT(pt + 1)]; ++pc)
                 {
-                    key ^= Zob._.piece_square[BLACK][pt][i];
+                    key ^= Zob._.piece_square[BLACK][pt][pc];
                 }
             }
             return key;
@@ -1839,7 +1883,7 @@ namespace TBSyzygy {
                 LOCK (TB_mutex);
                 if (!tbe->ready)
                 {
-                    char filename[16];
+                    string filename;
                     prt_filename (pos, filename, tbe->key != key);
                     if (!init_table_wdl (tbe, filename))
                     {
@@ -1933,11 +1977,13 @@ namespace TBSyzygy {
 
             if (DTZ_table[0].key1 != key && DTZ_table[0].key2 != key)
             {
-                i32 i;
+                i08 i;
                 for (i = 1; i < DTZ_ENTRIES; ++i)
                 {
-                    if (DTZ_table[i].key1 == key) break;
+                    if (DTZ_table[i].key1 == key)
+                        break;
                 }
+
                 if (i < DTZ_ENTRIES)
                 {
                     DTZTableEntry table_entry = DTZ_table[i];
@@ -1960,10 +2006,9 @@ namespace TBSyzygy {
                         success = 0;
                         return VALUE_ZERO;
                     }
+                    
                     auto tbe = tbhe[i].tbe;
-                    char filename[16];
-                    bool mirror = (tbe->key != key);
-                    prt_filename (pos, filename, mirror);
+                    
                     if (DTZ_table[DTZ_ENTRIES - 1].tbe != nullptr)
                     {
                         free_dtz_entry (DTZ_table[DTZ_ENTRIES-1].tbe);
@@ -1972,6 +2017,10 @@ namespace TBSyzygy {
                     {
                         DTZ_table[i] = DTZ_table[i - 1];
                     }
+
+                    string filename;
+                    bool mirror = (tbe->key != key);
+                    prt_filename (pos, filename, mirror);
                     load_dtz_table (filename, calc_key (pos, mirror), calc_key (pos, !mirror));
                 }
             }
@@ -2034,9 +2083,9 @@ namespace TBSyzygy {
 
                 if (dtzep->flags[f] & 2)
                 {
-                    res = dtzep->map[dtzep->map_idx[f][wdl_to_map[wdl + 2]] + res];
+                    res = dtzep->map[dtzep->map_idx[f][WdlToMap[wdl + 2]] + res];
                 }
-                if (!(dtzep->flags[f] & pa_flags[wdl + 2]) || (wdl & 1))
+                if (!(dtzep->flags[f] & PAFlags[wdl + 2]) || (wdl & 1))
                 {
                     res *= 2;
                 }
@@ -2065,9 +2114,9 @@ namespace TBSyzygy {
 
                 if (dtzep->flags & 2)
                 {
-                    res = dtzep->map[dtzep->map_idx[wdl_to_map[wdl + 2]] + res];
+                    res = dtzep->map[dtzep->map_idx[WdlToMap[wdl + 2]] + res];
                 }
-                if (!(dtzep->flags & pa_flags[wdl + 2]) || (wdl & 1))
+                if (!(dtzep->flags & PAFlags[wdl + 2]) || (wdl & 1))
                 {
                     res *= 2;
                 }
@@ -2741,41 +2790,43 @@ namespace TBSyzygy {
             init_indices ();
             initialized = true;
         }
+        else
+        {
+            for (u16 i = 0; i < TB_piece_count; ++i)
+            {
+                auto tbe = reinterpret_cast<TBEntry *> (&TB_piece[i]);
+                if (tbe != nullptr)
+                {
+                    free_wdl_entry (tbe);
+                }
+            }
+            for (u16 i = 0; i < TB_pawn_count; ++i)
+            {
+                auto tbe = reinterpret_cast<TBEntry *> (&TB_pawn[i]);
+                if (tbe != nullptr)
+                {
+                    free_wdl_entry (tbe);
+                }
+            }
+            for (u08 i = 0; i < DTZ_ENTRIES; ++i)
+            {
+                if (DTZ_table[i].tbe != nullptr)
+                {
+                    free_dtz_entry (DTZ_table[i].tbe);
+                }
+            }
+        }
 
-        for (u32 i = 0; i < TB_piece_count; ++i)
-        {
-            auto tbe = reinterpret_cast<TBEntry *> (&TB_piece[i]);
-            if (tbe != nullptr)
-            {
-                free_wdl_entry (tbe);
-            }
-        }
-        for (u32 i = 0; i < TB_pawn_count; ++i)
-        {
-            auto tbe = reinterpret_cast<TBEntry *> (&TB_pawn[i]);
-            if (tbe != nullptr)
-            {
-                free_wdl_entry (tbe);
-            }
-        }
-        for (u32 i = 0; i < DTZ_ENTRIES; ++i)
-        {
-            if (DTZ_table[i].tbe != nullptr)
-            {
-                free_dtz_entry (DTZ_table[i].tbe);
-            }
-        }
-        
         if (white_spaces (path_string) || path_string == "<empty>") return;
 
-        Paths = split (path_string, ';', false);
-        cout << Paths.size () << endl;
+        Paths = split (path_string, SEP_CHAR, false);
 
         LOCK_INIT (TB_mutex);
 
         clear_tb ();
 
         ostringstream ss;
+
         // 3-piece
         for (u08 wp1 = 1; wp1 < NONE; ++wp1)
         {

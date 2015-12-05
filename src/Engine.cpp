@@ -9,7 +9,7 @@
 #include "Material.h"
 #include "Evaluator.h"
 #include "Searcher.h"
-#include "TB_syzygy.h"
+#include "TBsyzygy.h"
 #include "Transposition.h"
 #include "Thread.h"
 
