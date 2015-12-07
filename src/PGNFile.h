@@ -21,30 +21,41 @@ private:
 
     FILE *_file = nullptr;
 
+    enum token_t
+    {
+        TOKEN_ERROR   = -1,
+        TOKEN_EOF     = 256,
+        TOKEN_SYMBOL  = 257,
+        TOKEN_STRING  = 258,
+        TOKEN_INTEGER = 259,
+        TOKEN_NAG     = 260,
+        TOKEN_RESULT  = 261
+    };
+
 public:
 
     int char_hack;
-    int char_line;
-    int char_column;
+    i32 char_line;
+    i32 char_column;
     bool char_unread;
     bool char_first;
 
     std::string token;
-    int token_type;
-    int token_line;
-    int token_column;
+    token_t token_type;
+    i32 token_line;
+    i32 token_column;
     bool token_unread;
     bool token_first;
 
-    int games;
+    u32 games;
     std::string result;
     std::string fen;
     std::string white_elo;
     std::string black_elo;
 
-    int moves;
-    int move_line;
-    int move_column;
+    u16 moves;
+    i32 move_line;
+    i32 move_column;
 
     void open (const std::string &pgn_fn);
     void close ();

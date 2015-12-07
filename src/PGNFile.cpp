@@ -42,16 +42,16 @@ namespace {
 
     const int CHAR_EOF = 256;
 
-    enum token_t
-    {
-        TOKEN_ERROR   = -1,
-        TOKEN_EOF     = 256,
-        TOKEN_SYMBOL  = 257,
-        TOKEN_STRING  = 258,
-        TOKEN_INTEGER = 259,
-        TOKEN_NAG     = 260,
-        TOKEN_RESULT  = 261
-    };
+    //enum token_t
+    //{
+    //    TOKEN_ERROR   = -1,
+    //    TOKEN_EOF     = 256,
+    //    TOKEN_SYMBOL  = 257,
+    //    TOKEN_STRING  = 258,
+    //    TOKEN_INTEGER = 259,
+    //    TOKEN_NAG     = 260,
+    //    TOKEN_RESULT  = 261
+    //};
 
     double now_time ()
     {
@@ -65,6 +65,7 @@ namespace {
         if (gettimeofday (tv, tz) == -1)
         {
             log_fatal ("now_time(): gettimeofday(): %s\n", strerror (errno));
+            return 0.0;
         }
 
         return tv->tv_sec + tv->tv_usec * 1E-6;
@@ -161,7 +162,7 @@ void pgn_t::_read_char ()
     else
     {
         // Update counters
-        assert (char_hack != CHAR_EOF);
+        assert(char_hack != CHAR_EOF);
         if (false)
         {}
         else if (char_hack == '\n')
@@ -187,6 +188,7 @@ void pgn_t::_read_char ()
         if (ferror (_file))
         {
             log_fatal ("_read_char(): fgetc(): %s\n", strerror (errno));
+            return;
         }
         char_hack = CHAR_EOF;
     }
@@ -198,8 +200,8 @@ void pgn_t::_read_char ()
 }
 void pgn_t::_unread_char ()
 {
-    assert (!char_unread);
-    assert (!char_first);
+    assert(!char_unread);
+    assert(!char_first);
     char_unread = true;
 }
 
@@ -228,6 +230,7 @@ void pgn_t::_read_skip_blanks ()
                 if (char_hack == CHAR_EOF)
                 {
                     log_fatal ("_read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", char_line, char_column, games);
+                    return;
                 }
             } while (char_hack != '\n');
         }
@@ -240,6 +243,7 @@ void pgn_t::_read_skip_blanks ()
                 if (char_hack == CHAR_EOF)
                 {
                     log_fatal ("_read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", char_line, char_column, games);
+                    return;
                 }
             } while (char_hack != '\n');
         }
@@ -253,6 +257,7 @@ void pgn_t::_read_skip_blanks ()
                 if (char_hack == CHAR_EOF)
                 {
                     log_fatal ("_read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", char_line, char_column, games);
+                    return;
                 }
             } while (char_hack != '}');
         }
@@ -279,8 +284,8 @@ void pgn_t::_read_token ()
     }
     else
     {
-        assert (token_type != TOKEN_ERROR);
-        assert (token_type != TOKEN_EOF);
+        assert(token_type != TOKEN_ERROR);
+        assert(token_type != TOKEN_EOF);
     }
 
     // read a new token
@@ -289,6 +294,7 @@ void pgn_t::_read_token ()
     if (token_type == TOKEN_ERROR)
     {
         log_fatal ("_read_token(): lexical error at line %d, column %d, game %d\n", char_line, char_column, games);
+        return;
     }
     if (DispToken)
     {
@@ -297,8 +303,8 @@ void pgn_t::_read_token ()
 }
 void pgn_t::_unread_token ()
 {
-    assert (!token_unread);
-    assert (!token_first);
+    assert(!token_unread);
+    assert(!token_first);
     token_unread = true;
 }
 
@@ -308,9 +314,9 @@ void pgn_t::_read_tok ()
     _read_skip_blanks ();
 
     // init
-    token = "";
-    token_type = TOKEN_ERROR;
-    token_line = char_line;
+    token        = "";
+    token_type   = TOKEN_ERROR;
+    token_line   = char_line;
     token_column = char_column;
 
     // Determine token type
@@ -324,7 +330,7 @@ void pgn_t::_read_tok ()
     else if (strchr (".[]()<>", char_hack) != nullptr)
     {
         // Single-character token
-        token_type = char_hack;
+        token_type = token_t(char_hack);
         token = (char)char_hack;
     }
     else if (char_hack == '*')
@@ -388,19 +394,27 @@ void pgn_t::_read_tok ()
             //if (token.length () >= STRING_SIZE-1)
             //{
             //    log_fatal ("_read_tok(): symbol too long at line %d, column %d, game %d\n", char_line, char_column, games);
+            //    return;
             //}
 
-            if (!isdigit (char_hack)) token_type = TOKEN_SYMBOL;
+            if (!isdigit (char_hack))
+            {
+                token_type = TOKEN_SYMBOL;
+            }
 
             token += (char)char_hack;
 
             _read_char ();
-            if (char_hack == CHAR_EOF) break;
+            if (char_hack == CHAR_EOF)
+            {
+                break;
+            }
+
         } while (symbol_next (char_hack));
 
         _unread_char ();
 
-        assert (0 < token.length ()
+        assert(0 < token.length ()
             //&& token.length () < STRING_SIZE
             );
         //token += '\0';
@@ -426,9 +440,13 @@ void pgn_t::_read_tok ()
             if (char_hack == CHAR_EOF)
             {
                 log_fatal ("_read_tok(): EOF in string at line %d, column %d, game %d\n", char_line, char_column, games);
+                return;
             }
 
-            if (char_hack == '"') break;
+            if (char_hack == '"')
+            {
+                break;
+            }
 
             if (char_hack == '\\')
             {
@@ -436,6 +454,7 @@ void pgn_t::_read_tok ()
                 if (char_hack == CHAR_EOF)
                 {
                     log_fatal ("_read_tok(): EOF in string at line %d, column %d, game %d\n", char_line, char_column, games);
+                    return;
                 }
                 // Bad escape, ignore
                 if (char_hack != '"' && char_hack != '\\')
@@ -443,6 +462,7 @@ void pgn_t::_read_tok ()
                     //if (token.length () >= STRING_SIZE-1)
                     //{
                     //    log_fatal ("_read_tok(): string too long at line %d, column %d, game %d\n", char_line, char_column, games);
+                    //    return;
                     //}
                     token += '\\';
                 }
@@ -451,12 +471,13 @@ void pgn_t::_read_tok ()
             //if (token.length () >= STRING_SIZE-1)
             //{
             //    log_fatal ("_read_tok(): string too long at line %d, column %d, game %d\n", char_line, char_column, games);
+            //    return;
             //}
 
             token += (char)char_hack;
         }
 
-        assert (0 <= token.length ()
+        assert(0 <= token.length ()
             //&& token.length () < STRING_SIZE
             );
         //token += '\0';
@@ -471,11 +492,15 @@ void pgn_t::_read_tok ()
         {
             _read_char ();
 
-            if (!isdigit (char_hack)) break;
+            if (!isdigit (char_hack))
+            {
+                break;
+            }
 
             if (token.length () >= 3)
             {
                 log_fatal ("_read_tok(): NAG too long at line %d, column %d, game %d\n", char_line, char_column, games);
+                return;
             }
             token += (char)char_hack;
         }
@@ -485,15 +510,17 @@ void pgn_t::_read_tok ()
         if (token.length () == 0)
         {
             log_fatal ("_read_tok(): malformed NAG at line %d, column %d, game %d\n", char_line, char_column, games);
+            return;
         }
 
-        assert (0 < token.length () && token.length () <= 3);
+        assert(0 < token.length () && token.length () <= 3);
         //token += '\0';
     }
     else
     {
         // Unknown token
         log_fatal ("lexical error at line %d, column %d, game %d\n", char_line, char_column, games);
+        return;
     }
 }
 
@@ -503,6 +530,7 @@ void pgn_t::open (const string &pgn_fn)
     if (_file == nullptr)
     {
         log_fatal ("open_pgn(): can't open file \"%s\": %s\n", pgn_fn.c_str (), strerror (errno));
+        return;
     }
 
     char_hack      = CHAR_EOF; // DEBUG
@@ -536,9 +564,6 @@ void pgn_t::close ()
 
 bool pgn_t::next_game ()
 {
-    string name;
-    string value;
-
     // init
     result    = "*";
     fen       = "";
@@ -547,15 +572,22 @@ bool pgn_t::next_game ()
 
     while (true)
     {
+        string name;
+        string value;
+
         _read_token ();
 
-        if (token_type != '[') break;
+        if (token_type != '[')
+        {
+            break;
+        }
 
         // tag
         _read_token ();
         if (token_type != TOKEN_SYMBOL)
         {
             log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
+            return false;
         }
         name = token;
 
@@ -563,6 +595,7 @@ bool pgn_t::next_game ()
         if (token_type != TOKEN_STRING)
         {
             log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
+            return false;
         }
         value = token;
 
@@ -570,6 +603,7 @@ bool pgn_t::next_game ()
         if (token_type != ']')
         {
             log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
+            return false;
         }
 
         // special tag?
@@ -626,6 +660,7 @@ bool pgn_t::next_move (string &move)
             if (depth == 0)
             {
                 log_fatal ("next_move_pgn(): malformed variation at line %d, column %d, game %d\n", token_line, token_column, games);
+                return false;
             }
             --depth;
             assert(depth >= 0);
@@ -636,8 +671,9 @@ bool pgn_t::next_move (string &move)
             if (depth > 0)
             {
                 log_fatal ("next_move_pgn(): malformed variation at line %d, column %d, game %d\n", token_line, token_column, games);
+                return false;
             }
-            return false;
+            //return false;
         }
         else
         {
@@ -655,6 +691,7 @@ bool pgn_t::next_move (string &move)
             if (token_type != TOKEN_SYMBOL)
             {
                 log_fatal ("next_move_pgn(): malformed move at line %d, column %d, game %d\n", token_line, token_column, games);
+                return false;
             }
 
             // Store move for later use
