@@ -620,13 +620,14 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
 // CheckInfo constructor
 inline CheckInfo::CheckInfo (const Position &pos)
 {
-    Color Own =  pos.active (), Opp = ~Own;
+    Color own = pos.active ();
+    Color opp = ~own;
 
-    king_sq = pos.square<KING> (Opp);
-    pinneds = pos.pinneds (Own);
-    discoverers = pos.discoverers (Own);
+    king_sq = pos.square<KING> (opp);
+    pinneds = pos.pinneds (own);
+    discoverers = pos.discoverers (own);
 
-    checking_bb[PAWN] = BitBoard::PAWN_ATTACKS[Opp][king_sq];
+    checking_bb[PAWN] = BitBoard::PAWN_ATTACKS[opp][king_sq];
     checking_bb[NIHT] = BitBoard::PIECE_ATTACKS[NIHT][king_sq];
     checking_bb[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
     checking_bb[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());

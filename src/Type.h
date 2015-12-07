@@ -665,9 +665,23 @@ inline bool white_spaces (const std::string &str)
     return str.empty () || str.find_first_not_of (" \t\n") == std::string::npos;
 }
 
+inline void to_lower (std::string &str)
+{
+    std::transform (str.cbegin (), str.cend (), str.begin (), ::tolower);
+}
+inline void to_upper (std::string &str)
+{
+    std::transform (str.cbegin (), str.cend (), str.begin (), ::toupper);
+}
+inline void toggle (std::string &str)
+{
+    std::transform (str.cbegin (), str.cend (), str.begin (),
+        [](char c) { return char (islower (c) ? ::toupper (c) : ::tolower (c)); });
+}
+
 inline std::string& trim_left (std::string &str)
 {
-    str.erase (str.begin (), 
+    str.erase (str.cbegin (), 
                 std::find_if (str.begin (), str.end (), 
                     //[](char c) { return !std::isspace (c, std::locale ()); }
                     std::not1 (std::ptr_fun<i32, i32> (std::isspace))
@@ -679,23 +693,23 @@ inline std::string& trim_right (std::string &str)
     str.erase (std::find_if (str.rbegin (), str.rend (), 
                 //[](char c) { return !std::isspace (c, std::locale ()); }).base (), 
                 std::not1 (std::ptr_fun<i32, i32> (std::isspace))).base (),
-                    str.end ());
+                    str.cend ());
     return str;
 }
 inline std::string& trim (std::string &str)
 {
     /*
-    size_t p0 = str.find_first_not_of (" \t\n");
-    size_t p1 = str.find_last_not_of (" \t\n");
-    p0  = p0 == std::string::npos ?  0 : p0;
-    p1  = p1 == std::string::npos ? p0 : p1 - p0 + 1;
-    str = str.substr (p0, p1);
+    size_t beg = str.find_first_not_of (" \t\n");
+    size_t end = str.find_last_not_of (" \t\n");
+    beg  = beg == std::string::npos ?  0 : beg;
+    end  = end == std::string::npos ? beg : end - beg + 1;
+    str = str.substr (beg, end);
     return str;
     */
     return trim_left (trim_right (str));
 }
 
-inline std::vector<std::string> split (const std::string str, char delimiter = ' ', bool keep_empty = true)
+inline std::vector<std::string> split (const std::string str, char delimiter = ' ', bool keep_empty = true, bool do_trim = false)
 {
     std::vector<std::string> tokens;
     
@@ -706,6 +720,10 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
         // Find next non-delimiter.
         size_t end = str.find_first_of (delimiter, beg);
         std::string token = str.substr (beg, end != std::string::npos ? end - beg : std::string::npos);
+        if (do_trim)
+        {
+            token = trim (token);
+        }
         if (keep_empty || !token.empty ())
         {
             tokens.push_back (token);
@@ -721,6 +739,10 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
     {
         size_t end = str.find (delimiter, beg);
         std::string token = str.substr (beg, end != std::string::npos ? end - beg : std::string::npos);
+        if (do_trim)
+        {
+            token = trim (token);
+        }
         if (keep_empty || !token.empty ())
         {
             tokens.push_back (token);
@@ -733,21 +755,80 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
     }
     while (true);
     */
-    
+    /*
+    size_t end = 0;
+    while (end <= str.length ())
+    {
+        size_t beg = keep_empty ? end : str.find_first_not_of (delimiter, end);
+        if (beg == std::string::npos)
+        {
+            break;
+        }
+        end = str.find_first_of (delimiter, beg);
+        auto token = str.substr (beg, end != std::string::npos ? end - beg : std::string::npos);
+        if (do_trim)
+        {
+            token = trim (token);
+        }
+        if (keep_empty || !token.empty ())
+        {
+            tokens.emplace_back (token);
+        }
+        if (std::string::npos == end)
+        {
+            break;
+        }
+        ++end;
+    }
+    */
+
     std::istringstream buf (str);
     do
     {
         std::string token;
-        getline (buf, token, delimiter);
+        bool fail = std::getline (buf, token, delimiter).fail ();
+        if (do_trim)
+        {
+            token = trim (token);
+        }
         if (keep_empty || !token.empty ())
         {
             tokens.push_back (token);
         }
+        if (fail)
+        {
+            break;
+        }
     }
     while (buf.good ());
 
+
     return tokens;
 }
+
+inline void remove_substring (std::string &str, const std::string &sub)
+{
+    const auto length = sub.length ();
+    size_t pos = str.find (sub);
+    while (std::string::npos != pos)
+    {
+        // erase (start_position_to_erase, number_of_symbols)
+        str.erase (pos, length);
+        pos = str.find (sub, pos);
+    }
+}
+
+/*
+#include <unordered_set>
+inline std::string remove_dup (const std::string &str)
+{
+    // unique char set
+    std::unordered_set<char> chars_set (str.begin (), str.end ());
+    std::string unique_str (chars_set.begin (), chars_set.end ());
+    return unique_str;
+}
+*/
+
 
 inline void remove_extension (std::string &filename)
 {

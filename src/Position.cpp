@@ -1536,9 +1536,7 @@ void Position::flip ()
     // 3. Castling availability
     ss >> token;
     flip_fen += token + " ";
-    transform (flip_fen.begin (), flip_fen.end (), flip_fen.begin (),
-        // Toggle case
-        [](char c) { return char (islower (c) ? toupper (c) : tolower (c)); });
+    toggle (flip_fen);
 
     // 4. En-passant square
     ss >> token;

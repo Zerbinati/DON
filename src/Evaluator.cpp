@@ -108,8 +108,6 @@ namespace Evaluator {
             Material::Entry *me;
         };
 
-        enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PAWN_PASSING, THREATS, KING_SAFETY, SPACE_ACTIVITY };
-
         struct Weight { i32 mg, eg; };
         // Overload * for score with weight
         Score  operator*  (Score  score, const Weight &weight)
@@ -126,15 +124,16 @@ namespace Evaluator {
             return score;
         }
 
+        enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PAWN_PASSING, THREATS, KING_SAFETY, SPACE_ACTIVITY };
         // Evaluation weights, indexed by the corresponding evaluation term
         const Weight WEIGHTS[6]
         {
-            {289,344}, // Piece Mobility
-            {233,201}, // Pawn Structure
-            {221,273}, // Pawn Passing
-            {350,256}, // Threats
-            {322,  0}, // King Safety
-            { 46,  0}, // Space Activity
+            { 266, 334 }, // Piece Mobility
+            { 214, 203 }, // Pawn Structure
+            { 193, 262 }, // Pawn Passing
+            { 404, 241 }, // Threats
+            { 330,   0 }, // King Safety
+            {  47,   0 }, // Space Activity
         };
 
     #define S(mg, eg) mk_score (mg, eg)

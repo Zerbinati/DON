@@ -129,8 +129,8 @@ namespace Transposition {
     // Returns a pointer to the entry found or NULL if not found.
     Entry* Table::probe (Key key, bool &hit) const
     {
-        //assert(key != U64(0));
-        const u16 key16 = key >> 0x30;
+        assert(key != U64(0));
+        const u16 key16 = u16(key >> 0x30);
         auto *const fte = cluster_entry (key);
         for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
         {

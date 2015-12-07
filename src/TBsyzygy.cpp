@@ -221,8 +221,6 @@ namespace TBSyzygy {
             TB_BPAWN    = 8|TB_PAWN,
         };
 
-        const u08 TBHASHBITS  = 10;
-        const u08 HSHMAX       = 6;
         
         const string WDL_SUFFIX = ".rtbw";
         const string DTZ_SUFFIX = ".rtbz";
@@ -242,6 +240,8 @@ namespace TBSyzygy {
         const u16 TBMAX_PAWN  = 256;
         TBEntry_pawn  TB_pawn [TBMAX_PAWN];
 
+        const u08 TBHASHBITS  = 10;
+        const u08 HSHMAX      = 6;
         TBHashEntry TB_hash[1 << TBHASHBITS][HSHMAX];
 
         const u08 DTZ_ENTRIES = 64;
@@ -331,7 +331,7 @@ namespace TBSyzygy {
 
         void add_to_hash (Key key, TBEntry *tbe)
         {
-            u16 hash_idx = u16(key >> (64 - TBHASHBITS));
+            const u16 hash_idx = u16(key >> (64 - TBHASHBITS));
             assert(hash_idx < (1 << TBHASHBITS));
 
             u08 i = 0;
@@ -353,26 +353,6 @@ namespace TBSyzygy {
 
         char PieceChar[] ={ 'K', 'Q', 'R', 'B', 'N', 'P' };
         
-        Key key (const string &code, Color c)
-        {
-            assert(0 < code.length () && code.length () <= 8);
-            assert(code[0] == 'K');
-            assert(code.find ('K', 1) != string::npos);
-
-            string sides[CLR_NO] =
-            {
-                code.substr (   code.find ('K', 1)), // Weak
-                code.substr (0, code.find ('K', 1)-1), // Strong
-            };
-
-            transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
-
-            string fen = sides[0] + char (8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
-                + sides[1] + char (8 - sides[1].length () + '0') + " w - - 0 1";
-
-            return Position (fen).matl_key ();
-        }
-
         void init_tb (const string &filename)
         {
             FD fd = open_tb (filename, WDL_SUFFIX);
@@ -417,23 +397,9 @@ namespace TBSyzygy {
             //    }
             //}
 
-            cout << filename << endl;
-            //for (u08 i = 1; i < sizeof (pcs)-1; ++i)
-            //{
-            //    if (i == 7 || i == 8)
-            //    {
-            //        cout << " -";
-            //        continue;
-            //    }
-            //    cout << " " << int(pcs[i]);
-            //}
-
             Key key1 = calc_key_from_pcs (pcs, false);
             Key key2 = calc_key_from_pcs (pcs, true);
             
-            assert(key1 == key (filename, WHITE));
-            assert(key2 == key (filename, BLACK));
-
             TBEntry *tbe = nullptr;
             if ((pcs[TB_WPAWN] + pcs[TB_BPAWN]) == 0)
             {
@@ -453,12 +419,12 @@ namespace TBSyzygy {
                 }
                 tbe = reinterpret_cast<TBEntry *> (&TB_pawn[TB_pawn_count++]);
             }
-            assert (tbe != nullptr);
+            assert(tbe != nullptr);
 
             tbe->key = key1;
             tbe->ready = false;
             tbe->num = 0;
-            for (u08 i = 1; i < sizeof (pcs)-1; ++i)
+            for (u08 i = 0; i < sizeof (pcs); ++i)
             {
                 tbe->num += pcs[i];
             }
@@ -1207,22 +1173,22 @@ namespace TBSyzygy {
             tb_size[0] = calc_factors_pawn (dtzep->file[f].factor, dtzep->num, order1, order2, dtzep->file[f].norm, f);
         }
 
-        void calc_symlen (PairsData *d, i32 s, char *tmp)
+        void calc_symlen (PairsData *pairs_data, i32 s, char *tmp)
         {
             i32 s1, s2;
 
-            u08* w = d->sympat + 3 * s;
+            u08* w = pairs_data->sympat + 3 * s;
             s2 = (w[2] << 4) | (w[1] >> 4);
             if (s2 == 0x0fff)
             {
-                d->symlen[s] = 0;
+                pairs_data->symlen[s] = 0;
             }
             else
             {
                 s1 = ((w[1] & 0x0F) << 8) | w[0];
-                if (!tmp[s1]) calc_symlen (d, s1, tmp);
-                if (!tmp[s2]) calc_symlen (d, s2, tmp);
-                d->symlen[s] = u08(d->symlen[s1] + d->symlen[s2] + 1);
+                if (!tmp[s1]) calc_symlen (pairs_data, s1, tmp);
+                if (!tmp[s2]) calc_symlen (pairs_data, s2, tmp);
+                pairs_data->symlen[s] = u08(pairs_data->symlen[s1] + pairs_data->symlen[s2] + 1);
             }
             tmp[s] = 1;
         }
@@ -1237,43 +1203,43 @@ namespace TBSyzygy {
             return u32(d[0] | (d[1] << 8) | (d[2] << 16) | (d[3] << 24));
         }
 
-        PairsData *setup_pairs (u08 *data, u64 tb_size, u64 *size, u08 **next, u08 *flags, bool wdl)
+        PairsData *setup_pairs (u08 *pairs_data, u64 tb_size, u64 *size, u08 **next, u08 *flags, bool wdl)
         {
-            PairsData *d;
-            *flags = data[0];
-            if (data[0] & 0x80)
+            PairsData *p_data;
+            *flags = pairs_data[0];
+            if (pairs_data[0] & 0x80)
             {
-                d = (PairsData *)malloc (sizeof (PairsData));
-                d->idxbits = 0;
+                p_data = (PairsData *)malloc (sizeof (PairsData));
+                p_data->idxbits = 0;
                 if (wdl)
                 {
-                    d->min_len = data[1];
+                    p_data->min_len = pairs_data[1];
                 }
                 else
                 {
-                    d->min_len = 0;
+                    p_data->min_len = 0;
                 }
-                *next = data + 2;
+                *next = pairs_data + 2;
                 size[0] = size[1] = size[2] = 0;
-                return d;
+                return p_data;
             }
 
-            i32 blocksize = data[1];
-            i32 idxbits = data[2];
-            i32 real_num_blocks = read_u32 (&data[4]);
-            i32 num_blocks = real_num_blocks + *(u08 *)(&data[3]);
-            i32 max_len = data[8];
-            i32 min_len = data[9];
+            i32 blocksize = pairs_data[1];
+            i32 idxbits = pairs_data[2];
+            i32 real_num_blocks = read_u32 (&pairs_data[4]);
+            i32 num_blocks = real_num_blocks + *(u08 *)(&pairs_data[3]);
+            i32 max_len = pairs_data[8];
+            i32 min_len = pairs_data[9];
             i32 h = max_len - min_len + 1;
-            i32 num_syms = read_u16 (&data[10 + 2 * h]);
-            d = (PairsData *)malloc (sizeof (PairsData) + (h - 1) * sizeof (base_t) + num_syms);
-            d->blocksize = blocksize;
-            d->idxbits = idxbits;
-            d->offset = (u16*)(&data[10]);
-            d->symlen = ((u08 *)d) + sizeof (PairsData) + (h - 1) * sizeof (base_t);
-            d->sympat = &data[12 + 2 * h];
-            d->min_len = min_len;
-            *next = &data[12 + 2 * h + 3 * num_syms + (num_syms & 1)];
+            i32 num_syms = read_u16 (&pairs_data[10 + 2 * h]);
+            p_data = (PairsData *)malloc (sizeof (PairsData) + (h - 1) * sizeof (base_t) + num_syms);
+            p_data->blocksize = blocksize;
+            p_data->idxbits = idxbits;
+            p_data->offset = (u16*)(&pairs_data[10]);
+            p_data->symlen = ((u08 *)p_data) + sizeof (PairsData) + (h - 1) * sizeof (base_t);
+            p_data->sympat = &pairs_data[12 + 2 * h];
+            p_data->min_len = min_len;
+            *next = &pairs_data[12 + 2 * h + 3 * num_syms + (num_syms & 1)];
 
             u64 num_indices = (tb_size + (1ULL << idxbits) - 1) >> idxbits;
             size[0] = 6ULL * num_indices;
@@ -1290,21 +1256,21 @@ namespace TBSyzygy {
             {
                 if (tmp[i] == 0)
                 {
-                    calc_symlen (d, i, tmp);
+                    calc_symlen (p_data, i, tmp);
                 }
             }
-            d->base[h - 1] = 0;
+            p_data->base[h - 1] = 0;
             for (i32 i = h - 2; i >= 0; --i)
             {
-                d->base[i] = (d->base[i + 1] + read_u16 ((u08*)(d->offset + i)) - read_u16 ((u08*)(d->offset + i + 1))) / 2;
+                p_data->base[i] = (p_data->base[i + 1] + read_u16 ((u08*)(p_data->offset + i)) - read_u16 ((u08*)(p_data->offset + i + 1))) / 2;
             }
             for (i32 i = 0; i < h; ++i)
             {
-                d->base[i] <<= 64 - (min_len + i);
+                p_data->base[i] <<= 64 - (min_len + i);
             }
-            d->offset -= d->min_len;
+            p_data->offset -= p_data->min_len;
 
-            return d;
+            return p_data;
         }
 
         bool init_table_wdl (TBEntry *tbe, const string &filename)
@@ -1557,20 +1523,20 @@ namespace TBSyzygy {
         }
 
         template<bool LittleEndian>
-        u08 decompress_pairs (PairsData *d, u64 idx)
+        u08 decompress_pairs (PairsData *pairs_data, u64 idx)
         {
-            if (!d->idxbits)
+            if (pairs_data->idxbits == 0)
             {
-                return u08(d->min_len);
+                return u08(pairs_data->min_len);
             }
-            u32 mainidx = static_cast<u32>(idx >> d->idxbits);
-            i32 litidx = (idx & ((1ULL << d->idxbits) - 1)) - (1ULL << (d->idxbits - 1));
-            u32 block = *(u32 *)(d->table_index + 6 * mainidx);
+            u32 mainidx = static_cast<u32>(idx >> pairs_data->idxbits);
+            i32 litidx = (idx & ((1ULL << pairs_data->idxbits) - 1)) - (1ULL << (pairs_data->idxbits - 1));
+            u32 block = *(u32 *)(pairs_data->table_index + 6 * mainidx);
             if (!LittleEndian)
             {
                 block = BSWAP32 (block);
             }
-            u16 idxOffset = *(u16 *)(d->table_index + 6 * mainidx + 4);
+            u16 idxOffset = *(u16 *)(pairs_data->table_index + 6 * mainidx + 4);
             if (!LittleEndian)
             {
                 idxOffset = u16 ((idxOffset << 8) | (idxOffset >> 8));
@@ -1581,21 +1547,23 @@ namespace TBSyzygy {
             {
                 do
                 {
-                    litidx += d->table_size[--block] + 1;
+                    litidx += pairs_data->table_size[--block] + 1;
                 } while (litidx < 0);
             }
             else
             {
-                while (litidx > d->table_size[block])
-                    litidx -= d->table_size[block++] + 1;
+                while (litidx > pairs_data->table_size[block] != 0)
+                {
+                    litidx -= pairs_data->table_size[block++] + 1;
+                }
             }
 
-            u32 *ptr = (u32 *)(d->data + (block << d->blocksize));
+            u32 *ptr = (u32 *)(pairs_data->data + (block << pairs_data->blocksize));
 
-            i32 m = d->min_len;
-            u16 *offset = d->offset;
-            base_t *base = d->base - m;
-            u08 *symlen = d->symlen;
+            i32 m = pairs_data->min_len;
+            u16 *offset = pairs_data->offset;
+            base_t *base = pairs_data->base - m;
+            u08 *symlen = pairs_data->symlen;
             i32 sym, bitcnt;
 
             u64 code = *((u64 *)ptr);
@@ -1631,7 +1599,7 @@ namespace TBSyzygy {
                 }
             }
 
-            u08 *sympat = d->sympat;
+            u08 *sympat = pairs_data->sympat;
             while (symlen[sym] != 0)
             {
                 u08* w = sympat + (3 * sym);
@@ -1661,9 +1629,15 @@ namespace TBSyzygy {
             u08 i;
             for (i = 0; i < HSHMAX; ++i)
             {
-                if (tbhe[i].key == key1) break;
+                if (tbhe[i].key == key1)
+                {
+                    break;
+                }
             }
-            if (i == HSHMAX) return;
+            if (i == HSHMAX)
+            {
+                return;
+            }
             auto tbe = tbhe[i].tbe;
 
             auto ptbe = (TBEntry *)malloc (tbe->has_pawns ?
@@ -1686,13 +1660,13 @@ namespace TBSyzygy {
                 auto dtzep = reinterpret_cast<DTZEntry_piece *> (ptbe);
                 dtzep->enc_type = reinterpret_cast<TBEntry_piece *> (tbe)->enc_type;
             }
-            if (!init_table_dtz (ptbe))
+            if (init_table_dtz (ptbe))
             {
-                free (ptbe);
+                DTZ_table[0].tbe = ptbe;
             }
             else
             {
-                DTZ_table[0].tbe = ptbe;
+                free (ptbe);
             }
         }
 
@@ -1754,13 +1728,39 @@ namespace TBSyzygy {
             free (tbe);
         }
 
-
+        void free_entries ()
+        {
+            for (u16 pc = 0; pc < TB_piece_count; ++pc)
+            {
+                auto tbe = reinterpret_cast<TBEntry *> (&TB_piece[pc]);
+                if (tbe != nullptr)
+                {
+                    free_wdl_entry (tbe);
+                }
+            }
+            for (u16 pc = 0; pc < TB_pawn_count; ++pc)
+            {
+                auto tbe = reinterpret_cast<TBEntry *> (&TB_pawn[pc]);
+                if (tbe != nullptr)
+                {
+                    free_wdl_entry (tbe);
+                }
+            }
+            for (u08 i = 0; i < DTZ_ENTRIES; ++i)
+            {
+                auto tbe = DTZ_table[i].tbe;
+                if (tbe != nullptr)
+                {
+                    free_dtz_entry (tbe);
+                }
+            }
+        }
 
         // ---Core
 
         // Given a position with 6 or fewer pieces, produce a text string of the form KQPvKRP,
         // where "KQP" represents the white pieces if mirror == false and the black pieces if mirror == true.
-        void prt_filename (Position &pos, string filename, bool mirror)
+        void prt_filename (string filename, const Position &pos, bool mirror)
         {
             Color color = mirror ? BLACK : WHITE;
             for (auto pt = KING; pt >= PAWN; --pt)
@@ -1843,12 +1843,12 @@ namespace TBSyzygy {
             return x.character[0] == 1;
         }
 
-        u08 decompress_pairs (PairsData *d, u64 idx)
+        u08 decompress_pairs (PairsData *pairs_data, u64 idx)
         {
             static const bool isLittleEndian = is_little_endian ();
             return isLittleEndian ?
-                decompress_pairs<true > (d, idx) :
-                decompress_pairs<false> (d, idx);
+                decompress_pairs<true > (pairs_data, idx) :
+                decompress_pairs<false> (pairs_data, idx);
         }
 
         // probe_wdl_table()
@@ -1884,10 +1884,13 @@ namespace TBSyzygy {
                 if (!tbe->ready)
                 {
                     string filename;
-                    prt_filename (pos, filename, tbe->key != key);
-                    if (!init_table_wdl (tbe, filename))
+                    prt_filename (filename, pos, tbe->key != key);
+                    if (init_table_wdl (tbe, filename))
                     {
-                        tbhe[i].key = 0ULL;
+                    }
+                    else
+                    {
+                        tbhe[i].key = U64(0);
                         success = 0;
                         UNLOCK (TB_mutex);
                         return VALUE_ZERO;
@@ -1967,7 +1970,7 @@ namespace TBSyzygy {
                 u64 idx = encode_piece (tbep, tbep->norm[side], sq, tbep->factor[side]);
                 res = decompress_pairs (tbep->precomp[side], idx);
             }
-            return Value((i32)res - 2);
+            return Value(i32(res) - 2);
         }
         // probe_dtz_table()
         Value probe_dtz_table (Position &pos, i32 wdl, i32 &success)
@@ -1977,21 +1980,22 @@ namespace TBSyzygy {
 
             if (DTZ_table[0].key1 != key && DTZ_table[0].key2 != key)
             {
-                i08 i;
+                u08 i;
                 for (i = 1; i < DTZ_ENTRIES; ++i)
                 {
                     if (DTZ_table[i].key1 == key)
+                    {
                         break;
+                    }
                 }
-
                 if (i < DTZ_ENTRIES)
                 {
-                    DTZTableEntry table_entry = DTZ_table[i];
+                    auto dtzte = DTZ_table[i];
                     for (; i > 0; --i)
                     {
                         DTZ_table[i] = DTZ_table[i - 1];
                     }
-                    DTZ_table[0] = table_entry;
+                    DTZ_table[0] = dtzte;
                 }
                 else
                 {
@@ -1999,7 +2003,9 @@ namespace TBSyzygy {
                     for (i = 0; i < HSHMAX; ++i)
                     {
                         if (tbhe[i].key == key)
+                        {
                             break;
+                        }
                     }
                     if (i == HSHMAX)
                     {
@@ -2020,7 +2026,7 @@ namespace TBSyzygy {
 
                     string filename;
                     bool mirror = (tbe->key != key);
-                    prt_filename (pos, filename, mirror);
+                    prt_filename (filename, pos, mirror);
                     load_dtz_table (filename, calc_key (pos, mirror), calc_key (pos, !mirror));
                 }
             }
@@ -2179,8 +2185,9 @@ namespace TBSyzygy {
                 pos.do_move (move, si, pos.gives_check (move, ci));
                 v = -probe_ab (pos, -beta, -alfa, success);
                 pos.undo_move ();
+
                 if (success == 0) return VALUE_ZERO;
-                if (v > alfa)
+                if (alfa < v)
                 {
                     if (v >= beta)
                     {
@@ -2192,6 +2199,7 @@ namespace TBSyzygy {
             }
 
             v = probe_wdl_table (pos, success);
+
             if (success == 0) return VALUE_ZERO;
             if (alfa >= v)
             {
@@ -2209,6 +2217,7 @@ namespace TBSyzygy {
         Value probe_dtz_no_ep (Position &pos, i32 &success)
         {
             Value wdl = probe_ab (pos, Value(-2), Value(2), success);
+
             if (success == 0) return VALUE_ZERO;
 
             if (wdl == 0) return VALUE_ZERO;
@@ -2246,6 +2255,7 @@ namespace TBSyzygy {
                     pos.do_move (move, si, pos.gives_check (move, ci));
                     Value v = -probe_ab (pos, Value(-2), Value(-wdl + 1), success);
                     pos.undo_move ();
+
                     if (success == 0) return VALUE_ZERO;
                     if (v == wdl)
                     {
@@ -2279,10 +2289,14 @@ namespace TBSyzygy {
                     pos.do_move (move, si, pos.gives_check (move, ci));
                     Value v = -probe_dtz (pos, success);
                     pos.undo_move ();
+
                     if (success == 0) return VALUE_ZERO;
-                    if (v > 0 && best_value > v + 1)
+                    if (v > VALUE_ZERO)
                     {
-                        best_value = v + 1;
+                        if (best_value > v + 1)
+                        {
+                            best_value = v + 1;
+                        }
                     }
                 }
                 return best_value;
@@ -2318,6 +2332,7 @@ namespace TBSyzygy {
                         v = -probe_dtz (pos, success) - 1;
                     }
                     pos.undo_move ();
+
                     if (success == 0) return VALUE_ZERO;
                     if (best_value > v)
                     {
@@ -2404,6 +2419,7 @@ namespace TBSyzygy {
         Value v = probe_dtz_no_ep (pos, success);
 
         if (pos.en_passant_sq () == SQ_NO) return v;
+
         if (success == 0) return VALUE_ZERO;
 
         // Now handle en passant.
@@ -2425,10 +2441,12 @@ namespace TBSyzygy {
             {
                 continue;
             }
+
             StateInfo si;
             pos.do_move (move, si, pos.gives_check (move, ci));
             Value v0 = -probe_ab (pos, Value(-2), Value(+2), success);
             pos.undo_move ();
+
             if (success == 0) return VALUE_ZERO;
             if (v1 < v0)
             {
@@ -2447,7 +2465,7 @@ namespace TBSyzygy {
             }
             else if (v < 0)
             {
-                if (v1 >= 0 || v1 < -100)
+                if (0 <= v1 || v1 < -100)
                 {
                     v = v1;
                 }
@@ -2516,6 +2534,7 @@ namespace TBSyzygy {
         {
             return v;
         }
+
         if (success == 0) return VALUE_ZERO;
 
         // Now handle en passant.
@@ -2541,6 +2560,7 @@ namespace TBSyzygy {
             pos.do_move (move, si, pos.gives_check (move, ci));
             Value v0 = -probe_ab (pos, Value(-2), Value(+2), success);
             pos.undo_move ();
+
             if (success == 0) return VALUE_ZERO;
             if (v1 < v0)
             {
@@ -2553,7 +2573,7 @@ namespace TBSyzygy {
             {
                 v = v1;
             }
-            else if (v == 0)
+            else if (v == VALUE_ZERO)
             {
                 // Check whether there is at least one legal non-ep move.
                 ValMove *cur;
@@ -2593,6 +2613,7 @@ namespace TBSyzygy {
         i32 success;
 
         Value dtz = probe_dtz (pos, success);
+
         if (success == 0) return false;
 
         StateInfo si;
@@ -2605,7 +2626,7 @@ namespace TBSyzygy {
             pos.do_move (move, si, pos.gives_check (move, ci));
 
             bool found = false;
-            if (pos.checkers () != U64(0) && dtz > 0)
+            if (pos.checkers () != U64(0) && dtz > VALUE_ZERO)
             {
                 ValMove moves[MAX_MOVES];
                 if (generate<LEGAL> (moves, pos) != moves)
@@ -2638,6 +2659,7 @@ namespace TBSyzygy {
             }
 
             pos.undo_move ();
+
             if (success == 0) return false;
             rm.new_value = value;
         }
@@ -2669,15 +2691,18 @@ namespace TBSyzygy {
         }
         // Now be a bit smart about filtering out moves.
         size_t size = 0;
-        if (dtz > 0)
+        if (dtz > VALUE_ZERO)
         { // winning (or 50-move rule draw)
             Value best_value = +VALUE_INFINITE;
             for (const auto rm : root_moves)
             {
                 Value v = rm.new_value;
-                if (VALUE_ZERO < v && best_value > v)
+                if (v > VALUE_ZERO)
                 {
-                    best_value = v;
+                    if (best_value > v)
+                    {
+                        best_value = v;
+                    }
                 }
             }
             Value max_value = best_value;
@@ -2697,7 +2722,7 @@ namespace TBSyzygy {
                 }
             }
         }
-        else if (dtz < 0)
+        else if (dtz < VALUE_ZERO)
         { // losing (or 50-move rule draw)
             Value best_value = VALUE_NONE;
             for (const auto rm : root_moves)
@@ -2747,6 +2772,7 @@ namespace TBSyzygy {
         i32 success;
 
         Value wdl = probe_wdl (pos, success);
+
         if (success == 0) return false;
         ProbeValue = Wdl_to_Value[wdl + 2];
 
@@ -2761,6 +2787,7 @@ namespace TBSyzygy {
             pos.do_move (move, si, pos.gives_check (move, ci));
             Value v = -probe_wdl (pos, success);
             pos.undo_move ();
+
             if (success == 0) return false;
             rm.new_value = v;
             if (best_value < v)
@@ -2790,36 +2817,12 @@ namespace TBSyzygy {
             init_indices ();
             initialized = true;
         }
-        else
-        {
-            for (u16 i = 0; i < TB_piece_count; ++i)
-            {
-                auto tbe = reinterpret_cast<TBEntry *> (&TB_piece[i]);
-                if (tbe != nullptr)
-                {
-                    free_wdl_entry (tbe);
-                }
-            }
-            for (u16 i = 0; i < TB_pawn_count; ++i)
-            {
-                auto tbe = reinterpret_cast<TBEntry *> (&TB_pawn[i]);
-                if (tbe != nullptr)
-                {
-                    free_wdl_entry (tbe);
-                }
-            }
-            for (u08 i = 0; i < DTZ_ENTRIES; ++i)
-            {
-                if (DTZ_table[i].tbe != nullptr)
-                {
-                    free_dtz_entry (DTZ_table[i].tbe);
-                }
-            }
-        }
+
+        free_entries ();
 
         if (white_spaces (path_string) || path_string == "<empty>") return;
 
-        Paths = split (path_string, SEP_CHAR, false);
+        Paths = split (path_string, SEP_CHAR, false, true);
 
         LOCK_INIT (TB_mutex);
 

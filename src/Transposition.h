@@ -50,13 +50,13 @@ namespace Transposition {
         {
             // Preserve any existing move for the position (key)
             if (   m != MOVE_NONE
-                || (k >> 0x30) != _key16
+                || u16(k >> 0x30) != _key16
                )
             {
                 _move       = u16(m);
             }
             // Don't overwrite more valuable entries
-            if (   (k >> 0x30) != _key16
+            if (   u16(k >> 0x30) != _key16
                 || d > _depth - 2
              /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
                 || b == BOUND_EXACT

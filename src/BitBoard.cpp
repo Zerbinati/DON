@@ -354,25 +354,25 @@ namespace BitBoard {
     void test_attacks ()
     {
         Bitboard occ = U64(0x1234);
-        cout << "occupancy:\n" << pretty (occ);
+        std::cout << "occupancy:\n" << pretty (occ);
         // Knight
         for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            cout << pretty (attacks_bb<NIHT> (s1, occ));
+            std::cout << pretty (attacks_bb<NIHT> (s1, occ));
             if (s1 && (s1+1)%8 == 0) system ("PAUSE");
         }
-        cout << "occupancy:\n" << pretty (occ);
+        std::cout << "occupancy:\n" << pretty (occ);
         // Bishop
         for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            cout << pretty (attacks_bb<BSHP> (s1, occ));
+            std::cout << pretty (attacks_bb<BSHP> (s1, occ));
             if (s1 && (s1+1)%8 == 0) system("PAUSE");
         }
-        cout << "occupancy:\n" << pretty (occ);
+        std::cout << "occupancy:\n" << pretty (occ);
         // Rook
         for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            cout << pretty (attacks_bb<ROOK> (s1, occ));
+            std::cout << pretty (attacks_bb<ROOK> (s1, occ));
             if (s1 && (s1+1)%8 == 0) system ("PAUSE");
         }
     }

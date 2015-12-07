@@ -90,8 +90,8 @@ namespace EndGame {
                 code.substr (0, code.find ('K', 1)), // Strong
             };
 
-            transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
-            
+            to_lower (sides[c]);
+
             string fen = sides[0] + char (8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
                        + sides[1] + char (8 - sides[1].length () + '0') + " w - - 0 1";
 
