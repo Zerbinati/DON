@@ -12,6 +12,7 @@
 #include "Evaluator.h"
 #include "Polyglot.h"
 #include "TBsyzygy.h"
+#include "UCI.h"
 #include "Notation.h"
 #include "Debugger.h"
 
@@ -1981,7 +1982,7 @@ namespace Threading {
 
             if (thread_main)
             {
-                if (ContemptValue != 0)
+                if (ContemptValue != 0 && root_moves.size () > 0)
                 {
                     Value valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
                     DrawValue[ RootColor] = BaseContempt[ RootColor] - valued_contempt;
@@ -2123,6 +2124,10 @@ namespace Threading {
 
         Hits = 0;
         RootInTB = false;
+        DepthLimit = i32(Options["Syzygy Depth Limit"]) * DEPTH_ONE;
+        PieceLimit = i32(Options["Syzygy Piece Limit"]);
+        UseRule50  = bool(Options["Syzygy Use Rule 50"]);
+
         // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit
         if (PieceLimit > MaxPieceLimit)
         {
@@ -2273,7 +2278,8 @@ namespace Threading {
             }
         }
 
-        assert(!best_thread->root_moves[0].empty ());
+        assert( best_thread->root_moves.size () > 0 
+            && !best_thread->root_moves[0].empty ());
 
         // Send new PV when needed.
         // FIXME: Breaks multiPV, and skill levels

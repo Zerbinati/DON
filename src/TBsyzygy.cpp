@@ -67,8 +67,8 @@ namespace TBSyzygy {
     using namespace MoveGen;
     using namespace Searcher;
 
-    i32     PieceLimit      = 6;
     Depth   DepthLimit      = 1*DEPTH_ONE;
+    i32     PieceLimit      = 6;
     bool    UseRule50       = true;
 
     i32     MaxPieceLimit   = 0;
@@ -76,7 +76,6 @@ namespace TBSyzygy {
     bool    RootInTB        = false;
     Value   ProbeValue      = VALUE_NONE;
 
-    
     namespace {
 
         // Core
@@ -221,7 +220,10 @@ namespace TBSyzygy {
             TB_BPAWN    = 8|TB_PAWN,
         };
 
-        
+        inline PieceT tb_ptype (Piece p) { return (p & TOTL) != 0 ? PieceT ((p & TOTL) - 1) : NONE; }
+
+        const char PieceChar[] ={ 'K', 'Q', 'R', 'B', 'N', 'P' };
+
         const string WDL_SUFFIX = ".rtbw";
         const string DTZ_SUFFIX = ".rtbz";
 
@@ -351,8 +353,6 @@ namespace TBSyzygy {
             }
         }
 
-        char PieceChar[] ={ 'K', 'Q', 'R', 'B', 'N', 'P' };
-        
         void init_tb (const string &filename)
         {
             FD fd = open_tb (filename, WDL_SUFFIX);
@@ -1280,8 +1280,7 @@ namespace TBSyzygy {
             u64 size[8 * 3];
             u08 flags;
 
-            // first mmap the table into memory
-
+            // first map the table into memory
             tbe->data = map_file (filename, WDL_SUFFIX, &tbe->mapping);
             if (tbe->data == nullptr)
             {
@@ -1552,7 +1551,7 @@ namespace TBSyzygy {
             }
             else
             {
-                while (litidx > pairs_data->table_size[block] != 0)
+                while (litidx > pairs_data->table_size[block])
                 {
                     litidx -= pairs_data->table_size[block++] + 1;
                 }
@@ -1760,8 +1759,9 @@ namespace TBSyzygy {
 
         // Given a position with 6 or fewer pieces, produce a text string of the form KQPvKRP,
         // where "KQP" represents the white pieces if mirror == false and the black pieces if mirror == true.
-        void prt_filename (string filename, const Position &pos, bool mirror)
+        string get_filename (const Position &pos, bool mirror)
         {
+            string filename = "";
             Color color = mirror ? BLACK : WHITE;
             for (auto pt = KING; pt >= PAWN; --pt)
             {
@@ -1780,6 +1780,7 @@ namespace TBSyzygy {
                 }
             }
             //filename += '\0';
+            return filename;
         }
 
         // Given a position, produce a 64-bit material signature key.
@@ -1883,8 +1884,8 @@ namespace TBSyzygy {
                 LOCK (TB_mutex);
                 if (!tbe->ready)
                 {
-                    string filename;
-                    prt_filename (filename, pos, tbe->key != key);
+                    bool mirror = tbe->key != key;
+                    string filename = get_filename (pos, mirror);
                     if (init_table_wdl (tbe, filename))
                     {
                     }
@@ -1935,7 +1936,7 @@ namespace TBSyzygy {
                 Piece *pc;
                 
                 pc = tbep->file[0].pieces[0];
-                Bitboard bb = pos.pieces (color (side == pos.active () ? pc[0] : ~pc[0]), ptype (pc[0]));
+                Bitboard bb = pos.pieces (color (side == pos.active () ? pc[0] : ~pc[0]), tb_ptype (pc[0]));
                 i = 0;
                 do
                 {
@@ -1946,7 +1947,7 @@ namespace TBSyzygy {
                 pc = tbep->file[f].pieces[side];
                 while (i < tbep->num)
                 {
-                    bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), ptype (pc[i]));
+                    bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), tb_ptype (pc[i]));
                     do
                     {
                         if (i < NONE) sq[i++] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
@@ -1961,7 +1962,7 @@ namespace TBSyzygy {
                 Piece *pc = tbep->pieces[side];
                 for (i = 0; i < tbep->num;)
                 {
-                    Bitboard bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), ptype (pc[i]));
+                    Bitboard bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), tb_ptype (pc[i]));
                     do
                     {
                         if (i < NONE) sq[i++] = pop_lsq (bb);
@@ -2012,7 +2013,7 @@ namespace TBSyzygy {
                         success = 0;
                         return VALUE_ZERO;
                     }
-                    
+
                     auto tbe = tbhe[i].tbe;
                     
                     if (DTZ_table[DTZ_ENTRIES - 1].tbe != nullptr)
@@ -2024,9 +2025,8 @@ namespace TBSyzygy {
                         DTZ_table[i] = DTZ_table[i - 1];
                     }
 
-                    string filename;
-                    bool mirror = (tbe->key != key);
-                    prt_filename (filename, pos, mirror);
+                    bool mirror = tbe->key != key;
+                    string filename = get_filename (pos, mirror);
                     load_dtz_table (filename, calc_key (pos, mirror), calc_key (pos, !mirror));
                 }
             }
@@ -2062,7 +2062,7 @@ namespace TBSyzygy {
             {
                 auto dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
                 Piece p = side == pos.active () ? dtzep->file[0].pieces[0] : ~dtzep->file[0].pieces[0];
-                Bitboard bb = pos.pieces (color (p), ptype(p));
+                Bitboard bb = pos.pieces (color (p), tb_ptype (p));
                 i32 i = 0;
                 do
                 {
@@ -2078,7 +2078,7 @@ namespace TBSyzygy {
                 Piece *pc = dtzep->file[f].pieces;
                 while (i < dtzep->num)
                 {
-                    bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), ptype (pc[i]));
+                    bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), tb_ptype (pc[i]));
                     do
                     {
                         if (i < NONE) sq[i++] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
@@ -2109,7 +2109,7 @@ namespace TBSyzygy {
                 Bitboard bb;
                 while (i < dtzep->num)
                 {
-                    bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), ptype (pc[i]));
+                    bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), tb_ptype (pc[i]));
                     do
                     {
                         if (i < NONE) sq[i++] = pop_lsq (bb);
@@ -2620,9 +2620,9 @@ namespace TBSyzygy {
         CheckInfo ci (pos);
 
         // Probe each move.
-        for (auto rm : root_moves)
+        for (size_t i = 0; i < root_moves.size (); ++i)
         {
-            auto move = rm[0];
+            auto move = root_moves[i][0];
             pos.do_move (move, si, pos.gives_check (move, ci));
 
             bool found = false;
@@ -2661,7 +2661,7 @@ namespace TBSyzygy {
             pos.undo_move ();
 
             if (success == 0) return false;
-            rm.new_value = value;
+            root_moves[i].new_value = value;
         }
 
         // Obtain 50-move counter for the root position.
@@ -2694,9 +2694,9 @@ namespace TBSyzygy {
         if (dtz > VALUE_ZERO)
         { // winning (or 50-move rule draw)
             Value best_value = +VALUE_INFINITE;
-            for (const auto rm : root_moves)
+            for (size_t i = 0; i < root_moves.size (); ++i)
             {
-                Value v = rm.new_value;
+                Value v = root_moves[i].new_value;
                 if (v > VALUE_ZERO)
                 {
                     if (best_value > v)
@@ -2712,7 +2712,7 @@ namespace TBSyzygy {
             {
                 max_value = Value(99 - clock_ply);
             }
-            
+
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
                 Value v = root_moves[i].new_value;
@@ -2722,14 +2722,16 @@ namespace TBSyzygy {
                 }
             }
         }
-        else if (dtz < VALUE_ZERO)
+        else
+        if (dtz < VALUE_ZERO)
         { // losing (or 50-move rule draw)
-            Value best_value = VALUE_NONE;
-            for (const auto rm : root_moves)
+            Value best_value = VALUE_ZERO;
+            for (size_t i = 0; i < root_moves.size (); ++i)
             {
-                if (best_value > rm.new_value)
+                Value v = root_moves[i].new_value;
+                if (best_value > v)
                 {
-                    best_value = rm.new_value;
+                    best_value = v;
                 }
             }
             // Try all moves, unless we approach or have a 50-move rule draw.
@@ -2757,8 +2759,8 @@ namespace TBSyzygy {
                 }
             }
         }
-        root_moves.resize (size, RootMove ());
 
+        root_moves.resize (size, RootMove ());
         return true;
     }
 
@@ -2781,19 +2783,19 @@ namespace TBSyzygy {
 
         Value best_value = -VALUE_INFINITE;
         // Probe each move.
-        for (auto rm : root_moves)
+        for (size_t i = 0; i < root_moves.size (); ++i)
         {
-            auto move = rm[0];
+            auto move = root_moves[i][0];
             pos.do_move (move, si, pos.gives_check (move, ci));
             Value v = -probe_wdl (pos, success);
             pos.undo_move ();
 
             if (success == 0) return false;
-            rm.new_value = v;
             if (best_value < v)
             {
                 best_value = v;
             }
+            root_moves[i].new_value = v;
         }
 
         size_t size = 0;
@@ -2804,8 +2806,8 @@ namespace TBSyzygy {
                 root_moves[size++] = root_moves[i];
             }
         }
-        root_moves.resize (size, RootMove ());
 
+        root_moves.resize (size, RootMove ());
         return true;
     }
 
@@ -2930,4 +2932,5 @@ namespace TBSyzygy {
 
         std::cout << "info string " << (TB_piece_count + TB_pawn_count) << " Syzygy Tablebases found." << std::endl;
     }
+
 }

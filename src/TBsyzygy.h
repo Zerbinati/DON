@@ -6,8 +6,8 @@
 
 namespace TBSyzygy {
 
-    extern i32      PieceLimit;
     extern Depth    DepthLimit;
+    extern i32      PieceLimit;
     extern bool     UseRule50;
 
     extern i32      MaxPieceLimit;

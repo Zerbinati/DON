@@ -246,10 +246,6 @@ namespace UCI {
         void config_endgame_table ()
         {
             string path_string = string(Options["Syzygy Path"]);
-            DepthLimit = i32(Options["Syzygy Depth Limit"]) * DEPTH_ONE;
-            PieceLimit = i32(Options["Syzygy Piece Limit"]);
-            UseRule50  = bool(Options["Syzygy Use Rule 50"]);
-
             trim (path_string);
             if (!path_string.empty ())
             {
@@ -441,19 +437,19 @@ namespace UCI {
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["Ponder"]                       << Option (Ponder, configure_time);
 
-        // ---------------------------------------------------------------------------------------
+        // End-Game Table Bases Options
+        // ----------------------------
+        Options["Syzygy Path"]                  << Option ("<empty>", config_endgame_table);
+        Options["Syzygy Depth Limit"]           << Option (DepthLimit, 1, 100);
+        Options["Syzygy Piece Limit"]           << Option (PieceLimit, 0,   6);
+        Options["Syzygy Use Rule 50"]           << Option (UseRule50);
+
+        // -------------
         // Other Options
         // -------------
         Options["Debug Log"]                    << Option (false, debug_log);
         // The filename of the search log.
         Options["Search Log File"]              << Option (SearchLogFile, search_log_file);
-
-        // End-Game Table Bases Options
-        // ----------------------------
-        Options["Syzygy Path"]                  << Option ("<empty>", config_endgame_table);
-        Options["Syzygy Depth Limit"]           << Option (DepthLimit, 1, 100, config_endgame_table);
-        Options["Syzygy Piece Limit"]           << Option (PieceLimit, 0, 6, config_endgame_table);
-        Options["Syzygy Use Rule 50"]           << Option (UseRule50, config_endgame_table);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.
