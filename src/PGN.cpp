@@ -121,7 +121,7 @@ void PGN::_scan_index (const string &str, u64 &pos, State &state)
             }
             else
             {
-                cerr << ("****SUCCESS****");
+                cerr << "****SUCCESS****" << endl;
             }
             break;
         }

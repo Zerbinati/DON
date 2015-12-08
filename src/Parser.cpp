@@ -32,17 +32,26 @@ namespace Parser {
         BitBoard::initialize ();
         Position::initialize ();
 
-
         /*
-        PGN pgn ("test.pgn", ios_base::in|ios_base::out);
-        //PGN pgn ("book.pgn", ios_base::in);
+        //PGN pgn ("test.pgn", ios_base::in|ios_base::out);
+        PGN pgn ("book.pgn", ios_base::in);
         //PGN pgn ("5lac.pgn", ios_base::in);
-    
+        u32 beg_game;
+        u32 end_game;
         cout << pgn.game_count () << endl;
+        system ("pause");
+        ofstream of ("text.pgn");
+        cout << "Begin Game ";
+        cin >> beg_game;
+        cout << "End Game";
+        cin >> end_game;
+        of << pgn.read_text (beg_game, end_game);
+        //cout << pgn.read_text (beg_game, end_game) << endl;
+        of.close ();
         */
-
-        string text = "";
         /*
+        string text = "";
+        
     "[Event \"approx\"]\n\
     [Site \"Europe\"]\n\
     [Date \"1625.??.??\"]\n\
@@ -126,21 +135,21 @@ namespace Parser {
         cout << book_move << endl;
         cout << book.read_entries (pos);
         */
-    
-        
+
+        /*
         pgn_t pgn;
         string pgn_fn = "book.pgn";
         pgn.open (pgn_fn);
         while (pgn.next_game ())
         {
             Position pos (pgn.fen.empty () ? STARTUP_FEN : pgn.fen);
-   
+
             string move;
             StateStack states;
             while (pgn.next_move (move))
             {
                 auto m = move_from_san (move, pos);
-            
+
                 cout << m << " ";
 
                 states.push (StateInfo ());
@@ -153,6 +162,8 @@ namespace Parser {
         pgn.close ();
 
         cout << pgn.games << endl;
+        */
+
 
     }
 

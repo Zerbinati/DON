@@ -12,7 +12,7 @@
 using namespace std;
 
 namespace {
-    
+
     bool Error;
     FILE *LogFile = nullptr;
 
@@ -142,7 +142,7 @@ namespace {
     {
         return strchr ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_+#=:-/", c) != nullptr;
     }
-    
+
 }
 
 void pgn_t::_read_char ()
@@ -163,14 +163,14 @@ void pgn_t::_read_char ()
     {
         // Update counters
         assert(char_hack != CHAR_EOF);
-        if (false)
-        {}
-        else if (char_hack == '\n')
+        
+        if (char_hack == '\n')
         {
             char_line++;
             char_column = 0;
         }
-        else if (char_hack == '\t')
+        else
+        if (char_hack == '\t')
         {
             char_column += TAB_SIZE - (char_column % TAB_SIZE);
         }
@@ -210,18 +210,18 @@ void pgn_t::_read_skip_blanks ()
     while (true)
     {
         _read_char ();
-        if (false)
-        {
-        }
-        else if (char_hack == CHAR_EOF)
+
+        if (char_hack == CHAR_EOF)
         {
             break;
         }
-        else if (isspace (char_hack))
+        else
+        if (isspace (char_hack))
         {
             // skip white space
         }
-        else if (char_hack == ';')
+        else
+        if (char_hack == ';')
         {
             // skip comment to EOL
             do
@@ -234,7 +234,8 @@ void pgn_t::_read_skip_blanks ()
                 }
             } while (char_hack != '\n');
         }
-        else if (char_hack == '%' && char_column == 0)
+        else
+        if (char_hack == '%' && char_column == 0)
         {
             // skip comment to EOL
             do
@@ -247,7 +248,8 @@ void pgn_t::_read_skip_blanks ()
                 }
             } while (char_hack != '\n');
         }
-        else if (char_hack == '{')
+        else
+        if (char_hack == '{')
         {
             // skip comment to next '}'
             do
@@ -320,36 +322,35 @@ void pgn_t::_read_tok ()
     token_column = char_column;
 
     // Determine token type
-    if (false)
-    {
-    }
-    else if (char_hack == CHAR_EOF)
+    if (char_hack == CHAR_EOF)
     {
         token_type = TOKEN_EOF;
     }
-    else if (strchr (".[]()<>", char_hack) != nullptr)
+    else
+    if (strchr (".[]()<>", char_hack) != nullptr)
     {
         // Single-character token
         token_type = token_t(char_hack);
         token = (char)char_hack;
     }
-    else if (char_hack == '*')
+    else
+    if (char_hack == '*')
     {
         token_type = TOKEN_RESULT;
         token = (char)char_hack;
     }
-    else if (char_hack == '!')
+    else
+    if (char_hack == '!')
     {
         _read_char ();
-        if (false)
-        {
-        }
-        else if (char_hack == '!')
+
+        if (char_hack == '!')
         { // "!!"
             token_type = TOKEN_NAG;
             token = "3";
         }
-        else if (char_hack == '?')
+        else
+        if (char_hack == '?')
         { // "!?"
             token_type = TOKEN_NAG;
             token = "5";
@@ -361,18 +362,18 @@ void pgn_t::_read_tok ()
             token = "1";
         }
     }
-    else if (char_hack == '?')
+    else
+    if (char_hack == '?')
     {
         _read_char ();
-        if (false)
-        {
-        }
-        else if (char_hack == '?')
+
+        if (char_hack == '?')
         { // "??"
             token_type = TOKEN_NAG;
             token = "4";
         }
-        else if (char_hack == '!')
+        else
+        if (char_hack == '!')
         { // "?!"
             token_type = TOKEN_NAG;
             token = "6";
@@ -384,7 +385,8 @@ void pgn_t::_read_tok ()
             token = "2";
         }
     }
-    else if (symbol_start (char_hack))
+    else
+    if (symbol_start (char_hack))
     {
         // Symbol, Integer, or Result
         token_type = TOKEN_INTEGER;
@@ -428,9 +430,9 @@ void pgn_t::_read_tok ()
         }
     }
     // String
-    else if (char_hack == '"')
+    else
+    if (char_hack == '"')
     {
-        
         token_type = TOKEN_STRING;
         token = "";
 
@@ -482,7 +484,8 @@ void pgn_t::_read_tok ()
             );
         //token += '\0';
     }
-    else if (char_hack == '$')
+    else
+    if (char_hack == '$')
     {
         // NAG
         token_type = TOKEN_NAG;
@@ -607,27 +610,31 @@ bool pgn_t::next_game ()
         }
 
         // special tag?
-        if (false)
-        {}
-        else if (name == "Result")
+        if (name == "Result")
         {
             result = value;
         }
-        else if (name == "FEN")
+        else
+        if (name == "FEN")
         {
             fen = value;
         }
-        else if (name == "WhiteElo")
+        else
+        if (name == "WhiteElo")
         {
             white_elo = value;
         }
-        else if (name == "BlackElo")
+        else
+        if (name == "BlackElo")
         {
             black_elo = value;
         }
     }
 
-    if (token_type == TOKEN_EOF) return false;
+    if (token_type == TOKEN_EOF)
+    {
+        return false;
+    }
     
     _unread_token ();
     ++games;
@@ -647,14 +654,14 @@ bool pgn_t::next_move (string &move)
     while (true)
     {
         _read_token ();
-        if (false)
-        {}
-        else if (token_type == '(')
+        
+        if (token_type == '(')
         {
             // open RAV
             ++depth;
         }
-        else if (token_type == ')')
+        else
+        if (token_type == ')')
         {
             // close RAV
             if (depth == 0)
@@ -665,7 +672,8 @@ bool pgn_t::next_move (string &move)
             --depth;
             assert(depth >= 0);
         }
-        else if (token_type == TOKEN_RESULT)
+        else
+        if (token_type == TOKEN_RESULT)
         {
             // game finished
             if (depth > 0)
@@ -673,7 +681,7 @@ bool pgn_t::next_move (string &move)
                 log_fatal ("next_move_pgn(): malformed variation at line %d, column %d, game %d\n", token_line, token_column, games);
                 return false;
             }
-            //return false;
+            return false;
         }
         else
         {
