@@ -189,7 +189,7 @@ namespace Transposition {
 
         // cluster_entry() returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
-        Entry* cluster_entry (Key key) const
+        Entry* cluster_entry (const Key key) const
         {
             return _clusters[size_t(key) & _cluster_mask].entries;
         }

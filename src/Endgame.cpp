@@ -1030,7 +1030,7 @@ namespace EndGame {
     {
         if (EndGames == nullptr)
         {
-            EndGames = new Endgames ();
+            EndGames = new Endgames;
             assert(EndGames != nullptr);
         }
     }

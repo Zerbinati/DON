@@ -180,19 +180,30 @@ namespace UCI {
                 i64 value;
                 while (iss >> token)
                 {
-                    if      (token == "wtime")      { iss >> value; limits.clock[WHITE].time = u32(abs (value)); }
-                    else if (token == "btime")      { iss >> value; limits.clock[BLACK].time = u32(abs (value)); }
-                    else if (token == "winc")       { iss >> value; limits.clock[WHITE].inc  = u32(abs (value)); }
-                    else if (token == "binc")       { iss >> value; limits.clock[BLACK].inc  = u32(abs (value)); }
-                    else if (token == "movetime")   { iss >> value; limits.movetime  = u32(abs (value)); }
-                    else if (token == "movestogo")  { iss >> value; limits.movestogo = u08(abs (value)); }
-                    else if (token == "depth")      { iss >> value; limits.depth     = u08(abs (value)); }
-                    else if (token == "nodes")      { iss >> value; limits.nodes     = u64(abs (value)); }
-                    else if (token == "mate")       { iss >> value; limits.mate      = u08(abs (value)); }
-                    else if (token == "infinite")   { limits.infinite  = true; }
-                    else if (token == "ponder")     { limits.ponder    = true; }
+                    if (token == "wtime")      { iss >> value; limits.clock[WHITE].time = u32(abs (value)); }
+                    else
+                    if (token == "btime")      { iss >> value; limits.clock[BLACK].time = u32(abs (value)); }
+                    else
+                    if (token == "winc")       { iss >> value; limits.clock[WHITE].inc  = u32(abs (value)); }
+                    else
+                    if (token == "binc")       { iss >> value; limits.clock[BLACK].inc  = u32(abs (value)); }
+                    else
+                    if (token == "movetime")   { iss >> value; limits.movetime  = u32(abs (value)); }
+                    else
+                    if (token == "movestogo")  { iss >> value; limits.movestogo = u08(abs (value)); }
+                    else
+                    if (token == "depth")      { iss >> value; limits.depth     = u08(abs (value)); }
+                    else
+                    if (token == "nodes")      { iss >> value; limits.nodes     = u64(abs (value)); }
+                    else
+                    if (token == "mate")       { iss >> value; limits.mate      = u08(abs (value)); }
+                    else
+                    if (token == "infinite")   { limits.infinite  = true; }
+                    else
+                    if (token == "ponder")     { limits.ponder    = true; }
                     // parse and validate search moves (if any)
-                    else if (token == "searchmoves")
+                    else
+                    if (token == "searchmoves")
                     {
                         while (iss >> token)
                         {

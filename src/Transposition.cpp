@@ -132,6 +132,7 @@ namespace Transposition {
         assert(key != U64(0));
         const u16 key16 = u16(key >> 0x30);
         auto *const fte = cluster_entry (key);
+        assert(fte != nullptr);
         for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
         {
             if (ite->_key16 == U64(0) || ite->_key16 == key16)

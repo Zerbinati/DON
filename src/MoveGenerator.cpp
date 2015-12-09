@@ -482,13 +482,13 @@ namespace MoveGen {
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
         auto *moves_cur = moves;
-        auto *moves_end = pos.checkers () != U64(0) ?
-                            generate<EVASION> (moves, pos) :
-                            generate<RELAX  > (moves, pos);
+        auto *moves_end = pos.checkers () == U64(0) ?
+            generate<RELAX  > (moves, pos) :
+            generate<EVASION> (moves, pos);
 
         auto pinneds = pos.pinneds (pos.active ());
         auto king_sq = pos.square<KING> (pos.active ());
-        while (moves_cur != moves_end)
+        while (moves_cur < moves_end)
         {
             if (   (   pinneds != U64(0)
                     || org_sq (*moves_cur) == king_sq

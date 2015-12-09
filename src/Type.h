@@ -136,12 +136,39 @@ typedef u64     Bitboard;
 const u16 MAX_DEPTH = 128; // Maximum Depth (Ply)
 
 // File
-enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
+enum File : i08
+{
+    F_A,
+    F_B,
+    F_C,
+    F_D,
+    F_E,
+    F_F,
+    F_G,
+    F_H,
+    F_NO
+};
 // Rank
-enum Rank : i08 { R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO };
+enum Rank : i08
+{
+    R_1,
+    R_2,
+    R_3,
+    R_4,
+    R_5,
+    R_6,
+    R_7,
+    R_8,
+    R_NO
+};
 
 // Color
-enum Color : i08 { WHITE, BLACK, CLR_NO };
+enum Color : i08
+{
+    WHITE,
+    BLACK,
+    CLR_NO
+};
 
 // Square
 // File: 3-bit
@@ -503,7 +530,7 @@ inline i32    operator/  (Depth d1, Depth d2) { return i32(d1) / i32(d2); }
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
-//inline bool   _ok       (Color c) { return WHITE == c || BLACK == c; }
+//inline bool   _ok       (Color c) { return !(c & ~i08(CLR_NO)); }
 inline Color  operator~ (Color c) { return Color(c^BLACK); }
 
 //inline bool   _ok       (File f) { return    !(f & ~i08(F_H)); }
@@ -808,32 +835,21 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
 
 inline void remove_substring (std::string &str, const std::string &sub)
 {
-    const auto length = sub.length ();
     size_t pos = str.find (sub);
-    while (std::string::npos != pos)
+    while (pos != std::string::npos)
     {
-        // erase (start_position_to_erase, number_of_symbols)
-        str.erase (pos, length);
+        str.erase (pos, sub.length ());
         pos = str.find (sub, pos);
     }
 }
 
-/*
-#include <unordered_set>
-inline std::string remove_dup (const std::string &str)
-{
-    // unique char set
-    std::unordered_set<char> chars_set (str.begin (), str.end ());
-    std::string unique_str (chars_set.begin (), chars_set.end ());
-    return unique_str;
-}
-*/
-
-
 inline void remove_extension (std::string &filename)
 {
-    size_t last_dot = filename.find_last_of ('.');
-    if (last_dot != std::string::npos) filename = filename.substr (0, last_dot); 
+    size_t pos = filename.find_last_of ('.');
+    if (pos != std::string::npos)
+    {
+        filename = filename.substr (0, pos);
+    }
 }
 
 inline std::string append_path (const std::string &path1, const std::string &path2)
@@ -848,6 +864,15 @@ inline void convert_path (std::string &path)
 {
     std::replace (path.begin (), path.end (), '\\', '/'); // Replace all '\' to '/'
 }
+
+//#include <unordered_set>
+//inline std::string remove_dup (const std::string &str)
+//{
+//    // unique char set
+//    std::unordered_set<char> chars_set (str.begin (), str.end ());
+//    std::string unique_str (chars_set.begin (), chars_set.end ());
+//    return unique_str;
+//}
 
 //template<class Iterator>
 //inline auto slide (Iterator beg, Iterator end, Iterator pos) -> std::pair<Iterator, Iterator>

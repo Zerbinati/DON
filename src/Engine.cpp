@@ -8,10 +8,11 @@
 #include "Pawns.h"
 #include "Material.h"
 #include "Evaluator.h"
+#include "Endgame.h"
+#include "Thread.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
 #include "Transposition.h"
-#include "Thread.h"
 
 namespace Engine {
 
@@ -90,10 +91,7 @@ namespace Engine {
     void run (const string &arg)
     {
         std::cout << info (false) << std::endl;
-
-#ifdef LPAGES
-        Memory::initialize ();
-#endif
+        std::cout << "info string " << std::thread::hardware_concurrency () << " processor(s) detected." << std::endl;
 
         UCI      ::initialize ();
         BitBoard ::initialize ();
@@ -105,15 +103,19 @@ namespace Engine {
         Threadpool.initialize ();
         Searcher ::initialize ();
         TBSyzygy ::initialize (string(Options["Syzygy Path"]));
-        TT.auto_size (i32(Options["Hash"]), true);
 
-        std::cout << std::endl;
+#ifdef LPAGES
+        Memory::initialize ();
+#endif
+        TT.auto_size (i32(Options["Hash"]), true);
 
         UCI::loop (arg);
     }
 
     void stop (i32 code)
     {
+        Signals.force_stop = true;
+        Threadpool.wait_while_thinking ();
         Threadpool.deinitialize ();
         EndGame  ::deinitialize ();
         UCI      ::deinitialize ();

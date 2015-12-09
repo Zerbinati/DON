@@ -32,20 +32,20 @@ struct StateInfo
 public:
     // ---Copied when making a move---
     Value  non_pawn_matl[CLR_NO];
-    Score  psq_score;
+    Score  psq_score     = SCORE_ZERO;
 
-    Key    matl_key;        // Hash key of materials.
-    Key    pawn_key;        // Hash key of pawns.
-    CRight castle_rights;   // Castling-rights information for both side.
-    Square en_passant_sq;   // En-passant -> "In passing"
-    u08    clock_ply;       // Number of halfmoves clock since the last pawn advance or any capture.
-                            // Used to determine if a draw can be claimed under the clock-move rule.
-    u08    null_ply;
+    Key    matl_key      = U64(0);   // Hash key of materials.
+    Key    pawn_key      = U64(0);   // Hash key of pawns.
+    CRight castle_rights = CR_NO;    // Castling-rights information for both side.
+    Square en_passant_sq = SQ_NO;    // En-passant -> "In passing"
+    u08    clock_ply     = 0;        // Number of halfmoves clock since the last pawn advance or any capture.
+                                     // Used to determine if a draw can be claimed under the clock-move rule.
+    u08    null_ply      = 0;
     // ---Not copied when making a move---
-    Key    posi_key;        // Hash key of position.
-    Move   last_move;       // Move played on the previous position.
-    PieceT capture_type;    // Piece type captured.
-    Bitboard checkers;      // Checkers bitboard.
+    Key    posi_key      = U64(0);   // Hash key of position.
+    Move   last_move     = MOVE_NONE;// Move played on the previous position.
+    PieceT capture_type  = NONE;     // Piece type captured.
+    Bitboard checkers    = U64(0);   // Checkers bitboard.
 
     StateInfo *ptr = nullptr;
 };

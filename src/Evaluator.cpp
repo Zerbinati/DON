@@ -924,7 +924,7 @@ namespace Evaluator {
         // evaluate_scale_factor() computes the scale factor for the winning side
         ScaleFactor evaluate_scale_factor (const Position &pos, const EvalInfo &ei, Score score)
         {
-            assert (PHASE_ENDGAME <= ei.me->game_phase && ei.me->game_phase <= PHASE_MIDGAME);
+            assert(PHASE_ENDGAME <= ei.me->game_phase && ei.me->game_phase <= PHASE_MIDGAME);
 
             const auto strong_side = eg_value (score) >= VALUE_DRAW ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
@@ -1080,8 +1080,8 @@ namespace Evaluator {
         // Evaluate position potential for the winning side
         score += evaluate_initiative (pos, ei.pe->asymmetry, eg_value (score));
 
-        assert (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
-        assert (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
+        assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
+        assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
 
         // Evaluate scale factor for the winning side
         auto scale_factor = evaluate_scale_factor (pos, ei, score);

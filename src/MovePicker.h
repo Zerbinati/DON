@@ -20,7 +20,6 @@ namespace MovePick {
     private:
         T _table[PIECE_NO][SQ_NO];
 
-        //void _clear (Value &v) { std::memset (_table, 0x0, sizeof (_table)); }
         void _clear (Value &v) { v = VALUE_ZERO; }
         void _clear (Stats<Value, false> &vs) { vs.clear (); }
         void _clear (Stats<Value, true > &vs) { vs.clear (); }
@@ -33,6 +32,7 @@ namespace MovePick {
 
         void clear ()
         {
+            //std::memset (_table, 0x0, sizeof (_table));
             for (auto &t : _table)
             {
                 for (auto &e : t)

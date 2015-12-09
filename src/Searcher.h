@@ -23,15 +23,13 @@ namespace Searcher {
     //  - Ponder while is opponent's side to move.
     struct LimitsT
     {
-    private:
+    public:
         // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds
         struct Clock
         {
             u32 time    = 0; // Remaining Time          [milli-seconds]
             u32 inc     = 0; // Increment Time per move [milli-seconds]
         };
-
-    public:
 
         Clock clock[CLR_NO];
         MoveVector root_moves; // Restrict search to these moves only
@@ -95,7 +93,9 @@ namespace Searcher {
             , old_value = -VALUE_INFINITE;
         MoveVector pv;
 
-        explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
+        explicit RootMove (Move m = MOVE_NONE)
+            : pv (1, m)
+        {}
         RootMove& operator= (const RootMove&) = default;
 
         // Descending sort
@@ -113,7 +113,7 @@ namespace Searcher {
         Move operator[] (i32 index) const { return pv[index]; }
 
         void operator+= (Move m) { pv.push_back (m); }
-        void operator-= (Move m) { pv.erase (std::remove (pv.begin (), pv.end (), m), pv.end ()); }
+        void operator-= (Move m) { pv.erase (std::remove (pv.begin (), pv.end (), m), pv.cend ()); }
 
         size_t size () const { return pv.size (); }
         bool  empty () const { return pv.empty (); }
@@ -142,7 +142,7 @@ namespace Searcher {
         RootMoveVector& operator= (const RootMoveVector&) = default;
 
         void operator+= (const RootMove &rm) { push_back (rm); }
-        void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
+        void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), cend ()); }
 
         void backup ()
         {

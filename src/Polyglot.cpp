@@ -134,7 +134,7 @@ namespace Polyglot {
 
         auto beg_index = size_t(0);
         auto end_index = size_t((size () - HeaderSize) / Entry::Size - 1);
-        assert (beg_index <= end_index);
+        assert(beg_index <= end_index);
 
         Entry pe;
         while (beg_index < end_index && good ())

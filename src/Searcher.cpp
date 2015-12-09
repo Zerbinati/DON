@@ -54,18 +54,19 @@ namespace Searcher {
             return posi_key == _posi_key ? _pv[2] : MOVE_NONE;
         }
 
-        void update (Position& pos, const MoveVector &pv)
+        void update (Position &pos, const MoveVector &pv)
         {
             assert(pv.size () >= 3);
             // Keep track of how many times in a row 3rd ply remains stable
-            stable_count = (pv[2] == _pv[2]) ? stable_count + 1 : 0;
+            stable_count = pv[2] == _pv[2] ? stable_count + 1 : 0;
             
-            if (!equal (pv.begin (), pv.begin () + 3, _pv))
+            if (!std::equal (pv.begin (), pv.begin () + 3, _pv))
             {
+                std::copy (pv.begin (), pv.begin () + 3, _pv);
+
                 StateInfo si[2];
                 pos.do_move (pv[0], si[0], pos.gives_check (pv[0], CheckInfo (pos)));
                 pos.do_move (pv[1], si[1], pos.gives_check (pv[1], CheckInfo (pos)));
-                std::copy (pv.begin (), pv.begin () + 3, _pv);
                 _posi_key = pos.posi_key ();
                 pos.undo_move ();
                 pos.undo_move ();
@@ -292,6 +293,9 @@ namespace Searcher {
         // update_pv() add current move and appends child pv[]
         void update_pv (Move *pv, Move move, const Move *child_pv)
         {
+            assert(pv != child_pv);
+            assert(_ok (move));
+
             *pv++ = move;
             if (child_pv != nullptr)
             {
@@ -738,8 +742,9 @@ namespace Searcher {
 
             bool tt_hit = false;
             auto *tte   = TT.probe (posi_key, tt_hit);
-            ss->tt_move = tt_move = RootNode ? thread->root_moves[thread->pv_index][0] :
-                                            tt_hit ? tte->move () : MOVE_NONE;
+            ss->tt_move =
+            tt_move = RootNode ? thread->root_moves[thread->pv_index][0] :
+                                    tt_hit ? tte->move () : MOVE_NONE;
             if (tt_hit)
             {
                 tt_value = value_of_tt (tte->value (), ss->ply);
@@ -777,7 +782,7 @@ namespace Searcher {
                 i32 piece_count = pos.count<NONE> ();
 
                 if (    piece_count <= PieceLimit
-                    && (piece_count < PieceLimit || depth >= DepthLimit)
+                    && (piece_count <  PieceLimit || depth >= DepthLimit)
                     &&  pos.clock_ply () == 0
                    )
                 {
@@ -786,7 +791,7 @@ namespace Searcher {
 
                     if (found != 0)
                     {
-                        Hits++;
+                        ++Hits;
 
                         i32 draw_v = UseRule50 ? 1 : 0;
 
@@ -889,7 +894,7 @@ namespace Searcher {
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                        )
                     {
-                        assert((ss-1)->current_move != MOVE_NONE && (ss-1)->current_move != MOVE_NULL);
+                        assert(_ok ((ss-1)->current_move));
                         assert(exclude_move == MOVE_NONE);
 
                         ss->current_move = MOVE_NULL;
@@ -951,8 +956,7 @@ namespace Searcher {
                         auto extended_beta = std::min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
 
                         assert(reduced_depth >= DEPTH_ONE);
-                        assert((ss-1)->current_move != MOVE_NONE);
-                        assert((ss-1)->current_move != MOVE_NULL);
+                        assert(_ok ((ss-1)->current_move));
                         assert(alfa < extended_beta);
 
                         // Initialize a MovePicker object for the current position, and prepare to search the moves.
@@ -1817,7 +1821,7 @@ namespace Threading {
     void Thread::search ()
     {
         Stack stacks[MAX_DEPTH+4], *ss = stacks+2; // To allow referencing (ss-2)
-        std::memset (ss-2, 0x00, 5*sizeof (*stacks));
+        std::memset (ss-2, 0x00, 5*sizeof (*ss));
 
         bool thread_main = Threadpool.main () == this;
 
@@ -2175,7 +2179,7 @@ namespace Threading {
                 if (found) goto finish;
             }
 
-            if (PieceLimit >=  root_pos.count<NONE> ())
+            if (PieceLimit >= root_pos.count<NONE> ())
             {
                 // If the current root position is in the tablebases then RootMoves
                 // contains only moves that preserve the draw or win.
