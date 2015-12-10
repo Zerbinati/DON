@@ -2378,17 +2378,17 @@ namespace TBSyzygy {
             Value(-1),
             Value(-101),
             Value(0),
-            Value(101),
-            Value(1)
+            Value(+101),
+            Value(+1)
         };
 
         Value Wdl_to_Value[5] =
         {
-            -VALUE_MATE + 2*i32(MAX_DEPTH) + 1,
+            -VALUE_MATE + i32(MAX_PLY) + 1,
             VALUE_ZERO - 2,
             VALUE_ZERO,
             VALUE_ZERO + 2,
-            VALUE_MATE - 2*i32(MAX_DEPTH) - 1
+            +VALUE_MATE - i32(MAX_PLY) - 1
         };
     }
 

@@ -36,7 +36,7 @@ public:
 
     Key    matl_key      = U64(0);   // Hash key of materials.
     Key    pawn_key      = U64(0);   // Hash key of pawns.
-    CRight castle_rights = CR_NO;    // Castling-rights information for both side.
+    CRight castle_rights = CR_NONE;  // Castling-rights information for both side.
     Square en_passant_sq = SQ_NO;    // En-passant -> "In passing"
     u08    clock_ply     = 0;        // Number of halfmoves clock since the last pawn advance or any capture.
                                      // Used to determine if a draw can be claimed under the clock-move rule.

@@ -62,7 +62,7 @@ namespace Notation {
         {
             ostringstream oss;
 
-            if (abs (v) < +VALUE_MATE_IN_MAX_DEPTH)
+            if (abs (v) < +VALUE_MATE - i32(MAX_PLY))
             {
                 oss << setprecision (2) << fixed << showpos << value_to_cp (pos.active () == WHITE ? +v : -v);
             }
@@ -246,7 +246,7 @@ namespace Notation {
     string to_string (Value v)
     {
         ostringstream oss;
-        if (abs (v) < +VALUE_MATE_IN_MAX_DEPTH)
+        if (abs (v) < +VALUE_MATE - i32(MAX_PLY))
         {
             oss << "cp " << i32(100 * value_to_cp (v));
         }

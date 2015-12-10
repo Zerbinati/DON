@@ -39,6 +39,7 @@ namespace Transposition {
     public:
         static const u08 Size;
 
+        u16   key16 () const { return u16  (_key16); }
         Move  move  () const { return Move (_move);  }
         Value value () const { return Value(_value); }
         Value eval  () const { return Value(_eval);  }

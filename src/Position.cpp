@@ -592,10 +592,13 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
 
+        //cpt = NONE;
+
         // Castle is always encoded as "King captures friendly Rook"
-        assert(dst == castle_rook (mk_castle_right (_active, dst > org ? CS_KING : CS_QUEN)));
-        dst = rel_sq (_active, dst > org ? SQ_G1 : SQ_C1);
-        auto step = dst > org ? DEL_E : DEL_W;
+        bool king_side = dst > org;
+        assert(dst == castle_rook (mk_castle_right (_active, king_side ? CS_KING : CS_QUEN)));
+        dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
+        auto step = king_side ? DEL_E : DEL_W;
         for (auto s = dst; s != org; s -= step)
         {
             if (attackers_to (s, ~_active) != U64(0))
@@ -603,8 +606,6 @@ bool Position::pseudo_legal (Move m) const
                 return false;
             }
         }
-
-        //cpt = NONE;
         return true;
     }
         break;
@@ -1350,7 +1351,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
         break;
     }
     // Update castling rights if needed
-    if (_psi->castle_rights != CR_NO && (_castle_mask[org] | _castle_mask[dst]) != CR_NO)
+    if (_psi->castle_rights != CR_NONE && (_castle_mask[org] | _castle_mask[dst]) != CR_NONE)
     {
         i32 cr = _psi->castle_rights & (_castle_mask[org] | _castle_mask[dst]);
         Bitboard b = cr;
@@ -1575,32 +1576,32 @@ string Position::fen (bool c960, bool full) const
 
     oss << " " << _active << " ";
 
-    if (can_castle (CR_A))
+    if (can_castle (CR_FULL))
     {
         if (_chess960 || c960)
         {
-            if (can_castle (CR_W))
+            if (can_castle (CR_WHITE))
             {
-                if (can_castle (CR_WK)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_KING>::Right]), false);
-                if (can_castle (CR_WQ)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_QUEN>::Right]), false);
+                if (can_castle (CR_WKING)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_KING>::Right]), false);
+                if (can_castle (CR_WQUEN)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_QUEN>::Right]), false);
             }
-            if (can_castle (CR_B))
+            if (can_castle (CR_BLACK))
             {
-                if (can_castle (CR_BK)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_KING>::Right]), true);
-                if (can_castle (CR_BQ)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_QUEN>::Right]), true);
+                if (can_castle (CR_BKING)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_KING>::Right]), true);
+                if (can_castle (CR_BQUEN)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_QUEN>::Right]), true);
             }
         }
         else
         {
-            if (can_castle (CR_W))
+            if (can_castle (CR_WHITE))
             {
-                if (can_castle (CR_WK)) oss << "K";
-                if (can_castle (CR_WQ)) oss << "Q";
+                if (can_castle (CR_WKING)) oss << "K";
+                if (can_castle (CR_WQUEN)) oss << "Q";
             }
-            if (can_castle (CR_B))
+            if (can_castle (CR_BLACK))
             {
-                if (can_castle (CR_BK)) oss << "k";
-                if (can_castle (CR_BQ)) oss << "q";
+                if (can_castle (CR_BKING)) oss << "k";
+                if (can_castle (CR_BQUEN)) oss << "q";
             }
         }
     }

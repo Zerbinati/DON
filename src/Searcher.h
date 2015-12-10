@@ -184,7 +184,7 @@ namespace Searcher {
         bool skip_pruning = false;
     };
 
-    const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be <= MAX_DEPTH/4
+    const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be <= MAX_PLY/4
     // Skill Manager
     class SkillManager
     {

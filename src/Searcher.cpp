@@ -313,8 +313,8 @@ namespace Searcher {
         Value value_to_tt (Value v, i32 ply)
         {
             assert(v != VALUE_NONE);
-            return v >= +VALUE_MATE_IN_MAX_DEPTH ? v + ply :
-                   v <= -VALUE_MATE_IN_MAX_DEPTH ? v - ply :
+            return v >= +VALUE_MATE_IN_MAX_PLY ? v + ply :
+                   v <= -VALUE_MATE_IN_MAX_PLY ? v - ply :
                    v;
         }
         // value_of_tt() is the inverse of value_to_tt ():
@@ -324,8 +324,8 @@ namespace Searcher {
         Value value_of_tt (Value v, i32 ply)
         {
             return v == VALUE_NONE               ? VALUE_NONE :
-                   v >= +VALUE_MATE_IN_MAX_DEPTH ? v - ply :
-                   v <= -VALUE_MATE_IN_MAX_DEPTH ? v + ply :
+                   v >= +VALUE_MATE_IN_MAX_PLY ? v - ply :
+                   v <= -VALUE_MATE_IN_MAX_PLY ? v + ply :
                    v;
         }
 
@@ -360,8 +360,7 @@ namespace Searcher {
                     v = root_moves[i].old_value;
                 }
                 
-                bool tb = RootInTB && abs (v) < VALUE_MATE - i32(MAX_DEPTH);
-                v = tb ? ProbeValue : v;
+                bool tb = RootInTB && abs (v) < VALUE_MATE - i32(MAX_PLY);
 
                 // Not at first line
                 if (ss.rdbuf ()->in_avail ()) ss << "\n";
@@ -370,7 +369,7 @@ namespace Searcher {
                     << " multipv "  << i + 1
                     << " depth "    << d/DEPTH_ONE
                     << " seldepth " << pos.thread ()->max_ply
-                    << " score "    << to_string (v);
+                    << " score "    << to_string (tb ? ProbeValue : v);
                 if (!tb && i == pv_index)
                     ss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
                 ss  << " nodes "    << game_nodes
@@ -401,7 +400,7 @@ namespace Searcher {
             assert(depth <= DEPTH_ZERO);
 
             Value pv_alfa = -VALUE_INFINITE;
-            Move  pv[MAX_DEPTH+1];
+            Move  pv[MAX_PLY+1];
 
             if (PVNode)
             {
@@ -416,15 +415,15 @@ namespace Searcher {
 
             // Check for an immediate draw or maximum ply reached
             if (   pos.draw ()
-                || ss->ply >= MAX_DEPTH
+                || ss->ply >= MAX_PLY
                )
             {
-                return ss->ply >= MAX_DEPTH && !in_check ?
+                return ss->ply >= MAX_PLY && !in_check ?
                         evaluate (pos) :
                         DrawValue[pos.active ()];
             }
 
-            assert(/*0 <= ss->ply && */ss->ply < MAX_DEPTH);
+            assert(/*0 <= ss->ply && */ss->ply < MAX_PLY);
 
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in quien_search use
@@ -571,7 +570,7 @@ namespace Searcher {
                         && (  !in_check
                             // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
                             || (   //in_check &&
-                                   best_value > -VALUE_MATE_IN_MAX_DEPTH
+                                   best_value > -VALUE_MATE_IN_MAX_PLY
                                 && !pos.capture (move)
                                )
                            )
@@ -619,6 +618,12 @@ namespace Searcher {
                         // Fail high
                         if (value >= beta)
                         {
+                            if (   tt_hit
+                                && tte->key16 () != u16(posi_key >> 0x30)
+                               )
+                            {
+                                tte = TT.probe (posi_key, tt_hit);
+                            }
                             tte->save (posi_key, move, value_to_tt (value, ss->ply), ss->static_eval, qs_depth, BOUND_LOWER, TT.generation ());
 
                             assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
@@ -639,6 +644,12 @@ namespace Searcher {
                 return mated_in (ss->ply); // Plies to mate from the root
             }
 
+            if (   tt_hit
+                && tte->key16 () != u16(posi_key >> 0x30)
+               )
+            {
+                tte = TT.probe (posi_key, tt_hit);
+            }
             tte->save (posi_key, best_move, value_to_tt (best_value, ss->ply), ss->static_eval, qs_depth,
                 PVNode && pv_alfa < best_value ? BOUND_EXACT : BOUND_UPPER, TT.generation ());
 
@@ -703,10 +714,10 @@ namespace Searcher {
                 // Check for aborted search, immediate draw or maximum ply reached
                 if (   Signals.force_stop.load (std::memory_order_relaxed)
                     || pos.draw ()
-                    || ss->ply >= MAX_DEPTH
+                    || ss->ply >= MAX_PLY
                    )
                 {
-                    return ss->ply >= MAX_DEPTH && !in_check ?
+                    return ss->ply >= MAX_PLY && !in_check ?
                             evaluate (pos) :
                             DrawValue[pos.active ()];
                 }
@@ -723,7 +734,7 @@ namespace Searcher {
                 if (alfa >= beta) return alfa;
             }
 
-            assert(/*0 <= ss->ply && */ss->ply < MAX_DEPTH);
+            assert(/*0 <= ss->ply && */ss->ply < MAX_PLY);
 
             ss->move_count = 0;
             ss->current_move =
@@ -796,10 +807,16 @@ namespace Searcher {
                         i32 draw_v = UseRule50 ? 1 : 0;
 
                         Value value =
-                                v < -draw_v ? -VALUE_MATE + i32(MAX_DEPTH + ss->ply) :
-                                v > +draw_v ? +VALUE_MATE - i32(MAX_DEPTH + ss->ply) :
+                                v < -draw_v ? -VALUE_MATE + i32(MAX_PLY + ss->ply) :
+                                v > +draw_v ? +VALUE_MATE - i32(MAX_PLY + ss->ply) :
                                 VALUE_DRAW + 2 * draw_v * v;
 
+                        if (   tt_hit
+                            && tte->key16 () != u16(posi_key >> 0x30)
+                           )
+                        {
+                            tte = TT.probe (posi_key, tt_hit);
+                        }
                         tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), VALUE_NONE,
                             std::min (depth + 6 * DEPTH_ONE, DEPTH_MAX - DEPTH_ONE), BOUND_EXACT, TT.generation ());
 
@@ -923,7 +940,7 @@ namespace Searcher {
                                )
                             {
                                 // Don't return unproven unproven mates
-                                return null_value < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
+                                return null_value < +VALUE_MATE_IN_MAX_PLY ? null_value : beta;
                             }
                             
                             ss->skip_pruning = true;
@@ -937,7 +954,7 @@ namespace Searcher {
                             if (value >= beta)
                             {
                                 // Don't return unproven unproven mates
-                                return null_value < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
+                                return null_value < +VALUE_MATE_IN_MAX_PLY ? null_value : beta;
                             }
                         }
                     }
@@ -949,7 +966,7 @@ namespace Searcher {
                     if (   !PVNode
                         && !MateSearch
                         && depth > ProbCutDepth*DEPTH_ONE
-                        && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
+                        && abs (beta) < +VALUE_MATE_IN_MAX_PLY
                        )
                     {
                         auto reduced_depth = depth - ProbCutDepth*DEPTH_ONE; // Shallow Depth
@@ -1034,7 +1051,7 @@ namespace Searcher {
 
             const u08 MAX_QUIETS = 64;
             Move  quiet_moves[MAX_QUIETS]
-                , pv[MAX_DEPTH + 1];
+                , pv[MAX_PLY + 1];
             u08   move_count = 0
                 , quiet_count = 0;
 
@@ -1135,7 +1152,7 @@ namespace Searcher {
                     && !MateSearch
                     && !in_check
                     && !capture_or_promotion
-                    && best_value > -VALUE_MATE_IN_MAX_DEPTH
+                    && best_value > -VALUE_MATE_IN_MAX_PLY
                     // ! Dangerous (below)
                     && !gives_check
                     && !pos.advanced_pawn_push (move)
@@ -1417,6 +1434,12 @@ namespace Searcher {
                 }
             }
 
+            if (   tt_hit
+                && tte->key16 () != u16(posi_key >> 0x30)
+               )
+            {
+                tte = TT.probe (posi_key, tt_hit);
+            }
             tte->save (posi_key, best_move,
                 value_to_tt (best_value, ss->ply), ss->static_eval, depth,
                 best_value >= beta ? BOUND_LOWER :
@@ -1509,7 +1532,7 @@ namespace Searcher {
     // first, even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos)
     {
-        StateInfo states[MAX_DEPTH], *si = states;
+        StateInfo states[MAX_PLY], *si = states;
 
         u08 ply = 0;
         for (auto m : pv)
@@ -1672,7 +1695,7 @@ namespace Searcher {
         // RootMoves are already sorted by value in descending order
         auto top_value  = root_moves[0].new_value;
         auto diversity  = std::min (top_value - root_moves[PVLimit - 1].new_value, VALUE_MG_PAWN);
-        auto weakness   = Value(MAX_DEPTH - 4 * _level);
+        auto weakness   = Value(MAX_PLY - 4 * _level);
         auto best_value = -VALUE_INFINITE;
         // Choose best move. For each move score add two terms, both dependent on weakness.
         // One deterministic and bigger for weaker level, and one random with diversity,
@@ -1820,7 +1843,7 @@ namespace Threading {
     // consumed, user stops the search, or the maximum search depth is reached.
     void Thread::search ()
     {
-        Stack stacks[MAX_DEPTH+4], *ss = stacks+2; // To allow referencing (ss-2)
+        Stack stacks[MAX_PLY+4], *ss = stacks+2; // To allow referencing (ss-2)
         std::memset (ss-2, 0x00, 5*sizeof (*ss));
 
         bool thread_main = Threadpool.main () == this;
@@ -2045,8 +2068,8 @@ namespace Threading {
                     else
                     // Stop if have found a "mate in <x>"
                     if (   MateSearch
-                        && best_value >= +VALUE_MATE_IN_MAX_DEPTH
-                        && i16(VALUE_MATE - best_value) <= 2*Limits.mate
+                        && best_value >= +VALUE_MATE_IN_MAX_PLY
+                        && best_value >= +VALUE_MATE - 2*Limits.mate
                        )
                     {
                         stop = true;
@@ -2207,8 +2230,8 @@ namespace Threading {
 
                     if (!UseRule50)
                     {
-                        ProbeValue = ProbeValue > VALUE_DRAW ? +VALUE_MATE - i32(MAX_DEPTH) - 1 :
-                                     ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MAX_DEPTH) + 1 :
+                        ProbeValue = ProbeValue > VALUE_DRAW ? +VALUE_MATE - i32(MAX_PLY) - 1 :
+                                     ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MAX_PLY) + 1 :
                                      VALUE_DRAW;
                     }
                 }
