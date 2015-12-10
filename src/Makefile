@@ -197,18 +197,18 @@ endif
 
 ### 3.1 Selecting compiler (default = gcc)
 
-CXXFLAGS	+= -std=c++11 -Wall -Wcast-qual -fno-exceptions -fno-rtti -Wno-type-limits $(EXTRACXXFLAGS)
+CXXFLAGS    += -std=c++11 -Wall -Wcast-qual -fno-exceptions -fno-rtti -Wno-type-limits $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
-LDFLAGS		+= $(EXTRALDFLAGS)
+LDFLAGS     += $(EXTRALDFLAGS)
 
 # gcc (default)
 ifeq ($(COMP),)
-	COMP= gcc
+	COMP = gcc
 endif
 
 ifeq ($(COMP),gcc)
-	comp= gcc
-	CXX = g++
+	comp = gcc
+	CXX  = g++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 	ifneq ($(UNAME),Darwin)
 		LDFLAGS  += -Wl,--no-as-needed
@@ -216,25 +216,38 @@ ifeq ($(COMP),gcc)
 endif
 
 ifeq ($(COMP),mingw)
-	comp= mingw
+	comp = mingw
 	ifeq ($(UNAME),Linux)
-		CXX=x86_64-w64-mingw32-g++-posix
+		ifeq ($(bits),64)
+			ifeq ($(shell which x86_64-w64-mingw32-c++-posix),)
+				CXX = x86_64-w64-mingw32-c++
+			else
+				CXX = x86_64-w64-mingw32-c++-posix
+			endif
+		else
+			ifeq ($(shell which i686-w64-mingw32-c++-posix),)
+				CXX = i686-w64-mingw32-c++
+			else
+				CXX = i686-w64-mingw32-c++-posix
+			endif
+		endif
 	else
 		CXX = g++
 	endif
+
 	CXXFLAGS += -Wextra -Wshadow
 	LDFLAGS  += -static
 endif
 
 ifeq ($(COMP),icc)
-	comp= icc
-	CXX = icpc
+	comp = icc
+	CXX  = icpc
 	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
 endif
 
 ifeq ($(COMP),clang)
-	comp= clang
-	CXX = clang++
+	comp = clang
+	CXX  = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 	ifeq ($(UNAME),Darwin)
 		CXXFLAGS    += -std=c++0x -stdlib=libc++
@@ -261,7 +274,7 @@ endif
 
 ### Travis CI script uses COMPILER to overwrite CXX
 ifdef COMPILER
-	CXX=$(COMPILER)
+	CXX = $(COMPILER)
 endif
 
 ### On mingw use Windows threads, otherwise POSIX
@@ -395,8 +408,8 @@ ifeq ($(comp),gcc)
 	endif
 endif
 
-ifeq ($(UNAME),Linux)
-	ifeq ($(comp),mingw)
+ifeq ($(comp),mingw)
+	ifeq ($(UNAME),Linux)
 		ifeq ($(optimize),yes)
 			ifeq ($(debug),no)
 				CXXFLAGS += -flto
