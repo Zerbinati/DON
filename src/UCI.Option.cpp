@@ -130,7 +130,7 @@ namespace UCI {
         return oss.str ();
     }
 
-    // Option Actions
+    // Option change actions
     namespace {
 
         void change_hash_size ()
@@ -178,7 +178,7 @@ namespace UCI {
 
         void configure_draw_clock_ply ()
         {
-            Position::DrawClockPly = u08(2 * i32(Options["Draw Clock Move"]));
+            Position::DrawClockPly = u08(2 * i32(Options["Draw Clock Dist"]));
         }
 
         void configure_hash ()
@@ -416,7 +416,7 @@ namespace UCI {
         //
         // By setting Draw Clock Move to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Draw Clock Move"]              << Option (Position::DrawClockPly/2,+  5,+ 50, configure_draw_clock_ply);
+        Options["Draw Clock Dist"]              << Option (Position::DrawClockPly/2,+  5,+ 50, configure_draw_clock_ply);
 
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, configure_time);
