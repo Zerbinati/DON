@@ -103,14 +103,14 @@ namespace Pawns {
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
         {
-            const auto Opp  = WHITE == Own ? BLACK  : WHITE;
-            const auto Push = WHITE == Own ? DEL_N  : DEL_S;
-            const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
-            const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
-            const auto CenterBindMask = WHITE == Own ?
+            const auto Opp  = Own == WHITE ? BLACK  : WHITE;
+            const auto Push = Own == WHITE ? DEL_N  : DEL_S;
+            const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            const auto CenterBindMask = Own == WHITE ?
                 (FD_bb|FE_bb) & (R5_bb|R6_bb|R7_bb) :
                 (FD_bb|FE_bb) & (R4_bb|R3_bb|R2_bb);
-            const auto CenterExtMask = WHITE == Own ?
+            const auto CenterExtMask = Own == WHITE ?
                 (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R2_bb|R3_bb|R4_bb|R5_bb|R6_bb) :
                 (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R3_bb|R4_bb|R5_bb|R6_bb|R7_bb);
 
@@ -246,7 +246,7 @@ namespace Pawns {
     // for the file the king is on, as well as the two adjacent files.
     Value Entry::pawn_shelter_storm (const Position &pos, Square k_sq) const
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        const auto Opp = Own == WHITE ? BLACK : WHITE;
 
         auto value = KING_SAFETY_BY_PAWN;
 

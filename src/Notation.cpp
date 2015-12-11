@@ -106,17 +106,17 @@ namespace Notation {
     // Internally castle moves are always coded as "king captures rook".
     string move_to_can (Move m, bool c960)
     {
-        if (MOVE_NONE == m) return "(none)";
-        if (MOVE_NULL == m) return "(null)";
+        if (m == MOVE_NONE) return "(none)";
+        if (m == MOVE_NULL) return "(null)";
 
         auto org = org_sq (m);
         auto dst = dst_sq (m);
-        if (!c960 && CASTLE == mtype (m))
+        if (mtype (m) == CASTLE && !c960)
         {
             dst = (dst > org ? F_G : F_C) | _rank (org);
         }
         auto can = to_string (org) + to_string (dst);
-        if (PROMOTE == mtype (m))
+        if (mtype (m) == PROMOTE)
         {
             can += PIECE_CHAR[BLACK|promote (m)]; // Lowercase (Black)
         }
@@ -125,19 +125,19 @@ namespace Notation {
     // move_to_san() converts a move to a string in short algebraic notation representation.
     string move_to_san (Move m, Position &pos)
     {
-        if (MOVE_NONE == m) return "(none)";
-        if (MOVE_NULL == m) return "(null)";
+        if (m == MOVE_NONE) return "(none)";
+        if (m == MOVE_NULL) return "(null)";
         assert(MoveList<LEGAL> (pos).contains (m));
 
         string san;
         auto org = org_sq (m);
         auto dst = dst_sq (m);
 
-        if (CASTLE != mtype (m))
+        if (mtype (m) != CASTLE)
         {
             auto pt = ptype (pos[org]);
 
-            if (PAWN != pt)
+            if (pt != PAWN)
             {
                 san = PIECE_CHAR[pt];
                 // Disambiguation if have more then one piece of type 'pt'
@@ -154,7 +154,7 @@ namespace Notation {
 
             if (pos.capture (m))
             {
-                if (PAWN == pt)
+                if (pt == PAWN)
                 {
                     san += to_char (_file (org));
                 }
@@ -163,7 +163,7 @@ namespace Notation {
 
             san += to_string (dst);
 
-            if (PROMOTE == mtype (m) && PAWN == pt)
+            if (mtype (m) == PROMOTE && pt == PAWN)
             {
                 san += "=";
                 san += PIECE_CHAR[WHITE|promote (m)]; // Uppercase (White)

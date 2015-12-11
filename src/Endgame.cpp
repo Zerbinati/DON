@@ -67,7 +67,7 @@ namespace EndGame {
             {
                 sq = !sq; // MIRROR- SQ_A1 -> SQ_H1
             }
-            if (BLACK == strong_side)
+            if (strong_side == BLACK)
             {
                 sq = ~sq; // FLIP  - SQ_A1 -> SQ_A8
             }

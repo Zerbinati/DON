@@ -258,10 +258,10 @@ namespace Evaluator {
         // To be done at the beginning of the evaluation.
         void init_evaluation (const Position &pos, EvalInfo &ei)
         {
-            const auto Opp  = WHITE == Own ? BLACK : WHITE;
-            const auto Push = WHITE == Own ? DEL_N : DEL_S;
-            const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
-            const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
 
             auto pinneds = ei.pinneds[Own] = pos.pinneds (Own);
             
@@ -318,9 +318,9 @@ namespace Evaluator {
         // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color except PAWN
         Score evaluate_pieces (const Position &pos, EvalInfo &ei, const Bitboard mobility_area, Score &mobility)
         {
-            const auto Opp  = WHITE == Own ? BLACK : WHITE;
-            const auto Push = WHITE == Own ? DEL_N : DEL_S;
-            const auto OutpostMask = WHITE == Own ?         // Mask of allowed outpost squares
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            const auto OutpostMask = Own == WHITE ?         // Mask of allowed outpost squares
                 R4_bb | R5_bb | R6_bb :
                 R5_bb | R4_bb | R3_bb;
 
@@ -335,11 +335,11 @@ namespace Evaluator {
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 auto attacks =
-                    BSHP == PT ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
-                    ROOK == PT ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
-                    QUEN == PT ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own])
+                    PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
+                    PT == ROOK ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
+                    PT == QUEN ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own])
                                | attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own]) :
-                    /*NIHT == PT*/PIECE_ATTACKS[PT][s];
+                    /*PT == NIHT*/PIECE_ATTACKS[PT][s];
 
                 ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= attacks;
                 
@@ -357,7 +357,7 @@ namespace Evaluator {
                     if (zone_attacks != U64(0)) ei.king_zone_attacks_count[Own] += u08(pop_count<MAX15> (zone_attacks));
                 }
 
-                if (QUEN == PT)
+                if (PT == QUEN)
                 {
                     attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
                                  | ei.pin_attacked_by[Opp][BSHP]
@@ -365,12 +365,12 @@ namespace Evaluator {
                                 );
                 }
 
-                i32 mob = pop_count<QUEN == PT ? FULL : MAX15> (attacks & mobility_area);
+                i32 mob = pop_count<PT == QUEN ? FULL : MAX15> (attacks & mobility_area);
                 mobility += MOBILITY_BONUS[PT][mob];
 
                 // Special extra evaluation for pieces
                 
-                if (NIHT == PT || BSHP == PT)
+                if (PT == NIHT || PT == BSHP)
                 {
                     // Bonus for minors (bishop or knight) when behind a pawn
                     if (   rel_rank (Own, s) < R_5
@@ -380,7 +380,7 @@ namespace Evaluator {
                         score += MINOR_BEHIND_PAWN;
                     }
 
-                    if (NIHT == PT)
+                    if (PT == NIHT)
                     {
                         // Bonus for knight outpost square
                         auto bb = OutpostMask & ~ei.pe->pawn_attack_span[Opp];
@@ -398,7 +398,7 @@ namespace Evaluator {
                         }
                     }
                     else
-                    if (BSHP == PT)
+                    if (PT == BSHP)
                     {
                         // Bonus for bishop outpost square
                         auto bb = OutpostMask & ~ei.pe->pawn_attack_span[Opp];
@@ -446,10 +446,10 @@ namespace Evaluator {
                     }
                 }
                 else
-                if (ROOK == PT)
+                if (PT == ROOK)
                 {
                     // Bonus for rook aligning with enemy pawns on the same rank/file
-                    if (R_4 < rel_rank (Own, s))
+                    if (rel_rank (Own, s) > R_4)
                     {
                         auto rook_on_pawns = pos.pieces (Opp, PAWN) & PIECE_ATTACKS[ROOK][s];
                         if (rook_on_pawns != U64(0)) score += ROOK_ON_PAWNS * pop_count<MAX15> (rook_on_pawns);
@@ -490,7 +490,7 @@ namespace Evaluator {
         // evaluate_king<>() assigns bonuses and penalties to a king of a given color
         Score evaluate_king (const Position &pos, const EvalInfo &ei)
         {
-            const auto Opp = WHITE == Own ? BLACK : WHITE;
+            const auto Opp = Own == WHITE ? BLACK : WHITE;
 
             auto fk_sq = pos.square<KING> (Own);
 
@@ -641,12 +641,12 @@ namespace Evaluator {
         // and the type of attacked one.
         Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
-            const auto Opp      = WHITE == Own ? BLACK : WHITE;
-            const auto Push     = WHITE == Own ? DEL_N  : DEL_S;
-            const auto LCap     = WHITE == Own ? DEL_NW : DEL_SE;
-            const auto RCap     = WHITE == Own ? DEL_NE : DEL_SW;
-            const auto Rank2BB  = WHITE == Own ? R2_bb : R7_bb;
-            const auto Rank7BB  = WHITE == Own ? R7_bb : R2_bb;
+            const auto Opp      = Own == WHITE ? BLACK : WHITE;
+            const auto Push     = Own == WHITE ? DEL_N  : DEL_S;
+            const auto LCap     = Own == WHITE ? DEL_NW : DEL_SE;
+            const auto RCap     = Own == WHITE ? DEL_NE : DEL_SW;
+            const auto Rank2BB  = Own == WHITE ? R2_bb : R7_bb;
+            const auto Rank7BB  = Own == WHITE ? R7_bb : R2_bb;
 
             auto score = SCORE_ZERO;
             Bitboard b;
@@ -749,8 +749,8 @@ namespace Evaluator {
         // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
         Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
         {
-            const auto Opp  = WHITE == Own ? BLACK : WHITE;
-            const auto Push = WHITE == Own ? DEL_N : DEL_S;
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            const auto Push = Own == WHITE ? DEL_N : DEL_S;
             const i32 nonpawn_count[CLR_NO] =
             {
                 pos.count<NONPAWN> (WHITE),
@@ -859,12 +859,12 @@ namespace Evaluator {
         // The aim is to improve play on game opening.
         Score evaluate_space_activity (const Position &pos, const EvalInfo &ei)
         {
-            const auto Opp = WHITE == Own ? BLACK : WHITE;
+            const auto Opp = Own == WHITE ? BLACK : WHITE;
             // SpaceMask contains the area of the board which is considered by
             // the space evaluation. In the middle game, each side is given a bonus
             // based on how many squares inside this area are safe and available for
             // friendly minor pieces.
-            const auto SpaceMask = WHITE == Own ?
+            const auto SpaceMask = Own == WHITE ?
                 (FC_bb|FD_bb|FE_bb|FF_bb) & (R2_bb|R3_bb|R4_bb) :
                 (FC_bb|FD_bb|FE_bb|FF_bb) & (R7_bb|R6_bb|R5_bb);
 
@@ -881,15 +881,15 @@ namespace Evaluator {
                   );
 
             // Since SpaceMask is fully on our half of the board
-            assert(u32(safe_space >> (WHITE == Own ? 32 : 0)) == 0);
+            assert(u32(safe_space >> (Own == WHITE ? 32 : 0)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
             auto behind = pos.pieces (Own, PAWN);
-            behind |= shift_bb<WHITE == Own ? DEL_S  : DEL_N > (behind);
-            behind |= shift_bb<WHITE == Own ? DEL_SS : DEL_NN> (behind);
+            behind |= shift_bb<Own == WHITE ? DEL_S  : DEL_N > (behind);
+            behind |= shift_bb<Own == WHITE ? DEL_SS : DEL_NN> (behind);
 
             // Count safe_space + (behind & safe_space) with a single pop_count
-            auto bonus = pop_count<FULL> ((WHITE == Own ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
+            auto bonus = pop_count<FULL> ((Own == WHITE ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
             auto weight = pos.count<NIHT> () + pos.count<BSHP> ();
 
             auto score = mk_score (bonus * weight * weight, 0) * WEIGHTS[SPACE_ACTIVITY];

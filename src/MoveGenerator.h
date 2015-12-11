@@ -73,7 +73,7 @@ namespace MoveGen {
             //    auto *moves_cur = _moves_beg;
             //    while (moves_cur < _moves_end)
             //    {
-            //        if (ptype (pos[org_sq (*moves_cur)]) != PT)
+            //        if (PT != ptype (pos[org_sq (*moves_cur)]))
             //        {
             //            *moves_cur = *(--_moves_end);
             //            continue;

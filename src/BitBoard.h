@@ -313,12 +313,13 @@ namespace BitBoard {
     inline Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {
         auto pt = ptype (p);
-        return BSHP == pt ? attacks_bb<BSHP> (s, occ) :
-               ROOK == pt ? attacks_bb<ROOK> (s, occ) :
-               QUEN == pt ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ) :
-               PAWN == pt ? PAWN_ATTACKS[color (p)][s] :
-               //NIHT == pt || KING == pt ? 
-               PIECE_ATTACKS[ptype (p)][s]; //: U64(0);
+        return
+            pt == BSHP ? attacks_bb<BSHP> (s, occ) :
+            pt == ROOK ? attacks_bb<ROOK> (s, occ) :
+            pt == QUEN ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ) :
+            pt == PAWN ? PAWN_ATTACKS[color (p)][s] :
+            //pt == NIHT || pt == KING ? 
+            PIECE_ATTACKS[ptype (p)][s]; //: U64(0);
     }
 
     extern void initialize ();

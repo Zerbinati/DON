@@ -586,7 +586,7 @@ template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1
 template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
 
-inline Delta  pawn_push (Color c) { return WHITE == c ? DEL_N : DEL_S; }
+inline Delta  pawn_push (Color c) { return c == WHITE ? DEL_N : DEL_S; }
 
 inline CRight mk_castle_right (Color c)           { return CRight(CR_WHITE << (c << BLACK)); }
 inline CRight mk_castle_right (Color c, CSide cs) { return CRight(CR_WKING << ((CS_QUEN == cs) + (c << BLACK))); }

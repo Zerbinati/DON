@@ -508,7 +508,7 @@ namespace TBSyzygy {
             {
                 for (u08 j = 0; j < HSHMAX; ++j)
                 {
-                    TB_hash[i][j].key = U64 (0);
+                    TB_hash[i][j].key = U64(0);
                     TB_hash[i][j].tbe = nullptr;
                 }
             }
@@ -2434,7 +2434,7 @@ namespace TBSyzygy {
         Value v1 = ep;
 
         ValMove moves[MAX_MOVES];
-        ValMove *end = pos.checkers () == U64 (0) ?
+        ValMove *end = pos.checkers () == U64(0) ?
             generate<CAPTURE> (moves, pos) :
             generate<EVASION> (moves, pos);
 

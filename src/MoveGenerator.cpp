@@ -1,4 +1,5 @@
 #include "MoveGenerator.h"
+#include "BitBoard.h"
 
 namespace MoveGen {
 
@@ -18,15 +19,15 @@ namespace MoveGen {
             // Generates piece common move
             static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
-                assert(KING != PT && PAWN != PT);
+                assert(PT != KING && PT != PAWN);
 
                 const auto *pl = pos.squares<PT> (Own);
                 Square s;
                 while ((s = *pl++) != SQ_NO)
                 {
-                    if (CHECK == GT || QUIET_CHECK == GT)
+                    if (GT == CHECK || GT == QUIET_CHECK)
                     {
-                        if (   (BSHP == PT || ROOK == PT || QUEN == PT)
+                        if (   (PT == BSHP || PT == ROOK || PT == QUEN)
                             && (PIECE_ATTACKS[PT][s] & targets & ci->checking_bb[PT]) == U64(0)
                            )
                         {
@@ -40,7 +41,7 @@ namespace MoveGen {
 
                     auto attacks = attacks_bb<PT> (s, pos.pieces ()) & targets;
                     
-                    if (CHECK == GT || QUIET_CHECK == GT)
+                    if (GT == CHECK || GT == QUIET_CHECK)
                     {
                         attacks &= ci->checking_bb[PT];
                     }
@@ -62,17 +63,17 @@ namespace MoveGen {
             // Generates KING castling move
             static void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci)
             {
-                assert(EVASION != GT);
+                assert(GT != EVASION);
                 assert(!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64(0));
                 
                 static const bool KingSide = (CR & CR_KING) != CR_NONE;
 
-                const auto Opp = WHITE == Own ? BLACK : WHITE;
+                const auto Opp = Own == WHITE ? BLACK : WHITE;
 
                 auto king_org = pos.square<KING> (Own);
                 auto rook_org = pos.castle_rook (CR);
 
-                assert(ROOK == ptype (pos[rook_org]));
+                assert(ptype (pos[rook_org]) == ROOK);
 
                 auto king_dst = rel_sq (Own, KingSide ? SQ_G1 : SQ_C1);
                 auto step = king_dst > king_org ? DEL_E : DEL_W;
@@ -91,7 +92,7 @@ namespace MoveGen {
 
                 auto m = mk_move<CASTLE> (king_org, rook_org);
 
-                if (CHECK == GT || QUIET_CHECK == GT)
+                if (GT == CHECK || GT == QUIET_CHECK)
                 {
                     if (!pos.gives_check (m, *ci)) return;
                 }
@@ -109,18 +110,18 @@ namespace MoveGen {
             // Generates KING common move
             static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
-                const auto Opp = WHITE == Own ? BLACK : WHITE;
+                const auto Opp = Own == WHITE ? BLACK : WHITE;
 
-                if (EVASION == GT) return;
+                if (GT == EVASION) return;
 
-                if (CHECK != GT && QUIET_CHECK != GT)
+                if (GT != CHECK && GT != QUIET_CHECK)
                 {
                     auto king_sq = pos.square<KING> (Own);
                     auto attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.square<KING> (Opp)] & targets;
                     while (attacks != U64(0)) { *moves++ = mk_move (king_sq, pop_lsq (attacks)); }
                 }
 
-                if (CAPTURE != GT)
+                if (GT != CAPTURE)
                 {
                     if (pos.can_castle (Own) && pos.checkers () == U64(0))
                     {
@@ -156,12 +157,12 @@ namespace MoveGen {
             {
                 assert((DEL_NE == Del || DEL_NW == Del || DEL_SE == Del || DEL_SW == Del || DEL_N == Del || DEL_S == Del));
 
-                if (RELAX == GT || EVASION == GT || CAPTURE == GT)
+                if (GT == RELAX || GT == EVASION || GT == CAPTURE)
                 {
                     *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
                 }
 
-                if (RELAX == GT || EVASION == GT || QUIET == GT)
+                if (GT == RELAX || GT == EVASION || GT == QUIET)
                 {
                     *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
                     *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
@@ -170,7 +171,7 @@ namespace MoveGen {
 
                 // Knight-promotion is the only one that can give a direct check
                 // not already included in the queen-promotion (queening).
-                if (QUIET_CHECK == GT)
+                if (GT == QUIET_CHECK)
                 {
                     if ((PIECE_ATTACKS[NIHT][dst] & ci->king_sq) != U64(0))
                     {
@@ -178,7 +179,7 @@ namespace MoveGen {
                     }
                 }
                 //else
-                //if (CHECK == GT)
+                //if (GT == CHECK)
                 //{
                 //    if ((PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
                 //    if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
@@ -195,26 +196,27 @@ namespace MoveGen {
             // Generates PAWN common move
             static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
-                const auto Opp      = WHITE == Own ? BLACK  : WHITE;
-                const auto Push     = WHITE == Own ? DEL_N  : DEL_S;
-                const auto LCap     = WHITE == Own ? DEL_NW : DEL_SE;
-                const auto RCap     = WHITE == Own ? DEL_NE : DEL_SW;
-                const auto Rank3BB  = WHITE == Own ? R3_bb  : R6_bb;
-                const auto Rank5BB  = WHITE == Own ? R5_bb  : R4_bb;
-                const auto Rank7BB  = WHITE == Own ? R7_bb  : R2_bb;
-                const auto Rank8BB  = WHITE == Own ? R8_bb  : R1_bb;
+                const auto Opp      = Own == WHITE ? BLACK  : WHITE;
+                const auto Push     = Own == WHITE ? DEL_N  : DEL_S;
+                const auto LCap     = Own == WHITE ? DEL_NW : DEL_SE;
+                const auto RCap     = Own == WHITE ? DEL_NE : DEL_SW;
+                const auto Rank3BB  = Own == WHITE ? R3_bb  : R6_bb;
+                const auto Rank5BB  = Own == WHITE ? R5_bb  : R4_bb;
+                const auto Rank7BB  = Own == WHITE ? R7_bb  : R2_bb;
+                const auto Rank8BB  = Own == WHITE ? R8_bb  : R1_bb;
 
                 auto R7_pawns = pos.pieces (Own, PAWN) &  Rank7BB;  // Pawns on 7th Rank
                 auto Rx_pawns = pos.pieces (Own, PAWN) & ~Rank7BB;  // Pawns not on 7th Rank
 
-                auto enemies = EVASION == GT ? pos.pieces (Opp) & targets :
-                               CAPTURE == GT ? targets : pos.pieces (Opp);
+                auto enemies =
+                    GT == EVASION ? pos.pieces (Opp) & targets :
+                    GT == CAPTURE ? targets : pos.pieces (Opp);
 
                 auto empties = U64(0);
                 // Pawn single-push and double-push, no promotions
-                if (CAPTURE != GT)
+                if (GT != CAPTURE)
                 {
-                    empties = QUIET == GT || QUIET_CHECK == GT ? targets : ~pos.pieces ();
+                    empties = GT == QUIET || GT == QUIET_CHECK ? targets : ~pos.pieces ();
                     
                     auto push_1 = empties & shift_bb<Push> (Rx_pawns);
                     auto push_2 = empties & shift_bb<Push> (push_1 & Rank3BB);
@@ -254,7 +256,7 @@ namespace MoveGen {
                     while (push_2 != U64(0)) { auto dst = pop_lsq (push_2); *moves++ = mk_move (dst - Push-Push, dst); }
                 }
                 // Pawn normal and en-passant captures, no promotions
-                if (RELAX == GT || CAPTURE == GT || EVASION == GT)
+                if (GT == RELAX || GT == CAPTURE || GT == EVASION)
                 {
                     auto l_attacks = enemies & shift_bb<LCap> (Rx_pawns);
                     auto r_attacks = enemies & shift_bb<RCap> (Rx_pawns);
@@ -263,7 +265,7 @@ namespace MoveGen {
                     while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); *moves++ = mk_move (dst - RCap, dst); }
 
                     auto ep_sq = pos.en_passant_sq ();
-                    if (SQ_NO != ep_sq)
+                    if (ep_sq != SQ_NO)
                     {
                         assert(_rank (ep_sq) == rel_rank (Own, R_6));
 
@@ -273,7 +275,7 @@ namespace MoveGen {
                             // is the double pushed pawn and so is in the target. Otherwise this
                             // is a discovery check and are forced to do otherwise.
                             // All time except when EVASION then 2nd condition must true
-                            if (EVASION != GT || (targets & (ep_sq - Push)) != U64(0))
+                            if (GT != EVASION || (targets & (ep_sq - Push)) != U64(0))
                             {
                                 auto ep_attacks = Rx_pawns & Rank5BB & PAWN_ATTACKS[Opp][ep_sq];
                                 assert(ep_attacks != U64(0));
@@ -289,10 +291,11 @@ namespace MoveGen {
                 if (R7_pawns != U64(0))
                 {
                     // All time except when EVASION then 2nd condition must true
-                    if (EVASION != GT || (targets & Rank8BB) != U64(0))
+                    if (GT != EVASION || (targets & Rank8BB) != U64(0))
                     {
-                        empties = EVASION == GT ? empties & targets :
-                                  CAPTURE == GT ? ~pos.pieces () : empties;
+                        empties = 
+                            GT == EVASION ? empties & targets :
+                            GT == CAPTURE ? ~pos.pieces () : empties;
 
                         // Promoting pawns
                         Bitboard proms;
@@ -330,18 +333,18 @@ namespace MoveGen {
     // Generates all pseudo-legal moves.
     ValMove* generate (ValMove *moves, const Position &pos)
     {
-        assert(RELAX == GT || CAPTURE == GT || QUIET == GT);
+        assert(GT == RELAX || GT == CAPTURE || GT == QUIET);
         assert(pos.checkers () == U64(0));
 
         auto active  = pos.active ();
         auto targets = 
-            RELAX   == GT ? ~pos.pieces ( active) :
-            CAPTURE == GT ?  pos.pieces (~active) :
-            QUIET   == GT ? ~pos.pieces () :
+            GT == RELAX   ? ~pos.pieces ( active) :
+            GT == CAPTURE ?  pos.pieces (~active) :
+            GT == QUIET   ? ~pos.pieces () :
             U64(0);
 
-        return WHITE == active ? generate_moves<GT, WHITE> (moves, pos, targets) :
-               BLACK == active ? generate_moves<GT, BLACK> (moves, pos, targets) :
+        return active == WHITE ? generate_moves<GT, WHITE> (moves, pos, targets) :
+               active == BLACK ? generate_moves<GT, BLACK> (moves, pos, targets) :
                moves;
     }
 
@@ -377,13 +380,13 @@ namespace MoveGen {
             auto pt  = ptype (pos[org]);
             auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
 
-            if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
+            if (pt == KING) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
             while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
         }
 
-        return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets, &ci) :
-               BLACK == active ? generate_moves<QUIET_CHECK, BLACK> (moves, pos, targets, &ci) :
+        return active == WHITE ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets, &ci) :
+               active == BLACK ? generate_moves<QUIET_CHECK, BLACK> (moves, pos, targets, &ci) :
                moves;
     }
 
@@ -403,13 +406,13 @@ namespace MoveGen {
             auto pt  = ptype (pos[org]);
             auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
 
-            if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
+            if (pt == KING) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
             while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
         }
 
-        return WHITE == active ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
-               BLACK == active ? generate_moves<CHECK, BLACK> (moves, pos, targets, &ci) :
+        return active == WHITE ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
+               active == BLACK ? generate_moves<CHECK, BLACK> (moves, pos, targets, &ci) :
                moves;
     }
 
@@ -470,12 +473,12 @@ namespace MoveGen {
         // If double-check, then only a king move can save the day, triple+ check not possible
         if (more_than_one (checkers) || pos.count<NONE> (active) <= 1) return moves;
 
-        check_sq = SQ_NO == check_sq ? scan_lsq (checkers) : check_sq;
+        check_sq = check_sq == SQ_NO ? scan_lsq (checkers) : check_sq;
         // Generates blocking evasions or captures of the checking piece
         auto targets = BETWEEN_bb[check_sq][king_sq] + check_sq;
 
-        return WHITE == active ? generate_moves<EVASION, WHITE> (moves, pos, targets) :
-               BLACK == active ? generate_moves<EVASION, BLACK> (moves, pos, targets) :
+        return active == WHITE ? generate_moves<EVASION, WHITE> (moves, pos, targets) :
+               active == BLACK ? generate_moves<EVASION, BLACK> (moves, pos, targets) :
                moves;
     }
 

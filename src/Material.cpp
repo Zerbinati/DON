@@ -91,7 +91,7 @@ namespace Material {
         // NOTE:: KING == BISHOP_PAIR
         Value imbalance (const i32 count[][NONE])
         {
-            const auto Opp = WHITE == Own ? BLACK : WHITE;
+            const auto Opp = Own == WHITE ? BLACK : WHITE;
 
             auto value = VALUE_ZERO;
 

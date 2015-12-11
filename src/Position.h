@@ -289,7 +289,7 @@ inline Piece         Position::operator[] (Square s)  const { return _board[s]; 
 //inline Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
 inline const Square* Position::operator[] (Piece  p)  const { return _piece_square[color (p)][ptype (p)]; }
 
-inline bool     Position::empty  (Square s)  const { return EMPTY == _board[s]; }
+inline bool     Position::empty  (Square s)  const { return _board[s] == EMPTY; }
 
 inline Bitboard Position::pieces ()          const { return _types_bb[NONE]; }
 inline Bitboard Position::pieces (Color c)   const { return _color_bb[c];  }
@@ -367,7 +367,7 @@ inline Square Position::en_passant_sq () const { return _psi->en_passant_sq; }
 inline u08    Position::clock_ply     () const { return _psi->clock_ply; }
 inline Move   Position::last_move     () const { return _psi->last_move; }
 inline PieceT Position::capture_type  () const { return _psi->capture_type; }
-//inline Piece  Position::capture_piece () const { return NONE != _psi->capture_type ? (_active|_psi->capture_type) : EMPTY; }
+//inline Piece  Position::capture_piece () const { return _psi->capture_type != NONE ? _active|_psi->capture_type : EMPTY; }
 inline Bitboard Position::checkers    () const { return _psi->checkers; }
 
 inline Key    Position::matl_key      () const { return _psi->matl_key; }
@@ -404,11 +404,11 @@ inline bool  Position::castle_impeded (CRight cr) const { return (_castle_path[c
 // Color of the side on move
 inline Color Position::active   () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
-// game_ply  = max (2 * (game_move - 1), 0) + (BLACK == active)
+// game_ply  = max (2 * (game_move - 1), 0) + (active == BLACK)
 inline i16  Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
-// game_move = max ((game_ply - (BLACK == active)) / 2, 0) + 1
-inline i16  Position::game_move () const { return i16(std::max ((_game_ply - (BLACK == _active))/2, 0) + 1); }
+// game_move = max ((game_ply - (active == BLACK)) / 2, 0) + 1
+inline i16  Position::game_move () const { return i16(std::max ((_game_ply - (_active == BLACK))/2, 0) + 1); }
 // Nodes visited
 inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
@@ -502,19 +502,19 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 inline bool Position::capture       (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return ((mtype (m) == NORMAL || mtype (m) == PROMOTE) && !empty (dst_sq (m)))
-        || ((mtype (m) == ENPASSANT                     ) &&  empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m));
+    return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && ptype (_board[org_sq (m)]) == PAWN)) && !empty (dst_sq (m)))
+        || ( mtype (m) == ENPASSANT && ptype (_board[org_sq (m)]) == PAWN && empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m));
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
-    return (mtype (m) == NORMAL    && !empty (dst_sq (m)))
-        || (mtype (m) == ENPASSANT &&  empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m))
-        || (mtype (m) == PROMOTE);
+    return (mtype (m) == NORMAL && !empty (dst_sq (m)))
+        || (mtype (m) == PROMOTE && ptype (_board[org_sq (m)]) == PAWN)
+        || (mtype (m) == ENPASSANT && ptype (_board[org_sq (m)]) == PAWN && empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m));
 }
 inline bool Position::advanced_pawn_push    (Move m) const
 {
-    return PAWN == ptype (_board[org_sq (m)]) && R_4 < rel_rank (_active, org_sq (m));
+    return ptype (_board[org_sq (m)]) == PAWN && rel_rank (_active, org_sq (m)) > R_4;
 }
 //inline Piece Position::moving_piece (Move m) const { return _board[org_sq (m)]; }
 
