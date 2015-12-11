@@ -2002,7 +2002,11 @@ namespace Threading {
                 }
             }
 
-            if (!Signals.force_stop)
+            // Picking best thread is not compatible with multipv or skill level
+            if (   !Signals.force_stop
+                && PVLimit == 1
+                && !SkillMgr.enabled ()
+               )
             {
                 leaf_depth = root_depth;
             }
@@ -2035,8 +2039,10 @@ namespace Threading {
                     // Do have time for the next iteration? Can stop searching now?
                     if (UseTimeManagment)
                     {
-                        // If PV limit = 1 then take some extra time if the best move has changed
-                        if (aspiration && PVLimit == 1)
+                        // If PVlimit = 1 then take some extra time if the best move has changed
+                        if (   aspiration
+                            && PVLimit == 1
+                           )
                         {
                             TimeMgr.instability ();
                         }
@@ -2324,14 +2330,14 @@ namespace Threading {
                 << "Nodes (N)  : " << best_thread->root_pos.game_nodes ()                                   << "\n"
                 << "Speed (N/s): " << best_thread->root_pos.game_nodes ()*MILLI_SEC / elapsed_time          << "\n"
                 << "Hash-full  : " << TT.hash_full ()                                                       << "\n"
-                << "Best move  : " << move_to_san (best_thread->root_moves[0][0], best_thread->root_pos)    << "\n";
+                << "Best Move  : " << move_to_san (best_thread->root_moves[0][0], best_thread->root_pos)    << "\n";
             if (    best_thread->root_moves[0] != MOVE_NONE
                 && (best_thread->root_moves[0].size () > 1 || best_thread->root_moves[0].extract_ponder_move_from_tt (best_thread->root_pos))
                )
             {
                 StateInfo si;
                 best_thread->root_pos.do_move (best_thread->root_moves[0][0], si, best_thread->root_pos.gives_check (root_moves[0][0], CheckInfo (best_thread->root_pos)));
-                SearchLog << "Ponder move: " << move_to_san (best_thread->root_moves[0][1], best_thread->root_pos) << "\n";
+                SearchLog << "Ponder Move: " << move_to_san (best_thread->root_moves[0][1], best_thread->root_pos) << "\n";
                 best_thread->root_pos.undo_move ();
             }
             SearchLog << std::endl;
