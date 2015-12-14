@@ -194,7 +194,7 @@ namespace Searcher {
         Move _best_move = MOVE_NONE;
 
     public:
-        static const u16 SkillMultiPV = 4;
+        static const u16 MultiPV = 4;
 
         explicit SkillManager (u08 level = MAX_SKILL_LEVEL)
             : _level (level)

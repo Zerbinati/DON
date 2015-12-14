@@ -1455,7 +1455,7 @@ namespace Searcher {
         // Data was extracted from CCRL game database with some simple filtering criteria.
         double move_importance (i16 ply)
         {
-            //                               PLY_SHIFT  PLY_SCALE  SKEW_RATE
+            //                          PLY_SHIFT / PLY_SCALE  SKEW_RATE
             return pow ((1 + exp ((ply - 59.800) / 09.300)), -00.172) + DBL_MIN; // Ensure non-zero
         }
 
@@ -1515,7 +1515,7 @@ namespace Searcher {
     u32  OverheadMoveTime    =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
     u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
     u32  MoveSlowness        = 100; // Move Slowness, in %age.
-    u32  NodesTime           =   0;
+    u32  NodesTime           =   0; // 'Nodes as Time' mode
     bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
     TimeManager TimeMgr;
@@ -1630,7 +1630,7 @@ namespace Searcher {
     // calculates the allowed thinking time out of the time control and current game ply.
     void TimeManager::initialize (LimitsT &limits, Color c, i16 ply)
     {
-        // If we have to play in 'nodes as time' mode, then convert from time
+        // If we have to play in 'Nodes as Time' mode, then convert from time
         // to nodes, and use resulting values in time management formulas.
         // WARNING: Given npms (nodes per millisecond) must be much lower then
         // real engine speed to avoid time losses.
@@ -1864,7 +1864,7 @@ namespace Threading {
         // Do have to play with skill handicap?
         // In this case enable MultiPV search by skill pv size
         // that will use behind the scenes to get a set of possible moves.
-        PVLimit = std::min (std::max (MultiPV, u16(SkillMgr.enabled () ? SkillManager::SkillMultiPV : 0)), u16(root_moves.size ()));
+        PVLimit = std::min (std::max (MultiPV, u16(SkillMgr.enabled () ? SkillManager::MultiPV : 0)), u16(root_moves.size ()));
 
         Value best_value = VALUE_ZERO
             , window     = VALUE_ZERO
@@ -2008,7 +2008,9 @@ namespace Threading {
 
             if (thread_main)
             {
-                if (ContemptValue != 0 && root_moves.size () > 0)
+                if (   ContemptValue != 0
+                    && !root_moves.empty ()
+                   )
                 {
                     Value valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
                     DrawValue[ RootColor] = BaseContempt[ RootColor] - valued_contempt;
@@ -2151,19 +2153,6 @@ namespace Threading {
                 << noboolalpha << std::endl;
         }
 
-        Hits = 0;
-        RootInTB = false;
-        DepthLimit = i32(Options["Syzygy Depth Limit"]) * DEPTH_ONE;
-        PieceLimit = i32(Options["Syzygy Piece Limit"]);
-        UseRule50  = bool(Options["Syzygy Use Rule 50"]);
-
-        // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit
-        if (PieceLimit > MaxPieceLimit)
-        {
-            PieceLimit = MaxPieceLimit;
-            DepthLimit = DEPTH_ZERO;
-        }
-
         if (root_moves.empty ())
         {
             root_moves += RootMove ();
@@ -2204,6 +2193,34 @@ namespace Threading {
                 if (found) goto finish;
             }
 
+            i16 timed_contempt = 0;
+            TimePoint diff_time = 0;
+            if (   ContemptTime != 0
+                && UseTimeManagment
+                && (diff_time = (Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
+                //&& ContemptTime <= abs (diff_time)
+               )
+            {
+                timed_contempt = i16(diff_time/ContemptTime);
+            }
+
+            Value contempt = cp_to_value ((FixedContempt + timed_contempt) / 100.0);
+            DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
+            DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
+
+            Hits        = 0;
+            RootInTB    = false;
+            DepthLimit  = i32(Options["Syzygy Depth Limit"]) * DEPTH_ONE;
+            PieceLimit  = i32(Options["Syzygy Piece Limit"]);
+            UseRule50   = bool(Options["Syzygy Use Rule 50"]);
+
+            // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit
+            if (PieceLimit > MaxPieceLimit)
+            {
+                PieceLimit = MaxPieceLimit;
+                DepthLimit = DEPTH_ZERO;
+            }
+
             if (PieceLimit >= root_pos.count<NONE> ())
             {
                 // If the current root position is in the tablebases then RootMoves
@@ -2239,21 +2256,6 @@ namespace Threading {
                 }
             }
 
-            i16 timed_contempt = 0;
-            TimePoint diff_time = 0;
-            if (   ContemptTime != 0
-                && UseTimeManagment
-                && (diff_time = (Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
-                //&& ContemptTime <= abs (diff_time)
-               )
-            {
-                timed_contempt = i16(diff_time/ContemptTime);
-            }
-
-            Value contempt = cp_to_value ((FixedContempt + timed_contempt) / 100.0);
-            DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
-            DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
-
             for (auto *th : Threadpool)
             {
                 th->max_ply     = 0;
@@ -2267,16 +2269,16 @@ namespace Threading {
             }
 
             Thread::search (); // Let's start searching !
+
+            // When playing in 'Nodes as Time' mode, subtract the searched nodes from
+            // the available ones before to exit.
+            if (NodesTime != 0)
+            {
+                TimeMgr.available_nodes += Limits.clock[RootColor].inc - Threadpool.game_nodes ();
+            }
         }
 
     finish:
-
-        // When playing in 'nodes as time' mode, subtract the searched nodes from
-        // the available ones before to exit.
-        if (NodesTime != 0)
-        {
-            TimeMgr.available_nodes += Limits.clock[RootColor].inc - Threadpool.game_nodes ();
-        }
 
         // When reach max depth arrive here even without Signals.force_stop is raised,
         // but if are pondering or in infinite search, according to UCI protocol,
@@ -2297,11 +2299,13 @@ namespace Threading {
             Threadpool[i]->wait_while_searching ();
         }
 
-        // Check if there are threads with bigger depth than main thread.
+        // Check if there are threads with bigger depth and better score than main thread.
         Thread *best_thread = this;
         for (size_t i = 1; i < Threadpool.size (); ++i)
         {
-            if (best_thread->leaf_depth < Threadpool[i]->leaf_depth)
+            if (   best_thread->leaf_depth < Threadpool[i]->leaf_depth
+                && best_thread->root_moves[0].new_value < Threadpool[i]->root_moves[0].new_value
+               )
             {
                 best_thread = Threadpool[i];
             }
@@ -2316,7 +2320,7 @@ namespace Threading {
             sync_cout << multipv_info (best_thread, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
         }
 
-        assert( root_moves.size () > 0
+        assert(!root_moves.empty ()
             && !root_moves[0].empty ());
 
         if (WriteLog)
@@ -2329,7 +2333,7 @@ namespace Threading {
                 << "Speed (N/s): " << Threadpool.game_nodes ()*MILLI_SEC / elapsed_time << "\n"
                 << "Hash-full  : " << TT.hash_full ()                                   << "\n"
                 << "Best Move  : " << move_to_san (root_moves[0][0], root_pos)          << "\n";
-            if (    root_moves[0] != MOVE_NONE
+            if (    _ok (root_moves[0][0])
                 && (root_moves[0].size () > 1 || root_moves[0].extract_ponder_move_from_tt (root_pos))
                )
             {
@@ -2344,7 +2348,7 @@ namespace Threading {
 
         // Best move could be MOVE_NONE when searching on a stalemate position
         sync_cout << "bestmove " << move_to_can (root_moves[0][0], Chess960);
-        if (    root_moves[0] != MOVE_NONE
+        if (   _ok (root_moves[0][0])
             && (root_moves[0].size () > 1 || root_moves[0].extract_ponder_move_from_tt (root_pos))
            )
         {

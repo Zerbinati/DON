@@ -178,7 +178,7 @@ namespace UCI {
                 limits.start_time = now (); // As early as possible!
 
                 i64 value;
-                while (iss >> token && iss.good ())
+                while (iss >> token && !iss.fail ())
                 {
                     if (token == "wtime")      { iss >> value; limits.clock[WHITE].time = u64(abs (value)); }
                     else
@@ -205,7 +205,7 @@ namespace UCI {
                     // Parse and Validate search-moves (if any)
                     if (token == "searchmoves")
                     {
-                        while (iss >> token && iss.good ())
+                        while (iss >> token && !iss.fail ())
                         {
                             auto m = move_from_can (token, RootPos);
                             if (m == MOVE_NONE)
