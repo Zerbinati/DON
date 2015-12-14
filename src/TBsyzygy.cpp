@@ -261,7 +261,7 @@ namespace TBSyzygy {
 
         FD open_tb (const string &filename, const string &suffix)
         {
-            for (auto path : Paths)
+            for (const auto &path : Paths)
             {
                 string fullpath = append_path (path, filename + suffix);
 
@@ -367,7 +367,7 @@ namespace TBSyzygy {
             u08 pcs[TOTAL_PIECE];
             std::memset (pcs, 0x00, TOTAL_PIECE);
             u08 color = 0;
-            for (auto ch : filename)
+            for (const auto &ch : filename)
             {
                 switch (ch)
                 {

@@ -213,7 +213,7 @@ namespace Searcher {
                 }
             }
             else
-            if (Limits.nodes != 0)
+            if (Limits.nodes != U64(0))
             {
                 if (Threadpool.game_nodes () >= Limits.nodes)
                 {
@@ -334,7 +334,7 @@ namespace Searcher {
         // and so refer to the previous search score.
         string multipv_info (const Thread *thread, Value alfa, Value beta)
         {
-            auto elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
+            auto elapsed_time = std::max (TimeMgr.elapsed_time (), TimePoint(1));
             assert(elapsed_time > 0);
             auto game_nodes = Threadpool.game_nodes ();
 
@@ -677,7 +677,7 @@ namespace Searcher {
             // Step 1. Initialize node
             auto *thread = pos.thread ();
 
-            // Check for available remaining time
+            // Check for available remaining limit
             if (thread->reset_check.load (std::memory_order_relaxed))
             {
                 thread->reset_check = false;
@@ -1461,7 +1461,7 @@ namespace Searcher {
 
         template<RemainTimeT TT>
         // remaining_time<>() calculate the time remaining
-        u32 remaining_time (u32 time, u08 movestogo, i16 ply)
+        TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
         {
             // When in trouble, can step over reserved time with this ratio
             const auto  StepRatio = RT_OPTIMUM == TT ? 1.0 : 7.00;
@@ -1478,7 +1478,7 @@ namespace Searcher {
             auto  step_time_ratio = (0.0      +        move_imp * StepRatio ) / (move_imp * StepRatio + remain_move_imp);
             auto steal_time_ratio = (move_imp + remain_move_imp * StealRatio) / (move_imp * 1         + remain_move_imp);
 
-            return u32(time * std::min (step_time_ratio, steal_time_ratio));
+            return TimePoint(time * std::min (step_time_ratio, steal_time_ratio));
         }
     }
 
@@ -1624,11 +1624,11 @@ namespace Searcher {
 
     // ------------------------------------
 
-    u32 TimeManager::elapsed_time () const { return u32(NodesTime != 0 ? Threadpool.game_nodes () : now () - Limits.start_time); }
+    TimePoint TimeManager::elapsed_time () const { return TimePoint(NodesTime != 0 ? Threadpool.game_nodes () : now () - Limits.start_time); }
 
     // TimeManager::initialize() is called at the beginning of the search and
     // calculates the allowed thinking time out of the time control and current game ply.
-    void TimeManager::initialize (LimitsT &limits, Color own, i16 ply)
+    void TimeManager::initialize (LimitsT &limits, Color c, i16 ply)
     {
         // If we have to play in 'nodes as time' mode, then convert from time
         // to nodes, and use resulting values in time management formulas.
@@ -1637,21 +1637,21 @@ namespace Searcher {
         if (NodesTime != 0)
         {
             // Only once at game start
-            if (available_nodes == 0)
+            if (available_nodes == U64(0))
             {
-                available_nodes = NodesTime * limits.clock[own].time; // Time is in msec
+                available_nodes = NodesTime * limits.clock[c].time; // Time is in msec
             }
 
             // Convert from millisecs to nodes
-            limits.clock[own].time = i32(available_nodes);
-            limits.clock[own].inc *= NodesTime;
+            limits.clock[c].time = available_nodes;
+            limits.clock[c].inc *= NodesTime;
         }
 
         _instability_factor = 1.0;
 
         _optimum_time =
         _maximum_time =
-            std::max (limits.clock[own].time, MinimumMoveTime);
+            std::max (limits.clock[c].time, TimePoint(MinimumMoveTime));
 
         const u08 MaxMovesToGo = limits.movestogo != 0 ? std::min (limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
         // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
@@ -1659,14 +1659,14 @@ namespace Searcher {
         for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
         {
             // Calculate thinking time for hypothetic "moves to go"-value
-            i32 hyp_time = std::max (
-                + limits.clock[own].time
-                + limits.clock[own].inc * (hyp_movestogo-1)
+            TimePoint hyp_time = std::max (
+                + limits.clock[c].time
+                + limits.clock[c].inc * (hyp_movestogo-1)
                 - OverheadClockTime
-                - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), 0U);
+                - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
 
-            u32 opt_time = MinimumMoveTime + remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, ply);
-            u32 max_time = MinimumMoveTime + remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, ply);
+            TimePoint opt_time = MinimumMoveTime + remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, ply);
+            TimePoint max_time = MinimumMoveTime + remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, ply);
 
             _optimum_time = std::min (opt_time, _optimum_time);
             _maximum_time = std::min (max_time, _maximum_time);
@@ -2023,7 +2023,7 @@ namespace Threading {
 
                 if (WriteLog)
                 {
-                    SearchLog << pretty_pv_info (root_pos, root_depth, root_moves[0].new_value, TimeMgr.elapsed_time (), root_moves[0]) << std::endl;
+                    SearchLog << pretty_pv_info (this, TimeMgr.elapsed_time ()) << std::endl;
                 }
 
                 if (!Signals.force_stop && !Signals.ponderhit_stop)
@@ -2240,7 +2240,7 @@ namespace Threading {
             }
 
             i16 timed_contempt = 0;
-            i32 diff_time = 0;
+            TimePoint diff_time = 0;
             if (   ContemptTime != 0
                 && UseTimeManagment
                 && (diff_time = (Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
@@ -2256,8 +2256,8 @@ namespace Threading {
 
             for (auto *th : Threadpool)
             {
-                th->max_ply = 0;
-                th->root_depth = DEPTH_ZERO;
+                th->max_ply     = 0;
+                th->root_depth  = DEPTH_ZERO;
                 if (th != this)
                 {
                     th->root_pos    = Position (root_pos, th);
@@ -2308,18 +2308,12 @@ namespace Threading {
         }
 
         // Send new PV when needed.
-        // FIXME: Breaks multiPV, and skill levels
         if (best_thread != this)
         {
-            pv_index   = best_thread->pv_index;
-            max_ply    = best_thread->max_ply;
-            //root_pos   = best_thread->root_pos; // Already same
+            //root_pos   = Position (best_thread->root_pos, this); // No need!
             root_moves = best_thread->root_moves;
-            root_depth = best_thread->root_depth;
-            //leaf_depth = best_thread->leaf_depth;
-            //history_values = best_thread->history_values;
-            //counter_moves  = best_thread->counter_moves;
-            sync_cout << multipv_info (this, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
+
+            sync_cout << multipv_info (best_thread, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
         }
 
         assert( root_moves.size () > 0
@@ -2327,12 +2321,12 @@ namespace Threading {
 
         if (WriteLog)
         {
-            auto elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
+            auto elapsed_time = std::max (TimeMgr.elapsed_time (), TimePoint(1));
 
             SearchLog
                 << "Time (ms)  : " << elapsed_time                                      << "\n"
-                << "Nodes (N)  : " << root_pos.game_nodes ()                            << "\n"
-                << "Speed (N/s): " << root_pos.game_nodes ()*MILLI_SEC / elapsed_time   << "\n"
+                << "Nodes (N)  : " << Threadpool.game_nodes ()                          << "\n"
+                << "Speed (N/s): " << Threadpool.game_nodes ()*MILLI_SEC / elapsed_time << "\n"
                 << "Hash-full  : " << TT.hash_full ()                                   << "\n"
                 << "Best Move  : " << move_to_san (root_moves[0][0], root_pos)          << "\n";
             if (    root_moves[0] != MOVE_NONE

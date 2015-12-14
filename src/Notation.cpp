@@ -18,6 +18,7 @@ namespace Notation {
 
     using namespace BitBoard;
     using namespace MoveGen;
+    using namespace Threading;
 
     namespace {
 
@@ -257,42 +258,52 @@ namespace Notation {
         return oss.str ();
     }
 
-    // pretty_pv_info() returns formated human-readable search information, typically to be
-    // appended to the search log file.
+    // pretty_pv_info() returns formated human-readable search information,
+    // typically to be appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv_info (Position &pos, i32 depth, Value value, TimePoint time, const MoveVector &pv)
+    string pretty_pv_info (Thread *thread, TimePoint time)
     {
         const u64 K = 1000;
         const u64 M = K*K;
-
+        
         ostringstream oss;
 
-        oss << setw ( 4) << depth
-            << setw ( 8) << pretty_value (value, pos)
+        auto &root_pos = thread->root_pos;
+
+        oss << setw ( 4) << thread->root_depth
+            << setw ( 8) << pretty_value (thread->root_moves[0].new_value, root_pos)
             << setw (12) << pretty_time (time);
 
-        u64 game_nodes = pos.game_nodes ();
-        if (game_nodes < 1*M) oss << setw (8) << game_nodes / 1 << "  ";
+        u64 game_nodes = Threadpool.game_nodes ();
+        if (game_nodes < 1*M)
+        {
+            oss << setw (8) << game_nodes / 1 << "  ";
+        }
         else
-        if (game_nodes < K*M) oss << setw (7) << game_nodes / K << "K  ";
+        if (game_nodes < K*M)
+        {
+            oss << setw (7) << game_nodes / K << "K  ";
+        }
         else
-                              oss << setw (7) << game_nodes / M << "M  ";
+        {
+            oss << setw (7) << game_nodes / M << "M  ";
+        }
 
         StateStack states;
         u08 ply = 0;
-        for (auto m : pv)
+        for (const auto m : thread->root_moves[0].pv)
         {
-            oss << move_to_san (m, pos) << " ";
+            oss << move_to_san (m, root_pos) << " ";
             states.push (StateInfo ());
-            pos.do_move (m, states.top (), pos.gives_check (m, CheckInfo (pos)));
+            root_pos.do_move (m, states.top (), root_pos.gives_check (m, CheckInfo (root_pos)));
             ++ply;
             ////---------------------------------
-            //oss << move_to_can (m, pos.chess960 ()) << " ";
+            //oss << move_to_can (m, root_pos.chess960 ()) << " ";
         }
 
         while (ply != 0)
         {
-            pos.undo_move ();
+            root_pos.undo_move ();
             states.pop ();
             --ply;
         }
@@ -300,6 +311,6 @@ namespace Notation {
         //
 
         return oss.str ();
-    }
 
+    }
 }

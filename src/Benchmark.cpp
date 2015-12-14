@@ -80,25 +80,27 @@ namespace {
 // example: bench 32 1 10000 movetime default
 void benchmark (istream &is, const Position &cur_pos)
 {
+    u32    hash;
+    u16    threads;
+    i64    limit_val;
     string token;
+    
     // Assign default values to missing arguments
-    string hash       = (is >> token) && !white_spaces (token) ? token : "16";
-    string threads    = (is >> token) && !white_spaces (token) ? token : "1";
-    string limit_val  = (is >> token) && !white_spaces (token) ? token : "13";
-    string limit_type = (is >> token) && !white_spaces (token) ? token : "depth";
-    string fen_fn     = (is >> token) && !white_spaces (token) ? token : "default";
-
-    i32 value = abs (stoi (limit_val));
+    /*u32*/hash       = (is >> hash) && is.good ()              ? hash      : 16;
+    /*u16*/threads    = (is >> threads) && is.good ()           ? threads   : 1;
+    /*i64*/limit_val  = (is >> limit_val) && is.good ()         ? limit_val : 13;
+    string limit_type = (is >> token) && !white_spaces (token)  ? token : "depth";
+    string fen_fn     = (is >> token) && !white_spaces (token)  ? token : "default";
 
     LimitsT limits;
-    if (limit_type == "time")     limits.clock[WHITE].time = limits.clock[BLACK].time = value;
+    if (limit_type == "time")     limits.clock[WHITE].time = limits.clock[BLACK].time = u64(abs (limit_val));
     else
-    if (limit_type == "movetime") limits.movetime = value;
+    if (limit_type == "movetime") limits.movetime = u64(abs (limit_val));
     else
-    if (limit_type == "nodes")    limits.nodes    = value;
+    if (limit_type == "nodes")    limits.nodes    = u64(abs (limit_val));
     else
-    if (limit_type == "mate")     limits.mate     = u08(value);
-    else  /*limit_type=="depth"*/ limits.depth    = u08(value);
+    if (limit_type == "mate")     limits.mate     = u08(abs (limit_val));
+    else  /*limit_type=="depth"*/ limits.depth    = u08(i32(abs (limit_val))*DEPTH_ONE);
 
     vector<string> fens;
 
@@ -135,14 +137,14 @@ void benchmark (istream &is, const Position &cur_pos)
 
     if (limit_type != "perft")
     {
-        Options["Hash"]        = hash;
-        Options["Threads"]     = threads;
+        Options["Hash"]        = to_string (hash);
+        Options["Threads"]     = to_string (threads);
         Options["Retain Hash"] = "false";
         clear ();
     }
 
     u64  nodes = 0;
-    auto elapsed_time = now ();
+    auto start_time = now ();
     
     for (u16 i = 0; i < fens.size (); ++i)
     {
@@ -171,7 +173,7 @@ void benchmark (istream &is, const Position &cur_pos)
         }
     }
 
-    elapsed_time = std::max (now () - elapsed_time, 1LL);
+    auto elapsed_time = std::max (now () - start_time, TimePoint(1));
 
     dbg_print (); // Just before to exit
     std::cerr << right

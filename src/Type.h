@@ -673,6 +673,7 @@ inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 typedef std::vector<Move>   MoveVector;
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
+//inline TimePoint  operator- (TimePoint  t1, TimePoint t2) { return TimePoint(i64(t1) - i64(t2)); }
 
 const u32 MILLI_SEC        = 1000;
 const u32 MINUTE_MILLI_SEC = MILLI_SEC * 60;

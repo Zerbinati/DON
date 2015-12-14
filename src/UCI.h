@@ -76,7 +76,7 @@ namespace UCI {
     {
         for (u08 idx = 0; idx < optmap.size (); ++idx)
         {
-            for (auto &pair : optmap)
+            for (const auto &pair : optmap)
             {
                 const Option &option = pair.second;
                 if (idx == option.index ())

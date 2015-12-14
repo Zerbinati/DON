@@ -75,8 +75,6 @@ namespace Threading {
     class Thread;
 }
 
-using namespace Threading;
-
 // The position data structure. A position consists of the following data:
 //
 // Board consits of data about piece placement
@@ -124,7 +122,7 @@ private:
 
     bool     _chess960;
 
-    Thread  *_thread;
+    Threading::Thread  *_thread;
 
     // ------------------------
 
@@ -152,11 +150,11 @@ public:
 
     Position () = default; // To define the global object RootPos
     Position (const Position&) = delete;
-    Position (const std::string &f, Thread *const th = nullptr, bool c960 = false, bool full = true)
+    Position (const std::string &f, Threading::Thread *const th = nullptr, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    Position (const Position &pos, Thread *const th)
+    Position (const Position &pos, Threading::Thread *const th)
     {
         *this = pos;
         _thread = th;
@@ -223,10 +221,10 @@ public:
     bool    repeated  () const;
 
     u64   game_nodes ()  const;
-    void  game_nodes (u64 nodes);
+    //void  game_nodes (u64 nodes);
     Phase game_phase ()  const;
 
-    Thread* thread   ()  const;
+    Threading::Thread* thread   ()  const;
 
     bool ok (i08 *failed_step = nullptr) const;
 
@@ -247,6 +245,7 @@ public:
     bool legal         (Move m) const;
     bool capture       (Move m) const;
     bool capture_or_promotion (Move m)  const;
+    bool en_passant    (Move m)  const;
     bool gives_check   (Move m, const CheckInfo &ci) const;
     //bool gives_checkmate (Move m, const CheckInfo &ci)
     bool advanced_pawn_push (Move m)    const;
@@ -263,7 +262,7 @@ public:
     void remove_piece (Square s);
     void   move_piece (Square s1, Square s2);
 
-    bool setup (const std::string &f, Thread *const th = nullptr, bool c960 = false, bool full = true);
+    bool setup (const std::string &f, Threading::Thread *const th = nullptr, bool c960 = false, bool full = true);
 
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
@@ -381,7 +380,7 @@ inline Key    Position::move_posi_key (Move m) const
     auto dst = dst_sq (m);
     auto mpt = ptype (_board[org]);
     auto ppt = mpt == PAWN && mtype (m) == PROMOTE ? promote (m) : mpt;
-    auto cpt = mpt == PAWN && mtype (m) == ENPASSANT && _psi->en_passant_sq == dst_sq (m) ? PAWN : ptype (_board[dst]);
+    auto cpt = mpt == PAWN && mtype (m) == ENPASSANT &&  empty (dst) && _psi->en_passant_sq == dst ? PAWN : ptype (_board[dst]);
     
     return _psi->posi_key ^  Zob._.act_side
         ^  Zob._.piece_square[_active][mpt][org]
@@ -404,14 +403,14 @@ inline bool  Position::castle_impeded (CRight cr) const { return (_castle_path[c
 // Color of the side on move
 inline Color Position::active   () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
-// game_ply  = max (2 * (game_move - 1), 0) + (active == BLACK)
+// game_ply  = max ((game_move - 1) * 2, 0) + (active == BLACK)
 inline i16  Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = max ((game_ply - (active == BLACK)) / 2, 0) + 1
-inline i16  Position::game_move () const { return i16(std::max ((_game_ply - (_active == BLACK))/2, 0) + 1); }
+inline i16  Position::game_move () const { return i16(std::max ((_game_ply - (_active == BLACK)) / 2, 0) + 1); }
 // Nodes visited
 inline u64  Position::game_nodes() const { return _game_nodes; }
-inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
+//inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
 // game_phase() calculates the phase interpolating total
 // non-pawn material between endgame and midgame limits.
 inline Phase Position::game_phase () const
@@ -422,7 +421,7 @@ inline Phase Position::game_phase () const
 }
 
 inline bool Position::chess960  () const { return _chess960; }
-inline Thread* Position::thread () const { return _thread; }
+inline Threading::Thread* Position::thread () const { return _thread; }
 
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
@@ -511,6 +510,10 @@ inline bool Position::capture_or_promotion  (Move m) const
     return (mtype (m) == NORMAL && !empty (dst_sq (m)))
         || (mtype (m) == PROMOTE && ptype (_board[org_sq (m)]) == PAWN)
         || (mtype (m) == ENPASSANT && ptype (_board[org_sq (m)]) == PAWN && empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m));
+}
+inline bool Position::en_passant    (Move m) const
+{
+    return mtype (m) == ENPASSANT && ptype (_board[org_sq (m)]) == PAWN && empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m);
 }
 inline bool Position::advanced_pawn_push    (Move m) const
 {

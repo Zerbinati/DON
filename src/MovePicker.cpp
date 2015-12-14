@@ -152,7 +152,7 @@ namespace MovePick {
     {
         for (auto &m : *this)
         {
-            m = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_pos[dst_sq (m)])]
+            m = PIECE_VALUE[MG][_pos.en_passant (m) ? PAWN : ptype (_pos[dst_sq (m)])]
               - Value(200 * rel_rank (_pos.active (), dst_sq (m)));
         }
     }
@@ -183,7 +183,7 @@ namespace MovePick {
             else
             if (_pos.capture (m))
             {
-                m = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_pos[dst_sq (m)])]
+                m = PIECE_VALUE[MG][_pos.en_passant (m) ? PAWN : ptype (_pos[dst_sq (m)])]
                   - Value(ptype (_pos[org_sq (m)])) -1 + MAX_STATS_VALUE;
             }
             else

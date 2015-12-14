@@ -72,7 +72,6 @@ namespace MoveGen {
 
                 auto king_org = pos.square<KING> (Own);
                 auto rook_org = pos.castle_rook (CR);
-
                 assert(ptype (pos[rook_org]) == ROOK);
 
                 auto king_dst = rel_sq (Own, KingSide ? SQ_G1 : SQ_C1);

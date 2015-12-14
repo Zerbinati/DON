@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "Type.h"
+#include "Thread.h"
 
 class Position;
 
@@ -29,8 +30,7 @@ namespace Notation {
 
     extern std::string to_string (Value v);
 
-    extern std::string pretty_pv_info (Position &pos, i32 depth, Value value, TimePoint time, const MoveVector &pv);
-    
+    extern std::string pretty_pv_info (Threading::Thread *thread, TimePoint time);
 }
 
 template<class CharT, class Traits>

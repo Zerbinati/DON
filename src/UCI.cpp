@@ -69,7 +69,7 @@ namespace UCI {
             if (token == "ucinewgame")
             {
                 clear ();
-                TimeMgr.available_nodes = 0;
+                TimeMgr.available_nodes = U64(0);
             }
             else
             if (token == "isready")
@@ -178,17 +178,17 @@ namespace UCI {
                 limits.start_time = now (); // As early as possible!
 
                 i64 value;
-                while (iss >> token)
+                while (iss >> token && iss.good ())
                 {
-                    if (token == "wtime")      { iss >> value; limits.clock[WHITE].time = u32(abs (value)); }
+                    if (token == "wtime")      { iss >> value; limits.clock[WHITE].time = u64(abs (value)); }
                     else
-                    if (token == "btime")      { iss >> value; limits.clock[BLACK].time = u32(abs (value)); }
+                    if (token == "btime")      { iss >> value; limits.clock[BLACK].time = u64(abs (value)); }
                     else
-                    if (token == "winc")       { iss >> value; limits.clock[WHITE].inc  = u32(abs (value)); }
+                    if (token == "winc")       { iss >> value; limits.clock[WHITE].inc  = u64(abs (value)); }
                     else
-                    if (token == "binc")       { iss >> value; limits.clock[BLACK].inc  = u32(abs (value)); }
+                    if (token == "binc")       { iss >> value; limits.clock[BLACK].inc  = u64(abs (value)); }
                     else
-                    if (token == "movetime")   { iss >> value; limits.movetime  = u32(abs (value)); }
+                    if (token == "movetime")   { iss >> value; limits.movetime  = u64(abs (value)); }
                     else
                     if (token == "movestogo")  { iss >> value; limits.movestogo = u08(abs (value)); }
                     else
@@ -201,11 +201,11 @@ namespace UCI {
                     if (token == "infinite")   { limits.infinite  = true; }
                     else
                     if (token == "ponder")     { limits.ponder    = true; }
-                    // parse and validate search moves (if any)
                     else
+                    // Parse and Validate search-moves (if any)
                     if (token == "searchmoves")
                     {
-                        while (iss >> token)
+                        while (iss >> token && iss.good ())
                         {
                             auto m = move_from_can (token, RootPos);
                             if (m == MOVE_NONE)
