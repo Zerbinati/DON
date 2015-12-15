@@ -36,10 +36,10 @@ namespace Notation {
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
 
-            Bitboard pinneds = pos.pinneds (pos.active ());
+            auto pinneds = pos.pinneds (pos.active ());
 
-            Bitboard amb, pcs;
-            amb = pcs = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
+            auto amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
+            auto pcs = amb & ~pinneds; // If pinned piece is considered as ambiguous
             while (pcs != U64(0))
             {
                 auto sq = pop_lsq (pcs);
@@ -57,46 +57,6 @@ namespace Notation {
             return AMB_NONE;
         }
 
-        // value to string
-        string pretty_value (Value v, const Position &pos)
-        {
-            ostringstream oss;
-
-            if (abs (v) < +VALUE_MATE_IN_MAX_DEPTH)
-            {
-                oss << setprecision (2) << fixed << showpos << value_to_cp (pos.active () == WHITE ? +v : -v);
-            }
-            else
-            {
-                oss << "#" << showpos << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
-            }
-
-            return oss.str ();
-        }
-
-        // time to string
-        string pretty_time (TimePoint time)
-        {
-            u32 hours  = u32(time / HOUR_MILLI_SEC);
-            time      %= HOUR_MILLI_SEC;
-            u32 minutes= u32(time / MINUTE_MILLI_SEC);
-            time      %= MINUTE_MILLI_SEC;
-            u32 seconds= u32(time / MILLI_SEC);
-            time      %= MILLI_SEC;
-            time      /= 10;
-
-            ostringstream oss;
-
-            oss << setfill ('0')
-                << setw (2) << hours   << ":"
-                << setw (2) << minutes << ":"
-                << setw (2) << seconds << "."
-                << setw (2) << time
-                << setfill (' ');
-
-            return oss.str ();
-        }
-
     }
 
     // move_to_can() converts a move to a string in coordinate algebraic notation representation.
@@ -106,17 +66,17 @@ namespace Notation {
     // Internally castle moves are always coded as "king captures rook".
     string move_to_can (Move m, bool c960)
     {
-        if (MOVE_NONE == m) return "(none)";
-        if (MOVE_NULL == m) return "(null)";
+        if (m == MOVE_NONE) return "(none)";
+        if (m == MOVE_NULL) return "(null)";
 
         auto org = org_sq (m);
         auto dst = dst_sq (m);
-        if (!c960 && CASTLE == mtype (m))
+        if (mtype (m) == CASTLE && !c960)
         {
             dst = (dst > org ? F_G : F_C) | _rank (org);
         }
         auto can = to_string (org) + to_string (dst);
-        if (PROMOTE == mtype (m))
+        if (mtype (m) == PROMOTE)
         {
             can += PIECE_CHAR[BLACK|promote (m)]; // Lowercase (Black)
         }
@@ -125,19 +85,19 @@ namespace Notation {
     // move_to_san() converts a move to a string in short algebraic notation representation.
     string move_to_san (Move m, Position &pos)
     {
-        if (MOVE_NONE == m) return "(none)";
-        if (MOVE_NULL == m) return "(null)";
+        if (m == MOVE_NONE) return "(none)";
+        if (m == MOVE_NULL) return "(null)";
         assert(MoveList<LEGAL> (pos).contains (m));
 
         string san;
         auto org = org_sq (m);
         auto dst = dst_sq (m);
 
-        if (CASTLE != mtype (m))
+        if (mtype (m) != CASTLE)
         {
             auto pt = ptype (pos[org]);
 
-            if (PAWN != pt)
+            if (pt != PAWN)
             {
                 san = PIECE_CHAR[pt];
                 // Disambiguation if have more then one piece of type 'pt'
@@ -154,7 +114,7 @@ namespace Notation {
 
             if (pos.capture (m))
             {
-                if (PAWN == pt)
+                if (pt == PAWN)
                 {
                     san += to_char (_file (org));
                 }
@@ -163,7 +123,7 @@ namespace Notation {
 
             san += to_string (dst);
 
-            if (PROMOTE == mtype (m) && PAWN == pt)
+            if (mtype (m) == PROMOTE && pt == PAWN)
             {
                 san += "=";
                 san += PIECE_CHAR[WHITE|promote (m)]; // Uppercase (White)
@@ -246,7 +206,7 @@ namespace Notation {
     string to_string (Value v)
     {
         ostringstream oss;
-        if (abs (v) < +VALUE_MATE_IN_MAX_DEPTH)
+        if (abs (v) < +VALUE_MATE - i32(MAX_PLY))
         {
             oss << "cp " << i32(100 * value_to_cp (v));
         }
@@ -254,51 +214,6 @@ namespace Notation {
         {
             oss << "mate " << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
         }
-        return oss.str ();
-    }
-
-    // pretty_pv_info() returns formated human-readable search information, typically to be
-    // appended to the search log file.
-    // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv_info (Position &pos, i32 depth, Value value, TimePoint time, const MoveVector &pv)
-    {
-        const u64 K = 1000;
-        const u64 M = K*K;
-
-        ostringstream oss;
-
-        oss << setw ( 4) << depth
-            << setw ( 8) << pretty_value (value, pos)
-            << setw (12) << pretty_time (time);
-
-        u64 game_nodes = pos.game_nodes ();
-        if (game_nodes < 1*M) oss << setw (8) << game_nodes / 1 << "  ";
-        else
-        if (game_nodes < K*M) oss << setw (7) << game_nodes / K << "K  ";
-        else
-                              oss << setw (7) << game_nodes / M << "M  ";
-
-        StateStack states;
-        u08 ply = 0;
-        for (auto m : pv)
-        {
-            oss << move_to_san (m, pos) << " ";
-            states.push (StateInfo ());
-            pos.do_move (m, states.top (), pos.gives_check (m, CheckInfo (pos)));
-            ++ply;
-            ////---------------------------------
-            //oss << move_to_can (m, pos.chess960 ()) << " ";
-        }
-
-        while (ply != 0)
-        {
-            pos.undo_move ();
-            states.pop ();
-            --ply;
-        }
-        ////---------------------------------
-        //
-
         return oss.str ();
     }
 

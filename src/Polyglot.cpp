@@ -190,7 +190,7 @@ namespace Polyglot {
 
         auto beg_index = size_t(0);
         auto end_index = size_t((size () - HeaderSize) / Entry::Size - 1);
-        assert (beg_index <= end_index);
+        assert(beg_index <= end_index);
 
         Entry pe;
         while (beg_index < end_index && good ())
@@ -387,7 +387,7 @@ namespace Polyglot {
                     oss << e << " prob: "
                         << std::setfill ('0') << std::fixed << std::width_prec (6, 2)
                         << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0)
-                        << std::defaultfloat << std::setfill (' ') << endl;
+                        << /*std::defaultfloat <<*/ std::setfill (' ') << endl;
                 });
             }
         }

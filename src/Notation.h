@@ -29,8 +29,6 @@ namespace Notation {
 
     extern std::string to_string (Value v);
 
-    extern std::string pretty_pv_info (Position &pos, i32 depth, Value value, TimePoint time, const MoveVector &pv);
-    
 }
 
 template<class CharT, class Traits>
@@ -89,15 +87,15 @@ inline std::basic_ostream<CharT, Traits>&
 //        if (can_castle (cr, CR_W))
 //        {
 //            scastle += "W:";
-//            if (can_castle (cr, CR_WK)) scastle += " OO";
-//            if (can_castle (cr, CR_WQ)) scastle += " OOO";
+//            if (can_castle (cr, CR_WKING)) scastle += " OO";
+//            if (can_castle (cr, CR_WQUEN)) scastle += " OOO";
 //            scastle += " - ";
 //        }
 //        if (can_castle (cr, CR_B))
 //        {
 //            scastle += "B:";
-//            if (can_castle (cr, CR_BK)) scastle += " OO";
-//            if (can_castle (cr, CR_BQ)) scastle += " OOO";
+//            if (can_castle (cr, CR_BKING)) scastle += " OO";
+//            if (can_castle (cr, CR_BQUEN)) scastle += " OOO";
 //        }
 //    }
 //    else

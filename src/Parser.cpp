@@ -151,11 +151,14 @@ namespace Parser {
                 auto m = move_from_san (move, pos);
                 if (m == MOVE_NONE)
                 {
-                    for (const auto &mm : MoveList<LEGAL> (pos))
-                    {
-                        cout << move_to_san (mm, pos) << " ";
-                    }
-                    break;
+                    cout << "ERROR" << endl;
+                    //cout << endl;
+                    //for (const auto &mm : MoveList<LEGAL> (pos))
+                    //{
+                    //    cout << move_to_san (mm, pos) << " ";
+                    //}
+                    //break;
+                    return;
                 }
                 cout << m << " ";
 

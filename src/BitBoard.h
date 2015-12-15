@@ -25,13 +25,13 @@ namespace BitBoard {
     const Bitboard R7_bb = R1_bb << (8 * 6);//U64(0x00FF000000000000);
     const Bitboard R8_bb = R1_bb << (8 * 7);//U64(0xFF00000000000000);
 
-    //const Bitboard D18_bb = U64(0x8040201008040201);             // 08 DIAG-18 squares.
-    //const Bitboard D81_bb = U64(0x0102040810204080);             // 08 DIAG-81 squares.
+    //const Bitboard D18_bb = U64(0x8040201008040201);        // 08 DIAG-18 squares.
+    //const Bitboard D81_bb = U64(0x0102040810204080);        // 08 DIAG-81 squares.
 
-    const Bitboard LIHT_bb = U64(0x55AA55AA55AA55AA);            // 32 LIGHT squares.
-    const Bitboard DARK_bb = U64(0xAA55AA55AA55AA55);            // 32 DARK  squares.
+    const Bitboard LIHT_bb = U64(0x55AA55AA55AA55AA);       // 32 LIGHT squares.
+    const Bitboard DARK_bb = U64(0xAA55AA55AA55AA55);       // 32 DARK  squares.
 
-    const Bitboard CORNER_bb = (FA_bb|FH_bb)&(R1_bb|R8_bb);     // 04 CORNER squares.
+    const Bitboard CORNER_bb = (FA_bb|FH_bb)&(R1_bb|R8_bb); // 04 CORNER squares.
 
     const Delta PAWN_DELTAS[CLR_NO][3] =
     {
@@ -48,7 +48,6 @@ namespace BitBoard {
         { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
     };
 
-    // SQUARES
     const Bitboard SQUARE_bb[SQ_NO] =
     {
 #undef S_16
@@ -65,18 +64,16 @@ namespace BitBoard {
 #undef S_04
 #undef S_02
     };
-    // FILES
     const Bitboard FILE_bb[F_NO] =
     {
         FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb
     };
-    // RANKS
     const Bitboard RANK_bb[R_NO] =
     {
         R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb
     };
 
-    // ADJACENT FILES used for isolated-pawn
+    // Adjacent files used for isolated-pawn
     const Bitboard ADJ_FILE_bb  [F_NO] =
     {
         FB_bb,
@@ -88,7 +85,6 @@ namespace BitBoard {
         FF_bb|FH_bb,
         FG_bb
     };
-    // ADJACENT RANKS
     const Bitboard ADJ_RANK_bb  [R_NO] =
     {
         R2_bb,
@@ -100,7 +96,6 @@ namespace BitBoard {
         R6_bb|R8_bb,
         R7_bb,
     };
-    // FRONT RANK
     const Bitboard FRONT_RANK_bb    [CLR_NO][R_NO] =
     {
         {
@@ -135,7 +130,7 @@ namespace BitBoard {
     extern Bitboard PAWN_ATTACK_SPAN[CLR_NO][SQ_NO];
     extern Bitboard   PAWN_PASS_SPAN[CLR_NO][SQ_NO];
 
-    // attacks of the pawns & pieces
+    // Attacks of the pawns & pieces
     extern Bitboard     PAWN_ATTACKS[CLR_NO][SQ_NO];
     extern Bitboard    PIECE_ATTACKS[NONE][SQ_NO];
 
@@ -318,12 +313,13 @@ namespace BitBoard {
     inline Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {
         auto pt = ptype (p);
-        return BSHP == pt ? attacks_bb<BSHP> (s, occ) :
-               ROOK == pt ? attacks_bb<ROOK> (s, occ) :
-               QUEN == pt ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ) :
-               PAWN == pt ? PAWN_ATTACKS[color (p)][s] :
-               //NIHT == pt || KING == pt ? 
-               PIECE_ATTACKS[ptype (p)][s]; //: U64(0);
+        return
+            pt == BSHP ? attacks_bb<BSHP> (s, occ) :
+            pt == ROOK ? attacks_bb<ROOK> (s, occ) :
+            pt == QUEN ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ) :
+            pt == PAWN ? PAWN_ATTACKS[color (p)][s] :
+            //pt == NIHT || pt == KING ? 
+            PIECE_ATTACKS[ptype (p)][s]; //: U64(0);
     }
 
     extern void initialize ();

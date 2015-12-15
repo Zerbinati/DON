@@ -133,15 +133,42 @@ typedef        uint64_t    u64;
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const i32 MAX_DEPTH = 128; // Maximum Depth (Ply)
+const u16 MAX_PLY = 128; // Maximum Plies
 
 // File
-enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
+enum File : i08
+{
+    F_A,
+    F_B,
+    F_C,
+    F_D,
+    F_E,
+    F_F,
+    F_G,
+    F_H,
+    F_NO,
+};
 // Rank
-enum Rank : i08 { R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO };
+enum Rank : i08
+{
+    R_1,
+    R_2,
+    R_3,
+    R_4,
+    R_5,
+    R_6,
+    R_7,
+    R_8,
+    R_NO,
+};
 
 // Color
-enum Color : i08 { WHITE, BLACK, CLR_NO };
+enum Color : i08
+{
+    WHITE,
+    BLACK,
+    CLR_NO,
+};
 
 // Square
 // File: 3-bit
@@ -190,31 +217,33 @@ enum Delta : i08
     DEL_SSW = i08(DEL_SS) + i08(DEL_W),
 
     DEL_WWN = i08(DEL_WW) + i08(DEL_N),
-    DEL_WWS = i08(DEL_WW) + i08(DEL_S)
+    DEL_WWS = i08(DEL_WW) + i08(DEL_S),
 
 };
 
 // Castle Side
 enum CSide : i08
 {
-    CS_KING ,    // (KING SIDE)-SHORT CASTLE
-    CS_QUEN ,    // (QUEN SIDE)-LONG  CASTLE
-    CS_NO
+    CS_KING,    // (KING SIDE)-SHORT CASTLE
+    CS_QUEN,    // (QUEN SIDE)-LONG  CASTLE
+    CS_NO,
 };
 
 // Castle Right defined as in Polyglot book hash key
 enum CRight : u08
 {
-    CR_NO ,               // 0000
-    CR_WK = 1,            // 0001
-    CR_WQ = CR_WK << 1,   // 0010
-    CR_BK = CR_WK << 2,   // 0100
-    CR_BQ = CR_WK << 3,   // 1000
+    CR_NONE  = 0,               // 0000
+    CR_WKING = 1,               // 0001
+    CR_WQUEN = CR_WKING << 1,   // 0010
+    CR_BKING = CR_WKING << 2,   // 0100
+    CR_BQUEN = CR_WKING << 3,   // 1000
 
-    CR_W = u08(CR_WK) | u08(CR_WQ), // 0011
-    CR_B = u08(CR_BK) | u08(CR_BQ), // 1100
-    CR_A = u08(CR_W)  | u08(CR_B),  // 1111
-    CR_ALL = 16
+    CR_WHITE = u08(CR_WKING) | u08(CR_WQUEN),   // 0011
+    CR_BLACK = u08(CR_BKING) | u08(CR_BQUEN),   // 1100
+    CR_KING  = u08(CR_WKING) | u08(CR_BKING),   // 0101
+    CR_QUEN  = u08(CR_WQUEN) | u08(CR_BQUEN),   // 1010
+    CR_FULL  = u08(CR_WHITE) | u08(CR_BLACK),   // 1111
+    CR_ALL   = CR_FULL+1,
 
 };
 
@@ -229,7 +258,7 @@ enum PieceT : i08
     KING  , // 101
     NONE  , // 110
     TOTL  , // 111
-    NONPAWN
+    NONPAWN,
 };
 
 // Piece needs 4 bits to be stored
@@ -267,7 +296,7 @@ enum Piece : u08
     B_KING    , //  1101
 
     // TOTAL piece is 14
-    PIECE_NO   //  1110
+    PIECE_NO  , //  1110
 
     //W_PIECE = 0x00, //  0...
     //B_PIECE = 0x08, //  1...
@@ -296,18 +325,19 @@ enum MoveT : u16
 enum Move : u16
 {
     MOVE_NONE = 0x00,
-    MOVE_NULL = 0x41
+    MOVE_NULL = 0x41,
 };
 
 enum Depth : i16
 {
     DEPTH_ZERO          =  0,
-    DEPTH_ONE           =  1, // PLY_ONE
-    DEPTH_QS_CHECKS     =  0,
-    DEPTH_QS_NO_CHECKS  = -1,
-    DEPTH_QS_RECAPTURES = -5,
-    DEPTH_NONE          = -6,
-    DEPTH_MAX           = MAX_DEPTH
+
+    DEPTH_ONE           = +1, // One Ply
+    DEPTH_QS_CHECKS     =  0*i16(DEPTH_ONE),
+    DEPTH_QS_NO_CHECKS  = -1*i16(DEPTH_ONE),
+    DEPTH_QS_RECAPTURES = -5*i16(DEPTH_ONE),
+    DEPTH_NONE          = -6*i16(DEPTH_ONE),
+    DEPTH_MAX           = MAX_PLY*i16(DEPTH_ONE),
 };
 
 enum Value : i32
@@ -316,12 +346,12 @@ enum Value : i32
     VALUE_DRAW      = 0,
 
     VALUE_NONE      = SHRT_MAX,
-    VALUE_INFINITE  = +VALUE_NONE - 1,
+    VALUE_INFINITE  = +i32(VALUE_NONE) - 1,
 
-    VALUE_MATE      = +VALUE_INFINITE - 1,
-    VALUE_KNOWN_WIN = +VALUE_MATE / 3,
+    VALUE_MATE      = +i32(VALUE_INFINITE) - 1,
+    VALUE_KNOWN_WIN = +i32(VALUE_MATE) / 3,
 
-    VALUE_MATE_IN_MAX_DEPTH = +VALUE_MATE - 2 * MAX_DEPTH,
+    VALUE_MATE_IN_MAX_PLY = +i32(VALUE_MATE) - 2 * i32(MAX_PLY),
 
     VALUE_MG_PAWN =  198,  VALUE_EG_PAWN =  258,
     VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  846,
@@ -330,13 +360,17 @@ enum Value : i32
     VALUE_MG_QUEN = 2521,  VALUE_EG_QUEN = 2558,
 
     VALUE_SPACE   = 12222, //2*VALUE_MG_QUEN + 4*VALUE_MG_ROOK + 2*VALUE_MG_NIHT
-    VALUE_MIDGAME = 15581, VALUE_ENDGAME = 3998
+    VALUE_MIDGAME = 15581, VALUE_ENDGAME = 3998,
 };
 
 // Score enum stores a midgame and an endgame value in a single integer (enum),
 // the lower 16 bits are used to store the endgame value and
 // the upper 16 bits are used to store the midgame value.
-enum Score : i32 { SCORE_ZERO = 0 };
+enum Score : i32
+{
+    SCORE_ZERO = 0,
+    SCORE_MAX  = INT_MAX,
+};
 
 enum Bound : u08
 {
@@ -368,7 +402,7 @@ enum Bound : u08
     // while the min-player improved his score as well (score < beta), beta the min so far.
     // The current node searched was an expected PV-Node,
     // which was confirmed by the search in finding and collecting a principal variation.
-    BOUND_EXACT = BOUND_LOWER | BOUND_UPPER
+    BOUND_EXACT = BOUND_LOWER | BOUND_UPPER,
 
 };
 
@@ -379,7 +413,7 @@ enum Phase : i16
 
     MG       = 0,
     EG       = 1,
-    PHASE_NO = 2
+    PHASE_NO = 2,
 };
 
 enum ScaleFactor : u08
@@ -389,7 +423,7 @@ enum ScaleFactor : u08
     SCALE_FACTOR_BISHOPS =  46,
     SCALE_FACTOR_NORMAL  =  64,
     SCALE_FACTOR_MAX     = 128,
-    SCALE_FACTOR_NONE    = 255
+    SCALE_FACTOR_NONE    = UCHAR_MAX, // 255
 };
 
 #undef BASIC_OPERATORS
@@ -468,8 +502,8 @@ inline Value  operator+  (i32 i, Value v) { return Value(i + i32(v)); }
 inline Value  operator-  (i32 i, Value v) { return Value(i - i32(v)); }
 inline Value  operator*  (Value  v, double f) { return Value(i32(i32(v) * f)); }
 inline Value& operator*= (Value &v, double f) { v = Value(i32(i32(v) * f)); return v; }
-inline Value  operator/  (Value  v, i32 i) { return Value(i32(v) / i); }
-inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
+inline Value  operator/  (Value  v, i32    i) { return Value(i32(v) / i); }
+inline Value& operator/= (Value &v, i32    i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1) / i32(v2); }
 
 // Make score from mid and end values
@@ -491,8 +525,8 @@ inline Score  operator*  (Score s1, Score s2);
 // Multiplication & Division of a Score must be handled separately for each term
 inline Score  operator*  (Score  s, double f) { return mk_score (mg_value (s) * f, eg_value (s) * f); }
 inline Score& operator*= (Score &s, double f) { s = mk_score (mg_value (s) * f, eg_value (s) * f); return s; }
-inline Score  operator/  (Score  s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
-inline Score& operator/= (Score &s, i32 i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
+inline Score  operator/  (Score  s, i32    i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+inline Score& operator/= (Score &s, i32    i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)
@@ -503,7 +537,7 @@ inline i32    operator/  (Depth d1, Depth d2) { return i32(d1) / i32(d2); }
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
-//inline bool   _ok       (Color c) { return WHITE == c || BLACK == c; }
+//inline bool   _ok       (Color c) { return !(c & ~i08(CLR_NO)); }
 inline Color  operator~ (Color c) { return Color(c^BLACK); }
 
 //inline bool   _ok       (File f) { return    !(f & ~i08(F_H)); }
@@ -552,19 +586,19 @@ template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1
 template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
 
-inline Delta  pawn_push (Color c) { return WHITE == c ? DEL_N : DEL_S; }
+inline Delta  pawn_push (Color c) { return c == WHITE ? DEL_N : DEL_S; }
 
-inline CRight mk_castle_right (Color c)           { return CRight(CR_W << (c << BLACK)); }
-inline CRight mk_castle_right (Color c, CSide cs) { return CRight(CR_WK << ((CS_QUEN == cs) + (c << BLACK))); }
-inline CRight operator~ (CRight cr) { return CRight(((cr >> 2) & 0x3) | ((cr << 2) & 0xC)); }
+inline CRight mk_castle_right (Color c)           { return CRight(CR_WHITE << (c << BLACK)); }
+inline CRight mk_castle_right (Color c, CSide cs) { return CRight(CR_WKING << ((CS_QUEN == cs) + (c << BLACK))); }
+inline CRight operator~ (CRight cr) { return CRight(((cr >> 2) & CR_WHITE) | ((cr << 2) & CR_BLACK)); }
 
 template<Color C, CSide CS>
 struct Castling
 {
     static const CRight
     Right = C == WHITE ?
-                CS == CS_QUEN ? CR_WQ : CR_WK :
-                CS == CS_QUEN ? CR_BQ : CR_BK;
+        CS == CS_KING ? CR_WKING : CR_WQUEN :
+        CS == CS_KING ? CR_BKING : CR_BQUEN;
 };
 
 inline bool   _ok   (PieceT pt) { return PAWN <= pt && pt <= KING; }
@@ -639,6 +673,7 @@ inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 typedef std::vector<Move>   MoveVector;
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
+//inline TimePoint  operator- (TimePoint  t1, TimePoint t2) { return TimePoint(i64(t1) - i64(t2)); }
 
 const u32 MILLI_SEC        = 1000;
 const u32 MINUTE_MILLI_SEC = MILLI_SEC * 60;
@@ -665,9 +700,23 @@ inline bool white_spaces (const std::string &str)
     return str.empty () || str.find_first_not_of (" \t\n") == std::string::npos;
 }
 
+inline void to_lower (std::string &str)
+{
+    std::transform (str.cbegin (), str.cend (), str.begin (), ::tolower);
+}
+inline void to_upper (std::string &str)
+{
+    std::transform (str.cbegin (), str.cend (), str.begin (), ::toupper);
+}
+inline void toggle (std::string &str)
+{
+    std::transform (str.cbegin (), str.cend (), str.begin (),
+        [](char c) { return char (islower (c) ? ::toupper (c) : ::tolower (c)); });
+}
+
 inline std::string& trim_left (std::string &str)
 {
-    str.erase (str.begin (), 
+    str.erase (str.cbegin (), 
                 std::find_if (str.begin (), str.end (), 
                     //[](char c) { return !std::isspace (c, std::locale ()); }
                     std::not1 (std::ptr_fun<i32, i32> (std::isspace))
@@ -679,31 +728,159 @@ inline std::string& trim_right (std::string &str)
     str.erase (std::find_if (str.rbegin (), str.rend (), 
                 //[](char c) { return !std::isspace (c, std::locale ()); }).base (), 
                 std::not1 (std::ptr_fun<i32, i32> (std::isspace))).base (),
-                    str.end ());
+                    str.cend ());
     return str;
 }
 inline std::string& trim (std::string &str)
 {
-    //size_t p0 = str.find_first_not_of (" \t\n");
-    //size_t p1 = str.find_last_not_of (" \t\n");
-    //p0  = p0 == std::string::npos ?  0 : p0;
-    //p1  = p1 == std::string::npos ? p0 : p1 - p0 + 1;
-    //str = str.substr (p0, p1);
-    //return str;
-
+    /*
+    size_t beg = str.find_first_not_of (" \t\n");
+    size_t end = str.find_last_not_of (" \t\n");
+    beg  = beg == std::string::npos ?  0 : beg;
+    end  = end == std::string::npos ? beg : end - beg + 1;
+    str = str.substr (beg, end);
+    return str;
+    */
     return trim_left (trim_right (str));
+}
+
+inline std::vector<std::string> split (const std::string str, char delimiter = ' ', bool keep_empty = true, bool do_trim = false)
+{
+    std::vector<std::string> tokens;
+    
+    /*
+    size_t beg = 0;
+    do
+    {
+        // Find next non-delimiter.
+        size_t end = str.find_first_of (delimiter, beg);
+        std::string token = str.substr (beg, end != std::string::npos ? end - beg : std::string::npos);
+        if (do_trim)
+        {
+            token = trim (token);
+        }
+        if (keep_empty || !token.empty ())
+        {
+            tokens.push_back (token);
+        }
+        // Skip delimiter.
+        beg = str.find_first_not_of (delimiter, end);
+    }
+    while (beg != std::string::npos);
+    */
+    /*
+    size_t beg = 0;
+    do
+    {
+        size_t end = str.find (delimiter, beg);
+        std::string token = str.substr (beg, end != std::string::npos ? end - beg : std::string::npos);
+        if (do_trim)
+        {
+            token = trim (token);
+        }
+        if (keep_empty || !token.empty ())
+        {
+            tokens.push_back (token);
+        }
+        if (end == std::string::npos)
+        {
+            break;
+        }
+        beg = end + 1;
+    }
+    while (true);
+    */
+    /*
+    size_t end = 0;
+    while (end <= str.length ())
+    {
+        size_t beg = keep_empty ? end : str.find_first_not_of (delimiter, end);
+        if (beg == std::string::npos)
+        {
+            break;
+        }
+        end = str.find_first_of (delimiter, beg);
+        auto token = str.substr (beg, end != std::string::npos ? end - beg : std::string::npos);
+        if (do_trim)
+        {
+            token = trim (token);
+        }
+        if (keep_empty || !token.empty ())
+        {
+            tokens.emplace_back (token);
+        }
+        if (std::string::npos == end)
+        {
+            break;
+        }
+        ++end;
+    }
+    */
+
+    std::istringstream buf (str);
+    do
+    {
+        std::string token;
+        bool fail = std::getline (buf, token, delimiter).fail ();
+        if (do_trim)
+        {
+            token = trim (token);
+        }
+        if (keep_empty || !token.empty ())
+        {
+            tokens.push_back (token);
+        }
+        if (fail)
+        {
+            break;
+        }
+    }
+    while (buf.good ());
+
+
+    return tokens;
+}
+
+inline void remove_substring (std::string &str, const std::string &sub)
+{
+    size_t pos = str.find (sub);
+    while (pos != std::string::npos)
+    {
+        str.erase (pos, sub.length ());
+        pos = str.find (sub, pos);
+    }
 }
 
 inline void remove_extension (std::string &filename)
 {
-    size_t last_dot = filename.find_last_of ('.');
-    if (last_dot != std::string::npos) filename = filename.substr (0, last_dot); 
+    size_t pos = filename.find_last_of ('.');
+    if (pos != std::string::npos)
+    {
+        filename = filename.substr (0, pos);
+    }
+}
+
+inline std::string append_path (const std::string &path1, const std::string &path2)
+{
+    const char sep = '/';
+    return path1[path1.length ()] != sep ?
+        path1 + sep + path2 :
+        path1 + path2;
 }
 
 inline void convert_path (std::string &path)
 {
     std::replace (path.begin (), path.end (), '\\', '/'); // Replace all '\' to '/'
 }
+
+//#include <unordered_set>
+//inline std::string remove_dup (const std::string &str)
+//{
+//    // unique char set
+//    std::unordered_set<char> chars_set (str.begin (), str.end ());
+//    std::string unique_str (chars_set.begin (), chars_set.end ());
+//    return unique_str;
+//}
 
 //template<class Iterator>
 //inline auto slide (Iterator beg, Iterator end, Iterator pos) -> std::pair<Iterator, Iterator>
