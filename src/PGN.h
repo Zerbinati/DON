@@ -1,86 +1,67 @@
 #ifndef _PGN_H_INC_
 #define _PGN_H_INC_
 
-#include <fstream>
-#include <vector>
-#include <stack>
-
 #include "Type.h"
-#include "Game.h"
 
-// PGN file with *.pgn extension
-class PGN
-    : private std::fstream
+//#define STRING_SIZE 256
+
+struct PGN
 {
-
 private:
 
-    enum State : i08
+    void _read_char ();
+    void _unread_char ();
+
+    void _read_skip_blanks ();
+
+    void _read_token ();
+    void _unread_token ();
+
+    void _read_tok ();
+
+    FILE *_file = nullptr;
+
+    enum token_t
     {
-        S_ERR = -1,
-        S_NEW = 0,
-
-        S_TAG_NEW,
-        S_TAG_BEG,
-        S_TAG_END,
-
-        S_MOV_NEW,
-        S_MOV_LST,
-        S_MOV_COM,
-
-        S_VAR_LST,
-        S_VAR_COM,
-
+        TOKEN_ERROR   = -1,
+        TOKEN_EOF     = 256,
+        TOKEN_SYMBOL  = 257,
+        TOKEN_STRING  = 258,
+        TOKEN_INTEGER = 259,
+        TOKEN_NAG     = 260,
+        TOKEN_RESULT  = 261
     };
-
-    std::string _pgn_fn = "";
-    openmode    _mode   = openmode(0);
-    size_t      _size   = 0;
-
-    std::vector<u64> _game_indexes;
-    std::stack<char> _char_stack;
-
-    void _reset ();
-    void _build_indexes ();
-    
-    void _scan_index (const std::string &str, u64 &pos, State &state);
-    void _add_index (u64 pos);
 
 public:
 
-    PGN () = default;
-    PGN (const PGN&) = delete;
-    PGN& operator= (const PGN&) = delete;
-    
-    PGN (const std::string &pgn_fn, std::ios_base::openmode mode);
-    ~PGN ();
+    int char_hack;
+    i32 char_line;
+    i32 char_column;
+    bool char_unread;
+    bool char_first;
 
-    bool open (const std::string &pgn_fn, std::ios_base::openmode mode);
+    std::string token;
+    token_t token_type;
+    i32 token_line;
+    i32 token_column;
+    bool token_unread;
+    bool token_first;
+
+    u32 games;
+    std::string result;
+    std::string fen;
+    std::string white_elo;
+    std::string black_elo;
+
+    u16 moves;
+    i32 move_line;
+    i32 move_column;
+
+    void open (const std::string &pgn_fn);
     void close ();
 
-    std::string pgn_fn () const { return _pgn_fn; }
-    size_t size ()
-    {
-        if (_size != 0) return _size;
-
-        u64 pos_cur = tellg ();
-        seekg (0L, std::ios_base::end);
-        _size = tellg ();
-        seekg (pos_cur, std::ios_base::beg);
-        clear ();
-        return _size;
-    }
-
-    u64 game_count () const { return _game_indexes.size (); }
-
-    std::string read_text (u64 index);
-    std::string read_text (u64 beg_index, u64 end_index);
-    
-    u64 write_text (const std::string &text);
-
-    Game read_game (u64 index);
-    
-    u64 write_game (const Game &game);
+    bool next_game ();
+    bool next_move (std::string &moves);
 
 };
 

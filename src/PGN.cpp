@@ -1,485 +1,732 @@
 #include "PGN.h"
 
-#include <iostream>
+
+#include <ctype.h>
+#include <errno.h>
+#include <string.h>
+#include <stdarg.h>
+#include <sys/types.h>
+#include <sys/timeb.h>
+#include <sys/stat.h>
 
 using namespace std;
 
-PGN::PGN (const string &pgn_fn, ios_base::openmode mode)
-    : fstream (pgn_fn, mode | ios_base::binary)
-    , _pgn_fn (pgn_fn)
-    , _mode (mode)
-    , _size (0)
-{
-    clear (); // Reset any error flag to allow retry open()
-    _build_indexes ();
-}
+namespace {
 
-PGN::~PGN ()
-{
-    close ();
-}
+    bool Error;
+    FILE *LogFile = nullptr;
 
-bool PGN::open (const string &pgn_fn, ios_base::openmode mode)
-{
-    close ();
-    fstream::open (pgn_fn, mode | ios_base::binary);
-    clear (); // Reset any error flag to allow retry open()
-    _pgn_fn = pgn_fn;
-    _mode   = mode;
-    _build_indexes ();
-    return is_open ();
-}
+    void log_fatal (const char format[], ...);
 
-void PGN::close () { if (is_open ()) { fstream::close (); _reset (); } }
+#define FormatBufferSize 4096
 
-void PGN::_reset ()
-{
-    //_pgn_fn.clear ();
-    //_mode       = 0;
-    _size   = 0;
-    _game_indexes.clear ();
-}
+#define CONSTRUCT_ARG_STRING(format, buf)                            \
+{                                                                    \
+    va_list arg_list;                                                \
+    int done;                                                        \
+    va_start(arg_list, format);                                      \
+    done = vsnprintf(buf, sizeof (buf), format, arg_list);           \
+    va_end(arg_list);                                                \
+    buf[sizeof (buf)-1]='\0';                                        \
+    if (done >= sizeof (buf) || done < 0) {                          \
+    log_fatal("write_buffer overflow: file \"%s\", line %d\n",       \
+    __FILE__, __LINE__);                                             \
+    }                                                                \
+} 
 
-void PGN::_build_indexes ()
-{
-    if (is_open () && good ())
+    const bool DispMove     = false;
+    const bool DispToken    = false;
+    const bool DispChar     = false;
+
+    const int TAB_SIZE = 8;
+
+    const int CHAR_EOF = 256;
+
+    //enum token_t
+    //{
+    //    TOKEN_ERROR   = -1,
+    //    TOKEN_EOF     = 256,
+    //    TOKEN_SYMBOL  = 257,
+    //    TOKEN_STRING  = 258,
+    //    TOKEN_INTEGER = 259,
+    //    TOKEN_NAG     = 260,
+    //    TOKEN_RESULT  = 261
+    //};
+
+    double now_time ()
     {
-        if (0 < game_count ())
+#ifndef _WIN32
+        struct timeval tv[1];
+        struct timezone tz[1];
+
+        tz->tz_minuteswest = 0;
+        tz->tz_dsttime = 0; // DST_NONE not declared in linux
+
+        if (gettimeofday (tv, tz) == -1)
         {
-            _reset ();
+            log_fatal ("now_time(): gettimeofday(): %s\n", strerror (errno));
+            return 0.0;
         }
 
-        size ();
+        return tv->tv_sec + tv->tv_usec * 1E-6;
+#else
+        struct _timeb timeptr;
+        _ftime (&timeptr);
+        return (timeptr.time + ((double) timeptr.millitm)/1000.0);
+        //   return (double) GetTickCount() / 1000.0;  // we can do better here:-)
+#endif
+    }
 
-        u64 pos = 0;
-        State state = S_NEW;
+    void log_msg (const char format[], ...)
+    {
+        char string[FormatBufferSize];
+
+        assert(format != NULL);
+        //  format
+        CONSTRUCT_ARG_STRING (format, string);
+        if (LogFile != NULL)
+        {
+            fprintf (LogFile, "%.3f %s", now_time (), string);
+#ifdef _WIN32
+            fflush (LogFile);
+#endif
+        }
+    }
+
+    void quit ()
+    {
+        log_msg ("POLYGLOT *** QUIT ***\n");
+        //if (Init && !Engine->pipex->quit_pending)
+        //{
+        //    stop_search ();
+        //    Engine->pipex->quit_pending = true;
+        //    send_engine (Engine, "quit");
+        //    close_engine (Engine);
+        //}
+        //my_sleep (200);
+        log_msg ("POLYGLOT Calling exit\n");
+        exit (EXIT_SUCCESS);
+    }
+
+    void log_fatal (const char format[], ...)
+    {
+        char string[FormatBufferSize];
+        assert(format != NULL);
+        // format
+        CONSTRUCT_ARG_STRING (format, string);
+
+        log_msg ("POLYGLOT %s", string);
+        // This should be send_gui but this does not work.
+        // Why?
+
+        printf ("tellusererror POLYGLOT: %s", string);
+
+        if (Error)
+        { // recursive error
+            log_msg ("POLYGLOT *** RECURSIVE ERROR ***\n");
+            exit (EXIT_FAILURE);
+            //abort();
+        }
+        else
+        {
+            Error = true;
+            quit ();
+        }
+    }
+
+    bool symbol_start (int c)
+    {
+        return strchr ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789", c) != nullptr;
+    }
+    bool symbol_next (int c)
+    {
+        return strchr ("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789_+#=:-/", c) != nullptr;
+    }
+
+}
+
+void PGN::_read_char ()
+{
+    // char "stack"
+    if (char_unread)
+    {
+        char_unread = false;
+        return;
+    }
+
+    // Consume the current character
+    if (char_first)
+    {
+        char_first = false;
+    }
+    else
+    {
+        // Update counters
+        assert(char_hack != CHAR_EOF);
         
-        // Clear the char stack
-        while (!_char_stack.empty ())
+        if (char_hack == '\n')
         {
-            _char_stack.pop ();
+            char_line++;
+            char_column = 0;
         }
-        //std::stack<char> empty;
-        //_char_stack.swap (empty);
+        else
+        if (char_hack == '\t')
+        {
+            char_column += TAB_SIZE - (char_column % TAB_SIZE);
+        }
+        else
+        {
+            char_column++;
+        }
+    }
 
-        seekg (0L);
+    // read a new character
+    char_hack = fgetc (_file);
+
+    if (char_hack == EOF)
+    {
+        if (ferror (_file))
+        {
+            log_fatal ("_read_char(): fgetc(): %s\n", strerror (errno));
+            return;
+        }
+        char_hack = CHAR_EOF;
+    }
+
+    if (DispChar)
+    {
+        printf ("< L%d C%d '%c' (%02X)\n", char_line, char_column, char_hack, char_hack);
+    }
+}
+void PGN::_unread_char ()
+{
+    assert(!char_unread);
+    assert(!char_first);
+    char_unread = true;
+}
+
+void PGN::_read_skip_blanks ()
+{
+    while (true)
+    {
+        _read_char ();
+
+        if (char_hack == CHAR_EOF)
+        {
+            break;
+        }
+        else
+        if (isspace (char_hack))
+        {
+            // skip white space
+        }
+        else
+        if (char_hack == ';')
+        {
+            // skip comment to EOL
+            do
+            {
+                _read_char ();
+                if (char_hack == CHAR_EOF)
+                {
+                    log_fatal ("_read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", char_line, char_column, games);
+                    return;
+                }
+            } while (char_hack != '\n');
+        }
+        else
+        if (char_hack == '%' && char_column == 0)
+        {
+            // skip comment to EOL
+            do
+            {
+                _read_char ();
+                if (char_hack == CHAR_EOF)
+                {
+                    log_fatal ("_read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", char_line, char_column, games);
+                    return;
+                }
+            } while (char_hack != '\n');
+        }
+        else
+        if (char_hack == '{')
+        {
+            // skip comment to next '}'
+            do
+            {
+                _read_char ();
+
+                if (char_hack == CHAR_EOF)
+                {
+                    log_fatal ("_read_skip_blanks(): EOF in comment at line %d, column %d, game %d\n", char_line, char_column, games);
+                    return;
+                }
+            } while (char_hack != '}');
+        }
+        else
+        { // not a white space
+            break;
+        }
+    }
+}
+
+void PGN::_read_token ()
+{
+    // token "stack"
+    if (token_unread)
+    {
+        token_unread = false;
+        return;
+    }
+
+    // consume the current token
+    if (token_first)
+    {
+        token_first = false;
+    }
+    else
+    {
+        assert(token_type != TOKEN_ERROR);
+        assert(token_type != TOKEN_EOF);
+    }
+
+    // read a new token
+    _read_tok ();
+
+    if (token_type == TOKEN_ERROR)
+    {
+        log_fatal ("_read_token(): lexical error at line %d, column %d, game %d\n", char_line, char_column, games);
+        return;
+    }
+    if (DispToken)
+    {
+        printf ("< L%d C%d \"%s\" (%03X)\n", token_line, token_column, token.c_str (), token_type);
+    }
+}
+void PGN::_unread_token ()
+{
+    assert(!token_unread);
+    assert(!token_first);
+    token_unread = true;
+}
+
+void PGN::_read_tok ()
+{
+    // skip white-space characters
+    _read_skip_blanks ();
+
+    // init
+    token        = "";
+    token_type   = TOKEN_ERROR;
+    token_line   = char_line;
+    token_column = char_column;
+
+    // Determine token type
+    if (char_hack == CHAR_EOF)
+    {
+        token_type = TOKEN_EOF;
+    }
+    else
+    if (strchr (".[]()<>", char_hack) != nullptr)
+    {
+        // Single-character token
+        token_type = token_t(char_hack);
+        token = (char)char_hack;
+    }
+    else
+    if (char_hack == '*')
+    {
+        token_type = TOKEN_RESULT;
+        token = (char)char_hack;
+    }
+    else
+    if (char_hack == '!')
+    {
+        _read_char ();
+
+        if (char_hack == '!')
+        { // "!!"
+            token_type = TOKEN_NAG;
+            token = "3";
+        }
+        else
+        if (char_hack == '?')
+        { // "!?"
+            token_type = TOKEN_NAG;
+            token = "5";
+        }
+        else
+        { // "!"
+            _unread_char ();
+            token_type = TOKEN_NAG;
+            token = "1";
+        }
+    }
+    else
+    if (char_hack == '?')
+    {
+        _read_char ();
+
+        if (char_hack == '?')
+        { // "??"
+            token_type = TOKEN_NAG;
+            token = "4";
+        }
+        else
+        if (char_hack == '!')
+        { // "?!"
+            token_type = TOKEN_NAG;
+            token = "6";
+        }
+        else
+        { // "?"
+            _unread_char ();
+            token_type = TOKEN_NAG;
+            token = "2";
+        }
+    }
+    else
+    if (symbol_start (char_hack))
+    {
+        // Symbol, Integer, or Result
+        token_type = TOKEN_INTEGER;
+        token = "";
         do
         {
-            const i32 MAX_BUFF = 32*1024;
-            //std::string str;
-            //std::getline (*this, str);
+            //if (token.length () >= STRING_SIZE-1)
+            //{
+            //    log_fatal ("_read_tok(): symbol too long at line %d, column %d, game %d\n", char_line, char_column, games);
+            //    return;
+            //}
 
-            std::string str (MAX_BUFF, '\0');
-            read (&str[0], MAX_BUFF);
-                
-            _scan_index (str, pos, state);
-        }
-        while (!eof () && good () && S_ERR != state);
-        clear ();
+            if (!isdigit (char_hack))
+            {
+                token_type = TOKEN_SYMBOL;
+            }
 
-        if (S_ERR == state)
-        {
-            // error at offset
-        }
-        if (   S_MOV_NEW == state
-            || S_MOV_LST == state
+            token += (char)char_hack;
+
+            _read_char ();
+            if (char_hack == CHAR_EOF)
+            {
+                break;
+            }
+
+        } while (symbol_next (char_hack));
+
+        _unread_char ();
+
+        assert(0 < token.length ()
+            //&& token.length () < STRING_SIZE
+            );
+        //token += '\0';
+
+        if (   token == "1-0"
+            || token == "0-1"
+            || token == "1/2-1/2"
             )
         {
-            _add_index (pos);
+            token_type = TOKEN_RESULT;
+        }
+    }
+    // String
+    else
+    if (char_hack == '"')
+    {
+        token_type = TOKEN_STRING;
+        token = "";
+
+        while (true)
+        {
+            _read_char ();
+            if (char_hack == CHAR_EOF)
+            {
+                log_fatal ("_read_tok(): EOF in string at line %d, column %d, game %d\n", char_line, char_column, games);
+                return;
+            }
+
+            if (char_hack == '"')
+            {
+                break;
+            }
+
+            if (char_hack == '\\')
+            {
+                _read_char ();
+                if (char_hack == CHAR_EOF)
+                {
+                    log_fatal ("_read_tok(): EOF in string at line %d, column %d, game %d\n", char_line, char_column, games);
+                    return;
+                }
+                // Bad escape, ignore
+                if (char_hack != '"' && char_hack != '\\')
+                {
+                    //if (token.length () >= STRING_SIZE-1)
+                    //{
+                    //    log_fatal ("_read_tok(): string too long at line %d, column %d, game %d\n", char_line, char_column, games);
+                    //    return;
+                    //}
+                    token += '\\';
+                }
+            }
+
+            //if (token.length () >= STRING_SIZE-1)
+            //{
+            //    log_fatal ("_read_tok(): string too long at line %d, column %d, game %d\n", char_line, char_column, games);
+            //    return;
+            //}
+
+            token += (char)char_hack;
         }
 
-#undef MAX_SIZE
+        assert(0 <= token.length ()
+            //&& token.length () < STRING_SIZE
+            );
+        //token += '\0';
+    }
+    else
+    if (char_hack == '$')
+    {
+        // NAG
+        token_type = TOKEN_NAG;
+        token = "";
 
+        while (true)
+        {
+            _read_char ();
+
+            if (!isdigit (char_hack))
+            {
+                break;
+            }
+
+            if (token.length () >= 3)
+            {
+                log_fatal ("_read_tok(): NAG too long at line %d, column %d, game %d\n", char_line, char_column, games);
+                return;
+            }
+            token += (char)char_hack;
+        }
+
+        _unread_char ();
+
+        if (token.length () == 0)
+        {
+            log_fatal ("_read_tok(): malformed NAG at line %d, column %d, game %d\n", char_line, char_column, games);
+            return;
+        }
+
+        assert(0 < token.length () && token.length () <= 3);
+        //token += '\0';
+    }
+    else
+    {
+        // Unknown token
+        log_fatal ("lexical error at line %d, column %d, game %d\n", char_line, char_column, games);
+        return;
+    }
+}
+
+void PGN::open (const string &pgn_fn)
+{
+    _file = fopen (pgn_fn.c_str (), "r");
+    if (_file == nullptr)
+    {
+        log_fatal ("open_pgn(): can't open file \"%s\": %s\n", pgn_fn.c_str (), strerror (errno));
+        return;
+    }
+
+    char_hack      = CHAR_EOF; // DEBUG
+    char_line      = 1;
+    char_column    = 0;
+    char_unread    = false;
+    char_first     = true;
+
+    token          = "?";
+    token_type     = TOKEN_ERROR; // DEBUG
+    token_line     = -1; // DEBUG
+    token_column   = -1; // DEBUG
+    token_unread   = false;
+    token_first    = true;
+
+    games          = 0;
+    result         = "?"; // DEBUG
+    fen            = "?"; // DEBUG
+    white_elo      = "?"; // DEBUG
+    black_elo      = "?"; // DEBUG
+
+    moves          = 0;
+    move_line      = -1; // DEBUG
+    move_column    = -1; // DEBUG
+}
+void PGN::close ()
+{
+    fclose (_file);
+    _file = nullptr;
+}
+
+bool PGN::next_game ()
+{
+    // init
+    result    = "*";
+    fen       = "";
+    white_elo = "0";
+    black_elo = "0";
+
+    while (true)
+    {
+        string name;
+        string value;
+
+        _read_token ();
+
+        if (token_type != '[')
+        {
+            break;
+        }
+
+        // tag
+        _read_token ();
+        if (token_type != TOKEN_SYMBOL)
+        {
+            log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
+            return false;
+        }
+        name = token;
+
+        _read_token ();
+        if (token_type != TOKEN_STRING)
+        {
+            log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
+            return false;
+        }
+        value = token;
+
+        _read_token ();
+        if (token_type != ']')
+        {
+            log_fatal ("next_game_pgn(): malformed tag at line %d, column %d, game %d\n", token_line, token_column, games);
+            return false;
+        }
+
+        // special tag?
+        if (name == "Result")
+        {
+            result = value;
+        }
+        else
+        if (name == "FEN")
+        {
+            fen = value;
+        }
+        else
+        if (name == "WhiteElo")
+        {
+            white_elo = value;
+        }
+        else
+        if (name == "BlackElo")
+        {
+            black_elo = value;
+        }
+    }
+
+    if (token_type == TOKEN_EOF)
+    {
+        return false;
+    }
+    
+    _unread_token ();
+    ++games;
+    moves = 0;
+
+    return true;
+}
+bool PGN::next_move (string &move)
+{
+    // init
+    move_line      = -1;  // DEBUG
+    move_column    = -1;  // DEBUG
+    
+    move = "";
+    int depth = 0;
+
+    while (true)
+    {
+        _read_token ();
         
-    }
-}
-
-#undef SKIP_WHITESPACE
-#undef CHECK_INCOMPLETE
-
-#define SKIP_WHITESPACE() do { if (length == offset) goto finish; c = str[offset++]; } while (isspace (c) && c != '\n')
-#define CHECK_INCOMPLETE() do { if ('\0' == c) { cerr << "ERROR: incomplete game"; state = S_ERR; goto finish; } } while (false)
-
-void PGN::_scan_index (const string &str, u64 &pos, State &state)
-{
-    size_t offset = 0;
-    auto length = str.length ();
-
-    while (offset < length)
-    {
-        u08 c;
-
-        SKIP_WHITESPACE ();
-
-        if ('\0' == c)
+        if (token_type == '(')
         {
-            if (!_char_stack.empty ())
-            {
-                cerr << "ERROR: missing closing character of: " << _char_stack.top () << "at location: " << (pos + offset);
-                state = S_ERR;
-                goto finish;
-            }
-            else
-            {
-                cerr << "****SUCCESS****" << endl;
-            }
-            break;
+            // open RAV
+            ++depth;
         }
-
-        switch (state)
+        else
+        if (token_type == ')')
         {
-        case S_NEW:
-            switch (c)
+            // close RAV
+            if (depth == 0)
             {
-            case '\n':
-                break;
-            case  '[':
-                state = S_TAG_BEG;
-                break;
-            case  '0': case  '1': case  '2': case  '3': case  '4':
-            case  '5': case  '6': case  '7': case  '8': case  '9':
-            case  '*':
-                state = S_MOV_LST;
-                break;
-            case  '{':
-                state = S_MOV_COM;
-                break;
-            case  ';':
-                while ('\n' != c)
-                {
-                    SKIP_WHITESPACE ();
-                    CHECK_INCOMPLETE ();
-                }
-                state = S_MOV_LST;
-                break;
-            case  '%':
-                while ('\n' != c)
-                {
-                    SKIP_WHITESPACE ();
-                    CHECK_INCOMPLETE ();
-                }
-                state = S_MOV_LST;
-                break;
-            default:
-                cerr << ("ERROR: invalid character");
-                state = S_ERR;
-                goto finish;
-                break;
+                log_fatal ("next_move_pgn(): malformed variation at line %d, column %d, game %d\n", token_line, token_column, games);
+                return false;
             }
-            break;
-
-        case S_TAG_NEW:
-            switch (c)
+            --depth;
+            assert(depth >= 0);
+        }
+        else
+        if (token_type == TOKEN_RESULT)
+        {
+            // game finished
+            if (depth > 0)
             {
-            case '\n':
-                state = S_NEW;
-                break;
-            case  '[':
-                state = S_TAG_BEG;
-                break;
+                log_fatal ("next_move_pgn(): malformed variation at line %d, column %d, game %d\n", token_line, token_column, games);
+                return false;
             }
-            break;
-
-        case S_TAG_BEG:
-            while (']' != c)
+            return false;
+        }
+        else
+        {
+            // Skip optional move number
+            if (token_type == TOKEN_INTEGER)
             {
-                SKIP_WHITESPACE ();
-                CHECK_INCOMPLETE ();
+                do
+                {
+                    _read_token ();
+                }
+                while (token_type == '.');
             }
-            state = S_TAG_END;
-            break;
 
-        case S_TAG_END:
-            switch (c)
+            // Move must be a symbol
+            if (token_type != TOKEN_SYMBOL)
             {
-            case '\n':
-                state = S_TAG_NEW;
-                break;
-            case  '[':
-                state = S_TAG_BEG;
-                break;
+                log_fatal ("next_move_pgn(): malformed move at line %d, column %d, game %d\n", token_line, token_column, games);
+                return false;
             }
-            break;
 
-        case S_MOV_NEW:
-            switch (c)
+            // Store move for later use
+            if (depth == 0)
             {
-            case '\n':
-                state = S_NEW;
-                // New game
-                _add_index (pos + offset);
-                break;
-            case  '(':
-                state = S_VAR_LST;
-                _char_stack.push (c);
-                break;
-            case  '{':
-                state = S_MOV_COM;
-                break;
-            case  ';':
-                while ('\n' != c)
-                {
-                    SKIP_WHITESPACE ();
-                    CHECK_INCOMPLETE ();
-                }
-                break;
-            case  '%':
-                while ('\n' != c)
-                {
-                    SKIP_WHITESPACE ();
-                    CHECK_INCOMPLETE ();
-                }
-                break;
-            default:
-                state = S_MOV_LST;
-                break;
+                move = token;
+                ++moves;
+                move_line = token_line;
+                move_column = token_column;
             }
-            break;
 
-        case S_MOV_LST:
-            switch (c)
+            // Skip optional NAGs
+            do
             {
-            case '\n':
-                state = S_MOV_NEW;
-                break;
-            case  '(':
-                state = S_VAR_LST;
-                _char_stack.push (c);
-                break;
-            case  '{':
-                state = S_MOV_COM;
-                break;
-            case  ';':
-                while ('\n' != c)
-                {
-                    SKIP_WHITESPACE ();
-                    CHECK_INCOMPLETE ();
-                }
-                state = S_MOV_NEW;
-                break;
-            default: break;
+                _read_token ();
             }
-            break;
+            while (token_type == TOKEN_NAG);
+            _unread_token ();
 
-        case S_MOV_COM:
-            while ('}' != c)
+            // return move
+            if (depth == 0)
             {
-                SKIP_WHITESPACE ();
-                CHECK_INCOMPLETE ();
+                if (DispMove) printf ("move=\"%s\"\n", move.c_str ());
+                return true;
             }
-            state = S_MOV_LST;
-            break;
-
-        case S_VAR_LST:
-            switch (c)
-            {
-            case  '(':
-                _char_stack.push (c);
-                break;
-            case  ')':
-                if (_char_stack.empty () || '(' != _char_stack.top ())
-                {
-                    cerr << ("ERROR: missing opening of variation");
-                    state = S_ERR;
-                    goto finish;
-                }
-                else
-                {
-                    _char_stack.pop ();
-                }
-                break;
-            case  '{':
-                state = S_VAR_COM;
-                _char_stack.push (c);
-                break;
-            default:
-                if (_char_stack.empty ())
-                {
-                    state = S_MOV_LST;
-                }
-                break;
-            }
-            break;
-
-        case S_VAR_COM:
-            switch (c)
-            {
-            case  '}':
-                if (_char_stack.empty () || '{' != _char_stack.top ())
-                {
-                    cerr << ("ERROR:: missing opening of variation comment");
-                    state = S_ERR;
-                    goto finish;
-                }
-                else
-                {
-                    state = S_VAR_LST;
-                    _char_stack.pop ();
-                }
-                break;
-            }
-            break;
-
-        case S_ERR:
-            goto finish;
-            break;
-
-        default:
-            break;
         }
     }
-
-finish:
-    pos += offset;
-}
-#undef SKIP_WHITESPACE
-#undef CHECK_INCOMPLETE
-
-void PGN::_add_index (u64 pos)
-{
-    //u64 g_count = game_count ();
-    //if (0 < g_count)
-    //{
-    //    if (pos <= _game_indexes[g_count - 1]) return;
-    //}
-
-    _game_indexes.push_back (pos);
-}
-
-/*
-// Remove (first occurence of) sub
-char* remove_substrs (  char *str, const   char *sub)
-{
-    const size_t length = strlen (sub);
-    char *p = strstr (str, sub);
-    while (p != NULL)
-    {
-        strcpy (p, p + length);
-        //memmove (p, p + length, strlen (p + length) + 1);
-        p = strstr (p, sub);
-    }
-    return str;
-}
-*/
-void  remove_substrs (string &str, const string &sub)
-{
-    auto len = sub.length ();
-    for (auto i = str.find (sub);
-              i != string::npos;
-              i = str.find (sub, i)
-        )
-    {
-        str.erase (i, len);
-    }
-}
-
-// Read the text index (1...n)
-string PGN::read_text (u64 index)
-{
-    if (1 <= index && index <= game_count ())
-    {
-        if (is_open () && good ())
-        {
-            auto beg_pos = 1 == index ? 0 : _game_indexes[index - 2];
-            auto end_pos = _game_indexes[index - 1];
-
-            auto size = end_pos - beg_pos;
-            
-            /*
-            // using char *
-            auto buf = new char[(size + 1)];
-            if (buf != NULL)
-            {
-                seekg (beg_pos);
-                read (buf, size);
-                buf[size] = '\0';
-            
-                remove_substrs (buf, "\r");
-            
-                string text = buf;
-                delete[] buf; buf = NULL;
-            
-                //remove_substrs (text, "\r");
-                return text;
-            }
-            */
-
-            // using string
-            string text (size, '\0');
-            seekg (beg_pos, ios_base::beg);
-            read (&text[0], size);
-            remove_substrs (text, "\r");
-
-            return text;
-        }
-    }
-    return "";
-}
-// Read the text beg_index (1...n), end_index (1...n)
-string PGN::read_text (u64 beg_index, u64 end_index)
-{
-    if (   beg_index <= end_index
-        && game_count () >= beg_index && end_index <= game_count ()
-       )
-    {
-        if (is_open () && good ())
-        {
-            auto beg_pos = 1 == beg_index ? 0 : _game_indexes[beg_index - 2];
-            auto end_pos = _game_indexes[end_index - 1];
-
-            auto size = end_pos - beg_pos;
-
-            /*
-            // using char *
-            auto *buf = new char[(size + 1)];
-            if (buf)
-            {
-                seekg (beg_pos);
-                read (buf, size);
-                buf[size] = '\0';
-            
-                remove_substrs (buf, "\r");
-            
-                string text = buf;
-                delete[] buf; buf = NULL;
-            
-                //remove_substrs (text, "\r");
-                return text;
-            }
-            */
-
-            // using string
-            string text (size, '\0');
-            seekg (beg_pos, ios_base::beg);
-            read (&text[0], size);
-            remove_substrs (text, "\r");
-
-            return text;
-        }
-    }
-    return "";
-}
-// Write the text and return index of the text
-u64    PGN::write_text (const string &text)
-{
-    if (is_open () && good ())
-    {
-        *this << text;
-    }
-    return 0;
-}
-
-// Read the game from index (1...n)
-Game   PGN::read_game (u64 index)
-{
-    return Game (read_text (index));
-}
-// Write the game and return index of the game
-u64    PGN::write_game (const Game &game)
-{
-    // TODO::
-    string pgn = game.pgn ();
-    *this << pgn;
-
-    return 0;
+    assert(false);
+    return false;
 }

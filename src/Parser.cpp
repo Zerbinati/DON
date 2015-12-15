@@ -8,8 +8,8 @@
 #include "MoveGenerator.h"
 #include "Notation.h"
 #include "Polyglot.h"
-#include "PGN.h"
 #include "PGNFile.h"
+#include "PGN.h"
 
 using namespace std;
 using namespace MoveGen;
@@ -33,9 +33,9 @@ namespace Parser {
         Position::initialize ();
 
         /*
-        //PGN pgn ("test.pgn", ios_base::in|ios_base::out);
-        PGN pgn ("book.pgn", ios_base::in);
-        //PGN pgn ("5lac.pgn", ios_base::in);
+        //PGNFile pgn ("test.pgn", ios_base::in|ios_base::out);
+        PGNFile pgn ("book.pgn", ios_base::in);
+        //PGNFile pgn ("5lac.pgn", ios_base::in);
         u32 beg_game;
         u32 end_game;
         cout << pgn.game_count () << endl;
@@ -136,8 +136,8 @@ namespace Parser {
         cout << book.read_entries (pos);
         */
 
-        /*
-        pgn_t pgn;
+
+        PGN pgn;
         string pgn_fn = "book.pgn";
         pgn.open (pgn_fn);
         while (pgn.next_game ())
@@ -149,7 +149,14 @@ namespace Parser {
             while (pgn.next_move (move))
             {
                 auto m = move_from_san (move, pos);
-
+                if (m == MOVE_NONE)
+                {
+                    for (const auto &mm : MoveList<LEGAL> (pos))
+                    {
+                        cout << move_to_san (mm, pos) << " ";
+                    }
+                    break;
+                }
                 cout << m << " ";
 
                 states.push (StateInfo ());
@@ -162,7 +169,6 @@ namespace Parser {
         pgn.close ();
 
         cout << pgn.games << endl;
-        */
 
 
     }
