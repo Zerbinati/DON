@@ -6,14 +6,17 @@
 #include "functor.h"
 #include "Position.h"
 
-enum Result : u08
+enum Result : i08
 {
-    NO_RES  = 0,
-    WIN_W   = 1,
-    WIN_B   = 2,
-    DRAW    = 3,
-
+    RESULT_NONE  = 0,
+    RESULT_W_WIN = +1,
+    RESULT_B_WIN = -1,
+    RESULT_DRAW  = 0,
 };
+inline Result operator+(Result r) { return Result(+i32(r)); }
+inline Result operator-(Result r) { return Result(-i32(r)); }
+inline Result operator+(Result r, i32 i) { return Result(i32(r) + i); }
+inline Result operator-(Result r, i32 i) { return Result(i32(r) - i); }
 
 struct Tag
 {
@@ -94,7 +97,7 @@ public:
 
     Game ()
         : position (STARTUP_FEN)
-        , result (NO_RES)
+        , result (RESULT_NONE)
     {}
     Game (i32)
     {}

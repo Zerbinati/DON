@@ -88,7 +88,7 @@ void Game::clear ()
     tags.clear ();
     moves.clear ();
     position.clear ();
-    result = NO_RES;
+    result = RESULT_NONE;
 }
 void Game::reset ()
 {
@@ -104,7 +104,7 @@ void Game::reset ()
 
     if (size != moves.size ())
     {
-        result = NO_RES;
+        result = RESULT_NONE;
     }
 }
 

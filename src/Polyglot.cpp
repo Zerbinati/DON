@@ -8,6 +8,8 @@
 #include "MoveGenerator.h"
 #include "manipulator.h"
 #include "Notation.h"
+#include "PGN.h"
+#include "Game.h"
 
 namespace Polyglot {
 
@@ -19,12 +21,13 @@ namespace Polyglot {
 
     namespace {
 
-        u32 BegGame     = 1;
-        u32 EndGame     = 100;
-        u32 MinGame     = 3;
-        u32 MinWeight   = 0;
-        bool SkipWhite  = false;
-        bool SkipBlack  = false;
+        u32     MinGame     = 0;    // Minimum Popularity
+        double  MinScore    = 0.0;
+        bool    SkipWhite   = false;
+        bool    SkipBlack   = false;
+
+        u32 MaxPly      = 200;
+        u32 RelECO      = 190;
 
         void* realloc_ex (void *old_address, size_t size)
         {
@@ -62,6 +65,20 @@ namespace Polyglot {
                     return pe1->move - pe2->move;
                 }
             }
+        }
+
+        u16 convert_move (Move move)
+        {
+            u16 pm = move & ~PROMOTE;
+            // Polyglot use 3 bits while engine use 2 bits.
+            if (mtype (move) == PROMOTE)
+            {
+                auto pt = PieceT ((pm >> 12) & 3);
+                // Set new type for promotion piece
+                pm &= 0x0FFF;
+                pm |= (pt + NIHT) << 12;
+            }
+            return pm;
         }
 
         //bool compare_entry2 (const Entry &pe1, const Entry &pe2)
@@ -333,7 +350,7 @@ namespace Polyglot {
             // Promotion moves have promotion piece different then our structure of move
             // So in case book move is a promotion have to convert to our representation,
             // in all the other cases can directly compare with a Move after having masked out
-            // the special Move's flags (bit 14-15) that are not supported by Polyglot.
+            // the special Move's flags (bits 14-15) that are not supported by Polyglot.
             // Polyglot use 3 bits while engine use 2 bits.
             auto pt = PieceT((move >> 12) & TOTL);
             // Set new type for promotion piece
@@ -396,6 +413,8 @@ namespace Polyglot {
 
     // -------------------------
 
+    const u08 Table::TEntry::Size = sizeof (TEntry);
+
     Table::Table (size_t entry_alloc)
     {
         init (entry_alloc);
@@ -407,7 +426,7 @@ namespace Polyglot {
         _entry_count = 0;
         _hash_mask   = _entry_alloc * 2 - 1;
 
-        _entries = static_cast<Entry   *> (malloc (_entry_alloc * Entry::Size));
+        _entries = static_cast<TEntry  *> (malloc (_entry_alloc * TEntry::Size));
         _hashes  = static_cast<intptr_t*> (malloc (_entry_alloc * 2 * sizeof (intptr_t)));
 
         empty_hash_table ();
@@ -457,7 +476,7 @@ namespace Polyglot {
         _hash_mask   = _entry_alloc * 2 - 1;
 
         //int alloc_size = 0;
-        //alloc_size += _entry_alloc * Entry::Size;
+        //alloc_size += _entry_alloc * TEntry::Size;
         //alloc_size += _entry_alloc * 2 * sizeof (intptr_t);
         //if (size >= 0x100000)
         //{
@@ -467,7 +486,7 @@ namespace Polyglot {
         //    }
         //}
 
-        _entries = static_cast<Entry   *> (realloc_ex (_entries, _entry_alloc * Entry::Size));
+        _entries = static_cast<TEntry  *> (realloc_ex (_entries, _entry_alloc * TEntry::Size));
         _hashes  = static_cast<intptr_t*> (realloc_ex (_hashes , _entry_alloc * 2 * sizeof (intptr_t)));
 
         rebuild_hash_table ();
@@ -486,16 +505,16 @@ namespace Polyglot {
         return index;
     }
 
-    intptr_t Table::find_entry_pos (Key key, Move move) const
+    intptr_t Table::find_entry_pos (Key key, u16 move) const
     {
         size_t index = (u32)key & _hash_mask;
         while (_hashes[index] != NullHash)
         {
             intptr_t pos = _hashes[index];
             assert(0 <= pos && (size_t)pos < _entry_count);
-            const auto &pe = _entries[pos];
-            if (   pe.key == key
-                && pe.move == move
+            const auto &te = _entries[pos];
+            if (   te.key == key
+                && te.move == move
                )
             {
                 return pos;
@@ -505,12 +524,16 @@ namespace Polyglot {
         }
         return NullHash;
     }
-    intptr_t Table::find_entry_pos (const Entry &pe) const
+    intptr_t Table::find_entry_pos (const  Entry &pe) const
     {
-        return find_entry_pos (pe.key, Move(pe));
+        return find_entry_pos (pe.key, pe.move);
+    }
+    intptr_t Table::find_entry_pos (const TEntry &te) const
+    {
+        return find_entry_pos (te.key, te.move);
     }
 
-    intptr_t Table::new_entry_pos (const Entry &pe)
+    intptr_t Table::new_entry_pos (const TEntry &te)
     {
         assert(_entry_count <= _entry_alloc);
         if (_entry_count == _entry_alloc)
@@ -524,7 +547,7 @@ namespace Polyglot {
         intptr_t pos = _entry_count++;
         assert(0 <= pos && (size_t)pos < _entry_count);
 
-        _entries[pos] = pe;
+        _entries[pos] = te;
 
         // Insert pos into the hash table
         _hashes[find_null_index (_entries[pos].key)] = pos;
@@ -537,9 +560,10 @@ namespace Polyglot {
         size_t write_entry_count = 0;
         while (read_entry_count < _entry_count)
         {
-            if (_entries[read_entry_count].move != MOVE_NONE)
+            const auto &te = _entries[read_entry_count];
+            if (te.move != MOVE_NONE)
             {
-                _entries[write_entry_count] = _entries[read_entry_count];
+                _entries[write_entry_count] = te;
                 ++write_entry_count;
             }
             ++read_entry_count;
@@ -547,12 +571,12 @@ namespace Polyglot {
         _entry_count = write_entry_count;
     }
 
-    bool Table::keep_entry (const Entry & pe) const
+    bool Table::keep_entry (const TEntry & te) const
     {
-        if (   false//pe.n < MinGame
-            || pe.weight < MinWeight
-            || (SkipWhite /*&& pe.color == WHITE*/)
-            || (SkipBlack /*&& pe.color == BLACK*/)
+        if (   te.popularity < MinGame
+            || te.score () < MinScore
+            || (SkipWhite && te.color == WHITE)
+            || (SkipBlack && te.color == BLACK)
            )
         {
             return false;
@@ -566,9 +590,10 @@ namespace Polyglot {
         size_t write_entry_count = 0;
         while (read_entry_count < _entry_count)
         {
-            if (keep_entry (_entries[read_entry_count]))
+            const auto &te = _entries[read_entry_count];
+            if (keep_entry (te))
             {
-                _entries[write_entry_count] = _entries[read_entry_count];
+                _entries[write_entry_count] = te;
                 ++write_entry_count;
             }
             ++read_entry_count;
@@ -578,7 +603,7 @@ namespace Polyglot {
 
     void Table::sort ()
     {
-        std::qsort (_entries, _entry_count, Entry::Size, &compare_entry);
+        std::qsort (_entries, _entry_count, TEntry::Size, &compare_entry);
         //std::stable_sort (_entries, _entries + _entry_count, compare_entry2);
     }
 
@@ -592,17 +617,18 @@ namespace Polyglot {
             // Save header
             for (size_t i = 0; i < 6; ++i)
             {
-                book << Entry::NullEntry;
+                book << _header[i];
             }
             // Save entries
             for (size_t pos = 0; pos < size (); ++pos)
             {
-                const auto &pe = _entries[pos];
-                //assert(entry_keep (pe));
+                const auto &te = _entries[pos];
+                //assert(keep_entry (te));
 
                 // Null keys are reserved for the header
-                if (pe.key != U64(0))
+                if (te.key != U64(0))
                 {
+                    Entry pe (te.key, te.move, te.expectancy, 0);
                     book << pe;
                 }
             }
@@ -614,18 +640,193 @@ namespace Polyglot {
         Book book (book_fn, ios_base::in);
         if (book.is_open () && book.good ())
         {
+            // Load header
+            for (size_t i = 0; i < 6; ++i)
+            {
+                book >> _header[i];
+            }
             // Load entries
-            book.seekg (OFFSET(0), ios_base::beg);
+            //book.seekg (OFFSET(0), ios_base::beg);
             size_t entry_count = (book.size () - Book::HeaderSize) / Entry::Size;
             for (size_t i = 0; i < entry_count; ++i)
             {
                 Entry pe;
                 book >> pe;
                 assert(pe.key != U64(0));
-                new_entry_pos (pe);
+                TEntry te (pe.key, pe.move, 1, pe.weight);
+                new_entry_pos (te);
             }
             book.close ();
         }
+    }
+
+
+    void Table::import_max_ply (const string &pgn_fn, u32 beg_game, u32 end_game, u16 max_ply)
+    {
+        PGN pgn;
+        pgn.open (pgn_fn);
+
+        while (pgn.next_game ())
+        {
+            string move;
+
+            if (pgn.games < beg_game)
+            {
+                while (pgn.next_move (move))
+                {
+                }
+                continue;
+            }
+            if (pgn.games > end_game)
+            {
+                break;
+            }
+
+            Position pos (pgn.fen.empty () ? STARTUP_FEN : pgn.fen);
+            Result result = RESULT_NONE;
+            if (pgn.result == "1-0")
+            {
+                result = RESULT_W_WIN;
+            }
+            else
+            if (pgn.result == "0-1")
+            {
+                result = RESULT_B_WIN;
+            }
+            else
+            if (pgn.result == "1/2-1/2")
+            {
+                result = RESULT_DRAW;
+            }
+            else
+            {
+                result = RESULT_NONE;
+            }
+
+            StateStack states;
+            while (pgn.next_move (move))
+            {
+                if (max_ply != 0 && pgn.moves > max_ply)
+                {
+                    continue;
+                }
+
+                auto m = move_from_san (move, pos);
+                if (m == MOVE_NONE)
+                {
+                    cout << "import(): Illegal move " << move << " at line " << pgn.move_line << ", column " << pgn.move_column << ", game " << pgn.games << endl;
+                    return;
+                }
+                
+                u16 pm = convert_move (m); // Conversion to polyglot move
+                auto p = find_entry_pos (pos.posi_key (), pm);
+                if (p == NullHash)
+                {
+                    TEntry te (pos.posi_key (), pm, 0, 0);
+                    
+                    p = new_entry_pos (te);
+                }
+
+                auto &te = _entries[p];
+                te.popularity++;
+                te.expectancy += result + 1;
+
+                states.push (StateInfo ());
+                pos.do_move (m, states.top (), pos.gives_check (m, CheckInfo (pos)));
+
+                result = -result;
+            }
+
+            cout << pgn.moves << endl;
+        }
+
+        pgn.close ();
+
+        cout << "games: " << (pgn.games-1) << endl;
+    }
+
+    void Table::import_rel_eco (const string &pgn_fn, u32 beg_game, u32 end_game, u16 rel_eco)
+    {
+        PGN pgn;
+        pgn.open (pgn_fn);
+
+        while (pgn.next_game ())
+        {
+            string move;
+
+            if (pgn.games < beg_game)
+            {
+                while (pgn.next_move (move))
+                {
+                }
+                continue;
+            }
+            if (pgn.games > end_game)
+            {
+                break;
+            }
+
+            Position pos (pgn.fen.empty () ? STARTUP_FEN : pgn.fen);
+            Result result = RESULT_NONE;
+            if (pgn.result == "1-0")
+            {
+                result = RESULT_W_WIN;
+            }
+            else
+            if (pgn.result == "0-1")
+            {
+                result = RESULT_B_WIN;
+            }
+            else
+            if (pgn.result == "1/2-1/2")
+            {
+                result = RESULT_DRAW;
+            }
+            else
+            {
+                result = RESULT_NONE;
+            }
+
+            StateStack states;
+            while (pgn.next_move (move))
+            {
+                if (rel_eco != 0 && pgn.moves > rel_eco)
+                {
+                    continue;
+                }
+
+                auto m = move_from_san (move, pos);
+                if (m == MOVE_NONE)
+                {
+                    cout << "import(): Illegal move " << move << " at line " << pgn.move_line << ", column " << pgn.move_column << ", game " << pgn.games << endl;
+                    return;
+                }
+
+                u16 pm = convert_move (m); // Conversion to polyglot move
+                auto p = find_entry_pos (pos.posi_key (), pm);
+                if (p == NullHash)
+                {
+                    TEntry te (pos.posi_key (), pm, 0, 0);
+
+                    p = new_entry_pos (te);
+                }
+
+                auto &te = _entries[p];
+                te.popularity++;
+                te.expectancy += result + 1;
+
+                states.push (StateInfo ());
+                pos.do_move (m, states.top (), pos.gives_check (m, CheckInfo (pos)));
+
+                result = -result;
+            }
+
+            cout << pgn.moves << endl;
+        }
+
+        pgn.close ();
+
+        cout << "games: " << (pgn.games-1) << endl;
     }
 
 }

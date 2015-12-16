@@ -34,7 +34,7 @@ namespace Polyglot {
 
         Entry& operator= (const Entry&) = default;
 
-        explicit operator Move () const { return Move (move); }
+        explicit operator Move () const { return Move(move); }
 
         bool operator== (const Entry &pe)
         {
@@ -161,10 +161,48 @@ namespace Polyglot {
     class Table
     {
     private:
+
+        struct TEntry
+        {
+            static const u08 Size;
+
+            u64 key         = U64(0);
+            u16 move        = 0;
+            u16 popularity  = 0;
+            u16 expectancy  = 0;
+            Color color     = CLR_NO;
+
+            TEntry () = default;
+            TEntry (u64 k, u16 m, u16 p, u16 e, Color c = CLR_NO)
+                : key (k)
+                , move (m)
+                , popularity (p)
+                , expectancy (e)
+                , color (c)
+            {}
+
+            double score () const
+            {
+                auto score = popularity != 0 ? 0.5 * expectancy / popularity : 0.0;
+                //assert(0.0 <= score && score <= 1.0);
+                return score;
+            }
+
+            //explicit
+            operator Entry() const
+            {
+                Entry entry (key, move, expectancy, 0);
+                return entry;
+            }
+        };
+
         size_t   _entry_alloc   = 1;
-        size_t   _hash_mask     = 1;
         size_t   _entry_count   = 0;
-        Entry    *_entries      = nullptr;
+        size_t   _hash_mask     = 1;
+
+        Entry    _header[6];
+
+        TEntry   *_entries      = nullptr;
         intptr_t *_hashes       = nullptr;
 
         static const intptr_t NullHash = -1;
@@ -185,20 +223,25 @@ namespace Polyglot {
 
         size_t   find_null_index (Key key) const;
 
-        intptr_t find_entry_pos (Key key, Move move) const;
-        intptr_t find_entry_pos (const Entry &pe) const;
+        intptr_t find_entry_pos (Key key, u16 move) const;
+        intptr_t find_entry_pos (const  Entry &pe) const;
+        intptr_t find_entry_pos (const TEntry &te) const;
 
-        intptr_t new_entry_pos (const Entry &pe);
+        intptr_t new_entry_pos (const TEntry &te);
 
         void clean ();
         
-        bool keep_entry (const Entry &pe) const;
+        bool keep_entry (const TEntry &te) const;
 
         void filter ();
         void sort ();
 
         void save (const std::string &book_fn) const;
         void load (const std::string &book_fn);
+
+        void import_max_ply (const std::string &pgn_fn, u32 beg_game, u32 end_game, u16 max_ply);
+        void import_rel_eco (const std::string &pgn_fn, u32 beg_game, u32 end_game, u16 rel_eco);
+
 
         /*
         template<class CharT, class Traits>

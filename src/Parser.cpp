@@ -90,13 +90,15 @@ namespace Parser {
         //game.parse (text);
         //cout << game;
 
-        /*
         Table table;
         table.load ("book.bin");
+        //table.import_max_ply ("book.pgn", 1 , 10, 200);
+        
         table.filter ();
         table.sort ();
         table.save ("book1.bin");
 
+        /*
         Book book;
         book.open ("book1.bin", ios_base::in);
         
@@ -136,7 +138,7 @@ namespace Parser {
         cout << book.read_entries (pos);
         */
 
-
+        /*
         PGN pgn;
         string pgn_fn = "book.pgn";
         pgn.open (pgn_fn);
@@ -172,7 +174,7 @@ namespace Parser {
         pgn.close ();
 
         cout << pgn.games << endl;
-
+        */
 
     }
 
