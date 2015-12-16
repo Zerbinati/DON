@@ -29,9 +29,9 @@ namespace Searcher {
     using namespace Notation;
     using namespace Debugger;
 
-    // MoveManager class is used to detect a so called 'easy move'; when PV is
+    // EasyMoveManager class is used to detect a so called 'easy move'; when PV is
     // stable across multiple search iterations we can fast return the best move.
-    class MoveManager
+    class EasyMoveManager
     {
     private:
         Key  _posi_key = U64(0);
@@ -40,7 +40,7 @@ namespace Searcher {
     public:
         u08 stable_count = 0;
 
-        MoveManager () { clear (); }
+        EasyMoveManager () { clear (); }
 
         void clear ()
         {
@@ -151,25 +151,28 @@ namespace Searcher {
         const i32 LateMoveReductionDepth = 2;
         const u08 FullDepthMoveCount = 1;
 
+        const i32 TimerResolution = 5; // Millisec between two check_limits() calls
+
         Color   RootColor;
-        bool    UseTimeManagment;
+        bool    TimeManagmentUsed = false;
+        
+        bool    MateSearch      = false;
+
+        bool    RootFailedLow   = false; // Failed low at root
 
         u16     PVLimit;
 
         Value   DrawValue[CLR_NO]
             ,   BaseContempt[CLR_NO];
 
-        bool    MateSearch  = false;
-        bool    WriteLog    = false;
-        ofstream SearchLog;
-
         // Counter move history value statistics
         CMValue2DStats  CounterMoves2DValues;
 
-        MoveManager     MoveMgr;
+        EasyMoveManager EasyMoveMgr;
+        bool    EasyPlayed  = false;
 
-
-        const i32 TimerResolution = 5; // Millisec between two check_limits() calls
+        bool    LogWrite    = false;
+        ofstream LogStream;
 
         // check_limits() is called by the timer thread when the timer triggers.
         // It is used to print debug info and, more importantly,
@@ -177,48 +180,29 @@ namespace Searcher {
         // and thus stop the search.
         void check_limits ()
         {
-            static auto last_time = now ();
+            static auto last_info_time = now ();
 
             auto elapsed_time = TimeMgr.elapsed_time ();
 
             auto now_time = Limits.start_time + elapsed_time;
-            if (now_time - last_time >= MILLI_SEC)
+            if (now_time - last_info_time >= MILLI_SEC)
             {
-                last_time = now_time;
+                last_info_time = now_time;
                 dbg_print ();
             }
 
             // An engine may not stop pondering until told so by the GUI
-            if (Limits.ponder) return;
+            if (Limits.ponder)
+            {
+                return;
+            }
 
-            if (UseTimeManagment)
+            if (   (TimeManagmentUsed      && elapsed_time > TimeMgr.maximum_time () - 2 * TimerResolution)
+                || (Limits.movetime != 0   && elapsed_time >= Limits.movetime)
+                || (Limits.nodes != U64(0) && Threadpool.game_nodes () >= Limits.nodes)
+               )
             {
-                if (   elapsed_time > TimeMgr.maximum_time () - 2 * TimerResolution
-                       // Still at first move
-                    || (    Signals.firstmove_root
-                        && !Signals.failedlow_root
-                        && elapsed_time > TimeMgr.available_time () * 0.75
-                       )
-                   )
-                {
-                   Signals.force_stop = true;
-                }
-            }
-            else
-            if (Limits.movetime != 0)
-            {
-                if (elapsed_time >= Limits.movetime)
-                {
-                    Signals.force_stop = true;
-                }
-            }
-            else
-            if (Limits.nodes != U64(0))
-            {
-                if (Threadpool.game_nodes () >= Limits.nodes)
-                {
-                    Signals.force_stop = true;
-                }
+                ForceStop = true;
             }
         }
 
@@ -357,7 +341,7 @@ namespace Searcher {
                     v = thread->root_moves[i].old_value;
                 }
                 
-                bool tb = RootInTB && abs (v) < VALUE_MATE - i32(MAX_PLY);
+                bool tb = TBHasRoot && abs (v) < VALUE_MATE - i32(MAX_PLY);
 
                 // Not at first line
                 if (ss.rdbuf ()->in_avail ()) ss << "\n";
@@ -374,7 +358,7 @@ namespace Searcher {
                     << " nps "      << game_nodes * MILLI_SEC / elapsed_time;
                 if (elapsed_time > MILLI_SEC)
                     ss  << " hashfull " << TT.hash_full (); // Earlier makes little sense
-                ss  << " tbhits "   << Hits
+                ss  << " tbhits "   << TBHits
                     << " pv"        << thread->root_moves[i];
             }
             return ss.str ();
@@ -707,7 +691,7 @@ namespace Searcher {
             {
                 // Step 2. Check end condition
                 // Check for aborted search, immediate draw or maximum ply reached
-                if (   Signals.force_stop.load (std::memory_order_relaxed)
+                if (   ForceStop.load (std::memory_order_relaxed)
                     || pos.draw ()
                     || ss->ply >= MAX_PLY
                    )
@@ -783,12 +767,15 @@ namespace Searcher {
             }
 
             // Step 4A. Tablebase probe
-            if (!RootNode && PieceLimit != 0)
+            if (   !RootNode
+                && TBPieceLimit != 0
+               )
             {
                 i32 piece_count = pos.count<NONE> ();
 
-                if (    piece_count <= PieceLimit
-                    && (piece_count <  PieceLimit || depth >= DepthLimit)
+                if (   (   piece_count <  TBPieceLimit
+                       || (piece_count == TBPieceLimit && depth >= TBDepthLimit)
+                       )
                     &&  pos.clock_ply () == 0
                    )
                 {
@@ -797,9 +784,9 @@ namespace Searcher {
 
                     if (found != 0)
                     {
-                        ++Hits;
+                        ++TBHits;
 
-                        i32 draw_v = UseRule50 ? 1 : 0;
+                        i32 draw_v = TBUseRule50 ? 1 : 0;
 
                         Value value =
                                 v < -draw_v ? -VALUE_MATE + i32(MAX_PLY + ss->ply) :
@@ -813,7 +800,7 @@ namespace Searcher {
                             tte = TT.probe (posi_key, tt_hit);
                         }
                         tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), VALUE_NONE,
-                            std::min (depth + 6 * DEPTH_ONE, DEPTH_MAX - DEPTH_ONE), BOUND_EXACT, TT.generation ());
+                            std::min (depth + 6*DEPTH_ONE, DEPTH_MAX - DEPTH_ONE), BOUND_EXACT, TT.generation ());
 
                         return value;
                     }
@@ -1084,8 +1071,6 @@ namespace Searcher {
                     && Threadpool.main () == thread
                    )
                 {
-                    Signals.firstmove_root = (move_count == 1);
-
                     auto elapsed_time = TimeMgr.elapsed_time ();
                     if (elapsed_time > 3*MILLI_SEC)
                     {
@@ -1295,7 +1280,7 @@ namespace Searcher {
                 // Finished searching the move. If a stop or a cutoff occurred,
                 // the return value of the search cannot be trusted,
                 // and return immediately without updating best move, PV and TT.
-                if (Signals.force_stop.load (std::memory_order_relaxed))
+                if (ForceStop.load (std::memory_order_relaxed))
                 {
                     return VALUE_ZERO;
                 }
@@ -1320,7 +1305,7 @@ namespace Searcher {
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
                         if (   move_count > 1
-                            && UseTimeManagment
+                            && TimeManagmentUsed
                             && Threadpool.main () == thread
                            )
                         {
@@ -1344,13 +1329,13 @@ namespace Searcher {
                     {
                         // If there is an easy move for this position, clear it if unstable
                         if (   PVNode
-                            && UseTimeManagment
+                            && TimeManagmentUsed
                             && Threadpool.main () == thread
-                            && MoveMgr.easy_move (pos.posi_key ()) != MOVE_NONE
-                            && (move != MoveMgr.easy_move (pos.posi_key ()) || move_count > 1)
+                            && EasyMoveMgr.easy_move (pos.posi_key ()) != MOVE_NONE
+                            && (move != EasyMoveMgr.easy_move (pos.posi_key ()) || move_count > 1)
                            )
                         {
-                            MoveMgr.clear ();
+                            EasyMoveMgr.clear ();
                         }
 
                         best_move = move;
@@ -1385,7 +1370,7 @@ namespace Searcher {
             // completed. But in this case bestValue is valid because we have fully
             // searched our subtree, and we can anyhow save the result in TT.
             /*
-            if (Signals.force_stop) return VALUE_DRAW;
+            if (ForceStop) return VALUE_DRAW;
             */
             
             // Step 20. Check for checkmate and stalemate
@@ -1455,8 +1440,8 @@ namespace Searcher {
         // Data was extracted from CCRL game database with some simple filtering criteria.
         double move_importance (i16 ply)
         {
-            //                          PLY_SHIFT / PLY_SCALE  SKEW_RATE
-            return pow ((1 + exp ((ply - 59.800) / 09.300)), -00.172) + DBL_MIN; // Ensure non-zero
+            //                        PLY_SHIFT  / PLY_SCALE  SKEW_RATE
+            return pow ((1 + exp ((ply - 59.000) / 8.270)), -0.179) + DBL_MIN; // Ensure non-zero
         }
 
         template<RemainTimeT TT>
@@ -1464,9 +1449,9 @@ namespace Searcher {
         TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
         {
             // When in trouble, can step over reserved time with this ratio
-            const auto  StepRatio = RT_OPTIMUM == TT ? 1.0 : 7.00;
+            const auto  StepRatio = RT_OPTIMUM == TT ? 1.00 : 6.93;
             // However must not steal time from remaining moves over this ratio
-            const auto StealRatio = RT_MAXIMUM == TT ? 0.0 : 0.33;
+            const auto StealRatio = RT_MAXIMUM == TT ? 0.00 : 0.36;
 
             auto move_imp = move_importance (ply) * MoveSlowness / 100.0;
             auto remain_move_imp = 0.0;
@@ -1485,7 +1470,9 @@ namespace Searcher {
     bool            Chess960        = false;
 
     LimitsT         Limits;
-    SignalsT        Signals;
+    atomic_bool     ForceStop       { false }  // Stop search on request
+        ,           PonderhitStop   { false }; // Stop search on ponder-hit
+
     StateStackPtr   SetupStates;
 
     u16             MultiPV         = 1;
@@ -1501,22 +1488,28 @@ namespace Searcher {
     bool            OwnBook         = false;
     string          BookFile        = "Book.bin";
     bool            BookMoveBest    = true;
-    i16             BookUptoMove     = 20;
+    i16             BookUptoMove    = 20;
 
-    string          SearchLogFile   = "<empty>";
+    Depth           TBDepthLimit    = 1*DEPTH_ONE;
+    i32             TBPieceLimit    = 6;
+    bool            TBUseRule50     = true;
+    u16             TBHits          = 0;
+    bool            TBHasRoot       = false;
+
+    string          LogFile         = "<empty>";
 
     SkillManager    SkillMgr;
 
     // ------------------------------------
 
-    u08  MaximumMoveHorizon  =  50; // Plan time management at most this many moves ahead, in num of moves.
-    u08  ReadyMoveHorizon    =  40; // Be prepared to always play at least this many moves, in num of moves.
-    u32  OverheadClockTime   =  60; // Attempt to keep at least this much time at clock, in milliseconds.
-    u32  OverheadMoveTime    =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
-    u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
-    u32  MoveSlowness        = 100; // Move Slowness, in %age.
-    u32  NodesTime           =   0; // 'Nodes as Time' mode
-    bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
+    u08  MaximumMoveHorizon =  50; // Plan time management at most this many moves ahead, in num of moves.
+    u08  ReadyMoveHorizon   =  40; // Be prepared to always play at least this many moves, in num of moves.
+    u32  OverheadClockTime  =  60; // Attempt to keep at least this much time at clock, in milliseconds.
+    u32  OverheadMoveTime   =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
+    u32  MinimumMoveTime    =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
+    u32  MoveSlowness       = 100; // Move Slowness, in %age.
+    u32  NodesTime          =   0; // 'Nodes as Time' mode
+    bool Ponder             = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
     TimeManager TimeMgr;
     
@@ -1672,10 +1665,10 @@ namespace Searcher {
             _maximum_time = std::min (max_time, _maximum_time);
         }
 
-        if (Ponder) _optimum_time += _optimum_time / 4;
-
-        // Make sure that _optimum_time is not over _maximum_time
-        _optimum_time = std::min (_maximum_time, _optimum_time);
+        if (Ponder)
+        {
+            _optimum_time += _optimum_time / 4;
+        }
     }
 
     // ------------------------------------
@@ -1767,7 +1760,7 @@ namespace Searcher {
 
         i32 d; // depth
 
-        const i32 K0[3] = { 0, 200, 0};
+        const i32 K0[3] = { 0, 200, 0 };
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
             FutilityMargins[d] = Value(K0[0] + (K0[1] + K0[2]*d)*d);
@@ -1848,11 +1841,12 @@ namespace Threading {
         if (thread_main)
         {
             TT.generation (root_pos.game_ply () + 1);
-            if (UseTimeManagment)
+            if (TimeManagmentUsed)
             {
                 TimeMgr.best_move_change = 0.0;
-                easy_move = MoveMgr.easy_move (root_pos.posi_key ());
-                MoveMgr.clear ();
+                easy_move = EasyMoveMgr.easy_move (root_pos.posi_key ());
+                EasyMoveMgr.clear ();
+                EasyPlayed = false;
             }
         }
 
@@ -1874,20 +1868,21 @@ namespace Threading {
         leaf_depth = DEPTH_ZERO;
 
         // Iterative deepening loop until target depth reached
-        while (++root_depth < DEPTH_MAX && !Signals.force_stop && (0 == Limits.depth || root_depth <= Limits.depth))
+        while (++root_depth < DEPTH_MAX && !ForceStop && (0 == Limits.depth || root_depth <= Limits.depth))
         {
             if (thread_main)
             {
-                if (UseTimeManagment)
+                RootFailedLow = false;
+                if (TimeManagmentUsed)
                 {
                     // Age out PV variability metric
-                    TimeMgr.best_move_change *= 0.5;
+                    TimeMgr.best_move_change *= 0.505;
                 }
             }
             else
             {
                 // Set up the new depth for the helper threads
-                root_depth = std::min (Threadpool.main ()->root_depth + Depth(i32(2.2 * log (1 + index))), DEPTH_MAX - DEPTH_ONE);
+                root_depth = std::min (Threadpool.main ()->root_depth + i32(2.2 * log (1 + index))*DEPTH_ONE, DEPTH_MAX - DEPTH_ONE);
             }
 
             // Save last iteration's scores before first PV line is searched and
@@ -1897,7 +1892,7 @@ namespace Threading {
             const bool aspiration = root_depth > 4*DEPTH_ONE;
 
             // MultiPV loop. Perform a full root search for each PV line
-            for (pv_index = 0; pv_index < PVLimit && !Signals.force_stop; ++pv_index)
+            for (pv_index = 0; pv_index < PVLimit && !ForceStop; ++pv_index)
             {
                 // Reset Aspiration window starting size
                 if (aspiration)
@@ -1933,7 +1928,7 @@ namespace Threading {
                     // If search has been stopped break immediately.
                     // Sorting and writing PV back to TT is safe becuase
                     // root moves is still valid, although refers to previous iteration.
-                    if (Signals.force_stop) break;
+                    if (ForceStop) break;
 
                     // When failing high/low give some update
                     // (without cluttering the UI) before to re-search.
@@ -1955,8 +1950,8 @@ namespace Threading {
 
                         if (thread_main)
                         {
-                            Signals.failedlow_root = true;
-                            Signals.ponderhit_stop = false;
+                            RootFailedLow = true;
+                            PonderhitStop = false;
                         }
                     }
                     else
@@ -1979,7 +1974,7 @@ namespace Threading {
 
                 if (thread_main)
                 {
-                    if (Signals.force_stop)
+                    if (ForceStop)
                     {
                         sync_cout
                             << "info"
@@ -1998,7 +1993,7 @@ namespace Threading {
             }
 
             // Picking best thread is not compatible with multipv or skill level
-            if (   !Signals.force_stop
+            if (   !ForceStop
                 && PVLimit == 1
                 && !SkillMgr.enabled ()
                )
@@ -2023,18 +2018,18 @@ namespace Threading {
                     SkillMgr.pick_best_move (root_moves);
                 }
 
-                if (WriteLog)
+                if (LogWrite)
                 {
-                    SearchLog << pretty_pv_info (this, TimeMgr.elapsed_time ()) << std::endl;
+                    LogStream << pretty_pv_info (this, TimeMgr.elapsed_time ()) << std::endl;
                 }
 
-                if (!Signals.force_stop && !Signals.ponderhit_stop)
+                if (!ForceStop && !PonderhitStop)
                 {
                     // Stop the search early:
                     bool stop = false;
 
                     // Do have time for the next iteration? Can stop searching now?
-                    if (UseTimeManagment)
+                    if (TimeManagmentUsed)
                     {
                         // If PVlimit = 1 then take some extra time if the best move has changed
                         if (   aspiration
@@ -2049,10 +2044,11 @@ namespace Threading {
                         // If all of the available time has been used or
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
-                            || TimeMgr.elapsed_time () > TimeMgr.available_time ()
-                            || (   root_moves[0] == easy_move
-                                && TimeMgr.best_move_change < 0.03
-                                && TimeMgr.elapsed_time () > TimeMgr.available_time () * 0.10
+                            || TimeMgr.elapsed_time () > TimeMgr.available_time () * (RootFailedLow ? 1.001 : 0.492)
+                            || (EasyPlayed = (  root_moves[0] == easy_move
+                                             && TimeMgr.best_move_change < 0.03
+                                             && TimeMgr.elapsed_time () > TimeMgr.available_time () * 0.125
+                                             ), EasyPlayed
                                )
                            )
                         {
@@ -2061,11 +2057,11 @@ namespace Threading {
 
                         if (root_moves[0].size () >= 3)
                         {
-                            MoveMgr.update (root_pos, root_moves[0]);
+                            EasyMoveMgr.update (root_pos, root_moves[0]);
                         }
                         else
                         {
-                            MoveMgr.clear ();
+                            EasyMoveMgr.clear ();
                         }
                     }
                     else
@@ -2084,11 +2080,11 @@ namespace Threading {
                         // keep pondering until GUI sends "ponderhit" or "stop".
                         if (Limits.ponder)
                         {
-                            Signals.ponderhit_stop = true;
+                            PonderhitStop = true;
                         }
                         else
                         {
-                            Signals.force_stop = true;
+                            ForceStop = true;
                         }
                     }
                 }
@@ -2099,13 +2095,13 @@ namespace Threading {
         {
             // Clear any candidate easy move that wasn't stable for the last search iterations;
             // the second condition prevents consecutive fast moves.
-            if (   UseTimeManagment
-                && (   MoveMgr.stable_count < 6
-                    || TimeMgr.elapsed_time () < TimeMgr.available_time ()
+            if (   TimeManagmentUsed
+                && (   EasyPlayed
+                    || EasyMoveMgr.stable_count < 6
                    )
                )
             {
-                MoveMgr.clear ();
+                EasyMoveMgr.clear ();
             }
             // If skill level is enabled, swap best PV line with the sub-optimal one
             if (SkillMgr.enabled ())
@@ -2125,20 +2121,20 @@ namespace Threading {
         assert(this == Threadpool[0]);
 
         RootColor = root_pos.active ();
-        UseTimeManagment = Limits.use_time_management ();
-        if (UseTimeManagment)
+        TimeManagmentUsed = Limits.time_management_used ();
+        if (TimeManagmentUsed)
         {
             TimeMgr.initialize (Limits, RootColor, root_pos.game_ply ());
         }
 
         MateSearch = Limits.mate != 0;
 
-        WriteLog = !white_spaces (SearchLogFile) && SearchLogFile != "<empty>";
-        if (WriteLog)
+        LogWrite = !white_spaces (LogFile) && LogFile != "<empty>";
+        if (LogWrite)
         {
-            SearchLog.open (SearchLogFile, ios_base::out|ios_base::app);
+            LogStream.open (LogFile, ios_base::out|ios_base::app);
 
-            SearchLog
+            LogStream
                 << "----------->\n" << boolalpha
                 << "RootPos  : " << root_pos.fen ()                 << "\n"
                 << "RootSize : " << root_moves.size ()              << "\n"
@@ -2196,7 +2192,7 @@ namespace Threading {
             i16 timed_contempt = 0;
             TimePoint diff_time = 0;
             if (   ContemptTime != 0
-                && UseTimeManagment
+                && TimeManagmentUsed
                 && (diff_time = (Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
                 //&& ContemptTime <= abs (diff_time)
                )
@@ -2208,49 +2204,49 @@ namespace Threading {
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 
-            Hits        = 0;
-            RootInTB    = false;
-            DepthLimit  = i32(Options["Syzygy Depth Limit"]) * DEPTH_ONE;
-            PieceLimit  = i32(Options["Syzygy Piece Limit"]);
-            UseRule50   = bool(Options["Syzygy Use Rule 50"]);
+            TBHits       = 0;
+            TBHasRoot     = false;
+            TBDepthLimit = i32(Options["Syzygy Depth Limit"])*DEPTH_ONE;
+            TBPieceLimit = i32(Options["Syzygy Piece Limit"]);
+            TBUseRule50  = bool(Options["Syzygy Use Rule 50"]);
 
             // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit
-            if (PieceLimit > MaxPieceLimit)
+            if (TBPieceLimit > MaxPieceLimit)
             {
-                PieceLimit = MaxPieceLimit;
-                DepthLimit = DEPTH_ZERO;
+                TBPieceLimit = MaxPieceLimit;
+                TBDepthLimit = DEPTH_ZERO;
             }
 
-            if (PieceLimit >= root_pos.count<NONE> ())
+            if (TBPieceLimit >= root_pos.count<NONE> ())
             {
                 // If the current root position is in the tablebases then RootMoves
                 // contains only moves that preserve the draw or win.
-                RootInTB = root_probe_dtz (root_pos, root_moves);
+                TBHasRoot = root_probe_dtz (root_pos, root_moves);
 
-                if (RootInTB)
+                if (TBHasRoot)
                 {
-                    PieceLimit = 0; // Do not probe tablebases during the search
+                    TBPieceLimit = 0; // Do not probe tablebases during the search
                 }
                 else // If DTZ tables are missing, use WDL tables as a fallback
                 {
                     // Filter out moves that do not preserve a draw or win
-                    RootInTB = root_probe_wdl (root_pos, root_moves);
+                    TBHasRoot = root_probe_wdl (root_pos, root_moves);
 
                     // Only probe during search if winning
                     if (ProbeValue <= VALUE_DRAW)
                     {
-                        PieceLimit = 0;
+                        TBPieceLimit = 0;
                     }
                 }
 
-                if (RootInTB)
+                if (TBHasRoot)
                 {
-                    Hits = u16(root_moves.size ());
+                    TBHits = u16(root_moves.size ());
 
-                    if (!UseRule50)
+                    if (!TBUseRule50)
                     {
-                        ProbeValue = ProbeValue > VALUE_DRAW ? +VALUE_MATE - i32(MAX_PLY) - 1 :
-                                     ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MAX_PLY) + 1 :
+                        ProbeValue = ProbeValue > VALUE_DRAW ? +VALUE_MATE - i32(MAX_PLY - 1) :
+                                     ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MAX_PLY + 1) :
                                      VALUE_DRAW;
                     }
                 }
@@ -2280,18 +2276,18 @@ namespace Threading {
 
     finish:
 
-        // When reach max depth arrive here even without Signals.force_stop is raised,
+        // When reach max depth arrive here even without Force Stop is raised,
         // but if are pondering or in infinite search, according to UCI protocol,
         // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
-        // Simply wait here until GUI sends one of those commands (that raise Signals.force_stop).
-        if (!Signals.force_stop && (Limits.ponder || Limits.infinite))
+        // Simply wait here until GUI sends one of those commands (that raise Force Stop).
+        if (!ForceStop && (Limits.ponder || Limits.infinite))
         {
-            Signals.ponderhit_stop = true;
-            wait_until (Signals.force_stop);
+            PonderhitStop = true;
+            wait_until (ForceStop);
         }
 
         // Stop the threads if not already stopped
-        Signals.force_stop = true;
+        ForceStop = true;
 
         // Wait until all threads have finished
         for (size_t i = 1; i < Threadpool.size (); ++i)
@@ -2301,16 +2297,21 @@ namespace Threading {
 
         // Check if there are threads with bigger depth and better score than main thread.
         Thread *best_thread = this;
-        for (size_t i = 1; i < Threadpool.size (); ++i)
+        if (   !EasyPlayed
+            && PVLimit == 1
+            && !SkillMgr.enabled ()
+           )
         {
-            if (   best_thread->leaf_depth < Threadpool[i]->leaf_depth
-                && best_thread->root_moves[0].new_value < Threadpool[i]->root_moves[0].new_value
-               )
+            for (size_t i = 1; i < Threadpool.size (); ++i)
             {
-                best_thread = Threadpool[i];
+                if (   best_thread->leaf_depth < Threadpool[i]->leaf_depth
+                    && best_thread->root_moves[0].new_value <= Threadpool[i]->root_moves[0].new_value
+                   )
+                {
+                    best_thread = Threadpool[i];
+                }
             }
         }
-
         // Send new PV when needed.
         if (best_thread != this)
         {
@@ -2323,11 +2324,11 @@ namespace Threading {
         assert(!root_moves.empty ()
             && !root_moves[0].empty ());
 
-        if (WriteLog)
+        if (LogWrite)
         {
             auto elapsed_time = std::max (TimeMgr.elapsed_time (), TimePoint(1));
 
-            SearchLog
+            LogStream
                 << "Time (ms)  : " << elapsed_time                                      << "\n"
                 << "Nodes (N)  : " << Threadpool.game_nodes ()                          << "\n"
                 << "Speed (N/s): " << Threadpool.game_nodes ()*MILLI_SEC / elapsed_time << "\n"
@@ -2339,11 +2340,11 @@ namespace Threading {
             {
                 StateInfo si;
                 root_pos.do_move (root_moves[0][0], si, root_pos.gives_check (root_moves[0][0], CheckInfo (root_pos)));
-                SearchLog << "Ponder Move: " << move_to_san (root_moves[0][1], root_pos) << "\n";
+                LogStream << "Ponder Move: " << move_to_san (root_moves[0][1], root_pos) << "\n";
                 root_pos.undo_move ();
             }
-            SearchLog << std::endl;
-            SearchLog.close ();
+            LogStream << std::endl;
+            LogStream.close ();
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position

@@ -114,7 +114,7 @@ namespace Engine {
 
     void stop (i32 code)
     {
-        Searcher::Signals.force_stop = true;
+        Searcher::ForceStop = true;
         Threadpool.wait_while_thinking ();
         Threadpool.deinitialize ();
         EndGame  ::deinitialize ();

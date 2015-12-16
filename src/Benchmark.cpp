@@ -80,15 +80,14 @@ namespace {
 // example: bench 32 1 10000 movetime default
 void benchmark (istream &is, const Position &cur_pos)
 {
-    u32    hash;
-    u16    threads;
-    i64    limit_val;
+    u32    hash     = 16;
+    u16    threads  =  1;
+    i64    limit_val= 13;
     string token;
-    
     // Assign default values to missing arguments
-    /*u32*/hash       = (is >> hash) && is.good ()              ? hash      : 16;
-    /*u16*/threads    = (is >> threads) && is.good ()           ? threads   : 1;
-    /*i64*/limit_val  = (is >> limit_val) && is.good ()         ? limit_val : 13;
+    /*u32*/hash       = (is >> hash) && !is.fail ()             ? hash      : 16;
+    /*u16*/threads    = (is >> threads) && !is.fail ()          ? threads   :  1;
+    /*i64*/limit_val  = (is >> limit_val) && !is.fail ()        ? limit_val : 13;
     string limit_type = (is >> token) && !white_spaces (token)  ? token : "depth";
     string fen_fn     = (is >> token) && !white_spaces (token)  ? token : "default";
 

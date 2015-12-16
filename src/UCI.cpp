@@ -85,14 +85,14 @@ namespace UCI {
                 {
                     string name;
                     // Read option-name (can contain spaces) also consume "value" token
-                    while (iss >> token && token != "value")
+                    while (iss >> token && !iss.fail () && token != "value")
                     {
                         name += string (" ", white_spaces (name) ? 0 : 1) + token;
                     }
 
                     string value;
                     // Read option-value (can contain spaces)
-                    while (iss >> token)
+                    while (iss >> token && !iss.fail ())
                     {
                         value += string (" ", white_spaces (value) ? 0 : 1) + token;
                     }
@@ -126,7 +126,7 @@ namespace UCI {
                 else
                 if (token == "fen")
                 {
-                    while (iss >> token && token != "moves") // Consume "moves" token if any
+                    while (iss >> token && !iss.fail () && token != "moves") // Consume "moves" token if any
                     {
                         fen += token + " ";
                     }
@@ -144,7 +144,7 @@ namespace UCI {
 
                 if (token == "moves")
                 {
-                    while (iss >> token)   // Parse and validate game moves (if any)
+                    while (iss >> token && !iss.fail ())   // Parse and validate game moves (if any)
                     {
                         auto m = move_from_can (token, RootPos);
                         if (m == MOVE_NONE)
@@ -217,21 +217,21 @@ namespace UCI {
                         }
                     }
                 }
-                Signals.force_stop = true;
+                ForceStop = true;
                 Threadpool.start_thinking (RootPos, limits, SetupStates);
             }
             // GUI sends 'ponderhit' to tell us to ponder on the same move the
-            // opponent has played. In case Signals.ponderhit_stop stream set are
+            // opponent has played. In case Ponderhit Stop stream set are
             // waiting for 'ponderhit' to stop the search (for instance because
             // already ran out of time), otherwise should continue searching but
             // switching from pondering to normal search.
             else
-            if (token == "quit"
-            ||  token == "stop"
-            || (token == "ponderhit" && Signals.ponderhit_stop)
+            if (   token == "quit"
+               ||  token == "stop"
+               || (token == "ponderhit" && PonderhitStop)
                )
             {
-                Signals.force_stop = true;
+                ForceStop = true;
                 Threadpool.main ()->start_searching (true); // Could be sleeping
             }
             else
@@ -261,14 +261,14 @@ namespace UCI {
                     string name;
                     // Read name (can contain spaces)
                     // consume "value" token
-                    while (iss >> token && token != "code")
+                    while (iss >> token && !iss.fail () && token != "code")
                     {
                         name += string (" ", white_spaces (name) ? 0 : 1) + token;
                     }
 
                     string code;
                     // Read code (can contain spaces)
-                    while (iss >> token)
+                    while (iss >> token && !iss.fail ())
                     {
                         code += string (" ", white_spaces (code) ? 0 : 1) + token;
                     }
@@ -313,12 +313,13 @@ namespace UCI {
             {
                 sync_cout;
 
+                auto pinneds = RootPos.pinneds (RootPos.active ());
                 if (RootPos.checkers () != U64(0))
                 {
                     std::cout << "\nEvasion moves: ";
                     for (const auto &m : MoveList<EVASION> (RootPos))
                     {
-                        if (RootPos.legal (m))
+                        if (RootPos.legal (m, pinneds))
                         {
                             std::cout << move_to_san (m, RootPos) << " ";
                         }
@@ -329,7 +330,7 @@ namespace UCI {
                     std::cout << "\nQuiet moves: ";
                     for (const auto &m : MoveList<QUIET> (RootPos))
                     {
-                        if (RootPos.legal (m))
+                        if (RootPos.legal (m, pinneds))
                         {
                             std::cout << move_to_san (m, RootPos) << " ";
                         }
@@ -338,7 +339,7 @@ namespace UCI {
                     std::cout << "\nCheck moves: ";
                     for (const auto &m : MoveList<CHECK> (RootPos))
                     {
-                        if (RootPos.legal (m))
+                        if (RootPos.legal (m, pinneds))
                         {
                             std::cout << move_to_san (m, RootPos) << " ";
                         }
@@ -347,7 +348,7 @@ namespace UCI {
                     std::cout << "\nQuiet Check moves: ";
                     for (const auto &m : MoveList<QUIET_CHECK> (RootPos))
                     {
-                        if (RootPos.legal (m))
+                        if (RootPos.legal (m, pinneds))
                         {
                             std::cout << move_to_san (m, RootPos) << " ";
                         }
@@ -356,7 +357,7 @@ namespace UCI {
                     std::cout << "\nCapture moves: ";
                     for (const auto &m : MoveList<CAPTURE> (RootPos))
                     {
-                        if (RootPos.legal (m))
+                        if (RootPos.legal (m, pinneds))
                         {
                             std::cout << move_to_san (m, RootPos) << " ";
                         }
@@ -386,8 +387,8 @@ namespace UCI {
             {
                 i32    depth;
                 string fen_fn;
-                depth  = ((iss >> depth) ? depth : 1);
-                fen_fn = ((iss >> fen_fn) ? fen_fn : "");
+                depth  = (iss >> depth) && !iss.fail ()  ? depth : 1;
+                fen_fn = (iss >> fen_fn) && !iss.fail () ? fen_fn : "";
 
                 stringstream ss;
                 ss  << i32(Options["Hash"])    << " "

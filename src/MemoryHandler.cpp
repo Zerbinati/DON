@@ -50,9 +50,11 @@ namespace Memory {
 
     using namespace std;
 
+    bool LargePages = true;
+
     namespace {
 
-        bool LargePages = false;
+        bool PagesUsed = false;
 
 #   if defined(_WIN32)
 
@@ -125,9 +127,9 @@ namespace Memory {
 
     void alloc_memory (void *&mem_ref, u64 mem_size, u32 alignment)
     {
-        LargePages = false;
+        PagesUsed = false;
 
-        if (bool(Options["Large Pages"]))
+        if (LargePages)
         {
 #   if defined(_WIN32)
 
@@ -139,7 +141,7 @@ namespace Memory {
 
             if (mem_ref != nullptr)
             {
-                LargePages = true;
+                PagesUsed = true;
                 sync_cout << "info string LargePage Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
@@ -152,7 +154,7 @@ namespace Memory {
 
             if (mem_ref != nullptr)
             {
-                LargePages = true;
+                PagesUsed = true;
                 std::memset (mem_ref, 0x00, mem_size);
                 sync_cout << "info string Page Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
@@ -217,7 +219,7 @@ namespace Memory {
     {
         if (mem == nullptr) return;
 
-        if (LargePages)
+        if (PagesUsed)
         {
 #   if defined(_WIN32)
             if (VirtualFree (mem, 0, MEM_RELEASE))
@@ -233,7 +235,7 @@ namespace Memory {
                 std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
             }
 #   endif
-            LargePages = false;
+            PagesUsed = false;
             return;
         }
 

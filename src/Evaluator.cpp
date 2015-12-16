@@ -124,14 +124,13 @@ namespace Evaluator {
             return score;
         }
 
-        enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PAWN_PASSING, THREATS, KING_SAFETY, SPACE_ACTIVITY };
+        enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PAWN_PASSING, KING_SAFETY, SPACE_ACTIVITY };
         // Evaluation weights, indexed by the corresponding evaluation term
         const Weight WEIGHTS[6]
         {
             { 266, 334 }, // Piece Mobility
             { 214, 203 }, // Pawn Structure
             { 193, 262 }, // Pawn Passing
-            { 404, 241 }, // Threats
             { 330,   0 }, // King Safety
             {  47,   0 }, // Space Activity
         };
@@ -178,7 +177,7 @@ namespace Evaluator {
         // THREATEN_BY_PAWN[PieceT] contains bonuses according to which piece type is attacked by pawn.
         const Score THREATEN_BY_PAWN[NONE] =
         {
-            S(0, 0), S(107, 138), S(84, 122), S(114, 203), S(121, 217), S(0, 0)
+            S(0, 0), S(176, 139), S(131, 127), S(217, 218), S(203, 215), S(0, 0)
         };
 
         enum AttackerT { MINOR, MAJOR };
@@ -186,16 +185,16 @@ namespace Evaluator {
         // bonuses according to which piece type attacks which one.
         const Score THREATEN_BY_PIECE[2][NONE] =
         {
-            { S(0, 32), S(25, 39), S(28, 44), S(42, 98), S(35,105), S(0, 0) },  // Minor Attacks
-            { S(0, 27), S(26, 57), S(26, 57), S( 0, 30), S(23, 51), S(0, 0) }   // Major Attacks
+            { S(0, 33), S(45, 43), S(46, 47), S(72, 107), S(48,118), S(0, 0) },  // Minor Attacks
+            { S(0, 25), S(40, 62), S(40, 59), S( 0,  34), S(35, 48), S(0, 0) },  // Major Attacks
         };
 
         const Score THREATEN_BY_KING[] =
         {
-            S( 2, 58), S( 6,125)
+            S( 3, 62), S( 9,138)
         };
 
-        const Score THREATEN_BY_HANG_PAWN   = S(40, 60);
+        const Score THREATEN_BY_HANG_PAWN   = S(70, 63);
 
         const Score BISHOP_PAWNS            = S( 8,12); // Penalty for bishop with pawns on same color
         const Score BISHOP_TRAPPED          = S(50,50); // Penalty for bishop trapped with pawns (Chess960)
@@ -207,9 +206,9 @@ namespace Evaluator {
         const Score ROOK_ON_PAWNS           = S( 7,27); // Bonus for rook on pawns
         const Score ROOK_TRAPPED            = S(92, 0); // Penalty for rook trapped
 
-        const Score PIECE_HANGED            = S(31,26); // Bonus for each enemy hanged piece       
+        const Score PIECE_HANGED            = S(48,28); // Bonus for each enemy hanged piece       
 
-        const Score PAWN_SAFEATTACK         = S(20,20);
+        const Score PAWN_SAFEATTACK         = S(31,19);
 
         const Score CHECKED                 = S(20,20);
 
@@ -427,11 +426,11 @@ namespace Evaluator {
                             }
                         }
 
-                        // An important Chess960 pattern: A cornered bishop blocked by own pawn diagonally in front
-                        // of it is a very serious problem, especially when that pawn is also blocked.
-                        // Bishop on a1/h1 (a8/h8 for black) which is trapped by own pawn on b2/g2 (b7/g7 for black).
                         if (pos.chess960 ())
                         {
+                            // An important Chess960 pattern: A cornered bishop blocked by a friendly pawn diagonally in front of it.
+                            // It is a very serious problem, especially when that pawn is also blocked.
+                            // Bishop on a1/h1 or a8/h8 (white or black) which is trapped by own pawn on b2/g2 or b7/g7 (white or black).
                             if (s == rel_sq (Own, SQ_A1) || s == rel_sq (Own, SQ_H1))
                             {
                                 auto del = (F_A == _file (s) ? DEL_E : DEL_W)+Push;
@@ -734,8 +733,6 @@ namespace Evaluator {
             {
                 score += PAWN_SAFEATTACK * pop_count<MAX15> (b);
             }
-
-            score *= WEIGHTS[THREATS];
 
             if (Trace)
             {

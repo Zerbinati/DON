@@ -127,7 +127,7 @@ namespace Transposition {
 
     // probe() looks up the entry in the transposition table.
     // Returns a pointer to the entry found or NULL if not found.
-    Entry* Table::probe (Key key, bool &hit) const
+    Entry* Table::probe (Key key, bool &tt_hit) const
     {
         assert(key != U64(0));
         const u16 key16 = u16(key >> 0x30);
@@ -135,10 +135,14 @@ namespace Transposition {
         assert(fte != nullptr);
         for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
         {
-            if (ite->_key16 == U64(0) || ite->_key16 == key16)
+            if (   ite->_key16 == U64(0)
+                || ite->_key16 == key16
+               )
             {
-                hit = (ite->_key16 == key16);
-                if (hit && ite->gen () != _generation)
+                tt_hit = ite->_key16 == key16;
+                if (   tt_hit
+                    && ite->gen () != _generation
+                   )
                 {
                     ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
                 }
@@ -158,7 +162,7 @@ namespace Transposition {
                 rte = ite;
             }
         }
-        hit = false;
+        tt_hit = false;
         return rte;
     }
 

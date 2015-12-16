@@ -18,9 +18,10 @@ namespace Searcher {
     //  - Maximum time and increment.
     //  - Maximum depth.
     //  - Maximum nodes.
-    //  - Search move list
+    //  - Maximum mate.
+    //  - Search moves.
     //  - Infinite analysis mode.
-    //  - Ponder while is opponent's side to move.
+    //  - Ponder (think while is opponent's side to move) mode.
     struct LimitsT
     {
     public:
@@ -40,10 +41,10 @@ namespace Searcher {
         u08       depth     = 0; // Search <x> depth (plies) only
         u64       nodes     = 0; // Search <x> nodes only
         u08       mate      = 0; // Search mate in <x> moves
-        bool      ponder    = false; // Search on ponder move until the "stop" command
         bool      infinite  = false; // Search until the "stop" command
+        bool      ponder    = false; // Search on ponder move until the "stop" command
         
-        bool use_time_management () const
+        bool time_management_used () const
         {
             return !infinite
                 && movetime == 0
@@ -51,21 +52,6 @@ namespace Searcher {
                 && nodes    == U64(0)
                 && mate     == 0;
         }
-    };
-
-    // Signals stores atomic flags updated during the search sent by the GUI
-    // typically in an async fashion.
-    //  - Stop search on request.
-    //  - Stop search on ponder-hit.
-    //  - First move at root.
-    //  - Falied low at root.
-    struct SignalsT
-    {
-        std::atomic_bool
-              force_stop     { false }  // Stop search on request
-            , ponderhit_stop { false }  // Stop search on ponder-hit
-            , firstmove_root { false }  // First move at root
-            , failedlow_root { false }; // Failed low at root
     };
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
@@ -253,7 +239,7 @@ namespace Searcher {
         u64     available_nodes  = U64(0); // When in 'nodes as time' mode
         double  best_move_change = 0.0;
 
-        TimePoint available_time () const { return TimePoint(_optimum_time * _instability_factor * 0.76); }
+        TimePoint available_time () const { return TimePoint(_optimum_time * _instability_factor * 1.016); }
 
         TimePoint maximum_time () const { return _maximum_time; }
 
@@ -269,7 +255,9 @@ namespace Searcher {
     extern bool             Chess960;
 
     extern LimitsT          Limits;
-    extern SignalsT         Signals;
+    extern std::atomic_bool ForceStop
+        ,                   PonderhitStop; 
+
     extern StateStackPtr    SetupStates;
 
     extern u16              MultiPV;
@@ -287,7 +275,13 @@ namespace Searcher {
     extern bool             BookMoveBest;
     extern i16              BookUptoMove;
 
-    extern std::string      SearchLogFile;
+    extern Depth            TBDepthLimit;
+    extern i32              TBPieceLimit;
+    extern bool             TBUseRule50;
+    extern u16              TBHits;
+    extern bool             TBHasRoot;
+
+    extern std::string      LogFile;
 
     extern SkillManager     SkillMgr;
 

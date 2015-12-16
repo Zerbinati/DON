@@ -742,8 +742,6 @@ bool Position::legal        (Move m, Bitboard pinned) const
     {
     case NORMAL:
     {
-        if ((_color_bb[_active] & dst) != U64(0)) return false;
-
         // Only king moves to non attacked squares, sliding check x-rays the king
         // In case of king moves under check have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
@@ -756,6 +754,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
     // NOTE: no break
     case PROMOTE:
     {
+        assert( mtype (m) == NORMAL
+            || (mtype (m) == PROMOTE && ptype (mpc) == PAWN));
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.

@@ -69,13 +69,7 @@ namespace TBSyzygy {
     using namespace MoveGen;
     using namespace Searcher;
 
-    Depth   DepthLimit      = 1*DEPTH_ONE;
-    i32     PieceLimit      = 6;
-    bool    UseRule50       = true;
-
     i32     MaxPieceLimit   = 0;
-    u16     Hits            = 0;
-    bool    RootInTB        = false;
     Value   ProbeValue      = VALUE_NONE;
 
     namespace {
@@ -255,7 +249,7 @@ namespace TBSyzygy {
         DTZTableEntry DTZ_table[DTZ_ENTRIES];
 
         void init_indices ();
-        Key calc_key_from_pcs (u08 *pcs, bool mirror);
+        Key calc_key (u08 *pcs, bool mirror);
         void free_wdl_entry (TBEntry *tbe);
         void free_dtz_entry (TBEntry *tbe);
 
@@ -402,8 +396,8 @@ namespace TBSyzygy {
             //    }
             //}
 
-            Key key1 = calc_key_from_pcs (pcs, false);
-            Key key2 = calc_key_from_pcs (pcs, true);
+            Key key1 = calc_key (pcs, false);
+            Key key2 = calc_key (pcs, true);
             
             TBEntry *tbe = nullptr;
             if ((pcs[TB_WPAWN] + pcs[TB_BPAWN]) == 0)
@@ -444,7 +438,7 @@ namespace TBSyzygy {
 
             if (tbe->has_pawns)
             {
-                auto tbep = reinterpret_cast<TBEntry_pawn *> (tbe);
+                auto *tbep = reinterpret_cast<TBEntry_pawn *> (tbe);
                 tbep->pawns[0] = pcs[TB_WPAWN];
                 tbep->pawns[1] = pcs[TB_BPAWN];
                 if (   pcs[TB_BPAWN] > 0
@@ -457,7 +451,7 @@ namespace TBSyzygy {
             }
             else
             {
-                auto tbep = reinterpret_cast<TBEntry_piece *> (tbe);
+                auto *tbep = reinterpret_cast<TBEntry_piece *> (tbe);
                 
                 u08 i, j;
                 for (i = 0, j = 0; i < TOTAL_PIECE; ++i)
@@ -1220,7 +1214,7 @@ namespace TBSyzygy {
             *flags = pairs_data[0];
             if (pairs_data[0] & 0x80)
             {
-                p_data = (PairsData *)malloc (sizeof (PairsData));
+                p_data = reinterpret_cast<PairsData *> (malloc (sizeof (PairsData)));
                 p_data->idxbits = 0;
                 if (wdl)
                 {
@@ -1243,7 +1237,7 @@ namespace TBSyzygy {
             i32 min_len = pairs_data[9];
             i32 h = max_len - min_len + 1;
             i32 num_syms = read_u16 (&pairs_data[10 + 2 * h]);
-            p_data = (PairsData *)malloc (sizeof (PairsData) + (h - 1) * sizeof (base_t) + num_syms);
+            p_data = reinterpret_cast<PairsData *> (malloc (sizeof (PairsData) + (h - 1) * sizeof (base_t) + num_syms));
             p_data->blocksize = blocksize;
             p_data->idxbits = idxbits;
             p_data->offset = (u16*)(&pairs_data[10]);
@@ -1319,7 +1313,7 @@ namespace TBSyzygy {
 
             if (tbe->has_pawns)
             {
-                auto tbep = reinterpret_cast<TBEntry_pawn *> (tbe);
+                auto *tbep = reinterpret_cast<TBEntry_pawn *> (tbe);
                 u08 s = 1 + (tbep->pawns[1] > 0);
                 u08 f;
                 for (f = 0; f < 4; ++f)
@@ -1378,7 +1372,7 @@ namespace TBSyzygy {
             }
             else
             {
-                auto tbep = reinterpret_cast<TBEntry_piece *> (tbe);
+                auto *tbep = reinterpret_cast<TBEntry_piece *> (tbe);
                 setup_pieces_piece (tbep, data, &tb_size[0]);
                 data += tbep->num + 1;
                 data += ((uintptr_t)data) & 0x01;
@@ -1449,7 +1443,7 @@ namespace TBSyzygy {
 
             if (tbe->has_pawns)
             {
-                auto dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
+                auto *dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
                 u08 s = 1 + (dtzep->pawns[1] > 0);
                 u08 f;
                 for (f = 0; f < 4; ++f)
@@ -1499,7 +1493,7 @@ namespace TBSyzygy {
             }
             else
             {
-                auto dtzep = reinterpret_cast<DTZEntry_piece *> (tbe);
+                auto *dtzep = reinterpret_cast<DTZEntry_piece *> (tbe);
                 setup_pieces_piece_dtz (dtzep, data, &tb_size[0]);
                 data += dtzep->num + 1;
                 data += ((uintptr_t)data) & 0x01;
@@ -1635,7 +1629,7 @@ namespace TBSyzygy {
             DTZ_table[0].tbe  = nullptr;
 
             // find corresponding WDL entry
-            auto tbhe = TB_hash[key1 >> (64 - TBHASHBITS)];
+            auto *tbhe = TB_hash[key1 >> (64 - TBHASHBITS)];
             u08 i;
             for (i = 0; i < HSHMAX; ++i)
             {
@@ -1648,11 +1642,9 @@ namespace TBSyzygy {
             {
                 return;
             }
-            auto tbe = tbhe[i].tbe;
+            auto *tbe = tbhe[i].tbe;
 
-            auto ptbe = (TBEntry *)malloc (tbe->has_pawns ?
-                sizeof (DTZEntry_pawn) :
-                sizeof (DTZEntry_piece));
+            auto *ptbe = reinterpret_cast<TBEntry *> (malloc (tbe->has_pawns ? sizeof (DTZEntry_pawn) : sizeof (DTZEntry_piece)));
 
             ptbe->data = map_file (filename, DTZ_SUFFIX, &ptbe->mapping);
             ptbe->key = tbe->key;
@@ -1661,13 +1653,13 @@ namespace TBSyzygy {
             ptbe->has_pawns = tbe->has_pawns;
             if (ptbe->has_pawns)
             {
-                auto dtzep = reinterpret_cast<DTZEntry_pawn *> (ptbe);
+                auto *dtzep = reinterpret_cast<DTZEntry_pawn *> (ptbe);
                 dtzep->pawns[0] = reinterpret_cast<TBEntry_pawn *> (tbe)->pawns[0];
                 dtzep->pawns[1] = reinterpret_cast<TBEntry_pawn *> (tbe)->pawns[1];
             }
             else
             {
-                auto dtzep = reinterpret_cast<DTZEntry_piece *> (ptbe);
+                auto *dtzep = reinterpret_cast<DTZEntry_piece *> (ptbe);
                 dtzep->enc_type = reinterpret_cast<TBEntry_piece *> (tbe)->enc_type;
             }
             if (init_table_dtz (ptbe))
@@ -1685,7 +1677,7 @@ namespace TBSyzygy {
             unmap_file (tbe->data, tbe->mapping);
             if (tbe->has_pawns)
             {
-                auto tbep = reinterpret_cast<TBEntry_pawn *> (tbe);
+                auto *tbep = reinterpret_cast<TBEntry_pawn *> (tbe);
                 for (u08 f = 0; f < 4; ++f)
                 {
                     if (tbep->file[f].precomp[0] != nullptr)
@@ -1700,7 +1692,7 @@ namespace TBSyzygy {
             }
             else
             {
-                auto tbep = reinterpret_cast<TBEntry_piece *> (tbe);
+                auto *tbep = reinterpret_cast<TBEntry_piece *> (tbe);
                 if (tbep->precomp[0] != nullptr)
                 {
                     free (tbep->precomp[0]);
@@ -1710,7 +1702,6 @@ namespace TBSyzygy {
                     free (tbep->precomp[1]);
                 }
             }
-            //free (tbe);
         }
 
         void free_dtz_entry (TBEntry *tbe)
@@ -1718,7 +1709,7 @@ namespace TBSyzygy {
             unmap_file (tbe->data, tbe->mapping);
             if (tbe->has_pawns)
             {
-                auto dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
+                auto *dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
                 for (u08 f = 0; f < 4; ++f)
                 {
                     if (dtzep->file[f].precomp != nullptr)
@@ -1729,7 +1720,7 @@ namespace TBSyzygy {
             }
             else
             {
-                auto dtzep = reinterpret_cast<DTZEntry_piece *> (tbe);
+                auto *dtzep = reinterpret_cast<DTZEntry_piece *> (tbe);
                 if (dtzep->precomp != nullptr)
                 {
                     free (dtzep->precomp);
@@ -1742,7 +1733,7 @@ namespace TBSyzygy {
         {
             for (u16 pc = 0; pc < TB_piece_count; ++pc)
             {
-                auto tbe = reinterpret_cast<TBEntry *> (&TB_piece[pc]);
+                auto *tbe = reinterpret_cast<TBEntry *> (&TB_piece[pc]);
                 if (tbe != nullptr)
                 {
                     free_wdl_entry (tbe);
@@ -1750,7 +1741,7 @@ namespace TBSyzygy {
             }
             for (u16 pc = 0; pc < TB_pawn_count; ++pc)
             {
-                auto tbe = reinterpret_cast<TBEntry *> (&TB_pawn[pc]);
+                auto *tbe = reinterpret_cast<TBEntry *> (&TB_pawn[pc]);
                 if (tbe != nullptr)
                 {
                     free_wdl_entry (tbe);
@@ -1758,7 +1749,7 @@ namespace TBSyzygy {
             }
             for (u08 i = 0; i < DTZ_ENTRIES; ++i)
             {
-                auto tbe = DTZ_table[i].tbe;
+                auto *tbe = DTZ_table[i].tbe;
                 if (tbe != nullptr)
                 {
                     free_dtz_entry (tbe);
@@ -1822,7 +1813,7 @@ namespace TBSyzygy {
         // defined by pcs[16], where pcs[1], ..., pcs[6] is the number of white
         // pawns, ..., kings and pcs[9], ..., pcs[14] is the number of black
         // pawns, ..., kings.
-        Key calc_key_from_pcs (u08 *pcs, bool mirror)
+        Key calc_key (u08 *pcs, bool mirror)
         {
             Key key = U64(0);
             auto color = mirror ? BLACK : WHITE;
@@ -1875,7 +1866,7 @@ namespace TBSyzygy {
                 return VALUE_ZERO;
             }
 
-            auto tbhe = TB_hash[key >> (64 - TBHASHBITS)];
+            auto *tbhe = TB_hash[key >> (64 - TBHASHBITS)];
 
             i08 i;
             for (i = 0; i < HSHMAX; ++i)
@@ -1943,7 +1934,7 @@ namespace TBSyzygy {
             // Pieces of the same type are guaranteed to be consecutive.
             if (tbe->has_pawns)
             {
-                auto tbep = reinterpret_cast<TBEntry_pawn *> (tbe);
+                auto *tbep = reinterpret_cast<TBEntry_pawn *> (tbe);
                 Piece *pc;
                 
                 pc = tbep->file[0].pieces[0];
@@ -1969,7 +1960,7 @@ namespace TBSyzygy {
             }
             else
             {
-                auto tbep = reinterpret_cast<TBEntry_piece *> (tbe);
+                auto *tbep = reinterpret_cast<TBEntry_piece *> (tbe);
                 Piece *pc = tbep->pieces[side];
                 for (i = 0; i < tbep->num;)
                 {
@@ -2011,7 +2002,7 @@ namespace TBSyzygy {
                 }
                 else
                 {
-                    auto tbhe = TB_hash[key >> (64 - TBHASHBITS)];
+                    auto *tbhe = TB_hash[key >> (64 - TBHASHBITS)];
                     for (i = 0; i < HSHMAX; ++i)
                     {
                         if (tbhe[i].key == key)
@@ -2025,7 +2016,7 @@ namespace TBSyzygy {
                         return VALUE_ZERO;
                     }
 
-                    auto tbe = tbhe[i].tbe;
+                    auto *tbe = tbhe[i].tbe;
                     
                     if (DTZ_table[DTZ_ENTRIES - 1].tbe != nullptr)
                     {
@@ -2042,7 +2033,7 @@ namespace TBSyzygy {
                 }
             }
 
-            auto tbe = DTZ_table[0].tbe;
+            auto *tbe = DTZ_table[0].tbe;
             if (tbe == nullptr)
             {
                 success = 0;
@@ -2071,7 +2062,7 @@ namespace TBSyzygy {
             std::memset (sq, SQ_NO, TB_PIECE_LIMIT);
             if (tbe->has_pawns)
             {
-                auto dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
+                auto *dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
                 Piece p = side == pos.active () ? dtzep->file[0].pieces[0] : ~dtzep->file[0].pieces[0];
                 Bitboard bb = pos.pieces (color (p), tb_ptype (p));
                 i32 i = 0;
@@ -2109,7 +2100,7 @@ namespace TBSyzygy {
             }
             else
             {
-                auto dtzep = reinterpret_cast<DTZEntry_piece *> (tbe);
+                auto *dtzep = reinterpret_cast<DTZEntry_piece *> (tbe);
                 if ((dtzep->flags & 1) != side && !dtzep->symmetric)
                 {
                     success = -1;
@@ -2384,11 +2375,11 @@ namespace TBSyzygy {
 
         Value Wdl_to_Value[5] =
         {
-            -VALUE_MATE + i32(MAX_PLY) + 1,
+            -VALUE_MATE + i32(MAX_PLY + 1),
             VALUE_ZERO - 2,
             VALUE_ZERO,
             VALUE_ZERO + 2,
-            +VALUE_MATE - i32(MAX_PLY) - 1
+            +VALUE_MATE - i32(MAX_PLY - 1),
         };
     }
 

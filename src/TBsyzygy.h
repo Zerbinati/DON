@@ -6,13 +6,7 @@
 
 namespace TBSyzygy {
 
-    extern Depth    DepthLimit;
-    extern i32      PieceLimit;
-    extern bool     UseRule50;
-
     extern i32      MaxPieceLimit;
-    extern u16      Hits;
-    extern bool     RootInTB;
     extern Value    ProbeValue;
 
     Value probe_dtz (Position &pos, i32 &success);

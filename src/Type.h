@@ -133,7 +133,7 @@ typedef        uint64_t    u64;
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const u16 MAX_PLY = 128; // Maximum Ply
+const u16 MAX_PLY = 128; // Maximum Plies
 
 // File
 enum File : i08

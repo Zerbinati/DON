@@ -96,12 +96,10 @@ namespace Threading {
     // Thread::idle_loop() and starts a new search, then returns immediately.
     void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, StateStackPtr &states)
     {
-        main ()->wait_while_searching ();
+        wait_while_thinking ();
 
-        Signals.force_stop     = false;
-        Signals.ponderhit_stop = false;
-        Signals.firstmove_root = false;
-        Signals.failedlow_root = false;
+        ForceStop       = false;
+        PonderhitStop   = false;
 
         Limits = limits;
         main ()->root_pos = pos;

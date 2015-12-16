@@ -224,7 +224,7 @@ namespace Transposition {
 
         void auto_size (u32 mem_size_mb, bool force = false);
 
-        Entry* probe (Key key, bool &hit) const;
+        Entry* probe (Key key, bool &tt_hit) const;
 
         void save (const std::string &hash_fn) const;
         void load (const std::string &hash_fn);

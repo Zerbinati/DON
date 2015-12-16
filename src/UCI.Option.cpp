@@ -4,8 +4,9 @@
 #include <fstream>
 #include <iomanip>
 
-#include "Transposition.h"
 #include "Thread.h"
+#include "MemoryHandler.h"
+#include "Transposition.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
 #include "Debugger.h"
@@ -15,6 +16,7 @@ UCI::OptionMap  Options; // Global string mapping of Options
 namespace UCI {
 
     using namespace std;
+    using namespace Memory;
     using namespace Transposition;
     using namespace Searcher;
     using namespace TBSyzygy;
@@ -141,6 +143,7 @@ namespace UCI {
 #   ifdef LPAGES
         void change_memory ()
         {
+            LargePages = bool(Options["Large Pages"]);
             TT.resize ();
         }
 #   endif
@@ -203,10 +206,10 @@ namespace UCI {
 
         void configure_book ()
         {
-            OwnBook      = bool(Options["Own Book"]);
+            OwnBook      = bool(Options["OwnBook"]);
             BookFile     = string(Options["Book File"]);
             BookMoveBest = bool(Options["Book Move Best"]);
-            BookUptoMove  = i16(i32(Options["Book Upto Ply"]));
+            BookUptoMove = i16(i32(Options["Book Upto Ply"]));
 
             trim (BookFile);
             if (!BookFile.empty ()) convert_path (BookFile);
@@ -236,11 +239,11 @@ namespace UCI {
                 Logger::instance ().stop ();
         }
 
-        void search_log_file ()
+        void log_file ()
         {
-            SearchLogFile = string(Options["Search Log File"]);
-            trim (SearchLogFile);
-            if (!SearchLogFile.empty ()) convert_path (SearchLogFile);
+            LogFile = string(Options["Log File"]);
+            trim (LogFile);
+            if (!LogFile.empty ()) convert_path (LogFile);
         }
 
         void config_endgame_table ()
@@ -279,11 +282,11 @@ namespace UCI {
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
         Options["Hash"]                         << Option (Table::DefSize,
-                                                           0,//Table::MinSize,
+                                                           0,//Table::MinSize, // 0 for auto-resize to maximum
                                                            Table::MaxSize, change_hash_size);
 
 #ifdef LPAGES
-        Options["Large Pages"]                  << Option (true, change_memory);
+        Options["Large Pages"]                  << Option (LargePages, change_memory);
 #endif
 
         // Button to clear the Hash Memory.
@@ -345,7 +348,7 @@ namespace UCI {
         // Book Options
         // ---------------------
         // Whether or not to always play with the book.
-        Options["Own Book"]                     << Option (OwnBook, configure_book);
+        Options["OwnBook"]                      << Option (OwnBook, configure_book);
         // The filename of the Book.
         Options["Book File"]                    << Option (BookFile, configure_book);
         // Whether or not to always play the best move from the book.
@@ -440,16 +443,16 @@ namespace UCI {
         // End-Game Table Bases Options
         // ----------------------------
         Options["Syzygy Path"]                  << Option ("<empty>", config_endgame_table);
-        Options["Syzygy Depth Limit"]           << Option (DepthLimit, 1, 100);
-        Options["Syzygy Piece Limit"]           << Option (PieceLimit, 0,   6);
-        Options["Syzygy Use Rule 50"]           << Option (UseRule50);
+        Options["Syzygy Depth Limit"]           << Option (TBDepthLimit, 1, 100);
+        Options["Syzygy Piece Limit"]           << Option (TBPieceLimit, 0,   6);
+        Options["Syzygy Use Rule 50"]           << Option (TBUseRule50);
 
         // -------------
         // Other Options
         // -------------
         Options["Debug Log"]                    << Option (false, debug_log);
         // The filename of the search log.
-        Options["Search Log File"]              << Option (SearchLogFile, search_log_file);
+        Options["Log File"]                     << Option (LogFile, log_file);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.

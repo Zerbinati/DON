@@ -37,14 +37,14 @@ namespace Notation {
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
 
-            Bitboard pinneds = pos.pinneds (pos.active ());
+            auto pinneds = pos.pinneds (pos.active ());
 
-            Bitboard amb, pcs;
-            amb = pcs = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
+            auto amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
+            auto pcs = amb; // & ~pinneds; // If pinned piece is considered as ambiguous
             while (pcs != U64(0))
             {
                 auto sq = pop_lsq (pcs);
-                if (!pos.legal (mk_move<NORMAL> (sq, dst), pinneds))
+                if (!pos.legal (mk_move (sq, dst), pinneds))
                 {
                     amb -= sq;
                 }
@@ -62,7 +62,6 @@ namespace Notation {
         string pretty_value (Value v, const Position &pos)
         {
             ostringstream oss;
-
             if (abs (v) < +VALUE_MATE - i32(MAX_PLY))
             {
                 oss << setprecision (2) << fixed << showpos << value_to_cp (pos.active () == WHITE ? +v : -v);
@@ -71,7 +70,6 @@ namespace Notation {
             {
                 oss << "#" << showpos << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
             }
-
             return oss.str ();
         }
 
@@ -87,14 +85,12 @@ namespace Notation {
             time      /= 10;
 
             ostringstream oss;
-
             oss << setfill ('0')
                 << setw (2) << hours   << ":"
                 << setw (2) << minutes << ":"
                 << setw (2) << seconds << "."
                 << setw (2) << time
                 << setfill (' ');
-
             return oss.str ();
         }
 
@@ -141,15 +137,18 @@ namespace Notation {
             if (pt != PAWN)
             {
                 san = PIECE_CHAR[pt];
-                // Disambiguation if have more then one piece of type 'pt'
-                // that can reach 'dst' with a legal move.
-                switch (ambiguity (m, pos))
+                if (pt != KING)
                 {
-                case AMB_NONE:                               break;
-                case AMB_RANK: san += to_char (_file (org)); break;
-                case AMB_FILE: san += to_char (_rank (org)); break;
-                case AMB_SQR:  san += to_string (org);       break;
-                default:       assert(false);                break;
+                    // Disambiguation if have more then one piece of type 'pt'
+                    // that can reach 'dst' with a legal move.
+                    switch (ambiguity (m, pos))
+                    {
+                    case AMB_NONE:                               break;
+                    case AMB_RANK: san += to_char (_file (org)); break;
+                    case AMB_FILE: san += to_char (_rank (org)); break;
+                    case AMB_SQR:  san += to_string (org);       break;
+                    default:       assert (false);               break;
+                    }
                 }
             }
 
