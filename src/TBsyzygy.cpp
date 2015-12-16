@@ -248,11 +248,6 @@ namespace TBSyzygy {
         const u08 DTZ_ENTRIES = 64;
         DTZTableEntry DTZ_table[DTZ_ENTRIES];
 
-        void init_indices ();
-        Key calc_key (u08 *pcs, bool mirror);
-        void free_wdl_entry (TBEntry *tbe);
-        void free_dtz_entry (TBEntry *tbe);
-
         FD open_tb (const string &filename, const string &suffix)
         {
             for (const auto &path : Paths)
@@ -350,6 +345,32 @@ namespace TBSyzygy {
                 TB_hash[hash_idx][i].key = key;
                 TB_hash[hash_idx][i].tbe = tbe;
             }
+        }
+
+        // Produce a 64-bit material key corresponding to the material combination
+        // defined by pcs[16], where pcs[1], ..., pcs[6] is the number of white
+        // pawns, ..., kings and pcs[9], ..., pcs[14] is the number of black
+        // pawns, ..., kings.
+        Key calc_key (u08 *pcs, bool mirror)
+        {
+            Key key = U64(0);
+            auto color = mirror ? BLACK : WHITE;
+            for (auto pt = PAWN; pt <= KING; ++pt)
+            {
+                for (u08 pc = 0; pc < pcs[color | PieceT (pt + 1)]; ++pc)
+                {
+                    key ^= Zob._.piece_square[WHITE][pt][pc];
+                }
+            }
+            color = ~color;
+            for (auto pt = PAWN; pt <= KING; ++pt)
+            {
+                for (u08 pc = 0; pc < pcs[color | PieceT (pt + 1)]; ++pc)
+                {
+                    key ^= Zob._.piece_square[BLACK][pt][pc];
+                }
+            }
+            return key;
         }
 
         void init_tb (const string &filename)
@@ -1785,6 +1806,26 @@ namespace TBSyzygy {
             return filename;
         }
 
+
+        bool is_little_endian ()
+        {
+            union
+            {
+                i32 integer;
+                char character[sizeof (i32)];
+            } x;
+            x.integer = 1;
+            return x.character[0] == 1;
+        }
+
+        u08 decompress_pairs (PairsData *pairs_data, u64 idx)
+        {
+            static const bool isLittleEndian = is_little_endian ();
+            return isLittleEndian ?
+                decompress_pairs<true > (pairs_data, idx) :
+                decompress_pairs<false> (pairs_data, idx);
+        }
+
         // Given a position, produce a 64-bit material signature key.
         // If the engine supports such a key, it should equal the engine's key.
         Key calc_key (Position &pos, bool mirror)
@@ -1807,51 +1848,6 @@ namespace TBSyzygy {
                 }
             }
             return key;
-        }
-
-        // Produce a 64-bit material key corresponding to the material combination
-        // defined by pcs[16], where pcs[1], ..., pcs[6] is the number of white
-        // pawns, ..., kings and pcs[9], ..., pcs[14] is the number of black
-        // pawns, ..., kings.
-        Key calc_key (u08 *pcs, bool mirror)
-        {
-            Key key = U64(0);
-            auto color = mirror ? BLACK : WHITE;
-            for (auto pt = PAWN; pt <= KING; ++pt)
-            {
-                for (u08 pc = 0; pc < pcs[color | PieceT(pt + 1)]; ++pc)
-                {
-                    key ^= Zob._.piece_square[WHITE][pt][pc];
-                }
-            }
-            color = ~color;
-            for (auto pt = PAWN; pt <= KING; ++pt)
-            {
-                for (u08 pc = 0; pc < pcs[color | PieceT(pt + 1)]; ++pc)
-                {
-                    key ^= Zob._.piece_square[BLACK][pt][pc];
-                }
-            }
-            return key;
-        }
-
-        bool is_little_endian ()
-        {
-            union
-            {
-                i32 integer;
-                char character[sizeof (i32)];
-            } x;
-            x.integer = 1;
-            return x.character[0] == 1;
-        }
-
-        u08 decompress_pairs (PairsData *pairs_data, u64 idx)
-        {
-            static const bool isLittleEndian = is_little_endian ();
-            return isLittleEndian ?
-                decompress_pairs<true > (pairs_data, idx) :
-                decompress_pairs<false> (pairs_data, idx);
         }
 
         // probe_wdl_table()
