@@ -91,8 +91,8 @@ namespace Parser {
         //cout << game;
 
         Table table;
-        table.load ("book.bin");
-        //table.import_max_ply ("book.pgn", 1 , 10, 200);
+        //table.load ("book.bin");
+        table.import_max_ply ("book.pgn", 1 , 100, 200);
         
         table.filter ();
         table.sort ();

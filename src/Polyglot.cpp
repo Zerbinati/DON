@@ -49,17 +49,17 @@ namespace Polyglot {
             assert(p1 != NULL);
             assert(p2 != NULL);
 
-            auto pe1 = static_cast<const Entry*> (p1);
-            auto pe2 = static_cast<const Entry*> (p2);
+            auto pe1 = static_cast<const TEntry*> (p1);
+            auto pe2 = static_cast<const TEntry*> (p2);
 
-            if (false) {}
-            else if (pe1->key > pe2->key) return +1;
-            else if (pe1->key < pe2->key) return -1;
+            if (pe1->key > pe2->key) return +1;
+            else
+            if (pe1->key < pe2->key) return -1;
             else
             {
-                if (false) {}
-                else if (pe1->weight > pe2->weight) return -1;
-                else if (pe1->weight < pe2->weight) return +1;
+                if (pe1->expectancy > pe2->expectancy) return -1;
+                else
+                if (pe1->expectancy < pe2->expectancy) return +1;
                 else
                 {
                     return pe1->move - pe2->move;
@@ -413,7 +413,7 @@ namespace Polyglot {
 
     // -------------------------
 
-    const u08 Table::TEntry::Size = sizeof (TEntry);
+    const u08 TEntry::Size = sizeof (TEntry);
 
     Table::Table (size_t entry_alloc)
     {

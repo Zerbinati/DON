@@ -158,43 +158,45 @@ namespace Polyglot {
 
     };
 
+    struct TEntry
+    {
+        static const u08 Size;
+
+        u64 key         = U64 (0);
+        u16 move        = 0;
+        u16 popularity  = 0;
+        u16 expectancy  = 0;
+        Color color     = CLR_NO;
+
+        TEntry () = default;
+        TEntry (u64 k, u16 m, u16 p, u16 e, Color c = CLR_NO)
+            : key (k)
+            , move (m)
+            , popularity (p)
+            , expectancy (e)
+            , color (c)
+        {}
+
+        double score () const
+        {
+            auto score = popularity != 0 ? 0.5 * expectancy / popularity : 0.0;
+            //assert(0.0 <= score && score <= 1.0);
+            return score;
+        }
+
+        //explicit
+        operator Entry() const
+        {
+            Entry entry (key, move, expectancy, 0);
+            return entry;
+        }
+    };
+
     class Table
     {
     private:
 
-        struct TEntry
-        {
-            static const u08 Size;
-
-            u64 key         = U64(0);
-            u16 move        = 0;
-            u16 popularity  = 0;
-            u16 expectancy  = 0;
-            Color color     = CLR_NO;
-
-            TEntry () = default;
-            TEntry (u64 k, u16 m, u16 p, u16 e, Color c = CLR_NO)
-                : key (k)
-                , move (m)
-                , popularity (p)
-                , expectancy (e)
-                , color (c)
-            {}
-
-            double score () const
-            {
-                auto score = popularity != 0 ? 0.5 * expectancy / popularity : 0.0;
-                //assert(0.0 <= score && score <= 1.0);
-                return score;
-            }
-
-            //explicit
-            operator Entry() const
-            {
-                Entry entry (key, move, expectancy, 0);
-                return entry;
-            }
-        };
+        
 
         size_t   _entry_alloc   = 1;
         size_t   _entry_count   = 0;
