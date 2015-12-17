@@ -1039,7 +1039,7 @@ namespace Searcher {
 
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-            auto counter_move = opp_move_dst != SQ_NO ? thread->counter_moves[pos[opp_move_dst]][opp_move_dst] : MOVE_NONE;
+            auto counter_move = opp_move_dst != SQ_NO ? thread->counter_moves[pos[opp_move_dst]][opp_move_dst] : thread->counter_moves[EMPTY][dst_sq (opp_move)];
             auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] : CounterMoves2DValues[EMPTY][dst_sq (opp_move)];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
@@ -1490,6 +1490,7 @@ namespace Searcher {
     bool            BookMoveBest    = true;
     i16             BookUptoMove    = 20;
 
+    string          TBPath          = "<empty>";
     Depth           TBDepthLimit    = 1*DEPTH_ONE;
     i32             TBPieceLimit    = 6;
     bool            TBUseRule50     = true;

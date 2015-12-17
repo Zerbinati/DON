@@ -275,6 +275,7 @@ namespace Searcher {
     extern bool             BookMoveBest;
     extern i16              BookUptoMove;
 
+    extern std::string      TBPath;
     extern Depth            TBDepthLimit;
     extern i32              TBPieceLimit;
     extern bool             TBUseRule50;

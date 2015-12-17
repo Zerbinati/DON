@@ -24,7 +24,8 @@ namespace UCI {
 
     Option::Option (OnChange on_change)
         : _type ("button")
-        , _value ("")
+        , _default_value ("")
+        , _current_value ("")
         , _minimum (0)
         , _maximum (0)
         , _on_change (on_change)
@@ -35,7 +36,7 @@ namespace UCI {
         , _maximum (0)
         , _on_change (on_change)
     {
-        _value = (val ? "true" : "false");
+        _default_value = _current_value = (val ? "true" : "false");
     }
     Option::Option (const char *val, OnChange on_change)
         : Option (string(val), on_change)
@@ -46,7 +47,7 @@ namespace UCI {
         , _maximum (0)
         , _on_change (on_change)
     {
-        _value = val;
+        _default_value = _current_value = val;
     }
     Option::Option (const i32 val, i32 minimum, i32 maximum, OnChange on_change)
         : _type ("spin")
@@ -54,23 +55,23 @@ namespace UCI {
         , _maximum (maximum)
         , _on_change (on_change)
     {
-        ostringstream oss; oss << val; _value = oss.str ();
+        _default_value = _current_value = std::to_string (val);
     }
 
     Option::operator bool () const
     {
         assert(_type == "check");
-        return (_value == "true");
+        return (_current_value == "true");
     }
     Option::operator i32 () const
     {
         assert(_type == "spin");
-        return stoi (_value);
+        return stoi (_current_value);
     }
     Option::operator string () const
     {
         assert(_type == "string");
-        return _value;
+        return _current_value;
     }
 
     // operator=() updates value and triggers on_change() action.
@@ -91,18 +92,14 @@ namespace UCI {
              )
            )
         {
-            if (_type == "button")
+            if (_type != "button")
             {
-                if (_on_change != nullptr) _on_change ();
-            }
-            else
-            {
-                if (_value != value)
+                if (_current_value != value)
                 {
-                    _value = value;
-                    if (_on_change != nullptr) _on_change ();
+                    _current_value = value;
                 }
             }
+            if (_on_change != nullptr) _on_change ();
         }
         return *this;
     }
@@ -122,12 +119,12 @@ namespace UCI {
         oss << " type " << _type;
         if (_type != "button")
         {
-            oss << " default " << _value;
+            oss << " default " << _default_value;
             if (_type == "spin")
             {
-                oss << " min " << _minimum
-                    << " max " << _maximum;
+                oss << " min " << _minimum << " max " << _maximum;
             }
+            //oss << " current " << _current_value;
         }
         return oss.str ();
     }
@@ -248,12 +245,12 @@ namespace UCI {
 
         void config_endgame_table ()
         {
-            string path_string = string(Options["Syzygy Path"]);
-            trim (path_string);
-            if (!path_string.empty ())
+            TBPath = string(Options["Syzygy Path"]);
+            trim (TBPath);
+            if (!TBPath.empty ())
             {
-                convert_path (path_string);
-                TBSyzygy::initialize (path_string);
+                convert_path (TBPath);
+                TBSyzygy::initialize (TBPath);
             }
         }
 
@@ -442,7 +439,7 @@ namespace UCI {
 
         // End-Game Table Bases Options
         // ----------------------------
-        Options["Syzygy Path"]                  << Option ("<empty>", config_endgame_table);
+        Options["Syzygy Path"]                  << Option (TBPath, config_endgame_table);
         Options["Syzygy Depth Limit"]           << Option (TBDepthLimit, 1, 100);
         Options["Syzygy Piece Limit"]           << Option (TBPieceLimit, 0,   6);
         Options["Syzygy Use Rule 50"]           << Option (TBUseRule50);

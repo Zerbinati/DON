@@ -23,7 +23,8 @@ namespace UCI {
         u08 _index = 0;
         std::string
               _type  = ""
-            , _value = "";
+            , _default_value = ""
+            , _current_value = "";
         i32   _minimum = 0
             , _maximum = 0;
 

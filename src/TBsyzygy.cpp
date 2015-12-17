@@ -2618,18 +2618,17 @@ namespace TBSyzygy {
             auto move = root_moves[i][0];
             pos.do_move (move, si, pos.gives_check (move, ci));
 
-            bool legal = true;
+            Value value = VALUE_ZERO;
             if (pos.checkers () != U64(0) && dtz > VALUE_ZERO)
             {
                 ValMove moves[MAX_MOVES];
                 if (generate<LEGAL> (moves, pos) == moves)
                 {
-                    legal = false;
+                    value = Value(1);
                 }
             }
 
-            Value value = VALUE_ZERO;
-            if (legal)
+            if (value == VALUE_ZERO)
             {
                 if (si.clock_ply != 0)
                 {
@@ -2701,7 +2700,9 @@ namespace TBSyzygy {
             }
             // If the current phase has not seen repetitions, then try all moves
             // that stay safely within the 50-move budget, if there are any.
-            if (!has_repeated (si.ptr) && best_value + clock_ply <= 99)
+            if (   !has_repeated (si.ptr)
+                && best_value + clock_ply <= 99
+               )
             {
                 best_value = Value(99 - clock_ply);
             }
