@@ -14,7 +14,7 @@ using namespace Debugger;
 
 namespace {
 
-    const vector<string> DEFAULT_FEN =
+    const vector<string> DEFAULT_FENS =
     {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -84,12 +84,14 @@ void benchmark (istream &is, const Position &cur_pos)
     u16    threads  =  1;
     i64    limit_val= 13;
     string token;
+    string limit_type;
+    string fen_fn;
     // Assign default values to missing arguments
-    /*u32*/hash       = (is >> hash) && !is.fail ()             ? hash      : 16;
-    /*u16*/threads    = (is >> threads) && !is.fail ()          ? threads   :  1;
-    /*i64*/limit_val  = (is >> limit_val) && !is.fail ()        ? limit_val : 13;
-    string limit_type = (is >> token) && !white_spaces (token)  ? token : "depth";
-    string fen_fn     = (is >> token) && !white_spaces (token)  ? token : "default";
+    hash       = (is >> hash) && !is.fail ()             ? hash      : 16;
+    threads    = (is >> threads) && !is.fail ()          ? threads   :  1;
+    limit_val  = (is >> limit_val) && !is.fail ()        ? limit_val : 13;
+    limit_type = (is >> token) && !white_spaces (token)  ? token : "depth";
+    fen_fn     = (is >> token) && !white_spaces (token)  ? token : "default";
 
     LimitsT limits;
     if (limit_type == "time")     limits.clock[WHITE].time = limits.clock[BLACK].time = u64(abs (limit_val));
@@ -105,7 +107,7 @@ void benchmark (istream &is, const Position &cur_pos)
 
     if (fen_fn == "default")
     {
-        fens = DEFAULT_FEN;
+        fens = DEFAULT_FENS;
     }
     else
     if (fen_fn == "current")

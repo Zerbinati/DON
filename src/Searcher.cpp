@@ -1524,7 +1524,7 @@ namespace Searcher {
         StateInfo states[MAX_PLY], *si = states;
 
         u08 ply = 0;
-        for (auto m : pv)
+        for (const auto m : pv)
         {
             assert(MoveList<LEGAL> (pos).contains (m));
 
@@ -1583,7 +1583,7 @@ namespace Searcher {
     RootMove::operator string () const
     {
         stringstream ss;
-        for (auto m : pv)
+        for (const auto m : pv)
         {
             ss << " " << move_to_can (m, Chess960);
         }
@@ -2206,7 +2206,7 @@ namespace Threading {
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 
             TBHits       = 0;
-            TBHasRoot     = false;
+            TBHasRoot    = false;
             TBDepthLimit = i32(Options["Syzygy Depth Limit"])*DEPTH_ONE;
             TBPieceLimit = i32(Options["Syzygy Piece Limit"]);
             TBUseRule50  = bool(Options["Syzygy Use Rule 50"]);

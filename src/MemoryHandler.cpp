@@ -142,7 +142,7 @@ namespace Memory {
             if (mem_ref != nullptr)
             {
                 PagesUsed = true;
-                sync_cout << "info string LargePage Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
 
@@ -156,7 +156,7 @@ namespace Memory {
             {
                 PagesUsed = true;
                 std::memset (mem_ref, 0x00, mem_size);
-                sync_cout << "info string Page Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
             std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << (mem_size >> 20) << " MB." << std::endl;
@@ -171,7 +171,7 @@ namespace Memory {
                 {
                     LargePages = true;
                     std::memset (mem_ref, 0x00, mem_size);
-                    sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                    sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
                 std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB." << std::endl;
@@ -189,7 +189,7 @@ namespace Memory {
                 {
                     LargePages = true;
                     std::memset (mem_ref, 0x00, mem_size);
-                    sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                    sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
                 std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB." << std::endl;
@@ -208,7 +208,7 @@ namespace Memory {
         if (mem_ref != nullptr)
         {
             std::memset (mem_ref, 0x00, mem_size);
-            sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
+            sync_cout << "info string No Pages Hash " << (mem_size >> 20) << " MB." << sync_endl;
             return;
         }
 
