@@ -1150,7 +1150,7 @@ namespace Evaluator {
         i32 mg = 0;
         for (i32 i = 0; i < MaxAttackUnits; ++i)
         {
-            //                                 MAX_SLOPE, PEAK_VALUE
+            //                                 MaxSlope, MaxValue
             mg = std::min (std::min (i*i*27, mg + 8700), 1280000);
             KingDanger[i] = mk_score (mg/1000, 0) * Weights[KING_SAFETY];
         }

@@ -208,7 +208,7 @@ namespace Searcher {
 
         // update_stats() updates killers, history, countermoves and countermoves history
         // stats for a quiet best move.
-        void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, Move *quiet_moves, u08 quiet_count)
+        void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, MoveVector quiet_moves)
         {
             if (ss->killer_moves[0] != move)
             {
@@ -244,7 +244,7 @@ namespace Searcher {
             }
 
             // Decrease all the other played quiet moves
-            for (u08 i = 0; i < quiet_count; ++i)
+            for (u08 i = 0; i < quiet_moves.size (); ++i)
             {
                 assert(quiet_moves[i] != move);
 
@@ -419,7 +419,7 @@ namespace Searcher {
 
             // Transposition table lookup
             Key posi_key = pos.posi_key ();
-            bool tt_hit = false;
+            bool tt_hit;
             auto *tte = TT.probe (posi_key, tt_hit);
             if (tt_hit)
             {
@@ -533,13 +533,19 @@ namespace Searcher {
 
                         if (futility_value <= alfa)
                         {
-                            best_value = std::max (futility_value, best_value);
+                            if (best_value < futility_value)
+                            {
+                                best_value = futility_value;
+                            }
                             continue;
                         }
                         // Prune moves with negative or zero SEE
                         if (pos.see (move) <= VALUE_ZERO)
                         {
-                            best_value = std::max (futility_base, best_value);
+                            if (best_value < futility_base)
+                            {
+                                best_value = futility_base;
+                            }
                             continue;
                         }
                     }
@@ -679,12 +685,13 @@ namespace Searcher {
             bool in_check = pos.checkers () != U64(0);
             ss->ply = (ss-1)->ply + 1;
 
-            // Used to send 'seldepth' info to GUI
-            if (   PVNode
-                && thread->max_ply < ss->ply
-               )
+            if (PVNode)
             {
-                thread->max_ply = ss->ply;
+                // Used to send 'seldepth' info to GUI
+                if (thread->max_ply < ss->ply)
+                {
+                    thread->max_ply = ss->ply;
+                }
             }
 
             if (!RootNode)
@@ -716,7 +723,7 @@ namespace Searcher {
             assert(/*0 <= ss->ply && */ss->ply < MaxPly);
 
             ss->move_count = 0;
-            ss->current_move =
+            ss->current_move = MOVE_NONE;
             (ss+1)->exclude_move = MOVE_NONE;
             (ss+1)->skip_pruning = false;
             std::fill (std::begin ((ss+2)->killer_moves), std::end ((ss+2)->killer_moves), MOVE_NONE);
@@ -730,8 +737,8 @@ namespace Searcher {
                         pos.posi_key () :
                         pos.posi_key () ^ Zobrist::ExclusionKey;
 
-            bool tt_hit = false;
-            auto *tte   = TT.probe (posi_key, tt_hit);
+            bool tt_hit;
+            auto *tte = TT.probe (posi_key, tt_hit);
             tt_move = RootNode ? thread->root_moves[thread->pv_index][0] :
                                     tt_hit ? tte->move () : MOVE_NONE;
             if (tt_hit)
@@ -759,7 +766,7 @@ namespace Searcher {
                     && !pos.capture_or_promotion (tt_move)
                    )
                 {
-                    update_stats (pos, ss, tt_move, depth, nullptr, 0);
+                    update_stats (pos, ss, tt_move, depth, MoveVector ());
                 }
 
                 return tt_value;
@@ -798,7 +805,7 @@ namespace Searcher {
                         {
                             tte = TT.probe (posi_key, tt_hit);
                         }
-                        tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), VALUE_NONE,
+                        tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), pos.checkers () == U64(0) ? evaluate (pos) : VALUE_NONE,
                             std::min (depth + 6*DEPTH_ONE, DEPTH_MAX - DEPTH_ONE), BOUND_EXACT, TT.generation ());
 
                         return value;
@@ -1030,11 +1037,10 @@ namespace Searcher {
                 && abs (tt_value) < +VALUE_KNOWN_WIN
                 && (tt_bound & BOUND_LOWER);
 
-            const u08 MaxQuiets = 64;
-            Move  quiet_moves[MaxQuiets]
-                , pv[MaxPly + 1];
-            u08   move_count = 0
-                , quiet_count = 0;
+            static const u08 MaxQuiets = 64;
+            MoveVector quiet_moves;
+            Move pv[MaxPly + 1];
+            u08  move_count = 0;
 
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
@@ -1094,7 +1100,9 @@ namespace Searcher {
                                     pos.gives_check (move, ci);
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
-                if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
+                if (   gives_check
+                    && pos.see_sign (move) >= VALUE_ZERO
+                   )
                 {
                     extension = DEPTH_ONE;
                 }
@@ -1162,7 +1170,10 @@ namespace Searcher {
 
                         if (alfa >= futility_value)
                         {
-                            best_value = std::max (futility_value, best_value);
+                            if (best_value < futility_value)
+                            {
+                                best_value = futility_value;
+                            }
                             continue;
                         }
                     }
@@ -1195,7 +1206,7 @@ namespace Searcher {
                 prefetch (thread->pawn_table[pos.pawn_key ()]);
                 prefetch (thread->matl_table[pos.matl_key ()]);
 
-                bool search_full_depth;
+                auto full_depth_search = !PVNode || move_count > FullDepthMoveCount;
 
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
@@ -1237,15 +1248,11 @@ namespace Searcher {
                     auto reduced_depth = std::max (new_depth - reduction_depth, DEPTH_ONE);
                     value = -depth_search<NonPV> (pos, ss+1, -(alfa+1), -alfa, reduced_depth, true);
 
-                    search_full_depth = alfa < value && reduction_depth != DEPTH_ZERO;
-                }
-                else
-                {
-                    search_full_depth = !PVNode || move_count > FullDepthMoveCount;
+                    full_depth_search = alfa < value && reduction_depth != DEPTH_ZERO;
                 }
 
                 // Step 16. Full depth search, when LMR is skipped or fails high
-                if (search_full_depth)
+                if (full_depth_search)
                 {
                     value =
                         new_depth < DEPTH_ONE ?
@@ -1356,10 +1363,10 @@ namespace Searcher {
 
                 if (   move != best_move
                     && !capture_or_promotion
-                    && quiet_count < MaxQuiets
+                    && quiet_moves.size () < MaxQuiets
                    )
                 {
-                    quiet_moves[quiet_count++] = move;
+                    quiet_moves.push_back (move);
                 }
             }
 
@@ -1390,7 +1397,7 @@ namespace Searcher {
                 && !pos.capture_or_promotion (best_move)
                )
             {
-                update_stats (pos, ss, best_move, depth, quiet_moves, quiet_count);
+                update_stats (pos, ss, best_move, depth, quiet_moves);
             }
             else
             // Bonus for prior countermove that caused the fail low
@@ -1438,7 +1445,7 @@ namespace Searcher {
         // Data was extracted from CCRL game database with some simple filtering criteria.
         double move_importance (i16 ply)
         {
-            //                        PLY_SHIFT  / PLY_SCALE  SKEW_RATE
+            //                         PlyShift  / PlyScale  SkewRate
             return pow ((1 + exp ((ply - 59.000) / 8.270)), -0.179) + DBL_MIN; // Ensure non-zero
         }
 
@@ -1528,9 +1535,11 @@ namespace Searcher {
             bool tt_hit;
             auto *tte = TT.probe (pos.posi_key (), tt_hit);
             // Don't overwrite correct entries
-            if (!tt_hit || tte->move () != m)
+            if (  !tt_hit
+                || tte->move () != m
+               )
             {
-                tte->save (pos.posi_key (), m, VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.generation ());
+                tte->save (pos.posi_key (), m, VALUE_NONE, pos.checkers () == U64(0) ? evaluate (pos) : VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.generation ());
             }
 
             pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
@@ -1659,8 +1668,14 @@ namespace Searcher {
             auto opt_time = remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
             auto max_time = remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
 
-            _optimum_time = std::min (opt_time, _optimum_time);
-            _maximum_time = std::min (max_time, _maximum_time);
+            if (_optimum_time > opt_time)
+            {
+                _optimum_time = opt_time;
+            }
+            if (_maximum_time > max_time)
+            {
+                _maximum_time = max_time;
+            }
         }
 
         if (Ponder)
@@ -1759,13 +1774,13 @@ namespace Searcher {
 
         i32 d; // depth
 
-        const i32 K0[3] = { 0, 200, 0 };
+        static const i32 K0[3] = { 0, 200, 0 };
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
             FutilityMargins[d] = Value(K0[0] + (K0[1] + K0[2]*d)*d);
         }
 
-        const double K1[2][4] =
+        static const double K1[2][4] =
         {
             { 2.40, 0.773, 0.00, 1.8 },
             { 2.90, 1.045, 0.49, 1.8 }
@@ -1778,7 +1793,7 @@ namespace Searcher {
             }
         }
 
-        const double K2[2][2] =
+        static const double K2[2][2] =
         {
             { 0.799, 2.281 },
             { 0.484, 3.023 }

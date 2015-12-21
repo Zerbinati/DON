@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string>
+#include <iostream>
 #include <sstream>
 #include <fstream>
 #include <algorithm>
@@ -2358,14 +2359,14 @@ namespace TBSyzygy {
 
         // Check whether there has been at least one repetition of positions
         // since the last capture or pawn move.
-        i32 has_repeated (StateInfo *si)
+        bool has_repeated (StateInfo *si)
         {
             while (true)
             {
                 i32 i = 4, e = std::min (si->clock_ply, si->null_ply);
                 if (e < i)
                 {
-                    return 0;
+                    return false;
                 }
                 StateInfo *psi = si->ptr->ptr;
                 do
@@ -2373,7 +2374,7 @@ namespace TBSyzygy {
                     psi = psi->ptr->ptr;
                     if (psi->posi_key == si->posi_key)
                     {
-                        return 1;
+                        return true;
                     }
                     i += 2;
                 } while (i <= e);

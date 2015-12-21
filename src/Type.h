@@ -12,8 +12,7 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
-#include <iostream>
-#include <iterator>
+//#include <iterator>
 //#include <locale>
 //#include <utility>
 
@@ -759,7 +758,7 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
         {
             token = trim (token);
         }
-        if (keep_empty || !token.empty ())
+        if (!token.empty () || keep_empty)
         {
             tokens.push_back (token);
         }
@@ -778,7 +777,7 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
         {
             token = trim (token);
         }
-        if (keep_empty || !token.empty ())
+        if (!token.empty () || keep_empty)
         {
             tokens.push_back (token);
         }
@@ -805,7 +804,7 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
         {
             token = trim (token);
         }
-        if (keep_empty || !token.empty ())
+        if (!token.empty () || keep_empty)
         {
             tokens.emplace_back (token);
         }
@@ -826,7 +825,7 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
         {
             token = trim (token);
         }
-        if (keep_empty || !token.empty ())
+        if (!token.empty () || keep_empty)
         {
             tokens.push_back (token);
         }
@@ -862,9 +861,9 @@ inline void remove_extension (std::string &filename)
 
 inline std::string append_path (const std::string &path1, const std::string &path2)
 {
-    const char sep = '/';
-    return path1[path1.length ()] != sep ?
-        path1 + sep + path2 :
+    static const char Separator = '/';
+    return path1[path1.length ()] != Separator ?
+        path1 + Separator + path2 :
         path1 + path2;
 }
 

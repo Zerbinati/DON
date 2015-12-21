@@ -3,6 +3,7 @@
 
 #include <bitset>
 #include <thread>
+#include <iostream>
 
 #include "thread_win32.h"
 
