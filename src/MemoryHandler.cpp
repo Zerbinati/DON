@@ -119,7 +119,7 @@ namespace Memory {
 
 #   else
 
-        i32 shm; // Shared Memory Identifier
+        i32 SHM; // Shared Memory Identifier
 
 #   endif
 
@@ -142,6 +142,7 @@ namespace Memory {
             if (mem_ref != nullptr)
             {
                 PagesUsed = true;
+                std::memset (mem_ref, 0x00, mem_size);
                 sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
@@ -163,10 +164,10 @@ namespace Memory {
 
 #   else
 
-            shm = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
-            if (shm != -1)
+            SHM = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
+            if (SHM != -1)
             {
-                mem_ref = shmat (shm, nullptr, 0x00);
+                mem_ref = shmat (SHM, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
                     LargePages = true;
@@ -175,16 +176,16 @@ namespace Memory {
                     return;
                 }
                 std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB." << std::endl;
-                if (shmctl (shm, IPC_RMID, nullptr) == -1)
+                if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
                     std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
                 }
                 return;
             }
-            shm = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W);
-            if (shm != -1)
+            SHM = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W);
+            if (SHM != -1)
             {
-                mem_ref = shmat (shm, nullptr, 0x00);
+                mem_ref = shmat (SHM, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
                     LargePages = true;
@@ -193,7 +194,7 @@ namespace Memory {
                     return;
                 }
                 std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB." << std::endl;
-                if (shmctl (shm, IPC_RMID, nullptr) == -1)
+                if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
                     std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
                 }
@@ -230,7 +231,7 @@ namespace Memory {
             {
                 std::cerr << "ERROR: shmdt() shared memory detach failed." << std::endl;
             }
-            if (shmctl (shm, IPC_RMID, nullptr) == -1)
+            if (shmctl (SHM, IPC_RMID, nullptr) == -1)
             {
                 std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
             }

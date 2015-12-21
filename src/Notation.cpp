@@ -8,11 +8,11 @@
 
 using namespace std;
 
-const string PIECE_CHAR ("PNBRQK  pnbrqk");
-const string COLOR_CHAR ("wb-");
+const string PieceChar ("PNBRQK  pnbrqk");
+const string ColorChar ("wb-");
 // Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
 // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-const string STARTUP_FEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+const string StartupFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
 namespace Notation {
 
@@ -62,7 +62,7 @@ namespace Notation {
         string pretty_value (Value v, const Position &pos)
         {
             ostringstream oss;
-            if (abs (v) < +VALUE_MATE - i32(MAX_PLY))
+            if (abs (v) < +VALUE_MATE - i32(MaxPly))
             {
                 oss << setprecision (2) << fixed << showpos << value_to_cp (pos.active () == WHITE ? +v : -v);
             }
@@ -76,12 +76,12 @@ namespace Notation {
         // time to string
         string pretty_time (TimePoint time)
         {
-            u32 hours  = u32(time / HOUR_MILLI_SEC);
-            time      %= HOUR_MILLI_SEC;
-            u32 minutes= u32(time / MINUTE_MILLI_SEC);
-            time      %= MINUTE_MILLI_SEC;
-            u32 seconds= u32(time / MILLI_SEC);
-            time      %= MILLI_SEC;
+            u32 hours  = u32(time / HourMilliSec);
+            time      %= HourMilliSec;
+            u32 minutes= u32(time / MinuteMilliSec);
+            time      %= MinuteMilliSec;
+            u32 seconds= u32(time / MilliSec);
+            time      %= MilliSec;
             time      /= 10;
 
             ostringstream oss;
@@ -115,7 +115,7 @@ namespace Notation {
         auto can = to_string (org) + to_string (dst);
         if (mtype (m) == PROMOTE)
         {
-            can += PIECE_CHAR[BLACK|promote (m)]; // Lowercase (Black)
+            can += PieceChar[BLACK|promote (m)]; // Lowercase (Black)
         }
         return can;
     }
@@ -136,7 +136,7 @@ namespace Notation {
 
             if (pt != PAWN)
             {
-                san = PIECE_CHAR[pt];
+                san = PieceChar[pt];
                 if (pt != KING)
                 {
                     // Disambiguation if have more then one piece of type 'pt'
@@ -166,7 +166,7 @@ namespace Notation {
             if (mtype (m) == PROMOTE && pt == PAWN)
             {
                 san += "=";
-                san += PIECE_CHAR[WHITE|promote (m)]; // Uppercase (White)
+                san += PieceChar[WHITE|promote (m)]; // Uppercase (White)
             }
         }
         else
@@ -246,7 +246,7 @@ namespace Notation {
     string to_string (Value v)
     {
         ostringstream oss;
-        if (abs (v) < +VALUE_MATE - i32(MAX_PLY))
+        if (abs (v) < +VALUE_MATE - i32(MaxPly))
         {
             oss << "cp " << i32(100 * value_to_cp (v));
         }

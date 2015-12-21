@@ -21,16 +21,16 @@ namespace Engine {
     namespace {
 
         // Version number. If Version is left empty, then show compile date in the format DD-MM-YY.
-        const string VERSION   = "";
+        const string Version   = "";
 
-        const i08 MAX_MONTH = 12;
-        const string MONTHS[MAX_MONTH] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        const i08 MaxMonth = 12;
+        const string Months[MaxMonth] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-        i32 month_index (const string &month)
+        i32 index_month (const string &month)
         {
-            for (auto m = 0; m < MAX_MONTH; ++m)
+            for (auto m = 0; m < MaxMonth; ++m)
             {
-                if (month == MONTHS[m]) return m+1;
+                if (month == Months[m]) return m+1;
             }
             return 0;
         }
@@ -48,19 +48,19 @@ namespace Engine {
 #if defined (VER)
         oss << VER;
 #else
-        if (white_spaces (VERSION))
+        if (white_spaces (Version))
         {
             // From compiler, format is "Sep 2 2013"
             istringstream iss (__DATE__);
             string month, day, year;
             iss >> month >> day >> year;
             oss << setw (2) << (day)
-                << setw (2) << (month_index (month))
+                << setw (2) << (index_month (month))
                 << setw (2) << (year.substr (2));
         }
         else
         {
-            oss << VERSION;
+            oss << Version;
         }
 #endif
         oss << setfill (' ');
@@ -102,7 +102,7 @@ namespace Engine {
         EndGame  ::initialize ();
         Threadpool.initialize ();
         Searcher ::initialize ();
-        TBSyzygy ::initialize (string(Options["Syzygy Path"]));
+        TBSyzygy ::initialize ();
 
 #ifdef LPAGES
         Memory::initialize ();

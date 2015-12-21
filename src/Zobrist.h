@@ -7,11 +7,11 @@ class Position;
 
 namespace Zobrist {
 
-    //const Key START_MATL_KEY = U64(0xB76D8438E5D28230);
-    //const Key START_PAWN_KEY = U64(0x37FC40DA841E1692);
-    //const Key START_POSI_KEY = U64(0x463B96181691FC9C);
+    //const Key StartMatlKey = U64(0xB76D8438E5D28230);
+    //const Key StartPawnKey = U64(0x37FC40DA841E1692);
+    //const Key StartPosiKey = U64(0x463B96181691FC9C);
 
-    const Key EXC_KEY = U64(0xFFFFFFFFFFFFFFFF);
+    const Key ExclusionKey = U64(0xFFFFFFFFFFFFFFFF);
 
     // Zobrist Random numbers
     union Zob

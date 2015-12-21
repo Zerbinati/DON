@@ -133,7 +133,7 @@ typedef        uint64_t    u64;
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const u16 MAX_PLY = 128; // Maximum Plies
+const u16 MaxPly = 128; // Maximum Plies
 
 // File
 enum File : i08
@@ -337,7 +337,7 @@ enum Depth : i16
     DEPTH_QS_NO_CHECKS  = -1*i16(DEPTH_ONE),
     DEPTH_QS_RECAPTURES = -5*i16(DEPTH_ONE),
     DEPTH_NONE          = -6*i16(DEPTH_ONE),
-    DEPTH_MAX           = MAX_PLY*i16(DEPTH_ONE),
+    DEPTH_MAX           = MaxPly*i16(DEPTH_ONE),
 };
 
 enum Value : i32
@@ -351,7 +351,7 @@ enum Value : i32
     VALUE_MATE      = +i32(VALUE_INFINITE) - 1,
     VALUE_KNOWN_WIN = +i32(VALUE_MATE) / 3,
 
-    VALUE_MATE_IN_MAX_PLY = +i32(VALUE_MATE) - 2 * i32(MAX_PLY),
+    VALUE_MATE_IN_MAX_PLY = +i32(VALUE_MATE) - 2 * i32(MaxPly),
 
     VALUE_MG_PAWN =  198,  VALUE_EG_PAWN =  258,
     VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  846,
@@ -572,12 +572,12 @@ inline bool   opposite_colors (Square s1, Square s2)
     return ((s >> 3) ^ s) & BLACK;
 }
 
-extern u08 SQUARE_DIST[SQ_NO][SQ_NO];
+extern u08 SquareDist[SQ_NO][SQ_NO];
 
 template<class T>
 inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
 
-template<> inline i32 dist (Square s1, Square s2) { return SQUARE_DIST[s1][s2]; }
+template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
 
 template<class T1, class T2>
 inline i32 dist (T2, T2);
@@ -675,9 +675,9 @@ typedef std::vector<Move>   MoveVector;
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
 //inline TimePoint  operator- (TimePoint  t1, TimePoint t2) { return TimePoint(i64(t1) - i64(t2)); }
 
-const u32 MILLI_SEC        = 1000;
-const u32 MINUTE_MILLI_SEC = MILLI_SEC * 60;
-const u32 HOUR_MILLI_SEC   = MINUTE_MILLI_SEC * 60;
+const u32 MilliSec       = 1000;
+const u32 MinuteMilliSec = MilliSec * 60;
+const u32 HourMilliSec   = MinuteMilliSec * 60;
 
 inline TimePoint now ()
 {
@@ -890,10 +890,10 @@ inline void convert_path (std::string &path)
 //    return { beg, end };
 //}
 
-extern const Value PIECE_VALUE[PHASE_NO][TOTL];
+extern const Value PieceValues[PHASE_NO][TOTL];
 
-extern const std::string PIECE_CHAR;
-extern const std::string COLOR_CHAR;
-extern const std::string STARTUP_FEN;
+extern const std::string PieceChar;
+extern const std::string ColorChar;
+extern const std::string StartupFEN;
 
 #endif // _TYPE_H_INC_

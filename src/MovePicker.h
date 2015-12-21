@@ -11,7 +11,7 @@ namespace MovePick {
     using namespace MoveGen;
     using namespace Searcher;
 
-    const Value MAX_STATS_VALUE = Value(1 << 28);
+    const Value MaxStatsValue = Value(1 << 28);
 
     // The Stats struct stores different statistics.
     template<class T, bool CM = false>
@@ -47,7 +47,7 @@ namespace MovePick {
             if (abs (i32(v)) < 324)
             {
                 auto &e = _table[p][s];
-                e = std::min (std::max (e*(1.0 - (double)abs (i32(v)) / (CM ? 512 : 324)) + i32(v)*(CM ? 64 : 32), -MAX_STATS_VALUE), +MAX_STATS_VALUE);
+                e = std::min (std::max (e*(1.0 - (double)abs (i32(v)) / (CM ? 512 : 324)) + i32(v)*(CM ? 64 : 32), -MaxStatsValue), +MaxStatsValue);
             }
         }
         // Piece, destiny square, move
@@ -85,11 +85,11 @@ namespace MovePick {
 
     private:
 
-        ValMove  _moves_beg[MAX_MOVES]
+        ValMove  _moves_beg[MaxMoves]
             ,   *_moves_cur         = _moves_beg
             ,   *_moves_end         = _moves_beg
             ,   *_quiets_end        = _moves_beg
-            ,   *_bad_captures_end  = _moves_beg+MAX_MOVES-1;
+            ,   *_bad_captures_end  = _moves_beg+MaxMoves-1;
 
         const Position      &_pos;
         const HValueStats   &_history_values;

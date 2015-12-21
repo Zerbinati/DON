@@ -17,7 +17,7 @@ namespace Threading {
     using namespace Searcher;
     using namespace MovePick;
 
-    const u16 MAX_THREADS = 128; // Maximum Threads
+    const u16 MaxThreads = 128; // Maximum Threads
 
     // Thread struct keeps together all the thread related stuff like.
     // It also use pawn and material hash tables so that once get a pointer

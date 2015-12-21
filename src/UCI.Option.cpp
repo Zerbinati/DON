@@ -159,16 +159,22 @@ namespace UCI {
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
-            if (!hash_fn.empty ()) convert_path (hash_fn);
-            TT.save (hash_fn);
+            if (!hash_fn.empty ())
+            {
+                convert_path (hash_fn);
+                TT.save (hash_fn);
+            }
         }
 
         void load_hash   ()
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
-            if (!hash_fn.empty ()) convert_path (hash_fn);
-            TT.load (hash_fn);
+            if (!hash_fn.empty ())
+            {
+                convert_path (hash_fn);
+                TT.load (hash_fn);
+            }
         }
 
         void configure_threadpool ()
@@ -185,7 +191,10 @@ namespace UCI {
         {
             HashFile         = string(Options["Hash File"]);
             trim (HashFile);
-            if (!HashFile.empty ()) convert_path (HashFile);
+            if (!HashFile.empty ())
+            {
+                convert_path (HashFile);
+            }
         }
 
         void configure_contempt ()
@@ -209,7 +218,10 @@ namespace UCI {
             BookUptoMove = i16(i32(Options["Book Upto Ply"]));
 
             trim (BookFile);
-            if (!BookFile.empty ()) convert_path (BookFile);
+            if (!BookFile.empty ())
+            {
+                convert_path (BookFile);
+            }
         }
         
         void configure_skill ()
@@ -240,17 +252,19 @@ namespace UCI {
         {
             LogFile = string(Options["Log File"]);
             trim (LogFile);
-            if (!LogFile.empty ()) convert_path (LogFile);
+            if (!LogFile.empty ())
+            {
+                convert_path (LogFile);
+            }
         }
 
         void config_endgame_table ()
         {
-            TBPath = string(Options["Syzygy Path"]);
-            trim (TBPath);
-            if (!TBPath.empty ())
+            PathString = string(Options["Syzygy Path"]);
+            trim (PathString);
+            if (!PathString.empty ())
             {
-                convert_path (TBPath);
-                TBSyzygy::initialize (TBPath);
+                TBSyzygy::initialize ();
             }
         }
 
@@ -365,16 +379,16 @@ namespace UCI {
         // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      << Option ( 1, 1, MAX_THREADS, configure_threadpool);
+        Options["Threads"]                      << Option ( 1, 1, MaxThreads, configure_threadpool);
 
         // Game Play Options
         // -----------------
 
         // How well you want engine to play.
-        // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
+        // Default MaxSkillLevel, Min 0, Max MaxSkillLevel.
         //
-        // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
-        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, configure_skill);
+        // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
+        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel, configure_skill);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
@@ -439,7 +453,7 @@ namespace UCI {
 
         // End-Game Table Bases Options
         // ----------------------------
-        Options["Syzygy Path"]                  << Option (TBPath, config_endgame_table);
+        Options["Syzygy Path"]                  << Option (PathString, config_endgame_table);
         Options["Syzygy Depth Limit"]           << Option (TBDepthLimit, 1, 100);
         Options["Syzygy Piece Limit"]           << Option (TBPieceLimit, 0,   6);
         Options["Syzygy Use Rule 50"]           << Option (TBUseRule50);

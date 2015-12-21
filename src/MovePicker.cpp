@@ -152,7 +152,7 @@ namespace MovePick {
     {
         for (auto &m : *this)
         {
-            m = PIECE_VALUE[MG][_pos.en_passant (m) ? PAWN : ptype (_pos[dst_sq (m)])]
+            m = PieceValues[MG][_pos.en_passant (m) ? PAWN : ptype (_pos[dst_sq (m)])]
               - Value(200 * rel_rank (_pos.active (), dst_sq (m)));
         }
     }
@@ -178,13 +178,13 @@ namespace MovePick {
             auto see_value = _pos.see_sign (m);
             if (see_value < VALUE_ZERO)
             {
-                m = see_value - MAX_STATS_VALUE; // At the bottom
+                m = see_value - MaxStatsValue; // At the bottom
             }
             else
             if (_pos.capture (m))
             {
-                m = PIECE_VALUE[MG][_pos.en_passant (m) ? PAWN : ptype (_pos[dst_sq (m)])]
-                  - Value(ptype (_pos[org_sq (m)])) -1 + MAX_STATS_VALUE;
+                m = PieceValues[MG][_pos.en_passant (m) ? PAWN : ptype (_pos[dst_sq (m)])]
+                  - Value(ptype (_pos[org_sq (m)])) -1 + MaxStatsValue;
             }
             else
             {
@@ -256,7 +256,7 @@ namespace MovePick {
 
         case S_BAD_CAPTURE:
             // Just pick them in reverse order to get MVV/LVA ordering
-            _moves_cur = _moves_beg+MAX_MOVES-1;
+            _moves_cur = _moves_beg+MaxMoves-1;
             _moves_end = _bad_captures_end;
             break;
 

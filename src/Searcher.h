@@ -160,8 +160,7 @@ namespace Searcher {
         Move *pv = nullptr;
         u16  ply = 0;
 
-        Move tt_move      = MOVE_NONE
-           , current_move = MOVE_NONE
+        Move current_move = MOVE_NONE
            , exclude_move = MOVE_NONE
            , killer_moves[2];
 
@@ -170,19 +169,19 @@ namespace Searcher {
         bool skip_pruning = false;
     };
 
-    const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be <= MAX_PLY/4
+    const u08 MaxSkillLevel   = 32; // MaxSkillLevel should be <= MaxPly/4
     // Skill Manager
     class SkillManager
     {
 
     private:
-        u08  _level     = MAX_SKILL_LEVEL;
+        u08  _level     = MaxSkillLevel;
         Move _best_move = MOVE_NONE;
 
     public:
         static const u16 MultiPV = 4;
 
-        explicit SkillManager (u08 level = MAX_SKILL_LEVEL)
+        explicit SkillManager (u08 level = MaxSkillLevel)
             : _level (level)
         {}
 
@@ -198,7 +197,7 @@ namespace Searcher {
 
         bool enabled () const
         {
-            return _level < MAX_SKILL_LEVEL;
+            return _level < MaxSkillLevel;
         }
 
         bool can_pick (Depth depth) const
@@ -275,7 +274,6 @@ namespace Searcher {
     extern bool             BookMoveBest;
     extern i16              BookUptoMove;
 
-    extern std::string      TBPath;
     extern Depth            TBDepthLimit;
     extern i32              TBPieceLimit;
     extern bool             TBUseRule50;

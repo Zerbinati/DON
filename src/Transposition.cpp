@@ -19,7 +19,7 @@ namespace Transposition {
     // Size of Transposition cluster in (bytes)
     // 32 bytes
     const u08 Cluster::Size = sizeof (Cluster);
-    static_assert (CACHE_LINE_SIZE % Cluster::Size == 0, "Incorrect Cluster::Size");
+    static_assert (CacheLineSize % Cluster::Size == 0, "Incorrect Cluster::Size");
     // Minimum size of Transposition table (mega-byte)
     // 4 MB
     const u32 Table::MinSize = 4;
@@ -103,7 +103,7 @@ namespace Transposition {
         {
             free_aligned_memory ();
 
-            alloc_aligned_memory (mem_size, CACHE_LINE_SIZE); // Cache Line Size
+            alloc_aligned_memory (mem_size, CacheLineSize); // Cache Line Size
 
             if (_clusters == nullptr) return 0;
 

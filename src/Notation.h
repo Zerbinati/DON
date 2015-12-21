@@ -45,7 +45,7 @@ template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, Color c)
 {
-    os << COLOR_CHAR[c];
+    os << ColorChar[c];
     return os;
 }
 
@@ -77,7 +77,7 @@ template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, Piece p)
 {
-    os << PIECE_CHAR[p];
+    os << PieceChar[p];
     return os;
 }
 

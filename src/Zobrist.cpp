@@ -95,7 +95,7 @@ namespace Zobrist {
                 s += Delta(ch - '0'); // Advance the given number of files
             }
             else
-            if (isalpha (ch) && (idx = PIECE_CHAR.find (ch)) != string::npos)
+            if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
             {
                 auto p = Piece(idx);
                 if (ptype (p) == KING)

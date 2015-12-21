@@ -48,7 +48,7 @@ namespace Pawns {
 
         i32 pawns_on_squarecolor (Color c, Square s) const
         {
-            return pawns_on_sqrs[c][(LIHT_bb & s) == U64(0)];
+            return pawns_on_sqrs[c][(Liht_bb & s) == U64(0)];
         }
         i32 pawns_on_center (Color c) const
         {
@@ -76,7 +76,7 @@ namespace Pawns {
                 king_pawn_dist[Own] = 0;
                 if (pos.pieces (Own, PAWN) != U64(0))
                 {
-                    while ((DIST_RINGS_bb[king_sq[Own]][king_pawn_dist[Own]++] & pos.pieces (Own, PAWN)) == U64(0)) {}
+                    while ((DistRings_bb[king_sq[Own]][king_pawn_dist[Own]++] & pos.pieces (Own, PAWN)) == U64(0)) {}
                 }
             }
         }

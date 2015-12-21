@@ -6,7 +6,7 @@
 
 namespace MoveGen {
 
-    const u16 MAX_MOVES = 0x100; // Maximum Moves
+    const u16 MaxMoves = 0x100; // Maximum Moves
 
     struct ValMove
     {
@@ -58,7 +58,7 @@ namespace MoveGen {
     {
 
     private:
-        ValMove  _moves_beg[MAX_MOVES]
+        ValMove  _moves_beg[MaxMoves]
               , *_moves_end = _moves_beg;
 
     public:

@@ -14,7 +14,7 @@ using namespace Debugger;
 
 namespace {
 
-    const vector<string> DEFAULT_FENS =
+    const vector<string> DefaultFENS =
     {
         "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
         "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -107,7 +107,7 @@ void benchmark (istream &is, const Position &cur_pos)
 
     if (fen_fn == "default")
     {
-        fens = DEFAULT_FENS;
+        fens = DefaultFENS;
     }
     else
     if (fen_fn == "current")
@@ -181,7 +181,7 @@ void benchmark (istream &is, const Position &cur_pos)
         << "\n===========================\n"
         << "Total time (ms) :" << setw (10) << elapsed_time << "\n"
         << "Nodes searched  :" << setw (10) << nodes        << "\n"
-        << "Nodes/second    :" << setw (10) << nodes * MILLI_SEC / elapsed_time
+        << "Nodes/second    :" << setw (10) << nodes * MilliSec / elapsed_time
         << "\n---------------------------\n"    
         << left << std::endl;
 }

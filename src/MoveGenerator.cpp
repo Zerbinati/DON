@@ -28,7 +28,7 @@ namespace MoveGen {
                     if (GT == CHECK || GT == QUIET_CHECK)
                     {
                         if (   (PT == BSHP || PT == ROOK || PT == QUEN)
-                            && (PIECE_ATTACKS[PT][s] & targets & ci->checking_bb[PT]) == U64(0)
+                            && (PieceAttacks[PT][s] & targets & ci->checking_bb[PT]) == U64(0)
                            )
                         {
                             continue;
@@ -116,7 +116,7 @@ namespace MoveGen {
                 if (GT != CHECK && GT != QUIET_CHECK)
                 {
                     auto king_sq = pos.square<KING> (Own);
-                    auto attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.square<KING> (Opp)] & targets;
+                    auto attacks = PieceAttacks[KING][king_sq] & ~PieceAttacks[KING][pos.square<KING> (Opp)] & targets;
                     while (attacks != U64(0)) { *moves++ = mk_move (king_sq, pop_lsq (attacks)); }
                 }
 
@@ -172,7 +172,7 @@ namespace MoveGen {
                 // not already included in the queen-promotion (queening).
                 if (GT == QUIET_CHECK)
                 {
-                    if ((PIECE_ATTACKS[NIHT][dst] & ci->king_sq) != U64(0))
+                    if ((PieceAttacks[NIHT][dst] & ci->king_sq) != U64(0))
                     {
                         *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
                     }
@@ -180,7 +180,7 @@ namespace MoveGen {
                 //else
                 //if (GT == CHECK)
                 //{
-                //    if ((PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                //    if ((PieceAttacks[NIHT][dst]        & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
                 //    if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
                 //    if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
                 //    if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
@@ -230,8 +230,8 @@ namespace MoveGen {
 
                     case CHECK:
                     case QUIET_CHECK:
-                        push_1 &= PAWN_ATTACKS[Opp][ci->king_sq];
-                        push_2 &= PAWN_ATTACKS[Opp][ci->king_sq];
+                        push_1 &= PawnAttacks[Opp][ci->king_sq];
+                        push_2 &= PawnAttacks[Opp][ci->king_sq];
 
                         // Pawns which give discovered check
                         // Add pawn pushes which give discovered check.
@@ -276,9 +276,9 @@ namespace MoveGen {
                             // All time except when EVASION then 2nd condition must true
                             if (GT != EVASION || (targets & (ep_sq - Push)) != U64(0))
                             {
-                                auto ep_attacks = Rx_pawns & Rank5BB & PAWN_ATTACKS[Opp][ep_sq];
+                                auto ep_attacks = Rx_pawns & Rank5BB & PawnAttacks[Opp][ep_sq];
                                 assert(ep_attacks != U64(0));
-                                assert(pop_count<MAX15> (ep_attacks) <= 2);
+                                assert(pop_count<Max15> (ep_attacks) <= 2);
 
                                 while (ep_attacks != U64(0)) { *moves++ = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq); }
                             }
@@ -379,7 +379,7 @@ namespace MoveGen {
             auto pt  = ptype (pos[org]);
             auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
 
-            if (pt == KING) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
+            if (pt == KING) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
 
             while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
         }
@@ -405,7 +405,7 @@ namespace MoveGen {
             auto pt  = ptype (pos[org]);
             auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
 
-            if (pt == KING) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
+            if (pt == KING) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
 
             while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
         }
@@ -429,16 +429,16 @@ namespace MoveGen {
         auto check_sq = SQ_NO;
 
         //// Generates evasions for king, capture and non-capture moves excluding friends
-        //Bitboard attacks = PIECE_ATTACKS[KING][king_sq] & ~pos.pieces (active);
+        //Bitboard attacks = PieceAttacks[KING][king_sq] & ~pos.pieces (active);
         //check_sq = pop_lsq (checkers);
         //
         //Bitboard enemies = pos.pieces (~active);
         //Bitboard mocc    = pos.pieces () - king_sq;
         //// Remove squares attacked by enemies, from the king evasions.
         //// so to skip known illegal moves avoiding useless legality check later.
-        //for (u08 k = 0; PIECE_DELTAS[KING][k]; ++k)
+        //for (u08 k = 0; PieceDeltas[KING][k]; ++k)
         //{
-        //    auto sq = king_sq + PIECE_DELTAS[KING][k];
+        //    auto sq = king_sq + PieceDeltas[KING][k];
         //    if (_ok (sq))
         //    {
         //        if ((attacks & sq) && pos.attackers_to (sq, ~active, mocc))
@@ -456,15 +456,15 @@ namespace MoveGen {
         {
             check_sq = pop_lsq (sliders);
             assert(color (pos[check_sq]) == ~active);
-            slider_attacks |= RAYLINE_bb[check_sq][king_sq] - check_sq;
+            slider_attacks |= RayLine_bb[check_sq][king_sq] - check_sq;
         }
 
         // Generate evasions for king, capture and non capture moves
         auto attacks =
-              PIECE_ATTACKS[KING][king_sq]
+              PieceAttacks[KING][king_sq]
             & ~(  pos.pieces (active)
                 | slider_attacks
-                | PIECE_ATTACKS[KING][pos.square<KING> (~active)]
+                | PieceAttacks[KING][pos.square<KING> (~active)]
                );
 
         while (attacks != U64(0)) { *moves++ = mk_move (king_sq, pop_lsq (attacks)); }
@@ -474,7 +474,7 @@ namespace MoveGen {
 
         check_sq = check_sq == SQ_NO ? scan_lsq (checkers) : check_sq;
         // Generates blocking evasions or captures of the checking piece
-        auto targets = BETWEEN_bb[check_sq][king_sq] + check_sq;
+        auto targets = Between_bb[check_sq][king_sq] + check_sq;
 
         return active == WHITE ? generate_moves<EVASION, WHITE> (moves, pos, targets) :
                active == BLACK ? generate_moves<EVASION, BLACK> (moves, pos, targets) :

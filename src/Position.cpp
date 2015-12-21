@@ -16,7 +16,7 @@ using namespace MoveGen;
 using namespace Threading;
 using namespace Notation;
 
-const Value PIECE_VALUE[PHASE_NO][TOTL] =
+const Value PieceValues[PHASE_NO][TOTL] =
 {
     { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
@@ -28,11 +28,11 @@ bool _ok (const string &fen, bool c960, bool full)
 }
 
 #define S(mg, eg) mk_score (mg, eg)
-// PSQ_BONUS[PieceType][Rank][File/2] contains Piece-Square scores.
+// PSQ_Bonus[PieceType][Rank][File/2] contains Piece-Square scores.
 // For each piece type on a given square a (middlegame, endgame) score pair is assigned.
 // Table is defined for files A..D and white side: it is symmetric for black side and
 // second half of the files.
-const Score Position::PSQ_BONUS[NONE][R_NO][F_NO/2] =
+const Score Position::PSQ_Bonus[NONE][R_NO][F_NO/2] =
 {
     { // Pawn
         { S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0) },
@@ -105,11 +105,11 @@ void Position::initialize ()
 {
     for (auto pt = PAWN; pt <= KING; ++pt)
     {
-        auto score = mk_score (PIECE_VALUE[MG][pt], PIECE_VALUE[EG][pt]);
+        auto score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
 
         for (auto s = SQ_A1; s <= SQ_H8; ++s)
         {
-            auto psq_bonus = score + PSQ_BONUS[pt][_rank (s)][_file (s) < F_E ? _file (s) : F_H - _file (s)];
+            auto psq_bonus = score + PSQ_Bonus[pt][_rank (s)][_file (s) < F_E ? _file (s) : F_H - _file (s)];
             PSQ[WHITE][pt][ s] = +psq_bonus;
             PSQ[BLACK][pt][~s] = -psq_bonus;
         }
@@ -217,7 +217,7 @@ bool Position::ok (i08 *failed_step) const
             if (   (_active != WHITE && _active != BLACK)
                 || (_board[_piece_square[WHITE][KING][0]] != W_KING)
                 || (_board[_piece_square[BLACK][KING][0]] != B_KING)
-                || count<NONE> () > 32 || count<NONE> () != pop_count<FULL> (_types_bb[NONE])
+                || count<NONE> () > 32 || count<NONE> () != pop_count<Full> (_types_bb[NONE])
                 || (_psi->en_passant_sq != SQ_NO && (rel_rank (_active, _psi->en_passant_sq) != R_6 || !can_en_passant (_psi->en_passant_sq)))
                 || (_psi->clock_ply > 100)
                )
@@ -230,7 +230,7 @@ bool Position::ok (i08 *failed_step) const
             if (   std::count (_board, _board + SQ_NO, W_KING) != 1
                 || std::count (_board, _board + SQ_NO, B_KING) != 1
                 || attackers_to (_piece_square[~_active][KING][0], _active)
-                || pop_count<MAX15> (_psi->checkers) > 2
+                || pop_count<Max15> (_psi->checkers) > 2
                )
             {
                 return false;
@@ -273,7 +273,7 @@ bool Position::ok (i08 *failed_step) const
                 auto colors = _color_bb[c];
 
                 // Too many Piece of color
-                if (count<NONE> (c) > 16 || count<NONE> (c) != pop_count<FULL> (colors))
+                if (count<NONE> (c) > 16 || count<NONE> (c) != pop_count<Full> (colors))
                 {
                     return false;
                 }
@@ -295,8 +295,8 @@ bool Position::ok (i08 *failed_step) const
                     auto bishops = colors & _types_bb[BSHP];
                     u08 bishop_count[CLR_NO] =
                     {
-                        u08(pop_count<MAX15> (LIHT_bb & bishops)),
-                        u08(pop_count<MAX15> (DARK_bb & bishops)),
+                        u08(pop_count<Max15> (Liht_bb & bishops)),
+                        u08(pop_count<Max15> (Dark_bb & bishops)),
                     };
 
                     if (           (_piece_count[c][PAWN]
@@ -335,7 +335,7 @@ bool Position::ok (i08 *failed_step) const
             {
                 for (auto pt = PAWN; pt <= KING; ++pt)
                 {
-                    if (_piece_count[c][pt] != pop_count<MAX15> (_color_bb[c]&_types_bb[pt]))
+                    if (_piece_count[c][pt] != pop_count<Max15> (_color_bb[c]&_types_bb[pt]))
                     {
                         return false;
                     }
@@ -458,11 +458,11 @@ Value Position::see      (Move m) const
     case ENPASSANT:
         // Remove the captured pawn
         mocc -= dst - pawn_push (stm);
-        gain_list[0] = PIECE_VALUE[MG][PAWN];
+        gain_list[0] = PieceValues[MG][PAWN];
         break;
 
     default:
-        gain_list[0] = PIECE_VALUE[MG][ptype (_board[dst])];
+        gain_list[0] = PieceValues[MG][ptype (_board[dst])];
         break;
     }
 
@@ -489,7 +489,7 @@ Value Position::see      (Move m) const
             assert(depth < MAX_GAINS);
 
             // Add the new entry to the swap list
-            gain_list[depth] = PIECE_VALUE[MG][captured] - gain_list[depth - 1];
+            gain_list[depth] = PieceValues[MG][captured] - gain_list[depth - 1];
 
             // Locate and remove the next least valuable attacker
             captured = pick_least_val_att<PAWN> (dst, stm_attackers, mocc, attackers);
@@ -517,8 +517,8 @@ Value Position::see_sign (Move m) const
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
-    if (  PIECE_VALUE[MG][ptype (_board[org_sq (m)])]
-       <= PIECE_VALUE[MG][ptype (_board[dst_sq (m)])]
+    if (  PieceValues[MG][ptype (_board[org_sq (m)])]
+       <= PieceValues[MG][ptype (_board[dst_sq (m)])]
        )
     {
         return VALUE_KNOWN_WIN;
@@ -532,14 +532,14 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
     // Pinners are sliders that give check when a pinned piece is removed
     // Only one real pinner exist other are fake pinner
     auto pinners =
-        (  ((_types_bb[QUEN]|_types_bb[BSHP]) & PIECE_ATTACKS[BSHP][ksq])
-         | ((_types_bb[QUEN]|_types_bb[ROOK]) & PIECE_ATTACKS[ROOK][ksq])
+        (  ((_types_bb[QUEN]|_types_bb[BSHP]) & PieceAttacks[BSHP][ksq])
+         | ((_types_bb[QUEN]|_types_bb[ROOK]) & PieceAttacks[ROOK][ksq])
         ) &  _color_bb[~king_c];
 
     auto chk_blockers = U64(0);
     while (pinners != U64(0))
     {
-        auto blocker = BETWEEN_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
+        auto blocker = Between_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
         if (blocker != U64(0) && !more_than_one (blocker))
         {
             chk_blockers |= blocker & _color_bb[piece_c];
@@ -674,7 +674,7 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
         if (   // Not a capture
-               !(   (PAWN_ATTACKS[_active][org] & _color_bb[~_active] & dst)
+               !(   (PawnAttacks[_active][org] & _color_bb[~_active] & dst)
                  && dist<File> (dst, org) == 1
                  && dist<Rank> (dst, org) == 1
                 )
@@ -718,9 +718,9 @@ bool Position::pseudo_legal (Move m) const
         return mpt == PAWN && mtype (m) == ENPASSANT ?
             // Move must be a capture of the checking en-passant pawn
             // or a blocking evasion of the checking piece
-            (_psi->checkers & cap) != U64(0) || (BETWEEN_bb[scan_lsq (_psi->checkers)][_piece_square[_active][KING][0]] & dst) != U64(0) :
+            (_psi->checkers & cap) != U64(0) || (Between_bb[scan_lsq (_psi->checkers)][_piece_square[_active][KING][0]] & dst) != U64(0) :
             // Move must be a capture or a blocking evasion of the checking piece
-            ((_psi->checkers | BETWEEN_bb[scan_lsq (_psi->checkers)][_piece_square[_active][KING][0]]) & dst) != U64(0);
+            ((_psi->checkers | Between_bb[scan_lsq (_psi->checkers)][_piece_square[_active][KING][0]]) & dst) != U64(0);
     }
     return true;
 }
@@ -832,7 +832,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         dst           = rel_sq (_active, (dst > org) ? SQ_G1 : SQ_C1);
         auto rook_dst = rel_sq (_active, (dst > org) ? SQ_F1 : SQ_D1);
 
-        return (PIECE_ATTACKS[ROOK][rook_dst] & ci.king_sq) != U64(0) // First x-ray check then full check
+        return (PieceAttacks[ROOK][rook_dst] & ci.king_sq) != U64(0) // First x-ray check then full check
             && (attacks_bb<ROOK> (rook_dst, (_types_bb[NONE] - org - rook_org + dst + rook_dst)) & ci.king_sq) != U64(0);
     }
         break;
@@ -950,8 +950,8 @@ bool Position::can_en_passant (Square ep_sq) const
     if ((~_active|PAWN) != _board[cap]) return false;
 
     // En-passant attackes
-    auto attacks = PAWN_ATTACKS[~_active][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
-    assert(pop_count<FULL> (attacks) <= 2);
+    auto attacks = PawnAttacks[~_active][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
+    assert(pop_count<Full> (attacks) <= 2);
     if (attacks == U64(0)) return false;
 
     Move moves[3], *m = moves;
@@ -1027,7 +1027,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
             s += Delta(ch - '0'); // Advance the given number of files
         }
         else
-        if (isalpha (ch) && (idx = PIECE_CHAR.find (ch)) != string::npos)
+        if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
         {
             auto pc = Piece(idx);
             place_piece (s, color (pc), ptype (pc));
@@ -1049,7 +1049,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
 
     // 2. Active color
     iss >> ch;
-    _active = Color(COLOR_CHAR.find (ch));
+    _active = Color(ColorChar.find (ch));
 
     // 3. Castling rights availability
     // Compatible with 3 standards:
@@ -1164,7 +1164,7 @@ Value Position::compute_non_pawn_material (Color c) const
     auto npm_value = VALUE_ZERO;
     for (auto pt = NIHT; pt <= QUEN; ++pt)
     {
-        npm_value += PIECE_VALUE[MG][pt] * i32(_piece_count[c][pt]);
+        npm_value += PieceValues[MG][pt] * i32(_piece_count[c][pt]);
     }
     return npm_value;
 }
@@ -1179,7 +1179,7 @@ Value Position::compute_non_pawn_material (Color c) const
     }                                                                                \
     else                                                                             \
     {                                                                                \
-        _psi->non_pawn_matl[~_active] -= PIECE_VALUE[MG][cpt];                       \
+        _psi->non_pawn_matl[~_active] -= PieceValues[MG][cpt];                       \
     }                                                                                \
     _psi->matl_key ^= Zob._.piece_square[~_active][cpt][_piece_count[~_active][cpt]];\
     key            ^= Zob._.piece_square[~_active][cpt][cap];                        \
@@ -1353,7 +1353,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
             -PSQ[_active][PAWN][org]
             +PSQ[_active][ppt ][dst];
 
-        _psi->non_pawn_matl[_active] += PIECE_VALUE[MG][ppt];
+        _psi->non_pawn_matl[_active] += PieceValues[MG][ppt];
     }
         break;
 
@@ -1652,7 +1652,7 @@ Position::operator string () const
     while (occ != U64(0))
     {
         auto s = pop_lsq (occ);
-        board[3 + i32((ROW_1.length () + 1) * (7.5 - _rank (s)) + 4 * _file (s))] = PIECE_CHAR[_board[s]];
+        board[3 + i32((ROW_1.length () + 1) * (7.5 - _rank (s)) + 4 * _file (s))] = PieceChar[_board[s]];
     }
 
     ostringstream oss;

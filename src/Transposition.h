@@ -10,7 +10,7 @@
 
 namespace Transposition {
 
-    const u08 CACHE_LINE_SIZE = 64;
+    const u08 CacheLineSize = 64;
 
     // Transposition::Entry needs 16 byte to be stored
     //
@@ -82,7 +82,7 @@ namespace Transposition {
         static const u08 Size;
 
         Entry entries[EntryCount];
-        char padding[CACHE_LINE_SIZE/2-EntryCount*sizeof (Entry)]; // Align to a divisor of the cache line size
+        char padding[CacheLineSize/2-EntryCount*sizeof (Entry)]; // Align to a divisor of the cache line size
     };
 
     // Transposition::Table consists of a power of 2 number of clusters

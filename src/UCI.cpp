@@ -41,7 +41,7 @@ namespace UCI {
     // In addition to the UCI ones, also some additional debug commands are supported.
     void loop (const string &arg)
     {
-        RootPos.setup (STARTUP_FEN, Threadpool.main (), Chess960);
+        RootPos.setup (StartupFEN, Threadpool.main (), Chess960);
 
         bool running = white_spaces (arg);
         string cmd   = arg;
@@ -120,7 +120,7 @@ namespace UCI {
                 iss >> token;  // Consume "startpos" or "fen" token
                 if (token == "startpos")
                 {
-                    fen = STARTUP_FEN;
+                    fen = StartupFEN;
                     iss >> token;          // Consume "moves" token if any
                 }
                 else
