@@ -104,9 +104,9 @@ namespace MoveGen {
     //inline std::basic_ostream<CharT, Traits>&
     //    operator<< (std::basic_ostream<CharT, Traits> &os, MoveList<GT> &movelist)
     //{
-    //    for (const auto &m : movelist)
+    //    for (const auto &vm : movelist)
     //    {
-    //        os << m << std::endl;
+    //        os << vm.move << std::endl;
     //    }
     //    return os;
     //}

@@ -201,11 +201,11 @@ namespace Notation {
         {
             scan[4] = char(tolower (scan[4])); // Promotion piece in lowercase
         }
-        for (const auto &m : MoveList<LEGAL> (pos))
+        for (const auto &vm : MoveList<LEGAL> (pos))
         {
-            if (scan == move_to_can (m, pos.chess960 ()))
+            if (scan == move_to_can (vm.move, pos.chess960 ()))
             {
-                return m;
+                return vm.move;
             }
         }
         return MOVE_NONE;
@@ -214,11 +214,11 @@ namespace Notation {
     // to the corresponding legal move, if any.
     Move move_from_san (const string &san,       Position &pos)
     {
-        for (const auto &m : MoveList<LEGAL> (pos))
+        for (const auto &vm : MoveList<LEGAL> (pos))
         {
-            if (san == move_to_san (m, pos))
+            if (san == move_to_san (vm.move, pos))
             {
-                return m;
+                return vm.move;
             }
         }
         return MOVE_NONE;
@@ -227,11 +227,11 @@ namespace Notation {
     //// to the corresponding legal move, if any.
     //Move move_from_lan (const string &lan,       Position &pos)
     //{
-    //    for (const auto &m : MoveList<LEGAL> (pos))
+    //    for (const auto &vm : MoveList<LEGAL> (pos))
     //    {
-    //        if (lan == move_to_lan (m, pos))
+    //        if (lan == move_to_lan (vm.move, pos))
     //        {
-    //            return m;
+    //            return vm.move;
     //        }
     //    }
     //    return MOVE_NONE;

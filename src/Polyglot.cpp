@@ -284,11 +284,11 @@ namespace Polyglot {
             if (pt != PAWN) promote (move, pt);
 
             // Add special move flags and verify it is legal
-            for (const auto &m : MoveList<LEGAL> (pos))
+            for (const auto &vm : MoveList<LEGAL> (pos))
             {
-                if ((m.move & ~PROMOTE) == move)
+                if ((vm.move & ~PROMOTE) == move)
                 {
-                    return m;
+                    return vm.move;
                 }
             }
         }

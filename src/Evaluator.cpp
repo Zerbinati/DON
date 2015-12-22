@@ -124,11 +124,10 @@ namespace Evaluator {
             return score;
         }
 
-        enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PAWN_PASSING, KING_SAFETY, SPACE_ACTIVITY };
+        enum WeightT { PAWN_STRUCTURE, PAWN_PASSING, KING_SAFETY, SPACE_ACTIVITY };
         // Evaluation weights, indexed by the corresponding evaluation term
         const Weight Weights[6]
         {
-            { 266, 334 }, // Piece Mobility
             { 214, 203 }, // Pawn Structure
             { 193, 262 }, // Pawn Passing
             { 330,   0 }, // King Safety
@@ -138,29 +137,30 @@ namespace Evaluator {
     #define S(mg, eg) mk_score (mg, eg)
 
         // PieceMobility[PieceT][Attacks] contains bonuses for mobility,
+        // indexed by piece type and number of attacked squares in the mobility area.
         const Score PieceMobility[NONE][28] =
         {
             {},
             { // Knights
-                S(-70,-52), S(-52,-37), S( -7,-17), S(  0, -6), S(  8,  5), S( 16,  9),
-                S( 23, 20), S( 31, 21), S( 36, 22)
+                S(-75,-76), S(-56,-54), S(- 9,-26), S( -2,-10), S(  6,  5), S( 15, 11),
+                S( 22, 26), S( 30, 28), S( 36, 29)
             },
             { // Bishops
-                S(-49,-44), S(-22,-13), S( 16,  0), S( 27, 11), S( 38, 19), S( 52, 34),
-                S( 56, 44), S( 65, 47), S( 67, 51), S( 73, 56), S( 81, 59), S( 83, 69),
-                S( 95, 72), S(100, 75)
+                S(-48,-58), S(-21,-19), S( 16, -2), S( 26, 12), S( 37, 22), S( 51, 42),
+                S( 54, 54), S( 63, 58), S( 65, 63), S( 71, 70), S( 79, 74), S( 81, 86),
+                S( 92, 90), S( 97, 94)
             },
             { // Rooks
-                S(-49,-57), S(-22,-14), S(-10, 18), S( -5, 39), S( -4, 50), S( -2, 58),
-                S(  6, 78), S( 11, 86), S( 17, 92), S( 19,103), S( 26,111), S( 27,115),
-                S( 36,119), S( 41,121), S( 50,122)
+                S(-56,-78), S(-25,-18), S(-11, 26), S( -5, 55), S( -4, 70), S( -1, 81),
+                S(  8,109), S( 14,120), S( 21,128), S( 23,143), S( 31,154), S( 32,160),
+                S( 43,165), S( 49,168), S( 59,169)
             },
             { // Queens
-                S(-41,-24), S(-26, -8), S(  0,  6), S(  2, 14), S( 12, 27), S( 21, 40),
-                S( 22, 45), S( 37, 55), S( 40, 57), S( 43, 63), S( 50, 68), S( 52, 74),
-                S( 56, 80), S( 66, 84), S( 68, 85), S( 69, 88), S( 71, 92), S( 72, 94),
-                S( 80, 96), S( 89, 98), S( 94,101), S(102,113), S(106,114), S(107,116),
-                S(112,125), S(113,127), S(117,137), S(122,143)
+                S(-40,-35), S(-25,-12), S(  2,  7), S(  4, 19), S( 14, 37), S( 24, 55),
+                S( 25, 62), S( 40, 76), S( 43, 79), S( 47, 87), S( 54, 94), S( 56,102),
+                S( 60,111), S( 70,116), S( 72,118), S( 73,122), S( 75,128), S( 77,130),
+                S( 85,133), S( 94,136), S( 99,140), S(108,157), S(112,158), S(113,161),
+                S(118,174), S(119,177), S(123,191), S(128,199)
             },
             {}
         };
@@ -181,12 +181,13 @@ namespace Evaluator {
         };
 
         enum AttackerT { MINOR, MAJOR };
-        // ThreatenByPiece[defended/weak][minor/major attacking][attacked PieceType] contains
+        // ThreatenByPiece[minor/major attacker][attacked PieceType] contains
         // bonuses according to which piece type attacks which one.
+        // Attacks on lesser pieces which are pawn defended are not considered.
         const Score ThreatenByPiece[2][NONE] =
         {
-            { S(0, 33), S(45, 43), S(46, 47), S(72, 107), S(48,118), S(0, 0) },  // Minor Attacks
-            { S(0, 25), S(40, 62), S(40, 59), S( 0,  34), S(35, 48), S(0, 0) },  // Major Attacks
+            { S(0, 33), S(45, 43), S(46, 47), S(72, 107), S(48,118), S(0, 0) },  // Minor attackers
+            { S(0, 25), S(40, 62), S(40, 59), S( 0,  34), S(35, 48), S(0, 0) },  // Major attackers
         };
 
         const Score ThreatenByKing[] =
@@ -1040,7 +1041,7 @@ namespace Evaluator {
             - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
 
         // Weight mobility
-        score += (mobility[WHITE] - mobility[BLACK]) * Weights[PIECE_MOBILITY];
+        score += mobility[WHITE] - mobility[BLACK];
 
         // Evaluate kings after all other pieces because needed full attack
         // information when computing the king safety evaluation.
@@ -1094,9 +1095,7 @@ namespace Evaluator {
             write (PAWN       , ei.pe->pawn_score);
             write (MATERIAL   , pos.psq_score ());
             write (IMBALANCE  , ei.me->imbalance);
-            write (MOBILITY
-                , mobility[WHITE] * Weights[PIECE_MOBILITY]
-                , mobility[BLACK] * Weights[PIECE_MOBILITY]);
+            write (MOBILITY   , mobility[WHITE], mobility[BLACK]);
             write (TOTAL      , score);
         }
 

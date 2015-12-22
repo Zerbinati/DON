@@ -242,10 +242,10 @@ namespace Searcher {
             }
 
             // Decrease all the other played quiet moves
-            //assert(std::find (quiet_moves.cbegin (), quiet_moves.cend (), move) == quiet_moves.cend ());
+            assert(std::find (quiet_moves.cbegin (), quiet_moves.cend (), move) == quiet_moves.cend ());
             for (const auto m : quiet_moves)
             {
-                //assert(m != move);
+                assert(m != move);
                 thread->history_values.update (pos[org_sq (m)], dst_sq (m), -bonus);
                 if (opp_move_dst != SQ_NO)
                 {
@@ -1606,13 +1606,13 @@ namespace Searcher {
     void RootMoveVector::initialize (const Position &pos, const MoveVector &root_moves)
     {
         clear ();
-        for (const auto &m : MoveList<LEGAL> (pos))
+        for (const auto &vm : MoveList<LEGAL> (pos))
         {
             if (   root_moves.empty ()
-                || std::count (root_moves.begin (), root_moves.end (), m.move) != 0
+                || std::count (root_moves.begin (), root_moves.end (), vm.move) != 0
                )
             {
-                *this += RootMove (m);
+                *this += RootMove (vm.move);
             }
         }
         shrink_to_fit ();
@@ -1734,7 +1734,7 @@ namespace Searcher {
     u64 perft (Position &pos, Depth depth)
     {
         u64 leaf_nodes = U64(0);
-        for (const auto &m : MoveList<LEGAL> (pos))
+        for (const auto &vm : MoveList<LEGAL> (pos))
         {
             u64 inter_nodes;
             if (   RootNode
@@ -1746,7 +1746,7 @@ namespace Searcher {
             else
             {
                 StateInfo si;
-                pos.do_move (m, si, pos.gives_check (m, CheckInfo (pos)));
+                pos.do_move (vm.move, si, pos.gives_check (vm.move, CheckInfo (pos)));
                 inter_nodes = depth <= 2*DEPTH_ONE ?
                     MoveList<LEGAL> (pos).size () :
                     perft<false> (pos, depth-DEPTH_ONE);
@@ -1757,8 +1757,8 @@ namespace Searcher {
             {
                 sync_cout << left
                     << setw ( 7)
-                    //<< move_to_can (m, Chess960)
-                    << move_to_san (m, pos)
+                    //<< move_to_can (vm.move, Chess960)
+                    << move_to_san (vm.move, pos)
                     << right << setfill ('.')
                     << setw (16) << inter_nodes
                     << setfill (' ') << left

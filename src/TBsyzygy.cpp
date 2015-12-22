@@ -2221,7 +2221,7 @@ namespace TBSyzygy {
             if (success == 0) return VALUE_ZERO;
             if (alfa >= v)
             {
-                success = 1 + (alfa > 0);
+                success = 1 + (alfa > VALUE_ZERO);
                 return alfa;
             }
             else
@@ -2283,7 +2283,10 @@ namespace TBSyzygy {
             i32 dtz = 1 + probe_dtz_table (pos, wdl, success);
             if (success >= 0)
             {
-                if (wdl & 1) dtz += 100;
+                if ((wdl & 1) != 0)
+                {
+                    dtz += 100;
+                }
                 return Value(wdl >= 0 ? dtz : -dtz);
             }
 
@@ -2481,7 +2484,7 @@ namespace TBSyzygy {
             else
             if (v < 0)
             {
-                if (0 <= v1 || v1 < -100)
+                if (v1 < -100 || 0 <= v1)
                 {
                     v = v1;
                 }
@@ -2683,9 +2686,9 @@ namespace TBSyzygy {
 
         // Use 50-move counter to determine whether the root position is
         // won, lost or drawn.
-        i32 wdl = dtz > 0 ?
+        i32 wdl = dtz > VALUE_ZERO ?
                     (+dtz + clock_ply <= 100) ? +2 : +1 :
-                  dtz < 0 ?
+                  dtz < VALUE_ZERO ?
                     (-dtz + clock_ply <= 100) ? -2 : -1 :
                     0;
         assert(-2 <= wdl && wdl <= 2);

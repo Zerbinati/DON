@@ -318,57 +318,57 @@ namespace UCI {
                 if (RootPos.checkers () != U64(0))
                 {
                     std::cout << "\nEvasion moves: ";
-                    for (const auto &m : MoveList<EVASION> (RootPos))
+                    for (const auto &vm : MoveList<EVASION> (RootPos))
                     {
-                        if (RootPos.legal (m, pinneds))
+                        if (RootPos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, RootPos) << " ";
                         }
                     }
                 }
                 else
                 {
                     std::cout << "\nQuiet moves: ";
-                    for (const auto &m : MoveList<QUIET> (RootPos))
+                    for (const auto &vm : MoveList<QUIET> (RootPos))
                     {
-                        if (RootPos.legal (m, pinneds))
+                        if (RootPos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, RootPos) << " ";
                         }
                     }
 
                     std::cout << "\nCheck moves: ";
-                    for (const auto &m : MoveList<CHECK> (RootPos))
+                    for (const auto &vm : MoveList<CHECK> (RootPos))
                     {
-                        if (RootPos.legal (m, pinneds))
+                        if (RootPos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, RootPos) << " ";
                         }
                     }
 
                     std::cout << "\nQuiet Check moves: ";
-                    for (const auto &m : MoveList<QUIET_CHECK> (RootPos))
+                    for (const auto &vm : MoveList<QUIET_CHECK> (RootPos))
                     {
-                        if (RootPos.legal (m, pinneds))
+                        if (RootPos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, RootPos) << " ";
                         }
                     }
 
                     std::cout << "\nCapture moves: ";
-                    for (const auto &m : MoveList<CAPTURE> (RootPos))
+                    for (const auto &vm : MoveList<CAPTURE> (RootPos))
                     {
-                        if (RootPos.legal (m, pinneds))
+                        if (RootPos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, RootPos) << " ";
                         }
                     }
                 }
 
                 std::cout << "\nLegal moves: ";
-                for (const auto &m : MoveList<LEGAL> (RootPos))
+                for (const auto &vm : MoveList<LEGAL> (RootPos))
                 {
-                    std::cout << move_to_san (m, RootPos) << " ";
+                    std::cout << move_to_san (vm.move, RootPos) << " ";
                 }
 
                 std::cout << sync_endl;
