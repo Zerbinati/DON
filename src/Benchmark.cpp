@@ -136,6 +136,8 @@ void benchmark (istream &is, const Position &cur_pos)
         ifs.close ();
     }
 
+    fens.shrink_to_fit ();
+
     if (limit_type != "perft")
     {
         Options["Hash"]        = to_string (hash);

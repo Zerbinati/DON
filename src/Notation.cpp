@@ -147,7 +147,7 @@ namespace Notation {
                     case AMB_RANK: san += to_char (_file (org)); break;
                     case AMB_FILE: san += to_char (_rank (org)); break;
                     case AMB_SQR:  san += to_string (org);       break;
-                    default:       assert (false);               break;
+                    default:       assert(false);                break;
                     }
                 }
             }
@@ -290,7 +290,7 @@ namespace Notation {
 
         StateStack states;
         u08 ply = 0;
-        for (const auto m : thread->root_moves[0].pv)
+        for (const auto m : thread->root_moves[0])
         {
             oss << move_to_san (m, root_pos) << " ";
             states.push (StateInfo ());

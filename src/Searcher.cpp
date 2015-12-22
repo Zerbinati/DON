@@ -154,11 +154,10 @@ namespace Searcher {
         const u08 TimerResolution = 5; // Millisec between two check_limits() calls
 
         Color   RootColor;
-        bool    TimeManagmentUsed = false;
-        
-        bool    MateSearch      = false;
 
-        bool    RootFailedLow   = false; // Failed low at root
+        bool    TimeManagmentUsed   = false;
+        bool    MateSearch          = false;
+        bool    RootFailedLow       = false; // Failed low at root
 
         u16     PVLimit;
 
@@ -208,7 +207,7 @@ namespace Searcher {
 
         // update_stats() updates killers, history, countermoves and countermoves history
         // stats for a quiet best move.
-        void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, MoveVector quiet_moves)
+        void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, const MoveVector &quiet_moves)
         {
             if (ss->killer_moves[0] != move)
             {
@@ -236,7 +235,6 @@ namespace Searcher {
             auto *thread = pos.thread ();
 
             thread->history_values.update (pos[org_sq (move)], dst_sq (move), bonus);
-
             if (opp_move_dst != SQ_NO)
             {
                 thread->counter_moves.update (pos[opp_move_dst], opp_move_dst, move);
@@ -244,15 +242,14 @@ namespace Searcher {
             }
 
             // Decrease all the other played quiet moves
-            for (u08 i = 0; i < quiet_moves.size (); ++i)
+            //assert(std::find (quiet_moves.cbegin (), quiet_moves.cend (), move) == quiet_moves.cend ());
+            for (const auto m : quiet_moves)
             {
-                assert(quiet_moves[i] != move);
-
-                thread->history_values.update (pos[org_sq (quiet_moves[i])], dst_sq (quiet_moves[i]), -bonus);
-
+                //assert(m != move);
+                thread->history_values.update (pos[org_sq (m)], dst_sq (m), -bonus);
                 if (opp_move_dst != SQ_NO)
                 {
-                    opp_cmv.update (pos[org_sq (quiet_moves[i])], dst_sq (quiet_moves[i]), -bonus);
+                    opp_cmv.update (pos[org_sq (m)], dst_sq (m), -bonus);
                 }
             }
 
@@ -272,6 +269,11 @@ namespace Searcher {
                 }
             }
 
+        }
+        void update_stats (const Position &pos, Stack *ss, Move move, Depth depth)
+        {
+            static const MoveVector quiet_moves (0);
+            update_stats (pos, ss, move, depth, quiet_moves);
         }
 
         // update_pv() add current move and appends child pv[]
@@ -456,7 +458,10 @@ namespace Searcher {
                 if (tt_hit)
                 {
                     // Never assume anything on values stored in TT
-                    if (VALUE_NONE == tt_eval) tt_eval = evaluate (pos);
+                    if (tt_eval == VALUE_NONE)
+                    {
+                        tt_eval = evaluate (pos);
+                    }
                     ss->static_eval = tt_eval;
 
                     // Can tt_value be used as a better position evaluation?
@@ -759,16 +764,14 @@ namespace Searcher {
                )
             {
                 ss->current_move = tt_move; // Can be MOVE_NONE
-
                 // If tt_move is quiet, update killers, history, countermove and countermoves history on TT hit
                 if (   tt_value >= beta
                     && tt_move != MOVE_NONE
                     && !pos.capture_or_promotion (tt_move)
                    )
                 {
-                    update_stats (pos, ss, tt_move, depth, MoveVector ());
+                    update_stats (pos, ss, tt_move, depth);
                 }
-
                 return tt_value;
             }
 
@@ -805,7 +808,7 @@ namespace Searcher {
                         {
                             tte = TT.probe (posi_key, tt_hit);
                         }
-                        tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), pos.checkers () == U64(0) ? evaluate (pos) : VALUE_NONE,
+                        tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), in_check ? VALUE_NONE : evaluate (pos),
                             std::min (depth + 6*DEPTH_ONE, DEPTH_MAX - DEPTH_ONE), BOUND_EXACT, TT.generation ());
 
                         return value;
@@ -826,7 +829,10 @@ namespace Searcher {
                 if (tt_hit)
                 {
                     // Never assume anything on values stored in TT
-                    if (VALUE_NONE == tt_eval) tt_eval = evaluate (pos);
+                    if (tt_eval == VALUE_NONE)
+                    {
+                        tt_eval = evaluate (pos);
+                    }
                     ss->static_eval = tt_eval;
 
                     // Can tt_value be used as a better position evaluation?
@@ -1037,10 +1043,11 @@ namespace Searcher {
                 && abs (tt_value) < +VALUE_KNOWN_WIN
                 && (tt_bound & BOUND_LOWER);
 
-            static const u08 MaxQuiets = 64;
-            MoveVector quiet_moves;
             Move pv[MaxPly + 1];
             u08  move_count = 0;
+
+            MoveVector quiet_moves;
+            quiet_moves.reserve (0x10);
 
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
@@ -1292,26 +1299,26 @@ namespace Searcher {
 
                 if (RootNode)
                 {
-                    auto &rm = *std::find (thread->root_moves.begin (), thread->root_moves.end (), move);
+                    auto &root_move = *std::find (thread->root_moves.begin (), thread->root_moves.end (), move);
                     // 1st legal move or new best move ?
                     if (move_count == 1 || alfa < value)
                     {
-                        rm.new_value = value;
-                        rm.pv.resize (1);
-
                         assert((ss+1)->pv != nullptr);
 
-                        for (auto *m = (ss+1)->pv; *m != MOVE_NONE; ++m)
+                        root_move.new_value = value;
+                        root_move.resize (1);
+                        for (const auto *m = (ss+1)->pv; *m != MOVE_NONE; ++m)
                         {
-                            rm += *m;
+                            root_move += *m;
                         }
+                        root_move.shrink_to_fit ();
 
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
-                        if (   move_count > 1
-                            && TimeManagmentUsed
+                        if (   TimeManagmentUsed
                             && Threadpool.main () == thread
+                            && move_count > 1
                            )
                         {
                             TimeMgr.best_move_change++;
@@ -1322,7 +1329,7 @@ namespace Searcher {
                         // All other moves but the PV are set to the lowest value, this
                         // is not a problem when sorting becuase sort is stable and move
                         // position in the list is preserved, just the PV is pushed up.
-                        rm.new_value = -VALUE_INFINITE;
+                        root_move.new_value = -VALUE_INFINITE;
                     }
                 }
 
@@ -1363,7 +1370,6 @@ namespace Searcher {
 
                 if (   move != best_move
                     && !capture_or_promotion
-                    && quiet_moves.size () < MaxQuiets
                    )
                 {
                     quiet_moves.push_back (move);
@@ -1378,6 +1384,8 @@ namespace Searcher {
             if (ForceStop) return VALUE_DRAW;
             */
             
+            quiet_moves.shrink_to_fit ();
+
             // Step 20. Check for checkmate and stalemate
             // If all possible moves have been searched and if there are no legal moves,
             // If in a singular extension search then return a fail low score (alfa).
@@ -1454,9 +1462,9 @@ namespace Searcher {
         TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
         {
             // When in trouble, can step over reserved time with this ratio
-            const auto  StepRatio = RT_OPTIMUM == TT ? 1.00 : 6.93;
+            const auto  StepRatio = TT == RT_OPTIMUM ? 1.00 : 6.93;
             // However must not steal time from remaining moves over this ratio
-            const auto StealRatio = RT_MAXIMUM == TT ? 0.00 : 0.36;
+            const auto StealRatio = TT == RT_MAXIMUM ? 0.00 : 0.36;
 
             auto move_imp = move_importance (ply) * MoveSlowness / 100.0;
             auto remain_move_imp = 0.0;
@@ -1526,9 +1534,10 @@ namespace Searcher {
     void RootMove::insert_pv_into_tt (Position &pos)
     {
         StateInfo states[MaxPly], *si = states;
-
+        
+        shrink_to_fit ();
         u08 ply = 0;
-        for (const auto m : pv)
+        for (const auto m : *this)
         {
             assert(MoveList<LEGAL> (pos).contains (m));
 
@@ -1539,9 +1548,8 @@ namespace Searcher {
                 || tte->move () != m
                )
             {
-                tte->save (pos.posi_key (), m, VALUE_NONE, pos.checkers () == U64(0) ? evaluate (pos) : VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.generation ());
+                tte->save (pos.posi_key (), m, VALUE_NONE, pos.checkers () != U64(0) ? VALUE_NONE : evaluate (pos), DEPTH_NONE, BOUND_NONE, TT.generation ());
             }
-
             pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
             ++ply;
         }
@@ -1560,13 +1568,11 @@ namespace Searcher {
     bool RootMove::extract_ponder_move_from_tt (Position &pos)
     {
         assert(size () == 1);
-        assert(pv[0] != MOVE_NONE);
+        assert(at (0) != MOVE_NONE);
 
         bool extracted = false;
-
         StateInfo si;
-        pos.do_move (pv[0], si, pos.gives_check (pv[0], CheckInfo (pos)));
-
+        pos.do_move (at (0), si, pos.gives_check (at (0), CheckInfo (pos)));
         bool tt_hit;
         auto *tte = TT.probe (pos.posi_key (), tt_hit);
         if (tt_hit)
@@ -1580,16 +1586,15 @@ namespace Searcher {
                extracted = true;
             }
         }
-
         pos.undo_move ();
-
+        shrink_to_fit ();
         return extracted;
     }
 
     RootMove::operator string () const
     {
         stringstream ss;
-        for (const auto m : pv)
+        for (const auto m : *this)
         {
             ss << " " << move_to_can (m, Chess960);
         }
@@ -1604,20 +1609,21 @@ namespace Searcher {
         for (const auto &m : MoveList<LEGAL> (pos))
         {
             if (   root_moves.empty ()
-                || std::count (root_moves.begin (), root_moves.end (), m) != 0
+                || std::count (root_moves.begin (), root_moves.end (), m.move) != 0
                )
             {
                 *this += RootMove (m);
             }
         }
+        shrink_to_fit ();
     }
 
     RootMoveVector::operator string () const
     {
         stringstream ss;
-        for (const auto &rm : *this)
+        for (const auto &root_move : *this)
         {
-            ss << rm << "\n";
+            ss << root_move << "\n";
         }
         return ss.str ();
     }
@@ -1690,6 +1696,8 @@ namespace Searcher {
     // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
     Move SkillManager::pick_best_move (const RootMoveVector &root_moves)
     {
+        assert(!root_moves.empty ());
+
         static PRNG prng (now ()); // PRNG sequence should be non-deterministic
 
         _best_move = MOVE_NONE;
@@ -1885,9 +1893,9 @@ namespace Threading {
         leaf_depth = DEPTH_ZERO;
 
         // Iterative deepening loop until target depth reached
-        while (   ++root_depth < DEPTH_MAX
-               && !ForceStop
-               && (0 == Limits.depth || root_depth <= Limits.depth)
+        while (   !ForceStop
+               && ++root_depth < DEPTH_MAX
+               && (Limits.depth == 0 || root_depth <= Limits.depth)
               )
         {
             if (thread_main)
@@ -2054,6 +2062,7 @@ namespace Threading {
                 // If skill level is enabled and can pick move, pick a sub-optimal best move
                 if (   SkillMgr.enabled ()
                     && SkillMgr.can_pick (root_depth)
+                    && !root_moves.empty ()
                    )
                 {
                     SkillMgr.pick_best_move (root_moves);
@@ -2088,7 +2097,8 @@ namespace Threading {
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
                             || TimeMgr.elapsed_time () > TimeMgr.available_time () * (RootFailedLow ? 1.001 : 0.492)
-                            || (EasyPlayed = (  root_moves[0] == easy_move
+                            || (EasyPlayed = ( !root_moves.empty ()
+                                             && root_moves[0] == easy_move
                                              && TimeMgr.best_move_change < 0.03
                                              && TimeMgr.elapsed_time () > TimeMgr.available_time () * 0.125
                                              ), EasyPlayed
@@ -2098,7 +2108,9 @@ namespace Threading {
                             stop = true;
                         }
 
-                        if (root_moves[0].size () >= 3)
+                        if (  !root_moves.empty ()
+                            && root_moves[0].size () >= 3
+                           )
                         {
                             EasyMoveMgr.update (root_pos, root_moves[0]);
                         }
@@ -2147,7 +2159,9 @@ namespace Threading {
                 EasyMoveMgr.clear ();
             }
             // If skill level is enabled, swap best PV line with the sub-optimal one
-            if (SkillMgr.enabled ())
+            if (   SkillMgr.enabled ()
+                && !root_moves.empty ()
+               )
             {
                 std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), SkillMgr.best_move (root_moves)));
             }

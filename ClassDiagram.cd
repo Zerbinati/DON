@@ -3,7 +3,7 @@
   <Class Name="Position">
     <Position X="13.25" Y="2.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>CEgAAQIPAYQAChmxdYepIAEjgbFOHoVwBBgwJCAgJTA=</HashCode>
+      <HashCode>CEgAAQIPAYQACBmxdYepIAEjgbFOHoVwBBowJCAgJTA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -145,7 +145,7 @@
   <Class Name="UCI::Option" Collapsed="true">
     <Position X="24.75" Y="1" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>ABAAAAAAAAAAAAQEkACgKAAAAAAQAAAAAAAoAAABAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAQEkACgKAAAAAAQAAAAAAAoAgABACA=</HashCode>
       <FileName>src\UCI.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -196,10 +196,10 @@
       <Field Name="_best_move" />
     </ShowAsAssociation>
   </Class>
-  <Class Name="Searcher::MoveManager">
+  <Class Name="Searcher::EasyMoveManager">
     <Position X="9.75" Y="17.25" Width="2" />
     <TypeIdentifier>
-      <HashCode>CEAAAABCAIAAAAAAAAAAAAAEAAAAAAAAAAAAAAAEAAA=</HashCode>
+      <HashCode>CEAAAABSAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
       <FileName>src\Searcher.cpp</FileName>
     </TypeIdentifier>
     <ShowAsCollectionAssociation>
@@ -220,7 +220,7 @@
       <FileName>src\Polyglot.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Searcher::RootMoveVector" Collapsed="true">
+  <Class Name="Searcher::RootMoveVector">
     <Position X="28" Y="19.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAIAAAAAAAAAAAEgAQAAAAAAAAAAAAAgAAAAAAA=</HashCode>
@@ -234,8 +234,8 @@
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="_maximum_time" />
       <Field Name="_optimum_time" />
+      <Field Name="_maximum_time" />
     </ShowAsAssociation>
   </Class>
   <Struct Name="BitBases::`anonymous-namespace'::KPK_Position">
@@ -402,12 +402,11 @@
   <Struct Name="Searcher::Stack">
     <Position X="16.25" Y="15.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AIAAAAAAAgAAAAAAAAQAAAAAAwAACAAAAAAAQCAQAAA=</HashCode>
+      <HashCode>AIAAAAAAAAAAAAAAAAQAAAAAAwAACAAAAAAAQCAQAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="pv" />
-      <Field Name="tt_move" />
       <Field Name="current_move" />
       <Field Name="exclude_move" />
       <Field Name="static_eval" />
@@ -445,7 +444,7 @@
     </TypeIdentifier>
   </Struct>
   <Struct Name="Searcher::LimitsT">
-    <Position X="16.75" Y="1" Width="1.5" />
+    <Position X="15.5" Y="0.5" Width="1.5" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
@@ -457,7 +456,7 @@
       </Struct>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AgAAAAAAAAAAAAABAAACAAAABAAAAAAAAIgCMAAAIAI=</HashCode>
+      <HashCode>AgAAAAAAAAAAAAEBAAACAAAABAAAAAAAAIACMAAAIAI=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>

@@ -215,7 +215,7 @@ namespace UCI {
             OwnBook      = bool(Options["OwnBook"]);
             BookFile     = string(Options["Book File"]);
             BookMoveBest = bool(Options["Book Move Best"]);
-            BookUptoMove = i16(i32(Options["Book Upto Ply"]));
+            BookUptoMove = i16(i32(Options["Book Upto Move"]));
 
             trim (BookFile);
             if (!BookFile.empty ())

@@ -215,6 +215,7 @@ namespace UCI {
                             }
                             limits.root_moves.push_back (m);
                         }
+                        limits.root_moves.shrink_to_fit ();
                     }
                 }
                 ForceStop = true;

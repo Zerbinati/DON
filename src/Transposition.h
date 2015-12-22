@@ -173,7 +173,9 @@ namespace Transposition {
         // 'ucinewgame' (from the UCI interface).
         void clear ()
         {
-            if (!retain_hash && _clusters != nullptr)
+            if (   !retain_hash
+                && _clusters != nullptr
+               )
             {
                 std::memset (_clusters, 0x00, _cluster_count * Cluster::Size);
                 _generation = 0;

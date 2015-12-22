@@ -92,7 +92,7 @@ namespace EndGame {
             string fen = sides[0] + char (8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
                        + sides[1] + char (8 - sides[1].length () + '0') + " w - - 0 1";
 
-            return Position (fen).matl_key ();
+            return Position (fen, nullptr, false, false).matl_key ();
         }
 
         template<class M>
@@ -140,7 +140,9 @@ namespace EndGame {
         assert(pos.checkers () == U64(0)); // Eval is never called when in check
 
         // Stalemate detection with lone weak king
-        if (pos.active () == _weak_side && MoveList<LEGAL> (pos).size () == 0)
+        if (   pos.active () == _weak_side
+            && MoveList<LEGAL> (pos).size () == 0
+           )
         {
             return VALUE_DRAW;
         }

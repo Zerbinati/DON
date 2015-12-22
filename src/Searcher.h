@@ -71,38 +71,32 @@ namespace Searcher {
     //  - PV (really a refutation table in the case of moves which fail low).
     // Value is normally set at -VALUE_INFINITE for all non-pv moves.
     class RootMove
+        : public MoveVector
     {
 
     public:
 
         Value new_value = -VALUE_INFINITE
             , old_value = -VALUE_INFINITE;
-        MoveVector pv;
 
         explicit RootMove (Move m = MOVE_NONE)
-            : pv (1, m)
+            : MoveVector (1, m)
         {}
         RootMove& operator= (const RootMove&) = default;
 
         // Descending sort
-        bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
-        bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
-        bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
-        bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
-        bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
-        bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
+        bool operator<  (const RootMove &root_move) const { return new_value >  root_move.new_value; }
+        bool operator>  (const RootMove &root_move) const { return new_value <  root_move.new_value; }
+        bool operator<= (const RootMove &root_move) const { return new_value >= root_move.new_value; }
+        bool operator>= (const RootMove &root_move) const { return new_value <= root_move.new_value; }
+        bool operator== (const RootMove &root_move) const { return new_value == root_move.new_value; }
+        bool operator!= (const RootMove &root_move) const { return new_value != root_move.new_value; }
 
-        bool operator== (Move m) const { return pv[0] == m; }
-        bool operator!= (Move m) const { return pv[0] != m; }
+        bool operator== (Move m) const { return at (0) == m; }
+        bool operator!= (Move m) const { return at (0) != m; }
 
-        operator MoveVector () const { return pv; }
-        Move operator[] (i32 index) const { return pv[index]; }
-
-        void operator+= (Move m) { pv.push_back (m); }
-        void operator-= (Move m) { pv.erase (std::remove (pv.begin (), pv.end (), m), pv.cend ()); }
-
-        size_t size () const { return pv.size (); }
-        bool  empty () const { return pv.empty (); }
+        void operator+= (Move m) { push_back (m); }
+        void operator-= (Move m) { erase (std::remove (begin (), end (), m), cend ()); }
 
         void backup () { old_value = new_value; }
         void insert_pv_into_tt (Position &pos);
@@ -114,9 +108,9 @@ namespace Searcher {
 
     template<class CharT, class Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
+        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &root_move)
     {
-        os << std::string(rm);
+        os << std::string(root_move);
         return os;
     }
 
@@ -127,14 +121,14 @@ namespace Searcher {
     public:
         RootMoveVector& operator= (const RootMoveVector&) = default;
 
-        void operator+= (const RootMove &rm) { push_back (rm); }
-        void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), cend ()); }
+        void operator+= (const RootMove &root_move) { push_back (root_move); }
+        void operator-= (const RootMove &root_move) { erase (std::remove (begin (), end (), root_move), cend ()); }
 
         void backup ()
         {
-            for (auto &rm : *this)
+            for (auto &root_move : *this)
             {
-                rm.backup ();
+                root_move.backup ();
             }
         }
 
@@ -146,9 +140,9 @@ namespace Searcher {
 
     template<class CharT, class Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &rmv)
+        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &root_moves)
     {
-        os << std::string(rmv);
+        os << std::string(root_moves);
         return os;
     }
 

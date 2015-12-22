@@ -171,13 +171,12 @@ namespace BitBases {
     {
         vector<KPK_Position> kpk_db;
         kpk_db.reserve (MaxIndex);
-
-        u32 idx;
         // Initialize db with known win / draw positions
-        for (idx = 0; idx < MaxIndex; ++idx)
+        for (u32 idx = 0; idx < MaxIndex; ++idx)
         {
             kpk_db.push_back (KPK_Position (idx));
         }
+        kpk_db.shrink_to_fit ();
 
         bool repeat;
         // Iterate through the positions until none of the unknown positions can be
@@ -185,7 +184,7 @@ namespace BitBases {
         do
         {
             repeat = false;
-            for (idx = 0; idx < MaxIndex; ++idx)
+            for (u32 idx = 0; idx < MaxIndex; ++idx)
             {
                 repeat |= kpk_db[idx] == Result::UNKNOWN
                        && kpk_db[idx].classify (kpk_db) != Result::UNKNOWN;
@@ -193,7 +192,7 @@ namespace BitBases {
         } while (repeat);
 
         // Map 32 results into one KPK_Bitbase[] entry
-        for (idx = 0; idx < MaxIndex; ++idx)
+        for (u32 idx = 0; idx < MaxIndex; ++idx)
         {
             if (kpk_db[idx] == Result::WIN)
             {
