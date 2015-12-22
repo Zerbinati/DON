@@ -215,15 +215,15 @@ namespace Searcher {
                 ss->killer_moves[0] = move;
             }
             //// If more then 2 killer moves
-            //if (std::count (std::begin (ss->killer_moves), std::end (ss->killer_moves), move) == 0)
+            //if (std::count (ss->killer_moves, ss->killer_moves + Killers, move) == 0)
             //{
-            //    std::copy_backward (std::begin (ss->killer_moves), std::prev (std::end (ss->killer_moves)), std::end (ss->killer_moves));
+            //    std::copy_backward (ss->killer_moves, ss->killer_moves + Killers - 1, ss->killer_moves + Killers);
             //    ss->killer_moves[0] = move;
             //}
             //else
             //if (ss->killer_moves[0] != move)
             //{
-            //    std::swap (ss->killer_moves[0], *std::find (std::begin (ss->killer_moves), std::end (ss->killer_moves), move));
+            //    std::swap (ss->killer_moves[0], *std::find (ss->killer_moves, ss->killer_moves + Killers, move));
             //}
 
             auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
@@ -731,7 +731,7 @@ namespace Searcher {
             ss->current_move = MOVE_NONE;
             (ss+1)->exclude_move = MOVE_NONE;
             (ss+1)->skip_pruning = false;
-            std::fill (std::begin ((ss+2)->killer_moves), std::end ((ss+2)->killer_moves), MOVE_NONE);
+            std::fill ((ss+2)->killer_moves, (ss+2)->killer_moves + Killers, MOVE_NONE);
 
             // Step 4. Transposition table lookup
             // Don't want the score of a partial search to overwrite a previous full search
