@@ -1572,12 +1572,13 @@ namespace Searcher {
 
         bool extracted = false;
         StateInfo si;
-        pos.do_move (at (0), si, pos.gives_check (at (0), CheckInfo (pos)));
+        auto m = at (0);
+        pos.do_move (m, si, pos.gives_check (m, CheckInfo (pos)));
         bool tt_hit;
         auto *tte = TT.probe (pos.posi_key (), tt_hit);
         if (tt_hit)
         {
-            auto m = tte->move (); // Local copy to be SMP safe
+            m = tte->move (); // Local copy to be SMP safe
             if (   m != MOVE_NONE
                 && MoveList<LEGAL> (pos).contains (m)
                )
@@ -1943,7 +1944,7 @@ namespace Threading {
             const bool aspiration = root_depth > 4*DEPTH_ONE;
 
             // MultiPV loop. Perform a full root search for each PV line
-            for (pv_index = 0; pv_index < PVLimit && !ForceStop; ++pv_index)
+            for (pv_index = 0; !ForceStop && pv_index < PVLimit; ++pv_index)
             {
                 // Reset Aspiration window starting size
                 if (aspiration)
