@@ -116,10 +116,63 @@ namespace Threading {
         virtual void search ();
     };
 
+    // EasyMoveManager class is used to detect a so called 'easy move'; when PV is
+    // stable across multiple search iterations engine can fast return the best move.
+    class EasyMoveManager
+    {
+    private:
+        Key  _posi_key = U64(0);
+        Move _pv[3];
+
+    public:
+        u08 stable_count = 0;
+
+        EasyMoveManager () { clear (); }
+
+        void clear ()
+        {
+            stable_count = 0;
+            _posi_key = U64(0);
+            std::fill (std::begin (_pv), std::end (_pv), MOVE_NONE);
+        }
+
+        Move easy_move (const Key posi_key) const
+        {
+            return posi_key == _posi_key ? _pv[2] : MOVE_NONE;
+        }
+
+        void update (Position &pos, const MoveVector &pv)
+        {
+            assert(pv.size () >= 3);
+            // Keep track of how many times in a row 3rd ply remains stable
+            stable_count = pv[2] == _pv[2] ? stable_count + 1 : 0;
+
+            if (!std::equal (pv.begin (), pv.begin () + 3, _pv))
+            {
+                std::copy (pv.begin (), pv.begin () + 3, _pv);
+
+                StateInfo si[2];
+                pos.do_move (pv[0], si[0], pos.gives_check (pv[0], CheckInfo (pos)));
+                pos.do_move (pv[1], si[1], pos.gives_check (pv[1], CheckInfo (pos)));
+                _posi_key = pos.posi_key ();
+                pos.undo_move ();
+                pos.undo_move ();
+            }
+        }
+
+    };
+
     // MainThread class is derived class used to characterize the the main one
     class MainThread
         : public Thread
     {
+    public:
+        bool easy_played    = false;
+        bool failed_low     = false;
+        bool time_mgr_used  = false;
+
+        EasyMoveManager easy_move_mgr;
+
         virtual void search () override;
     };
 

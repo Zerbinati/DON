@@ -10,11 +10,12 @@
 #include "MovePicker.h"
 #include "Transposition.h"
 #include "Evaluator.h"
-#include "Polyglot.h"
+#include "Thread.h"
 #include "TBsyzygy.h"
 #include "UCI.h"
 #include "Notation.h"
 #include "Debugger.h"
+#include "Polyglot.h"
 
 using namespace std;
 
@@ -25,55 +26,10 @@ namespace Searcher {
     using namespace MovePick;
     using namespace Transposition;
     using namespace Evaluator;
+    using namespace Threading;
     using namespace TBSyzygy;
     using namespace Notation;
     using namespace Debugger;
-
-    // EasyMoveManager class is used to detect a so called 'easy move'; when PV is
-    // stable across multiple search iterations we can fast return the best move.
-    class EasyMoveManager
-    {
-    private:
-        Key  _posi_key = U64(0);
-        Move _pv[3];
-
-    public:
-        u08 stable_count = 0;
-
-        EasyMoveManager () { clear (); }
-
-        void clear ()
-        {
-            stable_count = 0;
-            _posi_key = U64(0);
-            std::fill (std::begin (_pv), std::end (_pv), MOVE_NONE);
-        }
-
-        Move easy_move (const Key posi_key) const
-        {
-            return posi_key == _posi_key ? _pv[2] : MOVE_NONE;
-        }
-
-        void update (Position &pos, const MoveVector &pv)
-        {
-            assert(pv.size () >= 3);
-            // Keep track of how many times in a row 3rd ply remains stable
-            stable_count = pv[2] == _pv[2] ? stable_count + 1 : 0;
-            
-            if (!std::equal (pv.begin (), pv.begin () + 3, _pv))
-            {
-                std::copy (pv.begin (), pv.begin () + 3, _pv);
-
-                StateInfo si[2];
-                pos.do_move (pv[0], si[0], pos.gives_check (pv[0], CheckInfo (pos)));
-                pos.do_move (pv[1], si[1], pos.gives_check (pv[1], CheckInfo (pos)));
-                _posi_key = pos.posi_key ();
-                pos.undo_move ();
-                pos.undo_move ();
-            }
-        }
-        
-    };
 
     namespace {
 
@@ -155,9 +111,7 @@ namespace Searcher {
 
         Color   RootColor;
 
-        bool    TimeManagmentUsed   = false;
         bool    MateSearch          = false;
-        bool    RootFailedLow       = false; // Failed low at root
 
         u16     PVLimit;
 
@@ -167,16 +121,11 @@ namespace Searcher {
         // Counter move history value statistics
         CMValue2DStats  CounterMoves2DValues;
 
-        EasyMoveManager EasyMoveMgr;
-        bool    EasyPlayed  = false;
-
         bool    LogWrite    = false;
         ofstream LogStream;
 
-        // check_limits() is called by the timer thread when the timer triggers.
-        // It is used to print debug info and, more importantly,
-        // to detect when out of available time or reached limits
-        // and thus stop the search.
+        // check_limits() is used to print debug info and, more importantly,
+        // to detect when out of available limits and thus stop the search.
         void check_limits ()
         {
             static auto last_info_time = now ();
@@ -196,7 +145,7 @@ namespace Searcher {
                 return;
             }
 
-            if (   (TimeManagmentUsed      && elapsed_time > TimeMgr.maximum_time () - 2 * TimerResolution)
+            if (   (Threadpool.main ()->time_mgr_used && elapsed_time > TimeMgr.maximum_time () - 2 * TimerResolution)
                 || (Limits.movetime != 0   && elapsed_time >= Limits.movetime)
                 || (Limits.nodes != U64(0) && Threadpool.game_nodes () >= Limits.nodes)
                )
@@ -493,7 +442,8 @@ namespace Searcher {
             }
 
             auto *thread = pos.thread ();
-            
+            //auto *main_thread = Threadpool.main () == thread ? Threadpool.main () : nullptr;
+
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
 
@@ -662,6 +612,7 @@ namespace Searcher {
 
             // Step 1. Initialize node
             auto *thread = pos.thread ();
+            auto *main_thread = Threadpool.main () == thread ? Threadpool.main () : nullptr;
 
             // Check for available remaining limit
             if (thread->reset_check.load (std::memory_order_relaxed))
@@ -1070,7 +1021,7 @@ namespace Searcher {
                 ss->move_count = ++move_count;
 
                 if (   RootNode
-                    && Threadpool.main () == thread
+                    && main_thread != nullptr
                    )
                 {
                     auto elapsed_time = TimeMgr.elapsed_time ();
@@ -1306,8 +1257,8 @@ namespace Searcher {
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
-                        if (   TimeManagmentUsed
-                            && Threadpool.main () == thread
+                        if (   main_thread != nullptr
+                            && main_thread->time_mgr_used
                             && move_count > 1
                            )
                         {
@@ -1331,13 +1282,13 @@ namespace Searcher {
                     {
                         // If there is an easy move for this position, clear it if unstable
                         if (   PVNode
-                            && TimeManagmentUsed
-                            && Threadpool.main () == thread
-                            && EasyMoveMgr.easy_move (pos.posi_key ()) != MOVE_NONE
-                            && (move != EasyMoveMgr.easy_move (pos.posi_key ()) || move_count > 1)
+                            && main_thread != nullptr
+                            && main_thread->time_mgr_used
+                            && main_thread->easy_move_mgr.easy_move (pos.posi_key ()) != MOVE_NONE
+                            && (move != main_thread->easy_move_mgr.easy_move (pos.posi_key ()) || move_count > 1)
                            )
                         {
-                            EasyMoveMgr.clear ();
+                            main_thread->easy_move_mgr.clear ();
                         }
 
                         best_move = move;
@@ -1858,25 +1809,23 @@ namespace Threading {
         Stack stacks[MaxPly+4], *ss = stacks+2; // To allow referencing (ss-2)
         std::memset (ss-2, 0x00, 5*Stack::Size);
 
-        bool thread_main = Threadpool.main () == this;
-
+        auto *main_thread = Threadpool.main () == this ? Threadpool.main () : nullptr;
         auto easy_move = MOVE_NONE;
 
-        if (thread_main)
+        if (main_thread != nullptr)
         {
             TT.generation (root_pos.game_ply () + 1);
-            if (TimeManagmentUsed)
+            if (main_thread->time_mgr_used)
             {
                 TimeMgr.best_move_change = 0.0;
-                easy_move = EasyMoveMgr.easy_move (root_pos.posi_key ());
-                EasyMoveMgr.clear ();
-                EasyPlayed = false;
+                easy_move = main_thread->easy_move_mgr.easy_move (root_pos.posi_key ());
+                main_thread->easy_move_mgr.clear ();
+                main_thread->easy_played = false;
             }
-        }
-
-        if (SkillMgr.enabled ())
-        {
-            SkillMgr.clear ();
+            if (SkillMgr.enabled ())
+            {
+                SkillMgr.clear ();
+            }
         }
 
         // Do have to play with skill handicap?
@@ -1897,10 +1846,10 @@ namespace Threading {
                && (Limits.depth == 0 || root_depth <= Limits.depth)
               )
         {
-            if (thread_main)
+            if (main_thread != nullptr)
             {
-                RootFailedLow = false;
-                if (TimeManagmentUsed)
+                main_thread->failed_low = false;
+                if (main_thread->time_mgr_used)
                 {
                     // Age out PV variability metric
                     TimeMgr.best_move_change *= 0.505;
@@ -1912,7 +1861,7 @@ namespace Threading {
                 // 2nd ply (using a half density map similar to a Hadamard matrix).
                 u16 d = u16(root_depth) + root_pos.game_ply ();
 
-                if (index <= 6 || index > 24)
+                if (index <= 6 || 24 < index)
                 {
                     if (((d + index) >> (scan_msq (index + 1) - 1)) % 2 != 0)
                     {
@@ -1946,7 +1895,7 @@ namespace Threading {
             {
                 // Reset Aspiration window starting size
                 if (   aspiration
-                    && leaf_depth >= DEPTH_ONE
+                    //&& leaf_depth >= DEPTH_ONE
                    )
                 {
                     window = Value(18);
@@ -1984,13 +1933,13 @@ namespace Threading {
 
                     // When failing high/low give some update
                     // (without cluttering the UI) before to re-search.
-                    if (   thread_main
+                    if (   main_thread != nullptr
                         && PVLimit == 1
                         && (alfa >= best_value || best_value >= beta)
                         && TimeMgr.elapsed_time () > 3*MilliSec
                        )
                     {
-                        sync_cout << multipv_info (this, alfa, beta) << sync_endl;
+                        sync_cout << multipv_info (main_thread, alfa, beta) << sync_endl;
                     }
 
                     // In case of failing low/high increase aspiration window and re-search,
@@ -2000,9 +1949,9 @@ namespace Threading {
                         beta = (alfa + beta) / 2;
                         alfa = std::max (best_value - window, -VALUE_INFINITE);
 
-                        if (thread_main)
+                        if (main_thread != nullptr)
                         {
-                            RootFailedLow = true;
+                            main_thread->failed_low = true;
                             PonderhitStop = false;
                         }
                     }
@@ -2024,7 +1973,7 @@ namespace Threading {
                 // Sort the PV lines searched so far and update the GUI
                 std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
 
-                if (thread_main)
+                if (main_thread != nullptr)
                 {
                     if (ForceStop)
                     {
@@ -2039,7 +1988,7 @@ namespace Threading {
                         || TimeMgr.elapsed_time () > 3*MilliSec
                        )
                     {
-                        sync_cout << multipv_info (this, alfa, beta) << sync_endl;
+                        sync_cout << multipv_info (main_thread, alfa, beta) << sync_endl;
                     }
                 }
             }
@@ -2049,7 +1998,7 @@ namespace Threading {
                 leaf_depth = root_depth;
             }
 
-            if (thread_main)
+            if (main_thread != nullptr)
             {
                 if (   ContemptValue != 0
                     && !root_moves.empty ()
@@ -2071,7 +2020,7 @@ namespace Threading {
 
                 if (LogWrite)
                 {
-                    LogStream << pretty_pv_info (this, TimeMgr.elapsed_time ()) << std::endl;
+                    LogStream << pretty_pv_info (main_thread, TimeMgr.elapsed_time ()) << std::endl;
                 }
 
                 if (   !ForceStop
@@ -2082,7 +2031,7 @@ namespace Threading {
                     bool stop = false;
 
                     // Do have time for the next iteration? Can stop searching now?
-                    if (TimeManagmentUsed)
+                    if (main_thread->time_mgr_used)
                     {
                         // If PVlimit = 1 then take some extra time if the best move has changed
                         if (   aspiration
@@ -2097,12 +2046,12 @@ namespace Threading {
                         // If all of the available time has been used or
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
-                            || TimeMgr.elapsed_time () > TimeMgr.available_time () * (RootFailedLow ? 1.001 : 0.492)
-                            || (EasyPlayed = ( !root_moves.empty ()
-                                             && root_moves[0] == easy_move
-                                             && TimeMgr.best_move_change < 0.03
-                                             && TimeMgr.elapsed_time () > TimeMgr.available_time () * 0.125
-                                             ), EasyPlayed
+                            || TimeMgr.elapsed_time () > TimeMgr.available_time () * (main_thread->failed_low ? 1.001 : 0.492)
+                            || (main_thread->easy_played = ( !root_moves.empty ()
+                                                            && root_moves[0] == easy_move
+                                                            && TimeMgr.best_move_change < 0.03
+                                                            && TimeMgr.elapsed_time () > TimeMgr.available_time () * 0.125
+                                                            ), main_thread->easy_played
                                )
                            )
                         {
@@ -2113,11 +2062,11 @@ namespace Threading {
                             && root_moves[0].size () >= 3
                            )
                         {
-                            EasyMoveMgr.update (root_pos, root_moves[0]);
+                            main_thread->easy_move_mgr.update (root_pos, root_moves[0]);
                         }
                         else
                         {
-                            EasyMoveMgr.clear ();
+                            main_thread->easy_move_mgr.clear ();
                         }
                     }
                     else
@@ -2147,17 +2096,17 @@ namespace Threading {
             }
         }
 
-        if (thread_main)
+        if (main_thread != nullptr)
         {
             // Clear any candidate easy move that wasn't stable for the last search iterations;
             // the second condition prevents consecutive fast moves.
-            if (   TimeManagmentUsed
-                && (   EasyPlayed
-                    || EasyMoveMgr.stable_count < 6
+            if (   main_thread->time_mgr_used
+                && (   main_thread->easy_played
+                    || main_thread->easy_move_mgr.stable_count < 6
                    )
                )
             {
-                EasyMoveMgr.clear ();
+                main_thread->easy_move_mgr.clear ();
             }
             // If skill level is enabled, swap best PV line with the sub-optimal one
             if (   SkillMgr.enabled ()
@@ -2179,8 +2128,8 @@ namespace Threading {
         assert(this == Threadpool[0]);
 
         RootColor = root_pos.active ();
-        TimeManagmentUsed = Limits.time_management_used ();
-        if (TimeManagmentUsed)
+        time_mgr_used = Limits.time_management_used ();
+        if (time_mgr_used)
         {
             TimeMgr.initialize (Limits, RootColor, root_pos.game_ply ());
         }
@@ -2250,7 +2199,7 @@ namespace Threading {
             i16 timed_contempt = 0;
             TimePoint diff_time = 0;
             if (   ContemptTime != 0
-                && TimeManagmentUsed
+                && time_mgr_used
                 && (diff_time = (Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MilliSec) != 0
                 //&& ContemptTime <= abs (diff_time)
                )
@@ -2338,7 +2287,9 @@ namespace Threading {
         // but if are pondering or in infinite search, according to UCI protocol,
         // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
         // Simply wait here until GUI sends one of those commands (that raise Force Stop).
-        if (!ForceStop && (Limits.ponder || Limits.infinite))
+        if (   !ForceStop
+            && (Limits.ponder || Limits.infinite)
+           )
         {
             PonderhitStop = true;
             wait_until (ForceStop);
@@ -2355,7 +2306,7 @@ namespace Threading {
 
         // Check if there are threads with bigger depth and better score than main thread.
         Thread *best_thread = this;
-        if (   !EasyPlayed
+        if (   !easy_played
             && PVLimit == 1
             && !SkillMgr.enabled ()
            )

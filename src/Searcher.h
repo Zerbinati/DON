@@ -12,8 +12,6 @@ typedef std::unique_ptr<StateStack> StateStackPtr;
 
 namespace Searcher {
 
-    using namespace Threading;
-
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
     //  - Maximum depth.

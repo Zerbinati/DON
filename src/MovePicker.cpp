@@ -1,7 +1,5 @@
 #include "MovePicker.h"
 
-#include "Thread.h"
-
 namespace MovePick {
 
     using namespace std;
