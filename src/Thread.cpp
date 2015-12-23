@@ -28,7 +28,7 @@ namespace Threading {
         lk.unlock ();
     }
 
-    // Thread destructor waits for thread termination before returning
+    // Thread destructor waits for thread termination before returning.
     Thread::~Thread ()
     {
         _alive = false;
@@ -52,7 +52,7 @@ namespace Threading {
     }
 
     // ThreadPool::deinitialize() cleanly terminates the threads before the program exits
-    // Cannot be done in destructor because threads must be terminated before freeing Threadpool.
+    // Cannot be done in destructor because threads must be terminated before freeing ThreadPool.
     void ThreadPool::deinitialize ()
     {
         while (!empty ())
@@ -114,10 +114,10 @@ namespace Threading {
 
         main ()->start_searching (false);
     }
-    // ThreadPool::wait_while_thinking() waits for the main thread while searching
+    // ThreadPool::wait_while_thinking() waits for the main thread while searching.
     void ThreadPool::wait_while_thinking ()
     {
-        Threadpool.main ()->wait_while_searching ();
+        main ()->wait_while_searching ();
     }
 
 }
