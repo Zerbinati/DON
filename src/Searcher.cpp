@@ -1945,7 +1945,9 @@ namespace Threading {
             for (pv_index = 0; !ForceStop && pv_index < PVLimit; ++pv_index)
             {
                 // Reset Aspiration window starting size
-                if (aspiration)
+                if (   aspiration
+                    && leaf_depth >= DEPTH_ONE
+                   )
                 {
                     window = Value(18);
                         //Value(depth <= 32*DEPTH_ONE ? 14 + (u16(depth)-1)/4 : 22); // Increasing window
@@ -2342,10 +2344,10 @@ namespace Threading {
             wait_until (ForceStop);
         }
 
-        // Stop the threads if not already stopped
+        // Stop the threads if not already stopped.
         ForceStop = true;
 
-        // Wait until all threads have finished
+        // Wait until all threads have finished.
         for (size_t i = 1; i < Threadpool.size (); ++i)
         {
             Threadpool[i]->wait_while_searching ();
