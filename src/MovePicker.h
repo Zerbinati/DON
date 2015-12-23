@@ -102,7 +102,7 @@ namespace MovePick {
         Square  _recapture_sq   = SQ_NO;
         Value   _threshold      = VALUE_NONE;
 
-        ValMove _killers[3];
+        ValMove _killer_moves[Killers + 1];
 
         u08     _stage;
 

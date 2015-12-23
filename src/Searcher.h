@@ -146,6 +146,7 @@ namespace Searcher {
         return os;
     }
 
+    const u08 Killers = 2;
     // The Stack struct keeps track of the information needed to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
     // has its own array of Stack objects, indexed by the current ply.
@@ -156,7 +157,7 @@ namespace Searcher {
 
         Move current_move = MOVE_NONE
            , exclude_move = MOVE_NONE
-           , killer_moves[2];
+           , killer_moves[Killers];
 
         Value static_eval = VALUE_NONE;
         u08   move_count  = 0;

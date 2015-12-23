@@ -217,15 +217,12 @@ namespace MovePick {
             break;
 
         case S_KILLER:
-            _moves_cur = _killers;
-            _moves_end = _killers + sizeof (_ss->killer_moves)/sizeof (*_ss->killer_moves);
-            std::copy (std::begin (_ss->killer_moves), std::end (_ss->killer_moves), std::begin (_killers));
+            _moves_cur = _killer_moves;
+            _moves_end = _killer_moves + Killers;
+            std::copy (_ss->killer_moves, _ss->killer_moves + Killers, _killer_moves);
             *_moves_end = MOVE_NONE;
-
-            // Be sure countermoves are different from _killers
-            if (   _counter_move != MOVE_NONE
-                && std::count (std::begin (_killers), std::prev (std::end (_killers)), _counter_move) == 0
-               )
+            // Be sure countermoves are different from killer_moves
+            if (std::count (_killer_moves, _killer_moves + Killers + 1, _counter_move) == 0)
             {
                 *_moves_end++ = _counter_move;
             }
@@ -350,7 +347,7 @@ namespace MovePick {
                 {
                     move = *_moves_cur++;
                     if (   move != _tt_move
-                        && std::count (std::begin (_killers), std::end (_killers), move) == 0 // Not killer move
+                        && std::count (_killer_moves, _killer_moves + Killers + 1, move) == 0 // Not killer move
                        )
                     {
                         return move;
