@@ -17,9 +17,9 @@ namespace MoveGen {
         ValMove& operator= (const ValMove&) = default;
 
         operator Move () const  { return move; }
-        operator Value () const { return value; }
         void operator= (Move  m) { move  = m; }
-        void operator= (Value v) { value = v; }
+        //explicit operator Value () const { return value; }
+        //void operator= (Value v) { value = v; }
 
         // Ascending sort
         bool operator<  (const ValMove &vm) const { return value <  vm.value; }
@@ -28,23 +28,20 @@ namespace MoveGen {
         bool operator>= (const ValMove &vm) const { return value >= vm.value; }
         bool operator== (const ValMove &vm) const { return value == vm.value; }
         bool operator!= (const ValMove &vm) const { return value != vm.value; }
-
     };
 
     // Types of Generator
     enum GenT
     {
         // PSEUDO-LEGAL MOVES
-        RELAX,       // Normal moves.
-        EVASION,     // Save the friendly king from check
+        RELAX,       // Normal.
+        EVASION,     // Save the friendly king from check.
         CAPTURE,     // Change material balance where an enemy piece is captured.
         QUIET,       // Do not capture pieces but under-promotion is allowed.
         CHECK,       // Checks the enemy King in any way possible.
         QUIET_CHECK, // Do not change material and only checks the enemy King (no capture or promotion).
-
         // ------------------------
-        LEGAL        // Legal moves
-
+        LEGAL,       // Legal.
     };
 
     template<GenT GT>
@@ -90,9 +87,9 @@ namespace MoveGen {
         
         bool contains (Move move) const
         {
-            for (const auto &m : *this)
+            for (const auto &vm : *this)
             {
-                if (m == move) return true;
+                if (vm.move == move) return true;
             }
             return false;
         }

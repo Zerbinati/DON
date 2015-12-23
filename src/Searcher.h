@@ -126,9 +126,9 @@ namespace Searcher {
 
         void backup ()
         {
-            for (auto &root_move : *this)
+            for (auto &rm : *this)
             {
-                root_move.backup ();
+                rm.backup ();
             }
         }
 
@@ -152,6 +152,8 @@ namespace Searcher {
     // has its own array of Stack objects, indexed by the current ply.
     struct Stack
     {
+        static const size_t Size;
+
         Move *pv = nullptr;
         u16  ply = 0;
 
@@ -202,9 +204,9 @@ namespace Searcher {
 
         Move best_move (const RootMoveVector &root_moves)
         {
-            return _best_move != MOVE_NONE ?
-                _best_move :
-                pick_best_move (root_moves);
+            return _best_move == MOVE_NONE
+                && !root_moves.empty () ?
+                pick_best_move (root_moves) : _best_move;
         }
 
         Move pick_best_move (const RootMoveVector &root_moves);

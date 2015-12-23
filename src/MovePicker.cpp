@@ -150,20 +150,20 @@ namespace MovePick {
     // has been picked up, saving some SEE calls in case we get a cutoff.
     void MovePicker::value<CAPTURE> ()
     {
-        for (auto &m : *this)
+        for (auto &vm : *this)
         {
-            m = PieceValues[MG][_pos.en_passant (m) ? PAWN : ptype (_pos[dst_sq (m)])]
-              - Value(200 * rel_rank (_pos.active (), dst_sq (m)));
+            vm.value = PieceValues[MG][_pos.en_passant (vm) ? PAWN : ptype (_pos[dst_sq (vm)])]
+              - Value(200 * rel_rank (_pos.active (), dst_sq (vm)));
         }
     }
 
     template<>
     void MovePicker::value<QUIET>   ()
     {
-        for (auto &m : *this)
+        for (auto &vm : *this)
         {
-            m = _history_values[_pos[org_sq (m)]][dst_sq (m)]
-              + (*_counter_moves_values)[_pos[org_sq (m)]][dst_sq (m)];
+            vm.value = _history_values[_pos[org_sq (vm)]][dst_sq (vm)]
+              + (*_counter_moves_values)[_pos[org_sq (vm)]][dst_sq (vm)];
         }
     }
 
@@ -173,22 +173,22 @@ namespace MovePick {
     // with a negative SEE. This last group is ordered by the SEE value.
     void MovePicker::value<EVASION> ()
     {
-        for (auto &m : *this)
+        for (auto &vm : *this)
         {
-            auto see_value = _pos.see_sign (m);
+            auto see_value = _pos.see_sign (vm);
             if (see_value < VALUE_ZERO)
             {
-                m = see_value - MaxStatsValue; // At the bottom
+                vm.value = see_value - MaxStatsValue; // At the bottom
             }
             else
-            if (_pos.capture (m))
+            if (_pos.capture (vm))
             {
-                m = PieceValues[MG][_pos.en_passant (m) ? PAWN : ptype (_pos[dst_sq (m)])]
-                  - Value(ptype (_pos[org_sq (m)])) -1 + MaxStatsValue;
+                vm.value = PieceValues[MG][_pos.en_passant (vm) ? PAWN : ptype (_pos[dst_sq (vm)])]
+                  - Value(ptype (_pos[org_sq (vm)])) -1 + MaxStatsValue;
             }
             else
             {
-                m = _history_values[_pos[org_sq (m)]][dst_sq (m)];
+                vm.value = _history_values[_pos[org_sq (vm)]][dst_sq (vm)];
             }
         }
     }
@@ -222,7 +222,7 @@ namespace MovePick {
             std::copy (_ss->killer_moves, _ss->killer_moves + Killers, _killer_moves);
             *_moves_end = MOVE_NONE;
             // Be sure countermoves are different from killer_moves
-            if (std::count (_killer_moves, _killer_moves + Killers + 1, _counter_move) == 0)
+            if (_counter_move != MOVE_NONE && std::count (_moves_cur, _moves_end, _counter_move) == 0)
             {
                 *_moves_end++ = _counter_move;
             }

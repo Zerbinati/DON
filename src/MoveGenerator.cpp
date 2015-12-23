@@ -160,14 +160,12 @@ namespace MoveGen {
                 {
                     *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
                 }
-
-                if (GT == RELAX || GT == EVASION || GT == QUIET)
+                if (GT == RELAX || GT == EVASION /*|| GT == CAPTURE*/ || GT == QUIET)
                 {
                     *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
                     *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
                     *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
                 }
-
                 // Knight-promotion is the only one that can give a direct check
                 // not already included in the queen-promotion (queening).
                 if (GT == QUIET_CHECK)

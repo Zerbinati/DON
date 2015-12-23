@@ -30,6 +30,8 @@ extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 struct StateInfo
 {
 public:
+    static const size_t Size;
+
     // ---Copied when making a move---
     Value  non_pawn_matl[CLR_NO];
     Score  psq_score     = SCORE_ZERO;
@@ -142,6 +144,7 @@ private:
     static const Score PSQ_Bonus[NONE][R_NO][F_NO/2];
 
 public:
+    static const size_t Size;
 
     static u08   DrawClockPly;
     static Score PSQ[CLR_NO][NONE][SQ_NO];

@@ -212,19 +212,12 @@ namespace Searcher {
             if (ss->killer_moves[0] != move)
             {
                 ss->killer_moves[1] = ss->killer_moves[0];
+                //if (std::count (ss->killer_moves, ss->killer_moves + Killers, MOVE_NONE) != Killers)
+                //{
+                //    std::copy_backward (ss->killer_moves, ss->killer_moves + Killers - 1, ss->killer_moves + Killers);
+                //}
                 ss->killer_moves[0] = move;
             }
-            //// If more then 2 killer moves
-            //if (std::count (ss->killer_moves, ss->killer_moves + Killers, move) == 0)
-            //{
-            //    std::copy_backward (ss->killer_moves, ss->killer_moves + Killers - 1, ss->killer_moves + Killers);
-            //    ss->killer_moves[0] = move;
-            //}
-            //else
-            //if (ss->killer_moves[0] != move)
-            //{
-            //    std::swap (ss->killer_moves[0], *std::find (ss->killer_moves, ss->killer_moves + Killers, move));
-            //}
 
             auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
 
@@ -409,8 +402,7 @@ namespace Searcher {
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in quien_search use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            Depth qs_depth = in_check || depth >= DEPTH_QS_CHECKS ?
-                DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
+            Depth qs_depth = in_check || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             Move  tt_move    = MOVE_NONE
                 , best_move  = MOVE_NONE;
@@ -436,8 +428,7 @@ namespace Searcher {
                 && tt_hit
                 && tt_depth >= qs_depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
-                && (tt_value >= beta ? (tt_bound & BOUND_LOWER) :
-                                       (tt_bound & BOUND_UPPER))
+                && (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE
                )
             {
                 ss->current_move = tt_move; // Can be MOVE_NONE
@@ -759,8 +750,7 @@ namespace Searcher {
                 && tt_hit
                 && tt_depth >= depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
-                && (tt_value >= beta ? (tt_bound & BOUND_LOWER) :
-                                       (tt_bound & BOUND_UPPER))
+                && (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE
                )
             {
                 ss->current_move = tt_move; // Can be MOVE_NONE
@@ -837,7 +827,7 @@ namespace Searcher {
 
                     // Can tt_value be used as a better position evaluation?
                     if (   tt_value != VALUE_NONE
-                        && (tt_bound & (tt_eval < tt_value ? BOUND_LOWER : BOUND_UPPER))
+                        && (tt_bound & (tt_eval < tt_value ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE
                        )
                     {
                         tt_eval = tt_value;
@@ -1041,7 +1031,7 @@ namespace Searcher {
                 &&    depth >= (PVNode ? 6 : 8)*DEPTH_ONE
                 && tt_depth >= depth - 3*DEPTH_ONE
                 && abs (tt_value) < +VALUE_KNOWN_WIN
-                && (tt_bound & BOUND_LOWER);
+                && (tt_bound & BOUND_LOWER) != BOUND_NONE;
 
             Move pv[MaxPly + 1];
             u08  move_count = 0;
@@ -1069,7 +1059,7 @@ namespace Searcher {
                 // RootMove list, as a consequence any illegal move is also skipped.
                 // In MultiPV mode also skip PV moves which have been already searched.
                 if (   RootNode
-                    && std::count (thread->root_moves.begin () + thread->pv_index, thread->root_moves.end (), move) == 0
+                    && std::count (thread->root_moves.cbegin () + thread->pv_index, thread->root_moves.cend (), move) == 0
                    )
                 {
                     continue;
@@ -1405,6 +1395,10 @@ namespace Searcher {
                 && !pos.capture_or_promotion (best_move)
                )
             {
+                if (std::count (quiet_moves.cbegin (), quiet_moves.cend (), best_move) != 0)
+                {
+                    quiet_moves.erase (std::remove (quiet_moves.begin (), quiet_moves.end (), best_move), quiet_moves.cend ());
+                }
                 update_stats (pos, ss, best_move, depth, quiet_moves);
             }
             else
@@ -1528,6 +1522,10 @@ namespace Searcher {
     
     // ------------------------------------
 
+    const size_t Stack::Size = sizeof (Stack);
+
+    // ------------------------------------
+
     // RootMove::insert_pv_into_tt() is called at the end of a search iteration, and
     // inserts the PV back into the TT. This makes sure the old PV moves are searched
     // first, even if the old TT entries have been overwritten.
@@ -1610,7 +1608,7 @@ namespace Searcher {
         for (const auto &vm : MoveList<LEGAL> (pos))
         {
             if (   root_moves.empty ()
-                || std::count (root_moves.begin (), root_moves.end (), vm.move) != 0
+                || std::count (root_moves.cbegin (), root_moves.cend (), vm.move) != 0
                )
             {
                 *this += RootMove (vm.move);
@@ -1622,9 +1620,9 @@ namespace Searcher {
     RootMoveVector::operator string () const
     {
         stringstream ss;
-        for (const auto &root_move : *this)
+        for (const auto &rm : *this)
         {
-            ss << root_move << "\n";
+            ss << rm << "\n";
         }
         return ss.str ();
     }
@@ -1858,7 +1856,7 @@ namespace Threading {
     void Thread::search ()
     {
         Stack stacks[MaxPly+4], *ss = stacks+2; // To allow referencing (ss-2)
-        std::memset (ss-2, 0x00, 5*sizeof (*ss));
+        std::memset (ss-2, 0x00, 5*Stack::Size);
 
         bool thread_main = Threadpool.main () == this;
 
@@ -2232,7 +2230,7 @@ namespace Threading {
                 bool found = false;
                 auto book_best_move = book.probe_move (root_pos, BookMoveBest);
                 if (   book_best_move != MOVE_NONE
-                    && std::count (root_moves.begin (), root_moves.end (), book_best_move) != 0
+                    && std::count (root_moves.cbegin (), root_moves.cend (), book_best_move) != 0
                    )
                 {
                     found = true;

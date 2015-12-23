@@ -217,22 +217,19 @@ endif
 
 ifeq ($(COMP),mingw)
 	comp = mingw
-	ifeq ($(UNAME),Linux)
-		ifeq ($(bits),64)
-			ifeq ($(shell which x86_64-w64-mingw32-c++-posix),)
-				CXX = x86_64-w64-mingw32-c++
-			else
-				CXX = x86_64-w64-mingw32-c++-posix
-			endif
+
+	ifeq ($(bits),64)
+		ifeq ($(shell which x86_64-w64-mingw32-c++-posix),)
+			CXX = x86_64-w64-mingw32-c++
 		else
-			ifeq ($(shell which i686-w64-mingw32-c++-posix),)
-				CXX = i686-w64-mingw32-c++
-			else
-				CXX = i686-w64-mingw32-c++-posix
-			endif
+			CXX = x86_64-w64-mingw32-c++-posix
 		endif
 	else
-		CXX = g++
+		ifeq ($(shell which i686-w64-mingw32-c++-posix),)
+			CXX = i686-w64-mingw32-c++
+		else
+			CXX = i686-w64-mingw32-c++-posix
+		endif
 	endif
 
 	CXXFLAGS += -Wextra -Wshadow

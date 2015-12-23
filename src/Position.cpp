@@ -97,6 +97,10 @@ const Score Position::PSQ_Bonus[NONE][R_NO][F_NO/2] =
 };
 #undef S
 
+const size_t StateInfo::Size = sizeof (StateInfo);
+
+const size_t Position::Size = sizeof (Position);
+
 u08 Position::DrawClockPly = 100;
 // PSQ[Color][PieceType][Square] contains Color-PieceType-Square scores.
 Score Position::PSQ[CLR_NO][NONE][SQ_NO];
@@ -120,7 +124,7 @@ void Position::initialize ()
 // from the source to be self-consistent and not depending on any external data.
 Position& Position::operator= (const Position &pos)
 {
-    std::memcpy (this, &pos, sizeof (*this));
+    std::memcpy (this, &pos, Position::Size);
     _ssi = *_psi;
     _psi = &_ssi;
     _game_nodes = 0;
@@ -881,7 +885,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 // clear() clear the position
 void Position::clear ()
 {
-    std::memset (this, 0x00, sizeof (*this));
+    std::memset (this, 0x00, Position::Size);
 
     for (auto s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -1193,8 +1197,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
     assert(&nsi != _psi);
 
     Key key = _psi->posi_key ^ Zob._.act_side;
-    // Copy some fields of old state to new StateInfo object except the ones
-    // which are going to be recalculated from scratch anyway, 
+    // Copy some fields of old state info to new state info object except
+    // the ones which are going to be recalculated from scratch anyway, 
     std::memcpy (&nsi, _psi, offsetof(StateInfo, posi_key));
 
     // Switch state pointer to point to the new, ready to be updated, state.
@@ -1498,7 +1502,7 @@ void Position::do_null_move (StateInfo &nsi)
     assert(_psi->checkers == U64(0));
 
     // Full copy here
-    std::memcpy (&nsi, _psi, sizeof (nsi));
+    std::memcpy (&nsi, _psi, StateInfo::Size);
 
     // Switch our state pointer to point to the new, ready to be updated, state.
     nsi.ptr = _psi;

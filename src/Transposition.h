@@ -27,12 +27,12 @@ namespace Transposition {
     {
 
     private:
-        u16 _key16;
-        u16 _move;
-        i16 _value;
-        i16 _eval;
-        i08 _depth;
-        u08 _gen_bnd;
+        u16 _key16  = U64(0);
+        u16 _move   = MOVE_NONE;
+        i16 _value  = VALUE_NONE;
+        i16 _eval   = VALUE_NONE;
+        i08 _depth  = DEPTH_NONE;
+        u08 _gen_bnd= 0;
 
         friend class Table;
 
@@ -186,7 +186,7 @@ namespace Transposition {
         // generation() set the "Generation" variable, which is used to
         // distinguish transposition table entries from different searches.
         // It is called at the beginning of every new search.
-        void generation (i16 ply) { _generation = u08(ply << 2)&u08(~BOUND_EXACT); }
+        void generation (u16 ply) { _generation = u08(ply << 2)&u08(~BOUND_EXACT); }
         
         u08 generation () const { return _generation; }
 
