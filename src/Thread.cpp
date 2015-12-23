@@ -7,6 +7,8 @@ Threading::ThreadPool Threadpool; // Global ThreadPool
 namespace Threading {
 
     using namespace std;
+    using namespace Searcher;
+    using namespace MovePick;
 
     // Thread constructor launchs the thread and then wait until it goes to sleep in idle_loop().
     Thread::Thread ()

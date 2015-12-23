@@ -1801,6 +1801,8 @@ namespace Searcher {
 
 namespace Threading {
 
+    using namespace Searcher;
+
     // Thread::search() is the main iterative deepening loop. It calls depth_search()
     // repeatedly with increasing depth until the allocated thinking time has been
     // consumed, user stops the search, or the maximum search depth is reached.

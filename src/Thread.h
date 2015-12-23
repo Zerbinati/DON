@@ -15,9 +15,6 @@
 
 namespace Threading {
 
-    using namespace Searcher;
-    using namespace MovePick;
-
     const u16 MaxThreads = 128; // Maximum Threads
 
     // Thread struct keeps together all the thread related stuff like.
@@ -43,12 +40,12 @@ namespace Threading {
            , max_ply    = 0
            , chk_count  = 0;
 
-        Position        root_pos;
-        RootMoveVector  root_moves;
-        Depth           root_depth = DEPTH_ZERO
-            ,           leaf_depth = DEPTH_ZERO;
-        HValueStats     history_values;
-        MoveStats       counter_moves;
+        Position                    root_pos;
+        Searcher::RootMoveVector    root_moves;
+        Depth                       root_depth = DEPTH_ZERO
+            ,                       leaf_depth = DEPTH_ZERO;
+        MovePick::HValueStats       history_values;
+        MovePick::MoveStats         counter_moves;
 
         std::atomic_bool reset_check { false };
 
@@ -195,7 +192,7 @@ namespace Threading {
         void initialize ();
         void deinitialize ();
 
-        void start_thinking (const Position &pos, const LimitsT &limit, StateStackPtr &states);
+        void start_thinking (const Position &pos, const Searcher::LimitsT &limit, StateStackPtr &states);
         void wait_while_thinking ();
         u64  game_nodes ();
 
