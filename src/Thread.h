@@ -6,7 +6,6 @@
 #include <iostream>
 
 #include "thread_win32.h"
-
 #include "Position.h"
 #include "Pawns.h"
 #include "Material.h"
@@ -113,6 +112,40 @@ namespace Threading {
         virtual void search ();
     };
 
+    // TimeManager class computes the optimal time to think depending on the
+    // maximum available time, the move game number and other parameters.
+    // Support four different kind of time controls, passed in 'limits':
+    //
+    // moves_to_go = 0, increment = 0 means: x basetime [sudden death!]
+    // moves_to_go = 0, increment > 0 means: x basetime + z increment
+    // moves_to_go > 0, increment = 0 means: x moves in y basetime [regular clock]
+    // moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
+    class TimeManager
+    {
+    private:
+
+        TimePoint   _optimum_time = 0;
+        TimePoint   _maximum_time = 0;
+
+        double      _instability_factor = 1.0;
+
+    public:
+
+        u64     available_nodes  = U64(0); // When in 'nodes as time' mode
+        double  best_move_change = 0.0;
+
+        TimePoint available_time () const { return TimePoint(_optimum_time * _instability_factor * 1.016); }
+
+        TimePoint maximum_time () const { return _maximum_time; }
+
+        TimePoint elapsed_time () const;
+
+        void instability () { _instability_factor = 1.0 + best_move_change; }
+
+        void initialize (Searcher::LimitsT &limits, Color c, i16 ply);
+
+    };
+
     // EasyMoveManager class is used to detect a so called 'easy move'; when PV is
     // stable across multiple search iterations engine can fast return the best move.
     class EasyMoveManager
@@ -168,6 +201,7 @@ namespace Threading {
         bool failed_low     = false;
         bool time_mgr_used  = false;
 
+        TimeManager     time_mgr;
         EasyMoveManager easy_move_mgr;
 
         virtual void search () override;

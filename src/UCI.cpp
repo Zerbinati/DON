@@ -69,7 +69,7 @@ namespace UCI {
             if (token == "ucinewgame")
             {
                 clear ();
-                TimeMgr.available_nodes = U64(0);
+                Threadpool.main ()->time_mgr.available_nodes = U64(0);
             }
             else
             if (token == "isready")

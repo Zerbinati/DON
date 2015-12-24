@@ -30,7 +30,7 @@ namespace Notation {
 
     extern std::string to_string (Value v);
 
-    extern std::string pretty_pv_info (Threading::Thread *thread, TimePoint time);
+    extern std::string pretty_pv_info (Threading::MainThread *main_th);
 }
 
 template<class CharT, class Traits>

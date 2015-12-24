@@ -130,7 +130,8 @@ namespace Searcher {
         {
             static auto last_info_time = now ();
 
-            auto elapsed_time = TimeMgr.elapsed_time ();
+            auto *main_thread = Threadpool.main ();
+            auto elapsed_time = main_thread->time_mgr.elapsed_time ();
 
             auto now_time = Limits.start_time + elapsed_time;
             if (now_time - last_info_time >= MilliSec)
@@ -145,7 +146,7 @@ namespace Searcher {
                 return;
             }
 
-            if (   (Threadpool.main ()->time_mgr_used && elapsed_time > TimeMgr.maximum_time () - 2 * TimerResolution)
+            if (   (main_thread->time_mgr_used && elapsed_time > main_thread->time_mgr.maximum_time () - 2 * TimerResolution)
                 || (Limits.movetime != 0   && elapsed_time >= Limits.movetime)
                 || (Limits.nodes != U64(0) && Threadpool.game_nodes () >= Limits.nodes)
                )
@@ -260,9 +261,9 @@ namespace Searcher {
         // multipv_info() formats PV information according to UCI protocol.
         // UCI requires to send all the PV lines also if are still to be searched
         // and so refer to the previous search score.
-        string multipv_info (const Thread *thread, Value alfa, Value beta)
+        string multipv_info (const MainThread *main_th, Value alfa, Value beta)
         {
-            auto elapsed_time = std::max (TimeMgr.elapsed_time (), TimePoint(1));
+            auto elapsed_time = std::max (main_th->time_mgr.elapsed_time (), TimePoint(1));
             assert(elapsed_time > 0);
             auto game_nodes = Threadpool.game_nodes ();
 
@@ -272,17 +273,17 @@ namespace Searcher {
                 Depth d;
                 Value v;
 
-                if (i <= thread->pv_index)  // New updated pv?
+                if (i <= main_th->pv_index)  // New updated pv?
                 {
-                    d = thread->root_depth;
-                    v = thread->root_moves[i].new_value;
+                    d = main_th->root_depth;
+                    v = main_th->root_moves[i].new_value;
                 }
                 else                        // Old expired pv?
                 {
-                    if (DEPTH_ONE == thread->root_depth) continue;
+                    if (DEPTH_ONE == main_th->root_depth) continue;
 
-                    d = thread->root_depth - DEPTH_ONE;
-                    v = thread->root_moves[i].old_value;
+                    d = main_th->root_depth - DEPTH_ONE;
+                    v = main_th->root_moves[i].old_value;
                 }
                 
                 bool tb = TBHasRoot && abs (v) < VALUE_MATE - i32(MaxPly);
@@ -293,9 +294,9 @@ namespace Searcher {
                 ss  << "info"
                     << " multipv "  << i + 1
                     << " depth "    << d/DEPTH_ONE
-                    << " seldepth " << thread->max_ply
+                    << " seldepth " << main_th->max_ply
                     << " score "    << to_string (tb ? ProbeValue : v);
-                if (!tb && i == thread->pv_index)
+                if (!tb && i == main_th->pv_index)
                     ss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
                 ss  << " nodes "    << game_nodes
                     << " time "     << elapsed_time
@@ -303,7 +304,7 @@ namespace Searcher {
                 if (elapsed_time > MilliSec)
                     ss  << " hashfull " << TT.hash_full (); // Earlier makes little sense
                 ss  << " tbhits "   << TBHits
-                    << " pv"        << thread->root_moves[i];
+                    << " pv"        << main_th->root_moves[i];
             }
             return ss.str ();
         }
@@ -1024,13 +1025,13 @@ namespace Searcher {
                     && main_thread != nullptr
                    )
                 {
-                    auto elapsed_time = TimeMgr.elapsed_time ();
+                    auto elapsed_time = main_thread->time_mgr.elapsed_time ();
                     if (elapsed_time > 3*MilliSec)
                     {
                         sync_cout
                             << "info"
                             << " depth "          << depth/DEPTH_ONE
-                            << " currmovenumber " << setfill ('0') << setw (2) << thread->pv_index + move_count << setfill (' ')
+                            << " currmovenumber " << setfill ('0') << setw (2) << main_thread->pv_index + move_count << setfill (' ')
                             << " currmove "       << move_to_can (move, Chess960)
                             << " time "           << elapsed_time
                             << sync_endl;
@@ -1262,7 +1263,7 @@ namespace Searcher {
                             && move_count > 1
                            )
                         {
-                            TimeMgr.best_move_change++;
+                            main_thread->time_mgr.best_move_change++;
                         }
                     }
                     else
@@ -1469,8 +1470,6 @@ namespace Searcher {
     u32  NodesTime          =   0; // 'Nodes as Time' mode
     bool Ponder             = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
-    TimeManager TimeMgr;
-    
     // ------------------------------------
 
     const size_t Stack::Size = sizeof (Stack);
@@ -1580,65 +1579,6 @@ namespace Searcher {
 
     // ------------------------------------
 
-    TimePoint TimeManager::elapsed_time () const { return TimePoint(NodesTime != 0 ? Threadpool.game_nodes () : now () - Limits.start_time); }
-
-    // TimeManager::initialize() is called at the beginning of the search and
-    // calculates the allowed thinking time out of the time control and current game ply.
-    void TimeManager::initialize (LimitsT &limits, Color c, i16 ply)
-    {
-        // If we have to play in 'Nodes as Time' mode, then convert from time
-        // to nodes, and use resulting values in time management formulas.
-        // WARNING: Given npms (nodes per millisecond) must be much lower then
-        // real engine speed to avoid time losses.
-        if (NodesTime != 0)
-        {
-            // Only once at game start
-            if (available_nodes == U64(0))
-            {
-                available_nodes = NodesTime * limits.clock[c].time; // Time is in msec
-            }
-
-            // Convert from millisecs to nodes
-            limits.clock[c].time = available_nodes;
-            limits.clock[c].inc *= NodesTime;
-        }
-
-        _instability_factor = 1.0;
-
-        _optimum_time =
-        _maximum_time =
-            std::max (limits.clock[c].time, TimePoint(MinimumMoveTime));
-
-        const auto MaxMovesToGo = limits.movestogo != 0 ? std::min (limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
-        // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
-        // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
-        for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
-        {
-            // Calculate thinking time for hypothetic "moves to go"-value
-            auto hyp_time = std::max (
-                + limits.clock[c].time
-                + limits.clock[c].inc * (hyp_movestogo-1)
-                - OverheadClockTime
-                - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
-
-            auto opt_time = remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
-            auto max_time = remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
-
-            if (_optimum_time > opt_time)
-            {
-                _optimum_time = opt_time;
-            }
-            if (_maximum_time > max_time)
-            {
-                _maximum_time = max_time;
-            }
-        }
-
-        if (Ponder)
-        {
-            _optimum_time += _optimum_time / 4;
-        }
-    }
 
     // ------------------------------------
 
@@ -1803,6 +1743,66 @@ namespace Threading {
 
     using namespace Searcher;
 
+    TimePoint TimeManager::elapsed_time () const { return TimePoint(NodesTime != 0 ? Threadpool.game_nodes () : now () - Limits.start_time); }
+
+    // TimeManager::initialize() is called at the beginning of the search and
+    // calculates the allowed thinking time out of the time control and current game ply.
+    void TimeManager::initialize (LimitsT &limits, Color c, i16 ply)
+    {
+        // If we have to play in 'Nodes as Time' mode, then convert from time
+        // to nodes, and use resulting values in time management formulas.
+        // WARNING: Given npms (nodes per millisecond) must be much lower then
+        // real engine speed to avoid time losses.
+        if (NodesTime != 0)
+        {
+            // Only once at game start
+            if (available_nodes == U64(0))
+            {
+                available_nodes = NodesTime * limits.clock[c].time; // Time is in msec
+            }
+
+            // Convert from millisecs to nodes
+            limits.clock[c].time = available_nodes;
+            limits.clock[c].inc *= NodesTime;
+        }
+
+        _instability_factor = 1.0;
+
+        _optimum_time =
+        _maximum_time =
+            std::max (limits.clock[c].time, TimePoint(MinimumMoveTime));
+
+        const auto MaxMovesToGo = limits.movestogo != 0 ? std::min (limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
+        // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
+        // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
+        for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
+        {
+            // Calculate thinking time for hypothetic "moves to go"-value
+            auto hyp_time = std::max (
+                + limits.clock[c].time
+                + limits.clock[c].inc * (hyp_movestogo-1)
+                - OverheadClockTime
+                - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
+
+            auto opt_time = remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
+            auto max_time = remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
+
+            if (_optimum_time > opt_time)
+            {
+                _optimum_time = opt_time;
+            }
+            if (_maximum_time > max_time)
+            {
+                _maximum_time = max_time;
+            }
+        }
+
+        if (Ponder)
+        {
+            _optimum_time += _optimum_time / 4;
+        }
+    }
+
     // Thread::search() is the main iterative deepening loop. It calls depth_search()
     // repeatedly with increasing depth until the allocated thinking time has been
     // consumed, user stops the search, or the maximum search depth is reached.
@@ -1819,7 +1819,7 @@ namespace Threading {
             TT.generation (root_pos.game_ply () + 1);
             if (main_thread->time_mgr_used)
             {
-                TimeMgr.best_move_change = 0.0;
+                main_thread->time_mgr.best_move_change = 0.0;
                 easy_move = main_thread->easy_move_mgr.easy_move (root_pos.posi_key ());
                 main_thread->easy_move_mgr.clear ();
                 main_thread->easy_played = false;
@@ -1854,7 +1854,7 @@ namespace Threading {
                 if (main_thread->time_mgr_used)
                 {
                     // Age out PV variability metric
-                    TimeMgr.best_move_change *= 0.505;
+                    main_thread->time_mgr.best_move_change *= 0.505;
                 }
             }
             else
@@ -1938,7 +1938,7 @@ namespace Threading {
                     if (   main_thread != nullptr
                         && PVLimit == 1
                         && (alfa >= best_value || best_value >= beta)
-                        && TimeMgr.elapsed_time () > 3*MilliSec
+                        && main_thread->time_mgr.elapsed_time () > 3*MilliSec
                        )
                     {
                         sync_cout << multipv_info (main_thread, alfa, beta) << sync_endl;
@@ -1982,12 +1982,12 @@ namespace Threading {
                         sync_cout
                             << "info"
                             << " nodes " << root_pos.game_nodes ()
-                            << " time "  << TimeMgr.elapsed_time ()
+                            << " time "  << main_thread->time_mgr.elapsed_time ()
                             << sync_endl;
                     }
                     else
                     if (   PVLimit == (pv_index + 1)
-                        || TimeMgr.elapsed_time () > 3*MilliSec
+                        || main_thread->time_mgr.elapsed_time () > 3*MilliSec
                        )
                     {
                         sync_cout << multipv_info (main_thread, alfa, beta) << sync_endl;
@@ -2022,7 +2022,7 @@ namespace Threading {
 
                 if (LogWrite)
                 {
-                    LogStream << pretty_pv_info (main_thread, TimeMgr.elapsed_time ()) << std::endl;
+                    LogStream << pretty_pv_info (main_thread) << std::endl;
                 }
 
                 if (   !ForceStop
@@ -2040,7 +2040,7 @@ namespace Threading {
                             && PVLimit == 1
                            )
                         {
-                            TimeMgr.instability ();
+                            main_thread->time_mgr.instability ();
                         }
 
                         // Stop the search
@@ -2048,11 +2048,11 @@ namespace Threading {
                         // If all of the available time has been used or
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
-                            || TimeMgr.elapsed_time () > TimeMgr.available_time () * (main_thread->failed_low ? 1.001 : 0.492)
+                            || main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () * (main_thread->failed_low ? 1.001 : 0.492)
                             || (main_thread->easy_played = ( !root_moves.empty ()
                                                             && root_moves[0] == easy_move
-                                                            && TimeMgr.best_move_change < 0.03
-                                                            && TimeMgr.elapsed_time () > TimeMgr.available_time () * 0.125
+                                                            && main_thread->time_mgr.best_move_change < 0.03
+                                                            && main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () * 0.125
                                                             ), main_thread->easy_played
                                )
                            )
@@ -2133,7 +2133,7 @@ namespace Threading {
         time_mgr_used = Limits.time_management_used ();
         if (time_mgr_used)
         {
-            TimeMgr.initialize (Limits, RootColor, root_pos.game_ply ());
+            time_mgr.initialize (Limits, RootColor, root_pos.game_ply ());
         }
 
         MateSearch = Limits.mate != 0;
@@ -2279,7 +2279,7 @@ namespace Threading {
             // the available ones before to exit.
             if (NodesTime != 0)
             {
-                TimeMgr.available_nodes += Limits.clock[RootColor].inc - Threadpool.game_nodes ();
+                time_mgr.available_nodes += Limits.clock[RootColor].inc - Threadpool.game_nodes ();
             }
         }
 
@@ -2326,10 +2326,14 @@ namespace Threading {
         // Send new PV when needed.
         if (best_thread != this)
         {
-            //root_pos   = Position (best_thread->root_pos, this); // No need!
-            root_moves = best_thread->root_moves;
+            pv_index    = best_thread->pv_index;
+            max_ply     = best_thread->max_ply;
+            //root_pos    = Position (best_thread->root_pos, this); // No need!
+            root_moves  = best_thread->root_moves;
+            root_depth  = best_thread->root_depth;
+            leaf_depth  = best_thread->leaf_depth;
 
-            sync_cout << multipv_info (best_thread, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
+            sync_cout << multipv_info (this, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
         }
 
         assert(!root_moves.empty ()
@@ -2337,7 +2341,7 @@ namespace Threading {
 
         if (LogWrite)
         {
-            auto elapsed_time = std::max (TimeMgr.elapsed_time (), TimePoint(1));
+            auto elapsed_time = std::max (time_mgr.elapsed_time (), TimePoint(1));
 
             LogStream
                 << "Time (ms)  : " << elapsed_time                                      << "\n"

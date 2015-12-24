@@ -260,18 +260,18 @@ namespace Notation {
     // pretty_pv_info() returns formated human-readable search information,
     // typically to be appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv_info (Thread *thread, TimePoint time)
+    string pretty_pv_info (MainThread *main_th)
     {
-        const u64 K = 1000;
-        const u64 M = K*K;
-        
+        const u16 K = 1000;
+        const u32 M = K*K;
+
         ostringstream oss;
 
-        auto &root_pos = thread->root_pos;
+        auto &root_pos = main_th->root_pos;
 
-        oss << setw ( 4) << thread->root_depth
-            << setw ( 8) << pretty_value (thread->root_moves[0].new_value, root_pos)
-            << setw (12) << pretty_time (time);
+        oss << setw ( 4) << main_th->root_depth
+            << setw ( 8) << pretty_value (main_th->root_moves[0].new_value, root_pos)
+            << setw (12) << pretty_time (main_th->time_mgr.elapsed_time ());
 
         u64 game_nodes = Threadpool.game_nodes ();
         if (game_nodes < 1*M)
@@ -290,7 +290,7 @@ namespace Notation {
 
         StateStack states;
         u08 ply = 0;
-        for (const auto m : thread->root_moves[0])
+        for (const auto m : main_th->root_moves[0])
         {
             oss << move_to_san (m, root_pos) << " ";
             states.push (StateInfo ());

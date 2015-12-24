@@ -211,41 +211,6 @@ namespace Searcher {
 
     };
 
-    // TimeManager class computes the optimal time to think depending on the
-    // maximum available time, the move game number and other parameters.
-    // Support four different kind of time controls, passed in 'limits':
-    //
-    // moves_to_go = 0, increment = 0 means: x basetime [sudden death!]
-    // moves_to_go = 0, increment > 0 means: x basetime + z increment
-    // moves_to_go > 0, increment = 0 means: x moves in y basetime [regular clock]
-    // moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
-    class TimeManager
-    {
-    private:
-
-        TimePoint   _optimum_time = 0;
-        TimePoint   _maximum_time = 0;
-
-        double      _instability_factor = 1.0;
-
-    public:
-
-        u64     available_nodes  = U64(0); // When in 'nodes as time' mode
-        double  best_move_change = 0.0;
-
-        TimePoint available_time () const { return TimePoint(_optimum_time * _instability_factor * 1.016); }
-
-        TimePoint maximum_time () const { return _maximum_time; }
-
-        TimePoint elapsed_time () const;
-
-        void instability () { _instability_factor = 1.0 + best_move_change; }
-
-        void initialize (LimitsT &limits, Color c, i16 ply);
-
-    };
-
-
     extern bool             Chess960;
 
     extern LimitsT          Limits;
@@ -288,7 +253,6 @@ namespace Searcher {
     extern u32  NodesTime         ;
     extern bool Ponder            ;
 
-    extern TimeManager TimeMgr;
 
     template<bool RootNode = true>
     extern u64 perft (Position &pos, Depth depth);
