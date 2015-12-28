@@ -23,11 +23,17 @@ namespace Notation {
     namespace {
 
         // Type of the Ambiguity
-        enum AmbiguityT { AMB_NONE, AMB_RANK, AMB_FILE, AMB_SQR };
+        enum Ambiguity : u08
+        {
+            AMB_NONE,
+            AMB_RANK,
+            AMB_FILE,
+            AMB_SQR,
+        };
 
         // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
         // NOTE: for pawns it is not needed because 'org' file is explicit.
-        AmbiguityT ambiguity (Move m, const Position &pos)
+        Ambiguity ambiguity (Move m, const Position &pos)
         {
             assert(pos.legal (m));
 
@@ -260,18 +266,20 @@ namespace Notation {
     // pretty_pv_info() returns formated human-readable search information,
     // typically to be appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv_info (MainThread *main_th)
+    string pretty_pv_info ()
     {
+        static auto *main_thread = Threadpool.main ();
+
         const u16 K = 1000;
         const u32 M = K*K;
 
         ostringstream oss;
 
-        auto &root_pos = main_th->root_pos;
+        auto &root_pos = main_thread->root_pos;
 
-        oss << setw ( 4) << main_th->root_depth
-            << setw ( 8) << pretty_value (main_th->root_moves[0].new_value, root_pos)
-            << setw (12) << pretty_time (main_th->time_mgr.elapsed_time ());
+        oss << setw ( 4) << main_thread->root_depth
+            << setw ( 8) << pretty_value (main_thread->root_moves[0].new_value, root_pos)
+            << setw (12) << pretty_time (main_thread->time_mgr.elapsed_time ());
 
         u64 game_nodes = Threadpool.game_nodes ();
         if (game_nodes < 1*M)
@@ -290,7 +298,7 @@ namespace Notation {
 
         StateStack states;
         u08 ply = 0;
-        for (const auto m : main_th->root_moves[0])
+        for (const auto m : main_thread->root_moves[0])
         {
             oss << move_to_san (m, root_pos) << " ";
             states.push (StateInfo ());

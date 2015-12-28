@@ -246,8 +246,8 @@ enum CRight : u08
 
 };
 
-// Types of Piece
-enum PieceT : i08
+// Piece Type
+enum PieceType : i08
 {
     PAWN  , // 000
     NIHT  , // 001
@@ -302,7 +302,7 @@ enum Piece : u08
 };
 
 // Move Type
-enum MoveT : u16
+enum MoveType : u16
 {
     NORMAL    = 0x0000, // 0- 0000
     CASTLE    = 0x4000, // 1- 0100
@@ -488,7 +488,7 @@ inline CRight& operator|= (CRight &cr, i32 i) { cr = CRight(i32(cr) | i); return
 inline CRight& operator&= (CRight &cr, i32 i) { cr = CRight(i32(cr) & i); return cr; }
 inline CRight& operator^= (CRight &cr, i32 i) { cr = CRight(i32(cr) ^ i); return cr; }
 
-INC_DEC_OPERATORS (PieceT)
+INC_DEC_OPERATORS (PieceType)
 
 // Move operator
 inline Move& operator|= (Move &m, i32 i) { m = Move(i32(m) | i); return m; }
@@ -600,19 +600,19 @@ struct Castling
         CS == CS_KING ? CR_BKING : CR_BQUEN;
 };
 
-inline bool   _ok   (PieceT pt) { return PAWN <= pt && pt <= KING; }
+inline bool   _ok   (PieceType pt) { return PAWN <= pt && pt <= KING; }
 
-inline Piece  operator| (Color c, PieceT pt) { return Piece((c << 3) | pt); }
+inline Piece  operator| (Color c, PieceType pt) { return Piece((c << 3) | pt); }
 
 inline bool   _ok   (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
-inline PieceT ptype (Piece p) { return PieceT(p & TOTL); }
+inline PieceType ptype (Piece p) { return PieceType(p & TOTL); }
 inline Color  color (Piece p) { return Color(p >> 3); }
 inline Piece  operator~ (Piece p) { return Piece(p ^ (BLACK << 3)); }
 
 inline Square org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
 inline Square dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
-inline PieceT promote (Move m) { return PieceT(((m >> 12) & ROOK) + NIHT); }
-inline MoveT  mtype   (Move m) { return MoveT(PROMOTE & m); }
+inline PieceType promote (Move m) { return PieceType(((m >> 12) & ROOK) + NIHT); }
+inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
 inline bool   _ok     (Move m)
 {
     // Catch all illegal moves
@@ -639,8 +639,8 @@ inline bool   _ok     (Move m)
 
 //inline void org_sq  (Move &m, Square org) { m &= 0xF03F; m |= org << 6; }
 //inline void dst_sq  (Move &m, Square dst) { m &= 0xFFC0; m |= dst << 0; }
-inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (pt - NIHT) << 12 | PROMOTE; }
-//inline void mtype   (Move &m, MoveT mt)   { m &= ~PROMOTE; m |= mt; }
+inline void promote (Move &m, PieceType pt)  { m &= 0x0FFF; m |= (pt - NIHT) << 12 | PROMOTE; }
+//inline void mtype   (Move &m, MoveType mt)   { m &= ~PROMOTE; m |= mt; }
 //inline Move operator~ (Move m)
 //{
 //    Move mm = m;
@@ -649,7 +649,7 @@ inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (pt - NIHT) << 12 
 //    return mm;
 //}
 
-template<MoveT MT>
+template<MoveType MT>
 inline   Move mk_move            (Square org, Square dst) { return Move(dst | org << 6 | MT); }
 // --------------------------------
 // Explicit template instantiations
@@ -657,8 +657,8 @@ template Move mk_move<NORMAL>    (Square, Square);
 template Move mk_move<CASTLE>    (Square, Square);
 template Move mk_move<ENPASSANT> (Square, Square);
 // --------------------------------
-template<MoveT MT>
-inline Move mk_move              (Square org, Square dst, PieceT pt/*=QUEN*/) { return Move(dst | (org | ((pt - NIHT) << 6)) << 6 | PROMOTE); }
+template<MoveType MT>
+inline Move mk_move              (Square org, Square dst, PieceType pt/*=QUEN*/) { return Move(dst | (org | ((pt - NIHT) << 6)) << 6 | PROMOTE); }
 // Make normal moves
 inline Move mk_move              (Square org, Square dst) { return Move(dst | org << 6); }
 

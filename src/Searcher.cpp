@@ -1,12 +1,10 @@
 ﻿#include "Searcher.h"
 
-#include <cfloat>
-#include <cmath>
 #include <sstream>
 #include <iomanip>
+#include <cmath>
 
 #include "PRNG.h"
-#include "MoveGenerator.h"
 #include "MovePicker.h"
 #include "Transposition.h"
 #include "Evaluator.h"
@@ -30,6 +28,41 @@ namespace Searcher {
     using namespace TBSyzygy;
     using namespace Notation;
     using namespace Debugger;
+
+    bool            Chess960        = false;
+
+    Limit           Limits;
+    atomic_bool     ForceStop       { false }  // Stop search on request
+        ,           PonderhitStop   { false }; // Stop search on ponder-hit
+
+    StateStackPtr   SetupStates;
+
+    u16             MultiPV         = 1;
+    //i32             MultiPV_cp      = 0;
+
+    i16             FixedContempt   = 0
+        ,           ContemptTime    = 30
+        ,           ContemptValue   = 50;
+
+    string          HashFile        = "Hash.dat";
+    u16             AutoSaveHashTime= 0;
+
+    bool            OwnBook         = false;
+    string          BookFile        = "Book.bin";
+    bool            BookMoveBest    = true;
+    i16             BookUptoMove    = 20;
+
+    Depth           TBDepthLimit    = 1*DEPTH_ONE;
+    i32             TBPieceLimit    = 6;
+    bool            TBUseRule50     = true;
+    u16             TBHits          = 0;
+    bool            TBHasRoot       = false;
+
+    string          LogFile         = "<empty>";
+
+    SkillManager    SkillMgr;
+
+    // ------------------------------------
 
     namespace {
 
@@ -129,8 +162,8 @@ namespace Searcher {
         void check_limits ()
         {
             static auto last_info_time = now ();
+            static const auto *main_thread = Threadpool.main ();
 
-            auto *main_thread = Threadpool.main ();
             auto elapsed_time = main_thread->time_mgr.elapsed_time ();
 
             auto now_time = Limits.start_time + elapsed_time;
@@ -218,7 +251,6 @@ namespace Searcher {
             static const MoveVector quiet_moves (0);
             update_stats (pos, ss, move, depth, quiet_moves);
         }
-
         // update_pv() add current move and appends child pv[]
         void update_pv (Move *pv, Move move, const Move *child_pv)
         {
@@ -261,9 +293,11 @@ namespace Searcher {
         // multipv_info() formats PV information according to UCI protocol.
         // UCI requires to send all the PV lines also if are still to be searched
         // and so refer to the previous search score.
-        string multipv_info (const MainThread *main_th, Value alfa, Value beta)
+        string multipv_info (Value alfa, Value beta)
         {
-            auto elapsed_time = std::max (main_th->time_mgr.elapsed_time (), TimePoint(1));
+            static const auto *main_thread = Threadpool.main ();
+
+            auto elapsed_time = std::max (main_thread->time_mgr.elapsed_time (), TimePoint(1));
             assert(elapsed_time > 0);
             auto game_nodes = Threadpool.game_nodes ();
 
@@ -273,17 +307,17 @@ namespace Searcher {
                 Depth d;
                 Value v;
 
-                if (i <= main_th->pv_index)  // New updated pv?
+                if (i <= main_thread->pv_index)  // New updated pv?
                 {
-                    d = main_th->root_depth;
-                    v = main_th->root_moves[i].new_value;
+                    d = main_thread->root_depth;
+                    v = main_thread->root_moves[i].new_value;
                 }
                 else                        // Old expired pv?
                 {
-                    if (DEPTH_ONE == main_th->root_depth) continue;
+                    if (DEPTH_ONE == main_thread->root_depth) continue;
 
-                    d = main_th->root_depth - DEPTH_ONE;
-                    v = main_th->root_moves[i].old_value;
+                    d = main_thread->root_depth - DEPTH_ONE;
+                    v = main_thread->root_moves[i].old_value;
                 }
                 
                 bool tb = TBHasRoot && abs (v) < VALUE_MATE - i32(MaxPly);
@@ -294,9 +328,9 @@ namespace Searcher {
                 ss  << "info"
                     << " multipv "  << i + 1
                     << " depth "    << d/DEPTH_ONE
-                    << " seldepth " << main_th->max_ply
+                    << " seldepth " << main_thread->max_ply
                     << " score "    << to_string (tb ? ProbeValue : v);
-                if (!tb && i == main_th->pv_index)
+                if (!tb && i == main_thread->pv_index)
                     ss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
                 ss  << " nodes "    << game_nodes
                     << " time "     << elapsed_time
@@ -304,12 +338,12 @@ namespace Searcher {
                 if (elapsed_time > MilliSec)
                     ss  << " hashfull " << TT.hash_full (); // Earlier makes little sense
                 ss  << " tbhits "   << TBHits
-                    << " pv"        << main_th->root_moves[i];
+                    << " pv"        << main_thread->root_moves[i];
             }
             return ss.str ();
         }
 
-        template<NodeT NT>
+        template<NodeType NT>
         // quien_search<>() is the quiescence search function,
         // which is called by the main depth limited search function
         // when the remaining depth is less than DEPTH_ONE.
@@ -589,7 +623,7 @@ namespace Searcher {
             return best_value;
         }
 
-        template<NodeT NT>
+        template<NodeType NT>
         // depth_search<>() is the main depth limited search function for Root/PV/NonPV nodes
         Value depth_search  (Position &pos, Stack *ss, Value alfa, Value beta, Depth depth, bool cut_node)
         {
@@ -1347,9 +1381,12 @@ namespace Searcher {
                 && !pos.capture_or_promotion (best_move)
                )
             {
-                if (std::count (quiet_moves.cbegin (), quiet_moves.cend (), best_move) != 0)
+                auto itr = std::find (quiet_moves.begin (), quiet_moves.end (), best_move);
+                if (itr != quiet_moves.end ())
                 {
-                    quiet_moves.erase (std::remove (quiet_moves.begin (), quiet_moves.end (), best_move), quiet_moves.cend ());
+                    //quiet_moves.erase (itr);
+                    std::swap (*itr, quiet_moves.back ());
+                    quiet_moves.pop_back ();
                 }
                 update_stats (pos, ss, best_move, depth, quiet_moves);
             }
@@ -1388,87 +1425,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
         }
-
-        // ------------------------------------
-
-        enum RemainTimeT { RT_OPTIMUM, RT_MAXIMUM };
-
-        // move_importance() is a skew-logistic function based on naive statistical
-        // analysis of "how many games are still undecided after 'n' half-moves".
-        // Game is considered "undecided" as long as neither side has >275cp advantage.
-        // Data was extracted from CCRL game database with some simple filtering criteria.
-        double move_importance (i16 ply)
-        {
-            //                         PlyShift  / PlyScale  SkewRate
-            return pow ((1 + exp ((ply - 59.000) / 8.270)), -0.179) + DBL_MIN; // Ensure non-zero
-        }
-
-        template<RemainTimeT TT>
-        // remaining_time<>() calculate the time remaining
-        TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
-        {
-            // When in trouble, can step over reserved time with this ratio
-            const auto  StepRatio = TT == RT_OPTIMUM ? 1.00 : 6.93;
-            // However must not steal time from remaining moves over this ratio
-            const auto StealRatio = TT == RT_MAXIMUM ? 0.00 : 0.36;
-
-            auto move_imp = move_importance (ply) * MoveSlowness / 100.0;
-            auto remain_move_imp = 0.0;
-            for (u08 i = 1; i < movestogo; ++i)
-            {
-                remain_move_imp += move_importance (ply + 2 * i);
-            }
-
-            auto  step_time_ratio = (0.0      +        move_imp * StepRatio ) / (move_imp * StepRatio + remain_move_imp);
-            auto steal_time_ratio = (move_imp + remain_move_imp * StealRatio) / (move_imp * 1         + remain_move_imp);
-
-            return TimePoint(time * std::min (step_time_ratio, steal_time_ratio));
-        }
     }
-
-    bool            Chess960        = false;
-
-    LimitsT         Limits;
-    atomic_bool     ForceStop       { false }  // Stop search on request
-        ,           PonderhitStop   { false }; // Stop search on ponder-hit
-
-    StateStackPtr   SetupStates;
-
-    u16             MultiPV         = 1;
-    //i32             MultiPV_cp      = 0;
-
-    i16             FixedContempt   = 0
-        ,           ContemptTime    = 30
-        ,           ContemptValue   = 50;
-
-    string          HashFile        = "Hash.dat";
-    u16             AutoSaveHashTime= 0;
-
-    bool            OwnBook         = false;
-    string          BookFile        = "Book.bin";
-    bool            BookMoveBest    = true;
-    i16             BookUptoMove    = 20;
-
-    Depth           TBDepthLimit    = 1*DEPTH_ONE;
-    i32             TBPieceLimit    = 6;
-    bool            TBUseRule50     = true;
-    u16             TBHits          = 0;
-    bool            TBHasRoot       = false;
-
-    string          LogFile         = "<empty>";
-
-    SkillManager    SkillMgr;
-
-    // ------------------------------------
-
-    u08  MaximumMoveHorizon =  50; // Plan time management at most this many moves ahead, in num of moves.
-    u08  ReadyMoveHorizon   =  40; // Be prepared to always play at least this many moves, in num of moves.
-    u32  OverheadClockTime  =  60; // Attempt to keep at least this much time at clock, in milliseconds.
-    u32  OverheadMoveTime   =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
-    u32  MinimumMoveTime    =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
-    u32  MoveSlowness       = 100; // Move Slowness, in %age.
-    u32  NodesTime          =   0; // 'Nodes as Time' mode
-    bool Ponder             = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
     // ------------------------------------
 
@@ -1508,7 +1465,6 @@ namespace Searcher {
             --ply;
         }
     }
-
     // RootMove::extract_ponder_move_from_tt() is called in case have no ponder move before
     // exiting the search, for instance in case stop the search during a fail high at root.
     // Try hard to have a ponder move which has to return to the GUI,
@@ -1549,36 +1505,6 @@ namespace Searcher {
         }
         return ss.str ();
     }
-
-    // ------------------------------------
-
-    void RootMoveVector::initialize (const Position &pos, const MoveVector &root_moves)
-    {
-        clear ();
-        for (const auto &vm : MoveList<LEGAL> (pos))
-        {
-            if (   root_moves.empty ()
-                || std::count (root_moves.cbegin (), root_moves.cend (), vm.move) != 0
-               )
-            {
-                *this += RootMove (vm.move);
-            }
-        }
-        shrink_to_fit ();
-    }
-
-    RootMoveVector::operator string () const
-    {
-        stringstream ss;
-        for (const auto &rm : *this)
-        {
-            ss << rm << "\n";
-        }
-        return ss.str ();
-    }
-
-    // ------------------------------------
-
 
     // ------------------------------------
 
@@ -1723,7 +1649,6 @@ namespace Searcher {
             }
         }
     }
-
     // clear() resets to zero search state, to obtain reproducible results
     void clear ()
     {
@@ -1742,66 +1667,6 @@ namespace Searcher {
 namespace Threading {
 
     using namespace Searcher;
-
-    TimePoint TimeManager::elapsed_time () const { return TimePoint(NodesTime != 0 ? Threadpool.game_nodes () : now () - Limits.start_time); }
-
-    // TimeManager::initialize() is called at the beginning of the search and
-    // calculates the allowed thinking time out of the time control and current game ply.
-    void TimeManager::initialize (LimitsT &limits, Color c, i16 ply)
-    {
-        // If we have to play in 'Nodes as Time' mode, then convert from time
-        // to nodes, and use resulting values in time management formulas.
-        // WARNING: Given npms (nodes per millisecond) must be much lower then
-        // real engine speed to avoid time losses.
-        if (NodesTime != 0)
-        {
-            // Only once at game start
-            if (available_nodes == U64(0))
-            {
-                available_nodes = NodesTime * limits.clock[c].time; // Time is in msec
-            }
-
-            // Convert from millisecs to nodes
-            limits.clock[c].time = available_nodes;
-            limits.clock[c].inc *= NodesTime;
-        }
-
-        _instability_factor = 1.0;
-
-        _optimum_time =
-        _maximum_time =
-            std::max (limits.clock[c].time, TimePoint(MinimumMoveTime));
-
-        const auto MaxMovesToGo = limits.movestogo != 0 ? std::min (limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
-        // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
-        // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
-        for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
-        {
-            // Calculate thinking time for hypothetic "moves to go"-value
-            auto hyp_time = std::max (
-                + limits.clock[c].time
-                + limits.clock[c].inc * (hyp_movestogo-1)
-                - OverheadClockTime
-                - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
-
-            auto opt_time = remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
-            auto max_time = remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
-
-            if (_optimum_time > opt_time)
-            {
-                _optimum_time = opt_time;
-            }
-            if (_maximum_time > max_time)
-            {
-                _maximum_time = max_time;
-            }
-        }
-
-        if (Ponder)
-        {
-            _optimum_time += _optimum_time / 4;
-        }
-    }
 
     // Thread::search() is the main iterative deepening loop. It calls depth_search()
     // repeatedly with increasing depth until the allocated thinking time has been
@@ -1941,7 +1806,7 @@ namespace Threading {
                         && main_thread->time_mgr.elapsed_time () > 3*MilliSec
                        )
                     {
-                        sync_cout << multipv_info (main_thread, alfa, beta) << sync_endl;
+                        sync_cout << multipv_info (alfa, beta) << sync_endl;
                     }
 
                     // In case of failing low/high increase aspiration window and re-search,
@@ -1990,7 +1855,7 @@ namespace Threading {
                         || main_thread->time_mgr.elapsed_time () > 3*MilliSec
                        )
                     {
-                        sync_cout << multipv_info (main_thread, alfa, beta) << sync_endl;
+                        sync_cout << multipv_info (alfa, beta) << sync_endl;
                     }
                 }
             }
@@ -2022,7 +1887,7 @@ namespace Threading {
 
                 if (LogWrite)
                 {
-                    LogStream << pretty_pv_info (main_thread) << std::endl;
+                    LogStream << pretty_pv_info () << std::endl;
                 }
 
                 if (   !ForceStop
@@ -2049,11 +1914,12 @@ namespace Threading {
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
                             || main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () * (main_thread->failed_low ? 1.001 : 0.492)
-                            || (main_thread->easy_played = ( !root_moves.empty ()
-                                                            && root_moves[0] == easy_move
-                                                            && main_thread->time_mgr.best_move_change < 0.03
-                                                            && main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () * 0.125
-                                                            ), main_thread->easy_played
+                            || (main_thread->easy_played =
+                                    ( !root_moves.empty ()
+                                    && root_moves[0] == easy_move
+                                    && main_thread->time_mgr.best_move_change < 0.03
+                                    && main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () * 0.125
+                                    ), main_thread->easy_played
                                )
                            )
                         {
@@ -2061,7 +1927,7 @@ namespace Threading {
                         }
 
                         if (  !root_moves.empty ()
-                            && root_moves[0].size () >= 3
+                            && root_moves[0].size () >= EasyMoveManager::LineSize
                            )
                         {
                             main_thread->easy_move_mgr.update (root_pos, root_moves[0]);
@@ -2119,7 +1985,6 @@ namespace Threading {
             }
         }
     }
-
     // MainThread::search() is called by the main thread when the program receives
     // the UCI 'go' command. It searches from root position and at the end prints
     // the "bestmove" to output.
@@ -2127,13 +1992,13 @@ namespace Threading {
     {
         static Polyglot::Book book; // Defined static to initialize the PRNG only once
 
-        assert(this == Threadpool[0]);
+        assert(this == Threadpool.main ());
 
         RootColor = root_pos.active ();
         time_mgr_used = Limits.time_management_used ();
         if (time_mgr_used)
         {
-            time_mgr.initialize (Limits, RootColor, root_pos.game_ply ());
+            time_mgr.initialize (RootColor, root_pos.game_ply ());
         }
 
         MateSearch = Limits.mate != 0;
@@ -2275,11 +2140,9 @@ namespace Threading {
 
             Thread::search (); // Let's start searching !
 
-            // When playing in 'Nodes as Time' mode, subtract the searched nodes from
-            // the available ones before to exit.
-            if (NodesTime != 0)
+            if (time_mgr_used)
             {
-                time_mgr.available_nodes += Limits.clock[RootColor].inc - Threadpool.game_nodes ();
+                time_mgr.update (RootColor);
             }
         }
 
@@ -2333,7 +2196,7 @@ namespace Threading {
             root_depth  = best_thread->root_depth;
             leaf_depth  = best_thread->leaf_depth;
 
-            sync_cout << multipv_info (this, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
+            sync_cout << multipv_info (-VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
         }
 
         assert(!root_moves.empty ()

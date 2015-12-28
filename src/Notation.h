@@ -30,12 +30,12 @@ namespace Notation {
 
     extern std::string to_string (Value v);
 
-    extern std::string pretty_pv_info (Threading::MainThread *main_th);
+    extern std::string pretty_pv_info ();
 }
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
-operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
+    operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
 {
     os << Notation::move_to_can (m);
     return os;

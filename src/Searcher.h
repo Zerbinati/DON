@@ -7,10 +7,40 @@
 
 #include "Type.h"
 #include "Position.h"
+#include "MoveGenerator.h"
 
 typedef std::unique_ptr<StateStack> StateStackPtr;
 
 namespace Searcher {
+
+    extern bool             Chess960;
+    extern StateStackPtr    SetupStates;
+
+    extern std::atomic_bool ForceStop
+        ,                   PonderhitStop; 
+
+    extern u16              MultiPV;
+    //extern i32              MultiPV_cp;
+
+    extern i16              FixedContempt
+        ,                   ContemptTime 
+        ,                   ContemptValue;
+
+    extern std::string      HashFile;
+    extern u16              AutoSaveHashTime;
+    
+    extern bool             OwnBook;
+    extern std::string      BookFile;
+    extern bool             BookMoveBest;
+    extern i16              BookUptoMove;
+
+    extern Depth            TBDepthLimit;
+    extern i32              TBPieceLimit;
+    extern bool             TBUseRule50;
+    extern u16              TBHits;
+    extern bool             TBHasRoot;
+
+    extern std::string      LogFile;
 
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
@@ -20,7 +50,7 @@ namespace Searcher {
     //  - Search moves.
     //  - Infinite analysis mode.
     //  - Ponder (think while is opponent's side to move) mode.
-    struct LimitsT
+    struct Limit
     {
     public:
         // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds
@@ -52,6 +82,8 @@ namespace Searcher {
         }
     };
 
+    extern Limit            Limits;
+
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
     // all the children have to be investigated. The best move found at a PV node leads
     // to a successor PV node, while all the other investigated children are CUT nodes
@@ -60,7 +92,12 @@ namespace Searcher {
     // the children have to be explored. The successors of an ALL node are CUT nodes.
     // NonPV nodes = CUT nodes + ALL nodes
     // Node types, used as template parameter
-    enum NodeT { Root, PV, NonPV };
+    enum NodeType : u08
+    {
+        Root,
+        PV,
+        NonPV,
+    };
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
@@ -97,6 +134,7 @@ namespace Searcher {
         void operator-= (Move m) { erase (std::remove (begin (), end (), m), cend ()); }
 
         void backup () { old_value = new_value; }
+
         void insert_pv_into_tt (Position &pos);
         bool extract_ponder_move_from_tt (Position &pos);
 
@@ -130,9 +168,30 @@ namespace Searcher {
             }
         }
 
-        void initialize (const Position &pos, const MoveVector &root_moves);
+        void initialize (const Position &pos, const MoveVector &root_moves)
+        {
+            clear ();
+            for (const auto &vm : MoveGen::MoveList<MoveGen::LEGAL> (pos))
+            {
+                if (   root_moves.empty ()
+                    || std::count (root_moves.cbegin (), root_moves.cend (), vm.move) != 0
+                   )
+                {
+                    *this += RootMove (vm.move);
+                }
+            }
+            shrink_to_fit ();
+        }
 
-        explicit operator std::string () const;
+        explicit operator std::string () const
+        {
+            std::stringstream ss;
+            for (const auto &rm : *this)
+            {
+                ss << rm << "\n";
+            }
+            return ss.str ();
+        }
 
     };
 
@@ -211,53 +270,14 @@ namespace Searcher {
 
     };
 
-    extern bool             Chess960;
-
-    extern LimitsT          Limits;
-    extern std::atomic_bool ForceStop
-        ,                   PonderhitStop; 
-
-    extern StateStackPtr    SetupStates;
-
-    extern u16              MultiPV;
-    //extern i32              MultiPV_cp;
-
-    extern i16              FixedContempt
-        ,                   ContemptTime 
-        ,                   ContemptValue;
-
-    extern std::string      HashFile;
-    extern u16              AutoSaveHashTime;
-    
-    extern bool             OwnBook;
-    extern std::string      BookFile;
-    extern bool             BookMoveBest;
-    extern i16              BookUptoMove;
-
-    extern Depth            TBDepthLimit;
-    extern i32              TBPieceLimit;
-    extern bool             TBUseRule50;
-    extern u16              TBHits;
-    extern bool             TBHasRoot;
-
-    extern std::string      LogFile;
-
     extern SkillManager     SkillMgr;
-
-    extern u08  MaximumMoveHorizon;
-    extern u08  ReadyMoveHorizon  ;
-    extern u32  OverheadClockTime ;
-    extern u32  OverheadMoveTime  ;
-    extern u32  MinimumMoveTime   ;
-    extern u32  MoveSlowness      ;
-    extern u32  NodesTime         ;
-    extern bool Ponder            ;
 
 
     template<bool RootNode = true>
     extern u64 perft (Position &pos, Depth depth);
 
     extern void initialize ();
+
     extern void clear ();
 }
 

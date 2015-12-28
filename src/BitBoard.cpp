@@ -266,7 +266,7 @@ namespace BitBoard {
                 }
             }
 
-            PieceT pt;
+            PieceType pt;
 
             pt = NIHT;
             k = 0;

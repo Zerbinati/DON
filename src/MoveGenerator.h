@@ -30,8 +30,8 @@ namespace MoveGen {
         bool operator!= (const ValMove &vm) const { return value != vm.value; }
     };
 
-    // Types of Generator
-    enum GenT
+    // Generator Type
+    enum GenType : u08
     {
         // PSEUDO-LEGAL MOVES
         RELAX,       // Normal.
@@ -44,13 +44,13 @@ namespace MoveGen {
         LEGAL,       // Legal.
     };
 
-    template<GenT GT>
+    template<GenType GT>
     extern ValMove* generate (ValMove *moves, const Position &pos);
 
     // The MoveList<T> class is a simple wrapper around generate().
     // It sometimes comes in handy to use this class instead of
     // the low level generate() function.
-    template<GenT GT, PieceT PT = NONE>
+    template<GenType GT, PieceType PT = NONE>
     class MoveList
     {
 
@@ -97,7 +97,7 @@ namespace MoveGen {
         //explicit operator std::string () const;
     };
 
-    //template<class CharT, class Traits, GenT GT>
+    //template<class CharT, class Traits, GenType GT>
     //inline std::basic_ostream<CharT, Traits>&
     //    operator<< (std::basic_ostream<CharT, Traits> &os, MoveList<GT> &movelist)
     //{

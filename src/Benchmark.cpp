@@ -93,7 +93,7 @@ void benchmark (istream &is, const Position &cur_pos)
     limit_type = (is >> token) && !white_spaces (token)  ? token : "depth";
     fen_fn     = (is >> token) && !white_spaces (token)  ? token : "default";
 
-    LimitsT limits;
+    Limit limits;
     if (limit_type == "time")     limits.clock[WHITE].time = limits.clock[BLACK].time = u64(abs (limit_val));
     else
     if (limit_type == "movetime") limits.movetime = u64(abs (limit_val));

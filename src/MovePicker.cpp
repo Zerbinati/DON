@@ -9,7 +9,7 @@ namespace MovePick {
 
     namespace {
 
-        enum : u08 // Stages
+        enum Stage : u08
         {
             S_MAIN    , S_GOOD_CAPTURE, S_KILLER, S_GOOD_QUIET, S_BAD_QUIET, S_BAD_CAPTURE,
             S_EVASION , S_ALL_EVASION,

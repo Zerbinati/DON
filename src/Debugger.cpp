@@ -17,6 +17,7 @@ namespace Debugger {
     void dbg_hit_on (bool hit)
     {
         static Mutex mutex;
+
         mutex.lock ();
         ++CondCount;
         if (hit)
@@ -37,6 +38,7 @@ namespace Debugger {
     void dbg_mean_of (i64 item)
     {
         static Mutex mutex;
+
         mutex.lock ();
         ++ItemCount;
         ItemSum += item;

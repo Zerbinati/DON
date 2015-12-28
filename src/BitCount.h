@@ -5,14 +5,14 @@
 
 namespace BitBoard {
 
-enum BitCountT
+enum BitCount : u08
 {
     CNT_FULL,
     CNT_MAX15,
     CNT_HW
 };
 
-template<BitCountT>
+template<BitCount>
 // pop_count () counts the number of set bits in a Bitboard
 inline i32 pop_count (Bitboard bb);
 
@@ -22,8 +22,8 @@ inline i32 pop_count (Bitboard bb);
 
 #ifdef ABM
 
-const BitCountT Full  = CNT_HW;
-const BitCountT Max15 = CNT_HW;
+const BitCount Full  = CNT_HW;
+const BitCount Max15 = CNT_HW;
 
 #ifdef _MSC_VER
 
@@ -93,8 +93,8 @@ inline i32 pop_count<CNT_HW> (Bitboard bb)
 
 #   ifdef POP
 
-    const BitCountT Full  = CNT_HW;
-    const BitCountT Max15 = CNT_HW;
+    const BitCount Full  = CNT_HW;
+    const BitCount Max15 = CNT_HW;
     const u08 PopCountTable[USHRT_MAX+1] =
     {
         0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
@@ -2160,8 +2160,8 @@ inline i32 pop_count<CNT_HW> (Bitboard bb)
 
 #       ifdef BIT64
 
-const BitCountT Full  = CNT_FULL;
-const BitCountT Max15 = CNT_MAX15;
+const BitCount Full  = CNT_FULL;
+const BitCount Max15 = CNT_MAX15;
 
 const u64 M1_64 = U64(0x5555555555555555);
 const u64 M2_64 = U64(0x3333333333333333);
@@ -2191,8 +2191,8 @@ inline i32 pop_count<CNT_MAX15> (Bitboard bb)
 
 #       else
 
-const BitCountT Full  = CNT_FULL;
-const BitCountT Max15 = CNT_MAX15;
+const BitCount Full  = CNT_FULL;
+const BitCount Max15 = CNT_MAX15;
 
 const u32 M1_32 = U32(0x55555555);
 const u32 M2_32 = U32(0x33333333);

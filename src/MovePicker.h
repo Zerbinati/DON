@@ -104,7 +104,7 @@ namespace MovePick {
 
         u08     _stage;
 
-        template<MoveGen::GenT GT>
+        template<MoveGen::GenType GT>
         // value() assign a numerical move ordering score to each move in a move list.
         // The moves with highest scores will be picked first.
         void value ();

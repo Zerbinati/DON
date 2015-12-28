@@ -8,7 +8,7 @@ namespace MoveGen {
 
     namespace {
 
-        template<GenT GT, Color Own, PieceT PT>
+        template<GenType GT, Color Own, PieceType PT>
         // Move Generator for PIECE
         struct Generator
         {
@@ -52,7 +52,7 @@ namespace MoveGen {
 
         };
 
-        template<GenT GT, Color Own>
+        template<GenType GT, Color Own>
         // Move Generator for KING
         struct Generator<GT, Own, KING>
         {
@@ -104,7 +104,7 @@ namespace MoveGen {
             }
 
         public:
-            // template<GenT GT, Color Own>
+            // template<GenType GT, Color Own>
             // void Generator<GT, Own, KING>::generate()
             // Generates KING common move
             static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
@@ -143,7 +143,7 @@ namespace MoveGen {
 
         };
 
-        template<GenT GT, Color Own>
+        template<GenType GT, Color Own>
         // Move Generator for PAWN
         struct Generator<GT, Own, PAWN>
         {
@@ -310,7 +310,7 @@ namespace MoveGen {
 
         };
 
-        template<GenT GT, Color Own>
+        template<GenType GT, Color Own>
         // Generates all pseudo-legal moves of color for targets.
         ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
@@ -326,7 +326,7 @@ namespace MoveGen {
 
     }
 
-    template<GenT GT>
+    template<GenType GT>
     // Generates all pseudo-legal moves.
     ValMove* generate (ValMove *moves, const Position &pos)
     {

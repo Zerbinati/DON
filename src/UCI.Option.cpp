@@ -17,11 +17,13 @@ namespace UCI {
 
     using namespace std;
     using namespace Threading;
-    using namespace Memory;
     using namespace Transposition;
     using namespace Searcher;
     using namespace TBSyzygy;
     using namespace Debugger;
+#ifdef LPAGES
+    using namespace Memory;
+#endif
 
     Option::Option (OnChange on_change)
         : _type ("button")

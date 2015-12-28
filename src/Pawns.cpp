@@ -21,8 +21,14 @@ namespace Pawns {
             { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119) }
         };
 
-        enum { NO_FRIENDLY_PAWN, UNBLOCKED, BLOCKED_BY_PAWN, BLOCKED_BY_KING };
-        // Danger of enemy pawns moving toward our king indexed by [type][distance from edge][rank]
+        enum BlockType : u08
+        {
+            NO_FRIENDLY_PAWN,
+            UNBLOCKED,
+            BLOCKED_BY_PAWN,
+            BLOCKED_BY_KING
+        };
+        // Danger of enemy pawns moving toward our king indexed by [block-type][distance from edge][rank]
         const Value StromDanger[4][F_NO/2][R_NO] =
         {
             {

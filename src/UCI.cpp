@@ -173,7 +173,7 @@ namespace UCI {
             else
             if (token == "go")
             {
-                LimitsT limits;
+                Limit limits;
 
                 limits.start_time = now (); // As early as possible!
 

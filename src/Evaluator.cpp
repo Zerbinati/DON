@@ -18,10 +18,16 @@ namespace Evaluator {
 
         namespace Tracer {
 
-            // Used for tracing
-            enum TermT : u08
+            enum Term : u08
             {
-                MATERIAL = 6, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, TOTAL, TERM_NO
+                MATERIAL = 6,
+                IMBALANCE,
+                MOBILITY,
+                THREAT,
+                PASSER,
+                SPACE,
+                TOTAL,
+                TERM_NO,
             };
 
             double cp[TERM_NO][CLR_NO][PHASE_NO];
@@ -37,9 +43,9 @@ namespace Evaluator {
                 write (idx, BLACK, bscore);
             }
 
-            ostream& operator<< (ostream &os, TermT term)
+            ostream& operator<< (ostream &os, Term term)
             {
-                if (   term == TermT(PAWN)
+                if (   term == Term(PAWN)
                     || term == MATERIAL
                     || term == IMBALANCE
                     || term == TOTAL
@@ -60,7 +66,6 @@ namespace Evaluator {
                    << std::endl;
                 return os;
             }
-
         }
 
         using namespace Tracer;
@@ -69,10 +74,10 @@ namespace Evaluator {
         // by the evaluation functions.
         struct EvalInfo
         {
-            // ful_attacked_by[Color][PieceT] contains all squares attacked by a given color and piece type,
+            // ful_attacked_by[Color][PieceType] contains all squares attacked by a given color and piece type,
             // ful_attacked_by[Color][NONE] contains all squares attacked by the given color.
             Bitboard ful_attacked_by[CLR_NO][TOTL];
-            // pin_attacked_by[Color][PieceT] contains all squares attacked by a given color and piece type with pinned removed,
+            // pin_attacked_by[Color][PieceType] contains all squares attacked by a given color and piece type with pinned removed,
             // pin_attacked_by[Color][NONE] contains all squares attacked by the given color with pinned removed.
             Bitboard pin_attacked_by[CLR_NO][TOTL];
 
@@ -93,7 +98,7 @@ namespace Evaluator {
 
             // king_ring_attackers_weight[Color] is the sum of the "weight" of the pieces
             // of the given color which attack a square in the king_ring of the enemy king.
-            // The weights of the individual piece types are given by the KingAttackWeights[PieceT]
+            // The weights of the individual piece types are given by the KingAttackWeights[PieceType]
             u32 king_ring_attackers_weight[CLR_NO];
 
             // king_zone_attacks_count[Color] is the number of attacks by
@@ -124,7 +129,13 @@ namespace Evaluator {
             return score;
         }
 
-        enum WeightT { PAWN_STRUCTURE, PAWN_PASSING, KING_SAFETY, SPACE_ACTIVITY };
+        enum WeightType
+        {
+            PAWN_STRUCTURE,
+            PAWN_PASSING,
+            KING_SAFETY,
+            SPACE_ACTIVITY,
+        };
         // Evaluation weights, indexed by the corresponding evaluation term
         const Weight Weights[6]
         {
@@ -136,7 +147,7 @@ namespace Evaluator {
 
     #define S(mg, eg) mk_score (mg, eg)
 
-        // PieceMobility[PieceT][Attacks] contains bonuses for mobility,
+        // PieceMobility[PieceType][Attacks] contains bonuses for mobility,
         // indexed by piece type and number of attacked squares in the mobility area.
         const Score PieceMobility[NONE][28] =
         {
@@ -174,14 +185,18 @@ namespace Evaluator {
         const Score KnightReachableOutpost[2] = { S(21, 5), S(31, 8) };
         const Score BishopReachableOutpost[2] = { S( 8, 2), S(13, 4) };
 
-        // ThreatenByPawn[PieceT] contains bonuses according to which piece type is attacked by pawn.
+        // ThreatenByPawn[PieceType] contains bonuses according to which piece type is attacked by pawn.
         const Score ThreatenByPawn[NONE] =
         {
             S(0, 0), S(176, 139), S(131, 127), S(217, 218), S(203, 215), S(0, 0)
         };
 
-        enum AttackerT { MINOR, MAJOR };
-        // ThreatenByPiece[minor/major attacker][attacked PieceType] contains
+        enum PieceCategory : u08
+        {
+            MINOR,
+            MAJOR
+        };
+        // ThreatenByPiece[attacker category][attacked type] contains
         // bonuses according to which piece type attacks which one.
         // Attacks on lesser pieces which are pawn defended are not considered.
         const Score ThreatenByPiece[2][NONE] =
@@ -240,7 +255,7 @@ namespace Evaluator {
         // indexed by a calculated integer number.
         Score KingDanger[MaxAttackUnits];
 
-        // KingAttackWeights[PieceT] contains king attack weights by piece type
+        // KingAttackWeights[PieceType] contains king attack weights by piece type
         const i32 KingAttackWeights[NONE] = { 1, 14, 10,  8,  2,  0 };
 
         // Penalties for enemy's safe checks
@@ -314,7 +329,7 @@ namespace Evaluator {
             }
         }
 
-        template<Color Own, PieceT PT, bool Trace>
+        template<Color Own, PieceType PT, bool Trace>
         // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color except PAWN
         Score evaluate_pieces (const Position &pos, EvalInfo &ei, const Bitboard mobility_area, Score &mobility)
         {
@@ -1092,7 +1107,7 @@ namespace Evaluator {
         // In case of tracing add remaining individual evaluation terms
         if (Trace)
         {
-            write (PAWN       , ei.pe->pawn_score);
+            write (PAWN       , ei.pe->pawn_score * Weights[PAWN_STRUCTURE]);
             write (MATERIAL   , pos.psq_score ());
             write (IMBALANCE  , ei.me->imbalance);
             write (MOBILITY   , mobility[WHITE], mobility[BLACK]);
@@ -1123,20 +1138,20 @@ namespace Evaluator {
             << "         Entity |    White    |    Black    |     Total    \n"
             << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
             << "----------------+-------------+-------------+--------------\n"
-            << "       Material" << TermT (MATERIAL)
-            << "      Imbalance" << TermT (IMBALANCE)
-            << "          Pawns" << TermT (PAWN)
-            << "        Knights" << TermT (NIHT)
-            << "         Bishop" << TermT (BSHP)
-            << "          Rooks" << TermT (ROOK)
-            << "         Queens" << TermT (QUEN)
-            << "       Mobility" << TermT (MOBILITY)
-            << "    King safety" << TermT (KING)
-            << "        Threats" << TermT (THREAT)
-            << "   Passed pawns" << TermT (PASSER)
-            << "          Space" << TermT (SPACE)
+            << "       Material" << Term(MATERIAL)
+            << "      Imbalance" << Term(IMBALANCE)
+            << "          Pawns" << Term(PAWN)
+            << "        Knights" << Term(NIHT)
+            << "         Bishop" << Term(BSHP)
+            << "          Rooks" << Term(ROOK)
+            << "         Queens" << Term(QUEN)
+            << "       Mobility" << Term(MOBILITY)
+            << "    King safety" << Term(KING)
+            << "        Threats" << Term(THREAT)
+            << "   Passed pawns" << Term(PASSER)
+            << "          Space" << Term(SPACE)
             << "----------------+-------------+-------------+--------------\n"
-            << "          Total" << TermT (TOTAL)
+            << "          Total" << Term(TOTAL)
             << "\nEvaluation: " << value_to_cp (value) << " (white side)\n"
             << noshowpoint << noshowpos;
 

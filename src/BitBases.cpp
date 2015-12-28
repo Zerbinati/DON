@@ -29,7 +29,7 @@ namespace BitBases {
             return wk_sq | (bk_sq << 6) | (c << 12) | (_file (wp_sq) << 13) | ((R_7 - _rank (wp_sq)) << 15);
         }
 
-        enum Result
+        enum Result : u08
         {
             INVALID = 0,
             UNKNOWN = 1,

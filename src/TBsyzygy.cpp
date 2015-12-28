@@ -218,7 +218,7 @@ namespace TBSyzygy {
             TB_BPAWN    = 8|TB_PAWN,
         };
 
-        PieceT tb_ptype (Piece p) { return (p & TOTL) != 0 ? PieceT ((p & TOTL) - 1) : NONE; }
+        PieceType tb_ptype (Piece p) { return (p & TOTL) != 0 ? PieceType((p & TOTL) - 1) : NONE; }
 
         const char PieceChar[NONE] ={ 'K', 'Q', 'R', 'B', 'N', 'P' };
 
@@ -359,7 +359,7 @@ namespace TBSyzygy {
             auto color = mirror ? BLACK : WHITE;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (u08 pc = 0; pc < pcs[color | PieceT (pt + 1)]; ++pc)
+                for (u08 pc = 0; pc < pcs[color | PieceType(pt + 1)]; ++pc)
                 {
                     key ^= Zob._.piece_square[WHITE][pt][pc];
                 }
@@ -367,7 +367,7 @@ namespace TBSyzygy {
             color = ~color;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (u08 pc = 0; pc < pcs[color | PieceT (pt + 1)]; ++pc)
+                for (u08 pc = 0; pc < pcs[color | PieceType(pt + 1)]; ++pc)
                 {
                     key ^= Zob._.piece_square[BLACK][pt][pc];
                 }

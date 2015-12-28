@@ -30,7 +30,10 @@ namespace Engine {
         {
             for (auto m = 0; m < MaxMonth; ++m)
             {
-                if (month == Months[m]) return m+1;
+                if (month == Months[m])
+                {
+                    return m+1;
+                }
             }
             return 0;
         }
@@ -54,9 +57,9 @@ namespace Engine {
             istringstream iss (__DATE__);
             string month, day, year;
             iss >> month >> day >> year;
-            oss << setw (2) << (day)
-                << setw (2) << (index_month (month))
-                << setw (2) << (year.substr (2));
+            oss << setw (2) << day
+                << setw (2) << index_month (month)
+                << setw (2) << year.substr (2);
         }
         else
         {

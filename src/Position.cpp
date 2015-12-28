@@ -208,15 +208,23 @@ bool Position::repeated () const
 // Position consistency test, for debugging
 bool Position::ok (i08 *failed_step) const
 {
-    const bool Fast = true; // Basic (default)
+    static const bool Fast = true;
 
-    enum { Basic, King, Bitboards, State, Lists, Castling };
+    enum Test : u08
+    {
+        BASIC,
+        PIECE,
+        BITBOARD,
+        STATE,
+        LIST,
+        CASTLING
+    };
 
-    for (i08 step = Basic; step <= (Fast ? Basic : Castling); ++step)
+    for (i08 step = BASIC; step <= (Fast ? BASIC : CASTLING); ++step)
     {
         if (failed_step != nullptr) *failed_step = step;
 
-        if (step == Basic)
+        if (step == BASIC)
         {
             if (   (_active != WHITE && _active != BLACK)
                 || (_board[_piece_square[WHITE][KING][0]] != W_KING)
@@ -229,7 +237,7 @@ bool Position::ok (i08 *failed_step) const
                 return false;
             }
         }
-        if (step == King)
+        if (step == PIECE)
         {
             if (   std::count (_board, _board + SQ_NO, W_KING) != 1
                 || std::count (_board, _board + SQ_NO, B_KING) != 1
@@ -240,7 +248,7 @@ bool Position::ok (i08 *failed_step) const
                 return false;
             }
         }
-        if (step == Bitboards)
+        if (step == BITBOARD)
         {
             if (   (_color_bb[WHITE]&_color_bb[BLACK]) != U64(0)
                 || (_color_bb[WHITE]|_color_bb[BLACK]) != _types_bb[NONE]
@@ -320,7 +328,7 @@ bool Position::ok (i08 *failed_step) const
                 }
             }
         }
-        if (step == State)
+        if (step == STATE)
         {
             if (   _psi->matl_key != Zob.compute_matl_key (*this)
                 || _psi->pawn_key != Zob.compute_pawn_key (*this)
@@ -333,7 +341,7 @@ bool Position::ok (i08 *failed_step) const
                 return false;
             }
         }
-        if (step == Lists)
+        if (step == LIST)
         {
             for (auto c = WHITE; c <= BLACK; ++c)
             {
@@ -364,7 +372,7 @@ bool Position::ok (i08 *failed_step) const
                 }
             }
         }
-        if (step == Castling)
+        if (step == CASTLING)
         {
             for (auto c = WHITE; c <= BLACK; ++c)
             {
@@ -394,8 +402,8 @@ bool Position::ok (i08 *failed_step) const
 // to locate the least valuable attacker for the side to move,
 // remove the attacker just found from the bitboards and
 // scan for new X-ray attacks behind it.
-template<PieceT PT>
-PieceT Position::pick_least_val_att (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const
+template<PieceType PT>
+PieceType Position::pick_least_val_att (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
     auto b = stm_attackers & _types_bb[PT];
     if (b != U64(0))
@@ -423,10 +431,10 @@ PieceT Position::pick_least_val_att (Square dst, Bitboard stm_attackers, Bitboar
         return PT;
     }
 
-    return pick_least_val_att<PieceT(PT+1)> (dst, stm_attackers, mocc, attackers);
+    return pick_least_val_att<PieceType(PT+1)> (dst, stm_attackers, mocc, attackers);
 }
 template<>
-PieceT Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
+PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
 {
     return KING; // No need to update bitboards, it is the last cycle
 }
@@ -486,7 +494,7 @@ Value Position::see      (Move m) const
         // destination square, where the sides alternately capture, and always
         // capture with the least valuable piece. After each capture, look for
         // new X-ray attacks from behind the capturing piece.
-        PieceT captured = ptype (_board[org]);
+        PieceType captured = ptype (_board[org]);
 
         do
         {

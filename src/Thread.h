@@ -112,6 +112,15 @@ namespace Threading {
         virtual void search ();
     };
 
+    extern u08  MaximumMoveHorizon;
+    extern u08  ReadyMoveHorizon;
+    extern u32  OverheadClockTime;
+    extern u32  OverheadMoveTime;
+    extern u32  MinimumMoveTime;
+    extern u32  MoveSlowness;
+    extern u32  NodesTime;
+    extern bool Ponder;
+
     // TimeManager class computes the optimal time to think depending on the
     // maximum available time, the move game number and other parameters.
     // Support four different kind of time controls, passed in 'limits':
@@ -142,20 +151,23 @@ namespace Threading {
 
         void instability () { _instability_factor = 1.0 + best_move_change; }
 
-        void initialize (Searcher::LimitsT &limits, Color c, i16 ply);
+        void initialize (Color c, i16 ply);
 
+        void update (Color c);
     };
 
     // EasyMoveManager class is used to detect a so called 'easy move'; when PV is
     // stable across multiple search iterations engine can fast return the best move.
     class EasyMoveManager
     {
+    public:
+        static const u08 LineSize = 3;
     private:
         Key  _posi_key = U64(0);
-        Move _pv[3];
+        Move _pv[LineSize];
 
     public:
-        u08 stable_count = 0;
+        u08 stable_count = 0; // Keep track of how many times in a row pv remains stable
 
         EasyMoveManager () { clear (); }
 
@@ -163,30 +175,36 @@ namespace Threading {
         {
             stable_count = 0;
             _posi_key = U64(0);
-            std::fill (std::begin (_pv), std::end (_pv), MOVE_NONE);
+            std::fill (_pv, _pv + LineSize, MOVE_NONE);
         }
 
         Move easy_move (const Key posi_key) const
         {
-            return posi_key == _posi_key ? _pv[2] : MOVE_NONE;
+            return posi_key == _posi_key ? _pv[LineSize-1] : MOVE_NONE;
         }
 
         void update (Position &pos, const MoveVector &pv)
         {
-            assert(pv.size () >= 3);
-            // Keep track of how many times in a row 3rd ply remains stable
-            stable_count = pv[2] == _pv[2] ? stable_count + 1 : 0;
-
-            if (!std::equal (pv.begin (), pv.begin () + 3, _pv))
+            assert(pv.size () >= LineSize);
+            if (std::equal (pv.begin (), pv.begin () + LineSize, _pv))
             {
-                std::copy (pv.begin (), pv.begin () + 3, _pv);
+                ++stable_count;
+            }
+            else
+            {
+                stable_count = 0;
+                std::copy (pv.begin (), pv.begin () + LineSize, _pv);
 
-                StateInfo si[2];
-                pos.do_move (pv[0], si[0], pos.gives_check (pv[0], CheckInfo (pos)));
-                pos.do_move (pv[1], si[1], pos.gives_check (pv[1], CheckInfo (pos)));
+                StateInfo si[LineSize-1];
+                for (u08 i = 0; i < LineSize-1; ++i)
+                {
+                    pos.do_move (pv[i], si[i], pos.gives_check (pv[i], CheckInfo (pos)));
+                }
                 _posi_key = pos.posi_key ();
-                pos.undo_move ();
-                pos.undo_move ();
+                for (u08 i = 0; i < LineSize-1; ++i)
+                {
+                    pos.undo_move ();
+                }
             }
         }
 
@@ -226,7 +244,7 @@ namespace Threading {
         void initialize ();
         void deinitialize ();
 
-        void start_thinking (const Position &pos, const Searcher::LimitsT &limit, StateStackPtr &states);
+        void start_thinking (const Position &pos, const Searcher::Limit &limit, StateStackPtr &states);
         void wait_while_thinking ();
         u64  game_nodes ();
 
@@ -235,27 +253,28 @@ namespace Threading {
 
 }
 
-enum SyncT { IO_LOCK, IO_UNLOCK };
+enum OutputState : u08
+{
+    OS_LOCK,
+    OS_UNLOCK,
+};
 
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<< (std::ostream &os, SyncT sync)
+inline std::ostream& operator<< (std::ostream &os, OutputState state)
 {
     static Mutex mutex;
 
-    if (sync == IO_LOCK)
+    switch (state)
     {
-        mutex.lock ();
-    }
-    else
-    if (sync == IO_UNLOCK)
-    {
-        mutex.unlock ();
+    case OS_LOCK  : mutex.lock ();   break;
+    case OS_UNLOCK: mutex.unlock (); break;
+    default: assert(false);          break;
     }
     return os;
 }
 
-#define sync_cout std::cout << IO_LOCK
-#define sync_endl std::endl << IO_UNLOCK
+#define sync_cout std::cout << OS_LOCK
+#define sync_endl std::endl << OS_UNLOCK
 
 
 extern Threading::ThreadPool  Threadpool;

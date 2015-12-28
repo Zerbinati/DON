@@ -122,7 +122,7 @@ namespace EndGame {
         add<KRPPKRP> ("KRPPKRP");
     }
 
-    template<EndgameT E, class T>
+    template<EndgameType E, class T>
     void Endgames::add (const string &code)
     {
         map<T> ()[key (code, WHITE)] = unique_ptr<EndgameBase<T>> (new Endgame<E> (WHITE));

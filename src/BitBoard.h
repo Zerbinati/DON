@@ -244,8 +244,8 @@ namespace BitBoard {
     }
 
     // --------------------------------
-    template<PieceT PT>
-    // Attacks of the PieceT with occupancy
+    template<PieceType PT>
+    // Attacks of the PieceType with occupancy
     extern Bitboard attacks_bb (Square s, Bitboard occ);
 
     template<>
@@ -256,7 +256,7 @@ namespace BitBoard {
     inline Bitboard attacks_bb<KING> (Square s, Bitboard) { return PieceAttacks[KING][s]; }
     // --------------------------------
 
-    template<PieceT PT>
+    template<PieceType PT>
     // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
     // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
     // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.

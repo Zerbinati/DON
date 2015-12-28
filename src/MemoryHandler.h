@@ -1,7 +1,7 @@
+#ifdef LPAGES
+
 #ifndef _MEMORY_HANDLER_H_INC_
 #define _MEMORY_HANDLER_H_INC_
-
-#ifdef LPAGES
 
 #   include "Type.h"
 
@@ -18,6 +18,6 @@ namespace Memory {
 
 }
 
-#endif // LPAGES
-
 #endif // _MEMORY_HANDLER_H_INC_
+
+#endif // LPAGES
