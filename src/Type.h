@@ -314,8 +314,8 @@ enum MoveType : u16
 //
 // bit 00-05: destiny square: (0...63)
 // bit 06-11:  origin square: (0...63)
-// bit 12-13: promotion piece: (KNIGHT...QUEEN) - 1
-// bit 14-15: special move flag: (1) CASTLE, (2) EN-PASSANT, (3) PROMOTION
+// bit 12-13: promotion piece: (Knight...Queen) - 1
+// bit 14-15: special move flag: (0) Normal (1) Castle, (2) En-Passant, (3) Promotion
 // NOTE: EN-PASSANT bit is set only when a pawn can be captured
 //
 // Special cases are MOVE_NONE and MOVE_NULL. Can sneak these in because in

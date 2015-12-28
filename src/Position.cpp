@@ -316,7 +316,7 @@ bool Position::ok (i08 *failed_step) const
                         + std::max (bishop_count[BLACK] - 1, 0)) > 8
                        )
                     {
-                        return false; // Too many Promoted BISHOP of color
+                        return false; // Too many Promoted Bishop of color
                     }
                 }
 

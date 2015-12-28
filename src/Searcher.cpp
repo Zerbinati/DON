@@ -144,7 +144,7 @@ namespace Searcher {
 
         Color   RootColor;
 
-        bool    MateSearch          = false;
+        bool    MateSearch  = false;
 
         u16     PVLimit;
 
@@ -152,7 +152,7 @@ namespace Searcher {
             ,   BaseContempt[CLR_NO];
 
         // Counter move history value statistics
-        CMValue2DStats  CounterMoves2DValues;
+        CMValue2DStats  CounterMovesHistory;
 
         bool    LogWrite    = false;
         ofstream LogStream;
@@ -206,7 +206,7 @@ namespace Searcher {
 
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] : CounterMoves2DValues[EMPTY][dst_sq (opp_move)];
+            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMovesHistory[pos[opp_move_dst]][opp_move_dst] : CounterMovesHistory[EMPTY][dst_sq (opp_move)];
 
             auto *thread = pos.thread ();
 
@@ -240,7 +240,7 @@ namespace Searcher {
                 auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
                 if (own_move_dst != SQ_NO)
                 {
-                    auto &own_cmv = CounterMoves2DValues[pos[own_move_dst]][own_move_dst];
+                    auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
                     own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth + 1)/DEPTH_ONE);
                 }
             }
@@ -1028,7 +1028,7 @@ namespace Searcher {
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
             auto counter_move = opp_move_dst != SQ_NO ? thread->counter_moves[pos[opp_move_dst]][opp_move_dst] : thread->counter_moves[EMPTY][dst_sq (opp_move)];
-            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] : CounterMoves2DValues[EMPTY][dst_sq (opp_move)];
+            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMovesHistory[pos[opp_move_dst]][opp_move_dst] : CounterMovesHistory[EMPTY][dst_sq (opp_move)];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
@@ -1405,7 +1405,7 @@ namespace Searcher {
                 if (own_move_dst != SQ_NO)
                 {
                     auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
-                    auto &own_cmv = CounterMoves2DValues[pos[own_move_dst]][own_move_dst];
+                    auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
                     own_cmv.update (pos[opp_move_dst], opp_move_dst, bonus);
                 }
             }
@@ -1594,8 +1594,6 @@ namespace Searcher {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        // Initialize lookup tables
-
         i32 d; // depth
 
         static const i32 K0[3] = { 0, 200, 0 };
@@ -1653,7 +1651,7 @@ namespace Searcher {
     void clear ()
     {
         TT.clear ();
-        CounterMoves2DValues.clear ();
+        CounterMovesHistory.clear ();
 
         for (auto *th : Threadpool)
         {
@@ -1661,7 +1659,6 @@ namespace Searcher {
             th->counter_moves.clear ();
         }
     }
-
 }
 
 namespace Threading {

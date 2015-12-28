@@ -174,9 +174,7 @@ namespace UCI {
             if (token == "go")
             {
                 Limit limits;
-
                 limits.start_time = now (); // As early as possible!
-
                 i64 value;
                 while (iss >> token && !iss.fail ())
                 {

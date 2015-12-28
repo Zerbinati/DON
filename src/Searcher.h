@@ -11,10 +11,51 @@
 
 typedef std::unique_ptr<StateStack> StateStackPtr;
 
+// Limits stores information sent by GUI about available time to search the current move.
+//  - Maximum time and increment.
+//  - Maximum depth.
+//  - Maximum nodes.
+//  - Maximum mate.
+//  - Search moves.
+//  - Infinite analysis mode.
+//  - Ponder (think while is opponent's side to move) mode.
+struct Limit
+{
+public:
+    // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds
+    struct Clock
+    {
+        TimePoint time  = 0; // Remaining Time          [milli-seconds]
+        TimePoint inc   = 0; // Increment Time per move [milli-seconds]
+    };
+
+    Clock clock[CLR_NO];
+    MoveVector root_moves; // Restrict search to these moves only
+    TimePoint  start_time;
+
+    TimePoint movetime  = 0; // Search <x> exact time in milli-seconds
+    u08       movestogo = 0; // Search <x> moves to the next time control
+    u08       depth     = 0; // Search <x> depth (plies) only
+    u64       nodes     = 0; // Search <x> nodes only
+    u08       mate      = 0; // Search mate in <x> moves
+    bool      infinite  = false; // Search until the "stop" command
+    bool      ponder    = false; // Search on ponder move until the "stop" command
+
+    bool time_management_used () const
+    {
+        return !infinite
+            && movetime == 0
+            && depth    == 0
+            && nodes    == U64 (0)
+            && mate     == 0;
+    }
+};
+
 namespace Searcher {
 
     extern bool             Chess960;
     extern StateStackPtr    SetupStates;
+    extern Limit            Limits;
 
     extern std::atomic_bool ForceStop
         ,                   PonderhitStop; 
@@ -41,48 +82,6 @@ namespace Searcher {
     extern bool             TBHasRoot;
 
     extern std::string      LogFile;
-
-    // Limits stores information sent by GUI about available time to search the current move.
-    //  - Maximum time and increment.
-    //  - Maximum depth.
-    //  - Maximum nodes.
-    //  - Maximum mate.
-    //  - Search moves.
-    //  - Infinite analysis mode.
-    //  - Ponder (think while is opponent's side to move) mode.
-    struct Limit
-    {
-    public:
-        // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds
-        struct Clock
-        {
-            TimePoint time  = 0; // Remaining Time          [milli-seconds]
-            TimePoint inc   = 0; // Increment Time per move [milli-seconds]
-        };
-
-        Clock clock[CLR_NO];
-        MoveVector root_moves; // Restrict search to these moves only
-        TimePoint  start_time;
-
-        TimePoint movetime  = 0; // Search <x> exact time in milli-seconds
-        u08       movestogo = 0; // Search <x> moves to the next time control
-        u08       depth     = 0; // Search <x> depth (plies) only
-        u64       nodes     = 0; // Search <x> nodes only
-        u08       mate      = 0; // Search mate in <x> moves
-        bool      infinite  = false; // Search until the "stop" command
-        bool      ponder    = false; // Search on ponder move until the "stop" command
-        
-        bool time_management_used () const
-        {
-            return !infinite
-                && movetime == 0
-                && depth    == 0
-                && nodes    == U64(0)
-                && mate     == 0;
-        }
-    };
-
-    extern Limit            Limits;
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
     // all the children have to be investigated. The best move found at a PV node leads
@@ -139,7 +138,6 @@ namespace Searcher {
         bool extract_ponder_move_from_tt (Position &pos);
 
         explicit operator std::string () const;
-
     };
 
     template<class CharT, class Traits>
@@ -192,7 +190,6 @@ namespace Searcher {
             }
             return ss.str ();
         }
-
     };
 
     template<class CharT, class Traits>

@@ -46,7 +46,7 @@ namespace Threading {
         MovePick::HValueStats       history_values;
         MovePick::MoveStats         counter_moves;
 
-        std::atomic_bool reset_check { false };
+        std::atomic_bool            reset_check { false };
 
         Thread ();
         virtual ~Thread ();
@@ -162,6 +162,7 @@ namespace Threading {
     {
     public:
         static const u08 LineSize = 3;
+
     private:
         Key  _posi_key = U64(0);
         Move _pv[LineSize];
@@ -169,7 +170,10 @@ namespace Threading {
     public:
         u08 stable_count = 0; // Keep track of how many times in a row pv remains stable
 
-        EasyMoveManager () { clear (); }
+        EasyMoveManager ()
+        {
+            clear ();
+        }
 
         void clear ()
         {
@@ -186,13 +190,18 @@ namespace Threading {
         void update (Position &pos, const MoveVector &pv)
         {
             assert(pv.size () >= LineSize);
-            if (std::equal (pv.begin (), pv.begin () + LineSize, _pv))
+            
+            if (pv[LineSize-1] == _pv[LineSize-1])
             {
                 ++stable_count;
             }
             else
             {
                 stable_count = 0;
+            }
+
+            if (!std::equal (pv.begin (), pv.begin () + LineSize, _pv))
+            {
                 std::copy (pv.begin (), pv.begin () + LineSize, _pv);
 
                 StateInfo si[LineSize-1];
@@ -237,18 +246,23 @@ namespace Threading {
     public:
         ThreadPool () = default;
 
-        MainThread* main () const { return static_cast<MainThread*> (at (0)); }
+        MainThread* main () const
+        {
+            static const auto thread = at (0);
+
+            return static_cast<MainThread*> (thread);
+        }
 
         // No constructor and destructor, threadpool rely on globals
         // that should be initialized and valid during the whole thread lifetime.
         void initialize ();
         void deinitialize ();
 
-        void start_thinking (const Position &pos, const Searcher::Limit &limit, StateStackPtr &states);
-        void wait_while_thinking ();
-        u64  game_nodes ();
-
         void configure ();
+        u64  game_nodes () const;
+
+        void start_thinking (const Position &pos, const Limit &limits, StateStackPtr &states);
+        void wait_while_thinking ();
     };
 
 }

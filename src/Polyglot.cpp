@@ -268,7 +268,7 @@ namespace Polyglot {
             //
             // bit 00-05: destiny square    (0...63)
             // bit 06-11: origin square     (0...63)
-            // bit 12-14: promotion piece   (NONE = 0, KNIGHT = 1 ... QUEEN = 4)
+            // bit 12-14: promotion piece   (None = 0, Knight = 1 ... Queen = 4)
             // bit    15: empty
             // Move is "0" (a1a1) then it should simply be ignored.
             // It seems to me that in that case one might as well delete the entry from the book.

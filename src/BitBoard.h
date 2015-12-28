@@ -220,9 +220,9 @@ namespace BitBoard {
     template<> inline Bitboard shift_bb<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) << (+DEL_NW); } //(bb << +DEL_NW) & ~FH_bb;
     template<> inline Bitboard shift_bb<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> (-DEL_SW); } //(bb >> -DEL_SW) & ~FH_bb;
 
-    //// Rotate RIGHT (toward LSB)
+    //// Rotate Right (toward LSB)
     //inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08(SQ_NO) - k)); }
-    //// Rotate LEFT  (toward MSB)
+    //// Rotate Left  (toward MSB)
     //inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08(SQ_NO) - k)); }
 
     inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = U64(0))
@@ -249,17 +249,17 @@ namespace BitBoard {
     extern Bitboard attacks_bb (Square s, Bitboard occ);
 
     template<>
-    // KNIGHT attacks
+    // Knight attacks
     inline Bitboard attacks_bb<NIHT> (Square s, Bitboard) { return PieceAttacks[NIHT][s]; }
     template<>
-    // KING attacks
+    // King attacks
     inline Bitboard attacks_bb<KING> (Square s, Bitboard) { return PieceAttacks[KING][s]; }
     // --------------------------------
 
     template<PieceType PT>
     // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
     // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
-    // and returns a bitboard representing all squares attacked by PT (BISHOP or ROOK) on the given square.
+    // and returns a bitboard representing all squares attacked by PT (Bishop or Rook) on the given square.
     extern inline u16 magic_index (Square s, Bitboard occ);
 
     template<>
@@ -295,13 +295,19 @@ namespace BitBoard {
     }
 
     template<>
-    // Attacks of the BISHOP with occupancy
-    inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return B_Attacks_bb[s][magic_index<BSHP> (s, occ)]; }
+    // Attacks of the Bishop with occupancy
+    inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
+    {
+        return B_Attacks_bb[s][magic_index<BSHP> (s, occ)];
+    }
     template<>
-    // Attacks of the ROOK with occupancy
-    inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return R_Attacks_bb[s][magic_index<ROOK> (s, occ)]; }
+    // Attacks of the Rook with occupancy
+    inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
+    {
+        return R_Attacks_bb[s][magic_index<ROOK> (s, occ)];
+    }
     template<>
-    // Attacks of the QUEEN with occupancy
+    // Attacks of the Queen with occupancy
     inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
         return B_Attacks_bb[s][magic_index<BSHP> (s, occ)]

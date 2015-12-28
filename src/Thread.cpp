@@ -172,7 +172,6 @@ namespace Threading {
     void ThreadPool::initialize ()
     {
         push_back (new MainThread);
-
         configure ();
     }
 
@@ -209,7 +208,7 @@ namespace Threading {
         sync_cout << "info string Thread(s) " << threads << "." << sync_endl;
     }
 
-    u64 ThreadPool::game_nodes ()
+    u64 ThreadPool::game_nodes () const
     {
         u64 nodes = U64(0);
         for (auto *th : *this)
