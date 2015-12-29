@@ -1045,7 +1045,7 @@ namespace Searcher {
                 // RootMove list, as a consequence any illegal move is also skipped.
                 // In MultiPV mode also skip PV moves which have been already searched.
                 if (   RootNode
-                    && std::count (thread->root_moves.cbegin () + thread->pv_index, thread->root_moves.cend (), move) == 0
+                    && std::find (thread->root_moves.cbegin () + thread->pv_index, thread->root_moves.cend (), move) == thread->root_moves.cend ()
                    )
                 {
                     continue;
@@ -1937,7 +1937,6 @@ namespace Threading {
                     else
                     // Stop if have found a "mate in <x>"
                     if (   MateSearch
-                        //&& best_value >= +VALUE_MATE_IN_MAX_PLY
                         && best_value >= +VALUE_MATE - 2*Limits.mate
                        )
                     {
@@ -2045,7 +2044,7 @@ namespace Threading {
                 bool found = false;
                 auto book_best_move = book.probe_move (root_pos, BookMoveBest);
                 if (   book_best_move != MOVE_NONE
-                    && std::count (root_moves.cbegin (), root_moves.cend (), book_best_move) != 0
+                    && std::find (root_moves.cbegin (), root_moves.cend (), book_best_move) != root_moves.cend ()
                    )
                 {
                     found = true;
@@ -2075,11 +2074,11 @@ namespace Threading {
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 
-            TBHits       = 0;
-            TBHasRoot    = false;
             TBDepthLimit = i32(Options["Syzygy Depth Limit"])*DEPTH_ONE;
             TBPieceLimit = i32(Options["Syzygy Piece Limit"]);
             TBUseRule50  = bool(Options["Syzygy Use Rule 50"]);
+            TBHits       = 0;
+            TBHasRoot    = false;
 
             // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit
             if (TBPieceLimit > MaxPieceLimit)
@@ -2137,6 +2136,7 @@ namespace Threading {
 
             Thread::search (); // Let's start searching !
 
+            // Update time manger before exit.
             if (time_mgr_used)
             {
                 time_mgr.update (RootColor);
@@ -2150,7 +2150,7 @@ namespace Threading {
         // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
         // Simply wait here until GUI sends one of those commands (that raise Force Stop).
         if (   !ForceStop
-            && (Limits.ponder || Limits.infinite)
+            && (Limits.infinite || Limits.ponder)
            )
         {
             PonderhitStop = true;

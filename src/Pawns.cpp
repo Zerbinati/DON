@@ -26,7 +26,7 @@ namespace Pawns {
             NO_FRIENDLY_PAWN,
             UNBLOCKED,
             BLOCKED_BY_PAWN,
-            BLOCKED_BY_KING
+            BLOCKED_BY_KING,
         };
         // Danger of enemy pawns moving toward our king indexed by [block-type][distance from edge][rank]
         const Value StromDanger[4][F_NO/2][R_NO] =

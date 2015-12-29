@@ -48,8 +48,8 @@ namespace EndGame {
     };
 
     // Endgame functions can be of two category depending on whether they return Value or ScaleFactor.
-    template<EndgameType E>
-    using EndgameCategory = typename std::conditional<E < SCALE_FUNS, Value, ScaleFactor>::type;
+    template<EndgameType ET>
+    using EndgameCategory = typename std::conditional<ET < SCALE_FUNS, Value, ScaleFactor>::type;
 
     // Base and derived templates for endgame evaluation and scaling functions
     template<class T>
@@ -76,7 +76,7 @@ namespace EndGame {
 
     };
 
-    template<EndgameType E, class T = EndgameCategory<E>>
+    template<EndgameType ET, class T = EndgameCategory<ET>>
     class Endgame
         : public EndgameBase<T>
     {
@@ -107,7 +107,7 @@ namespace EndGame {
             return std::get<std::is_same<T, ScaleFactor>::value> (maps);
         }
 
-        template<EndgameType E, class T = EndgameCategory<E>>
+        template<EndgameType ET, class T = EndgameCategory<ET>>
         void add (const std::string &code);
 
     public:

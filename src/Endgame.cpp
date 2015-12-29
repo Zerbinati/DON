@@ -122,11 +122,11 @@ namespace EndGame {
         add<KRPPKRP> ("KRPPKRP");
     }
 
-    template<EndgameType E, class T>
+    template<EndgameType ET, class T>
     void Endgames::add (const string &code)
     {
-        map<T> ()[key (code, WHITE)] = unique_ptr<EndgameBase<T>> (new Endgame<E> (WHITE));
-        map<T> ()[key (code, BLACK)] = unique_ptr<EndgameBase<T>> (new Endgame<E> (BLACK));
+        map<T> ()[key (code, WHITE)] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (WHITE));
+        map<T> ()[key (code, BLACK)] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (BLACK));
     }
 
     template<>
@@ -162,7 +162,7 @@ namespace EndGame {
             ||  pos.count<NIHT> (_strong_side) > 2
            )
         {
-            value += VALUE_KNOWN_WIN;
+            value = std::min (value + VALUE_KNOWN_WIN, +VALUE_MATE_IN_MAX_PLY - 1);
         }
 
         return pos.active () == _strong_side ? +value : -value;

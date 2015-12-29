@@ -20,17 +20,17 @@ namespace Evaluator {
 
             enum Term : u08
             {
-                MATERIAL = 6,
+                MATERIAL = NONE,
                 IMBALANCE,
                 MOBILITY,
                 THREAT,
                 PASSER,
                 SPACE,
                 TOTAL,
-                TERM_NO,
+                T_NO,
             };
 
-            double cp[TERM_NO][CLR_NO][PHASE_NO];
+            double cp[T_NO][CLR_NO][PHASE_NO];
             
             void write (i32 idx, Color c, Score score)
             {
@@ -74,17 +74,17 @@ namespace Evaluator {
         // by the evaluation functions.
         struct EvalInfo
         {
-            // ful_attacked_by[Color][PieceType] contains all squares attacked by a given color and piece type,
-            // ful_attacked_by[Color][NONE] contains all squares attacked by the given color.
+            // ful_attacked_by[color][piece-type] contains all squares attacked by a given color and piece type,
+            // ful_attacked_by[color][NONE] contains all squares attacked by the given color.
             Bitboard ful_attacked_by[CLR_NO][TOTL];
-            // pin_attacked_by[Color][PieceType] contains all squares attacked by a given color and piece type with pinned removed,
-            // pin_attacked_by[Color][NONE] contains all squares attacked by the given color with pinned removed.
+            // pin_attacked_by[color][piece-type] contains all squares attacked by a given color and piece type with pinned removed,
+            // pin_attacked_by[color][NONE] contains all squares attacked by the given color with pinned removed.
             Bitboard pin_attacked_by[CLR_NO][TOTL];
 
-            // pinneds[Color] contains all the pinned pieces
+            // pinneds[color] contains all the pinned pieces
             Bitboard pinneds[CLR_NO];
 
-            // king_ring[Color] is the zone around the king which is considered
+            // king_ring[color] is the zone around the king which is considered
             // by the king safety evaluation. This consists of the squares directly
             // adjacent to the king, and the three (or two, for a king on an edge file)
             // squares two ranks in front of the king. For instance, if black's king
@@ -96,12 +96,12 @@ namespace Evaluator {
             // which attack a square in the king_ring of the enemy king.
             u08 king_ring_attackers_count[CLR_NO];
 
-            // king_ring_attackers_weight[Color] is the sum of the "weight" of the pieces
+            // king_ring_attackers_weight[color] is the sum of the "weight" of the pieces
             // of the given color which attack a square in the king_ring of the enemy king.
-            // The weights of the individual piece types are given by the KingAttackWeights[PieceType]
+            // The weights of the individual piece types are given by the KingAttackWeights[piece-type]
             u32 king_ring_attackers_weight[CLR_NO];
 
-            // king_zone_attacks_count[Color] is the number of attacks by
+            // king_zone_attacks_count[color] is the number of attacks by
             // the given color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
             // e.g, if Black's King is on g8 and there's a White knight on g5,
@@ -129,15 +129,16 @@ namespace Evaluator {
             return score;
         }
 
-        enum WeightType
+        enum WeightType : u08
         {
             PAWN_STRUCTURE,
-            PAWN_PASSING,
+            PAWN_PASSED,
             KING_SAFETY,
             SPACE_ACTIVITY,
+            WT_NO,
         };
         // Evaluation weights, indexed by the corresponding evaluation term
-        const Weight Weights[6]
+        const Weight Weights[WT_NO]
         {
             { 214, 203 }, // Pawn Structure
             { 193, 262 }, // Pawn Passing
@@ -147,7 +148,7 @@ namespace Evaluator {
 
     #define S(mg, eg) mk_score (mg, eg)
 
-        // PieceMobility[PieceType][Attacks] contains bonuses for mobility,
+        // PieceMobility[piece-type][attacks] contains bonuses for mobility,
         // indexed by piece type and number of attacked squares in the mobility area.
         const Score PieceMobility[NONE][28] =
         {
@@ -176,41 +177,41 @@ namespace Evaluator {
             {}
         };
 
-        // OUTPOST[supported by pawn] contains bonuses for knights and bishops outposts.
+        // Outpost[supported by pawn] contains bonuses for knights and bishops outposts.
         const Score KnightOutpost[2] = { S(42,11), S(63,17) };
         const Score BishopOutpost[2] = { S(18, 5), S(27, 8) };
 
-        // REACHABLE_OUTPOST[supported by pawn] contains bonuses for knights and
-        // bishops which can reach a outpost square in one move.
+        // ReachableOutpost[supported by pawn] contains bonuses for knights and bishops
+        // which can reach a outpost square in one move.
         const Score KnightReachableOutpost[2] = { S(21, 5), S(31, 8) };
         const Score BishopReachableOutpost[2] = { S( 8, 2), S(13, 4) };
 
-        // ThreatenByPawn[PieceType] contains bonuses according to which piece type is attacked by pawn.
+        // ThreatenByPawn[piece-type] contains bonuses according to which piece type is attacked by pawn.
         const Score ThreatenByPawn[NONE] =
         {
-            S(0, 0), S(176, 139), S(131, 127), S(217, 218), S(203, 215), S(0, 0)
+            S(0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S(0, 0)
         };
 
         enum PieceCategory : u08
         {
             MINOR,
-            MAJOR
+            MAJOR,
         };
         // ThreatenByPiece[attacker category][attacked type] contains
         // bonuses according to which piece type attacks which one.
         // Attacks on lesser pieces which are pawn defended are not considered.
         const Score ThreatenByPiece[2][NONE] =
         {
-            { S(0, 33), S(45, 43), S(46, 47), S(72, 107), S(48,118), S(0, 0) },  // Minor attackers
-            { S(0, 25), S(40, 62), S(40, 59), S( 0,  34), S(35, 48), S(0, 0) },  // Major attackers
+            { S(0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S(0, 0) },  // Minor attackers
+            { S(0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S(0, 0) },  // Major attackers
         };
 
-        const Score ThreatenByKing[] =
+        const Score ThreatenByKing[2] =
         {
             S( 3, 62), S( 9,138)
         };
 
-        const Score ThreatenByHangingPawn   = S(70, 63);
+        const Score ThreatenByHangingPawn   = S(70,63);
 
         const Score BishopPawned            = S( 8,12); // Penalty for bishop with pawns on same color
         const Score BishopTrapped           = S(50,50); // Penalty for bishop trapped with pawns (Chess960)
@@ -228,18 +229,18 @@ namespace Evaluator {
 
         const Score KingChecked             = S(20,20);
 
-        // PassedFile[File] contains a bonus according to the file of a passed pawn.
-        const Score PawnPassedFile[F_NO] =
+        // PawnPassedScore[file] contains a bonus for passed pawns according to the file of the pawn.
+        const Score PawnPassedScore[F_NO] =
         {
-            S( 12,  10), S( 3,  10), S( 1, -8), S(-27, -12),
-            S(-27, -12), S( 1, -8),  S( 3, 10), S( 12,  10)
+            S( 12, 10), S( 3, 10), S( 1, -8), S(-27,-12),
+            S(-27,-12), S( 1, -8), S( 3, 10), S( 12, 10)
         };
 
     #undef S
 
     #define V(v) Value(v)
-        // PawnPassed[Phase][Rank] contains bonuses for passed pawns according to the rank of the pawn.
-        const Value PawnPassed[PHASE_NO][R_NO] =
+        // PawnPassedValue[phase][rank] contains bonuses for passed pawns according to the rank of the pawn.
+        const Value PawnPassedValue[PHASE_NO][R_NO] =
         {
             { V(0), V( 1), V(34), V(90), V(214), V(328), V(0), V(0) },
             { V(7), V(14), V(37), V(63), V(134), V(189), V(0), V(0) }
@@ -255,7 +256,7 @@ namespace Evaluator {
         // indexed by a calculated integer number.
         Score KingDanger[MaxAttackUnits];
 
-        // KingAttackWeights[PieceType] contains king attack weights by piece type
+        // KingAttackWeights[piece-type] contains king attack weights by piece type
         const i32 KingAttackWeights[NONE] = { 1, 14, 10,  8,  2,  0 };
 
         // Penalties for enemy's safe checks
@@ -333,12 +334,13 @@ namespace Evaluator {
         // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color except PAWN
         Score evaluate_pieces (const Position &pos, EvalInfo &ei, const Bitboard mobility_area, Score &mobility)
         {
+            assert(PT == NIHT || PT == BSHP || PT == ROOK || PT == QUEN);
+
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
             const auto Push = Own == WHITE ? DEL_N : DEL_S;
             const auto OutpostMask = Own == WHITE ?         // Mask of allowed outpost squares
-                R4_bb | R5_bb | R6_bb :
-                R5_bb | R4_bb | R3_bb;
-
+                                        R4_bb|R5_bb|R6_bb :
+                                        R5_bb|R4_bb|R3_bb;
             auto score = SCORE_ZERO;
 
             ei.ful_attacked_by[Own][PT] = U64(0);
@@ -476,7 +478,7 @@ namespace Evaluator {
                         score += ei.pe->file_semiopen (Opp, _file (s)) ? RookOnOpenFile : RookOnSemiOpenFile;
                     }
 
-                    // Penalty for rook when trapped by the king, even more if king cannot castle
+                    // Penalty for rook when trapped by the king, even more if king can't castle
                     if (mob <= 3 && !ei.pe->file_semiopen (Own, _file (s)))
                     {
                         auto fk_sq = pos.square<KING> (Own);
@@ -782,8 +784,8 @@ namespace Evaluator {
                 i32 rr = r * (r - 1);
 
                 // Base bonus depends on rank
-                auto mg_value = PawnPassed[MG][r];
-                auto eg_value = PawnPassed[EG][r];
+                auto mg_value = PawnPassedValue[MG][r];
+                auto eg_value = PawnPassedValue[EG][r];
 
                 if (rr != 0)
                 {
@@ -850,10 +852,10 @@ namespace Evaluator {
                 // If non-pawn pieces differ
                 eg_value *= 1.0 + (nonpawn_count[Own]-nonpawn_count[Opp]) / (nonpawn_count[Own]+nonpawn_count[Opp]+2) / 2.0;
 
-                score += mk_score (mg_value, eg_value) + PawnPassedFile[_file (s)];
+                score += mk_score (mg_value, eg_value) + PawnPassedScore[_file (s)];
             }
 
-            score *= Weights[PAWN_PASSING];
+            score *= Weights[PAWN_PASSED];
 
             if (Trace)
             {
@@ -963,7 +965,7 @@ namespace Evaluator {
                     // a bit drawish, but not as drawish as with only the two bishops. 
                     else
                     {
-                        scale_factor = ScaleFactor (scale_factor * SCALE_FACTOR_BISHOPS/SCALE_FACTOR_NORMAL);
+                        scale_factor = ScaleFactor(scale_factor * SCALE_FACTOR_BISHOPS/SCALE_FACTOR_NORMAL);
                     }
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.

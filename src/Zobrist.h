@@ -24,10 +24,10 @@ namespace Zobrist {
 
         struct
         {
-            Key piece_square[CLR_NO][NONE][SQ_NO];  // [Color][Piece][Square]
-            Key castle_right[CLR_NO][CS_NO];        // [Color][Castle Side]
-            Key en_passant  [F_NO];                 // [Enpassant File]
-            Key act_side;                           // Color
+            Key piece_square[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
+            Key castle_right[CLR_NO][CS_NO];        // [color][castle-side]
+            Key en_passant  [F_NO];                 // [enpassant file]
+            Key act_side;                           // color
         } _;
 
     public:

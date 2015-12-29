@@ -5,11 +5,13 @@
 #include <iomanip>
 
 #include "Thread.h"
-#include "MemoryHandler.h"
 #include "Transposition.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
 #include "Debugger.h"
+#ifdef LPAGES
+#   include "MemoryHandler.h"
+#endif
 
 UCI::OptionMap  Options; // Global string mapping of Options
 
@@ -239,7 +241,7 @@ namespace UCI {
             //OverheadClockTime    = i32(Options["Overhead Clock Time"]);
             //OverheadMoveTime     = i32(Options["Overhead Move Time"]);
             //MinimumMoveTime      = i32(Options["Minimum Move Time"]);
-            MoveSlowness         = i32(Options["Move Slowness"]);
+            MoveSlowness         = i32(Options["Move Slowness"])/100.0;
             NodesTime            = i32(Options["Nodes Time"]);
             Ponder               = bool(Options["Ponder"]);
         }
@@ -446,7 +448,7 @@ namespace UCI {
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Move Time"]            << Option (MinimumMoveTime     , 0, 5000, configure_time);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (MoveSlowness        ,+ 10,+ 1000, configure_time);
+        Options["Move Slowness"]                << Option (i32(MoveSlowness*100),+ 10,+ 1000, configure_time);
         Options["Nodes Time"]                   << Option (NodesTime           ,   0,+10000, configure_time);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.

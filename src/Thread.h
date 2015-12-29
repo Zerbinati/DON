@@ -12,6 +12,112 @@
 #include "Searcher.h"
 #include "MovePicker.h"
 
+extern u08      MaximumMoveHorizon;
+extern u08      ReadyMoveHorizon;
+extern u32      OverheadClockTime;
+extern u32      OverheadMoveTime;
+extern u32      MinimumMoveTime;
+extern double   MoveSlowness;
+extern u32      NodesTime;
+extern bool     Ponder;
+
+// TimeManager class computes the optimal time to think depending on the
+// maximum available time, the move game number and other parameters.
+// Support four different kind of time controls, passed in 'limits':
+//
+// moves_to_go = 0, increment = 0 means: x basetime                             ['sudden death' time control]
+// moves_to_go = 0, increment > 0 means: x basetime + z increment
+// moves_to_go > 0, increment = 0 means: x moves in y basetime                  ['standard' time control]
+// moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
+class TimeManager
+{
+private:
+
+    TimePoint   _optimum_time = 0;
+    TimePoint   _maximum_time = 0;
+
+    double      _instability_factor = 1.0;
+
+public:
+
+    u64     available_nodes  = U64(0); // When in 'nodes as time' mode
+    double  best_move_change = 0.0;
+
+    TimePoint available_time () const { return TimePoint(_optimum_time * _instability_factor * 1.016); }
+
+    TimePoint maximum_time () const { return _maximum_time; }
+
+    TimePoint elapsed_time () const;
+
+    void instability () { _instability_factor = 1.0 + best_move_change; }
+
+    void initialize (Color c, i16 ply);
+
+    void update (Color c);
+};
+
+// EasyMoveManager class is used to detect a so called 'easy move'; when PV is
+// stable across multiple search iterations engine can fast return the best move.
+class EasyMoveManager
+{
+public:
+    static const u08 LineSize = 3;
+
+private:
+    Key  _posi_key = U64(0);
+    Move _pv[LineSize];
+
+public:
+    u08 stable_count = 0; // Keep track of how many times in a row pv remains stable
+
+    EasyMoveManager ()
+    {
+        clear ();
+    }
+
+    void clear ()
+    {
+        stable_count = 0;
+        _posi_key = U64(0);
+        std::fill (_pv, _pv + LineSize, MOVE_NONE);
+    }
+
+    Move easy_move (const Key posi_key) const
+    {
+        return posi_key == _posi_key ? _pv[LineSize-1] : MOVE_NONE;
+    }
+
+    void update (Position &pos, const MoveVector &pv)
+    {
+        assert(pv.size () >= LineSize);
+
+        if (pv[LineSize-1] == _pv[LineSize-1])
+        {
+            ++stable_count;
+        }
+        else
+        {
+            stable_count = 0;
+        }
+
+        if (!std::equal (pv.begin (), pv.begin () + LineSize, _pv))
+        {
+            std::copy (pv.begin (), pv.begin () + LineSize, _pv);
+
+            StateInfo si[LineSize-1];
+            for (u08 i = 0; i < LineSize-1; ++i)
+            {
+                pos.do_move (pv[i], si[i], pos.gives_check (pv[i], CheckInfo (pos)));
+            }
+            _posi_key = pos.posi_key ();
+            for (u08 i = 0; i < LineSize-1; ++i)
+            {
+                pos.undo_move ();
+            }
+        }
+    }
+};
+
 namespace Threading {
 
     const u16 MaxThreads = 128; // Maximum Threads
@@ -112,113 +218,6 @@ namespace Threading {
         virtual void search ();
     };
 
-    extern u08  MaximumMoveHorizon;
-    extern u08  ReadyMoveHorizon;
-    extern u32  OverheadClockTime;
-    extern u32  OverheadMoveTime;
-    extern u32  MinimumMoveTime;
-    extern u32  MoveSlowness;
-    extern u32  NodesTime;
-    extern bool Ponder;
-
-    // TimeManager class computes the optimal time to think depending on the
-    // maximum available time, the move game number and other parameters.
-    // Support four different kind of time controls, passed in 'limits':
-    //
-    // moves_to_go = 0, increment = 0 means: x basetime [sudden death!]
-    // moves_to_go = 0, increment > 0 means: x basetime + z increment
-    // moves_to_go > 0, increment = 0 means: x moves in y basetime [regular clock]
-    // moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
-    class TimeManager
-    {
-    private:
-
-        TimePoint   _optimum_time = 0;
-        TimePoint   _maximum_time = 0;
-
-        double      _instability_factor = 1.0;
-
-    public:
-
-        u64     available_nodes  = U64(0); // When in 'nodes as time' mode
-        double  best_move_change = 0.0;
-
-        TimePoint available_time () const { return TimePoint(_optimum_time * _instability_factor * 1.016); }
-
-        TimePoint maximum_time () const { return _maximum_time; }
-
-        TimePoint elapsed_time () const;
-
-        void instability () { _instability_factor = 1.0 + best_move_change; }
-
-        void initialize (Color c, i16 ply);
-
-        void update (Color c);
-    };
-
-    // EasyMoveManager class is used to detect a so called 'easy move'; when PV is
-    // stable across multiple search iterations engine can fast return the best move.
-    class EasyMoveManager
-    {
-    public:
-        static const u08 LineSize = 3;
-
-    private:
-        Key  _posi_key = U64(0);
-        Move _pv[LineSize];
-
-    public:
-        u08 stable_count = 0; // Keep track of how many times in a row pv remains stable
-
-        EasyMoveManager ()
-        {
-            clear ();
-        }
-
-        void clear ()
-        {
-            stable_count = 0;
-            _posi_key = U64(0);
-            std::fill (_pv, _pv + LineSize, MOVE_NONE);
-        }
-
-        Move easy_move (const Key posi_key) const
-        {
-            return posi_key == _posi_key ? _pv[LineSize-1] : MOVE_NONE;
-        }
-
-        void update (Position &pos, const MoveVector &pv)
-        {
-            assert(pv.size () >= LineSize);
-            
-            if (pv[LineSize-1] == _pv[LineSize-1])
-            {
-                ++stable_count;
-            }
-            else
-            {
-                stable_count = 0;
-            }
-
-            if (!std::equal (pv.begin (), pv.begin () + LineSize, _pv))
-            {
-                std::copy (pv.begin (), pv.begin () + LineSize, _pv);
-
-                StateInfo si[LineSize-1];
-                for (u08 i = 0; i < LineSize-1; ++i)
-                {
-                    pos.do_move (pv[i], si[i], pos.gives_check (pv[i], CheckInfo (pos)));
-                }
-                _posi_key = pos.posi_key ();
-                for (u08 i = 0; i < LineSize-1; ++i)
-                {
-                    pos.undo_move ();
-                }
-            }
-        }
-
-    };
-
     // MainThread class is derived class used to characterize the the main one
     class MainThread
         : public Thread
@@ -248,18 +247,19 @@ namespace Threading {
 
         MainThread* main () const
         {
-            static const auto thread = at (0);
+            static auto *main_thread = static_cast<MainThread*> (at (0));
 
-            return static_cast<MainThread*> (thread);
+            return main_thread;
         }
+
+        u64  game_nodes () const;
+
+        void configure ();
 
         // No constructor and destructor, threadpool rely on globals
         // that should be initialized and valid during the whole thread lifetime.
         void initialize ();
         void deinitialize ();
-
-        void configure ();
-        u64  game_nodes () const;
 
         void start_thinking (const Position &pos, const Limit &limits, StateStackPtr &states);
         void wait_while_thinking ();

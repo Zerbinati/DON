@@ -28,8 +28,8 @@ bool _ok (const string &fen, bool c960, bool full)
 }
 
 #define S(mg, eg) mk_score (mg, eg)
-// PSQ_Bonus[PieceType][Rank][File/2] contains Piece-Square scores.
-// For each piece type on a given square a (middlegame, endgame) score pair is assigned.
+// PSQ_Bonus[piece-type][rank][file/2] contains Piece-Square scores.
+// For each piece type on a given square a (midgame, endgame) score pair is assigned.
 // Table is defined for files A..D and white side: it is symmetric for black side and
 // second half of the files.
 const Score Position::PSQ_Bonus[NONE][R_NO][F_NO/2] =
@@ -102,7 +102,7 @@ const size_t StateInfo::Size = sizeof (StateInfo);
 const size_t Position::Size = sizeof (Position);
 
 u08 Position::DrawClockPly = 100;
-// PSQ[Color][PieceType][Square] contains Color-PieceType-Square scores.
+// PSQ[color][piece-type][square] contains Color-PieceType-Square scores.
 Score Position::PSQ[CLR_NO][NONE][SQ_NO];
 
 void Position::initialize ()
@@ -210,7 +210,7 @@ bool Position::ok (i08 *failed_step) const
 {
     static const bool Fast = true;
 
-    enum Test : u08
+    enum Step : u08
     {
         BASIC,
         PIECE,

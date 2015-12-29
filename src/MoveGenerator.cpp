@@ -19,7 +19,7 @@ namespace MoveGen {
             // Generates piece common move
             static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
-                assert(PT != KING && PT != PAWN);
+                assert(PT == NIHT || PT == BSHP || PT == ROOK || PT == QUEN);
 
                 const auto *pl = pos.squares<PT> (Own);
                 Square s;
@@ -49,7 +49,6 @@ namespace MoveGen {
                     while (attacks != U64(0)) { *moves++ = mk_move (s, pop_lsq (attacks)); }
                 }
             }
-
         };
 
         template<GenType GT, Color Own>
@@ -124,14 +123,17 @@ namespace MoveGen {
                 {
                     if (pos.can_castle (Own) && pos.checkers () == U64(0))
                     {
-                        if (pos.can_castle (Castling<Own, CS_KING>::Right) && !pos.castle_impeded (Castling<Own, CS_KING>::Right))
+                        if (    pos.can_castle (Castling<Own, CS_KING>::Right)
+                            && !pos.castle_impeded (Castling<Own, CS_KING>::Right)
+                           )
                         {
                             pos.chess960 () ?
                                 generate_castling<Castling<Own, CS_KING>::Right, true > (moves, pos, ci) :
                                 generate_castling<Castling<Own, CS_KING>::Right, false> (moves, pos, ci);
                         }
-
-                        if (pos.can_castle (Castling<Own, CS_QUEN>::Right) && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right))
+                        if (    pos.can_castle (Castling<Own, CS_QUEN>::Right)
+                            && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right)
+                           )
                         {
                             pos.chess960 () ?
                                 generate_castling<Castling<Own, CS_QUEN>::Right, true > (moves, pos, ci) :
@@ -140,7 +142,6 @@ namespace MoveGen {
                     }
                 }
             }
-
         };
 
         template<GenType GT, Color Own>
@@ -307,7 +308,6 @@ namespace MoveGen {
                     }
                 }
             }
-
         };
 
         template<GenType GT, Color Own>
@@ -320,7 +320,6 @@ namespace MoveGen {
             /*if (pos.count<ROOK> (Own) !=0)*/ Generator<GT, Own, ROOK>::generate (moves, pos, targets, ci);
             /*if (pos.count<QUEN> (Own) !=0)*/ Generator<GT, Own, QUEN>::generate (moves, pos, targets, ci);
             Generator<GT, Own, KING>::generate (moves, pos, targets, ci);
-
             return moves;
         }
 
@@ -369,15 +368,17 @@ namespace MoveGen {
         auto active =  pos.active ();
         auto targets= ~pos.pieces ();
         CheckInfo ci (pos);
-        // Pawns excluded will be generated together with direct checks
+        // Pawns is excluded, will be generated together with direct checks
         auto discovers = ci.discoverers & ~pos.pieces (active, PAWN);
         while (discovers != U64(0))
         {
             auto org = pop_lsq (discovers);
             auto pt  = ptype (pos[org]);
             auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
-
-            if (pt == KING) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
+            if (pt == KING)
+            {
+                attacks &= ~PieceAttacks[QUEN][ci.king_sq];
+            }
 
             while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
         }
@@ -395,15 +396,17 @@ namespace MoveGen {
         auto active =  pos.active ();
         auto targets= ~pos.pieces (active);
         CheckInfo ci (pos);
-        // Pawns excluded, will be generated together with direct checks
+        // Pawns is excluded, will be generated together with direct checks
         auto discovers = ci.discoverers & ~pos.pieces (active, PAWN);
         while (discovers != U64(0))
         {
             auto org = pop_lsq (discovers);
             auto pt  = ptype (pos[org]);
             auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
-
-            if (pt == KING) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
+            if (pt == KING)
+            {
+                attacks &= ~PieceAttacks[QUEN][ci.king_sq];
+            }
 
             while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
         }

@@ -29,10 +29,7 @@ public:
         TimePoint inc   = 0; // Increment Time per move [milli-seconds]
     };
 
-    Clock clock[CLR_NO];
-    MoveVector root_moves; // Restrict search to these moves only
-    TimePoint  start_time;
-
+    Clock clock[CLR_NO];     // Clock for both sides
     TimePoint movetime  = 0; // Search <x> exact time in milli-seconds
     u08       movestogo = 0; // Search <x> moves to the next time control
     u08       depth     = 0; // Search <x> depth (plies) only
@@ -41,12 +38,16 @@ public:
     bool      infinite  = false; // Search until the "stop" command
     bool      ponder    = false; // Search on ponder move until the "stop" command
 
+    MoveVector moves;        // Restrict search to these root moves only
+
+    TimePoint  start_time = 0;
+
     bool time_management_used () const
     {
         return !infinite
             && movetime == 0
             && depth    == 0
-            && nodes    == U64 (0)
+            && nodes    == U64(0)
             && mate     == 0;
     }
 };
@@ -166,13 +167,13 @@ namespace Searcher {
             }
         }
 
-        void initialize (const Position &pos, const MoveVector &root_moves)
+        void initialize (const Position &pos, const MoveVector &moves)
         {
             clear ();
             for (const auto &vm : MoveGen::MoveList<MoveGen::LEGAL> (pos))
             {
-                if (   root_moves.empty ()
-                    || std::count (root_moves.cbegin (), root_moves.cend (), vm.move) != 0
+                if (   moves.empty ()
+                    || std::find (moves.cbegin (), moves.cend (), vm.move) != moves.cend ()
                    )
                 {
                     *this += RootMove (vm.move);

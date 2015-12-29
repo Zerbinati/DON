@@ -60,13 +60,16 @@
 #endif
 
 #ifdef BM2
-#   include <immintrin.h>                               // Header for bmi2 instructions
+#   include <immintrin.h>   // Header for BMI2 instructions
+// BEXT = Bit field extract
+// PEXT = Parallel bits extract
+// BLSR = Reset lowest set bit
 #   ifdef BIT64
-#       define BEXT(b, m, l)    _bextr_u64 (b, m, l)    // Bit field extract
-#       define PEXT(b, m)       _pext_u64 (b, m)        // Parallel bits extract
-#       define BLSR(b)          _blsr_u64 (b)           // Reset lowest set bit
+#       define BEXT(b, m, l)    _bextr_u64 (b, m, l)
+#       define PEXT(b, m)       _pext_u64 (b, m)
+#       define BLSR(b)          _blsr_u64 (b)
 #   else
-#       define BEXT(b, m, l)    _pext_u32 (b, ((m&0xFF)|((l&0xff)<<8)))
+#       define BEXT(b, m, l)    _pext_u32 (b, (m&0xFF)|((l&0xFF)<<8))
 #       define PEXT(b, m)       _pext_u32 (b, m)
 #       define BLSR(b)          _blsr_u32 (b)
 #   endif
@@ -223,8 +226,8 @@ enum Delta : i08
 // Castle Side
 enum CSide : i08
 {
-    CS_KING,    // (KING SIDE)-SHORT CASTLE
-    CS_QUEN,    // (QUEN SIDE)-LONG  CASTLE
+    CS_KING,    // King  Side (Short Castle)
+    CS_QUEN,    // Queen Side (Long  Castle)
     CS_NO,
 };
 
@@ -261,21 +264,8 @@ enum PieceType : i08
 };
 
 // Piece needs 4 bits to be stored
-// bit 0-2: TYPE of piece
-// bit   3: COLOR of piece
-//
-// WHITE      = 0...
-// BLACK      = 1...
-//
-// SLIDING    = .1..
-// NONSLIDING = .0..
-//
-// RF SLIDING = .11.
-// DG SLIDING = .1.1
-//
-// PAWN  & KING  < 3
-// MINOR & MAJOR > 2
-// ONLY MAJOR    > 5
+// bit 0-2: Type of piece
+// bit   3: Color of piece { White = 0..., Black = 1... }
 enum Piece : u08
 {
     W_PAWN = 0, //  0000
@@ -294,20 +284,17 @@ enum Piece : u08
     B_QUEN    , //  1100
     B_KING    , //  1101
 
-    // TOTAL piece is 14
+    // Total piece is 14
     PIECE_NO  , //  1110
-
-    //W_PIECE = 0x00, //  0...
-    //B_PIECE = 0x08, //  1...
 };
 
 // Move Type
 enum MoveType : u16
 {
-    NORMAL    = 0x0000, // 0- 0000
-    CASTLE    = 0x4000, // 1- 0100
-    ENPASSANT = 0x8000, // 2- 1000
-    PROMOTE   = 0xC000, // 3- 11xx
+    NORMAL    = 0x0000, // 0000
+    CASTLE    = 0x4000, // 0100
+    ENPASSANT = 0x8000, // 1000
+    PROMOTE   = 0xC000, // 11xx
 };
 
 // Move stored in 16-bits
@@ -363,7 +350,7 @@ enum Value : i32
 };
 
 // Score enum stores a midgame and an endgame value in a single integer (enum),
-// the lower 16 bits are used to store the endgame value and
+// the lower 16 bits are used to store the endgame value,
 // the upper 16 bits are used to store the midgame value.
 enum Score : i32
 {

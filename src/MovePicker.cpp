@@ -220,7 +220,7 @@ namespace MovePick {
             std::copy (_ss->killer_moves, _ss->killer_moves + Killers, _killer_moves);
             *_moves_end = MOVE_NONE;
             // Be sure countermoves are different from killer_moves
-            if (_counter_move != MOVE_NONE && std::count (_moves_cur, _moves_end, _counter_move) == 0)
+            if (_counter_move != MOVE_NONE && std::find (_moves_cur, _moves_end, _counter_move) == _moves_end)
             {
                 *_moves_end++ = _counter_move;
             }
@@ -345,7 +345,7 @@ namespace MovePick {
                 {
                     move = *_moves_cur++;
                     if (   move != _tt_move
-                        && std::count (_killer_moves, _killer_moves + Killers + 1, move) == 0 // Not killer move
+                        && std::find (_killer_moves, _killer_moves + Killers + 1, move) == _killer_moves + Killers + 1 // Not killer move
                        )
                     {
                         return move;
