@@ -150,10 +150,11 @@ namespace EndGame {
         auto sk_sq = pos.square<KING> (_strong_side);
         auto wk_sq = pos.square<KING> (  _weak_side);
 
-        Value value = pos.count<PAWN> (_strong_side) * VALUE_EG_PAWN
+        Value value = std::min (
+                    + pos.count<PAWN> (_strong_side) * VALUE_EG_PAWN
                     + pos.non_pawn_material (_strong_side)
                     + PushToEdge[wk_sq]
-                    + PushClose[dist (sk_sq, wk_sq)];
+                    + PushClose[dist (sk_sq, wk_sq)], +VALUE_KNOWN_WIN - 1);
 
         if (    pos.count<QUEN> (_strong_side) != 0
             ||  pos.count<ROOK> (_strong_side) != 0

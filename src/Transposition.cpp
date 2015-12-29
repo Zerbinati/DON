@@ -64,16 +64,13 @@ namespace Transposition {
         // Then checking for error returned by malloc, if it returns NULL then 
         // alloc_aligned_memory will fail and return NULL or exit().
 
-        alignment = max (u32(sizeof (void *)), alignment);
+        alignment = std::max (u32(sizeof (void *)), alignment);
 
-        void *mem = calloc (mem_size + alignment-1, 1);
-        if (mem != nullptr)
+        _mem = calloc (mem_size + alignment-1, 1);
+        if (_mem != nullptr)
         {
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
-
-            void **ptr = reinterpret_cast<void**> ((uintptr_t(mem) + alignment-1) & ~(alignment-1));
-            ptr[-1]    = mem;
-            _clusters  = reinterpret_cast<Cluster*> (ptr);
+            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_mem) + alignment-1) & ~(alignment-1));
             assert(0 == (uintptr_t(_clusters) & (alignment-1)));
             return;
         }

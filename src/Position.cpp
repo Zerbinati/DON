@@ -1021,7 +1021,7 @@ bool Position::can_en_passant (Square ep_sq) const
 //    It starts at 1, and is incremented after Black's move.
 bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
 {
-    if (white_spaces (f)) return false;
+    assert(!white_spaces (f));
 
     istringstream iss (f);
     iss >> noskipws;

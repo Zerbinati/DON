@@ -103,9 +103,10 @@ namespace Searcher {
 
 #endif
 
+        const i32 RazorDepth    = 4;
+
     #define V(v) Value(v)
 
-        const i32 RazorDepth    = 4;
         // Razoring margin lookup table (initialized at startup)
         // [depth]
         const Value RazorMargins[RazorDepth] = { V(483), V(570), V(603), V(554) };
@@ -140,7 +141,7 @@ namespace Searcher {
         const i32 LateMoveReductionDepth = 3;
         const u08 FullDepthMoveCount = 1;
 
-        const u08 TimerResolution = 5; // Millisec between two check_limits() calls
+        const u08 TimerResolution = 5; // Seconds between two check_limits() calls
 
         Color   RootColor;
 
@@ -152,7 +153,7 @@ namespace Searcher {
             ,   BaseContempt[CLR_NO];
 
         // Counter move history value statistics
-        CMValue2DStats  CounterMovesHistory;
+        CM2DValueStats CounterMovesHistory;
 
         bool    LogWrite    = false;
         ofstream LogStream;
@@ -195,10 +196,7 @@ namespace Searcher {
             if (ss->killer_moves[0] != move)
             {
                 ss->killer_moves[1] = ss->killer_moves[0];
-                //if (std::count (ss->killer_moves, ss->killer_moves + Killers, MOVE_NONE) != Killers)
-                //{
-                //    std::copy_backward (ss->killer_moves, ss->killer_moves + Killers - 1, ss->killer_moves + Killers);
-                //}
+                //std::copy_backward (ss->killer_moves, ss->killer_moves + Killers - 1, ss->killer_moves + Killers);
                 ss->killer_moves[0] = move;
             }
 
@@ -241,6 +239,11 @@ namespace Searcher {
                 if (own_move_dst != SQ_NO)
                 {
                     auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
+                    own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth + 1)/DEPTH_ONE);
+                }
+                else
+                {
+                    auto &own_cmv = CounterMovesHistory[EMPTY][dst_sq (own_move)];
                     own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth + 1)/DEPTH_ONE);
                 }
             }
@@ -1400,13 +1403,19 @@ namespace Searcher {
                 //&& mtype (opp_move) != PROMOTE
                )
             {
+                auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
+
                 auto own_move = (ss-2)->current_move;
                 auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
                 if (own_move_dst != SQ_NO)
                 {
-                    auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
                     auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
                     own_cmv.update (pos[opp_move_dst], opp_move_dst, bonus);
+                }
+                else
+                {
+                    auto &own_cmv = CounterMovesHistory[EMPTY][dst_sq (own_move)];
+                    own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth + 1)/DEPTH_ONE);
                 }
             }
 

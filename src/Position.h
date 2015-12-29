@@ -419,7 +419,7 @@ inline u64  Position::game_nodes() const { return _game_nodes; }
 inline Phase Position::game_phase () const
 {
     return Phase(
-        i32(std::max (VALUE_ENDGAME, std::min (_psi->non_pawn_matl[WHITE] + _psi->non_pawn_matl[BLACK], VALUE_MIDGAME)) - VALUE_ENDGAME) * i32(PHASE_MIDGAME) /
+        i32(std::max (std::min (_psi->non_pawn_matl[WHITE] + _psi->non_pawn_matl[BLACK], VALUE_MIDGAME), VALUE_ENDGAME) - VALUE_ENDGAME) * i32(PHASE_MIDGAME) /
         i32(VALUE_MIDGAME - VALUE_ENDGAME));
 }
 

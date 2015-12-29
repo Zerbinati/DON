@@ -40,7 +40,7 @@
       <FileName>src\Endgame.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="EndGame::Endgame&lt;E, T&gt;" Collapsed="true">
+  <Class Name="EndGame::Endgame&lt;ET, T&gt;" Collapsed="true">
     <Position X="15" Y="8.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAABAAAAAAAAA=</HashCode>
@@ -220,14 +220,14 @@
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Threading::TimeManager" Collapsed="true">
+  <Class Name="TimeManager" Collapsed="true">
     <Position X="6" Y="11.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ARAAAAAAAAAAAAgIAAEAAAAAAIgAAAACAgAQAAAEAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Threading::EasyMoveManager">
+  <Class Name="EasyMoveManager">
     <Position X="15" Y="1.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>CEAAAABSAIAAAAABAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
@@ -446,15 +446,8 @@
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
-    <NestedTypes>
-      <Struct Name="Limit::Clock" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>src\Searcher.h</NewMemberFileName>
-        </TypeIdentifier>
-      </Struct>
-    </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AgAAAAAAAAAAAAEBAAACAAAABAAAAAAAAIACMAAAIAI=</HashCode>
+      <HashCode>AgAAAAAAAAAAAAEBAAACAAAAQAAAAAAAAIACMAAAIAI=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -612,7 +605,7 @@
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="MovePick::CMValue2DStats" Collapsed="true">
+  <Typedef Name="MovePick::CM2DValueStats" Collapsed="true">
     <Position X="6.5" Y="1" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
@@ -797,14 +790,14 @@
   <Enum Name="Evaluator::`anonymous-namespace'::Tracer::Term" Collapsed="true">
     <Position X="26.5" Y="8.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>IAAAAEAAIQAAAAEAAEAAAABAAAAAAAAAAAAAAABAAAA=</HashCode>
+      <HashCode>IQAAAEAAIQAAAAEAAEAAAABAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Evaluator::`anonymous-namespace'::WeightType" Collapsed="true">
     <Position X="28.25" Y="8.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAACAAAAAAAAAAAAAAAABAAAABAAAAAAAAAAAIAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAEAAAAABAAAABAAAIAAAAAAAIAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Enum>

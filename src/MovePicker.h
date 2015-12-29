@@ -61,8 +61,8 @@ namespace MovePick {
     typedef Stats<Value, false>     HValueStats;
     typedef Stats<Value, true >     CMValueStats;
 
-    // CMValue2DStats
-    typedef Stats<CMValueStats>     CMValue2DStats;
+    // CM2DValueStats
+    typedef Stats<CMValueStats>     CM2DValueStats;
 
     // MoveStats store the move that refute a previous move.
     // Entries are stored according only to moving piece and destination square,

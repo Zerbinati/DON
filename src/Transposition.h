@@ -94,14 +94,9 @@ namespace Transposition {
     // This ensures best cache performance, as the cacheline is prefetched.
     class Table
     {
-    public:
-
     private:
 
-    #ifdef LPAGES
         void    *_mem           = nullptr;
-    #endif
-
         Cluster *_clusters      = nullptr;
         size_t   _cluster_count = 0;
         size_t   _cluster_mask  = 0;
@@ -118,11 +113,10 @@ namespace Transposition {
 
     #   ifdef LPAGES
                 Memory::free_memory (_mem);
-                _mem            = nullptr;
     #   else
-                free (((void **) _clusters)[-1]);
+                free (_mem);
     #   endif
-
+                _mem            = nullptr;
                 _clusters       = nullptr;
                 _cluster_count  = 0;
                 _cluster_mask   = 0;
