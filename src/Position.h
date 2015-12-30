@@ -46,7 +46,7 @@ public:
     // ---Not copied when making a move---
     Key    posi_key      = U64(0);   // Hash key of position.
     Move   last_move     = MOVE_NONE;// Move played on the previous position.
-    PieceType capture_type  = NONE;     // Piece type captured.
+    PieceType capture_type= NONE;    // Piece type captured.
     Bitboard checkers    = U64(0);   // Checkers bitboard.
 
     StateInfo *ptr = nullptr;
@@ -368,7 +368,7 @@ inline Square Position::en_passant_sq () const { return _psi->en_passant_sq; }
 // used to determine if a draw can be claimed under the clock-move rule.
 inline u08    Position::clock_ply     () const { return _psi->clock_ply; }
 inline Move   Position::last_move     () const { return _psi->last_move; }
-inline PieceType Position::capture_type  () const { return _psi->capture_type; }
+inline PieceType Position::capture_type() const { return _psi->capture_type; }
 //inline Piece  Position::capture_piece () const { return _psi->capture_type != NONE ? _active|_psi->capture_type : EMPTY; }
 inline Bitboard Position::checkers    () const { return _psi->checkers; }
 

@@ -221,7 +221,7 @@ namespace Pawns {
                 else
                 // Only the frontmost passed pawn on each file is considered a true passed pawn.
                 // Passed pawns will be properly scored in evaluation
-                // because complete attack info needed to evaluate passed pawns.
+                // because complete attack info needed to evaluate them.
                 if (passed)
                 {
                     e->passed_pawns[Own] += s;

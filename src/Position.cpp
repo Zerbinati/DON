@@ -102,7 +102,7 @@ const size_t StateInfo::Size = sizeof (StateInfo);
 const size_t Position::Size = sizeof (Position);
 
 u08 Position::DrawClockPly = 100;
-// PSQ[color][piece-type][square] contains Color-PieceType-Square scores.
+// PSQ[color][piece-type][square] contains [color][piece-type][square] scores.
 Score Position::PSQ[CLR_NO][NONE][SQ_NO];
 
 void Position::initialize ()
@@ -494,7 +494,7 @@ Value Position::see      (Move m) const
         // destination square, where the sides alternately capture, and always
         // capture with the least valuable piece. After each capture, look for
         // new X-ray attacks from behind the capturing piece.
-        PieceType captured = ptype (_board[org]);
+        auto captured = ptype (_board[org]);
 
         do
         {
@@ -516,7 +516,11 @@ Value Position::see      (Move m) const
         // achievable score from the point of view of the side to move.
         while (--depth != 0)
         {
-            gain_list[depth - 1] = std::min (-gain_list[depth], gain_list[depth - 1]);
+            // Find minimum gain
+            if (gain_list[depth - 1] > -gain_list[depth])
+            {
+                gain_list[depth - 1] = -gain_list[depth];
+            }
         }
     }
 
@@ -1134,7 +1138,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
     _psi->clock_ply = u08(_psi->en_passant_sq != SQ_NO ? 0 : clk_ply);
-    _game_ply = i16(std::max (2*(g_move - 1), 0) + (_active == BLACK));
+    _game_ply = i16(2*(g_move - 1) + (_active == BLACK));
 
     _psi->matl_key = Zob.compute_matl_key (*this);
     _psi->pawn_key = Zob.compute_pawn_key (*this);

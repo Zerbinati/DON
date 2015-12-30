@@ -40,7 +40,7 @@ namespace MovePick {
         //{
         //    for (auto it = beg; it != end; ++it)
         //    {
-        //        rotate (upper_bound (beg, it, *it, pred), it, next (it));
+        //        rotate (std::upper_bound (beg, it, *it, pred), it, std::next (it));
         //    }
         //}
 

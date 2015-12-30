@@ -186,8 +186,15 @@ namespace Evaluator {
         const Score KnightReachableOutpost[2] = { S(21, 5), S(31, 8) };
         const Score BishopReachableOutpost[2] = { S( 8, 2), S(13, 4) };
 
-        // ThreatenByPawn[piece-type] contains bonuses according to which piece type is attacked by pawn.
-        const Score ThreatenByPawn[NONE] =
+        // RookOnFile[semiopen/open] contains bonuses for rooks when there is no
+        // friendly pawn on the rook file.
+        const Score RookOnFile[2] =
+        {
+            S(19, 10), S(43, 21)
+        };
+
+        // ThreatBySafePawn[piece-type] contains bonuses according to which piece type is attacked by pawn.
+        const Score ThreatBySafePawn[NONE] =
         {
             S(0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S(0, 0)
         };
@@ -197,35 +204,32 @@ namespace Evaluator {
             MINOR,
             MAJOR,
         };
-        // ThreatenByPiece[attacker category][attacked type] contains
+        // ThreatByPiece[attacker category][attacked type] contains
         // bonuses according to which piece type attacks which one.
         // Attacks on lesser pieces which are pawn defended are not considered.
-        const Score ThreatenByPiece[2][NONE] =
+        const Score ThreatByPiece[2][NONE] =
         {
             { S(0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S(0, 0) },  // Minor attackers
             { S(0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S(0, 0) },  // Major attackers
         };
-
-        const Score ThreatenByKing[2] =
+        // ThreatByKing[on one/on many] contains bonuses for King attacks on
+        // pawns or pieces which are not pawn defended.
+        const Score ThreatByKing[2] =
         {
             S( 3, 62), S( 9,138)
         };
 
-        const Score ThreatenByHangingPawn   = S(70,63);
-
-        const Score BishopPawned            = S( 8,12); // Penalty for bishop with pawns on same color
-        const Score BishopTrapped           = S(50,50); // Penalty for bishop trapped with pawns (Chess960)
+        const Score ThreatByHangingPawn     = S(70,63);
+        const Score ThreatByPawnPush        = S(31,19);
+        const Score PieceHanged             = S(48,28); // Bonus for each enemy hanged piece       
 
         const Score MinorBehindPawn         = S(16, 0); // Bonus for minor behind a pawn
 
-        const Score RookOnOpenFile          = S(43,21); // Bonus for rook on full-open file
-        const Score RookOnSemiOpenFile      = S(19,10); // Bonus for rook on semi-open file
+        const Score BishopPawns             = S( 8,12); // Penalty for bishop with pawns on same color
+        const Score BishopTrapped           = S(50,50); // Penalty for bishop trapped with pawns (Chess960)
+
         const Score RookOnPawns             = S( 7,27); // Bonus for rook on pawns
         const Score RookTrapped             = S(92, 0); // Penalty for rook trapped
-
-        const Score PieceHanged             = S(48,28); // Bonus for each enemy hanged piece       
-
-        const Score PawnSafeAttack          = S(31,19);
 
         const Score KingChecked             = S(20,20);
 
@@ -240,6 +244,7 @@ namespace Evaluator {
 
     #define V(v) Value(v)
         // PawnPassedValue[phase][rank] contains bonuses for passed pawns according to the rank of the pawn.
+        // Don't use a Score because the two components processed independently.
         const Value PawnPassedValue[PHASE_NO][R_NO] =
         {
             { V(0), V( 1), V(34), V(90), V(214), V(328), V(0), V(0) },
@@ -403,14 +408,14 @@ namespace Evaluator {
                         auto bb = OutpostMask & ~ei.pe->pawn_attack_span[Opp];
                         if ((bb & s) != U64(0))
                         {
-                            score += KnightOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
+                            score += KnightOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0) ? 1 : 0];
                         }
                         else
                         {
                             bb &= attacks & ~pos.pieces (Own);
                             if (bb != U64(0))
                             {
-                                score += KnightReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & bb) != U64(0)];
+                                score += KnightReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & bb) != U64(0) ? 1 : 0];
                             }
                         }
                     }
@@ -421,19 +426,19 @@ namespace Evaluator {
                         auto bb = OutpostMask & ~ei.pe->pawn_attack_span[Opp];
                         if ((bb & s) != U64(0))
                         {
-                            score += BishopOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
+                            score += BishopOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0) ? 1 : 0];
                         }
                         else
                         {
                             bb &= attacks & ~pos.pieces (Own);
                             if (bb != U64(0))
                             {
-                                score += BishopReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & bb) != U64(0)];
+                                score += BishopReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & bb) != U64(0) ? 1 : 0];
                             }
                         }
 
                         // Penalty for pawns on same color square of bishop
-                        score -= BishopPawned * ei.pe->pawns_on_squarecolor<Own> (s);
+                        score -= BishopPawns * ei.pe->pawns_on_squarecolor<Own> (s);
 
                         if (s == rel_sq (Own, SQ_A8) || s == rel_sq (Own, SQ_H8))
                         {
@@ -475,11 +480,11 @@ namespace Evaluator {
                     // Bonus for rook when on an open or semi-open file
                     if (ei.pe->file_semiopen<Own> (_file (s)))
                     {
-                        score += ei.pe->file_semiopen<Opp> (_file (s)) ? RookOnOpenFile : RookOnSemiOpenFile;
+                        score += RookOnFile[ei.pe->file_semiopen<Opp> (_file (s)) ? 1 : 0];
                     }
-
+                    else
                     // Penalty for rook when trapped by the king, even more if king can't castle
-                    if (mob <= 3 && !ei.pe->file_semiopen<Own> (_file (s)))
+                    if (mob <= 3)
                     {
                         auto fk_sq = pos.square<KING> (Own);
                         // Rooks trapped by own king, more if the king has lost its castling capability.
@@ -682,11 +687,11 @@ namespace Evaluator {
                 b = (shift_bb<RCap>(b) | shift_bb<LCap>(b)) & weak_nonpawns;
                 if ((weak_nonpawns ^ b) != U64(0))
                 {
-                    score += ThreatenByHangingPawn;
+                    score += ThreatByHangingPawn;
                 }
                 while (b != U64(0))
                 {
-                    score += ThreatenByPawn[ptype (pos[pop_lsq (b)])];
+                    score += ThreatBySafePawn[ptype (pos[pop_lsq (b)])];
                 }
             }
 
@@ -711,20 +716,20 @@ namespace Evaluator {
                 b = (weak_pieces | defended_nonpawns) & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
                 while (b != U64(0))
                 {
-                    score += ThreatenByPiece[MINOR][ptype (pos[pop_lsq (b)])];
+                    score += ThreatByPiece[MINOR][ptype (pos[pop_lsq (b)])];
                 }
                 // Enemies attacked by rooks
                 b = (weak_pieces | pos.pieces (Opp, QUEN)) & (ei.pin_attacked_by[Own][ROOK]);
                 while (b != U64(0))
                 {
-                    score += ThreatenByPiece[MAJOR][ptype (pos[pop_lsq (b)])];
+                    score += ThreatByPiece[MAJOR][ptype (pos[pop_lsq (b)])];
                 }
 
                 // Weak enemies attacked by king
                 b = weak_pieces & ei.ful_attacked_by[Own][KING];
                 if (b != U64(0))
                 {
-                    score += ThreatenByKing[more_than_one (b) ? 1 : 0];
+                    score += ThreatByKing[more_than_one (b) ? 1 : 0];
                 }
                 // Weak hanging enemies attacked by any
                 b = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
@@ -749,7 +754,7 @@ namespace Evaluator {
               &  ~ei.pin_attacked_by[Own][PAWN];
             if (b != U64(0))
             {
-                score += PawnSafeAttack * pop_count<Max15> (b);
+                score += ThreatByPawnPush * pop_count<Max15> (b);
             }
 
             if (Trace)
