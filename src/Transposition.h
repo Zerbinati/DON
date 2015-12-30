@@ -107,7 +107,7 @@ namespace Transposition {
         // free_aligned_memory() frees the aligned memory
         void free_aligned_memory ()
         {
-            if (_clusters != nullptr)
+            if (_mem != nullptr)
             {
 
     #   ifdef LPAGES
