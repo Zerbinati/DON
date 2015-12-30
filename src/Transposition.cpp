@@ -34,17 +34,16 @@ namespace Transposition {
 
     void Table::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
-        assert(0 == (alignment & (alignment-1)));
-        assert(0 == (mem_size  & (alignment-1)));
+        assert((alignment & (alignment-1)) == 0);
+        assert((mem_size  & (alignment-1)) == 0);
 
     #ifdef LPAGES
 
         Memory::alloc_memory (_mem, mem_size, alignment);
         if (_mem != nullptr)
         {
-            void *ptr = reinterpret_cast<void*> ((uintptr_t(_mem) + alignment-1) & ~u64(alignment-1));
-            _clusters = reinterpret_cast<Cluster*> (ptr);
-            assert(0 == (uintptr_t(_clusters) & (alignment-1)));
+            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_mem) + alignment-1) & ~uintptr_t(alignment-1));
+            assert((uintptr_t(_clusters) & (alignment-1)) == 0);
             return;
         }
 
@@ -70,12 +69,12 @@ namespace Transposition {
         if (_mem != nullptr)
         {
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
-            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_mem) + alignment-1) & ~(alignment-1));
-            assert(0 == (uintptr_t(_clusters) & (alignment-1)));
+            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_mem) + alignment-1) & ~uintptr_t(alignment-1));
+            assert((uintptr_t(_clusters) & (alignment-1)) == 0);
             return;
         }
-
         std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB." << std::endl;
+
     #endif
 
     }
@@ -96,7 +95,9 @@ namespace Transposition {
 
         mem_size  = cluster_count * Cluster::Size;
 
-        if (force || cluster_count != _cluster_count)
+        if (   cluster_count != _cluster_count
+            || force
+           )
         {
             free_aligned_memory ();
 

@@ -199,7 +199,7 @@ namespace Pawns {
                 }
                 else
                 {
-                    if (!supported)
+                    if (supported == U64(0))
                     {
                         score -= Unsupported;
                     }

@@ -203,13 +203,14 @@ namespace Searcher {
             auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
 
             auto opp_move = (ss-1)->current_move;
-            auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMovesHistory[pos[opp_move_dst]][opp_move_dst] : CounterMovesHistory[EMPTY][dst_sq (opp_move)];
+            auto opp_move_dst = dst_sq (opp_move);
+            auto opp_move_ok = _ok (opp_move);
+            auto &opp_cmv = CounterMovesHistory[opp_move_ok ? pos[opp_move_dst] : EMPTY][opp_move_dst];
 
             auto *thread = pos.thread ();
 
             thread->history_values.update (pos[org_sq (move)], dst_sq (move), bonus);
-            if (opp_move_dst != SQ_NO)
+            if (opp_move_ok)
             {
                 thread->counter_moves.update (pos[opp_move_dst], opp_move_dst, move);
                 opp_cmv.update (pos[org_sq (move)], dst_sq (move), bonus);
@@ -221,7 +222,7 @@ namespace Searcher {
             {
                 assert(m != move);
                 thread->history_values.update (pos[org_sq (m)], dst_sq (m), -bonus);
-                if (opp_move_dst != SQ_NO)
+                if (opp_move_ok)
                 {
                     opp_cmv.update (pos[org_sq (m)], dst_sq (m), -bonus);
                 }
@@ -229,23 +230,14 @@ namespace Searcher {
 
             // Extra penalty for PV move in previous ply when it gets refuted
             if (   (ss-1)->move_count == 1
-                && opp_move_dst != SQ_NO
+                && opp_move_ok
                 && pos.capture_type () == NONE
                 //&& mtype (opp_move) != PROMOTE
                )
             {
                 auto own_move = (ss-2)->current_move;
-                auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
-                if (own_move_dst != SQ_NO)
-                {
-                    auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
-                    own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth + 1)/DEPTH_ONE);
-                }
-                else
-                {
-                    auto &own_cmv = CounterMovesHistory[EMPTY][dst_sq (own_move)];
-                    own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth + 1)/DEPTH_ONE);
-                }
+                auto &own_cmv = CounterMovesHistory[_ok (own_move) ? pos[dst_sq (own_move)] : EMPTY][dst_sq (own_move)];
+                own_cmv.update (pos[opp_move_dst], opp_move_dst, bonus);
             }
 
         }
@@ -444,7 +436,7 @@ namespace Searcher {
 
                     // Can tt_value be used as a better position evaluation?
                     if (   tt_value != VALUE_NONE
-                        && (tt_bound & (tt_eval < tt_value ? BOUND_LOWER : BOUND_UPPER))
+                        && (tt_bound & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE
                        )
                     {
                         tt_eval = tt_value;
@@ -482,14 +474,11 @@ namespace Searcher {
             auto *thread = pos.thread ();
             //auto *main_thread = Threadpool.main () == thread ? Threadpool.main () : nullptr;
 
-            auto opp_move = (ss-1)->current_move;
-            auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-
             // Initialize a MovePicker object for the current position, and prepare
             // to search the moves. Because the depth is <= 0 here, only captures,
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
-            MovePicker mp (pos, thread->history_values, tt_move, depth, opp_move_dst);
+            MovePicker mp (pos, thread->history_values, tt_move, depth, dst_sq ((ss-1)->current_move));
             CheckInfo ci (pos);
             StateInfo si;
             Move move;
@@ -816,7 +805,7 @@ namespace Searcher {
 
                     // Can tt_value be used as a better position evaluation?
                     if (   tt_value != VALUE_NONE
-                        && (tt_bound & (tt_eval < tt_value ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE
+                        && (tt_bound & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE
                        )
                     {
                         tt_eval = tt_value;
@@ -836,9 +825,9 @@ namespace Searcher {
                     // you search it to a reduced depth, typically one less than normal depth.
                     if (   !PVNode
                         && !MateSearch
+                        && tt_move == MOVE_NONE
                         && depth < RazorDepth*DEPTH_ONE
                         && tt_eval + RazorMargins[depth/DEPTH_ONE] <= alfa
-                        && tt_move == MOVE_NONE
                        )
                     {
                         if (   depth <= 1*DEPTH_ONE
@@ -1029,9 +1018,10 @@ namespace Searcher {
             quiet_moves.reserve (0x10);
 
             auto opp_move = (ss-1)->current_move;
-            auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-            auto counter_move = opp_move_dst != SQ_NO ? thread->counter_moves[pos[opp_move_dst]][opp_move_dst] : thread->counter_moves[EMPTY][dst_sq (opp_move)];
-            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMovesHistory[pos[opp_move_dst]][opp_move_dst] : CounterMovesHistory[EMPTY][dst_sq (opp_move)];
+            auto opp_move_dst = dst_sq (opp_move);
+            auto opp_move_ok = _ok (opp_move);
+            auto counter_move = thread->counter_moves[opp_move_ok ? pos[opp_move_dst] : EMPTY][opp_move_dst];
+            auto &opp_cmv = CounterMovesHistory[opp_move_ok ? pos[opp_move_dst] : EMPTY][opp_move_dst];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
@@ -1398,7 +1388,7 @@ namespace Searcher {
             if (  !in_check
                 && depth >= 3*DEPTH_ONE
                 && best_move == MOVE_NONE
-                && opp_move_dst != SQ_NO
+                && _ok ((ss-1)->current_move)
                 && pos.capture_type () == NONE
                 //&& mtype (opp_move) != PROMOTE
                )
@@ -1406,17 +1396,8 @@ namespace Searcher {
                 auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
 
                 auto own_move = (ss-2)->current_move;
-                auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
-                if (own_move_dst != SQ_NO)
-                {
-                    auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
-                    own_cmv.update (pos[opp_move_dst], opp_move_dst, bonus);
-                }
-                else
-                {
-                    auto &own_cmv = CounterMovesHistory[EMPTY][dst_sq (own_move)];
-                    own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth + 1)/DEPTH_ONE);
-                }
+                auto &own_cmv = CounterMovesHistory[_ok (own_move) ? pos[dst_sq (own_move)] : EMPTY][dst_sq (own_move)];
+                own_cmv.update (pos[opp_move_dst], opp_move_dst, bonus);
             }
 
             if (   tt_hit
@@ -1766,7 +1747,7 @@ namespace Threading {
             // MultiPV loop. Perform a full root search for each PV line
             for (pv_index = 0; !ForceStop && pv_index < PVLimit; ++pv_index)
             {
-                // Reset Aspiration window starting size
+                // Reset aspiration window starting size.
                 if (   aspiration
                     //&& leaf_depth >= DEPTH_ONE
                    )
@@ -2003,6 +1984,7 @@ namespace Threading {
         time_mgr_used = Limits.time_management_used ();
         if (time_mgr_used)
         {
+            // Initialize the time manager before searching.
             time_mgr.initialize (RootColor, root_pos.game_ply ());
         }
 
@@ -2041,7 +2023,7 @@ namespace Threading {
         }
         else
         {
-            // Check if can play with own book
+            // Check if can play with own book.
             if (   OwnBook
                 && !BookFile.empty ()
                 && (BookUptoMove == 0 || root_pos.game_move () <= BookUptoMove)
@@ -2145,7 +2127,7 @@ namespace Threading {
 
             Thread::search (); // Let's start searching !
 
-            // Update time manger before exit.
+            // Update the time manager after searching.
             if (time_mgr_used)
             {
                 time_mgr.update (RootColor);
@@ -2231,7 +2213,7 @@ namespace Threading {
             LogStream.close ();
         }
 
-        // Best move could be MOVE_NONE when searching on a stalemate position
+        // Best move could be MOVE_NONE when searching on a stalemate position.
         sync_cout << "bestmove " << move_to_can (root_moves[0][0], Chess960);
         if (   _ok (root_moves[0][0])
             && (root_moves[0].size () > 1 || root_moves[0].extract_ponder_move_from_tt (root_pos))

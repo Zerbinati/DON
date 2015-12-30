@@ -29,7 +29,7 @@ namespace Pawns {
         u08      semiopen_files[CLR_NO];
         u08      pawn_span     [CLR_NO];
         // Count of pawns on LIGHT and DARK squares
-        u08      pawns_on_sqrs [CLR_NO][CLR_NO]; // [color][light/dark squares]
+        u08      pawns_on_sqrs [CLR_NO][CLR_NO]; // [color][square color]
 
         Square   king_sq       [CLR_NO];
         CRight   castle_rights [CLR_NO];
@@ -37,22 +37,21 @@ namespace Pawns {
         u08      king_pawn_dist[CLR_NO];
         i32      asymmetry;
 
-        bool file_semiopen (Color c, File f) const
+        template<Color Own>
+        bool file_semiopen (File f) const
         {
-            return semiopen_files[c] & (1 << f);
+            return semiopen_files[Own] & (1 << f);
         }
-        bool side_semiopen (Color c, File f, bool left) const
+        template<Color Own>
+        bool side_semiopen (File f, bool left) const
         {
-            return semiopen_files[c] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
+            return semiopen_files[Own] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
         }
 
-        i32 pawns_on_squarecolor (Color c, Square s) const
+        template<Color Own>
+        i32 pawns_on_squarecolor (Square s) const
         {
-            return pawns_on_sqrs[c][(Liht_bb & s) == U64(0)];
-        }
-        i32 pawns_on_center (Color c) const
-        {
-            return pawns_on_sqrs[c][WHITE] + pawns_on_sqrs[c][BLACK];
+            return pawns_on_sqrs[Own][(Liht_bb & s) != U64(0) ? WHITE : BLACK];
         }
 
         template<Color Own>

@@ -3,6 +3,10 @@
 #
 # DON is housed in https://github.com/erashid/DON 
 
+### Redirect output to file
+# DON bench <param>  > bench.txt 2>&1 // works fine
+# DON bench <param> 2> bench.txt 1>&2 // merge std::cerr into std::cout
+
 ### ==========================================================================
 ### Section 1. General Configuration
 ### ==========================================================================
@@ -13,7 +17,7 @@ UNAME = $(shell uname)
 ### Executable name
 EXE = DON
 
-### Installation dir definitions
+### Installation directory definitions
 PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
@@ -37,9 +41,9 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # arch    = (name)    --- (-arch)          --- Target architecture
 # bits    = 64/32     --- -DBIT64          --- 64/32-bit operating system
 # pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
+# sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
 # bsfq    = yes/no    --- -DBSFQ           --- Use Bitscans x86_64 asm-instruction (only with GCC and ICC 64-bit)
-# sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions instructions
-# pop     = yes/no    --- -DPOP            --- Use Internal POP Count Table
+# pop     = yes/no    --- -DPOP            --- Use Internal POP count table
 # abm     = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions
 # bm2     = yes/no    --- -DBM2            --- Use BM2 (Bit Manipulation 2) x86_64 asm-instructions
 # lpg     = yes/no    --- -DLPAGES         --- Use Large Pages
@@ -47,10 +51,6 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
 # at the end of the line for flag values.
-
-### Redirect output to file
-# DON bench <param>  > bench.txt 2>&1 // works fine
-# DON bench <param> 2> bench.txt 1>&2 // merge std::cerr into std::cout
 
 ### 2.1. General and architecture defaults
 debug   = no
@@ -192,16 +192,16 @@ ifeq ($(ARCH),armv7-pop)
 endif
 
 ### ==========================================================================
-### Section 3. Low-level configuration
+### Section 3. Low-level Configuration
 ### ==========================================================================
 
-### 3.1 Selecting compiler (default = gcc)
+### 3.1 Compiler Selection (Default = gcc)
 
 CXXFLAGS    += -std=c++11 -Wall -Wcast-qual -fno-exceptions -fno-rtti -Wno-type-limits $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
 LDFLAGS     += $(EXTRALDFLAGS)
 
-# gcc (default)
+# Default (gcc)
 ifeq ($(COMP),)
 	COMP = gcc
 endif
@@ -218,18 +218,22 @@ endif
 ifeq ($(COMP),mingw)
 	comp = mingw
 
-	ifeq ($(bits),64)
-		ifeq ($(shell which x86_64-w64-mingw32-c++-posix),)
-			CXX = x86_64-w64-mingw32-c++
+	ifeq ($(UNAME),Linux)
+		ifeq ($(bits),64)
+			ifeq ($(shell which x86_64-w64-mingw32-c++-posix),)
+				CXX = x86_64-w64-mingw32-c++
+			else
+				CXX = x86_64-w64-mingw32-c++-posix
+			endif
 		else
-			CXX = x86_64-w64-mingw32-c++-posix
+			ifeq ($(shell which i686-w64-mingw32-c++-posix),)
+				CXX = i686-w64-mingw32-c++
+			else
+				CXX = i686-w64-mingw32-c++-posix
+			endif
 		endif
 	else
-		ifeq ($(shell which i686-w64-mingw32-c++-posix),)
-			CXX = i686-w64-mingw32-c++
-		else
-			CXX = i686-w64-mingw32-c++-posix
-		endif
+		CXX = g++
 	endif
 
 	CXXFLAGS += -Wextra -Wshadow
@@ -361,7 +365,7 @@ ifeq ($(bsfq),yes)
 	CXXFLAGS += -DBSFQ
 endif
 
-### 3.9 ABM (Adv Bit Manipulation)
+### 3.9 ABM (Advance Bit Manipulation)
 ifeq ($(abm),yes)
 	CXXFLAGS += -DABM
 	ifeq ($(comp),icc)
@@ -371,7 +375,7 @@ ifeq ($(abm),yes)
 	endif
 endif
 
-### 3.10 BM2 (Bit Manipulation 2)
+### 3.10 BM2 (Bit Manipulation Instruction Set 2)
 ifeq ($(bm2),yes)
 	CXXFLAGS += -DBM2
 	ifeq ($(comp),$(filter $(comp),gcc clang mingw))

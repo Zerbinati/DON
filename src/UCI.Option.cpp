@@ -9,9 +9,7 @@
 #include "Searcher.h"
 #include "TBsyzygy.h"
 #include "Debugger.h"
-#ifdef LPAGES
-#   include "MemoryHandler.h"
-#endif
+#include "MemoryHandler.h"
 
 UCI::OptionMap  Options; // Global string mapping of Options
 
@@ -23,9 +21,6 @@ namespace UCI {
     using namespace Searcher;
     using namespace TBSyzygy;
     using namespace Debugger;
-#ifdef LPAGES
-    using namespace Memory;
-#endif
 
     Option::Option (OnChange on_change)
         : _type ("button")
@@ -145,7 +140,7 @@ namespace UCI {
 #   ifdef LPAGES
         void change_memory ()
         {
-            LargePages = bool(Options["Large Pages"]);
+            Memory::LargePages = bool(Options["Large Pages"]);
             TT.resize ();
         }
 #   endif
@@ -302,7 +297,7 @@ namespace UCI {
                                                            Table::MaxSize, change_hash_size);
 
 #ifdef LPAGES
-        Options["Large Pages"]                  << Option (LargePages, change_memory);
+        Options["Large Pages"]                  << Option (Memory::LargePages, change_memory);
 #endif
 
         // Button to clear the Hash Memory.

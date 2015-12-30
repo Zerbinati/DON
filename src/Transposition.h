@@ -25,7 +25,6 @@ namespace Transposition {
     //  Total------- 80 bits = 10 bytes
     struct Entry
     {
-
     private:
         u16 _key16  = U64(0);
         u16 _move   = MOVE_NONE;
@@ -82,7 +81,7 @@ namespace Transposition {
         static const u08 Size;
 
         Entry entries[EntryCount];
-        char padding[CacheLineSize/2-EntryCount*sizeof (Entry)]; // Align to a divisor of the cache line size
+        char padding[2]; // Align to a divisor of the cache line size
     };
 
     // Transposition::Table consists of a power of 2 number of clusters

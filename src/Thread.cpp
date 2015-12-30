@@ -62,8 +62,8 @@ TimePoint TimeManager::elapsed_time () const
 {
     return TimePoint(NodesTime != 0 ? Threadpool.game_nodes () : now () - Limits.start_time);
 }
-// TimeManager::initialize() is called at the beginning of the search and
-// calculates the allowed thinking time out of the time control and current game ply.
+// TimeManager::initialize() is called at the beginning of the search.
+// It calculates the allowed thinking time out of the time control and current game ply.
 void TimeManager::initialize (Color c, i16 ply)
 {
     // If we have to play in 'Nodes as Time' mode, then convert from time
@@ -118,7 +118,8 @@ void TimeManager::initialize (Color c, i16 ply)
         _optimum_time += _optimum_time / 4;
     }
 }
-
+// TimeManager::update() is called at the end of the search.
+// It updates the allowed thinking time.
 void TimeManager::update (Color c)
 {
     // When playing in 'Nodes as Time' mode,
@@ -188,7 +189,7 @@ namespace Threading {
             delete back ();
             pop_back ();
         }
-
+        shrink_to_fit ();
         sync_cout << "info string Thread(s) " << threads << "." << sync_endl;
     }
     // ThreadPool::initialize() is called at startup to create and launch
@@ -197,6 +198,7 @@ namespace Threading {
     // and require a fully initialized engine.
     void ThreadPool::initialize ()
     {
+        assert(empty ());
         push_back (new MainThread);
         configure ();
     }
@@ -204,6 +206,7 @@ namespace Threading {
     // Cannot be done in destructor because threads must be terminated before freeing ThreadPool.
     void ThreadPool::deinitialize ()
     {
+        assert(!empty ());
         while (!empty ())
         {
             delete back ();

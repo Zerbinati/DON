@@ -433,7 +433,7 @@ namespace Evaluator {
                         }
 
                         // Penalty for pawns on same color square of bishop
-                        score -= BishopPawned * ei.pe->pawns_on_squarecolor (Own, s);
+                        score -= BishopPawned * ei.pe->pawns_on_squarecolor<Own> (s);
 
                         if (s == rel_sq (Own, SQ_A8) || s == rel_sq (Own, SQ_H8))
                         {
@@ -473,19 +473,19 @@ namespace Evaluator {
                     }
 
                     // Bonus for rook when on an open or semi-open file
-                    if (ei.pe->file_semiopen (Own, _file (s)))
+                    if (ei.pe->file_semiopen<Own> (_file (s)))
                     {
-                        score += ei.pe->file_semiopen (Opp, _file (s)) ? RookOnOpenFile : RookOnSemiOpenFile;
+                        score += ei.pe->file_semiopen<Opp> (_file (s)) ? RookOnOpenFile : RookOnSemiOpenFile;
                     }
 
                     // Penalty for rook when trapped by the king, even more if king can't castle
-                    if (mob <= 3 && !ei.pe->file_semiopen (Own, _file (s)))
+                    if (mob <= 3 && !ei.pe->file_semiopen<Own> (_file (s)))
                     {
                         auto fk_sq = pos.square<KING> (Own);
                         // Rooks trapped by own king, more if the king has lost its castling capability.
                         if (   (_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq))
                             && (rel_rank (Own, fk_sq) == R_1 || _rank (fk_sq) == _rank (s))
-                            && !ei.pe->side_semiopen (Own, _file (fk_sq), _file (s) < _file (fk_sq))
+                            && !ei.pe->side_semiopen<Own> (_file (fk_sq), _file (s) < _file (fk_sq))
                            )
                         {
                             score -= (RookTrapped - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (Own));
