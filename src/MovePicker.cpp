@@ -210,7 +210,8 @@ namespace MovePick {
         case S_QCAPTURE_2:
         case S_PROBCUT_CAPTURE:
         case S_ALL_RECAPTURE:
-            _moves_end = generate<CAPTURE> (_moves_beg, _pos);
+            _moves_end = _stage != S_ALL_RECAPTURE || _recapture_sq != SQ_NO ?
+                generate<CAPTURE> (_moves_beg, _pos) : _moves_beg;
             if (_moves_cur < _moves_end-1)
             {
                 value<CAPTURE> ();
@@ -400,11 +401,6 @@ namespace MovePick {
             case S_ALL_RECAPTURE:
                 do
                 {
-                    if (_recapture_sq == SQ_NO)
-                    {
-                        _moves_cur = _moves_end;
-                        break;
-                    }
                     move = pick_best (_moves_cur++, _moves_end);
                     if (   move != _tt_move
                         && dst_sq (move) == _recapture_sq

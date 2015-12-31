@@ -2843,162 +2843,164 @@ namespace TBSyzygy {
         }
 
         free_entries ();
-
-        convert_path (PathString);
-        if (white_spaces (PathString) || PathString == "<empty>") return;
-
-        Paths = split (PathString, SepChar, false, true);
-
-        LOCK_INIT (TB_mutex);
-
         clear_tb ();
 
-        ostringstream ss;
+        convert_path (PathString);
+        if (!white_spaces (PathString) && PathString != "<empty>")
+        {
+            Paths = split (PathString, SepChar, false, true);
 
-        // 3-men files
-        for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
-        {
-            ss.str (""); ss << "K" << PieceChar[wp1] << "vK";
-            init_tb (ss.str ());
-        }
-        // 4-men files
-        for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
-        {
-            for (u08 bp1 = wp1; bp1 < NONE; ++bp1)
+            LOCK_INIT (TB_mutex);
+
+            ostringstream ss;
+
+            // 3-men files
+            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
             {
-                ss.str (""); ss << "K" << PieceChar[wp1] << "vK" << PieceChar[bp1];
+                ss.str (""); ss << "K" << PieceChar[wp1] << "vK";
                 init_tb (ss.str ());
             }
-        }
-        for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
-        {
-            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
-            {
-                ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK";
-                init_tb (ss.str ());
-            }
-        }
-        // 5-men files
-        for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
-        {
-            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
-            {
-                for (u08 bp1 = PAWN+1; bp1 < NONE; ++bp1)
-                {
-                    ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1];
-                    init_tb (ss.str ());
-                }
-            }
-        }
-        for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
-        {
-            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
-            {
-                for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
-                {
-                    ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK";
-                    init_tb (ss.str ());
-                }
-            }
-        }
-        // 6-men files
-        for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
-        {
-            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+            // 4-men files
+            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
             {
                 for (u08 bp1 = wp1; bp1 < NONE; ++bp1)
                 {
-                    for (u08 bp2 = (wp1 == bp1) ? wp2 : bp1; bp2 < NONE; ++bp2)
-                    {
-                        ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1] << PieceChar[bp2];
-                        init_tb (ss.str ());
-                    }
+                    ss.str (""); ss << "K" << PieceChar[wp1] << "vK" << PieceChar[bp1];
+                    init_tb (ss.str ());
                 }
             }
-        }
-        for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
-        {
-            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
             {
-                for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                {
+                    ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK";
+                    init_tb (ss.str ());
+                }
+            }
+            // 5-men files
+            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            {
+                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
                 {
                     for (u08 bp1 = PAWN+1; bp1 < NONE; ++bp1)
                     {
-                        ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1];
+                        ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1];
                         init_tb (ss.str ());
                     }
                 }
             }
-        }
-        for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
-        {
-            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
             {
-                for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
                 {
-                    for (u08 wp4 = wp3; wp4 < NONE; ++wp4)
+                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
                     {
-                        ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK";
+                        ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK";
                         init_tb (ss.str ());
                     }
                 }
             }
-        }
-        /*
-        // 7-men files
-        for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
-        {
-            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+            // 6-men files
+            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
             {
-                for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
                 {
-                    for (u08 bp1 = PAWN+1; bp1 < NONE; ++bp1)
+                    for (u08 bp1 = wp1; bp1 < NONE; ++bp1)
                     {
-                        for (u08 bp2 = bp1; bp2 < NONE; ++bp2)
+                        for (u08 bp2 = (wp1 == bp1) ? wp2 : bp1; bp2 < NONE; ++bp2)
                         {
-                            ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1] << PieceChar[bp2];
+                            ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1] << PieceChar[bp2];
                             init_tb (ss.str ());
                         }
                     }
                 }
             }
-        }
-        for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
-        {
-            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
             {
-                for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
                 {
-                    for (u08 wp4 = wp3; wp4 < NONE; ++wp4)
+                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
                     {
                         for (u08 bp1 = PAWN+1; bp1 < NONE; ++bp1)
                         {
-                            ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK" << PieceChar[bp1];
+                            ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1];
                             init_tb (ss.str ());
                         }
                     }
                 }
             }
-        }
-        for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
-        {
-            for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
             {
-                for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
                 {
-                    for (u08 wp4 = wp3; wp4 < NONE; ++wp4)
+                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
                     {
-                        for (u08 wp5 = wp4; wp5 < NONE; ++wp5)
+                        for (u08 wp4 = wp3; wp4 < NONE; ++wp4)
                         {
-                            ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << PieceChar[wp5] << "vK";
+                            ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK";
                             init_tb (ss.str ());
                         }
                     }
                 }
             }
+            /*
+            // 7-men files
+            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            {
+                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                {
+                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                    {
+                        for (u08 bp1 = PAWN+1; bp1 < NONE; ++bp1)
+                        {
+                            for (u08 bp2 = bp1; bp2 < NONE; ++bp2)
+                            {
+                                ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1] << PieceChar[bp2];
+                                init_tb (ss.str ());
+                            }
+                        }
+                    }
+                }
+            }
+            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            {
+                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                {
+                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                    {
+                        for (u08 wp4 = wp3; wp4 < NONE; ++wp4)
+                        {
+                            for (u08 bp1 = PAWN+1; bp1 < NONE; ++bp1)
+                            {
+                                ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK" << PieceChar[bp1];
+                                init_tb (ss.str ());
+                            }
+                        }
+                    }
+                }
+            }
+            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            {
+                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                {
+                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                    {
+                        for (u08 wp4 = wp3; wp4 < NONE; ++wp4)
+                        {
+                            for (u08 wp5 = wp4; wp5 < NONE; ++wp5)
+                            {
+                                ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << PieceChar[wp5] << "vK";
+                                init_tb (ss.str ());
+                            }
+                        }
+                    }
+                }
+            }
+            */
         }
-        */
+
         std::cout << "info string " << (TB_PieceCount + TB_PawnCount) << " Syzygy Tablebases found." << std::endl;
+
     }
 
 }
