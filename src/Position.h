@@ -167,7 +167,7 @@ public:
 
     Piece    operator[] (Square s)      const;
     //Bitboard operator[] (Color  c)      const;
-    //Bitboard operator[] (PieceType pt)     const;
+    //Bitboard operator[] (PieceType pt)  const;
     const Square* operator[] (Piece p)  const;
 
     bool     empty  (Square s)  const;

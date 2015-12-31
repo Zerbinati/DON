@@ -247,7 +247,7 @@ namespace EndGame {
         // If the stronger side's king is in front of the pawn, it's a win. or
         // If the weaker side's king is too far from the pawn and the rook, it's a win.
         if (   (sk_sq < wp_sq && _file (sk_sq) == _file (wp_sq))
-            || (   dist (wk_sq, wp_sq) >= 3 + (pos.active () == _weak_side)
+            || (   dist (wk_sq, wp_sq) >= 3 + (pos.active () == _weak_side ? 1 : 0)
                 && dist (wk_sq, sr_sq) >= 3
                )
            )
@@ -259,7 +259,7 @@ namespace EndGame {
         if (   _rank (wk_sq) <= R_3
             && dist (wk_sq, wp_sq) == 1
             && _rank (sk_sq) >= R_4
-            && dist (sk_sq, wp_sq) > 2 + (pos.active () == _strong_side)
+            && dist (sk_sq, wp_sq) > 2 + (pos.active () == _strong_side ? 1 : 0)
            )
         {
             value = Value(80 - 8 * dist (sk_sq, wp_sq));
@@ -318,7 +318,7 @@ namespace EndGame {
         auto wn_sq = pos.square<NIHT> (  _weak_side);
 
         // If weaker king is near the knight, it's a draw.
-        if (   dist (wk_sq, wn_sq) + (pos.active () == _strong_side) <= 3
+        if (   dist (wk_sq, wn_sq) + (pos.active () == _strong_side ? 1 : 0) <= 3
             && dist (sk_sq, wn_sq) > 1
            )
         {
@@ -409,7 +409,7 @@ namespace EndGame {
                   + PushClose[dist (sk_sq, wk_sq)] // Bring attacking king close to defending king
                   + PushAway [dist (wk_sq, wn_sq)] // Driving the defending king and knight apart
                   + PushToCorner[wk_sq]
-                  + PushToEdge[wn_sq];            // Restricting the knight's mobility
+                  + PushToEdge[wn_sq];             // Restricting the knight's mobility
         }
         else
         {
@@ -450,7 +450,7 @@ namespace EndGame {
         auto f = _file (sp_sq);
         auto r = _rank (sp_sq);
         auto promote_sq = f|R_8;
-        i32 tempo = (pos.active () == _strong_side);
+        i32 tempo = pos.active () == _strong_side ? 1 : 0;
 
         // If the pawn is not too far advanced and the defending king defends the
         // queening square, use the third-rank defence.

@@ -1,7 +1,7 @@
 #include "Evaluator.h"
 
 #include <iomanip>
-#include <sstream>
+#include <ostream>
 
 #include "Pawns.h"
 #include "Material.h"
@@ -326,7 +326,6 @@ namespace Evaluator {
                                                         (rel_rank (Opp, pos.square<KING> (Opp)) < R_5 ? PawnPassSpan[Opp][pos.square<KING> (Opp)] :
                                                          rel_rank (Opp, pos.square<KING> (Opp)) < R_7 ? PawnPassSpan[Opp][pos.square<KING> (Opp)]|PawnPassSpan[Own][pos.square<KING> (Opp)] :
                                                                                                         PawnPassSpan[Own][pos.square<KING> (Opp)]));
-
                 if ((king_attacks & ei.pin_attacked_by[Own][PAWN]) != U64(0))
                 {
                     auto attackers = pos.pieces (Own, PAWN) & (king_attacks|(DistRings_bb[pos.square<KING> (Opp)][1] & (rank_bb (pos.square<KING> (Opp)-Push)|rank_bb (pos.square<KING> (Opp)))));
@@ -1137,9 +1136,9 @@ namespace Evaluator {
             +evaluate<true> (pos) :
             -evaluate<true> (pos);
 
-        stringstream ss;
+        ostringstream oss;
 
-        ss  << showpos << showpoint << setprecision (2) << fixed
+        oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed
             << "         Entity |    White    |    Black    |     Total    \n"
             << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
             << "----------------+-------------+-------------+--------------\n"
@@ -1158,9 +1157,9 @@ namespace Evaluator {
             << "----------------+-------------+-------------+--------------\n"
             << "          Total" << Term(TOTAL)
             << "\nEvaluation: " << value_to_cp (value) << " (white side)\n"
-            << noshowpoint << noshowpos;
+            << std::noshowpoint << std::noshowpos;
 
-        return ss.str ();
+        return oss.str ();
     }
 
     // initialize() init evaluation weights
