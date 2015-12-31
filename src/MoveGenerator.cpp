@@ -17,7 +17,7 @@ namespace MoveGen {
 
         public:
             // Generates piece common move
-            static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
+            static ValMove* generate (ValMove *moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
                 assert(PT == NIHT || PT == BSHP || PT == ROOK || PT == QUEN);
 
@@ -48,6 +48,7 @@ namespace MoveGen {
 
                     while (attacks != U64(0)) { *moves++ = mk_move (s, pop_lsq (attacks)); }
                 }
+                return moves;
             }
         };
 
@@ -60,7 +61,7 @@ namespace MoveGen {
 
             template<CRight CR, bool Chess960>
             // Generates KING castling move
-            static void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci)
+            static ValMove* generate_castling (ValMove *moves, const Position &pos, const CheckInfo *ci)
             {
                 assert(GT != EVASION);
                 assert(!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64(0));
@@ -77,7 +78,7 @@ namespace MoveGen {
                 auto step = king_dst > king_org ? DEL_E : DEL_W;
                 for (auto s = king_dst; s != king_org; s -= step)
                 {
-                    if (pos.attackers_to (s, Opp) != U64(0)) return;
+                    if (pos.attackers_to (s, Opp) != U64(0)) return moves;
                 }
 
                 if (Chess960)
@@ -85,14 +86,14 @@ namespace MoveGen {
                     // Because generate only legal castling moves needed to verify that
                     // when moving the castling rook do not discover some hidden checker.
                     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-                    if ((attacks_bb<ROOK> (king_dst, pos.pieces () - rook_org) & pos.pieces (Opp, ROOK, QUEN)) != U64(0)) return;
+                    if ((attacks_bb<ROOK> (king_dst, pos.pieces () - rook_org) & pos.pieces (Opp, ROOK, QUEN)) != U64(0)) return moves;
                 }
 
                 auto m = mk_move<CASTLE> (king_org, rook_org);
 
                 if (GT == CHECK || GT == QUIET_CHECK)
                 {
-                    if (!pos.gives_check (m, *ci)) return;
+                    if (!pos.gives_check (m, *ci)) return moves;
                 }
                 else
                 {
@@ -100,17 +101,18 @@ namespace MoveGen {
                 }
 
                 *moves++ = m;
+                return moves;
             }
 
         public:
             // template<GenType GT, Color Own>
             // void Generator<GT, Own, KING>::generate()
             // Generates KING common move
-            static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
+            static ValMove* generate (ValMove *moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
                 const auto Opp = Own == WHITE ? BLACK : WHITE;
 
-                if (GT == EVASION) return;
+                if (GT == EVASION) return moves;
 
                 if (GT != CHECK && GT != QUIET_CHECK)
                 {
@@ -127,7 +129,7 @@ namespace MoveGen {
                             && !pos.castle_impeded (Castling<Own, CS_KING>::Right)
                            )
                         {
-                            pos.chess960 () ?
+                            moves = pos.chess960 () ?
                                 generate_castling<Castling<Own, CS_KING>::Right, true > (moves, pos, ci) :
                                 generate_castling<Castling<Own, CS_KING>::Right, false> (moves, pos, ci);
                         }
@@ -135,12 +137,13 @@ namespace MoveGen {
                             && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right)
                            )
                         {
-                            pos.chess960 () ?
+                            moves = pos.chess960 () ?
                                 generate_castling<Castling<Own, CS_QUEN>::Right, true > (moves, pos, ci) :
                                 generate_castling<Castling<Own, CS_QUEN>::Right, false> (moves, pos, ci);
                         }
                     }
                 }
+                return moves;
             }
         };
 
@@ -153,7 +156,7 @@ namespace MoveGen {
 
             template<Delta Del>
             // Generates PAWN promotion move
-            static void generate_promotion (ValMove *&moves, Square dst, const CheckInfo *ci)
+            static ValMove* generate_promotion (ValMove *moves, Square dst, const CheckInfo *ci)
             {
                 assert((DEL_NE == Del || DEL_NW == Del || DEL_SE == Del || DEL_SW == Del || DEL_N == Del || DEL_S == Del));
 
@@ -188,11 +191,12 @@ namespace MoveGen {
                 {
                     (void) ci; // Silence a warning under MSVC
                 }
+                return moves;
             }
 
         public:
             // Generates PAWN common move
-            static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
+            static ValMove* generate (ValMove *moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
                 const auto Opp      = Own == WHITE ? BLACK  : WHITE;
                 const auto Push     = Own == WHITE ? DEL_N  : DEL_S;
@@ -307,19 +311,20 @@ namespace MoveGen {
                         while (proms != U64(0)) generate_promotion<LCap> (moves, pop_lsq (proms), ci);
                     }
                 }
+                return moves;
             }
         };
 
         template<GenType GT, Color Own>
         // Generates all pseudo-legal moves of color for targets.
-        ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
+        ValMove* generate_moves (ValMove *moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
-            Generator<GT, Own, PAWN>::generate (moves, pos, targets, ci);
-            /*if (pos.count<NIHT> (Own) !=0)*/ Generator<GT, Own, NIHT>::generate (moves, pos, targets, ci);
-            /*if (pos.count<BSHP> (Own) !=0)*/ Generator<GT, Own, BSHP>::generate (moves, pos, targets, ci);
-            /*if (pos.count<ROOK> (Own) !=0)*/ Generator<GT, Own, ROOK>::generate (moves, pos, targets, ci);
-            /*if (pos.count<QUEN> (Own) !=0)*/ Generator<GT, Own, QUEN>::generate (moves, pos, targets, ci);
-            Generator<GT, Own, KING>::generate (moves, pos, targets, ci);
+            moves = Generator<GT, Own, PAWN>::generate (moves, pos, targets, ci);
+            /*if (pos.count<NIHT> (Own) !=0)*/ moves = Generator<GT, Own, NIHT>::generate (moves, pos, targets, ci);
+            /*if (pos.count<BSHP> (Own) !=0)*/ moves = Generator<GT, Own, BSHP>::generate (moves, pos, targets, ci);
+            /*if (pos.count<ROOK> (Own) !=0)*/ moves = Generator<GT, Own, ROOK>::generate (moves, pos, targets, ci);
+            /*if (pos.count<QUEN> (Own) !=0)*/ moves = Generator<GT, Own, QUEN>::generate (moves, pos, targets, ci);
+            moves = Generator<GT, Own, KING>::generate (moves, pos, targets, ci);
             return moves;
         }
 
