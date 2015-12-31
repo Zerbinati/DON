@@ -105,8 +105,11 @@ namespace MovePick {
         else
         {
             _stage = S_RECAPTURE;
-            _recapture_sq = dst_sq;
-            ttm = MOVE_NONE;
+            if (dst_sq != SQ_NO)
+            {
+                _recapture_sq = dst_sq;
+                ttm = MOVE_NONE;
+            }
         }
 
         _tt_move =   ttm != MOVE_NONE
@@ -394,10 +397,14 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            //case S_RECAPTURE:
             case S_ALL_RECAPTURE:
                 do
                 {
+                    if (_recapture_sq == SQ_NO)
+                    {
+                        _moves_cur = _moves_end;
+                        break;
+                    }
                     move = pick_best (_moves_cur++, _moves_end);
                     if (   move != _tt_move
                         && dst_sq (move) == _recapture_sq
