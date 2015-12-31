@@ -7,7 +7,7 @@ class Position;
 
 namespace Evaluator {
 
-    // Tempo bonus. Must be visible to search.
+    // Tempo bonus.
     const Value Tempo = Value(20);
 
     template<bool Trace = false>

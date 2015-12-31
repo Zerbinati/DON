@@ -290,7 +290,7 @@ namespace TBSyzygy {
             i08 *data = (i08 *)mmap (nullptr, statbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
             if (data == (i08 *)(-1))
             {
-                std::cout << "Could not mmap() " << filename << "." << std::endl;
+                std::cout << "Could not mmap() " << filename << std::endl;
                 Engine::stop (EXIT_FAILURE);
             }
 #else
@@ -307,7 +307,7 @@ namespace TBSyzygy {
             i08 *data = (i08 *)MapViewOfFile (map, FILE_MAP_READ, 0, 0, 0);
             if (data == nullptr)
             {
-                std::cout << "MapViewOfFile() failed, filename = " << filename << suffix << ", error = " << GetLastError () << "." << std::endl;
+                std::cout << "MapViewOfFile() failed, filename = " << filename << suffix << ", error = " << GetLastError () << std::endl;
                 Engine::stop (EXIT_FAILURE);
             }
 #endif

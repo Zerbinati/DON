@@ -193,7 +193,10 @@ namespace Polyglot {
             //while (*this >> pe, pe.key == key && good ())
             //{
             //    pes.push_back (pe);
-            //    max_weight = max (max_weight, pe.weight);
+            //    if (max_weight < pe.weight)
+            //    {
+            //        max_weight = pe.weight;
+            //    }
             //    weight_sum += pe.weight;
             //}
             //if (!pes.size ()) return MOVE_NONE;
@@ -238,7 +241,10 @@ namespace Polyglot {
             {
                 if (pe == MOVE_NONE) continue; // Skip MOVE_NONE
 
-                max_weight = max (max_weight, pe.weight);
+                if (max_weight < pe.weight)
+                {
+                    max_weight = pe.weight;
+                }
                 weight_sum += pe.weight;
 
                 if (pick_best)

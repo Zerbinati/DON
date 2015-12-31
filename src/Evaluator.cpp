@@ -132,7 +132,7 @@ namespace Evaluator {
         enum WeightType : u08
         {
             PAWN_STRUCTURE,
-            PAWN_PASSED,
+            PAWN_PASSER,
             KING_SAFETY,
             SPACE_ACTIVITY,
             WT_NO,
@@ -141,7 +141,7 @@ namespace Evaluator {
         const Weight Weights[WT_NO]
         {
             { 214, 203 }, // Pawn Structure
-            { 193, 262 }, // Pawn Passing
+            { 193, 262 }, // Pawn Passer
             { 330,   0 }, // King Safety
             {  47,   0 }, // Space Activity
         };
@@ -203,11 +203,12 @@ namespace Evaluator {
         {
             MINOR,
             MAJOR,
+            CT_NO,
         };
         // ThreatByPiece[attacker category][attacked type] contains
         // bonuses according to which piece type attacks which one.
         // Attacks on lesser pieces which are pawn defended are not considered.
-        const Score ThreatByPiece[2][NONE] =
+        const Score ThreatByPiece[CT_NO][NONE] =
         {
             { S(0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S(0, 0) },  // Minor attackers
             { S(0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S(0, 0) },  // Major attackers
@@ -672,9 +673,8 @@ namespace Evaluator {
 
             auto score = SCORE_ZERO;
             Bitboard b;
-            Bitboard weak_nonpawns;
             // Non-pawn enemies attacked by any friendly pawn
-            weak_nonpawns =
+            auto weak_nonpawns =
                   (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
                 &  ei.pin_attacked_by[Own][PAWN];
             if (weak_nonpawns != U64(0))
@@ -695,16 +695,14 @@ namespace Evaluator {
                 }
             }
 
-            Bitboard weak_pieces;
             // Enemies not defended by pawn and attacked by any friendly piece
-            weak_pieces =
+            auto weak_pieces =
                 pos.pieces (Opp)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
 
-            Bitboard defended_nonpawns;
             // Non-pawn enemies defended by a pawn and attacked by any friendly piece
-            defended_nonpawns =
+            auto defended_nonpawns =
                 (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
                 &  ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
@@ -784,7 +782,7 @@ namespace Evaluator {
             {
                 auto s = pop_lsq (passed_pawns);
                 assert(pos.passed_pawn (Own, s));
-                
+
                 i32  r = rel_rank (Own, s) - R_2;
                 i32 rr = r * (r - 1);
 
@@ -860,7 +858,7 @@ namespace Evaluator {
                 score += mk_score (mg_value, eg_value) + PawnPassedScore[_file (s)];
             }
 
-            score *= Weights[PAWN_PASSED];
+            score *= Weights[PAWN_PASSER];
 
             if (Trace)
             {

@@ -68,12 +68,12 @@ namespace Transposition {
         _mem = calloc (mem_size + alignment-1, 1);
         if (_mem != nullptr)
         {
-            sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
+            sync_cout << "info string Hash " << (mem_size >> 20) << " MB" << sync_endl;
             _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_mem) + alignment-1) & ~uintptr_t(alignment-1));
             assert((uintptr_t(_clusters) & (alignment-1)) == 0);
             return;
         }
-        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB." << std::endl;
+        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << std::endl;
 
     #endif
 

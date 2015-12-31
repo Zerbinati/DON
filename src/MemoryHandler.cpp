@@ -12,7 +12,7 @@
 #   include <tchar.h>
 #   include <cstdio>
 
-// disable macros min() and max()
+// Disable macros min() and max()
 #   ifndef  NOMINMAX
 #       define NOMINMAX
 #   endif
@@ -143,7 +143,7 @@ namespace Memory {
             {
                 PagesUsed = true;
                 std::memset (mem_ref, 0x00, mem_size);
-                sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                 return;
             }
 
@@ -157,10 +157,10 @@ namespace Memory {
             {
                 PagesUsed = true;
                 std::memset (mem_ref, 0x00, mem_size);
-                sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                 return;
             }
-            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << (mem_size >> 20) << " MB." << std::endl;
+            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << (mem_size >> 20) << " MB" << std::endl;
 
 #   else
 
@@ -172,10 +172,10 @@ namespace Memory {
                 {
                     LargePages = true;
                     std::memset (mem_ref, 0x00, mem_size);
-                    sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                    sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB." << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB" << std::endl;
                 if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
                     std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
@@ -190,17 +190,17 @@ namespace Memory {
                 {
                     LargePages = true;
                     std::memset (mem_ref, 0x00, mem_size);
-                    sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                    sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB." << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB" << std::endl;
                 if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
                     std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
                 }
                 return;
             }
-            std::cerr << "ERROR: shmget() shared memory alloc failed." << (mem_size >> 20) << " MB." << std::endl;
+            std::cerr << "ERROR: shmget() shared memory alloc failed." << (mem_size >> 20) << " MB" << std::endl;
 
 #   endif
         }
@@ -209,11 +209,11 @@ namespace Memory {
         if (mem_ref != nullptr)
         {
             std::memset (mem_ref, 0x00, mem_size);
-            sync_cout << "info string No Pages Hash " << (mem_size >> 20) << " MB." << sync_endl;
+            sync_cout << "info string No Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
             return;
         }
 
-        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB." << std::endl;
+        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << std::endl;
     }
 
     void  free_memory (void *mem)

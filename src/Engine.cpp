@@ -94,7 +94,7 @@ namespace Engine {
     void run (const string &arg)
     {
         std::cout << info (false) << std::endl;
-        std::cout << "info string " << std::thread::hardware_concurrency () << " processor(s) detected." << std::endl;
+        std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency () << std::endl;
 
         UCI      ::initialize ();
         BitBoard ::initialize ();

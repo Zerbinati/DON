@@ -190,7 +190,7 @@ namespace Threading {
             pop_back ();
         }
         shrink_to_fit ();
-        sync_cout << "info string Thread(s) " << threads << "." << sync_endl;
+        sync_cout << "info string Thread(s) used " << threads << sync_endl;
     }
     // ThreadPool::initialize() is called at startup to create and launch
     // requested threads, that will go immediately to sleep.
