@@ -40,7 +40,7 @@ private:
 
 public:
 
-    u64     available_nodes  = U64(0); // When in 'nodes as time' mode
+    u64     available_nodes  = U64(0); // When in 'Nodes as Time' mode
     double  best_move_change = 0.0;
 
     TimePoint available_time () const { return TimePoint(_optimum_time * _instability_factor * 1.016); }
@@ -107,7 +107,7 @@ public:
             StateInfo si[LineSize-1];
             for (u08 i = 0; i < LineSize-1; ++i)
             {
-                pos.do_move (pv[i], si[i], pos.gives_check (pv[i], CheckInfo (pos)));
+                pos.do_move (_pv[i], si[i], pos.gives_check (_pv[i], CheckInfo (pos)));
             }
             _posi_key = pos.posi_key ();
             for (u08 i = 0; i < LineSize-1; ++i)
@@ -122,7 +122,7 @@ namespace Threading {
 
     const u16 MaxThreads = 128; // Maximum Threads
 
-    // Thread struct keeps together all the thread related stuff like.
+    // Thread class keeps together all the thread related stuff like.
     // It also use pawn and material hash tables so that once get a pointer
     // to an entry its life time is unlimited and don't have to care about
     // someone changing the entry under its feet.
@@ -233,11 +233,11 @@ namespace Threading {
         virtual void search () override;
     };
 
-    // ThreadPool struct handles all the threads related stuff like
-    // - initializing
+    // ThreadPool class handles all the threads related stuff like
+    // - initializing & deinitializing
     // - starting
     // - parking
-    // - launching a thread.
+    // - launching.
     // All the access to shared thread data is done through this.
     class ThreadPool
         : public std::vector<Thread*>

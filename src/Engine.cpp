@@ -47,7 +47,7 @@ namespace Engine {
         if (uci) oss << "id name ";
         oss << "DON ";
 
-        oss << setfill ('0');
+        oss << std::setfill ('0');
 #if defined (VER)
         oss << VER;
 #else
@@ -57,16 +57,16 @@ namespace Engine {
             istringstream iss (__DATE__);
             string month, day, year;
             iss >> month >> day >> year;
-            oss << setw (2) << day
-                << setw (2) << index_month (month)
-                << setw (2) << year.substr (2);
+            oss << std::setw (2) << day
+                << std::setw (2) << index_month (month)
+                << std::setw (2) << year.substr (2);
         }
         else
         {
             oss << Version;
         }
 #endif
-        oss << setfill (' ');
+        oss << std::setfill (' ');
 
 #ifdef BIT64
         oss << ".64";

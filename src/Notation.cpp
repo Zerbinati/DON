@@ -70,11 +70,11 @@ namespace Notation {
             ostringstream oss;
             if (abs (v) < +VALUE_MATE - i32(MaxPly))
             {
-                oss << setprecision (2) << fixed << showpos << value_to_cp (pos.active () == WHITE ? +v : -v);
+                oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (pos.active () == WHITE ? +v : -v);
             }
             else
             {
-                oss << "#" << showpos << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
+                oss << "#" << std::showpos << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
             }
             return oss.str ();
         }
@@ -91,12 +91,12 @@ namespace Notation {
             time      /= 10;
 
             ostringstream oss;
-            oss << setfill ('0')
-                << setw (2) << hours   << ":"
-                << setw (2) << minutes << ":"
-                << setw (2) << seconds << "."
-                << setw (2) << time
-                << setfill (' ');
+            oss << std::setfill ('0')
+                << std::setw (2) << hours   << ":"
+                << std::setw (2) << minutes << ":"
+                << std::setw (2) << seconds << "."
+                << std::setw (2) << time
+                << std::setfill (' ');
             return oss.str ();
         }
 
@@ -279,23 +279,23 @@ namespace Notation {
 
         auto &root_pos = main_thread->root_pos;
 
-        oss << setw ( 4) << main_thread->root_depth
-            << setw ( 8) << pretty_value (main_thread->root_moves[0].new_value, root_pos)
-            << setw (12) << pretty_time (main_thread->time_mgr.elapsed_time ());
+        oss << std::setw ( 4) << main_thread->root_depth
+            << std::setw ( 8) << pretty_value (main_thread->root_moves[0].new_value, root_pos)
+            << std::setw (12) << pretty_time (main_thread->time_mgr.elapsed_time ());
 
         u64 game_nodes = Threadpool.game_nodes ();
         if (game_nodes < 1*M)
         {
-            oss << setw (8) << game_nodes / 1 << "  ";
+            oss << std::setw (8) << game_nodes / 1 << "  ";
         }
         else
         if (game_nodes < K*M)
         {
-            oss << setw (7) << game_nodes / K << "K  ";
+            oss << std::setw (7) << game_nodes / K << "K  ";
         }
         else
         {
-            oss << setw (7) << game_nodes / M << "M  ";
+            oss << std::setw (7) << game_nodes / M << "M  ";
         }
 
         StateStack states;

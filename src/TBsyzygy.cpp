@@ -232,7 +232,6 @@ namespace TBSyzygy {
 
         LOCK_T TB_mutex;
 
-        const u08 TotalPiece    = 16;
         const u08 TB_PieceLimit = 6;
 
         u16 TB_PieceCount   = 0,
@@ -240,11 +239,11 @@ namespace TBSyzygy {
         
         const u16 MaxTBPiece = 254;
         TBEntry_piece TB_Piece[MaxTBPiece];
-        const u16 MaxTBPawn   = 256;
+        const u16 MaxTBPawn  = 256;
         TBEntry_pawn  TB_Pawn [MaxTBPawn];
 
-        const u08 TBHashBits  = 10;
-        const u08 MaxHash     = 6;
+        const u08 TBHashBits = 10;
+        const u08 MaxHash    = 6;
         TBHashEntry TB_Hash[1 << TBHashBits][MaxHash];
 
         const u08 DTZ_Entries = 64;
@@ -377,6 +376,8 @@ namespace TBSyzygy {
 
         void init_tb (const string &filename)
         {
+            static const u08 TotalPiece = 16;
+
             FD fd = open_tb (filename, WDL_Suffix);
             if (fd == FD_ERR) return;
             close_tb (fd);

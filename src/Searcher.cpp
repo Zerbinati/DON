@@ -1058,7 +1058,7 @@ namespace Searcher {
                         sync_cout
                             << "info"
                             << " depth "          << depth/DEPTH_ONE
-                            << " currmovenumber " << setfill ('0') << setw (2) << main_thread->pv_index + move_count << setfill (' ')
+                            << " currmovenumber " << std::setfill ('0') << std::setw (2) << main_thread->pv_index + move_count << std::setfill (' ')
                             << " currmove "       << move_to_can (move, Chess960)
                             << " time "           << elapsed_time
                             << sync_endl;
@@ -1561,13 +1561,13 @@ namespace Searcher {
 
             if (RootNode)
             {
-                sync_cout << left
-                    << setw ( 7)
+                sync_cout << std::left
+                    << std::setw ( 7)
                     //<< move_to_can (vm.move, Chess960)
                     << move_to_san (vm.move, pos)
-                    << right << setfill ('.')
-                    << setw (16) << inter_nodes
-                    << setfill (' ') << left
+                    << std::right << std::setfill ('.')
+                    << std::setw (16) << inter_nodes
+                    << std::setfill (' ') << std::left
                     << sync_endl;
             }
 

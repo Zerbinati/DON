@@ -299,12 +299,12 @@ namespace UCI {
             if (token == "keys")
             {
                 sync_cout
-                    << hex << uppercase << setfill ('0')
-                    << "FEN: "                   << RootPos.fen ()      << "\n"
-                    << "Posi key: " << setw (16) << RootPos.posi_key () << "\n"
-                    << "Matl key: " << setw (16) << RootPos.matl_key () << "\n"
-                    << "Pawn key: " << setw (16) << RootPos.pawn_key ()
-                    << setfill (' ') << nouppercase << dec
+                    << std::hex << std::uppercase << std::setfill ('0')
+                    << "FEN: "                        << RootPos.fen ()      << "\n"
+                    << "Posi key: " << std::setw (16) << RootPos.posi_key () << "\n"
+                    << "Matl key: " << std::setw (16) << RootPos.matl_key () << "\n"
+                    << "Pawn key: " << std::setw (16) << RootPos.pawn_key ()
+                    << std::setfill (' ') << std::nouppercase << std::dec
                     << sync_endl;
             }
             else

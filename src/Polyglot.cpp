@@ -326,7 +326,7 @@ namespace Polyglot {
             if (pes.empty ())
             {
                 std::cerr
-                    << "ERROR: no such key... "
+                    << "ERROR: Position not found... "
                     << std::hex << std::uppercase << key << std::nouppercase << std::dec
                     << std::endl;
             }
@@ -337,7 +337,7 @@ namespace Polyglot {
                     oss << e << " prob: "
                         << std::setfill ('0') << std::fixed << std::width_prec (6, 2)
                         << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0)
-                        << /*std::defaultfloat <<*/ std::setfill (' ') << endl;
+                        << std::defaultfloat << std::setfill (' ') << std::endl;
                 });
             }
         }

@@ -1676,8 +1676,8 @@ Position::operator string () const
     oss << board << "\n\n";
 
     oss << "FEN: " << fen () << "\n"
-        << "Key: " << setfill ('0') << hex << uppercase << setw (16)
-        << _psi->posi_key << nouppercase << dec << setfill (' ') << "\n";
+        << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
+        << _psi->posi_key << std::nouppercase << std::dec << std::setfill (' ') << "\n";
 
     oss << "Checkers: ";
     auto chkrs = _psi->checkers;

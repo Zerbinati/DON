@@ -155,7 +155,7 @@ void benchmark (istream &is, const Position &cur_pos)
 
         std::cerr
             << "\n---------------\n"
-            << "Position: " << setw (2) << (i + 1) << "/" << fens.size () << " "
+            << "Position: " << std::setw (2) << (i + 1) << "/" << fens.size () << " "
             << fens[i] << std::endl;
 
         if (limit_type == "perft")
@@ -179,11 +179,11 @@ void benchmark (istream &is, const Position &cur_pos)
     auto elapsed_time = std::max (now () - start_time, TimePoint(1));
 
     dbg_print (); // Just before to exit
-    std::cerr << right
+    std::cerr << std::right
         << "\n===========================\n"
-        << "Total time (ms) :" << setw (10) << elapsed_time << "\n"
-        << "Nodes searched  :" << setw (10) << nodes        << "\n"
-        << "Nodes/second    :" << setw (10) << nodes * MilliSec / elapsed_time
+        << "Total time (ms) :" << std::setw (10) << elapsed_time << "\n"
+        << "Nodes searched  :" << std::setw (10) << nodes        << "\n"
+        << "Nodes/second    :" << std::setw (10) << nodes * MilliSec / elapsed_time
         << "\n---------------------------\n"    
-        << left << std::endl;
+        << std::left << std::endl;
 }
