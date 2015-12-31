@@ -2856,45 +2856,45 @@ namespace TBSyzygy {
             ostringstream ss;
 
             // 3-men files
-            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
             {
                 ss.str (""); ss << "K" << PieceChar[wp1] << "vK";
                 init_tb (ss.str ());
             }
             // 4-men files
-            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
             {
-                for (u08 bp1 = wp1; bp1 < NONE; ++bp1)
+                for (u08 bp1 = wp1; bp1 <= KING; ++bp1)
                 {
                     ss.str (""); ss << "K" << PieceChar[wp1] << "vK" << PieceChar[bp1];
                     init_tb (ss.str ());
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
             {
-                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
                 {
                     ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK";
                     init_tb (ss.str ());
                 }
             }
             // 5-men files
-            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
             {
-                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
                 {
-                    for (u08 bp1 = PAWN+1; bp1 < NONE; ++bp1)
+                    for (u08 bp1 = PAWN+1; bp1 <= KING; ++bp1)
                     {
                         ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1];
                         init_tb (ss.str ());
                     }
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
             {
-                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
                     {
                         ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK";
                         init_tb (ss.str ());
@@ -2902,13 +2902,13 @@ namespace TBSyzygy {
                 }
             }
             // 6-men files
-            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
             {
-                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
                 {
-                    for (u08 bp1 = wp1; bp1 < NONE; ++bp1)
+                    for (u08 bp1 = wp1; bp1 <= KING; ++bp1)
                     {
-                        for (u08 bp2 = (wp1 == bp1) ? wp2 : bp1; bp2 < NONE; ++bp2)
+                        for (u08 bp2 = (wp1 == bp1) ? wp2 : bp1; bp2 <= KING; ++bp2)
                         {
                             ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1] << PieceChar[bp2];
                             init_tb (ss.str ());
@@ -2916,13 +2916,13 @@ namespace TBSyzygy {
                     }
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
             {
-                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
                     {
-                        for (u08 bp1 = PAWN+1; bp1 < NONE; ++bp1)
+                        for (u08 bp1 = PAWN+1; bp1 <= KING; ++bp1)
                         {
                             ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1];
                             init_tb (ss.str ());
@@ -2930,13 +2930,13 @@ namespace TBSyzygy {
                     }
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
             {
-                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
                     {
-                        for (u08 wp4 = wp3; wp4 < NONE; ++wp4)
+                        for (u08 wp4 = wp3; wp4 <= KING; ++wp4)
                         {
                             ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK";
                             init_tb (ss.str ());
@@ -2946,15 +2946,15 @@ namespace TBSyzygy {
             }
             /*
             // 7-men files
-            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
             {
-                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
                     {
-                        for (u08 bp1 = PAWN+1; bp1 < NONE; ++bp1)
+                        for (u08 bp1 = PAWN+1; bp1 <= KING; ++bp1)
                         {
-                            for (u08 bp2 = bp1; bp2 < NONE; ++bp2)
+                            for (u08 bp2 = bp1; bp2 <= KING; ++bp2)
                             {
                                 ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1] << PieceChar[bp2];
                                 init_tb (ss.str ());
@@ -2963,15 +2963,15 @@ namespace TBSyzygy {
                     }
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
             {
-                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
                     {
-                        for (u08 wp4 = wp3; wp4 < NONE; ++wp4)
+                        for (u08 wp4 = wp3; wp4 <= KING; ++wp4)
                         {
-                            for (u08 bp1 = PAWN+1; bp1 < NONE; ++bp1)
+                            for (u08 bp1 = PAWN+1; bp1 <= KING; ++bp1)
                             {
                                 ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK" << PieceChar[bp1];
                                 init_tb (ss.str ());
@@ -2980,15 +2980,15 @@ namespace TBSyzygy {
                     }
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 < NONE; ++wp1)
+            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
             {
-                for (u08 wp2 = wp1; wp2 < NONE; ++wp2)
+                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 < NONE; ++wp3)
+                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
                     {
-                        for (u08 wp4 = wp3; wp4 < NONE; ++wp4)
+                        for (u08 wp4 = wp3; wp4 <= KING; ++wp4)
                         {
-                            for (u08 wp5 = wp4; wp5 < NONE; ++wp5)
+                            for (u08 wp5 = wp4; wp5 <= KING; ++wp5)
                             {
                                 ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << PieceChar[wp5] << "vK";
                                 init_tb (ss.str ());
