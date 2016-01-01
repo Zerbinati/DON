@@ -1855,6 +1855,9 @@ namespace TBSyzygy {
         // If the engine supports such a key, it should equal the engine's key.
         Key calc_key (Position &pos, bool mirror)
         {
+            assert(   pos.count<KING> (WHITE) == 1
+                   && pos.count<KING> (BLACK) == 1);
+
             Key key = U64(0);
             auto color = mirror ? BLACK : WHITE;
             for (auto pt = PAWN; pt <= KING; ++pt)
@@ -2404,7 +2407,7 @@ namespace TBSyzygy {
             VALUE_ZERO - 2,
             VALUE_ZERO,
             VALUE_ZERO + 2,
-            +VALUE_MATE - i32(MaxPly - 1),
+            +VALUE_MATE - i32(MaxPly + 1),
         };
     }
 

@@ -8,9 +8,9 @@ namespace MoveGen {
 
     namespace {
 
-        template<GenType GT, Color Own, PieceType PT>
+        template<GenType GT, PieceType PT>
         // Generates piece common move
-        void generate_piece (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
+        void generate_piece_moves (ValMove *&moves, const Position &pos, Color Own, Bitboard targets, const CheckInfo *ci = nullptr)
         {
             assert(PT == NIHT || PT == BSHP || PT == ROOK || PT == QUEN);
 
@@ -43,9 +43,9 @@ namespace MoveGen {
             }
         }
 
-        template<GenType GT, Color Own, CRight CR, bool Chess960>
+        template<GenType GT, CRight CR, bool Chess960>
         // Generates KING castling move
-        void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci)
+        void generate_castling_moves (ValMove *&moves, const Position &pos, Color Own, const CheckInfo *ci)
         {
             assert(GT != EVASION);
             assert(!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64(0));
@@ -86,14 +86,13 @@ namespace MoveGen {
 
             *moves++ = m;
         }
-
         template<GenType GT, Color Own>
         // Generates KING common move
-        void generate_king (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
+        void generate_king_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
-            const auto Opp = Own == WHITE ? BLACK : WHITE;
+            assert(GT != EVASION);
 
-            if (GT == EVASION) return;
+            const auto Opp = Own == WHITE ? BLACK : WHITE;
 
             if (GT != CHECK && GT != QUIET_CHECK)
             {
@@ -111,16 +110,16 @@ namespace MoveGen {
                         )
                     {
                         pos.chess960 () ?
-                            generate_castling<GT, Own, Castling<Own, CS_KING>::Right, true > (moves, pos, ci) :
-                            generate_castling<GT, Own, Castling<Own, CS_KING>::Right, false> (moves, pos, ci);
+                            generate_castling_moves<GT, Castling<Own, CS_KING>::Right, true > (moves, pos, Own, ci) :
+                            generate_castling_moves<GT, Castling<Own, CS_KING>::Right, false> (moves, pos, Own, ci);
                     }
                     if (    pos.can_castle (Castling<Own, CS_QUEN>::Right)
                         && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right)
                         )
                     {
                         pos.chess960 () ?
-                            generate_castling<GT, Own, Castling<Own, CS_QUEN>::Right, true > (moves, pos, ci) :
-                            generate_castling<GT, Own, Castling<Own, CS_QUEN>::Right, false> (moves, pos, ci);
+                            generate_castling_moves<GT, Castling<Own, CS_QUEN>::Right, true > (moves, pos, Own, ci) :
+                            generate_castling_moves<GT, Castling<Own, CS_QUEN>::Right, false> (moves, pos, Own, ci);
                     }
                 }
             }
@@ -128,7 +127,7 @@ namespace MoveGen {
 
         template<GenType GT, Delta Del>
         // Generates PAWN promotion move
-        void generate_promotion (ValMove *&moves, Square dst, const CheckInfo *ci)
+        void generate_promotion_moves (ValMove *&moves, Square dst, const CheckInfo *ci)
         {
             assert((DEL_NE == Del || DEL_NW == Del || DEL_SE == Del || DEL_SW == Del || DEL_N == Del || DEL_S == Del));
 
@@ -164,10 +163,9 @@ namespace MoveGen {
                 (void) ci; // Silence a warning under MSVC
             }
         }
-
         template<GenType GT, Color Own>
         // Generates PAWN common move
-        void generate_pawn (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
+        void generate_pawn_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
             const auto Opp      = Own == WHITE ? BLACK  : WHITE;
             const auto Push     = Own == WHITE ? DEL_N  : DEL_S;
@@ -273,13 +271,13 @@ namespace MoveGen {
                     // Promoting pawns
                     Bitboard proms;
                     proms = empties & shift_bb<Push> (R7_pawns);
-                    while (proms != U64(0)) generate_promotion<GT, Push> (moves, pop_lsq (proms), ci);
+                    while (proms != U64(0)) generate_promotion_moves<GT, Push> (moves, pop_lsq (proms), ci);
 
                     proms = enemies & shift_bb<RCap> (R7_pawns);
-                    while (proms != U64(0)) generate_promotion<GT, RCap> (moves, pop_lsq (proms), ci);
+                    while (proms != U64(0)) generate_promotion_moves<GT, RCap> (moves, pop_lsq (proms), ci);
 
                     proms = enemies & shift_bb<LCap> (R7_pawns);
-                    while (proms != U64(0)) generate_promotion<GT, LCap> (moves, pop_lsq (proms), ci);
+                    while (proms != U64(0)) generate_promotion_moves<GT, LCap> (moves, pop_lsq (proms), ci);
                 }
             }
         }
@@ -289,12 +287,12 @@ namespace MoveGen {
         // Generates all pseudo-legal moves of color for targets.
         ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
-            generate_pawn<GT, Own> (moves, pos, targets, ci);
-            /*if (pos.count<NIHT> (Own) !=0)*/ generate_piece<GT, Own, NIHT> (moves, pos, targets, ci);
-            /*if (pos.count<BSHP> (Own) !=0)*/ generate_piece<GT, Own, BSHP> (moves, pos, targets, ci);
-            /*if (pos.count<ROOK> (Own) !=0)*/ generate_piece<GT, Own, ROOK> (moves, pos, targets, ci);
-            /*if (pos.count<QUEN> (Own) !=0)*/ generate_piece<GT, Own, QUEN> (moves, pos, targets, ci);
-            generate_king<GT, Own> (moves, pos, targets, ci);
+            generate_pawn_moves<GT, Own> (moves, pos, targets, ci);
+            /*if (pos.count<NIHT> (Own) !=0)*/ generate_piece_moves<GT, NIHT> (moves, pos, Own, targets, ci);
+            /*if (pos.count<BSHP> (Own) !=0)*/ generate_piece_moves<GT, BSHP> (moves, pos, Own, targets, ci);
+            /*if (pos.count<ROOK> (Own) !=0)*/ generate_piece_moves<GT, ROOK> (moves, pos, Own, targets, ci);
+            /*if (pos.count<QUEN> (Own) !=0)*/ generate_piece_moves<GT, QUEN> (moves, pos, Own, targets, ci);
+            if (GT != EVASION) generate_king_moves<GT, Own> (moves, pos, targets, ci);
             return moves;
         }
 
@@ -352,7 +350,7 @@ namespace MoveGen {
             auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
             if (pt == KING)
             {
-                attacks &= ~PieceAttacks[QUEN][ci.king_sq];
+                attacks &= ~PieceAttacks[QUEN][ci.king_sq]; // Clear path for checker
             }
 
             while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
@@ -380,7 +378,7 @@ namespace MoveGen {
             auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
             if (pt == KING)
             {
-                attacks &= ~PieceAttacks[QUEN][ci.king_sq];
+                attacks &= ~PieceAttacks[QUEN][ci.king_sq]; // Clear path for checker
             }
 
             while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
@@ -446,9 +444,16 @@ namespace MoveGen {
         while (attacks != U64(0)) { *moves++ = mk_move (king_sq, pop_lsq (attacks)); }
 
         // If double-check, then only a king move can save the day, triple+ check not possible
-        if (more_than_one (checkers) || pos.count<NONE> (active) <= 1) return moves;
-
-        check_sq = check_sq == SQ_NO ? scan_lsq (checkers) : check_sq;
+        if (   more_than_one (checkers)
+            || pos.count<NONE> (active) <= 1
+           )
+        {
+            return moves;
+        }
+        if (check_sq == SQ_NO)
+        {
+            check_sq = scan_lsq (checkers);
+        }
         // Generates blocking evasions or captures of the checking piece
         auto targets = Between_bb[check_sq][king_sq] + check_sq;
 
