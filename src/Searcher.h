@@ -184,12 +184,12 @@ namespace Searcher {
 
         explicit operator std::string () const
         {
-            std::stringstream ss;
+            std::ostringstream oss;
             for (const auto &rm : *this)
             {
-                ss << rm << "\n";
+                oss << rm << "\n";
             }
-            return ss.str ();
+            return oss.str ();
         }
     };
 

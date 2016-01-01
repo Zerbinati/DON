@@ -318,7 +318,10 @@ namespace Searcher {
                 bool tb = TBHasRoot && abs (v) < VALUE_MATE - i32(MaxPly);
 
                 // Not at first line
-                if (ss.rdbuf ()->in_avail ()) ss << "\n";
+                if (ss.rdbuf ()->in_avail ())
+                {
+                    ss  << "\n";
+                }
 
                 ss  << "info"
                     << " multipv "  << i + 1
@@ -326,7 +329,7 @@ namespace Searcher {
                     << " seldepth " << main_thread->max_ply
                     << " score "    << to_string (tb ? ProbeValue : v);
                 if (!tb && i == main_thread->pv_index)
-                    ss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
+                    ss  << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
                 ss  << " nodes "    << game_nodes
                     << " time "     << elapsed_time
                     << " nps "      << game_nodes * MilliSec / elapsed_time;
@@ -1488,12 +1491,12 @@ namespace Searcher {
 
     RootMove::operator string () const
     {
-        stringstream ss;
+        ostringstream oss;
         for (const auto m : *this)
         {
-            ss << " " << move_to_can (m, Chess960);
+            oss << " " << move_to_can (m, Chess960);
         }
-        return ss.str ();
+        return oss.str ();
     }
 
     // ------------------------------------

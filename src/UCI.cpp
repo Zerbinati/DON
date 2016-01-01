@@ -87,14 +87,14 @@ namespace UCI {
                     // Read option-name (can contain spaces) also consume "value" token
                     while (iss >> token && !iss.fail () && token != "value")
                     {
-                        name += string (" ", white_spaces (name) ? 0 : 1) + token;
+                        name += string (" ", !white_spaces (name) ? 1 : 0) + token;
                     }
 
                     string value;
                     // Read option-value (can contain spaces)
                     while (iss >> token && !iss.fail ())
                     {
-                        value += string (" ", white_spaces (value) ? 0 : 1) + token;
+                        value += string (" ", !white_spaces (value) ? 1 : 0) + token;
                     }
 
                     if (Options.count (name) != 0)
@@ -262,14 +262,14 @@ namespace UCI {
                     // consume "value" token
                     while (iss >> token && !iss.fail () && token != "code")
                     {
-                        name += string (" ", white_spaces (name) ? 0 : 1) + token;
+                        name += string (" ", !white_spaces (name) ? 1 : 0) + token;
                     }
 
                     string code;
                     // Read code (can contain spaces)
                     while (iss >> token && !iss.fail ())
                     {
-                        code += string (" ", white_spaces (code) ? 0 : 1) + token;
+                        code += string (" ", !white_spaces (code) ? 1 : 0) + token;
                     }
                     //std::cout << name << "\n" << code << std::endl;
                 }

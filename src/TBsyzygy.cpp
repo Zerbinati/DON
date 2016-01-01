@@ -220,7 +220,7 @@ namespace TBSyzygy {
 
         PieceType tb_ptype (Piece p) { return (p & TOTL) != 0 ? PieceType((p & TOTL) - 1) : NONE; }
 
-        const char PieceChar[NONE] ={ 'K', 'Q', 'R', 'B', 'N', 'P' };
+        const char PieceChar[NONE] ={ 'P', 'N', 'B', 'R', 'Q', 'K' };
 
         const string WDL_Suffix = ".rtbw";
         const string DTZ_Suffix = ".rtbz";
@@ -1807,25 +1807,27 @@ namespace TBSyzygy {
         // where "KQP" represents the white pieces if mirror == false and the black pieces if mirror == true.
         string get_filename (const Position &pos, bool mirror)
         {
+            assert(   pos.count<KING> (WHITE) == 1
+                   && pos.count<KING> (BLACK) == 1);
+            
             string filename = "";
             Color color = mirror ? BLACK : WHITE;
             for (auto pt = KING; pt >= PAWN; --pt)
             {
-                for (i32 i = pop_count<Max15> (pos.pieces (color, pt)); i > 0; --i)
+                for (auto i = pos.count (color, pt); i > 0; --i)
                 {
-                    filename += PieceChar[NONE - (pt + 1)];
+                    filename += PieceChar[pt];
                 }
             }
             filename += 'v';
             color = ~color;
             for (auto pt = KING; pt >= PAWN; --pt)
             {
-                for (i32 i = pop_count<Max15> (pos.pieces (color, pt)); i > 0; --i)
+                for (auto i = pos.count (color, pt); i > 0; --i)
                 {
-                    filename += PieceChar[NONE - (pt + 1)];
+                    filename += PieceChar[pt];
                 }
             }
-            //filename += '\0';
             return filename;
         }
 
@@ -2153,7 +2155,7 @@ namespace TBSyzygy {
 
 
         // Add underpromotion captures to list of captures.
-        ValMove *generate_underprom_cap (ValMove *moves, ValMove *end, const Position &pos)
+        ValMove* generate_underprom_cap (ValMove *moves, ValMove *end, const Position &pos)
         {
             ValMove *extra = end;
             for (ValMove *cur = moves; cur < end; ++cur)
@@ -2853,145 +2855,145 @@ namespace TBSyzygy {
 
             LOCK_INIT (TB_mutex);
 
-            ostringstream ss;
+            ostringstream oss;
 
             // 3-men files
-            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
+            for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                ss.str (""); ss << "K" << PieceChar[wp1] << "vK";
-                init_tb (ss.str ());
+                oss.str (""); oss << "K" << PieceChar[wp1] << "vK";
+                init_tb (oss.str ());
             }
             // 4-men files
-            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
+            for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                for (u08 bp1 = wp1; bp1 <= KING; ++bp1)
+                for (i08 bp1 = wp1; bp1 >= PAWN; --bp1)
                 {
-                    ss.str (""); ss << "K" << PieceChar[wp1] << "vK" << PieceChar[bp1];
-                    init_tb (ss.str ());
+                    oss.str (""); oss << "K" << PieceChar[wp1] << "vK" << PieceChar[bp1];
+                    init_tb (oss.str ());
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
+            for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
+                for (i08 wp2 = wp1; wp2 >= PAWN; --wp2)
                 {
-                    ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK";
-                    init_tb (ss.str ());
+                    oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK";
+                    init_tb (oss.str ());
                 }
             }
             // 5-men files
-            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
+            for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
+                for (i08 wp2 = wp1; wp2 >= PAWN; --wp2)
                 {
-                    for (u08 bp1 = PAWN+1; bp1 <= KING; ++bp1)
+                    for (i08 bp1 = QUEN; bp1 >= PAWN; --bp1)
                     {
-                        ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1];
-                        init_tb (ss.str ());
+                        oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1];
+                        init_tb (oss.str ());
                     }
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
+            for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
+                for (i08 wp2 = wp1; wp2 >= PAWN; --wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
+                    for (i08 wp3 = wp2; wp3 >= PAWN; --wp3)
                     {
-                        ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK";
-                        init_tb (ss.str ());
+                        oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK";
+                        init_tb (oss.str ());
                     }
                 }
             }
             // 6-men files
-            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
+            for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
+                for (i08 wp2 = wp1; wp2 >= PAWN; --wp2)
                 {
-                    for (u08 bp1 = wp1; bp1 <= KING; ++bp1)
+                    for (i08 bp1 = wp1; bp1 >= PAWN; --bp1)
                     {
-                        for (u08 bp2 = (wp1 == bp1) ? wp2 : bp1; bp2 <= KING; ++bp2)
+                        for (i08 bp2 = (wp1 == bp1) ? wp2 : bp1; bp2 >= PAWN; --bp2)
                         {
-                            ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1] << PieceChar[bp2];
-                            init_tb (ss.str ());
+                            oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1] << PieceChar[bp2];
+                            init_tb (oss.str ());
                         }
                     }
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
+            for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
+                for (i08 wp2 = wp1; wp2 >= PAWN; --wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
+                    for (i08 wp3 = wp2; wp3 >= PAWN; --wp3)
                     {
-                        for (u08 bp1 = PAWN+1; bp1 <= KING; ++bp1)
+                        for (i08 bp1 = QUEN; bp1 >= PAWN; --bp1)
                         {
-                            ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1];
-                            init_tb (ss.str ());
+                            oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1];
+                            init_tb (oss.str ());
                         }
                     }
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
+            for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
+                for (i08 wp2 = wp1; wp2 >= PAWN; --wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
+                    for (i08 wp3 = wp2; wp3 >= PAWN; --wp3)
                     {
-                        for (u08 wp4 = wp3; wp4 <= KING; ++wp4)
+                        for (i08 wp4 = wp3; wp4 >= PAWN; --wp4)
                         {
-                            ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK";
-                            init_tb (ss.str ());
+                            oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK";
+                            init_tb (oss.str ());
                         }
                     }
                 }
             }
             /*
             // 7-men files
-            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
+            for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
+                for (i08 wp2 = wp1; wp2 >= PAWN; --wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
+                    for (i08 wp3 = wp2; wp3 >= PAWN; --wp3)
                     {
-                        for (u08 bp1 = PAWN+1; bp1 <= KING; ++bp1)
+                        for (i08 bp1 = QUEN; bp1 >= PAWN; --bp1)
                         {
-                            for (u08 bp2 = bp1; bp2 <= KING; ++bp2)
+                            for (i08 bp2 = bp1; bp2 >= PAWN; --bp2)
                             {
-                                ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1] << PieceChar[bp2];
-                                init_tb (ss.str ());
+                                oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1] << PieceChar[bp2];
+                                init_tb (oss.str ());
                             }
                         }
                     }
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
+            for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
+                for (i08 wp2 = wp1; wp2 >= PAWN; --wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
+                    for (i08 wp3 = wp2; wp3 >= PAWN; --wp3)
                     {
-                        for (u08 wp4 = wp3; wp4 <= KING; ++wp4)
+                        for (i08 wp4 = wp3; wp4 >= PAWN; --wp4)
                         {
-                            for (u08 bp1 = PAWN+1; bp1 <= KING; ++bp1)
+                            for (i08 bp1 = QUEN; bp1 >= PAWN; --bp1)
                             {
-                                ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK" << PieceChar[bp1];
-                                init_tb (ss.str ());
+                                oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK" << PieceChar[bp1];
+                                init_tb (oss.str ());
                             }
                         }
                     }
                 }
             }
-            for (u08 wp1 = PAWN+1; wp1 <= KING; ++wp1)
+            for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                for (u08 wp2 = wp1; wp2 <= KING; ++wp2)
+                for (i08 wp2 = wp1; wp2 >= PAWN; --wp2)
                 {
-                    for (u08 wp3 = wp2; wp3 <= KING; ++wp3)
+                    for (i08 wp3 = wp2; wp3 >= PAWN; --wp3)
                     {
-                        for (u08 wp4 = wp3; wp4 <= KING; ++wp4)
+                        for (i08 wp4 = wp3; wp4 >= PAWN; --wp4)
                         {
-                            for (u08 wp5 = wp4; wp5 <= KING; ++wp5)
+                            for (i08 wp5 = wp4; wp5 >= PAWN; --wp5)
                             {
-                                ss.str (""); ss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << PieceChar[wp5] << "vK";
-                                init_tb (ss.str ());
+                                oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << PieceChar[wp5] << "vK";
+                                init_tb (oss.str ());
                             }
                         }
                     }

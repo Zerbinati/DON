@@ -1550,27 +1550,27 @@ void Position::undo_null_move ()
 void Position::flip ()
 {
     string flip_fen, token;
-    stringstream ss (fen ());
+    istringstream iss (fen ());
     // 1. Piece placement
     for (auto rank = R_8; rank >= R_1; --rank)
     {
-        std::getline (ss, token, rank > R_1 ? '/' : ' ');
+        std::getline (iss, token, rank > R_1 ? '/' : ' ');
         flip_fen.insert (0, token + (white_spaces (flip_fen) ? " " : "/"));
     }
     // 2. Active color
-    ss >> token;
+    iss >> token;
     flip_fen += (token == "w" ? "B" : "W"); // Will be lowercased later
     flip_fen += " ";
     // 3. Castling availability
-    ss >> token;
+    iss >> token;
     flip_fen += token + " ";
     toggle (flip_fen);
 
     // 4. En-passant square
-    ss >> token;
+    iss >> token;
     flip_fen += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" : token[1] == '6' ? "3" : "-"));
     // 5-6. Half and full moves
-    std::getline (ss, token);
+    std::getline (iss, token);
     flip_fen += token;
 
     setup (flip_fen, _thread, _chess960, true);
