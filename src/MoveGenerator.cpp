@@ -12,8 +12,10 @@ namespace MoveGen {
         // Generates piece common move
         void generate_piece_moves (ValMove *&moves, const Position &pos, Color Own, Bitboard targets, const CheckInfo *ci = nullptr)
         {
-            assert(PT == NIHT || PT == BSHP || PT == ROOK || PT == QUEN);
-
+            assert(PT == NIHT
+                || PT == BSHP
+                || PT == ROOK
+                || PT == QUEN);
             const auto *pl = pos.squares<PT> (Own);
             Square s;
             while ((s = *pl++) != SQ_NO)
@@ -48,7 +50,9 @@ namespace MoveGen {
         void generate_castling_moves (ValMove *&moves, const Position &pos, Color Own, const CheckInfo *ci)
         {
             assert(GT != EVASION);
-            assert(!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64(0));
+            assert(!pos.castle_impeded (CR)
+                 && pos.can_castle (CR)
+                 && pos.checkers () == U64(0));
                 
             static const bool KingSide = (CR & CR_KING) != CR_NONE;
 
@@ -129,7 +133,12 @@ namespace MoveGen {
         // Generates PAWN promotion move
         void generate_promotion_moves (ValMove *&moves, Square dst, const CheckInfo *ci)
         {
-            assert((DEL_NE == Del || DEL_NW == Del || DEL_SE == Del || DEL_SW == Del || DEL_N == Del || DEL_S == Del));
+            assert(Del == DEL_NE
+                || Del == DEL_NW
+                || Del == DEL_SE
+                || Del == DEL_SW
+                || Del == DEL_N
+                || Del == DEL_S);
 
             if (GT == RELAX || GT == EVASION || GT == CAPTURE)
             {
@@ -153,7 +162,7 @@ namespace MoveGen {
             //else
             //if (GT == CHECK)
             //{
-            //    if ((PieceAttacks[NIHT][dst]        & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+            //    if ((PieceAttacks[NIHT][dst]         & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
             //    if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
             //    if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
             //    if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
@@ -302,7 +311,9 @@ namespace MoveGen {
     // Generates all pseudo-legal moves.
     ValMove* generate (ValMove *moves, const Position &pos)
     {
-        assert(GT == RELAX || GT == CAPTURE || GT == QUIET);
+        assert(GT == RELAX
+            || GT == CAPTURE
+            || GT == QUIET);
         assert(pos.checkers () == U64(0));
 
         auto active  = pos.active ();

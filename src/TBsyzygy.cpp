@@ -412,13 +412,6 @@ namespace TBSyzygy {
                     break;
                 }
             }
-            //for (u08 i = 0; i < 8; ++i)
-            //{
-            //    if (pcs[i] != pcs[i+8])
-            //    {
-            //        break;
-            //    }
-            //}
 
             Key key1 = calc_key (pcs, false);
             Key key2 = calc_key (pcs, true);
@@ -840,7 +833,10 @@ namespace TBSyzygy {
             i32 i;
             for (i = 0; i < n; ++i)
             {
-                if (OffDiag[pos[i]]) break;
+                if (OffDiag[pos[i]])
+                {
+                    break;
+                }
             }
             if (i < (tbep->enc_type == 0 ? 3 : 2) && OffDiag[pos[i]] > 0)
             {
@@ -1631,7 +1627,10 @@ namespace TBSyzygy {
                     sym = ((sym & 0xff) << 8) | (sym >> 8);
                 }
                 sym += static_cast<i32>((code - base[l]) >> (64 - l));
-                if (litidx < (i32)symlen[sym] + 1) break;
+                if (litidx < (i32)symlen[sym] + 1)
+                {
+                    break;
+                }
                 litidx -= (i32)symlen[sym] + 1;
                 code <<= l;
                 bitcnt += l;
@@ -1686,8 +1685,8 @@ namespace TBSyzygy {
             {
                 return;
             }
-            auto *tbe = tbhe[i].tbe;
 
+            auto *tbe = tbhe[i].tbe;
             auto *ptbe = reinterpret_cast<TBEntry *> (malloc (tbe->has_pawns ? sizeof (DTZEntry_pawn) : sizeof (DTZEntry_piece)));
 
             ptbe->data = map_file (filename, DTZ_Suffix, &ptbe->mapping);
@@ -1807,8 +1806,8 @@ namespace TBSyzygy {
         // where "KQP" represents the white pieces if mirror == false and the black pieces if mirror == true.
         string get_filename (const Position &pos, bool mirror)
         {
-            assert(   pos.count<KING> (WHITE) == 1
-                   && pos.count<KING> (BLACK) == 1);
+            assert(pos.count<KING> (WHITE) == 1
+                && pos.count<KING> (BLACK) == 1);
             
             string filename = "";
             Color color = mirror ? BLACK : WHITE;
@@ -1855,8 +1854,8 @@ namespace TBSyzygy {
         // If the engine supports such a key, it should equal the engine's key.
         Key calc_key (Position &pos, bool mirror)
         {
-            assert(   pos.count<KING> (WHITE) == 1
-                   && pos.count<KING> (BLACK) == 1);
+            assert(pos.count<KING> (WHITE) == 1
+                && pos.count<KING> (BLACK) == 1);
 
             Key key = U64(0);
             auto color = mirror ? BLACK : WHITE;
@@ -1882,21 +1881,23 @@ namespace TBSyzygy {
         Value probe_wdl_table (Position &pos, i32 &success)
         {
             // Obtain the position's material signature key.
-            Key key = pos.matl_key ();
+            Key matl_key = pos.matl_key ();
 
             // Test for KvK.
-            if (key == (Zob._.piece_square[WHITE][KING][0] ^ Zob._.piece_square[BLACK][KING][0]))
+            if (matl_key == (Zob._.piece_square[WHITE][KING][0] ^ Zob._.piece_square[BLACK][KING][0]))
             {
                 return VALUE_ZERO;
             }
 
-            auto *tbhe = TB_Hash[key >> (64 - TBHashBits)];
+            auto *tbhe = TB_Hash[matl_key >> (64 - TBHashBits)];
 
             i08 i;
             for (i = 0; i < MaxHash; ++i)
             {
-                if (tbhe[i].key == key)
+                if (tbhe[i].key == matl_key)
+                {
                     break;
+                }
             }
             if (i == MaxHash)
             {
@@ -1910,7 +1911,7 @@ namespace TBSyzygy {
                 LOCK (TB_mutex);
                 if (!tbe->ready)
                 {
-                    bool mirror = tbe->key != key;
+                    bool mirror = tbe->key != matl_key;
                     string filename = get_filename (pos, mirror);
                     if (init_table_wdl (tbe, filename))
                     {
@@ -1940,7 +1941,7 @@ namespace TBSyzygy {
             }
             else
             {
-                if (key == tbe->key)
+                if (matl_key == tbe->key)
                 {
                     side = pos.active ();
                 }
@@ -1962,7 +1963,7 @@ namespace TBSyzygy {
                 Piece *pc;
                 
                 pc = tbep->file[0].pieces[0];
-                Bitboard bb = pos.pieces (color (side == pos.active () ? pc[0] : ~pc[0]), tb_ptype (pc[0]));
+                Bitboard bb = pos.pieces (side == pos.active () ? color (pc[0]) : ~color (pc[0]), tb_ptype (pc[0]));
                 i = 0;
                 do
                 {
@@ -1973,7 +1974,7 @@ namespace TBSyzygy {
                 pc = tbep->file[f].pieces[side];
                 while (i < tbep->num)
                 {
-                    bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), tb_ptype (pc[i]));
+                    bb = pos.pieces (side == pos.active () ? color (pc[i]) : ~color (pc[i]), tb_ptype (pc[i]));
                     do
                     {
                         if (i < TB_PieceLimit) sq[i++] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
@@ -1988,7 +1989,7 @@ namespace TBSyzygy {
                 Piece *pc = tbep->pieces[side];
                 for (i = 0; i < tbep->num;)
                 {
-                    Bitboard bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), tb_ptype (pc[i]));
+                    Bitboard bb = pos.pieces (side == pos.active () ? color (pc[i]) : ~color (pc[i]), tb_ptype (pc[i]));
                     do
                     {
                         if (i < TB_PieceLimit) sq[i++] = pop_lsq (bb);
@@ -2003,14 +2004,16 @@ namespace TBSyzygy {
         Value probe_dtz_table (Position &pos, i32 wdl, i32 &success)
         {
             // Obtain the position's material signature key.
-            Key key = pos.matl_key ();
+            Key matl_key = pos.matl_key ();
 
-            if (DTZ_Table[0].key1 != key && DTZ_Table[0].key2 != key)
+            if (   DTZ_Table[0].key1 != matl_key
+                && DTZ_Table[0].key2 != matl_key
+               )
             {
                 u08 i;
                 for (i = 1; i < DTZ_Entries; ++i)
                 {
-                    if (DTZ_Table[i].key1 == key)
+                    if (DTZ_Table[i].key1 == matl_key)
                     {
                         break;
                     }
@@ -2026,10 +2029,10 @@ namespace TBSyzygy {
                 }
                 else
                 {
-                    auto *tbhe = TB_Hash[key >> (64 - TBHashBits)];
+                    auto *tbhe = TB_Hash[matl_key >> (64 - TBHashBits)];
                     for (i = 0; i < MaxHash; ++i)
                     {
-                        if (tbhe[i].key == key)
+                        if (tbhe[i].key == matl_key)
                         {
                             break;
                         }
@@ -2051,7 +2054,7 @@ namespace TBSyzygy {
                         DTZ_Table[i] = DTZ_Table[i - 1];
                     }
 
-                    bool mirror = tbe->key != key;
+                    bool mirror = tbe->key != matl_key;
                     string filename = get_filename (pos, mirror);
                     load_dtz_table (filename, calc_key (pos, mirror), calc_key (pos, !mirror));
                 }
@@ -2071,7 +2074,7 @@ namespace TBSyzygy {
             }
             else
             {
-                if (key == tbe->key)
+                if (matl_key == tbe->key)
                 {
                     side = pos.active ();
                 }
@@ -2089,7 +2092,7 @@ namespace TBSyzygy {
                 auto *dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
                 Piece p = side == pos.active () ? dtzep->file[0].pieces[0] : ~dtzep->file[0].pieces[0];
                 Bitboard bb = pos.pieces (color (p), tb_ptype (p));
-                i32 i = 0;
+                u08 i = 0;
                 do
                 {
                     if (i < TB_PieceLimit) sq[i++] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
@@ -2104,7 +2107,7 @@ namespace TBSyzygy {
                 Piece *pc = dtzep->file[f].pieces;
                 while (i < dtzep->num)
                 {
-                    bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), tb_ptype (pc[i]));
+                    bb = pos.pieces (side == pos.active () ? color (pc[i]) : ~color (pc[i]), tb_ptype (pc[i]));
                     do
                     {
                         if (i < TB_PieceLimit) sq[i++] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
@@ -2131,11 +2134,10 @@ namespace TBSyzygy {
                     return VALUE_ZERO;
                 }
                 Piece *pc = dtzep->pieces;
-                i32 i = 0;
-                Bitboard bb;
+                u08 i = 0;
                 while (i < dtzep->num)
                 {
-                    bb = pos.pieces (color (side == pos.active () ? pc[i] : ~pc[i]), tb_ptype (pc[i]));
+                    Bitboard bb = pos.pieces (side == pos.active () ? color (pc[i]) : ~color (pc[i]), tb_ptype (pc[i]));
                     do
                     {
                         if (i < TB_PieceLimit) sq[i++] = pop_lsq (bb);
@@ -2238,7 +2240,7 @@ namespace TBSyzygy {
             }
         }
 
-        // This routine treats a position with en passant captures as one without.
+        // This routine treats a position with en-passant captures as one without.
         Value probe_dtz_no_ep (Position &pos, i32 &success)
         {
             Value wdl = probe_ab (pos, Value(-2), Value(2), success);
@@ -2441,14 +2443,14 @@ namespace TBSyzygy {
     {
         success = 1;
         Value v = probe_dtz_no_ep (pos, success);
-        // If en passant is not possible, we are done.
+        // If en-passant is not possible, we are done.
         if (pos.en_passant_sq () == SQ_NO)
         {
             return v;
         }
         if (success == 0) return VALUE_ZERO;
 
-        // Now handle en passant.
+        // Now handle en-passant.
         Value ep = Value(-3);
         Value v1 = ep;
 
@@ -2519,6 +2521,7 @@ namespace TBSyzygy {
             }
             else
             {
+                // Check whether there is at least one legal non-ep move.
                 ValMove *cur;
                 for (cur = moves; cur < end; ++cur)
                 {
@@ -2538,16 +2541,19 @@ namespace TBSyzygy {
                     for (; cur < end; ++cur)
                     {
                         auto move = cur->move;
-                        if (pos.legal (move, ci.pinneds)) break;
+                        if (pos.legal (move, ci.pinneds))
+                        {
+                            break;
+                        }
                     }
                 }
+                // If not, then we are forced to play the losing ep capture.
                 if (cur == end)
                 {
                     v = v1;
                 }
             }
         }
-
         return v;
     }
 
@@ -2563,17 +2569,17 @@ namespace TBSyzygy {
     {
         success = 1;
         Value v = probe_ab (pos, Value(-2), Value(+2), success);
-        // If en passant is not possible, we are done.
+        // If en-passant is not possible, we are done.
         if (pos.en_passant_sq () == SQ_NO)
         {
             return v;
         }
         if (success == 0) return VALUE_ZERO;
 
-        // Now handle en passant.
+        // Now handle en-passant.
         Value ep = Value(-3);
         Value v1 = ep;
-        // Generate (at least) all legal en passant captures.
+        // Generate (at least) all legal en-passant captures.
         ValMove moves[MaxMoves];
         ValMove *end = pos.checkers () == U64(0) ?
             generate<CAPTURE> (moves, pos) :
@@ -2613,16 +2619,25 @@ namespace TBSyzygy {
                 for (cur = moves; cur < end; ++cur)
                 {
                     auto move = cur->move;
-                    if (mtype (move) == ENPASSANT) continue;
-                    if (pos.legal (move, ci.pinneds)) break;
+                    if (   mtype (move) != ENPASSANT
+                        && pos.legal (move, ci.pinneds)
+                       )
+                    {
+                        break;
+                    }
                 }
-                if (cur == end && pos.checkers () == U64(0))
+                if (   cur == end
+                    && pos.checkers () == U64(0)
+                   )
                 {
                     end = generate<QUIET> (end, pos);
                     for (; cur < end; ++cur)
                     {
                         auto move = cur->move;
-                        if (pos.legal (move, ci.pinneds)) break;
+                        if (pos.legal (move, ci.pinneds))
+                        {
+                            break;
+                        }
                     }
                 }
                 // If not, then we are forced to play the losing ep capture.

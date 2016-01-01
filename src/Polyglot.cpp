@@ -176,9 +176,9 @@ namespace Polyglot {
         static PRNG pr (now ());
         if (is_open ())
         {
-            Key key = pos.posi_key ();
+            Key posi_key = pos.posi_key ();
 
-            auto index = find_index (key);
+            auto index = find_index (posi_key);
 
             seekg (OFFSET(index));
 
@@ -237,7 +237,7 @@ namespace Polyglot {
             //    }
             //}
 
-            while (*this >> pe, pe.key == key && good ())
+            while (*this >> pe, pe.key == posi_key && good ())
             {
                 if (pe == MOVE_NONE) continue; // Skip MOVE_NONE
 
@@ -306,16 +306,16 @@ namespace Polyglot {
         ostringstream oss;
         if (is_open ())
         {
-            Key key = pos.posi_key ();
+            Key posi_key = pos.posi_key ();
 
-            auto index = find_index (key);
+            auto index = find_index (posi_key);
 
             seekg (OFFSET(index));
 
             Entry pe;
             vector<Entry> pes;
             u32 weight_sum = 0;
-            while (*this >> pe, pe.key == key && good ())
+            while (*this >> pe, pe.key == posi_key && good ())
             {
                 if (pe == MOVE_NONE) continue; // Skip MOVE_NONE
 
@@ -327,7 +327,7 @@ namespace Polyglot {
             {
                 std::cerr
                     << "ERROR: Position not found... "
-                    << std::hex << std::uppercase << key << std::nouppercase << std::dec
+                    << std::hex << std::uppercase << posi_key << std::nouppercase << std::dec
                     << std::endl;
             }
             else

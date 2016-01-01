@@ -1,11 +1,7 @@
-# DON, a UCI chess playing engine
+# DON, UCI chess engine
 # Ehsan Rashid Copyright (C) 2008+
 #
 # DON is housed in https://github.com/erashid/DON 
-
-### Redirect output to file
-# DON bench <param>  > bench.txt 2>&1 // works fine
-# DON bench <param> 2> bench.txt 1>&2 // merge std::cerr into std::cout
 
 ### ==========================================================================
 ### Section 1. General Configuration
@@ -33,7 +29,7 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 ### Section 2. High-level Configuration
 ### ==========================================================================
 #
-# flag                --- Comp switch      --- Description
+# Flag                --- Comp switch      --- Description
 # ----------------------------------------------------------------------------
 #
 # debug   = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode

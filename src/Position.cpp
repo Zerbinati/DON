@@ -794,9 +794,9 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // do it simply by testing whether the king is attacked after the move is made.
         auto cap = dst + pawn_push (~_active);
 
-        assert(dst == _psi->en_passant_sq
+        assert(ptype (mpc) == PAWN
+            && dst == _psi->en_passant_sq
             && empty (dst)
-            && mpc == (_active|PAWN)
             && !empty (cap)
             && _board[cap] == (~_active|PAWN));
 
