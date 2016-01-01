@@ -105,11 +105,8 @@ namespace MovePick {
         else
         {
             _stage = S_RECAPTURE;
-            if (dst_sq != SQ_NO)
-            {
-                _recapture_sq = dst_sq;
-                ttm = MOVE_NONE;
-            }
+            _recapture_sq = dst_sq;
+            ttm = MOVE_NONE;
         }
 
         _tt_move =   ttm != MOVE_NONE
