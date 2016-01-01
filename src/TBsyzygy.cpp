@@ -1859,7 +1859,7 @@ namespace TBSyzygy {
             auto color = mirror ? BLACK : WHITE;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (i32 i = pop_count<Max15> (pos.pieces (color, pt)); i > 0; --i)
+                for (i32 i = pos.count (color, pt); i > 0; --i)
                 {
                     key ^= Zob._.piece_square[WHITE][pt][i - 1];
                 }
@@ -1867,7 +1867,7 @@ namespace TBSyzygy {
             color = ~color;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (i32 i = pop_count<Max15> (pos.pieces (color, pt)); i > 0; --i)
+                for (i32 i = pos.count (color, pt); i > 0; --i)
                 {
                     key ^= Zob._.piece_square[BLACK][pt][i - 1];
                 }
