@@ -2523,10 +2523,16 @@ namespace TBSyzygy {
                 for (cur = moves; cur < end; ++cur)
                 {
                     auto move = cur->move;
-                    if (mtype (move) == ENPASSANT) continue;
-                    if (pos.legal (move, ci.pinneds)) break;
+                    if (   mtype (move) != ENPASSANT
+                        && pos.legal (move, ci.pinneds)
+                       )
+                    {
+                        break;
+                    }
                 }
-                if (cur == end && pos.checkers () == U64(0))
+                if (   cur == end
+                    && pos.checkers () == U64(0)
+                   )
                 {
                     end = generate<QUIET> (end, pos);
                     for (; cur < end; ++cur)
