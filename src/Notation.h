@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "Type.h"
+#include "Thread.h"
 
 class Position;
 
@@ -29,13 +30,12 @@ namespace Notation {
 
     extern std::string to_string (Value v);
 
-    extern std::string pretty_pv_info (Position &pos, i32 depth, Value value, TimePoint time, const MoveVector &pv);
-    
+    extern std::string pretty_pv_info ();
 }
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
-operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
+    operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
 {
     os << Notation::move_to_can (m);
     return os;
@@ -45,7 +45,7 @@ template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, Color c)
 {
-    os << COLOR_CHAR[c];
+    os << ColorChar[c];
     return os;
 }
 
@@ -77,7 +77,7 @@ template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, Piece p)
 {
-    os << PIECE_CHAR[p];
+    os << PieceChar[p];
     return os;
 }
 
@@ -89,15 +89,15 @@ inline std::basic_ostream<CharT, Traits>&
 //        if (can_castle (cr, CR_W))
 //        {
 //            scastle += "W:";
-//            if (can_castle (cr, CR_WK)) scastle += " OO";
-//            if (can_castle (cr, CR_WQ)) scastle += " OOO";
+//            if (can_castle (cr, CR_WKING)) scastle += " OO";
+//            if (can_castle (cr, CR_WQUEN)) scastle += " OOO";
 //            scastle += " - ";
 //        }
 //        if (can_castle (cr, CR_B))
 //        {
 //            scastle += "B:";
-//            if (can_castle (cr, CR_BK)) scastle += " OO";
-//            if (can_castle (cr, CR_BQ)) scastle += " OOO";
+//            if (can_castle (cr, CR_BKING)) scastle += " OO";
+//            if (can_castle (cr, CR_BQUEN)) scastle += " OOO";
 //        }
 //    }
 //    else

@@ -41,7 +41,7 @@ namespace UCI {
     // In addition to the UCI ones, also some additional debug commands are supported.
     void loop (const string &arg)
     {
-        RootPos.setup (STARTUP_FEN, Threadpool.main (), Chess960);
+        RootPos.setup (StartupFEN, Threadpool.main (), Chess960);
 
         bool running = white_spaces (arg);
         string cmd   = arg;
@@ -69,7 +69,7 @@ namespace UCI {
             if (token == "ucinewgame")
             {
                 clear ();
-                TimeMgr.available_nodes = 0;
+                Threadpool.main ()->time_mgr.available_nodes = U64(0);
             }
             else
             if (token == "isready")
@@ -85,16 +85,16 @@ namespace UCI {
                 {
                     string name;
                     // Read option-name (can contain spaces) also consume "value" token
-                    while (iss >> token && token != "value")
+                    while (iss >> token && !iss.fail () && token != "value")
                     {
-                        name += string (" ", white_spaces (name) ? 0 : 1) + token;
+                        name += string (" ", !white_spaces (name) ? 1 : 0) + token;
                     }
 
                     string value;
                     // Read option-value (can contain spaces)
-                    while (iss >> token)
+                    while (iss >> token && !iss.fail ())
                     {
-                        value += string (" ", white_spaces (value) ? 0 : 1) + token;
+                        value += string (" ", !white_spaces (value) ? 1 : 0) + token;
                     }
 
                     if (Options.count (name) != 0)
@@ -120,13 +120,13 @@ namespace UCI {
                 iss >> token;  // Consume "startpos" or "fen" token
                 if (token == "startpos")
                 {
-                    fen = STARTUP_FEN;
+                    fen = StartupFEN;
                     iss >> token;          // Consume "moves" token if any
                 }
                 else
                 if (token == "fen")
                 {
-                    while (iss >> token && token != "moves") // Consume "moves" token if any
+                    while (iss >> token && !iss.fail () && token != "moves") // Consume "moves" token if any
                     {
                         fen += token + " ";
                     }
@@ -144,7 +144,7 @@ namespace UCI {
 
                 if (token == "moves")
                 {
-                    while (iss >> token)   // Parse and validate game moves (if any)
+                    while (iss >> token && !iss.fail ())   // Parse and validate game moves (if any)
                     {
                         auto m = move_from_can (token, RootPos);
                         if (m == MOVE_NONE)
@@ -173,28 +173,37 @@ namespace UCI {
             else
             if (token == "go")
             {
-                LimitsT limits;
-
+                Limit limits;
                 limits.start_time = now (); // As early as possible!
-
                 i64 value;
-                while (iss >> token)
+                while (iss >> token && !iss.fail ())
                 {
-                    if      (token == "wtime")      { iss >> value; limits.clock[WHITE].time = u32(abs (value)); }
-                    else if (token == "btime")      { iss >> value; limits.clock[BLACK].time = u32(abs (value)); }
-                    else if (token == "winc")       { iss >> value; limits.clock[WHITE].inc  = u32(abs (value)); }
-                    else if (token == "binc")       { iss >> value; limits.clock[BLACK].inc  = u32(abs (value)); }
-                    else if (token == "movetime")   { iss >> value; limits.movetime  = u32(abs (value)); }
-                    else if (token == "movestogo")  { iss >> value; limits.movestogo = u08(abs (value)); }
-                    else if (token == "depth")      { iss >> value; limits.depth     = u08(abs (value)); }
-                    else if (token == "nodes")      { iss >> value; limits.nodes     = u64(abs (value)); }
-                    else if (token == "mate")       { iss >> value; limits.mate      = u08(abs (value)); }
-                    else if (token == "infinite")   { limits.infinite  = true; }
-                    else if (token == "ponder")     { limits.ponder    = true; }
-                    // parse and validate search moves (if any)
-                    else if (token == "searchmoves")
+                    if (token == "wtime")      { iss >> value; limits.clock[WHITE].time = u64(abs (value)); }
+                    else
+                    if (token == "btime")      { iss >> value; limits.clock[BLACK].time = u64(abs (value)); }
+                    else
+                    if (token == "winc")       { iss >> value; limits.clock[WHITE].inc  = u64(abs (value)); }
+                    else
+                    if (token == "binc")       { iss >> value; limits.clock[BLACK].inc  = u64(abs (value)); }
+                    else
+                    if (token == "movetime")   { iss >> value; limits.movetime  = u64(abs (value)); }
+                    else
+                    if (token == "movestogo")  { iss >> value; limits.movestogo = u08(abs (value)); }
+                    else
+                    if (token == "depth")      { iss >> value; limits.depth     = u08(abs (value)); }
+                    else
+                    if (token == "nodes")      { iss >> value; limits.nodes     = u64(abs (value)); }
+                    else
+                    if (token == "mate")       { iss >> value; limits.mate      = u08(abs (value)); }
+                    else
+                    if (token == "infinite")   { limits.infinite  = true; }
+                    else
+                    if (token == "ponder")     { limits.ponder    = true; }
+                    else
+                    // Parse and Validate search-moves (if any)
+                    if (token == "searchmoves")
                     {
-                        while (iss >> token)
+                        while (iss >> token && !iss.fail ())
                         {
                             auto m = move_from_can (token, RootPos);
                             if (m == MOVE_NONE)
@@ -202,25 +211,26 @@ namespace UCI {
                                 std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
                                 continue;
                             }
-                            limits.root_moves.push_back (m);
+                            limits.moves.push_back (m);
                         }
+                        limits.moves.shrink_to_fit ();
                     }
                 }
-                Signals.force_stop = true;
+                ForceStop = true;
                 Threadpool.start_thinking (RootPos, limits, SetupStates);
             }
             // GUI sends 'ponderhit' to tell us to ponder on the same move the
-            // opponent has played. In case Signals.ponderhit_stop stream set are
+            // opponent has played. In case Ponderhit Stop stream set are
             // waiting for 'ponderhit' to stop the search (for instance because
             // already ran out of time), otherwise should continue searching but
             // switching from pondering to normal search.
             else
-            if (token == "quit"
-            ||  token == "stop"
-            || (token == "ponderhit" && Signals.ponderhit_stop)
+            if (   token == "quit"
+               ||  token == "stop"
+               || (token == "ponderhit" && PonderhitStop)
                )
             {
-                Signals.force_stop = true;
+                ForceStop = true;
                 Threadpool.main ()->start_searching (true); // Could be sleeping
             }
             else
@@ -250,16 +260,16 @@ namespace UCI {
                     string name;
                     // Read name (can contain spaces)
                     // consume "value" token
-                    while (iss >> token && token != "code")
+                    while (iss >> token && !iss.fail () && token != "code")
                     {
-                        name += string (" ", white_spaces (name) ? 0 : 1) + token;
+                        name += string (" ", !white_spaces (name) ? 1 : 0) + token;
                     }
 
                     string code;
                     // Read code (can contain spaces)
-                    while (iss >> token)
+                    while (iss >> token && !iss.fail ())
                     {
-                        code += string (" ", white_spaces (code) ? 0 : 1) + token;
+                        code += string (" ", !white_spaces (code) ? 1 : 0) + token;
                     }
                     //std::cout << name << "\n" << code << std::endl;
                 }
@@ -289,12 +299,12 @@ namespace UCI {
             if (token == "keys")
             {
                 sync_cout
-                    << hex << uppercase << setfill ('0')
-                    << "FEN: "                   << RootPos.fen ()      << "\n"
-                    << "Posi key: " << setw (16) << RootPos.posi_key () << "\n"
-                    << "Matl key: " << setw (16) << RootPos.matl_key () << "\n"
-                    << "Pawn key: " << setw (16) << RootPos.pawn_key ()
-                    << setfill (' ') << nouppercase << dec
+                    << std::hex << std::uppercase << std::setfill ('0')
+                    << "FEN: "                        << RootPos.fen ()      << "\n"
+                    << "Posi key: " << std::setw (16) << RootPos.posi_key () << "\n"
+                    << "Matl key: " << std::setw (16) << RootPos.matl_key () << "\n"
+                    << "Pawn key: " << std::setw (16) << RootPos.pawn_key ()
+                    << std::setfill (' ') << std::nouppercase << std::dec
                     << sync_endl;
             }
             else
@@ -302,60 +312,61 @@ namespace UCI {
             {
                 sync_cout;
 
+                auto pinneds = RootPos.pinneds (RootPos.active ());
                 if (RootPos.checkers () != U64(0))
                 {
                     std::cout << "\nEvasion moves: ";
-                    for (const auto &m : MoveList<EVASION> (RootPos))
+                    for (const auto &vm : MoveList<EVASION> (RootPos))
                     {
-                        if (RootPos.legal (m))
+                        if (RootPos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, RootPos) << " ";
                         }
                     }
                 }
                 else
                 {
                     std::cout << "\nQuiet moves: ";
-                    for (const auto &m : MoveList<QUIET> (RootPos))
+                    for (const auto &vm : MoveList<QUIET> (RootPos))
                     {
-                        if (RootPos.legal (m))
+                        if (RootPos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, RootPos) << " ";
                         }
                     }
 
                     std::cout << "\nCheck moves: ";
-                    for (const auto &m : MoveList<CHECK> (RootPos))
+                    for (const auto &vm : MoveList<CHECK> (RootPos))
                     {
-                        if (RootPos.legal (m))
+                        if (RootPos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, RootPos) << " ";
                         }
                     }
 
                     std::cout << "\nQuiet Check moves: ";
-                    for (const auto &m : MoveList<QUIET_CHECK> (RootPos))
+                    for (const auto &vm : MoveList<QUIET_CHECK> (RootPos))
                     {
-                        if (RootPos.legal (m))
+                        if (RootPos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, RootPos) << " ";
                         }
                     }
 
                     std::cout << "\nCapture moves: ";
-                    for (const auto &m : MoveList<CAPTURE> (RootPos))
+                    for (const auto &vm : MoveList<CAPTURE> (RootPos))
                     {
-                        if (RootPos.legal (m))
+                        if (RootPos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, RootPos) << " ";
                         }
                     }
                 }
 
                 std::cout << "\nLegal moves: ";
-                for (const auto &m : MoveList<LEGAL> (RootPos))
+                for (const auto &vm : MoveList<LEGAL> (RootPos))
                 {
-                    std::cout << move_to_san (m, RootPos) << " ";
+                    std::cout << move_to_san (vm.move, RootPos) << " ";
                 }
 
                 std::cout << sync_endl;
@@ -375,8 +386,8 @@ namespace UCI {
             {
                 i32    depth;
                 string fen_fn;
-                depth  = ((iss >> depth) ? depth : 1);
-                fen_fn = ((iss >> fen_fn) ? fen_fn : "");
+                depth  = (iss >> depth) && !iss.fail ()  ? depth : 1;
+                fen_fn = (iss >> fen_fn) && !iss.fail () ? fen_fn : "";
 
                 stringstream ss;
                 ss  << i32(Options["Hash"])    << " "

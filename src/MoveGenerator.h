@@ -6,7 +6,7 @@
 
 namespace MoveGen {
 
-    const u16 MAX_MOVES = 0x100; // Maximum Moves
+    const u16 MaxMoves = 0x100; // Maximum Moves
 
     struct ValMove
     {
@@ -17,9 +17,9 @@ namespace MoveGen {
         ValMove& operator= (const ValMove&) = default;
 
         operator Move () const  { return move; }
-        operator Value () const { return value; }
         void operator= (Move  m) { move  = m; }
-        void operator= (Value v) { value = v; }
+        //explicit operator Value () const { return value; }
+        //void operator= (Value v) { value = v; }
 
         // Ascending sort
         bool operator<  (const ValMove &vm) const { return value <  vm.value; }
@@ -28,37 +28,34 @@ namespace MoveGen {
         bool operator>= (const ValMove &vm) const { return value >= vm.value; }
         bool operator== (const ValMove &vm) const { return value == vm.value; }
         bool operator!= (const ValMove &vm) const { return value != vm.value; }
-
     };
 
-    // Types of Generator
-    enum GenT
+    // Generator Type
+    enum GenType : u08
     {
         // PSEUDO-LEGAL MOVES
-        RELAX,       // Normal moves.
-        EVASION,     // Save the friendly king from check
+        RELAX,       // Normal.
+        EVASION,     // Save the friendly king from check.
         CAPTURE,     // Change material balance where an enemy piece is captured.
         QUIET,       // Do not capture pieces but under-promotion is allowed.
         CHECK,       // Checks the enemy King in any way possible.
         QUIET_CHECK, // Do not change material and only checks the enemy King (no capture or promotion).
-
         // ------------------------
-        LEGAL        // Legal moves
-
+        LEGAL,       // Legal.
     };
 
-    template<GenT GT>
+    template<GenType GT>
     extern ValMove* generate (ValMove *moves, const Position &pos);
 
     // The MoveList<T> class is a simple wrapper around generate().
     // It sometimes comes in handy to use this class instead of
     // the low level generate() function.
-    template<GenT GT, PieceT PT = NONE>
+    template<GenType GT, PieceType PT = NONE>
     class MoveList
     {
 
     private:
-        ValMove  _moves_beg[MAX_MOVES]
+        ValMove  _moves_beg[MaxMoves]
               , *_moves_end = _moves_beg;
 
     public:
@@ -71,9 +68,9 @@ namespace MoveGen {
             //if (PT != NONE)
             //{
             //    auto *moves_cur = _moves_beg;
-            //    while (moves_cur != _moves_end)
+            //    while (moves_cur < _moves_end)
             //    {
-            //        if (ptype (pos[org_sq (*moves_cur)]) != PT)
+            //        if (PT != ptype (pos[org_sq (*moves_cur)]))
             //        {
             //            *moves_cur = *(--_moves_end);
             //            continue;
@@ -90,9 +87,9 @@ namespace MoveGen {
         
         bool contains (Move move) const
         {
-            for (const auto &m : *this)
+            for (const auto &vm : *this)
             {
-                if (m == move) return true;
+                if (vm.move == move) return true;
             }
             return false;
         }
@@ -100,13 +97,13 @@ namespace MoveGen {
         //explicit operator std::string () const;
     };
 
-    //template<class CharT, class Traits, GenT GT>
+    //template<class CharT, class Traits, GenType GT>
     //inline std::basic_ostream<CharT, Traits>&
     //    operator<< (std::basic_ostream<CharT, Traits> &os, MoveList<GT> &movelist)
     //{
-    //    for (const auto &m : movelist)
+    //    for (const auto &vm : movelist)
     //    {
-    //        os << m << std::endl;
+    //        os << vm.move << std::endl;
     //    }
     //    return os;
     //}

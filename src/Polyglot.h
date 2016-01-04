@@ -126,7 +126,7 @@ namespace Polyglot {
 
         ~Book ();
 
-        std::string book_fn () const { return _book_fn; }
+        std::string filename () const { return _book_fn; }
 
         size_t size ()
         {

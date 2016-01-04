@@ -3,23 +3,126 @@
 
 #include <bitset>
 #include <thread>
+#include <iostream>
 
 #include "thread_win32.h"
-
 #include "Position.h"
 #include "Pawns.h"
 #include "Material.h"
 #include "Searcher.h"
 #include "MovePicker.h"
 
+extern u08      MaximumMoveHorizon;
+extern u08      ReadyMoveHorizon;
+extern u32      OverheadClockTime;
+extern u32      OverheadMoveTime;
+extern u32      MinimumMoveTime;
+extern double   MoveSlowness;
+extern u32      NodesTime;
+extern bool     Ponder;
+
+// TimeManager class computes the optimal time to think depending on the
+// maximum available time, the move game number and other parameters.
+// Support four different kind of time controls, passed in 'limits':
+//
+// moves_to_go = 0, increment = 0 means: x basetime                             ['sudden death' time control]
+// moves_to_go = 0, increment > 0 means: x basetime + z increment
+// moves_to_go > 0, increment = 0 means: x moves in y basetime                  ['standard' time control]
+// moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
+class TimeManager
+{
+private:
+
+    TimePoint   _optimum_time = 0;
+    TimePoint   _maximum_time = 0;
+
+    double      _instability_factor = 1.0;
+
+public:
+
+    u64     available_nodes  = U64(0); // When in 'Nodes as Time' mode
+    double  best_move_change = 0.0;
+
+    TimePoint available_time () const { return TimePoint(_optimum_time * _instability_factor * 1.016); }
+
+    TimePoint maximum_time () const { return _maximum_time; }
+
+    TimePoint elapsed_time () const;
+
+    void instability () { _instability_factor = 1.0 + best_move_change; }
+
+    void initialize (Color c, i16 ply);
+
+    void update (Color c);
+};
+
+// EasyMoveManager class is used to detect a so called 'easy move'; when PV is
+// stable across multiple search iterations engine can fast return the best move.
+class EasyMoveManager
+{
+public:
+    static const u08 LineSize = 3;
+
+private:
+    Key  _posi_key = U64(0);
+    Move _pv[LineSize];
+
+public:
+    u08 stable_count = 0; // Keep track of how many times in a row pv remains stable
+
+    EasyMoveManager ()
+    {
+        clear ();
+    }
+
+    void clear ()
+    {
+        stable_count = 0;
+        _posi_key = U64(0);
+        std::fill (_pv, _pv + LineSize, MOVE_NONE);
+    }
+
+    Move easy_move (const Key posi_key) const
+    {
+        return posi_key == _posi_key ? _pv[LineSize-1] : MOVE_NONE;
+    }
+
+    void update (Position &pos, const MoveVector &pv)
+    {
+        assert(pv.size () >= LineSize);
+
+        if (pv[LineSize-1] == _pv[LineSize-1])
+        {
+            ++stable_count;
+        }
+        else
+        {
+            stable_count = 0;
+        }
+
+        if (!std::equal (pv.begin (), pv.begin () + LineSize, _pv))
+        {
+            std::copy (pv.begin (), pv.begin () + LineSize, _pv);
+
+            StateInfo si[LineSize-1];
+            for (u08 i = 0; i < LineSize-1; ++i)
+            {
+                pos.do_move (_pv[i], si[i], pos.gives_check (_pv[i], CheckInfo (pos)));
+            }
+            _posi_key = pos.posi_key ();
+            for (u08 i = 0; i < LineSize-1; ++i)
+            {
+                pos.undo_move ();
+            }
+        }
+    }
+};
+
 namespace Threading {
 
-    using namespace Searcher;
-    using namespace MovePick;
+    const u16 MaxThreads = 128; // Maximum Threads
 
-    const u16 MAX_THREADS = 128; // Maximum Threads
-
-    // Thread struct keeps together all the thread related stuff like.
+    // Thread class keeps together all the thread related stuff like.
     // It also use pawn and material hash tables so that once get a pointer
     // to an entry its life time is unlimited and don't have to care about
     // someone changing the entry under its feet.
@@ -42,14 +145,14 @@ namespace Threading {
            , max_ply    = 0
            , chk_count  = 0;
 
-        Position        root_pos;
-        RootMoveVector  root_moves;
-        Depth           root_depth = DEPTH_ZERO
-            ,           leaf_depth = DEPTH_ZERO;
-        HValueStats     history_values;
-        MoveStats       counter_moves;
+        Position                    root_pos;
+        Searcher::RootMoveVector    root_moves;
+        Depth                       root_depth = DEPTH_ZERO
+            ,                       leaf_depth = DEPTH_ZERO;
+        MovePick::HValueStats       history_values;
+        MovePick::MoveStats         counter_moves;
 
-        std::atomic_bool reset_check { false };
+        std::atomic_bool            reset_check { false };
 
         Thread ();
         virtual ~Thread ();
@@ -119,14 +222,22 @@ namespace Threading {
     class MainThread
         : public Thread
     {
+    public:
+        bool easy_played    = false;
+        bool failed_low     = false;
+        bool time_mgr_used  = false;
+
+        TimeManager     time_mgr;
+        EasyMoveManager easy_move_mgr;
+
         virtual void search () override;
     };
 
-    // ThreadPool struct handles all the threads related stuff like
-    // - initializing
+    // ThreadPool class handles all the threads related stuff like
+    // - initializing & deinitializing
     // - starting
     // - parking
-    // - launching a thread.
+    // - launching.
     // All the access to shared thread data is done through this.
     class ThreadPool
         : public std::vector<Thread*>
@@ -134,43 +245,50 @@ namespace Threading {
     public:
         ThreadPool () = default;
 
-        MainThread* main () const { return static_cast<MainThread*> (at (0)); }
+        MainThread* main () const
+        {
+            static auto *main_thread = static_cast<MainThread*> (at (0));
+
+            return main_thread;
+        }
+
+        u64  game_nodes () const;
+
+        void configure ();
 
         // No constructor and destructor, threadpool rely on globals
         // that should be initialized and valid during the whole thread lifetime.
         void initialize ();
         void deinitialize ();
 
-        void start_thinking (const Position &pos, const LimitsT &limit, StateStackPtr &states);
+        void start_thinking (const Position &pos, const Limit &limits, StateStackPtr &states);
         void wait_while_thinking ();
-        u64  game_nodes ();
-
-        void configure ();
     };
 
 }
 
-enum SyncT { IO_LOCK, IO_UNLOCK };
+enum OutputState : u08
+{
+    OS_LOCK,
+    OS_UNLOCK,
+};
 
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<< (std::ostream &os, SyncT sync)
+inline std::ostream& operator<< (std::ostream &os, OutputState state)
 {
     static Mutex mutex;
 
-    if (sync == IO_LOCK)
+    switch (state)
     {
-        mutex.lock ();
-    }
-    else
-    if (sync == IO_UNLOCK)
-    {
-        mutex.unlock ();
+    case OS_LOCK  : mutex.lock ();   break;
+    case OS_UNLOCK: mutex.unlock (); break;
+    default: assert(false);          break;
     }
     return os;
 }
 
-#define sync_cout std::cout << IO_LOCK
-#define sync_endl std::endl << IO_UNLOCK
+#define sync_cout std::cout << OS_LOCK
+#define sync_endl std::endl << OS_UNLOCK
 
 
 extern Threading::ThreadPool  Threadpool;

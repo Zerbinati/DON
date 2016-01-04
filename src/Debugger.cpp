@@ -17,6 +17,7 @@ namespace Debugger {
     void dbg_hit_on (bool hit)
     {
         static Mutex mutex;
+
         mutex.lock ();
         ++CondCount;
         if (hit)
@@ -37,6 +38,7 @@ namespace Debugger {
     void dbg_mean_of (i64 item)
     {
         static Mutex mutex;
+
         mutex.lock ();
         ++ItemCount;
         ItemSum += item;
@@ -47,22 +49,22 @@ namespace Debugger {
     {
         if (CondCount != 0)
         {
-            std::cerr << right
+            std::cerr << std::right
                 << "---------------------------\n"
-                << "Cond  :" << setw (20) << CondCount << "\n"
-                << "Hit   :" << setw (20) << HitCount  << "\n"
-                << "Rate  :" << setw (20) << setprecision (2) << fixed << 100.0 * HitCount / CondCount
-                << left << std::endl;
+                << "Cond  :" << std::setw (20) << CondCount << "\n"
+                << "Hit   :" << std::setw (20) << HitCount  << "\n"
+                << "Rate  :" << std::setw (20) << std::setprecision (2) << std::fixed << 100.0 * HitCount / CondCount
+                << std::left << std::endl;
         }
 
         if (ItemCount != 0)
         {
-            std::cerr << right
+            std::cerr << std::right
                 << "---------------------------\n"
-                << "Count :" << setw (20) << ItemCount << "\n"
-                << "Sum   :" << setw (20) << ItemSum   << "\n"
-                << "Mean  :" << setw (20) << setprecision (2) << fixed << 1.0 * ItemSum / ItemCount
-                << left << std::endl;
+                << "Count :" << std::setw (20) << ItemCount << "\n"
+                << "Sum   :" << std::setw (20) << ItemSum   << "\n"
+                << "Mean  :" << std::setw (20) << std::setprecision (2) << std::fixed << 1.0 * ItemSum / ItemCount
+                << std::left << std::endl;
         }
     }
 

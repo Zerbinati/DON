@@ -2,6 +2,7 @@
 #define _DEBUGGER_H_INC_
 
 #include <fstream>
+#include <iostream>
 
 #include "Type.h"
 #include "tiebuffer.h"
