@@ -43,7 +43,7 @@ public:
     u64     available_nodes  = U64(0); // When in 'Nodes as Time' mode
     double  best_move_change = 0.0;
 
-    TimePoint available_time () const { return TimePoint(_optimum_time * _instability_factor * 1.016); }
+    TimePoint available_time () const { return TimePoint(_optimum_time * _instability_factor * 0.968); }
 
     TimePoint maximum_time () const { return _maximum_time; }
 
@@ -226,6 +226,7 @@ namespace Threading {
         bool easy_played    = false;
         bool failed_low     = false;
         bool time_mgr_used  = false;
+        Value last_move_value = +VALUE_INFINITE;
 
         TimeManager     time_mgr;
         EasyMoveManager easy_move_mgr;

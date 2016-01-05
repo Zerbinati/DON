@@ -3,13 +3,13 @@
 #include <cfloat>
 #include "UCI.h"
 
-u08     MaximumMoveHorizon =  50; // Plan time management at most this many moves ahead, in num of moves.
-u08     ReadyMoveHorizon   =  40; // Be prepared to always play at least this many moves, in num of moves.
-u32     OverheadClockTime  =  60; // Attempt to keep at least this much time at clock, in milliseconds.
-u32     OverheadMoveTime   =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
-u32     MinimumMoveTime    =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
-double  MoveSlowness       = 1.0; // Move Slowness, in %age.
-u32     NodesTime          =   0; // 'Nodes as Time' mode
+u08     MaximumMoveHorizon =   50; // Plan time management at most this many moves ahead, in num of moves.
+u08     ReadyMoveHorizon   =   40; // Be prepared to always play at least this many moves, in num of moves.
+u32     OverheadClockTime  =   60; // Attempt to keep at least this much time at clock, in milliseconds.
+u32     OverheadMoveTime   =   30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
+u32     MinimumMoveTime    =   20; // No matter what, use at least this much time before doing the move, in milliseconds.
+double  MoveSlowness       = 1.20; // Move Slowness, in %age.
+u32     NodesTime          =    0; // 'Nodes as Time' mode
 bool    Ponder             = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
 Threading::ThreadPool Threadpool; // Global ThreadPool
@@ -31,18 +31,16 @@ namespace {
     // Data was extracted from CCRL game database with some simple filtering criteria.
     double move_importance (i16 ply)
     {
-        //                         PlyShift  / PlyScale  SkewRate
-        return pow ((1 + exp ((ply - 59.000) / 8.270)), -0.179) + DBL_MIN; // Ensure non-zero
+        //                          PlyShift / PlyScale  SkewRate
+        return pow ((1 + exp ((ply - 58.400) / 7.640)), -0.183) + DBL_MIN; // Ensure non-zero
     }
 
     template<TimeType TT>
     // remaining_time<>() calculate the time remaining
     TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
     {
-        // When in trouble, can step over reserved time with this ratio
-        const auto  StepRatio = TT == TT_OPTIMUM ? 1.00 : 6.93;
-        // However must not steal time from remaining moves over this ratio
-        const auto StealRatio = TT == TT_MAXIMUM ? 0.00 : 0.36;
+        const auto  StepRatio = TT == TT_OPTIMUM ? 1.00 : 7.09; // When in trouble, can step over reserved time with this ratio
+        const auto StealRatio = TT == TT_MAXIMUM ? 0.00 : 0.35; // However must not steal time from remaining moves over this ratio
 
         auto this_move_imp = move_importance (ply) * MoveSlowness;
         auto remain_move_imp = 0.0;
@@ -160,12 +158,12 @@ namespace Threading {
     }
 
     // ------------------------------------
-    
+
     // ThreadPool::game_nodes() counts total game nodes
     u64 ThreadPool::game_nodes () const
     {
         u64 nodes = U64(0);
-        for (auto *th : *this)
+        for (const auto *th : *this)
         {
             nodes += th->root_pos.game_nodes ();
         }

@@ -202,10 +202,9 @@ namespace Searcher {
 
             auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
 
-            auto opp_move = (ss-1)->current_move;
-            auto opp_move_dst = dst_sq (opp_move);
-            auto opp_move_ok = _ok (opp_move);
-            auto &opp_cmv = CounterMovesHistory[opp_move_ok ? pos[opp_move_dst] : EMPTY][opp_move_dst];
+            auto opp_move_dst = dst_sq ((ss-1)->current_move);
+            auto opp_move_ok  = _ok ((ss-1)->current_move);
+            auto &opp_cmv = CounterMovesHistory[pos[opp_move_dst]][opp_move_dst];
 
             auto *thread = pos.thread ();
 
@@ -230,14 +229,15 @@ namespace Searcher {
 
             // Extra penalty for PV move in previous ply when it gets refuted
             if (   (ss-1)->move_count == 1
-                && opp_move_ok
                 && pos.capture_type () == NONE
-                //&& mtype (opp_move) != PROMOTE
+                && opp_move_ok // _ok ((ss-1)->current_move)
+                //&& mtype ((ss-1)->current_move) != PROMOTE
+                && _ok ((ss-2)->current_move)
                )
             {
-                auto own_move = (ss-2)->current_move;
-                auto &own_cmv = CounterMovesHistory[_ok (own_move) ? pos[dst_sq (own_move)] : EMPTY][dst_sq (own_move)];
-                own_cmv.update (pos[opp_move_dst], opp_move_dst, bonus);
+                auto own_move_dst = dst_sq ((ss-2)->current_move);
+                auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
+                own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*((depth + 1)/DEPTH_ONE));
             }
 
         }
@@ -1020,11 +1020,9 @@ namespace Searcher {
             MoveVector quiet_moves;
             quiet_moves.reserve (0x10);
 
-            auto opp_move = (ss-1)->current_move;
-            auto opp_move_dst = dst_sq (opp_move);
-            auto opp_move_ok = _ok (opp_move);
-            auto counter_move = thread->counter_moves[opp_move_ok ? pos[opp_move_dst] : EMPTY][opp_move_dst];
-            auto &opp_cmv = CounterMovesHistory[opp_move_ok ? pos[opp_move_dst] : EMPTY][opp_move_dst];
+            auto opp_move_dst = dst_sq ((ss-1)->current_move);
+            auto counter_move = thread->counter_moves[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : EMPTY][opp_move_dst];
+            auto &opp_cmv = CounterMovesHistory[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : EMPTY][opp_move_dst];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
@@ -1355,7 +1353,7 @@ namespace Searcher {
             /*
             if (ForceStop) return VALUE_DRAW;
             */
-            
+
             quiet_moves.shrink_to_fit ();
 
             // Step 20. Check for checkmate and stalemate
@@ -1391,16 +1389,16 @@ namespace Searcher {
             if (  !in_check
                 && depth >= 3*DEPTH_ONE
                 && best_move == MOVE_NONE
-                && _ok ((ss-1)->current_move)
                 && pos.capture_type () == NONE
-                //&& mtype (opp_move) != PROMOTE
+                && _ok ((ss-1)->current_move)
+                //&& mtype ((ss-1)->current_move) != PROMOTE
+                && _ok ((ss-2)->current_move)
                )
             {
-                auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
-
-                auto own_move = (ss-2)->current_move;
-                auto &own_cmv = CounterMovesHistory[_ok (own_move) ? pos[dst_sq (own_move)] : EMPTY][dst_sq (own_move)];
-                own_cmv.update (pos[opp_move_dst], opp_move_dst, bonus);
+                opp_move_dst = dst_sq ((ss-1)->current_move);
+                auto own_move_dst = dst_sq ((ss-2)->current_move);
+                auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
+                own_cmv.update (pos[opp_move_dst], opp_move_dst, Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1));
             }
 
             if (   tt_hit
@@ -1651,6 +1649,10 @@ namespace Searcher {
             th->history_values.clear ();
             th->counter_moves.clear ();
         }
+        if (Threadpool.main ()->time_mgr_used)
+        {
+            Threadpool.main ()->last_move_value = +VALUE_INFINITE;
+        }
     }
 }
 
@@ -1890,7 +1892,7 @@ namespace Threading {
                     // Do have time for the next iteration? Can stop searching now?
                     if (main_thread->time_mgr_used)
                     {
-                        // If PVlimit = 1 then take some extra time if the best move has changed
+                        // Take some extra time if the best move has changed
                         if (   aspiration
                             && PVLimit == 1
                            )
@@ -1903,12 +1905,15 @@ namespace Threading {
                         // If all of the available time has been used or
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
-                            || main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () * (main_thread->failed_low ? 1.001 : 0.492)
+                            || main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () *
+                                    (1.00 - 0.25000 * (!main_thread->failed_low)
+                                          - 0.19687 * (best_value >= main_thread->last_move_value)
+                                          - 0.19375 * (best_value >= main_thread->last_move_value && !main_thread->failed_low))
                             || (main_thread->easy_played =
                                     ( !root_moves.empty ()
                                     && root_moves[0] == easy_move
                                     && main_thread->time_mgr.best_move_change < 0.03
-                                    && main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () * 0.125
+                                    && main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () * 0.12135
                                     ), main_thread->easy_played
                                )
                            )
@@ -2193,6 +2198,11 @@ namespace Threading {
         assert(!root_moves.empty ()
             && !root_moves[0].empty ());
 
+        if (time_mgr_used)
+        {
+            last_move_value = root_moves[0].new_value;
+        }
+
         if (LogWrite)
         {
             auto elapsed_time = std::max (time_mgr.elapsed_time (), TimePoint(1));
@@ -2215,7 +2225,6 @@ namespace Threading {
             LogStream << std::endl;
             LogStream.close ();
         }
-
         // Best move could be MOVE_NONE when searching on a stalemate position.
         sync_cout << "bestmove " << move_to_can (root_moves[0][0], Chess960);
         if (   _ok (root_moves[0][0])

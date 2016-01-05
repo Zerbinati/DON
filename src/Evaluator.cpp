@@ -852,7 +852,7 @@ namespace Evaluator {
                 }
 
                 // If non-pawn pieces differ
-                eg_value *= 1.0 + (nonpawn_count[Own]-nonpawn_count[Opp]) / (nonpawn_count[Own]+nonpawn_count[Opp]+2) / 2.0;
+                eg_value *= 1.0 + (nonpawn_count[Own]-nonpawn_count[Opp]) / std::max (nonpawn_count[Own]+nonpawn_count[Opp], 1) / 4.0;
 
                 score += mk_score (mg_value, eg_value) + PawnPassedScore[_file (s)];
             }

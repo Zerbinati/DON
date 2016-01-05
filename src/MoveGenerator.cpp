@@ -129,26 +129,26 @@ namespace MoveGen {
             }
         }
 
-        template<GenType GT, Delta Del>
+        template<GenType GT>
         // Generates PAWN promotion move
-        void generate_promotion_moves (ValMove *&moves, Square dst, const CheckInfo *ci)
+        void generate_promotion_moves (ValMove *&moves, Square dst, Delta delta, const CheckInfo *ci)
         {
-            assert(Del == DEL_NE
-                || Del == DEL_NW
-                || Del == DEL_SE
-                || Del == DEL_SW
-                || Del == DEL_N
-                || Del == DEL_S);
+            assert(delta == DEL_NE
+                || delta == DEL_NW
+                || delta == DEL_SE
+                || delta == DEL_SW
+                || delta == DEL_N
+                || delta == DEL_S);
 
             if (GT == RELAX || GT == EVASION || GT == CAPTURE)
             {
-                *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
+                *moves++ = mk_move<PROMOTE> (dst - delta, dst, QUEN);
             }
             if (GT == RELAX || GT == EVASION /*|| GT == CAPTURE*/ || GT == QUIET)
             {
-                *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
-                *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
-                *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                *moves++ = mk_move<PROMOTE> (dst - delta, dst, ROOK);
+                *moves++ = mk_move<PROMOTE> (dst - delta, dst, BSHP);
+                *moves++ = mk_move<PROMOTE> (dst - delta, dst, NIHT);
             }
             // Knight-promotion is the only one that can give a direct check
             // not already included in the queen-promotion (queening).
@@ -156,16 +156,16 @@ namespace MoveGen {
             {
                 if ((PieceAttacks[NIHT][dst] & ci->king_sq) != U64(0))
                 {
-                    *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                    *moves++ = mk_move<PROMOTE> (dst - delta, dst, NIHT);
                 }
             }
             //else
             //if (GT == CHECK)
             //{
-            //    if ((PieceAttacks[NIHT][dst]         & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
-            //    if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
-            //    if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
-            //    if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
+            //    if ((PieceAttacks[NIHT][dst]         & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - delta, dst, NIHT);
+            //    if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - delta, dst, BSHP);
+            //    if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - delta, dst, ROOK);
+            //    if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - delta, dst, QUEN);
             //}
             else
             {
@@ -280,13 +280,13 @@ namespace MoveGen {
                     // Promoting pawns
                     Bitboard proms;
                     proms = empties & shift_bb<Push> (R7_pawns);
-                    while (proms != U64(0)) generate_promotion_moves<GT, Push> (moves, pop_lsq (proms), ci);
+                    while (proms != U64(0)) generate_promotion_moves<GT> (moves, pop_lsq (proms), Push, ci);
 
                     proms = enemies & shift_bb<RCap> (R7_pawns);
-                    while (proms != U64(0)) generate_promotion_moves<GT, RCap> (moves, pop_lsq (proms), ci);
+                    while (proms != U64(0)) generate_promotion_moves<GT> (moves, pop_lsq (proms), RCap, ci);
 
                     proms = enemies & shift_bb<LCap> (R7_pawns);
-                    while (proms != U64(0)) generate_promotion_moves<GT, LCap> (moves, pop_lsq (proms), ci);
+                    while (proms != U64(0)) generate_promotion_moves<GT> (moves, pop_lsq (proms), LCap, ci);
                 }
             }
         }

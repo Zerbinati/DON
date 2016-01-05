@@ -225,7 +225,7 @@ namespace TBSyzygy {
         const string WDL_Suffix = ".rtbw";
         const string DTZ_Suffix = ".rtbz";
 
-        const u08 WDL_Magic[4] ={ 0x71, 0xe8, 0x23, 0x5D };
+        const u08 WDL_Magic[4] ={ 0x71, 0xE8, 0x23, 0x5D };
         const u08 DTZ_Magic[4] ={ 0xD7, 0x66, 0x0C, 0xA5 };
 
         vector<string> Paths;
@@ -358,17 +358,17 @@ namespace TBSyzygy {
             auto color = mirror ? BLACK : WHITE;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (u08 pc = 0; pc < pcs[color | PieceType(pt + 1)]; ++pc)
+                for (auto pc = pcs[color | PieceType(pt + 1)]; pc > 0; --pc)
                 {
-                    key ^= Zob._.piece_square[WHITE][pt][pc];
+                    key ^= Zob._.piece_square[WHITE][pt][pc - 1];
                 }
             }
             color = ~color;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (u08 pc = 0; pc < pcs[color | PieceType(pt + 1)]; ++pc)
+                for (auto pc = pcs[color | PieceType(pt + 1)]; pc > 0; --pc)
                 {
-                    key ^= Zob._.piece_square[BLACK][pt][pc];
+                    key ^= Zob._.piece_square[BLACK][pt][pc - 1];
                 }
             }
             return key;
@@ -1224,7 +1224,7 @@ namespace TBSyzygy {
 
             u08 *w = pairs_data->sympat + 3 * s;
             s2 = (w[2] << 4) | (w[1] >> 4);
-            if (s2 == 0x0fff)
+            if (s2 == 0x0FFF)
             {
                 pairs_data->symlen[s] = 0;
             }
@@ -1624,7 +1624,7 @@ namespace TBSyzygy {
                 sym = offset[l];
                 if (!LittleEndian)
                 {
-                    sym = ((sym & 0xff) << 8) | (sym >> 8);
+                    sym = ((sym & 0xFF) << 8) | (sym >> 8);
                 }
                 sym += static_cast<i32>((code - base[l]) >> (64 - l));
                 if (litidx < (i32)symlen[sym] + 1)
@@ -1650,7 +1650,7 @@ namespace TBSyzygy {
             while (symlen[sym] != 0)
             {
                 u08 *w = sympat + (3 * sym);
-                i32 s1 = ((w[1] & 0xf) << 8) | w[0];
+                i32 s1 = ((w[1] & 0x0F) << 8) | w[0];
                 if (litidx < (i32)symlen[s1] + 1)
                 {
                     sym = s1;
@@ -1861,7 +1861,7 @@ namespace TBSyzygy {
             auto color = mirror ? BLACK : WHITE;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (i32 i = pos.count (color, pt); i > 0; --i)
+                for (auto i = pos.count (color, pt); i > 0; --i)
                 {
                     key ^= Zob._.piece_square[WHITE][pt][i - 1];
                 }
@@ -1869,7 +1869,7 @@ namespace TBSyzygy {
             color = ~color;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (i32 i = pos.count (color, pt); i > 0; --i)
+                for (auto i = pos.count (color, pt); i > 0; --i)
                 {
                     key ^= Zob._.piece_square[BLACK][pt][i - 1];
                 }

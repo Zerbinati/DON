@@ -27,9 +27,10 @@ namespace Pawns {
             UNBLOCKED,
             BLOCKED_BY_PAWN,
             BLOCKED_BY_KING,
+            BT_NO,
         };
         // Danger of enemy pawns moving toward our king indexed by [block-type][distance from edge][rank]
-        const Value StromDanger[4][F_NO/2][R_NO] =
+        const Value StromDanger[BT_NO][F_NO/2][R_NO] =
         {
             {
                 { V( 0), V(  67), V(134), V(38), V(32) },
@@ -102,10 +103,14 @@ namespace Pawns {
             S(20,20), S(40,40), S(0, 0), S(0, 0)
         };
 
-        const Score Unstoppable = S( 0, 20); // Bonus for unstoppable pawn going to promote
-        const Score Unsupported = S(20, 10); // Penalty for unsupported pawn
+        // Unsupported pawn penalty for pawns which are neither isolated or backward,
+        // by number of pawns it supports [less than 2 / exactly 2].
+        const Score Unsupported[2] = 
+        {
+            S(20, 10), S(25, 15)
+        };
 
-        const Score CenterBind  = S(16,  0); // Center bind bonus: Two pawns controlling the same central square
+        const Score Unstoppable = S( 0, 20); // Bonus for unstoppable pawn going to promote
 
     #undef S
 
@@ -116,12 +121,9 @@ namespace Pawns {
             const auto Push = Own == WHITE ? DEL_N  : DEL_S;
             const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-            const auto CenterBindMask = Own == WHITE ?
-                (FD_bb|FE_bb) & (R5_bb|R6_bb|R7_bb) :
-                (FD_bb|FE_bb) & (R4_bb|R3_bb|R2_bb);
             const auto CenterExtMask = Own == WHITE ?
                 (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R2_bb|R3_bb|R4_bb|R5_bb|R6_bb) :
-                (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R3_bb|R4_bb|R5_bb|R6_bb|R7_bb);
+                (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R7_bb|R6_bb|R5_bb|R4_bb|R3_bb);
 
             const auto own_pawns = pos.pieces (Own, PAWN);
             const auto opp_pawns = pos.pieces (Opp, PAWN);
@@ -201,14 +203,14 @@ namespace Pawns {
                 {
                     if (supported == U64(0))
                     {
-                        score -= Unsupported;
+                        score -= Unsupported[more_than_one (adjacents & rank_bb (s+Push)) ? 1 : 0];
                     }
                     if (backward)
                     {
                         score -= Backward[opposed];
                     }
                 }
-                
+
                 if (levered)
                 {
                     score += Lever[rel_rank (Own, s)];
@@ -236,12 +238,6 @@ namespace Pawns {
             b = e->semiopen_files[Own] ^ u08(0xFF);
             e->pawn_span[Own] = u08(b != U64(0) ? scan_msq (b) - scan_lsq (b) : 0);
 
-            // Center binds: Two pawns controlling the same central square
-            b = CenterBindMask
-              & shift_bb<LCap> (own_pawns)
-              & shift_bb<RCap> (own_pawns);
-            pawn_score += CenterBind * pop_count<Max15> (b);
-
             return pawn_score;
         }
         // --------------------------------
@@ -263,8 +259,8 @@ namespace Pawns {
         auto own_front_pawns = pos.pieces (Own) & front_pawns;
         auto opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        auto kfc = std::min (std::max (_file (k_sq), F_B), F_G);
-        for (auto f = kfc - 1; f <= kfc + 1; ++f)
+        auto kf = std::min (std::max (_file (k_sq), F_B), F_G);
+        for (auto f = kf - 1; f <= kf + 1; ++f)
         {
             assert(F_A <= f && f <= F_H);
 
