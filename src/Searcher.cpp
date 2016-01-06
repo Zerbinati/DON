@@ -250,14 +250,13 @@ namespace Searcher {
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
             assert(_ok (move));
-
+            pv.clear ();
             pv.push_back (move);
             for (const auto m : child_pv)
             {
-                if (m == MOVE_NONE) break;
+                assert(_ok (m));
                 pv.push_back (m);
             }
-            pv.push_back (MOVE_NONE);
         }
 
         // value_to_tt() adjusts a mate score from "plies to mate from the root" to
@@ -1277,7 +1276,7 @@ namespace Searcher {
                         root_move.resize (1);
                         for (const auto m : (ss+1)->pv)
                         {
-                            if (m == MOVE_NONE) break;
+                            assert(_ok (m));
                             root_move += m;
                         }
                         root_move.shrink_to_fit ();
