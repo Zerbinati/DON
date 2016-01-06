@@ -247,20 +247,17 @@ namespace Searcher {
             update_stats (pos, ss, move, depth, quiet_moves);
         }
         // update_pv() add current move and appends child pv[]
-        void update_pv (Move *pv, Move move, const Move *child_pv)
+        void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
-            assert(pv != child_pv);
             assert(_ok (move));
 
-            *pv++ = move;
-            if (child_pv != nullptr)
+            pv.push_back (move);
+            for (const auto m : child_pv)
             {
-                while (*child_pv != MOVE_NONE)
-                {
-                    *pv++ = *child_pv++;
-                }
+                if (m == MOVE_NONE) break;
+                pv.push_back (m);
             }
-            *pv = MOVE_NONE;
+            pv.push_back (MOVE_NONE);
         }
 
         // value_to_tt() adjusts a mate score from "plies to mate from the root" to
@@ -356,14 +353,12 @@ namespace Searcher {
             assert(depth <= DEPTH_ZERO);
 
             Value pv_alfa = -VALUE_INFINITE;
-            Move  pv[MaxPly+1];
 
             if (PVNode)
             {
                 pv_alfa = alfa; // To flag BOUND_EXACT when eval above alfa and no available moves
 
-                (ss+1)->pv = pv;
-                ss->pv[0] = MOVE_NONE;
+                ss->pv.resize (0);
             }
 
             ss->current_move = MOVE_NONE;
@@ -1014,8 +1009,7 @@ namespace Searcher {
                 && abs (tt_value) < +VALUE_KNOWN_WIN
                 && (tt_bound & BOUND_LOWER) != BOUND_NONE;
 
-            Move pv[MaxPly + 1];
-            u08  move_count = 0;
+            u08 move_count = 0;
 
             MoveVector quiet_moves;
             quiet_moves.reserve (0x10);
@@ -1068,7 +1062,7 @@ namespace Searcher {
 
                 if (PVNode)
                 {
-                    (ss+1)->pv = nullptr;
+                    (ss+1)->pv.resize (0);
                 }
 
                 auto extension = DEPTH_ZERO;
@@ -1249,8 +1243,7 @@ namespace Searcher {
                        )
                    )
                 {
-                    (ss+1)->pv = pv;
-                    (ss+1)->pv[0] = MOVE_NONE;
+                    (ss+1)->pv.resize (0);
 
                     value =
                         new_depth < DEPTH_ONE ?
@@ -1278,13 +1271,14 @@ namespace Searcher {
                     // 1st legal move or new best move ?
                     if (move_count == 1 || alfa < value)
                     {
-                        assert((ss+1)->pv != nullptr);
+                        //assert((ss+1)->pv.size () != 0);
 
                         root_move.new_value = value;
                         root_move.resize (1);
-                        for (const auto *m = (ss+1)->pv; *m != MOVE_NONE; ++m)
+                        for (const auto m : (ss+1)->pv)
                         {
-                            root_move += *m;
+                            if (m == MOVE_NONE) break;
+                            root_move += m;
                         }
                         root_move.shrink_to_fit ();
 
@@ -1671,7 +1665,16 @@ namespace Threading {
     void Thread::search ()
     {
         Stack stacks[MaxPly+4], *ss = stacks+2; // To allow referencing (ss-2)
-        std::memset (ss-2, 0x00, 5*Stack::Size);
+        for (auto i = ss-2; i <= ss+2; ++i)
+        {
+            i->ply = 0;
+            i->current_move = MOVE_NONE;
+            i->exclude_move = MOVE_NONE;
+            std::fill (i->killer_moves, i->killer_moves + Killers, MOVE_NONE);
+            i->static_eval = VALUE_ZERO;
+            i->move_count = 0;
+            i->skip_pruning = false;
+        }
 
         auto *main_thread = Threadpool.main () == this ? Threadpool.main () : nullptr;
         auto easy_move = MOVE_NONE;

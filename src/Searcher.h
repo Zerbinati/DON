@@ -201,7 +201,7 @@ namespace Searcher {
     {
         static const size_t Size;
 
-        Move *pv = nullptr;
+        MoveVector pv;
         u16  ply = 0;
 
         Move current_move = MOVE_NONE
