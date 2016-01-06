@@ -68,7 +68,7 @@ namespace Zobrist {
             posi_key ^= _.castle_right[0][pop_lsq (b)];
         }
 
-        posi_key ^= SQ_NO != pos.en_passant_sq () ? _.en_passant[_file (pos.en_passant_sq ())] : U64(0);
+        posi_key ^= pos.en_passant_sq () != SQ_NO ? _.en_passant[_file (pos.en_passant_sq ())] : U64(0);
         posi_key ^= pos.active () == WHITE ? _.act_side : U64(0);
 
         return posi_key;
@@ -95,10 +95,13 @@ namespace Zobrist {
                 s += Delta(ch - '0'); // Advance the given number of files
             }
             else
-            if (isalpha (ch) && (idx = PIECE_CHAR.find (ch)) != string::npos)
+            if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
             {
                 auto p = Piece(idx);
-                if (KING == ptype (p))  kf[color (p)] = _file (s);
+                if (ptype (p) == KING)
+                {
+                    kf[color (p)] = _file (s);
+                }
                 fen_key ^= _.piece_square[color (p)][ptype (p)][s];
                 ++s;
             }
@@ -113,8 +116,10 @@ namespace Zobrist {
         assert(kf[BLACK] != F_NO);
 
         iss >> ch;
-        if ('w' == ch) fen_key ^= _.act_side;
-
+        if ('w' == ch)
+        {
+            fen_key ^= _.act_side;
+        }
         iss >> ch;
         if (c960)
         {

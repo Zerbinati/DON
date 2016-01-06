@@ -1,7 +1,5 @@
 #include "MovePicker.h"
 
-#include "Thread.h"
-
 namespace MovePick {
 
     using namespace std;
@@ -11,7 +9,7 @@ namespace MovePick {
 
     namespace {
 
-        enum : u08 // Stages
+        enum Stage : u08
         {
             S_MAIN    , S_GOOD_CAPTURE, S_KILLER, S_GOOD_QUIET, S_BAD_QUIET, S_BAD_CAPTURE,
             S_EVASION , S_ALL_EVASION,
@@ -42,7 +40,7 @@ namespace MovePick {
         //{
         //    for (auto it = beg; it != end; ++it)
         //    {
-        //        rotate (upper_bound (beg, it, *it, pred), it, next (it));
+        //        rotate (std::upper_bound (beg, it, *it, pred), it, std::next (it));
         //    }
         //}
 
@@ -150,20 +148,20 @@ namespace MovePick {
     // has been picked up, saving some SEE calls in case we get a cutoff.
     void MovePicker::value<CAPTURE> ()
     {
-        for (auto &m : *this)
+        for (auto &vm : *this)
         {
-            m = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_pos[dst_sq (m)])]
-              - Value(200 * rel_rank (_pos.active (), dst_sq (m)));
+            vm.value = PieceValues[MG][_pos.en_passant (vm) ? PAWN : ptype (_pos[dst_sq (vm)])]
+              - Value(200 * rel_rank (_pos.active (), dst_sq (vm)));
         }
     }
 
     template<>
     void MovePicker::value<QUIET>   ()
     {
-        for (auto &m : *this)
+        for (auto &vm : *this)
         {
-            m = _history_values[_pos[org_sq (m)]][dst_sq (m)]
-              + (*_counter_moves_values)[_pos[org_sq (m)]][dst_sq (m)];
+            vm.value = _history_values[_pos[org_sq (vm)]][dst_sq (vm)]
+              + (*_counter_moves_values)[_pos[org_sq (vm)]][dst_sq (vm)];
         }
     }
 
@@ -173,22 +171,22 @@ namespace MovePick {
     // with a negative SEE. This last group is ordered by the SEE value.
     void MovePicker::value<EVASION> ()
     {
-        for (auto &m : *this)
+        for (auto &vm : *this)
         {
-            auto see_value = _pos.see_sign (m);
+            auto see_value = _pos.see_sign (vm);
             if (see_value < VALUE_ZERO)
             {
-                m = see_value - MAX_STATS_VALUE; // At the bottom
+                vm.value = see_value - MaxStatsValue; // At the bottom
             }
             else
-            if (_pos.capture (m))
+            if (_pos.capture (vm))
             {
-                m = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_pos[dst_sq (m)])]
-                  - Value(ptype (_pos[org_sq (m)])) -1 + MAX_STATS_VALUE;
+                vm.value = PieceValues[MG][_pos.en_passant (vm) ? PAWN : ptype (_pos[dst_sq (vm)])]
+                  - Value(ptype (_pos[org_sq (vm)])) -1 + MaxStatsValue;
             }
             else
             {
-                m = _history_values[_pos[org_sq (m)]][dst_sq (m)];
+                vm.value = _history_values[_pos[org_sq (vm)]][dst_sq (vm)];
             }
         }
     }
@@ -209,7 +207,8 @@ namespace MovePick {
         case S_QCAPTURE_2:
         case S_PROBCUT_CAPTURE:
         case S_ALL_RECAPTURE:
-            _moves_end = generate<CAPTURE> (_moves_beg, _pos);
+            _moves_end = _stage != S_ALL_RECAPTURE || _recapture_sq != SQ_NO ?
+                generate<CAPTURE> (_moves_beg, _pos) : _moves_beg;
             if (_moves_cur < _moves_end-1)
             {
                 value<CAPTURE> ();
@@ -217,15 +216,12 @@ namespace MovePick {
             break;
 
         case S_KILLER:
-            _moves_cur = _killers;
-            _moves_end = _killers + sizeof (_ss->killer_moves)/sizeof (*_ss->killer_moves);
-            std::copy (std::begin (_ss->killer_moves), std::end (_ss->killer_moves), std::begin (_killers));
+            _moves_cur = _killer_moves;
+            _moves_end = _killer_moves + Killers;
+            std::copy (_ss->killer_moves, _ss->killer_moves + Killers, _killer_moves);
             *_moves_end = MOVE_NONE;
-
-            // Be sure countermoves are different from _killers
-            if (   _counter_move != MOVE_NONE
-                && std::count (std::begin (_killers), std::prev (std::end (_killers)), _counter_move) == 0
-               )
+            // Be sure countermoves are different from killer_moves
+            if (_counter_move != MOVE_NONE && std::find (_moves_cur, _moves_end, _counter_move) == _moves_end)
             {
                 *_moves_end++ = _counter_move;
             }
@@ -256,7 +252,7 @@ namespace MovePick {
 
         case S_BAD_CAPTURE:
             // Just pick them in reverse order to get MVV/LVA ordering
-            _moves_cur = _moves_beg+MAX_MOVES-1;
+            _moves_cur = _moves_beg+MaxMoves-1;
             _moves_end = _bad_captures_end;
             break;
 
@@ -350,7 +346,7 @@ namespace MovePick {
                 {
                     move = *_moves_cur++;
                     if (   move != _tt_move
-                        && std::count (std::begin (_killers), std::end (_killers), move) == 0 // Not killer move
+                        && std::find (_killer_moves, _killer_moves + Killers + 1, move) == _killer_moves + Killers + 1 // Not killer move
                        )
                     {
                         return move;
@@ -399,7 +395,6 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            //case S_RECAPTURE:
             case S_ALL_RECAPTURE:
                 do
                 {

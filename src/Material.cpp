@@ -91,7 +91,7 @@ namespace Material {
         // NOTE:: KING == BISHOP_PAIR
         Value imbalance (const i32 count[][NONE])
         {
-            const auto Opp = WHITE == Own ? BLACK : WHITE;
+            const auto Opp = Own == WHITE ? BLACK : WHITE;
 
             auto value = VALUE_ZERO;
 
@@ -228,13 +228,13 @@ namespace Material {
             {
                 if (pos.count<PAWN> (WHITE) == 0)
                 {
-                    e->factor[WHITE] = u08(
+                    e->factor[WHITE] = ScaleFactor(
                         npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[BLACK] <= VALUE_MG_BSHP ? 4 : 14);
                 }
                 if (pos.count<PAWN> (WHITE) == 1)
                 {
-                    e->factor[WHITE] = u08(SCALE_FACTOR_ONEPAWN);
+                    e->factor[WHITE] = SCALE_FACTOR_ONEPAWN;
                 }
             }
 
@@ -242,13 +242,13 @@ namespace Material {
             {
                 if (pos.count<PAWN> (BLACK) == 0)
                 {
-                    e->factor[BLACK] = u08(
+                    e->factor[BLACK] = ScaleFactor(
                         npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[WHITE] <= VALUE_MG_BSHP ? 4 : 14);
                 }
                 if (pos.count<PAWN> (BLACK) == 1)
                 {
-                    e->factor[BLACK] = u08(SCALE_FACTOR_ONEPAWN);
+                    e->factor[BLACK] = SCALE_FACTOR_ONEPAWN;
                 }
             }
 

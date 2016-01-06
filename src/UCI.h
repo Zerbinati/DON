@@ -23,7 +23,8 @@ namespace UCI {
         u08 _index = 0;
         std::string
               _type  = ""
-            , _value = "";
+            , _default_value = ""
+            , _current_value = "";
         i32   _minimum = 0
             , _maximum = 0;
 
@@ -76,7 +77,7 @@ namespace UCI {
     {
         for (u08 idx = 0; idx < optmap.size (); ++idx)
         {
-            for (auto &pair : optmap)
+            for (const auto &pair : optmap)
             {
                 const Option &option = pair.second;
                 if (idx == option.index ())

@@ -30,7 +30,7 @@ namespace Polyglot {
 
         auto m = Move(move);
         // Set new type for promotion piece
-        auto pt = PieceT((m >> 12) & TOTL);
+        auto pt = PieceType((m >> 12) & TOTL);
         if (pt != PAWN) promote (m, pt);
         // TODO::Add special move flags and verify it is legal
         oss << " key: "    << std::setw (16) << std::setfill ('0') << std::hex << std::uppercase << key << std::nouppercase
@@ -134,7 +134,7 @@ namespace Polyglot {
 
         auto beg_index = size_t(0);
         auto end_index = size_t((size () - HeaderSize) / Entry::Size - 1);
-        assert (beg_index <= end_index);
+        assert(beg_index <= end_index);
 
         Entry pe;
         while (beg_index < end_index && good ())
@@ -176,9 +176,9 @@ namespace Polyglot {
         static PRNG pr (now ());
         if (is_open ())
         {
-            Key key = pos.posi_key ();
+            Key posi_key = pos.posi_key ();
 
-            auto index = find_index (key);
+            auto index = find_index (posi_key);
 
             seekg (OFFSET(index));
 
@@ -193,7 +193,10 @@ namespace Polyglot {
             //while (*this >> pe, pe.key == key && good ())
             //{
             //    pes.push_back (pe);
-            //    max_weight = max (max_weight, pe.weight);
+            //    if (max_weight < pe.weight)
+            //    {
+            //        max_weight = pe.weight;
+            //    }
             //    weight_sum += pe.weight;
             //}
             //if (!pes.size ()) return MOVE_NONE;
@@ -234,11 +237,14 @@ namespace Polyglot {
             //    }
             //}
 
-            while (*this >> pe, pe.key == key && good ())
+            while (*this >> pe, pe.key == posi_key && good ())
             {
                 if (pe == MOVE_NONE) continue; // Skip MOVE_NONE
 
-                max_weight = max (max_weight, pe.weight);
+                if (max_weight < pe.weight)
+                {
+                    max_weight = pe.weight;
+                }
                 weight_sum += pe.weight;
 
                 if (pick_best)
@@ -268,7 +274,7 @@ namespace Polyglot {
             //
             // bit 00-05: destiny square    (0...63)
             // bit 06-11: origin square     (0...63)
-            // bit 12-14: promotion piece   (NONE = 0, KNIGHT = 1 ... QUEEN = 4)
+            // bit 12-14: promotion piece   (None = 0, Knight = 1 ... Queen = 4)
             // bit    15: empty
             // Move is "0" (a1a1) then it should simply be ignored.
             // It seems to me that in that case one might as well delete the entry from the book.
@@ -279,16 +285,16 @@ namespace Polyglot {
             // in all the other cases can directly compare with a Move after having masked out
             // the special Move's flags (bit 14-15) that are not supported by Polyglot.
             // Polyglot use 3 bits while engine use 2 bits.
-            auto pt = PieceT((move >> 12) & TOTL);
+            auto pt = PieceType((move >> 12) & TOTL);
             // Set new type for promotion piece
             if (pt != PAWN) promote (move, pt);
 
             // Add special move flags and verify it is legal
-            for (const auto &m : MoveList<LEGAL> (pos))
+            for (const auto &vm : MoveList<LEGAL> (pos))
             {
-                if ((m.move & ~PROMOTE) == move)
+                if ((vm.move & ~PROMOTE) == move)
                 {
-                    return m;
+                    return vm.move;
                 }
             }
         }
@@ -300,16 +306,16 @@ namespace Polyglot {
         ostringstream oss;
         if (is_open ())
         {
-            Key key = pos.posi_key ();
+            Key posi_key = pos.posi_key ();
 
-            auto index = find_index (key);
+            auto index = find_index (posi_key);
 
             seekg (OFFSET(index));
 
             Entry pe;
             vector<Entry> pes;
             u32 weight_sum = 0;
-            while (*this >> pe, pe.key == key && good ())
+            while (*this >> pe, pe.key == posi_key && good ())
             {
                 if (pe == MOVE_NONE) continue; // Skip MOVE_NONE
 
@@ -320,8 +326,8 @@ namespace Polyglot {
             if (pes.empty ())
             {
                 std::cerr
-                    << "ERROR: no such key... "
-                    << std::hex << std::uppercase << key << std::nouppercase << std::dec
+                    << "ERROR: Position not found... "
+                    << std::hex << std::uppercase << posi_key << std::nouppercase << std::dec
                     << std::endl;
             }
             else
@@ -331,7 +337,7 @@ namespace Polyglot {
                     oss << e << " prob: "
                         << std::setfill ('0') << std::fixed << std::width_prec (6, 2)
                         << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0)
-                        << std::defaultfloat << std::setfill (' ') << endl;
+                        << std::defaultfloat << std::setfill (' ') << std::endl;
                 });
             }
         }

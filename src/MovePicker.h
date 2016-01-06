@@ -8,10 +8,7 @@
 
 namespace MovePick {
 
-    using namespace MoveGen;
-    using namespace Searcher;
-
-    const Value MAX_STATS_VALUE = Value(1 << 28);
+    const Value MaxStatsValue = Value(1 << 28);
 
     // The Stats struct stores different statistics.
     template<class T, bool CM = false>
@@ -20,7 +17,6 @@ namespace MovePick {
     private:
         T _table[PIECE_NO][SQ_NO];
 
-        //void _clear (Value &v) { std::memset (_table, 0x0, sizeof (_table)); }
         void _clear (Value &v) { v = VALUE_ZERO; }
         void _clear (Stats<Value, false> &vs) { vs.clear (); }
         void _clear (Stats<Value, true > &vs) { vs.clear (); }
@@ -33,6 +29,7 @@ namespace MovePick {
 
         void clear ()
         {
+            //std::memset (_table, 0x0, sizeof (_table));
             for (auto &t : _table)
             {
                 for (auto &e : t)
@@ -47,7 +44,7 @@ namespace MovePick {
             if (abs (i32(v)) < 324)
             {
                 auto &e = _table[p][s];
-                e = std::min (std::max (e*(1.0 - (double)abs (i32(v)) / (CM ? 512 : 324)) + i32(v)*(CM ? 64 : 32), -MAX_STATS_VALUE), +MAX_STATS_VALUE);
+                e = std::min (std::max (e*(1.0 - (double)abs (i32(v)) / (CM ? 512 : 324)) + i32(v)*(CM ? 64 : 32), -MaxStatsValue), +MaxStatsValue);
             }
         }
         // Piece, destiny square, move
@@ -64,8 +61,8 @@ namespace MovePick {
     typedef Stats<Value, false>     HValueStats;
     typedef Stats<Value, true >     CMValueStats;
 
-    // CMValue2DStats
-    typedef Stats<CMValueStats>     CMValue2DStats;
+    // CM2DValueStats
+    typedef Stats<CMValueStats>     CM2DValueStats;
 
     // MoveStats store the move that refute a previous move.
     // Entries are stored according only to moving piece and destination square,
@@ -85,16 +82,17 @@ namespace MovePick {
 
     private:
 
-        ValMove  _moves_beg[MAX_MOVES]
+        MoveGen::ValMove
+                 _moves_beg[MoveGen::MaxMoves]
             ,   *_moves_cur         = _moves_beg
             ,   *_moves_end         = _moves_beg
             ,   *_quiets_end        = _moves_beg
-            ,   *_bad_captures_end  = _moves_beg+MAX_MOVES-1;
+            ,   *_bad_captures_end  = _moves_beg+MoveGen::MaxMoves-1;
 
         const Position      &_pos;
         const HValueStats   &_history_values;
         const CMValueStats  *_counter_moves_values = nullptr;
-        const Stack         *_ss    = nullptr;
+        const Searcher::Stack *_ss    = nullptr;
 
         Move    _tt_move        = MOVE_NONE;
         Move    _counter_move   = MOVE_NONE;
@@ -102,11 +100,11 @@ namespace MovePick {
         Square  _recapture_sq   = SQ_NO;
         Value   _threshold      = VALUE_NONE;
 
-        ValMove _killers[3];
+        MoveGen::ValMove _killer_moves[Searcher::Killers + 1];
 
         u08     _stage;
 
-        template<GenT GT>
+        template<MoveGen::GenType GT>
         // value() assign a numerical move ordering score to each move in a move list.
         // The moves with highest scores will be picked first.
         void value ();
@@ -119,12 +117,12 @@ namespace MovePick {
         MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
 
-        MovePicker (const Position&, const HValueStats&, const CMValueStats&, Move, Depth, Move, const Stack*);
+        MovePicker (const Position&, const HValueStats&, const CMValueStats&, Move, Depth, Move, const Searcher::Stack*);
         MovePicker (const Position&, const HValueStats&, Move, Depth, Square);
         MovePicker (const Position&, const HValueStats&, Move, Value);
 
-        ValMove* begin () { return _moves_beg; }
-        ValMove* end   () { return _moves_end; }
+        MoveGen::ValMove* begin () { return _moves_beg; }
+        MoveGen::ValMove* end   () { return _moves_end; }
 
         Move next_move ();
 

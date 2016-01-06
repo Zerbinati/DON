@@ -13,7 +13,7 @@ namespace Pawns {
     #define V(v) Value(v)
 
         // Weakness of our pawn shelter in front of the king indexed by [distance from edge][rank]
-        const Value SHELTER_WEAKNESS[F_NO/2][R_NO] =
+        const Value ShelterWeakness[F_NO/2][R_NO] =
         {
             { V( 97), V(21), V(26), V(51), V(87), V( 89), V( 99) },
             { V(120), V( 0), V(28), V(76), V(88), V(103), V(104) },
@@ -21,9 +21,16 @@ namespace Pawns {
             { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119) }
         };
 
-        enum { NO_FRIENDLY_PAWN, UNBLOCKED, BLOCKED_BY_PAWN, BLOCKED_BY_KING };
-        // Danger of enemy pawns moving toward our king indexed by [type][distance from edge][rank]
-        const Value STORM_DANGER[4][F_NO/2][R_NO] =
+        enum BlockType : u08
+        {
+            NO_FRIENDLY_PAWN,
+            UNBLOCKED,
+            BLOCKED_BY_PAWN,
+            BLOCKED_BY_KING,
+            BT_NO,
+        };
+        // Dangerousness of enemy pawns moving toward our king indexed by [block-type][distance from edge][rank]
+        const Value StromDangerousness[BT_NO][F_NO/2][R_NO] =
         {
             {
                 { V( 0), V(  67), V(134), V(38), V(32) },
@@ -54,24 +61,24 @@ namespace Pawns {
         // Max bonus for king safety by pawns.
         // Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizon.
-        const Value KING_SAFETY_BY_PAWN = V(258);
+        const Value KingSafetyByPawn = V(258);
 
     #undef V
 
     #define S(mg, eg) mk_score(mg, eg)
 
         // Connected pawn bonus by [opposed][phalanx][rank] (by formula)
-        Score CONNECTED[2][2][2][R_NO];
+        Score Connected[2][2][2][R_NO];
 
         // Doubled pawn penalty by [file]
-        const Score DOUBLED[F_NO] =
+        const Score Doubled[F_NO] =
         {
             S(13, 43), S(20, 48), S(23, 48), S(23, 48),
             S(23, 48), S(23, 48), S(20, 48), S(13, 43)
         };
 
         // Isolated pawn penalty by [opposed][file]
-        const Score ISOLATED[2][F_NO] =
+        const Score Isolated[2][F_NO] =
         {
             {
                 S(37, 45), S(54, 52), S(60, 52), S(60, 52),
@@ -84,32 +91,36 @@ namespace Pawns {
         };
 
         // Backward pawn penalty by [opposed]
-        const Score BACKWARD[2] = { S(67, 42), S(49, 24) };
+        const Score Backward[2] =
+        {
+            S(67, 42), S(49, 24)
+        };
 
         // Levers bonus by [rank]
-        const Score LEVER[R_NO] = 
+        const Score Lever[R_NO] =
         {
             S( 0, 0), S( 0, 0), S(0, 0), S(0, 0),
             S(20,20), S(40,40), S(0, 0), S(0, 0)
         };
 
-        const Score UNSTOPPABLE = S( 0, 20); // Bonus for unstoppable pawn going to promote
-        const Score UNSUPPORTED = S(20, 10); // Penalty for unsupported pawn
+        // Unsupported pawn penalty for pawns which are neither isolated or backward,
+        // by number of pawns it supports [0, 1, 2].
+        const Score Unsupported[3] =
+        {
+            S(15, 5), S(20, 10), S(25, 15)
+        };
 
-        const Score CENTER_BIND = S(16,  0); // Center bind bonus: Two pawns controlling the same central square
+        const Score Unstoppable = S( 0, 20); // Bonus for unstoppable pawn going to promote
 
     #undef S
 
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
         {
-            const auto Opp  = WHITE == Own ? BLACK  : WHITE;
-            const auto Push = WHITE == Own ? DEL_N  : DEL_S;
-            const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
-            const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
-            const auto CenterBindMask = WHITE == Own ?
-                (FD_bb|FE_bb) & (R5_bb|R6_bb|R7_bb) :
-                (FD_bb|FE_bb) & (R4_bb|R3_bb|R2_bb);
+            const auto Opp  = Own == WHITE ? BLACK  : WHITE;
+            const auto Push = Own == WHITE ? DEL_N  : DEL_S;
+            const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
 
             const auto own_pawns = pos.pieces (Own, PAWN);
             const auto opp_pawns = pos.pieces (Opp, PAWN);
@@ -119,8 +130,8 @@ namespace Pawns {
             e->pawn_attack_span[Own] = U64(0);
             e->semiopen_files  [Own] = u08(0xFF);
             e->king_sq         [Own] = SQ_NO;
-            e->pawns_on_sqrs   [Own][WHITE] = u08(pop_count<MAX15> (own_pawns & LIHT_bb));
-            e->pawns_on_sqrs   [Own][BLACK] = u08(pop_count<MAX15> (own_pawns & DARK_bb));
+            e->pawns_on_sqrs   [Own][WHITE] = u08(pop_count<Max15> (own_pawns & Liht_bb));
+            e->pawns_on_sqrs   [Own][BLACK] = u08(pop_count<Max15> (own_pawns & Dark_bb));
 
             auto pawn_score = SCORE_ZERO;
 
@@ -135,17 +146,17 @@ namespace Pawns {
                 auto f = _file (s);
 
                 e->semiopen_files[Own] &= ~(u08(1) << f);
-                e->pawn_attack_span[Own] |= PAWN_ATTACK_SPAN[Own][s];
+                e->pawn_attack_span[Own] |= PawnAttackSpan[Own][s];
 
-                auto adjacents = (own_pawns & ADJ_FILE_bb[f]);
+                auto adjacents = (own_pawns & AdjFile_bb[f]);
                 auto phalanx   = (adjacents & rank_bb (s));
                 auto supported = (adjacents & rank_bb (s-Push));
-                auto doubled   = (own_pawns & FRONT_SQRS_bb[Own][s]);
-                bool opposed   = (opp_pawns & FRONT_SQRS_bb[Own][s]) != U64(0);
+                auto doubled   = (own_pawns & FrontSqrs_bb[Own][s]);
+                bool opposed   = (opp_pawns & FrontSqrs_bb[Own][s]) != U64(0);
                 bool connected = (supported != U64(0) || phalanx != U64(0));
-                bool levered   = (opp_pawns & PAWN_ATTACKS[Own][s]) != U64(0);
+                bool levered   = (opp_pawns & PawnAttacks[Own][s]) != U64(0);
                 bool isolated  = (adjacents) == U64(0);
-                bool passed    = (opp_pawns & PAWN_PASS_SPAN[Own][s]) == U64(0);
+                bool passed    = (opp_pawns & PawnPassSpan[Own][s]) == U64(0);
 
                 bool backward;
                 // Test for backward pawn.
@@ -154,7 +165,7 @@ namespace Pawns {
                 // If it is sufficiently advanced (Rank 6), then it cannot be backward either.
                 if (   passed || isolated || levered || connected || rel_rank (Own, s) >= R_6
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
-                    || (own_pawns & PAWN_ATTACK_SPAN[Opp][s] && !(opp_pawns & (s-Push)))
+                    || ((own_pawns & PawnAttackSpan[Opp][s]) != U64(0) && (opp_pawns & (s-Push)) == U64(0))
                    )
                 {
                     backward = false;
@@ -164,52 +175,52 @@ namespace Pawns {
                     // Now know there are no friendly pawns beside or behind this pawn on adjacent files.
                     // Now check whether the pawn is backward by looking in the forward direction on the
                     // adjacent files, and picking the closest pawn there.
-                    b = PAWN_ATTACK_SPAN[Own][s] & pos.pieces (PAWN);
-                    b = PAWN_ATTACK_SPAN[Own][s] & rank_bb (scan_backmost_sq (Own, b));
+                    b = PawnAttackSpan[Own][s] & pos.pieces (PAWN);
+                    b = PawnAttackSpan[Own][s] & rank_bb (scan_backmost_sq (Own, b));
 
                     // If have an enemy pawn in the same or next rank, the pawn is
                     // backward because it cannot advance without being captured.
                     backward = (opp_pawns & (b | shift_bb<Push> (b))) != U64(0);
                 }
 
-                assert(passed ^ (opposed || (opp_pawns & PAWN_ATTACK_SPAN[Own][s])));
+                assert(passed ^ (opposed || (opp_pawns & PawnAttackSpan[Own][s])));
 
                 auto score = SCORE_ZERO;
 
                 if (connected)
                 {
-                    score += CONNECTED[opposed][phalanx != U64(0)][more_than_one (supported)][rel_rank (Own, s)];
+                    score += Connected[opposed ? 1 : 0][phalanx != U64(0) ? 1 : 0][more_than_one (supported) ? 1 : 0][rel_rank (Own, s)];
                 }
 
                 if (isolated)
                 {
-                    score -= ISOLATED[opposed][f];
+                    score -= Isolated[opposed ? 1 : 0][f];
                 }
                 else
                 {
-                    if (!supported)
+                    if (supported == U64(0))
                     {
-                        score -= UNSUPPORTED;
+                        score -= Unsupported[pop_count<Max15> (adjacents & rank_bb (s+Push))];
                     }
                     if (backward)
                     {
-                        score -= BACKWARD[opposed];
+                        score -= Backward[opposed ? 1 : 0];
                     }
                 }
-                
+
                 if (levered)
                 {
-                    score += LEVER[rel_rank (Own, s)];
+                    score += Lever[rel_rank (Own, s)];
                 }
 
                 if (doubled)
                 {
-                    score -= DOUBLED[f] / dist<Rank> (s, scan_frntmost_sq (Own, doubled));
+                    score -= Doubled[f] / dist<Rank> (s, scan_frntmost_sq (Own, doubled));
                 }
                 else
                 // Only the frontmost passed pawn on each file is considered a true passed pawn.
                 // Passed pawns will be properly scored in evaluation
-                // because complete attack info needed to evaluate passed pawns.
+                // because complete attack info needed to evaluate them.
                 if (passed)
                 {
                     e->passed_pawns[Own] += s;
@@ -221,14 +232,8 @@ namespace Pawns {
                 pawn_score += score;
             }
 
-            b = e->semiopen_files[Own] ^ 0xFF;
-            e->pawn_span[Own] = b != U64(0) ? u08(scan_msq (b) - scan_lsq (b)) : 0;
-
-            // Center binds: Two pawns controlling the same central square
-            b = CenterBindMask
-              & shift_bb<LCap> (own_pawns)
-              & shift_bb<RCap> (own_pawns);
-            pawn_score += CENTER_BIND * pop_count<MAX15> (b);
+            b = e->semiopen_files[Own] ^ u08(0xFF);
+            e->pawn_span[Own] = u08(b != 0 ? scan_msq (b) - scan_lsq (b) : 0);
 
             return pawn_score;
         }
@@ -243,30 +248,30 @@ namespace Pawns {
     // for the file the king is on, as well as the two adjacent files.
     Value Entry::pawn_shelter_storm (const Position &pos, Square k_sq) const
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        const auto Opp = Own == WHITE ? BLACK : WHITE;
 
-        auto value = KING_SAFETY_BY_PAWN;
+        auto value = KingSafetyByPawn;
 
-        auto front_pawns = pos.pieces (PAWN) & (FRONT_RANK_bb[Own][_rank (k_sq)] | RANK_bb[_rank (k_sq)]);
+        auto front_pawns = pos.pieces (PAWN) & (FrontRank_bb[Own][_rank (k_sq)] | Rank_bb[_rank (k_sq)]);
         auto own_front_pawns = pos.pieces (Own) & front_pawns;
         auto opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        auto kfc = std::min (std::max (_file (k_sq), F_B), F_G);
-        for (auto f = kfc - 1; f <= kfc + 1; ++f)
+        auto kf = std::min (std::max (_file (k_sq), F_B), F_G);
+        for (auto f = kf - 1; f <= kf + 1; ++f)
         {
             assert(F_A <= f && f <= F_H);
 
             Bitboard mid_pawns;
             
-            mid_pawns = own_front_pawns & FILE_bb[f];
+            mid_pawns = own_front_pawns & File_bb[f];
             auto r0 = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
 
-            mid_pawns = opp_front_pawns & FILE_bb[f];
+            mid_pawns = opp_front_pawns & File_bb[f];
             auto r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
-            value -= 
-                  +  SHELTER_WEAKNESS[std::min (f, F_H - f)][r0]
-                  +  STORM_DANGER
+            value -=
+                  +  ShelterWeakness[std::min (f, F_H - f)][r0]
+                  +  StromDangerousness
                         [f  == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
                          r0 == R_1                                            ? NO_FRIENDLY_PAWN :
                          r1 == r0 + 1                                         ? BLOCKED_BY_PAWN  : UNBLOCKED]
@@ -283,7 +288,7 @@ namespace Pawns {
     Score Entry::evaluate_unstoppable_pawns () const
     {
         return passed_pawns[Own] != U64(0) ?
-                    UNSTOPPABLE * i32(rel_rank (Own, scan_frntmost_sq (Own, passed_pawns[Own]))) :
+                    Unstoppable * i32(rel_rank (Own, scan_frntmost_sq (Own, passed_pawns[Own]))) :
                     SCORE_ZERO;
     }
 
@@ -311,7 +316,7 @@ namespace Pawns {
             e->pawn_score =
                 + evaluate<WHITE> (pos, e)
                 - evaluate<BLACK> (pos, e);
-            e->asymmetry = pop_count<MAX15> (e->semiopen_files[WHITE] ^ e->semiopen_files[BLACK]);
+            e->asymmetry = pop_count<Max15> (e->semiopen_files[WHITE] ^ e->semiopen_files[BLACK]);
         }
         return e;
     }
@@ -333,7 +338,7 @@ namespace Pawns {
                     {
                         i32 v = (SEED[r] + (phalanx != 0 ? (SEED[r + 1] - SEED[r]) / 2 : 0)) >> opposed;
                         v += (apex ? v / 2 : 0);
-                        CONNECTED[opposed][phalanx][apex][r] = mk_score (3 * v / 2, v);
+                        Connected[opposed][phalanx][apex][r] = mk_score (3 * v / 2, v);
                     }
                 }
             }

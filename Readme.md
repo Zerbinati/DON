@@ -24,7 +24,7 @@ other-wise use Default Memory.
 DON has support for 32 or 64-bit CPUs, the hardware ABM/BMI instruction,
 big-endian machines such as Power PC, and other platforms.
 
-DON also support for Polyglot opening books.
+DON also support for Polyglot book.
 For information about how to create such books, consult the Polyglot documentation.
 The book file can be selected by setting the *Book File* UCI parameter.
 

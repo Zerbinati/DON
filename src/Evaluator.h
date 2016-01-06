@@ -7,8 +7,8 @@ class Position;
 
 namespace Evaluator {
 
-    // Tempo bonus. Must be visible to search.
-    const Value TEMPO = Value(20);
+    // Tempo bonus.
+    const Value Tempo = Value(20);
 
     template<bool Trace = false>
     extern Value evaluate    (const Position &pos);

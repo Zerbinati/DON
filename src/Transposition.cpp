@@ -19,7 +19,7 @@ namespace Transposition {
     // Size of Transposition cluster in (bytes)
     // 32 bytes
     const u08 Cluster::Size = sizeof (Cluster);
-    static_assert (CACHE_LINE_SIZE % Cluster::Size == 0, "Incorrect Cluster::Size");
+    static_assert (CacheLineSize % Cluster::Size == 0, "Incorrect Cluster::Size");
     // Minimum size of Transposition table (mega-byte)
     // 4 MB
     const u32 Table::MinSize = 4;
@@ -34,17 +34,16 @@ namespace Transposition {
 
     void Table::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
-        assert(0 == (alignment & (alignment-1)));
-        assert(0 == (mem_size  & (alignment-1)));
+        assert((alignment & (alignment-1)) == 0);
+        assert((mem_size  & (alignment-1)) == 0);
 
     #ifdef LPAGES
 
         Memory::alloc_memory (_mem, mem_size, alignment);
         if (_mem != nullptr)
         {
-            void *ptr = reinterpret_cast<void*> ((uintptr_t(_mem) + alignment-1) & ~u64(alignment-1));
-            _clusters = reinterpret_cast<Cluster*> (ptr);
-            assert(0 == (uintptr_t(_clusters) & (alignment-1)));
+            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_mem) + alignment-1) & ~uintptr_t(alignment-1));
+            assert((uintptr_t(_clusters) & (alignment-1)) == 0);
             return;
         }
 
@@ -64,21 +63,18 @@ namespace Transposition {
         // Then checking for error returned by malloc, if it returns NULL then 
         // alloc_aligned_memory will fail and return NULL or exit().
 
-        alignment = max (u32(sizeof (void *)), alignment);
+        alignment = std::max (u32(sizeof (void *)), alignment);
 
-        void *mem = calloc (mem_size + alignment-1, 1);
-        if (mem != nullptr)
+        _mem = calloc (mem_size + alignment-1, 1);
+        if (_mem != nullptr)
         {
-            sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
-
-            void **ptr = reinterpret_cast<void**> ((uintptr_t(mem) + alignment-1) & ~(alignment-1));
-            ptr[-1]    = mem;
-            _clusters  = reinterpret_cast<Cluster*> (ptr);
-            assert(0 == (uintptr_t(_clusters) & (alignment-1)));
+            sync_cout << "info string Hash " << (mem_size >> 20) << " MB" << sync_endl;
+            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_mem) + alignment-1) & ~uintptr_t(alignment-1));
+            assert((uintptr_t(_clusters) & (alignment-1)) == 0);
             return;
         }
+        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << std::endl;
 
-        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB." << std::endl;
     #endif
 
     }
@@ -99,11 +95,13 @@ namespace Transposition {
 
         mem_size  = cluster_count * Cluster::Size;
 
-        if (force || cluster_count != _cluster_count)
+        if (   cluster_count != _cluster_count
+            || force
+           )
         {
             free_aligned_memory ();
 
-            alloc_aligned_memory (mem_size, CACHE_LINE_SIZE); // Cache Line Size
+            alloc_aligned_memory (mem_size, CacheLineSize); // Cache Line Size
 
             if (_clusters == nullptr) return 0;
 
@@ -127,17 +125,22 @@ namespace Transposition {
 
     // probe() looks up the entry in the transposition table.
     // Returns a pointer to the entry found or NULL if not found.
-    Entry* Table::probe (Key key, bool &hit) const
+    Entry* Table::probe (Key key, bool &tt_hit) const
     {
-        //assert(key != U64(0));
-        const u16 key16 = key >> 0x30;
+        assert(key != U64(0));
+        const u16 key16 = u16(key >> 0x30);
         auto *const fte = cluster_entry (key);
+        assert(fte != nullptr);
         for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
         {
-            if (ite->_key16 == U64(0) || ite->_key16 == key16)
+            if (   ite->_key16 == U64(0)
+                || ite->_key16 == key16
+               )
             {
-                hit = (ite->_key16 == key16);
-                if (hit && ite->gen () != _generation)
+                tt_hit = ite->_key16 == key16;
+                if (   tt_hit
+                    && ite->gen () != _generation
+                   )
                 {
                     ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
                 }
@@ -157,7 +160,7 @@ namespace Transposition {
                 rte = ite;
             }
         }
-        hit = false;
+        tt_hit = false;
         return rte;
     }
 

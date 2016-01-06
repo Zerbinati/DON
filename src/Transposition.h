@@ -10,7 +10,7 @@
 
 namespace Transposition {
 
-    const u08 CACHE_LINE_SIZE = 64;
+    const u08 CacheLineSize = 64;
 
     // Transposition::Entry needs 16 byte to be stored
     //
@@ -25,20 +25,20 @@ namespace Transposition {
     //  Total------- 80 bits = 10 bytes
     struct Entry
     {
-
     private:
-        u16 _key16;
-        u16 _move;
-        i16 _value;
-        i16 _eval;
-        i08 _depth;
-        u08 _gen_bnd;
+        u16 _key16  = U64(0);
+        u16 _move   = MOVE_NONE;
+        i16 _value  = VALUE_NONE;
+        i16 _eval   = VALUE_NONE;
+        i08 _depth  = DEPTH_NONE;
+        u08 _gen_bnd= 0;
 
         friend class Table;
 
     public:
         static const u08 Size;
 
+        u16   key16 () const { return u16  (_key16); }
         Move  move  () const { return Move (_move);  }
         Value value () const { return Value(_value); }
         Value eval  () const { return Value(_eval);  }
@@ -50,19 +50,19 @@ namespace Transposition {
         {
             // Preserve any existing move for the position (key)
             if (   m != MOVE_NONE
-                || (k >> 0x30) != _key16
+                || u16(k >> 0x30) != _key16
                )
             {
                 _move       = u16(m);
             }
             // Don't overwrite more valuable entries
-            if (   (k >> 0x30) != _key16
+            if (   u16(k >> 0x30) != _key16
                 || d > _depth - 2
              /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
                 || b == BOUND_EXACT
                )
             {
-                _key16      = u64 (k >> 0x30);
+                _key16      = u16(k >> 0x30);
                 _value      = i16(v);
                 _eval       = i16(e);
                 _depth      = i08(d);
@@ -81,7 +81,7 @@ namespace Transposition {
         static const u08 Size;
 
         Entry entries[EntryCount];
-        char padding[CACHE_LINE_SIZE/2-EntryCount*sizeof (Entry)]; // Align to a divisor of the cache line size
+        char padding[2]; // Align to a divisor of the cache line size
     };
 
     // Transposition::Table consists of a power of 2 number of clusters
@@ -93,14 +93,9 @@ namespace Transposition {
     // This ensures best cache performance, as the cacheline is prefetched.
     class Table
     {
-    public:
-
     private:
 
-    #ifdef LPAGES
         void    *_mem           = nullptr;
-    #endif
-
         Cluster *_clusters      = nullptr;
         size_t   _cluster_count = 0;
         size_t   _cluster_mask  = 0;
@@ -112,16 +107,15 @@ namespace Transposition {
         // free_aligned_memory() frees the aligned memory
         void free_aligned_memory ()
         {
-            if (_clusters != nullptr)
+            if (_mem != nullptr)
             {
 
     #   ifdef LPAGES
                 Memory::free_memory (_mem);
-                _mem            = nullptr;
     #   else
-                free (((void **) _clusters)[-1]);
+                free (_mem);
     #   endif
-
+                _mem            = nullptr;
                 _clusters       = nullptr;
                 _cluster_count  = 0;
                 _cluster_mask   = 0;
@@ -172,7 +166,9 @@ namespace Transposition {
         // 'ucinewgame' (from the UCI interface).
         void clear ()
         {
-            if (!retain_hash && _clusters != nullptr)
+            if (   !retain_hash
+                && _clusters != nullptr
+               )
             {
                 std::memset (_clusters, 0x00, _cluster_count * Cluster::Size);
                 _generation = 0;
@@ -183,13 +179,13 @@ namespace Transposition {
         // generation() set the "Generation" variable, which is used to
         // distinguish transposition table entries from different searches.
         // It is called at the beginning of every new search.
-        void generation (i16 ply) { _generation = u08(ply << 2)&u08(~BOUND_EXACT); }
+        void generation (u16 ply) { _generation = u08(ply << 2)&u08(~BOUND_EXACT); }
         
         u08 generation () const { return _generation; }
 
         // cluster_entry() returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
-        Entry* cluster_entry (Key key) const
+        Entry* cluster_entry (const Key key) const
         {
             return _clusters[size_t(key) & _cluster_mask].entries;
         }
@@ -223,7 +219,7 @@ namespace Transposition {
 
         void auto_size (u32 mem_size_mb, bool force = false);
 
-        Entry* probe (Key key, bool &hit) const;
+        Entry* probe (Key key, bool &tt_hit) const;
 
         void save (const std::string &hash_fn) const;
         void load (const std::string &hash_fn);

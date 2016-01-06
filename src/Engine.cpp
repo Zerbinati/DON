@@ -8,9 +8,11 @@
 #include "Pawns.h"
 #include "Material.h"
 #include "Evaluator.h"
-#include "Searcher.h"
-#include "Transposition.h"
+#include "Endgame.h"
 #include "Thread.h"
+#include "Searcher.h"
+#include "TBsyzygy.h"
+#include "Transposition.h"
 
 namespace Engine {
 
@@ -19,16 +21,19 @@ namespace Engine {
     namespace {
 
         // Version number. If Version is left empty, then show compile date in the format DD-MM-YY.
-        const string VERSION   = "";
+        const string Version   = "";
 
-        const i08 MAX_MONTH = 12;
-        const string MONTHS[MAX_MONTH] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        const i08 MaxMonth = 12;
+        const string Months[MaxMonth] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-        i32 month_index (const string &month)
+        i32 index_month (const string &month)
         {
-            for (auto m = 0; m < MAX_MONTH; ++m)
+            for (auto m = 0; m < MaxMonth; ++m)
             {
-                if (month == MONTHS[m]) return m+1;
+                if (month == Months[m])
+                {
+                    return m+1;
+                }
             }
             return 0;
         }
@@ -42,26 +47,26 @@ namespace Engine {
         if (uci) oss << "id name ";
         oss << "DON ";
 
-        oss << setfill ('0');
+        oss << std::setfill ('0');
 #if defined (VER)
         oss << VER;
 #else
-        if (white_spaces (VERSION))
+        if (white_spaces (Version))
         {
             // From compiler, format is "Sep 2 2013"
             istringstream iss (__DATE__);
             string month, day, year;
             iss >> month >> day >> year;
-            oss << setw (2) << (day)
-                << setw (2) << (month_index (month))
-                << setw (2) << (year.substr (2));
+            oss << std::setw (2) << day
+                << std::setw (2) << index_month (month)
+                << std::setw (2) << year.substr (2);
         }
         else
         {
-            oss << VERSION;
+            oss << Version;
         }
 #endif
-        oss << setfill (' ');
+        oss << std::setfill (' ');
 
 #ifdef BIT64
         oss << ".64";
@@ -89,10 +94,7 @@ namespace Engine {
     void run (const string &arg)
     {
         std::cout << info (false) << std::endl;
-
-#ifdef LPAGES
-        Memory::initialize ();
-#endif
+        std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency () << std::endl;
 
         UCI      ::initialize ();
         BitBoard ::initialize ();
@@ -103,16 +105,20 @@ namespace Engine {
         EndGame  ::initialize ();
         Threadpool.initialize ();
         Searcher ::initialize ();
+        TBSyzygy ::initialize ();
 
+#ifdef LPAGES
+        Memory::initialize ();
+#endif
         TT.auto_size (i32(Options["Hash"]), true);
-
-        std::cout << std::endl;
 
         UCI::loop (arg);
     }
 
     void stop (i32 code)
     {
+        Searcher::ForceStop = true;
+        Threadpool.wait_while_thinking ();
         Threadpool.deinitialize ();
         EndGame  ::deinitialize ();
         UCI      ::deinitialize ();

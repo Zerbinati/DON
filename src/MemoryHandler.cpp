@@ -12,7 +12,7 @@
 #   include <tchar.h>
 #   include <cstdio>
 
-// disable macros min() and max()
+// Disable macros min() and max()
 #   ifndef  NOMINMAX
 #       define NOMINMAX
 #   endif
@@ -50,9 +50,11 @@ namespace Memory {
 
     using namespace std;
 
+    bool LargePages = true;
+
     namespace {
 
-        bool LargePages = false;
+        bool PagesUsed = false;
 
 #   if defined(_WIN32)
 
@@ -117,7 +119,7 @@ namespace Memory {
 
 #   else
 
-        i32 shm; // Shared Memory Identifier
+        i32 SHM; // Shared Memory Identifier
 
 #   endif
 
@@ -125,9 +127,9 @@ namespace Memory {
 
     void alloc_memory (void *&mem_ref, u64 mem_size, u32 alignment)
     {
-        LargePages = false;
+        PagesUsed = false;
 
-        if (bool(Options["Large Pages"]))
+        if (LargePages)
         {
 #   if defined(_WIN32)
 
@@ -139,8 +141,9 @@ namespace Memory {
 
             if (mem_ref != nullptr)
             {
-                LargePages = true;
-                sync_cout << "info string LargePage Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                PagesUsed = true;
+                std::memset (mem_ref, 0x00, mem_size);
+                sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                 return;
             }
 
@@ -152,52 +155,52 @@ namespace Memory {
 
             if (mem_ref != nullptr)
             {
-                LargePages = true;
+                PagesUsed = true;
                 std::memset (mem_ref, 0x00, mem_size);
-                sync_cout << "info string Page Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                 return;
             }
-            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << (mem_size >> 20) << " MB." << std::endl;
+            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << (mem_size >> 20) << " MB" << std::endl;
 
 #   else
 
-            shm = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
-            if (shm != -1)
+            SHM = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
+            if (SHM != -1)
             {
-                mem_ref = shmat (shm, nullptr, 0x00);
+                mem_ref = shmat (SHM, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
                     LargePages = true;
                     std::memset (mem_ref, 0x00, mem_size);
-                    sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                    sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB." << std::endl;
-                if (shmctl (shm, IPC_RMID, nullptr) == -1)
+                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB" << std::endl;
+                if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
                     std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
                 }
                 return;
             }
-            shm = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W);
-            if (shm != -1)
+            SHM = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W);
+            if (SHM != -1)
             {
-                mem_ref = shmat (shm, nullptr, 0x00);
+                mem_ref = shmat (SHM, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
                     LargePages = true;
                     std::memset (mem_ref, 0x00, mem_size);
-                    sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                    sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB." << std::endl;
-                if (shmctl (shm, IPC_RMID, nullptr) == -1)
+                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB" << std::endl;
+                if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
                     std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
                 }
                 return;
             }
-            std::cerr << "ERROR: shmget() shared memory alloc failed." << (mem_size >> 20) << " MB." << std::endl;
+            std::cerr << "ERROR: shmget() shared memory alloc failed." << (mem_size >> 20) << " MB" << std::endl;
 
 #   endif
         }
@@ -206,18 +209,18 @@ namespace Memory {
         if (mem_ref != nullptr)
         {
             std::memset (mem_ref, 0x00, mem_size);
-            sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
+            sync_cout << "info string No Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
             return;
         }
 
-        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB." << std::endl;
+        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << std::endl;
     }
 
     void  free_memory (void *mem)
     {
         if (mem == nullptr) return;
 
-        if (LargePages)
+        if (PagesUsed)
         {
 #   if defined(_WIN32)
             if (VirtualFree (mem, 0, MEM_RELEASE))
@@ -228,12 +231,12 @@ namespace Memory {
             {
                 std::cerr << "ERROR: shmdt() shared memory detach failed." << std::endl;
             }
-            if (shmctl (shm, IPC_RMID, nullptr) == -1)
+            if (shmctl (SHM, IPC_RMID, nullptr) == -1)
             {
                 std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
             }
 #   endif
-            LargePages = false;
+            PagesUsed = false;
             return;
         }
 

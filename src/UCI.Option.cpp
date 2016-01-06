@@ -4,23 +4,28 @@
 #include <fstream>
 #include <iomanip>
 
-#include "Transposition.h"
 #include "Thread.h"
+#include "Transposition.h"
 #include "Searcher.h"
+#include "TBsyzygy.h"
 #include "Debugger.h"
+#include "MemoryHandler.h"
 
 UCI::OptionMap  Options; // Global string mapping of Options
 
 namespace UCI {
 
     using namespace std;
+    using namespace Threading;
     using namespace Transposition;
     using namespace Searcher;
+    using namespace TBSyzygy;
     using namespace Debugger;
 
     Option::Option (OnChange on_change)
         : _type ("button")
-        , _value ("")
+        , _default_value ("")
+        , _current_value ("")
         , _minimum (0)
         , _maximum (0)
         , _on_change (on_change)
@@ -31,7 +36,7 @@ namespace UCI {
         , _maximum (0)
         , _on_change (on_change)
     {
-        _value = (val ? "true" : "false");
+        _default_value = _current_value = (val ? "true" : "false");
     }
     Option::Option (const char *val, OnChange on_change)
         : Option (string(val), on_change)
@@ -42,7 +47,7 @@ namespace UCI {
         , _maximum (0)
         , _on_change (on_change)
     {
-        _value = val;
+        _default_value = _current_value = val;
     }
     Option::Option (const i32 val, i32 minimum, i32 maximum, OnChange on_change)
         : _type ("spin")
@@ -50,23 +55,23 @@ namespace UCI {
         , _maximum (maximum)
         , _on_change (on_change)
     {
-        ostringstream oss; oss << val; _value = oss.str ();
+        _default_value = _current_value = std::to_string (val);
     }
 
     Option::operator bool () const
     {
         assert(_type == "check");
-        return (_value == "true");
+        return (_current_value == "true");
     }
     Option::operator i32 () const
     {
         assert(_type == "spin");
-        return stoi (_value);
+        return stoi (_current_value);
     }
     Option::operator string () const
     {
         assert(_type == "string");
-        return _value;
+        return _current_value;
     }
 
     // operator=() updates value and triggers on_change() action.
@@ -87,18 +92,14 @@ namespace UCI {
              )
            )
         {
-            if (_type == "button")
+            if (_type != "button")
             {
-                if (_on_change != nullptr) _on_change ();
-            }
-            else
-            {
-                if (_value != value)
+                if (_current_value != value)
                 {
-                    _value = value;
-                    if (_on_change != nullptr) _on_change ();
+                    _current_value = value;
                 }
             }
+            if (_on_change != nullptr) _on_change ();
         }
         return *this;
     }
@@ -118,17 +119,17 @@ namespace UCI {
         oss << " type " << _type;
         if (_type != "button")
         {
-            oss << " default " << _value;
+            oss << " default " << _default_value;
             if (_type == "spin")
             {
-                oss << " min " << _minimum
-                    << " max " << _maximum;
+                oss << " min " << _minimum << " max " << _maximum;
             }
+            //oss << " current " << _current_value;
         }
         return oss.str ();
     }
 
-    // Option Actions
+    // Option change actions
     namespace {
 
         void change_hash_size ()
@@ -139,6 +140,7 @@ namespace UCI {
 #   ifdef LPAGES
         void change_memory ()
         {
+            Memory::LargePages = bool(Options["Large Pages"]);
             TT.resize ();
         }
 #   endif
@@ -157,16 +159,22 @@ namespace UCI {
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
-            if (!hash_fn.empty ()) convert_path (hash_fn);
-            TT.save (hash_fn);
+            if (!hash_fn.empty ())
+            {
+                convert_path (hash_fn);
+                TT.save (hash_fn);
+            }
         }
 
         void load_hash   ()
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
-            if (!hash_fn.empty ()) convert_path (hash_fn);
-            TT.load (hash_fn);
+            if (!hash_fn.empty ())
+            {
+                convert_path (hash_fn);
+                TT.load (hash_fn);
+            }
         }
 
         void configure_threadpool ()
@@ -176,14 +184,17 @@ namespace UCI {
 
         void configure_draw_clock_ply ()
         {
-            Position::DrawClockPly = u08(2 * i32(Options["Draw Clock Move"]));
+            Position::DrawClockPly = u08(2 * i32(Options["Draw Clock Dist"]));
         }
 
         void configure_hash ()
         {
             HashFile         = string(Options["Hash File"]);
             trim (HashFile);
-            if (!HashFile.empty ()) convert_path (HashFile);
+            if (!HashFile.empty ())
+            {
+                convert_path (HashFile);
+            }
         }
 
         void configure_contempt ()
@@ -201,13 +212,18 @@ namespace UCI {
 
         void configure_book ()
         {
-            OwnBook      = bool(Options["Own Book"]);
+            OwnBook      = bool(Options["OwnBook"]);
             BookFile     = string(Options["Book File"]);
             BookMoveBest = bool(Options["Book Move Best"]);
-            trim (BookFile);
-            if (!BookFile.empty ()) convert_path (BookFile);
-        }
+            BookUptoMove = i16(i32(Options["Book Upto Move"]));
 
+            trim (BookFile);
+            if (!BookFile.empty ())
+            {
+                convert_path (BookFile);
+            }
+        }
+        
         void configure_skill ()
         {
             SkillMgr.change_level (u08(i32(Options["Skill Level"])));
@@ -220,7 +236,7 @@ namespace UCI {
             //OverheadClockTime    = i32(Options["Overhead Clock Time"]);
             //OverheadMoveTime     = i32(Options["Overhead Move Time"]);
             //MinimumMoveTime      = i32(Options["Minimum Move Time"]);
-            MoveSlowness         = i32(Options["Move Slowness"]);
+            MoveSlowness         = i32(Options["Move Slowness"])/100.0;
             NodesTime            = i32(Options["Nodes Time"]);
             Ponder               = bool(Options["Ponder"]);
         }
@@ -232,11 +248,24 @@ namespace UCI {
                 Logger::instance ().stop ();
         }
 
-        void search_log_file ()
+        void log_file ()
         {
-            SearchLogFile = string(Options["Search Log File"]);
-            trim (SearchLogFile);
-            if (!SearchLogFile.empty ()) convert_path (SearchLogFile);
+            LogFile = string(Options["Log File"]);
+            trim (LogFile);
+            if (!LogFile.empty ())
+            {
+                convert_path (LogFile);
+            }
+        }
+
+        void config_endgame_table ()
+        {
+            PathString = string(Options["Syzygy Path"]);
+            trim (PathString);
+            if (!PathString.empty ())
+            {
+                TBSyzygy::initialize ();
+            }
         }
 
         void uci_chess960 ()
@@ -264,11 +293,11 @@ namespace UCI {
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
         Options["Hash"]                         << Option (Table::DefSize,
-                                                           0,//Table::MinSize,
+                                                           0,//Table::MinSize, // 0 for auto-resize to maximum
                                                            Table::MaxSize, change_hash_size);
 
 #ifdef LPAGES
-        Options["Large Pages"]                  << Option (true, change_memory);
+        Options["Large Pages"]                  << Option (Memory::LargePages, change_memory);
 #endif
 
         // Button to clear the Hash Memory.
@@ -327,19 +356,18 @@ namespace UCI {
         // Position Learning Options
         // -------------------------
 
-        // Opening Book Options
+        // Book Options
         // ---------------------
-        // Whether or not to always play with the Opening Book.
-        Options["Own Book"]                     << Option (OwnBook, configure_book);
-        // The filename of the Opening Book.
+        // Whether or not to always play with the book.
+        Options["OwnBook"]                      << Option (OwnBook, configure_book);
+        // The filename of the Book.
         Options["Book File"]                    << Option (BookFile, configure_book);
-        // Whether or not to always play the best move from the Opening Book.
-        // False will lead to more variety in opening play.
+        // Whether or not to always play the best move from the book.
+        // False will lead to more variety in book play.
         Options["Book Move Best"]               << Option (BookMoveBest, configure_book);
-
-
-        // End-Game Table Bases Options
-        // ----------------------------
+        // Play book upto move
+        // Zero will lead to play till move present in book.
+        Options["Book Upto Move"]               << Option (BookUptoMove, 0, 50, configure_book);
 
         // Cores and Threads Options
         // -------------------------
@@ -351,16 +379,16 @@ namespace UCI {
         // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      << Option ( 1, 1, MAX_THREADS, configure_threadpool);
+        Options["Threads"]                      << Option ( 1, 1, MaxThreads, configure_threadpool);
 
         // Game Play Options
         // -----------------
 
         // How well you want engine to play.
-        // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
+        // Default MaxSkillLevel, Min 0, Max MaxSkillLevel.
         //
-        // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
-        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, configure_skill);
+        // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
+        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel, configure_skill);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
@@ -402,7 +430,7 @@ namespace UCI {
         //
         // By setting Draw Clock Move to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Draw Clock Move"]              << Option (Position::DrawClockPly/2,+  5,+ 50, configure_draw_clock_ply);
+        Options["Draw Clock Dist"]              << Option (Position::DrawClockPly/2,+  5,+ 50, configure_draw_clock_ply);
 
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, configure_time);
@@ -415,7 +443,7 @@ namespace UCI {
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Move Time"]            << Option (MinimumMoveTime     , 0, 5000, configure_time);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (MoveSlowness        ,+ 10,+ 1000, configure_time);
+        Options["Move Slowness"]                << Option (i32(MoveSlowness*100),+ 10,+ 1000, configure_time);
         Options["Nodes Time"]                   << Option (NodesTime           ,   0,+10000, configure_time);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.
@@ -423,12 +451,19 @@ namespace UCI {
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["Ponder"]                       << Option (Ponder, configure_time);
 
-        // ---------------------------------------------------------------------------------------
+        // End-Game Table Bases Options
+        // ----------------------------
+        Options["Syzygy Path"]                  << Option (PathString, config_endgame_table);
+        Options["Syzygy Depth Limit"]           << Option (TBDepthLimit/DEPTH_ONE, 1, 100);
+        Options["Syzygy Piece Limit"]           << Option (TBPieceLimit, 0,   6);
+        Options["Syzygy Use Rule 50"]           << Option (TBUseRule50);
+
+        // -------------
         // Other Options
         // -------------
         Options["Debug Log"]                    << Option (false, debug_log);
         // The filename of the search log.
-        Options["Search Log File"]              << Option (SearchLogFile, search_log_file);
+        Options["Log File"]                     << Option (LogFile, log_file);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.

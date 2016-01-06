@@ -22,10 +22,10 @@ namespace Material {
 
     public:
 
-        Key     matl_key;
-        Score   imbalance;
-        u08     factor[CLR_NO];
-        Phase   game_phase;
+        Key         matl_key;
+        Score       imbalance;
+        ScaleFactor factor[CLR_NO];
+        Phase       game_phase;
 
         EndGame::EndgameBase<Value>         *evaluation_func;
         EndGame::EndgameBase<ScaleFactor>   *scaling_func[CLR_NO];
@@ -40,7 +40,7 @@ namespace Material {
         ScaleFactor scale_factor (const Position &pos, Color c) const
         {
             return scaling_func[c] == nullptr || (*scaling_func[c]) (pos) == SCALE_FACTOR_NONE ?
-                    ScaleFactor(factor[c]) : (*scaling_func[c]) (pos);
+                    factor[c] : (*scaling_func[c]) (pos);
         }
 
     };

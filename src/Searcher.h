@@ -7,65 +7,82 @@
 
 #include "Type.h"
 #include "Position.h"
+#include "MoveGenerator.h"
 
 typedef std::unique_ptr<StateStack> StateStackPtr;
 
+// Limits stores information sent by GUI about available time to search the current move.
+//  - Maximum time and increment.
+//  - Maximum depth.
+//  - Maximum nodes.
+//  - Maximum mate.
+//  - Search moves.
+//  - Infinite analysis mode.
+//  - Ponder (think while is opponent's side to move) mode.
+struct Limit
+{
+public:
+    // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds
+    struct Clock
+    {
+        TimePoint time  = 0; // Remaining Time          [milli-seconds]
+        TimePoint inc   = 0; // Increment Time per move [milli-seconds]
+    };
+
+    Clock clock[CLR_NO];     // Clock for both sides
+    TimePoint movetime  = 0; // Search <x> exact time in milli-seconds
+    u08       movestogo = 0; // Search <x> moves to the next time control
+    u08       depth     = 0; // Search <x> depth (plies) only
+    u64       nodes     = 0; // Search <x> nodes only
+    u08       mate      = 0; // Search mate in <x> moves
+    bool      infinite  = false; // Search until the "stop" command
+    bool      ponder    = false; // Search on ponder move until the "stop" command
+
+    MoveVector moves;        // Restrict search to these root moves only
+
+    TimePoint  start_time = 0;
+
+    bool time_management_used () const
+    {
+        return !infinite
+            && movetime == 0
+            && depth    == 0
+            && nodes    == U64(0)
+            && mate     == 0;
+    }
+};
+
 namespace Searcher {
 
-    using namespace Threading;
+    extern bool             Chess960;
+    extern StateStackPtr    SetupStates;
+    extern Limit            Limits;
 
-    // Limits stores information sent by GUI about available time to search the current move.
-    //  - Maximum time and increment.
-    //  - Maximum depth.
-    //  - Maximum nodes.
-    //  - Search move list
-    //  - Infinite analysis mode.
-    //  - Ponder while is opponent's side to move.
-    struct LimitsT
-    {
-    private:
-        // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds
-        struct Clock
-        {
-            u32 time    = 0; // Remaining Time          [milli-seconds]
-            u32 inc     = 0; // Increment Time per move [milli-seconds]
-        };
+    extern std::atomic_bool ForceStop
+        ,                   PonderhitStop; 
 
-    public:
+    extern u16              MultiPV;
+    //extern i32              MultiPV_cp;
 
-        Clock clock[CLR_NO];
-        MoveVector root_moves; // Restrict search to these moves only
-        TimePoint  start_time;
+    extern i16              FixedContempt
+        ,                   ContemptTime 
+        ,                   ContemptValue;
 
-        u32  movetime   = 0; // Search <x> exact time in milli-seconds
-        u08  movestogo  = 0; // Search <x> moves to the next time control
-        u08  depth      = 0; // Search <x> depth (plies) only
-        u64  nodes      = 0; // Search <x> nodes only
-        u08  mate       = 0; // Search mate in <x> moves
-        u32  npmsec     = 0;
-        bool ponder     = false; // Search on ponder move until the "stop" command
-        bool infinite   = false; // Search until the "stop" command
-        
-        bool use_time_management () const
-        {
-            return !(infinite || movetime != 0 || depth != 0 || nodes != 0 || mate != 0);
-        }
-    };
+    extern std::string      HashFile;
+    extern u16              AutoSaveHashTime;
+    
+    extern bool             OwnBook;
+    extern std::string      BookFile;
+    extern bool             BookMoveBest;
+    extern i16              BookUptoMove;
 
-    // Signals stores atomic flags updated during the search sent by the GUI
-    // typically in an async fashion.
-    //  - Stop search on request.
-    //  - Stop search on ponder-hit.
-    //  - First move at root.
-    //  - Falied low at root.
-    struct SignalsT
-    {
-        std::atomic_bool
-              force_stop     { false }  // Stop search on request
-            , ponderhit_stop { false }  // Stop search on ponder-hit
-            , firstmove_root { false }  // First move at root
-            , failedlow_root { false }; // Failed low at root
-    };
+    extern Depth            TBDepthLimit;
+    extern i32              TBPieceLimit;
+    extern bool             TBUseRule50;
+    extern u16              TBHits;
+    extern bool             TBHasRoot;
+
+    extern std::string      LogFile;
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
     // all the children have to be investigated. The best move found at a PV node leads
@@ -75,7 +92,12 @@ namespace Searcher {
     // the children have to be explored. The successors of an ALL node are CUT nodes.
     // NonPV nodes = CUT nodes + ALL nodes
     // Node types, used as template parameter
-    enum NodeT { Root, PV, NonPV };
+    enum NodeType : u08
+    {
+        Root,
+        PV,
+        NonPV,
+    };
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
@@ -84,49 +106,46 @@ namespace Searcher {
     //  - PV (really a refutation table in the case of moves which fail low).
     // Value is normally set at -VALUE_INFINITE for all non-pv moves.
     class RootMove
+        : public MoveVector
     {
 
     public:
 
         Value new_value = -VALUE_INFINITE
             , old_value = -VALUE_INFINITE;
-        MoveVector pv;
 
-        explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
+        explicit RootMove (Move m = MOVE_NONE)
+            : MoveVector (1, m)
+        {}
+        RootMove& operator= (const RootMove&) = default;
 
         // Descending sort
-        bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
-        bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
-        bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
-        bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
-        bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
-        bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
+        bool operator<  (const RootMove &root_move) const { return new_value >  root_move.new_value; }
+        bool operator>  (const RootMove &root_move) const { return new_value <  root_move.new_value; }
+        bool operator<= (const RootMove &root_move) const { return new_value >= root_move.new_value; }
+        bool operator>= (const RootMove &root_move) const { return new_value <= root_move.new_value; }
+        bool operator== (const RootMove &root_move) const { return new_value == root_move.new_value; }
+        bool operator!= (const RootMove &root_move) const { return new_value != root_move.new_value; }
 
-        bool operator== (Move m) const { return pv[0] == m; }
-        bool operator!= (Move m) const { return pv[0] != m; }
+        bool operator== (Move m) const { return at (0) == m; }
+        bool operator!= (Move m) const { return at (0) != m; }
 
-        operator MoveVector () const { return pv; }
-        Move operator[] (i32 index) const { return pv[index]; }
-
-        void operator+= (Move m) { pv.push_back (m); }
-        void operator-= (Move m) { pv.erase (std::remove (pv.begin (), pv.end (), m), pv.end ()); }
-
-        size_t size () const { return pv.size (); }
-        bool  empty () const { return pv.empty (); }
+        void operator+= (Move m) { push_back (m); }
+        void operator-= (Move m) { erase (std::remove (begin (), end (), m), cend ()); }
 
         void backup () { old_value = new_value; }
+
         void insert_pv_into_tt (Position &pos);
         bool extract_ponder_move_from_tt (Position &pos);
 
         explicit operator std::string () const;
-
     };
 
     template<class CharT, class Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
+        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &root_move)
     {
-        os << std::string(rm);
+        os << std::string(root_move);
         return os;
     }
 
@@ -135,63 +154,78 @@ namespace Searcher {
     {
 
     public:
+        RootMoveVector& operator= (const RootMoveVector&) = default;
 
-        void operator+= (const RootMove &rm) { push_back (rm); }
-        void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
+        void operator+= (const RootMove &root_move) { push_back (root_move); }
+        void operator-= (const RootMove &root_move) { erase (std::remove (begin (), end (), root_move), cend ()); }
 
-        void backup ()
+        void initialize (const Position &pos, const MoveVector &moves)
         {
-            for (auto &rm : *this)
+            clear ();
+            for (const auto &vm : MoveGen::MoveList<MoveGen::LEGAL> (pos))
             {
-                rm.backup ();
+                if (   moves.empty ()
+                    || std::find (moves.cbegin (), moves.cend (), vm.move) != moves.cend ()
+                   )
+                {
+                    *this += RootMove (vm.move);
+                }
             }
+            shrink_to_fit ();
         }
 
-        void initialize (const Position &pos, const MoveVector &root_moves);
-
-        explicit operator std::string () const;
-
+        explicit operator std::string () const
+        {
+            std::ostringstream oss;
+            for (const auto &rm : *this)
+            {
+                oss << rm << "\n";
+            }
+            return oss.str ();
+        }
     };
 
     template<class CharT, class Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &rmv)
+        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &root_moves)
     {
-        os << std::string(rmv);
+        os << std::string(root_moves);
         return os;
     }
 
+    const u08 Killers = 2;
     // The Stack struct keeps track of the information needed to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
     // has its own array of Stack objects, indexed by the current ply.
     struct Stack
     {
+        static const size_t Size;
+
         Move *pv = nullptr;
         u16  ply = 0;
 
-        Move tt_move      = MOVE_NONE
-           , current_move = MOVE_NONE
+        Move current_move = MOVE_NONE
            , exclude_move = MOVE_NONE
-           , killer_moves[2];
+           , killer_moves[Killers];
 
         Value static_eval = VALUE_NONE;
         u08   move_count  = 0;
         bool skip_pruning = false;
     };
 
-    const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be <= MAX_DEPTH/4
+    const u08 MaxSkillLevel   = 32; // MaxSkillLevel should be <= MaxPly/4
     // Skill Manager
     class SkillManager
     {
 
     private:
-        u08  _level     = MAX_SKILL_LEVEL;
+        u08  _level     = MaxSkillLevel;
         Move _best_move = MOVE_NONE;
 
     public:
-        static const u16 SkillMultiPV = 4;
+        static const u16 MultiPV = 4;
 
-        explicit SkillManager (u08 level = MAX_SKILL_LEVEL)
+        explicit SkillManager (u08 level = MaxSkillLevel)
             : _level (level)
         {}
 
@@ -207,97 +241,33 @@ namespace Searcher {
 
         bool enabled () const
         {
-            return _level < MAX_SKILL_LEVEL;
+            return _level < MaxSkillLevel;
         }
 
-        bool depth_to_pick (Depth depth) const
+        bool can_pick (Depth depth) const
         {
             return depth/DEPTH_ONE == (1 + _level);
         }
 
         Move best_move (const RootMoveVector &root_moves)
         {
-            return _best_move != MOVE_NONE ? _best_move : pick_best_move (root_moves);
+            return _best_move == MOVE_NONE
+                && !root_moves.empty () ?
+                pick_best_move (root_moves) : _best_move;
         }
 
         Move pick_best_move (const RootMoveVector &root_moves);
 
     };
 
-    // TimeManager class computes the optimal time to think depending on the
-    // maximum available time, the move game number and other parameters.
-    // Support four different kind of time controls, passed in 'limits':
-    //
-    // moves_to_go = 0, increment = 0 means: x basetime [sudden death!]
-    // moves_to_go = 0, increment > 0 means: x basetime + z increment
-    // moves_to_go > 0, increment = 0 means: x moves in y basetime [regular clock]
-    // moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
-    class TimeManager
-    {
-    private:
-
-        u32       _optimum_time = 0;
-        u32       _maximum_time = 0;
-
-        double    _instability_factor = 1.0;
-
-    public:
-
-        u64     available_nodes  = 0; // When in 'nodes as time' mode
-        double  best_move_change = 0.0;
-
-        u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.76); }
-
-        u32 maximum_time () const { return _maximum_time; }
-
-        u32 elapsed_time () const;
-
-        void instability () { _instability_factor = 1.0 + best_move_change; }
-
-        void initialize (LimitsT &limits, Color own, i16 ply);
-
-    };
-
-
-    extern bool             Chess960;
-
-    extern LimitsT          Limits;
-    extern SignalsT         Signals;
-    extern StateStackPtr    SetupStates;
-
-    extern u16              MultiPV;
-    //extern i32              MultiPV_cp;
-
-    extern i16              FixedContempt
-        ,                   ContemptTime 
-        ,                   ContemptValue;
-
-    extern std::string      HashFile;
-    extern u16              AutoSaveHashTime;
-    
-    extern bool             OwnBook;
-    extern std::string      BookFile;
-    extern bool             BookMoveBest;
-
-    extern std::string      SearchLogFile;
-
     extern SkillManager     SkillMgr;
 
-    extern u08  MaximumMoveHorizon;
-    extern u08  ReadyMoveHorizon  ;
-    extern u32  OverheadClockTime ;
-    extern u32  OverheadMoveTime  ;
-    extern u32  MinimumMoveTime   ;
-    extern u32  MoveSlowness      ;
-    extern u32  NodesTime         ;
-    extern bool Ponder            ;
-
-    extern TimeManager TimeMgr;
 
     template<bool RootNode = true>
     extern u64 perft (Position &pos, Depth depth);
 
     extern void initialize ();
+
     extern void clear ();
 }
 
