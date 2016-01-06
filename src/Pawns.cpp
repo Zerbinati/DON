@@ -29,8 +29,8 @@ namespace Pawns {
             BLOCKED_BY_KING,
             BT_NO,
         };
-        // Danger of enemy pawns moving toward our king indexed by [block-type][distance from edge][rank]
-        const Value StromDanger[BT_NO][F_NO/2][R_NO] =
+        // Dangerousness of enemy pawns moving toward our king indexed by [block-type][distance from edge][rank]
+        const Value StromDangerousness[BT_NO][F_NO/2][R_NO] =
         {
             {
                 { V( 0), V(  67), V(134), V(38), V(32) },
@@ -97,17 +97,17 @@ namespace Pawns {
         };
 
         // Levers bonus by [rank]
-        const Score Lever[R_NO] = 
+        const Score Lever[R_NO] =
         {
             S( 0, 0), S( 0, 0), S(0, 0), S(0, 0),
             S(20,20), S(40,40), S(0, 0), S(0, 0)
         };
 
         // Unsupported pawn penalty for pawns which are neither isolated or backward,
-        // by number of pawns it supports [less than 2 / exactly 2].
-        const Score Unsupported[2] = 
+        // by number of pawns it supports [0, 1, 2].
+        const Score Unsupported[3] =
         {
-            S(20, 10), S(25, 15)
+            S(15, 5), S(20, 10), S(25, 15)
         };
 
         const Score Unstoppable = S( 0, 20); // Bonus for unstoppable pawn going to promote
@@ -192,22 +192,22 @@ namespace Pawns {
 
                 if (connected)
                 {
-                    score += Connected[opposed][phalanx != U64(0)][more_than_one (supported)][rel_rank (Own, s)];
+                    score += Connected[opposed ? 1 : 0][phalanx != U64(0) ? 1 : 0][more_than_one (supported) ? 1 : 0][rel_rank (Own, s)];
                 }
 
                 if (isolated)
                 {
-                    score -= Isolated[opposed][f];
+                    score -= Isolated[opposed ? 1 : 0][f];
                 }
                 else
                 {
                     if (supported == U64(0))
                     {
-                        score -= Unsupported[more_than_one (adjacents & rank_bb (s+Push)) ? 1 : 0];
+                        score -= Unsupported[pop_count<Max15> (adjacents & rank_bb (s+Push))];
                     }
                     if (backward)
                     {
-                        score -= Backward[opposed];
+                        score -= Backward[opposed ? 1 : 0];
                     }
                 }
 
@@ -236,7 +236,7 @@ namespace Pawns {
             }
 
             b = e->semiopen_files[Own] ^ u08(0xFF);
-            e->pawn_span[Own] = u08(b != U64(0) ? scan_msq (b) - scan_lsq (b) : 0);
+            e->pawn_span[Own] = u08(b != 0 ? scan_msq (b) - scan_lsq (b) : 0);
 
             return pawn_score;
         }
@@ -272,9 +272,9 @@ namespace Pawns {
             mid_pawns = opp_front_pawns & File_bb[f];
             auto r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
-            value -= 
+            value -=
                   +  ShelterWeakness[std::min (f, F_H - f)][r0]
-                  +  StromDanger
+                  +  StromDangerousness
                         [f  == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
                          r0 == R_1                                            ? NO_FRIENDLY_PAWN :
                          r1 == r0 + 1                                         ? BLOCKED_BY_PAWN  : UNBLOCKED]

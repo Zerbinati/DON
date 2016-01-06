@@ -1147,7 +1147,7 @@ namespace TBSyzygy {
             }
         }
 
-        void setup_pieces_piece (TBEntry_piece *tbep, u08 *data, u64 *tb_size)
+        void setup_piece (TBEntry_piece *tbep, u08 *data, u64 *tb_size)
         {
             i32 order;
             for (u08 i = 0; i < tbep->num; ++i)
@@ -1167,7 +1167,7 @@ namespace TBSyzygy {
             tb_size[1] = calc_factors_piece (tbep->factor[1], tbep->num, order, tbep->norm[1], tbep->enc_type);
         }
 
-        void setup_pieces_piece_dtz (DTZEntry_piece *dtzep, u08 *data, u64 *tb_size)
+        void setup_piece_dtz (DTZEntry_piece *dtzep, u08 *data, u64 *tb_size)
         {
             i32 order;
             for (u08 i = 0; i < dtzep->num; ++i)
@@ -1179,7 +1179,7 @@ namespace TBSyzygy {
             tb_size[0] = calc_factors_piece (dtzep->factor, dtzep->num, order, dtzep->norm, dtzep->enc_type);
         }
 
-        void setup_pieces_pawn (TBEntry_pawn *tbep, u08 *data, u64 *tb_size, i32 f)
+        void setup_pawn (TBEntry_pawn *tbep, u08 *data, u64 *tb_size, i32 f)
         {
             i32 order1, order2;
 
@@ -1203,7 +1203,7 @@ namespace TBSyzygy {
             tb_size[1] = calc_factors_pawn (tbep->file[f].factor[1], tbep->num, order1, order2, tbep->file[f].norm[1], f);
         }
 
-        void setup_pieces_pawn_dtz (DTZEntry_pawn *dtzep, u08 *data, u64 *tb_size, i32 f)
+        void setup_pawn_dtz (DTZEntry_pawn *dtzep, u08 *data, u64 *tb_size, i32 f)
         {
             i32 order1, order2;
 
@@ -1358,7 +1358,7 @@ namespace TBSyzygy {
                 u08 f;
                 for (f = 0; f < 4; ++f)
                 {
-                    setup_pieces_pawn (reinterpret_cast<TBEntry_pawn *> (tbep), data, &tb_size[2 * f], f);
+                    setup_pawn (reinterpret_cast<TBEntry_pawn *> (tbep), data, &tb_size[2 * f], f);
                     data += tbep->num + s;
                 }
                 data += ((uintptr_t)data) & 0x01;
@@ -1413,7 +1413,7 @@ namespace TBSyzygy {
             else
             {
                 auto *tbep = reinterpret_cast<TBEntry_piece *> (tbe);
-                setup_pieces_piece (tbep, data, &tb_size[0]);
+                setup_piece (tbep, data, &tb_size[0]);
                 data += tbep->num + 1;
                 data += ((uintptr_t)data) & 0x01;
 
@@ -1488,7 +1488,7 @@ namespace TBSyzygy {
                 u08 f;
                 for (f = 0; f < 4; ++f)
                 {
-                    setup_pieces_pawn_dtz (dtzep, data, &tb_size[f], f);
+                    setup_pawn_dtz (dtzep, data, &tb_size[f], f);
                     data += dtzep->num + s;
                 }
                 data += ((uintptr_t)data) & 0x01;
@@ -1534,7 +1534,7 @@ namespace TBSyzygy {
             else
             {
                 auto *dtzep = reinterpret_cast<DTZEntry_piece *> (tbe);
-                setup_pieces_piece_dtz (dtzep, data, &tb_size[0]);
+                setup_piece_dtz (dtzep, data, &tb_size[0]);
                 data += dtzep->num + 1;
                 data += ((uintptr_t)data) & 0x01;
 

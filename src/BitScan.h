@@ -70,9 +70,9 @@ inline Square scan_lsq (Bitboard bb)
 inline Square scan_msq (Bitboard bb)
 {
 #ifdef BIT64
-    return Square(i32(SQ_H8) - __builtin_clzll (bb));
+    return Square(i08(SQ_H8) - __builtin_clzll (bb));
 #else
-    return Square(i32(SQ_H8) - ((bb & 0xFFFFFFFF00000000) ?
+    return Square(i08(SQ_H8) - ((bb & 0xFFFFFFFF00000000) ?
         __builtin_clz (bb >> 32) :
         __builtin_clz (bb >> 00) + 32));
 #endif
@@ -83,18 +83,18 @@ inline Square scan_msq (Bitboard bb)
 // Assembly code by Heinz van Saanen
 inline Square scan_lsq (Bitboard bb)
 {
-    Bitboard sq;
-    __asm__ ("bsfq %1, %0": "=r" (sq) : "rm" (bb));
-    return Square(sq);
+    Bitboard index;
+    __asm__ ("bsfq %1, %0": "=r" (index) : "rm" (bb));
+    return Square(index);
     //return Square(__builtin_ctzll (bb));
 }
 
 inline Square scan_msq (Bitboard bb)
 {
-    Bitboard sq;
-    __asm__ ("bsrq %1, %0": "=r" (sq) : "rm" (bb));
-    return Square(sq);
-    //return Square(i32(SQ_H8) - __builtin_clzll (bb));
+    Bitboard index;
+    __asm__ ("bsrq %1, %0": "=r" (index) : "rm" (bb));
+    return Square(index);
+    //return Square(i08(SQ_H8) - __builtin_clzll (bb));
 }
 
 #   endif

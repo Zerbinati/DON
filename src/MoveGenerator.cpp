@@ -45,9 +45,9 @@ namespace MoveGen {
             }
         }
 
-        template<GenType GT, CRight CR, bool Chess960>
+        template<GenType GT, CRight CR>
         // Generates KING castling move
-        void generate_castling_moves (ValMove *&moves, const Position &pos, Color Own, const CheckInfo *ci)
+        void generate_castling_moves (ValMove *&moves, const Position &pos, Color Own, bool chess960, const CheckInfo *ci)
         {
             assert(GT != EVASION);
             assert(!pos.castle_impeded (CR)
@@ -69,7 +69,7 @@ namespace MoveGen {
                 if (pos.attackers_to (s, Opp) != U64(0)) return;
             }
 
-            if (Chess960)
+            if (chess960)
             {
                 // Because generate only legal castling moves needed to verify that
                 // when moving the castling rook do not discover some hidden checker.
@@ -107,23 +107,21 @@ namespace MoveGen {
 
             if (GT != CAPTURE)
             {
-                if (pos.can_castle (Own) && pos.checkers () == U64(0))
+                if (   pos.checkers () == U64(0)
+                    && pos.can_castle (Own) != CR_NONE
+                   )
                 {
-                    if (    pos.can_castle (Castling<Own, CS_KING>::Right)
+                    if (    pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE
                         && !pos.castle_impeded (Castling<Own, CS_KING>::Right)
-                        )
+                       )
                     {
-                        pos.chess960 () ?
-                            generate_castling_moves<GT, Castling<Own, CS_KING>::Right, true > (moves, pos, Own, ci) :
-                            generate_castling_moves<GT, Castling<Own, CS_KING>::Right, false> (moves, pos, Own, ci);
+                        generate_castling_moves<GT, Castling<Own, CS_KING>::Right> (moves, pos, Own, pos.chess960 (), ci);
                     }
-                    if (    pos.can_castle (Castling<Own, CS_QUEN>::Right)
+                    if (    pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE
                         && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right)
-                        )
+                       )
                     {
-                        pos.chess960 () ?
-                            generate_castling_moves<GT, Castling<Own, CS_QUEN>::Right, true > (moves, pos, Own, ci) :
-                            generate_castling_moves<GT, Castling<Own, CS_QUEN>::Right, false> (moves, pos, Own, ci);
+                        generate_castling_moves<GT, Castling<Own, CS_QUEN>::Right> (moves, pos, Own, pos.chess960 (), ci);
                     }
                 }
             }
@@ -133,12 +131,12 @@ namespace MoveGen {
         // Generates PAWN promotion move
         void generate_promotion_moves (ValMove *&moves, Square dst, Delta delta, const CheckInfo *ci)
         {
-            assert(delta == DEL_NE
+            assert(delta == DEL_N
+                || delta == DEL_NE
                 || delta == DEL_NW
+                || delta == DEL_S
                 || delta == DEL_SE
-                || delta == DEL_SW
-                || delta == DEL_N
-                || delta == DEL_S);
+                || delta == DEL_SW);
 
             if (GT == RELAX || GT == EVASION || GT == CAPTURE)
             {

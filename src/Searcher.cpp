@@ -200,7 +200,7 @@ namespace Searcher {
                 ss->killer_moves[0] = move;
             }
 
-            auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
+            auto bonus = Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1);
 
             auto opp_move_dst = dst_sq ((ss-1)->current_move);
             auto opp_move_ok  = _ok ((ss-1)->current_move);
@@ -237,7 +237,7 @@ namespace Searcher {
             {
                 auto own_move_dst = dst_sq ((ss-2)->current_move);
                 auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
-                own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*((depth + 1)/DEPTH_ONE));
+                own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*((depth/DEPTH_ONE) + 1));
             }
 
         }
@@ -1189,6 +1189,7 @@ namespace Searcher {
                 // If the move fails high will be re-searched at full depth.
                 if (   depth >= LateMoveReductionDepth*DEPTH_ONE
                     && move_count > FullDepthMoveCount
+                    && !gives_check
                     && !capture_or_promotion
                    )
                 {
@@ -1242,7 +1243,11 @@ namespace Searcher {
                 // - 'fail high' move (search only if value < beta)
                 // otherwise let the parent node fail low with
                 // alfa >= value and to try another better move.
-                if (PVNode && ((0 < move_count && move_count <= FullDepthMoveCount) || (alfa < value && (RootNode || value < beta))))
+                if (   PVNode
+                    && (   (0 < move_count && move_count <= FullDepthMoveCount)
+                        || (alfa < value && (RootNode || value < beta))
+                       )
+                   )
                 {
                     (ss+1)->pv = pv;
                     (ss+1)->pv[0] = MOVE_NONE;
@@ -1398,7 +1403,7 @@ namespace Searcher {
                 opp_move_dst = dst_sq ((ss-1)->current_move);
                 auto own_move_dst = dst_sq ((ss-2)->current_move);
                 auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
-                own_cmv.update (pos[opp_move_dst], opp_move_dst, Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1));
+                own_cmv.update (pos[opp_move_dst], opp_move_dst, Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1));
             }
 
             if (   tt_hit
@@ -1743,9 +1748,12 @@ namespace Threading {
                 }
             }
 
-            // Save last iteration's scores before first PV line is searched and
+            // Save the last iteration's scores before first PV line is searched and
             // all the move scores but the (new) PV are set to -VALUE_INFINITE.
-            root_moves.backup ();
+            for (auto &rm : root_moves)
+            {
+                rm.backup ();
+            }
 
             const bool aspiration = root_depth > 4*DEPTH_ONE;
 

@@ -61,7 +61,8 @@
 
 #ifdef BM2
 #   include <immintrin.h>   // Header for BMI2 instructions
-// BEXT = Bit field extract
+// BEXT = Bit field extract (with register)
+// PDEP = Parallel bits deposit
 // PEXT = Parallel bits extract
 // BLSR = Reset lowest set bit
 #   ifdef BIT64

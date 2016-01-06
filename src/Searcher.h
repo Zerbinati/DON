@@ -159,14 +159,6 @@ namespace Searcher {
         void operator+= (const RootMove &root_move) { push_back (root_move); }
         void operator-= (const RootMove &root_move) { erase (std::remove (begin (), end (), root_move), cend ()); }
 
-        void backup ()
-        {
-            for (auto &rm : *this)
-            {
-                rm.backup ();
-            }
-        }
-
         void initialize (const Position &pos, const MoveVector &moves)
         {
             clear ();
