@@ -504,23 +504,27 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 inline bool Position::capture       (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && ptype (_board[org_sq (m)]) == PAWN)) && !empty (dst_sq (m)))
-        || ( mtype (m) == ENPASSANT && ptype (_board[org_sq (m)]) == PAWN && empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m));
+    return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))) && !empty (dst_sq (m)))
+        || ( mtype (m) == ENPASSANT && _board[org_sq (m)] == (_active|PAWN) && empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m));
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
     return (mtype (m) == NORMAL && !empty (dst_sq (m)))
-        || (mtype (m) == PROMOTE && ptype (_board[org_sq (m)]) == PAWN)
-        || (mtype (m) == ENPASSANT && ptype (_board[org_sq (m)]) == PAWN && empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m));
+        || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))
+        || (mtype (m) == ENPASSANT && _board[org_sq (m)] == (_active|PAWN) && empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m));
 }
 inline bool Position::en_passant    (Move m) const
 {
-    return mtype (m) == ENPASSANT && ptype (_board[org_sq (m)]) == PAWN && empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m);
+    return mtype (m) == ENPASSANT
+        && _board[org_sq (m)] == (_active|PAWN)
+        && empty (dst_sq (m))
+        && _psi->en_passant_sq == dst_sq (m);
 }
 inline bool Position::advanced_pawn_push    (Move m) const
 {
-    return ptype (_board[org_sq (m)]) == PAWN && rel_rank (_active, org_sq (m)) > R_4;
+    return _board[org_sq (m)] == (_active|PAWN)
+        && rel_rank (_active, org_sq (m)) > R_4;
 }
 //inline Piece Position::moving_piece (Move m) const { return _board[org_sq (m)]; }
 

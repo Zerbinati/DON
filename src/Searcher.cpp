@@ -1189,8 +1189,8 @@ namespace Searcher {
                 // If the move fails high will be re-searched at full depth.
                 if (   depth >= LateMoveReductionDepth*DEPTH_ONE
                     && move_count > FullDepthMoveCount
-                    && !gives_check
                     && !capture_or_promotion
+                    //&& (!gives_check || depth >= 10*DEPTH_ONE)
                    )
                 {
                     auto reduction_depth = reduction_depths<PVNode> (improving, depth, move_count);
