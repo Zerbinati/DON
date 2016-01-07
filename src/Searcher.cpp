@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
+#include <iterator>
 
 #include "PRNG.h"
 #include "MovePicker.h"
@@ -252,10 +253,10 @@ namespace Searcher {
             assert(_ok (move));
             pv.clear ();
             pv.push_back (move);
-            for (const auto m : child_pv)
+            if (!child_pv.empty ())
             {
-                assert(_ok (m));
-                pv.push_back (m);
+                pv.reserve (child_pv.size () + 1);
+                std::copy (child_pv.cbegin (), child_pv.cend (), std::back_inserter (pv));
             }
         }
 
@@ -357,7 +358,7 @@ namespace Searcher {
             {
                 pv_alfa = alfa; // To flag BOUND_EXACT when eval above alfa and no available moves
 
-                ss->pv.resize (0);
+                ss->pv.clear ();
             }
 
             ss->current_move = MOVE_NONE;
@@ -565,7 +566,7 @@ namespace Searcher {
                     if (alfa < value)
                     {
                         best_move = move;
-
+                        // Update pv even in fail-high case
                         if (PVNode)
                         {
                             update_pv (ss->pv, move, (ss+1)->pv);
@@ -1061,7 +1062,7 @@ namespace Searcher {
 
                 if (PVNode)
                 {
-                    (ss+1)->pv.resize (0);
+                    (ss+1)->pv.clear ();
                 }
 
                 auto extension = DEPTH_ZERO;
@@ -1242,7 +1243,7 @@ namespace Searcher {
                        )
                    )
                 {
-                    (ss+1)->pv.resize (0);
+                    (ss+1)->pv.clear ();
 
                     value =
                         new_depth < DEPTH_ONE ?
@@ -1271,15 +1272,14 @@ namespace Searcher {
                     if (move_count == 1 || alfa < value)
                     {
                         //assert((ss+1)->pv.size () != 0);
-
-                        root_move.new_value = value;
                         root_move.resize (1);
-                        for (const auto m : (ss+1)->pv)
+                        if (!(ss+1)->pv.empty ())
                         {
-                            assert(_ok (m));
-                            root_move += m;
+                            root_move.reserve ((ss+1)->pv.size () + 1);
+                            std::copy ((ss+1)->pv.cbegin (), (ss+1)->pv.cend (), std::back_inserter (root_move));
                         }
                         root_move.shrink_to_fit ();
+                        root_move.new_value = value;
 
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
@@ -1664,15 +1664,16 @@ namespace Threading {
     void Thread::search ()
     {
         Stack stacks[MaxPly+4], *ss = stacks+2; // To allow referencing (ss-2)
-        for (auto i = ss-2; i <= ss+2; ++i)
+        for (auto s = stacks; s <= stacks+5; ++s)
         {
-            i->ply = 0;
-            i->current_move = MOVE_NONE;
-            i->exclude_move = MOVE_NONE;
-            std::fill (i->killer_moves, i->killer_moves + Killers, MOVE_NONE);
-            i->static_eval = VALUE_ZERO;
-            i->move_count = 0;
-            i->skip_pruning = false;
+            s->ply = 0;
+            s->current_move = MOVE_NONE;
+            s->exclude_move = MOVE_NONE;
+            std::fill (s->killer_moves, s->killer_moves + Killers, MOVE_NONE);
+            s->static_eval = VALUE_ZERO;
+            s->move_count = 0;
+            s->skip_pruning = false;
+            s->pv.clear ();
         }
 
         auto *main_thread = Threadpool.main () == this ? Threadpool.main () : nullptr;
