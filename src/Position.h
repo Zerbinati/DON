@@ -382,8 +382,8 @@ inline Key    Position::move_posi_key (Move m) const
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     auto mpt = ptype (_board[org]);
-    auto ppt = mpt == PAWN && mtype (m) == PROMOTE ? promote (m) : mpt;
-    auto cpt = mpt == PAWN && mtype (m) == ENPASSANT &&  empty (dst) && _psi->en_passant_sq == dst ? PAWN : ptype (_board[dst]);
+    auto ppt = mtype (m) == PROMOTE && _board[org] == (_active|PAWN) ? promote (m) : mpt;
+    auto cpt = mtype (m) == ENPASSANT && _board[org] == (_active|PAWN) &&  empty (dst) && _psi->en_passant_sq == dst ? PAWN : ptype (_board[dst]);
     
     return _psi->posi_key ^  Zob._.act_side
         ^  Zob._.piece_square[_active][mpt][org]
