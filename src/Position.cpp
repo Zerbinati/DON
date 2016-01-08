@@ -1257,7 +1257,14 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
         }
         else
         {
-            _psi->clock_ply = mpt == PAWN ? 0 : _psi->clock_ply + 1;
+            if (mpt == PAWN)
+            {
+                _psi->clock_ply = 0;
+            }
+            else
+            {
+                _psi->clock_ply++;
+            }
         }
 
         move_piece (org, dst);
