@@ -279,7 +279,7 @@ public:
     void flip ();
 
     std::string fen (bool c960 = false, bool full = true) const;
-    
+
     explicit operator std::string () const;
 
 };
@@ -302,7 +302,7 @@ inline Bitboard Position::pieces (Color c, PieceType p1, PieceType p2) const { r
 
 template<PieceType PT>
 // Count specific piece
-inline i32 Position::count ()          const
+inline i32 Position::count          () const
 {
     return _piece_count[WHITE][PT] + _piece_count[BLACK][PT];
 }
@@ -328,7 +328,7 @@ inline i32 Position::count<NONPAWN> () const
 }
 template<PieceType PT>
 // Count specific piece of color
-inline i32 Position::count (Color c) const { return _piece_count[c][PT]; }
+inline i32 Position::count          (Color c) const { return _piece_count[c][PT]; }
 template<>
 // Count total pieces of color
 inline i32 Position::count<NONE>    (Color c) const
@@ -504,15 +504,13 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 inline bool Position::capture       (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))) && !empty (dst_sq (m)))
-        || ( mtype (m) == ENPASSANT && _board[org_sq (m)] == (_active|PAWN) && empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m));
+    return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))) && !empty (dst_sq (m))) || en_passant (m);
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
-    return (mtype (m) == NORMAL && !empty (dst_sq (m)))
-        || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))
-        || (mtype (m) == ENPASSANT && _board[org_sq (m)] == (_active|PAWN) && empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m));
+    return (mtype (m) == NORMAL && !empty (dst_sq (m))) || en_passant (m)
+        || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN));
 }
 inline bool Position::en_passant    (Move m) const
 {

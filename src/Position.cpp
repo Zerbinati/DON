@@ -535,6 +535,7 @@ Value Position::see_sign (Move m) const
     // here because king midgame value is set to 0.
     if (  PieceValues[MG][ptype (_board[org_sq (m)])]
        <= PieceValues[MG][ptype (_board[dst_sq (m)])]
+        || mtype (m) == ENPASSANT
        )
     {
         return VALUE_KNOWN_WIN;
@@ -661,7 +662,9 @@ bool Position::pseudo_legal (Move m) const
         break;
 
     default:
+    {
         assert(false);
+    }
         break;
     }
 
@@ -762,7 +765,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // In case of king moves under check have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        if (ptype (mpc) == KING)
+        if (mpc == (_active|KING))
         {
             return attackers_to (dst, ~_active, _types_bb[NONE] - org) == U64(0); // Remove 'org' but not place 'dst'
         }
@@ -771,7 +774,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
     case PROMOTE:
     {
         assert( mtype (m) == NORMAL
-            || (mtype (m) == PROMOTE && ptype (mpc) == PAWN));
+            || (mtype (m) == PROMOTE && mpc == (_active|PAWN)));
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
@@ -784,7 +787,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
     case CASTLE:
     {
         // Castling moves are checked for legality during move generation.
-        return ptype (mpc) == KING && ptype (_board[dst]) == ROOK;
+        return mpc == (_active|KING) && _board[dst] == (_active|ROOK);
     }
         break;
 
@@ -794,10 +797,10 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // do it simply by testing whether the king is attacked after the move is made.
         auto cap = dst + pawn_push (~_active);
 
-        assert(ptype (mpc) == PAWN
-            && dst == _psi->en_passant_sq
-            && empty (dst)
+        assert(mpc == (_active|PAWN)
+            &&  empty (dst)
             && !empty (cap)
+            && dst == _psi->en_passant_sq
             && _board[cap] == (~_active|PAWN));
 
         auto mocc = _types_bb[NONE] - org - cap + dst;
@@ -808,8 +811,10 @@ bool Position::legal        (Move m, Bitboard pinned) const
         break;
 
     default:
+    {
         assert(false);
         return false;
+    }
         break;
     }
 }
@@ -838,7 +843,9 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     switch (mtype (m))
     {
     case NORMAL:
+    {
         return false;
+    }
         break;
 
     case CASTLE:
@@ -874,8 +881,10 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         break;
     
     default:
+    {
         assert(false);
         return false;
+    }
         break;
     }
 }
@@ -1274,7 +1283,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
     case CASTLE:
     {
         assert(mpt == KING
-            && ptype (_board[dst]) == ROOK);
+            && _board[dst] == (_active|ROOK));
 
         Square rook_org, rook_dst;
         do_castling<true> (org, dst, rook_org, rook_dst);
@@ -1374,7 +1383,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
         break;
 
     default:
+    {
         assert(false);
+    }
         break;
     }
     // Update castling rights if needed
@@ -1471,7 +1482,7 @@ void Position::undo_move ()
     case ENPASSANT:
     {
         cap -= pawn_push (_active);
-        assert(ptype (_board[dst]) == PAWN
+        assert(_board[dst] == (_active|PAWN)
             && _psi->capture_type == PAWN
             && rel_rank (_active, org) == R_5
             && rel_rank (_active, dst) == R_6
@@ -1493,7 +1504,9 @@ void Position::undo_move ()
         break;
 
     default:
+    {
         assert(false);
+    }
         break;
     }
     // Restore the captured piece

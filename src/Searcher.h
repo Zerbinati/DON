@@ -201,9 +201,7 @@ namespace Searcher {
     {
         static const size_t Size;
 
-        Move *pv = nullptr;
-        u16  ply = 0;
-
+        u16  ply          = 0;
         Move current_move = MOVE_NONE
            , exclude_move = MOVE_NONE
            , killer_moves[Killers];
@@ -211,6 +209,7 @@ namespace Searcher {
         Value static_eval = VALUE_NONE;
         u08   move_count  = 0;
         bool skip_pruning = false;
+        Move *pv          = nullptr;
     };
 
     const u08 MaxSkillLevel   = 32; // MaxSkillLevel should be <= MaxPly/4

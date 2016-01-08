@@ -571,7 +571,7 @@ namespace Searcher {
                     if (alfa < value)
                     {
                         best_move = move;
-
+                        // Update pv even in fail-high case
                         if (PVNode)
                         {
                             update_pv (ss->pv, move, (ss+1)->pv);
