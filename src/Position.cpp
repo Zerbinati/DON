@@ -574,10 +574,9 @@ bool Position::pseudo_legal (Move m) const
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     auto mpc = _board[org];
-    auto mpt = ptype (mpc);
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
-    if (color (mpc) != _active || mpt == NONE) return false;
+    if (color (mpc) != _active || ptype (mpc) == NONE) return false;
 
     auto cpt = NONE;
 
@@ -597,7 +596,7 @@ bool Position::pseudo_legal (Move m) const
     {
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
-        if (!(   mpt == KING
+        if (!(   mpc == (_active|KING)
               && rel_rank (_active, org) == R_1
               && rel_rank (_active, dst) == R_1
               && _board[dst] == (_active|ROOK)
@@ -630,7 +629,7 @@ bool Position::pseudo_legal (Move m) const
 
     case ENPASSANT:
     {
-        if (!(   mpt == PAWN
+        if (!(   mpc == (_active|PAWN)
               && _psi->en_passant_sq == dst
               && rel_rank (_active, org) == R_5
               && rel_rank (_active, dst) == R_6
@@ -648,7 +647,7 @@ bool Position::pseudo_legal (Move m) const
 
     case PROMOTE:
     {
-        if (!(   mpt == PAWN
+        if (!(   mpc == (_active|PAWN)
               && rel_rank (_active, org) == R_7
               && rel_rank (_active, dst) == R_8
               && (NIHT <= promote (m) && promote (m) <= QUEN)
@@ -674,7 +673,7 @@ bool Position::pseudo_legal (Move m) const
     if (_color_bb[_active] & dst) return false;
 
     // Handle the special case of a piece move
-    if (mpt == PAWN)
+    if (mpc == (_active|PAWN))
     {
         // Have already handled promotion moves, so destination
         // cannot be on the 8th/1st rank.
@@ -729,12 +728,12 @@ bool Position::pseudo_legal (Move m) const
     {
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
-        if (mpt == KING) return attackers_to (dst, ~_active, _types_bb[NONE] - org) == U64(0); // Remove 'org' but not place 'dst'
+        if (mpc == (_active|KING)) return attackers_to (dst, ~_active, _types_bb[NONE] - org) == U64(0); // Remove 'org' but not place 'dst'
 
         // Double check? In this case a king move is required
         if (more_than_one (_psi->checkers)) return false;
 
-        return mpt == PAWN && mtype (m) == ENPASSANT ?
+        return mtype (m) == ENPASSANT && mpc == (_active|PAWN) ?
             // Move must be a capture of the checking en-passant pawn
             // or a blocking evasion of the checking piece
             (_psi->checkers & cap) != U64(0) || (Between_bb[scan_lsq (_psi->checkers)][_piece_square[_active][KING][0]] & dst) != U64(0) :
@@ -1282,7 +1281,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
 
     case CASTLE:
     {
-        assert(mpt == KING
+        assert(_board[org] == (_active|KING)
             && _board[dst] == (_active|ROOK));
 
         Square rook_org, rook_dst;
