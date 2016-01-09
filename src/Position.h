@@ -291,7 +291,7 @@ inline Piece         Position::operator[] (Square s)  const { return _board[s]; 
 //inline Bitboard      Position::operator[] (PieceType pt) const { return _types_bb[pt]; }
 inline const Square* Position::operator[] (Piece  p)  const { return _piece_square[color (p)][ptype (p)]; }
 
-inline bool     Position::empty  (Square s)  const { return _board[s] == EMPTY; }
+inline bool     Position::empty  (Square s)  const { return _board[s] == NO_PIECE; }
 
 inline Bitboard Position::pieces ()          const { return _types_bb[NONE]; }
 inline Bitboard Position::pieces (Color c)   const { return _color_bb[c];  }
@@ -369,7 +369,7 @@ inline Square Position::en_passant_sq () const { return _psi->en_passant_sq; }
 inline u08    Position::clock_ply     () const { return _psi->clock_ply; }
 inline Move   Position::last_move     () const { return _psi->last_move; }
 inline PieceType Position::capture_type() const { return _psi->capture_type; }
-//inline Piece  Position::capture_piece () const { return _psi->capture_type != NONE ? _active|_psi->capture_type : EMPTY; }
+//inline Piece  Position::capture_piece () const { return _psi->capture_type != NONE ? _active|_psi->capture_type : NO_PIECE; }
 inline Bitboard Position::checkers    () const { return _psi->checkers; }
 
 inline Key    Position::matl_key      () const { return _psi->matl_key; }
@@ -557,7 +557,7 @@ inline void  Position::remove_piece (Square s)
 
     auto c  = color (_board[s]);
     auto pt = ptype (_board[s]);
-    //_board[s] = EMPTY; // Not needed, overwritten by the capturing one
+    //_board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 
     auto bb = ~BitBoard::Square_bb[s];
     _color_bb[c]    &= bb;
@@ -586,7 +586,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
     auto pt = ptype (_board[s1]);
 
     _board[s2] = _board[s1];
-    _board[s1] = EMPTY;
+    _board[s1] = NO_PIECE;
 
     auto bb = BitBoard::Square_bb[s1] ^ BitBoard::Square_bb[s2];
     _color_bb[c]    ^= bb;
@@ -611,7 +611,7 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     // Remove both pieces first since squares could overlap in chess960
     remove_piece (Do ? king_org : king_dst);
     remove_piece (Do ? rook_org : rook_dst);
-    _board[Do ? king_org : king_dst] = _board[Do ? rook_org : rook_dst] = EMPTY; // Not done by remove_piece()
+    _board[Do ? king_org : king_dst] = _board[Do ? rook_org : rook_dst] = NO_PIECE; // Not done by remove_piece()
     place_piece (Do ? king_dst : king_org, _active, KING);
     place_piece (Do ? rook_dst : rook_org, _active, ROOK);
 }

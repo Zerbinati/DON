@@ -1021,8 +1021,8 @@ namespace Searcher {
             quiet_moves.reserve (0x10);
 
             auto opp_move_dst = dst_sq ((ss-1)->current_move);
-            auto counter_move = thread->counter_moves[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : EMPTY][opp_move_dst];
-            auto &opp_cmv = CounterMovesHistory[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : EMPTY][opp_move_dst];
+            auto counter_move = thread->counter_moves[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
+            auto &opp_cmv = CounterMovesHistory[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
@@ -1286,7 +1286,7 @@ namespace Searcher {
                         {
                             root_move += *m;
                         }
-                        root_move.shrink_to_fit ();
+                        //root_move.shrink_to_fit ();
 
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
@@ -1359,7 +1359,7 @@ namespace Searcher {
             if (ForceStop) return VALUE_DRAW;
             */
 
-            quiet_moves.shrink_to_fit ();
+            //quiet_moves.shrink_to_fit ();
 
             // Step 20. Check for checkmate and stalemate
             // If all possible moves have been searched and if there are no legal moves,
@@ -1436,7 +1436,7 @@ namespace Searcher {
     {
         StateInfo states[MaxPly], *si = states;
         
-        shrink_to_fit ();
+        //shrink_to_fit ();
         u08 ply = 0;
         for (const auto m : *this)
         {
@@ -1488,7 +1488,7 @@ namespace Searcher {
             }
         }
         pos.undo_move ();
-        shrink_to_fit ();
+        //shrink_to_fit ();
         return extracted;
     }
 

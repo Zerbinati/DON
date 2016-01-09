@@ -576,7 +576,7 @@ bool Position::pseudo_legal (Move m) const
     auto mpc = _board[org];
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
-    if (color (mpc) != _active || ptype (mpc) == NONE) return false;
+    if (mpc == NO_PIECE || color (mpc) != _active) return false;
 
     auto cpt = NONE;
 
@@ -609,8 +609,7 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
 
-        //cpt = NONE;
-
+        assert(cpt == NONE);
         // Castle is always encoded as "King captures friendly Rook"
         bool king_side = dst > org;
         assert(dst == castle_rook (mk_castle_right (_active, king_side ? CS_KING : CS_QUEN)));
@@ -640,7 +639,10 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
         cap += pawn_push (~_active);
-        if ((~_active|PAWN) != _board[cap]) return false;
+        if (_board[cap] != (~_active|PAWN))
+        {
+            return false;
+        }
         cpt = PAWN;
     }
         break;
@@ -675,40 +677,41 @@ bool Position::pseudo_legal (Move m) const
     // Handle the special case of a piece move
     if (mpc == (_active|PAWN))
     {
-        // Have already handled promotion moves, so destination
-        // cannot be on the 8th/1st rank.
-        if (   rel_rank (_active, org) == R_1
-            || rel_rank (_active, org) == R_8
-            || rel_rank (_active, dst) == R_1
-            || rel_rank (_active, dst) == R_2
+        auto rel_org_rank = rel_rank (_active, org);
+        auto rel_dst_rank = rel_rank (_active, dst);
+        // In case of any moves origin & destination cannot be on the 1st/8th & 1st/2nd rank.
+        if (   rel_org_rank == R_1 || rel_dst_rank == R_2
+            || rel_org_rank == R_8 || rel_dst_rank == R_1
            )
         {
             return false;
         }
-        if (    mtype (m) == NORMAL
-            && (rel_rank (_active, org) == R_7 || rel_rank (_active, dst) == R_8)
+        // In case of non-promotional moves origin & destination cannot be on the 7th/2nd & 8th/1st rank.
+        if (    mtype (m) != PROMOTE
+            && (rel_org_rank == R_7 || rel_dst_rank == R_8)
            )
         {
             return false;
         }
         if (   // Not a capture
                !(   (PawnAttacks[_active][org] & _color_bb[~_active] & dst)
-                 && dist<File> (dst, org) == 1
-                 && dist<Rank> (dst, org) == 1
+                 //&& dist<File> (dst, org) == 1
+                 //&& dist<Rank> (dst, org) == 1
                 )
                // Not a single push
             && !(   empty (dst)
-                 && dist<File> (dst, org) == 0
-                 && dist<Rank> (dst, org) == 1
                  && (org + pawn_push (_active) == dst)
+                 //&& dist<File> (dst, org) == 0
+                 //&& dist<Rank> (dst, org) == 1
                 )
                // Not a double push
-            && !(   _rank (org) == rel_rank (_active, R_2)
+            && !(   rel_org_rank == R_2
+                 && rel_dst_rank == R_4
                  && empty (dst)
                  && empty (dst - pawn_push (_active))
-                 && dist<File> (dst, org) == 0
-                 && dist<Rank> (dst, org) == 2
                  && (org + 2*pawn_push (_active) == dst)
+                 //&& dist<File> (dst, org) == 0
+                 //&& dist<Rank> (dst, org) == 2
                 )
            )
         {
@@ -753,8 +756,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
     auto dst = dst_sq (m);
     auto mpc = _board[org];
 
-    assert(color (mpc) == _active
-        && ptype (mpc) != NONE);
+    assert(mpc != NO_PIECE
+        && color (mpc) == _active);
 
     switch (mtype (m))
     {
@@ -909,7 +912,7 @@ void Position::clear ()
 
     for (auto s = SQ_A1; s <= SQ_H8; ++s)
     {
-        _board[s] = EMPTY;
+        _board[s] = NO_PIECE;
         _piece_index[s] = -1;
     }
     for (auto c = WHITE; c <= BLACK; ++c)
@@ -1324,7 +1327,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
             && (pasive|cpt) == _board[cap]);
 
         do_capture ();
-        _board[cap] = EMPTY; // Not done by remove_piece()
+        _board[cap] = NO_PIECE; // Not done by remove_piece()
 
         move_piece (org, dst);
 
@@ -1366,7 +1369,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
         assert(NIHT <= ppt && ppt <= QUEN);
         // Replace the PAWN with the Promoted piece
         remove_piece (org);
-        _board[org] = EMPTY; // Not done by remove_piece()
+        _board[org] = NO_PIECE; // Not done by remove_piece()
         place_piece (dst, _active, ppt);
 
         _psi->matl_key ^=
@@ -1504,7 +1507,7 @@ void Position::undo_move ()
             && rel_rank (_active, dst) == R_8
             && (NIHT <= promote (m) && promote (m) <= QUEN));
         remove_piece (dst);
-        _board[dst] = EMPTY; // Not done by remove_piece()
+        _board[dst] = NO_PIECE; // Not done by remove_piece()
         place_piece (org, _active, PAWN);
     }
         break;

@@ -376,14 +376,14 @@ namespace TBSyzygy {
 
         void init_tb (const string &filename)
         {
-            static const u08 TotalPiece = 16;
+            static const u08 MaxPiece = 16;
 
             FD fd = open_tb (filename, WDL_Suffix);
             if (fd == FD_ERR) return;
             close_tb (fd);
             
-            u08 pcs[TotalPiece];
-            std::memset (pcs, 0x00, TotalPiece);
+            u08 pcs[MaxPiece];
+            std::memset (pcs, 0x00, MaxPiece);
             u08 color = 0;
             for (const auto &ch : filename)
             {
@@ -440,7 +440,7 @@ namespace TBSyzygy {
             tbe->key = key1;
             tbe->ready = false;
             tbe->num = 0;
-            for (u08 i = 0; i < TotalPiece; ++i)
+            for (u08 i = 0; i < MaxPiece; ++i)
             {
                 tbe->num += pcs[i];
             }
@@ -471,7 +471,7 @@ namespace TBSyzygy {
                 auto *tbep = reinterpret_cast<TBEntry_piece *> (tbe);
                 
                 u08 i, j;
-                for (i = 0, j = 0; i < TotalPiece; ++i)
+                for (i = 0, j = 0; i < MaxPiece; ++i)
                 {
                     if (pcs[i] == 1)
                     {
@@ -491,7 +491,7 @@ namespace TBSyzygy {
                 else
                 { /* only for suicide */
                     j = 16;
-                    for (i = 0; i < TotalPiece; ++i)
+                    for (i = 0; i < MaxPiece; ++i)
                     {
                         if (pcs[i] > 1 && pcs[i] < j)
                         {
@@ -2158,7 +2158,6 @@ namespace TBSyzygy {
             return Value(res);
         }
 
-
         // Add underpromotion captures to list of captures.
         ValMove* generate_underprom_cap (ValMove *moves, ValMove *end, const Position &pos)
         {
@@ -2239,7 +2238,6 @@ namespace TBSyzygy {
                 return v;
             }
         }
-
         // This routine treats a position with en-passant captures as one without.
         Value probe_dtz_no_ep (Position &pos, i32 &success)
         {
@@ -2556,7 +2554,6 @@ namespace TBSyzygy {
         }
         return v;
     }
-
     // Probe the WDL table for a particular position.
     // If success != 0, the probe was successful.
     // The return value is from the point of view of the side to move:
@@ -2649,7 +2646,6 @@ namespace TBSyzygy {
         }
         return v;
     }
-
     // Use the DTZ tables to filter out moves that don't preserve the win or draw.
     // If the position is lost, but DTZ is fairly high, only keep moves that
     // maximise DTZ.
@@ -2811,7 +2807,6 @@ namespace TBSyzygy {
         root_moves.resize (size, RootMove ());
         return true;
     }
-
     // Use the WDL tables to filter out moves that don't preserve the win or draw.
     // This is a fallback for the case that some or all DTZ tables are missing.
     //
@@ -3026,8 +3021,7 @@ namespace TBSyzygy {
             */
         }
 
-        std::cout << "info string " << (TB_PieceCount + TB_PawnCount) << " Syzygy Tablebases found." << std::endl;
-
+        std::cout << "info string Syzygy Tablebases found " << (TB_PieceCount + TB_PawnCount) << std::endl;
     }
 
 }

@@ -276,7 +276,7 @@ enum Piece : u08
     W_QUEN    , //  0100
     W_KING    , //  0101
 
-    EMPTY  = 6, //  0110
+    NO_PIECE = 6, //  0110
 
     B_PAWN = 8, //  1000
     B_NIHT    , //  1001
@@ -286,7 +286,7 @@ enum Piece : u08
     B_KING    , //  1101
 
     // Total piece is 14
-    PIECE_NO  , //  1110
+    MAX_PIECE, //  1110
 };
 
 // Move Type

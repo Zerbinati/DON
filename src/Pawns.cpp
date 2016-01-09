@@ -107,7 +107,7 @@ namespace Pawns {
         // by number of pawns it supports [0, 1, 2].
         const Score Unsupported[3] =
         {
-            S(15, 5), S(20, 10), S(25, 15)
+            S(20, 10), S(22, 12), S(25, 15)
         };
 
         const Score Unstoppable = S( 0, 20); // Bonus for unstoppable pawn going to promote

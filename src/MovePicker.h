@@ -15,7 +15,7 @@ namespace MovePick {
     struct Stats
     {
     private:
-        T _table[PIECE_NO][SQ_NO];
+        T _table[MAX_PIECE][SQ_NO];
 
         void _clear (Value &v) { v = VALUE_ZERO; }
         void _clear (Stats<Value, false> &vs) { vs.clear (); }
