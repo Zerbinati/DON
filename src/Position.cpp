@@ -573,13 +573,15 @@ bool Position::pseudo_legal (Move m) const
     assert(_ok (m));
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-    auto mpc = _board[org];
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
-    if (mpc == NO_PIECE || color (mpc) != _active) return false;
-
-    auto cpt = NONE;
-
+    if (   empty (org)
+        || color (_board[org]) != _active
+       )
+    {
+        return false;
+    }
+    auto mpt = ptype (_board[org]);
     auto cap = dst;
 
     switch (mtype (m))
@@ -587,8 +589,10 @@ bool Position::pseudo_legal (Move m) const
     case NORMAL:
     {
         // Is not a promotion, so promotion piece must be empty
-        if ((promote (m) - NIHT) != PAWN) return false;
-        cpt = ptype (_board[cap]);
+        if ((promote (m) - NIHT) != PAWN)
+        {
+            return false;
+        }
     }
         break;
 
@@ -596,7 +600,7 @@ bool Position::pseudo_legal (Move m) const
     {
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
-        if (!(   mpc == (_active|KING)
+        if (!(   mpt == KING
               && rel_rank (_active, org) == R_1
               && rel_rank (_active, dst) == R_1
               && _board[dst] == (_active|ROOK)
@@ -608,8 +612,7 @@ bool Position::pseudo_legal (Move m) const
         {
             return false;
         }
-
-        assert(cpt == NONE);
+        
         // Castle is always encoded as "King captures friendly Rook"
         bool king_side = dst > org;
         assert(dst == castle_rook (mk_castle_right (_active, king_side ? CS_KING : CS_QUEN)));
@@ -622,13 +625,13 @@ bool Position::pseudo_legal (Move m) const
                 return false;
             }
         }
-        return true;
+        return true; // No capture
     }
         break;
 
     case ENPASSANT:
     {
-        if (!(   mpc == (_active|PAWN)
+        if (!(   mpt == PAWN
               && _psi->en_passant_sq == dst
               && rel_rank (_active, org) == R_5
               && rel_rank (_active, dst) == R_6
@@ -643,13 +646,12 @@ bool Position::pseudo_legal (Move m) const
         {
             return false;
         }
-        cpt = PAWN;
     }
         break;
 
     case PROMOTE:
     {
-        if (!(   mpc == (_active|PAWN)
+        if (!(   mpt == PAWN
               && rel_rank (_active, org) == R_7
               && rel_rank (_active, dst) == R_8
               && (NIHT <= promote (m) && promote (m) <= QUEN)
@@ -658,7 +660,6 @@ bool Position::pseudo_legal (Move m) const
         {
             return false;
         }
-        cpt = ptype (_board[cap]);
     }
         break;
 
@@ -668,14 +669,19 @@ bool Position::pseudo_legal (Move m) const
     }
         break;
     }
+    //// The destination square cannot be occupied by a friendly piece
+    //if ((_color_bb[_active] & dst) != U64(0))
+    //{
+    //    return false;
+    //}
 
-    if (cpt == KING) return false;
-
-    // The destination square cannot be occupied by a friendly piece
-    if (_color_bb[_active] & dst) return false;
-
+    // The captured square cannot be occupied by a friendly piece or kings
+    if (((_color_bb[_active]|_types_bb[KING]) & cap) != U64(0))
+    {
+        return false;
+    }
     // Handle the special case of a piece move
-    if (mpc == (_active|PAWN))
+    if (mpt == PAWN)
     {
         auto rel_org_rank = rel_rank (_active, org);
         auto rel_dst_rank = rel_rank (_active, dst);
@@ -721,7 +727,7 @@ bool Position::pseudo_legal (Move m) const
     }
     else
     {
-        if ((attacks_bb (mpc, org, _types_bb[NONE]) & dst) == U64(0)) return false;
+        if ((attacks_bb (_board[org], org, _types_bb[NONE]) & dst) == U64(0)) return false;
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves
@@ -731,12 +737,12 @@ bool Position::pseudo_legal (Move m) const
     {
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
-        if (mpc == (_active|KING)) return attackers_to (dst, ~_active, _types_bb[NONE] - org) == U64(0); // Remove 'org' but not place 'dst'
+        if (mpt == KING) return attackers_to (dst, ~_active, _types_bb[NONE] - org) == U64(0); // Remove 'org' but not place 'dst'
 
         // Double check? In this case a king move is required
         if (more_than_one (_psi->checkers)) return false;
 
-        return mtype (m) == ENPASSANT && mpc == (_active|PAWN) ?
+        return mtype (m) == ENPASSANT && mpt == PAWN ?
             // Move must be a capture of the checking en-passant pawn
             // or a blocking evasion of the checking piece
             (_psi->checkers & cap) != U64(0) || (Between_bb[scan_lsq (_psi->checkers)][_piece_square[_active][KING][0]] & dst) != U64(0) :
@@ -754,10 +760,10 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-    auto mpc = _board[org];
+    assert(!empty (org)
+         && color (_board[org]) == _active);
 
-    assert(mpc != NO_PIECE
-        && color (mpc) == _active);
+    auto mpt = ptype (_board[org]);
 
     switch (mtype (m))
     {
@@ -767,7 +773,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // In case of king moves under check have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        if (mpc == (_active|KING))
+        if (mpt == KING)
         {
             return attackers_to (dst, ~_active, _types_bb[NONE] - org) == U64(0); // Remove 'org' but not place 'dst'
         }
@@ -776,7 +782,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
     case PROMOTE:
     {
         assert( mtype (m) == NORMAL
-            || (mtype (m) == PROMOTE && mpc == (_active|PAWN)));
+            || (mtype (m) == PROMOTE && mpt == PAWN));
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
@@ -789,7 +795,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
     case CASTLE:
     {
         // Castling moves are checked for legality during move generation.
-        return mpc == (_active|KING) && _board[dst] == (_active|ROOK);
+        return mpt == KING && _board[dst] == (_active|ROOK);
     }
         break;
 
@@ -799,7 +805,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // do it simply by testing whether the king is attacked after the move is made.
         auto cap = dst + pawn_push (~_active);
 
-        assert(mpc == (_active|PAWN)
+        assert(mpt == PAWN
             &&  empty (dst)
             && !empty (cap)
             && dst == _psi->en_passant_sq
