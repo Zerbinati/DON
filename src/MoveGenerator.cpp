@@ -62,7 +62,7 @@ namespace MoveGen {
             auto rook_org = pos.castle_rook (CR);
             assert(ptype (pos[rook_org]) == ROOK);
 
-            auto king_dst = rel_sq (Own, KingSide ? SQ_G1 : SQ_C1);
+            auto king_dst = rel_sq (Own, KingSide ? SQ_KOO : SQ_KOOO);
             auto step = king_dst > king_org ? DEL_E : DEL_W;
             for (auto s = king_dst; s != king_org; s -= step)
             {

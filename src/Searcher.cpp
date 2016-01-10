@@ -1225,8 +1225,7 @@ namespace Searcher {
                     }
 
                     // Search with reduced depth
-                    auto reduced_depth = std::max (new_depth - reduction_depth, DEPTH_ONE);
-                    value = -depth_search<NonPV> (pos, ss+1, -(alfa+1), -alfa, reduced_depth, true);
+                    value = -depth_search<NonPV> (pos, ss+1, -(alfa+1), -alfa, std::max (new_depth - reduction_depth, DEPTH_ONE), true);
 
                     full_depth_search = alfa < value && reduction_depth != DEPTH_ZERO;
                 }

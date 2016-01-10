@@ -188,6 +188,8 @@ enum Square : i08
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
     SQ_NO,
 
+    SQ_KOOO = SQ_C1, SQ_KOO = SQ_G1,
+    SQ_ROOO = SQ_D1, SQ_ROO = SQ_F1,
 };
 
 // Delta
