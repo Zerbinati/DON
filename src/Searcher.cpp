@@ -1195,19 +1195,19 @@ namespace Searcher {
                 {
                     auto reduction_depth = reduction_depths<PVNode> (improving, depth, move_count);
 
-                    auto  hv = thread->history_values[pos[dst_sq (move)]][dst_sq (move)];
-                    auto cmv = opp_cmv[pos[dst_sq (move)]][dst_sq (move)];
-
                     // Increase reduction for cut node or negative history
                     if (   (!PVNode && cut_node)
-                        || (hv < VALUE_ZERO && cmv <= VALUE_ZERO)
+                        || (   thread->history_values[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
+                            && opp_cmv[pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
+                           )
                        )
                     {
                         reduction_depth += DEPTH_ONE;
                     }
                     // Decrease reduction for positive history
                     if (   reduction_depth != DEPTH_ZERO
-                        && (hv > VALUE_ZERO && cmv > VALUE_ZERO)
+                        && thread->history_values[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
+                        && opp_cmv[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
                        )
                     {
                         reduction_depth = std::max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);

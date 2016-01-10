@@ -423,7 +423,8 @@ PieceType Position::pick_least_val_att (Square dst, Bitboard stm_attackers, Bitb
             attackers |= (attacks_bb<BSHP> (dst, mocc)&(_types_bb[BSHP]|_types_bb[QUEN]))
                       |  (attacks_bb<ROOK> (dst, mocc)&(_types_bb[ROOK]|_types_bb[QUEN]));
             break;
-        default: break;
+        default:
+            break;
         }
 
         attackers &= mocc; // After X-ray that may add already processed pieces
@@ -616,7 +617,7 @@ bool Position::pseudo_legal (Move m) const
         // Castle is always encoded as "King captures friendly Rook"
         bool king_side = dst > org;
         assert(dst == castle_rook (mk_castle_right (_active, king_side ? CS_KING : CS_QUEN)));
-        dst = rel_sq (_active, king_side ? SQ_KOO : SQ_KOOO);
+        dst = rel_sq (_active, king_side ? SQ_WKOO : SQ_WKOOO);
         auto step = king_side ? DEL_E : DEL_W;
         for (auto s = dst; s != org; s -= step)
         {
@@ -666,6 +667,7 @@ bool Position::pseudo_legal (Move m) const
     default:
     {
         assert(false);
+        return false;
     }
         break;
     }
@@ -860,8 +862,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     {
         // Castling with check ?
         auto rook_org = dst; // 'King captures the rook' notation
-        dst           = rel_sq (_active, dst > org ? SQ_KOO : SQ_KOOO);
-        auto rook_dst = rel_sq (_active, dst > org ? SQ_ROO : SQ_ROOO);
+        dst           = rel_sq (_active, dst > org ? SQ_WKOO : SQ_WKOOO);
+        auto rook_dst = rel_sq (_active, dst > org ? SQ_WROO : SQ_WROOO);
 
         return (PieceAttacks[ROOK][rook_dst] & ci.king_sq) != U64(0) // First x-ray check then full check
             && (attacks_bb<ROOK> (rook_dst, _types_bb[NONE] - org - rook_org + dst + rook_dst) & ci.king_sq) != U64(0);
@@ -947,8 +949,8 @@ void Position::set_castle (Color c, Square rook_org)
     assert(king_org != rook_org);
 
     auto cr = mk_castle_right (c, rook_org > king_org ? CS_KING : CS_QUEN);
-    auto rook_dst = rel_sq (c, rook_org > king_org ? SQ_ROO : SQ_ROOO);
-    auto king_dst = rel_sq (c, rook_org > king_org ? SQ_KOO : SQ_KOOO);
+    auto rook_dst = rel_sq (c, rook_org > king_org ? SQ_WROO : SQ_WROOO);
+    auto king_dst = rel_sq (c, rook_org > king_org ? SQ_WKOO : SQ_WKOOO);
 
     _psi->castle_rights    |= cr;
 
@@ -979,8 +981,8 @@ bool Position::can_en_passant (Square ep_sq) const
     assert(rel_rank (_active, ep_sq) == R_6);
 
     auto cap = ep_sq + pawn_push (~_active);
-    //if (!((_color_bb[~_active]&_types_bb[PAWN]) & cap)) return false;
-    if ((~_active|PAWN) != _board[cap]) return false;
+    //if (((_color_bb[~_active]&_types_bb[PAWN]) & cap) == U64(0)) return false;
+    if (_board[cap] != (~_active|PAWN)) return false;
 
     // En-passant attackes
     auto attacks = PawnAttacks[~_active][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
@@ -1114,6 +1116,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
                 for (r_sq  = rel_sq (c, SQ_A1); r_sq <= rel_sq (c, SQ_H1) && (c|ROOK) != _board[r_sq]; ++r_sq) {}
                 break;
             default:
+                assert(false);
                 return false;
                 break;
             }
@@ -1400,6 +1403,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
     default:
     {
         assert(false);
+        return;
     }
         break;
     }
@@ -1521,6 +1525,7 @@ void Position::undo_move ()
     default:
     {
         assert(false);
+        return;
     }
         break;
     }

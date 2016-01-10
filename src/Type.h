@@ -188,8 +188,10 @@ enum Square : i08
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
     SQ_NO,
 
-    SQ_KOOO = SQ_C1, SQ_KOO = SQ_G1,
-    SQ_ROOO = SQ_D1, SQ_ROO = SQ_F1,
+    SQ_WKOOO = SQ_C1, SQ_WKOO = SQ_G1,
+    SQ_WROOO = SQ_D1, SQ_WROO = SQ_F1,
+    SQ_BKOOO = SQ_C8, SQ_BKOO = SQ_G8,
+    SQ_BROOO = SQ_D8, SQ_BROO = SQ_F8,
 };
 
 // Delta
@@ -542,7 +544,7 @@ inline Square operator| (Rank r, File f) { return Square((~r << 3) | f); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
 inline bool   _ok   (Square s) { return    !(s & ~i08(SQ_H8)); }
-inline File   _file (Square s) { return File(s &  F_H); }
+inline File   _file (Square s) { return File(s & i08(F_H)); }
 inline Rank   _rank (Square s) { return Rank(s >> 3); }
 inline Color  color (Square s) { return Color(!((s ^ (s >> 3)) & BLACK)); }
 
@@ -551,9 +553,9 @@ inline Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
 // MIRROR => SQ_A1 -> SQ_H1
 inline Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
 
-inline Rank   rel_rank  (Color c, Rank   r) { return   Rank(r ^ (c * R_8)); }
+inline Rank   rel_rank  (Color c, Rank   r) { return   Rank(r ^ (c * i08(R_8))); }
 inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }
-inline Square rel_sq    (Color c, Square s) { return Square(s ^ (c * SQ_A8)); }
+inline Square rel_sq    (Color c, Square s) { return Square(s ^ (c * i08(SQ_A8))); }
 
 inline bool   opposite_colors (Square s1, Square s2)
 {

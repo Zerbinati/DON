@@ -606,8 +606,8 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
 {
     // Move the piece. The tricky Chess960 castle is handled earlier
     rook_org = king_dst; // castle is always encoded as "King captures friendly Rook"
-    king_dst = rel_sq (_active, king_dst > king_org ? SQ_KOO : SQ_KOOO);
-    rook_dst = rel_sq (_active, king_dst > king_org ? SQ_ROO : SQ_ROOO);
+    king_dst = rel_sq (_active, king_dst > king_org ? SQ_WKOO : SQ_WKOOO);
+    rook_dst = rel_sq (_active, king_dst > king_org ? SQ_WROO : SQ_WROOO);
     // Remove both pieces first since squares could overlap in chess960
     remove_piece (Do ? king_org : king_dst);
     remove_piece (Do ? rook_org : rook_dst);
