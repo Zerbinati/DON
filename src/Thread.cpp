@@ -8,7 +8,7 @@ u08     ReadyMoveHorizon   =   40; // Be prepared to always play at least this m
 u32     OverheadClockTime  =   60; // Attempt to keep at least this much time at clock, in milliseconds.
 u32     OverheadMoveTime   =   30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
 u32     MinimumMoveTime    =   20; // No matter what, use at least this much time before doing the move, in milliseconds.
-double  MoveSlowness       = 1.20; // Move Slowness, in %age.
+double  MoveSlowness       = 1.10; // Move Slowness, in %age.
 u32     NodesTime          =    0; // 'Nodes as Time' mode
 bool    Ponder             = true; // Whether or not the engine should analyze when it is the opponent's turn.
 

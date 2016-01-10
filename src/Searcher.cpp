@@ -1018,7 +1018,7 @@ namespace Searcher {
             u08  move_count = 0;
 
             MoveVector quiet_moves;
-            quiet_moves.reserve (0x10);
+            quiet_moves.reserve (16);
 
             auto opp_move_dst = dst_sq ((ss-1)->current_move);
             auto counter_move = thread->counter_moves[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
@@ -1212,7 +1212,9 @@ namespace Searcher {
                     {
                         reduction_depth = std::max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
                     }
-                    // Decrease reduction for moves that escape a capture
+                    // Decrease reduction for moves that escape a capture.
+                    // Filter out castling moves because are coded as "king captures rook" and break make_move().
+                    // Also use see() instead of see_sign() because destination square is empty.
                     if (   reduction_depth != DEPTH_ZERO
                         && mtype (move) == NORMAL
                         && ptype (pos[dst_sq (move)]) != PAWN
