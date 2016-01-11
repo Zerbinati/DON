@@ -30,7 +30,7 @@ namespace Polyglot {
 
         auto m = Move(move);
         // Set new type for promotion piece
-        auto pt = PieceType((m >> 12) & TOTL);
+        auto pt = PieceType((m >> 12) & MAX_PTYPE);
         if (pt != PAWN) promote (m, pt);
         // TODO::Add special move flags and verify it is legal
         oss << " key: "    << std::setw (16) << std::setfill ('0') << std::hex << std::uppercase << key << std::nouppercase
@@ -285,7 +285,7 @@ namespace Polyglot {
             // in all the other cases can directly compare with a Move after having masked out
             // the special Move's flags (bit 14-15) that are not supported by Polyglot.
             // Polyglot use 3 bits while engine use 2 bits.
-            auto pt = PieceType((move >> 12) & TOTL);
+            auto pt = PieceType((move >> 12) & MAX_PTYPE);
             // Set new type for promotion piece
             if (pt != PAWN) promote (move, pt);
 

@@ -38,7 +38,7 @@ public:
 
     Key    matl_key      = U64(0);   // Hash key of materials.
     Key    pawn_key      = U64(0);   // Hash key of pawns.
-    CRight castle_rights = CR_NONE;  // Castling-rights information for both side.
+    CastleRight castle_rights = CR_NONE;  // Castling-rights information for both side.
     Square en_passant_sq = SQ_NO;    // En-passant -> "In passing"
     u08    clock_ply     = 0;        // Number of halfmoves clock since the last pawn advance or any capture.
                                      // Used to determine if a draw can be claimed under the clock-move rule.
@@ -104,7 +104,7 @@ private:
     Piece    _board   [SQ_NO];  // Board for storing pieces.
 
     Bitboard _color_bb[CLR_NO];
-    Bitboard _types_bb[TOTL];
+    Bitboard _types_bb[MAX_PTYPE];
 
     Square   _piece_square[CLR_NO][NONE][16];
     u08      _piece_count [CLR_NO][NONE];
@@ -113,10 +113,10 @@ private:
     StateInfo  _ssi; // Startup state information object
     StateInfo *_psi; // Current state information pointer
 
-    CRight   _castle_mask[SQ_NO];
-    Square   _castle_rook[CR_ALL];
-    Bitboard _castle_path[CR_ALL];
-    Bitboard _king_path  [CR_ALL];
+    CastleRight _castle_mask[SQ_NO];
+    Square      _castle_rook[CR_ALL];
+    Bitboard    _castle_path[CR_ALL];
+    Bitboard    _king_path  [CR_ALL];
 
     Color    _active;
     i16      _game_ply;
@@ -190,7 +190,7 @@ public:
     template<PieceType PT>
     Square square (Color c, i32 index = 0) const;
 
-    CRight castle_rights () const;
+    CastleRight castle_rights () const;
     Square en_passant_sq () const;
     
     u08    clock_ply     () const;
@@ -208,13 +208,13 @@ public:
 
     Score   psq_score () const;
 
-    CRight   can_castle  (CRight cr) const;
-    CRight   can_castle  (Color   c) const;
+    CastleRight   can_castle  (CastleRight cr) const;
+    CastleRight   can_castle  (Color   c) const;
 
-    Square   castle_rook (CRight cr) const;
-    Bitboard castle_path (CRight cr) const;
-    Bitboard king_path   (CRight cr) const;
-    bool  castle_impeded (CRight cr) const;
+    Square   castle_rook (CastleRight cr) const;
+    Bitboard castle_path (CastleRight cr) const;
+    Bitboard king_path   (CastleRight cr) const;
+    bool  castle_impeded (CastleRight cr) const;
 
     Color   active    () const;
     i16     game_ply  () const;
@@ -361,7 +361,7 @@ inline Square Position::square (Color c, i32 index) const
 }
 
 // Castling rights for both side
-inline CRight Position::castle_rights () const { return _psi->castle_rights; }
+inline CastleRight Position::castle_rights () const { return _psi->castle_rights; }
 // Target square in algebraic notation. If there's no en passant target square is "-"
 inline Square Position::en_passant_sq () const { return _psi->en_passant_sq; }
 // Number of halfmoves clock since the last pawn advance or any capture.
@@ -395,14 +395,14 @@ inline Score  Position::psq_score     () const { return _psi->psq_score; }
 // Incremental piece-square evaluation
 inline Value  Position::non_pawn_material (Color c) const { return _psi->non_pawn_matl[c]; }
 
-inline CRight Position::can_castle    (CRight cr) const { return _psi->castle_rights & cr; }
-inline CRight Position::can_castle    (Color   c) const { return _psi->castle_rights & mk_castle_right (c); }
+inline CastleRight Position::can_castle    (CastleRight cr) const { return _psi->castle_rights & cr; }
+inline CastleRight Position::can_castle    (Color   c) const { return _psi->castle_rights & mk_castle_right (c); }
 
-inline Square   Position::castle_rook (CRight cr) const { return _castle_rook[cr]; }
-inline Bitboard Position::castle_path (CRight cr) const { return _castle_path[cr]; }
-inline Bitboard Position::king_path   (CRight cr) const { return _king_path[cr]; }
+inline Square   Position::castle_rook (CastleRight cr) const { return _castle_rook[cr]; }
+inline Bitboard Position::castle_path (CastleRight cr) const { return _castle_path[cr]; }
+inline Bitboard Position::king_path   (CastleRight cr) const { return _king_path[cr]; }
 
-inline bool  Position::castle_impeded (CRight cr) const { return (_castle_path[cr] & _types_bb[NONE]) != U64(0); }
+inline bool  Position::castle_impeded (CastleRight cr) const { return (_castle_path[cr] & _types_bb[NONE]) != U64(0); }
 // Color of the side on move
 inline Color Position::active   () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.

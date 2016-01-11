@@ -16,7 +16,7 @@ using namespace MoveGen;
 using namespace Threading;
 using namespace Notation;
 
-const Value PieceValues[PHASE_NO][TOTL] =
+const Value PieceValues[PH_NO][MAX_PTYPE] =
 {
     { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
@@ -1244,10 +1244,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
     auto mpt = ptype (_board[org]);
 
     assert(!empty (org)
-        && _active == color (_board[org])
+        && color (_board[org]) == _active
         && mpt != NONE);
     assert( empty (dst)
-        || pasive == color (_board[dst])
+        || color (_board[dst]) == pasive
         || mtype (m) == CASTLE);
 
     auto cap = dst;
@@ -1259,7 +1259,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
     case NORMAL:
     {
         cpt = ptype (_board[cap]);
-
         assert((promote (m) - NIHT) == PAWN
             && cpt != KING);
 
@@ -1333,7 +1332,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
         cap += pawn_push (pasive);
         cpt = PAWN;
         assert(!empty (cap)
-            && (pasive|cpt) == _board[cap]);
+            && _board[cap] == (pasive|cpt));
 
         do_capture ();
         _board[cap] = NO_PIECE; // Not done by remove_piece()

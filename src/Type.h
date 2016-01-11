@@ -229,7 +229,7 @@ enum Delta : i08
 };
 
 // Castle Side
-enum CSide : i08
+enum CastleSide : i08
 {
     CS_KING,    // King  Side (Short Castle)
     CS_QUEN,    // Queen Side (Long  Castle)
@@ -237,7 +237,7 @@ enum CSide : i08
 };
 
 // Castle Right defined as in Polyglot book hash key
-enum CRight : u08
+enum CastleRight : u08
 {
     CR_NONE  = 0,               // 0000
     CR_WKING = 1,               // 0001
@@ -257,15 +257,15 @@ enum CRight : u08
 // Piece Type
 enum PieceType : i08
 {
-    PAWN  , // 000
-    NIHT  , // 001
-    BSHP  , // 010
-    ROOK  , // 011
-    QUEN  , // 100
-    KING  , // 101
-    NONE  , // 110
-    TOTL  , // 111
-    NONPAWN,
+    PAWN     , // 000
+    NIHT     , // 001
+    BSHP     , // 010
+    ROOK     , // 011
+    QUEN     , // 100
+    KING     , // 101
+    NONE     , // 110
+    MAX_PTYPE, // 111
+    NONPAWN  ,
 };
 
 // Piece needs 4 bits to be stored
@@ -318,7 +318,7 @@ enum Move : u16
     MOVE_NONE = 0x00,
     MOVE_NULL = 0x41,
 };
-
+// Depth
 enum Depth : i16
 {
     DEPTH_ZERO          =  0,
@@ -330,7 +330,7 @@ enum Depth : i16
     DEPTH_NONE          = -6*i16(DEPTH_ONE),
     DEPTH_MAX           = MaxPly*i16(DEPTH_ONE),
 };
-
+// Value
 enum Value : i32
 {
     VALUE_ZERO      = 0,
@@ -353,7 +353,6 @@ enum Value : i32
     VALUE_SPACE   = 12222, //2*VALUE_MG_QUEN + 4*VALUE_MG_ROOK + 2*VALUE_MG_NIHT
     VALUE_MIDGAME = 15581, VALUE_ENDGAME = 3998,
 };
-
 // Score enum stores a midgame and an endgame value in a single integer (enum),
 // the lower 16 bits are used to store the endgame value,
 // the upper 16 bits are used to store the midgame value.
@@ -362,7 +361,7 @@ enum Score : i32
     SCORE_ZERO = 0,
     SCORE_MAX  = INT_MAX,
 };
-
+// Bound
 enum Bound : u08
 {
     // NONE BOUND           - NO_NODE
@@ -396,17 +395,20 @@ enum Bound : u08
     BOUND_EXACT = BOUND_LOWER | BOUND_UPPER,
 
 };
-
-enum Phase : i16
+// PhaseType
+enum PhaseType : u08
 {
-    PHASE_ENDGAME    =   0,
-    PHASE_MIDGAME    = 128,
-
-    MG       = 0,
-    EG       = 1,
-    PHASE_NO = 2,
+    MG      = 0,
+    EG      = 1,
+    PH_NO   = 2,
 };
-
+// Phase
+enum Phase : u08
+{
+    PHASE_ENDGAME   =   0,
+    PHASE_MIDGAME   = 128,
+};
+// ScaleFactor
 enum ScaleFactor : u08
 {
     SCALE_FACTOR_DRAW    =   0,
@@ -470,15 +472,15 @@ ARTHMAT_OPERATORS (Delta)
 inline Delta  operator/  (Delta  d, i32 i) { return Delta(i32(d) / i); }
 inline Delta& operator/= (Delta &d, i32 i) { d = Delta(i32(d) / i); return d; }
 
-INC_DEC_OPERATORS (CSide)
+INC_DEC_OPERATORS (CastleSide)
 
-// CRight operator
-inline CRight  operator|  (CRight  cr, i32 i) { return CRight(i32(cr) | i); }
-inline CRight  operator&  (CRight  cr, i32 i) { return CRight(i32(cr) & i); }
-inline CRight  operator^  (CRight  cr, i32 i) { return CRight(i32(cr) ^ i); }
-inline CRight& operator|= (CRight &cr, i32 i) { cr = CRight(i32(cr) | i); return cr; }
-inline CRight& operator&= (CRight &cr, i32 i) { cr = CRight(i32(cr) & i); return cr; }
-inline CRight& operator^= (CRight &cr, i32 i) { cr = CRight(i32(cr) ^ i); return cr; }
+// CastleRight operator
+inline CastleRight  operator|  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) | i); }
+inline CastleRight  operator&  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) & i); }
+inline CastleRight  operator^  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) ^ i); }
+inline CastleRight& operator|= (CastleRight &cr, i32 i) { cr = CastleRight(i32(cr) | i); return cr; }
+inline CastleRight& operator&= (CastleRight &cr, i32 i) { cr = CastleRight(i32(cr) & i); return cr; }
+inline CastleRight& operator^= (CastleRight &cr, i32 i) { cr = CastleRight(i32(cr) ^ i); return cr; }
 
 INC_DEC_OPERATORS (PieceType)
 
@@ -579,14 +581,14 @@ template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1
 
 inline Delta  pawn_push (Color c) { return c == WHITE ? DEL_N : DEL_S; }
 
-inline CRight mk_castle_right (Color c)           { return CRight(CR_WHITE << (c << BLACK)); }
-inline CRight mk_castle_right (Color c, CSide cs) { return CRight(CR_WKING << ((CS_QUEN == cs) + (c << BLACK))); }
-inline CRight operator~ (CRight cr) { return CRight(((cr >> 2) & CR_WHITE) | ((cr << 2) & CR_BLACK)); }
+inline CastleRight mk_castle_right (Color c)           { return CastleRight(CR_WHITE << (c << BLACK)); }
+inline CastleRight mk_castle_right (Color c, CastleSide cs) { return CastleRight(CR_WKING << ((CS_QUEN == cs) + (c << BLACK))); }
+inline CastleRight operator~ (CastleRight cr) { return CastleRight(((cr >> 2) & CR_WHITE) | ((cr << 2) & CR_BLACK)); }
 
-template<Color C, CSide CS>
+template<Color C, CastleSide CS>
 struct Castling
 {
-    static const CRight
+    static const CastleRight
     Right = C == WHITE ?
         CS == CS_KING ? CR_WKING : CR_WQUEN :
         CS == CS_KING ? CR_BKING : CR_BQUEN;
@@ -597,7 +599,7 @@ inline bool   _ok   (PieceType pt) { return PAWN <= pt && pt <= KING; }
 inline Piece  operator| (Color c, PieceType pt) { return Piece((c << 3) | pt); }
 
 inline bool   _ok   (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
-inline PieceType ptype (Piece p) { return PieceType(p & TOTL); }
+inline PieceType ptype (Piece p) { return PieceType(p & MAX_PTYPE); }
 inline Color  color (Piece p) { return Color(p >> 3); }
 inline Piece  operator~ (Piece p) { return Piece(p ^ (BLACK << 3)); }
 
@@ -881,7 +883,7 @@ inline void convert_path (std::string &path)
 //    return { beg, end };
 //}
 
-extern const Value PieceValues[PHASE_NO][TOTL];
+extern const Value PieceValues[PH_NO][MAX_PTYPE];
 
 extern const std::string PieceChar;
 extern const std::string ColorChar;

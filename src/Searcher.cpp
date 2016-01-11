@@ -527,14 +527,14 @@ namespace Searcher {
                     }
 
                     // Don't search moves with negative SEE values
-                    if (   mtype (move) != PROMOTE
-                        && (  !in_check
+                    if (   (  !in_check
                             // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
                             || (   //in_check &&
                                    best_value > -VALUE_MATE_IN_MAX_PLY
                                 && !pos.capture (move)
                                )
                            )
+                        && mtype (move) != PROMOTE
                         && pos.see_sign (move) < VALUE_ZERO
                        )
                     {
@@ -1672,7 +1672,7 @@ namespace Threading {
     void Thread::search ()
     {
         Stack stacks[MaxPly+4], *ss = stacks+2; // To allow referencing (ss-2)
-        std::memset (ss-2, 0x00, 5*Stack::Size);
+        std::memset (stacks, 0x00, 5*Stack::Size);
 
         auto *main_thread = Threadpool.main () == this ? Threadpool.main () : nullptr;
         auto easy_move = MOVE_NONE;
@@ -1680,6 +1680,7 @@ namespace Threading {
         if (main_thread != nullptr)
         {
             TT.generation (root_pos.game_ply () + 1);
+
             if (main_thread->time_mgr_used)
             {
                 main_thread->time_mgr.best_move_change = 0.0;
@@ -1741,7 +1742,6 @@ namespace Threading {
                         0x07, 0x0B, 0x0D, 0x0E, 0x13, 0x16, 0x19, 0x1A, 0x1C,
                         0x23, 0x25, 0x26, 0x29, 0x2C, 0x31, 0x32, 0x34, 0x38,
                     };
-
                     if (((HalfDensityMap[index - 7] >> (d % 6)) & 1) != 0)
                     {
                         continue;

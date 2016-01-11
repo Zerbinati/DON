@@ -30,7 +30,7 @@ namespace Evaluator {
                 T_NO,
             };
 
-            double cp[T_NO][CLR_NO][PHASE_NO];
+            double cp[T_NO][CLR_NO][PH_NO];
             
             void write (i32 idx, Color c, Score score)
             {
@@ -76,10 +76,10 @@ namespace Evaluator {
         {
             // ful_attacked_by[color][piece-type] contains all squares attacked by a given color and piece type,
             // ful_attacked_by[color][NONE] contains all squares attacked by the given color.
-            Bitboard ful_attacked_by[CLR_NO][TOTL];
+            Bitboard ful_attacked_by[CLR_NO][MAX_PTYPE];
             // pin_attacked_by[color][piece-type] contains all squares attacked by a given color and piece type with pinned removed,
             // pin_attacked_by[color][NONE] contains all squares attacked by the given color with pinned removed.
-            Bitboard pin_attacked_by[CLR_NO][TOTL];
+            Bitboard pin_attacked_by[CLR_NO][MAX_PTYPE];
 
             // pinneds[color] contains all the pinned pieces
             Bitboard pinneds[CLR_NO];
@@ -246,7 +246,7 @@ namespace Evaluator {
     #define V(v) Value(v)
         // PawnPassedValue[phase][rank] contains bonuses for passed pawns according to the rank of the pawn.
         // Don't use a Score because the two components processed independently.
-        const Value PawnPassedValue[PHASE_NO][R_NO] =
+        const Value PawnPassedValue[PH_NO][R_NO] =
         {
             { V(0), V( 1), V(34), V(90), V(214), V(328), V(0), V(0) },
             { V(7), V(14), V(37), V(63), V(134), V(189), V(0), V(0) }

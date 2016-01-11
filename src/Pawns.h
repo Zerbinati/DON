@@ -22,6 +22,8 @@ namespace Pawns {
         Key      pawn_key;
         Score    pawn_score;
 
+        i32      asymmetry;
+
         Bitboard pawn_attacks  [CLR_NO];
         Bitboard passed_pawns  [CLR_NO];
         Bitboard pawn_attack_span[CLR_NO];
@@ -31,11 +33,10 @@ namespace Pawns {
         // Count of pawns on LIGHT and DARK squares
         u08      pawns_on_sqrs [CLR_NO][CLR_NO]; // [color][square color]
 
-        Square   king_sq       [CLR_NO];
-        CRight   castle_rights [CLR_NO];
-        Value    king_safety   [CLR_NO][3];
-        u08      king_pawn_dist[CLR_NO];
-        i32      asymmetry;
+        Square      king_sq       [CLR_NO];
+        CastleRight castle_rights [CLR_NO];
+        Value       king_safety   [CLR_NO][3];
+        u08         king_pawn_dist[CLR_NO];
 
         template<Color Own>
         bool file_semiopen (File f) const

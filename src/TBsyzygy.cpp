@@ -218,7 +218,7 @@ namespace TBSyzygy {
             TB_BPAWN    = 8|TB_PAWN,
         };
 
-        PieceType tb_ptype (Piece p) { return (p & TOTL) != 0 ? PieceType((p & TOTL) - 1) : NONE; }
+        PieceType tb_ptype (Piece p) { return (p & MAX_PTYPE) != 0 ? PieceType((p & MAX_PTYPE) - 1) : NONE; }
 
         const char PieceChar[NONE] ={ 'P', 'N', 'B', 'R', 'Q', 'K' };
 

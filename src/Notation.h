@@ -81,7 +81,7 @@ inline std::basic_ostream<CharT, Traits>&
     return os;
 }
 
-//inline std::string to_string (CRight cr)
+//inline std::string to_string (CastleRight cr)
 //{
 //    std::string scastle;
 //    if (can_castle (cr, CR_A))
@@ -109,7 +109,7 @@ inline std::basic_ostream<CharT, Traits>&
 //
 //template<class CharT, class Traits>
 //inline std::basic_ostream<CharT, Traits>&
-//operator<< (std::basic_ostream<CharT, Traits> &os, CRight cr)
+//operator<< (std::basic_ostream<CharT, Traits> &os, CastleRight cr)
 //{
 //    os << to_string (cr);
 //    return os;

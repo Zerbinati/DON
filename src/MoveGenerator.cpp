@@ -45,7 +45,7 @@ namespace MoveGen {
             }
         }
 
-        template<GenType GT, CRight CR>
+        template<GenType GT, CastleRight CR>
         // Generates KING castling move
         void generate_castling_moves (ValMove *&moves, const Position &pos, Color Own, bool chess960, const CheckInfo *ci)
         {
