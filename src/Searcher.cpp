@@ -1007,9 +1007,10 @@ namespace Searcher {
 
             bool singular_ext_node =
                    !RootNode
+                && tt_hit
                 && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                 && tt_move != MOVE_NONE
-                &&    depth >= (PVNode ? 6 : 8)*DEPTH_ONE
+                &&    depth >= 8*DEPTH_ONE
                 && tt_depth >= depth - 3*DEPTH_ONE
                 && abs (tt_value) < +VALUE_KNOWN_WIN
                 && (tt_bound & BOUND_LOWER) != BOUND_NONE;

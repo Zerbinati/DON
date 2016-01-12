@@ -782,8 +782,8 @@ namespace Evaluator {
                 auto s = pop_lsq (passed_pawns);
                 assert(pos.passed_pawn (Own, s));
 
-                i32  r = rel_rank (Own, s) - R_2;
-                i32 rr = r * (r - 1);
+                auto  r = std::max (i32(rel_rank (Own, s)) - i32(R_2), 1);
+                auto rr = r * (r - 1);
 
                 // Base bonus depends on rank
                 auto mg_value = PawnPassedValue[MG][r];
@@ -852,8 +852,10 @@ namespace Evaluator {
                 }
 
                 // If non-pawn pieces differ
-                eg_value *= 1.0 + (nonpawn_count[Own]-nonpawn_count[Opp]) / std::max (nonpawn_count[Own]+nonpawn_count[Opp], 1) / 4.0;
-
+                if (nonpawn_count[Own] != nonpawn_count[Opp])
+                {
+                    eg_value *= 1.0 + (nonpawn_count[Own]-nonpawn_count[Opp]) / std::max (nonpawn_count[Own]+nonpawn_count[Opp], 1) / 4.0;
+                }
                 score += mk_score (mg_value, eg_value) + PawnPassedScore[_file (s)];
             }
 
