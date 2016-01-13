@@ -131,7 +131,7 @@ namespace Searcher {
         bool operator!= (Move m) const { return at (0) != m; }
 
         void operator+= (Move m) { push_back (m); }
-        void operator-= (Move m) { erase (std::remove (begin (), end (), m), cend ()); }
+        void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
         void backup () { old_value = new_value; }
 
@@ -157,7 +157,7 @@ namespace Searcher {
         RootMoveVector& operator= (const RootMoveVector&) = default;
 
         void operator+= (const RootMove &root_move) { push_back (root_move); }
-        void operator-= (const RootMove &root_move) { erase (std::remove (begin (), end (), root_move), cend ()); }
+        void operator-= (const RootMove &root_move) { erase (std::remove (begin (), end (), root_move), end ()); }
 
         void initialize (const Position &pos, const MoveVector &moves)
         {
@@ -165,7 +165,7 @@ namespace Searcher {
             for (const auto &vm : MoveGen::MoveList<MoveGen::LEGAL> (pos))
             {
                 if (   moves.empty ()
-                    || std::find (moves.cbegin (), moves.cend (), vm.move) != moves.cend ()
+                    || std::find (moves.begin (), moves.end (), vm.move) != moves.end ()
                    )
                 {
                     *this += RootMove (vm.move);

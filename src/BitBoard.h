@@ -227,7 +227,7 @@ namespace BitBoard {
 
     inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = U64(0))
     {
-        auto slid_attacks = U64(0);
+        auto slide_attacks = U64(0);
         u08 i = 0;
         Delta del;
         while ((del = deltas[i++]) != DEL_O)
@@ -235,12 +235,12 @@ namespace BitBoard {
             auto sq = s + del;
             while (_ok (sq) && dist (sq, sq - del) == 1)
             {
-                slid_attacks += sq;
+                slide_attacks += sq;
                 if ((occ & sq) != U64(0)) break;
                 sq += del;
             }
         }
-        return slid_attacks;
+        return slide_attacks;
     }
 
     // --------------------------------

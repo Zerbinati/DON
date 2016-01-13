@@ -695,21 +695,21 @@ inline bool white_spaces (const std::string &str)
 
 inline void to_lower (std::string &str)
 {
-    std::transform (str.cbegin (), str.cend (), str.begin (), ::tolower);
+    std::transform (str.begin (), str.end (), str.begin (), ::tolower);
 }
 inline void to_upper (std::string &str)
 {
-    std::transform (str.cbegin (), str.cend (), str.begin (), ::toupper);
+    std::transform (str.begin (), str.end (), str.begin (), ::toupper);
 }
 inline void toggle (std::string &str)
 {
-    std::transform (str.cbegin (), str.cend (), str.begin (),
+    std::transform (str.begin (), str.end (), str.begin (),
         [](char c) { return char (islower (c) ? ::toupper (c) : ::tolower (c)); });
 }
 
 inline std::string& trim_left (std::string &str)
 {
-    str.erase (str.cbegin (), 
+    str.erase (str.begin (), 
                 std::find_if (str.begin (), str.end (), 
                     //[](char c) { return !std::isspace (c, std::locale ()); }
                     std::not1 (std::ptr_fun<i32, i32> (std::isspace))
@@ -721,7 +721,7 @@ inline std::string& trim_right (std::string &str)
     str.erase (std::find_if (str.rbegin (), str.rend (), 
                 //[](char c) { return !std::isspace (c, std::locale ()); }).base (), 
                 std::not1 (std::ptr_fun<i32, i32> (std::isspace))).base (),
-                    str.cend ());
+                    str.end ());
     return str;
 }
 inline std::string& trim (std::string &str)

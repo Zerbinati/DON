@@ -216,7 +216,7 @@ namespace Searcher {
             }
 
             // Decrease all the other played quiet moves
-            assert(std::find (quiet_moves.cbegin (), quiet_moves.cend (), move) == quiet_moves.cend ());
+            assert(std::find (quiet_moves.begin (), quiet_moves.end (), move) == quiet_moves.end ());
             for (const auto m : quiet_moves)
             {
                 assert(m != move);
@@ -237,7 +237,7 @@ namespace Searcher {
             {
                 auto own_move_dst = dst_sq ((ss-2)->current_move);
                 auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
-                own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*((depth/DEPTH_ONE) + 1));
+                own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth/DEPTH_ONE) - 2);
             }
 
         }
@@ -1040,7 +1040,7 @@ namespace Searcher {
                 // RootMove list, as a consequence any illegal move is also skipped.
                 // In MultiPV mode also skip PV moves which have been already searched.
                 if (   RootNode
-                    && std::find (thread->root_moves.cbegin () + thread->pv_index, thread->root_moves.cend (), move) == thread->root_moves.cend ()
+                    && std::find (thread->root_moves.begin () + thread->pv_index, thread->root_moves.end (), move) == thread->root_moves.end ()
                    )
                 {
                     continue;
@@ -2053,7 +2053,7 @@ namespace Threading {
                 bool found = false;
                 auto book_best_move = book.probe_move (root_pos, BookMoveBest);
                 if (   book_best_move != MOVE_NONE
-                    && std::find (root_moves.cbegin (), root_moves.cend (), book_best_move) != root_moves.cend ()
+                    && std::find (root_moves.begin (), root_moves.end (), book_best_move) != root_moves.end ()
                    )
                 {
                     found = true;
