@@ -237,7 +237,7 @@ namespace Searcher {
             {
                 auto own_move_dst = dst_sq ((ss-2)->current_move);
                 auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
-                own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*((depth/DEPTH_ONE) + 1));
+                own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth/DEPTH_ONE) - 2);
             }
 
         }

@@ -1064,8 +1064,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
         else
         if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
         {
-            auto pc = Piece(idx);
-            place_piece (s, color (pc), ptype (pc));
+            place_piece (s, Piece(idx));
             ++s;
         }
         else

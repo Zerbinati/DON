@@ -34,22 +34,22 @@ public:
 
     // ---Copied when making a move---
     Value  non_pawn_matl[CLR_NO];
-    Score  psq_score     = SCORE_ZERO;
+    Score  psq_score     ;//= SCORE_ZERO;
 
-    Key    matl_key      = U64(0);   // Hash key of materials.
-    Key    pawn_key      = U64(0);   // Hash key of pawns.
-    CastleRight castle_rights = CR_NONE;  // Castling-rights information for both side.
-    Square en_passant_sq = SQ_NO;    // En-passant -> "In passing"
-    u08    clock_ply     = 0;        // Number of halfmoves clock since the last pawn advance or any capture.
-                                     // Used to determine if a draw can be claimed under the clock-move rule.
-    u08    null_ply      = 0;
+    Key    matl_key      ;//= U64(0);   // Hash key of materials.
+    Key    pawn_key      ;//= U64(0);   // Hash key of pawns.
+    CastleRight castle_rights ;//= CR_NONE;  // Castling-rights information for both side.
+    Square en_passant_sq ;//= SQ_NO;    // En-passant -> "In passing"
+    u08    clock_ply     ;//= 0;        // Number of halfmoves clock since the last pawn advance or any capture.
+                                        // Used to determine if a draw can be claimed under the clock-move rule.
+    u08    null_ply      ;//= 0;
     // ---Not copied when making a move---
-    Key    posi_key      = U64(0);   // Hash key of position.
-    Move   last_move     = MOVE_NONE;// Move played on the previous position.
-    PieceType capture_type= NONE;    // Piece type captured.
-    Bitboard checkers    = U64(0);   // Checkers bitboard.
+    Key    posi_key      ;//= U64(0);   // Hash key of position.
+    Move   last_move     ;//= MOVE_NONE;// Move played on the previous position.
+    PieceType capture_type;//= NONE;    // Piece type captured.
+    Bitboard checkers    ;//= U64(0);   // Checkers bitboard.
 
-    StateInfo *ptr = nullptr;
+    StateInfo *ptr ;//= nullptr;
 };
 
 typedef std::stack<StateInfo>   StateStack;
@@ -64,10 +64,10 @@ typedef std::stack<StateInfo>   StateStack;
 struct CheckInfo
 {
 public:
-    Bitboard checking_bb[NONE]; // Checking squares from which the enemy king can be checked
-    Bitboard pinneds;           // Pinned pieces
-    Bitboard discoverers;       // Check discoverer pieces
-    Square   king_sq;           // Enemy king square
+    Bitboard checking_bb[NONE];     // Checking squares from which the enemy king can be checked
+    Bitboard pinneds    ;//= U64(0); // Pinned pieces
+    Bitboard discoverers;//= U64(0); // Check discoverer pieces
+    Square   king_sq    ;//= SQ_NO; // Enemy king square
 
     CheckInfo () = delete;
     explicit CheckInfo (const Position &pos);
@@ -127,6 +127,11 @@ private:
     Threading::Thread  *_thread;
 
     // ------------------------
+
+    void  place_piece (Square s, Color c, PieceType pt);
+    void  place_piece (Square s, Piece p);
+    void remove_piece (Square s);
+    void   move_piece (Square s1, Square s2);
 
     void set_castle (Color c, Square rook_org);
 
@@ -206,10 +211,10 @@ public:
 
     Value non_pawn_material (Color c) const;
 
-    Score   psq_score () const;
+    Score psq_score () const;
 
-    CastleRight   can_castle  (CastleRight cr) const;
-    CastleRight   can_castle  (Color   c) const;
+    CastleRight can_castle (CastleRight cr) const;
+    CastleRight can_castle (Color   c) const;
 
     Square   castle_rook (CastleRight cr) const;
     Bitboard castle_path (CastleRight cr) const;
@@ -259,11 +264,6 @@ public:
     bool opposite_bishops ()    const;
 
     void clear ();
-
-    void  place_piece (Square s, Color c, PieceType pt);
-    void  place_piece (Square s, Piece p);
-    void remove_piece (Square s);
-    void   move_piece (Square s1, Square s2);
 
     bool setup (const std::string &f, Threading::Thread *const th = nullptr, bool c960 = false, bool full = true);
 
@@ -382,8 +382,18 @@ inline Key    Position::move_posi_key (Move m) const
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     auto mpt = ptype (_board[org]);
-    auto ppt = mtype (m) == PROMOTE && _board[org] == (_active|PAWN) ? promote (m) : mpt;
-    auto cpt = mtype (m) == ENPASSANT && _board[org] == (_active|PAWN) &&  empty (dst) && _psi->en_passant_sq == dst ? PAWN : ptype (_board[dst]);
+    assert (!empty (org)
+          && color (_board[org]) == _active
+          && mpt != NONE);
+
+    auto ppt = mtype (m) == PROMOTE
+           && _board[org] == (_active|PAWN) ?
+            promote (m) : mpt;
+    auto cpt = mtype (m) == ENPASSANT
+           && _board[org] == (_active|PAWN)
+           &&  empty (dst)
+           && _psi->en_passant_sq == dst ?
+            PAWN : ptype (_board[dst]);
     
     return _psi->posi_key ^  Zob._.act_side
         ^  Zob._.piece_square[_active][mpt][org]
@@ -391,12 +401,12 @@ inline Key    Position::move_posi_key (Move m) const
         ^ (cpt != NONE ? Zob._.piece_square[~_active][cpt][dst] : U64(0));
 }
 
-inline Score  Position::psq_score     () const { return _psi->psq_score; }
+inline Score  Position::psq_score () const { return _psi->psq_score; }
 // Incremental piece-square evaluation
 inline Value  Position::non_pawn_material (Color c) const { return _psi->non_pawn_matl[c]; }
 
-inline CastleRight Position::can_castle    (CastleRight cr) const { return _psi->castle_rights & cr; }
-inline CastleRight Position::can_castle    (Color   c) const { return _psi->castle_rights & mk_castle_right (c); }
+inline CastleRight Position::can_castle (CastleRight cr) const { return _psi->castle_rights & cr; }
+inline CastleRight Position::can_castle (Color   c) const { return _psi->castle_rights & mk_castle_right (c); }
 
 inline Square   Position::castle_rook (CastleRight cr) const { return _castle_rook[cr]; }
 inline Bitboard Position::castle_path (CastleRight cr) const { return _castle_path[cr]; }
