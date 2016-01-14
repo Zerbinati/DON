@@ -563,9 +563,6 @@ inline void  Position::remove_piece (Square s)
     _types_bb[NONE] &= bb;
 
     auto &v = _piece_sq[c][pt];
-
-    //v.erase (std::remove (v.begin (), v.end (), s), v.end ());
-
     if (v.size () > 1)
     {
         std::swap (*std::find (v.begin (), v.end (), s), v.back ());
@@ -588,7 +585,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
     _types_bb[NONE] ^= bb;
 
     auto &v = _piece_sq[c][pt];
-    v[v.size () > 1 ? find (v.begin (), v.end (), s1) - v.begin () : 0] = s2;
+    v[v.size () > 1 ? std::find (v.begin (), v.end (), s1) - v.begin () : 0] = s2;
 }
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.

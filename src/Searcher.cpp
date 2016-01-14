@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cmath>
+#include <iterator>
 
 #include "PRNG.h"
 #include "MovePicker.h"
@@ -247,20 +248,17 @@ namespace Searcher {
             update_stats (pos, ss, move, depth, quiet_moves);
         }
         // update_pv() add current move and appends child pv[]
-        void update_pv (Move *pv, Move move, const Move *child_pv)
+        MoveVector update_pv (Move move, const MoveVector &child_pv)
         {
-            assert(pv != child_pv);
             assert(_ok (move));
-
-            *pv++ = move;
-            if (child_pv != nullptr)
+            MoveVector pv;
+            pv.push_back (move);
+            if (!child_pv.empty ())
             {
-                while (*child_pv != MOVE_NONE)
-                {
-                    *pv++ = *child_pv++;
-                }
+                pv.reserve (child_pv.size () + 1);
+                std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (pv));
             }
-            *pv = MOVE_NONE;
+            return pv;
         }
 
         // value_to_tt() adjusts a mate score from "plies to mate from the root" to
@@ -356,14 +354,12 @@ namespace Searcher {
             assert(depth <= DEPTH_ZERO);
 
             Value pv_alfa = -VALUE_INFINITE;
-            Move  pv[MaxPly+1];
 
             if (PVNode)
             {
                 pv_alfa = alfa; // To flag BOUND_EXACT when eval above alfa and no available moves
 
-                (ss+1)->pv = pv;
-                ss->pv[0] = MOVE_NONE;
+                ss->pv = MoveVector ();
             }
 
             ss->current_move = MOVE_NONE;
@@ -574,13 +570,13 @@ namespace Searcher {
                         // Update pv even in fail-high case
                         if (PVNode)
                         {
-                            update_pv (ss->pv, move, (ss+1)->pv);
+                            ss->pv = update_pv (move, (ss+1)->pv);
                         }
                         // Fail high
                         if (value >= beta)
                         {
                             if (   tt_hit
-                                && tte->key16 () != u16(posi_key >> 0x30)
+                                && tte->key16 () != (posi_key >> 0x30)
                                )
                             {
                                 tte = TT.probe (posi_key, tt_hit);
@@ -606,7 +602,7 @@ namespace Searcher {
             }
 
             if (   tt_hit
-                && tte->key16 () != u16(posi_key >> 0x30)
+                && tte->key16 () != (posi_key >> 0x30)
                )
             {
                 tte = TT.probe (posi_key, tt_hit);
@@ -774,7 +770,7 @@ namespace Searcher {
                                 VALUE_DRAW + 2 * draw_v * v;
 
                         if (   tt_hit
-                            && tte->key16 () != u16(posi_key >> 0x30)
+                            && tte->key16 () != (posi_key >> 0x30)
                            )
                         {
                             tte = TT.probe (posi_key, tt_hit);
@@ -1015,8 +1011,7 @@ namespace Searcher {
                 && abs (tt_value) < +VALUE_KNOWN_WIN
                 && (tt_bound & BOUND_LOWER) != BOUND_NONE;
 
-            Move pv[MaxPly + 1];
-            u08  move_count = 0;
+            u08 move_count = 0;
 
             MoveVector quiet_moves;
             quiet_moves.reserve (16);
@@ -1069,7 +1064,7 @@ namespace Searcher {
 
                 if (PVNode)
                 {
-                    (ss+1)->pv = nullptr;
+                    (ss+1)->pv = MoveVector ();
                 }
 
                 auto extension = DEPTH_ZERO;
@@ -1244,8 +1239,7 @@ namespace Searcher {
                        )
                    )
                 {
-                    (ss+1)->pv = pv;
-                    (ss+1)->pv[0] = MOVE_NONE;
+                    (ss+1)->pv = MoveVector ();
 
                     value =
                         new_depth < DEPTH_ONE ?
@@ -1273,15 +1267,18 @@ namespace Searcher {
                     // 1st legal move or new best move ?
                     if (move_count == 1 || alfa < value)
                     {
-                        assert((ss+1)->pv != nullptr);
-
-                        root_move.new_value = value;
-                        root_move.resize (1);
-                        for (const auto *m = (ss+1)->pv; *m != MOVE_NONE; ++m)
+                        //assert(!(ss+1)->pv.empty ());
+                        //root_move.resize (1);
+                        auto rm = RootMove (root_move[0]);
+                        if (!(ss+1)->pv.empty ())
                         {
-                            root_move += *m;
+                            rm.reserve ((ss+1)->pv.size () + 1);
+                            std::copy ((ss+1)->pv.begin (), (ss+1)->pv.end (), std::back_inserter (rm));
                         }
-                        //root_move.shrink_to_fit ();
+                        //rm.shrink_to_fit ();
+                        rm.old_value = root_move.old_value;
+                        rm.new_value = value;
+                        root_move = rm;
 
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
@@ -1324,7 +1321,7 @@ namespace Searcher {
 
                         if (PVNode && !RootNode)
                         {
-                            update_pv (ss->pv, move, (ss+1)->pv);
+                            ss->pv = update_pv (move, (ss+1)->pv);
                         }
                         // Fail high
                         if (value >= beta) 
@@ -1401,7 +1398,7 @@ namespace Searcher {
             }
 
             if (   tt_hit
-                && tte->key16 () != u16(posi_key >> 0x30)
+                && tte->key16 () != (posi_key >> 0x30)
                )
             {
                 tte = TT.probe (posi_key, tt_hit);
@@ -1665,7 +1662,17 @@ namespace Threading {
     void Thread::search ()
     {
         Stack stacks[MaxPly+4], *ss = stacks+2; // To allow referencing (ss-2)
-        std::memset (stacks, 0x00, 5*Stack::Size);
+        for (auto s = stacks; s <= stacks+5; ++s)
+        {
+            s->ply = 0;
+            s->current_move = MOVE_NONE;
+            s->exclude_move = MOVE_NONE;
+            std::fill (s->killer_moves, s->killer_moves + Killers, MOVE_NONE);
+            s->static_eval = VALUE_ZERO;
+            s->move_count = 0;
+            s->skip_pruning = false;
+            s->pv.clear ();
+        }
 
         auto *main_thread = Threadpool.main () == this ? Threadpool.main () : nullptr;
         auto easy_move = MOVE_NONE;

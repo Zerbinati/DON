@@ -211,7 +211,8 @@ namespace Searcher {
         Value static_eval = VALUE_NONE;
         u08   move_count  = 0;
         bool skip_pruning = false;
-        Move *pv          = nullptr;
+
+        MoveVector pv;
     };
 
     const u08 MaxSkillLevel   = 32; // MaxSkillLevel should be <= MaxPly/4
