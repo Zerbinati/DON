@@ -1,6 +1,5 @@
 #include "Position.h"
 
-#include <cstring>
 #include <iomanip>
 #include <sstream>
 

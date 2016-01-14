@@ -3,8 +3,6 @@
 
 #include <memory>
 #include <stack>
-#include <vector>
-#include <algorithm>
 
 #include "BitBoard.h"
 #include "Zobrist.h"

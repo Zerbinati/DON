@@ -17,11 +17,8 @@ namespace MoveGen {
                 || PT == ROOK
                 || PT == QUEN);
 
-            const auto ps = pos.squares<PT> (Own);
-            auto itr = ps.begin ();
-            while (itr != ps.end ())
+            for (auto s : pos.squares<PT> (Own))
             {
-                auto s = *itr++;
                 if (GT == CHECK || GT == QUIET_CHECK)
                 {
                     if (   (PT == BSHP || PT == ROOK || PT == QUEN)

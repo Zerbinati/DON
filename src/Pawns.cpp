@@ -140,11 +140,8 @@ namespace Pawns {
 
             Bitboard b;
 
-            const auto ps = pos.squares<PAWN> (Own);
-            auto itr = ps.begin ();
-            while (itr != ps.end ())
+            for (auto s : pos.squares<PAWN> (Own))
             {
-                auto s = *itr++;
                 assert(pos[s] == (Own|PAWN));
 
                 auto f = _file (s);

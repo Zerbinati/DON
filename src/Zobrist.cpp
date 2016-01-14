@@ -34,11 +34,8 @@ namespace Zobrist {
 
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            const auto ps = pos.squares<PAWN> (c);
-            auto itr = ps.begin ();
-            while (itr != ps.end ())
+            for (auto s : pos.squares<PAWN> (c))
             {
-                auto s = *itr++;
                 pawn_key ^= _.piece_square[c][PAWN][s];
             }
         }
@@ -54,11 +51,8 @@ namespace Zobrist {
         {
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                const auto ps = pos[c|pt];
-                auto itr = ps.begin ();
-                while (itr != ps.end ())
+                for (auto s : pos[c|pt])
                 {
-                    auto s = *itr++;
                     posi_key ^= _.piece_square[c][pt][s];
                 }
             }
