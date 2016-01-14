@@ -248,16 +248,17 @@ namespace Searcher {
             update_stats (pos, ss, move, depth, quiet_moves);
         }
         // update_pv() add current move and appends child pv[]
-        void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
+        MoveVector update_pv (Move move, const MoveVector &child_pv)
         {
             assert(_ok (move));
-            pv.clear ();
+            MoveVector pv;
             pv.push_back (move);
             if (!child_pv.empty ())
             {
                 pv.reserve (child_pv.size () + 1);
                 std::copy (child_pv.cbegin (), child_pv.cend (), std::back_inserter (pv));
             }
+            return pv;
         }
 
         // value_to_tt() adjusts a mate score from "plies to mate from the root" to
@@ -569,7 +570,7 @@ namespace Searcher {
                         // Update pv even in fail-high case
                         if (PVNode)
                         {
-                            update_pv (ss->pv, move, (ss+1)->pv);
+                            ss->pv = update_pv (move, (ss+1)->pv);
                         }
                         // Fail high
                         if (value >= beta)
@@ -1322,7 +1323,7 @@ namespace Searcher {
 
                         if (PVNode && !RootNode)
                         {
-                            update_pv (ss->pv, move, (ss+1)->pv);
+                            ss->pv = update_pv (move, (ss+1)->pv);
                         }
                         // Fail high
                         if (value >= beta) 
