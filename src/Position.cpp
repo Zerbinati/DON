@@ -1155,10 +1155,10 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
             switch (char(toupper (ch)))
             {
             case 'K':
-                for (r_sq  = rel_sq (c, SQ_H1); r_sq >= rel_sq (c, SQ_A1) && (c|ROOK) != _board[r_sq]; --r_sq) {}
+                for (r_sq  = rel_sq (c, SQ_H1); r_sq >= rel_sq (c, SQ_A1) && _board[r_sq] != (c|ROOK); --r_sq) {}
                 break;
             case 'Q':
-                for (r_sq  = rel_sq (c, SQ_A1); r_sq <= rel_sq (c, SQ_H1) && (c|ROOK) != _board[r_sq]; ++r_sq) {}
+                for (r_sq  = rel_sq (c, SQ_A1); r_sq <= rel_sq (c, SQ_H1) && _board[r_sq] != (c|ROOK); ++r_sq) {}
                 break;
             default:
                 assert(false);
@@ -1167,7 +1167,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
             }
         }
 
-        if ((c|ROOK) != _board[r_sq]) return false;
+        if (_board[r_sq] != (c|ROOK)) return false;
         set_castle (c, r_sq);
     }
 

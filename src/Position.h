@@ -153,7 +153,10 @@ public:
     Position (const Position&) = delete;
     Position (const std::string &f, Threading::Thread *const th = nullptr, bool c960 = false, bool full = true)
     {
-        if (!setup (f, th, c960, full)) clear ();
+        if (!setup (f, th, c960, full))
+        {
+            clear ();
+        }
     }
     Position (const Position &pos, Threading::Thread *const th)
     {
@@ -565,11 +568,7 @@ inline void  Position::remove_piece (Square s)
 
     if (v.size () > 1)
     {
-        auto itr = std::find (v.begin (), v.end (), s);
-        if (itr != v.end ())
-        {
-            std::swap (*itr, v.back ());
-        }
+        std::swap (*std::find (v.begin (), v.end (), s), v.back ());
     }
     v.pop_back ();
 }
@@ -589,17 +588,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
     _types_bb[NONE] ^= bb;
 
     auto &v = _piece_sq[c][pt];
-    
-    //std::replace (v.begin (), v.end (), s1, s2);
-
-    if (v.size () > 1)
-    {
-        std::replace (v.begin (), v.end (), s1, s2);
-    }
-    else
-    {
-        v[0] = s2;
-    }
+    v[v.size () > 1 ? find (v.begin (), v.end (), s1) - v.begin () : 0] = s2;
 }
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.

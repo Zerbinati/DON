@@ -1196,23 +1196,16 @@ namespace Searcher {
                 {
                     auto reduction_depth = reduction_depths<PVNode> (improving, depth, move_count);
 
-                    // Increase reduction for cut node or negative history
-                    if (   (!PVNode && cut_node)
-                        || (   thread->history_values[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
-                            && opp_cmv[pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
-                           )
-                       )
+                    // Increase reduction for cut node
+                    if (!PVNode && cut_node)
                     {
                         reduction_depth += DEPTH_ONE;
                     }
-                    // Decrease reduction for positive history
-                    if (   reduction_depth != DEPTH_ZERO
-                        && thread->history_values[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
-                        && opp_cmv[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
-                       )
-                    {
-                        reduction_depth = std::max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
-                    }
+                    // Decrease reduction for moves with a +ve history
+                    // Increase reduction for moves with a -ve history
+                    reduction_depth = std::max (reduction_depth - (i32( thread->history_values[pos[dst_sq (move)]][dst_sq (move)]
+                                                                      + opp_cmv[pos[dst_sq (move)]][dst_sq (move)])/14980)*DEPTH_ONE, DEPTH_ZERO);
+
                     // Decrease reduction for moves that escape a capture.
                     // Filter out castling moves because are coded as "king captures rook" and break make_move().
                     // Also use see() instead of see_sign() because destination square is empty.
@@ -1385,7 +1378,6 @@ namespace Searcher {
                 auto itr = std::find (quiet_moves.begin (), quiet_moves.end (), best_move);
                 if (itr != quiet_moves.end ())
                 {
-                    //quiet_moves.erase (itr);
                     std::swap (*itr, quiet_moves.back ());
                     quiet_moves.pop_back ();
                 }
