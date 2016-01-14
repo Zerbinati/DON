@@ -351,10 +351,11 @@ namespace Evaluator {
             ei.ful_attacked_by[Own][PT] = U64(0);
             ei.pin_attacked_by[Own][PT] = U64(0);
             
-            const auto *pl = pos.squares<PT> (Own);
-            Square s;
-            while ((s = *pl++) != SQ_NO)
+            const auto ps = pos.squares<PT> (Own);
+            auto itr = ps.begin ();
+            while (itr != ps.end ())
             {
+                auto s = *itr++;
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 auto attacks =
                     PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :

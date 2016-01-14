@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <stack>
+#include <vector>
+#include <algorithm>
 
 #include "BitBoard.h"
 #include "Zobrist.h"
@@ -106,9 +108,7 @@ private:
     Bitboard _color_bb[CLR_NO];
     Bitboard _types_bb[MAX_PTYPE];
 
-    Square   _piece_square[CLR_NO][NONE][16];
-    u08      _piece_count [CLR_NO][NONE];
-    i08      _piece_index [SQ_NO];
+    SquareVector _piece_sq[CLR_NO][NONE];
 
     StateInfo  _ssi; // Startup state information object
     StateInfo *_psi; // Current state information pointer
@@ -173,7 +173,7 @@ public:
     Piece    operator[] (Square s)      const;
     //Bitboard operator[] (Color  c)      const;
     //Bitboard operator[] (PieceType pt)  const;
-    const Square* operator[] (Piece p)  const;
+    const SquareVector& operator[] (Piece p)  const;
 
     bool     empty  (Square s)  const;
 
@@ -191,7 +191,7 @@ public:
     i32      count  (Color c, PieceType pt) const;
 
     template<PieceType PT>
-    const Square* squares (Color c) const;
+    const SquareVector& squares (Color c) const;
     template<PieceType PT>
     Square square (Color c, i32 index = 0) const;
 
@@ -289,7 +289,7 @@ public:
 inline Piece         Position::operator[] (Square s)  const { return _board[s]; }
 //inline Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
 //inline Bitboard      Position::operator[] (PieceType pt) const { return _types_bb[pt]; }
-inline const Square* Position::operator[] (Piece  p)  const { return _piece_square[color (p)][ptype (p)]; }
+inline const SquareVector& Position::operator[] (Piece  p)  const { return _piece_sq[color (p)][ptype (p)]; }
 
 inline bool     Position::empty  (Square s)  const { return _board[s] == NO_PIECE; }
 
@@ -304,60 +304,60 @@ template<PieceType PT>
 // Count specific piece
 inline i32 Position::count          () const
 {
-    return _piece_count[WHITE][PT] + _piece_count[BLACK][PT];
+    return i32(_piece_sq[WHITE][PT].size () + _piece_sq[BLACK][PT].size ());
 }
 template<>
 // Count total pieces
 inline i32 Position::count<NONE>    () const
 {
-    return _piece_count[WHITE][PAWN] + _piece_count[BLACK][PAWN]
-         + _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
-         + _piece_count[WHITE][BSHP] + _piece_count[BLACK][BSHP]
-         + _piece_count[WHITE][ROOK] + _piece_count[BLACK][ROOK]
-         + _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN]
-         + _piece_count[WHITE][KING] + _piece_count[BLACK][KING];
+    return i32(_piece_sq[WHITE][PAWN].size () + _piece_sq[BLACK][PAWN].size ()
+         + _piece_sq[WHITE][NIHT].size () + _piece_sq[BLACK][NIHT].size ()
+         + _piece_sq[WHITE][BSHP].size () + _piece_sq[BLACK][BSHP].size ()
+         + _piece_sq[WHITE][ROOK].size () + _piece_sq[BLACK][ROOK].size ()
+         + _piece_sq[WHITE][QUEN].size () + _piece_sq[BLACK][QUEN].size ()
+         + _piece_sq[WHITE][KING].size () + _piece_sq[BLACK][KING].size ());
 }
 template<>
 // Count non-pawn pieces
 inline i32 Position::count<NONPAWN> () const
 {
-    return _piece_count[WHITE][NIHT] + _piece_count[BLACK][NIHT]
-         + _piece_count[WHITE][BSHP] + _piece_count[BLACK][BSHP]
-         + _piece_count[WHITE][ROOK] + _piece_count[BLACK][ROOK]
-         + _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN];
+    return i32(_piece_sq[WHITE][NIHT].size () + _piece_sq[BLACK][NIHT].size ()
+         + _piece_sq[WHITE][BSHP].size () + _piece_sq[BLACK][BSHP].size ()
+         + _piece_sq[WHITE][ROOK].size () + _piece_sq[BLACK][ROOK].size ()
+         + _piece_sq[WHITE][QUEN].size () + _piece_sq[BLACK][QUEN].size ());
 }
 template<PieceType PT>
 // Count specific piece of color
-inline i32 Position::count          (Color c) const { return _piece_count[c][PT]; }
+inline i32 Position::count          (Color c) const { return i32(_piece_sq[c][PT].size ()); }
 template<>
 // Count total pieces of color
 inline i32 Position::count<NONE>    (Color c) const
 {
-    return _piece_count[c][PAWN]
-         + _piece_count[c][NIHT]
-         + _piece_count[c][BSHP]
-         + _piece_count[c][ROOK]
-         + _piece_count[c][QUEN]
-         + _piece_count[c][KING];
+    return i32(_piece_sq[c][PAWN].size ()
+         + _piece_sq[c][NIHT].size ()
+         + _piece_sq[c][BSHP].size ()
+         + _piece_sq[c][ROOK].size ()
+         + _piece_sq[c][QUEN].size ()
+         + _piece_sq[c][KING].size ());
 }
 template<>
 // Count non-pawn pieces of color
 inline i32 Position::count<NONPAWN> (Color c) const
 {
-    return _piece_count[c][NIHT]
-         + _piece_count[c][BSHP]
-         + _piece_count[c][ROOK]
-         + _piece_count[c][QUEN];
+    return i32(_piece_sq[c][NIHT].size ()
+         + _piece_sq[c][BSHP].size ()
+         + _piece_sq[c][ROOK].size ()
+         + _piece_sq[c][QUEN].size ());
 }
-inline i32 Position::count (Color c, PieceType pt) const { return _piece_count[c][pt]; }
+inline i32 Position::count (Color c, PieceType pt) const { return i32(_piece_sq[c][pt].size ()); }
 
 template<PieceType PT>
-inline const Square* Position::squares (Color c) const { return _piece_square[c][PT]; }
+inline const SquareVector& Position::squares (Color c) const { return _piece_sq[c][PT]; }
 template<PieceType PT>
 inline Square Position::square (Color c, i32 index) const
 {
-    assert(_piece_count[c][PT] > index);
-    return _piece_square[c][PT][index];
+    assert(_piece_sq[c][PT].size () > index);
+    return _piece_sq[c][PT][index];
 }
 
 // Castling rights for both side
@@ -470,7 +470,7 @@ inline Bitboard Position::attackers_to (Square s) const
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'
 inline Bitboard Position::checkers (Color c) const
 {
-    return attackers_to (_piece_square[c][KING][0], ~c);
+    return attackers_to (_piece_sq[c][KING][0], ~c);
 }
 // Pinners => Only bishops, rooks, queens...  kings, knights, and pawns cannot pin.
 // Pinneds => All except king, king must be immediately removed from check under all circumstances.
@@ -492,12 +492,12 @@ inline bool Position::passed_pawn (Color c, Square s) const
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
 {
-    auto bishop_count = _piece_count[c][BSHP];
+    auto bishop_count = _piece_sq[c][BSHP].size ();
     if (bishop_count > 1)
     {
         for (u08 pc = 0; pc < bishop_count-1; ++pc)
         {
-            if (opposite_colors (_piece_square[c][BSHP][pc], _piece_square[c][BSHP][pc+1])) return true;
+            if (opposite_colors (_piece_sq[c][BSHP][pc], _piece_sq[c][BSHP][pc+1])) return true;
         }
     }
     return false;
@@ -505,9 +505,9 @@ inline bool Position::bishops_pair (Color c) const
 // check the opposite sides have opposite bishops
 inline bool Position::opposite_bishops () const
 {
-    return _piece_count[WHITE][BSHP] == 1
-        && _piece_count[BLACK][BSHP] == 1
-        && opposite_colors (_piece_square[WHITE][BSHP][0], _piece_square[BLACK][BSHP][0]);
+    return _piece_sq[WHITE][BSHP].size () == 1
+        && _piece_sq[BLACK][BSHP].size () == 1
+        && opposite_colors (_piece_sq[WHITE][BSHP][0], _piece_sq[BLACK][BSHP][0]);
 }
 inline bool Position::legal         (Move m) const { return legal (m, pinneds (_active)); }
 // capture(m) tests move is capture
@@ -539,7 +539,6 @@ inline bool Position::advanced_pawn_push    (Move m) const
 inline void  Position:: place_piece (Square s, Color c, PieceType pt)
 {
     //assert(empty (s));
-
     _board[s] = (c | pt);
 
     auto bb = BitBoard::Square_bb[s];
@@ -547,9 +546,8 @@ inline void  Position:: place_piece (Square s, Color c, PieceType pt)
     _types_bb[pt]   |= bb;
     _types_bb[NONE] |= bb;
 
-    // Update piece list, put piece at [s] index
-    _piece_index[s]  = _piece_count[c][pt]++;
-    _piece_square[c][pt][_piece_index[s]] = s;
+    auto &v = _piece_sq[c][pt];
+    v.push_back (s);
 }
 inline void  Position:: place_piece (Square s, Piece p)
 {
@@ -559,12 +557,6 @@ inline void  Position:: place_piece (Square s, Piece p)
 inline void  Position::remove_piece (Square s)
 {
     //assert(!empty (s));
-
-    // WARNING: This is not a reversible operation. If remove a piece in
-    // do_move() and then replace it in undo_move() will put it at the end of
-    // the list and not in its original place, it means index[] and pieceList[]
-    // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
-
     auto c  = color (_board[s]);
     auto pt = ptype (_board[s]);
     //_board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
@@ -574,24 +566,24 @@ inline void  Position::remove_piece (Square s)
     _types_bb[pt]   &= bb;
     _types_bb[NONE] &= bb;
 
-    _piece_count[c][pt]--;
+    auto &v = _piece_sq[c][pt];
 
-    // Update piece list, remove piece at [s] index and shrink the list.
-    auto last_sq = _piece_square[c][pt][_piece_count[c][pt]];
-    //if (s != last_sq)
+    //v.erase (std::remove (v.begin (), v.end (), s), v.end ());
+
+    if (v.size () > 1)
     {
-        _piece_index[last_sq] = _piece_index[s];
-        _piece_square[c][pt][_piece_index[last_sq]] = last_sq;
+        auto itr = std::find (v.begin (), v.end (), s);
+        if (itr != v.end ())
+        {
+            std::swap (*itr, v.back ());
+        }
     }
-    //_piece_index[s] = -1;
-    _piece_square[c][pt][_piece_count[c][pt]] = SQ_NO;
+    v.pop_back ();
 }
 inline void  Position::  move_piece (Square s1, Square s2)
 {
     //assert(!empty (s1));
     //assert( empty (s2));
-    //assert(_piece_index[s1] != -1);
-
     auto c  = color (_board[s1]);
     auto pt = ptype (_board[s1]);
 
@@ -603,11 +595,8 @@ inline void  Position::  move_piece (Square s1, Square s2)
     _types_bb[pt]   ^= bb;
     _types_bb[NONE] ^= bb;
 
-    // _piece_index[s1] is not updated and becomes stale. This works as long
-    // as _piece_index[] is accessed just by known occupied squares.
-    _piece_index[s2] = _piece_index[s1];
-    //_piece_index[s1] = -1;
-    _piece_square[c][pt][_piece_index[s2]] = s2;
+    auto &v = _piece_sq[c][pt];
+    std::replace (v.begin (), v.end (), s1, s2);
 }
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.

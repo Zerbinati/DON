@@ -165,7 +165,7 @@ namespace Searcher {
             for (const auto &vm : MoveGen::MoveList<MoveGen::LEGAL> (pos))
             {
                 if (   moves.empty ()
-                    || std::find (moves.cbegin (), moves.cend (), vm.move) != moves.cend ()
+                    || std::find (moves.begin (), moves.end (), vm.move) != moves.end ()
                    )
                 {
                     *this += RootMove (vm.move);
