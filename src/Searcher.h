@@ -2,6 +2,7 @@
 #define SEARCHER_H_INC_
 
 #include <cstring>
+#include <stack>
 #include <memory>
 #include <atomic>
 
@@ -9,6 +10,7 @@
 #include "Position.h"
 #include "MoveGenerator.h"
 
+typedef std::stack<StateInfo>       StateStack;
 typedef std::unique_ptr<StateStack> StateStackPtr;
 
 // Limits stores information sent by GUI about available time to search the current move.

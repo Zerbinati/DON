@@ -1,9 +1,6 @@
 #ifndef _POSITION_H_INC_
 #define _POSITION_H_INC_
 
-#include <memory>
-#include <stack>
-
 #include "BitBoard.h"
 #include "Zobrist.h"
 
@@ -51,8 +48,6 @@ public:
 
     StateInfo *ptr ;//= nullptr;
 };
-
-typedef std::stack<StateInfo>   StateStack;
 
 // CheckInfo struct is initialized at constructor time
 // and stores critical information used to detect if a move gives check.
@@ -594,7 +589,17 @@ inline void  Position::  move_piece (Square s1, Square s2)
     _types_bb[NONE] ^= bb;
 
     auto &v = _piece_sq[c][pt];
-    std::replace (v.begin (), v.end (), s1, s2);
+    
+    //std::replace (v.begin (), v.end (), s1, s2);
+
+    if (v.size () > 1)
+    {
+        std::replace (v.begin (), v.end (), s1, s2);
+    }
+    else
+    {
+        v[0] = s2;
+    }
 }
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.
