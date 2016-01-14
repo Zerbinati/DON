@@ -1671,7 +1671,7 @@ namespace Threading {
             s->static_eval = VALUE_ZERO;
             s->move_count = 0;
             s->skip_pruning = false;
-            s->pv.clear ();
+            assert(s->pv.empty ());
         }
 
         auto *main_thread = Threadpool.main () == this ? Threadpool.main () : nullptr;
