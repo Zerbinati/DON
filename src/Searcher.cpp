@@ -240,7 +240,6 @@ namespace Searcher {
                 auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
                 own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth/DEPTH_ONE) - 2);
             }
-
         }
         void update_stats (const Position &pos, Stack *ss, Move move, Depth depth)
         {
@@ -248,17 +247,26 @@ namespace Searcher {
             update_stats (pos, ss, move, depth, quiet_moves);
         }
         // update_pv() add current move and appends child pv[]
-        MoveVector update_pv (Move move, const MoveVector &child_pv)
+        void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
             assert(_ok (move));
-            MoveVector pv;
-            pv.push_back (move);
-            if (!child_pv.empty ())
+            if (    pv.size () == 0
+                || (pv.size () > 0 && pv[0] != move)
+                ||  child_pv.size () + 1 != pv.size ()
+                || (child_pv.size () > 0 && pv.size () > 1 && child_pv[0] != pv[1])
+                || (child_pv.size () > 1 && pv.size () > 2 && child_pv[1] != pv[2])
+               )
             {
-                pv.reserve (child_pv.size () + 1);
-                std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (pv));
+                auto new_pv = MoveVector ();
+                new_pv.push_back (move);
+                if (child_pv.size () != 0)
+                {
+                    new_pv.reserve (child_pv.size () + 1);
+                    std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (new_pv));
+                    //new_pv.shrink_to_fit ();
+                }
+                pv = new_pv;
             }
-            return pv;
         }
 
         // value_to_tt() adjusts a mate score from "plies to mate from the root" to
@@ -463,7 +471,10 @@ namespace Searcher {
 
                     assert(tt_eval < beta);
                     // Update alfa! Always alfa < beta
-                    if (PVNode) alfa = tt_eval;
+                    if (PVNode)
+                    {
+                        alfa = tt_eval;
+                    }
                 }
 
                 best_value = tt_eval;
@@ -570,7 +581,7 @@ namespace Searcher {
                         // Update pv even in fail-high case
                         if (PVNode)
                         {
-                            ss->pv = update_pv (move, (ss+1)->pv);
+                            update_pv (ss->pv, move, (ss+1)->pv);
                         }
                         // Fail high
                         if (value >= beta)
@@ -1267,18 +1278,24 @@ namespace Searcher {
                     // 1st legal move or new best move ?
                     if (move_count == 1 || alfa < value)
                     {
-                        //assert(!(ss+1)->pv.empty ());
-                        //root_move.resize (1);
-                        auto rm = RootMove (root_move[0]);
-                        if (!(ss+1)->pv.empty ())
+                        auto &pv = (ss+1)->pv;
+                        //assert(!pv.empty ());
+                        if (    pv.size () + 1 != root_move.size ()
+                            || (pv.size () > 0 && root_move.size () > 1 && pv[0] != root_move[1])
+                            || (pv.size () > 1 && root_move.size () > 2 && pv[1] != root_move[2])
+                           )
                         {
-                            rm.reserve ((ss+1)->pv.size () + 1);
-                            std::copy ((ss+1)->pv.begin (), (ss+1)->pv.end (), std::back_inserter (rm));
+                            auto rm = RootMove (root_move[0]);
+                            rm.old_value = root_move.old_value;
+                            if (pv.size () != 0)
+                            {
+                                rm.reserve (pv.size () + 1);
+                                std::copy (pv.begin (), pv.end (), std::back_inserter (rm));
+                                //rm.shrink_to_fit ();
+                            }
+                            root_move = rm;
                         }
-                        //rm.shrink_to_fit ();
-                        rm.old_value = root_move.old_value;
-                        rm.new_value = value;
-                        root_move = rm;
+                        root_move.new_value = value;
 
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
@@ -1319,19 +1336,24 @@ namespace Searcher {
 
                         best_move = move;
 
-                        if (PVNode && !RootNode)
+                        if (  !RootNode // NT == PV
+                            && PVNode
+                           )
                         {
-                            ss->pv = update_pv (move, (ss+1)->pv);
+                            update_pv (ss->pv, move, (ss+1)->pv);
                         }
                         // Fail high
-                        if (value >= beta) 
+                        if (value >= beta)
                         {
                             break;
                         }
 
                         assert(value < beta);
                         // Update alfa! Always alfa < beta
-                        if (PVNode) alfa = value;
+                        if (PVNode)
+                        {
+                            alfa = value;
+                        }
                     }
                 }
 
@@ -1727,7 +1749,7 @@ namespace Threading {
                 // 2nd ply (using a half density map similar to a Hadamard matrix).
                 u16 d = u16(root_depth) + root_pos.game_ply ();
 
-                if (index <= 6 || 24 < index)
+                if (index < 7 || 24 < index)
                 {
                     if (((d + index) >> (scan_msq (index + 1) - 1)) % 2 != 0)
                     {
@@ -1737,10 +1759,12 @@ namespace Threading {
                 else
                 {
                     // Table of values of 6 bits with 3 of them set
-                    static const u16 HalfDensityMap[] =
+                    static const u16 HalfDensityMap[18] = // 24 - 7 + 1
                     {
-                        0x07, 0x0B, 0x0D, 0x0E, 0x13, 0x16, 0x19, 0x1A, 0x1C,
-                        0x23, 0x25, 0x26, 0x29, 0x2C, 0x31, 0x32, 0x34, 0x38,
+                        0x07, 0x0B, 0x0D, 0x0E,
+                        0x13, 0x16, 0x19, 0x1A, 0x1C,
+                        0x23, 0x25, 0x26, 0x29, 0x2C,
+                        0x31, 0x32, 0x34, 0x38,
                     };
                     if (((HalfDensityMap[index - 7] >> (d % 6)) & 1) != 0)
                     {

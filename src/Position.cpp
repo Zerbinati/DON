@@ -1195,7 +1195,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
         iss >> skipws;
         iss >> clk_ply >> g_move;
         // Rule 50 draw case
-        //if (clk_ply >100) return false;
+        //if (clk_ply > 100) return false;
         if (g_move <= 0) g_move = 1;
     }
 
@@ -1419,7 +1419,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
 
         auto ppt = promote (m);
         assert(NIHT <= ppt && ppt <= QUEN);
-        // Replace the PAWN with the Promoted piece
+        // Replace the pawn with the Promoted piece
         remove_piece (org);
         _board[org] = NO_PIECE; // Not done by remove_piece()
         place_piece (dst, _active, ppt);

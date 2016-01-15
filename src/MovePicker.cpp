@@ -150,8 +150,8 @@ namespace MovePick {
     {
         for (auto &vm : *this)
         {
-            vm.value = PieceValues[MG][_pos.en_passant (vm) ? PAWN : ptype (_pos[dst_sq (vm)])]
-              - Value(200 * rel_rank (_pos.active (), dst_sq (vm)));
+            vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+              - Value(200 * rel_rank (_pos.active (), dst_sq (vm.move)));
         }
     }
 
@@ -160,8 +160,8 @@ namespace MovePick {
     {
         for (auto &vm : *this)
         {
-            vm.value = _history_values[_pos[org_sq (vm)]][dst_sq (vm)]
-              + (*_counter_moves_values)[_pos[org_sq (vm)]][dst_sq (vm)];
+            vm.value = _history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
+              + (*_counter_moves_values)[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
         }
     }
 
@@ -173,20 +173,20 @@ namespace MovePick {
     {
         for (auto &vm : *this)
         {
-            auto see_value = _pos.see_sign (vm);
+            auto see_value = _pos.see_sign (vm.move);
             if (see_value < VALUE_ZERO)
             {
                 vm.value = see_value - MaxStatsValue; // At the bottom
             }
             else
-            if (_pos.capture (vm))
+            if (_pos.capture (vm.move))
             {
-                vm.value = PieceValues[MG][_pos.en_passant (vm) ? PAWN : ptype (_pos[dst_sq (vm)])]
-                  - Value(ptype (_pos[org_sq (vm)])) -1 + MaxStatsValue;
+                vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                  - Value(ptype (_pos[org_sq (vm.move)])) -1 + MaxStatsValue;
             }
             else
             {
-                vm.value = _history_values[_pos[org_sq (vm)]][dst_sq (vm)];
+                vm.value = _history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
             }
         }
     }

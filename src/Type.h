@@ -452,29 +452,30 @@ enum ScaleFactor : u08
     inline T& operator++ (T &d     ) { d = T(i32(d) + 1); return d; }           \
     inline T& operator-- (T &d     ) { d = T(i32(d) - 1); return d; }
 
-BASIC_OPERATORS (File)
-INC_DEC_OPERATORS (File)
+BASIC_OPERATORS(File)
+INC_DEC_OPERATORS(File)
 
-BASIC_OPERATORS (Rank)
-INC_DEC_OPERATORS (Rank)
+BASIC_OPERATORS(Rank)
+INC_DEC_OPERATORS(Rank)
 
-INC_DEC_OPERATORS (Color)
+INC_DEC_OPERATORS(Color)
 
-// Square operator
-INC_DEC_OPERATORS (Square)
+// Square operators
+INC_DEC_OPERATORS(Square)
 inline Square  operator+  (Square  s, Delta d) { return Square(i32(s) + i32(d)); }
 inline Square  operator-  (Square  s, Delta d) { return Square(i32(s) - i32(d)); }
 inline Square& operator+= (Square &s, Delta d) { s = Square(i32(s) + i32(d)); return s; }
 inline Square& operator-= (Square &s, Delta d) { s = Square(i32(s) - i32(d)); return s; }
 inline Delta   operator-  (Square s1, Square s2) { return Delta(i32(s1) - i32(s2)); }
 
-ARTHMAT_OPERATORS (Delta)
+// Delta operators
+ARTHMAT_OPERATORS(Delta)
 inline Delta  operator/  (Delta  d, i32 i) { return Delta(i32(d) / i); }
 inline Delta& operator/= (Delta &d, i32 i) { d = Delta(i32(d) / i); return d; }
 
-INC_DEC_OPERATORS (CastleSide)
+INC_DEC_OPERATORS(CastleSide)
 
-// CastleRight operator
+// CastleRight operators
 inline CastleRight  operator|  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) | i); }
 inline CastleRight  operator&  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) & i); }
 inline CastleRight  operator^  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) ^ i); }
@@ -482,25 +483,33 @@ inline CastleRight& operator|= (CastleRight &cr, i32 i) { cr = CastleRight(i32(c
 inline CastleRight& operator&= (CastleRight &cr, i32 i) { cr = CastleRight(i32(cr) & i); return cr; }
 inline CastleRight& operator^= (CastleRight &cr, i32 i) { cr = CastleRight(i32(cr) ^ i); return cr; }
 
-INC_DEC_OPERATORS (PieceType)
+INC_DEC_OPERATORS(PieceType)
 
-// Move operator
+// Move operators
 inline Move& operator|= (Move &m, i32 i) { m = Move(i32(m) | i); return m; }
 inline Move& operator&= (Move &m, i32 i) { m = Move(i32(m) & i); return m; }
 
-ARTHMAT_OPERATORS (Value)
-INC_DEC_OPERATORS (Value)
-// Additional operators to a Value
+// Depth operators
+BASIC_OPERATORS(Depth)
+INC_DEC_OPERATORS(Depth)
+inline Depth  operator*  (Depth d, i32 i) { return Depth(i32(d) * i); }
+inline Depth  operator*  (i32 i, Depth d) { return Depth(i * i32(d)); }
+inline Depth  operator/  (Depth d, i32 i) { return Depth(i32(d) / i); }
+inline i32    operator/  (Depth d1, Depth d2) { return i32(d1)/i32(d2); }
+
+// Value operators
+ARTHMAT_OPERATORS(Value)
+INC_DEC_OPERATORS(Value)
 inline Value  operator+  (i32 i, Value v) { return Value(i + i32(v)); }
 inline Value  operator-  (i32 i, Value v) { return Value(i - i32(v)); }
 inline Value  operator*  (Value  v, double f) { return Value(i32(i32(v) * f)); }
 inline Value& operator*= (Value &v, double f) { v = Value(i32(i32(v) * f)); return v; }
 inline Value  operator/  (Value  v, i32    i) { return Value(i32(v) / i); }
 inline Value& operator/= (Value &v, i32    i) { v = Value(i32(v) / i); return v; }
-inline i32    operator/  (Value v1, Value v2) { return i32(v1) / i32(v2); }
+inline i32    operator/  (Value v1, Value v2) { return i32(v1)/i32(v2); }
 
 // Make score from mid and end values
-inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
+inline Score mk_score (i32 mg, i32 eg) { return Score((mg << 16) + eg); }
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
@@ -511,7 +520,8 @@ union ValueUnion { u16 u; i16 s; };
 inline Value mg_value (Score s) { ValueUnion mg = { u16(u32(s + 0x8000) >> 16) }; return Value(mg.s); }
 inline Value eg_value (Score s) { ValueUnion eg = { u16(u32(s         )      ) }; return Value(eg.s); }
 
-ARTHMAT_OPERATORS (Score)
+// Score operators
+ARTHMAT_OPERATORS(Score)
 // Only declared but not defined. Don't want to multiply two scores due to
 // a very high risk of overflow. So user should explicitly convert to integer.
 inline Score  operator*  (Score s1, Score s2);
@@ -520,11 +530,6 @@ inline Score  operator*  (Score  s, double f) { return mk_score (mg_value (s) * 
 inline Score& operator*= (Score &s, double f) { s = mk_score (mg_value (s) * f, eg_value (s) * f); return s; }
 inline Score  operator/  (Score  s, i32    i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
 inline Score& operator/= (Score &s, i32    i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
-
-ARTHMAT_OPERATORS (Depth)
-INC_DEC_OPERATORS (Depth)
-inline Depth  operator/  (Depth d, i32 i) { return Depth(i32(d) / i); }
-inline i32    operator/  (Depth d1, Depth d2) { return i32(d1) / i32(d2); }
 
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS
