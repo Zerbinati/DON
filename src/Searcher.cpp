@@ -250,24 +250,15 @@ namespace Searcher {
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
             assert(_ok (move));
-            if (    pv.size () == 0
-                ||  pv[0] != move
-                ||  child_pv.size () + 1 != pv.size ()
-                || (child_pv.size () > 0 && pv.size () > 1 && child_pv[0] != pv[1])
-                || (child_pv.size () > 1 && pv.size () > 2 && child_pv[1] != pv[2])
-                || (child_pv.size () > 2 && pv.size () > 3 && child_pv[2] != pv[3])
-               )
+            auto new_pv = MoveVector ();
+            new_pv.push_back (move);
+            if (!child_pv.empty ())
             {
-                auto new_pv = MoveVector ();
-                new_pv.push_back (move);
-                if (child_pv.size () != 0)
-                {
-                    new_pv.reserve (child_pv.size () + 1);
-                    std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (new_pv));
-                    //new_pv.shrink_to_fit ();
-                }
-                pv = new_pv;
+                new_pv.reserve (child_pv.size () + 1);
+                std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (new_pv));
+                //new_pv.shrink_to_fit ();
             }
+            pv = new_pv;
         }
 
         // value_to_tt() adjusts a mate score from "plies to mate from the root" to
@@ -1180,7 +1171,9 @@ namespace Searcher {
                     auto reduction_depth = reduction_depths<PVNode> (improving, depth, move_count);
 
                     // Increase reduction for cut node
-                    if (!PVNode && cut_node)
+                    if (   !PVNode
+                        && cut_node
+                       )
                     {
                         reduction_depth += DEPTH_ONE;
                     }
@@ -1188,7 +1181,6 @@ namespace Searcher {
                     // Increase reduction for moves with a -ve history
                     reduction_depth = std::min (std::max (reduction_depth - (i32( thread->history_values[pos[dst_sq (move)]][dst_sq (move)]
                                                                       + opp_cmv[pos[dst_sq (move)]][dst_sq (move)])/14980)*DEPTH_ONE, DEPTH_ZERO), DEPTH_MAX - DEPTH_ONE);
-
                     // Decrease reduction for moves that escape a capture.
                     // Filter out castling moves, because are coded as "king captures rook" hence break make_move().
                     // Also use see() instead of see_sign(), because the destination square is empty.
@@ -1257,22 +1249,15 @@ namespace Searcher {
                     {
                         auto &pv = (ss+1)->pv;
                         //assert(!pv.empty ());
-                        if (    pv.size () + 1 != root_move.size ()
-                            || (pv.size () > 0 && root_move.size () > 1 && pv[0] != root_move[1])
-                            || (pv.size () > 1 && root_move.size () > 2 && pv[1] != root_move[2])
-                            || (pv.size () > 2 && root_move.size () > 3 && pv[2] != root_move[3])
-                           )
+                        auto rm = RootMove (root_move[0]);
+                        rm.old_value = root_move.old_value;
+                        if (!pv.empty ())
                         {
-                            auto rm = RootMove (root_move[0]);
-                            rm.old_value = root_move.old_value;
-                            if (pv.size () != 0)
-                            {
-                                rm.reserve (pv.size () + 1);
-                                std::copy (pv.begin (), pv.end (), std::back_inserter (rm));
-                                //rm.shrink_to_fit ();
-                            }
-                            root_move = rm;
+                            rm.reserve (pv.size () + 1);
+                            std::copy (pv.begin (), pv.end (), std::back_inserter (rm));
+                            //rm.shrink_to_fit ();
                         }
+                        root_move = rm;
                         root_move.new_value = value;
 
                         // Record how often the best move has been changed in each iteration.
@@ -1917,17 +1902,18 @@ namespace Threading {
                         }
 
                         // Stop the search
-                        // If there is only one legal move available or 
+                        // If there is only one legal move available or
                         // If all of the available time has been used or
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
                             || main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () *
                                     (1.00 - 0.25000 * (!main_thread->failed_low)
                                           - 0.19687 * (best_value >= main_thread->previous_value)
-                                          - 0.19375 * (best_value >= main_thread->previous_value && !main_thread->failed_low))
+                                          - 0.19375 * (!main_thread->failed_low && best_value >= main_thread->previous_value))
                             || (main_thread->easy_played =
-                                    ( !root_moves.empty ()
-                                    && root_moves[0] == easy_move
+                                    (  !root_moves.empty ()
+                                    && !root_moves[0].empty ()
+                                    &&  root_moves[0] == easy_move
                                     && main_thread->time_mgr.best_move_change < 0.03
                                     && main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () * 0.12135
                                     ), main_thread->easy_played
