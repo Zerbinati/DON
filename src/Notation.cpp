@@ -309,12 +309,10 @@ namespace Notation {
             ////---------------------------------
             //oss << move_to_can (m, root_pos.chess960 ()) << " ";
         }
-
-        while (ply != 0)
+        for (; ply != 0; --ply)
         {
             root_pos.undo_move ();
             states.pop ();
-            --ply;
         }
         ////---------------------------------
         //

@@ -1430,11 +1430,9 @@ namespace Searcher {
             pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
             ++ply;
         }
-
-        while (ply != 0)
+        for (; ply != 0; --ply)
         {
             pos.undo_move ();
-            --ply;
         }
     }
     // RootMove::extract_ponder_move_from_tt() is called in case have no ponder move before
