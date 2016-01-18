@@ -251,7 +251,7 @@ namespace Searcher {
         {
             assert(_ok (move));
             if (    pv.size () == 0
-                || (pv.size () > 0 && pv[0] != move)
+                ||  pv[0] != move
                 ||  child_pv.size () + 1 != pv.size ()
                 || (child_pv.size () > 0 && pv.size () > 1 && child_pv[0] != pv[1])
                 || (child_pv.size () > 1 && pv.size () > 2 && child_pv[1] != pv[2])
@@ -651,7 +651,7 @@ namespace Searcher {
             auto *thread = pos.thread ();
             auto *main_thread = Threadpool.main () == thread ? Threadpool.main () : nullptr;
 
-            // Check for available remaining limit
+            // Check for the available remaining limit
             if (thread->reset_check.load (std::memory_order_relaxed))
             {
                 thread->reset_check = false;
@@ -1213,8 +1213,8 @@ namespace Searcher {
                                                                       + opp_cmv[pos[dst_sq (move)]][dst_sq (move)])/14980)*DEPTH_ONE, DEPTH_ZERO);
 
                     // Decrease reduction for moves that escape a capture.
-                    // Filter out castling moves because are coded as "king captures rook" and break make_move().
-                    // Also use see() instead of see_sign() because destination square is empty.
+                    // Filter out castling moves, because are coded as "king captures rook" hence break make_move().
+                    // Also use see() instead of see_sign(), because the destination square is empty.
                     if (   reduction_depth != DEPTH_ZERO
                         && mtype (move) == NORMAL
                         && ptype (pos[dst_sq (move)]) != PAWN
@@ -1230,7 +1230,7 @@ namespace Searcher {
                     full_depth_search = alfa < value && reduction_depth != DEPTH_ZERO;
                 }
 
-                // Step 16. Full depth search, when LMR is skipped or fails high
+                // Step 16. Full depth search when LMR is skipped or fails high
                 if (full_depth_search)
                 {
                     value =
@@ -1243,7 +1243,7 @@ namespace Searcher {
                 // - 'full depth move count' move
                 // - 'fail high' move (search only if value < beta)
                 // otherwise let the parent node fail low with
-                // alfa >= value and to try another better move.
+                // alfa >= value and try another move.
                 if (   PVNode
                     && (   (0 < move_count && move_count <= FullDepthMoveCount)
                         || (alfa < value && (RootNode || value < beta))
@@ -1263,7 +1263,7 @@ namespace Searcher {
 
                 assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
-                // Step 18. Check for new best move
+                // Step 18. Check for the new best move
                 // Finished searching the move. If a stop or a cutoff occurred,
                 // the return value of the search cannot be trusted,
                 // and return immediately without updating best move, PV and TT.
@@ -1366,7 +1366,7 @@ namespace Searcher {
             }
 
             // Step 19.
-            // Following condition would detect a stop only after move loop has been
+            // The following condition would detect a stop only after move loop has been
             // completed. But in this case bestValue is valid because we have fully
             // searched our subtree, and we can anyhow save the result in TT.
             /*
@@ -1378,7 +1378,7 @@ namespace Searcher {
             // Step 20. Check for checkmate and stalemate
             // If all possible moves have been searched and if there are no legal moves,
             // If in a singular extension search then return a fail low score (alfa).
-            // Otherwise it must be checkmate or stalemate, so return value accordingly.
+            // Otherwise it must be a checkmate or a stalemate, so return value accordingly.
             if (move_count == 0)
             {
                 best_value = 
@@ -1475,7 +1475,7 @@ namespace Searcher {
         }
     }
     // RootMove::extract_ponder_move_from_tt() is called in case have no ponder move before
-    // exiting the search, for instance in case stop the search during a fail high at root.
+    // exiting the search, for instance, in case stop the search during a fail high at root.
     // Try hard to have a ponder move which has to return to the GUI,
     // otherwise in case of 'ponder on' we have nothing to think on.
     bool RootMove::extract_ponder_move_from_tt (Position &pos)
@@ -1532,8 +1532,8 @@ namespace Searcher {
         auto weakness   = Value(MaxPly - 4 * _level);
         auto best_value = -VALUE_INFINITE;
         // Choose best move. For each move score add two terms, both dependent on weakness.
-        // One deterministic and bigger for weaker level, and one random with diversity,
-        // then choose the move with the resulting highest value.
+        // One is deterministic with weakness, and one is random with diversity.
+        // Then choose the move with the resulting highest value.
         for (u16 i = 0; i < PVLimit; ++i)
         {
             auto value = root_moves[i].new_value;
@@ -1554,7 +1554,7 @@ namespace Searcher {
     // ------------------------------------
 
     // perft<>() is utility to verify move generation.
-    // All the leaf nodes up to the given depth are generated and the sum returned.
+    // All the leaf nodes up to the given depth are generated, and the sum is returned.
     template<bool RootNode>
     u64 perft (Position &pos, Depth depth)
     {
@@ -1656,7 +1656,7 @@ namespace Searcher {
             }
         }
     }
-    // clear() resets to zero search state, to obtain reproducible results
+    // clear() resets search state to zero, to obtain reproducible results
     void clear ()
     {
         TT.clear ();
@@ -1669,7 +1669,7 @@ namespace Searcher {
         }
         if (Threadpool.main ()->time_mgr_used)
         {
-            Threadpool.main ()->last_move_value = +VALUE_INFINITE;
+            Threadpool.main ()->previous_value = +VALUE_INFINITE;
         }
     }
 }
@@ -1679,14 +1679,16 @@ namespace Threading {
     using namespace Searcher;
 
     // Thread::search() is the main iterative deepening loop. It calls depth_search()
-    // repeatedly with increasing depth until the allocated thinking time has been
-    // consumed, user stops the search, or the maximum search depth is reached.
+    // repeatedly with increasing depth until
+    // - the allocated thinking time has been consumed,
+    // - the user stops the search,
+    // - the maximum search depth is reached.
     void Thread::search ()
     {
         Stack stacks[MaxPly+4], *ss = stacks+2; // To allow referencing (ss-2)
         for (auto s = stacks; s <= stacks+5; ++s)
         {
-            s->ply = 0;
+            s->ply = i16(s - stacks - 2);
             s->current_move = MOVE_NONE;
             s->exclude_move = MOVE_NONE;
             std::fill (s->killer_moves, s->killer_moves + Killers, MOVE_NONE);
@@ -1728,7 +1730,7 @@ namespace Threading {
 
         leaf_depth = DEPTH_ZERO;
 
-        // Iterative deepening loop until target depth reached
+        // Iterative deepening loop until requested to stop or the target depth is reached.
         while (   !ForceStop
                && ++root_depth < DEPTH_MAX
                && (Limits.depth == 0 || root_depth <= Limits.depth)
@@ -1745,7 +1747,7 @@ namespace Threading {
             }
             else
             {
-                // Set up the new depth for the helper threads skipping in average each
+                // Set up the new depths for the helper threads skipping on average every
                 // 2nd ply (using a half density map similar to a Hadamard matrix).
                 u16 d = u16(root_depth) + root_pos.game_ply ();
 
@@ -1811,16 +1813,16 @@ namespace Threading {
                     // the already searched PV lines are preserved.
                     std::stable_sort (root_moves.begin () + pv_index, root_moves.end ());
 
-                    // Write PV back to transposition table in case the relevant
+                    // Write PV back to the transposition table in case the relevant
                     // entries have been overwritten during the search.
                     for (i16 i = pv_index; i >= 0; --i)
                     {
                         root_moves[i].insert_pv_into_tt (root_pos);
                     }
 
-                    // If search has been stopped break immediately.
+                    // If search has been stopped, break immediately.
                     // Sorting and writing PV back to TT is safe becuase
-                    // root moves is still valid, although refers to previous iteration.
+                    // root moves is still valid, although refers to the previous iteration.
                     if (ForceStop) break;
 
                     // When failing high/low give some update
@@ -1940,8 +1942,8 @@ namespace Threading {
                         if (   root_moves.size () == 1
                             || main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () *
                                     (1.00 - 0.25000 * (!main_thread->failed_low)
-                                          - 0.19687 * (best_value >= main_thread->last_move_value)
-                                          - 0.19375 * (best_value >= main_thread->last_move_value && !main_thread->failed_low))
+                                          - 0.19687 * (best_value >= main_thread->previous_value)
+                                          - 0.19375 * (best_value >= main_thread->previous_value && !main_thread->failed_low))
                             || (main_thread->easy_played =
                                     ( !root_moves.empty ()
                                     && root_moves[0] == easy_move
@@ -1955,7 +1957,7 @@ namespace Threading {
                         }
 
                         if (  !root_moves.empty ()
-                            && root_moves[0].size () >= EasyMoveManager::LineSize
+                            && root_moves[0].size () >= EasyMoveManager::PVSize
                            )
                         {
                             main_thread->easy_move_mgr.update (root_pos, root_moves[0]);
@@ -2013,8 +2015,7 @@ namespace Threading {
         }
     }
     // MainThread::search() is called by the main thread when the program receives
-    // the UCI 'go' command. It searches from root position and at the end prints
-    // the "bestmove" to output.
+    // the UCI 'go' command. It searches from root position and and outputs the "bestmove" and "ponder".
     void MainThread::search ()
     {
         static Polyglot::Book book; // Defined static to initialize the PRNG only once
@@ -2121,8 +2122,8 @@ namespace Threading {
 
             if (TBPieceLimit >= root_pos.count<NONE> ())
             {
-                // If the current root position is in the tablebases then RootMoves
-                // contains only moves that preserve the draw or win.
+                // If the current root position is in the tablebases,
+                // then RootMoves contains only moves that preserve the draw or the win.
                 TBHasRoot = root_probe_dtz (root_pos, root_moves);
 
                 if (TBHasRoot)
@@ -2131,7 +2132,7 @@ namespace Threading {
                 }
                 else // If DTZ tables are missing, use WDL tables as a fallback
                 {
-                    // Filter out moves that do not preserve a draw or win
+                    // Filter out moves that do not preserve the draw or the win
                     TBHasRoot = root_probe_wdl (root_pos, root_moves);
 
                     // Only probe during search if winning
@@ -2233,7 +2234,7 @@ namespace Threading {
 
         if (time_mgr_used)
         {
-            last_move_value = root_moves[0].new_value;
+            previous_value = root_moves[0].new_value;
         }
 
         if (LogWrite)

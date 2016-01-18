@@ -93,7 +93,7 @@ namespace Searcher {
     // ordered tree only one child of a CUT node has to be explored. At an ALL node all
     // the children have to be explored. The successors of an ALL node are CUT nodes.
     // NonPV nodes = CUT nodes + ALL nodes
-    // Node types, used as template parameter
+    // Node types, used as a template parameter
     enum NodeType : u08
     {
         Root,
@@ -203,7 +203,7 @@ namespace Searcher {
     {
         static const size_t Size;
 
-        u16  ply          = 0;
+        i16  ply          = 0;
         Move current_move = MOVE_NONE
            , exclude_move = MOVE_NONE
            , killer_moves[Killers];
@@ -216,7 +216,7 @@ namespace Searcher {
     };
 
     const u08 MaxSkillLevel   = 32; // MaxSkillLevel should be <= MaxPly/4
-    // Skill Manager
+    // Skill Manager class is used to implement strength limit
     class SkillManager
     {
 

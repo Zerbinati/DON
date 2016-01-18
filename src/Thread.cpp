@@ -28,7 +28,7 @@ namespace {
     // move_importance() is a skew-logistic function based on naive statistical
     // analysis of "how many games are still undecided after 'n' half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
-    // Data was extracted from CCRL game database with some simple filtering criteria.
+    // Data was extracted from the CCRL game database with some simple filtering criteria.
     double move_importance (i16 ply)
     {
         //                          PlyShift / PlyScale  SkewRate
@@ -52,7 +52,7 @@ namespace {
         auto  step_time_ratio = (0.0           +   this_move_imp *  StepRatio) / (this_move_imp * StepRatio + remain_move_imp);
         auto steal_time_ratio = (this_move_imp + remain_move_imp * StealRatio) / (this_move_imp * 1.0       + remain_move_imp);
 
-        return TimePoint(time * std::min (step_time_ratio, steal_time_ratio));
+        return TimePoint(time * std::min (step_time_ratio, steal_time_ratio)); // Intel C++ asks for an explicit cast
     }
 }
 
@@ -67,7 +67,7 @@ void TimeManager::initialize (Color c, i16 ply)
     // If we have to play in 'Nodes as Time' mode, then convert from time
     // to nodes, and use resulting values in time management formulas.
     // WARNING: Given npms (nodes per millisecond) must be much lower then
-    // real engine speed to avoid time losses.
+    // the real engine speed to avoid time losses.
     if (NodesTime != 0)
     {
         // Only once at game start
@@ -130,7 +130,7 @@ void TimeManager::update (Color c)
 
 namespace Threading {
 
-    // Thread constructor launchs the thread and then wait until it goes to sleep in idle_loop().
+    // Thread constructor launches the thread and then waits until it goes to sleep in idle_loop().
     Thread::Thread ()
         : _alive (true)
         , _searching (true)
@@ -159,7 +159,7 @@ namespace Threading {
 
     // ------------------------------------
 
-    // ThreadPool::game_nodes() counts total game nodes
+    // ThreadPool::game_nodes() returns the total game nodes searched
     u64 ThreadPool::game_nodes () const
     {
         u64 nodes = U64(0);
@@ -190,18 +190,17 @@ namespace Threading {
         shrink_to_fit ();
         sync_cout << "info string Thread(s) used " << threads << sync_endl;
     }
-    // ThreadPool::initialize() is called at startup to create and launch
-    // requested threads, that will go immediately to sleep.
-    // Cannot use a constructor becuase threadpool is a static object
-    // and require a fully initialized engine.
+    // ThreadPool::initialize() creates and launches requested threads, that will go immediately to sleep.
+    // Cannot use a constructor becuase threadpool is a static object and require a fully initialized engine.
     void ThreadPool::initialize ()
     {
         assert(empty ());
         push_back (new MainThread);
         configure ();
     }
-    // ThreadPool::deinitialize() cleanly terminates the threads before the program exits
-    // Cannot be done in destructor because threads must be terminated before freeing ThreadPool.
+    // ThreadPool::deinitialize() cleanly terminates the threads before the program exits.
+    // Cannot be done in destructor because threads must be terminated before deleting any
+    // static objects related to search while still in main().
     void ThreadPool::deinitialize ()
     {
         assert(!empty ());
@@ -212,8 +211,8 @@ namespace Threading {
         }
     }
 
-    // ThreadPool::start_thinking() wakes up the main thread sleeping in
-    // Thread::idle_loop() and starts a new search, then returns immediately.
+    // ThreadPool::start_thinking() wakes up the main thread sleeping in Thread::idle_loop()
+    // and starts a new search, then returns immediately.
     void ThreadPool::start_thinking (const Position &pos, const Limit &limits, StateStackPtr &states)
     {
         wait_while_thinking ();

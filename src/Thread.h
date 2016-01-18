@@ -56,19 +56,19 @@ public:
     void update (Color c);
 };
 
-// EasyMoveManager class is used to detect a so called 'easy move'; when PV is
-// stable across multiple search iterations engine can fast return the best move.
+// EasyMoveManager class is used to detect a so called 'easy move'.
+// When PV is stable across multiple search iterations engine can fast return the best move.
 class EasyMoveManager
 {
 public:
-    static const u08 LineSize = 3;
+    static const u08 PVSize = 3;
 
 private:
     Key  _posi_key = U64(0);
-    Move _pv[LineSize];
+    Move _pv[PVSize];
 
 public:
-    u08 stable_count = 0; // Keep track of how many times in a row pv remains stable
+    u08 stable_count = 0; // Keep track of how many times in a row the 3rd ply remains stable
 
     EasyMoveManager ()
     {
@@ -79,19 +79,19 @@ public:
     {
         stable_count = 0;
         _posi_key = U64(0);
-        std::fill (_pv, _pv + LineSize, MOVE_NONE);
+        std::fill (_pv, _pv + PVSize, MOVE_NONE);
     }
 
     Move easy_move (const Key posi_key) const
     {
-        return posi_key == _posi_key ? _pv[LineSize-1] : MOVE_NONE;
+        return posi_key == _posi_key ? _pv[PVSize-1] : MOVE_NONE;
     }
 
     void update (Position &pos, const MoveVector &pv)
     {
-        assert(pv.size () >= LineSize);
+        assert(pv.size () >= PVSize);
 
-        if (pv[LineSize-1] == _pv[LineSize-1])
+        if (pv[PVSize-1] == _pv[PVSize-1])
         {
             ++stable_count;
         }
@@ -100,17 +100,17 @@ public:
             stable_count = 0;
         }
 
-        if (!std::equal (pv.begin (), pv.begin () + LineSize, _pv))
+        if (!std::equal (pv.begin (), pv.begin () + PVSize, _pv))
         {
-            std::copy (pv.begin (), pv.begin () + LineSize, _pv);
+            std::copy (pv.begin (), pv.begin () + PVSize, _pv);
 
-            StateInfo si[LineSize-1];
-            for (u08 i = 0; i < LineSize-1; ++i)
+            StateInfo si[PVSize-1];
+            for (u08 i = 0; i < PVSize-1; ++i)
             {
                 pos.do_move (_pv[i], si[i], pos.gives_check (_pv[i], CheckInfo (pos)));
             }
             _posi_key = pos.posi_key ();
-            for (u08 i = 0; i < LineSize-1; ++i)
+            for (u08 i = 0; i < PVSize-1; ++i)
             {
                 pos.undo_move ();
             }
@@ -157,7 +157,7 @@ namespace Threading {
         Thread ();
         virtual ~Thread ();
 
-        // Thread::start_searching() wake up the thread that will start the search
+        // Thread::start_searching() wakes up the thread that will start the search
         void start_searching (bool resume = false)
         {
             std::unique_lock<Mutex> lk (_mutex);
@@ -168,7 +168,7 @@ namespace Threading {
             _sleep_condition.notify_one ();
             lk.unlock ();
         }
-        // Thread::wait_while_searching() wait on sleep condition until not searching
+        // Thread::wait_while_searching() waits on sleep condition until not searching
         void wait_while_searching ()
         {
             std::unique_lock<Mutex> lk (_mutex);
@@ -176,14 +176,14 @@ namespace Threading {
             lk.unlock ();
         }
 
-        // Thread::wait_until() set the thread to sleep until 'condition' turns true
+        // Thread::wait_until() waits on sleep condition until 'condition' turns true
         void wait_until (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return bool(condition); });
             lk.unlock ();
         }
-        // Thread::wait_while() set the thread to sleep until 'condition' turns false
+        // Thread::wait_while() waits on sleep condition until 'condition' turns false
         void wait_while (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
@@ -226,7 +226,7 @@ namespace Threading {
         bool easy_played    = false;
         bool failed_low     = false;
         bool time_mgr_used  = false;
-        Value last_move_value = +VALUE_INFINITE;
+        Value previous_value = +VALUE_INFINITE;
 
         TimeManager     time_mgr;
         EasyMoveManager easy_move_mgr;

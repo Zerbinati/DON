@@ -55,11 +55,10 @@ namespace MovePick {
 
     }
 
-    // Constructors of the MovePicker class. As arguments pass information
-    // to help it to return the (presumably) good moves first, to decide which
-    // moves to return (in the quiescence search, for instance, only want to
-    // search captures, promotions and some checks) and about how important good
-    // move ordering is at the current node.
+    // Constructors of the MovePicker class. As arguments pass information to help
+    // it to return the (presumably) good moves first, to decide which moves to return
+    // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
+    // and about how important good move ordering is at the current node.
 
     MovePicker::MovePicker (const Position &pos, const HValueStats &hv, const CMValueStats &cmv, Move ttm, Depth depth, Move cm, const Stack *ss)
         : _pos (pos)
@@ -79,7 +78,6 @@ namespace MovePick {
 
         _moves_end += _tt_move != MOVE_NONE;
     }
-
 
     MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Depth depth, Square dst_sq)
         : _pos (pos)
@@ -143,7 +141,7 @@ namespace MovePick {
     // captures near our home rank. Surprisingly, this appears to perform slightly
     // better than SEE based move ordering: exchanging big pieces before capturing
     // a hanging piece probably helps to reduce the subtree size.
-    // In main search we want to push captures with negative SEE values to the
+    // In the main search we want to push captures with negative SEE values to the
     // badCaptures[] array, but instead of doing it now we delay until the move
     // has been picked up, saving some SEE calls in case we get a cutoff.
     void MovePicker::value<CAPTURE> ()
@@ -166,9 +164,9 @@ namespace MovePick {
     }
 
     template<>
-    // Try good captures ordered by MVV/LVA, then non-captures if destination square
-    // is not under attack, ordered by _history_values, then bad-captures and quiet moves
-    // with a negative SEE. This last group is ordered by the SEE value.
+    // Try winning and equal captures ordered by MVV/LVA,
+    // then non-captures if destination square is not under attack, ordered by _history_values,
+    // then bad-captures and quiet moves with a negative SEE. This last group is ordered by the SEE value.
     void MovePicker::value<EVASION> ()
     {
         for (auto &vm : *this)
@@ -191,7 +189,7 @@ namespace MovePick {
         }
     }
 
-    // generate_next_stage() generates, scores and sorts the next bunch of moves,
+    // generate_next_stage() generates, scores, and sorts the next bunch of moves,
     // when there are no more moves to try for the current stage.
     void MovePicker::generate_next_stage ()
     {

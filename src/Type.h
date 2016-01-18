@@ -117,8 +117,8 @@ typedef unsigned __int64    u64;
 
 #   include <inttypes.h>
 
-typedef         int8_t     i08;
-typedef        uint8_t     u08;
+typedef          int8_t    i08;
+typedef         uint8_t    u08;
 typedef         int16_t    i16;
 typedef        uint16_t    u16;
 typedef         int32_t    i32;
@@ -174,8 +174,8 @@ enum Color : i08
 };
 
 // Square
-// File: 3-bit
-// Rank: 3-bit
+// File: 3-bit lower
+// Rank: 3-bit upper
 enum Square : i08
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,

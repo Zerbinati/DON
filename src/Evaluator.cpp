@@ -20,6 +20,7 @@ namespace Evaluator {
 
             enum Term : u08
             {
+                // The first 6 entries are for PieceType
                 MATERIAL = NONE,
                 IMBALANCE,
                 MOBILITY,
@@ -193,7 +194,8 @@ namespace Evaluator {
             S(19, 10), S(43, 21)
         };
 
-        // ThreatBySafePawn[piece-type] contains bonuses according to which piece type is attacked by pawn.
+        // ThreatBySafePawn[piece-type] contains bonuses according to which piece type is attacked by pawn
+        // which is protected or is not attacked.
         const Score ThreatBySafePawn[NONE] =
         {
             S(0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S(0, 0)
@@ -207,14 +209,14 @@ namespace Evaluator {
         };
         // ThreatByPiece[attacker category][attacked type] contains
         // bonuses according to which piece type attacks which one.
-        // Attacks on lesser pieces which are pawn defended are not considered.
+        // Attacks on lesser pieces which are pawn-defended are not considered.
         const Score ThreatByPiece[CT_NO][NONE] =
         {
             { S(0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S(0, 0) },  // Minor attackers
             { S(0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S(0, 0) },  // Major attackers
         };
         // ThreatByKing[on one/on many] contains bonuses for King attacks on
-        // pawns or pieces which are not pawn defended.
+        // pawns or pieces which are not pawn-defended.
         const Score ThreatByKing[2] =
         {
             S( 3, 62), S( 9,138)
@@ -435,7 +437,7 @@ namespace Evaluator {
                             }
                         }
 
-                        // Penalty for pawns on same color square of bishop
+                        // Penalty for pawns on the same color square as the bishop
                         score -= BishopPawns * ei.pe->pawns_on_squarecolor<Own> (s);
 
                         if (s == rel_sq (Own, SQ_A8) || s == rel_sq (Own, SQ_H8))
@@ -481,7 +483,7 @@ namespace Evaluator {
                         score += RookOnFile[ei.pe->file_semiopen<Opp> (_file (s)) ? 1 : 0];
                     }
                     else
-                    // Penalty for rook when trapped by the king, even more if king can't castle
+                    // Penalty for rook when trapped by the king, even more if the king can't castle
                     if (mob <= 3)
                     {
                         auto fk_sq = pos.square<KING> (Own);
@@ -643,7 +645,7 @@ namespace Evaluator {
                 }
 
                 // Finally, extract the king danger score from the KingDanger[] array
-                // and subtract the score from evaluation.
+                // and subtract the score from the evaluation.
                 // attack_units must be in range [0, MaxAttackUnits-1]
                 score -= KingDanger[std::min (std::max (attack_units, 0), MaxAttackUnits-1)];
             }
@@ -823,15 +825,15 @@ namespace Evaluator {
                         }
 
                         // Give a big bonus if there aren't enemy attacks, otherwise
-                        // a smaller bonus if block square is not attacked.
+                        // a smaller bonus if the block square is not attacked.
                         i32 k = unsafe_squares != U64(0) ?
                                     (unsafe_squares & block_sq) != U64(0) ?
                                         0 : 8 : 18;
 
                         if (safe_squares != U64(0))
                         {
-                            // Give a big bonus if the path to queen is fully defended,
-                            // a smaller bonus if at least block square is defended.
+                            // Give a big bonus if the path to the queen is fully defended,
+                            // a smaller bonus if at least the block square is defended.
                             k += safe_squares == front_squares ?
                                     6 : (safe_squares & block_sq) != U64(0) ?
                                         4 : 0;
