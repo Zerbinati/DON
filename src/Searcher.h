@@ -86,19 +86,19 @@ namespace Searcher {
 
     extern std::string      LogFile;
 
-    // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
-    // all the children have to be investigated. The best move found at a PV node leads
-    // to a successor PV node, while all the other investigated children are CUT nodes
-    // At a CUT node the child causing a beta cut-off is an ALL node. In a perfectly
-    // ordered tree only one child of a CUT node has to be explored. At an ALL node all
-    // the children have to be explored. The successors of an ALL node are CUT nodes.
-    // NonPV nodes = CUT nodes + ALL nodes
     // Node types, used as a template parameter
+    // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node.
+    // At a PV node all the children have to be investigated.
+    // The best move found at a PV node leads to a successor PV node,
+    // while all the other investigated children are CUT nodes
+    // At a CUT node the child causing a beta cut-off is an ALL node.
+    // In a perfectly ordered tree only one child of a CUT node has to be explored.
+    // At an ALL node all the children have to be explored. The successors of an ALL node are CUT nodes.
+    // NonPV nodes = CUT nodes + ALL nodes
     enum NodeType : u08
     {
-        Root,
-        PV,
         NonPV,
+        PV,
     };
 
     // RootMove is used for moves at the root of the tree.
@@ -133,7 +133,7 @@ namespace Searcher {
         bool operator!= (Move m) const { return at (0) != m; }
 
         void operator+= (Move m) { push_back (m); }
-        void operator-= (Move m) { erase (std::remove (begin (), end (), m), cend ()); }
+        void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
         void backup () { old_value = new_value; }
 
@@ -159,7 +159,7 @@ namespace Searcher {
         RootMoveVector& operator= (const RootMoveVector&) = default;
 
         void operator+= (const RootMove &root_move) { push_back (root_move); }
-        void operator-= (const RootMove &root_move) { erase (std::remove (begin (), end (), root_move), cend ()); }
+        void operator-= (const RootMove &root_move) { erase (std::remove (begin (), end (), root_move), end ()); }
 
         void initialize (const Position &pos, const MoveVector &moves)
         {
