@@ -255,6 +255,7 @@ namespace Searcher {
                 ||  child_pv.size () + 1 != pv.size ()
                 || (child_pv.size () > 0 && pv.size () > 1 && child_pv[0] != pv[1])
                 || (child_pv.size () > 1 && pv.size () > 2 && child_pv[1] != pv[2])
+                || (child_pv.size () > 2 && pv.size () > 3 && child_pv[2] != pv[3])
                )
             {
                 auto new_pv = MoveVector ();
@@ -308,12 +309,12 @@ namespace Searcher {
                 Depth d;
                 Value v;
 
-                if (i <= main_thread->pv_index)  // New updated pv?
+                if (i <= main_thread->pv_index) // New updated pv?
                 {
                     d = main_thread->root_depth;
                     v = main_thread->root_moves[i].new_value;
                 }
-                else                        // Old expired pv?
+                else                            // Old expired pv?
                 {
                     if (DEPTH_ONE == main_thread->root_depth) continue;
 
@@ -321,7 +322,7 @@ namespace Searcher {
                     v = main_thread->root_moves[i].old_value;
                 }
                 
-                bool tb = TBHasRoot && abs (v) < VALUE_MATE - i32(MaxPly);
+                bool tb = TBHasRoot && abs (v) < +VALUE_MATE - i32(MaxPly);
 
                 // Not at first line
                 if (ss.rdbuf ()->in_avail ())
@@ -360,6 +361,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(depth <= DEPTH_ZERO);
+            assert(0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1);
 
             auto pv_alfa = -VALUE_INFINITE;
 
@@ -370,7 +372,6 @@ namespace Searcher {
                 ss->pv = MoveVector ();
             }
 
-            if (ss->ply == 0) ss->ply = (ss-1)->ply + 1;
             ss->current_move = MOVE_NONE;
 
             // Check for an immediate draw or maximum ply reached
@@ -382,9 +383,6 @@ namespace Searcher {
                         evaluate (pos) :
                         DrawValue[pos.active ()];
             }
-
-            assert(   0 <= ss->ply && ss->ply < MaxPly
-                   && ss->ply == (ss-1)->ply + 1);
 
             // Transposition table lookup
             auto posi_key = pos.posi_key ();
@@ -630,8 +628,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(DEPTH_ZERO < depth && depth < DEPTH_MAX);
-
-            if (ss->ply == 0) ss->ply = (ss-1)->ply + 1;
+            assert(0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1);
 
             // Step 1. Initialize node
             auto *thread = pos.thread ();
@@ -661,6 +658,9 @@ namespace Searcher {
                 }
             }
 
+            ss->move_count = 0;
+            ss->current_move = MOVE_NONE;
+
             bool in_check = pos.checkers () != U64(0);
 
             if (!rootNode)
@@ -689,11 +689,6 @@ namespace Searcher {
                 if (alfa >= beta) return alfa;
             }
 
-            assert(   0 <= ss->ply && ss->ply < MaxPly
-                   && ss->ply == (ss-1)->ply + 1);
-
-            ss->move_count = 0;
-            ss->current_move = MOVE_NONE;
             (ss+1)->exclude_move = MOVE_NONE;
             (ss+1)->skip_pruning = false;
             std::fill ((ss+2)->killer_moves, (ss+2)->killer_moves + Killers, MOVE_NONE);
@@ -1191,8 +1186,8 @@ namespace Searcher {
                     }
                     // Decrease reduction for moves with a +ve history
                     // Increase reduction for moves with a -ve history
-                    reduction_depth = std::max (reduction_depth - (i32( thread->history_values[pos[dst_sq (move)]][dst_sq (move)]
-                                                                      + opp_cmv[pos[dst_sq (move)]][dst_sq (move)])/14980)*DEPTH_ONE, DEPTH_ZERO);
+                    reduction_depth = std::min (std::max (reduction_depth - (i32( thread->history_values[pos[dst_sq (move)]][dst_sq (move)]
+                                                                      + opp_cmv[pos[dst_sq (move)]][dst_sq (move)])/14980)*DEPTH_ONE, DEPTH_ZERO), DEPTH_MAX - DEPTH_ONE);
 
                     // Decrease reduction for moves that escape a capture.
                     // Filter out castling moves, because are coded as "king captures rook" hence break make_move().
@@ -1265,6 +1260,7 @@ namespace Searcher {
                         if (    pv.size () + 1 != root_move.size ()
                             || (pv.size () > 0 && root_move.size () > 1 && pv[0] != root_move[1])
                             || (pv.size () > 1 && root_move.size () > 2 && pv[1] != root_move[2])
+                            || (pv.size () > 2 && root_move.size () > 3 && pv[2] != root_move[3])
                            )
                         {
                             auto rm = RootMove (root_move[0]);
@@ -1668,15 +1664,18 @@ namespace Threading {
     void Thread::search ()
     {
         Stack stacks[MaxPly+4], *ss = stacks+2; // To allow referencing (ss-2)
-        for (auto s = stacks; s <= stacks+5; ++s)
+        for (auto s = stacks; s < stacks+MaxPly+4; ++s)
         {
             s->ply = i16(s - stacks - 1);
-            s->current_move = MOVE_NONE;
-            s->exclude_move = MOVE_NONE;
-            std::fill (s->killer_moves, s->killer_moves + Killers, MOVE_NONE);
-            s->static_eval = VALUE_ZERO;
-            s->move_count = 0;
-            s->skip_pruning = false;
+            if (s < stacks + 6)
+            {
+                s->current_move = MOVE_NONE;
+                s->exclude_move = MOVE_NONE;
+                std::fill (s->killer_moves, s->killer_moves + Killers, MOVE_NONE);
+                s->static_eval = VALUE_ZERO;
+                s->move_count = 0;
+                s->skip_pruning = false;
+            }
             assert(s->pv.empty ());
         }
 
