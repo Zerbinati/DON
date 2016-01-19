@@ -973,19 +973,8 @@ void Position::clear ()
     _chess960   = false;
     _thread     = nullptr;
 
-    std::fill (_ssi.non_pawn_matl, _ssi.non_pawn_matl + 2, VALUE_ZERO);
-    _ssi.psq_score      = SCORE_ZERO;
-    _ssi.matl_key       = U64(0);
-    _ssi.pawn_key       = U64(0);
-    _ssi.castle_rights  = CR_NONE;
-    _ssi.en_passant_sq  = SQ_NO;
-    _ssi.clock_ply      = 0;
-    _ssi.null_ply       = 0;
-    _ssi.posi_key       = U64(0);
-    _ssi.last_move      = MOVE_NONE;
-    _ssi.capture_type   = NONE;
-    _ssi.checkers       = U64(0);
-    _ssi.ptr            = nullptr;
+    std::memset (&_ssi, 0x00, StateInfo::Size);
+    _ssi.en_passant_sq = SQ_NO;
     _psi = &_ssi;
 }
 
