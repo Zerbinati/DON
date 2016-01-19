@@ -56,35 +56,36 @@ public:
 
 namespace Searcher {
 
-    extern bool             Chess960;
-    extern StateStackPtr    SetupStates;
-    extern Limit            Limits;
+    extern bool Chess960;
+
+    extern StateStackPtr SetupStates;
+    extern Limit Limits;
 
     extern std::atomic_bool ForceStop
         ,                   PonderhitStop; 
 
-    extern u16              MultiPV;
-    //extern i32              MultiPV_cp;
+    extern u16 MultiPV;
+    //extern i32 MultiPV_cp;
 
-    extern i16              FixedContempt
-        ,                   ContemptTime 
-        ,                   ContemptValue;
+    extern i16 FixedContempt
+        ,      ContemptTime 
+        ,      ContemptValue;
 
-    extern std::string      HashFile;
-    extern u16              AutoSaveHashTime;
+    extern std::string HashFile;
+    extern u16 AutoSaveHashTime;
     
-    extern bool             OwnBook;
-    extern std::string      BookFile;
-    extern bool             BookMoveBest;
-    extern i16              BookUptoMove;
+    extern bool OwnBook;
+    extern std::string BookFile;
+    extern bool BookMoveBest;
+    extern i16  BookUptoMove;
 
-    extern Depth            TBDepthLimit;
-    extern i32              TBPieceLimit;
-    extern bool             TBUseRule50;
-    extern u16              TBHits;
-    extern bool             TBHasRoot;
+    extern Depth TBDepthLimit;
+    extern i32   TBPieceLimit;
+    extern bool  TBUseRule50;
+    extern u16   TBHits;
+    extern bool  TBHasRoot;
 
-    extern std::string      LogFile;
+    extern std::string LogFile;
 
     // Node types, used as a template parameter
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node.
@@ -262,7 +263,7 @@ namespace Searcher {
 
     };
 
-    extern SkillManager     SkillMgr;
+    extern SkillManager SkillMgr;
 
 
     template<bool RootNode = true>

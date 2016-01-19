@@ -108,7 +108,7 @@ namespace Engine {
         TBSyzygy ::initialize ();
 
 #ifdef LPAGES
-        Memory::initialize ();
+        Memory   ::initialize ();
 #endif
         TT.auto_size (i32(Options["Hash"]), true);
 
@@ -117,8 +117,6 @@ namespace Engine {
 
     void stop (i32 code)
     {
-        Searcher::ForceStop = true;
-        Threadpool.wait_while_thinking ();
         Threadpool.deinitialize ();
         EndGame  ::deinitialize ();
         UCI      ::deinitialize ();

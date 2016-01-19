@@ -574,19 +574,24 @@ extern u08 SquareDist[SQ_NO][SQ_NO];
 
 template<class T>
 inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
-
 template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
 
 template<class T1, class T2>
-inline i32 dist (T2, T2);
-
+inline i32 dist (T2, T2) { return i32(); }
 template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
 template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
+inline Delta  pawn_push (Color c)
+{
+    switch (c)
+    {
+    case WHITE: return DEL_N; break;
+    case BLACK: return DEL_S; break;
+    default: assert(false); return DEL_O; break;
+    }
+}
 
-inline Delta  pawn_push (Color c) { return c == WHITE ? DEL_N : DEL_S; }
-
-inline CastleRight mk_castle_right (Color c)           { return CastleRight(CR_WHITE << (c << BLACK)); }
+inline CastleRight mk_castle_right (Color c)                { return CastleRight(CR_WHITE << (c << BLACK)); }
 inline CastleRight mk_castle_right (Color c, CastleSide cs) { return CastleRight(CR_WKING << ((CS_QUEN == cs) + (c << BLACK))); }
 inline CastleRight operator~ (CastleRight cr) { return CastleRight(((cr >> 2) & CR_WHITE) | ((cr << 2) & CR_BLACK)); }
 
@@ -834,7 +839,6 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
         }
     }
     while (buf.good ());
-
 
     return tokens;
 }

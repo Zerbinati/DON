@@ -203,6 +203,8 @@ namespace Threading {
     // static objects related to search while still in main().
     void ThreadPool::deinitialize ()
     {
+        ForceStop = true;
+        wait_while_thinking ();
         assert(!empty ());
         while (!empty ())
         {

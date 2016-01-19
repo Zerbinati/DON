@@ -57,7 +57,7 @@ namespace Transposition {
             }
             // Don't overwrite more valuable entries
             if (   (k >> 0x30) != _key16
-                || d > _depth - 2
+                || d > _depth - 4
              /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
                 || b == BOUND_EXACT
                )
@@ -180,8 +180,7 @@ namespace Transposition {
         // distinguish transposition table entries from different searches.
         // It is called at the beginning of every new search.
         void generation (u16 ply) { _generation = u08(ply << 2)&u08(~BOUND_EXACT); }
-        
-        u08 generation () const { return _generation; }
+        u08  generation () const { return _generation; }
 
         // cluster_entry() returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.

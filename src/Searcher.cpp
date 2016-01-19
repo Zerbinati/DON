@@ -30,38 +30,38 @@ namespace Searcher {
     using namespace Notation;
     using namespace Debugger;
 
-    bool            Chess960        = false;
+    bool Chess960 = false;
 
-    Limit           Limits;
-    atomic_bool     ForceStop       { false }  // Stop search on request
-        ,           PonderhitStop   { false }; // Stop search on ponder-hit
+    StateStackPtr SetupStates;
+    Limit Limits;
 
-    StateStackPtr   SetupStates;
+    atomic_bool ForceStop       { false }  // Stop search on request
+        ,       PonderhitStop   { false }; // Stop search on ponder-hit
 
-    u16             MultiPV         = 1;
-    //i32             MultiPV_cp      = 0;
+    u16    MultiPV         = 1;
+    //i32    MultiPV_cp      = 0;
 
-    i16             FixedContempt   = 0
-        ,           ContemptTime    = 30
-        ,           ContemptValue   = 50;
+    i16    FixedContempt   = 0
+        ,  ContemptTime    = 30
+        ,  ContemptValue   = 50;
 
-    string          HashFile        = "Hash.dat";
-    u16             AutoSaveHashTime= 0;
+    string HashFile        = "Hash.dat";
+    u16    AutoSaveHashTime= 0;
 
-    bool            OwnBook         = false;
-    string          BookFile        = "Book.bin";
-    bool            BookMoveBest    = true;
-    i16             BookUptoMove    = 20;
+    bool   OwnBook         = false;
+    string BookFile        = "Book.bin";
+    bool   BookMoveBest    = true;
+    i16    BookUptoMove    = 20;
 
-    Depth           TBDepthLimit    = 1*DEPTH_ONE;
-    i32             TBPieceLimit    = 6;
-    bool            TBUseRule50     = true;
-    u16             TBHits          = 0;
-    bool            TBHasRoot       = false;
+    Depth  TBDepthLimit    = 1*DEPTH_ONE;
+    i32    TBPieceLimit    = 6;
+    bool   TBUseRule50     = true;
+    u16    TBHits          = 0;
+    bool   TBHasRoot       = false;
 
-    string          LogFile         = "<empty>";
+    string LogFile         = "<empty>";
 
-    SkillManager    SkillMgr;
+    SkillManager SkillMgr;
 
     // ------------------------------------
 
@@ -144,19 +144,18 @@ namespace Searcher {
 
         const u08 TimerResolution = 5; // Seconds between two check_limits() calls
 
-        Color   RootColor;
+        Color RootColor;
 
-        bool    MateSearch  = false;
+        bool  MateSearch  = false;
 
-        u16     PVLimit;
+        u16   PVLimit;
 
-        Value   DrawValue[CLR_NO]
-            ,   BaseContempt[CLR_NO];
+        Value DrawValue[CLR_NO]
+            , BaseContempt[CLR_NO];
 
         // Counter move history value statistics
-        CM2DValueStats CounterMovesHistory;
+        CM2DValueStats CounterMoveHistoryValues;
 
-        bool    LogWrite    = false;
         ofstream LogStream;
 
         // check_limits() is used to print debug info and, more importantly,
@@ -205,7 +204,7 @@ namespace Searcher {
 
             auto opp_move_dst = dst_sq ((ss-1)->current_move);
             auto opp_move_ok  = _ok ((ss-1)->current_move);
-            auto &opp_cmv = CounterMovesHistory[pos[opp_move_dst]][opp_move_dst];
+            auto &opp_cmv = CounterMoveHistoryValues[opp_move_ok ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
 
             auto *thread = pos.thread ();
 
@@ -237,7 +236,7 @@ namespace Searcher {
                )
             {
                 auto own_move_dst = dst_sq ((ss-2)->current_move);
-                auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
+                auto &own_cmv = CounterMoveHistoryValues[pos[own_move_dst]][own_move_dst];
                 own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth/DEPTH_ONE) - 2);
             }
         }
@@ -347,12 +346,11 @@ namespace Searcher {
         {
             const bool PVNode = NT == PV;
 
-            assert((ss-1)->ply != 0);
             assert(in_check == (pos.checkers () != U64(0)));
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(depth <= DEPTH_ZERO);
-            assert(0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1);
+            assert((ss-1)->ply != 0 && 0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1);
 
             auto pv_alfa = -VALUE_INFINITE;
 
@@ -370,9 +368,7 @@ namespace Searcher {
                 || ss->ply >= MaxPly
                )
             {
-                return ss->ply >= MaxPly && !in_check ?
-                        evaluate (pos) :
-                        DrawValue[pos.active ()];
+                return ss->ply >= MaxPly && !in_check ? evaluate (pos) : DrawValue[pos.active ()];
             }
 
             // Transposition table lookup
@@ -463,6 +459,7 @@ namespace Searcher {
 
             auto *thread = pos.thread ();
             //auto *main_thread = Threadpool.main () == thread ? Threadpool.main () : nullptr;
+            auto best_move = MOVE_NONE;
 
             // Initialize a MovePicker object for the current position, and prepare
             // to search the moves. Because the depth is <= 0 here, only captures,
@@ -471,9 +468,7 @@ namespace Searcher {
             MovePicker mp (pos, thread->history_values, tt_move, depth, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO);
             CheckInfo ci (pos);
             StateInfo si;
-            Move move
-               , best_move  = MOVE_NONE;
-
+            Move move;
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
@@ -663,9 +658,7 @@ namespace Searcher {
                     || ss->ply >= MaxPly
                    )
                 {
-                    return ss->ply >= MaxPly && !in_check ?
-                            evaluate (pos) :
-                            DrawValue[pos.active ()];
+                    return ss->ply >= MaxPly && !in_check ? evaluate (pos) : DrawValue[pos.active ()];
                 }
 
                 // Step 3. Mate distance pruning. Even if mate at the next move our score
@@ -833,7 +826,7 @@ namespace Searcher {
                         && !MateSearch
                         && depth < FutilityMarginDepth*DEPTH_ONE
                         && tt_eval < +VALUE_KNOWN_WIN // Do not return unproven wins
-                        && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
+                        && pos.non_pawn_material (pos.active ()) != VALUE_ZERO
                        )
                     {
                         auto stand_pat = tt_eval - FutilityMargins[depth/DEPTH_ONE];
@@ -849,7 +842,7 @@ namespace Searcher {
                         && !MateSearch
                         && depth >= 2*DEPTH_ONE
                         && tt_eval >= beta
-                        && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
+                        && pos.non_pawn_material (pos.active ()) != VALUE_ZERO
                        )
                     {
                         assert(_ok ((ss-1)->current_move));
@@ -858,7 +851,7 @@ namespace Searcher {
                         ss->current_move = MOVE_NULL;
 
                         // Null move dynamic reduction based on depth and static evaluation
-                        auto reduced_depth = depth - ((823 + 67 * depth) / 256 + std::min ((tt_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
+                        auto reduced_depth = depth - ((823 + 67 * depth) / 256 + std::min ((tt_eval - beta)/VALUE_MG_PAWN, 3))*DEPTH_ONE;
 
                         // Do null move
                         pos.do_null_move (si);
@@ -922,8 +915,8 @@ namespace Searcher {
 
                         while ((move = mp.next_move ()) != MOVE_NONE)
                         {
-                            // Speculative prefetch as early as possible
-                            prefetch (TT.cluster_entry (pos.move_posi_key (move)));
+                            //// Speculative prefetch as early as possible
+                            //prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                             if (!pos.legal (move, ci.pinneds)) continue;
 
@@ -933,8 +926,8 @@ namespace Searcher {
                                                     (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != U64(0) :
                                                     pos.gives_check (move, ci));
 
-                            prefetch (thread->pawn_table[pos.pawn_key ()]);
-                            prefetch (thread->matl_table[pos.matl_key ()]);
+                            //prefetch (thread->pawn_table[pos.pawn_key ()]);
+                            //prefetch (thread->matl_table[pos.matl_key ()]);
 
                             auto value = -depth_search<NonPV> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
 
@@ -997,7 +990,7 @@ namespace Searcher {
 
             auto opp_move_dst = dst_sq ((ss-1)->current_move);
             auto counter_move = thread->counter_moves[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
-            auto &opp_cmv = CounterMovesHistory[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
+            auto &opp_cmv = CounterMoveHistoryValues[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
@@ -1378,7 +1371,7 @@ namespace Searcher {
             {
                 opp_move_dst = dst_sq ((ss-1)->current_move);
                 auto own_move_dst = dst_sq ((ss-2)->current_move);
-                auto &own_cmv = CounterMovesHistory[pos[own_move_dst]][own_move_dst];
+                auto &own_cmv = CounterMoveHistoryValues[pos[own_move_dst]][own_move_dst];
                 own_cmv.update (pos[opp_move_dst], opp_move_dst, Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1));
             }
 
@@ -1621,7 +1614,7 @@ namespace Searcher {
     void clear ()
     {
         TT.clear ();
-        CounterMovesHistory.clear ();
+        CounterMoveHistoryValues.clear ();
 
         for (auto *th : Threadpool)
         {
@@ -1876,7 +1869,7 @@ namespace Threading {
                     SkillMgr.pick_best_move (root_moves);
                 }
 
-                if (LogWrite)
+                if (LogStream.is_open ())
                 {
                     LogStream << pretty_pv_info () << std::endl;
                 }
@@ -1997,8 +1990,7 @@ namespace Threading {
 
         MateSearch = Limits.mate != 0;
 
-        LogWrite = !white_spaces (LogFile) && LogFile != "<empty>";
-        if (LogWrite)
+        if (!white_spaces (LogFile) && LogFile != "<empty>")
         {
             LogStream.open (LogFile, ios_base::out|ios_base::app);
 
@@ -2202,7 +2194,7 @@ namespace Threading {
             previous_value = root_moves[0].new_value;
         }
 
-        if (LogWrite)
+        if (LogStream.is_open ())
         {
             auto elapsed_time = std::max (time_mgr.elapsed_time (), TimePoint(1));
 

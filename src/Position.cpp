@@ -152,11 +152,11 @@ Position& Position::operator= (const Position &pos)
 
     _active     = pos._active;
     _game_ply   = pos._game_ply;
-    _game_nodes = 0;
+    _game_nodes = 0; //pos.game_nodes;
     _chess960   = pos._chess960;
     _thread     = pos._thread;
 
-    _ssi = *pos._psi;
+    std::memcpy (&_ssi, pos._psi, StateInfo::Size); //_ssi = *pos._psi;
     _psi = &_ssi;
 
     assert(ok ());
@@ -479,7 +479,7 @@ Value Position::see      (Move m) const
     Value gain_list[MAX_GAINS];
     i08   depth = 1;
 
-    auto mocc = _types_bb[NONE] - org;
+    Bitboard mocc;
 
     switch (mtype (m))
     {
@@ -492,11 +492,12 @@ Value Position::see      (Move m) const
 
     case ENPASSANT:
         // Remove the captured pawn
-        mocc -= dst - pawn_push (stm);
+        mocc = _types_bb[NONE] - org - (dst - pawn_push (stm));
         gain_list[0] = PieceValues[MG][PAWN];
         break;
 
     default:
+        mocc = _types_bb[NONE] - org;
         gain_list[0] = PieceValues[MG][ptype (_board[dst])];
         break;
     }
@@ -922,15 +923,16 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 }
 
 //// gives_checkmate() tests whether a pseudo-legal move gives a checkmate
-//bool Position::gives_checkmate (Move m, const CheckInfo &ci)
+//bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
 //{
 //    bool checkmate = false;
-//    if (gives_check (m, ci))
+//    Position pos(*this, nullptr);
+//    if (pos.gives_check (m, ci))
 //    {
 //        StateInfo si;
-//        do_move (m, si, true);
-//        checkmate = MoveList<LEGAL> (*this).size () == 0;
-//        undo_move ();
+//        pos.do_move (m, si, true);
+//        checkmate = MoveList<LEGAL> (pos).size () == 0;
+//        pos.undo_move ();
 //    }
 //    return checkmate;
 //}
@@ -1224,15 +1226,15 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
 // updated by do_move and undo_move when the program is running in debug mode.
 Score Position::compute_psq_score () const
 {
-    auto psq_bonus = SCORE_ZERO;
+    auto psqscore = SCORE_ZERO;
     auto occ = _types_bb[NONE];
     while (occ != U64(0))
     {
         auto s = pop_lsq (occ);
         auto p = _board[s];
-        psq_bonus += PSQ[color (p)][ptype (p)][s];
+        psqscore += PSQ[color (p)][ptype (p)][s];
     }
-    return psq_bonus;
+    return psqscore;
 }
 
 // compute_non_pawn_material() computes the total non-pawn middle

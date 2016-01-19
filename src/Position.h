@@ -209,8 +209,9 @@ public:
 
     Score psq_score () const;
 
+    CastleRight can_castle () const;
+    CastleRight can_castle (Color c) const;
     CastleRight can_castle (CastleRight cr) const;
-    CastleRight can_castle (Color   c) const;
 
     Square   castle_rook (CastleRight cr) const;
     Bitboard castle_path (CastleRight cr) const;
@@ -251,9 +252,8 @@ public:
     bool capture_or_promotion (Move m)  const;
     bool en_passant    (Move m)  const;
     bool gives_check   (Move m, const CheckInfo &ci) const;
-    //bool gives_checkmate (Move m, const CheckInfo &ci)
+    //bool gives_checkmate (Move m, const CheckInfo &ci) const;
     bool advanced_pawn_push (Move m)    const;
-    //Piece moving_piece (Move m) const;
 
     bool passed_pawn  (Color c, Square s) const;
     bool bishops_pair (Color c) const;
@@ -307,20 +307,20 @@ template<>
 inline i32 Position::count<NONE>    () const
 {
     return i32(_piece_sq[WHITE][PAWN].size () + _piece_sq[BLACK][PAWN].size ()
-         + _piece_sq[WHITE][NIHT].size () + _piece_sq[BLACK][NIHT].size ()
-         + _piece_sq[WHITE][BSHP].size () + _piece_sq[BLACK][BSHP].size ()
-         + _piece_sq[WHITE][ROOK].size () + _piece_sq[BLACK][ROOK].size ()
-         + _piece_sq[WHITE][QUEN].size () + _piece_sq[BLACK][QUEN].size ()
-         + _piece_sq[WHITE][KING].size () + _piece_sq[BLACK][KING].size ());
+             + _piece_sq[WHITE][NIHT].size () + _piece_sq[BLACK][NIHT].size ()
+             + _piece_sq[WHITE][BSHP].size () + _piece_sq[BLACK][BSHP].size ()
+             + _piece_sq[WHITE][ROOK].size () + _piece_sq[BLACK][ROOK].size ()
+             + _piece_sq[WHITE][QUEN].size () + _piece_sq[BLACK][QUEN].size ()
+             + _piece_sq[WHITE][KING].size () + _piece_sq[BLACK][KING].size ());
 }
 template<>
 // Count non-pawn pieces
 inline i32 Position::count<NONPAWN> () const
 {
     return i32(_piece_sq[WHITE][NIHT].size () + _piece_sq[BLACK][NIHT].size ()
-         + _piece_sq[WHITE][BSHP].size () + _piece_sq[BLACK][BSHP].size ()
-         + _piece_sq[WHITE][ROOK].size () + _piece_sq[BLACK][ROOK].size ()
-         + _piece_sq[WHITE][QUEN].size () + _piece_sq[BLACK][QUEN].size ());
+             + _piece_sq[WHITE][BSHP].size () + _piece_sq[BLACK][BSHP].size ()
+             + _piece_sq[WHITE][ROOK].size () + _piece_sq[BLACK][ROOK].size ()
+             + _piece_sq[WHITE][QUEN].size () + _piece_sq[BLACK][QUEN].size ());
 }
 template<PieceType PT>
 // Count specific piece of color
@@ -330,20 +330,20 @@ template<>
 inline i32 Position::count<NONE>    (Color c) const
 {
     return i32(_piece_sq[c][PAWN].size ()
-         + _piece_sq[c][NIHT].size ()
-         + _piece_sq[c][BSHP].size ()
-         + _piece_sq[c][ROOK].size ()
-         + _piece_sq[c][QUEN].size ()
-         + _piece_sq[c][KING].size ());
+             + _piece_sq[c][NIHT].size ()
+             + _piece_sq[c][BSHP].size ()
+             + _piece_sq[c][ROOK].size ()
+             + _piece_sq[c][QUEN].size ()
+             + _piece_sq[c][KING].size ());
 }
 template<>
 // Count non-pawn pieces of color
 inline i32 Position::count<NONPAWN> (Color c) const
 {
     return i32(_piece_sq[c][NIHT].size ()
-         + _piece_sq[c][BSHP].size ()
-         + _piece_sq[c][ROOK].size ()
-         + _piece_sq[c][QUEN].size ());
+             + _piece_sq[c][BSHP].size ()
+             + _piece_sq[c][ROOK].size ()
+             + _piece_sq[c][QUEN].size ());
 }
 inline i32 Position::count (Color c, PieceType pt) const { return i32(_piece_sq[c][pt].size ()); }
 
@@ -352,7 +352,7 @@ inline const SquareVector& Position::squares (Color c) const { return _piece_sq[
 template<PieceType PT>
 inline Square Position::square (Color c, i32 index) const
 {
-    assert(_piece_sq[c][PT].size () > index);
+    assert(i32(_piece_sq[c][PT].size ()) > index);
     return _piece_sq[c][PT][index];
 }
 
@@ -401,8 +401,9 @@ inline Score  Position::psq_score () const { return _psi->psq_score; }
 // Incremental piece-square evaluation
 inline Value  Position::non_pawn_material (Color c) const { return _psi->non_pawn_matl[c]; }
 
+inline CastleRight Position::can_castle () const { return _psi->castle_rights; }
+inline CastleRight Position::can_castle (Color c) const { return _psi->castle_rights & mk_castle_right (c); }
 inline CastleRight Position::can_castle (CastleRight cr) const { return _psi->castle_rights & cr; }
-inline CastleRight Position::can_castle (Color   c) const { return _psi->castle_rights & mk_castle_right (c); }
 
 inline Square   Position::castle_rook (CastleRight cr) const { return _castle_rook[cr]; }
 inline Bitboard Position::castle_path (CastleRight cr) const { return _castle_path[cr]; }
@@ -485,7 +486,7 @@ inline bool Position::passed_pawn (Color c, Square s) const
 {
     return ((_types_bb[PAWN]&_color_bb[~c]) & BitBoard::PawnPassSpan[c][s]) == U64(0);
 }
-// check the side has pair of opposite color bishops
+// bishops_pair(c) check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
 {
     auto bishop_count = _piece_sq[c][BSHP].size ();
@@ -498,7 +499,7 @@ inline bool Position::bishops_pair (Color c) const
     }
     return false;
 }
-// check the opposite sides have opposite bishops
+// opposite_bishops() check the opposite sides have opposite bishops
 inline bool Position::opposite_bishops () const
 {
     return _piece_sq[WHITE][BSHP].size () == 1
@@ -506,18 +507,19 @@ inline bool Position::opposite_bishops () const
         && opposite_colors (_piece_sq[WHITE][BSHP][0], _piece_sq[BLACK][BSHP][0]);
 }
 inline bool Position::legal         (Move m) const { return legal (m, pinneds (_active)); }
-// capture(m) tests move is capture
+// capture(m) checks move is capture
 inline bool Position::capture       (Move m) const
 {
     // Castling is encoded as "king captures the rook"
     return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))) && !empty (dst_sq (m))) || en_passant (m);
 }
-// capture_or_promotion(m) tests move is capture or promotion
+// capture_or_promotion(m) checks move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
     return (mtype (m) == NORMAL && !empty (dst_sq (m))) || en_passant (m)
         || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN));
 }
+// en_passant(m) checks move is en-passant
 inline bool Position::en_passant    (Move m) const
 {
     return mtype (m) == ENPASSANT
@@ -525,12 +527,12 @@ inline bool Position::en_passant    (Move m) const
         && empty (dst_sq (m))
         && _psi->en_passant_sq == dst_sq (m);
 }
+// advanced_pawn_push(m) checks move is advanced pawn push
 inline bool Position::advanced_pawn_push    (Move m) const
 {
     return _board[org_sq (m)] == (_active|PAWN)
         && rel_rank (_active, org_sq (m)) > R_4;
 }
-//inline Piece Position::moving_piece (Move m) const { return _board[org_sq (m)]; }
 
 inline void  Position:: place_piece (Square s, Color c, PieceType pt)
 {
