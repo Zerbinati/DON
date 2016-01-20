@@ -178,7 +178,7 @@ bool Position::draw () const
     // Draw by Threefold Repetition?
     const auto *psi = _psi;
     //u08 cnt = 1;
-    for (i08 ply = std::min (_psi->clock_ply, _psi->null_ply); ply >= 2; ply -= 2)
+    for (i08 ply = std::min (psi->clock_ply, psi->null_ply); ply >= 2; ply -= 2)
     {
         psi = psi->ptr->ptr;
         if (psi->posi_key == _psi->posi_key)
@@ -1181,29 +1181,39 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     }
 
     // 5-6. clock ply and game-move count
-    i16 clk_ply = 0, g_move = 1;
+    i16 clk_ply = 0
+      , g_move  = 1;
     if (full)
     {
         iss >> skipws;
-        iss >> clk_ply >> g_move;
+        iss >> clk_ply
+            >> g_move;
         
-        if (_psi->en_passant_sq != SQ_NO) clk_ply = 0;
+        if (_psi->en_passant_sq != SQ_NO)
+        {
+            clk_ply = 0;
+        }
         // Rule 50 draw case
         //if (clk_ply > 100) return false;
-        if (g_move <= 0) g_move = 1;
+
+        // Handle common incorrect FEN with game-move = 0.
+        if (g_move <= 0)
+        {
+            g_move = 1;
+        }
     }
 
-    // Convert from game_move starting from 1 to game_ply starting from 0,
-    // handle also common incorrect FEN with game_move = 0.
-    _psi->clock_ply = clk_ply;
+    // Convert from game-move starting from 1 to game-ply starting from 0,
     _game_ply = i16(2*(g_move - 1) + (_active == BLACK ? 1 : 0));
-    //_psi->null_ply = 0;
+
     _psi->matl_key = Zob.compute_matl_key (*this);
     _psi->pawn_key = Zob.compute_pawn_key (*this);
     _psi->posi_key = Zob.compute_posi_key (*this);
     _psi->psq_score = compute_psq_score ();
     _psi->non_pawn_matl[WHITE] = compute_non_pawn_material (WHITE);
     _psi->non_pawn_matl[BLACK] = compute_non_pawn_material (BLACK);
+    _psi->clock_ply = u08(clk_ply);
+    //_psi->null_ply = 0;
     //_psi->last_move = MOVE_NONE;
     //_psi->capture_type = NONE;
     _psi->checkers = checkers (_active);
@@ -1247,7 +1257,7 @@ Value Position::compute_non_pawn_material (Color c) const
 
 #undef do_capture
 
-#define do_capture() {                                                               \
+#define do_capture()                                                                 \
     remove_piece (cap);                                                              \
     if (cpt == PAWN)                                                                 \
     {                                                                                \
@@ -1259,9 +1269,8 @@ Value Position::compute_non_pawn_material (Color c) const
     }                                                                                \
     _psi->matl_key ^= Zob._.piece_square[~_active][cpt][_piece_sq[~_active][cpt].size ()];\
     key            ^= Zob._.piece_square[~_active][cpt][cap];                        \
-    _psi->psq_score -= PSQ[~_active][cpt][cap];                                      \
-    _psi->clock_ply = 0;                                                             \
-}
+    _psi->psq_score -= PSQ[~_active][cpt][cap];
+
 // do_move() do the natural-move
 void Position::do_move (Move m, StateInfo &nsi, bool give_check)
 {
@@ -1305,6 +1314,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
         if (cpt != NONE) // _ok (cpt)
         {
             do_capture ();
+            _psi->clock_ply = 0;
         }
         else
         {
@@ -1375,6 +1385,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
             && _board[cap] == (pasive|cpt));
 
         do_capture ();
+        assert(_psi->clock_ply == 0); // As pawn is the last piece moved
         _board[cap] = NO_PIECE; // Not done by remove_piece()
 
         move_piece (org, dst);
@@ -1391,7 +1402,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
             -PSQ[_active][PAWN][org]
             +PSQ[_active][PAWN][dst];
 
-        //_psi->clock50 = 0; // No need as pawn is the last piece moved
+        
     }
         break;
 
@@ -1407,11 +1418,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
         if (cpt != NONE) // _ok (cpt)
         {
             do_capture ();
-        }
-        else
-        {
-            _psi->clock_ply = 0;
-        }
+        }        
+        _psi->clock_ply = 0;
 
         auto ppt = promote (m);
         assert(NIHT <= ppt && ppt <= QUEN);

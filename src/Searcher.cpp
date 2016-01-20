@@ -1749,8 +1749,9 @@ namespace Threading {
                     //&& leaf_depth >= DEPTH_ONE
                    )
                 {
-                    window = Value(18);
-                        //Value(depth <= 32*DEPTH_ONE ? 14 + (u16(depth)-1)/4 : 22); // Increasing window
+                    window = 
+                        Value(18);
+                        //Value(root_depth <= 32*DEPTH_ONE ? 16 + (root_depth/DEPTH_ONE-1)/4 : 24); // Increasing window
 
                     alfa = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
                     beta = std::min (root_moves[pv_index].old_value + window, +VALUE_INFINITE);
