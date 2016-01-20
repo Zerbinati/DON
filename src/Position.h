@@ -46,7 +46,7 @@ public:
     PieceType capture_type;//= NONE;    // Piece type captured.
     Bitboard checkers    ;//= U64(0);   // Checkers bitboard.
 
-    StateInfo *ptr ;//= nullptr;
+    StateInfo *ptr       ;//= nullptr;
 };
 
 // CheckInfo struct is initialized at constructor time
@@ -417,7 +417,7 @@ inline Color Position::active   () const { return _active; }
 inline i16  Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = max ((game_ply - (active == BLACK)) / 2, 0) + 1
-inline i16  Position::game_move () const { return i16(std::max ((_game_ply - (_active == BLACK)) / 2, 0) + 1); }
+inline i16  Position::game_move () const { return i16(std::max ((_game_ply - (_active == BLACK ? 1 : 0)) / 2, 0) + 1); }
 // Nodes visited
 inline u64  Position::game_nodes() const { return _game_nodes; }
 //inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }

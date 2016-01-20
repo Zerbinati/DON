@@ -96,6 +96,9 @@ namespace Engine {
         std::cout << info (false) << std::endl;
         std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency () << std::endl;
 
+#ifdef LPAGES
+        Memory   ::initialize ();
+#endif
         UCI      ::initialize ();
         BitBoard ::initialize ();
         Position ::initialize ();
@@ -107,9 +110,6 @@ namespace Engine {
         Searcher ::initialize ();
         TBSyzygy ::initialize ();
 
-#ifdef LPAGES
-        Memory   ::initialize ();
-#endif
         TT.auto_size (i32(Options["Hash"]), true);
 
         UCI::loop (arg);

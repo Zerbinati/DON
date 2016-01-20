@@ -137,15 +137,15 @@ namespace BitBoard {
     extern Bitboard *B_Attacks_bb[SQ_NO];
     extern Bitboard *R_Attacks_bb[SQ_NO];
 
-    extern Bitboard   B_Masks_bb[SQ_NO];
-    extern Bitboard   R_Masks_bb[SQ_NO];
+    extern Bitboard    B_Masks_bb[SQ_NO];
+    extern Bitboard    R_Masks_bb[SQ_NO];
 
 #ifndef BM2
-    extern Bitboard  B_Magics_bb[SQ_NO];
-    extern Bitboard  R_Magics_bb[SQ_NO];
+    extern Bitboard   B_Magics_bb[SQ_NO];
+    extern Bitboard   R_Magics_bb[SQ_NO];
 
-    extern u08          B_Shifts[SQ_NO];
-    extern u08          R_Shifts[SQ_NO];
+    extern u08           B_Shifts[SQ_NO];
+    extern u08           R_Shifts[SQ_NO];
 #endif
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  Square_bb[s]; }
@@ -159,27 +159,27 @@ namespace BitBoard {
     inline Bitboard& operator+= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
     inline Bitboard& operator-= (Bitboard &bb, Square s) { return bb &=~Square_bb[s]; }
     /*
-    inline Bitboard  operator&  (Bitboard  bb, File   f) { return bb &  File_bb[f]; }
-    inline Bitboard  operator|  (Bitboard  bb, File   f) { return bb |  File_bb[f]; }
-    inline Bitboard  operator^  (Bitboard  bb, File   f) { return bb ^  File_bb[f]; }
-    inline Bitboard  operator+  (Bitboard  bb, File   f) { return bb |  File_bb[f]; }
-    inline Bitboard  operator-  (Bitboard  bb, File   f) { return bb & ~File_bb[f]; }
-    inline Bitboard& operator&= (Bitboard &bb, File   f) { return bb &= File_bb[f]; }
-    inline Bitboard& operator|= (Bitboard &bb, File   f) { return bb |= File_bb[f]; }
-    inline Bitboard& operator^= (Bitboard &bb, File   f) { return bb ^= File_bb[f]; }
-    inline Bitboard& operator+= (Bitboard &bb, File   f) { return bb |= File_bb[f]; }
-    inline Bitboard& operator-= (Bitboard &bb, File   f) { return bb &=~File_bb[f]; }
+    inline Bitboard  operator&  (Bitboard  bb, File f) { return bb &  File_bb[f]; }
+    inline Bitboard  operator|  (Bitboard  bb, File f) { return bb |  File_bb[f]; }
+    inline Bitboard  operator^  (Bitboard  bb, File f) { return bb ^  File_bb[f]; }
+    inline Bitboard  operator+  (Bitboard  bb, File f) { return bb |  File_bb[f]; }
+    inline Bitboard  operator-  (Bitboard  bb, File f) { return bb & ~File_bb[f]; }
+    inline Bitboard& operator&= (Bitboard &bb, File f) { return bb &= File_bb[f]; }
+    inline Bitboard& operator|= (Bitboard &bb, File f) { return bb |= File_bb[f]; }
+    inline Bitboard& operator^= (Bitboard &bb, File f) { return bb ^= File_bb[f]; }
+    inline Bitboard& operator+= (Bitboard &bb, File f) { return bb |= File_bb[f]; }
+    inline Bitboard& operator-= (Bitboard &bb, File f) { return bb &=~File_bb[f]; }
 
-    inline Bitboard  operator&  (Bitboard  bb, Rank   r) { return bb &  Rank_bb[r]; }
-    inline Bitboard  operator|  (Bitboard  bb, Rank   r) { return bb |  Rank_bb[r]; }
-    inline Bitboard  operator^  (Bitboard  bb, Rank   r) { return bb ^  Rank_bb[r]; }
-    inline Bitboard  operator+  (Bitboard  bb, Rank   r) { return bb |  Rank_bb[r]; }
-    inline Bitboard  operator-  (Bitboard  bb, Rank   r) { return bb & ~Rank_bb[r]; }
-    inline Bitboard& operator&= (Bitboard &bb, Rank   r) { return bb &= Rank_bb[r]; }
-    inline Bitboard& operator|= (Bitboard &bb, Rank   r) { return bb |= Rank_bb[r]; }
-    inline Bitboard& operator^= (Bitboard &bb, Rank   r) { return bb ^= Rank_bb[r]; }
-    inline Bitboard& operator+= (Bitboard &bb, Rank   r) { return bb |= Rank_bb[r]; }
-    inline Bitboard& operator-= (Bitboard &bb, Rank   r) { return bb &=~Rank_bb[r]; }
+    inline Bitboard  operator&  (Bitboard  bb, Rank r) { return bb &  Rank_bb[r]; }
+    inline Bitboard  operator|  (Bitboard  bb, Rank r) { return bb |  Rank_bb[r]; }
+    inline Bitboard  operator^  (Bitboard  bb, Rank r) { return bb ^  Rank_bb[r]; }
+    inline Bitboard  operator+  (Bitboard  bb, Rank r) { return bb |  Rank_bb[r]; }
+    inline Bitboard  operator-  (Bitboard  bb, Rank r) { return bb & ~Rank_bb[r]; }
+    inline Bitboard& operator&= (Bitboard &bb, Rank r) { return bb &= Rank_bb[r]; }
+    inline Bitboard& operator|= (Bitboard &bb, Rank r) { return bb |= Rank_bb[r]; }
+    inline Bitboard& operator^= (Bitboard &bb, Rank r) { return bb ^= Rank_bb[r]; }
+    inline Bitboard& operator+= (Bitboard &bb, Rank r) { return bb |= Rank_bb[r]; }
+    inline Bitboard& operator-= (Bitboard &bb, Rank r) { return bb &=~Rank_bb[r]; }
     */
 
     // ----------------------------------------------------
@@ -188,7 +188,7 @@ namespace BitBoard {
 
     inline Bitboard rank_bb (Square s) { return Rank_bb[_rank (s)]; }
 
-    //inline Bitboard rel_rank_bb (Color c, Rank   r) { return Rank_bb[rel_rank (c, r)]; }
+    //inline Bitboard rel_rank_bb (Color c, Rank r) { return Rank_bb[rel_rank (c, r)]; }
     //inline Bitboard rel_rank_bb (Color c, Square s) { return Rank_bb[rel_rank (c, s)]; }
 
     // board_edges() returns a bitboard of edges of the board for given square
@@ -335,7 +335,7 @@ namespace BitBoard {
 #ifndef NDEBUG
     extern std::string pretty (Bitboard bb, char p = 'o');
 
-    extern void test_attacks ();
+    //extern void test_attacks ();
 #endif
 
 }

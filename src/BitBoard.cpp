@@ -29,15 +29,15 @@ namespace BitBoard {
     Bitboard *B_Attacks_bb[SQ_NO];
     Bitboard *R_Attacks_bb[SQ_NO];
 
-    Bitboard   B_Masks_bb[SQ_NO];
-    Bitboard   R_Masks_bb[SQ_NO];
+    Bitboard    B_Masks_bb[SQ_NO];
+    Bitboard    R_Masks_bb[SQ_NO];
 
 #ifndef BM2
-    Bitboard  B_Magics_bb[SQ_NO];
-    Bitboard  R_Magics_bb[SQ_NO];
+    Bitboard   B_Magics_bb[SQ_NO];
+    Bitboard   R_Magics_bb[SQ_NO];
 
-    u08          B_Shifts[SQ_NO];
-    u08          R_Shifts[SQ_NO];
+    u08           B_Shifts[SQ_NO];
+    u08           R_Shifts[SQ_NO];
 #endif
 
     namespace {
@@ -349,31 +349,31 @@ namespace BitBoard {
         return sbb;
     }
 
-    void test_attacks ()
-    {
-        Bitboard occ = U64(0x1234);
-        std::cout << "occupancy:\n" << pretty (occ);
-        // Knight
-        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-        {
-            std::cout << pretty (attacks_bb<NIHT> (s1, occ));
-            if (s1 && (s1+1)%8 == 0) system ("PAUSE");
-        }
-        std::cout << "occupancy:\n" << pretty (occ);
-        // Bishop
-        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-        {
-            std::cout << pretty (attacks_bb<BSHP> (s1, occ));
-            if (s1 && (s1+1)%8 == 0) system("PAUSE");
-        }
-        std::cout << "occupancy:\n" << pretty (occ);
-        // Rook
-        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-        {
-            std::cout << pretty (attacks_bb<ROOK> (s1, occ));
-            if (s1 && (s1+1)%8 == 0) system ("PAUSE");
-        }
-    }
+    //void test_attacks ()
+    //{
+    //    Bitboard occ = U64(0x1234);
+    //    std::cout << "occupancy:\n" << pretty (occ);
+    //    // Knight
+    //    for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+    //    {
+    //        std::cout << pretty (attacks_bb<NIHT> (s1, occ));
+    //        if (s1 && (s1+1)%8 == 0) system ("PAUSE");
+    //    }
+    //    std::cout << "occupancy:\n" << pretty (occ);
+    //    // Bishop
+    //    for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+    //    {
+    //        std::cout << pretty (attacks_bb<BSHP> (s1, occ));
+    //        if (s1 && (s1+1)%8 == 0) system("PAUSE");
+    //    }
+    //    std::cout << "occupancy:\n" << pretty (occ);
+    //    // Rook
+    //    for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+    //    {
+    //        std::cout << pretty (attacks_bb<ROOK> (s1, occ));
+    //        if (s1 && (s1+1)%8 == 0) system ("PAUSE");
+    //    }
+    //}
 
 #endif
 

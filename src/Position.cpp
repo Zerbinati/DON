@@ -975,6 +975,7 @@ void Position::clear ()
 
     std::memset (&_ssi, 0x00, StateInfo::Size);
     _ssi.en_passant_sq = SQ_NO;
+    _ssi.capture_type  = NONE;
     _psi = &_ssi;
 }
 
@@ -1185,6 +1186,8 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     {
         iss >> skipws;
         iss >> clk_ply >> g_move;
+        
+        if (_psi->en_passant_sq != SQ_NO) clk_ply = 0;
         // Rule 50 draw case
         //if (clk_ply > 100) return false;
         if (g_move <= 0) g_move = 1;
@@ -1192,15 +1195,17 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
 
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
-    _psi->clock_ply = u08(_psi->en_passant_sq != SQ_NO ? 0 : clk_ply);
-    _game_ply = i16(2*(g_move - 1) + (_active == BLACK));
-
+    _psi->clock_ply = clk_ply;
+    _game_ply = i16(2*(g_move - 1) + (_active == BLACK ? 1 : 0));
+    //_psi->null_ply = 0;
     _psi->matl_key = Zob.compute_matl_key (*this);
     _psi->pawn_key = Zob.compute_pawn_key (*this);
     _psi->posi_key = Zob.compute_posi_key (*this);
     _psi->psq_score = compute_psq_score ();
     _psi->non_pawn_matl[WHITE] = compute_non_pawn_material (WHITE);
     _psi->non_pawn_matl[BLACK] = compute_non_pawn_material (BLACK);
+    //_psi->last_move = MOVE_NONE;
+    //_psi->capture_type = NONE;
     _psi->checkers = checkers (_active);
     _game_nodes   = 0;
     _chess960     = c960;
@@ -1622,7 +1627,7 @@ void Position::flip ()
     for (auto rank = R_8; rank >= R_1; --rank)
     {
         std::getline (iss, token, rank > R_1 ? '/' : ' ');
-        flip_fen.insert (0, token + (white_spaces (flip_fen) ? " " : "/"));
+        flip_fen.insert (0, token + (!white_spaces (flip_fen) ? "/" : " "));
     }
     // 2. Active color
     iss >> token;

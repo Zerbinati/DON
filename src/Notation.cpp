@@ -318,6 +318,5 @@ namespace Notation {
         //
 
         return oss.str ();
-
     }
 }

@@ -851,7 +851,7 @@ namespace Searcher {
                         ss->current_move = MOVE_NULL;
 
                         // Null move dynamic reduction based on depth and static evaluation
-                        auto reduced_depth = depth - ((823 + 67 * depth) / 256 + std::min ((tt_eval - beta)/VALUE_MG_PAWN, 3))*DEPTH_ONE;
+                        auto reduced_depth = depth - ((67*(depth/DEPTH_ONE) + 823) / 256 + std::min ((tt_eval - beta)/VALUE_MG_PAWN, 3))*DEPTH_ONE;
 
                         // Do null move
                         pos.do_null_move (si);
@@ -989,8 +989,9 @@ namespace Searcher {
             quiet_moves.reserve (16);
 
             auto opp_move_dst = dst_sq ((ss-1)->current_move);
-            auto counter_move = thread->counter_moves[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
-            auto &opp_cmv = CounterMoveHistoryValues[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
+            auto opp_move_ok  = _ok ((ss-1)->current_move);
+            auto counter_move = thread->counter_moves[opp_move_ok ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
+            auto &opp_cmv = CounterMoveHistoryValues[opp_move_ok ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
@@ -1173,7 +1174,7 @@ namespace Searcher {
                     // Decrease reduction for moves with a +ve history
                     // Increase reduction for moves with a -ve history
                     reduction_depth = std::min (std::max (reduction_depth - (i32( thread->history_values[pos[dst_sq (move)]][dst_sq (move)]
-                                                                      + opp_cmv[pos[dst_sq (move)]][dst_sq (move)])/14980)*DEPTH_ONE, DEPTH_ZERO), DEPTH_MAX - DEPTH_ONE);
+                                                                                + opp_cmv[pos[dst_sq (move)]][dst_sq (move)])/14980)*DEPTH_ONE, DEPTH_ZERO), DEPTH_MAX - DEPTH_ONE);
                     // Decrease reduction for moves that escape a capture.
                     // Filter out castling moves, because are coded as "king captures rook" hence break make_move().
                     // Also use see() instead of see_sign(), because the destination square is empty.
@@ -1360,16 +1361,15 @@ namespace Searcher {
             }
             else
             // Bonus for prior countermove that caused the fail low
-            if (  !in_check
+            if (   !in_check
                 && depth >= 3*DEPTH_ONE
                 && best_move == MOVE_NONE
                 && pos.capture_type () == NONE
-                && _ok ((ss-1)->current_move)
+                && opp_move_ok
                 //&& mtype ((ss-1)->current_move) != PROMOTE
                 && _ok ((ss-2)->current_move)
                )
             {
-                opp_move_dst = dst_sq ((ss-1)->current_move);
                 auto own_move_dst = dst_sq ((ss-2)->current_move);
                 auto &own_cmv = CounterMoveHistoryValues[pos[own_move_dst]][own_move_dst];
                 own_cmv.update (pos[opp_move_dst], opp_move_dst, Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1));
@@ -1414,7 +1414,7 @@ namespace Searcher {
             bool tt_hit;
             auto *tte = TT.probe (pos.posi_key (), tt_hit);
             // Don't overwrite correct entries
-            if (  !tt_hit
+            if (   !tt_hit
                 || tte->move () != m
                )
             {
@@ -1897,10 +1897,12 @@ namespace Threading {
                         // If all of the available time has been used or
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
-                            || main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () *
+                            || (main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () *
                                     (1.00 - 0.25000 * (!main_thread->failed_low)
                                           - 0.19687 * (best_value >= main_thread->previous_value)
-                                          - 0.19375 * (!main_thread->failed_low && best_value >= main_thread->previous_value))
+                                          - 0.19375 * (!main_thread->failed_low && best_value >= main_thread->previous_value)
+                                    )
+                               )
                             || (main_thread->easy_played =
                                     (  !root_moves.empty ()
                                     && !root_moves[0].empty ()
@@ -1914,8 +1916,8 @@ namespace Threading {
                             stop = true;
                         }
 
-                        if (  !root_moves.empty ()
-                            && root_moves[0].size () >= EasyMoveManager::PVSize
+                        if (   !root_moves.empty ()
+                            &&  root_moves[0].size () >= EasyMoveManager::PVSize
                            )
                         {
                             main_thread->easy_move_mgr.update (root_pos, root_moves[0]);
@@ -2204,7 +2206,7 @@ namespace Threading {
                 << "Speed (N/s): " << Threadpool.game_nodes ()*MilliSec / elapsed_time << "\n"
                 << "Hash-full  : " << TT.hash_full ()                                   << "\n"
                 << "Best Move  : " << move_to_san (root_moves[0][0], root_pos)          << "\n";
-            if (    _ok (root_moves[0][0])
+            if (   _ok (root_moves[0][0])
                 && (root_moves[0].size () > 1 || root_moves[0].extract_ponder_move_from_tt (root_pos))
                )
             {
