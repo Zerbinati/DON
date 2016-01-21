@@ -820,14 +820,14 @@ namespace TBSyzygy {
         {
             u08 n = tbep->num;
 
-            if (pos[0] & 0x04)
+            if ((pos[0] & 0x04) != 0)
             {
                 for (u08 i = 0; i < n; ++i)
                 {
                     pos[i] = !pos[i];
                 }
             }
-            if (pos[0] & 0x20)
+            if ((pos[0] & 0x20) != 0)
             {
                 for (u08 i = 0; i < n; ++i)
                 {
@@ -838,7 +838,7 @@ namespace TBSyzygy {
             i32 i;
             for (i = 0; i < n; ++i)
             {
-                if (OffDiag[pos[i]])
+                if (OffDiag[pos[i]] != 0)
                 {
                     break;
                 }
@@ -947,7 +947,7 @@ namespace TBSyzygy {
         {
             i32 n = tbep->num;
 
-            if (pos[0] & 0x04)
+            if ((pos[0] & 0x04) != 0)
             {
                 for (u08 i = 0; i < n; ++i)
                 {
@@ -1071,17 +1071,16 @@ namespace TBSyzygy {
             return f;
         }
 
-        u64 calc_factors_pawn (i32 *factor, i32 num, i32 order1, i32 order2, u08 *norm, i32 file)
+        u64 calc_factors_pawn (i32 *factor, u08 num, u08 order1, u08 order2, u08 *norm, i32 file)
         {
-            i32 i = norm[0];
+            u08 i = norm[0];
             if (order2 < 0x0F)
             {
                 i += norm[i];
             }
             i32 n = 64 - i;
-
             u64 f = 1;
-            for (i32 k = 0; i < num || k == order1 || k == order2; ++k)
+            for (u08 k = 0; i < num || k == order1 || k == order2; ++k)
             {
                 if (k == order1)
                 {
@@ -1184,13 +1183,11 @@ namespace TBSyzygy {
             tb_size[0] = calc_factors_piece (dtzep->factor, dtzep->num, order, dtzep->norm, dtzep->enc_type);
         }
 
-        void setup_pawn (TBEntry_pawn *tbep, u08 *data, u64 *tb_size, i32 f)
+        void setup_pawn (TBEntry_pawn *tbep, u08 *data, u64 *tb_size, u08 f)
         {
-            i32 order1, order2;
-
             u08 j = 1 + (tbep->pawns[1] > 0);
-            order1 = data[0] & 0x0F;
-            order2 = tbep->pawns[1] ? (data[1] & 0x0F) : 0x0F;
+            u08 order1 = data[0] & 0x0F;
+            u08 order2 = tbep->pawns[1] != 0 ? data[1] & 0x0F : 0x0F;
             for (u08 i = 0; i < tbep->num; ++i)
             {
                 tbep->file[f].pieces[0][i] = Piece(data[i + j] & 0x0F);
@@ -1199,7 +1196,7 @@ namespace TBSyzygy {
             tb_size[0] = calc_factors_pawn (tbep->file[f].factor[0], tbep->num, order1, order2, tbep->file[f].norm[0], f);
 
             order1 = data[0] >> 4;
-            order2 = tbep->pawns[1] ? (data[1] >> 4) : 0x0F;
+            order2 = tbep->pawns[1] != 0 ? data[1] >> 4 : 0x0F;
             for (u08 i = 0; i < tbep->num; ++i)
             {
                 tbep->file[f].pieces[1][i] = Piece(data[i + j] >> 4);
@@ -1208,13 +1205,11 @@ namespace TBSyzygy {
             tb_size[1] = calc_factors_pawn (tbep->file[f].factor[1], tbep->num, order1, order2, tbep->file[f].norm[1], f);
         }
 
-        void setup_pawn_dtz (DTZEntry_pawn *dtzep, u08 *data, u64 *tb_size, i32 f)
+        void setup_pawn_dtz (DTZEntry_pawn *dtzep, u08 *data, u64 *tb_size, u08 f)
         {
-            i32 order1, order2;
-
             u08 j = 1 + (dtzep->pawns[1] > 0);
-            order1 = data[0] & 0x0F;
-            order2 = dtzep->pawns[1] ? (data[1] & 0x0F) : 0x0F;
+            u08 order1 = data[0] & 0x0F;
+            u08 order2 = dtzep->pawns[1] != 0 ? data[1] & 0x0F : 0x0F;
             for (u08 i = 0; i < dtzep->num; ++i)
             {
                 dtzep->file[f].pieces[i] = Piece(data[i + j] & 0x0F);
@@ -1257,7 +1252,7 @@ namespace TBSyzygy {
         {
             PairsData *p_data;
             *flags = pairs_data[0];
-            if (pairs_data[0] & 0x80)
+            if ((pairs_data[0] & 0x80) != 0)
             {
                 p_data = reinterpret_cast<PairsData *> (malloc (sizeof (PairsData)));
                 p_data->idxbits = 0;
@@ -1351,8 +1346,8 @@ namespace TBSyzygy {
                 return false;
             }
 
-            u08 split = data[4] & 0x01;
-            u08 files = data[4] & 0x02 ? 4 : 1;
+            u08 split = (data[4] & 0x01);
+            u08 files = (data[4] & 0x02) != 0 ? 4 : 1;
 
             data += 5;
 
@@ -1482,7 +1477,7 @@ namespace TBSyzygy {
             u64 tb_size[4];
             u64 size[4 * 3];
 
-            u08 files = data[4] & 0x02 ? 4 : 1;
+            u08 files = (data[4] & 0x02) != 0 ? 4 : 1;
 
             data += 5;
 
@@ -1490,8 +1485,7 @@ namespace TBSyzygy {
             {
                 auto *dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
                 u08 s = 1 + (dtzep->pawns[1] > 0);
-                u08 f;
-                for (f = 0; f < 4; ++f)
+                for (u08 f = 0; f < 4; ++f)
                 {
                     setup_pawn_dtz (dtzep, data, &tb_size[f], f);
                     data += dtzep->num + s;
@@ -1499,14 +1493,14 @@ namespace TBSyzygy {
                 data += ((uintptr_t)data) & 0x01;
                 
                 u08 *next;
-                for (f = 0; f < files; ++f)
+                for (u08 f = 0; f < files; ++f)
                 {
                     dtzep->file[f].precomp = setup_pairs (data, tb_size[f], &size[3 * f], &next, &(dtzep->flags[f]), false);
                     data = next;
                 }
 
                 dtzep->map = data;
-                for (f = 0; f < files; ++f)
+                for (u08 f = 0; f < files; ++f)
                 {
                     if (dtzep->flags[f] & 2)
                     {
@@ -1519,17 +1513,17 @@ namespace TBSyzygy {
                 }
                 data += ((uintptr_t)data) & 0x01;
 
-                for (f = 0; f < files; ++f)
+                for (u08 f = 0; f < files; ++f)
                 {
                     dtzep->file[f].precomp->table_index = (char *)data;
                     data += size[3 * f];
                 }
-                for (f = 0; f < files; ++f)
+                for (u08 f = 0; f < files; ++f)
                 {
                     dtzep->file[f].precomp->table_size = (u16 *)data;
                     data += size[3 * f + 1];
                 }
-                for (f = 0; f < files; ++f)
+                for (u08 f = 0; f < files; ++f)
                 {
                     data = (u08 *)((((uintptr_t)data) + 0x3F) & ~0x3F);
                     dtzep->file[f].precomp->data = data;
@@ -1548,7 +1542,7 @@ namespace TBSyzygy {
                 data = next;
 
                 dtzep->map = data;
-                if (dtzep->flags & 2)
+                if ((dtzep->flags & 2) != 0)
                 {
                     for (u08 i = 0; i < 4; ++i)
                     {
@@ -2121,11 +2115,11 @@ namespace TBSyzygy {
                 u64 idx = encode_pawn (reinterpret_cast<TBEntry_pawn *> (dtzep), dtzep->file[f].norm, sq, dtzep->file[f].factor);
                 res = decompress_pairs (dtzep->file[f].precomp, idx);
 
-                if (dtzep->flags[f] & 2)
+                if ((dtzep->flags[f] & 2) != 0)
                 {
                     res = dtzep->map[dtzep->map_idx[f][WDL_To_Map[wdl + 2]] + res];
                 }
-                if (!(dtzep->flags[f] & PA_Flags[wdl + 2]) || (wdl & 1))
+                if ((dtzep->flags[f] & PA_Flags[wdl + 2]) == 0 || (wdl & 1) != 0)
                 {
                     res *= 2;
                 }
@@ -2139,8 +2133,7 @@ namespace TBSyzygy {
                     return VALUE_ZERO;
                 }
                 Piece *pc = dtzep->pieces;
-                u08 s = 0;
-                while (s < dtzep->num)
+                for (u08 s = 0; s < dtzep->num;)
                 {
                     Bitboard bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
                     do
@@ -2151,11 +2144,11 @@ namespace TBSyzygy {
                 u64 idx = encode_piece (reinterpret_cast<TBEntry_piece *> (dtzep), dtzep->norm, sq, dtzep->factor);
                 res = decompress_pairs (dtzep->precomp, idx);
 
-                if (dtzep->flags & 2)
+                if ((dtzep->flags & 2) != 0)
                 {
                     res = dtzep->map[dtzep->map_idx[WDL_To_Map[wdl + 2]] + res];
                 }
-                if (!(dtzep->flags & PA_Flags[wdl + 2]) || (wdl & 1))
+                if ((dtzep->flags & PA_Flags[wdl + 2]) == 0 || (wdl & 1) != 0)
                 {
                     res *= 2;
                 }
