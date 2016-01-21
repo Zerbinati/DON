@@ -1367,7 +1367,7 @@ namespace TBSyzygy {
                 {
                     tbep->file[f].precomp[0] = setup_pairs (data, tb_size[2 * f], &size[6 * f], &next, &flags, true);
                     data = next;
-                    if (split)
+                    if (split != 0)
                     {
                         tbep->file[f].precomp[1] = setup_pairs (data, tb_size[2 * f + 1], &size[6 * f + 3], &next, &flags, true);
                         data = next;
@@ -1381,7 +1381,7 @@ namespace TBSyzygy {
                 {
                     tbep->file[f].precomp[0]->table_index = (char *)data;
                     data += size[6 * f];
-                    if (split)
+                    if (split != 0)
                     {
                         tbep->file[f].precomp[1]->table_index = (char *)data;
                         data += size[6 * f + 3];
@@ -1391,7 +1391,7 @@ namespace TBSyzygy {
                 {
                     tbep->file[f].precomp[0]->table_size = (u16 *)data;
                     data += size[6 * f + 1];
-                    if (split)
+                    if (split != 0)
                     {
                         tbep->file[f].precomp[1]->table_size = (u16 *)data;
                         data += size[6 * f + 4];
@@ -1402,7 +1402,7 @@ namespace TBSyzygy {
                     data = (u08 *)((((uintptr_t)data) + 0x3F) & ~0x3F);
                     tbep->file[f].precomp[0]->data = data;
                     data += size[6 * f + 2];
-                    if (split)
+                    if (split != 0)
                     {
                         data = (u08 *)((((uintptr_t)data) + 0x3F) & ~0x3F);
                         tbep->file[f].precomp[1]->data = data;
@@ -1419,7 +1419,7 @@ namespace TBSyzygy {
 
                 tbep->precomp[0] = setup_pairs (data, tb_size[0], &size[0], &next, &flags, true);
                 data = next;
-                if (split)
+                if (split != 0)
                 {
                     tbep->precomp[1] = setup_pairs (data, tb_size[1], &size[3], &next, &flags, true);
                     data = next;
@@ -1430,7 +1430,7 @@ namespace TBSyzygy {
                 }
                 tbep->precomp[0]->table_index = (char *)data;
                 data += size[0];
-                if (split)
+                if (split != 0)
                 {
                     tbep->precomp[1]->table_index = (char *)data;
                     data += size[3];
@@ -1438,7 +1438,7 @@ namespace TBSyzygy {
 
                 tbep->precomp[0]->table_size = (u16 *)data;
                 data += size[1];
-                if (split)
+                if (split != 0)
                 {
                     tbep->precomp[1]->table_size = (u16 *)data;
                     data += size[4];
@@ -1447,7 +1447,7 @@ namespace TBSyzygy {
                 data = (u08 *)((((uintptr_t)data) + 0x3F) & ~0x3F);
                 tbep->precomp[0]->data = data;
                 data += size[2];
-                if (split)
+                if (split != 0)
                 {
                     data = (u08 *)((((uintptr_t)data) + 0x3F) & ~0x3F);
                     tbep->precomp[1]->data = data;
@@ -1660,7 +1660,6 @@ namespace TBSyzygy {
                     sym = (w[2] << 4) | (w[1] >> 4);
                 }
             }
-
             return sympat[3 * sym];
         }
 
