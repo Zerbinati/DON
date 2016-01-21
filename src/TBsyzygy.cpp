@@ -1969,21 +1969,21 @@ namespace TBSyzygy {
                 
                 pc = tbep->file[0].pieces[0];
                 Bitboard bb = pos.pieces (side == pos.active () ? color (pc[0]) : ~color (pc[0]), tb_ptype (pc[0]));
-                i = 0;
+                u08 s = 0;
                 do
                 {
-                    if (i < TB_PieceLimit) sq[i++] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
-                } while (bb);
+                    sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
+                } while (bb != U64(0));
 
                 File f = pawn_file (tbep, sq);
                 pc = tbep->file[f].pieces[side];
-                while (i < tbep->num)
+                while (s < tbep->num)
                 {
-                    bb = pos.pieces (side == pos.active () ? color (pc[i]) : ~color (pc[i]), tb_ptype (pc[i]));
+                    bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
                     do
                     {
-                        if (i < TB_PieceLimit) sq[i++] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
-                    } while (bb);
+                        sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
+                    } while (bb != U64(0));
                 }
                 u64 idx = encode_pawn (tbep, tbep->file[f].norm[side], sq, tbep->file[f].factor[side]);
                 res = decompress_pairs (tbep->file[f].precomp[side], idx);
@@ -1992,13 +1992,13 @@ namespace TBSyzygy {
             {
                 auto *tbep = reinterpret_cast<TBEntry_piece *> (tbe);
                 Piece *pc = tbep->pieces[side];
-                for (i = 0; i < tbep->num;)
+                for (u08 s = 0; s < tbep->num;)
                 {
-                    Bitboard bb = pos.pieces (side == pos.active () ? color (pc[i]) : ~color (pc[i]), tb_ptype (pc[i]));
+                    Bitboard bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
                     do
                     {
-                        if (i < TB_PieceLimit) sq[i++] = pop_lsq (bb);
-                    } while (bb);
+                        sq[std::min (s++, u08(TB_PieceLimit-1))] = pop_lsq (bb);
+                    } while (bb != U64(0));
                 }
                 u64 idx = encode_piece (tbep, tbep->norm[side], sq, tbep->factor[side]);
                 res = decompress_pairs (tbep->precomp[side], idx);
@@ -2097,11 +2097,11 @@ namespace TBSyzygy {
                 auto *dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
                 Piece p = side == pos.active () ? dtzep->file[0].pieces[0] : ~dtzep->file[0].pieces[0];
                 Bitboard bb = pos.pieces (color (p), tb_ptype (p));
-                u08 i = 0;
+                u08 s = 0;
                 do
                 {
-                    if (i < TB_PieceLimit) sq[i++] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
-                } while (bb);
+                    sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
+                } while (bb != U64(0));
                 
                 File f = pawn_file (reinterpret_cast<TBEntry_pawn *> (dtzep), sq);
                 if ((dtzep->flags[f] & 1) != side)
@@ -2110,13 +2110,13 @@ namespace TBSyzygy {
                     return VALUE_ZERO;
                 }
                 Piece *pc = dtzep->file[f].pieces;
-                while (i < dtzep->num)
+                while (s < dtzep->num)
                 {
-                    bb = pos.pieces (side == pos.active () ? color (pc[i]) : ~color (pc[i]), tb_ptype (pc[i]));
+                    bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
                     do
                     {
-                        if (i < TB_PieceLimit) sq[i++] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
-                    } while (bb);
+                        sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
+                    } while (bb != U64(0));
                 }
                 u64 idx = encode_pawn (reinterpret_cast<TBEntry_pawn *> (dtzep), dtzep->file[f].norm, sq, dtzep->file[f].factor);
                 res = decompress_pairs (dtzep->file[f].precomp, idx);
@@ -2139,14 +2139,14 @@ namespace TBSyzygy {
                     return VALUE_ZERO;
                 }
                 Piece *pc = dtzep->pieces;
-                u08 i = 0;
-                while (i < dtzep->num)
+                u08 s = 0;
+                while (s < dtzep->num)
                 {
-                    Bitboard bb = pos.pieces (side == pos.active () ? color (pc[i]) : ~color (pc[i]), tb_ptype (pc[i]));
+                    Bitboard bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
                     do
                     {
-                        if (i < TB_PieceLimit) sq[i++] = pop_lsq (bb);
-                    } while (bb);
+                        sq[std::min (s++, u08(TB_PieceLimit-1))] = pop_lsq (bb);
+                    } while (bb != U64(0));
                 }
                 u64 idx = encode_piece (reinterpret_cast<TBEntry_piece *> (dtzep), dtzep->norm, sq, dtzep->factor);
                 res = decompress_pairs (dtzep->precomp, idx);
