@@ -94,11 +94,7 @@ namespace UCI {
         }
         if (_type != "button")
         {
-            auto val = value;
-            if (_type == "spin")
-            {
-                val = std::to_string (std::min (std::max (stoi (val), _minimum), _maximum));
-            }
+            auto val = _type == "spin" ? std::to_string (std::min (std::max (stoi (value), _minimum), _maximum)) : value;
             if (_current_value != val)
             {
                 _current_value = val;
