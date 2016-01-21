@@ -136,7 +136,8 @@ typedef        uint64_t    u64;
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const u16 MaxPly = 128; // Maximum Plies
+const u16 MaxPly = 128;     // Maximum Plies
+const u16 MaxMove = 0x100; // Maximum Moves
 
 // File
 enum File : i08
@@ -249,9 +250,8 @@ enum CastleRight : u08
     CR_BLACK = u08(CR_BKING) | u08(CR_BQUEN),   // 1100
     CR_KING  = u08(CR_WKING) | u08(CR_BKING),   // 0101
     CR_QUEN  = u08(CR_WQUEN) | u08(CR_BQUEN),   // 1010
-    CR_FULL  = u08(CR_WHITE) | u08(CR_BLACK),   // 1111
-    CR_ALL   = CR_FULL+1,
-
+    CR_ANY   = u08(CR_WHITE) | u08(CR_BLACK),   // 1111
+    CR_NO    = CR_ANY+1,
 };
 
 // Piece Type

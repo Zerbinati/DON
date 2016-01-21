@@ -93,7 +93,7 @@ namespace BitBoard {
         {
 
 #       ifndef BM2
-            const u32 SEEDS[R_NO] =
+            const u32 Seeds[R_NO] =
 #           ifdef BIT64
                 { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF }; // 64-bit
 #           else
@@ -103,8 +103,7 @@ namespace BitBoard {
             Bitboard occupancy[MaxMoves]
                    , reference[MaxMoves];
             
-            i32      ages     [MaxMoves] = {0}
-                   , cur_age = 0;
+            i32 max_ages[MaxMoves] = {0}, cur_age = 0;
             
 #       endif
             
@@ -139,7 +138,7 @@ namespace BitBoard {
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
-                u32     size = 0;
+                u32 size = 0;
                 Bitboard occ = U64(0);
                 do
                 {
@@ -163,7 +162,7 @@ namespace BitBoard {
 
 #       ifndef BM2
 
-                PRNG rng(SEEDS[_rank (s)]);
+                PRNG rng (Seeds[_rank (s)]);
                 u32 i;
                 
                 // Find a magic for square 's' picking up an (almost) random number
@@ -183,9 +182,9 @@ namespace BitBoard {
                     {
                         u16 idx = magic_index (s, occupancy[i]);
                         
-                        if (ages[idx] < cur_age)
+                        if (max_ages[idx] < cur_age)
                         {
-                            ages[idx] = cur_age;
+                            max_ages[idx] = cur_age;
                             attacks_bb[s][idx] = reference[i];
                         }
                         else

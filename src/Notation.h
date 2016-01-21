@@ -83,28 +83,28 @@ inline std::basic_ostream<CharT, Traits>&
 
 //inline std::string to_string (CastleRight cr)
 //{
-//    std::string scastle;
-//    if (can_castle (cr, CR_A))
+//    std::string scr;
+//    if ((cr & CR_ANY) != CR_NONE)
 //    {
-//        if (can_castle (cr, CR_W))
+//        if ((cr & CR_WHITE) != CR_NONE)
 //        {
-//            scastle += "W:";
-//            if (can_castle (cr, CR_WKING)) scastle += " OO";
-//            if (can_castle (cr, CR_WQUEN)) scastle += " OOO";
-//            scastle += " - ";
+//            scr += "W:";
+//            if ((cr & CR_WKING) != CR_NONE) scr += " OO";
+//            if ((cr & CR_WQUEN) != CR_NONE) scr += " OOO";
+//            scr += " - ";
 //        }
-//        if (can_castle (cr, CR_B))
+//        if ((cr & CR_BLACK) != CR_NONE)
 //        {
-//            scastle += "B:";
-//            if (can_castle (cr, CR_BKING)) scastle += " OO";
-//            if (can_castle (cr, CR_BQUEN)) scastle += " OOO";
+//            scr += "B:";
+//            if ((cr & CR_BKING) != CR_NONE) scr += " OO";
+//            if ((cr & CR_BQUEN) != CR_NONE) scr += " OOO";
 //        }
 //    }
 //    else
 //    {
-//        scastle = "-";
+//        scr = "-";
 //    }
-//    return scastle;
+//    return scr;
 //}
 //
 //template<class CharT, class Traits>

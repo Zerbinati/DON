@@ -50,7 +50,7 @@ namespace MoveGen {
         {
             assert(GT != EVASION);
             assert(!pos.castle_impeded (CR)
-                 && pos.can_castle (CR)
+                 && pos.can_castle (CR) != CR_NONE
                  && pos.checkers () == U64(0));
                 
             static const bool KingSide = (CR & CR_KING) != CR_NONE;
@@ -474,29 +474,29 @@ namespace MoveGen {
     // Generates all legal moves.
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
-        auto *moves_cur = moves;
-        auto *moves_end = pos.checkers () == U64(0) ?
+        auto *cur_move = moves;
+        auto *end_move = pos.checkers () == U64(0) ?
             generate<RELAX  > (moves, pos) :
             generate<EVASION> (moves, pos);
 
         auto pinneds = pos.pinneds (pos.active ());
         auto king_sq = pos.square<KING> (pos.active ());
-        while (moves_cur < moves_end)
+        while (cur_move < end_move)
         {
             if (   (   pinneds != U64(0)
-                    || org_sq (*moves_cur) == king_sq
-                    || mtype (*moves_cur) == ENPASSANT
+                    || org_sq (*cur_move) == king_sq
+                    || mtype (*cur_move) == ENPASSANT
                    )
-                && !pos.legal (*moves_cur, pinneds)
+                && !pos.legal (*cur_move, pinneds)
                )
             {
-                *moves_cur = *(--moves_end);
+                *cur_move = *(--end_move);
                 continue;
             }
-            ++moves_cur;
+            ++cur_move;
         }
 
-        return moves_end;
+        return end_move;
     }
 
 }

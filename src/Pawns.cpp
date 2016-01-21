@@ -327,7 +327,7 @@ namespace Pawns {
     // and to allow easier tuning and better insight.
     void initialize ()
     {
-        const i32 SEED[R_NO] = { 0, 6, 15, 10, 57, 75, 135, 258 };
+        const i32 Seeds[R_NO] = { 0, 6, 15, 10, 57, 75, 135, 258 };
 
         for (u08 opposed = 0; opposed <= 1; ++opposed)
         {
@@ -337,7 +337,7 @@ namespace Pawns {
                 {
                     for (auto r = R_2; r < R_8; ++r)
                     {
-                        i32 v = (SEED[r] + (phalanx != 0 ? (SEED[r + 1] - SEED[r]) / 2 : 0)) >> opposed;
+                        i32 v = (Seeds[r] + (phalanx != 0 ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed;
                         v += (apex ? v / 2 : 0);
                         Connected[opposed][phalanx][apex][r] = mk_score (3 * v / 2, v);
                     }

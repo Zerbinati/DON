@@ -143,7 +143,7 @@ Position& Position::operator= (const Position &pos)
             _piece_sq[c][pt] = pos._piece_sq[c][pt];
         }
     }
-    for (auto r = 0; r <= CR_FULL; ++r)
+    for (auto r = 0; r <= CR_ANY; ++r)
     {
         _castle_rook[r] = pos._castle_rook[r];
         _castle_path[r] = pos._castle_path[r];
@@ -402,7 +402,7 @@ bool Position::ok (i08 *failed_step) const
                 {
                     auto cr = mk_castle_right (c, cs);
 
-                    if (!can_castle (cr))
+                    if (can_castle (cr) == CR_NONE)
                     {
                         continue;
                     }
@@ -470,13 +470,13 @@ Value Position::see      (Move m) const
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
+    assert(!empty (org));
 
     // Side to move
     auto stm = color (_board[org]);
 
-    const i08 MAX_GAINS = 32;
     // Gain list
-    Value gain_list[MAX_GAINS];
+    Value gain_list[32];
     i08   depth = 1;
 
     Bitboard mocc;
@@ -522,7 +522,7 @@ Value Position::see      (Move m) const
 
         do
         {
-            assert(depth < MAX_GAINS);
+            assert(depth < 32);
 
             // Add the new entry to the swap list
             gain_list[depth] = PieceValues[MG][captured] - gain_list[depth - 1];
@@ -960,7 +960,7 @@ void Position::clear ()
             _piece_sq[c][pt].clear ();
         }
     }
-    for (auto r = 0; r <= CR_FULL; ++r)
+    for (auto r = 0; r <= CR_ANY; ++r)
     {
         _castle_rook[r] = SQ_NO;
         _castle_path[r] = U64(0);
@@ -1683,32 +1683,32 @@ string Position::fen (bool c960, bool full) const
 
     oss << " " << _active << " ";
 
-    if (can_castle (CR_FULL))
+    if (can_castle (CR_ANY) != CR_NONE)
     {
         if (_chess960 || c960)
         {
-            if (can_castle (CR_WHITE))
+            if (can_castle (CR_WHITE) != CR_NONE)
             {
-                if (can_castle (CR_WKING)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_KING>::Right]), false);
-                if (can_castle (CR_WQUEN)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_QUEN>::Right]), false);
+                if (can_castle (CR_WKING) != CR_NONE) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_KING>::Right]), false);
+                if (can_castle (CR_WQUEN) != CR_NONE) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_QUEN>::Right]), false);
             }
-            if (can_castle (CR_BLACK))
+            if (can_castle (CR_BLACK) != CR_NONE)
             {
-                if (can_castle (CR_BKING)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_KING>::Right]), true);
-                if (can_castle (CR_BQUEN)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_QUEN>::Right]), true);
+                if (can_castle (CR_BKING) != CR_NONE) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_KING>::Right]), true);
+                if (can_castle (CR_BQUEN) != CR_NONE) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_QUEN>::Right]), true);
             }
         }
         else
         {
-            if (can_castle (CR_WHITE))
+            if (can_castle (CR_WHITE) != CR_NONE)
             {
-                if (can_castle (CR_WKING)) oss << "K";
-                if (can_castle (CR_WQUEN)) oss << "Q";
+                if (can_castle (CR_WKING) != CR_NONE) oss << "K";
+                if (can_castle (CR_WQUEN) != CR_NONE) oss << "Q";
             }
-            if (can_castle (CR_BLACK))
+            if (can_castle (CR_BLACK) != CR_NONE)
             {
-                if (can_castle (CR_BKING)) oss << "k";
-                if (can_castle (CR_BQUEN)) oss << "q";
+                if (can_castle (CR_BKING) != CR_NONE) oss << "k";
+                if (can_castle (CR_BQUEN) != CR_NONE) oss << "q";
             }
         }
     }
@@ -1728,32 +1728,32 @@ string Position::fen (bool c960, bool full) const
 // printed to the standard output
 Position::operator string () const
 {
-    const string EDGE  = " +---+---+---+---+---+---+---+---+\n";
-    const string ROW_1 = "| . |   | . |   | . |   | . |   |\n" + EDGE;
-    const string ROW_2 = "|   | . |   | . |   | . |   | . |\n" + EDGE;
+    const string Edge = " +---+---+---+---+---+---+---+---+\n";
+    const string Row1 = "| . |   | . |   | . |   | . |   |\n" + Edge;
+    const string Row2 = "|   | . |   | . |   | . |   | . |\n" + Edge;
 
-    auto board = EDGE;
+    auto sboard = Edge;
 
     for (auto r = R_8; r >= R_1; --r)
     {
-        board += to_char (r) + ((r % 2) != 0 ? ROW_1 : ROW_2);
+        sboard += to_char (r) + ((r % 2) != 0 ? Row1 : Row2);
     }
     for (auto f = F_A; f <= F_H; ++f)
     {
-        board += "   ";
-        board += to_char (f, false);
+        sboard += "   ";
+        sboard += to_char (f, false);
     }
 
     auto occ = _types_bb[NONE];
     while (occ != U64(0))
     {
         auto s = pop_lsq (occ);
-        board[3 + i32((ROW_1.length () + 1) * (7.5 - _rank (s)) + 4 * _file (s))] = PieceChar[_board[s]];
+        sboard[3 + i32((Row1.length () + 1) * (7.5 - _rank (s)) + 4 * _file (s))] = PieceChar[_board[s]];
     }
 
     ostringstream oss;
 
-    oss << board << "\n\n";
+    oss << sboard << "\n\n";
 
     oss << "FEN: " << fen () << "\n"
         << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)

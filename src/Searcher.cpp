@@ -724,7 +724,8 @@ namespace Searcher {
                 if (   (   piece_count <  TBPieceLimit
                        || (piece_count == TBPieceLimit && depth >= TBDepthLimit)
                        )
-                    &&  pos.clock_ply () == 0
+                    && pos.clock_ply () == 0
+                    && pos.can_castle (CR_ANY) == CR_NONE
                    )
                 {
                     i32 found;
@@ -2080,7 +2081,9 @@ namespace Threading {
                 TBDepthLimit = DEPTH_ZERO;
             }
 
-            if (TBPieceLimit >= root_pos.count<NONE> ())
+            if (   TBPieceLimit >= root_pos.count<NONE> ()
+                && root_pos.can_castle (CR_ANY) == CR_NONE
+               )
             {
                 // If the current root position is in the tablebases,
                 // then RootMoves contains only moves that preserve the draw or the win.

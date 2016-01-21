@@ -526,14 +526,14 @@ namespace Evaluator {
             {
                 value = ei.pe->king_safety[Own][CS_NO];
 
-                if (    pos.can_castle (Castling<Own, CS_KING>::Right)
+                if (    pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE
                     && (pos.king_path (Castling<Own, CS_KING>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
                     && !more_than_one (pos.castle_path (Castling<Own, CS_KING>::Right) & pos.pieces ())
                    )
                 {
                     value = std::max (value, ei.pe->king_safety[Own][CS_KING]);
                 }
-                if (    pos.can_castle (Castling<Own, CS_QUEN>::Right)
+                if (    pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE
                     && (pos.king_path (Castling<Own, CS_QUEN>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
                     && !more_than_one (pos.castle_path (Castling<Own, CS_QUEN>::Right) & pos.pieces ())
                    )

@@ -6,7 +6,7 @@
 
 namespace MoveGen {
 
-    const u16 MaxMoves = 0x100; // Maximum Moves
+    
 
     struct ValMove
     {
@@ -55,35 +55,35 @@ namespace MoveGen {
     {
 
     private:
-        ValMove  _moves_beg[MaxMoves]
-              , *_moves_end = _moves_beg;
+        ValMove  _beg_move[MaxMove]
+              , *_end_move = _beg_move;
 
     public:
 
         MoveList () = delete;
 
         explicit MoveList (const Position &pos)
-            : _moves_end (generate<GT> (_moves_beg, pos))
+            : _end_move (generate<GT> (_beg_move, pos))
         {
             //if (PT != NONE)
             //{
-            //    auto *moves_cur = _moves_beg;
-            //    while (moves_cur < _moves_end)
+            //    auto *cur_move = _beg_move;
+            //    while (cur_move < _end_move)
             //    {
-            //        if (PT != ptype (pos[org_sq (*moves_cur)]))
+            //        if (PT != ptype (pos[org_sq (*cur_move)]))
             //        {
-            //            *moves_cur = *(--_moves_end);
+            //            *cur_move = *(--_end_move);
             //            continue;
             //        }
-            //        ++moves_cur;
+            //        ++cur_move;
             //    }
             //}
         }
 
-        const ValMove* begin () const { return _moves_beg; }
-        const ValMove* end   () const { return _moves_end; }
+        const ValMove* begin () const { return _beg_move; }
+        const ValMove* end   () const { return _end_move; }
 
-        size_t size () const { return size_t(_moves_end - _moves_beg); }
+        size_t size () const { return size_t(_end_move - _beg_move); }
         
         bool contains (Move move) const
         {

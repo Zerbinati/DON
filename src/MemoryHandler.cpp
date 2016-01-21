@@ -19,11 +19,9 @@
 #   ifndef  WIN32_LEAN_AND_MEAN
 #       define WIN32_LEAN_AND_MEAN
 #   endif
-
 #   include <windows.h>
-
-#   undef NOMINMAX
 #   undef WIN32_LEAN_AND_MEAN
+#   undef NOMINMAX
 
 #   define SE_PRIVILEGE_DISABLED       (0x00000000L)
 

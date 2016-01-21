@@ -83,11 +83,11 @@ namespace MovePick {
     private:
 
         MoveGen::ValMove
-                 _moves_beg[MoveGen::MaxMoves]
-            ,   *_moves_cur         = _moves_beg
-            ,   *_moves_end         = _moves_beg
-            ,   *_quiets_end        = _moves_beg
-            ,   *_bad_captures_end  = _moves_beg+MoveGen::MaxMoves-1;
+                 _beg_move[MaxMove]
+            ,   *_cur_move         = _beg_move
+            ,   *_end_move         = _beg_move
+            ,   *_end_quiet        = _beg_move
+            ,   *_end_bad_capture  = _beg_move+MaxMove-1;
 
         const Position      &_pos;
         const HValueStats   &_history_values;
@@ -121,8 +121,8 @@ namespace MovePick {
         MovePicker (const Position&, const HValueStats&, Move, Depth, Square);
         MovePicker (const Position&, const HValueStats&, Move, Value);
 
-        MoveGen::ValMove* begin () { return _moves_beg; }
-        MoveGen::ValMove* end   () { return _moves_end; }
+        MoveGen::ValMove* begin () { return _beg_move; }
+        MoveGen::ValMove* end   () { return _end_move; }
 
         Move next_move ();
 

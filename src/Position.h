@@ -107,9 +107,9 @@ private:
     StateInfo *_psi; // Current state information pointer
 
     CastleRight _castle_mask[SQ_NO];
-    Square      _castle_rook[CR_ALL];
-    Bitboard    _castle_path[CR_ALL];
-    Bitboard    _king_path  [CR_ALL];
+    Square      _castle_rook[CR_NO];
+    Bitboard    _castle_path[CR_NO];
+    Bitboard    _king_path  [CR_NO];
 
     Color    _active;
     i16      _game_ply;
@@ -209,7 +209,6 @@ public:
 
     Score psq_score () const;
 
-    CastleRight can_castle () const;
     CastleRight can_castle (Color c) const;
     CastleRight can_castle (CastleRight cr) const;
 
@@ -401,7 +400,6 @@ inline Score  Position::psq_score () const { return _psi->psq_score; }
 // Incremental piece-square evaluation
 inline Value  Position::non_pawn_material (Color c) const { return _psi->non_pawn_matl[c]; }
 
-inline CastleRight Position::can_castle () const { return _psi->castle_rights; }
 inline CastleRight Position::can_castle (Color c) const { return _psi->castle_rights & mk_castle_right (c); }
 inline CastleRight Position::can_castle (CastleRight cr) const { return _psi->castle_rights & cr; }
 
