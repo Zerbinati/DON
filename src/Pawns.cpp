@@ -201,7 +201,8 @@ namespace Pawns {
                 {
                     if (supported == U64(0))
                     {
-                        score -= Unsupported[pop_count<Max15> (adjacents & rank_bb (s+Push))];
+                        b = adjacents & rank_bb (s+Push);
+                        score -= Unsupported[b != U64(0) ? pop_count<Max15> (b) : 0];
                     }
                     if (backward)
                     {

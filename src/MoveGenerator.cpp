@@ -244,7 +244,7 @@ namespace MoveGen {
                 auto ep_sq = pos.en_passant_sq ();
                 if (ep_sq != SQ_NO)
                 {
-                    assert(_rank (ep_sq) == rel_rank (Own, R_6));
+                    assert(rel_rank (Own, ep_sq) == R_6);
 
                     if ((Rx_pawns & Rank5BB) != U64(0))
                     {

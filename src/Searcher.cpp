@@ -942,7 +942,7 @@ namespace Searcher {
                     }
 
                     // Step 10. Internal iterative deepening
-                    if (   tt_move == MOVE_NONE
+                    if (   (!tt_hit || tt_move == MOVE_NONE)
                         && depth >= (PVNode ? 5 : 8)*DEPTH_ONE        // IID Activation Depth
                         && (PVNode || ss->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                        )

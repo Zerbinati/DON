@@ -120,19 +120,19 @@ namespace BitBoard {
         }
     };
 
-    extern Bitboard    FrontSqrs_bb[CLR_NO][SQ_NO];
+    extern Bitboard   FrontSqrs_bb[CLR_NO][SQ_NO];
 
-    extern Bitboard       Between_bb[SQ_NO][SQ_NO];
-    extern Bitboard       RayLine_bb[SQ_NO][SQ_NO];
+    extern Bitboard     Between_bb[SQ_NO][SQ_NO];
+    extern Bitboard     RayLine_bb[SQ_NO][SQ_NO];
 
-    extern Bitboard     DistRings_bb[SQ_NO][F_NO];
+    extern Bitboard   DistRings_bb[SQ_NO][F_NO];
 
     extern Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
     extern Bitboard   PawnPassSpan[CLR_NO][SQ_NO];
 
     // Attacks of the pawns & pieces
-    extern Bitboard     PawnAttacks[CLR_NO][SQ_NO];
-    extern Bitboard    PieceAttacks[NONE][SQ_NO];
+    extern Bitboard   PawnAttacks[CLR_NO][SQ_NO];
+    extern Bitboard  PieceAttacks[NONE][SQ_NO];
 
     extern Bitboard *B_Attacks_bb[SQ_NO];
     extern Bitboard *R_Attacks_bb[SQ_NO];

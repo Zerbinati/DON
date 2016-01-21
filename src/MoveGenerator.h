@@ -6,8 +6,6 @@
 
 namespace MoveGen {
 
-    
-
     struct ValMove
     {
     public:

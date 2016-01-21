@@ -295,8 +295,8 @@ namespace Evaluator {
             auto pinned_pawns = pinneds & pos.pieces (Own, PAWN);
             if (pinned_pawns != U64(0))
             {
-                auto free_pawns    = pos.pieces (Own, PAWN) & ~pinned_pawns;
-                auto pawn_attacks = shift_bb<LCap> (free_pawns) | shift_bb<RCap> (free_pawns);
+                auto loosed_pawns = pos.pieces (Own, PAWN) & ~pinned_pawns;
+                auto pawn_attacks = shift_bb<LCap> (loosed_pawns) | shift_bb<RCap> (loosed_pawns);
                 while (pinned_pawns != U64(0))
                 {
                     auto s = pop_lsq (pinned_pawns);

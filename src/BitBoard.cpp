@@ -10,12 +10,12 @@ namespace BitBoard {
     using namespace std;
 
     // FRONT SQUARES
-    Bitboard   FrontSqrs_bb[CLR_NO][SQ_NO];
+    Bitboard  FrontSqrs_bb[CLR_NO][SQ_NO];
 
-    Bitboard      Between_bb[SQ_NO][SQ_NO];
-    Bitboard      RayLine_bb[SQ_NO][SQ_NO];
+    Bitboard    Between_bb[SQ_NO][SQ_NO];
+    Bitboard    RayLine_bb[SQ_NO][SQ_NO];
 
-    Bitboard    DistRings_bb[SQ_NO][F_NO];
+    Bitboard  DistRings_bb[SQ_NO][F_NO];
 
     // Span of the attacks of pawn
     Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
@@ -23,8 +23,8 @@ namespace BitBoard {
     Bitboard   PawnPassSpan[CLR_NO][SQ_NO];
 
     // Attacks of the pawns & pieces
-    Bitboard     PawnAttacks[CLR_NO][SQ_NO];
-    Bitboard    PieceAttacks[NONE][SQ_NO];
+    Bitboard   PawnAttacks[CLR_NO][SQ_NO];
+    Bitboard  PieceAttacks[NONE][SQ_NO];
 
     Bitboard *B_Attacks_bb[SQ_NO];
     Bitboard *R_Attacks_bb[SQ_NO];
@@ -62,9 +62,9 @@ namespace BitBoard {
 //#       endif
 //        }
 
-        // Max Linear Moves (for rook from any corner square)
+        // Max Linear Table Size (for rook from any corner square)
         // 2 ^ 12 = 4096 = 0x1000
-        const u16 MaxMoves  = U32(0x1000);
+        const u16 MaxLTSize  = U32(0x1000);
         
         // Max Bishop Table Size
         // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
@@ -100,10 +100,10 @@ namespace BitBoard {
                 { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C }; // 32-bit
 #           endif
 
-            Bitboard occupancy[MaxMoves]
-                   , reference[MaxMoves];
+            Bitboard occupancy[MaxLTSize]
+                   , reference[MaxLTSize];
             
-            i32 max_ages[MaxMoves] = {0}, cur_age = 0;
+            i32 max_ages[MaxLTSize] = {0}, cur_age = 0;
             
 #       endif
             

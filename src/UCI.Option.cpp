@@ -85,21 +85,28 @@ namespace UCI {
     Option& Option::operator= (const string &value)
     {
         assert(!_type.empty ());
-
-        if (!( (_type != "button" && value.empty ())
+        
+        if (   (_type != "button" && value.empty ())
             || (_type == "check"  && value != "true" && value != "false")
-            || (_type == "spin"   && (_minimum > stoi (value) || stoi (value) > _maximum))
-             )
            )
         {
-            if (_type != "button")
+            return *this;
+        }
+        if (_type != "button")
+        {
+            auto val = value;
+            if (_type == "spin")
             {
-                if (_current_value != value)
-                {
-                    _current_value = value;
-                }
+                val = std::to_string (std::min (std::max (stoi (val), _minimum), _maximum));
             }
-            if (_on_change != nullptr) _on_change ();
+            if (_current_value != val)
+            {
+                _current_value = val;
+            }
+        }
+        if (_on_change != nullptr)
+        {
+            _on_change ();
         }
         return *this;
     }
