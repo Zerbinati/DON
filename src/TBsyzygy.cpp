@@ -95,22 +95,22 @@ namespace TBSyzygy {
         {
             char *table_index;
             u16  *table_size;
-            u08   *data;
+            u08  *data;
             u16  *offset;
-            u08   *symlen;
-            u08   *sympat;
-            i32     blocksize;
-            i32     idxbits;
-            i32     min_len;
-            base_t  base[1]; // C++ complains about base[]...
+            u08  *symlen;
+            u08  *sympat;
+            i32   blocksize;
+            i32   idxbits;
+            i32   min_len;
+            base_t base[1]; // C++ complains about base[]...
         };
 
         struct TBEntry
         {
             i08 *data;
-            Key key;
-            u64 mapping;
-            u08 num;
+            Key  key;
+            u64  mapping;
+            u08  num;
             bool ready;
             bool symmetric;
             bool has_pawns;
@@ -123,76 +123,76 @@ namespace TBSyzygy {
         struct TBEntry_piece
         {
             i08 *data;
-            Key key;
-            u64 mapping;
-            u08 num;
+            Key  key;
+            u64  mapping;
+            u08  num;
             bool ready;
             bool symmetric;
             bool has_pawns;
-            u08 enc_type;
+            u08  enc_type;
             PairsData *precomp[2];
-            i32 factor[2][NONE];
+            i32   factor[2][NONE];
             Piece pieces[2][NONE];
-            u08 norm[2][NONE];
+            u08   norm[2][NONE];
         };
 
         struct TBEntry_pawn
         {
             i08 *data;
-            Key key;
-            u64 mapping;
-            u08 num;
+            Key  key;
+            u64  mapping;
+            u08  num;
             bool ready;
             bool symmetric;
             bool has_pawns;
-            u08 pawns[2];
+            u08  pawns[2];
             struct
             {
                 PairsData *precomp[2];
-                i32 factor[2][NONE];
+                i32   factor[2][NONE];
                 Piece pieces[2][NONE];
-                u08 norm[2][NONE];
+                u08   norm[2][NONE];
             } file[4];
         };
 
         struct DTZEntry_piece
         {
             i08 *data;
-            Key key;
-            u64 mapping;
-            u08 num;
+            Key  key;
+            u64  mapping;
+            u08  num;
             bool ready;
             bool symmetric;
             bool has_pawns;
-            u08 enc_type;
+            u08  enc_type;
             PairsData *precomp;
-            i32 factor[NONE];
+            i32   factor[NONE];
             Piece pieces[NONE];
-            u08 norm[NONE];
-            u08 flags; // accurate, mapped, side
-            u16 map_idx[4];
-            u08 *map;
+            u08   norm[NONE];
+            u08   flags; // accurate, mapped, side
+            u16   map_idx[4];
+            u08  *map;
         };
 
         struct DTZEntry_pawn
         {
             i08 *data;
-            Key key;
-            u64 mapping;
-            u08 num;
+            Key  key;
+            u64  mapping;
+            u08  num;
             bool ready;
             bool symmetric;
             bool has_pawns;
-            u08 pawns[2];
+            u08  pawns[2];
             struct
             {
                 PairsData *precomp;
-                i32 factor[NONE];
+                i32   factor[NONE];
                 Piece pieces[NONE];
-                u08 norm[NONE];
+                u08   norm[NONE];
             } file[4];
-            u08 flags[4];
-            u16 map_idx[4][4];
+            u08  flags[4];
+            u16  map_idx[4][4];
             u08 *map;
         };
 
@@ -337,7 +337,9 @@ namespace TBSyzygy {
             assert(hash_idx < (1 << TBHashBits));
 
             u08 i = 0;
-            while (i < MaxHash && TB_Hash[hash_idx][i].tbe != nullptr)
+            while (   i < MaxHash
+                   && TB_Hash[hash_idx][i].tbe != nullptr
+                  )
             {
                 ++i;
             }
@@ -1071,7 +1073,7 @@ namespace TBSyzygy {
             return f;
         }
 
-        u64 calc_factors_pawn (i32 *factor, u08 num, u08 order1, u08 order2, u08 *norm, i32 file)
+        u64 calc_factors_pawn (i32 *factor, u08 num, u08 order1, u08 order2, u08 *norm, u08 file)
         {
             u08 i = norm[0];
             if (order2 < 0x0F)
@@ -1619,7 +1621,10 @@ namespace TBSyzygy {
             while (true)
             {
                 i32 l = m;
-                while (code < base[l]) ++l;
+                while (code < base[l])
+                {
+                    ++l;
+                }
                 sym = offset[l];
                 if (!LittleEndian)
                 {
@@ -2651,6 +2656,8 @@ namespace TBSyzygy {
     // no moves were filtered out.
     bool root_probe_dtz (Position &pos, RootMoveVector &root_moves)
     {
+        assert(!root_moves.empty ());
+
         i32 success;
         Value dtz = probe_dtz (pos, success);
         if (success == 0) return false;
@@ -2811,6 +2818,8 @@ namespace TBSyzygy {
     // no moves were filtered out.
     bool root_probe_wdl (Position &pos, RootMoveVector &root_moves)
     {
+        assert(!root_moves.empty ());
+
         i32 success;
         Value wdl = probe_wdl (pos, success);
         assert(-2 <= wdl && wdl <= 2);
@@ -2865,7 +2874,9 @@ namespace TBSyzygy {
         clear_tb ();
 
         convert_path (PathString);
-        if (!white_spaces (PathString) && PathString != "<empty>")
+        if (   !white_spaces (PathString)
+            && PathString != "<empty>"
+           )
         {
             Paths = split (PathString, SepChar, false, true);
 

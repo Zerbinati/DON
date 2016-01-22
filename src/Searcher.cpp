@@ -251,7 +251,7 @@ namespace Searcher {
             assert(_ok (move));
             auto new_pv = MoveVector ();
             new_pv.push_back (move);
-            if (!child_pv.empty ())
+            if (child_pv.size () != 0)
             {
                 new_pv.reserve (child_pv.size () + 1);
                 std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (new_pv));
@@ -350,7 +350,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(depth <= DEPTH_ZERO);
-            assert((ss-1)->ply != 0 && 0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1);
+            assert(0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1 && (ss-1)->ply != 0);
 
             auto pv_alfa = -VALUE_INFINITE;
 
@@ -375,11 +375,11 @@ namespace Searcher {
             auto posi_key = pos.posi_key ();
             bool tt_hit;
             auto *tte = TT.probe (posi_key, tt_hit);
-            auto tt_move    = tt_hit ? tte->move () : MOVE_NONE;
-            auto tt_value   = tt_hit ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
-            auto tt_eval    = tt_hit ? tte->eval () : VALUE_NONE;
-            auto tt_depth   = tt_hit ? tte->depth () : DEPTH_NONE;
-            auto tt_bound   = tt_hit ? tte->bound () : BOUND_NONE;
+            auto tt_move  = tt_hit ? tte->move () : MOVE_NONE;
+            auto tt_value = tt_hit ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
+            auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
+            auto tt_depth = tt_hit ? tte->depth () : DEPTH_NONE;
+            auto tt_bound = tt_hit ? tte->bound () : BOUND_NONE;
 
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in quien_search use
@@ -411,12 +411,7 @@ namespace Searcher {
                 if (tt_hit)
                 {
                     // Never assume anything on values stored in TT
-                    if (tt_eval == VALUE_NONE)
-                    {
-                        tt_eval = evaluate (pos);
-                    }
-                    ss->static_eval = tt_eval;
-
+                    ss->static_eval = tt_eval = tt_eval != VALUE_NONE ? tt_eval : evaluate (pos);
                     // Can tt_value be used as a better position evaluation?
                     if (   tt_value != VALUE_NONE
                         && (tt_bound & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE
@@ -687,12 +682,12 @@ namespace Searcher {
                         pos.posi_key () ^ Zobrist::ExclusionKey;
             bool tt_hit;
             auto *tte = TT.probe (posi_key, tt_hit);
-            auto tt_move = rootNode ? thread->root_moves[thread->pv_index][0] :
-                                    tt_hit ? tte->move () : MOVE_NONE;
-            auto tt_value   = tt_hit ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
-            auto tt_eval    = tt_hit ? tte->eval () : VALUE_NONE;
-            auto tt_depth   = tt_hit ? tte->depth () : DEPTH_NONE;
-            auto tt_bound   = tt_hit ? tte->bound () : BOUND_NONE;
+            auto tt_move  = rootNode ? thread->root_moves[thread->pv_index][0] :
+                            tt_hit ? tte->move () : MOVE_NONE;
+            auto tt_value = tt_hit ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
+            auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
+            auto tt_depth = tt_hit ? tte->depth () : DEPTH_NONE;
+            auto tt_bound = tt_hit ? tte->bound () : BOUND_NONE;
 
             // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
@@ -770,12 +765,7 @@ namespace Searcher {
                 if (tt_hit)
                 {
                     // Never assume anything on values stored in TT
-                    if (tt_eval == VALUE_NONE)
-                    {
-                        tt_eval = evaluate (pos);
-                    }
-                    ss->static_eval = tt_eval;
-
+                    ss->static_eval = tt_eval = tt_eval != VALUE_NONE ? tt_eval : evaluate (pos);
                     // Can tt_value be used as a better position evaluation?
                     if (   tt_value != VALUE_NONE
                         && (tt_bound & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE
@@ -954,14 +944,32 @@ namespace Searcher {
                         ss->skip_pruning = false;
 
                         tte = TT.probe (posi_key, tt_hit);
-                        tt_move  = tt_hit ? tte->move () : MOVE_NONE;
-                        tt_value = tt_hit ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
-                        tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
-                        tt_depth = tt_hit ? tte->depth () : DEPTH_NONE;
-                        tt_bound = tt_hit ? tte->bound () : BOUND_NONE;
+                        if (tt_hit)
+                        {
+                            if (!rootNode)
+                            {
+                                tt_move  = tte->move ();
+                            }
+                            tt_value = value_of_tt (tte->value (), ss->ply);
+                            tt_eval  = tte->eval ();
+                            tt_depth = tte->depth ();
+                            tt_bound = tte->bound ();
+
+                            // Never assume anything on values stored in TT
+                            //ss->static_eval = tt_eval = tt_eval != VALUE_NONE ? tt_eval : evaluate (pos);
+                        }
+                        //else
+                        //{
+                        //    ss->static_eval = tt_eval = (ss-1)->current_move != MOVE_NULL ?
+                        //                                    evaluate (pos) : -(ss-1)->static_eval + 2*Tempo;
+                        //
+                        //    tte->save (posi_key, MOVE_NONE, VALUE_NONE, ss->static_eval, DEPTH_NONE, BOUND_NONE, TT.generation ());
+                        //}
                     }
                 }
             }
+
+            assert(!rootNode || tt_move == thread->root_moves[thread->pv_index][0]);
 
             // When in check search starts from here
             auto value      = -VALUE_INFINITE
@@ -1246,7 +1254,7 @@ namespace Searcher {
                         //assert(!pv.empty ());
                         auto rm = RootMove (root_move[0]);
                         rm.old_value = root_move.old_value;
-                        if (!pv.empty ())
+                        if (pv.size () != 0)
                         {
                             rm.reserve (pv.size () + 1);
                             std::copy (pv.begin (), pv.end (), std::back_inserter (rm));
@@ -1994,7 +2002,9 @@ namespace Threading {
 
         MateSearch = Limits.mate != 0;
 
-        if (!white_spaces (LogFile) && LogFile != "<empty>")
+        if (   !white_spaces (LogFile)
+            && LogFile != "<empty>"
+           )
         {
             LogStream.open (LogFile, ios_base::out|ios_base::app);
 

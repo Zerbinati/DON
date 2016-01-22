@@ -176,7 +176,11 @@ namespace Threading {
     void ThreadPool::configure ()
     {
         size_t threads = i32(Options["Threads"]);
-        assert(threads > 0);
+        //assert(threads != 0);
+        if (threads == 0)
+        {
+            threads = thread::hardware_concurrency ();
+        }
 
         while (size () < threads)
         {
