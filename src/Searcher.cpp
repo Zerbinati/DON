@@ -251,7 +251,7 @@ namespace Searcher {
             assert(_ok (move));
             auto new_pv = MoveVector ();
             new_pv.push_back (move);
-            if (child_pv.size () != 0)
+            if (!child_pv.empty ())
             {
                 new_pv.reserve (child_pv.size () + 1);
                 std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (new_pv));
@@ -1254,7 +1254,7 @@ namespace Searcher {
                         //assert(!pv.empty ());
                         auto rm = RootMove (root_move[0]);
                         rm.old_value = root_move.old_value;
-                        if (pv.size () != 0)
+                        if (!pv.empty ())
                         {
                             rm.reserve (pv.size () + 1);
                             std::copy (pv.begin (), pv.end (), std::back_inserter (rm));
