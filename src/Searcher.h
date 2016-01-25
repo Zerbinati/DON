@@ -136,8 +136,6 @@ namespace Searcher {
         void operator+= (Move m) { push_back (m); }
         void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
-        void backup () { old_value = new_value; }
-
         void insert_pv_into_tt (Position &pos);
         bool extract_ponder_move_from_tt (Position &pos);
 

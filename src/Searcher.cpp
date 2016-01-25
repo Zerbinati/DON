@@ -285,7 +285,7 @@ namespace Searcher {
         // to "plies to mate/be mated from the root".
         Value value_of_tt (Value v, i32 ply)
         {
-            return v == VALUE_NONE               ? VALUE_NONE :
+            return v == VALUE_NONE             ? VALUE_NONE :
                    v >= +VALUE_MATE_IN_MAX_PLY ? v - ply :
                    v <= -VALUE_MATE_IN_MAX_PLY ? v + ply :
                    v;
@@ -473,7 +473,7 @@ namespace Searcher {
             CheckInfo ci (pos);
             StateInfo si;
             Move move;
-            // Loop through the moves until no moves remain or a beta cutoff occurs
+            // Loop through the moves until no moves remain or a beta cutoff occurs.
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
                 assert(_ok (move));
@@ -912,9 +912,11 @@ namespace Searcher {
 
                         // Initialize a MovePicker object for the current position, and prepare to search the moves.
                         MovePicker mp (pos, thread->history_values, tt_move, PieceValues[MG][pos.capture_type ()]);
-
+                        // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
                         while ((move = mp.next_move ()) != MOVE_NONE)
                         {
+                            assert(_ok (move));
+
                             //// Speculative prefetch as early as possible
                             //prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
@@ -1005,7 +1007,7 @@ namespace Searcher {
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
 
             // Step 11. Loop through moves
-            // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
+            // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
                 assert(_ok (move));
@@ -1450,7 +1452,7 @@ namespace Searcher {
     bool RootMove::extract_ponder_move_from_tt (Position &pos)
     {
         assert(size () == 1);
-        assert(at (0) != MOVE_NONE);
+        assert(_ok (at (0)));
 
         bool extracted = false;
         StateInfo si;
@@ -1461,7 +1463,7 @@ namespace Searcher {
         if (tt_hit)
         {
             m = tte->move (); // Local copy to be SMP safe
-            if (   m != MOVE_NONE
+            if (   _ok (m)
                 && MoveList<LEGAL> (pos).contains (m)
                )
             {
@@ -1479,6 +1481,7 @@ namespace Searcher {
         ostringstream oss;
         for (const auto m : *this)
         {
+            assert(_ok (m));
             oss << " " << move_to_can (m, Chess960);
         }
         return oss.str ();
@@ -1720,7 +1723,7 @@ namespace Threading {
             else
             {
                 // Rotating symmetric patterns with increasing skipsize
-                static const u16 HalfDensityMap[][9] =
+                static const u16 HalfDensityMap[30][11] =
                 {
                     { 2, 0, 1 },
                     { 2, 1, 0 },
@@ -1739,16 +1742,27 @@ namespace Threading {
 
                     { 8, 0, 0, 0, 0, 1, 1, 1, 1 },
                     { 8, 0, 0, 0, 1, 1, 1, 1, 0 },
-                    { 8, 0, 0, 1, 1, 1, 1, 0 ,0 },
-                    { 8, 0, 1, 1, 1, 1, 0, 0 ,0 },
-                    { 8, 1, 1, 1, 1, 0, 0, 0 ,0 },
-                    { 8, 1, 1, 1, 0, 0, 0, 0 ,1 },
-                    { 8, 1, 1, 0, 0, 0, 0, 1 ,1 },
-                    { 8, 1, 0, 0, 0, 0, 1, 1 ,1 },
+                    { 8, 0, 0, 1, 1, 1, 1, 0, 0 },
+                    { 8, 0, 1, 1, 1, 1, 0, 0, 0 },
+                    { 8, 1, 1, 1, 1, 0, 0, 0, 0 },
+                    { 8, 1, 1, 1, 0, 0, 0, 0, 1 },
+                    { 8, 1, 1, 0, 0, 0, 0, 1, 1 },
+                    { 8, 1, 0, 0, 0, 0, 1, 1, 1 },
+
+                    { 10, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 },
+                    { 10, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0 },
+                    { 10, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0 },
+                    { 10, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0 },
+                    { 10, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0 },
+                    { 10, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
+                    { 10, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
+                    { 10, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1 },
+                    { 10, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1 },
+                    { 10, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1 },
                 };
 
-                u16 row = (index - 1) % 20;
-                if (HalfDensityMap[row][(u16(root_depth) + root_pos.game_ply ()) % HalfDensityMap[row][0] + 1])
+                u16 row = (index - 1) % 30;
+                if (HalfDensityMap[row][(u16(root_depth) + root_pos.game_ply ()) % HalfDensityMap[row][0] + 1] != 0)
                 {
                     continue;
                 }
@@ -1758,7 +1772,7 @@ namespace Threading {
             // all the move scores but the (new) PV are set to -VALUE_INFINITE.
             for (auto &rm : root_moves)
             {
-                rm.backup ();
+                rm.old_value = rm.new_value;
             }
 
             const bool aspiration = root_depth > 4*DEPTH_ONE;
@@ -1795,7 +1809,7 @@ namespace Threading {
 
                     // Write PV back to the transposition table in case the relevant
                     // entries have been overwritten during the search.
-                    for (i16 i = pv_index; i >= 0; --i)
+                    for (u16 i = 0; i <= pv_index; ++i)
                     {
                         root_moves[i].insert_pv_into_tt (root_pos);
                     }
@@ -1908,7 +1922,7 @@ namespace Threading {
                     if (main_thread->time_mgr_used)
                     {
                         // Take some extra time if the best move has changed
-                        double instability_factor = 1.0 + aspiration && PVLimit == 1 ? main_thread->best_move_change : 0.0;
+                        double instability_factor = 1.010*(1.0 + aspiration && PVLimit == 1 ? main_thread->best_move_change : 0.0);
 
                         // Stop the search
                         // If there is only one legal move available or
