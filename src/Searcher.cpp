@@ -249,15 +249,24 @@ namespace Searcher {
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
             assert(_ok (move));
-            auto new_pv = MoveVector ();
-            new_pv.push_back (move);
-            if (!child_pv.empty ())
+            if (    pv.size () == 0
+                ||  pv[0] != move
+                ||  child_pv.size () + 1 != pv.size ()
+                || (child_pv.size () > 0 && pv.size () > 1 && child_pv[0] != pv[1])
+                || (child_pv.size () > 1 && pv.size () > 2 && child_pv[1] != pv[2])
+                || (child_pv.size () > 2 && pv.size () > 3 && child_pv[2] != pv[3])
+               )
             {
-                new_pv.reserve (child_pv.size () + 1);
-                std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (new_pv));
-                //new_pv.shrink_to_fit ();
+                auto new_pv = MoveVector ();
+                new_pv.push_back (move);
+                if (!child_pv.empty ())
+                {
+                    new_pv.reserve (child_pv.size () + 1);
+                    std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (new_pv));
+                    //new_pv.shrink_to_fit ();
+                }
+                pv = new_pv;
             }
-            pv = new_pv;
         }
 
         // value_to_tt() adjusts a mate score from "plies to mate from the root" to
@@ -954,17 +963,7 @@ namespace Searcher {
                             tt_eval  = tte->eval ();
                             tt_depth = tte->depth ();
                             tt_bound = tte->bound ();
-
-                            // Never assume anything on values stored in TT
-                            //ss->static_eval = tt_eval = tt_eval != VALUE_NONE ? tt_eval : evaluate (pos);
                         }
-                        //else
-                        //{
-                        //    ss->static_eval = tt_eval = (ss-1)->current_move != MOVE_NULL ?
-                        //                                    evaluate (pos) : -(ss-1)->static_eval + 2*Tempo;
-                        //
-                        //    tte->save (posi_key, MOVE_NONE, VALUE_NONE, ss->static_eval, DEPTH_NONE, BOUND_NONE, TT.generation ());
-                        //}
                     }
                 }
             }
@@ -1252,15 +1251,22 @@ namespace Searcher {
                     {
                         auto &pv = (ss+1)->pv;
                         //assert(!pv.empty ());
-                        auto rm = RootMove (root_move[0]);
-                        rm.old_value = root_move.old_value;
-                        if (!pv.empty ())
+                        if (    pv.size () + 1 != root_move.size ()
+                            || (pv.size () > 0 && root_move.size () > 1 && pv[0] != root_move[1])
+                            || (pv.size () > 1 && root_move.size () > 2 && pv[1] != root_move[2])
+                            || (pv.size () > 2 && root_move.size () > 3 && pv[2] != root_move[3])
+                           )
                         {
-                            rm.reserve (pv.size () + 1);
-                            std::copy (pv.begin (), pv.end (), std::back_inserter (rm));
-                            //rm.shrink_to_fit ();
+                            auto rm = RootMove (root_move[0]);
+                            rm.old_value = root_move.old_value;
+                            if (!pv.empty ())
+                            {
+                                rm.reserve (pv.size () + 1);
+                                std::copy (pv.begin (), pv.end (), std::back_inserter (rm));
+                                //rm.shrink_to_fit ();
+                            }
+                            root_move = rm;
                         }
-                        root_move = rm;
                         root_move.new_value = value;
 
                         // Record how often the best move has been changed in each iteration.
@@ -1713,31 +1719,38 @@ namespace Threading {
             }
             else
             {
-                // Set up the new depths for the helper threads skipping on average every
-                // 2nd ply (using a half density map similar to a Hadamard matrix).
-                u16 d = u16(root_depth) + root_pos.game_ply ();
+                // Rotating symmetric patterns with increasing skipsize
+                static const u16 HalfDensityMap[][9] =
+                {
+                    { 2, 0, 1 },
+                    { 2, 1, 0 },
 
-                if (index < 7 || 24 < index)
+                    { 4, 0, 0, 1, 1 },
+                    { 4, 0, 1, 1, 0 },
+                    { 4, 1, 1, 0, 0 },
+                    { 4, 1, 0, 0, 1 },
+
+                    { 6, 0, 0, 0, 1, 1, 1 },
+                    { 6, 0, 0, 1, 1, 1, 0 },
+                    { 6, 0, 1, 1, 1, 0, 0 },
+                    { 6, 1, 1, 1, 0, 0, 0 },
+                    { 6, 1, 1, 0, 0, 0, 1 },
+                    { 6, 1, 0, 0, 0, 1, 1 },
+
+                    { 8, 0, 0, 0, 0, 1, 1, 1, 1 },
+                    { 8, 0, 0, 0, 1, 1, 1, 1, 0 },
+                    { 8, 0, 0, 1, 1, 1, 1, 0 ,0 },
+                    { 8, 0, 1, 1, 1, 1, 0, 0 ,0 },
+                    { 8, 1, 1, 1, 1, 0, 0, 0 ,0 },
+                    { 8, 1, 1, 1, 0, 0, 0, 0 ,1 },
+                    { 8, 1, 1, 0, 0, 0, 0, 1 ,1 },
+                    { 8, 1, 0, 0, 0, 0, 1, 1 ,1 },
+                };
+
+                u16 row = (index - 1) % 20;
+                if (HalfDensityMap[row][(u16(root_depth) + root_pos.game_ply ()) % HalfDensityMap[row][0] + 1])
                 {
-                    if (((d + index) >> (scan_msq (index + 1) - 1)) % 2 != 0)
-                    {
-                        continue;
-                    }
-                }
-                else
-                {
-                    // Table of values of 6 bits with 3 of them set
-                    static const u16 HalfDensityMap[18] = // 24 - 7 + 1
-                    {
-                        0x07, 0x0B, 0x0D, 0x0E,
-                        0x13, 0x16, 0x19, 0x1A, 0x1C,
-                        0x23, 0x25, 0x26, 0x29, 0x2C,
-                        0x31, 0x32, 0x34, 0x38,
-                    };
-                    if (((HalfDensityMap[index - 7] >> (d % 6)) & 1) != 0)
-                    {
-                        continue;
-                    }
+                    continue;
                 }
             }
 
