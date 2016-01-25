@@ -209,11 +209,8 @@ namespace Searcher {
             auto *thread = pos.thread ();
 
             thread->history_values.update (pos[org_sq (move)], dst_sq (move), bonus);
-            if (opp_move_ok)
-            {
-                thread->counter_moves.update (pos[opp_move_dst], opp_move_dst, move);
-                opp_cmv.update (pos[org_sq (move)], dst_sq (move), bonus);
-            }
+            thread->counter_moves.update (opp_move_ok ? pos[opp_move_dst] : NO_PIECE, opp_move_dst, move);
+            opp_cmv.update (pos[org_sq (move)], dst_sq (move), bonus);
 
             // Decrease all the other played quiet moves
             assert(std::find (quiet_moves.begin (), quiet_moves.end (), move) == quiet_moves.end ());
@@ -221,22 +218,18 @@ namespace Searcher {
             {
                 assert(m != move);
                 thread->history_values.update (pos[org_sq (m)], dst_sq (m), -bonus);
-                if (opp_move_ok)
-                {
-                    opp_cmv.update (pos[org_sq (m)], dst_sq (m), -bonus);
-                }
+                opp_cmv.update (pos[org_sq (m)], dst_sq (m), -bonus);
             }
 
             // Extra penalty for PV move in previous ply when it gets refuted
             if (   (ss-1)->move_count == 1
                 && pos.capture_type () == NONE
-                && opp_move_ok // _ok ((ss-1)->current_move)
-                //&& mtype ((ss-1)->current_move) != PROMOTE
-                && _ok ((ss-2)->current_move)
+                && opp_move_ok
                )
             {
                 auto own_move_dst = dst_sq ((ss-2)->current_move);
-                auto &own_cmv = CounterMoveHistoryValues[pos[own_move_dst]][own_move_dst];
+                auto own_move_ok  = _ok ((ss-2)->current_move);
+                auto &own_cmv = CounterMoveHistoryValues[own_move_ok ? pos[own_move_dst] : NO_PIECE][own_move_dst];
                 own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth/DEPTH_ONE) - 2);
             }
         }
@@ -1383,12 +1376,11 @@ namespace Searcher {
                 && best_move == MOVE_NONE
                 && pos.capture_type () == NONE
                 && opp_move_ok
-                //&& mtype ((ss-1)->current_move) != PROMOTE
-                && _ok ((ss-2)->current_move)
                )
             {
                 auto own_move_dst = dst_sq ((ss-2)->current_move);
-                auto &own_cmv = CounterMoveHistoryValues[pos[own_move_dst]][own_move_dst];
+                auto own_move_ok  = _ok ((ss-2)->current_move);
+                auto &own_cmv = CounterMoveHistoryValues[own_move_ok ? pos[own_move_dst] : NO_PIECE][own_move_dst];
                 own_cmv.update (pos[opp_move_dst], opp_move_dst, Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1));
             }
 
