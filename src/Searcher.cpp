@@ -1277,7 +1277,7 @@ namespace Searcher {
                             && move_count > 1
                            )
                         {
-                            main_thread->time_mgr.best_move_change++;
+                            main_thread->best_move_change++;
                         }
                     }
                     else
@@ -1679,10 +1679,10 @@ namespace Threading {
 
             if (main_thread->time_mgr_used)
             {
-                main_thread->time_mgr.best_move_change = 0.0;
                 easy_move = main_thread->easy_move_mgr.easy_move (root_pos.posi_key ());
                 main_thread->easy_move_mgr.clear ();
                 main_thread->easy_played = false;
+                main_thread->best_move_change = 0.0;
             }
             if (SkillMgr.enabled ())
             {
@@ -1714,7 +1714,7 @@ namespace Threading {
                 if (main_thread->time_mgr_used)
                 {
                     // Age out PV variability metric
-                    main_thread->time_mgr.best_move_change *= 0.505;
+                    main_thread->best_move_change *= 0.505;
                 }
             }
             else
@@ -1908,30 +1908,25 @@ namespace Threading {
                     if (main_thread->time_mgr_used)
                     {
                         // Take some extra time if the best move has changed
-                        if (   aspiration
-                            && PVLimit == 1
-                           )
-                        {
-                            main_thread->time_mgr.instability ();
-                        }
+                        double instability_factor = 1.0 + aspiration && PVLimit == 1 ? main_thread->best_move_change : 0.0;
 
                         // Stop the search
                         // If there is only one legal move available or
                         // If all of the available time has been used or
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
-                            || (main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () *
-                                    (1.00 - 0.25000 * (!main_thread->failed_low)
-                                          - 0.19687 * (best_value >= main_thread->previous_value)
-                                          - 0.19375 * (!main_thread->failed_low && best_value >= main_thread->previous_value)
-                                    )
+                            || (main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.optimum_time () * instability_factor *
+                                    (640 - 160 * (!main_thread->failed_low)
+                                         - 126 * (best_value >= main_thread->previous_value)
+                                         - 124 * (!main_thread->failed_low && best_value >= main_thread->previous_value)
+                                    ) / 640
                                )
                             || (main_thread->easy_played =
                                     (  !root_moves.empty ()
                                     && !root_moves[0].empty ()
                                     &&  root_moves[0] == easy_move
-                                    && main_thread->time_mgr.best_move_change < 0.03
-                                    && main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.available_time () * 0.12135
+                                    && main_thread->best_move_change < 0.03
+                                    && main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.optimum_time () * instability_factor * 25 / 206
                                     ), main_thread->easy_played
                                )
                            )

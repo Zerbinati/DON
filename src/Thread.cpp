@@ -80,8 +80,6 @@ void TimeManager::initialize (Color c, i16 ply)
         Limits.clock[c].inc *= NodesTime;
     }
 
-    _instability_factor = 1.0;
-
     _optimum_time =
     _maximum_time =
         std::max (Limits.clock[c].time, TimePoint(MinimumMoveTime));

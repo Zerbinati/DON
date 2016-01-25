@@ -33,23 +33,16 @@ class TimeManager
 {
 private:
 
-    TimePoint   _optimum_time = 0;
-    TimePoint   _maximum_time = 0;
-
-    double      _instability_factor = 1.0;
+    TimePoint _optimum_time = 0;
+    TimePoint _maximum_time = 0;
 
 public:
 
-    u64     available_nodes  = U64(0); // When in 'Nodes as Time' mode
-    double  best_move_change = 0.0;
+    u64 available_nodes = U64(0); // When in 'Nodes as Time' mode
 
-    TimePoint available_time () const { return TimePoint(_optimum_time * _instability_factor * 1.010); }
-
+    TimePoint optimum_time () const { return _optimum_time; }
     TimePoint maximum_time () const { return _maximum_time; }
-
     TimePoint elapsed_time () const;
-
-    void instability () { _instability_factor = 1.0 + best_move_change; }
 
     void initialize (Color c, i16 ply);
 
@@ -223,10 +216,11 @@ namespace Threading {
         : public Thread
     {
     public:
-        bool easy_played    = false;
-        bool failed_low     = false;
-        bool time_mgr_used  = false;
-        Value previous_value = +VALUE_INFINITE;
+        bool   easy_played      = false;
+        bool   failed_low       = false;
+        bool   time_mgr_used    = false;
+        double best_move_change = 0.0;
+        Value  previous_value   = +VALUE_INFINITE;
 
         TimeManager     time_mgr;
         EasyMoveManager easy_move_mgr;
