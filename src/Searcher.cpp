@@ -5,16 +5,16 @@
 #include <cmath>
 #include <iterator>
 
+#include "UCI.h"
 #include "PRNG.h"
 #include "MovePicker.h"
 #include "Transposition.h"
 #include "Evaluator.h"
 #include "Thread.h"
 #include "TBsyzygy.h"
-#include "UCI.h"
+#include "Polyglot.h"
 #include "Notation.h"
 #include "Debugger.h"
-#include "Polyglot.h"
 
 using namespace std;
 
@@ -27,6 +27,7 @@ namespace Searcher {
     using namespace Evaluator;
     using namespace Threading;
     using namespace TBSyzygy;
+    using namespace Polyglot;
     using namespace Notation;
     using namespace Debugger;
 
@@ -352,7 +353,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(depth <= DEPTH_ZERO);
-            assert(0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1 && (ss-1)->ply != 0);
+            assert(0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1 && (ss-1)->ply > 0 && ss->ply > 1);
 
             auto pv_alfa = -VALUE_INFINITE;
 
@@ -611,7 +612,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(DEPTH_ZERO < depth && depth < DEPTH_MAX);
-            assert(0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1);
+            assert(0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1 && (ss-1)->ply >= 0 && ss->ply >= 1);
 
             // Step 1. Initialize node
             auto *thread = pos.thread ();
@@ -1493,7 +1494,7 @@ namespace Searcher {
         // RootMoves are already sorted by value in descending order
         auto top_value  = root_moves[0].new_value;
         auto diversity  = std::min (top_value - root_moves[PVLimit - 1].new_value, VALUE_MG_PAWN);
-        auto weakness   = Value(MaxPly - 4 * _level);
+        auto weakness   = Value(MaxPly - 4 * _skill_level);
         auto best_value = -VALUE_INFINITE;
         // Choose best move. For each move score add two terms, both dependent on weakness.
         // One is deterministic with weakness, and one is random with diversity.
@@ -1914,7 +1915,7 @@ namespace Threading {
                     if (main_thread->time_mgr_used)
                     {
                         // Take some extra time if the best move has changed
-                        double instability_factor = 1.010*(1.0 + aspiration && PVLimit == 1 ? main_thread->best_move_change : 0.0);
+                        double instability_factor = 1.010*(1.0 + (aspiration && PVLimit == 1 ? main_thread->best_move_change : 0.0));
 
                         // Stop the search
                         // If there is only one legal move available or
@@ -2002,7 +2003,7 @@ namespace Threading {
     // the UCI 'go' command. It searches from root position and and outputs the "bestmove" and "ponder".
     void MainThread::search ()
     {
-        static Polyglot::Book book; // Defined static to initialize the PRNG only once
+        static Book book; // Defined static to initialize the PRNG only once
 
         assert(this == Threadpool.main ());
 

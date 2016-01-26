@@ -220,19 +220,19 @@ namespace Searcher {
     {
 
     private:
-        u08  _level     = MaxSkillLevel;
-        Move _best_move = MOVE_NONE;
+        u08  _skill_level = MaxSkillLevel;
+        Move _best_move   = MOVE_NONE;
 
     public:
         static const u16 MultiPV = 4;
 
-        explicit SkillManager (u08 level = MaxSkillLevel)
-            : _level (level)
+        explicit SkillManager (u08 skill_level = MaxSkillLevel)
+            : _skill_level (skill_level)
         {}
 
-        void change_level (u08 level)
+        void change_skill_level (u08 skill_level)
         {
-            _level = level;
+            _skill_level = skill_level;
         }
 
         void clear ()
@@ -242,12 +242,12 @@ namespace Searcher {
 
         bool enabled () const
         {
-            return _level < MaxSkillLevel;
+            return _skill_level < MaxSkillLevel;
         }
 
         bool can_pick (Depth depth) const
         {
-            return depth/DEPTH_ONE == (1 + _level);
+            return depth/DEPTH_ONE == (_skill_level + 1);
         }
 
         Move best_move (const RootMoveVector &root_moves)

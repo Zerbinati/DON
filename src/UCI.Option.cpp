@@ -229,7 +229,7 @@ namespace UCI {
         
         void configure_skill ()
         {
-            SkillMgr.change_level (u08(i32(Options["Skill Level"])));
+            SkillMgr.change_skill_level (u08(i32(Options["Skill Level"])));
         }
 
         void configure_time ()
