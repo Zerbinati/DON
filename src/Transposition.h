@@ -172,7 +172,7 @@ namespace Transposition {
             {
                 std::memset (_clusters, 0x00, _cluster_count * Cluster::Size);
                 _generation = 0;
-                sync_cout << "info string Hash cleared." << sync_endl;
+                sync_cout << "info string Hash cleared" << sync_endl;
             }
         }
 

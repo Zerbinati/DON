@@ -133,7 +133,7 @@ namespace Evaluator {
         enum WeightType : u08
         {
             PAWN_STRUCTURE,
-            PAWN_PASSER,
+            PAWN_PASSED,
             KING_SAFETY,
             SPACE_ACTIVITY,
             WT_NO,
@@ -142,7 +142,7 @@ namespace Evaluator {
         const Weight Weights[WT_NO]
         {
             { 214, 203 }, // Pawn Structure
-            { 193, 262 }, // Pawn Passer
+            { 193, 262 }, // Pawn Passed
             { 330,   0 }, // King Safety
             {  47,   0 }, // Space Activity
         };
@@ -768,11 +768,8 @@ namespace Evaluator {
         {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
             const auto Push = Own == WHITE ? DEL_N : DEL_S;
-            const i32 nonpawn_count[CLR_NO] =
-            {
-                pos.count<NONPAWN> (WHITE),
-                pos.count<NONPAWN> (BLACK)
-            };
+
+            const auto npc_diff = pos.count<NONPAWN> (Own) - pos.count<NONPAWN> (Opp);
 
             auto score = SCORE_ZERO;
 
@@ -782,7 +779,7 @@ namespace Evaluator {
                 auto s = pop_lsq (passed_pawns);
                 assert(pos.passed_pawn (Own, s));
 
-                auto  r = std::max (i32(rel_rank (Own, s)) - i32(R_2), 1);
+                auto  r = i32(rel_rank (Own, s)) - i32(R_2);
                 auto rr = r * (r - 1);
 
                 // Base bonus depends on rank
@@ -851,15 +848,16 @@ namespace Evaluator {
                     }
                 }
 
-                // If non-pawn pieces differ
-                if (nonpawn_count[Own] != nonpawn_count[Opp])
+                // If non-pawn piece-count differ
+                if (npc_diff != 0)
                 {
-                    eg_value *= 1.0 + (nonpawn_count[Own]-nonpawn_count[Opp]) / std::max (nonpawn_count[Own]+nonpawn_count[Opp], 1) / 4.0;
+                    eg_value *= 1.0 + npc_diff / 8.0;
                 }
+
                 score += mk_score (mg_value, eg_value) + PawnPassedScore[_file (s)];
             }
 
-            score *= Weights[PAWN_PASSER];
+            score *= Weights[PAWN_PASSED];
 
             if (Trace)
             {
@@ -935,7 +933,7 @@ namespace Evaluator {
             // Now apply the bonus: note that we find the attacking side by extracting
             // the sign of the endgame value, and that we carefully cap the bonus so
             // that the endgame score will never be divided by more than two.
-            auto value = ((eg > 0) - (eg < 0)) * std::max (initiative, -abs (eg / 2));
+            auto value = sign (eg) * std::max (initiative, -abs (eg / 2));
 
             return mk_score (0, value);
         }
@@ -945,7 +943,7 @@ namespace Evaluator {
         {
             assert(PHASE_ENDGAME <= ei.me->game_phase && ei.me->game_phase <= PHASE_MIDGAME);
 
-            const auto strong_side = eg_value (score) >= VALUE_DRAW ? WHITE : BLACK;
+            const auto strong_side = eg_value (score) >= VALUE_ZERO ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
             auto scale_factor = ei.me->scale_factor (pos, strong_side);
 

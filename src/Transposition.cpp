@@ -171,7 +171,7 @@ namespace Transposition {
         {
             ofs << *this;
             ofs.close ();
-            sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
+            sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
         }
     }
 
@@ -182,7 +182,7 @@ namespace Transposition {
         {
             ifs >> *this;
             ifs.close ();
-            sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
+            sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'" << sync_endl;
         }
     }
 

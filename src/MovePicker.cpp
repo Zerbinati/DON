@@ -250,7 +250,7 @@ namespace MovePick {
 
         case S_BAD_CAPTURE:
             // Just pick them in reverse order to get MVV/LVA ordering
-            _cur_move = _beg_move+MaxMove-1;
+            _cur_move = _beg_move+MaxMoves-1;
             _end_move = _end_bad_capture;
             break;
 

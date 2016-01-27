@@ -53,7 +53,7 @@ namespace MoveGen {
     {
 
     private:
-        ValMove  _beg_move[MaxMove]
+        ValMove  _beg_move[MaxMoves]
               , *_end_move = _beg_move;
 
     public:

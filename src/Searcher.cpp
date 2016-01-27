@@ -203,15 +203,18 @@ namespace Searcher {
 
             auto bonus = Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1);
 
-            auto opp_move_dst = dst_sq ((ss-1)->current_move);
-            auto opp_move_ok  = _ok ((ss-1)->current_move);
-            auto &opp_cmv = CounterMoveHistoryValues[opp_move_ok ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
-
             auto *thread = pos.thread ();
 
+            bool opp_move_ok  = _ok ((ss-1)->current_move);
+            auto opp_move_dst = dst_sq ((ss-1)->current_move);
+            auto &opp_cmv = CounterMoveHistoryValues[pos[opp_move_dst]][opp_move_dst];
+
             thread->history_values.update (pos[org_sq (move)], dst_sq (move), bonus);
-            thread->counter_moves.update (opp_move_ok ? pos[opp_move_dst] : NO_PIECE, opp_move_dst, move);
-            opp_cmv.update (pos[org_sq (move)], dst_sq (move), bonus);
+            if (opp_move_ok)
+            {
+                thread->counter_moves.update (pos[opp_move_dst], opp_move_dst, move);
+                opp_cmv.update (pos[org_sq (move)], dst_sq (move), bonus);
+            }
 
             // Decrease all the other played quiet moves
             assert(std::find (quiet_moves.begin (), quiet_moves.end (), move) == quiet_moves.end ());
@@ -219,18 +222,21 @@ namespace Searcher {
             {
                 assert(m != move);
                 thread->history_values.update (pos[org_sq (m)], dst_sq (m), -bonus);
-                opp_cmv.update (pos[org_sq (m)], dst_sq (m), -bonus);
+                if (opp_move_ok)
+                {
+                    opp_cmv.update (pos[org_sq (m)], dst_sq (m), -bonus);
+                }
             }
 
             // Extra penalty for PV move in previous ply when it gets refuted
             if (   (ss-1)->move_count == 1
                 && pos.capture_type () == NONE
-                && opp_move_ok
+                && opp_move_ok // _ok ((ss-1)->current_move)
+                //&& mtype ((ss-1)->current_move) != PROMOTE
+                && _ok ((ss-2)->current_move)
                )
             {
-                auto own_move_dst = dst_sq ((ss-2)->current_move);
-                auto own_move_ok  = _ok ((ss-2)->current_move);
-                auto &own_cmv = CounterMoveHistoryValues[own_move_ok ? pos[own_move_dst] : NO_PIECE][own_move_dst];
+                auto &own_cmv = CounterMoveHistoryValues[pos[dst_sq ((ss-2)->current_move)]][dst_sq ((ss-2)->current_move)];
                 own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth/DEPTH_ONE) - 2);
             }
         }
@@ -315,7 +321,7 @@ namespace Searcher {
                     v = main_thread->root_moves[i].old_value;
                 }
                 
-                bool tb = TBHasRoot && abs (v) < +VALUE_MATE - i32(MaxPly);
+                bool tb = TBHasRoot && abs (v) < +VALUE_MATE - i32(MaxPlies);
 
                 // Not at first line
                 if (ss.rdbuf ()->in_avail ())
@@ -353,7 +359,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(depth <= DEPTH_ZERO);
-            assert(0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1 && (ss-1)->ply > 0 && ss->ply > 1);
+            assert(0 <= ss->ply && ss->ply < MaxPlies && ss->ply == (ss-1)->ply + 1 && (ss-1)->ply > 0 && ss->ply > 1);
 
             auto pv_alfa = -VALUE_INFINITE;
 
@@ -368,10 +374,10 @@ namespace Searcher {
 
             // Check for an immediate draw or maximum ply reached
             if (   pos.draw ()
-                || ss->ply >= MaxPly
+                || ss->ply >= MaxPlies
                )
             {
-                return ss->ply >= MaxPly && !in_check ? evaluate (pos) : DrawValue[pos.active ()];
+                return ss->ply >= MaxPlies && !in_check ? evaluate (pos) : DrawValue[pos.active ()];
             }
 
             // Transposition table lookup
@@ -612,7 +618,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(DEPTH_ZERO < depth && depth < DEPTH_MAX);
-            assert(0 <= ss->ply && ss->ply < MaxPly && ss->ply == (ss-1)->ply + 1 && (ss-1)->ply >= 0 && ss->ply >= 1);
+            assert(0 <= ss->ply && ss->ply < MaxPlies && ss->ply == (ss-1)->ply + 1 && (ss-1)->ply >= 0 && ss->ply >= 1);
 
             // Step 1. Initialize node
             auto *thread = pos.thread ();
@@ -653,10 +659,10 @@ namespace Searcher {
                 // Check for aborted search, immediate draw or maximum ply reached
                 if (   ForceStop.load (std::memory_order_relaxed)
                     || pos.draw ()
-                    || ss->ply >= MaxPly
+                    || ss->ply >= MaxPlies
                    )
                 {
-                    return ss->ply >= MaxPly && !in_check ? evaluate (pos) : DrawValue[pos.active ()];
+                    return ss->ply >= MaxPlies && !in_check ? evaluate (pos) : DrawValue[pos.active ()];
                 }
 
                 // Step 3. Mate distance pruning. Even if mate at the next move our score
@@ -736,9 +742,9 @@ namespace Searcher {
                         i32 draw_v = TBUseRule50 ? 1 : 0;
 
                         Value value =
-                                v < -draw_v ? -VALUE_MATE + i32(MaxPly + ss->ply) :
-                                v > +draw_v ? +VALUE_MATE - i32(MaxPly + ss->ply) :
-                                VALUE_DRAW + 2 * draw_v * v;
+                                v < -draw_v ? -VALUE_MATE + i32(MaxPlies + ss->ply) :
+                                v > +draw_v ? +VALUE_MATE - i32(MaxPlies + ss->ply) :
+                                VALUE_ZERO + 2 * draw_v * v;
 
                         if (   tt_hit
                             && tte->key16 () != (posi_key >> 0x30)
@@ -937,7 +943,7 @@ namespace Searcher {
                     }
 
                     // Step 10. Internal iterative deepening
-                    if (   (!tt_hit || tt_move == MOVE_NONE)
+                    if (   ((PVNode && !tt_hit) || tt_move == MOVE_NONE)
                         && depth >= (PVNode ? 5 : 8)*DEPTH_ONE        // IID Activation Depth
                         && (PVNode || ss->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                        )
@@ -992,10 +998,8 @@ namespace Searcher {
             MoveVector quiet_moves;
             quiet_moves.reserve (16);
 
-            auto opp_move_dst = dst_sq ((ss-1)->current_move);
-            auto opp_move_ok  = _ok ((ss-1)->current_move);
-            auto counter_move = thread->counter_moves[opp_move_ok ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
-            auto &opp_cmv = CounterMoveHistoryValues[opp_move_ok ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
+            auto counter_move = thread->counter_moves[_ok ((ss-1)->current_move) ? pos[dst_sq ((ss-1)->current_move)] : NO_PIECE][dst_sq ((ss-1)->current_move)];
+            auto &opp_cmv = CounterMoveHistoryValues[_ok ((ss-1)->current_move) ? pos[dst_sq ((ss-1)->current_move)] : NO_PIECE][dst_sq ((ss-1)->current_move)];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
@@ -1247,12 +1251,12 @@ namespace Searcher {
                     {
                         auto &pv = (ss+1)->pv;
                         //assert(!pv.empty ());
-                        if (    pv.size () + 1 != root_move.size ()
-                            || (pv.size () > 0 && root_move.size () > 1 && pv[0] != root_move[1])
-                            || (pv.size () > 1 && root_move.size () > 2 && pv[1] != root_move[2])
-                            || (pv.size () > 2 && root_move.size () > 3 && pv[2] != root_move[3])
-                           )
-                        {
+                        //if (    pv.size () + 1 != root_move.size ()
+                        //    || (pv.size () > 0 && root_move.size () > 1 && pv[0] != root_move[1])
+                        //    || (pv.size () > 1 && root_move.size () > 2 && pv[1] != root_move[2])
+                        //    || (pv.size () > 2 && root_move.size () > 3 && pv[2] != root_move[3])
+                        //   )
+                        //{
                             auto rm = RootMove (root_move[0]);
                             rm.old_value = root_move.old_value;
                             if (!pv.empty ())
@@ -1262,7 +1266,7 @@ namespace Searcher {
                                 //rm.shrink_to_fit ();
                             }
                             root_move = rm;
-                        }
+                        //}
                         root_move.new_value = value;
 
                         // Record how often the best move has been changed in each iteration.
@@ -1376,13 +1380,13 @@ namespace Searcher {
                 && depth >= 3*DEPTH_ONE
                 && best_move == MOVE_NONE
                 && pos.capture_type () == NONE
-                && opp_move_ok
+                && _ok ((ss-1)->current_move)
+                //&& mtype ((ss-1)->current_move) != PROMOTE
+                && _ok ((ss-2)->current_move)
                )
             {
-                auto own_move_dst = dst_sq ((ss-2)->current_move);
-                auto own_move_ok  = _ok ((ss-2)->current_move);
-                auto &own_cmv = CounterMoveHistoryValues[own_move_ok ? pos[own_move_dst] : NO_PIECE][own_move_dst];
-                own_cmv.update (pos[opp_move_dst], opp_move_dst, Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1));
+                auto &own_cmv = CounterMoveHistoryValues[pos[dst_sq ((ss-2)->current_move)]][dst_sq ((ss-2)->current_move)];
+                own_cmv.update (pos[dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1));
             }
 
             if (   tt_hit
@@ -1413,7 +1417,7 @@ namespace Searcher {
     // first, even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos)
     {
-        StateInfo states[MaxPly], *si = states;
+        StateInfo states[MaxPlies], *si = states;
         
         //shrink_to_fit ();
         u08 ply = 0;
@@ -1494,7 +1498,7 @@ namespace Searcher {
         // RootMoves are already sorted by value in descending order
         auto top_value  = root_moves[0].new_value;
         auto diversity  = std::min (top_value - root_moves[PVLimit - 1].new_value, VALUE_MG_PAWN);
-        auto weakness   = Value(MaxPly - 4 * _skill_level);
+        auto weakness   = Value(MaxPlies - 4 * _skill_level);
         auto best_value = -VALUE_INFINITE;
         // Choose best move. For each move score add two terms, both dependent on weakness.
         // One is deterministic with weakness, and one is random with diversity.
@@ -1650,8 +1654,8 @@ namespace Threading {
     // - the maximum search depth is reached.
     void Thread::search ()
     {
-        Stack stacks[MaxPly+4], *ss = stacks+2; // To allow referencing (ss-2)
-        for (auto s = stacks; s < stacks+MaxPly+4; ++s)
+        Stack stacks[MaxPlies+4], *ss = stacks+2; // To allow referencing (ss-2)
+        for (auto s = stacks; s < stacks+MaxPlies+4; ++s)
         {
             s->ply = i16(s - stacks - 1);
             if (s < stacks + 6)
@@ -2136,8 +2140,8 @@ namespace Threading {
 
                     if (!TBUseRule50)
                     {
-                        ProbeValue = ProbeValue > VALUE_DRAW ? +VALUE_MATE - i32(MaxPly - 1) :
-                                     ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPly + 1) :
+                        ProbeValue = ProbeValue > VALUE_DRAW ? +VALUE_MATE - i32(MaxPlies - 1) :
+                                     ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPlies + 1) :
                                      VALUE_DRAW;
                     }
                 }

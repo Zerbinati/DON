@@ -68,7 +68,7 @@ namespace Notation {
         string pretty_value (Value v, const Position &pos)
         {
             ostringstream oss;
-            if (abs (v) < +VALUE_MATE - i32(MaxPly))
+            if (abs (v) < +VALUE_MATE - i32(MaxPlies))
             {
                 oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (pos.active () == WHITE ? +v : -v);
             }
@@ -254,7 +254,7 @@ namespace Notation {
     string to_string (Value v)
     {
         ostringstream oss;
-        if (abs (v) < +VALUE_MATE - i32(MaxPly))
+        if (abs (v) < +VALUE_MATE - i32(MaxPlies))
         {
             oss << "cp " << i32(100 * value_to_cp (v));
         }

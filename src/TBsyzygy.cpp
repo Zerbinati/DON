@@ -367,7 +367,7 @@ namespace TBSyzygy {
             {
                 for (auto pc = pcs[color | PieceType(pt + 1)]; pc > 0; --pc)
                 {
-                    key ^= Zob._.piece_square[WHITE][pt][pc - 1];
+                    key ^= Zob.piece_square[WHITE][pt][pc - 1];
                 }
             }
             color = ~color;
@@ -375,7 +375,7 @@ namespace TBSyzygy {
             {
                 for (auto pc = pcs[color | PieceType(pt + 1)]; pc > 0; --pc)
                 {
-                    key ^= Zob._.piece_square[BLACK][pt][pc - 1];
+                    key ^= Zob.piece_square[BLACK][pt][pc - 1];
                 }
             }
             return key;
@@ -1866,7 +1866,7 @@ namespace TBSyzygy {
             {
                 for (auto i = pos.count (color, pt); i > 0; --i)
                 {
-                    key ^= Zob._.piece_square[WHITE][pt][i - 1];
+                    key ^= Zob.piece_square[WHITE][pt][i - 1];
                 }
             }
             color = ~color;
@@ -1874,7 +1874,7 @@ namespace TBSyzygy {
             {
                 for (auto i = pos.count (color, pt); i > 0; --i)
                 {
-                    key ^= Zob._.piece_square[BLACK][pt][i - 1];
+                    key ^= Zob.piece_square[BLACK][pt][i - 1];
                 }
             }
             return key;
@@ -1887,7 +1887,7 @@ namespace TBSyzygy {
             Key matl_key = pos.matl_key ();
 
             // Test for KvK.
-            if (matl_key == (Zob._.piece_square[WHITE][KING][0] ^ Zob._.piece_square[BLACK][KING][0]))
+            if (matl_key == (Zob.piece_square[WHITE][KING][0] ^ Zob.piece_square[BLACK][KING][0]))
             {
                 return VALUE_ZERO;
             }
@@ -2181,7 +2181,7 @@ namespace TBSyzygy {
 
         Value probe_ab (Position &pos, Value alfa, Value beta, i32 &success)
         {
-            ValMove moves[MaxMove];
+            ValMove moves[MaxMoves];
             ValMove *end_move;
             
             // Generate (at least) all legal non-ep captures including (under)promotions.
@@ -2253,7 +2253,7 @@ namespace TBSyzygy {
                 return Value(wdl == 2 ? 1 : 101);
             }
 
-            ValMove moves[MaxMove];
+            ValMove moves[MaxMoves];
             ValMove *end_move = nullptr;
             
             CheckInfo ci (pos);
@@ -2405,11 +2405,11 @@ namespace TBSyzygy {
 
         Value Wdl_to_Value[5] =
         {
-            -VALUE_MATE + i32(MaxPly + 1),
+            -VALUE_MATE + i32(MaxPlies + 1),
             VALUE_ZERO - 2,
             VALUE_ZERO,
             VALUE_ZERO + 2,
-            +VALUE_MATE - i32(MaxPly + 1),
+            +VALUE_MATE - i32(MaxPlies + 1),
         };
     }
 
@@ -2454,7 +2454,7 @@ namespace TBSyzygy {
         Value ep = Value(-3);
         Value v1 = ep;
 
-        ValMove moves[MaxMove];
+        ValMove moves[MaxMoves];
         ValMove *end_move = pos.checkers () == U64(0) ?
             generate<CAPTURE> (moves, pos) :
             generate<EVASION> (moves, pos);
@@ -2579,7 +2579,7 @@ namespace TBSyzygy {
         Value ep = Value(-3);
         Value v1 = ep;
         // Generate (at least) all legal en-passant captures.
-        ValMove moves[MaxMove];
+        ValMove moves[MaxMoves];
         ValMove *end_move = pos.checkers () == U64(0) ?
             generate<CAPTURE> (moves, pos) :
             generate<EVASION> (moves, pos);
@@ -2674,7 +2674,7 @@ namespace TBSyzygy {
             Value value = VALUE_ZERO;
             if (pos.checkers () != U64(0) && dtz > VALUE_ZERO)
             {
-                ValMove moves[MaxMove];
+                ValMove moves[MaxMoves];
                 if (generate<LEGAL> (moves, pos) == moves)
                 {
                     value = Value(1);

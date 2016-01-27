@@ -214,7 +214,7 @@ namespace Searcher {
         MoveVector pv;
     };
 
-    const u08 MaxSkillLevel   = 32; // MaxSkillLevel should be <= MaxPly/4
+    const u08 MaxSkillLevel   = 32; // MaxSkillLevel should be <= MaxPlies/4
     // Skill Manager class is used to implement strength limit
     class SkillManager
     {

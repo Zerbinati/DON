@@ -136,8 +136,8 @@ typedef        uint64_t    u64;
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const u16 MaxPly = 128;     // Maximum Plies
-const u16 MaxMove = 0x100; // Maximum Moves
+const u16 MaxPlies  = 128; // Maximum Plies
+const u16 MaxMoves  = 256; // Maximum Moves
 
 // File
 enum File : i08
@@ -328,7 +328,7 @@ enum Depth : i16
     DEPTH_QS_NO_CHECKS  = -1*i16(DEPTH_ONE),
     DEPTH_QS_RECAPTURES = -5*i16(DEPTH_ONE),
     DEPTH_NONE          = -6*i16(DEPTH_ONE),
-    DEPTH_MAX           = MaxPly*i16(DEPTH_ONE),
+    DEPTH_MAX           = MaxPlies*i16(DEPTH_ONE),
 };
 // Value
 enum Value : i32
@@ -342,7 +342,7 @@ enum Value : i32
     VALUE_MATE      = +i32(VALUE_INFINITE) - 1,
     VALUE_KNOWN_WIN = +i32(VALUE_MATE) / 3,
 
-    VALUE_MATE_IN_MAX_PLY = +i32(VALUE_MATE) - 2 * MaxPly,
+    VALUE_MATE_IN_MAX_PLY = +i32(VALUE_MATE) - 2 * MaxPlies,
 
     VALUE_MG_PAWN =  198,  VALUE_EG_PAWN =  258,
     VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  846,
@@ -697,6 +697,12 @@ private:
 public:
     Entry* operator[] (Key k) { return &_table[u32(k) & (Size-1)]; }
 };
+
+template <typename T>
+i32 sign (T val)
+{
+    return (T(0) < val) - (val < T(0));
+}
 
 inline bool white_spaces (const std::string &str)
 {

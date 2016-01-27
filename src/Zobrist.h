@@ -14,21 +14,16 @@ namespace Zobrist {
     const Key ExclusionKey = U64(0xFFFFFFFFFFFFFFFF);
 
     // Zobrist Random numbers
-    union Zob
+    struct Zob
     {
     public:
         // 2*6*64 + 2*2 + 8 + 1
-        //    768 +   4 + 8 + 1
-        //                  781
-        Key zobrist[781];
-
-        struct
-        {
-            Key piece_square[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
-            Key castle_right[CLR_NO][CS_NO];        // [color][castle-side]
-            Key en_passant  [F_NO];                 // [enpassant file]
-            Key act_side;                           // color
-        } _;
+        //=   768 +   4 + 8 + 1
+        //=                 781
+        Key piece_square[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
+        Key castle_right[CLR_NO][CS_NO];        // [color][castle-side]
+        Key en_passant  [F_NO];                 // [enpassant file]
+        Key act_side;                           // color
 
     public:
         // Hash key of the material situation.
