@@ -231,13 +231,13 @@ namespace Searcher {
             // Extra penalty for PV move in previous ply when it gets refuted
             if (   (ss-1)->move_count == 1
                 && pos.capture_type () == NONE
-                && opp_move_ok // _ok ((ss-1)->current_move)
+                && _ok ((ss-1)->current_move)
                 //&& mtype ((ss-1)->current_move) != PROMOTE
                 && _ok ((ss-2)->current_move)
                )
             {
                 auto &own_cmv = CounterMoveHistoryValues[pos[dst_sq ((ss-2)->current_move)]][dst_sq ((ss-2)->current_move)];
-                own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth/DEPTH_ONE) - 2);
+                own_cmv.update (pos[dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -bonus - 2*(depth/DEPTH_ONE) - 2);
             }
         }
         void update_stats (const Position &pos, Stack *ss, Move move, Depth depth)
@@ -249,24 +249,15 @@ namespace Searcher {
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
             assert(_ok (move));
-            if (    pv.size () == 0
-                ||  pv[0] != move
-                ||  child_pv.size () + 1 != pv.size ()
-                || (child_pv.size () > 0 && pv.size () > 1 && child_pv[0] != pv[1])
-                || (child_pv.size () > 1 && pv.size () > 2 && child_pv[1] != pv[2])
-                || (child_pv.size () > 2 && pv.size () > 3 && child_pv[2] != pv[3])
-               )
+            auto new_pv = MoveVector ();
+            new_pv.push_back (move);
+            if (!child_pv.empty ())
             {
-                auto new_pv = MoveVector ();
-                new_pv.push_back (move);
-                if (!child_pv.empty ())
-                {
-                    new_pv.reserve (child_pv.size () + 1);
-                    std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (new_pv));
-                    //new_pv.shrink_to_fit ();
-                }
-                pv = new_pv;
+                new_pv.reserve (child_pv.size () + 1);
+                std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (new_pv));
+                //new_pv.shrink_to_fit ();
             }
+            pv = new_pv;
         }
 
         // value_to_tt() adjusts a mate score from "plies to mate from the root" to
@@ -1251,22 +1242,15 @@ namespace Searcher {
                     {
                         auto &pv = (ss+1)->pv;
                         //assert(!pv.empty ());
-                        //if (    pv.size () + 1 != root_move.size ()
-                        //    || (pv.size () > 0 && root_move.size () > 1 && pv[0] != root_move[1])
-                        //    || (pv.size () > 1 && root_move.size () > 2 && pv[1] != root_move[2])
-                        //    || (pv.size () > 2 && root_move.size () > 3 && pv[2] != root_move[3])
-                        //   )
-                        //{
-                            auto rm = RootMove (root_move[0]);
-                            rm.old_value = root_move.old_value;
-                            if (!pv.empty ())
-                            {
-                                rm.reserve (pv.size () + 1);
-                                std::copy (pv.begin (), pv.end (), std::back_inserter (rm));
-                                //rm.shrink_to_fit ();
-                            }
-                            root_move = rm;
-                        //}
+                        auto rm = RootMove (root_move[0]);
+                        rm.old_value = root_move.old_value;
+                        if (!pv.empty ())
+                        {
+                            rm.reserve (pv.size () + 1);
+                            std::copy (pv.begin (), pv.end (), std::back_inserter (rm));
+                            //rm.shrink_to_fit ();
+                        }
+                        root_move = rm;
                         root_move.new_value = value;
 
                         // Record how often the best move has been changed in each iteration.
@@ -1927,17 +1911,17 @@ namespace Threading {
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
                             || (main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.optimum_time () * instability_factor *
-                                    (640 - 160 * (!main_thread->failed_low)
-                                         - 126 * (best_value >= main_thread->previous_value)
-                                         - 124 * (!main_thread->failed_low && best_value >= main_thread->previous_value)
-                                    ) / 640
+                                    (640.0 - 160.0 * (!main_thread->failed_low)
+                                           - 126.0 * (best_value >= main_thread->previous_value)
+                                           - 124.0 * (!main_thread->failed_low && best_value >= main_thread->previous_value)
+                                    ) / 640.0
                                )
                             || (main_thread->easy_played =
                                     (  !root_moves.empty ()
                                     && !root_moves[0].empty ()
                                     &&  root_moves[0] == easy_move
                                     && main_thread->best_move_change < 0.03
-                                    && main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.optimum_time () * instability_factor * 25 / 206
+                                    && main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.optimum_time () * instability_factor * 25.0 / 206.0
                                     ), main_thread->easy_played
                                )
                            )
