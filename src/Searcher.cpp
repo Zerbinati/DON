@@ -1063,7 +1063,8 @@ namespace Searcher {
                     && extension == DEPTH_ZERO
                    )
                 {
-                    auto r_beta = tt_value - 2*(depth/DEPTH_ONE);
+                    auto r_beta = std::max (tt_value - 2*(depth/DEPTH_ONE), -VALUE_INFINITE+1);
+                    assert(-VALUE_INFINITE < r_beta && r_beta <= +VALUE_INFINITE);
 
                     ss->exclude_move = move;
                     ss->skip_pruning = true;
@@ -1151,6 +1152,8 @@ namespace Searcher {
                 prefetch (thread->matl_table[pos.matl_key ()]);
 
                 auto full_depth_search = !PVNode || move_count > FullDepthMoveCount;
+
+                assert(-VALUE_INFINITE <= alfa && alfa < +VALUE_INFINITE);
 
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
@@ -1368,8 +1371,10 @@ namespace Searcher {
                 && _ok ((ss-2)->current_move)
                )
             {
-                auto &own_cmv = CounterMoveHistoryValues[pos[dst_sq ((ss-2)->current_move)]][dst_sq ((ss-2)->current_move)];
-                own_cmv.update (pos[dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1));
+                auto opp_move_dst = dst_sq ((ss-1)->current_move);
+                auto own_move_dst = dst_sq ((ss-2)->current_move);
+                auto &own_cmv = CounterMoveHistoryValues[pos[own_move_dst]][own_move_dst];
+                own_cmv.update (pos[opp_move_dst], opp_move_dst, Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1));
             }
 
             if (   tt_hit

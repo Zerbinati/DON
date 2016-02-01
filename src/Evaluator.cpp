@@ -114,39 +114,6 @@ namespace Evaluator {
             Material::Entry *me;
         };
 
-        struct Weight { i32 mg, eg; };
-        // Overload * for score with weight
-        Score  operator*  (Score  score, const Weight &weight)
-        {
-            return mk_score (
-                mg_value (score) * weight.mg / 256,
-                eg_value (score) * weight.eg / 256);
-        }
-        Score& operator*= (Score &score, const Weight &weight)
-        {
-            score = mk_score (
-                mg_value (score) * weight.mg / 256,
-                eg_value (score) * weight.eg / 256);
-            return score;
-        }
-
-        enum WeightType : u08
-        {
-            PAWN_STRUCTURE,
-            PAWN_PASSED,
-            KING_SAFETY,
-            SPACE_ACTIVITY,
-            WT_NO,
-        };
-        // Evaluation weights, indexed by the corresponding evaluation term
-        const Weight Weights[WT_NO]
-        {
-            { 214, 203 }, // Pawn Structure
-            { 193, 262 }, // Pawn Passed
-            { 330,   0 }, // King Safety
-            {  47,   0 }, // Space Activity
-        };
-
     #define S(mg, eg) mk_score (mg, eg)
 
         // PieceMobility[piece-type][attacks] contains bonuses for mobility,
@@ -239,8 +206,8 @@ namespace Evaluator {
         // PawnPassedScore[file] contains a bonus for passed pawns according to the file of the pawn.
         const Score PawnPassedScore[F_NO] =
         {
-            S( 12, 10), S( 3, 10), S( 1, -8), S(-27,-12),
-            S(-27,-12), S( 1, -8), S( 3, 10), S( 12, 10)
+            S(  9, 10), S( 2, 10), S( 1, -8), S(-20,-12),
+            S(-20,-12), S( 1, -8), S( 2, 10), S(  9, 10)
         };
 
     #undef S
@@ -250,8 +217,8 @@ namespace Evaluator {
         // Don't use a Score because the two components processed independently.
         const Value PawnPassedValue[PH_NO][R_NO] =
         {
-            { V(0), V(0), V( 1), V(34), V(90), V(214), V(328), V(0) },
-            { V(0), V(7), V(14), V(37), V(63), V(134), V(189), V(0) }
+            { V(0), V(0), V( 1), V(26), V(68), V(161), V(247), V(0) },
+            { V(0), V(7), V(14), V(38), V(64), V(137), V(193), V(0) }
         };
     #undef V
 
@@ -572,7 +539,7 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + std::min ((ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp])/2, 72U)  // King-ring attacks
+                    + std::min ((ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp])/2, 72U)  // King-ring attacks
                     +  9 * (ei.king_zone_attacks_count[Opp])                                               // King-zone attacks
                     + 27 * (undefended != U64(0) ? pop_count<Max15> (undefended) : 0)                      // King-zone undefended pieces
                     + 11 * (ei.pinneds[Own] != U64(0) ? pop_count<Max15> (ei.pinneds[Own]) : 0)            // King pinned piece
@@ -865,10 +832,8 @@ namespace Evaluator {
                     eg_value *= 1.0 + (double) (nonpawn_count[Own]-nonpawn_count[Opp]) / (nonpawn_count[Own]+nonpawn_count[Opp]+2);
                 }
 
-                score += mk_score (mg_value, eg_value) + PawnPassedScore[_file (s)];
+                score += mk_score (mg_value * 3 / 4, eg_value) + PawnPassedScore[_file (s)];
             }
-
-            score *= Weights[PAWN_PASSED];
 
             if (Trace)
             {
@@ -920,7 +885,7 @@ namespace Evaluator {
             auto bonus = pop_count<Full> ((Own == WHITE ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
             auto weight = pos.count<NIHT> () + pos.count<BSHP> ();
 
-            auto score = mk_score (bonus * weight * weight, 0) * Weights[SPACE_ACTIVITY];
+            auto score = mk_score (bonus * weight * weight * 2 / 11, 0);
 
             if (Trace)
             {
@@ -1023,7 +988,7 @@ namespace Evaluator {
 
         // Probe the pawn hash table
         ei.pe  = Pawns::probe (pos);
-        score += ei.pe->pawn_score * Weights[PAWN_STRUCTURE];
+        score += ei.pe->pawn_score;
 
         for (auto c = WHITE; c <= BLACK; ++c)
         {
@@ -1122,7 +1087,7 @@ namespace Evaluator {
         // In case of tracing add remaining individual evaluation terms
         if (Trace)
         {
-            write (PAWN       , ei.pe->pawn_score * Weights[PAWN_STRUCTURE]);
+            write (PAWN       , ei.pe->pawn_score);
             write (MATERIAL   , pos.psq_score ());
             write (IMBALANCE  , ei.me->imbalance);
             write (MOBILITY   , mobility[WHITE], mobility[BLACK]);
@@ -1176,12 +1141,12 @@ namespace Evaluator {
     // initialize() init evaluation weights
     void initialize ()
     {
-        i32 mg = 0;
-        for (i32 i = 0; i < MaxAttackUnits; ++i)
+        auto mg = 0;
+        for (auto i = 0; i < MaxAttackUnits; ++i)
         {
             //                                 MaxSlope, MaxValue
-            mg = std::min (std::min (i*i*27, mg + 8700), 1280000);
-            KingDanger[i] = mk_score (mg/1000, 0) * Weights[KING_SAFETY];
+            mg = std::min (std::min (i*i - 16, mg + 322), 47410);
+            KingDanger[i] = mk_score (mg * 268 / 7700, 0);
         }
     }
 

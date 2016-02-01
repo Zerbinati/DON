@@ -698,7 +698,7 @@ public:
     Entry* operator[] (Key k) { return &_table[u32(k) & (Size-1)]; }
 };
 
-template <typename T>
+template<class T>
 i32 sign (T val)
 {
     return (T(0) < val) - (val < T(0));

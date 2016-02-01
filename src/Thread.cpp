@@ -31,8 +31,8 @@ namespace {
     // Data was extracted from the CCRL game database with some simple filtering criteria.
     double move_importance (i16 ply)
     {
-        //                          PlyShift / PlyScale  SkewRate
-        return pow ((1 + exp ((ply - 58.400) / 7.640)), -0.183) + DBL_MIN; // Ensure non-zero
+        //                                      PlyShift / PlyScale  SkewRate
+        return std::max (pow ((1.0 + exp ((ply - 58.400) / 7.640)), -0.183), DBL_MIN); // Ensure non-zero
     }
 
     template<TimeType TT>
@@ -43,14 +43,14 @@ namespace {
         const auto StealRatio = TT == TT_MAXIMUM ? 0.00 : 0.35; // However must not steal time from remaining moves over this ratio
 
         auto this_move_imp = move_importance (ply) * MoveSlowness;
-        auto remain_move_imp = 0.0;
+        auto other_move_imp = 0.0;
         for (u08 i = 1; i < movestogo; ++i)
         {
-            remain_move_imp += move_importance (ply + 2 * i);
+            other_move_imp += move_importance (ply + 2 * i);
         }
 
-        auto  step_time_ratio = (0.0           +   this_move_imp *  StepRatio) / (this_move_imp * StepRatio + remain_move_imp);
-        auto steal_time_ratio = (this_move_imp + remain_move_imp * StealRatio) / (this_move_imp * 1.0       + remain_move_imp);
+        auto  step_time_ratio = (0.0           +  this_move_imp *  StepRatio) / (this_move_imp * StepRatio + other_move_imp);
+        auto steal_time_ratio = (this_move_imp + other_move_imp * StealRatio) / (this_move_imp * 1.0       + other_move_imp);
 
         return TimePoint(time * std::min (step_time_ratio, steal_time_ratio)); // Intel C++ asks for an explicit cast
     }

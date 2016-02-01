@@ -73,41 +73,41 @@ namespace Pawns {
         // Doubled pawn penalty by [file]
         const Score Doubled[F_NO] =
         {
-            S(13, 43), S(20, 48), S(23, 48), S(23, 48),
-            S(23, 48), S(23, 48), S(20, 48), S(13, 43)
+            S(11, 34), S(17, 38), S(19, 38), S(19, 38),
+            S(19, 38), S(19, 38), S(17, 38), S(11, 34)
         };
 
         // Isolated pawn penalty by [opposed][file]
         const Score Isolated[2][F_NO] =
         {
             {
-                S(37, 45), S(54, 52), S(60, 52), S(60, 52),
-                S(60, 52), S(60, 52), S(54, 52), S(37, 45)
+                S(31, 36), S(45, 41), S(50, 41), S(50, 41),
+                S(50, 41), S(50, 41), S(45, 41), S(31, 36)
             },
             {
-                S(25, 30), S(36, 35), S(40, 35), S(40, 35),
-                S(40, 35), S(40, 35), S(36, 35), S(25, 30)
+                S(21, 24), S(30, 28), S(33, 28), S(33, 28),
+                S(33, 28), S(33, 28), S(30, 28), S(21, 24)
             }
         };
 
         // Backward pawn penalty by [opposed]
         const Score Backward[2] =
         {
-            S(67, 42), S(49, 24)
+            S(56, 33), S(41, 19)
         };
 
         // Levers bonus by [rank]
         const Score Lever[R_NO] =
         {
             S( 0, 0), S( 0, 0), S(0, 0), S(0, 0),
-            S(20,20), S(40,40), S(0, 0), S(0, 0)
+            S(17,16), S(33,32), S(0, 0), S(0, 0)
         };
 
         // Unsupported pawn penalty for pawns which are neither isolated or backward,
         // by number of pawns it supports [0, 1, 2].
         const Score Unsupported[3] =
         {
-            S(20, 10), S(22, 12), S(25, 15)
+            S(17, 8), S(19, 10), S(21, 12)
         };
 
         const Score Unstoppable = S( 0, 20); // Bonus for unstoppable pawn going to promote
@@ -328,7 +328,7 @@ namespace Pawns {
     // and to allow easier tuning and better insight.
     void initialize ()
     {
-        const i32 Seeds[R_NO] = { 0, 6, 15, 10, 57, 75, 135, 258 };
+        const i32 Seeds[R_NO] = { 0, 8, 19, 13, 71, 94, 169, 324 };
 
         for (u08 opposed = 0; opposed <= 1; ++opposed)
         {
@@ -340,7 +340,7 @@ namespace Pawns {
                     {
                         i32 v = (Seeds[r] + (phalanx != 0 ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed;
                         v += (apex ? v / 2 : 0);
-                        Connected[opposed][phalanx][apex][r] = mk_score (3 * v / 2, v);
+                        Connected[opposed][phalanx][apex][r] = mk_score (v * 1 / 1, v * 5 / 8);
                     }
                 }
             }
