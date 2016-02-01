@@ -783,83 +783,79 @@ namespace Evaluator {
                 auto s = pop_lsq (passed_pawns);
                 assert(pos.passed_pawn (Own, s));
 
-                auto rank = rel_rank (Own, s);
+                i32 r  = rel_rank (Own, s);
+                i32 rr = r*r;
                 // Base bonus depends on rank
-                auto mg_value = PawnPassedValue[MG][rank];
-                auto eg_value = PawnPassedValue[EG][rank];
+                auto mg_value = PawnPassedValue[MG][r];
+                auto eg_value = PawnPassedValue[EG][r];
+                
+                auto block_sq = s+Push;
 
-                auto r  = i08(rank) - i08(R_2);
-                auto rr = r*r;
-                if (rr != 0)
+                // Adjust bonus based on kings proximity
+                eg_value +=
+                    + 5*rr*dist (pos.square<KING> (Opp), block_sq)
+                    - 2*rr*dist (pos.square<KING> (Own), block_sq);
+                // If block square is less then the queening square then consider also a second push
+                if (rel_rank (Own, block_sq) < R_8)
                 {
-                    auto block_sq = s+Push;
+                    eg_value -= 1*rr*dist (pos.square<KING> (Own), block_sq+Push);
+                }
 
-                    // Adjust bonus based on kings proximity
-                    eg_value +=
-                        + 5*rr*dist (pos.square<KING> (Opp), block_sq)
-                        - 2*rr*dist (pos.square<KING> (Own), block_sq);
-                    // If block square is less then the queening square then consider also a second push
-                    if (rel_rank (Own, block_sq) < R_8)
+                // If the pawn is free to advance
+                if (pos.empty (block_sq))
+                {
+                    // Squares to queen
+                    auto front_squares = FrontSqrs_bb[Own][s];
+                    auto behind_majors = FrontSqrs_bb[Opp][s] & pos.pieces (ROOK, QUEN);
+                    if (behind_majors != U64(0))
                     {
-                        eg_value -= 1*rr*dist (pos.square<KING> (Own), block_sq+Push);
+                        behind_majors &= attacks_bb<ROOK> (s, pos.pieces ());
+                    }
+                    auto unsafe_squares = front_squares
+                        ,  safe_squares = front_squares;
+                    // If there is an enemy rook or queen attacking the pawn from behind,
+                    // add all X-ray attacks by the rook or queen. Otherwise consider only
+                    // the squares in the pawn's path attacked or occupied by the enemy.
+                    if ((behind_majors & pos.pieces (Opp)) == U64(0))
+                    {
+                        unsafe_squares &= ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp);
                     }
 
-                    // If the pawn is free to advance
-                    if (pos.empty (block_sq))
+                    if ((behind_majors & pos.pieces (Own)) == U64(0))
                     {
-                        // Squares to queen
-                        auto front_squares = FrontSqrs_bb[Own][s];
-                        auto behind_majors = FrontSqrs_bb[Opp][s] & pos.pieces (ROOK, QUEN);
-                        if (behind_majors != U64 (0))
-                        {
-                            behind_majors &= attacks_bb<ROOK> (s, pos.pieces ());
-                        }
-                        auto unsafe_squares = front_squares
-                            ,  safe_squares = front_squares;
-                        // If there is an enemy rook or queen attacking the pawn from behind,
-                        // add all X-ray attacks by the rook or queen. Otherwise consider only
-                        // the squares in the pawn's path attacked or occupied by the enemy.
-                        if ((behind_majors & pos.pieces (Opp)) == U64(0))
-                        {
-                            unsafe_squares &= ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp);
-                        }
-
-                        if ((behind_majors & pos.pieces (Own)) == U64(0))
-                        {
-                            safe_squares &= ei.pin_attacked_by[Own][NONE];
-                        }
-
-                        // Give a big bonus if there aren't enemy attacks, otherwise
-                        // a smaller bonus if the block square is not attacked.
-                        i32 k = unsafe_squares != U64(0) ?
-                                    (unsafe_squares & block_sq) != U64(0) ?
-                                        0 : 8 : 18;
-
-                        if (safe_squares != U64(0))
-                        {
-                            // Give a big bonus if the path to the queen is fully defended,
-                            // a smaller bonus if at least the block square is defended.
-                            k += safe_squares == front_squares ?
-                                    6 : (safe_squares & block_sq) != U64(0) ?
-                                        4 : 0;
-                        }
-
-                        mg_value += k*rr;
-                        eg_value += k*rr;
+                        safe_squares &= ei.pin_attacked_by[Own][NONE];
                     }
-                    else
-                    // If the pawn is blocked by own pieces
-                    if ((pos.pieces (Own) & block_sq) != U64(0))
+
+                    // Give a big bonus if there aren't enemy attacks, otherwise
+                    // a smaller bonus if the block square is not attacked.
+                    i32 k = unsafe_squares != U64(0) ?
+                                (unsafe_squares & block_sq) != U64(0) ?
+                                    0 : 8 : 18;
+
+                    if (safe_squares != U64(0))
                     {
-                        mg_value += 3*rr + 0*r + 0;
-                        eg_value += 1*rr + 1*r + 0;
+                        // Give a big bonus if the path to the queen is fully defended,
+                        // a smaller bonus if at least the block square is defended.
+                        k += safe_squares == front_squares ?
+                                6 : (safe_squares & block_sq) != U64(0) ?
+                                    4 : 0;
                     }
+
+                    mg_value += k*rr;
+                    eg_value += k*rr;
+                }
+                else
+                // If the pawn is blocked by own pieces
+                if ((pos.pieces (Own) & block_sq) != U64(0))
+                {
+                    mg_value += 3*rr + 0*r + 0;
+                    eg_value += 1*rr + 1*r + 0;
                 }
 
                 // If non-pawn piece-count differ
                 if (nonpawn_count[Own] != nonpawn_count[Opp])
                 {
-                    eg_value *= 1.0 + (double) (nonpawn_count[Own]-nonpawn_count[Opp]) / (nonpawn_count[Own]+nonpawn_count[Opp]) / 2.0;
+                    eg_value *= 1.0 + (double) (nonpawn_count[Own]-nonpawn_count[Opp]) / (nonpawn_count[Own]+nonpawn_count[Opp] + 2);
                 }
 
                 score += mk_score (mg_value, eg_value) + PawnPassedScore[_file (s)];
