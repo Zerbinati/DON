@@ -31,6 +31,8 @@ namespace Searcher {
     using namespace Notation;
     using namespace Debugger;
 
+    typedef std::vector<i32> IntVector;
+
     bool Chess960 = false;
 
     StateStackPtr SetupStates;
@@ -230,14 +232,11 @@ namespace Searcher {
 
             // Extra penalty for PV move in previous ply when it gets refuted
             if (   (ss-1)->move_count == 1
-                && pos.capture_type () == NONE
-                && _ok ((ss-1)->current_move)
-                //&& mtype ((ss-1)->current_move) != PROMOTE
                 && _ok ((ss-2)->current_move)
                )
             {
                 auto &own_cmv = CounterMoveHistoryValues[pos[dst_sq ((ss-2)->current_move)]][dst_sq ((ss-2)->current_move)];
-                own_cmv.update (pos[dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -bonus - 2*(depth/DEPTH_ONE) - 2);
+                own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth/DEPTH_ONE) - 2);
             }
         }
         void update_stats (const Position &pos, Stack *ss, Move move, Depth depth)
@@ -743,7 +742,7 @@ namespace Searcher {
                         {
                             tte = TT.probe (posi_key, tt_hit);
                         }
-                        tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), in_check ? VALUE_NONE : evaluate (pos),
+                        tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), /*in_check ?*/ VALUE_NONE /*: evaluate (pos)*/,
                             std::min (depth + 6*DEPTH_ONE, DEPTH_MAX - DEPTH_ONE), BOUND_EXACT, TT.generation ());
 
                         return value;
@@ -1365,7 +1364,7 @@ namespace Searcher {
                 && best_move == MOVE_NONE
                 && pos.capture_type () == NONE
                 && _ok ((ss-1)->current_move)
-                //&& mtype ((ss-1)->current_move) != PROMOTE
+                && mtype ((ss-1)->current_move) != PROMOTE
                 && _ok ((ss-2)->current_move)
                )
             {
@@ -1379,11 +1378,8 @@ namespace Searcher {
             {
                 tte = TT.probe (posi_key, tt_hit);
             }
-            tte->save (posi_key, best_move,
-                value_to_tt (best_value, ss->ply), ss->static_eval, depth,
-                best_value >= beta ? BOUND_LOWER :
-                    PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
-                TT.generation ());
+            tte->save (posi_key, best_move, value_to_tt (best_value, ss->ply), ss->static_eval, depth,
+                best_value >= beta ? BOUND_LOWER : PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER, TT.generation ());
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -1416,7 +1412,7 @@ namespace Searcher {
                 || tte->move () != m
                )
             {
-                tte->save (pos.posi_key (), m, VALUE_NONE, pos.checkers () != U64(0) ? VALUE_NONE : evaluate (pos), DEPTH_NONE, BOUND_NONE, TT.generation ());
+                tte->save (pos.posi_key (), m, VALUE_NONE, /*pos.checkers () != U64(0) ?*/ VALUE_NONE /*: evaluate (pos)*/, DEPTH_NONE, BOUND_NONE, TT.generation ());
             }
             pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
             ++ply;
@@ -1703,47 +1699,49 @@ namespace Threading {
             }
             else
             {
-                // Rotating symmetric patterns with increasing skipsize
-                static const u16 HalfDensityMap[30][11] =
+                // Rotating symmetric patterns with increasing skipsize.
+                // Set of rows with half bits set to 1 and half to 0.
+                // It is used to allocate the search depths across the threads.
+                static const IntVector HalfDensityMap[30] =
                 {
-                    { 2, 0, 1 },
-                    { 2, 1, 0 },
+                    { 0, 1 },
+                    { 1, 0 },
 
-                    { 4, 0, 0, 1, 1 },
-                    { 4, 0, 1, 1, 0 },
-                    { 4, 1, 1, 0, 0 },
-                    { 4, 1, 0, 0, 1 },
+                    { 0, 0, 1, 1 },
+                    { 0, 1, 1, 0 },
+                    { 1, 1, 0, 0 },
+                    { 1, 0, 0, 1 },
 
-                    { 6, 0, 0, 0, 1, 1, 1 },
-                    { 6, 0, 0, 1, 1, 1, 0 },
-                    { 6, 0, 1, 1, 1, 0, 0 },
-                    { 6, 1, 1, 1, 0, 0, 0 },
-                    { 6, 1, 1, 0, 0, 0, 1 },
-                    { 6, 1, 0, 0, 0, 1, 1 },
+                    { 0, 0, 0, 1, 1, 1 },
+                    { 0, 0, 1, 1, 1, 0 },
+                    { 0, 1, 1, 1, 0, 0 },
+                    { 1, 1, 1, 0, 0, 0 },
+                    { 1, 1, 0, 0, 0, 1 },
+                    { 1, 0, 0, 0, 1, 1 },
 
-                    { 8, 0, 0, 0, 0, 1, 1, 1, 1 },
-                    { 8, 0, 0, 0, 1, 1, 1, 1, 0 },
-                    { 8, 0, 0, 1, 1, 1, 1, 0, 0 },
-                    { 8, 0, 1, 1, 1, 1, 0, 0, 0 },
-                    { 8, 1, 1, 1, 1, 0, 0, 0, 0 },
-                    { 8, 1, 1, 1, 0, 0, 0, 0, 1 },
-                    { 8, 1, 1, 0, 0, 0, 0, 1, 1 },
-                    { 8, 1, 0, 0, 0, 0, 1, 1, 1 },
+                    { 0, 0, 0, 0, 1, 1, 1, 1 },
+                    { 0, 0, 0, 1, 1, 1, 1, 0 },
+                    { 0, 0, 1, 1, 1, 1, 0, 0 },
+                    { 0, 1, 1, 1, 1, 0, 0, 0 },
+                    { 1, 1, 1, 1, 0, 0, 0, 0 },
+                    { 1, 1, 1, 0, 0, 0, 0, 1 },
+                    { 1, 1, 0, 0, 0, 0, 1, 1 },
+                    { 1, 0, 0, 0, 0, 1, 1, 1 },
 
-                    { 10, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 },
-                    { 10, 0, 0, 0, 0, 1, 1, 1, 1, 1, 0 },
-                    { 10, 0, 0, 0, 1, 1, 1, 1, 1, 0, 0 },
-                    { 10, 0, 0, 1, 1, 1, 1, 1, 0, 0, 0 },
-                    { 10, 0, 1, 1, 1, 1, 1, 0, 0, 0, 0 },
-                    { 10, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
-                    { 10, 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
-                    { 10, 1, 1, 1, 0, 0, 0, 0, 0, 1, 1 },
-                    { 10, 1, 1, 0, 0, 0, 0, 0, 1, 1, 1 },
-                    { 10, 1, 0, 0, 0, 0, 0, 1, 1, 1, 1 },
+                    { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 },
+                    { 0, 0, 0, 0, 1, 1, 1, 1, 1, 0 },
+                    { 0, 0, 0, 1, 1, 1, 1, 1, 0, 0 },
+                    { 0, 0, 1, 1, 1, 1, 1, 0, 0, 0 },
+                    { 0, 1, 1, 1, 1, 1, 0, 0, 0, 0 },
+                    { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
+                    { 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
+                    { 1, 1, 1, 0, 0, 0, 0, 0, 1, 1 },
+                    { 1, 1, 0, 0, 0, 0, 0, 1, 1, 1 },
+                    { 1, 0, 0, 0, 0, 0, 1, 1, 1, 1 },
                 };
 
-                u16 row = (index - 1) % 30;
-                if (HalfDensityMap[row][(u16(root_depth) + root_pos.game_ply ()) % HalfDensityMap[row][0] + 1] != 0)
+                const IntVector &row = HalfDensityMap[(index - 1) % 30];
+                if (row[(u16(root_depth) + root_pos.game_ply ()) % row.size ()] != 0)
                 {
                     continue;
                 }

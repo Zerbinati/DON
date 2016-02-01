@@ -280,7 +280,7 @@ ifdef COMPCXX
 	CXX = $(COMPCXX)
 endif
 
-### On mingw use Windows threads, otherwise POSIX
+### Mingw has POSIX thread support built-in
 ifneq ($(comp), mingw)
 	# On Android Bionic's C library comes with its own pthread implementation bundled in
 	ifneq ($(arch), armv7)
