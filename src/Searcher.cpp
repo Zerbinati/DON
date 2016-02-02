@@ -231,11 +231,14 @@ namespace Searcher {
             }
 
             // Extra penalty for PV move in previous ply when it gets refuted
-            if (   (ss-1)->move_count == 1
+            if (   (ss-1)->move_count == 1 && opp_move_ok
+                && pos.capture_type () == NONE
+                //&& mtype ((ss-1)->current_move) != PROMOTE
                 && _ok ((ss-2)->current_move)
                )
             {
-                auto &own_cmv = CounterMoveHistoryValues[pos[dst_sq ((ss-2)->current_move)]][dst_sq ((ss-2)->current_move)];
+                auto own_move_dst = dst_sq ((ss-2)->current_move);
+                auto &own_cmv = CounterMoveHistoryValues[pos[own_move_dst]][own_move_dst];
                 own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth/DEPTH_ONE) - 2);
             }
         }
@@ -988,8 +991,9 @@ namespace Searcher {
             MoveVector quiet_moves;
             quiet_moves.reserve (16);
 
-            auto counter_move = thread->counter_moves[_ok ((ss-1)->current_move) ? pos[dst_sq ((ss-1)->current_move)] : NO_PIECE][dst_sq ((ss-1)->current_move)];
-            auto &opp_cmv = CounterMoveHistoryValues[_ok ((ss-1)->current_move) ? pos[dst_sq ((ss-1)->current_move)] : NO_PIECE][dst_sq ((ss-1)->current_move)];
+            auto opp_move_dst = dst_sq ((ss-1)->current_move);
+            auto counter_move = thread->counter_moves[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
+            auto &opp_cmv = CounterMoveHistoryValues[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
@@ -1365,13 +1369,13 @@ namespace Searcher {
             if (   !in_check
                 && depth >= 3*DEPTH_ONE
                 && best_move == MOVE_NONE
-                && pos.capture_type () == NONE
                 && _ok ((ss-1)->current_move)
-                && mtype ((ss-1)->current_move) != PROMOTE
+                && pos.capture_type () == NONE
+                //&& mtype ((ss-1)->current_move) != PROMOTE
                 && _ok ((ss-2)->current_move)
                )
             {
-                auto opp_move_dst = dst_sq ((ss-1)->current_move);
+                opp_move_dst = dst_sq ((ss-1)->current_move);
                 auto own_move_dst = dst_sq ((ss-2)->current_move);
                 auto &own_cmv = CounterMoveHistoryValues[pos[own_move_dst]][own_move_dst];
                 own_cmv.update (pos[opp_move_dst], opp_move_dst, Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1));
@@ -1445,9 +1449,7 @@ namespace Searcher {
         if (tt_hit)
         {
             m = tte->move (); // Local copy to be SMP safe
-            if (   _ok (m)
-                && MoveList<LEGAL> (pos).contains (m)
-               )
+            if (_ok (m) && MoveList<LEGAL> (pos).contains (m))
             {
                *this += m;
                extracted = true;
@@ -1745,8 +1747,8 @@ namespace Threading {
                     { 1, 0, 0, 0, 0, 0, 1, 1, 1, 1 },
                 };
 
-                const IntVector &row = HalfDensityMap[(index - 1) % 30];
-                if (row[(u16(root_depth) + root_pos.game_ply ()) % row.size ()] != 0)
+                const IntVector &hdm = HalfDensityMap[(index - 1) % 30];
+                if (hdm[(u16(root_depth) + root_pos.game_ply ()) % hdm.size ()] != 0)
                 {
                     continue;
                 }

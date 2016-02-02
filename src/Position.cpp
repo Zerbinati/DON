@@ -154,11 +154,11 @@ Position& Position::operator= (const Position &pos)
 
     _active     = pos._active;
     _game_ply   = pos._game_ply;
-    _game_nodes = 0; //pos.game_nodes;
+    _game_nodes = 0;
     _chess960   = pos._chess960;
     _thread     = pos._thread;
 
-    std::memcpy (&_ssi, pos._psi, StateInfo::Size); //_ssi = *pos._psi;
+    _ssi = *pos._psi;
     _psi = &_ssi;
 
     assert(ok ());
@@ -696,12 +696,6 @@ bool Position::pseudo_legal (Move m) const
     }
         break;
     }
-    //// The destination square cannot be occupied by a friendly piece
-    //if ((_color_bb[_active] & dst) != U64(0))
-    //{
-    //    return false;
-    //}
-
     // The captured square cannot be occupied by a friendly piece or kings
     if (((_color_bb[_active]|_types_bb[KING]) & cap) != U64(0))
     {
@@ -710,26 +704,31 @@ bool Position::pseudo_legal (Move m) const
     // Handle the special case of a piece move
     if (mpt == PAWN)
     {
-        auto rel_org_rank = rel_rank (_active, org);
-        auto rel_dst_rank = rel_rank (_active, dst);
+        auto org_rel_rank = rel_rank (_active, org);
+        auto dst_rel_rank = rel_rank (_active, dst);
         // In case of any moves origin & destination cannot be on the 1st/8th & 1st/2nd rank.
-        if (   rel_org_rank == R_1 || rel_dst_rank == R_2
-            || rel_org_rank == R_8 || rel_dst_rank == R_1
+        if (   org_rel_rank == R_1 || dst_rel_rank == R_2
+            || org_rel_rank == R_8 || dst_rel_rank == R_1
            )
         {
             return false;
         }
         // In case of non-promotional moves origin & destination cannot be on the 7th/2nd & 8th/1st rank.
         if (    mtype (m) != PROMOTE
-            && (rel_org_rank == R_7 || rel_dst_rank == R_8)
+            && (org_rel_rank == R_7 || dst_rel_rank == R_8)
            )
         {
             return false;
         }
         if (   // Not a capture
-               !(   (PawnAttacks[_active][org] & _color_bb[~_active] & dst)
+               !(   ((PawnAttacks[_active][org] & _color_bb[~_active]) & dst) != U64(0)
                  //&& dist<File> (dst, org) == 1
                  //&& dist<Rank> (dst, org) == 1
+                )
+               // Not an enpassant capture
+            && !(   ((PawnAttacks[_active][org] & ~_types_bb[NONE]) & dst) != U64(0)
+                 && _psi->en_passant_sq == dst
+                 && _board[cap] == (~_active|PAWN)
                 )
                // Not a single push
             && !(   empty (dst)
@@ -738,8 +737,8 @@ bool Position::pseudo_legal (Move m) const
                  //&& dist<Rank> (dst, org) == 1
                 )
                // Not a double push
-            && !(   rel_org_rank == R_2
-                 && rel_dst_rank == R_4
+            && !(   org_rel_rank == R_2
+                 && dst_rel_rank == R_4
                  && empty (dst)
                  && empty (dst - pawn_push (_active))
                  && (org + 2*pawn_push (_active) == dst)
@@ -750,7 +749,6 @@ bool Position::pseudo_legal (Move m) const
         {
             return false;
         }
-
     }
     else
     {

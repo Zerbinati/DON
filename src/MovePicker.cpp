@@ -205,7 +205,7 @@ namespace MovePick {
         case S_QCAPTURE_2:
         case S_PROBCUT_CAPTURE:
         case S_ALL_RECAPTURE:
-            _end_move = _stage != S_ALL_RECAPTURE || _ok (_recapture_sq) ?
+            _end_move = _stage != S_ALL_RECAPTURE || _recapture_sq != SQ_NO ?
                 generate<CAPTURE> (_beg_move, _pos) : _beg_move;
             if (_cur_move < _end_move-1)
             {

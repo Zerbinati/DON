@@ -424,33 +424,34 @@ enum ScaleFactor : u08
 #undef INC_DEC_OPERATORS
 
 #define BASIC_OPERATORS(T)                                                       \
-    inline T  operator+  (T  d, i32 i) { return T(i32(d) + i); }                 \
-    inline T  operator-  (T  d, i32 i) { return T(i32(d) - i); }                 \
-    inline T& operator+= (T &d, i32 i) { d = T(i32(d) + i); return d; }          \
-    inline T& operator-= (T &d, i32 i) { d = T(i32(d) - i); return d; }          \
+    inline T  operator+  (T  t, i32 i) { return T(i32(t) + i); }                 \
+    inline T  operator-  (T  t, i32 i) { return T(i32(t) - i); }                 \
+    inline T& operator+= (T &t, i32 i) { t = T(i32(t) + i); return t; }          \
+    inline T& operator-= (T &t, i32 i) { t = T(i32(t) - i); return t; }          \
 
 #define ARTHMAT_OPERATORS(T)                                                     \
     BASIC_OPERATORS(T)                                                           \
-    inline T  operator+  (T  d1, T d2) { return T(i32(d1) + i32(d2)); }          \
-    inline T  operator-  (T  d1, T d2) { return T(i32(d1) - i32(d2)); }          \
-    inline T  operator*  (T  d, i32 i) { return T(i32(d) * i); }                 \
-    inline T  operator+  (T  d       ) { return T(+i32(d)); }                    \
-    inline T  operator-  (T  d       ) { return T(-i32(d)); }                    \
-    inline T& operator+= (T &d1, T d2) { d1 = T(i32(d1) + i32(d2)); return d1; } \
-    inline T& operator-= (T &d1, T d2) { d1 = T(i32(d1) - i32(d2)); return d1; } \
-    inline T  operator*  (i32 i, T  d) { return T(i * i32(d)); }                 \
-    inline T& operator*= (T &d, i32 i) { d = T(i32(d) * i); return d; }
+    inline T  operator+  (T  t1, T t2) { return T(i32(t1) + i32(t2)); }          \
+    inline T  operator-  (T  t1, T t2) { return T(i32(t1) - i32(t2)); }          \
+    inline T  operator*  (T  t, i32 i) { return T(i32(t) * i); }                 \
+    inline T  operator+  (T  t       ) { return T(+i32(t)); }                    \
+    inline T  operator-  (T  t       ) { return T(-i32(t)); }                    \
+    inline T& operator+= (T &t1, T t2) { t1 = T(i32(t1) + i32(t2)); return t1; } \
+    inline T& operator-= (T &t1, T t2) { t1 = T(i32(t1) - i32(t2)); return t1; } \
+    inline T  operator*  (i32 i, T  t) { return T(i * i32(t)); }                 \
+    inline T& operator*= (T &t, i32 i) { t = T(i32(t) * i); return t; }
 
-//inline T  operator+  (i32 i, T d) { return T(i + i32(d)); }                  
-//inline T  operator-  (i32 i, T d) { return T(i - i32(d)); }                  
-//inline T  operator/  (T  d, i32 i) { return T(i32(d) / i); }                 
-//inline T& operator/= (T &d, i32 i) { d = T(i32(d) / i); return d; }
+//inline T  operator+  (i32 i, T t) { return T(i + i32(t)); }                  
+//inline T  operator-  (i32 i, T t) { return T(i - i32(t)); }                  
+//inline T  operator/  (T  t, i32 i) { return T(i32(t) / i); }                 
+//inline T& operator/= (T &t, i32 i) { t = T(i32(t) / i); return t; }
 
-#define INC_DEC_OPERATORS(T)                                                    \
-    inline T  operator++ (T &d, i32) { T o = d; d = T(i32(d) + 1); return o; }  \
-    inline T  operator-- (T &d, i32) { T o = d; d = T(i32(d) - 1); return o; }  \
-    inline T& operator++ (T &d     ) { d = T(i32(d) + 1); return d; }           \
-    inline T& operator-- (T &d     ) { d = T(i32(d) - 1); return d; }
+#define INC_DEC_OPERATORS(T)                                               \
+    inline T& operator++ (T &t) { t = T(i32(t) + 1); return t; }           \
+    inline T& operator-- (T &t) { t = T(i32(t) - 1); return t; }
+
+//inline T  operator++ (T &t, i32) { T o = t; t = T (i32 (t) + 1); return o; }  
+//inline T  operator-- (T &t, i32) { T o = t; t = T (i32 (t) - 1); return o; }  
 
 BASIC_OPERATORS(File)
 INC_DEC_OPERATORS(File)
@@ -502,10 +503,10 @@ ARTHMAT_OPERATORS(Value)
 INC_DEC_OPERATORS(Value)
 inline Value  operator+  (i32 i, Value v) { return Value(i + i32(v)); }
 inline Value  operator-  (i32 i, Value v) { return Value(i - i32(v)); }
-inline Value  operator*  (Value  v, double f) { return Value(i32(i32(v) * f)); }
-inline Value& operator*= (Value &v, double f) { v = Value(i32(i32(v) * f)); return v; }
-inline Value  operator/  (Value  v, i32    i) { return Value(i32(v) / i); }
-inline Value& operator/= (Value &v, i32    i) { v = Value(i32(v) / i); return v; }
+inline Value  operator*  (Value  v, double d) { return Value(i32(i32(v) * d)); }
+inline Value& operator*= (Value &v, double d) { v = Value(i32(i32(v) * d)); return v; }
+inline Value  operator/  (Value  v, i32 i) { return Value(i32(v) / i); }
+inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1)/i32(v2); }
 
 // Make score from mid and end values
@@ -526,10 +527,10 @@ ARTHMAT_OPERATORS(Score)
 // a very high risk of overflow. So user should explicitly convert to integer.
 inline Score  operator*  (Score s1, Score s2);
 // Multiplication & Division of a Score must be handled separately for each term
-inline Score  operator*  (Score  s, double f) { return mk_score (mg_value (s) * f, eg_value (s) * f); }
-inline Score& operator*= (Score &s, double f) { s = mk_score (mg_value (s) * f, eg_value (s) * f); return s; }
-inline Score  operator/  (Score  s, i32    i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
-inline Score& operator/= (Score &s, i32    i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
+inline Score  operator*  (Score  s, double d) { return mk_score (mg_value (s) * d, eg_value (s) * d); }
+inline Score& operator*= (Score &s, double d) { s = mk_score (mg_value (s) * d, eg_value (s) * d); return s; }
+inline Score  operator/  (Score  s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+inline Score& operator/= (Score &s, i32 i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
 
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS

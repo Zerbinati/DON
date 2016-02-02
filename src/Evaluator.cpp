@@ -753,29 +753,29 @@ namespace Evaluator {
                 auto s = pop_lsq (passed_pawns);
                 assert(pos.passed_pawn (Own, s));
 
-                auto rank = rel_rank (Own, s);
-                // Base bonus depends on rank
-                auto mg_value = PawnPassedValue[MG][rank];
-                auto eg_value = PawnPassedValue[EG][rank];
+                auto rel_r = rel_rank (Own, s);
+                // Base bonus depending on rank.
+                auto mg_value = PawnPassedValue[MG][rel_r];
+                auto eg_value = PawnPassedValue[EG][rel_r];
 
-                auto r  = i08(rank) - i08(R_2);
+                auto r  = i08(rel_r) - i08(R_2);
                 auto rr = r*(r-1);
                 
                 if (rr != 0)
                 {
                     auto block_sq = s+Push;
 
-                    // Adjust bonus based on kings proximity
+                    // Adjust bonus based on kings proximity.
                     eg_value +=
                         + 5*rr*dist (pos.square<KING> (Opp), block_sq)
                         - 2*rr*dist (pos.square<KING> (Own), block_sq);
-                    // If block square is less then the queening square then consider also a second push
+                    // If block square is less then the queening square then consider also a second push.
                     if (rel_rank (Own, block_sq) < R_8)
                     {
                         eg_value -= 1*rr*dist (pos.square<KING> (Own), block_sq+Push);
                     }
 
-                    // If the pawn is free to advance
+                    // If the pawn is free to advance.
                     if (pos.empty (block_sq))
                     {
                         // Squares to queen
@@ -815,8 +815,8 @@ namespace Evaluator {
                                         4 : 0;
                         }
 
-                        mg_value += k*rr;
-                        eg_value += k*rr;
+                        mg_value += k*rr + 0*r + 0;
+                        eg_value += k*rr + 0*r + 0;
                     }
                     else
                     // If the pawn is blocked by own pieces
@@ -826,8 +826,8 @@ namespace Evaluator {
                         eg_value += 1*rr + 2*r + 0;
                     }
                 }
-                // If non-pawn piece-count differ
-                if (nonpawn_count[Own] != nonpawn_count[Opp])
+                // If non-pawn count differ.
+                if (nonpawn_count[Own]-nonpawn_count[Opp] != 0)
                 {
                     eg_value *= 1.0 + (double) (nonpawn_count[Own]-nonpawn_count[Opp]) / (nonpawn_count[Own]+nonpawn_count[Opp]+2);
                 }
@@ -919,7 +919,8 @@ namespace Evaluator {
         {
             assert(PHASE_ENDGAME <= ei.me->game_phase && ei.me->game_phase <= PHASE_MIDGAME);
 
-            const auto strong_side = eg_value (score) >= VALUE_ZERO ? WHITE : BLACK;
+            const auto eg = eg_value (score);
+            const auto strong_side = eg >= VALUE_ZERO ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
             auto scale_factor = ei.me->scale_factor (pos, strong_side);
 
@@ -948,7 +949,7 @@ namespace Evaluator {
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 else
-                    if (    abs (eg_value (score)) <= VALUE_EG_BSHP
+                    if (    abs (eg) <= VALUE_EG_BSHP
                         &&  ei.pe->pawn_span[strong_side] <= 1
                         && !pos.passed_pawn (~strong_side, pos.square<KING> (~strong_side))
                        )
