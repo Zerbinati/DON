@@ -64,8 +64,6 @@ namespace Searcher {
 
     string LogFile         = "<empty>";
 
-    SkillManager SkillMgr;
-
     // ------------------------------------
 
     namespace {
@@ -1473,42 +1471,6 @@ namespace Searcher {
 
     // ------------------------------------
 
-    // When playing with a strength handicap, choose best move among the first 'candidates'
-    // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-    Move SkillManager::pick_best_move (const RootMoveVector &root_moves)
-    {
-        assert(!root_moves.empty ());
-
-        static PRNG prng (now ()); // PRNG sequence should be non-deterministic
-
-        _best_move = MOVE_NONE;
-        // RootMoves are already sorted by value in descending order
-        auto top_value  = root_moves[0].new_value;
-        auto diversity  = std::min (top_value - root_moves[PVLimit - 1].new_value, VALUE_MG_PAWN);
-        auto weakness   = Value(MaxPlies - 4 * _skill_level);
-        auto best_value = -VALUE_INFINITE;
-        // Choose best move. For each move score add two terms, both dependent on weakness.
-        // One is deterministic with weakness, and one is random with diversity.
-        // Then choose the move with the resulting highest value.
-        for (u16 i = 0; i < PVLimit; ++i)
-        {
-            auto value = root_moves[i].new_value;
-            // This is magic formula for push
-            auto push  = (  weakness  * i32(top_value - value)
-                          + diversity * i32(prng.rand<u32> () % weakness)
-                         ) / (i32(VALUE_EG_PAWN) / 2);
-
-            if (best_value < value + push)
-            {
-                best_value = value + push;
-                _best_move = root_moves[i][0];
-            }
-        }
-        return _best_move;
-    }
-
-    // ------------------------------------
-
     // perft<>() is utility to verify move generation.
     // All the leaf nodes up to the given depth are generated, and the sum is returned.
     template<bool RootNode>
@@ -1671,16 +1633,16 @@ namespace Threading {
                 main_thread->easy_played = false;
                 main_thread->best_move_change = 0.0;
             }
-            if (SkillMgr.enabled ())
+            if (main_thread->skill_mgr.enabled ())
             {
-                SkillMgr.clear ();
+                main_thread->skill_mgr.clear ();
             }
         }
 
         // Do have to play with skill handicap?
         // In this case enable MultiPV search by skill pv size
         // that will use behind the scenes to get a set of possible moves.
-        PVLimit = std::min (std::max (MultiPV, u16(SkillMgr.enabled () ? SkillManager::MultiPV : 0)), u16(root_moves.size ()));
+        PVLimit = std::min (std::max (MultiPV, u16(Threadpool.main ()->skill_mgr.enabled () ? SkillManager::MultiPV : 0)), u16(root_moves.size ()));
 
         Value best_value = VALUE_ZERO
             , window     = VALUE_ZERO
@@ -1884,12 +1846,12 @@ namespace Threading {
                 }
 
                 // If skill level is enabled and can pick move, pick a sub-optimal best move
-                if (   SkillMgr.enabled ()
-                    && SkillMgr.can_pick (root_depth)
+                if (   main_thread->skill_mgr.enabled ()
+                    && main_thread->skill_mgr.can_pick (root_depth)
                     && !root_moves.empty ()
                    )
                 {
-                    SkillMgr.pick_best_move (root_moves);
+                    main_thread->skill_mgr.pick_best_move (root_moves, PVLimit);
                 }
 
                 if (LogStream.is_open ())
@@ -1984,11 +1946,11 @@ namespace Threading {
                 main_thread->easy_move_mgr.clear ();
             }
             // If skill level is enabled, swap best PV line with the sub-optimal one
-            if (   SkillMgr.enabled ()
+            if (   main_thread->skill_mgr.enabled ()
                 && !root_moves.empty ()
                )
             {
-                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), SkillMgr.best_move (root_moves)));
+                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), main_thread->skill_mgr.best_move (root_moves, PVLimit)));
             }
         }
     }
@@ -2184,7 +2146,7 @@ namespace Threading {
         Thread *best_thread = this;
         if (   !easy_played
             && PVLimit == 1
-            && !SkillMgr.enabled ()
+            && !skill_mgr.enabled ()
            )
         {
             for (size_t i = 1; i < Threadpool.size (); ++i)

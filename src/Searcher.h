@@ -214,56 +214,6 @@ namespace Searcher {
         MoveVector pv;
     };
 
-    const u08 MaxSkillLevel   = 32; // MaxSkillLevel should be <= MaxPlies/4
-    // Skill Manager class is used to implement strength limit
-    class SkillManager
-    {
-
-    private:
-        u08  _skill_level = MaxSkillLevel;
-        Move _best_move   = MOVE_NONE;
-
-    public:
-        static const u16 MultiPV = 4;
-
-        explicit SkillManager (u08 skill_level = MaxSkillLevel)
-            : _skill_level (skill_level)
-        {}
-
-        void change_skill_level (u08 skill_level)
-        {
-            _skill_level = skill_level;
-        }
-
-        void clear ()
-        {
-            _best_move = MOVE_NONE;
-        }
-
-        bool enabled () const
-        {
-            return _skill_level < MaxSkillLevel;
-        }
-
-        bool can_pick (Depth depth) const
-        {
-            return depth/DEPTH_ONE == (_skill_level + 1);
-        }
-
-        Move best_move (const RootMoveVector &root_moves)
-        {
-            return _best_move == MOVE_NONE
-                && !root_moves.empty () ?
-                pick_best_move (root_moves) : _best_move;
-        }
-
-        Move pick_best_move (const RootMoveVector &root_moves);
-
-    };
-
-    extern SkillManager SkillMgr;
-
-
     template<bool RootNode = true>
     extern u64 perft (Position &pos, Depth depth);
 

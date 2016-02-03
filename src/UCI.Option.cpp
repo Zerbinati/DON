@@ -229,7 +229,7 @@ namespace UCI {
         
         void configure_skill ()
         {
-            SkillMgr.change_skill_level (u08(i32(Options["Skill Level"])));
+            Threadpool.main ()->skill_mgr.change_skill_level (u08(i32(Options["Skill Level"])));
         }
 
         void configure_time ()
@@ -392,7 +392,7 @@ namespace UCI {
         // Default=MaxSkillLevel, Min=0, Max=MaxSkillLevel.
         //
         // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
-        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel, configure_skill);
+        Options["Skill Level"]                  << Option (SkillManager::MaxSkillLevel,  0, SkillManager::MaxSkillLevel, configure_skill);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.

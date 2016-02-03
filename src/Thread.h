@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "thread_win32.h"
+#include "PRNG.h"
 #include "Position.h"
 #include "Pawns.h"
 #include "Material.h"
@@ -108,6 +109,84 @@ public:
                 pos.undo_move ();
             }
         }
+    }
+};
+
+class SkillManager
+{
+
+private:
+    u08  _skill_level = MaxSkillLevel;
+    Move _best_move   = MOVE_NONE;
+
+public:
+    // MaxSkillLevel should be <= MaxPlies/4
+    // Skill Manager class is used to implement strength limit
+    static const u08 MaxSkillLevel = 32;
+    static const u16 MultiPV = 4;
+
+    explicit SkillManager (u08 skill_level = MaxSkillLevel)
+        : _skill_level (skill_level)
+    {}
+
+    void change_skill_level (u08 skill_level)
+    {
+        _skill_level = skill_level;
+    }
+
+    void clear ()
+    {
+        _best_move = MOVE_NONE;
+    }
+
+    bool enabled () const
+    {
+        return _skill_level < MaxSkillLevel;
+    }
+
+    bool can_pick (Depth depth) const
+    {
+        return depth/DEPTH_ONE == (_skill_level + 1);
+    }
+
+    Move best_move (const Searcher::RootMoveVector &root_moves, u16 pv_limit)
+    {
+        return _best_move == MOVE_NONE
+            && !root_moves.empty () ?
+            pick_best_move (root_moves, pv_limit) : _best_move;
+    }
+    // When playing with a strength handicap, choose best move among the first 'candidates'
+    // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
+    Move pick_best_move (const Searcher::RootMoveVector &root_moves, u16 pv_limit)
+    {
+        assert (!root_moves.empty ());
+
+        static PRNG prng (now ()); // PRNG sequence should be non-deterministic
+
+        _best_move = MOVE_NONE;
+        // RootMoves are already sorted by value in descending order
+        auto top_value  = root_moves[0].new_value;
+        auto diversity  = std::min (top_value - root_moves[pv_limit - 1].new_value, VALUE_MG_PAWN);
+        auto weakness   = Value (MaxPlies - 4 * _skill_level);
+        auto best_value = -VALUE_INFINITE;
+        // Choose best move. For each move score add two terms, both dependent on weakness.
+        // One is deterministic with weakness, and one is random with diversity.
+        // Then choose the move with the resulting highest value.
+        for (u16 i = 0; i < pv_limit; ++i)
+        {
+            auto value = root_moves[i].new_value;
+            // This is magic formula for push
+            auto push  = (weakness  * i32 (top_value - value)
+                          + diversity * i32 (prng.rand<u32> () % weakness)
+                          ) / (i32 (VALUE_EG_PAWN) / 2);
+
+            if (best_value < value + push)
+            {
+                best_value = value + push;
+                _best_move = root_moves[i][0];
+            }
+        }
+        return _best_move;
     }
 };
 
@@ -224,6 +303,7 @@ namespace Threading {
 
         TimeManager     time_mgr;
         EasyMoveManager easy_move_mgr;
+        SkillManager    skill_mgr;
 
         virtual void search () override;
     };
