@@ -8,7 +8,7 @@ u08     ReadyMoveHorizon   =   40; // Be prepared to always play at least this m
 u32     OverheadClockTime  =   60; // Attempt to keep at least this much time at clock, in milliseconds.
 u32     OverheadMoveTime   =   30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
 u32     MinimumMoveTime    =   20; // No matter what, use at least this much time before doing the move, in milliseconds.
-double  MoveSlowness       = 1.00; // Move Slowness, in %age.
+double  MoveSlowness       = 0.85; // Move Slowness, in %age.
 u32     NodesTime          =    0; // 'Nodes as Time' mode
 bool    Ponder             = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
@@ -33,8 +33,8 @@ namespace {
     // remaining_time<>() calculate the time remaining
     TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
     {
-        const auto  StepRatio = 1.00 + 6.09 * (Maximum ? 1 : 0); // When in trouble, can step over reserved time with this ratio
-        const auto StealRatio = 0.00 + 0.35 * (Maximum ? 1 : 0); // However must not steal time from remaining moves over this ratio
+        const auto  StepRatio = Maximum ? 7.09 : 1.00; // When in trouble, can step over reserved time with this ratio
+        const auto StealRatio = Maximum ? 0.35 : 0.00; // However must not steal time from remaining moves over this ratio
 
         auto  this_move_imp = move_importance (ply) * MoveSlowness;
         auto other_move_imp = 0.0;
@@ -46,7 +46,7 @@ namespace {
         auto  step_time_ratio = (0.0           +  this_move_imp *  StepRatio) / (this_move_imp * StepRatio + other_move_imp);
         auto steal_time_ratio = (this_move_imp + other_move_imp * StealRatio) / (this_move_imp * 1.0       + other_move_imp);
 
-        return TimePoint(time * std::min (step_time_ratio, steal_time_ratio)); // Intel C++ asks for an explicit cast
+        return TimePoint(round (time * std::min (step_time_ratio, steal_time_ratio))); // Intel C++ asks for an explicit cast
     }
 }
 

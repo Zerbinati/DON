@@ -3,6 +3,7 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
+#include <cmath>
 
 #include "Thread.h"
 #include "Transposition.h"
@@ -447,7 +448,7 @@ namespace UCI {
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Move Time"]            << Option (MinimumMoveTime     , 0, 5000, configure_time);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (i32(MoveSlowness*100),+ 10,+ 1000, configure_time);
+        Options["Move Slowness"]                << Option (i32(round (MoveSlowness*100)),+ 10,+ 1000, configure_time);
         Options["Nodes Time"]                   << Option (NodesTime           ,   0,+10000, configure_time);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default=Ponder.
