@@ -46,7 +46,7 @@ namespace {
         auto  step_time_ratio = (0.0           +  this_move_imp *  StepRatio) / (this_move_imp * StepRatio + other_move_imp);
         auto steal_time_ratio = (this_move_imp + other_move_imp * StealRatio) / (this_move_imp * 1.0       + other_move_imp);
 
-        return TimePoint(round (time * std::min (step_time_ratio, steal_time_ratio))); // Intel C++ asks for an explicit cast
+        return TimePoint(std::round (time * std::min (step_time_ratio, steal_time_ratio))); // Intel C++ asks for an explicit cast
     }
 }
 
