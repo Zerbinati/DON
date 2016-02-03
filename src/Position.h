@@ -93,10 +93,9 @@ namespace Threading {
 //  - Chess 960 info
 class Position
 {
-
 private:
 
-    Piece    _board   [SQ_NO];  // Board for storing pieces.
+    Piece _board[SQ_NO];  // Board for storing pieces.
 
     Bitboard _color_bb[CLR_NO];
     Bitboard _types_bb[MAX_PTYPE];
@@ -111,11 +110,10 @@ private:
     Bitboard    _castle_path[CR_NO];
     Bitboard    _king_path  [CR_NO];
 
-    Color    _active;
-    i16      _game_ply;
-    u64      _game_nodes;
-
-    bool     _chess960;
+    Color   _active;
+    bool    _chess960;
+    i16     _game_ply;
+    u64     _game_nodes;
 
     Threading::Thread  *_thread;
 
@@ -166,12 +164,12 @@ public:
 
     Position& operator= (const Position &pos); // To assign RootPos from UCI
 
-    Piece    operator[] (Square s)      const;
+    Piece operator[] (Square s)      const;
     //Bitboard operator[] (Color  c)      const;
     //Bitboard operator[] (PieceType pt)  const;
     const SquareVector& operator[] (Piece p)  const;
 
-    bool     empty  (Square s)  const;
+    bool empty  (Square s)  const;
 
     Bitboard pieces ()          const;
     Bitboard pieces (Color c)   const;
@@ -194,15 +192,15 @@ public:
     CastleRight castle_rights () const;
     Square en_passant_sq () const;
     
-    u08    clock_ply     () const;
-    Move   last_move     () const;
-    PieceType capture_type  () const;
+    u08  clock_ply () const;
+    Move last_move () const;
+    PieceType capture_type () const;
     //Piece  capture_piece () const;  // Last piece captured
-    Bitboard checkers    () const;
+    Bitboard checkers () const;
 
-    Key matl_key      () const;
-    Key pawn_key      () const;
-    Key posi_key      () const;
+    Key matl_key () const;
+    Key pawn_key () const;
+    Key posi_key () const;
     Key move_posi_key (Move m) const;
 
     Value non_pawn_material (Color c) const;
@@ -217,12 +215,12 @@ public:
     Bitboard king_path   (CastleRight cr) const;
     bool  castle_impeded (CastleRight cr) const;
 
-    Color   active    () const;
-    i16     game_ply  () const;
-    i16     game_move () const;
-    bool    chess960  () const;
-    bool    draw      () const;
-    bool    repeated  () const;
+    Color   active   () const;
+    bool    chess960 () const;
+    i16     game_ply () const;
+    i16     move_num () const;
+    bool    draw     () const;
+    bool    repeated () const;
 
     u64   game_nodes ()  const;
     //void  game_nodes (u64 nodes);
@@ -281,15 +279,15 @@ public:
 
 // -------------------------------
 
-inline Piece         Position::operator[] (Square s)  const { return _board[s]; }
-//inline Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
-//inline Bitboard      Position::operator[] (PieceType pt) const { return _types_bb[pt]; }
+inline Piece Position::operator[] (Square s)  const { return _board[s]; }
+//inline Bitboard Position::operator[] (Color  c)  const { return _color_bb[c];  }
+//inline Bitboard Position::operator[] (PieceType pt) const { return _types_bb[pt]; }
 inline const SquareVector& Position::operator[] (Piece  p)  const { return _piece_sq[color (p)][ptype (p)]; }
 
-inline bool     Position::empty  (Square s)  const { return _board[s] == NO_PIECE; }
+inline bool Position::empty  (Square s)  const { return _board[s] == NO_PIECE; }
 
 inline Bitboard Position::pieces ()          const { return _types_bb[NONE]; }
-inline Bitboard Position::pieces (Color c)   const { return _color_bb[c];  }
+inline Bitboard Position::pieces (Color c)   const { return _color_bb[c]; }
 inline Bitboard Position::pieces (PieceType pt) const { return _types_bb[pt]; }
 inline Bitboard Position::pieces (Color c,   PieceType pt) const { return _color_bb[c]&_types_bb[pt]; }
 inline Bitboard Position::pieces (PieceType p1, PieceType p2) const { return _types_bb[p1]|_types_bb[p2]; }
@@ -361,23 +359,23 @@ inline CastleRight Position::castle_rights () const { return _psi->castle_rights
 inline Square Position::en_passant_sq () const { return _psi->en_passant_sq; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the clock-move rule.
-inline u08    Position::clock_ply     () const { return _psi->clock_ply; }
-inline Move   Position::last_move     () const { return _psi->last_move; }
-inline PieceType Position::capture_type() const { return _psi->capture_type; }
+inline u08 Position::clock_ply () const { return _psi->clock_ply; }
+inline Move Position::last_move () const { return _psi->last_move; }
+inline PieceType Position::capture_type () const { return _psi->capture_type; }
 //inline Piece  Position::capture_piece () const { return _psi->capture_type != NONE ? _active|_psi->capture_type : NO_PIECE; }
-inline Bitboard Position::checkers    () const { return _psi->checkers; }
+inline Bitboard Position::checkers () const { return _psi->checkers; }
 
-inline Key    Position::matl_key      () const { return _psi->matl_key; }
-inline Key    Position::pawn_key      () const { return _psi->pawn_key; }
-inline Key    Position::posi_key      () const { return _psi->posi_key; }
+inline Key Position::matl_key () const { return _psi->matl_key; }
+inline Key Position::pawn_key () const { return _psi->pawn_key; }
+inline Key Position::posi_key () const { return _psi->posi_key; }
 // move_posi_key() computes the new hash key after the given moven. Needed for speculative prefetch.
 // It doesn't recognize special moves like castling, en-passant and promotions.
-inline Key    Position::move_posi_key (Move m) const
+inline Key Position::move_posi_key (Move m) const
 {
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     auto mpt = ptype (_board[org]);
-    assert (!empty (org)
+    assert(!empty (org)
           && color (_board[org]) == _active
           && mpt != NONE);
 
@@ -409,16 +407,17 @@ inline Bitboard Position::king_path   (CastleRight cr) const { return _king_path
 
 inline bool  Position::castle_impeded (CastleRight cr) const { return (_castle_path[cr] & _types_bb[NONE]) != U64(0); }
 // Color of the side on move
-inline Color Position::active   () const { return _active; }
+inline Color Position::active  () const { return _active; }
+inline bool Position::chess960 () const { return _chess960; }
 // game_ply starts at 0, and is incremented after every move.
-// game_ply  = max ((game_move - 1) * 2, 0) + (active == BLACK)
-inline i16  Position::game_ply  () const { return _game_ply; }
-// game_move starts at 1, and is incremented after BLACK's move.
-// game_move = max ((game_ply - (active == BLACK)) / 2, 0) + 1
-inline i16  Position::game_move () const { return i16(std::max ((_game_ply - (_active == BLACK ? 1 : 0)) / 2, 0) + 1); }
+// game_ply  = max ((move_num - 1) * 2, 0) + (active == BLACK)
+inline i16  Position::game_ply () const { return _game_ply; }
+// move_num starts at 1, and is incremented after BLACK's move.
+// move_num = max ((game_ply - (active == BLACK)) / 2, 0) + 1
+inline i16  Position::move_num () const { return i16(std::max ((_game_ply - (_active == BLACK ? 1 : 0)) / 2, 0) + 1); }
 // Nodes visited
-inline u64  Position::game_nodes() const { return _game_nodes; }
-//inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
+inline u64  Position::game_nodes () const { return _game_nodes; }
+//inline void Position::game_nodes (u64 nodes) { _game_nodes = nodes; }
 // game_phase() calculates the phase interpolating total
 // non-pawn material between endgame and midgame limits.
 inline Phase Position::game_phase () const
@@ -428,7 +427,6 @@ inline Phase Position::game_phase () const
         i32(VALUE_MIDGAME - VALUE_ENDGAME));
 }
 
-inline bool Position::chess960  () const { return _chess960; }
 inline Threading::Thread* Position::thread () const { return _thread; }
 
 // Attackers to the square 's' by color 'c' on occupancy 'occ'

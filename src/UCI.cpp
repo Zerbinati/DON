@@ -211,9 +211,9 @@ namespace UCI {
                                 std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
                                 continue;
                             }
-                            limits.moves.push_back (m);
+                            limits.search_moves.push_back (m);
                         }
-                        limits.moves.shrink_to_fit ();
+                        limits.search_moves.shrink_to_fit ();
                     }
                 }
                 ForceStop = true;

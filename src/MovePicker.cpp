@@ -60,16 +60,13 @@ namespace MovePick {
     // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
     // and about how important good move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, const CMValueStats &cmv, Move ttm, Depth depth, Move cm, const Stack *ss)
+    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, const CMValueStats &cmv, Move ttm, Move cm, const Stack *ss)
         : _pos (pos)
         , _history_values (hv)
         , _counter_moves_values (&cmv)
         , _ss (ss)
         , _counter_move (cm)
-        , _depth (depth)
     {
-        assert(_depth > DEPTH_ZERO);
-
         _stage = _pos.checkers () != U64(0) ? S_EVASION : S_MAIN;
 
         _tt_move =   ttm != MOVE_NONE
@@ -79,24 +76,23 @@ namespace MovePick {
         _end_move += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Depth depth, Square dst_sq)
+    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Square dst_sq, Depth depth)
         : _pos (pos)
         , _history_values (hv)
-        , _depth (depth)
     {
-        assert(_depth <= DEPTH_ZERO);
+        assert(depth <= DEPTH_ZERO);
 
         if (_pos.checkers () != U64(0))
         {
             _stage = S_EVASION;
         }
         else
-        if (_depth > DEPTH_QS_NO_CHECKS)
+        if (depth > DEPTH_QS_NO_CHECKS)
         {
             _stage = S_QSEARCH_WITH_CHECK;
         }
         else
-        if (_depth > DEPTH_QS_RECAPTURES)
+        if (depth > DEPTH_QS_RECAPTURES)
         {
             _stage = S_QSEARCH_WITHOUT_CHECK;
         }
@@ -180,7 +176,7 @@ namespace MovePick {
             if (_pos.capture (vm.move))
             {
                 vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                  - Value(ptype (_pos[org_sq (vm.move)])) -1 + MaxStatsValue;
+                  - Value(ptype (_pos[org_sq (vm.move)]) + 1) + MaxStatsValue;
             }
             else
             {
@@ -242,7 +238,7 @@ namespace MovePick {
         case S_BAD_QUIET:
             _cur_move = _end_move;
             _end_move = _end_quiet;
-            if (_depth >= 3*DEPTH_ONE)
+            if (_cur_move < _end_move-1)
             {
                 insertion_sort (_cur_move, _end_move);
             }
@@ -397,9 +393,7 @@ namespace MovePick {
                 do
                 {
                     move = pick_best (_cur_move++, _end_move);
-                    if (   move != _tt_move
-                        && dst_sq (move) == _recapture_sq
-                       )
+                    if (dst_sq (move) == _recapture_sq)
                     {
                         return move;
                     }

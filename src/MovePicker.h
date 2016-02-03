@@ -96,7 +96,6 @@ namespace MovePick {
 
         Move    _tt_move        = MOVE_NONE;
         Move    _counter_move   = MOVE_NONE;
-        Depth   _depth          = DEPTH_ZERO;
         Square  _recapture_sq   = SQ_NO;
         Value   _threshold      = VALUE_NONE;
 
@@ -117,8 +116,8 @@ namespace MovePick {
         MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
 
-        MovePicker (const Position&, const HValueStats&, const CMValueStats&, Move, Depth, Move, const Searcher::Stack*);
-        MovePicker (const Position&, const HValueStats&, Move, Depth, Square);
+        MovePicker (const Position&, const HValueStats&, const CMValueStats&, Move, Move, const Searcher::Stack*);
+        MovePicker (const Position&, const HValueStats&, Move, Square, Depth);
         MovePicker (const Position&, const HValueStats&, Move, Value);
 
         MoveGen::ValMove* begin () { return _beg_move; }

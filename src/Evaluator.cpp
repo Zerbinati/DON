@@ -938,7 +938,7 @@ namespace Evaluator {
                         && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP
                        )
                     {
-                        scale_factor = more_than_one (pos.pieces (PAWN)) ? ScaleFactor(31) : ScaleFactor(9);
+                        scale_factor = ScaleFactor (8 * abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK)));
                     }
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops. 
@@ -949,13 +949,13 @@ namespace Evaluator {
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 else
-                    if (    abs (eg) <= VALUE_EG_BSHP
-                        &&  ei.pe->pawn_span[strong_side] <= 1
-                        && !pos.passed_pawn (~strong_side, pos.square<KING> (~strong_side))
-                       )
-                    {
-                        scale_factor = ei.pe->pawn_span[strong_side] != 0 ? ScaleFactor(51) : ScaleFactor(37);
-                    }
+                if (    abs (eg) <= VALUE_EG_BSHP
+                    &&  ei.pe->pawn_span[strong_side] <= 1
+                    && !pos.passed_pawn (~strong_side, pos.square<KING> (~strong_side))
+                   )
+                {
+                    scale_factor = ei.pe->pawn_span[strong_side] != 0 ? ScaleFactor(51) : ScaleFactor(37);
+                }
             }
             return scale_factor;
         }

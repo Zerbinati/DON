@@ -462,7 +462,7 @@ namespace Searcher {
             // to search the moves. Because the depth is <= 0 here, only captures,
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
-            MovePicker mp (pos, thread->history_values, tt_move, depth, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO);
+            MovePicker mp (pos, thread->history_values, tt_move, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO, depth);
             CheckInfo ci (pos);
             StateInfo si;
             Move move;
@@ -606,7 +606,7 @@ namespace Searcher {
         Value depth_search  (Position &pos, Stack *ss, Value alfa, Value beta, Depth depth, bool cut_node)
         {
             const bool PVNode   = NT == PV;
-            const bool rootNode = PVNode && (ss-1)->ply == 0 /*&& (ss-2)->ply == -1*/;
+            const bool rootNode = PVNode && ss->ply == 1; /*(ss-1)->ply == 0 && (ss-2)->ply == -1;*/
 
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
@@ -936,13 +936,13 @@ namespace Searcher {
                     }
 
                     // Step 10. Internal iterative deepening
-                    if (   ((PVNode && !tt_hit) || tt_move == MOVE_NONE)
+                    if (   ((rootNode && !tt_hit) || tt_move == MOVE_NONE)
                         && depth >= (PVNode ? 5 : 8)*DEPTH_ONE        // IID Activation Depth
                         && (PVNode || ss->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                        )
                     {
                         auto iid_depth = depth - 2*DEPTH_ONE - (PVNode ? DEPTH_ZERO : depth/4); // IID Reduced Depth
-                        
+
                         ss->skip_pruning = true;
                         depth_search<NT> (pos, ss, alfa, beta, iid_depth, true);
                         ss->skip_pruning = false;
@@ -996,7 +996,7 @@ namespace Searcher {
             auto &opp_cmv = CounterMoveHistoryValues[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
-            MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
+            MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, counter_move, ss);
 
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
@@ -2047,7 +2047,7 @@ namespace Threading {
             // Check if can play with own book.
             if (   OwnBook
                 && !BookFile.empty ()
-                && (BookUptoMove == 0 || root_pos.game_move () <= BookUptoMove)
+                && (BookUptoMove == 0 || root_pos.move_num () <= BookUptoMove)
                 && !MateSearch
                 && !Limits.infinite
                )

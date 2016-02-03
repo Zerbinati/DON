@@ -39,10 +39,10 @@ namespace {
     // remaining_time<>() calculate the time remaining
     TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
     {
-        const auto  StepRatio = TT == TT_OPTIMUM ? 1.00 : 7.09; // When in trouble, can step over reserved time with this ratio
-        const auto StealRatio = TT == TT_MAXIMUM ? 0.00 : 0.35; // However must not steal time from remaining moves over this ratio
+        const auto  StepRatio = 1.00 + 6.09 * (TT == TT_OPTIMUM); // When in trouble, can step over reserved time with this ratio
+        const auto StealRatio = 0.00 + 0.35 * (TT == TT_MAXIMUM); // However must not steal time from remaining moves over this ratio
 
-        auto this_move_imp = move_importance (ply) * MoveSlowness;
+        auto  this_move_imp = move_importance (ply) * MoveSlowness;
         auto other_move_imp = 0.0;
         for (u08 i = 1; i < movestogo; ++i)
         {
@@ -226,7 +226,7 @@ namespace Threading {
 
         Limits = limits;
         main ()->root_pos = pos;
-        main ()->root_moves.initialize (pos, limits.moves);
+        main ()->root_moves.initialize (pos, limits.search_moves);
         if (states.get () != nullptr) // If don't set a new position, preserve current state
         {
             SetupStates = std::move (states); // Ownership transfer here

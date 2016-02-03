@@ -40,7 +40,7 @@ public:
     bool      infinite  = false; // Search until the "stop" command
     bool      ponder    = false; // Search on ponder move until the "stop" command
 
-    MoveVector moves;        // Restrict search to these root moves only
+    MoveVector search_moves; // Restrict search to these root moves only
 
     TimePoint  start_time = 0;
 
@@ -160,13 +160,13 @@ namespace Searcher {
         void operator+= (const RootMove &root_move) { push_back (root_move); }
         void operator-= (const RootMove &root_move) { erase (std::remove (begin (), end (), root_move), end ()); }
 
-        void initialize (const Position &pos, const MoveVector &moves)
+        void initialize (const Position &pos, const MoveVector &search_moves)
         {
             clear ();
             for (const auto &vm : MoveGen::MoveList<MoveGen::LEGAL> (pos))
             {
-                if (   moves.empty ()
-                    || std::find (moves.begin (), moves.end (), vm.move) != moves.end ()
+                if (   search_moves.empty ()
+                    || std::find (search_moves.begin (), search_moves.end (), vm.move) != search_moves.end ()
                    )
                 {
                     *this += RootMove (vm.move);
