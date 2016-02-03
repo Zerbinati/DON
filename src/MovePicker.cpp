@@ -150,7 +150,7 @@ namespace MovePick {
     }
 
     template<>
-    void MovePicker::value<QUIET>   ()
+    void MovePicker::value<QUIET> ()
     {
         for (auto &vm : *this)
         {
@@ -223,15 +223,12 @@ namespace MovePick {
 
         case S_GOOD_QUIET:
             _end_move = _end_quiet = generate<QUIET> (_beg_move, _pos);
-            if (_cur_move < _end_move)
+            value<QUIET> ();
+            // Split positive(+ve) value from the list
+            _end_move = std::partition (_cur_move, _end_move, [](const ValMove &m) { return m.value > VALUE_ZERO; });
+            if (_cur_move < _end_move-1)
             {
-                value<QUIET> ();
-                // Split positive(+ve) value from the list
-                _end_move = std::partition (_cur_move, _end_move, [](const ValMove &m) { return m.value > VALUE_ZERO; });
-                if (_cur_move < _end_move-1)
-                {
-                    insertion_sort (_cur_move, _end_move);
-                }
+                insertion_sort (_cur_move, _end_move);
             }
             break;
 
