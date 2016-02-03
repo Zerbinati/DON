@@ -19,12 +19,6 @@ using namespace Searcher;
 
 namespace {
 
-    enum TimeType : u08
-    {
-        TT_OPTIMUM,
-        TT_MAXIMUM,
-    };
-
     // move_importance() is a skew-logistic function based on naive statistical
     // analysis of "how many games are still undecided after 'n' half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
@@ -35,12 +29,12 @@ namespace {
         return std::max (pow ((1.0 + exp ((ply - 58.400) / 7.640)), -0.183), DBL_MIN); // Ensure non-zero
     }
 
-    template<TimeType TT>
+    template<bool Maximum>
     // remaining_time<>() calculate the time remaining
     TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
     {
-        const auto  StepRatio = 1.00 + 6.09 * (TT == TT_OPTIMUM); // When in trouble, can step over reserved time with this ratio
-        const auto StealRatio = 0.00 + 0.35 * (TT == TT_MAXIMUM); // However must not steal time from remaining moves over this ratio
+        const auto  StepRatio = 1.00 + 6.09 * (Maximum ? 1 : 0); // When in trouble, can step over reserved time with this ratio
+        const auto StealRatio = 0.00 + 0.35 * (Maximum ? 1 : 0); // However must not steal time from remaining moves over this ratio
 
         auto  this_move_imp = move_importance (ply) * MoveSlowness;
         auto other_move_imp = 0.0;
@@ -96,8 +90,8 @@ void TimeManager::initialize (Color c, i16 ply)
             - OverheadClockTime
             - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
 
-        auto opt_time = remaining_time<TT_OPTIMUM> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
-        auto max_time = remaining_time<TT_MAXIMUM> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
+        auto opt_time = remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
+        auto max_time = remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
 
         if (_optimum_time > opt_time)
         {
