@@ -3,6 +3,7 @@
 
 #include <cctype>
 #include <climits>
+#include <cmath>
 #include <string>
 #include <vector>
 #include <algorithm>
@@ -667,8 +668,8 @@ inline Move mk_move (Square org, Square dst, PieceType pt/*=QUEN*/) { return Mov
 // Make normal moves
 inline Move mk_move (Square org, Square dst) { return Move(dst | org << 6); }
 
-inline double value_to_cp (Value   v) { return double   (v) / i32(VALUE_EG_PAWN); }
-inline Value  cp_to_value (double cp) { return Value(i32(cp * i32(VALUE_EG_PAWN))); }
+inline double value_to_cp (Value   v) { return double(v) / i32(VALUE_EG_PAWN); }
+inline Value  cp_to_value (double cp) { return Value(i32(std::round (cp * i32(VALUE_EG_PAWN)))); }
 
 inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }

@@ -8,7 +8,7 @@ u08     ReadyMoveHorizon   =   40; // Be prepared to always play at least this m
 u32     OverheadClockTime  =   60; // Attempt to keep at least this much time at clock, in milliseconds.
 u32     OverheadMoveTime   =   30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
 u32     MinimumMoveTime    =   20; // No matter what, use at least this much time before doing the move, in milliseconds.
-double  MoveSlowness       = 0.85; // Move Slowness, in %age.
+double  MoveSlowness       = 0.80; // Move Slowness, in %age.
 u32     NodesTime          =    0; // 'Nodes as Time' mode
 bool    Ponder             = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
@@ -26,7 +26,7 @@ namespace {
     double move_importance (i16 ply)
     {
         //                                      PlyShift / PlyScale  SkewRate
-        return std::max (pow ((1.0 + exp ((ply - 58.400) / 7.640)), -0.183), DBL_MIN); // Ensure non-zero
+        return std::max (pow (1.000 + exp ((ply - 58.400) / 7.640), -0.183), DBL_MIN); // Ensure non-zero
     }
 
     template<bool Maximum>
@@ -79,28 +79,19 @@ void TimeManager::initialize (Color c, i16 ply)
         std::max (Limits.clock[c].time, TimePoint(MinimumMoveTime));
 
     const auto MaxMovesToGo = Limits.movestogo != 0 ? std::min (Limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
-    // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
+    // Calculate optimum time usage for different hypothetic "moves to go" and choose the
     // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
     for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
     {
-        // Calculate thinking time for hypothetic "moves to go"-value
+        // Calculate thinking time for hypothetic "moves to go"
         auto hyp_time = std::max (
             + Limits.clock[c].time
             + Limits.clock[c].inc * (hyp_movestogo-1)
             - OverheadClockTime
             - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
 
-        auto opt_time = remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
-        auto max_time = remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
-
-        if (_optimum_time > opt_time)
-        {
-            _optimum_time = opt_time;
-        }
-        if (_maximum_time > max_time)
-        {
-            _maximum_time = max_time;
-        }
+        _optimum_time = std::min (remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, _optimum_time);
+        _maximum_time = std::min (remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, _maximum_time);
     }
 
     if (Ponder)

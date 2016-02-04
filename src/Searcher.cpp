@@ -2,7 +2,6 @@
 
 #include <sstream>
 #include <iomanip>
-#include <cmath>
 #include <iterator>
 
 #include "UCI.h"
@@ -484,8 +483,8 @@ namespace Searcher {
                     {
                         assert(mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
 
-                        auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst_sq (move)])];
-
+                        auto futility_value = std::min (futility_base + PieceValues[EG][ptype (pos[dst_sq (move)])], +VALUE_KNOWN_WIN - 1);
+                        
                         if (futility_value <= alfa)
                         {
                             if (best_value < futility_value)
@@ -1109,12 +1108,12 @@ namespace Searcher {
                         continue;
                     }
                     // Value based pruning
-                    auto predicted_depth = new_depth - reduction_depths<PVNode> (improving, depth, move_count);
+                    auto predicted_depth = std::max (new_depth - reduction_depths<PVNode> (improving, depth, move_count), DEPTH_ZERO);
                     // Futility pruning: parent node
                     if (predicted_depth < FutilityMarginDepth*DEPTH_ONE)
                     {
-                        auto futility_value = ss->static_eval + FutilityMargins[predicted_depth/DEPTH_ONE] + VALUE_EG_PAWN;
-
+                        auto futility_value = std::min (ss->static_eval + FutilityMargins[predicted_depth/DEPTH_ONE] + VALUE_EG_PAWN, +VALUE_KNOWN_WIN - 1);
+                        
                         if (alfa >= futility_value)
                         {
                             if (best_value < futility_value)
@@ -1544,8 +1543,8 @@ namespace Searcher {
 
         static const double K2[2][2] =
         {
-            { 0.799, 2.281 },
-            { 0.484, 3.023 }
+            {  0.299, 2.281 },
+            { -0.016, 3.023 }
         };
         for (u08 pv = 0; pv <= 1; ++pv)
         {
@@ -1555,19 +1554,15 @@ namespace Searcher {
                 {
                     for (u08 mc = 1; mc < ReductionMoveCount; ++mc) // move count
                     {
-                        auto r = K2[pv][0] + log (d) * log (mc) / K2[pv][1];
+                        auto r = i32(std::round (K2[pv][0] + log (d) * log (mc) / K2[pv][1]));
 
-                        if (r >= 1.5)
-                        {
-                            ReductionDepths[pv][imp][d][mc] = i32(r)*DEPTH_ONE;
-                        }
+                        ReductionDepths[pv][imp][d][mc] = r*DEPTH_ONE;
                         // Increase reduction when eval is not improving
                         if (   !pv
                             && !imp
-                            && ReductionDepths[pv][imp][d][mc] >= 2*DEPTH_ONE
                            )
                         {
-                            ReductionDepths[pv][imp][d][mc] += 1*DEPTH_ONE;
+                            ReductionDepths[pv][imp][d][mc] += ((r+2)/4)*DEPTH_ONE;
                         }
                     }
                 }
@@ -1877,18 +1872,18 @@ namespace Threading {
                         // If all of the available time has been used or
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
-                            || (main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.optimum_time () * instability_factor *
+                            || (main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time () * instability_factor *
                                     (640.0 - 160.0 * (!main_thread->failed_low)
                                            - 126.0 * (best_value >= main_thread->previous_value)
                                            - 124.0 * (!main_thread->failed_low && best_value >= main_thread->previous_value)
-                                    ) / 640.0
+                                    ) / 640.0))
                                )
                             || (main_thread->easy_played =
                                     (  !root_moves.empty ()
                                     && !root_moves[0].empty ()
                                     &&  root_moves[0] == easy_move
                                     && main_thread->best_move_change < 0.03
-                                    && main_thread->time_mgr.elapsed_time () > main_thread->time_mgr.optimum_time () * instability_factor * 25.0 / 206.0
+                                    && main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time () * instability_factor * 25.0 / 206.0))
                                     ), main_thread->easy_played
                                )
                            )

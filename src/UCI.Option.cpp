@@ -3,7 +3,6 @@
 #include <sstream>
 #include <fstream>
 #include <iomanip>
-#include <cmath>
 
 #include "Thread.h"
 #include "Transposition.h"
