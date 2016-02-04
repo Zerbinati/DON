@@ -87,8 +87,7 @@ namespace Searcher {
 
     extern std::string LogFile;
 
-    // Node types, used as a template parameter
-    // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node.
+    // The root of the tree is a PV node.
     // At a PV node all the children have to be investigated.
     // The best move found at a PV node leads to a successor PV node,
     // while all the other investigated children are CUT nodes
@@ -96,11 +95,6 @@ namespace Searcher {
     // In a perfectly ordered tree only one child of a CUT node has to be explored.
     // At an ALL node all the children have to be explored. The successors of an ALL node are CUT nodes.
     // NonPV nodes = CUT nodes + ALL nodes
-    enum NodeType : u08
-    {
-        NonPV,
-        PV,
-    };
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
