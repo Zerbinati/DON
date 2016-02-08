@@ -30,7 +30,7 @@ namespace Searcher {
     using namespace Notation;
     using namespace Debugger;
 
-    typedef std::vector<i32> IntVector;
+    typedef std::vector<bool> BoolVector;
 
     bool Chess960 = false;
 
@@ -1517,24 +1517,23 @@ namespace Searcher {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        i32 d; // depth
-
-        static const i32 K0[3] = { 0, 200, 0 };
-        for (d = 0; d < FutilityMarginDepth; ++d)
+        static const i32 K0[3] =
+        { 0, 200, 0 };
+        for (i32 d = 0; d < FutilityMarginDepth; ++d)
         {
             FutilityMargins[d] = Value(K0[0] + (K0[1] + K0[2]*d)*d);
         }
 
         static const double K1[2][4] =
         {
-            { 2.40, 0.773, 0.00, 1.8 },
-            { 2.90, 1.045, 0.49, 1.8 }
+            { 1.90, 0.773, 0.00, 1.8 },
+            { 2.40, 1.045, 0.49, 1.8 }
         };
         for (u08 imp = 0; imp <= 1; ++imp)
         {
-            for (d = 0; d < FutilityMoveCountDepth; ++d)
+            for (i32 d = 0; d < FutilityMoveCountDepth; ++d)
             {
-                FutilityMoveCounts[imp][d] = u08(K1[imp][0] + K1[imp][1] * pow (d + K1[imp][2], K1[imp][3]));
+                FutilityMoveCounts[imp][d] = u08(std::round (K1[imp][0] + K1[imp][1] * pow (d + K1[imp][2], K1[imp][3])));
             }
         }
 
@@ -1547,9 +1546,9 @@ namespace Searcher {
         {
             for (u08 imp = 0; imp <= 1; ++imp)
             {
-                for (d = 1; d < ReductionDepth; ++d)
+                for (i32 d = 1; d < ReductionDepth; ++d)
                 {
-                    for (u08 mc = 1; mc < ReductionMoveCount; ++mc) // move count
+                    for (u08 mc = 1; mc < ReductionMoveCount; ++mc) // move-count
                     {
                         auto r = i32(std::round (K2[pv][0] + log (d) * log (mc) / K2[pv][1]));
 
@@ -1634,7 +1633,7 @@ namespace Threading {
         // Do have to play with skill handicap?
         // In this case enable MultiPV search by skill pv size
         // that will use behind the scenes to get a set of possible moves.
-        PVLimit = std::min (std::max (MultiPV, u16(Threadpool.main ()->skill_mgr.enabled () ? SkillManager::MultiPV : 0)), u16(root_moves.size ()));
+        PVLimit = std::min (std::max (MultiPV, u16(Threadpool.main ()->skill_mgr.enabled () ? SkillManager::MinMultiPV : 0)), u16(root_moves.size ()));
 
         Value best_value = VALUE_ZERO
             , window     = VALUE_ZERO
@@ -1663,46 +1662,47 @@ namespace Threading {
                 // Rotating symmetric patterns with increasing skipsize.
                 // Set of rows with half bits set to 1 and half to 0.
                 // It is used to allocate the search depths across the threads.
-                static const IntVector HalfDensityMap[30] =
+                static const BoolVector HalfDensityMap[30] =
                 {
-                    { 0, 1 },
-                    { 1, 0 },
+                    { false, true },
+                    { true, false },
 
-                    { 0, 0, 1, 1 },
-                    { 0, 1, 1, 0 },
-                    { 1, 1, 0, 0 },
-                    { 1, 0, 0, 1 },
+                    { false, false, true, true },
+                    { false, true, true, false },
+                    { true, true, false, false },
+                    { true, false, false, true },
 
-                    { 0, 0, 0, 1, 1, 1 },
-                    { 0, 0, 1, 1, 1, 0 },
-                    { 0, 1, 1, 1, 0, 0 },
-                    { 1, 1, 1, 0, 0, 0 },
-                    { 1, 1, 0, 0, 0, 1 },
-                    { 1, 0, 0, 0, 1, 1 },
+                    { false, false, false, true, true, true },
+                    { false, false, true, true, true, false },
+                    { false, true, true, true, false, false },
+                    { true, true, true, false, false, false },
+                    { true, true, false, false, false, true },
+                    { true, false, false, false, true, true },
 
-                    { 0, 0, 0, 0, 1, 1, 1, 1 },
-                    { 0, 0, 0, 1, 1, 1, 1, 0 },
-                    { 0, 0, 1, 1, 1, 1, 0, 0 },
-                    { 0, 1, 1, 1, 1, 0, 0, 0 },
-                    { 1, 1, 1, 1, 0, 0, 0, 0 },
-                    { 1, 1, 1, 0, 0, 0, 0, 1 },
-                    { 1, 1, 0, 0, 0, 0, 1, 1 },
-                    { 1, 0, 0, 0, 0, 1, 1, 1 },
+                    { false, false, false, false, true, true, true, true },
+                    { false, false, false, true, true, true, true, false },
+                    { false, false, true, true, true, true, false, false },
+                    { false, true, true, true, true, false, false, false },
+                    { true, true, true, true, false, false, false, false },
+                    { true, true, true, false, false, false, false, true },
+                    { true, true, false, false, false, false, true, true },
+                    { true, false, false, false, false, true, true, true },
 
-                    { 0, 0, 0, 0, 0, 1, 1, 1, 1, 1 },
-                    { 0, 0, 0, 0, 1, 1, 1, 1, 1, 0 },
-                    { 0, 0, 0, 1, 1, 1, 1, 1, 0, 0 },
-                    { 0, 0, 1, 1, 1, 1, 1, 0, 0, 0 },
-                    { 0, 1, 1, 1, 1, 1, 0, 0, 0, 0 },
-                    { 1, 1, 1, 1, 1, 0, 0, 0, 0, 0 },
-                    { 1, 1, 1, 1, 0, 0, 0, 0, 0, 1 },
-                    { 1, 1, 1, 0, 0, 0, 0, 0, 1, 1 },
-                    { 1, 1, 0, 0, 0, 0, 0, 1, 1, 1 },
-                    { 1, 0, 0, 0, 0, 0, 1, 1, 1, 1 },
+                    { false, false, false, false, false, true, true, true, true, true },
+                    { false, false, false, false, true, true, true, true, true, false },
+                    { false, false, false, true, true, true, true, true, false, false },
+                    { false, false, true, true, true, true, true, false, false, false },
+                    { false, true, true, true, true, true, false, false, false, false },
+                    { true, true, true, true, true, false, false, false, false, false },
+                    { true, true, true, true, false, false, false, false, false, true },
+                    { true, true, true, false, false, false, false, false, true, true },
+                    { true, true, false, false, false, false, false, true, true, true },
+                    { true, false, false, false, false, false, true, true, true, true },
                 };
+                static const size_t HalfDensityMapSize = std::extent<decltype(HalfDensityMap)>::value;
 
-                const IntVector &hdm = HalfDensityMap[(index - 1) % 30];
-                if (hdm[(u16(root_depth) + root_pos.game_ply ()) % hdm.size ()] != 0)
+                const BoolVector &hdm = HalfDensityMap[(index - 1) % HalfDensityMapSize];
+                if (hdm[(u16(root_depth) + root_pos.game_ply ()) % hdm.size ()])
                 {
                     continue;
                 }
@@ -1843,6 +1843,7 @@ namespace Threading {
                     && !root_moves.empty ()
                    )
                 {
+                    main_thread->skill_mgr.clear ();
                     main_thread->skill_mgr.pick_best_move (root_moves, PVLimit);
                 }
 
@@ -1942,7 +1943,7 @@ namespace Threading {
                 && !root_moves.empty ()
                )
             {
-                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), main_thread->skill_mgr.best_move (root_moves, PVLimit)));
+                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), main_thread->skill_mgr.pick_best_move (root_moves, PVLimit)));
             }
         }
     }

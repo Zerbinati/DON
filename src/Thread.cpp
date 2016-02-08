@@ -43,8 +43,8 @@ namespace {
             other_move_imp += move_importance (ply + 2 * i);
         }
 
-        auto  step_time_ratio = (0.0           +  this_move_imp *  StepRatio) / (this_move_imp * StepRatio + other_move_imp);
-        auto steal_time_ratio = (this_move_imp + other_move_imp * StealRatio) / (this_move_imp * 1.0       + other_move_imp);
+        auto  step_time_ratio = (this_move_imp * StepRatio + other_move_imp * 0.00      ) / (this_move_imp * StepRatio + other_move_imp);
+        auto steal_time_ratio = (this_move_imp * 1.00      + other_move_imp * StealRatio) / (this_move_imp * 1.00      + other_move_imp);
 
         return TimePoint(std::round (time * std::min (step_time_ratio, steal_time_ratio))); // Intel C++ asks for an explicit cast
     }
@@ -139,6 +139,20 @@ namespace Threading {
         lk.unlock ();
         _native_thread.join ();
     }
+
+    // ------------------------------------
+    
+    MainThread::MainThread ()
+        : Thread ()
+        , easy_played (false)
+        , failed_low (false)
+        , time_mgr_used (false)
+        , best_move_change (0.0)
+        , previous_value (+VALUE_INFINITE)
+    {}
+
+    //MainThread::~MainThread ()
+    //{}
 
     // ------------------------------------
 

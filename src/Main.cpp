@@ -9,7 +9,7 @@ namespace {
         string arg;
         for (i32 i = 1; i < argc; ++i)
         {
-            arg += string(argv[i]) + " ";
+            arg += string (argv[i]) + " ";
         }
         return arg;
     }

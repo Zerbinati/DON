@@ -135,7 +135,7 @@ namespace UCI {
                 }
                 else
                 {
-                    goto end_position;
+                    goto end_cmd;
                 }
 
                 RootPos.setup (fen, Threadpool.main (), Chess960);
@@ -157,7 +157,6 @@ namespace UCI {
                         RootPos.do_move (m, SetupStates->top (), RootPos.gives_check (m, CheckInfo (RootPos)));
                     }
                 }
-            end_position:;
             }
             // This sets the following parameters:
             //  - wtime and btime
@@ -405,7 +404,7 @@ namespace UCI {
             {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
             }
-
+            end_cmd:;
         } while (running && cmd != "quit");
 
         Threadpool.wait_while_thinking (); // Can't quit while the search is running

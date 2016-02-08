@@ -97,7 +97,7 @@ namespace MovePick {
         Move    _tt_move        = MOVE_NONE;
         Move    _counter_move   = MOVE_NONE;
         Square  _recapture_sq   = SQ_NO;
-        Value   _threshold      = VALUE_NONE;
+        Value   _threshold      = VALUE_ZERO;
 
         MoveGen::ValMove _killer_moves[Searcher::Killers + 1];
 

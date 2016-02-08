@@ -266,18 +266,18 @@ namespace Pawns {
             Bitboard mid_pawns;
             
             mid_pawns = own_front_pawns & File_bb[f];
-            auto r0 = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
+            auto own_r = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
 
             mid_pawns = opp_front_pawns & File_bb[f];
-            auto r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
+            auto opp_r = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
             value -=
-                  +  ShelterWeakness[std::min (f, F_H - f)][r0]
+                  +  ShelterWeakness[std::min (f, F_H - f)][own_r]
                   +  StromDangerousness
-                        [f  == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
-                         r0 == R_1                                            ? NO_FRIENDLY_PAWN :
-                         r1 == r0 + 1                                         ? BLOCKED_BY_PAWN  : UNBLOCKED]
-                        [std::min (f, F_H - f)][r1];
+                        [f  == _file (k_sq) && opp_r == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
+                         own_r == R_1                                            ? NO_FRIENDLY_PAWN :
+                         opp_r == own_r + 1                                      ? BLOCKED_BY_PAWN  : UNBLOCKED]
+                        [std::min (f, F_H - f)][opp_r];
         }
 
         return value;
