@@ -690,6 +690,28 @@ inline TimePoint now ()
                (std::chrono::steady_clock::now ().time_since_epoch ()).count ();
 }
 
+struct ValMove
+{
+public:
+    Move  move  = MOVE_NONE;
+    Value value = VALUE_ZERO;
+
+    ValMove& operator= (const ValMove&) = default;
+
+    operator Move () const { return move; }
+    void operator= (Move  m) { move  = m; }
+    //operator Value () const { return value; }
+    //void operator= (Value v) { value = v; }
+
+    // Ascending sort
+    bool operator<  (const ValMove &vm) const { return value <  vm.value; }
+    bool operator>  (const ValMove &vm) const { return value >  vm.value; }
+    bool operator<= (const ValMove &vm) const { return value <= vm.value; }
+    bool operator>= (const ValMove &vm) const { return value >= vm.value; }
+    bool operator== (const ValMove &vm) const { return value == vm.value; }
+    bool operator!= (const ValMove &vm) const { return value != vm.value; }
+};
+
 template<class Entry, u32 Size>
 struct HashTable
 {

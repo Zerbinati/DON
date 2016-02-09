@@ -4,43 +4,21 @@
 #include "Type.h"
 #include "Position.h"
 
+// Generator Type
+enum GenType : u08
+{
+    // PSEUDO-LEGAL MOVES
+    RELAX,       // Normal.
+    EVASION,     // Save the friendly king from check.
+    CAPTURE,     // Change material balance where an enemy piece is captured.
+    QUIET,       // Do not capture pieces but under-promotion is allowed.
+    CHECK,       // Checks the enemy King in any way possible.
+    QUIET_CHECK, // Do not change material and only checks the enemy King (no capture or promotion).
+                 // ------------------------
+    LEGAL,       // Legal.
+};
+
 namespace MoveGen {
-
-    struct ValMove
-    {
-    public:
-        Move  move  = MOVE_NONE;
-        Value value = VALUE_ZERO;
-
-        ValMove& operator= (const ValMove&) = default;
-
-        operator Move () const  { return move; }
-        void operator= (Move  m) { move  = m; }
-        //explicit operator Value () const { return value; }
-        //void operator= (Value v) { value = v; }
-
-        // Ascending sort
-        bool operator<  (const ValMove &vm) const { return value <  vm.value; }
-        bool operator>  (const ValMove &vm) const { return value >  vm.value; }
-        bool operator<= (const ValMove &vm) const { return value <= vm.value; }
-        bool operator>= (const ValMove &vm) const { return value >= vm.value; }
-        bool operator== (const ValMove &vm) const { return value == vm.value; }
-        bool operator!= (const ValMove &vm) const { return value != vm.value; }
-    };
-
-    // Generator Type
-    enum GenType : u08
-    {
-        // PSEUDO-LEGAL MOVES
-        RELAX,       // Normal.
-        EVASION,     // Save the friendly king from check.
-        CAPTURE,     // Change material balance where an enemy piece is captured.
-        QUIET,       // Do not capture pieces but under-promotion is allowed.
-        CHECK,       // Checks the enemy King in any way possible.
-        QUIET_CHECK, // Do not change material and only checks the enemy King (no capture or promotion).
-        // ------------------------
-        LEGAL,       // Legal.
-    };
 
     template<GenType GT>
     extern ValMove* generate (ValMove *moves, const Position &pos);

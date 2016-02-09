@@ -138,12 +138,12 @@ namespace Transposition {
         bool retain_hash = false;
 
         Table () = default;
-
         explicit Table (u32 mem_size_mb)
         {
             resize (mem_size_mb, true);
         }
-
+        Table (const Table&) = delete;
+        Table& operator= (const Table&) = delete;
         ~Table ()
         {
             free_aligned_memory ();

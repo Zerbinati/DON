@@ -23,6 +23,8 @@ namespace MovePick {
         void _clear (Move  &m) { m = MOVE_NONE; }
 
     public:
+        Stats () = default;
+        Stats (const Stats&) = delete;
 
         const T* operator[] (Piece  pc) const { return _table[pc]; }
         T*       operator[] (Piece  pc)       { return _table[pc]; }
@@ -82,8 +84,7 @@ namespace MovePick {
 
     private:
 
-        MoveGen::ValMove
-                 _beg_move[MaxMoves]
+        ValMove  _beg_move[MaxMoves]
             ,   *_cur_move         = _beg_move
             ,   *_end_move         = _beg_move
             ,   *_end_quiet        = _beg_move
@@ -92,18 +93,18 @@ namespace MovePick {
         const Position      &_pos;
         const HValueStats   &_history_values;
         const CMValueStats  *_counter_moves_values = nullptr;
-        const Searcher::Stack *_ss    = nullptr;
+        const Move          *_ss_killer_moves      = nullptr;
 
         Move    _tt_move        = MOVE_NONE;
         Move    _counter_move   = MOVE_NONE;
         Square  _recapture_sq   = SQ_NO;
         Value   _threshold      = VALUE_ZERO;
 
-        MoveGen::ValMove _killer_moves[Searcher::Killers + 1];
+        ValMove _killer_moves[Killers + 1];
 
-        u08     _stage;
+        u08     _stage  = 0;
 
-        template<MoveGen::GenType GT>
+        template<GenType GT>
         // value() assign a numerical move ordering score to each move in a move list.
         // The moves with highest scores will be picked first.
         void value ();
@@ -116,12 +117,12 @@ namespace MovePick {
         MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
 
-        MovePicker (const Position&, const HValueStats&, const CMValueStats&, Move, Move, const Searcher::Stack*);
+        MovePicker (const Position&, const HValueStats&, const CMValueStats&, const Move*, Move, Move);
         MovePicker (const Position&, const HValueStats&, Move, Square, Depth);
         MovePicker (const Position&, const HValueStats&, Move, Value);
 
-        MoveGen::ValMove* begin () { return _beg_move; }
-        MoveGen::ValMove* end   () { return _end_move; }
+        ValMove* begin () { return _beg_move; }
+        ValMove* end   () { return _end_move; }
 
         Move next_move ();
 

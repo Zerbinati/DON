@@ -57,23 +57,19 @@ namespace EndGame {
     {
     protected:
         
-        Color _strong_side
-            ,   _weak_side;
-
+        Color _strong_side;
     public:
 
         explicit EndgameBase (Color c)
-            : _strong_side ( c)
-            ,   _weak_side (~c)
+            : _strong_side (c)
         {}
-
+        //EndgameBase (const EndgameBase&) = delete;
+        EndgameBase& operator= (const EndgameBase&) = delete;
         virtual ~EndgameBase () = default;
 
         Color strong_side () const { return _strong_side; }
-        Color   weak_side () const { return   _weak_side; }
 
         virtual T operator() (const Position &pos) const = 0;
-
     };
 
     template<EndgameType ET, class T = EndgameCategory<ET>>
@@ -86,6 +82,9 @@ namespace EndGame {
         explicit Endgame (Color c)
             : EndgameBase<T> (c)
         {}
+        //Endgame (const Endgame&) = delete;
+        Endgame& operator= (const Endgame&) = delete;
+        //virtual ~Endgame () = default;
 
         T operator() (const Position &pos) const override;
     };
@@ -113,11 +112,13 @@ namespace EndGame {
     public:
 
         Endgames ();
+        Endgames (const Endgames&) = delete;
+        Endgames& operator= (const Endgames&) = delete;
 
         template<class T>
         EndgameBase<T>* probe (Key matl_key)
         {
-            return map<T> ().count (matl_key) != 0 ? map<T> ()[matl_key].get () : nullptr;
+            return map<T> ().find (matl_key) != map<T> ().end () ? map<T> ()[matl_key].get () : nullptr;
         }
     };
 

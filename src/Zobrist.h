@@ -23,6 +23,9 @@ public:
     Key en_passant  [F_NO];                 // [enpassant file]
     Key act_side;                           // color
 
+    Zobrist (const Zobrist&) = delete;
+    Zobrist& operator= (const Zobrist&) = delete;
+
     // Hash key of the material situation.
     Key compute_matl_key (const Position &pos) const;
     // Hash key of the pawn structure.

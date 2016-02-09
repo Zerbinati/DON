@@ -761,12 +761,14 @@ bool Position::pseudo_legal (Move m) const
     {
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
-        if (mpt == KING) return attackers_to (dst, ~_active, _types_bb[NONE] - org) == U64(0); // Remove 'org' but not place 'dst'
-
+        if (mpt == KING)
+        {
+            return attackers_to (dst, ~_active, _types_bb[NONE] - org) == U64(0); // Remove 'org' but not place 'dst'
+        }
         // Double check? In this case a king move is required
         if (more_than_one (_psi->checkers)) return false;
 
-        return mtype (m) == ENPASSANT && mpt == PAWN ?
+        return en_passant (m) ?
             // Move must be a capture of the checking en-passant pawn
             // or a blocking evasion of the checking piece
             (_psi->checkers & cap) != U64(0) || (Between_bb[scan_lsq (_psi->checkers)][_piece_sq[_active][KING][0]] & dst) != U64(0) :

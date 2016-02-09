@@ -54,6 +54,27 @@ public:
     }
 };
 
+const u08 Killers = 2;
+
+// The Stack struct keeps track of the information needed to remember from
+// nodes shallower and deeper in the tree during the search. Each search thread
+// has its own array of Stack objects, indexed by the current ply.
+struct Stack
+{
+    static const size_t Size;
+
+    i16  ply          = 0;
+    Move current_move = MOVE_NONE
+        , exclude_move = MOVE_NONE
+        , killer_moves[Killers];
+
+    Value static_eval = VALUE_NONE;
+    u08   move_count  = 0;
+    bool skip_pruning = false;
+
+    MoveVector pv;
+};
+
 namespace Searcher {
 
     extern bool Chess960;
@@ -157,7 +178,7 @@ namespace Searcher {
         void initialize (const Position &pos, const MoveVector &search_moves)
         {
             clear ();
-            for (const auto &vm : MoveGen::MoveList<MoveGen::LEGAL> (pos))
+            for (const auto &vm : MoveGen::MoveList<LEGAL> (pos))
             {
                 if (   search_moves.empty ()
                     || std::find (search_moves.begin (), search_moves.end (), vm.move) != search_moves.end ()
@@ -188,25 +209,6 @@ namespace Searcher {
         return os;
     }
 
-    const u08 Killers = 2;
-    // The Stack struct keeps track of the information needed to remember from
-    // nodes shallower and deeper in the tree during the search. Each search thread
-    // has its own array of Stack objects, indexed by the current ply.
-    struct Stack
-    {
-        static const size_t Size;
-
-        i16  ply          = 0;
-        Move current_move = MOVE_NONE
-           , exclude_move = MOVE_NONE
-           , killer_moves[Killers];
-
-        Value static_eval = VALUE_NONE;
-        u08   move_count  = 0;
-        bool skip_pruning = false;
-
-        MoveVector pv;
-    };
 
     template<bool RootNode = true>
     extern u64 perft (Position &pos, Depth depth);

@@ -37,6 +37,8 @@ namespace UCI {
         Option (const char *val, OnChange on_change = nullptr);
         Option (const std::string &val, OnChange on_change = nullptr);
         Option (const i32 val, i32 minimum, i32 maximum, OnChange on_change = nullptr);
+        Option (const Option&) = delete;
+        //Option& operator= (const Option&) = delete;
 
         u08 index () const { return _index; }
 

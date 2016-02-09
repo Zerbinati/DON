@@ -41,6 +41,10 @@ public:
 
     u64 available_nodes = U64(0); // When in 'Nodes as Time' mode
 
+    TimeManager () = default;
+    TimeManager (const TimeManager&) = delete;
+    TimeManager& operator= (const TimeManager&) = delete;
+
     TimePoint optimum_time () const { return _optimum_time; }
     TimePoint maximum_time () const { return _maximum_time; }
     TimePoint elapsed_time () const;
@@ -68,6 +72,8 @@ public:
     {
         clear ();
     }
+    EasyMoveManager (const EasyMoveManager&) = delete;
+    EasyMoveManager& operator= (const EasyMoveManager&) = delete;
 
     void clear ()
     {
@@ -128,6 +134,8 @@ public:
     explicit SkillManager (u08 skill_level = MaxSkillLevel)
         : _skill_level (skill_level)
     {}
+    SkillManager (const SkillManager&) = delete;
+    SkillManager& operator= (const SkillManager&) = delete;
 
     void change_skill_level (u08 skill_level)
     {
@@ -223,6 +231,8 @@ namespace Threading {
 
         Thread ();
         Thread (const Thread&) = delete;
+        Thread& operator= (const Thread&) = delete;
+
         virtual ~Thread ();
 
         // Thread::start_searching() wakes up the thread that will start the search
@@ -303,6 +313,7 @@ namespace Threading {
 
         MainThread ();
         MainThread (const MainThread&) = delete;
+        MainThread& operator= (const MainThread&) = delete;
         //virtual ~MainThread ();
 
         virtual void search () override;
@@ -319,6 +330,8 @@ namespace Threading {
     {
     public:
         ThreadPool () = default;
+        ThreadPool (const ThreadPool&) = delete;
+        ThreadPool& operator= (const ThreadPool&) = delete;
 
         MainThread* main () const
         {

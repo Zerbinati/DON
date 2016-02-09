@@ -17,6 +17,8 @@
 
 using namespace std;
 
+const size_t Stack::Size = sizeof (Stack);
+
 namespace Searcher {
 
     using namespace BitBoard;
@@ -129,8 +131,7 @@ namespace Searcher {
         // ReductionDepths lookup table (initialized at startup)
         // [pv][improving][depth][move_count]
         Depth ReductionDepths[2][2][ReductionDepth][ReductionMoveCount];
-        template<bool PVNode>
-        Depth reduction_depths (bool imp, Depth d, u08 mc)
+        Depth reduction_depths (bool PVNode, bool imp, Depth d, u08 mc)
         {
             return ReductionDepths[PVNode][imp][min (d/DEPTH_ONE, ReductionDepth-1)][min (mc/1, ReductionMoveCount-1)];
         }
@@ -990,7 +991,7 @@ namespace Searcher {
             auto &opp_cmv = CounterMoveHistoryValues[_ok ((ss-1)->current_move) ? pos[opp_move_dst] : NO_PIECE][opp_move_dst];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
-            MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, counter_move, ss);
+            MovePicker mp (pos, thread->history_values, opp_cmv, ss->killer_moves, tt_move, counter_move);
 
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
@@ -1105,7 +1106,7 @@ namespace Searcher {
                         continue;
                     }
                     // Value based pruning
-                    auto predicted_depth = std::max (new_depth - reduction_depths<PVNode> (improving, depth, move_count), DEPTH_ZERO);
+                    auto predicted_depth = std::max (new_depth - reduction_depths (PVNode, improving, depth, move_count), DEPTH_ZERO);
                     // Futility pruning: parent node
                     if (predicted_depth < FutilityMarginDepth*DEPTH_ONE)
                     {
@@ -1161,7 +1162,7 @@ namespace Searcher {
                     //&& (!gives_check || depth >= 10*DEPTH_ONE)
                    )
                 {
-                    auto reduction_depth = reduction_depths<PVNode> (improving, depth, move_count);
+                    auto reduction_depth = reduction_depths (PVNode, improving, depth, move_count);
 
                     // Increase reduction for cut node
                     if (   !PVNode
@@ -1391,10 +1392,6 @@ namespace Searcher {
 
     // ------------------------------------
 
-    const size_t Stack::Size = sizeof (Stack);
-
-    // ------------------------------------
-
     // RootMove::insert_pv_into_tt() is called at the end of a search iteration, and
     // inserts the PV back into the TT. This makes sure the old PV moves are searched
     // first, even if the old TT entries have been overwritten.
@@ -1551,14 +1548,15 @@ namespace Searcher {
                     for (u08 mc = 1; mc < ReductionMoveCount; ++mc) // move-count
                     {
                         auto r = i32(std::round (K2[pv][0] + log (d) * log (mc) / K2[pv][1]));
-
+                        assert(r >= 0);
                         ReductionDepths[pv][imp][d][mc] = r*DEPTH_ONE;
                         // Increase reduction when eval is not improving
                         if (   !pv
                             && !imp
+                            && r >= 2
                            )
                         {
-                            ReductionDepths[pv][imp][d][mc] += ((r*r)/16)*DEPTH_ONE;
+                            ReductionDepths[pv][imp][d][mc] += 1*DEPTH_ONE;
                         }
                     }
                 }

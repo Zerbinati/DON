@@ -4,7 +4,6 @@ namespace MovePick {
 
     using namespace std;
     using namespace MoveGen;
-    using namespace Searcher;
     using namespace BitBoard;
 
     namespace {
@@ -47,7 +46,7 @@ namespace MovePick {
         // pick_best() finds the best move in the range [beg, end) and moves it to front,
         // it is faster than sorting all the moves in advance when there are few moves
         // e.g. the possible captures.
-        Move pick_best (ValMove *beg, ValMove *end)
+        ValMove& pick_best (ValMove *beg, ValMove *end)
         {
             std::swap (*beg, *std::max_element (beg, end));
             return *beg;
@@ -60,20 +59,20 @@ namespace MovePick {
     // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
     // and about how important good move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, const CMValueStats &cmv, Move ttm, Move cm, const Stack *ss)
+    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, const CMValueStats &cmv, const Move *ss_km, Move ttm, Move cm)
         : _pos (pos)
         , _history_values (hv)
         , _counter_moves_values (&cmv)
-        , _ss (ss)
+        , _ss_killer_moves (ss_km)
         , _counter_move (cm)
     {
         _stage = _pos.checkers () != U64(0) ? S_EVASION : S_MAIN;
-
+        
         _tt_move =   ttm != MOVE_NONE
                   && _pos.pseudo_legal (ttm) ?
                         ttm : MOVE_NONE;
 
-        _end_move += _tt_move != MOVE_NONE;
+        _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
     MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Square dst_sq, Depth depth)
@@ -107,7 +106,7 @@ namespace MovePick {
                   && _pos.pseudo_legal (ttm) ?
                         ttm : MOVE_NONE;
 
-        _end_move += _tt_move != MOVE_NONE;
+        _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
     MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Value thr)
@@ -126,7 +125,7 @@ namespace MovePick {
                   && _pos.see (ttm) > _threshold ?
                         ttm : MOVE_NONE;
 
-        _end_move += _tt_move != MOVE_NONE;
+        _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
     // value() assigns a numerical move ordering score to each move in a move list.
@@ -212,7 +211,7 @@ namespace MovePick {
         case S_KILLER:
             _cur_move = _killer_moves;
             _end_move = _killer_moves + Killers;
-            std::copy (_ss->killer_moves, _ss->killer_moves + Killers, _killer_moves);
+            std::copy (_ss_killer_moves, _ss_killer_moves + Killers, _killer_moves);
             *_end_move = MOVE_NONE;
             // Be sure countermoves are different from killer_moves
             if (_counter_move != MOVE_NONE && std::find (_cur_move, _end_move, _counter_move) == _end_move)
@@ -274,10 +273,10 @@ namespace MovePick {
         }
     }
 
-    /// next_move() is the most important method of the MovePicker class. It returns
-    /// a new pseudo legal move every time it is called, until there are no more moves
-    /// left. It picks the move with the biggest value from a list of generated moves
-    /// taking care not to return the ttMove if it has already been searched.
+    // next_move() is the most important method of the MovePicker class.
+    // It returns a new pseudo legal move every time it is called, until there are no more moves left.
+    // It picks the move with the biggest value from a list of generated moves
+    // taking care not to return the ttMove if it has already been searched.
     Move MovePicker::next_move ()
     {
         do
@@ -287,7 +286,6 @@ namespace MovePick {
                 generate_next_stage ();
             }
 
-            Move move;
             switch (_stage)
             {
 
@@ -303,7 +301,7 @@ namespace MovePick {
             case S_GOOD_CAPTURE:
                 do
                 {
-                    move = pick_best (_cur_move++, _end_move);
+                    Move move = pick_best (_cur_move++, _end_move);
                     if (move != _tt_move)
                     {
                         if (_pos.see_sign (move) >= VALUE_ZERO)
@@ -319,7 +317,7 @@ namespace MovePick {
             case S_KILLER:
                 do
                 {
-                    move = *_cur_move++;
+                    Move move = *_cur_move++;
                     if (   move != MOVE_NONE
                         && move != _tt_move 
                         && _pos.pseudo_legal (move)
@@ -335,8 +333,9 @@ namespace MovePick {
             case S_BAD_QUIET:
                 do
                 {
-                    move = *_cur_move++;
-                    if (   move != _tt_move
+                    Move move = *_cur_move++;
+                    if (   move != MOVE_NONE
+                        && move != _tt_move
                         && std::find (_killer_moves, _killer_moves + Killers + 1, move) == _killer_moves + Killers + 1 // Not killer move
                        )
                     {
@@ -354,7 +353,7 @@ namespace MovePick {
             case S_QCAPTURE_2:
                 do
                 {
-                    move = pick_best (_cur_move++, _end_move);
+                    Move move = pick_best (_cur_move++, _end_move);
                     if (move != _tt_move)
                     {
                         return move;
@@ -365,7 +364,7 @@ namespace MovePick {
             case S_QUIET_CHECK:
                 do
                 {
-                    move = *_cur_move++;
+                    Move move = *_cur_move++;
                     if (move != _tt_move)
                     {
                         return move;
@@ -376,7 +375,7 @@ namespace MovePick {
             case S_PROBCUT_CAPTURE:
                 do
                 {
-                    move = pick_best (_cur_move++, _end_move);
+                    Move move = pick_best (_cur_move++, _end_move);
                     if (   move != _tt_move
                         && _pos.see (move) > _threshold
                        )
@@ -389,7 +388,7 @@ namespace MovePick {
             case S_ALL_RECAPTURE:
                 do
                 {
-                    move = pick_best (_cur_move++, _end_move);
+                    Move move = pick_best (_cur_move++, _end_move);
                     if (dst_sq (move) == _recapture_sq)
                     {
                         return move;

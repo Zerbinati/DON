@@ -120,7 +120,6 @@ namespace Polyglot {
 
         Book () = default;
         Book (const std::string &book_fn, openmode mode);
-
         Book (const Book&) = delete;
         Book& operator= (const Book&) = delete;
 

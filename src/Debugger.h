@@ -63,12 +63,10 @@ namespace Debugger {
             : _inb (std::cin .rdbuf (), _ofs.rdbuf ())
             , _otb (std::cout.rdbuf (), _ofs.rdbuf ())
         {}
-        
         Logger (const Logger&) = delete;
         Logger& operator= (const Logger&) = delete;
 
     public:
-
         ~Logger ()
         {
             stop ();
