@@ -132,7 +132,7 @@ namespace MovePick {
     // The moves with highest scores will be picked first.
 
     template<>
-    // Winning and equal captures in the main search are ordered by MVV.
+    // Winning and equal captures in the main search are ordered by MVV/LVA.
     // In the main search we want to push captures with negative SEE values to the
     // badCaptures[] array, but instead of doing it now we delay until the move
     // has been picked up, saving some SEE calls in case we get a cutoff.

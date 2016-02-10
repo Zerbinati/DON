@@ -560,10 +560,13 @@ Value Position::see_sign (Move m) const
     // here because king midgame value is set to 0.
     if (  PieceValues[MG][ptype (_board[org_sq (m)])]
        <= PieceValues[MG][ptype (_board[dst_sq (m)])]
-        || mtype (m) == ENPASSANT
        )
     {
         return VALUE_KNOWN_WIN;
+    }
+    if (mtype (m) == ENPASSANT)
+    {
+        return PieceValues[MG][PAWN];
     }
     return see (m);
 }
