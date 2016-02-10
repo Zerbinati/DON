@@ -5,6 +5,7 @@
 #include "Zobrist.h"
 
 class Position;
+using namespace BitBoard;
 
 // Check the validity of FEN string
 extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
@@ -507,13 +508,13 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 inline bool Position::capture       (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))) && !empty (dst_sq (m)))
+    return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))) && (_color_bb[~_active] & dst_sq (m)) != U64(0))
         || en_passant (m);
 }
 // capture_or_promotion(m) checks move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
-    return (mtype (m) == NORMAL && !empty (dst_sq (m))) || en_passant (m)
+    return (mtype (m) == NORMAL && (_color_bb[~_active] & dst_sq (m)) != U64(0)) || en_passant (m)
         || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN));
 }
 // en_passant(m) checks move is en-passant

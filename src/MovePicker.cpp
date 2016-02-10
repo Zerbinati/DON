@@ -120,8 +120,8 @@ namespace MovePick {
 
         // In ProbCut generate captures with SEE higher than the given threshold
         _tt_move =   ttm != MOVE_NONE
-                  && _pos.pseudo_legal (ttm)
                   && _pos.capture (ttm)
+                  && _pos.pseudo_legal (ttm)
                   && _pos.see (ttm) > _threshold ?
                         ttm : MOVE_NONE;
 
@@ -316,9 +316,9 @@ namespace MovePick {
                 {
                     Move move = *_cur_move++;
                     if (   move != MOVE_NONE
-                        && move != _tt_move 
-                        && _pos.pseudo_legal (move)
+                        && move != _tt_move
                         && !_pos.capture (move)
+                        && _pos.pseudo_legal (move)
                        )
                     {
                         return move;
