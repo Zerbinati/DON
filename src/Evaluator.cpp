@@ -110,8 +110,12 @@ namespace Evaluator {
             u08 king_zone_attacks_count[CLR_NO];
 
             // Pointers to pawn and material hash table entries
-            Pawns   ::Entry *pe;
-            Material::Entry *me;
+            Pawns   ::Entry *pe = nullptr;
+            Material::Entry *me = nullptr;
+
+            EvalInfo () = default;
+            EvalInfo (const EvalInfo&) = delete;
+            EvalInfo& operator= (const EvalInfo&) = delete;
         };
 
     #define S(mg, eg) mk_score (mg, eg)
@@ -815,15 +819,15 @@ namespace Evaluator {
                                         4 : 0;
                         }
 
-                        mg_value += k*rr + 0*r + 0;
-                        eg_value += k*rr + 0*r + 0;
+                        mg_value += (k*rr + 0*r + 0) * 3 / 4;
+                        eg_value += (k*rr + 0*r + 0) * 1 / 1;
                     }
                     else
                     // If the pawn is blocked by own pieces
                     if ((pos.pieces (Own) & block_sq) != U64(0))
                     {
-                        mg_value += 3*rr + 3*r + 0;
-                        eg_value += 1*rr + 2*r + 0;
+                        mg_value += (3*rr + 3*r + 0) * 3 / 4;
+                        eg_value += (1*rr + 2*r + 0) * 1 / 1;
                     }
                 }
                 // If non-pawn count differ.
@@ -832,7 +836,7 @@ namespace Evaluator {
                     eg_value *= 1.0 + (double) (nonpawn_count[Own]-nonpawn_count[Opp]) / (nonpawn_count[Own]+nonpawn_count[Opp]+2);
                 }
 
-                score += mk_score (mg_value * 3 / 4, eg_value) + PawnPassedScore[_file (s)];
+                score += mk_score (mg_value, eg_value) + PawnPassedScore[_file (s)];
             }
 
             if (Trace)

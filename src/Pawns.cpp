@@ -107,7 +107,7 @@ namespace Pawns {
         // by number of pawns it supports [0, 1, 2].
         const Score Unsupported[3] =
         {
-            S(17, 8), S(19, 10), S(21, 12)
+            S(17, 8), S(18, 9), S(21, 12)
         };
 
         const Score Unstoppable = S( 0, 20); // Bonus for unstoppable pawn going to promote
@@ -312,6 +312,9 @@ namespace Pawns {
         Key pawn_key = pos.pawn_key ();
         Entry *e     = pos.thread ()->pawn_table[pawn_key];
 
+        // If pawn key matches the position's pawn hash key, it means that
+        // have analysed this pawn configuration before, and can simply
+        // return the information found the last time instead of recomputing it.
         if (e->pawn_key != pawn_key)
         {
             e->pawn_key   = pawn_key;
@@ -339,7 +342,7 @@ namespace Pawns {
                     for (auto r = R_2; r < R_8; ++r)
                     {
                         i32 v = (Seeds[r] + (phalanx != 0 ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed;
-                        v += (apex ? v / 2 : 0);
+                        v += (apex != 0 ? v / 2 : 0);
                         Connected[opposed][phalanx][apex][r] = mk_score (v * 1 / 1, v * 5 / 8);
                     }
                 }

@@ -507,7 +507,8 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 inline bool Position::capture       (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))) && !empty (dst_sq (m))) || en_passant (m);
+    return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))) && !empty (dst_sq (m)))
+        || en_passant (m);
 }
 // capture_or_promotion(m) checks move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const

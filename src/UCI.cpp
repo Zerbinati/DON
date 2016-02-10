@@ -97,7 +97,7 @@ namespace UCI {
                         value += string (" ", !white_spaces (value) ? 1 : 0) + token;
                     }
 
-                    if (Options.count (name) != 0)
+                    if (Options.find (name) != Options.end ())
                     {
                         Options[name] = value;
                     }

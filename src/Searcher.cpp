@@ -1553,10 +1553,9 @@ namespace Searcher {
                         // Increase reduction when eval is not improving
                         if (   !pv
                             && !imp
-                            && r >= 2
                            )
                         {
-                            ReductionDepths[pv][imp][d][mc] += 1*DEPTH_ONE;
+                            ReductionDepths[pv][imp][d][mc] += /*((r*r)/16)*/1*DEPTH_ONE;
                         }
                     }
                 }

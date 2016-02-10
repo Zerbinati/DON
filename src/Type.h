@@ -717,9 +717,9 @@ struct HashTable
 {
 private:
     std::vector<Entry> _table = std::vector<Entry> (Size);
-
+    u32 _mask = Size - 1;
 public:
-    Entry* operator[] (Key k) { return &_table[u32(k) & (Size-1)]; }
+    Entry* operator[] (Key k) { return &_table[u32(k) & _mask]; }
 };
 
 template<class T>

@@ -132,10 +132,7 @@ namespace MovePick {
     // The moves with highest scores will be picked first.
 
     template<>
-    // Winning and equal captures in the main search are ordered by MVV, preferring
-    // captures near our home rank. Surprisingly, this appears to perform slightly
-    // better than SEE based move ordering: exchanging big pieces before capturing
-    // a hanging piece probably helps to reduce the subtree size.
+    // Winning and equal captures in the main search are ordered by MVV.
     // In the main search we want to push captures with negative SEE values to the
     // badCaptures[] array, but instead of doing it now we delay until the move
     // has been picked up, saving some SEE calls in case we get a cutoff.
@@ -144,7 +141,7 @@ namespace MovePick {
         for (auto &vm : *this)
         {
             vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-              - Value(200 * rel_rank (_pos.active (), dst_sq (vm.move)));
+              - Value(ptype (_pos[org_sq (vm.move)]) + 1);
         }
     }
 

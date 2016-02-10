@@ -905,7 +905,7 @@ namespace EndGame {
         assert(pos.non_pawn_material (_strong_side) == VALUE_MG_BSHP);
         assert(pos.count<BSHP> (_strong_side) == 1);
         assert(pos.count<PAWN> (_strong_side) != 0);
-        // No assertions about the material of _weak_side, because we want draws to
+        // No assertions about the material of weak side, because we want draws to
         // be detected even when the weaker side has some materials or pawns.
 
         auto spawns = pos.pieces (_strong_side, PAWN);
@@ -946,7 +946,7 @@ namespace EndGame {
 
             if (pos.count<PAWN> (~_strong_side) != 0)
             {
-                // Get _weak_side pawn that is closest to home rank
+                // Get weak side pawn that is closest to home rank
                 auto wp_sq = scan_backmost_sq (~_strong_side, pos.pieces (~_strong_side, PAWN));
 
                 //// It's a draw if weaker pawn is on rank 7, bishop can't attack the pawn, and

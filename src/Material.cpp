@@ -132,7 +132,7 @@ namespace Material {
         Key matl_key = pos.matl_key ();
         Entry *e     = pos.thread ()->matl_table[matl_key];
 
-        // If e->_matl_key matches the position's material hash key, it means that
+        // If material key matches the position's material hash key, it means that
         // have analysed this material configuration before, and can simply
         // return the information found the last time instead of recomputing it.
         if (e->matl_key != matl_key)
