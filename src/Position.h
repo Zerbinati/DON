@@ -522,8 +522,8 @@ inline bool Position::en_passant    (Move m) const
 {
     return mtype (m) == ENPASSANT
         && _board[org_sq (m)] == (_active|PAWN)
-        && empty (dst_sq (m))
-        && _psi->en_passant_sq == dst_sq (m);
+        && _psi->en_passant_sq == dst_sq (m)
+        && empty (dst_sq (m));
 }
 // advanced_pawn_push(m) checks move is advanced pawn push
 inline bool Position::advanced_pawn_push    (Move m) const
