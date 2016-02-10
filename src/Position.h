@@ -433,11 +433,11 @@ inline Threading::Thread* Position::thread () const { return _thread; }
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
-    return((BitBoard::PawnAttacks[~c][s]    & _types_bb[PAWN])
-        |  (BitBoard::PieceAttacks[NIHT][s] & _types_bb[NIHT])
-        |  (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]))
-        |  (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]))
-        |  (BitBoard::PieceAttacks[KING][s] & _types_bb[KING])) & _color_bb[c];
+    return((PawnAttacks[~c][s]    & _types_bb[PAWN])
+        |  (PieceAttacks[NIHT][s] & _types_bb[NIHT])
+        |  (attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]))
+        |  (attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]))
+        |  (PieceAttacks[KING][s] & _types_bb[KING])) & _color_bb[c];
 }
 // Attackers to the square 's' by color 'c'
 inline Bitboard Position::attackers_to (Square s, Color c) const
@@ -448,12 +448,12 @@ inline Bitboard Position::attackers_to (Square s, Color c) const
 // Attackers to the square 's' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
-    return (BitBoard::PawnAttacks[WHITE][s] & _types_bb[PAWN]&_color_bb[BLACK])
-        |  (BitBoard::PawnAttacks[BLACK][s] & _types_bb[PAWN]&_color_bb[WHITE])
-        |  (BitBoard::PieceAttacks[NIHT][s] & _types_bb[NIHT])
-        |  (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]))
-        |  (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]))
-        |  (BitBoard::PieceAttacks[KING][s] & _types_bb[KING]);
+    return (PawnAttacks[WHITE][s] & _types_bb[PAWN]&_color_bb[BLACK])
+        |  (PawnAttacks[BLACK][s] & _types_bb[PAWN]&_color_bb[WHITE])
+        |  (PieceAttacks[NIHT][s] & _types_bb[NIHT])
+        |  (attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]))
+        |  (attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]))
+        |  (PieceAttacks[KING][s] & _types_bb[KING]);
 }
 // Attackers to the square 's'
 inline Bitboard Position::attackers_to (Square s) const
@@ -481,7 +481,7 @@ inline Bitboard Position::discoverers (Color c) const
 }
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return ((_types_bb[PAWN]&_color_bb[~c]) & BitBoard::PawnPassSpan[c][s]) == U64(0);
+    return ((_types_bb[PAWN]&_color_bb[~c]) & PawnPassSpan[c][s]) == U64(0);
 }
 // bishops_pair(c) check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
@@ -537,7 +537,7 @@ inline void  Position:: place_piece (Square s, Color c, PieceType pt)
     //assert(empty (s));
     _board[s] = (c | pt);
 
-    auto bb = BitBoard::Square_bb[s];
+    auto bb = Square_bb[s];
     _color_bb[c]    |= bb;
     _types_bb[pt]   |= bb;
     _types_bb[NONE] |= bb;
@@ -557,7 +557,7 @@ inline void  Position::remove_piece (Square s)
     auto pt = ptype (_board[s]);
     //_board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 
-    auto bb = ~BitBoard::Square_bb[s];
+    auto bb = ~Square_bb[s];
     _color_bb[c]    &= bb;
     _types_bb[pt]   &= bb;
     _types_bb[NONE] &= bb;
@@ -579,7 +579,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
     _board[s2] = _board[s1];
     _board[s1] = NO_PIECE;
 
-    auto bb = BitBoard::Square_bb[s1] ^ BitBoard::Square_bb[s2];
+    auto bb = Square_bb[s1] ^ Square_bb[s2];
     _color_bb[c]    ^= bb;
     _types_bb[pt]   ^= bb;
     _types_bb[NONE] ^= bb;
@@ -623,10 +623,10 @@ inline CheckInfo::CheckInfo (const Position &pos)
     pinneds = pos.pinneds (own);
     discoverers = pos.discoverers (own);
 
-    checking_bb[PAWN] = BitBoard::PawnAttacks[opp][king_sq];
-    checking_bb[NIHT] = BitBoard::PieceAttacks[NIHT][king_sq];
-    checking_bb[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
-    checking_bb[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());
+    checking_bb[PAWN] = PawnAttacks[opp][king_sq];
+    checking_bb[NIHT] = PieceAttacks[NIHT][king_sq];
+    checking_bb[BSHP] = attacks_bb<BSHP> (king_sq, pos.pieces ());
+    checking_bb[ROOK] = attacks_bb<ROOK> (king_sq, pos.pieces ());
     checking_bb[QUEN] = checking_bb[BSHP] | checking_bb[ROOK];
     checking_bb[KING] = U64(0);
 }
