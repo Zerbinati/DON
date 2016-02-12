@@ -19,6 +19,11 @@ namespace MovePick {
             S_STOP
         };
 
+        const Value PieceCapValues[MAX_PTYPE] =
+        {
+            VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_MG_QUEN+1, VALUE_ZERO
+        };
+
         // Insertion sort in the range [beg, end), which is guaranteed to be stable, as it should be
         void insertion_sort (ValMove *beg, ValMove *end)
         {
@@ -140,8 +145,21 @@ namespace MovePick {
     {
         for (auto &vm : *this)
         {
-            vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-              - Value(ptype (_pos[org_sq (vm.move)]) + 1);
+            if (_pos.capture (vm.move))
+            {
+                vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                         - PieceCapValues[ptype (_pos[org_sq (vm.move)])];
+            }
+            else
+            if (mtype (vm.move) == PROMOTE)
+            {
+                vm.value = VALUE_ZERO;
+            }
+            else
+            {
+                assert(false);
+                //vm.value = _history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
+            }
         }
     }
 
@@ -171,8 +189,13 @@ namespace MovePick {
             else
             if (_pos.capture (vm.move))
             {
-                vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                  - Value(ptype (_pos[org_sq (vm.move)]) + 1) + MaxStatsValue;
+                vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                         - PieceCapValues[ptype (_pos[org_sq (vm.move)])] + MaxStatsValue;
+            }
+            else
+            if (mtype (vm.move) == PROMOTE)
+            {
+                vm.value = VALUE_ZERO;
             }
             else
             {
@@ -238,9 +261,8 @@ namespace MovePick {
             break;
 
         case S_BAD_CAPTURE:
-            // Just pick them in reverse order to get MVV/LVA ordering
-            _cur_move = _beg_move+MaxMoves-1;
-            _end_move = _end_bad_capture;
+            _cur_move = _bad_capture;
+            _end_move = _beg_move+MaxMoves;
             break;
 
         case S_ALL_EVASION:
@@ -298,15 +320,16 @@ namespace MovePick {
             case S_GOOD_CAPTURE:
                 do
                 {
-                    Move move = pick_best (_cur_move++, _end_move);
+                    auto move = pick_best (_cur_move++, _end_move).move;
                     if (move != _tt_move)
                     {
-                        if (_pos.see_sign (move) >= VALUE_ZERO)
+                        auto see_value = _pos.see_sign (move);
+                        if (see_value >= VALUE_ZERO)
                         {
                             return move;
                         }
                         // Losing capture, move it to the tail of the array
-                        *_end_bad_capture-- = move;
+                        *(--_bad_capture) = { move, see_value };
                     }
                 } while (_cur_move < _end_move);
                 break;
@@ -314,7 +337,7 @@ namespace MovePick {
             case S_KILLER:
                 do
                 {
-                    Move move = *_cur_move++;
+                    auto move = (*_cur_move++).move;
                     if (   move != MOVE_NONE
                         && move != _tt_move
                         && !_pos.capture (move)
@@ -330,7 +353,7 @@ namespace MovePick {
             case S_BAD_QUIET:
                 do
                 {
-                    Move move = *_cur_move++;
+                    auto move = (*_cur_move++).move;
                     if (   move != MOVE_NONE
                         && move != _tt_move
                         && std::find (_killer_moves, _killer_moves + Killers + 1, move) == _killer_moves + Killers + 1 // Not killer move
@@ -342,7 +365,9 @@ namespace MovePick {
                 break;
 
             case S_BAD_CAPTURE:
-                return *_cur_move--;
+                {
+                    return pick_best (_cur_move++, _end_move).move;
+                }
                 break;
 
             case S_ALL_EVASION:
@@ -350,7 +375,7 @@ namespace MovePick {
             case S_QCAPTURE_2:
                 do
                 {
-                    Move move = pick_best (_cur_move++, _end_move);
+                    auto move = pick_best (_cur_move++, _end_move).move;
                     if (move != _tt_move)
                     {
                         return move;
@@ -361,7 +386,7 @@ namespace MovePick {
             case S_QUIET_CHECK:
                 do
                 {
-                    Move move = *_cur_move++;
+                    auto move = (*_cur_move++).move;
                     if (move != _tt_move)
                     {
                         return move;
@@ -372,7 +397,7 @@ namespace MovePick {
             case S_PROBCUT_CAPTURE:
                 do
                 {
-                    Move move = pick_best (_cur_move++, _end_move);
+                    auto move = pick_best (_cur_move++, _end_move).move;
                     if (   move != _tt_move
                         && _pos.see (move) > _threshold
                        )
@@ -385,7 +410,7 @@ namespace MovePick {
             case S_ALL_RECAPTURE:
                 do
                 {
-                    Move move = pick_best (_cur_move++, _end_move);
+                    auto move = pick_best (_cur_move++, _end_move).move;
                     if (dst_sq (move) == _recapture_sq)
                     {
                         return move;

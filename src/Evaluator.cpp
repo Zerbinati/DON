@@ -942,7 +942,7 @@ namespace Evaluator {
                         && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP
                        )
                     {
-                        scale_factor = ScaleFactor (8 * abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK)));
+                        scale_factor = ScaleFactor (10 * abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK)));
                     }
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops. 
@@ -992,7 +992,7 @@ namespace Evaluator {
         score += ei.me->imbalance;
 
         // Probe the pawn hash table
-        ei.pe  = Pawns::probe (pos);
+        ei.pe = Pawns::probe (pos);
         score += ei.pe->pawn_score;
 
         for (auto c = WHITE; c <= BLACK; ++c)

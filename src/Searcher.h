@@ -63,13 +63,13 @@ struct Stack
 {
     static const size_t Size;
 
-    i16  ply          = 0;
+    i16 ply = 0;
     Move current_move = MOVE_NONE
-        , exclude_move = MOVE_NONE
-        , killer_moves[Killers];
+       , exclude_move = MOVE_NONE
+       , killer_moves[Killers];
 
     Value static_eval = VALUE_NONE;
-    u08   move_count  = 0;
+    u08 move_count = 0;
     bool skip_pruning = false;
 
     MoveVector pv;

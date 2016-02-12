@@ -504,15 +504,15 @@ namespace Searcher {
                     }
 
                     // Don't search moves with negative SEE values
-                    if (   (  !in_check
+                    if (   (   !in_check
                             // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
-                            || (   //in_check &&
-                                   best_value > -VALUE_MATE_IN_MAX_PLY
+                            || (   in_check
+                                && best_value > -VALUE_MATE_IN_MAX_PLY
                                 && !pos.capture (move)
                                )
                            )
                         && mtype (move) != PROMOTE
-                        && pos.see_sign (move) < VALUE_ZERO
+                        && pos.see_sign (move) < VALUE_ZERO //-(VALUE_MG_PAWN/2)
                        )
                     {
                         continue;
@@ -1037,18 +1037,12 @@ namespace Searcher {
                     (ss+1)->pv = MoveVector ();
                 }
 
-                auto extension = DEPTH_ZERO;
                 bool gives_check = mtype (move) == NORMAL && ci.discoverers == U64(0) ?
                                     (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != U64(0) :
                                     pos.gives_check (move, ci);
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
-                if (   gives_check
-                    && pos.see_sign (move) >= VALUE_ZERO
-                   )
-                {
-                    extension = DEPTH_ONE;
-                }
+                auto extension = gives_check && pos.see_sign (move) >= VALUE_ZERO ? DEPTH_ONE : DEPTH_ZERO;
 
                 // Singular extension(SE) search.
                 // We extend the TT move if its value is much better than its siblings.
@@ -1123,7 +1117,7 @@ namespace Searcher {
                     }
                     // Negative SEE pruning at low depths
                     if (   predicted_depth < RazorDepth*DEPTH_ONE
-                        && pos.see_sign (move) < VALUE_ZERO
+                        && pos.see_sign (move) < VALUE_ZERO //-(VALUE_MG_PAWN/2)
                        )
                     {
                         continue;
@@ -1555,7 +1549,7 @@ namespace Searcher {
                             && !imp
                            )
                         {
-                            ReductionDepths[pv][imp][d][mc] += /*((r*r)/16)*/1*DEPTH_ONE;
+                            ReductionDepths[pv][imp][d][mc] += 1*DEPTH_ONE;
                         }
                     }
                 }
@@ -2142,7 +2136,7 @@ namespace Threading {
             for (size_t i = 1; i < Threadpool.size (); ++i)
             {
                 if (   best_thread->leaf_depth < Threadpool[i]->leaf_depth
-                    && best_thread->root_moves[0].new_value <= Threadpool[i]->root_moves[0].new_value
+                    && best_thread->root_moves[0].new_value < Threadpool[i]->root_moves[0].new_value
                    )
                 {
                     best_thread = Threadpool[i];

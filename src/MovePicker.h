@@ -85,10 +85,10 @@ namespace MovePick {
     private:
 
         ValMove  _beg_move[MaxMoves]
-            ,   *_cur_move         = _beg_move
-            ,   *_end_move         = _beg_move
-            ,   *_end_quiet        = _beg_move
-            ,   *_end_bad_capture  = _beg_move+MaxMoves-1;
+            ,   *_cur_move    = _beg_move
+            ,   *_end_move    = _beg_move
+            ,   *_end_quiet   = _beg_move
+            ,   *_bad_capture = _beg_move+MaxMoves;
 
         const Position      &_pos;
         const HValueStats   &_history_values;

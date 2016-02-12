@@ -478,8 +478,6 @@ Value Position::see      (Move m) const
 
     // Gain list
     Value gain_list[32];
-    i08   depth = 1;
-
     Bitboard mocc;
 
     switch (mtype (m))
@@ -498,6 +496,10 @@ Value Position::see      (Move m) const
         break;
 
     default:
+        //if (ptype (_board[dst]) == NONE)
+        //{
+        //    return VALUE_ZERO;
+        //}
         mocc = _types_bb[NONE] - org;
         gain_list[0] = PieceValues[MG][ptype (_board[dst])];
         break;
@@ -521,6 +523,7 @@ Value Position::see      (Move m) const
         // new X-ray attacks from behind the capturing piece.
         auto captured = ptype (_board[org]);
 
+        i08 depth = 1;
         do
         {
             assert(depth < 32);
@@ -555,9 +558,8 @@ Value Position::see      (Move m) const
 Value Position::see_sign (Move m) const
 {
     assert(_ok (m));
-    // Early return if SEE cannot be negative because captured piece value
-    // is not less then capturing one. Note that king moves always return
-    // here because king midgame value is set to 0.
+    // If SEE cannot be negative because captured piece value is not less then capturing one.
+    // Note that king moves always return here because king value is set to VALUE_ZERO.
     if (  PieceValues[MG][ptype (_board[org_sq (m)])]
        <= PieceValues[MG][ptype (_board[dst_sq (m)])]
        )
