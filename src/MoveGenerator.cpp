@@ -17,7 +17,7 @@ namespace MoveGen {
                 || PT == ROOK
                 || PT == QUEN);
 
-            for (auto s : pos.squares<PT> (Own))
+            for (Square s : pos.squares<PT> (Own))
             {
                 if (GT == CHECK || GT == QUIET_CHECK)
                 {
@@ -40,7 +40,7 @@ namespace MoveGen {
                     attacks &= ci->checking_bb[PT];
                 }
 
-                while (attacks != U64(0)) { *moves++ = mk_move (s, pop_lsq (attacks)); }
+                while (attacks != U64(0)) { (*moves++).move = mk_move (s, pop_lsq (attacks)); }
             }
         }
 
@@ -87,7 +87,7 @@ namespace MoveGen {
                 (void) ci; // Silence a warning under MSVC
             }
 
-            *moves++ = m;
+            (*moves++).move = m;
         }
         template<GenType GT, Color Own>
         // Generates KING common move
@@ -101,7 +101,7 @@ namespace MoveGen {
             {
                 auto king_sq = pos.square<KING> (Own);
                 auto attacks = PieceAttacks[KING][king_sq] & ~PieceAttacks[KING][pos.square<KING> (Opp)] & targets;
-                while (attacks != U64(0)) { *moves++ = mk_move (king_sq, pop_lsq (attacks)); }
+                while (attacks != U64(0)) { (*moves++).move = mk_move (king_sq, pop_lsq (attacks)); }
             }
 
             if (GT != CAPTURE)
@@ -139,13 +139,13 @@ namespace MoveGen {
 
             if (GT == RELAX || GT == EVASION || GT == CAPTURE)
             {
-                *moves++ = mk_move<PROMOTE> (dst - delta, dst, QUEN);
+                (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, QUEN);
             }
             if (GT == RELAX || GT == EVASION /*|| GT == CAPTURE*/ || GT == QUIET)
             {
-                *moves++ = mk_move<PROMOTE> (dst - delta, dst, ROOK);
-                *moves++ = mk_move<PROMOTE> (dst - delta, dst, BSHP);
-                *moves++ = mk_move<PROMOTE> (dst - delta, dst, NIHT);
+                (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, ROOK);
+                (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, BSHP);
+                (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, NIHT);
             }
             // Knight-promotion is the only one that can give a direct check
             // not already included in the queen-promotion (queening).
@@ -153,16 +153,16 @@ namespace MoveGen {
             {
                 if ((PieceAttacks[NIHT][dst] & ci->king_sq) != U64(0))
                 {
-                    *moves++ = mk_move<PROMOTE> (dst - delta, dst, NIHT);
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, NIHT);
                 }
             }
             //else
             //if (GT == CHECK)
             //{
-            //    if ((PieceAttacks[NIHT][dst]         & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - delta, dst, NIHT);
-            //    if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - delta, dst, BSHP);
-            //    if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - delta, dst, ROOK);
-            //    if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - delta, dst, QUEN);
+            //    if ((PieceAttacks[NIHT][dst]         & ci->king_sq) != U64(0)) (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, NIHT);
+            //    if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, BSHP);
+            //    if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64(0)) (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, ROOK);
+            //    if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64(0)) (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, QUEN);
             //}
             else
             {
@@ -229,8 +229,8 @@ namespace MoveGen {
                 default: break;
                 }
                     
-                while (push_1 != U64(0)) { auto dst = pop_lsq (push_1); *moves++ = mk_move (dst - Push, dst); }
-                while (push_2 != U64(0)) { auto dst = pop_lsq (push_2); *moves++ = mk_move (dst - Push-Push, dst); }
+                while (push_1 != U64(0)) { auto dst = pop_lsq (push_1); (*moves++).move = mk_move (dst - Push, dst); }
+                while (push_2 != U64(0)) { auto dst = pop_lsq (push_2); (*moves++).move = mk_move (dst - Push-Push, dst); }
             }
             // Pawn normal and en-passant captures, no promotions
             if (GT == RELAX || GT == CAPTURE || GT == EVASION)
@@ -238,8 +238,8 @@ namespace MoveGen {
                 auto l_attacks = enemies & shift_bb<LCap> (Rx_pawns);
                 auto r_attacks = enemies & shift_bb<RCap> (Rx_pawns);
 
-                while (l_attacks != U64(0)) { auto dst = pop_lsq (l_attacks); *moves++ = mk_move (dst - LCap, dst); }
-                while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); *moves++ = mk_move (dst - RCap, dst); }
+                while (l_attacks != U64(0)) { auto dst = pop_lsq (l_attacks); (*moves++).move = mk_move (dst - LCap, dst); }
+                while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); (*moves++).move = mk_move (dst - RCap, dst); }
 
                 auto ep_sq = pos.en_passant_sq ();
                 if (ep_sq != SQ_NO)
@@ -258,7 +258,7 @@ namespace MoveGen {
                             assert(ep_attacks != U64(0));
                             assert(pop_count<Max15> (ep_attacks) <= 2);
 
-                            while (ep_attacks != U64(0)) { *moves++ = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq); }
+                            while (ep_attacks != U64(0)) { (*moves++).move = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq); }
                         }
                     }
                 }
@@ -361,7 +361,7 @@ namespace MoveGen {
                 attacks &= ~PieceAttacks[QUEN][ci.king_sq]; // Clear path for checker
             }
 
-            while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
+            while (attacks != U64(0)) { (*moves++).move = mk_move (org, pop_lsq (attacks)); }
         }
 
         return active == WHITE ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets, &ci) :
@@ -389,7 +389,7 @@ namespace MoveGen {
                 attacks &= ~PieceAttacks[QUEN][ci.king_sq]; // Clear path for checker
             }
 
-            while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
+            while (attacks != U64(0)) { (*moves++).move = mk_move (org, pop_lsq (attacks)); }
         }
 
         return active == WHITE ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
@@ -449,7 +449,7 @@ namespace MoveGen {
                 | PieceAttacks[KING][pos.square<KING> (~active)]
                );
 
-        while (attacks != U64(0)) { *moves++ = mk_move (king_sq, pop_lsq (attacks)); }
+        while (attacks != U64(0)) { (*moves++).move = mk_move (king_sq, pop_lsq (attacks)); }
 
         // If double-check, then only a king move can save the day, triple+ check not possible
         if (   more_than_one (checkers)
@@ -493,6 +493,7 @@ namespace MoveGen {
                 *cur_move = *(--end_move);
                 continue;
             }
+            assert(pos.pseudo_legal (*cur_move));
             ++cur_move;
         }
 

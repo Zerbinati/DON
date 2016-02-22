@@ -56,26 +56,30 @@ public:
 
 const u08 Killers = 2;
 
-// The Stack struct keeps track of the information needed to remember from
-// nodes shallower and deeper in the tree during the search. Each search thread
-// has its own array of Stack objects, indexed by the current ply.
-struct Stack
-{
-    static const size_t Size;
-
-    i16 ply = 0;
-    Move current_move = MOVE_NONE
-       , exclude_move = MOVE_NONE
-       , killer_moves[Killers];
-
-    Value static_eval = VALUE_NONE;
-    u08 move_count = 0;
-    bool skip_pruning = false;
-
-    MoveVector pv;
-};
-
 namespace Searcher {
+
+    // The Stack struct keeps track of the information needed to remember from
+    // nodes shallower and deeper in the tree during the search. Each search thread
+    // has its own array of Stack objects, indexed by the current ply.
+    struct Stack
+    {
+        //static const size_t Size;
+
+        i16 ply = 0;
+        Move current_move = MOVE_NONE
+           , exclude_move = MOVE_NONE
+           , killer_moves[Killers];
+
+        Value static_eval = VALUE_NONE;
+        u08  move_count   = 0;
+        bool skip_pruning = false;
+
+        MoveVector pv;
+
+        Stack () = default;
+        Stack (const Stack&) = delete;
+        Stack& operator= (const Stack&) = delete;
+    };
 
     extern bool Chess960;
 

@@ -8,7 +8,7 @@ u08     ReadyMoveHorizon   =   40; // Be prepared to always play at least this m
 u32     OverheadClockTime  =   60; // Attempt to keep at least this much time at clock, in milliseconds.
 u32     OverheadMoveTime   =   30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
 u32     MinimumMoveTime    =   20; // No matter what, use at least this much time before doing the move, in milliseconds.
-double  MoveSlowness       = 0.80; // Move Slowness, in %age.
+double  MoveSlowness       = 1.00; // Move Slowness, in %age.
 u32     NodesTime          =    0; // 'Nodes as Time' mode
 bool    Ponder             = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
@@ -19,14 +19,13 @@ using namespace Searcher;
 
 namespace {
 
-    // move_importance() is a skew-logistic function based on naive statistical
-    // analysis of "how many games are still undecided after 'n' half-moves".
-    // Game is considered "undecided" as long as neither side has >275cp advantage.
-    // Data was extracted from the CCRL game database with some simple filtering criteria.
+    // move_importance() is an exponential function based on naive observation
+    // that a game is closer to be decided after each half-move.
+    // This function should be decreasing and with "nice" convexity properties.
     double move_importance (i16 ply)
     {
-        //                                      PlyShift / PlyScale  SkewRate
-        return std::max (pow (1.000 + exp ((ply - 58.400) / 7.640), -0.183), DBL_MIN); // Ensure non-zero
+        //                                PlyScale  PlyGrowth
+        return std::max (exp (-pow (ply / 109.3265, 4.0)), DBL_MIN); // Ensure non-zero
     }
 
     template<bool Maximum>

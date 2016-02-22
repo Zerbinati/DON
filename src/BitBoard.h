@@ -324,7 +324,7 @@ namespace BitBoard {
         case NIHT: return PieceAttacks[NIHT][s];     break;
         case BSHP: return attacks_bb<BSHP> (s, occ); break;
         case ROOK: return attacks_bb<ROOK> (s, occ); break;
-        case QUEN: return attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ); break;
+        case QUEN: return attacks_bb<QUEN> (s, occ); break;
         case KING: return PieceAttacks[KING][s];     break;
         default:   return U64(0); break;
         }

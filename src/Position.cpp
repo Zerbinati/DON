@@ -605,12 +605,17 @@ bool Position::pseudo_legal (Move m) const
     auto dst = dst_sq (m);
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
-    if (   empty (org)
-        || color (_board[org]) != _active
+    if ((_color_bb[_active] & org) == U64(0))
+    {
+        return false;
+    }
+    if (   ((_color_bb[_active]|_types_bb[KING]) & dst) != U64(0)
+        && mtype (m) != CASTLE
        )
     {
         return false;
     }
+
     auto mpt = ptype (_board[org]);
     auto cap = dst;
 
@@ -619,7 +624,7 @@ bool Position::pseudo_legal (Move m) const
     case NORMAL:
     {
         // Is not a promotion, so promotion piece must be empty
-        if ((promote (m) - NIHT) != PAWN)
+        if (promote (m) - NIHT != PAWN)
         {
             return false;
         }
@@ -635,7 +640,7 @@ bool Position::pseudo_legal (Move m) const
               && rel_rank (_active, dst) == R_1
               && _board[dst] == (_active|ROOK)
               && _psi->checkers == U64(0)
-              && _psi->castle_rights & mk_castle_right (_active)
+              && (_psi->castle_rights & mk_castle_right (_active)) != CR_NONE
               && !castle_impeded (mk_castle_right (_active, dst > org ? CS_KING : CS_QUEN))
              )
            )
@@ -705,6 +710,7 @@ bool Position::pseudo_legal (Move m) const
     {
         return false;
     }
+
     // Handle the special case of a piece move
     if (mpt == PAWN)
     {
@@ -730,7 +736,8 @@ bool Position::pseudo_legal (Move m) const
                  //&& dist<Rank> (dst, org) == 1
                 )
                // Not an enpassant capture
-            && !(   ((PawnAttacks[_active][org] & ~_types_bb[NONE]) & dst) != U64(0)
+            && !(   mtype (m) == ENPASSANT 
+                 && ((PawnAttacks[_active][org] & ~_types_bb[NONE]) & dst) != U64(0)
                  && _psi->en_passant_sq == dst
                  && _board[cap] == (~_active|PAWN)
                 )
@@ -756,7 +763,10 @@ bool Position::pseudo_legal (Move m) const
     }
     else
     {
-        if ((attacks_bb (_board[org], org, _types_bb[NONE]) & dst) == U64(0)) return false;
+        if ((attacks_bb (_board[org], org, _types_bb[NONE]) & dst) == U64(0))
+        {
+            return false;
+        }
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves
@@ -771,8 +781,10 @@ bool Position::pseudo_legal (Move m) const
             return attackers_to (dst, ~_active, _types_bb[NONE] - org) == U64(0); // Remove 'org' but not place 'dst'
         }
         // Double check? In this case a king move is required
-        if (more_than_one (_psi->checkers)) return false;
-
+        if (more_than_one (_psi->checkers))
+        {
+            return false;
+        }
         return en_passant (m) ?
             // Move must be a capture of the checking en-passant pawn
             // or a blocking evasion of the checking piece
@@ -791,8 +803,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-    assert(!empty (org)
-         && color (_board[org]) == _active);
+    assert((_color_bb[_active] & org) != U64(0));
 
     auto mpt = ptype (_board[org]);
 
@@ -837,8 +848,9 @@ bool Position::legal        (Move m, Bitboard pinned) const
         auto cap = dst + pawn_push (~_active);
 
         assert(mpt == PAWN
-            &&  empty (dst)
-            && !empty (cap)
+            && rel_rank (_active, org) == R_5
+            && rel_rank (_active, dst) == R_6
+            && empty (dst)
             && dst == _psi->en_passant_sq
             && _board[cap] == (~_active|PAWN));
 
@@ -865,7 +877,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-    assert(color (_board[org]) == _active);
+    assert((_color_bb[_active] & org) != U64(0));
 
     // Is there a Direct check ?
     if ((ci.checking_bb[ptype (_board[org])] & dst) != U64(0)) return true;
@@ -1298,14 +1310,13 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-    auto mpt = ptype (_board[org]);
 
-    assert(!empty (org)
-        && color (_board[org]) == _active
-        && mpt != NONE);
-    assert( empty (dst)
-        || color (_board[dst]) == pasive
+    assert((_color_bb[_active] & org) != U64(0));
+    assert((_color_bb[_active] & dst) == U64(0)
         || mtype (m) == CASTLE);
+
+    auto mpt = ptype (_board[org]);
+    assert(mpt != NONE);
 
     auto cap = dst;
     auto cpt = NONE;
@@ -1316,7 +1327,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
     case NORMAL:
     {
         cpt = ptype (_board[cap]);
-        assert((promote (m) - NIHT) == PAWN
+        assert(promote (m) - NIHT == PAWN
             && cpt != KING);
 
         if (cpt != NONE) // _ok (cpt)
@@ -1393,8 +1404,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
             && _board[cap] == (pasive|cpt));
 
         do_capture ();
-        assert(_psi->clock_ply == 0); // As pawn is the last piece moved
         _board[cap] = NO_PIECE; // Not done by remove_piece()
+
+        assert(_psi->clock_ply == 0); // As pawn is the last piece moved
 
         move_piece (org, dst);
 

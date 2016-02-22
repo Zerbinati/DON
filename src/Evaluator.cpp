@@ -324,14 +324,13 @@ namespace Evaluator {
             ei.ful_attacked_by[Own][PT] = U64(0);
             ei.pin_attacked_by[Own][PT] = U64(0);
             
-            for (auto s : pos.squares<PT> (Own))
+            for (Square s : pos.squares<PT> (Own))
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 auto attacks =
                     PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
                     PT == ROOK ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
-                    PT == QUEN ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own])
-                               | attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own]) :
+                    PT == QUEN ? attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own]) :
                     /*PT == NIHT*/PieceAttacks[PT][s];
 
                 ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= attacks;
@@ -543,10 +542,10 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + std::min ((ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp])/2, 72U)  // King-ring attacks
-                    +  9 * (ei.king_zone_attacks_count[Opp])                                               // King-zone attacks
-                    + 27 * (undefended != U64(0) ? pop_count<Max15> (undefended) : 0)                      // King-zone undefended pieces
-                    + 11 * (ei.pinneds[Own] != U64(0) ? pop_count<Max15> (ei.pinneds[Own]) : 0)            // King pinned piece
+                    + std::min ((ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp])/2, 72U)                          // King-ring attacks
+                    +  9 * (ei.king_zone_attacks_count[Opp])                                                                            // King-zone attacks
+                    + 27 * (undefended != U64(0) ? more_than_one (undefended) ? pop_count<Max15> (undefended) : 1 : 0)                  // King-zone undefended pieces
+                    + 11 * (ei.pinneds[Own] != U64(0) ? more_than_one (ei.pinneds[Own]) ? pop_count<Max15> (ei.pinneds[Own]) : 1 : 0)   // King pinned piece
                     - 64 * (pos.count<QUEN>(Opp) == 0)
                     - i32(value) / 8;
 
@@ -706,7 +705,7 @@ namespace Evaluator {
                 b = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
                 if (b != U64(0))
                 {
-                    score += PieceHanged * pop_count<Max15> (b);
+                    score += PieceHanged * (more_than_one (b) ? pop_count<Max15> (b) : 1);
                 }
             }
 
@@ -942,7 +941,8 @@ namespace Evaluator {
                         && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP
                        )
                     {
-                        scale_factor = ScaleFactor (10 * abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK)));
+                        auto pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
+                        scale_factor = ScaleFactor(pawn_diff != 0 ? 12 * pawn_diff : 8);
                     }
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops. 

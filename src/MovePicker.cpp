@@ -64,10 +64,10 @@ namespace MovePick {
     // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
     // and about how important good move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, const CMValueStats &cmv, const Move *ss_km, Move ttm, Move cm)
+    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, const CMValueStats &cmv, Move ttm, const Move *ss_km, Move cm)
         : _pos (pos)
         , _history_values (hv)
-        , _counter_moves_values (&cmv)
+        , _counter_move_values (&cmv)
         , _ss_killer_moves (ss_km)
         , _counter_move (cm)
     {
@@ -145,21 +145,8 @@ namespace MovePick {
     {
         for (auto &vm : *this)
         {
-            if (_pos.capture (vm.move))
-            {
-                vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                         - PieceCapValues[ptype (_pos[org_sq (vm.move)])];
-            }
-            else
-            if (mtype (vm.move) == PROMOTE)
-            {
-                vm.value = VALUE_ZERO;
-            }
-            else
-            {
-                assert(false);
-                //vm.value = _history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
-            }
+            vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                     - PieceCapValues[ptype (_pos[org_sq (vm.move)])];
         }
     }
 
@@ -169,7 +156,7 @@ namespace MovePick {
         for (auto &vm : *this)
         {
             vm.value = _history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
-              + (*_counter_moves_values)[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
+              + (*_counter_move_values)[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
         }
     }
 
@@ -191,11 +178,6 @@ namespace MovePick {
             {
                 vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
                          - PieceCapValues[ptype (_pos[org_sq (vm.move)])] + MaxStatsValue;
-            }
-            else
-            if (mtype (vm.move) == PROMOTE)
-            {
-                vm.value = VALUE_ZERO;
             }
             else
             {
@@ -232,11 +214,11 @@ namespace MovePick {
             _cur_move = _killer_moves;
             _end_move = _killer_moves + Killers;
             std::copy (_ss_killer_moves, _ss_killer_moves + Killers, _killer_moves);
-            *_end_move = MOVE_NONE;
+            (*_end_move).move = MOVE_NONE;
             // Be sure countermoves are different from killer_moves
             if (_counter_move != MOVE_NONE && std::find (_cur_move, _end_move, _counter_move) == _end_move)
             {
-                *_end_move++ = _counter_move;
+                (*_end_move++).move = _counter_move;
             }
             break;
 

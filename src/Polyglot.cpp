@@ -136,13 +136,13 @@ namespace Polyglot {
         auto end_index = size_t((size () - HeaderSize) / Entry::Size - 1);
         assert(beg_index <= end_index);
 
-        Entry pe;
         while (beg_index < end_index && good ())
         {
             auto mid_index = size_t((beg_index + end_index) / 2);
             assert(beg_index <= mid_index && mid_index < end_index);
 
             seekg (OFFSET(mid_index), ios_base::beg);
+            Entry pe;
             *this >> pe;
 
             if (key <= pe.key)
@@ -155,7 +155,6 @@ namespace Polyglot {
             }
         }
         assert(beg_index == end_index);
-
         return beg_index;
     }
     size_t Book::find_index (const Position &pos)

@@ -148,7 +148,7 @@ void benchmark (istream &is, const Position &cur_pos)
 
     u64  nodes = 0;
     auto start_time = now ();
-    
+
     for (u16 i = 0; i < fens.size (); ++i)
     {
         Position pos (fens[i], Threadpool.main (), Chess960, false);
@@ -178,7 +178,7 @@ void benchmark (istream &is, const Position &cur_pos)
 
     auto elapsed_time = std::max (now () - start_time, TimePoint(1));
 
-    dbg_print (); // Just before to exit
+    dbg_print (); // Just before exit
     std::cerr << std::right
         << "\n===========================\n"
         << "Total time (ms) :" << std::setw (10) << elapsed_time << "\n"

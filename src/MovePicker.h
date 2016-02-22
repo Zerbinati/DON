@@ -46,7 +46,7 @@ namespace MovePick {
             if (abs (i32(v)) < 324)
             {
                 auto &e = _table[p][s];
-                e = std::min (std::max (e*(1.0 - (double)abs (i32(v)) / (CM ? 512 : 324)) + i32(v)*(CM ? 64 : 32), -MaxStatsValue), +MaxStatsValue);
+                e = std::min (std::max (e*(1.0 - (double)abs (i32(v)) / (CM ? 936 : 324)) + i32(v)*32, -MaxStatsValue), +MaxStatsValue);
             }
         }
         // Piece, destiny square, move
@@ -92,8 +92,8 @@ namespace MovePick {
 
         const Position      &_pos;
         const HValueStats   &_history_values;
-        const CMValueStats  *_counter_moves_values = nullptr;
-        const Move          *_ss_killer_moves      = nullptr;
+        const CMValueStats  *_counter_move_values = nullptr;
+        const Move          *_ss_killer_moves     = nullptr;
 
         Move    _tt_move        = MOVE_NONE;
         Move    _counter_move   = MOVE_NONE;
@@ -117,7 +117,7 @@ namespace MovePick {
         MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
 
-        MovePicker (const Position&, const HValueStats&, const CMValueStats&, const Move*, Move, Move);
+        MovePicker (const Position&, const HValueStats&, const CMValueStats&, Move, const Move*, Move);
         MovePicker (const Position&, const HValueStats&, Move, Square, Depth);
         MovePicker (const Position&, const HValueStats&, Move, Value);
 

@@ -15,10 +15,10 @@ namespace Pawns {
         // Weakness of our pawn shelter in front of the king indexed by [distance from edge][rank]
         const Value ShelterWeakness[F_NO/2][R_NO] =
         {
-            { V( 97), V(21), V(26), V(51), V(87), V( 89), V( 99) },
-            { V(120), V( 0), V(28), V(76), V(88), V(103), V(104) },
-            { V(101), V( 7), V(54), V(78), V(77), V( 92), V(101) },
-            { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119) }
+            { V( 99), V(21), V(26), V(51), V(87), V( 89), V( 99), V( 0) }, // => A and H file
+            { V(120), V( 0), V(28), V(76), V(88), V(103), V(104), V( 0) }, // => B and G file
+            { V(101), V( 7), V(54), V(78), V(77), V( 92), V(101), V( 0) }, // => C and F file
+            { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119), V( 0) }  // => D and E file
         };
 
         enum BlockType : u08
@@ -33,28 +33,28 @@ namespace Pawns {
         const Value StromDangerousness[BT_NO][F_NO/2][R_NO] =
         {
             {
-                { V( 0), V(  67), V(134), V(38), V(32) },
-                { V( 0), V(  57), V(139), V(37), V(22) },
-                { V( 0), V(  43), V(115), V(43), V(27) },
-                { V( 0), V(  68), V(124), V(57), V(32) }
+                { V( 0), V(  67), V(134), V(38), V(32), V( 0), V( 0), V( 0) },
+                { V( 0), V(  57), V(139), V(37), V(22), V( 0), V( 0), V( 0) },
+                { V( 0), V(  43), V(115), V(43), V(27), V( 0), V( 0), V( 0) },
+                { V( 0), V(  68), V(124), V(57), V(32), V( 0), V( 0), V( 0) }
             },
             {
-                { V(20), V(  43), V(100), V(56), V(20) },
-                { V(23), V(  20), V( 98), V(40), V(15) },
-                { V(23), V(  39), V(103), V(36), V(18) },
-                { V(28), V(  19), V(108), V(42), V(26) }
+                { V(20), V(  43), V(100), V(56), V(20), V( 0), V( 0), V( 0) },
+                { V(23), V(  20), V( 98), V(40), V(15), V( 0), V( 0), V( 0) },
+                { V(23), V(  39), V(103), V(36), V(18), V( 0), V( 0), V( 0) },
+                { V(28), V(  19), V(108), V(42), V(26), V( 0), V( 0), V( 0) }
             },
             {
-                { V( 0), V(   0), V( 75), V(14), V( 2) },
-                { V( 0), V(   0), V(150), V(30), V( 4) },
-                { V( 0), V(   0), V(160), V(22), V( 5) },
-                { V( 0), V(   0), V(166), V(24), V(13) }
+                { V( 0), V(   0), V( 75), V(14), V( 2), V( 0), V( 0), V( 0) },
+                { V( 0), V(   0), V(150), V(30), V( 4), V( 0), V( 0), V( 0) },
+                { V( 0), V(   0), V(160), V(22), V( 5), V( 0), V( 0), V( 0) },
+                { V( 0), V(   0), V(166), V(24), V(13), V( 0), V( 0), V( 0) }
             },
             {
-                { V( 0), V(-283), V(-281), V(57), V(31) },
-                { V( 0), V(  58), V( 141), V(39), V(18) },
-                { V( 0), V(  65), V( 142), V(48), V(32) },
-                { V( 0), V(  60), V( 126), V(51), V(19) }
+                { V( 0), V(-283), V(-281), V(57), V(31), V( 0), V( 0), V( 0) },
+                { V( 0), V(  58), V( 141), V(39), V(18), V( 0), V( 0), V( 0) },
+                { V( 0), V(  65), V( 142), V(48), V(32), V( 0), V( 0), V( 0) },
+                { V( 0), V(  60), V( 126), V(51), V(19), V( 0), V( 0), V( 0) }
             }
         };
 
@@ -67,47 +67,39 @@ namespace Pawns {
 
     #define S(mg, eg) mk_score(mg, eg)
 
-        // Connected pawn bonus by [opposed][phalanx][rank] (by formula)
+        // Connected pawn bonus by [opposed][phalanx][twice supported][rank] (by formula)
         Score Connected[2][2][2][R_NO];
 
         // Doubled pawn penalty by [file]
         const Score Doubled[F_NO] =
         {
-            S(11, 34), S(17, 38), S(19, 38), S(19, 38),
-            S(19, 38), S(19, 38), S(17, 38), S(11, 34)
+            S(11,34), S(17,38), S(19,38), S(19,38), S(19,38), S(19,38), S(17,38), S(11,34)
         };
 
         // Isolated pawn penalty by [opposed][file]
         const Score Isolated[2][F_NO] =
         {
-            {
-                S(31, 36), S(45, 41), S(50, 41), S(50, 41),
-                S(50, 41), S(50, 41), S(45, 41), S(31, 36)
-            },
-            {
-                S(21, 24), S(30, 28), S(33, 28), S(33, 28),
-                S(33, 28), S(33, 28), S(30, 28), S(21, 24)
-            }
+            { S(31,36), S(45,41), S(50,41), S(50,41), S(50,41), S(50,41), S(45,41), S(31,36) },
+            { S(21,24), S(30,28), S(33,28), S(33,28), S(33,28), S(33,28), S(30,28), S(21,24) }
         };
 
         // Backward pawn penalty by [opposed]
         const Score Backward[2] =
         {
-            S(56, 33), S(41, 19)
+            S(56,33), S(41,19)
         };
 
         // Levers bonus by [rank]
         const Score Lever[R_NO] =
         {
-            S( 0, 0), S( 0, 0), S(0, 0), S(0, 0),
-            S(17,16), S(33,32), S(0, 0), S(0, 0)
+            S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0)
         };
 
         // Unsupported pawn penalty for pawns which are neither isolated or backward,
         // by number of pawns it supports [0, 1, 2].
         const Score Unsupported[3] =
         {
-            S(17, 8), S(18, 9), S(21, 12)
+            S(17, 8), S(18, 9), S(21,12)
         };
 
         const Score Unstoppable = S( 0, 20); // Bonus for unstoppable pawn going to promote
@@ -140,7 +132,7 @@ namespace Pawns {
 
             Bitboard b;
 
-            for (auto s : pos.squares<PAWN> (Own))
+            for (Square s : pos.squares<PAWN> (Own))
             {
                 assert(pos[s] == (Own|PAWN));
 
@@ -202,7 +194,7 @@ namespace Pawns {
                     if (supported == U64(0))
                     {
                         b = adjacents & rank_bb (s+Push);
-                        score -= Unsupported[b != U64(0) ? pop_count<Max15> (b) : 0];
+                        score -= Unsupported[b != U64(0) ? more_than_one (b) ? 2 : 1 : 0];
                     }
                     if (backward)
                     {
@@ -271,13 +263,11 @@ namespace Pawns {
             mid_pawns = opp_front_pawns & File_bb[f];
             auto opp_r = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
-            value -=
-                  +  ShelterWeakness[std::min (f, F_H - f)][own_r]
-                  +  StromDangerousness
-                        [f  == _file (k_sq) && opp_r == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
-                         own_r == R_1                                            ? NO_FRIENDLY_PAWN :
-                         opp_r == own_r + 1                                      ? BLOCKED_BY_PAWN  : UNBLOCKED]
-                        [std::min (f, F_H - f)][opp_r];
+            value -= ShelterWeakness[std::min (f, F_H - f)][own_r]
+                  +  StromDangerousness[f  == _file (k_sq) && opp_r == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
+                                        own_r == R_1                                            ? NO_FRIENDLY_PAWN :
+                                        opp_r == own_r + 1                                      ? BLOCKED_BY_PAWN  : UNBLOCKED]
+                                       [std::min (f, F_H - f)][opp_r];
         }
 
         return value;
@@ -331,7 +321,7 @@ namespace Pawns {
     // and to allow easier tuning and better insight.
     void initialize ()
     {
-        const i32 Seeds[R_NO] = { 0, 8, 19, 13, 71, 94, 169, 324 };
+        static const i32 Seeds[R_NO] = { 0, 8, 19, 13, 71, 94, 169, 324 };
 
         for (u08 opposed = 0; opposed <= 1; ++opposed)
         {
@@ -341,8 +331,7 @@ namespace Pawns {
                 {
                     for (auto r = R_2; r < R_8; ++r)
                     {
-                        i32 v = (Seeds[r] + (phalanx != 0 ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed;
-                        v += (apex != 0 ? v / 2 : 0);
+                        auto v = i32((i32(Seeds[r] + (Seeds[r + 1] - Seeds[r])*0.5*phalanx) >> opposed) * (1.0 + 0.5*apex));
                         Connected[opposed][phalanx][apex][r] = mk_score (v * 1 / 1, v * 5 / 8);
                     }
                 }

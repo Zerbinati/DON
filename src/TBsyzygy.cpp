@@ -2171,9 +2171,9 @@ namespace TBSyzygy {
                     && !pos.empty (dst_sq (move))
                    )
                 {
-                    *extra++ = Move(move - (NIHT << 12));
-                    *extra++ = Move(move - (BSHP << 12));
-                    *extra++ = Move(move - (ROOK << 12));
+                    (*extra++).move = Move(move - (NIHT << 12));
+                    (*extra++).move = Move(move - (BSHP << 12));
+                    (*extra++).move = Move(move - (ROOK << 12));
                 }
             }
             return extra;
