@@ -15,7 +15,7 @@ namespace EndGame {
 
     namespace {
 
-        // Table used to drive the king towards the edge of the board
+        // Table used to drive the weak king towards the edge of the board
         // in KX vs K and KQ vs KR endgames.
         const i32 PushToEdge  [SQ_NO] =
         {
@@ -29,7 +29,7 @@ namespace EndGame {
             100, 90, 80, 70, 70, 80, 90, 100
         };
 
-        // Table used to drive the king towards a corner square of the right color
+        // Table used to drive the weak king towards a corner square of the right color
         // in KBN vs K and KBB vs KN endgames.
         const i32 PushToCorner[SQ_NO] =
         {
@@ -244,8 +244,8 @@ namespace EndGame {
 
         Value value;
 
-        // If the stronger side's king is in front of the pawn, it's a win. or
-        // If the weaker side's king is too far from the pawn and the rook, it's a win.
+        // If the strong side's king is in front of the pawn, it's a win. or
+        // If the weak side's king is too far from the pawn and the rook, it's a win.
         if (   (sk_sq < wp_sq && _file (sk_sq) == _file (wp_sq))
             || (   dist (wk_sq, wp_sq) >= 3 + (pos.active () == ~_strong_side ? 1 : 0)
                 && dist (wk_sq, sr_sq) >= 3
@@ -288,7 +288,7 @@ namespace EndGame {
         auto wk_sq = pos.square<KING> (~_strong_side);
         auto wb_sq = pos.square<BSHP> (~_strong_side);
 
-        // To draw, the weaker side should run towards the corner.
+        // To draw, the weak side should run towards the corner.
         // And not just any corner! Only a corner that's not the same color as the bishop will do.
         if (   (Corner_bb & wk_sq) != U64(0)
             && opposite_colors (wk_sq, wb_sq)
@@ -299,7 +299,7 @@ namespace EndGame {
             return VALUE_DRAW;
         }
 
-        // When the weaker side ended up in the same corner as bishop.
+        // When the weak side ended up in the same corner as bishop.
         Value value = Value(PushToEdge[wk_sq]);
 
         return pos.active () == _strong_side ? +value : -value;
@@ -317,7 +317,7 @@ namespace EndGame {
         auto wk_sq = pos.square<KING> (~_strong_side);
         auto wn_sq = pos.square<NIHT> (~_strong_side);
 
-        // If weaker king is near the knight, it's a draw.
+        // If weak king is near the knight, it's a draw.
         if (   dist (wk_sq, wn_sq) + (pos.active () == _strong_side ? 1 : 0) <= 3
             && dist (sk_sq, wn_sq) > 1
            )
@@ -331,7 +331,7 @@ namespace EndGame {
     }
 
     template<>
-    // KQ vs KP. In general, this is a win for the stronger side, but there are a
+    // KQ vs KP. In general, this is a win for the strong side, but there are a
     // few important exceptions. A pawn on 7th rank and on the A,C,F or H files
     // with a king positioned next to it can be a draw, so in that case, only
     // use the distance between the kings.
@@ -408,7 +408,6 @@ namespace EndGame {
             value = VALUE_MG_BSHP
                   + PushClose[dist (sk_sq, wk_sq)] // Bring attacking king close to defending king
                   + PushAway [dist (wk_sq, wn_sq)] // Driving the defending king and knight apart
-                  + PushToCorner[wk_sq]
                   + PushToEdge[wn_sq];             // Restricting the knight's mobility
         }
         else
@@ -570,7 +569,7 @@ namespace EndGame {
 
             // If the pawn is on the 5th rank and the pawn (currently) is on the 
             // same color square as the bishop then there is a chance of a fortress.
-            // Depending on the king position give a moderate reduction or a stronger one
+            // Depending on the king position give a moderate reduction or a strong one
             // if the defending king is near the corner but not trapped there.
             if (r == R_5 && !opposite_colors (wb_sq, sp_sq))
             {
@@ -596,7 +595,7 @@ namespace EndGame {
     }
 
     template<>
-    // KRPP vs KRP. There is just a single rule: if the stronger side has no passed
+    // KRPP vs KRP. There is just a single rule: if the strong side has no passed
     // pawns and the defending king is actively placed, the position is drawish.
     ScaleFactor Endgame<KRPPKRP>::operator() (const Position &pos) const
     {
@@ -610,7 +609,7 @@ namespace EndGame {
         auto sp1_sq = pos.square<PAWN> ( _strong_side, 0);
         auto sp2_sq = pos.square<PAWN> ( _strong_side, 1);
 
-        // Does the stronger side have a passed pawn?
+        // Does the strong side have a passed pawn?
         if (   !pos.passed_pawn (_strong_side, sp1_sq)
             && !pos.passed_pawn (_strong_side, sp2_sq)
            )
@@ -659,7 +658,7 @@ namespace EndGame {
     template<>
     // KP vs KP. This is done by removing the weakest side's pawn and probing the
     // KP vs K bitbase: If the weakest side has a draw without the pawn, it probably
-    // has at least a draw with the pawn as well. The exception is when the stronger
+    // has at least a draw with the pawn as well. The exception is when the strong
     // side's pawn is far advanced and not on a rook file; in this case it is often
     // possible to win (e.g. 8/4k3/3p4/3P4/6K1/8/8/8 w - - 0 1).
     ScaleFactor Endgame<KPKP>::operator() (const Position &pos) const
@@ -674,7 +673,9 @@ namespace EndGame {
 
         // If the pawn has advanced to the fifth rank or further, and is not a rook pawn,
         // then it's too dangerous to assume that it's at least a draw.
-        if (_rank (sp_sq) < R_5 || _file (sp_sq) == F_A)
+        if (   _rank (sp_sq) < R_5
+            || _file (sp_sq) == F_A
+           )
         {
             // Probe the KPK bitbase with the weakest side's pawn removed.
             // If it's a draw, it's probably at least a draw even with the pawn.
@@ -699,7 +700,9 @@ namespace EndGame {
         auto sp_sq = normalize (pos, _strong_side, pos.square<PAWN> ( _strong_side));
         auto wk_sq = normalize (pos, _strong_side, pos.square<KING> (~_strong_side));
 
-        if (sp_sq == SQ_A7 && dist (wk_sq, SQ_A8) <= 1)
+        if (   sp_sq == SQ_A7
+            && dist (wk_sq, SQ_A8) <= 1
+           )
         {
             return SCALE_FACTOR_DRAW;
         }
@@ -710,7 +713,7 @@ namespace EndGame {
     template<>
     // KBP vs KB. There are two rules: if the defending king is somewhere along the
     // path of the pawn, and the square of the king is not of the same color as the
-    // stronger side's bishop, it's a draw. If the two bishops have opposite color,
+    // strong side's bishop, it's a draw. If the two bishops have opposite color,
     // it's almost always a draw.
     ScaleFactor Endgame<KBPKB>::operator() (const Position &pos) const
     {
@@ -747,7 +750,7 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_DRAW;
             }
-            
+
             auto path = FrontSqrs_bb[_strong_side][sp_sq];
             if (    (path & pos.pieces (~_strong_side, KING)) != U64(0)
                 || ((path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) != U64(0) && dist (wb_sq, sp_sq) >= 3)
@@ -776,7 +779,7 @@ namespace EndGame {
             auto wk_sq  = pos.square<KING> (~_strong_side);
             auto sp1_sq = pos.square<PAWN> ( _strong_side, 0);
             auto sp2_sq = pos.square<PAWN> ( _strong_side, 1);
-        
+
             auto block1_sq = SQ_NO;
             auto block2_sq = SQ_NO;
 
@@ -806,13 +809,11 @@ namespace EndGame {
                 }
                 break;
             }
-        
             // Pawns on adjacent files. It's a draw if the defender firmly controls the
             // square in front of the frontmost pawn's path, and the square diagonally
             // behind this square on the file of the other pawn.
             case 1:
             {
-           
                 if (   wk_sq == block1_sq
                     && opposite_colors (wk_sq, sb_sq)
                     && (   wb_sq == block2_sq
@@ -823,7 +824,6 @@ namespace EndGame {
                 {
                     return SCALE_FACTOR_DRAW;
                 }
-
                 if (   wk_sq == block2_sq
                     && opposite_colors (wk_sq, sb_sq)
                     && (   wb_sq == block1_sq
@@ -835,7 +835,6 @@ namespace EndGame {
                 }
                 break;
             }
-        
             // The pawns are not on the same file or adjacent files. No scaling.
             default:
                 break;
@@ -848,7 +847,7 @@ namespace EndGame {
     template<>
     // KBP vs KN. There is a single rule: If the defending king is somewhere along
     // the path of the pawn, and the square of the king is not of the same color as
-    // the stronger side's bishop, it's a draw.
+    // the strong side's bishop, it's a draw.
     ScaleFactor Endgame<KBPKN>::operator() (const Position &pos) const
     {
         assert(verify_material (pos,  _strong_side, VALUE_MG_BSHP, 1));
@@ -880,7 +879,7 @@ namespace EndGame {
         auto sp_sq = pos.square<PAWN> ( _strong_side);
         auto sb_sq = pos.square<BSHP> (~_strong_side);
         auto wk_sq = pos.square<KING> (~_strong_side);
-        
+
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
         if ((FrontSqrs_bb[_strong_side][sp_sq] & attacks_bb<BSHP> (sb_sq, pos.pieces ())) != U64(0))
@@ -906,7 +905,7 @@ namespace EndGame {
         assert(pos.count<BSHP> (_strong_side) == 1);
         assert(pos.count<PAWN> (_strong_side) != 0);
         // No assertions about the material of weak side, because we want draws to
-        // be detected even when the weaker side has some materials or pawns.
+        // be detected even when the weak side has some materials or pawns.
 
         auto spawns = pos.pieces (_strong_side, PAWN);
         auto sp_sq = scan_frntmost_sq (_strong_side, spawns);
@@ -949,8 +948,8 @@ namespace EndGame {
                 // Get weak side pawn that is closest to home rank
                 auto wp_sq = scan_backmost_sq (~_strong_side, pos.pieces (~_strong_side, PAWN));
 
-                //// It's a draw if weaker pawn is on rank 7, bishop can't attack the pawn, and
-                //// weaker king can stop opposing opponent's king from penetrating.
+                //// It's a draw if weak pawn is on rank 7, bishop can't attack the pawn, and
+                //// weak king can stop opposing opponent's king from penetrating.
                 //if (   rel_rank (_strong_side, wp_sq) == R_7
                 //    && opposite_colors (sb_sq, wp_sq)
                 //    && dist (wp_sq, wk_sq) <= dist (wp_sq, sk_sq)
@@ -1008,7 +1007,7 @@ namespace EndGame {
         assert(verify_material (pos, _strong_side, VALUE_MG_QUEN, 0));
         assert(pos.count<ROOK> (~_strong_side) == 1);
         assert(pos.count<PAWN> (~_strong_side) != 0);
-        
+
         auto sk_sq = pos.square<KING> ( _strong_side);
         auto wk_sq = pos.square<KING> (~_strong_side);
         auto wr_sq = pos.square<ROOK> (~_strong_side);

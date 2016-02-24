@@ -86,24 +86,40 @@ namespace UCI {
     {
         assert(!_type.empty ());
         
-        if (   (_type != "button" && value.empty ())
-            || (_type == "check"  && value != "true" && value != "false")
-           )
-        {
-            return *this;
-        }
         if (_type != "button")
         {
-            auto val = _type == "spin" ? std::to_string (std::min (std::max (stoi (value), _minimum), _maximum)) : value;
+            if (value.empty ())
+            {
+                return *this;
+            }
+
+            auto val = value;
+
+            if (_type == "check")
+            {
+                to_lower (val);
+                if (val != "true" && val != "false")
+                {
+                    return *this;
+                }
+            }
+            else
+            if (_type == "spin")
+            {
+                val = std::to_string (std::min (std::max (stoi (val), _minimum), _maximum));
+            }
+
             if (_current_value != val)
             {
                 _current_value = val;
             }
         }
+
         if (_on_change != nullptr)
         {
             _on_change ();
         }
+
         return *this;
     }
 

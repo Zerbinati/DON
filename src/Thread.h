@@ -157,40 +157,7 @@ public:
         return depth/DEPTH_ONE == (_skill_level + 1);
     }
 
-    // When playing with a strength handicap, choose best move among the first 'candidates'
-    // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-    Move pick_best_move (const Searcher::RootMoveVector &root_moves, u16 pv_limit)
-    {
-        assert (!root_moves.empty ());
-        static PRNG prng (now ()); // PRNG sequence should be non-deterministic
-
-        if (_best_move == MOVE_NONE)
-        {
-            // RootMoves are already sorted by value in descending order
-            auto weakness   = Value (MaxPlies - 4 * _skill_level);
-            auto max_value  = root_moves[0].new_value;
-            auto diversity  = std::min (max_value - root_moves[pv_limit - 1].new_value, VALUE_MG_PAWN);
-            auto best_value = -VALUE_INFINITE;
-            // Choose best move. For each move score add two terms, both dependent on weakness.
-            // One is deterministic with weakness, and one is random with diversity.
-            // Then choose the move with the resulting highest value.
-            for (u16 i = 0; i < pv_limit; ++i)
-            {
-                auto value = root_moves[i].new_value;
-                // This is magic formula for push
-                auto push  = (weakness  * i32 (max_value - value)
-                              + diversity * i32 (prng.rand<u32> () % weakness)
-                             ) / (i32 (VALUE_EG_PAWN) / 2);
-
-                if (best_value < value + push)
-                {
-                    best_value = value + push;
-                    _best_move = root_moves[i][0];
-                }
-            }
-        }
-        return _best_move;
-    }
+    Move pick_best_move (u16 pv_limit);
 };
 
 namespace Threading {
@@ -336,7 +303,6 @@ namespace Threading {
         MainThread* main () const
         {
             static auto *main_thread = static_cast<MainThread*> (at (0));
-
             return main_thread;
         }
 

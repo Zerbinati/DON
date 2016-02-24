@@ -145,11 +145,11 @@ namespace Searcher {
 
         const u08 TimerResolution = 5; // Seconds between two check_limits() calls
 
-        Color RootColor;
+        bool  MateSearch = false;
 
-        bool  MateSearch  = false;
+        Color RootColor = CLR_NO;
 
-        u16   PVLimit;
+        u16   PVLimit = 1;
 
         Value DrawValue[CLR_NO]
             , BaseContempt[CLR_NO];
@@ -310,40 +310,33 @@ namespace Searcher {
                     d = main_thread->root_depth - DEPTH_ONE;
                     v = main_thread->root_moves[i].old_value;
                 }
-                
+
                 bool tb = TBHasRoot && abs (v) < +VALUE_MATE - i32(MaxPlies);
 
-                // Not at first line
-                if (ss.rdbuf ()->in_avail ())
-                {
-                    ss  << "\n";
-                }
-
-                ss  << "info"
+                ss  << (ss.rdbuf ()->in_avail () ? "\n" : "") // Not at first line
+                    << "info"
                     << " multipv "  << i + 1
                     << " depth "    << d/DEPTH_ONE
                     << " seldepth " << main_thread->max_ply
-                    << " score "    << to_string (tb ? ProbeValue : v);
-                if (!tb && i == main_thread->pv_index)
-                    ss  << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
-                ss  << " nodes "    << game_nodes
+                    << " score "    << to_string (tb ? ProbeValue : v)
+                    << (!tb && i == main_thread->pv_index ? (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "") : "")
+                    << " nodes "    << game_nodes
                     << " time "     << elapsed_time
-                    << " nps "      << game_nodes * MilliSec / elapsed_time;
-                if (elapsed_time > MilliSec)
-                    ss  << " hashfull " << TT.hash_full (); // Earlier makes little sense
-                ss  << " tbhits "   << TBHits
+                    << " nps "      << game_nodes * MilliSec / elapsed_time
+                    << " hashfull " << (elapsed_time > MilliSec ? TT.hash_full () : 0)
+                    << " tbhits "   << TBHits
                     << " pv"        << main_thread->root_moves[i];
             }
             return ss.str ();
         }
 
-        template<bool PVNode>
+        template<bool PVNode, bool InCheck>
         // quien_search<>() is the quiescence search function,
         // which is called by the main depth limited search function
         // when the remaining depth is less than DEPTH_ONE.
-        Value quien_search (Position &pos, Stack *ss, Value alfa, Value beta, Depth depth, bool in_check)
+        Value quien_search (Position &pos, Stack *ss, Value alfa, Value beta, Depth depth)
         {
-            assert(in_check == (pos.checkers () != U64(0)));
+            assert(InCheck == (pos.checkers () != U64(0)));
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(depth <= DEPTH_ZERO);
@@ -365,7 +358,7 @@ namespace Searcher {
                 || ss->ply >= MaxPlies
                )
             {
-                return ss->ply >= MaxPlies && !in_check ? evaluate (pos) : DrawValue[pos.active ()];
+                return ss->ply >= MaxPlies && !InCheck ? evaluate (pos) : DrawValue[pos.active ()];
             }
 
             // Transposition table lookup
@@ -381,18 +374,16 @@ namespace Searcher {
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in quien_search use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            auto qs_depth = in_check || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
+            auto qs_depth = InCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             if (   !PVNode
                 && tt_hit
-                && tt_move != MOVE_NONE
                 && tt_depth >= qs_depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE
-                && pos.pseudo_legal (tt_move)
                )
             {
-                ss->current_move = tt_move;
+                ss->current_move = tt_move; // Can be MOVE_NONE
                 return tt_value;
             }
 
@@ -400,7 +391,7 @@ namespace Searcher {
                 , futility_base;
 
             // Evaluate the position statically
-            if (in_check)
+            if (InCheck)
             {
                 ss->static_eval = VALUE_NONE;
                 best_value = futility_base = -VALUE_INFINITE;
@@ -474,7 +465,7 @@ namespace Searcher {
                 if (!MateSearch)
                 {
                     // Futility pruning
-                    if (   !in_check
+                    if (   !InCheck
                         && !gives_check
                         && futility_base > -VALUE_KNOWN_WIN
                         && futility_base <= alfa
@@ -505,9 +496,9 @@ namespace Searcher {
                     }
 
                     // Don't search moves with negative SEE values
-                    if (   (   !in_check
+                    if (   (   !InCheck
                             // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
-                            || (   in_check
+                            || (   InCheck
                                 && best_value > -VALUE_MATE_IN_MAX_PLY
                                 && !pos.capture (move)
                                )
@@ -534,7 +525,9 @@ namespace Searcher {
                 prefetch (thread->pawn_table[pos.pawn_key ()]);
                 prefetch (thread->matl_table[pos.matl_key ()]);
 
-                auto value = -quien_search<PVNode> (pos, ss+1, -beta, -alfa, depth-DEPTH_ONE, gives_check);
+                auto value = gives_check ?
+                    -quien_search<PVNode, true > (pos, ss+1, -beta, -alfa, depth-DEPTH_ONE) :
+                    -quien_search<PVNode, false> (pos, ss+1, -beta, -alfa, depth-DEPTH_ONE);
 
                 // Undo the move
                 pos.undo_move ();
@@ -578,7 +571,7 @@ namespace Searcher {
 
             // All legal moves have been searched.
             // A special case: If in check and no legal moves were found, it is checkmate.
-            if (   in_check
+            if (   InCheck
                 && best_value == -VALUE_INFINITE
                )
             {
@@ -598,12 +591,12 @@ namespace Searcher {
             return best_value;
         }
 
-        template<bool PVNode>
+        template<bool PVNode, bool CutNode, bool InCheck>
         // depth_search<>() is the main depth limited search function.
-        Value depth_search (Position &pos, Stack *ss, Value alfa, Value beta, Depth depth, bool cut_node)
+        Value depth_search (Position &pos, Stack *ss, Value alfa, Value beta, Depth depth)
         {
             const bool root_node = PVNode && ss->ply == 1;
-
+            assert(InCheck == (pos.checkers () != U64(0)));
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(DEPTH_ZERO < depth && depth < DEPTH_MAX);
@@ -619,7 +612,7 @@ namespace Searcher {
                 thread->reset_check = false;
                 thread->chk_count = 0;
             }
-            if (++thread->chk_count > TimerResolution*MilliSec)
+            if (++thread->chk_count >= TimerResolution*MilliSec)
             {
                 for (auto *th : Threadpool)
                 {
@@ -640,8 +633,6 @@ namespace Searcher {
             ss->move_count = 0;
             ss->current_move = MOVE_NONE;
 
-            bool in_check = pos.checkers () != U64(0);
-
             if (!root_node)
             {
                 // Step 2. Check end condition
@@ -651,7 +642,7 @@ namespace Searcher {
                     || ss->ply >= MaxPlies
                    )
                 {
-                    return ss->ply >= MaxPlies && !in_check ? evaluate (pos) : DrawValue[pos.active ()];
+                    return ss->ply >= MaxPlies && !InCheck ? evaluate (pos) : DrawValue[pos.active ()];
                 }
 
                 // Step 3. Mate distance pruning. Even if mate at the next move our score
@@ -690,17 +681,17 @@ namespace Searcher {
             // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
                 && tt_hit
-                && tt_move != MOVE_NONE
                 && tt_depth >= depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE
-                && pos.pseudo_legal (tt_move)
                )
             {
-                ss->current_move = tt_move;
+                ss->current_move = tt_move; // Can be MOVE_NONE
                 // If tt_move is quiet, update killers, history, countermove and countermoves history on TT hit
                 if (   tt_value >= beta
+                    && tt_move != MOVE_NONE
                     && !pos.capture_or_promotion (tt_move)
+                    && pos.pseudo_legal (tt_move)
                    )
                 {
                     update_stats (pos, ss, tt_move, depth);
@@ -755,7 +746,7 @@ namespace Searcher {
             Move move;
 
             // Step 5. Evaluate the position statically
-            if (in_check)
+            if (InCheck)
             {
                 ss->static_eval = tt_eval = VALUE_NONE;
             }
@@ -796,12 +787,12 @@ namespace Searcher {
                             && tt_eval + RazorMargins[3] <= alfa
                            )
                         {
-                            return quien_search<false> (pos, ss, alfa, beta, DEPTH_ZERO, false);
+                            return quien_search<false, false> (pos, ss, alfa, beta, DEPTH_ZERO);
                         }
 
                         auto reduced_alpha = std::max (alfa - RazorMargins[depth/DEPTH_ONE], -VALUE_INFINITE);
 
-                        auto value = quien_search<false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO, false);
+                        auto value = quien_search<false, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
 
                         if (value <= reduced_alpha)
                         {
@@ -850,8 +841,8 @@ namespace Searcher {
                         // Null (zero) window (alfa, beta) = (beta-1, beta):
                         auto null_value =
                             reduced_depth < DEPTH_ONE ?
-                                -quien_search<false> (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO, false) :
-                                -depth_search<false> (pos, ss+1, -beta, -(beta-1), reduced_depth, !cut_node);
+                                -quien_search<false, false> (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO) :
+                                -depth_search<false, !CutNode, false> (pos, ss+1, -beta, -(beta-1), reduced_depth);
                         (ss+1)->skip_pruning = false;
                         // Undo null move
                         pos.undo_null_move ();
@@ -871,8 +862,8 @@ namespace Searcher {
                             // Do verification search at high depths
                             auto value =
                                 reduced_depth < DEPTH_ONE ?
-                                    quien_search<false> (pos, ss, beta-1, beta, DEPTH_ZERO, false) :
-                                    depth_search<false> (pos, ss, beta-1, beta, reduced_depth, false);
+                                    quien_search<false, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
+                                    depth_search<false, false, false> (pos, ss, beta-1, beta, reduced_depth);
                             ss->skip_pruning = false;
 
                             if (value >= beta)
@@ -914,14 +905,18 @@ namespace Searcher {
 
                             ss->current_move = move;
 
-                            pos.do_move (move, si, mtype (move) == NORMAL && ci.discoverers == U64(0) ?
-                                                    (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != U64(0) :
-                                                    pos.gives_check (move, ci));
+                            bool gives_check = mtype (move) == NORMAL && ci.discoverers == U64(0) ?
+                                                (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != U64(0) :
+                                                pos.gives_check (move, ci);
+
+                            pos.do_move (move, si, gives_check);
 
                             //prefetch (thread->pawn_table[pos.pawn_key ()]);
                             //prefetch (thread->matl_table[pos.matl_key ()]);
 
-                            auto value = -depth_search<false> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
+                            auto value = gives_check ?
+                                -depth_search<false, !CutNode, true > (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth) :
+                                -depth_search<false, !CutNode, false> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth);
 
                             pos.undo_move ();
 
@@ -941,7 +936,7 @@ namespace Searcher {
                         auto iid_depth = depth - 2*DEPTH_ONE - (PVNode ? DEPTH_ZERO : depth/4); // IID Reduced Depth
 
                         ss->skip_pruning = true;
-                        depth_search<PVNode> (pos, ss, alfa, beta, iid_depth, true);
+                        depth_search<PVNode, true, false> (pos, ss, alfa, beta, iid_depth);
                         ss->skip_pruning = false;
 
                         tte = TT.probe (posi_key, tt_hit);
@@ -1063,7 +1058,7 @@ namespace Searcher {
 
                     ss->exclude_move = move;
                     ss->skip_pruning = true;
-                    value = depth_search<false> (pos, ss, r_beta-1, r_beta, depth/2, cut_node);
+                    value = depth_search<false, CutNode, InCheck> (pos, ss, r_beta-1, r_beta, depth/2);
                     ss->skip_pruning = false;
                     ss->exclude_move = MOVE_NONE;
 
@@ -1075,9 +1070,9 @@ namespace Searcher {
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 // Step 13. Pruning at shallow depth
-                if (   !root_node
+                if (   !InCheck
+                    && !root_node
                     && !MateSearch
-                    && !in_check
                     && !capture_or_promotion
                     && best_value > -VALUE_MATE_IN_MAX_PLY
                     // ! Dangerous (below)
@@ -1155,14 +1150,13 @@ namespace Searcher {
                 if (   depth >= LateMoveReductionDepth*DEPTH_ONE
                     && move_count > FullDepthMoveCount
                     && !capture_or_promotion
-                    //&& (!gives_check || depth >= 10*DEPTH_ONE)
                    )
                 {
                     auto reduction_depth = reduction_depths (PVNode, improving, depth, move_count);
 
                     // Increase reduction for cut node
                     if (   !PVNode
-                        && cut_node
+                        && CutNode
                        )
                     {
                         reduction_depth += DEPTH_ONE;
@@ -1184,7 +1178,9 @@ namespace Searcher {
                     }
 
                     // Search with reduced depth
-                    value = -depth_search<false> (pos, ss+1, -(alfa+1), -alfa, std::max (new_depth - reduction_depth, DEPTH_ONE), true);
+                    value = gives_check ?
+                        -depth_search<false, true, true > (pos, ss+1, -(alfa+1), -alfa, std::max (new_depth - reduction_depth, DEPTH_ONE)) :
+                        -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, std::max (new_depth - reduction_depth, DEPTH_ONE));
 
                     full_depth_search = alfa < value && reduction_depth != DEPTH_ZERO;
                 }
@@ -1194,8 +1190,12 @@ namespace Searcher {
                 {
                     value =
                         new_depth < DEPTH_ONE ?
-                            -quien_search<false> (pos, ss+1, -(alfa+1), -alfa, DEPTH_ZERO, gives_check) :
-                            -depth_search<false> (pos, ss+1, -(alfa+1), -alfa, new_depth, !cut_node);
+                            gives_check ?
+                                -quien_search<false, true > (pos, ss+1, -(alfa+1), -alfa, DEPTH_ZERO) :
+                                -quien_search<false, false> (pos, ss+1, -(alfa+1), -alfa, DEPTH_ZERO) :
+                            gives_check ?
+                                -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth) :
+                                -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth);
                 }
 
                 // Do a full PV search on:
@@ -1213,8 +1213,12 @@ namespace Searcher {
 
                     value =
                         new_depth < DEPTH_ONE ?
-                            -quien_search<true> (pos, ss+1, -beta, -alfa, DEPTH_ZERO, gives_check) :
-                            -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false);
+                            gives_check ?
+                                -quien_search<true, true > (pos, ss+1, -beta, -alfa, DEPTH_ZERO) :
+                                -quien_search<true, false> (pos, ss+1, -beta, -alfa, DEPTH_ZERO) :
+                            gives_check ?
+                                -depth_search<true, false, true > (pos, ss+1, -beta, -alfa, new_depth) :
+                                -depth_search<true, false, false> (pos, ss+1, -beta, -alfa, new_depth);
                 }
 
                 // Step 17. Undo move
@@ -1335,7 +1339,7 @@ namespace Searcher {
                 best_value = 
                     exclude_move != MOVE_NONE ?
                         alfa :
-                        in_check ?
+                        InCheck ?
                             mated_in (ss->ply) :
                             DrawValue[pos.active ()];
             }
@@ -1355,7 +1359,7 @@ namespace Searcher {
             }
             else
             // Bonus for prior countermove that caused the fail low
-            if (   !in_check
+            if (   !InCheck
                 && depth >= 3*DEPTH_ONE
                 && best_move == MOVE_NONE
                 && _ok ((ss-1)->current_move)
@@ -1397,7 +1401,7 @@ namespace Searcher {
         u08 ply = 0;
         for (const auto m : *this)
         {
-            assert(MoveList<LEGAL> (pos).contains (m));
+            assert(_ok (m) && MoveList<LEGAL> (pos).contains (m));
 
             bool tt_hit;
             auto *tte = TT.probe (pos.posi_key (), tt_hit);
@@ -1641,6 +1645,8 @@ namespace Threading {
 
         leaf_depth = DEPTH_ZERO;
 
+        bool in_check = root_pos.checkers () != U64(0);
+
         // Iterative deepening loop until requested to stop or the target depth is reached.
         while (   !ForceStop
                && ++root_depth < DEPTH_MAX
@@ -1736,7 +1742,9 @@ namespace Threading {
                 // research with bigger window until not failing high/low anymore.
                 do
                 {
-                    best_value = depth_search<true> (root_pos, ss, alfa, beta, root_depth, false);
+                    best_value = in_check ?
+                        depth_search<true, false, true > (root_pos, ss, alfa, beta, root_depth) :
+                        depth_search<true, false, false> (root_pos, ss, alfa, beta, root_depth);
 
                     // Bring the best move to the front. It is critical that sorting is
                     // done with a stable algorithm because all the values but the first
@@ -1839,11 +1847,11 @@ namespace Threading {
                 // If skill level is enabled and can pick move, pick a sub-optimal best move
                 if (   main_thread->skill_mgr.enabled ()
                     && main_thread->skill_mgr.can_pick (root_depth)
-                    && !root_moves.empty ()
+                    && !main_thread->root_moves.empty ()
                    )
                 {
                     main_thread->skill_mgr.clear ();
-                    main_thread->skill_mgr.pick_best_move (root_moves, PVLimit);
+                    main_thread->skill_mgr.pick_best_move (PVLimit);
                 }
 
                 if (LogStream.is_open ())
@@ -1939,10 +1947,10 @@ namespace Threading {
             }
             // If skill level is enabled, swap best PV line with the sub-optimal one
             if (   main_thread->skill_mgr.enabled ()
-                && !root_moves.empty ()
+                && !main_thread->root_moves.empty ()
                )
             {
-                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), main_thread->skill_mgr.pick_best_move (root_moves, PVLimit)));
+                std::swap (main_thread->root_moves[0], *std::find (main_thread->root_moves.begin (), main_thread->root_moves.end (), main_thread->skill_mgr.pick_best_move (PVLimit)));
             }
         }
     }
@@ -1954,6 +1962,7 @@ namespace Threading {
 
         assert(this == Threadpool.main ());
 
+        MateSearch = Limits.mate != 0;
         RootColor = root_pos.active ();
         time_mgr_used = Limits.time_management_used ();
         if (time_mgr_used)
@@ -1961,8 +1970,6 @@ namespace Threading {
             // Initialize the time manager before searching.
             time_mgr.initialize (RootColor, root_pos.game_ply ());
         }
-
-        MateSearch = Limits.mate != 0;
 
         if (   !white_spaces (LogFile)
             && LogFile != "<empty>"
@@ -2134,7 +2141,7 @@ namespace Threading {
             Threadpool[i]->wait_while_searching ();
         }
 
-        // Check if there are threads with bigger depth and better score than main thread.
+        // Check if there are threads with bigger depth than main thread.
         Thread *best_thread = this;
         if (   !easy_played
             && PVLimit == 1
@@ -2143,7 +2150,9 @@ namespace Threading {
         {
             for (size_t i = 1; i < Threadpool.size (); ++i)
             {
-                if (best_thread->leaf_depth < Threadpool[i]->leaf_depth)
+                if (   best_thread->root_moves[0].new_value < Threadpool[i]->root_moves[0].new_value
+                    && best_thread->leaf_depth < Threadpool[i]->leaf_depth
+                   )
                 {
                     best_thread = Threadpool[i];
                 }

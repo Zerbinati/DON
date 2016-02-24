@@ -245,26 +245,6 @@ namespace Notation {
     //    return MOVE_NONE;
     //}
 
-    // to_string() converts a value to a string suitable
-    // for use with the UCI protocol specifications:
-    //
-    // cp   <x>   The score x from the engine's point of view in centipawns.
-    // mate <y>   Mate in y moves, not plies.
-    //            If the engine is getting mated use negative values for y.
-    string to_string (Value v)
-    {
-        ostringstream oss;
-        if (abs (v) < +VALUE_MATE - i32(MaxPlies))
-        {
-            oss << "cp " << i32(100 * value_to_cp (v));
-        }
-        else
-        {
-            oss << "mate " << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
-        }
-        return oss.str ();
-    }
-
     // pretty_pv_info() returns formated human-readable search information,
     // typically to be appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.

@@ -158,7 +158,7 @@ namespace Memory {
                 sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                 return;
             }
-            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << (mem_size >> 20) << " MB" << std::endl;
+            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed " << (mem_size >> 20) << " MB" << std::endl;
 
 #   else
 
@@ -173,10 +173,10 @@ namespace Memory {
                     sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB" << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << std::endl;
                 if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
-                    std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
+                    std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
                 }
                 return;
             }
@@ -191,14 +191,14 @@ namespace Memory {
                     sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB" << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << std::endl;
                 if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
-                    std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
+                    std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
                 }
                 return;
             }
-            std::cerr << "ERROR: shmget() shared memory alloc failed." << (mem_size >> 20) << " MB" << std::endl;
+            std::cerr << "ERROR: shmget() shared memory alloc failed " << (mem_size >> 20) << " MB" << std::endl;
 
 #   endif
         }
@@ -221,17 +221,18 @@ namespace Memory {
         if (PagesUsed)
         {
 #   if defined(_WIN32)
-            if (VirtualFree (mem, 0, MEM_RELEASE))
+            if (!VirtualFree (mem, 0, MEM_RELEASE))
             {
+                std::cerr << "ERROR: VirtualFree() virtual memory free failed" << std::endl;
             }
 #   else
             if (shmdt (mem) == -1)
             {
-                std::cerr << "ERROR: shmdt() shared memory detach failed." << std::endl;
+                std::cerr << "ERROR: shmdt() shared memory detach failed" << std::endl;
             }
             if (shmctl (SHM, IPC_RMID, nullptr) == -1)
             {
-                std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
+                std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
             }
 #   endif
             PagesUsed = false;

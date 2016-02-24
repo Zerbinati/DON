@@ -25,8 +25,8 @@ namespace Evaluator {
                 IMBALANCE,
                 MOBILITY,
                 THREAT,
-                PASSER,
-                SPACE,
+                PASSED_PAWN,
+                SPACE_ACTIVITY,
                 TOTAL,
                 T_NO,
             };
@@ -75,10 +75,10 @@ namespace Evaluator {
         // by the evaluation functions.
         struct EvalInfo
         {
-            // ful_attacked_by[color][piece-type] contains all squares attacked by a given color and piece type,
+            // ful_attacked_by[color][piece-type] contains all squares attacked by the given color and piece type,
             // ful_attacked_by[color][NONE] contains all squares attacked by the given color.
             Bitboard ful_attacked_by[CLR_NO][MAX_PTYPE];
-            // pin_attacked_by[color][piece-type] contains all squares attacked by a given color and piece type with pinned removed,
+            // pin_attacked_by[color][piece-type] contains all squares attacked by the given color and piece type with pinned removed,
             // pin_attacked_by[color][NONE] contains all squares attacked by the given color with pinned removed.
             Bitboard pin_attacked_by[CLR_NO][MAX_PTYPE];
 
@@ -249,7 +249,7 @@ namespace Evaluator {
 
         //  --- init evaluation info --->
         template<Color Own>
-        // init_evaluation<>() initializes king ring bitboards for given color
+        // init_evaluation<>() initializes king ring bitboards for the given color
         // To be done at the beginning of the evaluation.
         void init_evaluation (const Position &pos, EvalInfo &ei)
         {
@@ -309,7 +309,7 @@ namespace Evaluator {
         }
 
         template<Color Own, PieceType PT, bool Trace>
-        // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color except PAWN
+        // evaluate_pieces<>() assigns bonuses and penalties to the pieces of the given color and type
         Score evaluate_pieces (const Position &pos, EvalInfo &ei, const Bitboard mobility_area, Score &mobility)
         {
             assert(PT == NIHT || PT == BSHP || PT == ROOK || PT == QUEN);
@@ -410,7 +410,9 @@ namespace Evaluator {
                         // Penalty for pawns on the same color square as the bishop
                         score -= BishopPawns * ei.pe->pawns_on_squarecolor<Own> (s);
 
-                        if (s == rel_sq (Own, SQ_A8) || s == rel_sq (Own, SQ_H8))
+                        if (   rel_sq (Own, s) == SQ_A8
+                            || rel_sq (Own, s) == SQ_H8
+                           )
                         {
                             auto del = (F_A == _file (s) ? DEL_E : DEL_W)-Push;
                             if (pos[s + del] == (Own|PAWN))
@@ -424,7 +426,9 @@ namespace Evaluator {
                             // An important Chess960 pattern: A cornered bishop blocked by a friendly pawn diagonally in front of it.
                             // It is a very serious problem, especially when that pawn is also blocked.
                             // Bishop on a1/h1 or a8/h8 (white or black) which is trapped by own pawn on b2/g2 or b7/g7 (white or black).
-                            if (s == rel_sq (Own, SQ_A1) || s == rel_sq (Own, SQ_H1))
+                            if (   rel_sq (Own, s) == SQ_A1
+                                || rel_sq (Own, s) == SQ_H1
+                               )
                             {
                                 auto del = (F_A == _file (s) ? DEL_E : DEL_W)+Push;
                                 if (pos[s+del] == (Own|PAWN))
@@ -479,7 +483,7 @@ namespace Evaluator {
         //  --- init evaluation info <---
 
         template<Color Own, bool Trace>
-        // evaluate_king<>() assigns bonuses and penalties to a king of a given color
+        // evaluate_king<>() assigns bonuses and penalties to a king of the given color.
         Score evaluate_king (const Position &pos, const EvalInfo &ei)
         {
             const auto Opp = Own == WHITE ? BLACK : WHITE;
@@ -632,8 +636,8 @@ namespace Evaluator {
         }
 
         template<Color Own, bool Trace>
-        // evaluate_threats<>() assigns bonuses according to the type of attacking piece
-        // and the type of attacked one.
+        // evaluate_threats<>() evaluates the threats of the given color.
+        // according to the type of attacking piece and the type of attacked pieces.
         Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
             const auto Opp      = Own == WHITE ? BLACK : WHITE;
@@ -736,7 +740,7 @@ namespace Evaluator {
         }
 
         template<Color Own, bool Trace>
-        // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
+        // evaluate_passed_pawns<>() evaluates the passed pawns of the given color.
         Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
         {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
@@ -840,18 +844,17 @@ namespace Evaluator {
 
             if (Trace)
             {
-                write (PASSER, Own, score);
+                write (PASSED_PAWN, Own, score);
             }
 
             return score;
         }
 
         template<Color Own, bool Trace>
-        // evaluate_space_activity<>() computes the space evaluation for a given side. The
-        // space evaluation is a simple bonus based on the number of safe squares
-        // available for minor pieces on the central four files on ranks 2--4. Safe
-        // squares one, two or three squares behind a friendly pawn are counted twice.
-        // Finally, the space bonus is multiplied by a weight.
+        // evaluate_space_activity<>() computes the space evaluation of the given color.
+        // The space evaluation is a simple bonus based on the number of safe squares
+        // available for minor pieces on the central four files on ranks 2--4.
+        // Safe squares one, two or three squares behind a friendly pawn are counted twice.
         // The aim is to improve play on game opening.
         Score evaluate_space_activity (const Position &pos, const EvalInfo &ei)
         {
@@ -892,15 +895,14 @@ namespace Evaluator {
 
             if (Trace)
             {
-                write (SPACE, Own, score);
+                write (SPACE_ACTIVITY, Own, score);
             }
 
             return score;
         }
 
-        // evaluate_initiative() computes the initiative correction value for the
-        // position, i.e. second order bonus/malus based on the known attacking/defending
-        // status of the players.
+        // evaluate_initiative() computes the initiative correction value for the position
+        // i.e. second order bonus/malus based on the known attacking/defending status of the players.
         Score evaluate_initiative (const Position &pos, i32 asymmetry, Value eg)
         {
             auto king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
@@ -1118,28 +1120,26 @@ namespace Evaluator {
             -evaluate<true> (pos);
 
         ostringstream oss;
-
         oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed
             << "         Entity |    White    |    Black    |     Total    \n"
             << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
             << "----------------+-------------+-------------+--------------\n"
             << "       Material" << Term(MATERIAL)
             << "      Imbalance" << Term(IMBALANCE)
-            << "          Pawns" << Term(PAWN)
-            << "        Knights" << Term(NIHT)
+            << "           Pawn" << Term(PAWN)
+            << "         Knight" << Term(NIHT)
             << "         Bishop" << Term(BSHP)
-            << "          Rooks" << Term(ROOK)
-            << "         Queens" << Term(QUEN)
+            << "           Rook" << Term(ROOK)
+            << "          Queen" << Term(QUEN)
             << "       Mobility" << Term(MOBILITY)
-            << "    King safety" << Term(KING)
-            << "        Threats" << Term(THREAT)
-            << "   Passed pawns" << Term(PASSER)
-            << "          Space" << Term(SPACE)
+            << "    King Safety" << Term(KING)
+            << "         Threat" << Term(THREAT)
+            << "    Passed Pawn" << Term(PASSED_PAWN)
+            << " Space Activity" << Term(SPACE_ACTIVITY)
             << "----------------+-------------+-------------+--------------\n"
             << "          Total" << Term(TOTAL)
             << "\nEvaluation: " << value_to_cp (value) << " (white side)\n"
             << std::noshowpoint << std::noshowpos;
-
         return oss.str ();
     }
 
@@ -1149,7 +1149,7 @@ namespace Evaluator {
         auto mg = 0;
         for (auto i = 0; i < MaxAttackUnits; ++i)
         {
-            //                                 MaxSlope, MaxValue
+            //                                DangerSlope, DangerValue
             mg = std::min (std::min (i*i - 16, mg + 322), 47410);
             KingDanger[i] = mk_score (mg * 268 / 7700, 0);
         }

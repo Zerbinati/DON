@@ -1714,13 +1714,13 @@ string Position::fen (bool c960, bool full) const
         {
             if (can_castle (CR_WHITE) != CR_NONE)
             {
-                if (can_castle (CR_WKING) != CR_NONE) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_KING>::Right]), false);
-                if (can_castle (CR_WQUEN) != CR_NONE) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_QUEN>::Right]), false);
+                if (can_castle (CR_WKING) != CR_NONE) oss << to_char<false> (_file (_castle_rook[Castling<WHITE, CS_KING>::Right]));
+                if (can_castle (CR_WQUEN) != CR_NONE) oss << to_char<false> (_file (_castle_rook[Castling<WHITE, CS_QUEN>::Right]));
             }
             if (can_castle (CR_BLACK) != CR_NONE)
             {
-                if (can_castle (CR_BKING) != CR_NONE) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_KING>::Right]), true);
-                if (can_castle (CR_BQUEN) != CR_NONE) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_QUEN>::Right]), true);
+                if (can_castle (CR_BKING) != CR_NONE) oss << to_char<true > (_file (_castle_rook[Castling<BLACK, CS_KING>::Right]));
+                if (can_castle (CR_BQUEN) != CR_NONE) oss << to_char<true > (_file (_castle_rook[Castling<BLACK, CS_QUEN>::Right]));
             }
         }
         else
@@ -1766,7 +1766,7 @@ Position::operator string () const
     for (auto f = F_A; f <= F_H; ++f)
     {
         sboard += "   ";
-        sboard += to_char (f, false);
+        sboard += to_char<false> (f);
     }
 
     auto occ = _types_bb[NONE];

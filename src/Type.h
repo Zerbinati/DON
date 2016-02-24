@@ -927,10 +927,4 @@ inline void convert_path (std::string &path)
 //    return { beg, end };
 //}
 
-extern const Value PieceValues[PH_NO][MAX_PTYPE];
-
-extern const std::string PieceChar;
-extern const std::string ColorChar;
-extern const std::string StartupFEN;
-
 #endif // _TYPE_H_INC_
