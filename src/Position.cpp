@@ -624,10 +624,7 @@ bool Position::pseudo_legal (Move m) const
     case NORMAL:
     {
         // Is not a promotion, so promotion piece must be empty
-        if (promote (m) - NIHT != PAWN)
-        {
-            return false;
-        }
+        assert(promote (m) - NIHT == PAWN);
     }
         break;
 
@@ -640,7 +637,7 @@ bool Position::pseudo_legal (Move m) const
               && rel_rank (_active, dst) == R_1
               && _board[dst] == (_active|ROOK)
               && _psi->checkers == U64(0)
-              && (_psi->castle_rights & mk_castle_right (_active)) != CR_NONE
+              && (_psi->castle_rights & mk_castle_right (_active, dst > org ? CS_KING : CS_QUEN)) != CR_NONE
               && !castle_impeded (mk_castle_right (_active, dst > org ? CS_KING : CS_QUEN))
              )
            )

@@ -370,6 +370,16 @@ namespace Searcher {
             auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
             auto tt_depth = tt_hit ? tte->depth () : DEPTH_NONE;
             auto tt_bound = tt_hit ? tte->bound () : BOUND_NONE;
+            
+            CheckInfo ci (pos);
+            if (   tt_hit
+                && tt_move != MOVE_NONE
+                && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds))
+               )
+            {
+                tt_move = MOVE_NONE;
+            }
+            assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
 
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in quien_search use
@@ -451,13 +461,18 @@ namespace Searcher {
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
             MovePicker mp (pos, thread->history_values, tt_move, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO, depth);
-            CheckInfo ci (pos);
             StateInfo si;
             Move move;
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
-                assert(_ok (move));
+                assert(_ok (move) && pos.pseudo_legal (move));
+
+                // Check for legality before making the move
+                if (!pos.legal (move, ci.pinneds))
+                {
+                    continue;
+                }
 
                 bool gives_check = mtype (move) == NORMAL && ci.discoverers == U64(0) ?
                                     (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != U64(0) :
@@ -513,9 +528,6 @@ namespace Searcher {
 
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
-
-                // Check for legality just before making the move
-                if (!pos.legal (move, ci.pinneds)) continue;
 
                 ss->current_move = move;
 
@@ -677,6 +689,17 @@ namespace Searcher {
             auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
             auto tt_depth = tt_hit ? tte->depth () : DEPTH_NONE;
             auto tt_bound = tt_hit ? tte->bound () : BOUND_NONE;
+            
+            CheckInfo ci (pos);
+            if (   !root_node
+                && tt_hit
+                && tt_move != MOVE_NONE
+                && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds))
+               )
+            {
+                tt_move = MOVE_NONE;
+            }
+            assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
 
             // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
@@ -691,7 +714,6 @@ namespace Searcher {
                 if (   tt_value >= beta
                     && tt_move != MOVE_NONE
                     && !pos.capture_or_promotion (tt_move)
-                    && pos.pseudo_legal (tt_move)
                    )
                 {
                     update_stats (pos, ss, tt_move, depth);
@@ -741,7 +763,6 @@ namespace Searcher {
                 }
             }
 
-            CheckInfo ci (pos);
             StateInfo si;
             Move move;
 
@@ -896,12 +917,15 @@ namespace Searcher {
                         // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
                         while ((move = mp.next_move ()) != MOVE_NONE)
                         {
-                            assert(_ok (move));
+                            assert(_ok (move) && pos.pseudo_legal (move));
 
+                            if (!pos.legal (move, ci.pinneds))
+                            {
+                                continue;
+                            }
+                            
                             //// Speculative prefetch as early as possible
                             //prefetch (TT.cluster_entry (pos.move_posi_key (move)));
-
-                            if (!pos.legal (move, ci.pinneds)) continue;
 
                             ss->current_move = move;
 
@@ -944,7 +968,14 @@ namespace Searcher {
                         {
                             if (!root_node)
                             {
-                                tt_move  = tte->move ();
+                                tt_move = tte->move ();
+                                if (   tt_move != MOVE_NONE
+                                    && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds))
+                                   )
+                                {
+                                    tt_move = MOVE_NONE;
+                                }
+                                assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
                             }
                             tt_value = value_of_tt (tte->value (), ss->ply);
                             tt_eval  = tte->eval ();
@@ -989,26 +1020,27 @@ namespace Searcher {
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, ss->killer_moves, counter_move);
-
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
-                assert(_ok (move));
+                assert(_ok (move) && pos.pseudo_legal (move));
 
-                if (move == exclude_move) continue;
-                
-                // At root obey the "searchmoves" option and skip moves not listed in
-                // RootMove list, as a consequence any illegal move is also skipped.
-                // In MultiPV mode also skip PV moves which have been already searched.
-                if (   root_node
-                    && std::find (thread->root_moves.begin () + thread->pv_index, thread->root_moves.end (), move) == thread->root_moves.end ()
+                if (
+                    // Check for legality before making the move
+                    // At root obey the "searchmoves" option and skip moves not listed in
+                    // RootMove list, as a consequence any illegal move is also skipped.
+                    // In MultiPV mode also skip PV moves which have been already searched.
+                       (root_node ?
+                            std::find (thread->root_moves.begin () + thread->pv_index, thread->root_moves.end (), move) == thread->root_moves.end () :
+                            !pos.legal (move, ci.pinneds)
+                       )
+                    // Check for move exclusion
+                    || move == exclude_move
                    )
                 {
                     continue;
                 }
-
-                bool move_legal = root_node || pos.legal (move, ci.pinneds);
 
                 ss->move_count = ++move_count;
 
@@ -1047,8 +1079,7 @@ namespace Searcher {
                 // and just one fails high on (alfa, beta), then that move is singular
                 // and should be extended. To verify this do a reduced search on all the other moves
                 // but the tt_move, if result is lower than tt_value minus a margin then extend tt_move.
-                if (   move_legal
-                    && singular_ext_node
+                if (   singular_ext_node
                     && move == tt_move
                     && extension == DEPTH_ZERO
                    )
@@ -1123,15 +1154,6 @@ namespace Searcher {
 
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
-
-                // Check for legality just before making the move
-                if (   !root_node
-                    && !move_legal
-                   )
-                {
-                    ss->move_count = --move_count;
-                    continue;
-                }
 
                 ss->current_move = move;
 
@@ -1319,6 +1341,7 @@ namespace Searcher {
                     quiet_moves.push_back (move);
                 }
             }
+            assert(((root_node || exclude_move != MOVE_NONE || value >= beta) && move_count <= MoveList<LEGAL> (pos).size ()) || move_count == MoveList<LEGAL> (pos).size ());
 
             // Step 19.
             // The following condition would detect a stop only after move loop has been
@@ -1336,6 +1359,7 @@ namespace Searcher {
             // Otherwise it must be a checkmate or a stalemate, so return value accordingly.
             if (move_count == 0)
             {
+                //assert(ss->current_move == MOVE_NONE);
                 best_value = 
                     exclude_move != MOVE_NONE ?
                         alfa :

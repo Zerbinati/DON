@@ -453,7 +453,7 @@ namespace MoveGen {
 
         // If double-check, then only a king move can save the day, triple+ check not possible
         if (   more_than_one (checkers)
-            || pos.count<NONE> (active) <= 1
+            || pos.count<NONE> (active) == 1
            )
         {
             return moves;

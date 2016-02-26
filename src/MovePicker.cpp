@@ -69,22 +69,22 @@ namespace MovePick {
         , _history_values (hv)
         , _counter_move_values (&cmv)
         , _ss_killer_moves (ss_km)
+        , _tt_move (ttm)
         , _counter_move (cm)
     {
-        _stage = _pos.checkers () != U64(0) ? S_EVASION : S_MAIN;
-        
-        _tt_move =   ttm != MOVE_NONE
-                  && _pos.pseudo_legal (ttm) ?
-                        ttm : MOVE_NONE;
+        assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
 
+        _stage = _pos.checkers () != U64(0) ? S_EVASION : S_MAIN;
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
     MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Square dst_sq, Depth depth)
         : _pos (pos)
         , _history_values (hv)
+        , _tt_move (ttm)
     {
         assert(depth <= DEPTH_ZERO);
+        assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
 
         if (_pos.checkers () != U64(0))
         {
@@ -104,12 +104,8 @@ namespace MovePick {
         {
             _stage = S_RECAPTURE;
             _recapture_sq = dst_sq;
-            ttm = MOVE_NONE;
+            _tt_move = MOVE_NONE;
         }
-
-        _tt_move =   ttm != MOVE_NONE
-                  && _pos.pseudo_legal (ttm) ?
-                        ttm : MOVE_NONE;
 
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
@@ -117,19 +113,23 @@ namespace MovePick {
     MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Value thr)
         : _pos (pos)
         , _history_values (hv)
+        , _tt_move (ttm)
         , _threshold (thr)
     {
         assert(_pos.checkers () == U64(0));
+        assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
 
         _stage = S_PROBCUT;
 
         // In ProbCut generate captures with SEE higher than the given threshold
-        _tt_move =   ttm != MOVE_NONE
-                  && _pos.capture (ttm)
-                  && _pos.pseudo_legal (ttm)
-                  && _pos.see (ttm) > _threshold ?
-                        ttm : MOVE_NONE;
-
+        if (   _tt_move != MOVE_NONE
+            && (   !_pos.capture (_tt_move)
+                || _pos.see (_tt_move) <= _threshold
+               )
+           )
+        {
+            _tt_move = MOVE_NONE;
+        }
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
@@ -358,7 +358,9 @@ namespace MovePick {
                 do
                 {
                     auto move = pick_best (_cur_move++, _end_move).move;
-                    if (move != _tt_move)
+                    if (   move != _tt_move
+                        && _pos.pseudo_legal (move)
+                       )
                     {
                         return move;
                     }
