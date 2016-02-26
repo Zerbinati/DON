@@ -438,7 +438,7 @@ namespace MoveGen {
         {
             check_sq = pop_lsq (sliders);
             assert(color (pos[check_sq]) == ~active);
-            slider_attacks |= RayLine_bb[check_sq][king_sq] - check_sq;
+            slider_attacks |= (attacks_bb (pos[check_sq], check_sq, pos.pieces ()) | RayLine_bb[check_sq][king_sq]) - check_sq;
         }
 
         // Generate evasions for king, capture and non capture moves
