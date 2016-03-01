@@ -42,7 +42,7 @@ public:
 
     MoveVector search_moves; // Restrict search to these root moves only
 
-    TimePoint  start_time = 0;
+    TimePoint start_time = 0;
 
     bool time_management_used () const
     {

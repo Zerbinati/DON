@@ -2142,8 +2142,6 @@ namespace Threading {
             }
         }
 
-    finish:
-
         // When reach max depth arrive here even without Force Stop is raised,
         // but if are pondering or in infinite search, according to UCI protocol,
         // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
@@ -2164,7 +2162,7 @@ namespace Threading {
         {
             Threadpool[i]->wait_while_searching ();
         }
-
+        {
         // Check if there are threads with bigger depth than main thread.
         Thread *best_thread = this;
         if (   !easy_played
@@ -2194,6 +2192,8 @@ namespace Threading {
 
             sync_cout << multipv_info (-VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
         }
+        }
+    finish:
 
         assert(!root_moves.empty ()
             && !root_moves[0].empty ());
