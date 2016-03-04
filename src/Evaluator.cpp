@@ -221,7 +221,7 @@ namespace Evaluator {
         // Don't use a Score because the two components processed independently.
         const Value PawnPassedValue[PH_NO][R_NO] =
         {
-            { V(0), V(0), V( 1), V(26), V(68), V(161), V(247), V(0) },
+            { V(0), V(5), V( 5), V(31), V(73), V(166), V(252), V(0) },
             { V(0), V(7), V(14), V(38), V(64), V(137), V(193), V(0) }
         };
     #undef V
@@ -266,7 +266,7 @@ namespace Evaluator {
             auto pinned_pawns = pinneds & pos.pieces (Own, PAWN);
             if (pinned_pawns != U64(0))
             {
-                auto loosed_pawns = pos.pieces (Own, PAWN) & ~pinned_pawns;
+                auto loosed_pawns = ~pinned_pawns & pos.pieces (Own, PAWN);
                 auto pawn_attacks = shift_bb<LCap> (loosed_pawns) | shift_bb<RCap> (loosed_pawns);
                 while (pinned_pawns != U64(0))
                 {
@@ -448,7 +448,10 @@ namespace Evaluator {
                     if (rel_rank (Own, s) > R_4)
                     {
                         auto rook_on_pawns = pos.pieces (Opp, PAWN) & PieceAttacks[ROOK][s];
-                        if (rook_on_pawns != U64(0)) score += RookOnPawns * pop_count<Max15> (rook_on_pawns);
+                        if (rook_on_pawns != U64(0))
+                        {
+                            score += RookOnPawns * pop_count<Max15> (rook_on_pawns);
+                        }
                     }
 
                     // Bonus for rook when on an open or semi-open file
@@ -467,7 +470,7 @@ namespace Evaluator {
                             && !ei.pe->side_semiopen<Own> (_file (fk_sq), _file (s) < _file (fk_sq))
                            )
                         {
-                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (Own));
+                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
                         }
                     }
                 }
@@ -490,7 +493,7 @@ namespace Evaluator {
 
             auto fk_sq = pos.square<KING> (Own);
 
-            // King Safety: friend pawn shelter and enemy pawns storm
+            // King Safety: friend pawns shelter and enemy pawns storm
             ei.pe->evaluate_king_safety<Own> (pos);
 
             Value value;
@@ -656,9 +659,10 @@ namespace Evaluator {
             if (weak_nonpawns != U64(0))
             {
                 // Safe Pawns
-                b = pos.pieces (Own, PAWN) & ( ~ei.pin_attacked_by[Opp][NONE]
-                                              | ei.pin_attacked_by[Own][NONE]
-                                             );
+                b = pos.pieces (Own, PAWN)
+                  & ( ~ei.pin_attacked_by[Opp][NONE]
+                     | ei.pin_attacked_by[Own][NONE]
+                    );
                 // Safe Pawn threats
                 b = (shift_bb<RCap>(b) | shift_bb<LCap>(b)) & weak_nonpawns;
                 if ((weak_nonpawns ^ b) != U64(0))
@@ -673,13 +677,13 @@ namespace Evaluator {
 
             // Enemies not defended by pawn and attacked by any friendly piece
             auto weak_pieces =
-                pos.pieces (Opp)
+                  pos.pieces (Opp)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
 
             // Non-pawn enemies defended by a pawn and attacked by any friendly piece
-            auto defended_nonpawns =
-                (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
+            auto defended_nonpawns = 
+                  (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
                 &  ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
 
@@ -693,7 +697,7 @@ namespace Evaluator {
                     score += ThreatByPiece[MINOR][ptype (pos[pop_lsq (b)])];
                 }
                 // Enemies attacked by rooks
-                b = (weak_pieces | pos.pieces (Opp, QUEN)) & (ei.pin_attacked_by[Own][ROOK]);
+                b = (weak_pieces | pos.pieces (Opp, QUEN)) & ei.pin_attacked_by[Own][ROOK];
                 while (b != U64(0))
                 {
                     score += ThreatByPiece[MAJOR][ptype (pos[pop_lsq (b)])];
@@ -767,7 +771,7 @@ namespace Evaluator {
 
                 auto r  = i08(rel_r) - i08(R_2);
                 auto rr = r*(r-1);
-                
+
                 if (rr != 0)
                 {
                     auto block_sq = s+Push;
@@ -822,15 +826,15 @@ namespace Evaluator {
                                         4 : 0;
                         }
 
-                        mg_value += (k*rr + 0*r + 0) * 3 / 4;
-                        eg_value += (k*rr + 0*r + 0) * 1 / 1;
+                        mg_value += k*rr + 0*r + 0;
+                        eg_value += k*rr + 0*r + 0;
                     }
                     else
                     // If the pawn is blocked by own pieces
                     if ((pos.pieces (Own) & block_sq) != U64(0))
                     {
-                        mg_value += (3*rr + 3*r + 0) * 3 / 4;
-                        eg_value += (1*rr + 2*r + 0) * 1 / 1;
+                        mg_value += 1*rr + 2*r + 0;
+                        eg_value += 1*rr + 2*r + 0;
                     }
                 }
                 // If non-pawn count differ.
@@ -905,18 +909,16 @@ namespace Evaluator {
         // i.e. second order bonus/malus based on the known attacking/defending status of the players.
         Score evaluate_initiative (const Position &pos, i32 asymmetry, Value eg)
         {
-            auto king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
-            auto pawn_count = pos.count<PAWN> (WHITE) + pos.count<PAWN> (BLACK);
+            auto king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
+                           - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
 
             // Compute the initiative bonus for the attacking side
-            auto initiative = 8 * (pawn_count + asymmetry + king_dist - 15);
+            auto initiative = 8 * (asymmetry + king_dist) + 12 * pos.count<PAWN> () - 120;
 
             // Now apply the bonus: note that we find the attacking side by extracting
             // the sign of the endgame value, and that we carefully cap the bonus so
             // that the endgame score will never be divided by more than two.
-            auto value = sign (eg) * std::max (initiative, -abs (eg / 2));
-
-            return mk_score (0, value);
+            return mk_score (0, sign (eg) * std::max (initiative, -abs (eg / 2)));
         }
 
         // evaluate_scale_factor() computes the scale factor for the winning side

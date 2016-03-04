@@ -20,7 +20,7 @@ namespace Polyglot {
     // -------------------------
 
     const u08 Entry::Size = sizeof (Entry);
-    static_assert (Entry::Size == 16, "Incorrect Entry::size");
+    static_assert (Entry::Size == 16, "Entry size incorrect");
 
     const Entry Entry::NullEntry = { 0 , 0 , 0 , 0 };
 
@@ -45,7 +45,7 @@ namespace Polyglot {
     // -------------------------
 
     const u08 Book::HeaderSize = 96;
-    static_assert (Book::HeaderSize == 96, "Incorrect Book::HeaderSize");
+    static_assert (Book::HeaderSize == 96, "Book header size incorrect");
 
     Book::Book (const string &book_fn, openmode mode)
         : fstream (book_fn, mode|ios_base::binary)

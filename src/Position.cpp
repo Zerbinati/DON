@@ -649,6 +649,7 @@ bool Position::pseudo_legal (Move m) const
         bool king_side = dst > org;
         assert(dst == castle_rook (mk_castle_right (_active, king_side ? CS_KING : CS_QUEN)));
         dst = rel_sq (_active, king_side ? SQ_WKOO : SQ_WKOOO);
+        // Check king's path for attackers
         auto step = king_side ? DEL_E : DEL_W;
         for (auto s = dst; s != org; s -= step)
         {
@@ -1210,7 +1211,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
         // Rule 50 draw case
         //if (clk_ply > 100) return false;
 
-        // Handle common incorrect FEN with move-num = 0.
+        // Handle common problem move-num = 0.
         if (moves <= 0)
         {
             moves = 1;

@@ -430,7 +430,7 @@ namespace MoveGen {
         //    }
         //}
 
-        auto slider_attacks = U64(0);
+        auto checker_attacks = U64(0);
         auto sliders = checkers & ~pos.pieces (NIHT, PAWN);
         // Find squares attacked by slider checkers, will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
@@ -438,14 +438,19 @@ namespace MoveGen {
         {
             check_sq = pop_lsq (sliders);
             assert(color (pos[check_sq]) == ~active);
-            slider_attacks |= (attacks_bb (pos[check_sq], check_sq, pos.pieces ()) | RayLine_bb[check_sq][king_sq]) - check_sq;
+            checker_attacks |= (attacks_bb (pos[check_sq], check_sq, pos.pieces ()) | RayLine_bb[check_sq][king_sq]) - check_sq;
+        }
+        if (check_sq == SQ_NO)
+        {
+            check_sq = scan_lsq (checkers);
+            checker_attacks = attacks_bb (pos[check_sq], check_sq, pos.pieces ());
         }
 
         // Generate evasions for king, capture and non capture moves
         auto attacks =
               PieceAttacks[KING][king_sq]
             & ~(  pos.pieces (active)
-                | slider_attacks
+                | checker_attacks
                 | PieceAttacks[KING][pos.square<KING> (~active)]
                );
 
@@ -458,10 +463,7 @@ namespace MoveGen {
         {
             return moves;
         }
-        if (check_sq == SQ_NO)
-        {
-            check_sq = scan_lsq (checkers);
-        }
+        
         // Generates blocking evasions or captures of the checking piece
         auto targets = Between_bb[check_sq][king_sq] + check_sq;
 

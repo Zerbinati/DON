@@ -600,10 +600,10 @@ inline CastleRight operator~ (CastleRight cr) { return CastleRight(((cr >> 2) & 
 template<Color C, CastleSide CS>
 struct Castling
 {
-    static const CastleRight
-    Right = C == WHITE ?
-        CS == CS_KING ? CR_WKING : CR_WQUEN :
-        CS == CS_KING ? CR_BKING : CR_BQUEN;
+    static const CastleRight Right =
+        C == WHITE ?
+            CS == CS_KING ? CR_WKING : CR_WQUEN :
+            CS == CS_KING ? CR_BKING : CR_BQUEN;
 };
 
 inline bool _ok   (PieceType pt) { return PAWN <= pt && pt <= KING; }

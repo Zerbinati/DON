@@ -370,7 +370,7 @@ namespace Searcher {
             auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
             auto tt_depth = tt_hit ? tte->depth () : DEPTH_NONE;
             auto tt_bound = tt_hit ? tte->bound () : BOUND_NONE;
-            
+
             CheckInfo ci (pos);
             if (   tt_hit
                 && tt_move != MOVE_NONE
@@ -689,14 +689,14 @@ namespace Searcher {
             auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
             auto tt_depth = tt_hit ? tte->depth () : DEPTH_NONE;
             auto tt_bound = tt_hit ? tte->bound () : BOUND_NONE;
-            
+
             CheckInfo ci (pos);
-            if (   !root_node
-                && tt_hit
+            if (   tt_hit
                 && tt_move != MOVE_NONE
                 && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds))
                )
             {
+                assert(!root_node);
                 tt_move = MOVE_NONE;
             }
             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
@@ -726,7 +726,7 @@ namespace Searcher {
                 && TBPieceLimit != 0
                )
             {
-                i32 piece_count = pos.count<NONE> ();
+                auto piece_count = pos.count<NONE> ();
 
                 if (   (   piece_count <  TBPieceLimit
                        || (piece_count == TBPieceLimit && depth >= TBDepthLimit)
@@ -736,15 +736,15 @@ namespace Searcher {
                    )
                 {
                     i32 found;
-                    Value v = probe_wdl (pos, found);
+                    auto v = probe_wdl (pos, found);
 
                     if (found != 0)
                     {
                         ++TBHits;
 
-                        i32 draw_v = TBUseRule50 ? 1 : 0;
+                        auto draw_v = TBUseRule50 ? 1 : 0;
 
-                        Value value =
+                        auto value =
                                 v < -draw_v ? -VALUE_MATE + i32(MaxPlies + ss->ply) :
                                 v > +draw_v ? +VALUE_MATE - i32(MaxPlies + ss->ply) :
                                 VALUE_ZERO + 2 * draw_v * v;
@@ -952,7 +952,7 @@ namespace Searcher {
                     }
 
                     // Step 10. Internal iterative deepening
-                    if (   ((root_node && !tt_hit) || tt_move == MOVE_NONE)
+                    if (   (tt_move == MOVE_NONE /*|| (root_node && !tt_hit)*/)
                         && depth >= (PVNode ? 5 : 8)*DEPTH_ONE        // IID Activation Depth
                         && (PVNode || ss->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                        )
@@ -1175,18 +1175,18 @@ namespace Searcher {
                    )
                 {
                     auto reduction_depth = reduction_depths (PVNode, improving, depth, move_count);
+                    auto h_value  = thread->history_values[pos[dst_sq (move)]][dst_sq (move)];
+                    auto cm_value = opp_cmv[pos[dst_sq (move)]][dst_sq (move)];
 
                     // Increase reduction for cut node
-                    if (   !PVNode
-                        && CutNode
+                    if (   (!PVNode && CutNode)
+                        || (h_value < VALUE_ZERO && cm_value <= VALUE_ZERO)
                        )
                     {
                         reduction_depth += DEPTH_ONE;
                     }
-                    // Decrease reduction for moves with a +ve history
-                    // Increase reduction for moves with a -ve history
-                    reduction_depth = std::min (std::max (reduction_depth - (i32( thread->history_values[pos[dst_sq (move)]][dst_sq (move)]
-                                                                                + opp_cmv[pos[dst_sq (move)]][dst_sq (move)])/14980)*DEPTH_ONE, DEPTH_ZERO), DEPTH_MAX - DEPTH_ONE);
+                    // Decrease/Increase reduction for moves with a +ve/-ve history
+                    reduction_depth = std::min (std::max (reduction_depth - (i32(h_value + cm_value)/14980)*DEPTH_ONE, DEPTH_ZERO), DEPTH_MAX - DEPTH_ONE);
                     // Decrease reduction for moves that escape a capture.
                     // Filter out castling moves, because are coded as "king captures rook" hence break make_move().
                     // Also use see() instead of see_sign(), because the destination square is empty.
@@ -1557,38 +1557,28 @@ namespace Searcher {
             }
         }
 
-        static const double K2[2][2] =
+        for (u08 imp = 0; imp <= 1; ++imp)
         {
-            { 0.799, 2.260 },
-            { 0.484, 3.023 }
-        };
-        for (u08 pv = 0; pv <= 1; ++pv)
-        {
-            for (u08 imp = 0; imp <= 1; ++imp)
+            //printf ("\n\nimproving=%d\n", imp);
+            for (i32 d = 1; d < ReductionDepth; ++d)
             {
-                //printf ("\n\npv=%d  improving=%d\n", pv, imp);
-                for (i32 d = 1; d < ReductionDepth; ++d)
+                for (u08 mc = 1; mc < ReductionMoveCount; ++mc)
                 {
-                    for (u08 mc = 1; mc < ReductionMoveCount; ++mc)
-                    {
-                        auto r = K2[pv][0] + (log (d) * log (mc)) / K2[pv][1];
+                    auto r = log (d) * log (mc) / 2;
 
-                        if (r >= 1.5)
+                    if (r >= 0.80)
+                    {
+                        ReductionDepths[0][imp][d][mc] = i32(std::round (r))*DEPTH_ONE;
+                        ReductionDepths[1][imp][d][mc] = std::max (ReductionDepths[0][imp][d][mc] - DEPTH_ONE, DEPTH_ZERO);
+                        // If evaluation is not improving increase reduction
+                        if (!imp && ReductionDepths[0][imp][d][mc] >= 2*DEPTH_ONE)
                         {
-                            ReductionDepths[pv][imp][d][mc] = i32(r)*DEPTH_ONE;
-                            // If evaluation is not improving increase reduction
-                            if (   !pv
-                                && !imp
-                                && r >= 2.0
-                               )
-                            {
-                                ReductionDepths[pv][imp][d][mc] += i32(std::round (r) - i32(r))*DEPTH_ONE;
-                            }
+                            ReductionDepths[0][imp][d][mc] += DEPTH_ONE;
                         }
-                        //if (d%4 == 1 && mc%4 == 1) printf ("%2d", ReductionDepths[pv][imp][d][mc]);
                     }
-                    //if (d%4 == 1) printf ("\n");
+                    //if (d%4 == 1 && mc%4 == 1) printf ("%2d", ReductionDepths[0][imp][d][mc]);
                 }
+                //if (d%4 == 1) printf ("\n");
             }
         }
     }
@@ -1662,10 +1652,10 @@ namespace Threading {
         // that will use behind the scenes to get a set of possible moves.
         PVLimit = std::min (std::max (MultiPV, u16(Threadpool.main ()->skill_mgr.enabled () ? SkillManager::MinMultiPV : 0)), u16(root_moves.size ()));
 
-        Value best_value = VALUE_ZERO
-            , window     = VALUE_ZERO
-            , alfa       = -VALUE_INFINITE
-            , beta       = +VALUE_INFINITE;
+        auto best_value = VALUE_ZERO
+           , window     = VALUE_ZERO
+           , alfa       = -VALUE_INFINITE
+           , beta       = +VALUE_INFINITE;
 
         leaf_depth = DEPTH_ZERO;
 
@@ -1863,7 +1853,7 @@ namespace Threading {
                     && !root_moves.empty ()
                    )
                 {
-                    Value valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
+                    auto valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
                     DrawValue[ RootColor] = BaseContempt[ RootColor] - valued_contempt;
                     DrawValue[~RootColor] = BaseContempt[~RootColor] + valued_contempt;
                 }
@@ -2057,7 +2047,7 @@ namespace Threading {
             }
 
             i16 timed_contempt = 0;
-            TimePoint diff_time = 0;
+            TimePoint diff_time;
             if (   ContemptTime != 0
                 && time_mgr_used
                 && (diff_time = (Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MilliSec) != 0
@@ -2067,7 +2057,7 @@ namespace Threading {
                 timed_contempt = i16(diff_time/ContemptTime);
             }
 
-            Value contempt = cp_to_value ((FixedContempt + timed_contempt) / 100.0);
+            auto contempt = cp_to_value ((FixedContempt + timed_contempt) / 100.0);
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 

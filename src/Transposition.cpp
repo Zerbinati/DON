@@ -15,11 +15,11 @@ namespace Transposition {
     // Size of Transposition entry (bytes)
     // 10 bytes
     const u08 Entry::Size = sizeof (Entry);
-    static_assert (Entry::Size == 10, "Incorrect Entry::Size");
+    static_assert (Entry::Size == 10, "Entry size incorrect");
     // Size of Transposition cluster in (bytes)
     // 32 bytes
     const u08 Cluster::Size = sizeof (Cluster);
-    static_assert (CacheLineSize % Cluster::Size == 0, "Incorrect Cluster::Size");
+    static_assert (CacheLineSize % Cluster::Size == 0, "Cluster size incorrect");
     // Minimum size of Transposition table (mega-byte)
     // 4 MB
     const u32 Table::MinSize = 4;

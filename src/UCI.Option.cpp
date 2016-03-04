@@ -61,7 +61,7 @@ namespace UCI {
     Option::operator bool () const
     {
         assert(_type == "check");
-        return (_current_value == "true");
+        return _current_value == "true";
     }
     Option::operator i32 () const
     {
