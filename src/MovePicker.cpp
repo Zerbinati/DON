@@ -353,14 +353,24 @@ namespace MovePick {
                 break;
 
             case S_ALL_EVASION:
-            case S_QCAPTURE_1:
-            case S_QCAPTURE_2:
                 do
                 {
                     auto move = pick_best (_cur_move++, _end_move).move;
                     if (   move != _tt_move
                         && _pos.pseudo_legal (move)
                        )
+                    {
+                        return move;
+                    }
+                } while (_cur_move < _end_move);
+                break;
+
+            case S_QCAPTURE_1:
+            case S_QCAPTURE_2:
+                do
+                {
+                    auto move = pick_best (_cur_move++, _end_move).move;
+                    if (move != _tt_move)
                     {
                         return move;
                     }

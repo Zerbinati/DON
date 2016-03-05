@@ -952,11 +952,13 @@ namespace Searcher {
                     }
 
                     // Step 10. Internal iterative deepening
-                    if (   (tt_move == MOVE_NONE /*|| (root_node && !tt_hit)*/)
+                    if (   tt_move == MOVE_NONE
                         && depth >= (PVNode ? 5 : 8)*DEPTH_ONE        // IID Activation Depth
                         && (PVNode || ss->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                        )
                     {
+                        assert(!root_node);
+
                         auto iid_depth = depth - 2*DEPTH_ONE - (PVNode ? DEPTH_ZERO : depth/4); // IID Reduced Depth
 
                         ss->skip_pruning = true;
@@ -966,17 +968,14 @@ namespace Searcher {
                         tte = TT.probe (posi_key, tt_hit);
                         if (tt_hit)
                         {
-                            if (!root_node)
+                            tt_move = tte->move ();
+                            if (   tt_move != MOVE_NONE
+                                && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds))
+                               )
                             {
-                                tt_move = tte->move ();
-                                if (   tt_move != MOVE_NONE
-                                    && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds))
-                                   )
-                                {
-                                    tt_move = MOVE_NONE;
-                                }
-                                assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
+                                tt_move = MOVE_NONE;
                             }
+                            assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
                             tt_value = value_of_tt (tte->value (), ss->ply);
                             tt_eval  = tte->eval ();
                             tt_depth = tte->depth ();
@@ -1071,7 +1070,9 @@ namespace Searcher {
                                     pos.gives_check (move, ci);
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
-                auto extension = gives_check && pos.see_sign (move) >= VALUE_ZERO ? DEPTH_ONE : DEPTH_ZERO;
+                auto extension = gives_check
+                               && pos.see_sign (move) >= VALUE_ZERO ?
+                                    DEPTH_ONE : DEPTH_ZERO;
 
                 // Singular extension(SE) search.
                 // We extend the TT move if its value is much better than its siblings.
