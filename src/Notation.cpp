@@ -50,7 +50,7 @@ namespace Notation {
             while (pcs != U64(0))
             {
                 auto sq = pop_lsq (pcs);
-                if (!pos.legal (mk_move (sq, dst), pinneds))
+                if (!pos.legal (mk_move<NORMAL> (sq, dst), pinneds))
                 {
                     amb -= sq;
                 }

@@ -50,7 +50,6 @@ namespace Searcher {
         ,  ContemptValue   = 50;
 
     string HashFile        = "Hash.dat";
-    u16    AutoSaveHashTime= 0;
 
     bool   OwnBook         = false;
     string BookFile        = "Book.bin";
@@ -146,8 +145,6 @@ namespace Searcher {
         const u08 TimerResolution = 5; // Seconds between two check_limits() calls
 
         bool  MateSearch = false;
-
-        Color RootColor = CLR_NO;
 
         u16   PVLimit = 1;
 
@@ -1071,7 +1068,7 @@ namespace Searcher {
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
                 auto extension = gives_check
-                               && pos.see_sign (move) >= VALUE_ZERO ?
+                              && pos.see_sign (move) >= VALUE_ZERO ?
                                     DEPTH_ONE : DEPTH_ZERO;
 
                 // Singular extension(SE) search.
@@ -1187,7 +1184,9 @@ namespace Searcher {
                         reduction_depth += DEPTH_ONE;
                     }
                     // Decrease/Increase reduction for moves with a +ve/-ve history
-                    reduction_depth = std::min (std::max (reduction_depth - (i32(h_value + cm_value)/14980)*DEPTH_ONE, DEPTH_ZERO), DEPTH_MAX - DEPTH_ONE);
+                    auto r_hist = i32(h_value + cm_value)/14980;
+                    reduction_depth = std::max (reduction_depth - r_hist*DEPTH_ONE, DEPTH_ZERO);
+                    
                     // Decrease reduction for moves that escape a capture.
                     // Filter out castling moves, because are coded as "king captures rook" hence break make_move().
                     // Also use see() instead of see_sign(), because the destination square is empty.
@@ -1721,7 +1720,7 @@ namespace Threading {
                 };
                 static const size_t HalfDensityMapSize = std::extent<decltype(HalfDensityMap)>::value;
 
-                const BoolVector &hdm = HalfDensityMap[(index - 1) % HalfDensityMapSize];
+                const auto &hdm = HalfDensityMap[(index - 1) % HalfDensityMapSize];
                 if (hdm[(u16(root_depth) + root_pos.game_ply ()) % hdm.size ()])
                 {
                     continue;
@@ -1855,8 +1854,8 @@ namespace Threading {
                    )
                 {
                     auto valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
-                    DrawValue[ RootColor] = BaseContempt[ RootColor] - valued_contempt;
-                    DrawValue[~RootColor] = BaseContempt[~RootColor] + valued_contempt;
+                    DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] - valued_contempt;
+                    DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] + valued_contempt;
                 }
 
                 // If skill level is enabled and can pick move, pick a sub-optimal best move
@@ -1978,12 +1977,11 @@ namespace Threading {
         assert(this == Threadpool.main ());
 
         MateSearch = Limits.mate != 0;
-        RootColor = root_pos.active ();
         time_mgr_used = Limits.time_management_used ();
         if (time_mgr_used)
         {
             // Initialize the time manager before searching.
-            time_mgr.initialize (RootColor, root_pos.game_ply ());
+            time_mgr.initialize (root_pos.active (), root_pos.game_ply ());
         }
 
         if (   !white_spaces (LogFile)
@@ -1998,8 +1996,8 @@ namespace Threading {
                 << "RootSize : " << root_moves.size ()              << "\n"
                 << "Infinite : " << Limits.infinite                 << "\n"
                 << "Ponder   : " << Limits.ponder                   << "\n"
-                << "ClockTime: " << Limits.clock[RootColor].time    << "\n"
-                << "Increment: " << Limits.clock[RootColor].inc     << "\n"
+                << "ClockTime: " << Limits.clock[root_pos.active ()].time << "\n"
+                << "Increment: " << Limits.clock[root_pos.active ()].inc  << "\n"
                 << "MoveTime : " << Limits.movetime                 << "\n"
                 << "MovesToGo: " << u16(Limits.movestogo)           << "\n"
                 << " Depth Score    Time       Nodes  PV\n"
@@ -2044,14 +2042,18 @@ namespace Threading {
                     root_pos.undo_move ();
                 }
                 book.close ();
-                if (found) goto finish;
+                if (found)
+                {
+                    goto finish;
+                }
             }
 
             i16 timed_contempt = 0;
-            TimePoint diff_time;
-            if (   ContemptTime != 0
-                && time_mgr_used
-                && (diff_time = (Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MilliSec) != 0
+            i64 diff_time;
+            if (   time_mgr_used
+                && ContemptTime != 0
+                && (diff_time = i64(  Limits.clock[ root_pos.active ()].time
+                                    - Limits.clock[~root_pos.active ()].time)/MilliSec) != 0
                 //&& ContemptTime <= abs (diff_time)
                )
             {
@@ -2059,8 +2061,8 @@ namespace Threading {
             }
 
             auto contempt = cp_to_value ((FixedContempt + timed_contempt) / 100.0);
-            DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
-            DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
+            DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] = VALUE_DRAW - contempt;
+            DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] = VALUE_DRAW + contempt;
 
             TBDepthLimit = i32(Options["Syzygy Depth Limit"])*DEPTH_ONE;
             TBPieceLimit = i32(Options["Syzygy Piece Limit"]);
@@ -2085,15 +2087,19 @@ namespace Threading {
 
                 if (TBHasRoot)
                 {
-                    TBPieceLimit = 0; // Do not probe tablebases during the search
+                    // Do not probe tablebases during the search
+                    TBPieceLimit = 0;
                 }
-                else // If DTZ tables are missing, use WDL tables as a fallback
+                // If DTZ tables are missing, use WDL tables as a fallback
+                else
                 {
                     // Filter out moves that do not preserve the draw or the win
                     TBHasRoot = root_probe_wdl (root_pos, root_moves);
 
                     // Only probe during search if winning
-                    if (ProbeValue <= VALUE_DRAW)
+                    if (   TBHasRoot
+                        && ProbeValue <= VALUE_DRAW
+                       )
                     {
                         TBPieceLimit = 0;
                     }
@@ -2129,7 +2135,7 @@ namespace Threading {
             // Update the time manager after searching.
             if (time_mgr_used)
             {
-                time_mgr.update (RootColor);
+                time_mgr.update (root_pos.active ());
             }
         }
 

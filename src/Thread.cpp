@@ -96,7 +96,12 @@ void TimeManager::initialize (Color c, i16 ply)
 
     if (Ponder)
     {
-        _optimum_time += _optimum_time / 4;
+        _optimum_time = TimePoint(_optimum_time * 1.25);
+    }
+    // Make sure that _optimum_time is not over _maximum_time
+    if (_optimum_time > _maximum_time)
+    {
+        _optimum_time = _maximum_time;
     }
 }
 // TimeManager::update() is called at the end of the search.

@@ -490,16 +490,14 @@ Value Position::see      (Move m) const
         break;
 
     case ENPASSANT:
+        assert(ptype (_board[org]) == PAWN);
         // Remove the captured pawn
         mocc = _types_bb[NONE] - org - (dst - pawn_push (stm));
         gain_list[0] = PieceValues[MG][PAWN];
         break;
 
     default:
-        //if (ptype (_board[dst]) == NONE)
-        //{
-        //    return VALUE_ZERO;
-        //}
+        assert(ptype (_board[org]) != NONE);
         mocc = _types_bb[NONE] - org;
         gain_list[0] = PieceValues[MG][ptype (_board[dst])];
         break;
@@ -562,13 +560,10 @@ Value Position::see_sign (Move m) const
     // Note that king moves always return here because king value is set to VALUE_ZERO.
     if (  PieceValues[MG][ptype (_board[org_sq (m)])]
        <= PieceValues[MG][ptype (_board[dst_sq (m)])]
+        || mtype (m) == ENPASSANT
        )
     {
         return VALUE_KNOWN_WIN;
-    }
-    if (mtype (m) == ENPASSANT)
-    {
-        return PieceValues[MG][PAWN];
     }
     return see (m);
 }
@@ -878,7 +873,10 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     assert((_color_bb[_active] & org) != U64(0));
 
     // Is there a Direct check ?
-    if ((ci.checking_bb[ptype (_board[org])] & dst) != U64(0)) return true;
+    if ((ci.checking_bb[ptype (_board[org])] & dst) != U64(0))
+    {
+        return true;
+    }
     // Is there a Discovered check ?
     // For discovery check we need to verify also direction
     if (    ci.discoverers != U64(0)
@@ -1471,7 +1469,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
         break;
     }
     // Update castling rights if needed
-    if (_psi->castle_rights != CR_NONE && (_castle_mask[org] | _castle_mask[dst]) != CR_NONE)
+    if (   _psi->castle_rights != CR_NONE
+        && (_castle_mask[org] | _castle_mask[dst]) != CR_NONE
+       )
     {
         i32 cr = _psi->castle_rights & (_castle_mask[org] | _castle_mask[dst]);
         Bitboard b = cr;
@@ -1598,9 +1598,7 @@ void Position::undo_move ()
         break;
     }
     // Restore the captured piece
-    if (   mtype (m) != CASTLE
-        && _psi->capture_type != NONE
-       )
+    if (_psi->capture_type != NONE)
     {
         place_piece (cap, ~_active, _psi->capture_type);
     }

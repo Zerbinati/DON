@@ -40,7 +40,7 @@ namespace MoveGen {
                     attacks &= ci->checking_bb[PT];
                 }
 
-                while (attacks != U64(0)) { (*moves++).move = mk_move (s, pop_lsq (attacks)); }
+                while (attacks != U64(0)) { (*moves++).move = mk_move<NORMAL> (s, pop_lsq (attacks)); }
             }
         }
 
@@ -52,7 +52,7 @@ namespace MoveGen {
             assert(!pos.castle_impeded (CR)
                  && pos.can_castle (CR) != CR_NONE
                  && pos.checkers () == U64(0));
-                
+
             static const bool KingSide = (CR & CR_KING) != CR_NONE;
 
             const auto Opp = Own == WHITE ? BLACK : WHITE;
@@ -101,7 +101,7 @@ namespace MoveGen {
             {
                 auto king_sq = pos.square<KING> (Own);
                 auto attacks = PieceAttacks[KING][king_sq] & ~PieceAttacks[KING][pos.square<KING> (Opp)] & targets;
-                while (attacks != U64(0)) { (*moves++).move = mk_move (king_sq, pop_lsq (attacks)); }
+                while (attacks != U64(0)) { (*moves++).move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
             }
 
             if (GT != CAPTURE)
@@ -185,16 +185,20 @@ namespace MoveGen {
             auto R7_pawns = pos.pieces (Own, PAWN) &  Rank7BB;  // Pawns on 7th Rank
             auto Rx_pawns = pos.pieces (Own, PAWN) & ~Rank7BB;  // Pawns not on 7th Rank
 
-            auto enemies =
-                GT == EVASION ? pos.pieces (Opp) & targets :
-                GT == CAPTURE ? targets : pos.pieces (Opp);
+            Bitboard enemies;
+            switch (GT)
+            {
+            case EVASION: enemies = pos.pieces (Opp) & targets; break;
+            case CAPTURE: enemies = targets;                    break;
+            default:      enemies = pos.pieces (Opp);           break;
+            }
 
-            auto empties = U64(0);
+            Bitboard empties = U64(0);
             // Pawn single-push and double-push, no promotions
             if (GT != CAPTURE)
             {
                 empties = GT == QUIET || GT == QUIET_CHECK ? targets : ~pos.pieces ();
-                    
+
                 auto push_1 = empties & shift_bb<Push> (Rx_pawns);
                 auto push_2 = empties & shift_bb<Push> (push_1 & Rank3BB);
 
@@ -228,9 +232,9 @@ namespace MoveGen {
 
                 default: break;
                 }
-                    
-                while (push_1 != U64(0)) { auto dst = pop_lsq (push_1); (*moves++).move = mk_move (dst - Push, dst); }
-                while (push_2 != U64(0)) { auto dst = pop_lsq (push_2); (*moves++).move = mk_move (dst - Push-Push, dst); }
+
+                while (push_1 != U64(0)) { auto dst = pop_lsq (push_1); (*moves++).move = mk_move<NORMAL> (dst - Push, dst); }
+                while (push_2 != U64(0)) { auto dst = pop_lsq (push_2); (*moves++).move = mk_move<NORMAL> (dst - Push-Push, dst); }
             }
             // Pawn normal and en-passant captures, no promotions
             if (GT == RELAX || GT == CAPTURE || GT == EVASION)
@@ -238,8 +242,8 @@ namespace MoveGen {
                 auto l_attacks = enemies & shift_bb<LCap> (Rx_pawns);
                 auto r_attacks = enemies & shift_bb<RCap> (Rx_pawns);
 
-                while (l_attacks != U64(0)) { auto dst = pop_lsq (l_attacks); (*moves++).move = mk_move (dst - LCap, dst); }
-                while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); (*moves++).move = mk_move (dst - RCap, dst); }
+                while (l_attacks != U64(0)) { auto dst = pop_lsq (l_attacks); (*moves++).move = mk_move<NORMAL> (dst - LCap, dst); }
+                while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); (*moves++).move = mk_move<NORMAL> (dst - RCap, dst); }
 
                 auto ep_sq = pos.en_passant_sq ();
                 if (ep_sq != SQ_NO)
@@ -270,9 +274,12 @@ namespace MoveGen {
                 // All time except when EVASION then 2nd condition must true
                 if (GT != EVASION || (targets & Rank8BB) != U64(0))
                 {
-                    empties = 
-                        GT == EVASION ? empties & targets :
-                        GT == CAPTURE ? ~pos.pieces () : empties;
+                    switch (GT)
+                    {
+                    case EVASION: empties &= targets;       break;
+                    case CAPTURE: empties = ~pos.pieces (); break;
+                    default:                                break;
+                    }
 
                     // Promoting pawns
                     Bitboard proms;
@@ -314,11 +321,14 @@ namespace MoveGen {
         assert(pos.checkers () == U64(0));
 
         auto active  = pos.active ();
-        auto targets = 
-            GT == RELAX   ? ~pos.pieces ( active) :
-            GT == CAPTURE ?  pos.pieces (~active) :
-            GT == QUIET   ? ~pos.pieces () :
-            U64(0);
+        Bitboard targets;
+        switch (GT)
+        {
+        case RELAX:   targets = ~pos.pieces (active); break;
+        case CAPTURE: targets = pos.pieces (~active); break;
+        case QUIET:   targets = ~pos.pieces ();       break;
+        default:      targets = U64(0);               break;
+        }
 
         return active == WHITE ? generate_moves<GT, WHITE> (moves, pos, targets) :
                active == BLACK ? generate_moves<GT, BLACK> (moves, pos, targets) :
@@ -361,7 +371,7 @@ namespace MoveGen {
                 attacks &= ~PieceAttacks[QUEN][ci.king_sq]; // Clear path for checker
             }
 
-            while (attacks != U64(0)) { (*moves++).move = mk_move (org, pop_lsq (attacks)); }
+            while (attacks != U64(0)) { (*moves++).move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
         return active == WHITE ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets, &ci) :
@@ -389,7 +399,7 @@ namespace MoveGen {
                 attacks &= ~PieceAttacks[QUEN][ci.king_sq]; // Clear path for checker
             }
 
-            while (attacks != U64(0)) { (*moves++).move = mk_move (org, pop_lsq (attacks)); }
+            while (attacks != U64(0)) { (*moves++).move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
         return active == WHITE ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
@@ -454,7 +464,7 @@ namespace MoveGen {
                 | PieceAttacks[KING][pos.square<KING> (~active)]
                );
 
-        while (attacks != U64(0)) { (*moves++).move = mk_move (king_sq, pop_lsq (attacks)); }
+        while (attacks != U64(0)) { (*moves++).move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
 
         // If double-check, then only a king move can save the day, triple+ check not possible
         if (   more_than_one (checkers)
@@ -463,7 +473,7 @@ namespace MoveGen {
         {
             return moves;
         }
-        
+
         // Generates blocking evasions or captures of the checking piece
         auto targets = Between_bb[check_sq][king_sq] + check_sq;
 
@@ -476,30 +486,31 @@ namespace MoveGen {
     // Generates all legal moves.
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
-        auto *cur_move = moves;
-        auto *end_move = pos.checkers () == U64(0) ?
-            generate<RELAX  > (moves, pos) :
-            generate<EVASION> (moves, pos);
+        return filter_illegal (pos, moves, pos.checkers () == U64(0) ?
+                               generate<RELAX  > (moves, pos) :
+                               generate<EVASION> (moves, pos));
+    }
 
+    ValMove* filter_illegal (const Position &pos, ValMove *beg_move, ValMove *end_move)
+    {
         auto pinneds = pos.pinneds (pos.active ());
         auto king_sq = pos.square<KING> (pos.active ());
-        while (cur_move < end_move)
+        while (beg_move < end_move)
         {
             if (   (   pinneds != U64(0)
-                    || org_sq (*cur_move) == king_sq
-                    || mtype (*cur_move) == ENPASSANT
+                    || org_sq (beg_move->move) == king_sq
+                    || mtype (beg_move->move) == ENPASSANT
                    )
-                && !pos.legal (*cur_move, pinneds)
+                && !pos.legal (beg_move->move, pinneds)
                )
             {
-                *cur_move = *(--end_move);
+                *beg_move = *(--end_move);
                 continue;
             }
-            assert(pos.pseudo_legal (*cur_move));
-            ++cur_move;
+            assert(pos.pseudo_legal (beg_move->move));
+            ++beg_move;
         }
 
         return end_move;
     }
-
 }

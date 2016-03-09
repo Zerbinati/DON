@@ -209,20 +209,6 @@ namespace TBSyzygy {
             TBEntry *tbe;
         };
 
-        enum TB_Piece
-        {
-            TB_NONE     = 0,
-            TB_PAWN     = 1,
-            TB_KNIGHT   = 2,
-            TB_BISHOP   = 3,
-            TB_ROOK     = 4,
-            TB_QUEEN    = 5,
-            TB_KING     = 6,
-
-            TB_WPAWN    = 0|TB_PAWN,
-            TB_BPAWN    = 8|TB_PAWN,
-        };
-
         PieceType tb_ptype (Piece p) { return (p & MAX_PTYPE) != 0 ? PieceType((p & MAX_PTYPE) - 1) : NONE; }
 
         const char PieceChar[NONE] ={ 'P', 'N', 'B', 'R', 'Q', 'K' };
@@ -300,7 +286,7 @@ namespace TBSyzygy {
 #else
             DWORD size_low, size_high;
             size_low = GetFileSize (fd, &size_high);
-            //*size = ((u64)size_high) << 32 | ((u64)size_low);
+            //size = u64(size_high) << 32 | u64(size_low);
             HANDLE map = CreateFileMapping (fd, nullptr, PAGE_READONLY, size_high, size_low, nullptr);
             if (map == nullptr)
             {
@@ -365,7 +351,7 @@ namespace TBSyzygy {
             auto color = mirror ? BLACK : WHITE;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (auto pc = pcs[color | PieceType(pt + 1)]; pc > 0; --pc)
+                for (auto pc = pcs[(color|pt) + 1]; pc > 0; --pc)
                 {
                     key ^= Zob.piece_square[WHITE][pt][pc - 1];
                 }
@@ -373,7 +359,7 @@ namespace TBSyzygy {
             color = ~color;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (auto pc = pcs[color | PieceType(pt + 1)]; pc > 0; --pc)
+                for (auto pc = pcs[(color|pt) + 1]; pc > 0; --pc)
                 {
                     key ^= Zob.piece_square[BLACK][pt][pc - 1];
                 }
@@ -391,31 +377,31 @@ namespace TBSyzygy {
             
             u08 pcs[MaxPiece];
             std::memset (pcs, 0x00, MaxPiece);
-            u08 color = 0;
+            Color color = WHITE;
             for (const auto &ch : filename)
             {
                 switch (ch)
                 {
                 case 'P':
-                    pcs[TB_PAWN | color]++;
+                    pcs[(color|PAWN) + 1]++;
                     break;
                 case 'N':
-                    pcs[TB_KNIGHT | color]++;
+                    pcs[(color|NIHT) + 1]++;
                     break;
                 case 'B':
-                    pcs[TB_BISHOP | color]++;
+                    pcs[(color|BSHP) + 1]++;
                     break;
                 case 'R':
-                    pcs[TB_ROOK | color]++;
+                    pcs[(color|ROOK) + 1]++;
                     break;
                 case 'Q':
-                    pcs[TB_QUEEN | color]++;
+                    pcs[(color|QUEN) + 1]++;
                     break;
                 case 'K':
-                    pcs[TB_KING | color]++;
+                    pcs[(color|KING) + 1]++;
                     break;
                 case 'v':
-                    color = 0x08;
+                    color = BLACK;
                     break;
                 }
             }
@@ -424,7 +410,7 @@ namespace TBSyzygy {
             Key key2 = calc_key (pcs, true);
             
             TBEntry *tbe = nullptr;
-            if ((pcs[TB_WPAWN] + pcs[TB_BPAWN]) == 0)
+            if ((pcs[(WHITE|PAWN) + 1] + pcs[(BLACK|PAWN) + 1]) == 0)
             {
                 if (TB_PieceCount == MaxTBPiece)
                 {
@@ -453,7 +439,7 @@ namespace TBSyzygy {
             }
 
             tbe->symmetric = (key1 == key2);
-            tbe->has_pawns = (pcs[TB_WPAWN] + pcs[TB_BPAWN]) > 0;
+            tbe->has_pawns = (pcs[(WHITE|PAWN) + 1] + pcs[(BLACK|PAWN) + 1]) > 0;
 
             if (MaxPieceLimit < tbe->num)
             {
@@ -463,48 +449,51 @@ namespace TBSyzygy {
             if (tbe->has_pawns)
             {
                 auto *tbep = reinterpret_cast<TBEntry_pawn *> (tbe);
-                tbep->pawns[0] = pcs[TB_WPAWN];
-                tbep->pawns[1] = pcs[TB_BPAWN];
-                if (   pcs[TB_BPAWN] > 0
-                    && (pcs[TB_WPAWN] == 0 || pcs[TB_WPAWN] > pcs[TB_BPAWN])
+                tbep->pawns[0] = pcs[(WHITE|PAWN) + 1];
+                tbep->pawns[1] = pcs[(BLACK|PAWN) + 1];
+                if (   pcs[(BLACK|PAWN) + 1] > 0
+                    && (pcs[(WHITE|PAWN) + 1] == 0 || pcs[(WHITE|PAWN) + 1] > pcs[(BLACK|PAWN) + 1])
                    )
                 {
-                    tbep->pawns[0] = pcs[TB_BPAWN];
-                    tbep->pawns[1] = pcs[TB_WPAWN];
+                    tbep->pawns[0] = pcs[(BLACK|PAWN) + 1];
+                    tbep->pawns[1] = pcs[(WHITE|PAWN) + 1];
                 }
             }
             else
             {
                 auto *tbep = reinterpret_cast<TBEntry_piece *> (tbe);
                 
-                u08 i, j;
-                for (i = 0, j = 0; i < MaxPiece; ++i)
+                u08 count = 0;
+                for (u08 i = 0; i < MaxPiece; ++i)
                 {
                     if (pcs[i] == 1)
                     {
-                        ++j;
+                        ++count;
                     }
                 }
                 
-                if (j >= 3)
+                if (count >= 3)
                 {
                     tbep->enc_type = 0;
                 }
                 else
-                if (j == 2)
+                if (count == 2)
                 {
                     tbep->enc_type = 2;
                 }
                 else
                 { /* only for suicide */
-                    j = 16;
-                    for (i = 0; i < MaxPiece; ++i)
+                    count = 16;
+                    for (u08 i = 0; i < MaxPiece; ++i)
                     {
-                        if (pcs[i] > 1 && pcs[i] < j)
+                        if (pcs[i] > 1)
                         {
-                            j = pcs[i];
+                            if (count > pcs[i])
+                            {
+                                count = pcs[i];
+                            }
                         }
-                        tbep->enc_type = u08(1 + j);
+                        tbep->enc_type = u08(1 + count);
                     }
                 }
             }
@@ -781,11 +770,9 @@ namespace TBSyzygy {
             }
             for (u08 i = 0; i < 5; ++i)
             {
-                i32 s;
-                u08 j;
-
-                s = 0;
-                for (j = 0; j < 6; ++j)
+                i32 s = 0;
+                u08 j = 0;
+                for (; j < 6; ++j)
                 {
                     PawnIdx[i][j] = s;
                     s += (i == 0) ? 1 : Binomial[i - 1][Ptwist[InvFlap[j]]];
@@ -1187,7 +1174,7 @@ namespace TBSyzygy {
 
         void setup_pawn (TBEntry_pawn *tbep, u08 *data, u64 *tb_size, u08 f)
         {
-            u08 j = 1 + (tbep->pawns[1] > 0);
+            u08 j = 1 + (tbep->pawns[1] > 0 ? 1 : 0);
             u08 order1 = data[0] & 0x0F;
             u08 order2 = tbep->pawns[1] != 0 ? data[1] & 0x0F : 0x0F;
             for (u08 i = 0; i < tbep->num; ++i)
@@ -1209,7 +1196,7 @@ namespace TBSyzygy {
 
         void setup_pawn_dtz (DTZEntry_pawn *dtzep, u08 *data, u64 *tb_size, u08 f)
         {
-            u08 j = 1 + (dtzep->pawns[1] > 0);
+            u08 j = 1 + (dtzep->pawns[1] > 0 ? 1 : 0);
             u08 order1 = data[0] & 0x0F;
             u08 order2 = dtzep->pawns[1] != 0 ? data[1] & 0x0F : 0x0F;
             for (u08 i = 0; i < dtzep->num; ++i)
@@ -1937,23 +1924,9 @@ namespace TBSyzygy {
                 UNLOCK (TB_mutex);
             }
 
-            Color side;
-            if (tbe->symmetric)
-            {
-                side = WHITE;
-            }
-            else
-            {
-                if (matl_key == tbe->key)
-                {
-                    side = pos.active ();
-                }
-                else
-                {
-                    side = ~pos.active ();
-                }
-            }
-
+            Color side = tbe->symmetric ?
+                            WHITE : matl_key == tbe->key ?
+                                pos.active () : ~pos.active ();
             u16 res;
             Square sq[TB_PieceLimit];
             std::memset (sq, SQ_NO, TB_PieceLimit);
@@ -2070,23 +2043,9 @@ namespace TBSyzygy {
                 return VALUE_ZERO;
             }
 
-            Color side;
-            if (tbe->symmetric)
-            {
-                side = WHITE;
-            }
-            else
-            {
-                if (matl_key == tbe->key)
-                {
-                    side = pos.active ();
-                }
-                else
-                {
-                    side = ~pos.active ();
-                }
-            }
-
+            Color side = tbe->symmetric ?
+                            WHITE : matl_key == tbe->key ?
+                                pos.active () : ~pos.active ();
             u16 res;
             Square sq[TB_PieceLimit];
             std::memset (sq, SQ_NO, TB_PieceLimit);

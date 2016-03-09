@@ -52,8 +52,7 @@ namespace MovePick {
         // Piece, destiny square, move
         void update (Piece p, Square s, Move m)
         {
-            auto &e = _table[p][s];
-            if (e != m) e = m;
+            _table[p][s] = m;
         }
 
     };

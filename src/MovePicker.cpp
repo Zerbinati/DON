@@ -19,11 +19,6 @@ namespace MovePick {
             S_STOP
         };
 
-        const Value PieceCapValues[MAX_PTYPE] =
-        {
-            VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_MG_QUEN+1, VALUE_ZERO
-        };
-
         // Insertion sort in the range [beg, end), which is guaranteed to be stable, as it should be
         void insertion_sort (ValMove *beg, ValMove *end)
         {
@@ -137,7 +132,10 @@ namespace MovePick {
     // The moves with highest scores will be picked first.
 
     template<>
-    // Winning and equal captures in the main search are ordered by MVV/LVA.
+    // Winning and equal captures in the main search are ordered by MVV, preferring
+    // captures near our home rank. Surprisingly, this appears to perform slightly
+    // better than SEE-based move ordering: exchanging big pieces before capturing
+    // a hanging piece probably helps to reduce the subtree size.
     // In the main search we want to push captures with negative SEE values to the
     // badCaptures[] array, but instead of doing it now we delay until the move
     // has been picked up, saving some SEE calls in case we get a cutoff.
@@ -145,8 +143,9 @@ namespace MovePick {
     {
         for (auto &vm : *this)
         {
-            vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                     - PieceCapValues[ptype (_pos[org_sq (vm.move)])];
+            assert(_pos.pseudo_legal (vm.move));
+            vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                     - Value(200 * rel_rank (_pos.active (), dst_sq (vm.move)));
         }
     }
 
@@ -155,6 +154,7 @@ namespace MovePick {
     {
         for (auto &vm : *this)
         {
+            assert(_pos.pseudo_legal (vm.move));
             vm.value = _history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
               + (*_counter_move_values)[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
         }
@@ -168,6 +168,7 @@ namespace MovePick {
     {
         for (auto &vm : *this)
         {
+            assert(_pos.pseudo_legal (vm.move));
             auto see_value = _pos.see_sign (vm.move);
             if (see_value < VALUE_ZERO)
             {
@@ -176,8 +177,8 @@ namespace MovePick {
             else
             if (_pos.capture (vm.move))
             {
-                vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                         - PieceCapValues[ptype (_pos[org_sq (vm.move)])] + MaxStatsValue;
+                vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                         - Value(ptype (_pos[org_sq (vm.move)])) + MaxStatsValue;
             }
             else
             {
@@ -248,7 +249,8 @@ namespace MovePick {
             break;
 
         case S_ALL_EVASION:
-            _end_move = generate<EVASION> (_beg_move, _pos);
+            assert(_pos.checkers () != U64(0));
+            _end_move = filter_illegal (_pos, _beg_move, generate<EVASION> (_beg_move, _pos));
             if (_cur_move < _end_move-1)
             {
                 value<EVASION> ();
@@ -282,7 +284,9 @@ namespace MovePick {
     {
         do
         {
-            while (_cur_move == _end_move && _stage != S_STOP)
+            while (   _cur_move == _end_move
+                   && _stage != S_STOP
+                  )
             {
                 generate_next_stage ();
             }
@@ -353,18 +357,6 @@ namespace MovePick {
                 break;
 
             case S_ALL_EVASION:
-                do
-                {
-                    auto move = pick_best (_cur_move++, _end_move).move;
-                    if (   move != _tt_move
-                        && _pos.pseudo_legal (move)
-                       )
-                    {
-                        return move;
-                    }
-                } while (_cur_move < _end_move);
-                break;
-
             case S_QCAPTURE_1:
             case S_QCAPTURE_2:
                 do

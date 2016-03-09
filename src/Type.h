@@ -655,18 +655,9 @@ inline void promote (Move &m, PieceType pt)  { m &= 0x0FFF; m |= (pt - NIHT) << 
 //    return mm;
 //}
 
-template<MoveType MT>
-inline   Move mk_move (Square org, Square dst) { return Move(dst | org << 6 | MT); }
 // --------------------------------
-// Explicit template instantiations
-template Move mk_move<NORMAL>    (Square, Square);
-template Move mk_move<CASTLE>    (Square, Square);
-template Move mk_move<ENPASSANT> (Square, Square);
-// --------------------------------
-template<MoveType MT>
-inline Move mk_move (Square org, Square dst, PieceType pt/*=QUEN*/) { return Move(dst | (org | ((pt - NIHT) << 6)) << 6 | PROMOTE); }
-// Make normal moves
-inline Move mk_move (Square org, Square dst) { return Move(dst | org << 6); }
+template<MoveType MT=NORMAL>
+inline Move mk_move (Square org, Square dst, PieceType pt=NIHT) { return Move(dst | (org | ((pt - NIHT) << 6)) << 6 | MT); }
 
 inline double value_to_cp (Value   v) { return double(v) / i32(VALUE_EG_PAWN); }
 inline Value  cp_to_value (double cp) { return Value(i32(std::round (cp * i32(VALUE_EG_PAWN)))); }
@@ -897,12 +888,12 @@ inline void remove_extension (std::string &filename)
     }
 }
 
-inline std::string append_path (const std::string &path1, const std::string &path2)
+inline std::string append_path (const std::string &base_path, const std::string &file_path)
 {
     static const char Separator = '/';
-    return path1[path1.length ()] != Separator ?
-        path1 + Separator + path2 :
-        path1 + path2;
+    return base_path[base_path.length ()] != Separator ?
+        base_path + Separator + file_path :
+        base_path + file_path;
 }
 
 inline void convert_path (std::string &path)

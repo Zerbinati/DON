@@ -316,9 +316,7 @@ namespace Evaluator {
 
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
             const auto Push = Own == WHITE ? DEL_N : DEL_S;
-            const auto OutpostMask = Own == WHITE ?         // Mask of allowed outpost squares
-                                        R4_bb|R5_bb|R6_bb :
-                                        R5_bb|R4_bb|R3_bb;
+
             auto score = SCORE_ZERO;
 
             ei.ful_attacked_by[Own][PT] = U64(0);
@@ -364,6 +362,10 @@ namespace Evaluator {
                 
                 if (PT == NIHT || PT == BSHP)
                 {
+                    const auto OutpostMask = Own == WHITE ?         // Mask of allowed outpost squares
+                                                R4_bb|R5_bb|R6_bb :
+                                                R5_bb|R4_bb|R3_bb;
+
                     // Bonus for minors (bishop or knight) when behind a pawn
                     if (   rel_rank (Own, s) < R_5
                         && (pos.pieces (PAWN) & (s+Push)) != U64(0)
@@ -1064,7 +1066,9 @@ namespace Evaluator {
             - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
 
         // Evaluate space for both sides, only during opening
-        if (pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK) >= VALUE_SPACE)
+        if (  pos.non_pawn_material (WHITE)
+            + pos.non_pawn_material (BLACK) >= VALUE_SPACE
+           )
         {
             score += 
                 + evaluate_space_activity<WHITE, Trace> (pos, ei)
@@ -1072,7 +1076,9 @@ namespace Evaluator {
         }
         else
         // If both sides have only pawns, score for potential unstoppable pawns
-        if (pos.non_pawn_material (WHITE) == VALUE_ZERO && pos.non_pawn_material (BLACK) == VALUE_ZERO)
+        if (   pos.non_pawn_material (WHITE) == VALUE_ZERO
+            && pos.non_pawn_material (BLACK) == VALUE_ZERO
+           )
         {
             score +=
                 + ei.pe->evaluate_unstoppable_pawns<WHITE> ();

@@ -20,6 +20,8 @@ enum GenType : u08
 
 namespace MoveGen {
 
+    extern ValMove* filter_illegal (const Position &pos, ValMove *beg_move, ValMove *end_move);
+
     template<GenType GT>
     extern ValMove* generate (ValMove *moves, const Position &pos);
 
