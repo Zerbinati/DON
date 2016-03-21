@@ -590,39 +590,33 @@ namespace Evaluator {
                     }
                 }
 
-                // Analyse the enemies safe distance checks for sliders and knights
+                // Analyse the enemies safe distance checks
                 auto safe_area = ~(pos.pieces (Opp) | ei.pin_attacked_by[Own][NONE]);
                 auto rook_check = attacks_bb<ROOK> (fk_sq, pos.pieces ()) & safe_area;
                 auto bshp_check = attacks_bb<BSHP> (fk_sq, pos.pieces ()) & safe_area;
 
-                // Enemies safe-checks
-                Bitboard safe_check;
-                // Queens safe-checks
-                safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[Opp][QUEN];
-                if (safe_check != U64(0))
+                // Queen safe-checks
+                if (((rook_check | bshp_check) & ei.pin_attacked_by[Opp][QUEN]) != U64(0))
                 {
-                    attack_units += QueenSafeCheck * pop_count<Max15> (safe_check);
+                    attack_units += QueenSafeCheck;
                     score -= KingChecked;
                 }
-                // Rooks safe-checks
-                safe_check = rook_check & ei.pin_attacked_by[Opp][ROOK];
-                if (safe_check != U64(0))
+                // Rook safe-checks
+                if ((rook_check & ei.pin_attacked_by[Opp][ROOK]) != U64(0))
                 {
-                    attack_units += RookSafeCheck * pop_count<Max15> (safe_check);
+                    attack_units += RookSafeCheck;
                     score -= KingChecked;
                 }
-                // Bishops safe-checks
-                safe_check = bshp_check & ei.pin_attacked_by[Opp][BSHP];
-                if (safe_check != U64(0))
+                // Bishop safe-checks
+                if ((bshp_check & ei.pin_attacked_by[Opp][BSHP]) != U64(0))
                 {
-                    attack_units += BishopSafeCheck * pop_count<Max15> (safe_check);
+                    attack_units += BishopSafeCheck;
                     score -= KingChecked;
                 }
-                // Knights safe-checks
-                safe_check = PieceAttacks[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[Opp][NIHT];
-                if (safe_check != U64(0))
+                // Knight safe-checks
+                if ((PieceAttacks[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[Opp][NIHT]) != U64(0))
                 {
-                    attack_units += KnightSafeCheck * pop_count<Max15> (safe_check);
+                    attack_units += KnightSafeCheck;
                     score -= KingChecked;
                 }
 
@@ -924,11 +918,10 @@ namespace Evaluator {
         }
 
         // evaluate_scale_factor() computes the scale factor for the winning side
-        ScaleFactor evaluate_scale_factor (const Position &pos, const EvalInfo &ei, Score score)
+        ScaleFactor evaluate_scale_factor (const Position &pos, const EvalInfo &ei, Value eg)
         {
             assert(PHASE_ENDGAME <= ei.me->game_phase && ei.me->game_phase <= PHASE_MIDGAME);
 
-            const auto eg = eg_value (score);
             const auto strong_side = eg >= VALUE_ZERO ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
             auto scale_factor = ei.me->scale_factor (pos, strong_side);
@@ -1092,7 +1085,7 @@ namespace Evaluator {
         assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
 
         // Evaluate scale factor for the winning side
-        auto scale_factor = evaluate_scale_factor (pos, ei, score);
+        auto scale_factor = evaluate_scale_factor (pos, ei, eg_value (score));
 
         // Interpolates between a middle game and a (scaled by 'scale_factor') endgame score, based on game phase.
         auto value = Value((  mg_value (score) * i32(ei.me->game_phase)
@@ -1151,13 +1144,13 @@ namespace Evaluator {
         return oss.str ();
     }
 
-    // initialize() init evaluation weights
+    // initialize() init King Danger table
     void initialize ()
     {
         auto mg = 0;
         for (auto i = 0; i < MaxAttackUnits; ++i)
         {
-            //                                DangerSlope, DangerValue
+            //                                   MaxSlope, MaxValue
             mg = std::min (std::min (i*i - 16, mg + 322), 47410);
             KingDanger[i] = mk_score (mg * 268 / 7700, 0);
         }

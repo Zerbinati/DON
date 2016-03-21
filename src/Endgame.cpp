@@ -186,7 +186,7 @@ namespace EndGame {
             return VALUE_DRAW;
         }
 
-        Value value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + _rank (sp_sq);
+        Value value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value(_rank (sp_sq));
 
         return pos.active () == _strong_side ? +value : -value;
     }

@@ -91,8 +91,9 @@ namespace MovePick {
 
         const Position      &_pos;
         const HValueStats   &_history_values;
-        const CMValueStats  *_counter_move_values = nullptr;
-        const Move          *_ss_killer_moves     = nullptr;
+        const CMValueStats  *_counter_move_values  = nullptr;
+        const CMValueStats  *_followup_move_values = nullptr;
+        const Move          *_ss_killer_moves      = nullptr;
 
         Move    _tt_move        = MOVE_NONE;
         Move    _counter_move   = MOVE_NONE;
@@ -116,7 +117,7 @@ namespace MovePick {
         MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
 
-        MovePicker (const Position&, const HValueStats&, const CMValueStats&, Move, const Move*, Move);
+        MovePicker (const Position&, const HValueStats&, const CMValueStats*, const CMValueStats*, Move, const Move*, Move);
         MovePicker (const Position&, const HValueStats&, Move, Square, Depth);
         MovePicker (const Position&, const HValueStats&, Move, Value);
 

@@ -26,12 +26,12 @@ namespace Transposition {
     struct Entry
     {
     private:
-        u16 _key16  = U64(0);
-        u16 _move   = MOVE_NONE;
-        i16 _value  = VALUE_NONE;
-        i16 _eval   = VALUE_NONE;
-        i08 _depth  = DEPTH_NONE;
-        u08 _gen_bnd= 0;
+        u16 _key16  ;//= U64(0);
+        u16 _move   ;//= MOVE_NONE;
+        i16 _value  ;//= VALUE_NONE;
+        i16 _eval   ;//= VALUE_NONE;
+        i08 _depth  ;//= DEPTH_NONE;
+        u08 _gen_bnd;//= u08(0);
 
         friend class Table;
 
@@ -46,6 +46,16 @@ namespace Transposition {
         Bound bound () const { return Bound(_gen_bnd & u08( BOUND_EXACT)); }
         u08   gen   () const { return u08  (_gen_bnd & u08(~BOUND_EXACT)); }
 
+        void clear ()
+        {
+            _key16  = U64(0);
+            _move   = MOVE_NONE;
+            _value  = VALUE_NONE;
+            _eval   = VALUE_NONE;
+            _depth  = DEPTH_NONE;
+            _gen_bnd= u08(0);
+        }
+
         void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
             // Preserve any existing move for the position (key)
@@ -57,7 +67,7 @@ namespace Transposition {
             }
             // Don't overwrite more valuable entries
             if (   (k >> 0x30) != _key16
-                || d > _depth - 4
+                || d > _depth - 6
              /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
                 || b == BOUND_EXACT
                )
@@ -149,10 +159,10 @@ namespace Transposition {
             free_aligned_memory ();
         }
 
-        size_t entries () const
-        {
-            return _cluster_count * Cluster::EntryCount;
-        }
+        //size_t entry_count () const
+        //{
+        //    return _cluster_count * Cluster::EntryCount;
+        //}
 
         // size() returns hash size in MB
         u32 size () const

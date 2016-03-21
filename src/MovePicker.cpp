@@ -19,6 +19,11 @@ namespace MovePick {
             S_STOP
         };
 
+        const Value PieceCapValues[MAX_PTYPE] =
+        {
+            VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_MG_QUEN+1, VALUE_ZERO
+        };
+
         // Insertion sort in the range [beg, end), which is guaranteed to be stable, as it should be
         void insertion_sort (ValMove *beg, ValMove *end)
         {
@@ -59,10 +64,11 @@ namespace MovePick {
     // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
     // and about how important good move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, const CMValueStats &cmv, Move ttm, const Move *ss_km, Move cm)
+    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, const CMValueStats *cmv, const CMValueStats *fmv, Move ttm, const Move *ss_km, Move cm)
         : _pos (pos)
         , _history_values (hv)
-        , _counter_move_values (&cmv)
+        , _counter_move_values (cmv)
+        , _followup_move_values (fmv)
         , _ss_killer_moves (ss_km)
         , _tt_move (ttm)
         , _counter_move (cm)
@@ -132,10 +138,7 @@ namespace MovePick {
     // The moves with highest scores will be picked first.
 
     template<>
-    // Winning and equal captures in the main search are ordered by MVV, preferring
-    // captures near our home rank. Surprisingly, this appears to perform slightly
-    // better than SEE-based move ordering: exchanging big pieces before capturing
-    // a hanging piece probably helps to reduce the subtree size.
+    // Winning and equal captures in the main search are ordered by MVV/LVA.
     // In the main search we want to push captures with negative SEE values to the
     // badCaptures[] array, but instead of doing it now we delay until the move
     // has been picked up, saving some SEE calls in case we get a cutoff.
@@ -144,8 +147,8 @@ namespace MovePick {
         for (auto &vm : *this)
         {
             assert(_pos.pseudo_legal (vm.move));
-            vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                     - Value(200 * rel_rank (_pos.active (), dst_sq (vm.move)));
+            vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                     - PieceCapValues[ptype (_pos[org_sq (vm.move)])];
         }
     }
 
@@ -156,7 +159,8 @@ namespace MovePick {
         {
             assert(_pos.pseudo_legal (vm.move));
             vm.value = _history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
-              + (*_counter_move_values)[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
+              + (*_counter_move_values )[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
+              + (*_followup_move_values)[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
         }
     }
 
@@ -177,12 +181,19 @@ namespace MovePick {
             else
             if (_pos.capture (vm.move))
             {
-                vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                         - Value(ptype (_pos[org_sq (vm.move)])) + MaxStatsValue;
+                vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                         - PieceCapValues[ptype (_pos[org_sq (vm.move)])] + MaxStatsValue;
             }
             else
             {
                 vm.value = _history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
+                if (   _counter_move_values != nullptr
+                    && _followup_move_values != nullptr
+                   )
+                {
+                    vm.value += (*_counter_move_values )[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
+                             +  (*_followup_move_values)[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
+                }
             }
         }
     }
