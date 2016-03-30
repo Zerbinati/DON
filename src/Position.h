@@ -204,6 +204,7 @@ public:
     Key matl_key () const;
     Key pawn_key () const;
     Key posi_key () const;
+    Key poly_key () const;
     Key move_posi_key (Move m) const;
 
     Value non_pawn_material (Color c) const;
@@ -371,6 +372,7 @@ inline Bitboard Position::checkers () const { return _psi->checkers; }
 inline Key Position::matl_key () const { return _psi->matl_key; }
 inline Key Position::pawn_key () const { return _psi->pawn_key; }
 inline Key Position::posi_key () const { return _psi->posi_key; }
+inline Key Position::poly_key () const { return PolyZob.compute_posi_key (*this); }
 // move_posi_key() computes the new hash key after the given moven. Needed for speculative prefetch.
 // It doesn't recognize special moves like castling, en-passant and promotions.
 inline Key Position::move_posi_key (Move m) const

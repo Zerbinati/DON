@@ -125,21 +125,21 @@ namespace Evaluator {
         const Score PieceMobility[NONE][28] =
         {
             {},
-            { // Knights
+            { // Knight
                 S(-75,-76), S(-56,-54), S(- 9,-26), S( -2,-10), S(  6,  5), S( 15, 11),
                 S( 22, 26), S( 30, 28), S( 36, 29)
             },
-            { // Bishops
+            { // Bishop
                 S(-48,-58), S(-21,-19), S( 16, -2), S( 26, 12), S( 37, 22), S( 51, 42),
                 S( 54, 54), S( 63, 58), S( 65, 63), S( 71, 70), S( 79, 74), S( 81, 86),
                 S( 92, 90), S( 97, 94)
             },
-            { // Rooks
+            { // Rook
                 S(-56,-78), S(-25,-18), S(-11, 26), S( -5, 55), S( -4, 70), S( -1, 81),
                 S(  8,109), S( 14,120), S( 21,128), S( 23,143), S( 31,154), S( 32,160),
                 S( 43,165), S( 49,168), S( 59,169)
             },
-            { // Queens
+            { // Queen
                 S(-40,-35), S(-25,-12), S(  2,  7), S(  4, 19), S( 14, 37), S( 24, 55),
                 S( 25, 62), S( 40, 76), S( 43, 79), S( 47, 87), S( 54, 94), S( 56,102),
                 S( 60,111), S( 70,116), S( 72,118), S( 73,122), S( 75,128), S( 77,130),
@@ -195,7 +195,9 @@ namespace Evaluator {
 
         const Score ThreatByHangingPawn     = S(70,63);
         const Score ThreatByPawnPush        = S(31,19);
-        const Score PieceHanged             = S(48,28); // Bonus for each enemy hanged piece       
+
+        const Score EnemyPieceLoosed        = S( 0,25); // Bonus for each enemy loosed piece
+        const Score EnemyPieceHanged        = S(48,28); // Bonus for each enemy hanged piece
 
         const Score MinorBehindPawn         = S(16, 0); // Bonus for minor behind a pawn
 
@@ -222,7 +224,7 @@ namespace Evaluator {
         const Value PawnPassedValue[PH_NO][R_NO] =
         {
             { V(0), V(5), V( 5), V(31), V(73), V(166), V(252), V(0) },
-            { V(0), V(7), V(14), V(38), V(64), V(137), V(193), V(0) }
+            { V(0), V(7), V(14), V(38), V(73), V(166), V(252), V(0) }
         };
     #undef V
 
@@ -344,7 +346,10 @@ namespace Evaluator {
                     ei.king_ring_attackers_count [Own]++;
                     ei.king_ring_attackers_weight[Own] += KingAttackWeights[PT];
                     auto zone_attacks = ei.ful_attacked_by[Opp][KING] & attacks;
-                    if (zone_attacks != U64(0)) ei.king_zone_attacks_count[Own] += u08(pop_count<Max15> (zone_attacks));
+                    if (zone_attacks != U64(0))
+                    {
+                        ei.king_zone_attacks_count[Own] += u08(pop_count<Max15> (zone_attacks));
+                    }
                 }
 
                 if (PT == QUEN)
@@ -498,12 +503,12 @@ namespace Evaluator {
             // King Safety: friend pawns shelter and enemy pawns storm
             ei.pe->evaluate_king_safety<Own> (pos);
 
-            Value value;
+            Value value = ei.pe->king_safety[Own][CS_NO];
             // If can castle use the value after the castle if is bigger
-            if (rel_rank (Own, fk_sq) == R_1 && pos.can_castle (Own) != CR_NONE)
+            if (   rel_rank (Own, fk_sq) == R_1
+                && pos.can_castle (Own) != CR_NONE
+               )
             {
-                value = ei.pe->king_safety[Own][CS_NO];
-
                 if (    pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE
                     && (pos.king_path (Castling<Own, CS_KING>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
                     && !more_than_one (pos.castle_path (Castling<Own, CS_KING>::Right) & pos.pieces ())
@@ -518,15 +523,6 @@ namespace Evaluator {
                 {
                     value = std::max (ei.pe->king_safety[Own][CS_QUEN], value);
                 }
-            }
-            else
-            if (rel_rank (Own, fk_sq) <= R_4)
-            {
-                value = ei.pe->king_safety[Own][CS_NO];
-            }
-            else
-            {
-                value = VALUE_ZERO;
             }
 
             auto score = mk_score (value, -16 * ei.pe->king_pawn_dist[Own]);
@@ -647,6 +643,14 @@ namespace Evaluator {
             const auto Rank7BB  = Own == WHITE ? R7_bb : R2_bb;
 
             auto score = SCORE_ZERO;
+
+            // Small bonus if the opponent has loose pawns or pieces
+            auto lossed_pieces = (pos.pieces (Opp) ^ pos.pieces (Opp, QUEN, KING)) & ~(ei.pin_attacked_by[Opp][NONE]);
+            if (lossed_pieces != U64(0))
+            {
+                score += EnemyPieceLoosed;
+            }
+
             Bitboard b;
             // Non-pawn enemies attacked by any friendly pawn
             auto weak_nonpawns =
@@ -709,7 +713,7 @@ namespace Evaluator {
                 b = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
                 if (b != U64(0))
                 {
-                    score += PieceHanged * (more_than_one (b) ? pop_count<Max15> (b) : 1);
+                    score += EnemyPieceHanged * (more_than_one (b) ? pop_count<Max15> (b) : 1);
                 }
             }
 
@@ -746,11 +750,7 @@ namespace Evaluator {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
             const auto Push = Own == WHITE ? DEL_N : DEL_S;
 
-            const i32 nonpawn_count[CLR_NO] =
-            {
-                pos.count<NONPAWN> (WHITE),
-                pos.count<NONPAWN> (BLACK)
-            };
+            const auto nonpawn_diff = pos.count<NONPAWN> (Own) - pos.count<NONPAWN> (Opp);
 
             auto score = SCORE_ZERO;
 
@@ -834,9 +834,9 @@ namespace Evaluator {
                     }
                 }
                 // If non-pawn count differ.
-                if (nonpawn_count[Own]-nonpawn_count[Opp] != 0)
+                if (nonpawn_diff != 0)
                 {
-                    eg_value *= 1.0 + (double) (nonpawn_count[Own]-nonpawn_count[Opp]) / (nonpawn_count[Own]+nonpawn_count[Opp]+2);
+                    eg_value *= 1.0 + (double) (nonpawn_diff) / 4.0;
                 }
 
                 score += mk_score (mg_value, eg_value) + PawnPassedScore[_file (s)];

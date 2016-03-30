@@ -106,8 +106,34 @@ Score Position::PSQ[CLR_NO][NONE][SQ_NO];
 
 void Position::initialize ()
 {
-    assert(Zob.act_side == U64(0xF8D626AAAF278509));
+    assert(PolyZob.act_side == U64(0xF8D626AAAF278509));
 
+    static PRNG prng (0x105524);
+    Zobrist::ExclusionKey = prng.rand<Key> ();
+    // Initialize Zobrist
+    for (auto c = WHITE; c <= BLACK; ++c)
+    {
+        for (auto pt = PAWN; pt <= KING; ++pt)
+        {
+            for (auto s = SQ_A1; s <= SQ_H8; ++s)
+            {
+                Zob.piece_square[c][pt][s] = prng.rand<Key> ();
+            }
+        }
+    }
+    for (auto c = WHITE; c <= BLACK; ++c)
+    {
+        for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
+        {
+            Zob.castle_right[c][cs] = prng.rand<Key> ();
+        }
+    }
+    for (auto f = F_A; f <= F_H; ++f)
+    {
+        Zob.en_passant[f] = prng.rand<Key> ();
+    }
+    Zob.act_side = prng.rand<Key> ();
+    // Initialize PSQ
     for (auto pt = PAWN; pt <= KING; ++pt)
     {
         auto score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);

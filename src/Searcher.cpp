@@ -1198,7 +1198,7 @@ namespace Searcher {
                     && !capture_or_promotion
                    )
                 {
-                    auto reduction_depth = reduction_depths (PVNode, improving, depth, move_count);
+                    auto reduction_depth = reduction_depths (PVNode, improving, new_depth, move_count);
 
                     auto dst = dst_sq (move);
                     auto cp  = pos[dst];
@@ -1240,7 +1240,7 @@ namespace Searcher {
                                 -depth_search<false, true, true > (pos, ss+1, -(alfa+1), -alfa, d) :
                                 -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, d);
 
-                    full_depth_search = alfa < value && reduction_depth != DEPTH_ZERO;
+                    full_depth_search = alfa < value && reduction_depth > DEPTH_ZERO;
                 }
 
                 // Step 16. Full depth search when LMR is skipped or fails high
@@ -1297,7 +1297,9 @@ namespace Searcher {
                 {
                     auto &root_move = *std::find (thread->root_moves.begin (), thread->root_moves.end (), move);
                     // First PV legal move or new best move ?
-                    if (move_count == 1 || alfa < value)
+                    if (   move_count == 1
+                        || alfa < value
+                       )
                     {
                         root_move.resize (1);
                         auto &pv = (ss+1)->pv;

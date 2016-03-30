@@ -300,6 +300,7 @@ namespace UCI {
                     << std::hex << std::uppercase << std::setfill ('0')
                     << "FEN: "                        << RootPos.fen ()      << "\n"
                     << "Posi key: " << std::setw (16) << RootPos.posi_key () << "\n"
+                    << "Poly key: " << std::setw (16) << RootPos.poly_key () << "\n"
                     << "Matl key: " << std::setw (16) << RootPos.matl_key () << "\n"
                     << "Pawn key: " << std::setw (16) << RootPos.pawn_key ()
                     << std::setfill (' ') << std::nouppercase << std::dec

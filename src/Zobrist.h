@@ -13,7 +13,7 @@ public:
     //static const Key StartPawnKey = U64(0x37FC40DA841E1692);
     //static const Key StartPosiKey = U64(0x463B96181691FC9C);
 
-    static const Key ExclusionKey = U64(0xFFFFFFFFFFFFFFFF);
+    static Key ExclusionKey;
 
     // 2*6*64 + 2*2 + 8 + 1
     //=   768 +   4 + 8 + 1
@@ -23,6 +23,7 @@ public:
     Key en_passant  [F_NO];                 // [enpassant file]
     Key act_side;                           // color
 
+    Zobrist () = default;
     Zobrist (const Zobrist&) = delete;
     Zobrist& operator= (const Zobrist&) = delete;
 
@@ -38,6 +39,7 @@ public:
 
 };
 
-extern const Zobrist Zob; // Global Zobrist
+extern       Zobrist Zob;
+extern const Zobrist PolyZob;
 
 #endif // _ZOBRIST_H_INC_
