@@ -72,7 +72,7 @@ namespace Searcher {
 // This is a non-blocking function that doesn't stall
 // the CPU waiting for data to be loaded from memory,
 // which can be quite slow.
-#ifdef PREFETCH
+#if defined(PREFETCH)
 
 #   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 

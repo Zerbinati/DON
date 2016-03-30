@@ -47,7 +47,7 @@ namespace EndGame {
         const i32 PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
         const i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
         bool verify_material (const Position &pos, Color c, Value npm, i32 num_pawns)
         {
             return pos.non_pawn_material (c) == npm && pos.count<PAWN> (c) == num_pawns;

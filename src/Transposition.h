@@ -120,7 +120,7 @@ namespace Transposition {
             if (_mem != nullptr)
             {
 
-    #   ifdef LPAGES
+    #   if defined(LPAGES)
                 Memory::free_memory (_mem);
     #   else
                 free (_mem);

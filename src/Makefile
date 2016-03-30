@@ -38,7 +38,6 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # bits    = 64/32     --- -DBIT64          --- 64/32-bit operating system
 # pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
-# bsfq    = yes/no    --- -DBSFQ           --- Use Bitscans x86_64 asm-instruction (only with GCC and ICC 64-bit)
 # pop     = yes/no    --- -DPOP            --- Use Internal POP count table
 # abm     = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions
 # bm2     = yes/no    --- -DBM2            --- Use BM2 (Bit Manipulation 2) x86_64 asm-instructions
@@ -56,7 +55,6 @@ bits = 32
 pfch = no
 sse  = no
 pop  = no
-bsfq = no
 abm  = no
 bm2  = no
 lpg  = no
@@ -111,7 +109,6 @@ ifeq ($(ARCH), x86-64)
 	bits = 64
 	pfch = yes
 	sse  = yes
-	bsfq = yes
 endif
 
 ifeq ($(ARCH), general-64-pop)
@@ -127,7 +124,6 @@ ifeq ($(ARCH), x86-64-pop)
 	pfch = yes
 	sse  = yes
 	pop  = yes
-	bsfq = yes
 	lpg  = yes
 endif
 
@@ -136,7 +132,6 @@ ifeq ($(ARCH), x86-64-abm)
 	bits = 64
 	pfch = yes
 	sse  = yes
-	bsfq = yes
 	abm  = yes
 	lpg  = yes
 endif
@@ -146,7 +141,6 @@ ifeq ($(ARCH), x86-64-bm2)
 	bits = 64
 	pfch = yes
 	sse  = yes
-	bsfq = yes
 	abm  = yes
 	bm2  = yes
 	lpg  = yes
@@ -177,14 +171,12 @@ endif
 ifeq ($(ARCH), armv7)
 	arch = armv7
 	pfch = yes
-	bsfq = yes
 endif
 
 ifeq ($(ARCH), armv7-pop)
 	arch = armv7
 	pfch = yes
 	pop  = yes
-	bsfq = yes
 endif
 
 ### ==========================================================================
@@ -362,12 +354,7 @@ ifeq ($(pfch), yes)
 	endif
 endif
 
-### 3.8 Bitscans
-ifeq ($(bsfq), yes)
-	CXXFLAGS += -DBSFQ
-endif
-
-### 3.9 ABM (Advance Bit Manipulation)
+### 3.8 ABM (Advance Bit Manipulation)
 ifeq ($(abm),yes)
 	CXXFLAGS += -DABM
 	ifeq ($(comp), icc)
@@ -377,7 +364,7 @@ ifeq ($(abm),yes)
 	endif
 endif
 
-### 3.10 BM2 (Bit Manipulation Instruction Set 2)
+### 3.9 BM2 (Bit Manipulation Instruction Set 2)
 ifeq ($(bm2),yes)
 	CXXFLAGS += -DBM2
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
@@ -385,17 +372,17 @@ ifeq ($(bm2),yes)
 	endif
 endif
 
-### 3.11 Large Pages
+### 3.10 Large Pages
 ifeq ($(lpg), yes)
 	CXXFLAGS += -DLPAGES
 endif
 
-### 3.12 Pop Tables
+### 3.11 Pop Tables
 ifeq ($(pop), yes)
 	CXXFLAGS += -DPOP
 endif
 
-### 3.13 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
+### 3.12 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(comp), gcc)
@@ -418,14 +405,14 @@ ifeq ($(comp),mingw)
 	endif
 endif
 
-### 3.14 Android 5 can only run position independent executables.
+### 3.13 Android 5 can only run position independent executables.
 ### Note that this breaks Android 4.0 and earlier.
 ifeq ($(arch), armv7)
 	CXXFLAGS += -fPIE
 	LDFLAGS  += -fPIE -pie
 endif
 
-### 3.15 Custom Version.
+### 3.14 Custom Version.
 ifneq ($(VER), )
 	CXXFLAGS += -DVER=$(VER)
 endif
@@ -551,7 +538,6 @@ config-sanity:
 	@echo "pfch    : '$(pfch)'"
 	@echo "sse     : '$(sse)'"
 	@echo "pop     : '$(pop)'"
-	@echo "bsfq    : '$(bsfq)'"
 	@echo "abm     : '$(abm)'"
 	@echo "bm2     : '$(bm2)'"
 	@echo "lpg     : '$(lpg)'"
@@ -572,7 +558,6 @@ config-sanity:
 	@test "$(pfch)" = "yes" || test "$(pfch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
 	@test "$(pop)" = "yes" || test "$(pop)" = "no"
-	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
 	@test "$(abm)" = "yes" || test "$(abm)" = "no"
 	@test "$(bm2)" = "yes" || test "$(bm2)" = "no"
 	@test "$(lpg)" = "yes" || test "$(lpg)" = "no"

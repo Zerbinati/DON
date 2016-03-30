@@ -26,7 +26,7 @@ namespace Transposition {
     // Maximum size of Transposition table (mega-byte)
     // 1048576 MB = 1048 GB = 1 TB
     const u32 Table::MaxSize =
-    #ifdef BIT64
+    #if defined(BIT64)
         (U64(1) << (MaxHashBit-1 - 20)) * Cluster::Size;
     #else
         2048;
@@ -37,7 +37,7 @@ namespace Transposition {
         assert((alignment & (alignment-1)) == 0);
         assert((mem_size  & (alignment-1)) == 0);
 
-    #ifdef LPAGES
+    #if defined(LPAGES)
 
         Memory::alloc_memory (_mem, mem_size, alignment);
         if (_mem != nullptr)

@@ -1,4 +1,4 @@
-#ifdef LPAGES
+#if defined(LPAGES)
 
 #ifndef _MEMORY_HANDLER_H_INC_
 #define _MEMORY_HANDLER_H_INC_

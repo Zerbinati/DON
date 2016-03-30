@@ -14,7 +14,7 @@
 
 #include "Engine.h"
 
-#ifndef _WIN32
+#if !defined(_WIN32)
 
 #   include <unistd.h>
 #   include <sys/mman.h>
@@ -32,10 +32,10 @@ const char SepChar = ':';
 
 #else
 
-#   ifndef NOMINMAX
+#   if !defined(NOMINMAX)
 #       define NOMINMAX // Disable macros min() and max()
 #   endif
-#   ifndef  WIN32_LEAN_AND_MEAN
+#   if !defined(WIN32_LEAN_AND_MEAN)
 #       define WIN32_LEAN_AND_MEAN
 #   endif
 #   include <windows.h>
@@ -54,7 +54,7 @@ const char SepChar = ';';
 
 #endif
 
-#ifndef _MSC_VER
+#if !defined(_MSC_VER)
 #   define BSWAP32(v) __builtin_bswap32(v)
 #   define BSWAP64(v) __builtin_bswap64(v)
 #else
@@ -115,7 +115,7 @@ namespace TBSyzygy {
             bool symmetric;
             bool has_pawns;
         }
-#ifndef _WIN32
+#if !defined(_WIN32)
         __attribute__ ((__may_alias__))
 #endif
             ;
@@ -247,7 +247,7 @@ namespace TBSyzygy {
                 string fullpath = append_path (path, filename + suffix);
 
                 FD fd;
-#ifndef _WIN32
+#if !defined(_WIN32)
                 fd = open (fullpath.c_str (), O_RDONLY);
 #else
                 fd = CreateFile (fullpath.c_str (), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -259,7 +259,7 @@ namespace TBSyzygy {
 
         void close_tb (FD fd)
         {
-#ifndef _WIN32
+#if !defined(_WIN32)
             close (fd);
 #else
             CloseHandle (fd);
@@ -273,7 +273,7 @@ namespace TBSyzygy {
             {
                 return nullptr;
             }
-#ifndef _WIN32
+#if !defined(_WIN32)
             stat statbuf;
             fstat (fd, &statbuf);
             *mapping = statbuf.st_size;
@@ -307,7 +307,7 @@ namespace TBSyzygy {
 
         void unmap_file (i08 *data, u64 size)
         {
-#ifndef _WIN32
+#if !defined(_WIN32)
             if (data == nullptr) return;
             munmap (data, size);
 #else
@@ -1914,7 +1914,7 @@ namespace TBSyzygy {
                         return VALUE_ZERO;
                     }
                     // Memory barrier to ensure tbe->ready = 1 is not reordered.
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
                     _ReadWriteBarrier ();
 #else
                     __asm__ __volatile__ ("" ::: "memory");

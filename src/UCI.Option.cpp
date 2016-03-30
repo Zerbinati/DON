@@ -156,7 +156,7 @@ namespace UCI {
             TT.auto_size (i32(Options["Hash"]), false);
         }
 
-#   ifdef LPAGES
+#   if defined(LPAGES)
         void change_memory ()
         {
             Memory::LargePages = bool(Options["Large Pages"]);
@@ -315,7 +315,7 @@ namespace UCI {
                                                            0,//Table::MinSize, // 0 for auto-resize to maximum
                                                            Table::MaxSize, change_hash_size);
 
-#ifdef LPAGES
+#if defined(LPAGES)
         Options["Large Pages"]                  << Option (Memory::LargePages, change_memory);
 #endif
 

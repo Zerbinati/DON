@@ -140,7 +140,7 @@ namespace BitBoard {
     extern Bitboard    B_Masks_bb[SQ_NO];
     extern Bitboard    R_Masks_bb[SQ_NO];
 
-#ifndef BM2
+#if !defined(BM2)
     extern Bitboard   B_Magics_bb[SQ_NO];
     extern Bitboard   R_Magics_bb[SQ_NO];
 
@@ -199,7 +199,7 @@ namespace BitBoard {
 
     inline bool more_than_one (Bitboard bb)
     {
-#   ifndef BM2
+#   if !defined(BM2)
         return (bb & (bb - 1)) != U64(0);
 #   else
         return BLSR(bb) != U64(0);
@@ -265,8 +265,8 @@ namespace BitBoard {
     template<>
     inline u16 magic_index<BSHP> (Square s, Bitboard occ)
     {
-#   ifndef BM2
-#       ifdef BIT64
+#   if !defined(BM2)
+#       if defined(BIT64)
             return u16(((occ & B_Masks_bb[s]) * B_Magics_bb[s]) >> B_Shifts[s]);
 #       else
             u32 lo = (u32(occ >> 0x00) & u32(B_Masks_bb[s] >> 0x00)) * u32(B_Magics_bb[s] >> 0x00);
@@ -281,8 +281,8 @@ namespace BitBoard {
     template<>
     inline u16 magic_index<ROOK> (Square s, Bitboard occ)
     {
-#   ifndef BM2
-#       ifdef BIT64
+#   if !defined(BM2)
+#       if defined(BIT64)
             return u16(((occ & R_Masks_bb[s]) * R_Magics_bb[s]) >> R_Shifts[s]);
 #       else
             u32 lo = (u32(occ >> 0x00) & u32(R_Masks_bb[s] >> 0x00)) * u32(R_Magics_bb[s] >> 0x00);
@@ -332,7 +332,7 @@ namespace BitBoard {
 
     extern void initialize ();
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
     extern std::string pretty (Bitboard bb, char p = 'o');
 
     //extern void test_attacks ();

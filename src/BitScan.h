@@ -5,9 +5,8 @@
 
 namespace BitBoard {
 
-#ifdef BSFQ
 
-#   ifdef _MSC_VER
+#if defined(_MSC_VER)
 
 #   include <intrin.h> // MSVC popcnt and bsfq instrinsics
 // _BitScanForward64() & _BitScanReverse64()
@@ -16,7 +15,7 @@ inline Square scan_lsq (Bitboard bb)
 {
     unsigned long index;
 
-#ifdef BIT64
+#if defined(BIT64)
     _BitScanForward64 (&index, bb);
 #else
     if (u32(bb) != 0)
@@ -37,7 +36,7 @@ inline Square scan_msq (Bitboard bb)
 {
     unsigned long index;
 
-#ifdef BIT64
+#if defined(BIT64)
     _BitScanReverse64 (&index, bb);
 #else
     if (u32(bb >> 32) != 0)
@@ -54,54 +53,69 @@ inline Square scan_msq (Bitboard bb)
     return Square(index);
 }
 
-#   elif __arm__
+#elif defined(__GNUC__)
 
 inline Square scan_lsq (Bitboard bb)
 {
-#ifdef BIT64
     return Square(__builtin_ctzll (bb));
-#else
-    return Square((bb & 0x00000000FFFFFFFF) ?
-        __builtin_ctz (bb >> 00) :
-        __builtin_ctz (bb >> 32) + 32);
-#endif
 }
-
 inline Square scan_msq (Bitboard bb)
 {
-#ifdef BIT64
     return Square(i08(SQ_H8) - __builtin_clzll (bb));
+}
+
+//#elif defined(__arm__)
+//
+//inline Square scan_lsq (Bitboard bb)
+//{
+//#if defined(BIT64)
+//    return Square(__builtin_ctzll (bb));
+//#else
+//    return Square((bb & 0x00000000FFFFFFFF) ?
+//        __builtin_ctz (bb >> 00) :
+//        __builtin_ctz (bb >> 32) + 32);
+//#endif
+//}
+//
+//inline Square scan_msq (Bitboard bb)
+//{
+//#if defined(BIT64)
+//    return Square(i08(SQ_H8) - __builtin_clzll (bb));
+//#else
+//    return Square(i08(SQ_H8) - ((bb & 0xFFFFFFFF00000000) ?
+//        __builtin_clz (bb >> 32) :
+//        __builtin_clz (bb >> 00) + 32));
+//#endif
+//}
+//
+//#else
+//
+//// Assembly code by Heinz van Saanen
+//inline Square scan_lsq (Bitboard bb)
+//{
+//    Bitboard index;
+//    __asm__ ("bsfq %1, %0": "=r" (index) : "rm" (bb));
+//    return Square(index);
+//    //return Square(__builtin_ctzll (bb));
+//}
+//
+//inline Square scan_msq (Bitboard bb)
+//{
+//    Bitboard index;
+//    __asm__ ("bsrq %1, %0": "=r" (index) : "rm" (bb));
+//    return Square(index);
+//    //return Square(i08(SQ_H8) - __builtin_clzll (bb));
+//}
+
 #else
-    return Square(i08(SQ_H8) - ((bb & 0xFFFFFFFF00000000) ?
-        __builtin_clz (bb >> 32) :
-        __builtin_clz (bb >> 00) + 32));
+
+#   define NO_BSFQ
+
 #endif
-}
 
-#   else
+#if defined(NO_BSFQ)
 
-// Assembly code by Heinz van Saanen
-inline Square scan_lsq (Bitboard bb)
-{
-    Bitboard index;
-    __asm__ ("bsfq %1, %0": "=r" (index) : "rm" (bb));
-    return Square(index);
-    //return Square(__builtin_ctzll (bb));
-}
-
-inline Square scan_msq (Bitboard bb)
-{
-    Bitboard index;
-    __asm__ ("bsrq %1, %0": "=r" (index) : "rm" (bb));
-    return Square(index);
-    //return Square(i08(SQ_H8) - __builtin_clzll (bb));
-}
-
-#   endif
-
-#else   // ifndef BSFQ
-
-#ifdef BIT64
+#if defined(BIT64)
 
     const u64 DeBruijn_64 = U64(0x03F79D71B4CB0A89);
     // * @author Kim Walisch (2012)
@@ -159,7 +173,7 @@ inline Square scan_msq (Bitboard bb)
 inline Square  scan_lsq (Bitboard bb)
 {
 
-#ifdef BIT64
+#if defined(BIT64)
 
     if (bb == U64(0)) return SQ_NO;
     u64 x = bb ^ (bb - 1); // set all bits including the LS1B and below
@@ -182,7 +196,7 @@ inline Square  scan_lsq (Bitboard bb)
 inline Square  scan_msq (Bitboard bb)
 {
 
-#ifdef BIT64
+#if defined(BIT64)
 
     if (bb == U64(0)) return SQ_NO;
     // set all bits including the MS1B and below
@@ -234,7 +248,7 @@ inline Square scan_backmost_sq (Color c, Bitboard bb) { return c == WHITE ? scan
 inline Square pop_lsq (Bitboard &bb)
 {
     Square sq = scan_lsq (bb);
-#ifndef BM2
+#if !defined(BM2)
     bb &= (bb - 1);
 #else
     bb = BLSR(bb);

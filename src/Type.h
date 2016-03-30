@@ -26,7 +26,6 @@
 /// -DNDEBUG    | Disable debugging mode. Always use this.
 /// -DPREFETCH  | Enable use of prefetch asm-instruction.
 ///             | Don't enable it if want the executable to run on some very old machines.
-/// -DBSFQ      | Add runtime support for use of Bitscans asm-instruction.
 /// -DPOP       | Enable use of internal pop count table. Works in both 32-bit & 64-bit mode.
 ///             | For compiling requires hardware without ABM support.
 /// -DABM       | Add runtime support for use of ABM asm-instruction. Works only in 64-bit mode.
@@ -50,23 +49,20 @@
 
 // Auto make 64-bit compiles
 #   if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
-#       ifndef BIT64
+#       if !defined(BIT64)
 #           define BIT64
-#       endif
-#       ifndef BSFQ
-#           define BSFQ
 #       endif
 #   endif
 
 #endif
 
-#ifdef BM2
+#if defined(BM2)
 #   include <immintrin.h>   // Header for BMI2 instructions
 // BEXT = Bit field extract (with register)
 // PDEP = Parallel bits deposit
 // PEXT = Parallel bits extract
 // BLSR = Reset lowest set bit
-#   ifdef BIT64
+#   if defined(BIT64)
 #       define BEXT(b, m, l)    _bextr_u64 (b, m, l)
 #       define PEXT(b, m)       _pext_u64 (b, m)
 #       define BLSR(b)          _blsr_u64 (b)
@@ -83,7 +79,7 @@
 #undef S64
 #undef U64
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
 #   pragma warning (disable: 4127) // Conditional expression is constant
 #   pragma warning (disable: 4146) // Unary minus operator applied to unsigned type

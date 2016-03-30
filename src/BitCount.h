@@ -20,14 +20,14 @@ inline i32 pop_count (Bitboard bb);
 // according if platform is 32-bit or 64-bit, and if hardware popcnt instruction is available.
 // return the maximum number of nonzero bits to count
 
-#ifdef ABM
+#if defined(ABM)
 
 const BitCount Full  = CNT_HW;
 const BitCount Max15 = CNT_HW;
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 
-#   ifdef __INTEL_COMPILER
+#   if defined(__INTEL_COMPILER)
 
 #       include <nmmintrin.h>
 // Intel header for  SSE4.1 or SSE4.2 intrinsics.
@@ -36,7 +36,7 @@ const BitCount Max15 = CNT_HW;
 template<>
 inline i32 pop_count<CNT_HW> (Bitboard bb)
 {
-#       ifdef BIT64
+#       if defined(BIT64)
     {
         return i32(_mm_popcnt_u64 (bb));
     }
@@ -54,7 +54,7 @@ inline i32 pop_count<CNT_HW> (Bitboard bb)
 template<>
 inline i32 pop_count<CNT_HW> (Bitboard bb)
 {
-#      ifdef BIT64
+#      if defined(BIT64)
     {
         return i32(__popcnt64 (bb));
     }
@@ -75,7 +75,7 @@ inline i32 pop_count<CNT_HW> (Bitboard bb)
     // Assembly code by Heinz van Saanen
     //__asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
     //return bb;
-#   ifdef BIT64
+#   if defined(BIT64)
     {
         return i32(__builtin_popcountll (bb));
     }
@@ -91,7 +91,7 @@ inline i32 pop_count<CNT_HW> (Bitboard bb)
 
 #else   // BY Calculation
 
-#   ifdef POP
+#   if defined(POP)
 
     const BitCount Full  = CNT_HW;
     const BitCount Max15 = CNT_HW;
@@ -2158,7 +2158,7 @@ inline i32 pop_count<CNT_HW> (Bitboard bb)
 
 #   else
 
-#       ifdef BIT64
+#       if defined(BIT64)
 
 const BitCount Full  = CNT_FULL;
 const BitCount Max15 = CNT_MAX15;

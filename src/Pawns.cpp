@@ -220,7 +220,7 @@ namespace Pawns {
                     e->passed_pawns[Own] += s;
                 }
 
-//#ifndef NDEBUG
+//#if !defined(NDEBUG)
                 //std::cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << std::endl;
 //#endif
                 pawn_score += score;

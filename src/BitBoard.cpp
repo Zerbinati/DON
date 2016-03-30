@@ -32,7 +32,7 @@ namespace BitBoard {
     Bitboard    B_Masks_bb[SQ_NO];
     Bitboard    R_Masks_bb[SQ_NO];
 
-#ifndef BM2
+#if !defined(BM2)
     Bitboard   B_Magics_bb[SQ_NO];
     Bitboard   R_Magics_bb[SQ_NO];
 
@@ -55,7 +55,7 @@ namespace BitBoard {
 //            bb ^= (bb - 1);
 //
 //            return
-//#       ifdef BIT64
+//#       if defined(BIT64)
 //                (bb * DeBruijn_64) >> 58;
 //#       else
 //                ((u32(bb) ^ u32(bb >> 32)) * DeBruijn_32) >> 26;
@@ -92,21 +92,21 @@ namespace BitBoard {
         void initialize_table (Bitboard tables_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shifts[], const Delta deltas[], const Indexer magic_index)
         {
 
-#       ifndef BM2
+#       if !defined(BM2)
             const u32 Seeds[R_NO] =
-#           ifdef BIT64
-                { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF }; // 64-bit
+#           if defined(BIT64)
+                { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
 #           else
-                { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C }; // 32-bit
+                { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C };
 #           endif
 
             Bitboard occupancy[MaxLTSize]
                    , reference[MaxLTSize];
-            
+
             i32 max_ages[MaxLTSize] = {0}, cur_age = 0;
-            
+
 #       endif
-            
+
             // attacks_bb[s] is a pointer to the beginning of the attacks table for square 's'
             attacks_bb[SQ_A1] = tables_bb;
 
@@ -124,9 +124,9 @@ namespace BitBoard {
 
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
-#       ifndef BM2
+#       if !defined(BM2)
                 shifts[s] =
-#           ifdef BIT64
+#           if defined(BIT64)
                     64
 #           else
                     32
@@ -142,11 +142,11 @@ namespace BitBoard {
                 Bitboard occ = U64(0);
                 do
                 {
-#               ifndef BM2
+#               if defined(BM2)
+                    attacks_bb[s][PEXT (occ, mask)] = sliding_attacks (deltas, s, occ);
+#               else
                     occupancy[size] = occ;
                     reference[size] = sliding_attacks (deltas, s, occ);
-#               else
-                    attacks_bb[s][PEXT(occ, mask)] = sliding_attacks (deltas, s, occ);
 #               endif
 
                     ++size;
@@ -160,7 +160,7 @@ namespace BitBoard {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
 
-#       ifndef BM2
+#       if !defined(BM2)
 
                 PRNG rng (Seeds[_rank (s)]);
                 u32 i;
@@ -202,7 +202,7 @@ namespace BitBoard {
 
         void initialize_sliding ()
         {
-#       ifndef BM2
+#       if !defined(BM2)
             initialize_table (B_Tables_bb, B_Attacks_bb, B_Masks_bb, B_Magics_bb, B_Shifts, PieceDeltas[BSHP], magic_index<BSHP>);
             initialize_table (R_Tables_bb, R_Attacks_bb, R_Masks_bb, R_Magics_bb, R_Shifts, PieceDeltas[ROOK], magic_index<ROOK>);
 #       else
@@ -296,7 +296,7 @@ namespace BitBoard {
 
         initialize_sliding ();
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
         //test_attacks ();
 #endif
 
@@ -318,7 +318,7 @@ namespace BitBoard {
 
     }
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 
     // pretty() returns an ASCII representation of a bitboard to print on console output
     // Bitboard in an easily readable format. This is sometimes useful for debugging.

@@ -68,21 +68,21 @@ namespace Engine {
 #endif
         oss << std::setfill (' ');
 
-#ifdef BIT64
+#if defined(BIT64)
         oss << ".64";
 #else
         oss << ".32";
 #endif
 
-#ifdef BM2
+#if defined(BM2)
         oss << ".BM2";
-#elif ABM
+#elif defined(ABM)
         oss << ".ABM";
-#elif POP
+#elif defined(POP)
         oss << ".POP";
 #endif
 
-#ifdef LPAGES
+#if defined(LPAGES)
         oss << ".LP";
 #endif
 
@@ -96,7 +96,7 @@ namespace Engine {
         std::cout << info (false) << std::endl;
         std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency () << std::endl;
 
-#ifdef LPAGES
+#if defined(LPAGES)
         Memory   ::initialize ();
 #endif
         UCI      ::initialize ();
@@ -120,7 +120,7 @@ namespace Engine {
         Threadpool.deinitialize ();
         EndGame  ::deinitialize ();
         UCI      ::deinitialize ();
-#ifdef LPAGES
+#if defined(LPAGES)
         Memory   ::deinitialize ();
 #endif
         ::exit (code);
