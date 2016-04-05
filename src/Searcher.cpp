@@ -179,7 +179,7 @@ namespace Searcher {
 
             if (   (main_thread->time_mgr_used && elapsed_time > main_thread->time_mgr.maximum_time () - 2 * TimerResolution)
                 || (Limits.movetime != 0   && elapsed_time >= Limits.movetime)
-                || (Limits.nodes != U64(0) && Threadpool.game_nodes () >= Limits.nodes)
+                || (Limits.nodes != 0 && Threadpool.game_nodes () >= Limits.nodes)
                )
             {
                 ForceStop = true;
@@ -343,7 +343,7 @@ namespace Searcher {
         // when the remaining depth is less than DEPTH_ONE.
         Value quien_search (Position &pos, Stack *ss, Value alfa, Value beta, Depth depth)
         {
-            assert(InCheck == (pos.checkers () != U64(0)));
+            assert(InCheck == (pos.checkers () != 0));
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(depth <= DEPTH_ZERO);
@@ -482,8 +482,8 @@ namespace Searcher {
                     continue;
                 }
 
-                bool gives_check = mtype (move) == NORMAL && ci.discoverers == U64(0) ?
-                                    (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != U64(0) :
+                bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
+                                    (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != 0 :
                                     pos.gives_check (move, ci);
                 if (!MateSearch)
                 {
@@ -617,7 +617,7 @@ namespace Searcher {
         Value depth_search (Position &pos, Stack *ss, Value alfa, Value beta, Depth depth)
         {
             const bool root_node = PVNode && ss->ply == 1;
-            assert(InCheck == (pos.checkers () != U64(0)));
+            assert(InCheck == (pos.checkers () != 0));
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || alfa == beta-1);
             assert(DEPTH_ZERO < depth && depth < DEPTH_MAX);
@@ -942,8 +942,8 @@ namespace Searcher {
 
                             ss->current_move = move;
 
-                            bool gives_check = mtype (move) == NORMAL && ci.discoverers == U64(0) ?
-                                                (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != U64(0) :
+                            bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
+                                                (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != 0 :
                                                 pos.gives_check (move, ci);
 
                             pos.do_move (move, si, gives_check);
@@ -1086,8 +1086,8 @@ namespace Searcher {
                     (ss+1)->pv.clear ();
                 }
 
-                bool gives_check = mtype (move) == NORMAL && ci.discoverers == U64(0) ?
-                                    (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != U64(0) :
+                bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
+                                    (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != 0 :
                                     pos.gives_check (move, ci);
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
@@ -1472,7 +1472,7 @@ namespace Searcher {
                 || tte->move () != m
                )
             {
-                tte->save (pos.posi_key (), m, VALUE_NONE, /*pos.checkers () != U64(0) ?*/ VALUE_NONE /*: evaluate (pos)*/, DEPTH_NONE, BOUND_NONE, TT.generation ());
+                tte->save (pos.posi_key (), m, VALUE_NONE, /*pos.checkers () != 0 ?*/ VALUE_NONE /*: evaluate (pos)*/, DEPTH_NONE, BOUND_NONE, TT.generation ());
             }
             pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
             ++ply;
@@ -1529,7 +1529,7 @@ namespace Searcher {
     template<bool RootNode>
     u64 perft (Position &pos, Depth depth)
     {
-        u64 leaf_nodes = U64(0);
+        u64 leaf_nodes = 0;
         for (const auto &vm : MoveList<LEGAL> (pos))
         {
             u64 inter_nodes;
@@ -1697,7 +1697,7 @@ namespace Threading {
 
         leaf_depth = DEPTH_ZERO;
 
-        bool in_check = root_pos.checkers () != U64(0);
+        bool in_check = root_pos.checkers () != 0;
 
         // Iterative deepening loop until requested to stop or the target depth is reached.
         while (   !ForceStop
@@ -2055,7 +2055,7 @@ namespace Threading {
             sync_cout
                 << "info"
                 << " depth " << 0
-                << " score " << to_string (root_pos.checkers () != U64(0) ? -VALUE_MATE : VALUE_DRAW)
+                << " score " << to_string (root_pos.checkers () != 0 ? -VALUE_MATE : VALUE_DRAW)
                 << " time "  << 0
                 << sync_endl;
         }

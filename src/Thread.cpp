@@ -65,7 +65,7 @@ void TimeManager::initialize (Color c, i16 ply)
     if (NodesTime != 0)
     {
         // Only once at game start
-        if (available_nodes == U64(0))
+        if (available_nodes == 0)
         {
             available_nodes = NodesTime * Limits.clock[c].time; // Time is in msec
         }
@@ -202,7 +202,7 @@ namespace Threading {
     // ThreadPool::game_nodes() returns the total game nodes searched
     u64 ThreadPool::game_nodes () const
     {
-        u64 nodes = U64(0);
+        u64 nodes = 0;
         for (const auto *th : *this)
         {
             nodes += th->root_pos.game_nodes ();

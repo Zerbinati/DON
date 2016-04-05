@@ -139,19 +139,19 @@ namespace BitBoard {
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
                 u32 size = 0;
-                Bitboard occ = U64(0);
+                Bitboard occ = 0;
                 do
                 {
-#               if defined(BM2)
-                    attacks_bb[s][PEXT (occ, mask)] = sliding_attacks (deltas, s, occ);
-#               else
+#               if !defined(BM2)
                     occupancy[size] = occ;
                     reference[size] = sliding_attacks (deltas, s, occ);
+#               else
+                    attacks_bb[s][PEXT(occ, mask)] = sliding_attacks (deltas, s, occ);
 #               endif
 
                     ++size;
                     occ = (occ - mask) & mask;
-                } while (occ != U64(0));
+                } while (occ != 0);
 
                 // Set the offset for the table_bb of the next square. Have individual
                 // table_bb sizes for each square with "Fancy Magic Bitboards".
@@ -307,10 +307,10 @@ namespace BitBoard {
             {
                 for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                 {
-                    if ((PieceAttacks[pt][s1] & s2) != U64(0))
+                    if ((PieceAttacks[pt][s1] & s2) != 0)
                     {
                         Between_bb[s1][s2] = (attacks_bb (Piece(pt), s1, Square_bb[s2]) & attacks_bb (Piece(pt), s2, Square_bb[s1]));
-                        RayLine_bb[s1][s2] = (attacks_bb (Piece(pt), s1,        U64(0)) & attacks_bb (Piece(pt), s2,        U64(0))) + s1 + s2;
+                        RayLine_bb[s1][s2] = (attacks_bb (Piece(pt), s1,        0) & attacks_bb (Piece(pt), s2,        0)) + s1 + s2;
                     }
                 }
             }
@@ -339,7 +339,7 @@ namespace BitBoard {
         }
         sbb += "\n";
 
-        while (bb != U64(0))
+        while (bb != 0)
         {
             auto s = pop_lsq (bb);
             sbb[2 + (ROW.length () + 1) * (8 - _rank (s)) + 2 * _file (s)] = p;

@@ -195,7 +195,7 @@ namespace Material {
 
             // Only pawns on the board
             if (   npm[WHITE] + npm[BLACK] == VALUE_ZERO
-                && pos.pieces (PAWN) != U64(0)
+                && pos.pieces (PAWN) != 0
                )
             {
                 if (pos.count<PAWN> (BLACK) == 0)

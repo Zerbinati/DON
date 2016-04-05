@@ -23,14 +23,14 @@ namespace Engine {
         // Version number. If Version is left empty, then show compile date in the format DD-MM-YY.
         const string Version   = "";
 
-        const i08 MaxMonth = 12;
-        const string Months[MaxMonth] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        const i08 Months = 12;
+        const string MonthStr[Months] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-        i32 index_month (const string &month)
+        i32 month_index (const string &month)
         {
-            for (auto m = 0; m < MaxMonth; ++m)
+            for (auto m = 0; m < Months; ++m)
             {
-                if (month == Months[m])
+                if (month == MonthStr[m])
                 {
                     return m+1;
                 }
@@ -44,21 +44,24 @@ namespace Engine {
     {
         ostringstream oss;
 
-        if (uci) oss << "id name ";
+        if (uci)
+        {
+            oss << "id name ";
+        }
         oss << "DON ";
 
         oss << std::setfill ('0');
-#if defined (VER)
+#if defined(VER)
         oss << VER;
 #else
         if (white_spaces (Version))
         {
-            // From compiler, format is "Sep 2 2013"
+            // From compiler, format is "Sep 2 1982"
             istringstream iss (__DATE__);
             string month, day, year;
             iss >> month >> day >> year;
             oss << std::setw (2) << day
-                << std::setw (2) << index_month (month)
+                << std::setw (2) << month_index (month)
                 << std::setw (2) << year.substr (2);
         }
         else
@@ -123,7 +126,7 @@ namespace Engine {
 #if defined(LPAGES)
         Memory   ::deinitialize ();
 #endif
-        ::exit (code);
+        exit (code);
     }
 
 }

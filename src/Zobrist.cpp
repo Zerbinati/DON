@@ -8,12 +8,12 @@
 using namespace std;
 using namespace BitBoard;
 
-Key Zobrist::ExclusionKey = U64(0);
+Key Zobrist::ExclusionKey = 0;
 
 // Hash key of the material situation.
 Key Zobrist::compute_matl_key (const Position &pos) const
 {
-    Key matl_key = U64(0);
+    Key matl_key = 0;
     for (auto c = WHITE; c <= BLACK; ++c)
     {
         for (auto pt = PAWN; pt <= KING; ++pt)
@@ -29,7 +29,7 @@ Key Zobrist::compute_matl_key (const Position &pos) const
 // Hash key of the pawn structure.
 Key Zobrist::compute_pawn_key (const Position &pos) const
 {
-    Key pawn_key = U64(0);
+    Key pawn_key = 0;
     for (auto c = WHITE; c <= BLACK; ++c)
     {
         for (Square s : pos.squares<PAWN> (c))
@@ -42,7 +42,7 @@ Key Zobrist::compute_pawn_key (const Position &pos) const
 // Hash key of the complete position.
 Key Zobrist::compute_posi_key (const Position &pos) const
 {
-    Key posi_key = U64(0);
+    Key posi_key = 0;
     for (auto c = WHITE; c <= BLACK; ++c)
     {
         for (auto pt = PAWN; pt <= KING; ++pt)
@@ -54,19 +54,19 @@ Key Zobrist::compute_posi_key (const Position &pos) const
         }
     }
     Bitboard b = pos.castle_rights ();
-    while (b != U64(0))
+    while (b != 0)
     {
         posi_key ^= castle_right[0][pop_lsq (b)];
     }
-    posi_key ^= pos.en_passant_sq () != SQ_NO ? en_passant[_file (pos.en_passant_sq ())] : U64(0);
-    posi_key ^= pos.active () == WHITE ? act_side : U64(0);
+    posi_key ^= pos.en_passant_sq () != SQ_NO ? en_passant[_file (pos.en_passant_sq ())] : 0;
+    posi_key ^= pos.active () == WHITE ? act_side : 0;
     return posi_key;
 }
 
 // Hash key of the FEN
 Key Zobrist::compute_fen_key (const string &fen, bool c960) const
 {
-    Key fen_key = U64(0);
+    Key fen_key = 0;
 
     if (!white_spaces (fen))
     {
@@ -121,7 +121,7 @@ Key Zobrist::compute_fen_key (const string &fen, bool c960) const
                 }
                 else
                 {
-                    return U64(0);
+                    return 0;
                 }
             }
         }

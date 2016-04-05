@@ -34,7 +34,6 @@
 ///             | For compiling requires hardware with BM2 support.
 /// -DLPAGES    | Add runtime support for large pages.
 
-
 /// Predefined macros hell:
 ///
 /// __GNUC__           Compiler is gcc, Clang or Intel on Linux
@@ -42,7 +41,6 @@
 /// _MSC_VER           Compiler is MSVC or Intel on Windows
 /// _WIN32             Building on Windows (any)
 /// _WIN64             Building on Windows 64 bit
-
 
 // Windows or MinGW
 #if defined(_WIN32)
@@ -72,7 +70,6 @@
 #       define BLSR(b)          _blsr_u32 (b)
 #   endif
 #endif
-
 
 #undef S32
 #undef U32

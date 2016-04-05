@@ -75,7 +75,7 @@ namespace MovePick {
     {
         assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
 
-        _stage = _pos.checkers () != U64(0) ? S_EVASION : S_MAIN;
+        _stage = _pos.checkers () != 0 ? S_EVASION : S_MAIN;
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
@@ -87,7 +87,7 @@ namespace MovePick {
         assert(depth <= DEPTH_ZERO);
         assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
 
-        if (_pos.checkers () != U64(0))
+        if (_pos.checkers () != 0)
         {
             _stage = S_EVASION;
         }
@@ -117,7 +117,7 @@ namespace MovePick {
         , _tt_move (ttm)
         , _threshold (thr)
     {
-        assert(_pos.checkers () == U64(0));
+        assert(_pos.checkers () == 0);
         assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
 
         _stage = S_PROBCUT;
@@ -260,7 +260,7 @@ namespace MovePick {
             break;
 
         case S_ALL_EVASION:
-            assert(_pos.checkers () != U64(0));
+            assert(_pos.checkers () != 0);
             _end_move = filter_illegal (_pos, _beg_move, generate<EVASION> (_beg_move, _pos));
             if (_cur_move < _end_move-1)
             {

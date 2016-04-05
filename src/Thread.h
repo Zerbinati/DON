@@ -39,7 +39,7 @@ private:
 
 public:
 
-    u64 available_nodes = U64(0); // When in 'Nodes as Time' mode
+    u64 available_nodes = 0; // When in 'Nodes as Time' mode
 
     TimeManager () = default;
     TimeManager (const TimeManager&) = delete;
@@ -62,7 +62,7 @@ public:
     static const u08 PVSize = 3;
 
 private:
-    Key  _posi_key = U64(0);
+    Key  _posi_key = 0;
     Move _pv[PVSize];
 
 public:
@@ -78,7 +78,7 @@ public:
     void clear ()
     {
         stable_count = 0;
-        _posi_key = U64(0);
+        _posi_key = 0;
         std::fill (_pv, _pv + PVSize, MOVE_NONE);
     }
 

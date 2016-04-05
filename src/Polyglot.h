@@ -19,7 +19,7 @@ namespace Polyglot {
         static const u08 Size;
         static const Entry NullEntry;
 
-        u64 key     = U64(0);
+        u64 key     = 0;
         u16 move    = 0;
         u16 weight  = 0;
         u32 learn   = 0;

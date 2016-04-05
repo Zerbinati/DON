@@ -49,7 +49,7 @@ public:
         return !infinite
             && movetime == 0
             && depth    == 0
-            && nodes    == U64(0)
+            && nodes    == 0
             && mate     == 0;
     }
 };

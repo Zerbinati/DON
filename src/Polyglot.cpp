@@ -63,7 +63,7 @@ namespace Polyglot {
     }
 
     // open() tries to open a book file with the given name after closing any existing one.
-    // mode:
+    // Mode:
     // Read -> ios_base::in
     // Write-> ios_base::out
     bool Book::open (const string &book_fn, openmode mode)
@@ -267,7 +267,10 @@ namespace Polyglot {
                 }
             }
 
-            if (move == MOVE_NONE) return MOVE_NONE;
+            if (move == MOVE_NONE)
+            {
+                return MOVE_NONE;
+            }
 
             // Polyglot book move is encoded as follows:
             //

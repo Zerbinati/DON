@@ -195,14 +195,14 @@ namespace BitBoard {
     inline Bitboard board_edges (Square s) { return ((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)); }
 
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
-    inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return (RayLine_bb[s1][s2] & s3) != U64(0); }
+    inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return (RayLine_bb[s1][s2] & s3) != 0; }
 
     inline bool more_than_one (Bitboard bb)
     {
 #   if !defined(BM2)
-        return (bb & (bb - 1)) != U64(0);
+        return (bb & (bb - 1)) != 0;
 #   else
-        return BLSR(bb) != U64(0);
+        return BLSR(bb) != 0;
 #   endif
     }
 
@@ -225,9 +225,9 @@ namespace BitBoard {
     //// Rotate Left  (toward MSB)
     //inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08(SQ_NO) - k)); }
 
-    inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = U64(0))
+    inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = 0)
     {
-        auto slide_attacks = U64(0);
+        Bitboard slide_attacks = 0;
         u08 i = 0;
         Delta del;
         while ((del = deltas[i++]) != DEL_O)
@@ -236,7 +236,7 @@ namespace BitBoard {
             while (_ok (sq) && dist (sq, sq - del) == 1)
             {
                 slide_attacks += sq;
-                if ((occ & sq) != U64(0)) break;
+                if ((occ & sq) != 0) break;
                 sq += del;
             }
         }
@@ -326,7 +326,7 @@ namespace BitBoard {
         case ROOK: return attacks_bb<ROOK> (s, occ); break;
         case QUEN: return attacks_bb<QUEN> (s, occ); break;
         case KING: return PieceAttacks[KING][s];     break;
-        default:   return U64(0); break;
+        default:   return 0; break;
         }
     }
 

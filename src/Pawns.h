@@ -52,7 +52,7 @@ namespace Pawns {
         template<Color Own>
         i32 pawns_on_squarecolor (Square s) const
         {
-            return pawns_on_sqrs[Own][(Liht_bb & s) != U64(0) ? WHITE : BLACK];
+            return pawns_on_sqrs[Own][(Liht_bb & s) != 0 ? WHITE : BLACK];
         }
 
         template<Color Own>
@@ -74,9 +74,9 @@ namespace Pawns {
                 king_safety[Own][CS_NO  ] = kr <= R_4 ? pawn_shelter_storm<Own> (pos, king_sq[Own]) : VALUE_ZERO;
 
                 king_pawn_dist[Own] = 0;
-                if (pos.pieces (Own, PAWN) != U64(0))
+                if (pos.pieces (Own, PAWN) != 0)
                 {
-                    while ((DistRings_bb[king_sq[Own]][king_pawn_dist[Own]++] & pos.pieces (Own, PAWN)) == U64(0)) {}
+                    while ((DistRings_bb[king_sq[Own]][king_pawn_dist[Own]++] & pos.pieces (Own, PAWN)) == 0) {}
                 }
             }
         }

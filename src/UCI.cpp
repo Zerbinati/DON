@@ -69,7 +69,7 @@ namespace UCI {
             if (token == "ucinewgame")
             {
                 clear ();
-                Threadpool.main ()->time_mgr.available_nodes = U64(0);
+                Threadpool.main ()->time_mgr.available_nodes = 0;
             }
             else
             if (token == "isready")
@@ -312,7 +312,7 @@ namespace UCI {
                 sync_cout;
 
                 auto pinneds = RootPos.pinneds (RootPos.active ());
-                if (RootPos.checkers () != U64(0))
+                if (RootPos.checkers () != 0)
                 {
                     std::cout << "\nEvasion moves: ";
                     for (const auto &vm : MoveList<EVASION> (RootPos))

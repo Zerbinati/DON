@@ -26,7 +26,7 @@ namespace Transposition {
     struct Entry
     {
     private:
-        u16 _key16  ;//= U64(0);
+        u16 _key16  ;//= 0;
         u16 _move   ;//= MOVE_NONE;
         i16 _value  ;//= VALUE_NONE;
         i16 _eval   ;//= VALUE_NONE;
@@ -48,7 +48,7 @@ namespace Transposition {
 
         void clear ()
         {
-            _key16  = U64(0);
+            _key16  = 0;
             _move   = MOVE_NONE;
             _value  = VALUE_NONE;
             _eval   = VALUE_NONE;

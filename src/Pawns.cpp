@@ -121,8 +121,8 @@ namespace Pawns {
             const auto opp_pawns = pos.pieces (Opp, PAWN);
 
             e->pawn_attacks    [Own] = shift_bb<LCap> (own_pawns) | shift_bb<RCap> (own_pawns);
-            e->passed_pawns    [Own] = U64(0);
-            e->pawn_attack_span[Own] = U64(0);
+            e->passed_pawns    [Own] = 0;
+            e->pawn_attack_span[Own] = 0;
             e->semiopen_files  [Own] = u08(0xFF);
             e->king_sq         [Own] = SQ_NO;
             e->pawns_on_sqrs   [Own][WHITE] = u08(pop_count<Max15> (own_pawns & CenterExtMask & Liht_bb));
@@ -131,7 +131,6 @@ namespace Pawns {
             auto pawn_score = SCORE_ZERO;
 
             Bitboard b;
-
             for (Square s : pos.squares<PAWN> (Own))
             {
                 assert(pos[s] == (Own|PAWN));
@@ -145,11 +144,11 @@ namespace Pawns {
                 auto phalanx   = (adjacents & rank_bb (s));
                 auto supported = (adjacents & rank_bb (s-Push));
                 auto doubled   = (own_pawns & FrontSqrs_bb[Own][s]);
-                bool opposed   = (opp_pawns & FrontSqrs_bb[Own][s]) != U64(0);
-                bool connected = (supported != U64(0) || phalanx != U64(0));
-                bool levered   = (opp_pawns & PawnAttacks[Own][s]) != U64(0);
-                bool isolated  = (adjacents) == U64(0);
-                bool passed    = (opp_pawns & PawnPassSpan[Own][s]) == U64(0);
+                bool opposed   = (opp_pawns & FrontSqrs_bb[Own][s]) != 0;
+                bool connected = (supported != 0 || phalanx != 0);
+                bool levered   = (opp_pawns & PawnAttacks[Own][s]) != 0;
+                bool isolated  = (adjacents) == 0;
+                bool passed    = (opp_pawns & PawnPassSpan[Own][s]) == 0;
 
                 bool backward;
                 // Test for backward pawn.
@@ -158,7 +157,7 @@ namespace Pawns {
                 // If it is sufficiently advanced (Rank 6), then it cannot be backward either.
                 if (   passed || isolated || levered || connected || rel_rank (Own, s) >= R_6
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
-                    || ((own_pawns & PawnAttackSpan[Opp][s]) != U64(0) && (opp_pawns & (s-Push)) == U64(0))
+                    || ((own_pawns & PawnAttackSpan[Opp][s]) != 0 && (opp_pawns & (s-Push)) == 0)
                    )
                 {
                     backward = false;
@@ -169,11 +168,13 @@ namespace Pawns {
                     // Now check whether the pawn is backward by looking in the forward direction on the
                     // adjacent files, and picking the closest pawn there.
                     b = PawnAttackSpan[Own][s] & pos.pieces (PAWN);
-                    b = PawnAttackSpan[Own][s] & rank_bb (scan_backmost_sq (Own, b));
-
+                    if (b != 0)
+                    {
+                        b = PawnAttackSpan[Own][s] & rank_bb (scan_backmost_sq (Own, b));
+                    }
                     // If have an enemy pawn in the same or next rank, the pawn is
                     // backward because it cannot advance without being captured.
-                    backward = (opp_pawns & (b | shift_bb<Push> (b))) != U64(0);
+                    backward = (opp_pawns & (b | shift_bb<Push> (b))) != 0;
                 }
 
                 assert(passed ^ (opposed || (opp_pawns & PawnAttackSpan[Own][s])));
@@ -182,7 +183,7 @@ namespace Pawns {
 
                 if (connected)
                 {
-                    score += Connected[opposed ? 1 : 0][phalanx != U64(0) ? 1 : 0][more_than_one (supported) ? 1 : 0][rel_rank (Own, s)];
+                    score += Connected[opposed ? 1 : 0][phalanx != 0 ? 1 : 0][more_than_one (supported) ? 1 : 0][rel_rank (Own, s)];
                 }
 
                 if (isolated)
@@ -191,10 +192,10 @@ namespace Pawns {
                 }
                 else
                 {
-                    if (supported == U64(0))
+                    if (supported == 0)
                     {
                         b = adjacents & rank_bb (s+Push);
-                        score -= Unsupported[b != U64(0) ? more_than_one (b) ? 2 : 1 : 0];
+                        score -= Unsupported[b != 0 ? more_than_one (b) ? 2 : 1 : 0];
                     }
                     if (backward)
                     {
@@ -207,7 +208,7 @@ namespace Pawns {
                     score += Lever[rel_rank (Own, s)];
                 }
 
-                if (doubled)
+                if (doubled != 0)
                 {
                     score -= Doubled[f] / dist<Rank> (s, scan_frntmost_sq (Own, doubled));
                 }
@@ -225,7 +226,6 @@ namespace Pawns {
 //#endif
                 pawn_score += score;
             }
-
             b = e->semiopen_files[Own] ^ u08(0xFF);
             e->pawn_span[Own] = u08(b != 0 ? scan_msq (b) - scan_lsq (b) : 0);
 
@@ -256,12 +256,11 @@ namespace Pawns {
             assert(F_A <= f && f <= F_H);
 
             Bitboard mid_pawns;
-            
             mid_pawns = own_front_pawns & File_bb[f];
-            auto own_r = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
+            auto own_r = mid_pawns != 0 ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
 
             mid_pawns = opp_front_pawns & File_bb[f];
-            auto opp_r = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
+            auto opp_r = mid_pawns != 0 ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
             value -= ShelterWeakness[std::min (f, F_H - f)][own_r]
                   +  StromDangerousness[f  == _file (k_sq) && opp_r == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
@@ -279,7 +278,7 @@ namespace Pawns {
     // related to the possibility pawns are unstoppable.
     Score Entry::evaluate_unstoppable_pawns () const
     {
-        return passed_pawns[Own] != U64(0) ?
+        return passed_pawns[Own] != 0 ?
                     Unstoppable * i32(rel_rank (Own, scan_frntmost_sq (Own, passed_pawns[Own]))) :
                     SCORE_ZERO;
     }

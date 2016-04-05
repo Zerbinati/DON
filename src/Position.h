@@ -36,18 +36,18 @@ public:
     Value  non_pawn_matl[CLR_NO];
     Score  psq_score     ;//= SCORE_ZERO;
 
-    Key    matl_key      ;//= U64(0);   // Hash key of materials.
-    Key    pawn_key      ;//= U64(0);   // Hash key of pawns.
+    Key    matl_key      ;//= 0;   // Hash key of materials.
+    Key    pawn_key      ;//= 0;   // Hash key of pawns.
     CastleRight castle_rights ;//= CR_NONE;  // Castling-rights information for both side.
     Square en_passant_sq ;//= SQ_NO;    // En-passant -> "In passing"
     u08    clock_ply     ;//= 0;        // Number of halfmoves clock since the last pawn advance or any capture.
                                         // Used to determine if a draw can be claimed under the clock-move rule.
     u08    null_ply      ;//= 0;
     // ---Not copied when making a move---
-    Key    posi_key      ;//= U64(0);   // Hash key of position.
+    Key    posi_key      ;//= 0;   // Hash key of position.
     Move   last_move     ;//= MOVE_NONE;// Move played on the previous position.
     PieceType capture_type;//= NONE;    // Piece type captured.
-    Bitboard checkers    ;//= U64(0);   // Checkers bitboard.
+    Bitboard checkers    ;//= 0;   // Checkers bitboard.
 
     StateInfo *ptr       ;//= nullptr;
 };
@@ -63,8 +63,8 @@ struct CheckInfo
 {
 public:
     Bitboard checking_bb[NONE];     // Checking squares from which the enemy king can be checked
-    Bitboard pinneds    ;//= U64(0); // Pinned pieces
-    Bitboard discoverers;//= U64(0); // Check discoverer pieces
+    Bitboard pinneds    ;//= 0; // Pinned pieces
+    Bitboard discoverers;//= 0; // Check discoverer pieces
     Square   king_sq    ;//= SQ_NO; // Enemy king square
 
     CheckInfo () = delete;
@@ -393,7 +393,7 @@ inline Key Position::move_posi_key (Move m) const
     return _psi->posi_key ^  Zob.act_side
         ^  Zob.piece_square[_active][mpt][org]
         ^  Zob.piece_square[_active][ppt][dst]
-        ^ (cpt != NONE ? Zob.piece_square[~_active][cpt][dst] : U64(0));
+        ^ (cpt != NONE ? Zob.piece_square[~_active][cpt][dst] : 0);
 }
 
 inline Score  Position::psq_score () const { return _psi->psq_score; }
@@ -407,7 +407,7 @@ inline Square   Position::castle_rook (CastleRight cr) const { return _castle_ro
 inline Bitboard Position::castle_path (CastleRight cr) const { return _castle_path[cr]; }
 inline Bitboard Position::king_path   (CastleRight cr) const { return _king_path[cr]; }
 
-inline bool  Position::castle_impeded (CastleRight cr) const { return (_castle_path[cr] & _types_bb[NONE]) != U64(0); }
+inline bool  Position::castle_impeded (CastleRight cr) const { return (_castle_path[cr] & _types_bb[NONE]) != 0; }
 // Color of the side on move
 inline Color Position::active  () const { return _active; }
 inline bool Position::chess960 () const { return _chess960; }
@@ -482,7 +482,7 @@ inline Bitboard Position::discoverers (Color c) const
 }
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return ((_types_bb[PAWN]&_color_bb[~c]) & PawnPassSpan[c][s]) == U64(0);
+    return ((_types_bb[PAWN]&_color_bb[~c]) & PawnPassSpan[c][s]) == 0;
 }
 // bishops_pair(c) check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
@@ -509,13 +509,13 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 inline bool Position::capture       (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))) && (_color_bb[~_active] & dst_sq (m)) != U64(0))
+    return ((mtype (m) == NORMAL || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN))) && (_color_bb[~_active] & dst_sq (m)) != 0)
         || en_passant (m);
 }
 // capture_or_promotion(m) checks move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
-    return (mtype (m) == NORMAL && (_color_bb[~_active] & dst_sq (m)) != U64(0)) || en_passant (m)
+    return (mtype (m) == NORMAL && (_color_bb[~_active] & dst_sq (m)) != 0) || en_passant (m)
         || (mtype (m) == PROMOTE && _board[org_sq (m)] == (_active|PAWN));
 }
 // en_passant(m) checks move is en-passant
@@ -631,7 +631,7 @@ inline CheckInfo::CheckInfo (const Position &pos)
     checking_bb[BSHP] = attacks_bb<BSHP> (king_sq, pos.pieces ());
     checking_bb[ROOK] = attacks_bb<ROOK> (king_sq, pos.pieces ());
     checking_bb[QUEN] = checking_bb[BSHP] | checking_bb[ROOK];
-    checking_bb[KING] = U64(0);
+    checking_bb[KING] = 0;
 }
 
 #endif // _POSITION_H_INC_

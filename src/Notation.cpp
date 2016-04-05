@@ -47,7 +47,7 @@ namespace Notation {
 
             auto amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
             auto pcs = amb; // & ~pinneds; // If pinned piece is considered as ambiguous
-            while (pcs != U64(0))
+            while (pcs != 0)
             {
                 auto sq = pop_lsq (pcs);
                 if (!pos.legal (mk_move<NORMAL> (sq, dst), pinneds))
@@ -55,10 +55,10 @@ namespace Notation {
                     amb -= sq;
                 }
             }
-            if (amb != U64(0))
+            if (amb != 0)
             {
-                if ((amb & file_bb (org)) == U64(0)) return AMB_RANK;
-                if ((amb & rank_bb (org)) == U64(0)) return AMB_FILE;
+                if ((amb & file_bb (org)) == 0) return AMB_RANK;
+                if ((amb & rank_bb (org)) == 0) return AMB_FILE;
                 return AMB_SQR;
             }
             return AMB_NONE;

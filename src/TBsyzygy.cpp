@@ -347,7 +347,7 @@ namespace TBSyzygy {
         // pawns, ..., kings.
         Key calc_key (u08 *pcs, bool mirror)
         {
-            Key key = U64(0);
+            Key key = 0;
             auto color = mirror ? BLACK : WHITE;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
@@ -515,7 +515,7 @@ namespace TBSyzygy {
             {
                 for (u08 j = 0; j < MaxHash; ++j)
                 {
-                    TB_Hash[i][j].key = U64(0);
+                    TB_Hash[i][j].key = 0;
                     TB_Hash[i][j].tbe = nullptr;
                 }
             }
@@ -1847,7 +1847,7 @@ namespace TBSyzygy {
             assert(pos.count<KING> (WHITE) == 1
                 && pos.count<KING> (BLACK) == 1);
 
-            Key key = U64(0);
+            Key key = 0;
             auto color = mirror ? BLACK : WHITE;
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
@@ -1908,7 +1908,7 @@ namespace TBSyzygy {
                     }
                     else
                     {
-                        tbhe[i].key = U64(0);
+                        tbhe[i].key = 0;
                         success = 0;
                         UNLOCK (TB_mutex);
                         return VALUE_ZERO;
@@ -1944,7 +1944,7 @@ namespace TBSyzygy {
                 do
                 {
                     sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
-                } while (bb != U64(0));
+                } while (bb != 0);
 
                 File f = pawn_file (tbep, sq);
                 pc = tbep->file[f].pieces[side];
@@ -1954,7 +1954,7 @@ namespace TBSyzygy {
                     do
                     {
                         sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
-                    } while (bb != U64(0));
+                    } while (bb != 0);
                 }
                 u64 idx = encode_pawn (tbep, tbep->file[f].norm[side], sq, tbep->file[f].factor[side]);
                 res = decompress_pairs (tbep->file[f].precomp[side], idx);
@@ -1969,7 +1969,7 @@ namespace TBSyzygy {
                     do
                     {
                         sq[std::min (s++, u08(TB_PieceLimit-1))] = pop_lsq (bb);
-                    } while (bb != U64(0));
+                    } while (bb != 0);
                 }
                 u64 idx = encode_piece (tbep, tbep->norm[side], sq, tbep->factor[side]);
                 res = decompress_pairs (tbep->precomp[side], idx);
@@ -2058,7 +2058,7 @@ namespace TBSyzygy {
                 do
                 {
                     sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
-                } while (bb != U64(0));
+                } while (bb != 0);
                 
                 File f = pawn_file (reinterpret_cast<TBEntry_pawn *> (dtzep), sq);
                 if ((dtzep->flags[f] & 1) != side)
@@ -2073,7 +2073,7 @@ namespace TBSyzygy {
                     do
                     {
                         sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
-                    } while (bb != U64(0));
+                    } while (bb != 0);
                 }
                 u64 idx = encode_pawn (reinterpret_cast<TBEntry_pawn *> (dtzep), dtzep->file[f].norm, sq, dtzep->file[f].factor);
                 res = decompress_pairs (dtzep->file[f].precomp, idx);
@@ -2102,7 +2102,7 @@ namespace TBSyzygy {
                     do
                     {
                         sq[std::min (s++, u08(TB_PieceLimit-1))] = pop_lsq (bb);
-                    } while (bb != U64(0));
+                    } while (bb != 0);
                 }
                 u64 idx = encode_piece (reinterpret_cast<TBEntry_piece *> (dtzep), dtzep->norm, sq, dtzep->factor);
                 res = decompress_pairs (dtzep->precomp, idx);
@@ -2145,7 +2145,7 @@ namespace TBSyzygy {
             
             // Generate (at least) all legal non-ep captures including (under)promotions.
             // It is OK to generate more, as long as they are filtered out below.
-            if (pos.checkers () == U64(0))
+            if (pos.checkers () == 0)
             {
                 end_move = generate<CAPTURE> (moves, pos);
                 // Since underpromotion captures are not included, we need to add them.
@@ -2221,7 +2221,7 @@ namespace TBSyzygy {
             {
                 // Generate at least all legal non-capturing pawn moves
                 // including non-capturing promotions.
-                end_move = pos.checkers () == U64(0) ?
+                end_move = pos.checkers () == 0 ?
                     generate<RELAX  > (moves, pos) :
                     generate<EVASION> (moves, pos);
 
@@ -2290,7 +2290,7 @@ namespace TBSyzygy {
             else
             {
                 Value best_value = Value(-1);
-                end_move = pos.checkers () == U64(0) ?
+                end_move = pos.checkers () == 0 ?
                     generate<RELAX  > (moves, pos) :
                     generate<EVASION> (moves, pos);
 
@@ -2414,7 +2414,7 @@ namespace TBSyzygy {
         Value v1 = ep;
 
         ValMove moves[MaxMoves];
-        ValMove *end_move = pos.checkers () == U64(0) ?
+        ValMove *end_move = pos.checkers () == 0 ?
             generate<CAPTURE> (moves, pos) :
             generate<EVASION> (moves, pos);
 
@@ -2493,7 +2493,7 @@ namespace TBSyzygy {
                     }
                 }
                 if (   cur_move == end_move
-                    && pos.checkers () == U64(0)
+                    && pos.checkers () == 0
                    )
                 {
                     end_move = generate<QUIET> (end_move, pos);
@@ -2539,7 +2539,7 @@ namespace TBSyzygy {
         Value v1 = ep;
         // Generate (at least) all legal en-passant captures.
         ValMove moves[MaxMoves];
-        ValMove *end_move = pos.checkers () == U64(0) ?
+        ValMove *end_move = pos.checkers () == 0 ?
             generate<CAPTURE> (moves, pos) :
             generate<EVASION> (moves, pos);
 
@@ -2585,7 +2585,7 @@ namespace TBSyzygy {
                     }
                 }
                 if (   cur_move == end_move
-                    && pos.checkers () == U64(0)
+                    && pos.checkers () == 0
                    )
                 {
                     end_move = generate<QUIET> (end_move, pos);
@@ -2631,7 +2631,7 @@ namespace TBSyzygy {
             pos.do_move (move, si, pos.gives_check (move, ci));
 
             Value value = VALUE_ZERO;
-            if (pos.checkers () != U64(0) && dtz > VALUE_ZERO)
+            if (pos.checkers () != 0 && dtz > VALUE_ZERO)
             {
                 ValMove moves[MaxMoves];
                 if (generate<LEGAL> (moves, pos) == moves)
