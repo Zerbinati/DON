@@ -455,18 +455,22 @@ INC_DEC_OPERATORS(Rank)
 
 INC_DEC_OPERATORS(Color)
 
+// Delta operators
+inline Delta  operator+  (Delta  d1, Delta d2) { return Delta(i32(d1) + i32(d2)); }
+inline Delta  operator-  (Delta  d1, Delta d2) { return Delta(i32(d1) - i32(d2)); }
+inline Delta  operator*  (Delta  d, i32 i) { return Delta(i32(d) * i); }
+inline Delta  operator*  (i32 i, Delta  d) { return Delta(i * i32(d)); }
+inline Delta  operator/  (Delta  d, i32 i) { return Delta(i32(d) / i); }
+//inline Delta& operator*= (Delta &d, i32 i) { d = Delta(i32(d) * i); return d; }
+//inline Delta& operator/= (Delta &d, i32 i) { d = Delta(i32(d) / i); return d; }
+
 // Square operators
-INC_DEC_OPERATORS(Square)
 inline Square  operator+  (Square  s, Delta d) { return Square(i32(s) + i32(d)); }
 inline Square  operator-  (Square  s, Delta d) { return Square(i32(s) - i32(d)); }
 inline Square& operator+= (Square &s, Delta d) { s = Square(i32(s) + i32(d)); return s; }
 inline Square& operator-= (Square &s, Delta d) { s = Square(i32(s) - i32(d)); return s; }
 inline Delta   operator-  (Square s1, Square s2) { return Delta(i32(s1) - i32(s2)); }
-
-// Delta operators
-ARTHMAT_OPERATORS(Delta)
-inline Delta  operator/  (Delta  d, i32 i) { return Delta(i32(d) / i); }
-inline Delta& operator/= (Delta &d, i32 i) { d = Delta(i32(d) / i); return d; }
+INC_DEC_OPERATORS(Square)
 
 INC_DEC_OPERATORS(CastleSide)
 

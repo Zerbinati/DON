@@ -2784,7 +2784,7 @@ namespace TBSyzygy {
         assert(-2 <= wdl && wdl <= 2);
 
         if (success == 0) return false;
-        
+
         ProbeValue = Wdl_to_Value[wdl + 2];
 
         StateInfo si;

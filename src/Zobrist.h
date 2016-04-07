@@ -5,14 +5,10 @@
 
 class Position;
 
-// Zobrist Random numbers
+// Zobrist class
 class Zobrist
 {
 public:
-    //static const Key StartMatlKey = U64(0xB76D8438E5D28230);
-    //static const Key StartPawnKey = U64(0x37FC40DA841E1692);
-    //static const Key StartPosiKey = U64(0x463B96181691FC9C);
-
     static Key ExclusionKey;
 
     // 2*6*64 + 2*2 + 8 + 1

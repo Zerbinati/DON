@@ -194,7 +194,7 @@ public:
 
     CastleRight castle_rights () const;
     Square en_passant_sq () const;
-    
+
     u08  clock_ply () const;
     Move last_move () const;
     PieceType capture_type () const;
@@ -389,7 +389,7 @@ inline Key Position::move_posi_key (Move m) const
             promote (m) : mpt;
     auto cpt = en_passant (m) ?
             PAWN : ptype (_board[dst]);
-    
+
     return _psi->posi_key ^  Zob.act_side
         ^  Zob.piece_square[_active][mpt][org]
         ^  Zob.piece_square[_active][ppt][dst]

@@ -483,7 +483,6 @@ PieceType Position::pick_least_val_att (Square dst, Bitboard stm_attackers, Bitb
         }
 
         attackers &= mocc; // After X-ray that may add already processed pieces
-        
         return PT;
     }
 
@@ -671,7 +670,7 @@ bool Position::pseudo_legal (Move m) const
         {
             return false;
         }
-        
+
         // Castle is always encoded as "King captures friendly Rook"
         bool king_side = dst > org;
         assert(dst == castle_rook (mk_castle_right (_active, king_side ? CS_KING : CS_QUEN)));
@@ -938,7 +937,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
             && (attacks_bb<ROOK> (rook_dst, _types_bb[NONE] - org - rook_org + dst + rook_dst) & ci.king_sq) != 0;
     }
         break;
-    
+
     case ENPASSANT:
     {
         // En-passant capture with check ?
@@ -958,7 +957,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         return (attacks_bb (Piece(promote (m)), dst, _types_bb[NONE] - org + dst) & ci.king_sq) != 0;
     }
         break;
-    
+
     default:
     {
         assert(false);
@@ -1132,7 +1131,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     iss >> std::noskipws;
 
     clear ();
-    
+
     u08 ch;
     // 1. Piece placement on Board
     size_t idx;
@@ -1178,8 +1177,11 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     {
         Square r_sq;
         auto c = isupper (ch) ? WHITE : BLACK;
-        
-        if (ch == '-') continue;
+
+        if (ch == '-')
+        {
+            continue;
+        }
 
         if (c960)
         {
@@ -1233,7 +1235,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
         iss >> std::skipws
             >> clk_ply
             >> moves;
-        
+
         if (_psi->en_passant_sq != SQ_NO)
         {
             clk_ply = 0;
@@ -1772,7 +1774,10 @@ string Position::fen (bool c960, bool full) const
 
     oss << " " << (_psi->en_passant_sq != SQ_NO ? to_string (_psi->en_passant_sq) : "-");
 
-    if (full) oss << " " << i16(_psi->clock_ply) << " " << move_num ();
+    if (full)
+    {
+        oss << " " << i16(_psi->clock_ply) << " " << move_num ();
+    }
 
     return oss.str ();
 }

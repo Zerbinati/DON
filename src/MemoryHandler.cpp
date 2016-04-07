@@ -86,7 +86,7 @@ namespace Memory {
             {
                 //show_error (TEXT ("OpenProcessToken"), GetLastError ());
             }
-            
+
             TOKEN_PRIVILEGES token_priv;
             // Get the luid
             if (!LookupPrivilegeValue (nullptr, privilege_name, &token_priv.Privileges[0].Luid))

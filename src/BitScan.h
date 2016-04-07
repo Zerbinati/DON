@@ -17,13 +17,13 @@ inline Square scan_lsq (Bitboard bb)
 #if defined(BIT64)
     _BitScanForward64 (&index, bb);
 #else
-    if (u32(bb) != 0)
+    if (u32(bb >> 0) != 0)
     {
-        _BitScanForward (&index, bb);
+        _BitScanForward (&index, u32(bb >> 0));
     }
     else
     {
-        _BitScanForward (&index, bb >> 32);
+        _BitScanForward (&index, u32(bb >> 32));
         index += 32;
     }
 #endif
@@ -41,57 +41,41 @@ inline Square scan_msq (Bitboard bb)
 #else
     if (u32(bb >> 32) != 0)
     {
-        _BitScanReverse (&index, bb >> 32);
+        _BitScanReverse (&index, u32(bb >> 32));
         index += 32;
     }
     else
     {
-        _BitScanReverse (&index, bb);
+        _BitScanReverse (&index, u32(bb >> 0));
     }
 #endif
 
     return Square(index);
 }
 
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) //|| defined(__arm__)
 
 inline Square scan_lsq (Bitboard bb)
 {
     assert(bb != 0);
+
+#if defined(BIT64)
     return Square(__builtin_ctzll (bb));
+#else
+    return Square(u32(bb >> 0) != 0 ? __builtin_ctz (bb >> 0) : __builtin_ctz (bb >> 32) + 32);
+#endif
 }
 inline Square scan_msq (Bitboard bb)
 {
     assert(bb != 0);
+
+#if defined(BIT64)
     return Square(i08(SQ_H8) - __builtin_clzll (bb));
+#else
+    return Square(i08(SQ_H8) - (u32(bb >> 32) != 0 ? __builtin_clz (bb >> 32) : __builtin_clz (bb >> 0) + 32));
+#endif
 }
 
-//#elif defined(__arm__)
-//
-//inline Square scan_lsq (Bitboard bb)
-//{
-//    assert(bb != 0);
-//#if defined(BIT64)
-//    return Square(__builtin_ctzll (bb));
-//#else
-//    return Square((bb & 0x00000000FFFFFFFF) ?
-//        __builtin_ctz (bb >> 00) :
-//        __builtin_ctz (bb >> 32) + 32);
-//#endif
-//}
-//
-//inline Square scan_msq (Bitboard bb)
-//{
-//    assert(bb != 0);
-//#if defined(BIT64)
-//    return Square(i08(SQ_H8) - __builtin_clzll (bb));
-//#else
-//    return Square(i08(SQ_H8) - ((bb & 0xFFFFFFFF00000000) ?
-//        __builtin_clz (bb >> 32) :
-//        __builtin_clz (bb >> 00) + 32));
-//#endif
-//}
-//
 //#else
 //
 //// Assembly code by Heinz van Saanen
@@ -101,7 +85,6 @@ inline Square scan_msq (Bitboard bb)
 //    Bitboard index;
 //    __asm__ ("bsfq %1, %0": "=r" (index) : "rm" (bb));
 //    return Square(index);
-//    //return Square(__builtin_ctzll (bb));
 //}
 //
 //inline Square scan_msq (Bitboard bb)
@@ -110,7 +93,6 @@ inline Square scan_msq (Bitboard bb)
 //    Bitboard index;
 //    __asm__ ("bsrq %1, %0": "=r" (index) : "rm" (bb));
 //    return Square(index);
-//    //return Square(i08(SQ_H8) - __builtin_clzll (bb));
 //}
 
 #else
@@ -223,20 +205,18 @@ inline Square  scan_msq (Bitboard bb)
         bb >>= 32;
         msb = 32;
     }
-
-    u32 b = u32(bb);
-    if (b > 0xFFFF)
+    if (bb > 0xFFFF)
     {
-        b >>= 16;
+        bb >>= 16;
         msb += 16;
     }
-    if (b > 0xFF)
+    if (bb > 0xFF)
     {
-        b >>= 8;
+        bb >>= 8;
         msb += 8;
     }
 
-    return Square(msb + MSB_Table[b]);
+    return Square(msb + MSB_Table[bb]);
 
 #   endif
 

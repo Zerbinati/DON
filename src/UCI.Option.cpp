@@ -85,7 +85,7 @@ namespace UCI {
     Option& Option::operator= (const string &value)
     {
         assert(!_type.empty ());
-        
+
         if (_type != "button")
         {
             if (value.empty ())
@@ -242,7 +242,7 @@ namespace UCI {
                 convert_path (BookFile);
             }
         }
-        
+
         void configure_skill ()
         {
             Threadpool.main ()->skill_mgr.change_skill_level (u08(i32(Options["Skill Level"])));

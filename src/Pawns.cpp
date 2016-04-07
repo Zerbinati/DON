@@ -140,24 +140,25 @@ namespace Pawns {
                 e->semiopen_files[Own] &= ~(u08(1) << f);
                 e->pawn_attack_span[Own] |= PawnAttackSpan[Own][s];
 
-                auto adjacents = (own_pawns & AdjFile_bb[f]);
-                auto phalanx   = (adjacents & rank_bb (s));
-                auto supported = (adjacents & rank_bb (s-Push));
-                auto doubled   = (own_pawns & FrontSqrs_bb[Own][s]);
+                auto adjacents = own_pawns & AdjFile_bb[f];
+                auto phalanx   = adjacents & rank_bb (s);
+                auto supported = adjacents & rank_bb (s-Push);
+                auto doubled   = own_pawns & FrontSqrs_bb[Own][s];
+                auto stoppers  = opp_pawns & PawnPassSpan[Own][s];
                 bool opposed   = (opp_pawns & FrontSqrs_bb[Own][s]) != 0;
-                bool connected = (supported != 0 || phalanx != 0);
+                bool connected = (supported) != 0 || (phalanx) != 0;
                 bool levered   = (opp_pawns & PawnAttacks[Own][s]) != 0;
                 bool isolated  = (adjacents) == 0;
-                bool passed    = (opp_pawns & PawnPassSpan[Own][s]) == 0;
 
                 bool backward;
                 // Test for backward pawn.
                 // If the pawn is passed, isolated, connected or levered (it can capture an enemy pawn).
                 // If there are friendly pawns behind on adjacent files and they are able to advance and support the pawn.
                 // If it is sufficiently advanced (Rank 6), then it cannot be backward either.
-                if (   passed || isolated || levered || connected || rel_rank (Own, s) >= R_6
+                if (   stoppers == 0 || isolated || levered || connected
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
                     || ((own_pawns & PawnAttackSpan[Opp][s]) != 0 && (opp_pawns & (s-Push)) == 0)
+                    || rel_rank (Own, s) >= R_5
                    )
                 {
                     backward = false;
@@ -167,17 +168,17 @@ namespace Pawns {
                     // Now know there are no friendly pawns beside or behind this pawn on adjacent files.
                     // Now check whether the pawn is backward by looking in the forward direction on the
                     // adjacent files, and picking the closest pawn there.
-                    b = PawnAttackSpan[Own][s] & pos.pieces (PAWN);
+                    b = adjacents | stoppers;
                     if (b != 0)
                     {
-                        b = PawnAttackSpan[Own][s] & rank_bb (scan_backmost_sq (Own, b));
+                        b = rank_bb (scan_backmost_sq (Own, b));
                     }
                     // If have an enemy pawn in the same or next rank, the pawn is
                     // backward because it cannot advance without being captured.
-                    backward = (opp_pawns & (b | shift_bb<Push> (b))) != 0;
+                    backward = (stoppers & (b | shift_bb<Push> (b & AdjFile_bb[f]))) != 0;
                 }
 
-                assert(passed ^ (opposed || (opp_pawns & PawnAttackSpan[Own][s])));
+                assert(stoppers == 0 || opposed || (opp_pawns & PawnAttackSpan[Own][s]));
 
                 auto score = SCORE_ZERO;
 
@@ -216,7 +217,7 @@ namespace Pawns {
                 // Only the frontmost passed pawn on each file is considered a true passed pawn.
                 // Passed pawns will be properly scored in evaluation
                 // because complete attack info needed to evaluate them.
-                if (passed)
+                if (stoppers == 0)
                 {
                     e->passed_pawns[Own] += s;
                 }
@@ -226,6 +227,7 @@ namespace Pawns {
 //#endif
                 pawn_score += score;
             }
+
             b = e->semiopen_files[Own] ^ u08(0xFF);
             e->pawn_span[Own] = u08(b != 0 ? scan_msq (b) - scan_lsq (b) : 0);
 

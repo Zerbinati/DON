@@ -254,7 +254,6 @@ namespace BitBoard {
     template<>
     // King attacks
     inline Bitboard attacks_bb<KING> (Square s, Bitboard) { return PieceAttacks[KING][s]; }
-    // --------------------------------
 
     template<PieceType PT>
     // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
@@ -265,7 +264,9 @@ namespace BitBoard {
     template<>
     inline u16 magic_index<BSHP> (Square s, Bitboard occ)
     {
-#   if !defined(BM2)
+#   if defined(BM2)
+        return u16(PEXT(occ, B_Masks_bb[s]));
+#   else
 #       if defined(BIT64)
             return u16(((occ & B_Masks_bb[s]) * B_Magics_bb[s]) >> B_Shifts[s]);
 #       else
@@ -273,15 +274,15 @@ namespace BitBoard {
             u32 hi = (u32(occ >> 0x20) & u32(B_Masks_bb[s] >> 0x20)) * u32(B_Magics_bb[s] >> 0x20);
             return ((lo ^ hi) >> B_Shifts[s]);
 #       endif
-#   else
-        return u16(PEXT(occ, B_Masks_bb[s]));
 #   endif
     }
 
     template<>
     inline u16 magic_index<ROOK> (Square s, Bitboard occ)
     {
-#   if !defined(BM2)
+#   if defined(BM2)
+        return u16(PEXT(occ, R_Masks_bb[s]));
+#   else
 #       if defined(BIT64)
             return u16(((occ & R_Masks_bb[s]) * R_Magics_bb[s]) >> R_Shifts[s]);
 #       else
@@ -289,8 +290,6 @@ namespace BitBoard {
             u32 hi = (u32(occ >> 0x20) & u32(R_Masks_bb[s] >> 0x20)) * u32(R_Magics_bb[s] >> 0x20);
             return ((lo ^ hi) >> R_Shifts[s]);
 #       endif
-#   else
-        return u16(PEXT(occ, R_Masks_bb[s]));
 #   endif
     }
 

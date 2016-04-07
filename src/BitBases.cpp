@@ -11,7 +11,7 @@ namespace BitBases {
 
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
         const u32 MaxIndex = 2*24*i08(SQ_NO)*i08(SQ_NO); // stm * p_sq * wk_sq * bk_sq = 196608
-        
+
         // Each u32 entity stores results of 32 positions, one per bit
         u32 KPK_Bitbase[MaxIndex / 32];
 
@@ -43,14 +43,11 @@ namespace BitBases {
 
         struct KPK_Position
         {
-            
         private:
 
             Color  _active;
-            
             Square _k_sq[CLR_NO]
                 ,  _p_sq;
-
             Result _result;
 
             template<Color Own>
@@ -71,7 +68,6 @@ namespace BitBases {
                 const auto Bad  = Own == WHITE ? DRAW : WIN;
 
                 Result result = INVALID;
-                
                 Bitboard b = PieceAttacks[KING][_k_sq[Own]];
                 while (b != 0)
                 {

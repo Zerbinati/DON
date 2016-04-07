@@ -32,7 +32,7 @@ namespace Evaluator {
             };
 
             double cp[T_NO][CLR_NO][PH_NO];
-            
+
             void write (i32 idx, Color c, Score score)
             {
                 cp[idx][c][MG] = value_to_cp (mg_value (score));
@@ -334,7 +334,7 @@ namespace Evaluator {
                     /*PT == NIHT*/PieceAttacks[PT][s];
 
                 ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= attacks;
-                
+
                 if ((ei.pinneds[Own] & s) != 0)
                 {
                     attacks &= RayLine_bb[pos.square<KING> (Own)][s];
@@ -364,12 +364,12 @@ namespace Evaluator {
                 mobility += PieceMobility[PT][mob];
 
                 // Special extra evaluation for pieces
-                
+
                 if (PT == NIHT || PT == BSHP)
                 {
-                    const auto OutpostMask = Own == WHITE ?         // Mask of allowed outpost squares
-                                                R4_bb|R5_bb|R6_bb :
-                                                R5_bb|R4_bb|R3_bb;
+                    const auto OutpostMask = Own == WHITE ? // Mask of allowed outpost squares
+                        R4_bb|R5_bb|R6_bb :
+                        R5_bb|R4_bb|R3_bb;
 
                     // Bonus for minors (bishop or knight) when behind a pawn
                     if (   rel_rank (Own, s) < R_5
@@ -564,7 +564,7 @@ namespace Evaluator {
                         // Analyze enemy's safe queen contact checks.
                         // Undefended squares around the king attacked by enemy queen...
                         undefended_attacked = undefended & ei.pin_attacked_by[Opp][QUEN];
-                        
+
                         auto unsafe = ei.ful_attacked_by[Opp][PAWN]
                                     | ei.ful_attacked_by[Opp][NIHT]
                                     | ei.ful_attacked_by[Opp][BSHP]
@@ -643,7 +643,7 @@ namespace Evaluator {
             const auto Rank7BB  = Own == WHITE ? R7_bb : R2_bb;
 
             auto score = SCORE_ZERO;
-            
+
             Bitboard b;
             // Loose enemies (except Queen and King)
             b = (pos.pieces (Opp) ^ pos.pieces (Opp, QUEN, KING))
@@ -652,7 +652,7 @@ namespace Evaluator {
             {
                 score += PieceLoosed * (more_than_one (b) ? pop_count<Max15> (b) : 1);
             }
-            
+
             // Non-pawn enemies attacked by any friendly pawn
             auto weak_nonpawns =
                   (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
@@ -665,7 +665,7 @@ namespace Evaluator {
                      | ei.pin_attacked_by[Own][NONE]
                     );
                 // Safe Pawn threats
-                b = (shift_bb<RCap>(b) | shift_bb<LCap>(b)) & weak_nonpawns;
+                b = weak_nonpawns & (shift_bb<RCap>(b) | shift_bb<LCap>(b));
                 if ((weak_nonpawns ^ b) != 0)
                 {
                     score += ThreatByHangingPawn;
@@ -689,15 +689,17 @@ namespace Evaluator {
                 &  ei.pin_attacked_by[Own][NONE];
 
             // Add a bonus according to the kind of attacking pieces
-            
+
             // Enemies attacked by minor pieces
-            b = (weak_pieces | defended_nonpawns | pos.pieces (Opp, ROOK, QUEN)) & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
+            b = (weak_pieces | defended_nonpawns | pos.pieces (Opp, ROOK, QUEN))
+              & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
             while (b != 0)
             {
                 score += ThreatByPiece[MINOR][ptype (pos[pop_lsq (b)])];
             }
             // Enemies attacked by rooks
-            b = (weak_pieces | pos.pieces (Opp, QUEN)) & ei.pin_attacked_by[Own][ROOK];
+            b = (weak_pieces | pos.pieces (Opp, QUEN))
+              & (ei.pin_attacked_by[Own][ROOK]);
             while (b != 0)
             {
                 score += ThreatByPiece[MAJOR][ptype (pos[pop_lsq (b)])];
@@ -1040,7 +1042,7 @@ namespace Evaluator {
             + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
             - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
 
-        // Weight mobility
+        // Evaluate mobility
         score += mobility[WHITE] - mobility[BLACK];
 
         // Evaluate kings after all other pieces because needed full attack

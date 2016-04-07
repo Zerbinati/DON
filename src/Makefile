@@ -114,8 +114,8 @@ endif
 ifeq ($(ARCH), general-64-pop)
 	arch = any
 	bits = 64
-	lpg  = yes
 	pop  = yes
+	lpg  = yes
 endif
 
 ifeq ($(ARCH), x86-64-pop)

@@ -936,7 +936,7 @@ namespace Searcher {
                             {
                                 continue;
                             }
-                            
+
                             // Speculative prefetch as early as possible
                             prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
@@ -1139,6 +1139,7 @@ namespace Searcher {
                     // Move count based pruning
                     if (   depth < FutilityMoveCountDepth*DEPTH_ONE
                         && move_count >= FutilityMoveCounts[improving][depth/DEPTH_ONE]
+                        //&& opp_cmv[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
                        )
                     {
                         continue;
@@ -1458,7 +1459,7 @@ namespace Searcher {
     void RootMove::insert_pv_into_tt (Position &pos)
     {
         StateInfo states[MaxPlies], *si = states;
-        
+
         //shrink_to_fit ();
         u08 ply = 0;
         for (const auto m : *this)
@@ -2048,6 +2049,7 @@ namespace Threading {
         }
 
         bool filtering = false;
+
         if (root_moves.empty ())
         {
             root_moves += RootMove ();
@@ -2217,7 +2219,11 @@ namespace Threading {
                 for (size_t i = 1; i < Threadpool.size (); ++i)
                 {
                     if (   best_thread->root_moves[0].new_value < Threadpool[i]->root_moves[0].new_value
-                        && best_thread->leaf_depth < Threadpool[i]->leaf_depth
+                        && (   best_thread->leaf_depth < Threadpool[i]->leaf_depth
+                            || (   best_thread->leaf_depth <= Threadpool[i]->leaf_depth
+                                && best_thread->max_ply < Threadpool[i]->max_ply
+                               )
+                           )
                        )
                     {
                         best_thread = Threadpool[i];

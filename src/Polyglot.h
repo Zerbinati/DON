@@ -34,7 +34,7 @@ namespace Polyglot {
 
         Entry& operator= (const Entry&) = default;
 
-        explicit operator Move () const { return Move (move); }
+        explicit operator Move () const { return Move(move); }
 
         bool operator== (const Entry &pe)
         {

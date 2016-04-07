@@ -65,14 +65,14 @@ namespace BitBoard {
         // Max Linear Table Size (for rook from any corner square)
         // 2 ^ 12 = 4096 = 0x1000
         const u16 MaxLTSize  = U32(0x1000);
-        
+
         // Max Bishop Table Size
         // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
         //    2048 +     256 +     1536 +     1408
         //                                    5248 = 0x1480
         const u32 MaxBTSize = U32(0x1480);
-        
+
         // Max Rook Table Size
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
         // 4 * 4096 + 24 * 2048 + 36 * 1024
@@ -231,7 +231,7 @@ namespace BitBoard {
             {
                 if (s1 != s2)
                 {
-                    SquareDist[s1][s2]  = u08(max (dist<File> (s1, s2) , dist<Rank> (s1, s2)));
+                    SquareDist[s1][s2] = u08(max (dist<File> (s1, s2) , dist<Rank> (s1, s2)));
                     DistRings_bb[s1][SquareDist[s1][s2] - 1] += s2;
                 }
             }

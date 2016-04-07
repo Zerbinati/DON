@@ -238,7 +238,7 @@ namespace Polyglot {
 
             while (*this >> pe, pe.key == poly_key && good ())
             {
-                if (pe == MOVE_NONE) continue; // Skip MOVE_NONE
+                if (pe.move == MOVE_NONE) continue; // Skip MOVE_NONE
 
                 if (max_weight < pe.weight)
                 {
@@ -248,7 +248,10 @@ namespace Polyglot {
 
                 if (pick_best)
                 {
-                    if (pe.weight == max_weight) move = Move(pe);
+                    if (pe.weight == max_weight)
+                    {
+                        move = Move(pe.move);
+                    }
                 }
                 // Choose book move according to its score.
                 // If a move has a very high score it has a higher probability
@@ -257,13 +260,16 @@ namespace Polyglot {
                 if (weight_sum != 0)
                 {
                     u16 rand = pr.rand<u16> () % weight_sum;
-                    if (pe.weight > rand) move = Move(pe);
+                    if (pe.weight > rand)
+                    {
+                        move = Move(pe.move);
+                    }
                 }
                 // Note that first entry is always chosen if not pick best and sum of weight = 0
                 else
                 if (move == MOVE_NONE)
                 {
-                    move = Move(pe);
+                    move = Move(pe.move);
                 }
             }
 
@@ -319,7 +325,7 @@ namespace Polyglot {
             u32 weight_sum = 0;
             while (*this >> pe, pe.key == poly_key && good ())
             {
-                if (pe == MOVE_NONE) continue; // Skip MOVE_NONE
+                if (pe.move == MOVE_NONE) continue; // Skip MOVE_NONE
 
                 pes.push_back (pe);
                 weight_sum += pe.weight;
