@@ -541,6 +541,13 @@ namespace Evaluator {
                         | ei.pin_attacked_by[Own][QUEN]
                        );
 
+                // ... and those which are not defended at all in the larger king ring
+                auto king_ring_def =
+                       ei.king_ring[Own]
+                    & ~pos.pieces (Opp)
+                    &  ei.pin_attacked_by[Opp][NONE]
+                    & ~ei.pin_attacked_by[Own][NONE];
+
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KingDanger[] array. The initial value is based on the
                 // number and types of the enemy's attacking pieces, the number of
@@ -551,6 +558,7 @@ namespace Evaluator {
                     +  9 * (ei.king_zone_attacks_count[Opp])                                                                            // King-zone attacks
                     + 27 * (undefended != 0 ? more_than_one (undefended) ? pop_count<Max15> (undefended) : 1 : 0)                  // King-zone undefended pieces
                     + 11 * (ei.pinneds[Own] != 0 ? more_than_one (ei.pinneds[Own]) ? pop_count<Max15> (ei.pinneds[Own]) : 1 : 0)   // King pinned piece
+                    + 11 * (king_ring_def != 0 ? more_than_one (king_ring_def) ? pop_count<Max15> (king_ring_def) : 1 : 0)
                     - 64 * (pos.count<QUEN>(Opp) == 0)
                     - i32(value) / 8;
 
@@ -647,7 +655,7 @@ namespace Evaluator {
             Bitboard b;
             // Loose enemies (except Queen and King)
             b = (pos.pieces (Opp) ^ pos.pieces (Opp, QUEN, KING))
-             & ~(ei.ful_attacked_by[Own][NONE] | ei.ful_attacked_by[Opp][NONE]);
+             & ~(ei.ful_attacked_by[Opp][NONE]);
             if (b != 0)
             {
                 score += PieceLoosed * (more_than_one (b) ? pop_count<Max15> (b) : 1);

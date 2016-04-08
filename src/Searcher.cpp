@@ -178,7 +178,7 @@ namespace Searcher {
             }
 
             if (   (main_thread->time_mgr_used && elapsed_time > main_thread->time_mgr.maximum_time () - 2 * TimerResolution)
-                || (Limits.movetime != 0   && elapsed_time >= Limits.movetime)
+                || (Limits.movetime != 0 && elapsed_time >= Limits.movetime)
                 || (Limits.nodes != 0 && Threadpool.game_nodes () >= Limits.nodes)
                )
             {
@@ -521,8 +521,7 @@ namespace Searcher {
                     // Don't search moves with negative SEE values
                     if (   (   !InCheck
                             // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
-                            || (   InCheck
-                                && best_value > -VALUE_MATE_IN_MAX_PLY
+                            || (   best_value > -VALUE_MATE_IN_MAX_PLY
                                 && !pos.capture (move)
                                )
                            )
@@ -768,7 +767,7 @@ namespace Searcher {
                         {
                             tte = TT.probe (posi_key, tt_hit);
                         }
-                        tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), /*in_check ?*/ VALUE_NONE /*: evaluate (pos)*/,
+                        tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), /*InCheck ?*/ VALUE_NONE /*: evaluate (pos)*/,
                             std::min (depth + 6*DEPTH_ONE, DEPTH_MAX - DEPTH_ONE), BOUND_EXACT, TT.generation ());
 
                         return value;
@@ -1028,6 +1027,7 @@ namespace Searcher {
                 && (tt_bound & BOUND_LOWER) != BOUND_NONE;
 
             u08 move_count = 0;
+            ss->current_move = MOVE_NONE;
 
             MoveVector quiet_moves;
             quiet_moves.reserve (16);
@@ -1139,7 +1139,8 @@ namespace Searcher {
                     // Move count based pruning
                     if (   depth < FutilityMoveCountDepth*DEPTH_ONE
                         && move_count >= FutilityMoveCounts[improving][depth/DEPTH_ONE]
-                        //&& opp_cmv[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
+                        && thread->history_values[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
+                        && opp_cmv[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
                        )
                     {
                         continue;
