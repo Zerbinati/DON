@@ -131,7 +131,7 @@ namespace BitBoard {
 #           else
                     32
 #           endif
-                    - u08(pop_count<Max15> (mask));
+                    - u08(pop_count (mask));
 #       else
                 (void) shifts;
 #       endif
@@ -172,7 +172,7 @@ namespace BitBoard {
                     do
                     {
                         magics_bb[s] = rng.sparse_rand<Bitboard> ();
-                    } while (pop_count<Max15> ((mask * magics_bb[s]) >> 0x38) < 6);
+                    } while (pop_count ((mask * magics_bb[s]) >> 0x38) < 6);
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.

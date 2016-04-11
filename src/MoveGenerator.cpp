@@ -260,7 +260,7 @@ namespace MoveGen {
                         {
                             auto ep_attacks = Rx_pawns & Rank5BB & PawnAttacks[Opp][ep_sq];
                             assert(ep_attacks != 0);
-                            assert(pop_count<Max15> (ep_attacks) <= 2);
+                            assert(pop_count (ep_attacks) <= 2);
 
                             while (ep_attacks != 0) { (*moves++).move = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq); }
                         }

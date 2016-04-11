@@ -158,34 +158,26 @@ inline Square scan_msq (Bitboard bb)
 
 #   endif
 
-inline Square  scan_lsq (Bitboard bb)
+inline Square scan_lsq (Bitboard bb)
 {
     assert(bb != 0);
-
+    bb ^= (bb - 1); // set all bits including the LS1B and below
+    u08 index =
 #   if defined(BIT64)
-
-    u64 x = bb ^ (bb - 1); // set all bits including the LS1B and below
-    u08 index = (x * DeBruijn_64) >> 0x3A; // 58
-    return Square(BSF_Table[index]);
-
+    // Use Kim Walisch extending for 64-bit
+        (bb * DeBruijn_64) >> 58;
 #   else
-
     // Use Matt Taylor's folding trick for 32-bit
-    u64 x = bb ^ (bb - 1); // set all bits including the LS1B and below
-    u32 fold = u32(x ^ (x >> 32));
-    u08 index = (fold * DeBruijn_32) >> 0x1A; // 26
-    return Square(BSF_Table[index]);
-
+        (u32((bb >> 0) ^ (bb >> 32)) * DeBruijn_32) >> 26;
 #   endif
-
+    return Square(BSF_Table[index]);
 }
 
-inline Square  scan_msq (Bitboard bb)
+inline Square scan_msq (Bitboard bb)
 {
     assert(bb != 0);
 
 #   if defined(BIT64)
-
     // set all bits including the MS1B and below
     bb |= bb >> 0x01;
     bb |= bb >> 0x02;
@@ -193,8 +185,7 @@ inline Square  scan_msq (Bitboard bb)
     bb |= bb >> 0x08;
     bb |= bb >> 0x10;
     bb |= bb >> 0x20;
-
-    u08 index = (bb * DeBruijn_64) >> 0x3A; // 58
+    u08 index = (bb * DeBruijn_64) >> 58;
     return Square(BSF_Table[index]);
 
 #   else

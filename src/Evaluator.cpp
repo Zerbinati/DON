@@ -100,7 +100,7 @@ namespace Evaluator {
             // king_ring_attackers_weight[color] is the sum of the "weight" of the pieces
             // of the given color which attack a square in the king_ring of the enemy king.
             // The weights of the individual piece types are given by the KingAttackWeights[piece-type]
-            u32 king_ring_attackers_weight[CLR_NO];
+            i32 king_ring_attackers_weight[CLR_NO];
 
             // king_zone_attacks_count[color] is the number of attacks by
             // the given color to squares directly adjacent to the enemy king.
@@ -260,11 +260,10 @@ namespace Evaluator {
             const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
 
-            auto pinneds = ei.pinneds[Own] = pos.pinneds (Own);
-            
             ei.ful_attacked_by[Own][NONE] |=
             ei.ful_attacked_by[Own][PAWN]  = ei.pe->pawn_attacks[Own];
-            
+
+            auto pinneds = ei.pinneds[Own] = pos.pinneds (Own);
             auto pinned_pawns = pinneds & pos.pieces (Own, PAWN);
             if (pinned_pawns != 0)
             {
@@ -287,7 +286,7 @@ namespace Evaluator {
             auto king_attacks             =
             ei.ful_attacked_by[Opp][KING] =
             ei.pin_attacked_by[Opp][KING] = PieceAttacks[KING][pos.square<KING> (Opp)];
-            
+
             ei.king_ring_attackers_count [Own] = 0;
             ei.king_ring_attackers_weight[Own] = 0;
             ei.king_zone_attacks_count   [Own] = 0;
@@ -304,7 +303,7 @@ namespace Evaluator {
                 if ((king_attacks & ei.pin_attacked_by[Own][PAWN]) != 0)
                 {
                     auto attackers = pos.pieces (Own, PAWN) & (king_attacks|(DistRings_bb[pos.square<KING> (Opp)][1] & (rank_bb (pos.square<KING> (Opp)-Push)|rank_bb (pos.square<KING> (Opp)))));
-                    ei.king_ring_attackers_count [Own] = attackers != 0 ? u08(pop_count<Max15> (attackers)) : 0;
+                    ei.king_ring_attackers_count [Own] = attackers != 0 ? u08(pop_count (attackers)) : 0;
                     ei.king_ring_attackers_weight[Own] = ei.king_ring_attackers_count [Own]*KingAttackWeights[PAWN];
                 }
             }
@@ -348,7 +347,7 @@ namespace Evaluator {
                     auto zone_attacks = ei.ful_attacked_by[Opp][KING] & attacks;
                     if (zone_attacks != 0)
                     {
-                        ei.king_zone_attacks_count[Own] += u08(pop_count<Max15> (zone_attacks));
+                        ei.king_zone_attacks_count[Own] += u08(pop_count (zone_attacks));
                     }
                 }
 
@@ -360,7 +359,7 @@ namespace Evaluator {
                                 );
                 }
 
-                i32 mob = pop_count<PT == QUEN ? Full : Max15> (attacks & mobility_area);
+                i32 mob = pop_count (attacks & mobility_area);
                 mobility += PieceMobility[PT][mob];
 
                 // Special extra evaluation for pieces
@@ -457,7 +456,7 @@ namespace Evaluator {
                         auto rook_on_pawns = pos.pieces (Opp, PAWN) & PieceAttacks[ROOK][s];
                         if (rook_on_pawns != 0)
                         {
-                            score += RookOnPawns * pop_count<Max15> (rook_on_pawns);
+                            score += RookOnPawns * pop_count (rook_on_pawns);
                         }
                     }
 
@@ -530,8 +529,8 @@ namespace Evaluator {
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[Opp] != 0)
             {
-                // Attacked squares around the king which has no defenders apart from the king itself.
-                auto undefended =
+                // Find the attacked squares which are defended only by the king in the king zone...
+                auto king_zone_undef =
                       ei.ful_attacked_by[Own][KING] // King-zone
                     & ei.ful_attacked_by[Opp][NONE]
                     & ~(  ei.pin_attacked_by[Own][PAWN]
@@ -541,10 +540,10 @@ namespace Evaluator {
                         | ei.pin_attacked_by[Own][QUEN]
                        );
 
-                // ... and those which are not defended at all in the larger king ring
-                auto king_ring_def =
+                // ... and those which are not defended at all in the king ring
+                auto king_ring_undef =
                        ei.king_ring[Own]
-                    & ~pos.pieces (Opp)
+                    //& ~pos.pieces (Opp)
                     &  ei.pin_attacked_by[Opp][NONE]
                     & ~ei.pin_attacked_by[Own][NONE];
 
@@ -553,25 +552,25 @@ namespace Evaluator {
                 // number and types of the enemy's attacking pieces, the number of
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
-                i32 attack_units =
-                    + std::min ((ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp])/2, 72U)                          // King-ring attacks
-                    +  9 * (ei.king_zone_attacks_count[Opp])                                                                            // King-zone attacks
-                    + 27 * (undefended != 0 ? more_than_one (undefended) ? pop_count<Max15> (undefended) : 1 : 0)                  // King-zone undefended pieces
-                    + 11 * (ei.pinneds[Own] != 0 ? more_than_one (ei.pinneds[Own]) ? pop_count<Max15> (ei.pinneds[Own]) : 1 : 0)   // King pinned piece
-                    + 11 * (king_ring_def != 0 ? more_than_one (king_ring_def) ? pop_count<Max15> (king_ring_def) : 1 : 0)
+                auto attack_units =
+                    + std::min ((ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp])/2, 72)               // King-ring attacks
+                    +  9 * (ei.king_zone_attacks_count[Opp])                                                                // King-zone attacks
+                    + 27 * (king_zone_undef != 0 ? more_than_one (king_zone_undef) ? pop_count (king_zone_undef) : 1 : 0)   // King-zone undefended pieces
+                    + 11 * (ei.pinneds[Own] != 0 ? more_than_one (ei.pinneds[Own]) ? pop_count (ei.pinneds[Own]) : 1 : 0)   // King pinned piece
+                    + 11 * (king_ring_undef != 0 ? more_than_one (king_ring_undef) ? pop_count (king_ring_undef) : 1 : 0)   // King-ring undefended piece
                     - 64 * (pos.count<QUEN>(Opp) == 0)
                     - i32(value) / 8;
 
                 // Undefended squares around king not occupied by enemy's
-                undefended &= ~pos.pieces (Opp);
-                if (undefended != 0)
+                king_zone_undef &= ~pos.pieces (Opp);
+                if (king_zone_undef != 0)
                 {
                     Bitboard undefended_attacked;
                     if (pos.count<QUEN> (Opp) > 0)
                     {
                         // Analyze enemy's safe queen contact checks.
                         // Undefended squares around the king attacked by enemy queen...
-                        undefended_attacked = undefended & ei.pin_attacked_by[Opp][QUEN];
+                        undefended_attacked = king_zone_undef & ei.pin_attacked_by[Opp][QUEN];
 
                         auto unsafe = ei.ful_attacked_by[Opp][PAWN]
                                     | ei.ful_attacked_by[Opp][NIHT]
@@ -618,7 +617,7 @@ namespace Evaluator {
                     score -= KingChecked;
                 }
                 // Knight safe-checks
-                if ((PieceAttacks[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[Opp][NIHT]) != 0)
+                if ((PieceAttacks[NIHT][fk_sq] & ei.pin_attacked_by[Opp][NIHT] & safe_area) != 0)
                 {
                     attack_units += KnightSafeCheck;
                     score -= KingChecked;
@@ -653,12 +652,15 @@ namespace Evaluator {
             auto score = SCORE_ZERO;
 
             Bitboard b;
-            // Loose enemies (except Queen and King)
-            b = (pos.pieces (Opp) ^ pos.pieces (Opp, QUEN, KING))
-             & ~(ei.ful_attacked_by[Opp][NONE]);
-            if (b != 0)
+            if (pos.non_pawn_material (Own) >= VALUE_MG_QUEN)
             {
-                score += PieceLoosed * (more_than_one (b) ? pop_count<Max15> (b) : 1);
+                // Loose enemies (except Queen and King)
+                b = (pos.pieces (Opp) ^ pos.pieces (Opp, QUEN, KING))
+                 & ~(ei.ful_attacked_by[Opp][NONE]);
+                if (b != 0)
+                {
+                    score += PieceLoosed * (more_than_one (b) ? pop_count (b) : 1);
+                }
             }
 
             // Non-pawn enemies attacked by any friendly pawn
@@ -724,7 +726,7 @@ namespace Evaluator {
                 b = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
                 if (b != 0)
                 {
-                    score += PieceHanged * (more_than_one (b) ? pop_count<Max15> (b) : 1);
+                    score += PieceHanged * (more_than_one (b) ? pop_count (b) : 1);
                 }
             }
 
@@ -743,7 +745,7 @@ namespace Evaluator {
               &  ~ei.pin_attacked_by[Own][PAWN];
             if (b != 0)
             {
-                score += ThreatByPawnPush * pop_count<Max15> (b);
+                score += ThreatByPawnPush * pop_count (b);
             }
 
             if (Trace)
@@ -899,7 +901,7 @@ namespace Evaluator {
             behind |= shift_bb<Own == WHITE ? DEL_SS : DEL_NN> (behind);
 
             // Count safe_space + (behind & safe_space) with a single pop_count
-            auto bonus = pop_count<Full> ((Own == WHITE ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
+            auto bonus = pop_count ((Own == WHITE ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
             auto weight = pos.count<NIHT> () + pos.count<BSHP> ();
 
             auto score = mk_score (bonus * weight * weight * 2 / 11, 0);
@@ -1037,16 +1039,16 @@ namespace Evaluator {
         };
 
         // Evaluate all pieces but king and pawns
-        score += 
+        score +=
             + evaluate_pieces<WHITE, NIHT, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
             - evaluate_pieces<BLACK, NIHT, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
-        score += 
+        score +=
             + evaluate_pieces<WHITE, BSHP, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
             - evaluate_pieces<BLACK, BSHP, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
-        score += 
+        score +=
             + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
             - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
-        score += 
+        score +=
             + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
             - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
 
@@ -1060,12 +1062,12 @@ namespace Evaluator {
             - evaluate_king<BLACK, Trace> (pos, ei);
 
         // Evaluate tactical threats, needed full attack information including king
-        score += 
+        score +=
             + evaluate_threats<WHITE, Trace> (pos, ei)
             - evaluate_threats<BLACK, Trace> (pos, ei);
 
         // Evaluate passed pawns, needed full attack information including king
-        score += 
+        score +=
             + evaluate_passed_pawns<WHITE, Trace> (pos, ei)
             - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
 
@@ -1074,7 +1076,7 @@ namespace Evaluator {
             + pos.non_pawn_material (BLACK) >= VALUE_SPACE
            )
         {
-            score += 
+            score +=
                 + evaluate_space_activity<WHITE, Trace> (pos, ei)
                 - evaluate_space_activity<BLACK, Trace> (pos, ei);
         }
@@ -1085,7 +1087,7 @@ namespace Evaluator {
            )
         {
             score +=
-                + ei.pe->evaluate_unstoppable_pawns<WHITE> ();
+                + ei.pe->evaluate_unstoppable_pawns<WHITE> ()
                 - ei.pe->evaluate_unstoppable_pawns<BLACK> ();
         }
 
@@ -1161,7 +1163,7 @@ namespace Evaluator {
         auto mg = 0;
         for (auto i = 0; i < MaxAttackUnits; ++i)
         {
-            //                                   MaxSlope, MaxValue
+            //                                  MaxSlope, MaxValue
             mg = std::min (std::min (i*i - 16, mg + 322), 47410);
             KingDanger[i] = mk_score (mg * 268 / 7700, 0);
         }

@@ -5,97 +5,65 @@
 
 namespace BitBoard {
 
-enum BitCount : u08
-{
-    CNT_FULL,
-    CNT_MAX15,
-    CNT_HW
-};
-
-template<BitCount>
-// pop_count () counts the number of set bits in a Bitboard
-inline i32 pop_count (Bitboard bb);
-
-// Determine at compile time the best pop_count<> specialization 
-// according if platform is 32-bit or 64-bit, and if hardware popcnt instruction is available.
-// return the maximum number of nonzero bits to count
-
 #if defined(ABM)
-
-const BitCount Full  = CNT_HW;
-const BitCount Max15 = CNT_HW;
-
-#if defined(_MSC_VER)
-
-#   if defined(__INTEL_COMPILER)
-
-#       include <nmmintrin.h>
-// Intel header for  SSE4.1 or SSE4.2 intrinsics.
-// _mm_popcnt_u64() & _mm_popcnt_u32()
-
-template<>
-inline i32 pop_count<CNT_HW> (Bitboard bb)
+#   if defined(_MSC_VER)
+#       if defined(__INTEL_COMPILER)
+#           include <nmmintrin.h> // Intel header for  SSE4.1 or SSE4.2 intrinsics.  _mm_popcnt_u64() & _mm_popcnt_u32()
+inline i32 pop_count (Bitboard bb)
 {
-#       if defined(BIT64)
+#           if defined(BIT64)
     {
-        return i32(_mm_popcnt_u64 (bb));
+    return i32(_mm_popcnt_u64 (bb));
     }
+#           else
+    {
+        return i32(_mm_popcnt_u32 (bb >> 0) + _mm_popcnt_u32 (bb >> 32));
+    }
+#           endif
+}
+
 #       else
-    {
-        return i32(_mm_popcnt_u32 (bb) + _mm_popcnt_u32 (bb >> 32));
-    }
-#       endif
-}
 
-#   else
-
-#       include <intrin.h> // MSVC popcnt and bsfq instrinsics __popcnt64() & __popcnt()
-
-template<>
-inline i32 pop_count<CNT_HW> (Bitboard bb)
+#           include <intrin.h> // MSVC popcnt and bsfq instrinsics __popcnt64() & __popcnt()
+inline i32 pop_count (Bitboard bb)
 {
-#      if defined(BIT64)
+#           if defined(BIT64)
     {
-        return i32(__popcnt64 (bb));
+    return i32(__popcnt64 (bb));
     }
-#      else
+#           else
     {
-        return i32(__popcnt (u32(bb)) + __popcnt (u32(bb >> 32)));
+    return i32(__popcnt (u32(bb >> 0)) + __popcnt (u32(bb >> 32)));
     }
-#      endif
+#           endif
 }
+#       endif
 
-#   endif
+#   else // GCC or compatible compiler
 
-#else // GCC or compatible compiler
-
-template<>
-inline i32 pop_count<CNT_HW> (Bitboard bb)
+inline i32 pop_count (Bitboard bb)
 {
     // Assembly code by Heinz van Saanen
     //__asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
     //return bb;
-#   if defined(BIT64)
+#           if defined(BIT64)
     {
-        return i32(__builtin_popcountll (bb));
+    return i32(__builtin_popcountll (bb));
     }
-#   else
+#           else
     {
-        return i32(__builtin_popcountl (bb) + __builtin_popcountl (bb >> 32));
-        //return i32(__builtin_popcountll (bb));
+    return i32(__builtin_popcountl (bb >> 0) + __builtin_popcountl (bb >> 32));
     }
-#   endif
+#           endif
 }
 
-#endif
+#   endif
 
-#else   // BY Calculation
+#else   // PopCount Table
 
-#   if defined(POP)
-
-    const BitCount Full  = CNT_HW;
-    const BitCount Max15 = CNT_HW;
-    const u08 PopCountTable[USHRT_MAX+1] =
+inline i32 pop_count (Bitboard bb)
+{
+    static const u08 PopCount16[1 << 16] =
     {
         0, 1, 1, 2, 1, 2, 2, 3, 1, 2, 2, 3, 2, 3, 3, 4, 1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5,
         1, 2, 2, 3, 2, 3, 3, 4, 2, 3, 3, 4, 3, 4, 4, 5, 2, 3, 3, 4, 3, 4, 4, 5, 3, 4, 4, 5, 4, 5, 5, 6,
@@ -2147,91 +2115,13 @@ inline i32 pop_count<CNT_HW> (Bitboard bb)
         11,12,12,13,12,13,13,14,12,13,13,14,13,14,14,15,12,13,13,14,13,14,14,15,13,14,14,15,14,15,15,16
     };
 
-template<>
-inline i32 pop_count<CNT_HW> (Bitboard bb)
-{
-    return PopCountTable[(bb >> 0x00) & USHRT_MAX]
-         + PopCountTable[(bb >> 0x10) & USHRT_MAX]
-         + PopCountTable[(bb >> 0x20) & USHRT_MAX]
-         + PopCountTable[(bb >> 0x30) & USHRT_MAX];
+    union { Bitboard b; u16 u16[4]; } v = { bb };
+
+    return PopCount16[v.u16[0]]
+         + PopCount16[v.u16[1]]
+         + PopCount16[v.u16[2]]
+         + PopCount16[v.u16[3]];
 }
-
-#   else
-
-#       if defined(BIT64)
-
-const BitCount Full  = CNT_FULL;
-const BitCount Max15 = CNT_MAX15;
-
-const u64 M1_64 = U64(0x5555555555555555);
-const u64 M2_64 = U64(0x3333333333333333);
-const u64 M4_64 = U64(0x0F0F0F0F0F0F0F0F);
-
-const u64 H4_64 = U64(0x1111111111111111);
-const u64 H8_64 = U64(0x0101010101010101);
-
-template<>
-// Full pop count of the bitboard (64-bit)
-inline i32 pop_count<CNT_FULL> (Bitboard bb)
-{
-    bb -= (bb >> 1) & M1_64;
-    bb = ((bb >> 2) & M2_64) + (bb & M2_64);
-    bb = ((bb >> 4) + bb) & M4_64;
-    return (bb * H8_64) >> 0x38; // 56;
-}
-
-template<>
-// Max15 pop count of the bitboard (64-bit)
-inline i32 pop_count<CNT_MAX15> (Bitboard bb)
-{
-    bb -= (bb >> 1) & M1_64;
-    bb = ((bb >> 2) & M2_64) + (bb & M2_64);
-    return (bb * H4_64) >> 0x3C; // 60;
-}
-
-#       else
-
-const BitCount Full  = CNT_FULL;
-const BitCount Max15 = CNT_MAX15;
-
-const u32 M1_32 = U32(0x55555555);
-const u32 M2_32 = U32(0x33333333);
-const u32 M4_32 = U32(0x0F0F0F0F);
-
-const u32 H4_32 = U32(0x11111111);
-const u32 H8_32 = U32(0x01010101);
-
-template<>
-// Full pop count of the bitboard (32-bit)
-inline i32 pop_count<CNT_FULL> (Bitboard bb)
-{
-    u32 w0 = u32(bb);
-    u32 w1 = u32(bb >> 32);
-    w0 -= (w0 >> 1) & M1_32;                 // 0-2 in 2 bits
-    w1 -= (w1 >> 1) & M1_32;
-    w0 = ((w0 >> 2) & M2_32) + (w0 & M2_32); // 0-4 in 4 bits
-    w1 = ((w1 >> 2) & M2_32) + (w1 & M2_32);
-    w0 = ((w0 >> 4) + w0) & M4_32;
-    w1 = ((w1 >> 4) + w1) & M4_32;
-    return ((w0 + w1) * H8_32) >> 0x18; // 24;
-}
-
-template<>
-// Max15 pop count of the bitboard (32-bit)
-inline i32 pop_count<CNT_MAX15> (Bitboard bb)
-{
-    u32 w0 = u32(bb);
-    u32 w1 = u32(bb >> 32);
-    w0 -= (w0 >> 1) & M1_32;                 // 0-2 in 2 bits
-    w1 -= (w1 >> 1) & M1_32;
-    w0 = ((w0 >> 2) & M2_32) + (w0 & M2_32); // 0-4 in 4 bits
-    w1 = ((w1 >> 2) & M2_32) + (w1 & M2_32);
-    return ((w0 + w1) * H4_32) >> 0x1C; // 28;
-}
-
-#       endif
-
-#   endif
 
 #endif
 

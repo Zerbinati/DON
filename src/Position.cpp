@@ -140,7 +140,7 @@ void Position::initialize ()
         auto score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
         for (auto s = SQ_A1; s <= SQ_H8; ++s)
         {
-            auto psq_bonus = score + PSQ_Bonus[pt][_rank (s)][_file (s) < F_E ? _file (s) : F_H - _file (s)];
+            auto psq_bonus = score + PSQ_Bonus[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
             PSQ[WHITE][pt][ s] = +psq_bonus;
             PSQ[BLACK][pt][~s] = -psq_bonus;
         }
@@ -292,7 +292,7 @@ bool Position::ok (i08 *failed_step) const
             if (   (_active != WHITE && _active != BLACK)
                 || (_board[_piece_sq[WHITE][KING][0]] != W_KING)
                 || (_board[_piece_sq[BLACK][KING][0]] != B_KING)
-                || count<NONE> () > 32 || count<NONE> () != pop_count<Full> (_types_bb[NONE])
+                || count<NONE> () > 32 || count<NONE> () != pop_count (_types_bb[NONE])
                 || (_psi->en_passant_sq != SQ_NO && (rel_rank (_active, _psi->en_passant_sq) != R_6 || !can_en_passant (_psi->en_passant_sq)))
                 || (_psi->clock_ply > 100)
                )
@@ -305,7 +305,7 @@ bool Position::ok (i08 *failed_step) const
             if (   std::count (_board, _board + SQ_NO, W_KING) != 1
                 || std::count (_board, _board + SQ_NO, B_KING) != 1
                 || attackers_to (_piece_sq[~_active][KING][0], _active)
-                || pop_count<Max15> (_psi->checkers) > 2
+                || pop_count (_psi->checkers) > 2
                )
             {
                 return false;
@@ -348,7 +348,7 @@ bool Position::ok (i08 *failed_step) const
                 auto colors = _color_bb[c];
 
                 // Too many Piece of color
-                if (count<NONE> (c) > 16 || count<NONE> (c) != pop_count<Full> (colors))
+                if (count<NONE> (c) > 16 || count<NONE> (c) != pop_count (colors))
                 {
                     return false;
                 }
@@ -370,8 +370,8 @@ bool Position::ok (i08 *failed_step) const
                     auto bishops = colors & _types_bb[BSHP];
                     u08 bishop_count[CLR_NO] =
                     {
-                        u08(pop_count<Max15> (Liht_bb & bishops)),
-                        u08(pop_count<Max15> (Dark_bb & bishops)),
+                        u08(pop_count (Liht_bb & bishops)),
+                        u08(pop_count (Dark_bb & bishops)),
                     };
 
                     if (           (i32(_piece_sq[c][PAWN].size ())
@@ -410,7 +410,7 @@ bool Position::ok (i08 *failed_step) const
             {
                 for (auto pt = PAWN; pt <= KING; ++pt)
                 {
-                    if (i32(_piece_sq[c][pt].size ()) != pop_count<Max15> (_color_bb[c]&_types_bb[pt]))
+                    if (i32(_piece_sq[c][pt].size ()) != pop_count (_color_bb[c]&_types_bb[pt]))
                     {
                         return false;
                     }
@@ -1068,7 +1068,7 @@ bool Position::can_en_passant (Square ep_sq) const
 
     // En-passant attackes
     auto attacks = PawnAttacks[~_active][ep_sq] & (_color_bb[_active]&_types_bb[PAWN]);
-    assert(pop_count<Full> (attacks) <= 2);
+    assert(pop_count (attacks) <= 2);
     if (attacks != 0)
     {
         MoveVector moves;

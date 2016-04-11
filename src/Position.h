@@ -75,9 +75,7 @@ namespace Threading {
     class Thread;
 }
 
-// The position data structure. A position consists of the following data:
-//
-// Board consits of data about piece placement
+// Position class stores information regarding the board representation:
 //  - 64-entry array of pieces, indexed by the square.
 //  - Bitboards of each piece type.
 //  - Bitboards of each color

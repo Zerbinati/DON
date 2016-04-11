@@ -38,7 +38,6 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # bits    = 64/32     --- -DBIT64          --- 64/32-bit operating system
 # pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
-# pop     = yes/no    --- -DPOP            --- Use Internal POP count table
 # abm     = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions
 # bm2     = yes/no    --- -DBM2            --- Use BM2 (Bit Manipulation 2) x86_64 asm-instructions
 # lpg     = yes/no    --- -DLPAGES         --- Use Large Pages
@@ -54,7 +53,6 @@ optimize= yes
 bits = 32
 pfch = no
 sse  = no
-pop  = no
 abm  = no
 bm2  = no
 lpg  = no
@@ -75,23 +73,6 @@ ifeq ($(ARCH), x86-32)
 	sse  = yes
 endif
 
-ifeq ($(ARCH), general-32-pop)
-	arch = any
-	pop  = yes
-endif
-
-ifeq ($(ARCH), x86-32-old-pop)
-	arch = i386
-	pop  = yes
-endif
-
-ifeq ($(ARCH), x86-32-pop)
-	arch = i386
-	pfch = yes
-	sse  = yes
-	pop  = yes
-endif
-
 ifeq ($(ARCH), x86-32-abm)
 	arch = i386
 	pfch = yes
@@ -109,22 +90,6 @@ ifeq ($(ARCH), x86-64)
 	bits = 64
 	pfch = yes
 	sse  = yes
-endif
-
-ifeq ($(ARCH), general-64-pop)
-	arch = any
-	bits = 64
-	pop  = yes
-	lpg  = yes
-endif
-
-ifeq ($(ARCH), x86-64-pop)
-	arch = x86_64
-	bits = 64
-	pfch = yes
-	sse  = yes
-	pop  = yes
-	lpg  = yes
 endif
 
 ifeq ($(ARCH), x86-64-abm)
@@ -156,27 +121,9 @@ ifeq ($(ARCH), ppc-64)
 	lpg  = yes
 endif
 
-ifeq ($(ARCH), ppc-32-pop)
-	arch = ppc
-	pop  = yes
-endif
-
-ifeq ($(ARCH), ppc-64-pop)
-	arch = ppc64
-	bits = 64
-	pop  = yes
-	lpg  = yes
-endif
-
 ifeq ($(ARCH), armv7)
 	arch = armv7
 	pfch = yes
-endif
-
-ifeq ($(ARCH), armv7-pop)
-	arch = armv7
-	pfch = yes
-	pop  = yes
 endif
 
 ### ==========================================================================
@@ -198,7 +145,7 @@ ifeq ($(COMP),gcc)
 
 	comp = gcc
 	CXX  = g++
-	CXXFLAGS += -pedantic -Wextra -Wshadow
+	CXXFLAGS += -pedantic -Wextra -Wshadow -m$(bits)
 	ifneq ($(UNAME), Darwin)
 		LDFLAGS  += -Wl,--no-as-needed
 	endif
@@ -238,7 +185,8 @@ endif
 ifeq ($(COMP),clang)
 	comp = clang
 	CXX  = clang++
-	CXXFLAGS += -pedantic -Wextra -Wshadow
+	CXXFLAGS += -pedantic -Wextra -Wshadow -m$(bits)
+	LDFLAGS  += -m$(bits)
 	ifeq ($(UNAME), Darwin)
 		CXXFLAGS    += -stdlib=libc++
 		DEPENDFLAGS += -stdlib=libc++
@@ -377,12 +325,7 @@ ifeq ($(lpg), yes)
 	CXXFLAGS += -DLPAGES
 endif
 
-### 3.11 Pop Tables
-ifeq ($(pop), yes)
-	CXXFLAGS += -DPOP
-endif
-
-### 3.12 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
+### 3.11 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(comp), gcc)
@@ -405,14 +348,14 @@ ifeq ($(comp),mingw)
 	endif
 endif
 
-### 3.13 Android 5 can only run position independent executables.
+### 3.12 Android 5 can only run position independent executables.
 ### Note that this breaks Android 4.0 and earlier.
 ifeq ($(arch), armv7)
 	CXXFLAGS += -fPIE
 	LDFLAGS  += -fPIE -pie
 endif
 
-### 3.14 Custom Version.
+### 3.13 Custom Version.
 ifneq ($(VER), )
 	CXXFLAGS += -DVER=$(VER)
 endif
@@ -441,22 +384,14 @@ help:
 	@echo "general-32              > unspecified 32-bit"
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "x86-32                  > x86 32-bit with SSE support"
-	@echo "general-32-pop          > unspecified 32-bit with POP"
-	@echo "x86-32-old-pop          > x86 32-bit fall back for old hardware with POP"
-	@echo "x86-32-pop              > x86 32-bit with SSE support with POP"
 	@echo "x86-32-abm              > x86 32-bit with ABM support"
 	@echo "general-64              > unspecified 64-bit"
 	@echo "x86-64                  > x86 64-bit"
-	@echo "general-64-pop          > unspecified 64-bit with POP"
-	@echo "x86-64-pop              > x86 64-bit with POP"
 	@echo "x86-64-abm              > x86 64-bit with ABM support"
 	@echo "x86-64-bm2              > x86 64-bit with BM2 support"
 	@echo "ppc-32                  > PPC 32-bit"
 	@echo "ppc-64                  > PPC 64-bit"
-	@echo "ppc-32-pop              > PPC 32-bit with POP"
-	@echo "ppc-64-pop              > PPC 64-bit with POP"
 	@echo "armv7                   > ARMv7 32-bit"
-	@echo "armv7-pop               > ARMv7 32-bit with POP"
 	@echo ""
 	@echo "Supported compilers:"
 	@echo "--------------------"
@@ -537,7 +472,6 @@ config-sanity:
 	@echo "bits    : '$(bits)'"
 	@echo "pfch    : '$(pfch)'"
 	@echo "sse     : '$(sse)'"
-	@echo "pop     : '$(pop)'"
 	@echo "abm     : '$(abm)'"
 	@echo "bm2     : '$(bm2)'"
 	@echo "lpg     : '$(lpg)'"
@@ -557,7 +491,6 @@ config-sanity:
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(pfch)" = "yes" || test "$(pfch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
-	@test "$(pop)" = "yes" || test "$(pop)" = "no"
 	@test "$(abm)" = "yes" || test "$(abm)" = "no"
 	@test "$(bm2)" = "yes" || test "$(bm2)" = "no"
 	@test "$(lpg)" = "yes" || test "$(lpg)" = "no"
