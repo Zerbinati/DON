@@ -10,7 +10,7 @@
 
 namespace Transposition {
 
-    const u08 CacheLineSize = 64;
+    extern const u08 CacheLineSize;
 
     // Transposition::Entry needs 16 byte to be stored
     //

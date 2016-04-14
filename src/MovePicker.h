@@ -8,7 +8,7 @@
 
 namespace MovePick {
 
-    const Value MaxStatsValue = Value(1 << 28);
+    extern const Value MaxStatsValue;
 
     // The Stats struct stores different statistics.
     template<class T, bool CM = false>

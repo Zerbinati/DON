@@ -304,7 +304,7 @@ bool Position::ok (i08 *failed_step) const
         {
             if (   std::count (_board, _board + SQ_NO, W_KING) != 1
                 || std::count (_board, _board + SQ_NO, B_KING) != 1
-                || attackers_to (_piece_sq[~_active][KING][0], _active)
+                || attackers_to (_piece_sq[~_active][KING][0], _active) != 0
                 || pop_count (_psi->checkers) > 2
                )
             {
@@ -591,7 +591,6 @@ Value Position::see_sign (Move m) const
     // Note that king moves always return here because king value is set to VALUE_ZERO.
     if (  PieceValues[MG][ptype (_board[org_sq (m)])]
        <= PieceValues[MG][ptype (_board[dst_sq (m)])]
-        || mtype (m) == ENPASSANT
        )
     {
         return VALUE_KNOWN_WIN;

@@ -6,6 +6,8 @@ namespace MovePick {
     using namespace MoveGen;
     using namespace BitBoard;
 
+    const Value MaxStatsValue = Value(1 << 28);
+
     namespace {
 
         enum Stage : u08
@@ -76,6 +78,13 @@ namespace MovePick {
         assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
 
         _stage = _pos.checkers () != 0 ? S_EVASION : S_MAIN;
+
+        if (   _tt_move != MOVE_NONE
+            && !_pos.pseudo_legal (_tt_move)
+           )
+        {
+            _tt_move = MOVE_NONE;
+        }
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
@@ -107,7 +116,12 @@ namespace MovePick {
             _recapture_sq = dst_sq;
             _tt_move = MOVE_NONE;
         }
-
+        if (   _tt_move != MOVE_NONE
+            && !_pos.pseudo_legal (_tt_move)
+           )
+        {
+            _tt_move = MOVE_NONE;
+        }
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
@@ -124,7 +138,8 @@ namespace MovePick {
 
         // In ProbCut generate captures with SEE higher than the given threshold
         if (   _tt_move != MOVE_NONE
-            && (   !_pos.capture (_tt_move)
+            && (   !_pos.pseudo_legal (_tt_move)
+                || !_pos.capture (_tt_move)
                 || _pos.see (_tt_move) <= _threshold
                )
            )
@@ -165,24 +180,23 @@ namespace MovePick {
     }
 
     template<>
-    // Try winning and equal captures ordered by MVV/LVA,
-    // then non-captures if destination square is not under attack, ordered by _history_values,
-    // then bad-captures and quiet moves with a negative SEE. This last group is ordered by the SEE value.
+    // First try winning and equal captures, ordered by SEE value,
+    // then non-captures if destination square is not under attack, ordered by history values,
+    // then bad-captures and quiet moves with a negative SEE, ordered by SEE value.
     void MovePicker::value<EVASION> ()
     {
         for (auto &vm : *this)
         {
             assert(_pos.pseudo_legal (vm.move));
-            auto see_value = _pos.see_sign (vm.move);
+            auto see_value = _pos.see (vm.move);
             if (see_value < VALUE_ZERO)
             {
-                vm.value = see_value - MaxStatsValue; // At the bottom
+                vm.value = see_value - MaxStatsValue;
             }
             else
             if (_pos.capture (vm.move))
             {
-                vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                         - PieceCapValues[ptype (_pos[org_sq (vm.move)])] + MaxStatsValue;
+                vm.value = see_value + MaxStatsValue;
             }
             else
             {
@@ -337,8 +351,8 @@ namespace MovePick {
                     auto move = (*_cur_move++).move;
                     if (   move != MOVE_NONE
                         && move != _tt_move
-                        && !_pos.capture (move)
                         && _pos.pseudo_legal (move)
+                        && !_pos.capture (move)
                        )
                     {
                         return move;

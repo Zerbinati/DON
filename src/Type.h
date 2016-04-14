@@ -131,7 +131,6 @@ typedef u64     Key;
 typedef u64     Bitboard;
 
 const u16 MaxPlies  = 128; // Maximum Plies
-const u16 MaxMoves  = 256; // Maximum Moves
 
 // File
 enum File : i08
@@ -330,7 +329,7 @@ enum Value : i32
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
 
-    VALUE_NONE      = SHRT_MAX,
+    VALUE_NONE      = (1 << 15) - 1,
     VALUE_INFINITE  = +i32(VALUE_NONE) - 1,
 
     VALUE_MATE      = +i32(VALUE_INFINITE) - 1,
@@ -347,13 +346,13 @@ enum Value : i32
     VALUE_SPACE   = 12222, //2*VALUE_MG_QUEN + 4*VALUE_MG_ROOK + 2*VALUE_MG_NIHT
     VALUE_MIDGAME = 15581, VALUE_ENDGAME = 3998,
 };
-// Score enum stores a midgame and an endgame value in a single integer (enum),
+// Score stores a midgame and an endgame value in a 32bit integer,
 // the lower 16 bits are used to store the endgame value,
 // the upper 16 bits are used to store the midgame value.
 enum Score : i32
 {
     SCORE_ZERO = 0,
-    SCORE_MAX  = INT_MAX,
+    SCORE_MAX  = (1U << 31) - 1,
 };
 // Bound
 enum Bound : u08
@@ -402,7 +401,7 @@ enum Phase : u08
     PHASE_ENDGAME   =   0,
     PHASE_MIDGAME   = 128,
 };
-// ScaleFactor
+// Scale Factor
 enum ScaleFactor : u08
 {
     SCALE_FACTOR_DRAW    =   0,
@@ -410,7 +409,7 @@ enum ScaleFactor : u08
     SCALE_FACTOR_BISHOPS =  46,
     SCALE_FACTOR_NORMAL  =  64,
     SCALE_FACTOR_MAX     = 128,
-    SCALE_FACTOR_NONE    = UCHAR_MAX, // 255
+    SCALE_FACTOR_NONE    = 255,
 };
 
 #undef BASIC_OPERATORS
@@ -549,7 +548,7 @@ inline Square operator| (File f, Rank r) { return Square(( r << 3) | f); }
 inline Square operator| (Rank r, File f) { return Square((~r << 3) | f); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
-inline bool _ok (Square s) { return (s & ~i08(SQ_H8)) == 0; }
+inline bool _ok   (Square s) { return (s & ~i08(SQ_H8)) == 0; }
 inline File _file (Square s) { return File(s & i08(F_H)); }
 inline Rank _rank (Square s) { return Rank(s >> 3); }
 inline Color color (Square s) { return Color(!((s ^ (s >> 3)) & i08(BLACK))); }
@@ -607,16 +606,16 @@ inline bool _ok   (PieceType pt) { return PAWN <= pt && pt <= KING; }
 
 inline Piece  operator| (Color c, PieceType pt) { return Piece((c << 3) | pt); }
 
-inline bool _ok (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
+inline bool      _ok   (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
 inline PieceType ptype (Piece p) { return PieceType(p & MAX_PTYPE); }
-inline Color color (Piece p) { return Color(p >> 3); }
+inline Color     color (Piece p) { return Color(p >> 3); }
 inline Piece operator~ (Piece p) { return Piece(p ^ (BLACK << 3)); }
 
 inline Square org_sq (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
 inline Square dst_sq (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
 inline PieceType promote (Move m) { return PieceType(((m >> 12) & ROOK) + NIHT); }
 inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
-inline bool _ok (Move m)
+inline bool      _ok     (Move m)
 {
     // Catch all illegal moves
     //Square org = org_sq (m);

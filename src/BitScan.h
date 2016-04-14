@@ -136,7 +136,7 @@ inline Square scan_msq (Bitboard bb)
         38, 28, 58, 20, 37, 17, 36,  8
     };
 
-    const u08 MSB_Table[UCHAR_MAX+1] =
+    const u08 MSB_Table[256] =
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
@@ -161,10 +161,10 @@ inline Square scan_msq (Bitboard bb)
 inline Square scan_lsq (Bitboard bb)
 {
     assert(bb != 0);
-    bb ^= (bb - 1); // set all bits including the LS1B and below
+    bb ^= (bb - 1); // Set all bits including the LS1B and below
     u08 index =
 #   if defined(BIT64)
-    // Use Kim Walisch extending for 64-bit
+    // Use Kim Walisch extending trick for 64-bit
         (bb * DeBruijn_64) >> 58;
 #   else
     // Use Matt Taylor's folding trick for 32-bit
@@ -178,7 +178,7 @@ inline Square scan_msq (Bitboard bb)
     assert(bb != 0);
 
 #   if defined(BIT64)
-    // set all bits including the MS1B and below
+    // Set all bits including the MS1B and below
     bb |= bb >> 0x01;
     bb |= bb >> 0x02;
     bb |= bb >> 0x04;
@@ -187,9 +187,7 @@ inline Square scan_msq (Bitboard bb)
     bb |= bb >> 0x20;
     u08 index = (bb * DeBruijn_64) >> 58;
     return Square(BSF_Table[index]);
-
 #   else
-
     u08 msb = 0;
     if (bb > 0xFFFFFFFF)
     {
@@ -206,9 +204,7 @@ inline Square scan_msq (Bitboard bb)
         bb >>= 8;
         msb += 8;
     }
-
     return Square(msb + MSB_Table[bb]);
-
 #   endif
 
 }

@@ -30,7 +30,7 @@ namespace Searcher {
     using namespace Notation;
     using namespace Debugger;
 
-    typedef std::vector<bool> BoolVector;
+    typedef vector<bool> BoolVector;
 
     //const size_t Stack::Size = sizeof (Stack);
 
@@ -381,7 +381,7 @@ namespace Searcher {
             {
                 tt_hit  = false;
                 tt_move = MOVE_NONE;
-                tte->clear ();
+                //tte->clear ();
             }
             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
             auto tt_value = tt_hit ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
@@ -508,7 +508,7 @@ namespace Searcher {
                             continue;
                         }
                         // Prune moves with negative or zero SEE
-                        if (pos.see (move) <= VALUE_ZERO)
+                        if (pos.see_sign (move) <= VALUE_ZERO)
                         {
                             if (best_value < futility_base)
                             {
@@ -541,9 +541,14 @@ namespace Searcher {
                 // Make and search the move
                 pos.do_move (move, si, gives_check);
 
-                prefetch (thread->pawn_table[pos.pawn_key ()]);
-                prefetch (thread->matl_table[pos.matl_key ()]);
-
+                if (ptype (pos[org_sq (move)]) == PAWN)
+                {
+                    prefetch (thread->pawn_table[pos.pawn_key ()]);
+                }
+                if (pos.capture_or_promotion (move))
+                {
+                    prefetch (thread->matl_table[pos.matl_key ()]);
+                }
                 auto value =
                     gives_check ?
                         -quien_search<PVNode, true > (pos, ss+1, -beta, -alfa, depth-DEPTH_ONE) :
@@ -705,7 +710,7 @@ namespace Searcher {
             {
                 tt_hit  = false;
                 tt_move = MOVE_NONE;
-                tte->clear ();
+                //tte->clear ();
             }
             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
             auto tt_value = tt_hit ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
@@ -891,8 +896,8 @@ namespace Searcher {
                                 return null_value < +VALUE_MATE_IN_MAX_PLY ? null_value : beta;
                             }
                             
-                            ss->skip_pruning = true;
                             // Do verification search at high depths
+                            ss->skip_pruning = true;
                             auto value =
                                 reduced_depth < DEPTH_ONE ?
                                     quien_search<false, false> (pos, ss, beta-1, beta, DEPTH_ZERO) :
@@ -947,9 +952,14 @@ namespace Searcher {
 
                             pos.do_move (move, si, gives_check);
 
-                            prefetch (thread->pawn_table[pos.pawn_key ()]);
-                            prefetch (thread->matl_table[pos.matl_key ()]);
-
+                            if (ptype (pos[org_sq (move)]) == PAWN)
+                            {
+                                prefetch (thread->pawn_table[pos.pawn_key ()]);
+                            }
+                            if (pos.capture_or_promotion (move))
+                            {
+                                prefetch (thread->matl_table[pos.matl_key ()]);
+                            }
                             auto value =
                                 gives_check ?
                                     -depth_search<false, !CutNode, true > (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth) :
@@ -977,9 +987,21 @@ namespace Searcher {
                         ss->skip_pruning = true;
                         depth_search<PVNode, true, false> (pos, ss, alfa, beta, iid_depth);
                         ss->skip_pruning = false;
+                    }
 
+                    if (   !tt_hit
+                        || tt_move == MOVE_NONE
+                        || tte->key16 () != u16(posi_key >> 0x30)
+                       )
+                    {
                         tte = TT.probe (posi_key, tt_hit);
-                        if (tt_hit)
+                    }
+                    if (tt_hit)
+                    {
+                        if (   !root_node
+                            && tte->move () != MOVE_NONE
+                            && tt_move != tte->move ()
+                           )
                         {
                             tt_move = tte->move ();
                             if (   tt_move != MOVE_NONE
@@ -988,16 +1010,16 @@ namespace Searcher {
                             {
                                 tt_hit  = false;
                                 tt_move = MOVE_NONE;
-                                tte->clear ();
+                                //tte->clear ();
                             }
                             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
-                            if (tt_hit)
-                            {
-                                tt_value = value_of_tt (tte->value (), ss->ply);
-                                tt_eval  = tte->eval ();
-                                tt_depth = tte->depth ();
-                                tt_bound = tte->bound ();
-                            }
+                        }
+                        if (tt_hit)
+                        {
+                            tt_value = value_of_tt (tte->value (), ss->ply);
+                            tt_eval  = tte->eval ();
+                            tt_depth = tte->depth ();
+                            tt_bound = tte->bound ();
                         }
                     }
                 }
@@ -1187,9 +1209,14 @@ namespace Searcher {
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check);
 
-                prefetch (thread->pawn_table[pos.pawn_key ()]);
-                prefetch (thread->matl_table[pos.matl_key ()]);
-
+                if (ptype (pos[org_sq (move)]) == PAWN)
+                {
+                    prefetch (thread->pawn_table[pos.pawn_key ()]);
+                }
+                if (capture_or_promotion)
+                {
+                    prefetch (thread->matl_table[pos.matl_key ()]);
+                }
                 auto full_depth_search = !PVNode || move_count > FullDepthMoveCount;
 
                 assert(-VALUE_INFINITE <= alfa && alfa < +VALUE_INFINITE);
@@ -1225,7 +1252,7 @@ namespace Searcher {
                     if (   reduction_depth != DEPTH_ZERO
                         && mtype (move) == NORMAL
                         && ptype (cp) != PAWN
-                        && pos.see (mk_move (dst, org_sq (move))) < VALUE_ZERO // Reverse move
+                        && pos.see (mk_move (dst, org_sq (move))) < VALUE_ZERO // SEE of reverse move
                        )
                     {
                         reduction_depth = std::max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
@@ -2260,7 +2287,7 @@ namespace Threading {
             LogStream
                 << "Time (ms)  : " << elapsed_time                                      << "\n"
                 << "Nodes (N)  : " << Threadpool.game_nodes ()                          << "\n"
-                << "Speed (N/s): " << Threadpool.game_nodes ()*MilliSec / elapsed_time << "\n"
+                << "Speed (N/s): " << Threadpool.game_nodes ()*MilliSec / elapsed_time  << "\n"
                 << "Hash-full  : " << TT.hash_full ()                                   << "\n"
                 << "Best Move  : " << move_to_san (root_moves[0][0], root_pos)          << "\n";
             if (   root_moves[0][0] != MOVE_NONE

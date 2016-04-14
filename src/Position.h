@@ -234,7 +234,7 @@ public:
 
     Value see      (Move m) const;
     Value see_sign (Move m) const;
-    
+
     Bitboard attackers_to (Square s, Color c, Bitboard occ) const;
     Bitboard attackers_to (Square s, Color c) const;
     Bitboard attackers_to (Square s, Bitboard occ) const;
@@ -490,7 +490,10 @@ inline bool Position::bishops_pair (Color c) const
     {
         for (u08 pc = 0; pc < bishop_count-1; ++pc)
         {
-            if (opposite_colors (_piece_sq[c][BSHP][pc], _piece_sq[c][BSHP][pc+1])) return true;
+            if (opposite_colors (_piece_sq[c][BSHP][pc], _piece_sq[c][BSHP][pc+1]))
+            {
+                return true;
+            }
         }
     }
     return false;

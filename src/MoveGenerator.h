@@ -4,6 +4,8 @@
 #include "Type.h"
 #include "Position.h"
 
+const u16 MaxMoves  = 256;  // Maximum Moves
+
 // Generator Type
 enum GenType : u08
 {

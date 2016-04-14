@@ -14,6 +14,8 @@ namespace Evaluator {
     using namespace BitBoard;
     using namespace MoveGen;
 
+    const Value Tempo = Value(20);
+
     namespace {
 
         namespace Tracer {
@@ -543,7 +545,6 @@ namespace Evaluator {
                 // ... and those which are not defended at all in the king ring
                 auto king_ring_undef =
                        ei.king_ring[Own]
-                    //& ~pos.pieces (Opp)
                     &  ei.pin_attacked_by[Opp][NONE]
                     & ~ei.pin_attacked_by[Own][NONE];
 
@@ -849,7 +850,7 @@ namespace Evaluator {
                 // If non-pawn count differ.
                 if (nonpawn_diff != 0)
                 {
-                    eg_value *= 1.0 + (double) (nonpawn_diff) / 4.0;
+                    eg_value *= 1.0 + (double) (nonpawn_diff) / 5.0;
                 }
 
                 score += mk_score (mg_value, eg_value) + PawnPassedScore[_file (s)];
@@ -1072,23 +1073,26 @@ namespace Evaluator {
             - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
 
         // Evaluate space for both sides, only during opening
-        if (  pos.non_pawn_material (WHITE)
-            + pos.non_pawn_material (BLACK) >= VALUE_SPACE
-           )
+        if (pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK) >= VALUE_SPACE)
         {
             score +=
                 + evaluate_space_activity<WHITE, Trace> (pos, ei)
                 - evaluate_space_activity<BLACK, Trace> (pos, ei);
         }
         else
-        // If both sides have only pawns, score for potential unstoppable pawns
         if (   pos.non_pawn_material (WHITE) == VALUE_ZERO
-            && pos.non_pawn_material (BLACK) == VALUE_ZERO
+            || pos.non_pawn_material (BLACK) == VALUE_ZERO
            )
         {
-            score +=
-                + ei.pe->evaluate_unstoppable_pawns<WHITE> ()
-                - ei.pe->evaluate_unstoppable_pawns<BLACK> ();
+            // Check for potential unstoppable pawns
+            if (pos.non_pawn_material (WHITE) == VALUE_ZERO)
+            {
+                score -= ei.pe->evaluate_unstoppable_pawns<BLACK> ();
+            }
+            if (pos.non_pawn_material (BLACK) == VALUE_ZERO)
+            {
+                score += ei.pe->evaluate_unstoppable_pawns<WHITE> ();
+            }
         }
 
         // Evaluate position potential for the winning side

@@ -12,6 +12,8 @@ namespace Transposition {
 
     using namespace std;
 
+    const u08 CacheLineSize = 64;
+
     // Size of Transposition entry (bytes)
     // 10 bytes
     const u08 Entry::Size = sizeof (Entry);
