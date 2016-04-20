@@ -103,7 +103,6 @@ private:
 
     SquareVector _piece_sq[CLR_NO][NONE];
 
-    StateInfo  _ssi; // Startup state information object
     StateInfo *_psi; // Current state information pointer
 
     CastleRight _castle_mask[SQ_NO];
@@ -148,22 +147,9 @@ public:
 
     static void initialize ();
 
-    Position () = default; // To define the global object RootPos
+    Position () = default;
     Position (const Position&) = delete;
-    Position (const std::string &f, Threading::Thread *const th = nullptr, bool c960 = false, bool full = true)
-    {
-        if (!setup (f, th, c960, full))
-        {
-            clear ();
-        }
-    }
-    Position (const Position &pos, Threading::Thread *const th)
-    {
-        *this = pos;
-        _thread = th;
-    }
-
-    Position& operator= (const Position &pos); // To assign RootPos from UCI
+    Position& operator= (const Position &pos) = delete;
 
     Piece operator[] (Square s)      const;
     //Bitboard operator[] (Color  c)      const;
@@ -260,7 +246,7 @@ public:
 
     void clear ();
 
-    bool setup (const std::string &f, Threading::Thread *const th = nullptr, bool c960 = false, bool full = true);
+    bool setup (const std::string &f, StateInfo &si, Threading::Thread *const th = nullptr, bool c960 = false, bool full = true);
 
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;

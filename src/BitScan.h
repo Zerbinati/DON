@@ -194,17 +194,19 @@ inline Square scan_msq (Bitboard bb)
         bb >>= 32;
         msb = 32;
     }
-    if (bb > 0xFFFF)
+    u32 bb32 = u32(bb);
+    if (bb32 > 0xFFFF)
     {
-        bb >>= 16;
+        bb32 >>= 16;
         msb += 16;
     }
-    if (bb > 0xFF)
+    u16 bb16 = u16(bb32);
+    if (bb16 > 0xFF)
     {
-        bb >>= 8;
+        bb16 >>= 8;
         msb += 8;
     }
-    return Square(msb + MSB_Table[bb]);
+    return Square(msb + MSB_Table[bb16]);
 #   endif
 
 }

@@ -2,7 +2,6 @@
 
 #include <iomanip>
 
-#include "Position.h"
 #include "PRNG.h"
 #include "Zobrist.h"
 #include "MoveGenerator.h"
@@ -163,7 +162,10 @@ namespace Polyglot {
     }
     size_t Book::find_index (const string &fen, bool c960)
     {
-        return find_index (Position (fen, nullptr, c960).poly_key ());
+        Position pos;
+        StateInfo si;
+        pos.setup (fen, si, nullptr, c960);
+        return find_index (pos.poly_key ());
     }
 
     // probe_move() tries to find a book move for the given position.

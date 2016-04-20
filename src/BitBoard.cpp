@@ -237,7 +237,9 @@ namespace BitBoard {
 
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
-#       if !defined(BM2)
+#       if defined(BM2)
+                (void) shifts;
+#       else
                 shifts[s] =
 #           if defined(BIT64)
                     64
@@ -245,8 +247,6 @@ namespace BitBoard {
                     32
 #           endif
                     - u08(pop_count (mask));
-#       else
-                (void) shifts;
 #       endif
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
@@ -255,11 +255,11 @@ namespace BitBoard {
                 Bitboard occ = 0;
                 do
                 {
-#               if !defined(BM2)
+#               if defined(BM2)
+                    attacks_bb[s][PEXT(occ, mask)] = sliding_attacks (deltas, s, occ);
+#               else
                     occupancy[size] = occ;
                     reference[size] = sliding_attacks (deltas, s, occ);
-#               else
-                    attacks_bb[s][PEXT(occ, mask)] = sliding_attacks (deltas, s, occ);
 #               endif
 
                     ++size;
@@ -273,8 +273,10 @@ namespace BitBoard {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
 
-#       if !defined(BM2)
-
+#       if defined(BM2)
+                (void) magics_bb;
+                (void) magic_index;
+#       else
                 PRNG rng (Seeds[_rank (s)]);
                 u32 i;
                 
@@ -306,21 +308,18 @@ namespace BitBoard {
                         }
                     }
                 } while (i < size);
-#       else
-                (void) magics_bb; 
-                (void) magic_index;
 #       endif
             }
         }
 
         void initialize_sliding ()
         {
-#       if !defined(BM2)
-            initialize_table (B_Tables_bb, B_Attacks_bb, B_Masks_bb, B_Magics_bb, B_Shifts, PieceDeltas[BSHP], magic_index<BSHP>);
-            initialize_table (R_Tables_bb, R_Attacks_bb, R_Masks_bb, R_Magics_bb, R_Shifts, PieceDeltas[ROOK], magic_index<ROOK>);
-#       else
+#       if defined(BM2)
             initialize_table (B_Tables_bb, B_Attacks_bb, B_Masks_bb, nullptr, nullptr, PieceDeltas[BSHP], magic_index<BSHP>);
             initialize_table (R_Tables_bb, R_Attacks_bb, R_Masks_bb, nullptr, nullptr, PieceDeltas[ROOK], magic_index<ROOK>);
+#       else
+            initialize_table (B_Tables_bb, B_Attacks_bb, B_Masks_bb, B_Magics_bb, B_Shifts, PieceDeltas[BSHP], magic_index<BSHP>);
+            initialize_table (R_Tables_bb, R_Attacks_bb, R_Masks_bb, R_Magics_bb, R_Shifts, PieceDeltas[ROOK], magic_index<ROOK>);
 #       endif
         }
 

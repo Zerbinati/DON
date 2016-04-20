@@ -191,8 +191,8 @@ namespace Threading {
         Searcher::RootMoveVector    root_moves;
         Depth                       root_depth = DEPTH_ZERO
             ,                       leaf_depth = DEPTH_ZERO;
-        MovePick::HValueStats       history_values;
-        MovePick::MoveStats         counter_moves;
+        HValueStats                 history_values;
+        MoveStats                   counter_moves;
 
         std::atomic_bool            reset_check { false };
 
@@ -295,6 +295,9 @@ namespace Threading {
     class ThreadPool
         : public std::vector<Thread*>
     {
+    private:
+        StateListPtr setup_states;
+
     public:
         ThreadPool () = default;
         ThreadPool (const ThreadPool&) = delete;
@@ -315,7 +318,7 @@ namespace Threading {
         void initialize ();
         void deinitialize ();
 
-        void start_thinking (const Position &pos, const Limit &limits, StateStackPtr &states);
+        void start_thinking (const Position &pos, StateListPtr &states, const Limit &limits);
         void wait_while_thinking ();
     };
 

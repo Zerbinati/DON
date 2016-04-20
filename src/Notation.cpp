@@ -278,13 +278,13 @@ namespace Notation {
             oss << std::setw (7) << game_nodes / M << "M  ";
         }
 
-        StateStack states;
+        StateList states;
         u08 ply = 0;
         for (const auto m : main_thread->root_moves[0])
         {
             oss << move_to_san (m, root_pos) << " ";
-            states.push (StateInfo ());
-            root_pos.do_move (m, states.top (), root_pos.gives_check (m, CheckInfo (root_pos)));
+            states.push_back (StateInfo ());
+            root_pos.do_move (m, states.back (), root_pos.gives_check (m, CheckInfo (root_pos)));
             ++ply;
             ////---------------------------------
             //oss << move_to_can (m, root_pos.chess960 ()) << " ";
@@ -292,7 +292,7 @@ namespace Notation {
         for (; ply != 0; --ply)
         {
             root_pos.undo_move ();
-            states.pop ();
+            states.pop_back ();
         }
         ////---------------------------------
         //

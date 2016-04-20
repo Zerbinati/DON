@@ -3,7 +3,6 @@
 #include <string>
 
 #include "UCI.h"
-#include "Position.h"
 #include "Searcher.h"
 #include "Thread.h"
 #include "Debugger.h"
@@ -145,10 +144,12 @@ void benchmark (istream &is, const Position &cur_pos)
 
     u64  nodes = 0;
     auto start_time = now ();
+    Position pos;
 
     for (u16 i = 0; i < fens.size (); ++i)
     {
-        Position pos (fens[i], Threadpool.main (), Chess960, false);
+        StateListPtr states (new StateList (1));
+        pos.setup (fens[i], states->back (), Threadpool.main (), Chess960, false);
 
         std::cerr
             << "\n---------------\n"
@@ -165,9 +166,8 @@ void benchmark (istream &is, const Position &cur_pos)
         }
         else
         {
-            StateStackPtr states;
             limits.start_time = now ();
-            Threadpool.start_thinking (pos, limits, states);
+            Threadpool.start_thinking (pos, states, limits);
             Threadpool.wait_while_thinking ();
             nodes += Threadpool.game_nodes ();
         }

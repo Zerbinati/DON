@@ -122,7 +122,7 @@ void TimeManager::update (Color c)
 // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 Move SkillManager::pick_best_move (u16 pv_limit)
 {
-    const RootMoveVector &root_moves = Threadpool.main ()->root_moves;
+    const auto &root_moves = Threadpool.main ()->root_moves;
     assert(!root_moves.empty ());
     static PRNG prng (now ()); // PRNG sequence should be non-deterministic
 
@@ -259,21 +259,37 @@ namespace Threading {
 
     // ThreadPool::start_thinking() wakes up the main thread sleeping in Thread::idle_loop()
     // and starts a new search, then returns immediately.
-    void ThreadPool::start_thinking (const Position &pos, const Limit &limits, StateStackPtr &states)
+    void ThreadPool::start_thinking (const Position &pos, StateListPtr &states, const Limit &limits)
     {
         wait_while_thinking ();
 
         ForceStop       = false;
         PonderhitStop   = false;
 
-        Limits = limits;
-        main ()->root_pos = pos;
-        main ()->root_moves.initialize (pos, limits.search_moves);
-        if (states.get () != nullptr) // If don't set a new position, preserve current state
+        Limits  = limits;
+
+        RootMoveVector root_moves;
+        root_moves.initialize (pos, limits.search_moves);
+
+        // After ownership transfer 'states' becomes empty, so if we stop the search
+        // and call 'go' again without setting a new position states.get() == NULL.
+        assert(states.get () != nullptr || setup_states.get () != nullptr);
+
+        if (states.get () != nullptr)
         {
-            SetupStates = std::move (states); // Ownership transfer here
+            setup_states = std::move (states); // Ownership transfer, states is now empty
             assert(states.get () == nullptr);
         }
+
+        const auto tmp_si = setup_states->back ();
+        for (auto *th : *this)
+        {
+            th->max_ply = 0;
+            th->root_depth = DEPTH_ZERO;
+            th->root_pos.setup (pos.fen (Chess960), setup_states->back (), th, Chess960);
+            th->root_moves = root_moves;
+        }
+        setup_states->back () = tmp_si; // Restore si->ptr, cleared by Position::setup()
 
         main ()->start_searching (false);
     }

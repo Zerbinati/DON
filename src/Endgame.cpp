@@ -1,6 +1,5 @@
 #include "Endgame.h"
 
-#include "Position.h"
 #include "BitBases.h"
 #include "MoveGenerator.h"
 
@@ -92,7 +91,10 @@ namespace EndGame {
             string fen = sides[0] + char (8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
                        + sides[1] + char (8 - sides[1].length () + '0') + " w - - 0 1";
 
-            return Position (fen, nullptr, false, false).matl_key ();
+            Position pos;
+            StateInfo si;
+            pos.setup (fen, si, nullptr, false, false);
+            return pos.matl_key ();
         }
 
         template<class M>

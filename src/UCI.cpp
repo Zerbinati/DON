@@ -30,7 +30,7 @@ namespace UCI {
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
-        StateStackPtr SetupStates;
+        StateListPtr SetupStates(new StateList (1));
 
     }
 
@@ -41,7 +41,7 @@ namespace UCI {
     // In addition to the UCI ones, also some additional debug commands are supported.
     void loop (const string &arg)
     {
-        RootPos.setup (StartupFEN, Threadpool.main (), Chess960);
+        RootPos.setup (StartupFEN, SetupStates->back(), Threadpool.main (), false);
 
         bool running = white_spaces (arg);
         string cmd   = arg;
@@ -137,9 +137,8 @@ namespace UCI {
                     goto end_cmd;
                 }
 
-                RootPos.setup (fen, Threadpool.main (), Chess960);
-
-                SetupStates = StateStackPtr (new StateStack);
+                SetupStates = StateListPtr (new StateList (1));
+                RootPos.setup (fen, SetupStates->back(), Threadpool.main (), Chess960);
 
                 if (token == "moves")
                 {
@@ -152,8 +151,8 @@ namespace UCI {
                             break;
                         }
 
-                        SetupStates->push (StateInfo ());
-                        RootPos.do_move (m, SetupStates->top (), RootPos.gives_check (m, CheckInfo (RootPos)));
+                        SetupStates->push_back (StateInfo ());
+                        RootPos.do_move (m, SetupStates->back (), RootPos.gives_check (m, CheckInfo (RootPos)));
                     }
                 }
             }
@@ -215,7 +214,7 @@ namespace UCI {
                     }
                 }
                 ForceStop = true;
-                Threadpool.start_thinking (RootPos, limits, SetupStates);
+                Threadpool.start_thinking (RootPos, SetupStates, limits);
             }
             // GUI sends 'ponderhit' to tell us to ponder on the same move the
             // opponent has played. In case Ponderhit Stop stream set are

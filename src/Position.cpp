@@ -23,7 +23,10 @@ const Value PieceValues[PH_NO][MAX_PTYPE] =
 
 bool _ok (const string &fen, bool c960, bool full)
 {
-    return Position (fen, nullptr, c960, full).ok ();
+    Position pos;
+    StateInfo si;
+    pos.setup (fen, si, nullptr, c960, full);
+    return pos.ok ();
 }
 
 #define S(mg, eg) mk_score (mg, eg)
@@ -145,50 +148,6 @@ void Position::initialize ()
             PSQ[BLACK][pt][~s] = -psq_bonus;
         }
     }
-}
-
-// Position::operator=() creates a copy of 'pos' but detaching the state pointer
-// from the source to be self-consistent and not depending on any external data.
-Position& Position::operator= (const Position &pos)
-{
-    for (auto s = SQ_A1; s <= SQ_H8; ++s)
-    {
-        _board[s] = pos._board[s];
-        _castle_mask[s] = pos._castle_mask[s];
-    }
-    for (auto c = WHITE; c <= BLACK; ++c)
-    {
-        _color_bb[c] = pos._color_bb[c];
-    }
-    for (auto pt = PAWN; pt <= NONE; ++pt)
-    {
-        _types_bb[pt] = pos._types_bb[pt];
-    }
-    for (auto c = WHITE; c <= BLACK; ++c)
-    {
-        for (auto pt = PAWN; pt <= KING; ++pt)
-        {
-            _piece_sq[c][pt] = pos._piece_sq[c][pt];
-        }
-    }
-    for (auto r = 0; r <= CR_ANY; ++r)
-    {
-        _castle_rook[r] = pos._castle_rook[r];
-        _castle_path[r] = pos._castle_path[r];
-        _king_path[r]   = pos._king_path[r];
-    }
-
-    _active     = pos._active;
-    _game_ply   = pos._game_ply;
-    _game_nodes = 0;
-    _chess960   = pos._chess960;
-    _thread     = pos._thread;
-
-    _ssi = *pos._psi;
-    _psi = &_ssi;
-
-    assert(ok ());
-    return *this;
 }
 
 // Draw by: 50 Move Rule, Threefold repetition.
@@ -1016,11 +975,6 @@ void Position::clear ()
     _game_nodes = 0;
     _chess960   = false;
     _thread     = nullptr;
-
-    std::memset (&_ssi, 0x00, StateInfo::Size);
-    _ssi.en_passant_sq = SQ_NO;
-    _ssi.capture_type  = NONE;
-    _psi = &_ssi;
 }
 
 // set_castle() set the castling for the particular color & rook
@@ -1122,7 +1076,7 @@ bool Position::can_en_passant (Square ep_sq) const
 //
 // 6) Fullmove number. The number of the full move.
 //    It starts at 1, and is incremented after Black's move.
-bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
+bool Position::setup (const string &f, StateInfo &si, Thread *const th, bool c960, bool full)
 {
     assert(!white_spaces (f));
 
@@ -1130,6 +1084,8 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     iss >> std::noskipws;
 
     clear ();
+    std::memset (&si, 0x00, StateInfo::Size);
+    _psi = &si;
 
     u08 ch;
     // 1. Piece placement on Board
@@ -1225,7 +1181,10 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
             }
         }
     }
-
+    else
+    {
+        _psi->en_passant_sq = SQ_NO;
+    }
     // 5-6. clock ply and game-move count
     i16 clk_ply = 0
       , moves  = 1;
@@ -1261,7 +1220,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     _psi->clock_ply = u08(clk_ply);
     //_psi->null_ply = 0;
     //_psi->last_move = MOVE_NONE;
-    //_psi->capture_type = NONE;
+    _psi->capture_type = NONE;
     _psi->checkers = checkers (_active);
     //_game_nodes   = 0;
     _chess960     = c960;
@@ -1707,7 +1666,7 @@ void Position::flip ()
     std::getline (iss, token);
     flip_fen += token;
 
-    setup (flip_fen, _thread, _chess960, true);
+    setup (flip_fen, *_psi, _thread, _chess960, true);
 
     assert(ok ());
 }

@@ -1,12 +1,14 @@
 #include "MovePicker.h"
 
+#include "Thread.h"
+
 namespace MovePick {
 
     using namespace std;
-    using namespace MoveGen;
     using namespace BitBoard;
-
-    const Value MaxStatsValue = Value(1 << 28);
+    using namespace MoveGen;
+    using namespace Searcher;
+    using namespace Threading;
 
     namespace {
 
@@ -66,16 +68,16 @@ namespace MovePick {
     // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
     // and about how important good move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, const CMValueStats *cmv, const CMValueStats *fmv, Move ttm, const Move *ss_km, Move cm)
+    MovePicker::MovePicker (const Position &pos, Move ttm, Depth d, Stack *ss)
         : _pos (pos)
-        , _history_values (hv)
-        , _counter_move_values (cmv)
-        , _followup_move_values (fmv)
-        , _ss_killer_moves (ss_km)
+        , _ss (ss)
         , _tt_move (ttm)
-        , _counter_move (cm)
+        , _depth (d)
     {
         assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
+        assert(_depth > DEPTH_ZERO);
+
+        _counter_move = _pos.thread ()->counter_moves[_ok ((ss-1)->current_move) ? _pos[dst_sq ((ss-1)->current_move)] : NO_PIECE][dst_sq ((ss-1)->current_move)];
 
         _stage = _pos.checkers () != 0 ? S_EVASION : S_MAIN;
 
@@ -88,12 +90,12 @@ namespace MovePick {
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
-    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Square dst_sq, Depth depth)
+    MovePicker::MovePicker (const Position &pos, Move ttm, Depth d, Square dst_sq)
         : _pos (pos)
-        , _history_values (hv)
         , _tt_move (ttm)
+        , _depth (d)
     {
-        assert(depth <= DEPTH_ZERO);
+        assert(_depth <= DEPTH_ZERO);
         assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
 
         if (_pos.checkers () != 0)
@@ -101,12 +103,12 @@ namespace MovePick {
             _stage = S_EVASION;
         }
         else
-        if (depth > DEPTH_QS_NO_CHECKS)
+        if (_depth > DEPTH_QS_NO_CHECKS)
         {
             _stage = S_QSEARCH_WITH_CHECK;
         }
         else
-        if (depth > DEPTH_QS_RECAPTURES)
+        if (_depth > DEPTH_QS_RECAPTURES)
         {
             _stage = S_QSEARCH_WITHOUT_CHECK;
         }
@@ -125,9 +127,8 @@ namespace MovePick {
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
-    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Value thr)
+    MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
         : _pos (pos)
-        , _history_values (hv)
         , _tt_move (ttm)
         , _threshold (thr)
     {
@@ -170,12 +171,18 @@ namespace MovePick {
     template<>
     void MovePicker::value<QUIET> ()
     {
+        const auto &history_values = _pos.thread ()->history_values;
+        const auto *const &cmv  = (_ss-1)->counter_move_values;
+        const auto *const &fmv1 = (_ss-2)->counter_move_values;
+        const auto *const &fmv2 = (_ss-4)->counter_move_values;
+
         for (auto &vm : *this)
         {
             assert(_pos.pseudo_legal (vm.move));
-            vm.value = _history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
-              + (*_counter_move_values )[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
-              + (*_followup_move_values)[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
+            vm.value = history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
+                + (cmv  != nullptr ? (*cmv )[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO)
+                + (fmv1 != nullptr ? (*fmv1)[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO)
+                + (fmv2 != nullptr ? (*fmv2)[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO);
         }
     }
 
@@ -185,6 +192,11 @@ namespace MovePick {
     // then bad-captures and quiet moves with a negative SEE, ordered by SEE value.
     void MovePicker::value<EVASION> ()
     {
+        const auto &history_values = _pos.thread ()->history_values;
+        const auto *const &cmv  = _ss != nullptr ? (_ss-1)->counter_move_values : nullptr;
+        const auto *const &fmv1 = _ss != nullptr ? (_ss-2)->counter_move_values : nullptr;
+        const auto *const &fmv2 = _ss != nullptr ? (_ss-4)->counter_move_values : nullptr;
+
         for (auto &vm : *this)
         {
             assert(_pos.pseudo_legal (vm.move));
@@ -200,14 +212,10 @@ namespace MovePick {
             }
             else
             {
-                vm.value = _history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
-                if (   _counter_move_values != nullptr
-                    && _followup_move_values != nullptr
-                   )
-                {
-                    vm.value += (*_counter_move_values )[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
-                             +  (*_followup_move_values)[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
-                }
+                vm.value = history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
+                    + (cmv  != nullptr ? (*cmv )[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO)
+                    + (fmv1 != nullptr ? (*fmv1)[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO)
+                    + (fmv2 != nullptr ? (*fmv2)[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO);
             }
         }
     }
@@ -239,7 +247,7 @@ namespace MovePick {
         case S_KILLER:
             _cur_move = _killer_moves;
             _end_move = _killer_moves + Killers;
-            std::copy (_ss_killer_moves, _ss_killer_moves + Killers, _killer_moves);
+            std::copy (_ss->killer_moves, _ss->killer_moves + Killers, _killer_moves);
             (*_end_move).move = MOVE_NONE;
             // Be sure countermoves are different from killer_moves
             if (_counter_move != MOVE_NONE && std::find (_cur_move, _end_move, _counter_move) == _end_move)

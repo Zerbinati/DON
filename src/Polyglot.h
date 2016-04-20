@@ -5,7 +5,7 @@
 
 #include "Type.h"
 
-class Position;
+#include "Position.h"
 
 namespace Polyglot {
 

@@ -443,8 +443,8 @@ enum ScaleFactor : u08
     inline T& operator++ (T &t) { t = T(i32(t) + 1); return t; }           \
     inline T& operator-- (T &t) { t = T(i32(t) - 1); return t; }
 
-//inline T  operator++ (T &t, i32) { T o = t; t = T (i32 (t) + 1); return o; }  
-//inline T  operator-- (T &t, i32) { T o = t; t = T (i32 (t) - 1); return o; }  
+//inline T  operator++ (T &t, i32) { T o = t; t = T (i32(t) + 1); return o; }  
+//inline T  operator-- (T &t, i32) { T o = t; t = T (i32(t) - 1); return o; }  
 
 BASIC_OPERATORS(File)
 INC_DEC_OPERATORS(File)

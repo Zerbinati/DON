@@ -2,7 +2,6 @@
 
 #include <cstring>
 
-#include "Position.h"
 #include "Thread.h"
 
 namespace Material {
@@ -187,14 +186,8 @@ namespace Material {
                 }
             }
 
-            const Value npm[CLR_NO] = 
-            {
-                pos.non_pawn_material (WHITE),
-                pos.non_pawn_material (BLACK)
-            };
-
             // Only pawns on the board
-            if (   npm[WHITE] + npm[BLACK] == VALUE_ZERO
+            if (   pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK) == VALUE_ZERO
                 && pos.pieces (PAWN) != 0
                )
             {
@@ -228,13 +221,13 @@ namespace Material {
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
 
-            if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BSHP)
+            if (pos.non_pawn_material (WHITE) - pos.non_pawn_material (BLACK) <= VALUE_MG_BSHP)
             {
                 if (pos.count<PAWN> (WHITE) == 0)
                 {
                     e->factor[WHITE] = ScaleFactor(
-                        npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm[BLACK] <= VALUE_MG_BSHP ? 4 : 14);
+                        pos.non_pawn_material (WHITE) <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
+                        pos.non_pawn_material (BLACK) <= VALUE_MG_BSHP ? 4 : 14);
                 }
                 if (pos.count<PAWN> (WHITE) == 1)
                 {
@@ -242,13 +235,13 @@ namespace Material {
                 }
             }
 
-            if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BSHP)
+            if (pos.non_pawn_material (BLACK) - pos.non_pawn_material (WHITE) <= VALUE_MG_BSHP)
             {
                 if (pos.count<PAWN> (BLACK) == 0)
                 {
                     e->factor[BLACK] = ScaleFactor(
-                        npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm[WHITE] <= VALUE_MG_BSHP ? 4 : 14);
+                        pos.non_pawn_material (BLACK) <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
+                        pos.non_pawn_material (WHITE) <= VALUE_MG_BSHP ? 4 : 14);
                 }
                 if (pos.count<PAWN> (BLACK) == 1)
                 {
