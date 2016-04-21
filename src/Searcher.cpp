@@ -549,6 +549,8 @@ namespace Searcher {
                     }
                 }
 
+                bool capture_or_promotion = pos.capture_or_promotion (move);
+
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
@@ -557,11 +559,13 @@ namespace Searcher {
                 // Make and search the move
                 pos.do_move (move, si, gives_check);
 
-                if (ptype (pos[org_sq (move)]) == PAWN)
+                if (   ptype (pos[dst_sq (move)]) == PAWN
+                    || pos.capture_type () == PAWN
+                   )
                 {
                     prefetch (thread->pawn_table[pos.pawn_key ()]);
                 }
-                if (pos.capture_or_promotion (move))
+                if (capture_or_promotion)
                 {
                     prefetch (thread->matl_table[pos.matl_key ()]);
                 }
@@ -730,10 +734,10 @@ namespace Searcher {
                 //tte->clear ();
             }
             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
-            auto tt_value = tt_hit && tt_move == tte->move () ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
-            auto tt_eval  = tt_hit && tt_move == tte->move () ? tte->eval () : VALUE_NONE;
-            auto tt_depth = tt_hit && tt_move == tte->move () ? tte->depth () : DEPTH_NONE;
-            auto tt_bound = tt_hit && tt_move == tte->move () ? tte->bound () : BOUND_NONE;
+            auto tt_value = tt_hit ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
+            auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
+            auto tt_depth = tt_hit ? tte->depth () : DEPTH_NONE;
+            auto tt_bound = tt_hit ? tte->bound () : BOUND_NONE;
 
             // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
@@ -973,14 +977,17 @@ namespace Searcher {
                             bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
                                                 (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != 0 :
                                                 pos.gives_check (move, ci);
+                            bool capture_or_promotion = pos.capture_or_promotion (move);
 
                             pos.do_move (move, si, gives_check);
 
-                            if (ptype (pos[org_sq (move)]) == PAWN)
+                            if (   ptype (pos[dst_sq (move)]) == PAWN
+                                || pos.capture_type () == PAWN
+                               )
                             {
                                 prefetch (thread->pawn_table[pos.pawn_key ()]);
                             }
-                            if (pos.capture_or_promotion (move))
+                            if (capture_or_promotion)
                             {
                                 prefetch (thread->matl_table[pos.matl_key ()]);
                             }
@@ -1189,8 +1196,8 @@ namespace Searcher {
                     // Move count based pruning
                     if (   depth < FutilityMoveCountDepth*DEPTH_ONE
                         && move_count >= FutilityMoveCounts[improving][depth/DEPTH_ONE]
-                        && thread->history_values[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
-                        && opp_cmv[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
+                        //&& thread->history_values[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
+                        //&& opp_cmv[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
                        )
                     {
                         continue;
@@ -1238,7 +1245,9 @@ namespace Searcher {
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check);
 
-                if (ptype (pos[org_sq (move)]) == PAWN)
+                if (   ptype (pos[dst_sq (move)]) == PAWN
+                    || pos.capture_type () == PAWN
+                   )
                 {
                     prefetch (thread->pawn_table[pos.pawn_key ()]);
                 }
