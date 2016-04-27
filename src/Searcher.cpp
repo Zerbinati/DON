@@ -201,20 +201,25 @@ namespace Searcher {
 
             auto *thread = pos.thread ();
             auto opp_move_dst = dst_sq ((ss-1)->current_move);
+            
+            auto *const &cmv  = (ss-1)->counter_move_values;
+            auto *const &fmv1 = (ss-2)->counter_move_values;
+            auto *const &fmv2 = (ss-4)->counter_move_values;
 
             thread->history_values.update (pos[org_sq (move)], dst_sq (move), bonus);
-            if ((ss-1)->counter_move_values != nullptr)
+            if (cmv != nullptr)
             {
+                assert(_ok ((ss-1)->current_move));
                 thread->counter_moves.update (pos[opp_move_dst], opp_move_dst, move);
-                (ss-1)->counter_move_values->update (pos[org_sq (move)], dst_sq (move), bonus);
+                cmv->update (pos[org_sq (move)], dst_sq (move), bonus);
             }
-            if ((ss-2)->counter_move_values != nullptr)
+            if (fmv1 != nullptr)
             {
-                (ss-2)->counter_move_values->update (pos[org_sq (move)], dst_sq (move), bonus);
+                fmv1->update (pos[org_sq (move)], dst_sq (move), bonus);
             }
-            if ((ss-4)->counter_move_values != nullptr)
+            if (fmv2 != nullptr)
             {
-                (ss-4)->counter_move_values->update (pos[org_sq (move)], dst_sq (move), bonus);
+                fmv2->update (pos[org_sq (move)], dst_sq (move), bonus);
             }
             
             // Decrease all the other played quiet moves
@@ -223,40 +228,44 @@ namespace Searcher {
             {
                 assert(m != move);
                 thread->history_values.update (pos[org_sq (m)], dst_sq (m), -bonus);
-                if ((ss-1)->counter_move_values != nullptr)
+                if (cmv != nullptr)
                 {
-                    (ss-1)->counter_move_values->update (pos[org_sq (m)], dst_sq (m), -bonus);
+                    cmv->update (pos[org_sq (m)], dst_sq (m), -bonus);
                 }
-                if ((ss-2)->counter_move_values != nullptr)
+                if (fmv1 != nullptr)
                 {
-                    (ss-2)->counter_move_values->update (pos[org_sq (m)], dst_sq (m), -bonus);
+                    fmv1->update (pos[org_sq (m)], dst_sq (m), -bonus);
                 }
-                if ((ss-4)->counter_move_values != nullptr)
+                if (fmv2 != nullptr)
                 {
-                    (ss-4)->counter_move_values->update (pos[org_sq (m)], dst_sq (m), -bonus);
+                    fmv2->update (pos[org_sq (m)], dst_sq (m), -bonus);
                 }
             }
 
             // Extra penalty for PV move in previous ply when it gets refuted
             if (   (ss-1)->move_count == 1
                 && pos.capture_type () == NONE
-                && (ss-1)->counter_move_values != nullptr
+                && cmv != nullptr
                 //&& mtype ((ss-1)->current_move) != PROMOTE
                )
             {
                 bonus = -bonus - 2*((depth/DEPTH_ONE) + 1);
 
-                if ((ss-2)->counter_move_values != nullptr)
+                auto *const &ocmv  = (ss-2)->counter_move_values;
+                auto *const &ofmv1 = (ss-3)->counter_move_values;
+                auto *const &ofmv2 = (ss-5)->counter_move_values;
+
+                if (ocmv != nullptr)
                 {
-                    (ss-2)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    ocmv->update (pos[opp_move_dst], opp_move_dst, bonus);
                 }
-                if ((ss-3)->counter_move_values != nullptr)
+                if (ofmv1 != nullptr)
                 {
-                    (ss-3)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    ofmv1->update (pos[opp_move_dst], opp_move_dst, bonus);
                 }
-                if ((ss-5)->counter_move_values != nullptr)
+                if (ofmv2 != nullptr)
                 {
-                    (ss-5)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    ofmv2->update (pos[opp_move_dst], opp_move_dst, bonus);
                 }
             }
         }
@@ -697,9 +706,14 @@ namespace Searcher {
                 // further, will never beat current alfa. Same logic but with reversed signs
                 // applies also in the opposite condition of being mated instead of giving mate,
                 // in this case return a fail-high score.
-                alfa = std::max (mated_in (ss->ply +0), alfa);
-                beta = std::min (mates_in (ss->ply +1), beta);
-
+                if (alfa < mated_in (ss->ply +0))
+                {
+                    alfa = mated_in (ss->ply +0);
+                }
+                if (beta > mates_in (ss->ply +1))
+                {
+                    beta = mates_in (ss->ply +1);
+                }
                 if (alfa >= beta)
                 {
                     return alfa;
@@ -899,6 +913,9 @@ namespace Searcher {
                         // Null move dynamic reduction based on depth and static evaluation
                         auto reduced_depth = depth - ((67*(depth/DEPTH_ONE) + 823) / 256 + std::min ((tt_eval - beta)/VALUE_MG_PAWN, 3))*DEPTH_ONE;
 
+                        // Speculative prefetch as early as possible
+                        prefetch (TT.cluster_entry (pos.posi_key () ^ Zob.act_side ^ (pos.en_passant_sq () != SQ_NO ? Zob.en_passant[_file (pos.en_passant_sq ())] : 0)));
+
                         // Do null move
                         pos.do_null_move (si);
 
@@ -1022,39 +1039,33 @@ namespace Searcher {
                         ss->skip_pruning = false;
                     }
 
-                    if (   !tt_hit
-                        || int_itr_deep
-                        //|| tte->key16 () != u16(posi_key >> 0x30)
-                       )
+                    if (tt_move == MOVE_NONE)
                     {
                         tte = TT.probe (posi_key, tt_hit);
-                    }
-                    if (tt_hit)
-                    {
-                        if (   !root_node
-                            && tte->move () != MOVE_NONE
-                            && tt_move != tte->move ()
-                           )
+                        if (tt_hit)
                         {
-                            tt_move = tte->move ();
-                            if (   tt_move != MOVE_NONE
-                                && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds))
+                            if (   !root_node
+                                && tte->move () != MOVE_NONE
+                                && tt_move != tte->move ()
                                )
                             {
-                                tt_hit  = false;
-                                tt_move = MOVE_NONE;
-                                //tte->clear ();
+                                tt_move = tte->move ();
+                                if (   tt_move != MOVE_NONE
+                                    && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds))
+                                   )
+                                {
+                                    tt_hit  = false;
+                                    tt_move = MOVE_NONE;
+                                    //tte->clear ();
+                                }
+                                assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
                             }
-                            assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
-                        }
-                        if (   tt_hit
-                            && tt_move != MOVE_NONE
-                            && tt_move == tte->move ()
-                           )
-                        {
-                            tt_value = value_of_tt (tte->value (), ss->ply);
-                            tt_depth = tte->depth ();
-                            tt_bound = tte->bound ();
+                            if (tt_hit)
+                            {
+                                tt_value = value_of_tt (tte->value (), ss->ply);
+                                tt_depth = tte->depth ();
+                                tt_bound = tte->bound ();
+                            }
                         }
                     }
                 }
@@ -1079,7 +1090,7 @@ namespace Searcher {
                 && (tt_bound & BOUND_LOWER) != BOUND_NONE;
 
             bool improving =
-                (ss-0)->static_eval >= (ss-2)->static_eval
+                   (ss-0)->static_eval >= (ss-2)->static_eval
                 || (ss-0)->static_eval == VALUE_NONE
                 || (ss-2)->static_eval == VALUE_NONE;
 
@@ -1188,7 +1199,7 @@ namespace Searcher {
                     && !MateSearch
                     && !capture_or_promotion
                     && best_value > -VALUE_MATE_IN_MAX_PLY
-                    // ! Dangerous (below)
+                    // ! Dangerous conditions
                     && !gives_check
                     && !pos.advanced_pawn_push (move)
                    )
@@ -1196,8 +1207,8 @@ namespace Searcher {
                     // Move count based pruning
                     if (   depth < FutilityMoveCountDepth*DEPTH_ONE
                         && move_count >= FutilityMoveCounts[improving][depth/DEPTH_ONE]
-                        //&& thread->history_values[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
-                        //&& opp_cmv[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
+                        && thread->history_values[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
+                        && opp_cmv[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
                        )
                     {
                         continue;
@@ -1217,7 +1228,7 @@ namespace Searcher {
                     if (predicted_depth < FutilityMarginDepth*DEPTH_ONE)
                     {
                         auto futility_value = ss->static_eval + FutilityMargins[predicted_depth/DEPTH_ONE] + VALUE_EG_PAWN;
-                        
+
                         if (alfa >= futility_value)
                         {
                             if (best_value < futility_value)
@@ -1255,23 +1266,27 @@ namespace Searcher {
                 {
                     prefetch (thread->matl_table[pos.matl_key ()]);
                 }
-                auto full_depth_search = !PVNode || move_count > FullDepthMoveCount;
 
-                assert(-VALUE_INFINITE <= alfa && alfa < +VALUE_INFINITE);
-
+                bool full_depth_search;
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
-                if (   move_count > FullDepthMoveCount
+                if (   depth >= 3*DEPTH_ONE
+                    && move_count > FullDepthMoveCount
                     && !capture_or_promotion
                    )
                 {
-                    auto reduction_depth = reduction_depths (PVNode, improving, new_depth, move_count);
-
                     auto dst = dst_sq (move);
                     auto cp  = pos[dst];
+
                     auto h_value  = thread->history_values[cp][dst];
                     auto cm_value = opp_cmv[cp][dst];
-                    //auto fm_value = own_cmv[cp][dst];
+
+                    const auto *const &fmv1 = (ss-2)->counter_move_values;
+                    const auto *const &fmv2 = (ss-4)->counter_move_values;
+                    auto fm_value1 = (fmv1 != nullptr ? (*fmv1)[cp][dst] : VALUE_ZERO);
+                    auto fm_value2 = (fmv2 != nullptr ? (*fmv2)[cp][dst] : VALUE_ZERO);
+
+                    auto reduction_depth = reduction_depths (PVNode, improving, new_depth, move_count);
 
                     // Increase reduction for cut node
                     if (   (!PVNode && CutNode)
@@ -1280,13 +1295,13 @@ namespace Searcher {
                     {
                         reduction_depth += DEPTH_ONE;
                     }
+
                     // Decrease/Increase reduction for moves with a +ve/-ve history
-                    auto r_hist = i32(h_value + cm_value)/14980;
+                    auto r_hist = i32(h_value + cm_value + fm_value1 + fm_value2)/20000;
                     reduction_depth = std::max (reduction_depth - r_hist*DEPTH_ONE, DEPTH_ZERO);
-                    
+
                     // Decrease reduction for moves that escape a capture.
-                    // Filter out castling moves, because are coded as "king captures rook" hence break make_move().
-                    // Also use see() instead of see_sign(), because the destination square is empty.
+                    // Use see() instead of see_sign(), because the destination square is empty for normal move.
                     if (   reduction_depth != DEPTH_ZERO
                         && mtype (move) == NORMAL
                         && ptype (cp) != PAWN
@@ -1308,6 +1323,10 @@ namespace Searcher {
                                 -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, d);
 
                     full_depth_search = alfa < value && reduction_depth > DEPTH_ZERO;
+                }
+                else
+                {
+                    full_depth_search = !PVNode || move_count > FullDepthMoveCount;
                 }
 
                 // Step 16. Full depth search when LMR is skipped or fails high
@@ -1499,17 +1518,22 @@ namespace Searcher {
             {
                 auto bonus = Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1);
                 auto opp_move_dst = dst_sq ((ss-1)->current_move);
-                if ((ss-2)->counter_move_values != nullptr)
+                
+                auto *const &ocmv  = (ss-2)->counter_move_values;
+                auto *const &ofmv1 = (ss-3)->counter_move_values;
+                auto *const &ofmv2 = (ss-5)->counter_move_values;
+
+                if (ocmv != nullptr)
                 {
-                    (ss-2)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    ocmv->update (pos[opp_move_dst], opp_move_dst, bonus);
                 }
-                if ((ss-3)->counter_move_values != nullptr)
+                if (ofmv1 != nullptr)
                 {
-                    (ss-3)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    ofmv1->update (pos[opp_move_dst], opp_move_dst, bonus);
                 }
-                if ((ss-5)->counter_move_values != nullptr)
+                if (ofmv2 != nullptr)
                 {
-                    (ss-5)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    ofmv2->update (pos[opp_move_dst], opp_move_dst, bonus);
                 }
             }
 

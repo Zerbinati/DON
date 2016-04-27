@@ -58,8 +58,14 @@ Key Zobrist::compute_posi_key (const Position &pos) const
     {
         posi_key ^= castle_right[0][pop_lsq (b)];
     }
-    posi_key ^= pos.en_passant_sq () != SQ_NO ? en_passant[_file (pos.en_passant_sq ())] : 0;
-    posi_key ^= pos.active () == WHITE ? act_side : 0;
+    if (pos.en_passant_sq () != SQ_NO)
+    {
+        posi_key ^= en_passant[_file (pos.en_passant_sq ())];
+    }
+    if (pos.active () == WHITE)
+    {
+        posi_key ^= act_side;
+    }
     return posi_key;
 }
 

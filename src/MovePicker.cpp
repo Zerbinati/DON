@@ -348,7 +348,9 @@ namespace MovePick {
                             return move;
                         }
                         // Losing capture, move it to the tail of the array
-                        *(--_bad_capture) = { move, see_value };
+                        --_bad_capture;
+                        _bad_capture->move = move;
+                        _bad_capture->value = see_value;
                     }
                 } while (_cur_move < _end_move);
                 break;

@@ -1424,7 +1424,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
         if (cpt != NONE) // _ok (cpt)
         {
             do_capture ();
-        }        
+        }
         _psi->clock_ply = 0;
 
         auto ppt = promote (m);

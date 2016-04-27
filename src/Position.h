@@ -374,10 +374,14 @@ inline Key Position::move_posi_key (Move m) const
     auto cpt = en_passant (m) ?
             PAWN : ptype (_board[dst]);
 
-    return _psi->posi_key ^  Zob.act_side
-        ^  Zob.piece_square[_active][mpt][org]
-        ^  Zob.piece_square[_active][ppt][dst]
-        ^ (cpt != NONE ? Zob.piece_square[~_active][cpt][dst] : 0);
+    auto key = _psi->posi_key ^ Zob.act_side
+        ^ Zob.piece_square[_active][mpt][org]
+        ^ Zob.piece_square[_active][ppt][dst];
+    if (cpt != NONE)
+    {
+        key ^= Zob.piece_square[~_active][cpt][dst];
+    }
+    return key;
 }
 
 inline Score  Position::psq_score () const { return _psi->psq_score; }

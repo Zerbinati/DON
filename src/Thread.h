@@ -133,6 +133,7 @@ public:
 
     explicit SkillManager (u08 skill_level = MaxSkillLevel)
         : _skill_level (skill_level)
+        , _best_move (MOVE_NONE)
     {}
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;

@@ -36,7 +36,7 @@ namespace {
         const auto  StepRatio = Maximum ? 7.09 : 1.00; // When in trouble, can step over reserved time with this ratio
         const auto StealRatio = Maximum ? 0.35 : 0.00; // However must not steal time from remaining moves over this ratio
 
-        auto  this_move_imp = move_importance (ply) * MoveSlowness;
+        auto  this_move_imp = std::max (move_importance (ply) * MoveSlowness, DBL_MIN);
         auto other_move_imp = 0.0;
         for (u08 i = 1; i < movestogo; ++i)
         {
@@ -98,7 +98,7 @@ void TimeManager::initialize (Color c, i16 ply)
     {
         _optimum_time = TimePoint(_optimum_time * 1.25);
     }
-    // Make sure that _optimum_time is not over _maximum_time
+    // Make sure that optimum time is not over maximum time
     if (_optimum_time > _maximum_time)
     {
         _optimum_time = _maximum_time;
@@ -138,15 +138,15 @@ Move SkillManager::pick_best_move (u16 pv_limit)
         // Then choose the move with the resulting highest value.
         for (u16 i = 0; i < pv_limit; ++i)
         {
-            auto value = root_moves[i].new_value;
+            auto value = root_moves[i].new_value
             // This is magic formula for push
-            auto push  = (  weakness  * i32(max_value - value)
+                       + (  weakness  * i32(max_value - root_moves[i].new_value)
                           + diversity * i32(prng.rand<u32> () % weakness)
                          ) / (i32(VALUE_EG_PAWN) / 2);
 
-            if (best_value < value + push)
+            if (best_value < value)
             {
-                best_value = value + push;
+                best_value = value;
                 _best_move = root_moves[i][0];
             }
         }

@@ -13,7 +13,7 @@ inline i32 pop_count (Bitboard bb)
 {
 #           if defined(BIT64)
     {
-    return i32(_mm_popcnt_u64 (bb));
+        return i32(_mm_popcnt_u64 (bb));
     }
 #           else
     {
@@ -29,11 +29,11 @@ inline i32 pop_count (Bitboard bb)
 {
 #           if defined(BIT64)
     {
-    return i32(__popcnt64 (bb));
+        return i32(__popcnt64 (bb));
     }
 #           else
     {
-    return i32(__popcnt (u32(bb >> 0)) + __popcnt (u32(bb >> 32)));
+        return i32(__popcnt (u32(bb >> 0)) + __popcnt (u32(bb >> 32)));
     }
 #           endif
 }
@@ -48,11 +48,11 @@ inline i32 pop_count (Bitboard bb)
     //return bb;
 #           if defined(BIT64)
     {
-    return i32(__builtin_popcountll (bb));
+        return i32(__builtin_popcountll (bb));
     }
 #           else
     {
-    return i32(__builtin_popcountl (bb >> 0) + __builtin_popcountl (bb >> 32));
+        return i32(__builtin_popcountl (bb >> 0) + __builtin_popcountl (bb >> 32));
     }
 #           endif
 }

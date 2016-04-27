@@ -27,7 +27,7 @@ namespace MoveGen {
                     {
                         continue;
                     }
-                    if (ci->discoverers != 0 && (ci->discoverers & s) != 0)
+                    if ((ci->discoverers & s) != 0)
                     {
                         continue;
                     }
