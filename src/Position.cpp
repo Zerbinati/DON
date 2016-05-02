@@ -1679,19 +1679,24 @@ string Position::fen (bool c960, bool full) const
     {
         for (auto f = F_A; f <= F_H; ++f)
         {
-            auto s = f|r;
-            auto empty_count = 0;
-            while (F_H >= f && empty (s))
+            i32 empty_count;
+            for (empty_count = 0; f <= F_H && empty (f|r); ++f)
             {
                 ++empty_count;
-                ++f;
-                ++s;
             }
-            if (empty_count != 0) oss << empty_count;
-            if (F_H >= f) oss << _board[s];
+            if (empty_count != 0)
+            {
+                oss << empty_count;
+            }
+            if (f <= F_H)
+            {
+                oss << _board[f|r];
+            }
         }
-
-        if (R_1 < r) oss << "/";
+        if (r > R_1)
+        {
+            oss << "/";
+        }
     }
 
     oss << " " << _active << " ";

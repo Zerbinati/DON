@@ -76,11 +76,10 @@ namespace Pawns {
             S(11,34), S(17,38), S(19,38), S(19,38), S(19,38), S(19,38), S(17,38), S(11,34)
         };
 
-        // Isolated pawn penalty by [opposed][file]
-        const Score Isolated[2][F_NO] =
+        // Isolated pawn penalty by [opposed]
+        const Score Isolated[2] =
         {
-            { S(31,36), S(45,41), S(50,41), S(50,41), S(50,41), S(50,41), S(45,41), S(31,36) },
-            { S(21,24), S(30,28), S(33,28), S(33,28), S(33,28), S(33,28), S(30,28), S(21,24) }
+            S(45, 40), S(30, 27)
         };
 
         // Backward pawn penalty by [opposed]
@@ -89,7 +88,7 @@ namespace Pawns {
             S(56,33), S(41,19)
         };
 
-        // Levers bonus by [rank]
+        // Lever pawn bonus by [rank]
         const Score Lever[R_NO] =
         {
             S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0)
@@ -189,7 +188,7 @@ namespace Pawns {
 
                 if (adjacents == 0)
                 {
-                    score -= Isolated[opposed ? 1 : 0][f];
+                    score -= Isolated[opposed ? 1 : 0];
                 }
                 else
                 {

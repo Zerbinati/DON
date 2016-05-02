@@ -137,7 +137,6 @@ namespace Searcher {
 
         const i32 ProbCutDepth = 4;
         const i32 HistoryPruningDepth = 4;
-        const i32 NullVerificationDepth = 12;
 
         const u08 FullDepthMoveCount = 1;
 
@@ -177,7 +176,7 @@ namespace Searcher {
                 return;
             }
 
-            if (   (main_thread->time_mgr_used && elapsed_time > main_thread->time_mgr.maximum_time () - 2 * TimerResolution)
+            if (   (main_thread->time_mgr_used && elapsed_time > main_thread->time_mgr.maximum_time - 2 * TimerResolution)
                 || (Limits.movetime != 0 && elapsed_time >= Limits.movetime)
                 || (Limits.nodes != 0 && Threadpool.game_nodes () >= Limits.nodes)
                )
@@ -932,7 +931,7 @@ namespace Searcher {
                         if (null_value >= beta)
                         {
                             // Don't do verification search at low depths
-                            if (   depth < NullVerificationDepth*DEPTH_ONE
+                            if (   depth < 12*DEPTH_ONE
                                 && abs (beta) < +VALUE_KNOWN_WIN
                                )
                             {
@@ -1059,12 +1058,12 @@ namespace Searcher {
                                     //tte->clear ();
                                 }
                                 assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
-                            }
-                            if (tt_hit)
-                            {
-                                tt_value = value_of_tt (tte->value (), ss->ply);
-                                tt_depth = tte->depth ();
-                                tt_bound = tte->bound ();
+                                if (tt_hit)
+                                {
+                                    tt_value = value_of_tt (tte->value (), ss->ply);
+                                    tt_depth = tte->depth ();
+                                    tt_bound = tte->bound ();
+                                }
                             }
                         }
                     }
@@ -1207,8 +1206,9 @@ namespace Searcher {
                     // Move count based pruning
                     if (   depth < FutilityMoveCountDepth*DEPTH_ONE
                         && move_count >= FutilityMoveCounts[improving][depth/DEPTH_ONE]
-                        && thread->history_values[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
-                        && opp_cmv[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
+                        //&& std::find (ss->killer_moves, ss->killer_moves + Killers, move) == ss->killer_moves + Killers
+                        //&& thread->history_values[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
+                        //&& opp_cmv[pos[org_sq (move)]][dst_sq (move)] < Value(10962)
                        )
                     {
                         continue;
@@ -1222,13 +1222,13 @@ namespace Searcher {
                     {
                         continue;
                     }
+
                     // Value based pruning
                     auto predicted_depth = std::max (new_depth - reduction_depths (PVNode, improving, depth, move_count), DEPTH_ZERO);
                     // Futility pruning: parent node
                     if (predicted_depth < FutilityMarginDepth*DEPTH_ONE)
                     {
                         auto futility_value = ss->static_eval + FutilityMargins[predicted_depth/DEPTH_ONE] + VALUE_EG_PAWN;
-
                         if (alfa >= futility_value)
                         {
                             if (best_value < futility_value)
@@ -1297,7 +1297,7 @@ namespace Searcher {
                     }
 
                     // Decrease/Increase reduction for moves with a +ve/-ve history
-                    auto r_hist = i32(h_value + cm_value + fm_value1 + fm_value2)/20000;
+                    i32 r_hist = i32(h_value + cm_value + fm_value1 + fm_value2)/20000;
                     reduction_depth = std::max (reduction_depth - r_hist*DEPTH_ONE, DEPTH_ZERO);
 
                     // Decrease reduction for moves that escape a capture.
@@ -1694,8 +1694,9 @@ namespace Searcher {
             for (i32 d = 0; d < FutilityMoveCountDepth; ++d)
             {
                 FutilityMoveCounts[imp][d] = u08(std::round (K1[imp][0] + K1[imp][1] * pow (d + K1[imp][2], K1[imp][3])));
-                //printf ("\n%2d", FutilityMoveCounts[imp][d]);
+                //printf (" %3d", FutilityMoveCounts[imp][d]);
             }
+            //printf ("\n");
         }
 
         for (u08 imp = 0; imp <= 1; ++imp)
@@ -1806,7 +1807,7 @@ namespace Threading {
         // Iterative deepening loop until requested to stop or the target depth is reached.
         while (   !ForceStop
                && ++root_depth < DEPTH_MAX
-               && (Limits.depth == 0 || root_depth <= Limits.depth)
+               && (Limits.depth == 0 || Threadpool.main ()->root_depth <= Limits.depth)
               )
         {
             if (main_thread != nullptr)
@@ -2030,25 +2031,25 @@ namespace Threading {
                     if (main_thread->time_mgr_used)
                     {
                         // Take some extra time if the best move has changed
-                        double instability_factor = 1.010*(1.0 + (aspiration && PVLimit == 1 ? main_thread->best_move_change : 0.0));
+                        double instability_factor = 1.0 + main_thread->best_move_change;
 
                         // Stop the search
                         // If there is only one legal move available or
                         // If all of the available time has been used or
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
-                            || (main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time () * instability_factor *
+                            || (main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time * instability_factor *
                                     (320.0 - 80.0 * (!main_thread->failed_low)
                                            - 63.0 * (best_value >= main_thread->previous_value)
                                            - 62.0 * (!main_thread->failed_low && best_value >= main_thread->previous_value)
-                                    ) / 320.0))
+                                    ) / 316.83))
                                )
                             || (main_thread->easy_played =
-                                    (  !root_moves.empty ()
+                                    (  main_thread->best_move_change < 0.03
+                                    && main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time * instability_factor * 25.0 / 203.96))
+                                    && !root_moves.empty ()
                                     && !root_moves[0].empty ()
                                     &&  root_moves[0] == easy_move
-                                    && main_thread->best_move_change < 0.03
-                                    && main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time () * instability_factor * 25.0 / 206.0))
                                     ), main_thread->easy_played
                                )
                            )
@@ -2312,6 +2313,7 @@ namespace Threading {
             Thread *best_thread = this;
             if (   !easy_played
                 && PVLimit == 1
+                && Limits.depth == 0
                 && !skill_mgr.enabled ()
                )
             {

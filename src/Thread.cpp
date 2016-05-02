@@ -74,8 +74,8 @@ void TimeManager::initialize (Color c, i16 ply)
         Limits.clock[c].inc *= NodesTime;
     }
 
-    _optimum_time =
-    _maximum_time =
+    optimum_time =
+    maximum_time =
         std::max (Limits.clock[c].time, TimePoint(MinimumMoveTime));
 
     const auto MaxMovesToGo = Limits.movestogo != 0 ? std::min (Limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
@@ -90,18 +90,18 @@ void TimeManager::initialize (Color c, i16 ply)
             - OverheadClockTime
             - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
 
-        _optimum_time = std::min (remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, _optimum_time);
-        _maximum_time = std::min (remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, _maximum_time);
+        optimum_time = std::min (remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, optimum_time);
+        maximum_time = std::min (remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, maximum_time);
     }
 
     if (Ponder)
     {
-        _optimum_time = TimePoint(_optimum_time * 1.25);
+        optimum_time = TimePoint(optimum_time * 1.25);
     }
     // Make sure that optimum time is not over maximum time
-    if (_optimum_time > _maximum_time)
+    if (optimum_time > maximum_time)
     {
-        _optimum_time = _maximum_time;
+        optimum_time = maximum_time;
     }
 }
 // TimeManager::update() is called at the end of the search.

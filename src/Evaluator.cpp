@@ -301,7 +301,7 @@ namespace Evaluator {
                                                                                                         PawnPassSpan[Own][pos.square<KING> (Opp)]));
                 if ((king_attacks & ei.pin_attacked_by[Own][PAWN]) != 0)
                 {
-                    auto attackers = pos.pieces (Own, PAWN) & (king_attacks|(DistRings_bb[pos.square<KING> (Opp)][1] & (rank_bb (pos.square<KING> (Opp)-Push)|rank_bb (pos.square<KING> (Opp)))));
+                    Bitboard attackers = pos.pieces (Own, PAWN) & (king_attacks|(DistRings_bb[pos.square<KING> (Opp)][1] & (rank_bb (pos.square<KING> (Opp)-Push)|rank_bb (pos.square<KING> (Opp)))));
                     ei.king_ring_attackers_count [Own] = u08(pop_count (attackers));
                     ei.king_ring_attackers_weight[Own] = ei.king_ring_attackers_count [Own]*KingAttackWeights[PAWN];
                 }
@@ -384,7 +384,7 @@ namespace Evaluator {
                     if (PT == NIHT)
                     {
                         // Bonus for knight outpost square
-                        auto bb = OutpostMask & ~ei.pe->pawn_attack_span[Opp];
+                        Bitboard bb = OutpostMask & ~ei.pe->pawn_attack_span[Opp];
                         if ((bb & s) != 0)
                         {
                             score += KnightOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0];
@@ -402,7 +402,7 @@ namespace Evaluator {
                     if (PT == BSHP)
                     {
                         // Bonus for bishop outpost square
-                        auto bb = OutpostMask & ~ei.pe->pawn_attack_span[Opp];
+                        Bitboard bb = OutpostMask & ~ei.pe->pawn_attack_span[Opp];
                         if ((bb & s) != 0)
                         {
                             score += BishopOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0];
@@ -550,7 +550,7 @@ namespace Evaluator {
                 // number and types of the enemy's attacking pieces, the number of
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
-                auto attack_units =
+                i32 attack_units =
                     + std::min ((ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp])/2, 72)   // King-ring attacks
                     +  9 * (ei.king_zone_attacks_count[Opp])                                                    // King-zone attacks
                     + 27 * (pop_count (king_zone_undef))                                                        // King-zone undefended pieces
@@ -860,7 +860,7 @@ namespace Evaluator {
             // the space evaluation. In the middle game, each side is given a bonus
             // based on how many squares inside this area are safe and available for
             // friendly minor pieces.
-            const auto SpaceMask = Own == WHITE ?
+            const Bitboard SpaceMask = Own == WHITE ?
                 (FC_bb|FD_bb|FE_bb|FF_bb) & (R2_bb|R3_bb|R4_bb) :
                 (FC_bb|FD_bb|FE_bb|FF_bb) & (R7_bb|R6_bb|R5_bb);
 
@@ -868,7 +868,7 @@ namespace Evaluator {
             // A square is unsafe:
             // if it is attacked by an enemy pawn or
             // if it is undefended and attacked by an enemy piece.
-            auto safe_space =
+            Bitboard safe_space =
                    SpaceMask
                 & ~pos.pieces (Own, PAWN)
                 & ~ei.pin_attacked_by[Opp][PAWN]

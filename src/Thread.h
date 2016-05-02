@@ -32,12 +32,9 @@ extern bool     Ponder;
 // moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
 class TimeManager
 {
-private:
-
-    TimePoint _optimum_time = 0;
-    TimePoint _maximum_time = 0;
-
 public:
+    TimePoint optimum_time = 0;
+    TimePoint maximum_time = 0;
 
     u64 available_nodes = 0; // When in 'Nodes as Time' mode
 
@@ -45,8 +42,6 @@ public:
     TimeManager (const TimeManager&) = delete;
     TimeManager& operator= (const TimeManager&) = delete;
 
-    TimePoint optimum_time () const { return _optimum_time; }
-    TimePoint maximum_time () const { return _maximum_time; }
     TimePoint elapsed_time () const;
 
     void initialize (Color c, i16 ply);

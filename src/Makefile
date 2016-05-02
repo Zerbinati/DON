@@ -239,7 +239,6 @@ endif
 
 ### 3.3 Optimization
 ifeq ($(optimize), yes)
-
 	CXXFLAGS += -O3
 
 	ifeq ($(comp), gcc)
@@ -307,7 +306,7 @@ endif
 ifeq ($(bm2), yes)
 	CXXFLAGS += -DBM2
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
-		CXXFLAGS += -mbmi -mbmi2
+		CXXFLAGS += -mbmi -mbmi2 #-mavx2
 	endif
 endif
 
