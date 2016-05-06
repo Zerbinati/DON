@@ -7,34 +7,22 @@ namespace BitBoard {
 
 #if defined(ABM)
 #   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-#       include <nmmintrin.h> // Intel header for SSE4.1 or SSE4.2 intrinsics _mm_popcnt_u64() & _mm_popcnt_u32()
+//#       include <intrin.h> // Microsoft header for pop count instrinsics __popcnt64() & __popcnt()
+#       include <nmmintrin.h> // Intel and Microsoft header for pop count intrinsics _mm_popcnt_u64() & _mm_popcnt_u32()
 inline i32 pop_count (Bitboard bb)
 {
 #       if defined(BIT64)
     {
+        //return i32(__popcnt64 (bb));
         return i32(_mm_popcnt_u64 (bb));
     }
 #       else
     {
+        //return i32(__popcnt (u32(bb >> 0)) + __popcnt (u32(bb >> 32)));
         return i32(_mm_popcnt_u32 (bb >> 0) + _mm_popcnt_u32 (bb >> 32));
     }
 #       endif
 }
-
-//#   elif defined(_MSC_VER)
-//#       include <intrin.h> // MSVC popcnt and bsfq instrinsics __popcnt64() & __popcnt()
-//inline i32 pop_count (Bitboard bb)
-//{
-//#       if defined(BIT64)
-//    {
-//        return i32(__popcnt64 (bb));
-//    }
-//#       else
-//    {
-//        return i32(__popcnt (u32(bb >> 0)) + __popcnt (u32(bb >> 32)));
-//    }
-//#       endif
-//}
 
 #   else // GCC or compatible compiler
 

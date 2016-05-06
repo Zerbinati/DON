@@ -139,11 +139,11 @@ namespace Pawns {
                 e->semiopen_files[Own] &= ~(u08(1) << f);
                 e->pawn_attack_span[Own] |= PawnAttackSpan[Own][s];
 
-                auto adjacents = own_pawns & AdjFile_bb[f];
-                auto phalanx   = adjacents & rank_bb (s);
-                auto supported = adjacents & rank_bb (s-Push);
-                auto doubled   = own_pawns & FrontSqrs_bb[Own][s];
-                auto stoppers  = opp_pawns & PawnPassSpan[Own][s];
+                Bitboard adjacents = own_pawns & AdjFile_bb[f];
+                Bitboard phalanx   = adjacents & rank_bb (s);
+                Bitboard supported = adjacents & rank_bb (s-Push);
+                Bitboard doubled   = own_pawns & FrontSqrs_bb[Own][s];
+                Bitboard stoppers  = opp_pawns & PawnPassSpan[Own][s];
                 bool opposed   = (opp_pawns & FrontSqrs_bb[Own][s]) != 0;
                 bool connected = (supported) != 0 || (phalanx) != 0;
                 bool levered   = (opp_pawns & PawnAttacks[Own][s]) != 0;
@@ -247,9 +247,9 @@ namespace Pawns {
 
         auto value = KingSafetyByPawn;
 
-        auto front_pawns = pos.pieces (PAWN) & (FrontRank_bb[Own][_rank (k_sq)] | Rank_bb[_rank (k_sq)]);
-        auto own_front_pawns = pos.pieces (Own) & front_pawns;
-        auto opp_front_pawns = pos.pieces (Opp) & front_pawns;
+        Bitboard front_pawns = pos.pieces (PAWN) & (FrontRank_bb[Own][_rank (k_sq)] | Rank_bb[_rank (k_sq)]);
+        Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
+        Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
         auto kf = std::min (std::max (_file (k_sq), F_B), F_G);
         for (auto f = kf - 1; f <= kf + 1; ++f)

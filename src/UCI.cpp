@@ -49,13 +49,19 @@ namespace UCI {
         do
         {
             // Block here waiting for input or EOF
-            if (running && !std::getline (cin, cmd, '\n')) cmd = "quit";
+            if (running && !std::getline (cin, cmd, '\n'))
+            {
+                cmd = "quit";
+            }
 
             istringstream iss (cmd);
             token.clear (); // std::getline() could return empty or blank line
             iss >> skipws >> token;
 
-            if (white_spaces (token)) continue;
+            if (white_spaces (token))
+            {
+                continue;
+            }
             else
             if (token == "uci")
             {
@@ -134,7 +140,7 @@ namespace UCI {
                 }
                 else
                 {
-                    goto end_cmd;
+                    continue;
                 }
 
                 SetupStates = StateListPtr (new StateList (1));
@@ -403,7 +409,7 @@ namespace UCI {
             {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
             }
-            end_cmd:;
+            
         } while (running && cmd != "quit");
 
         Threadpool.wait_while_thinking (); // Can't quit while the search is running

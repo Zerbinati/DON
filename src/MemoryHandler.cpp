@@ -97,8 +97,8 @@ namespace Memory {
             token_priv.PrivilegeCount = 1;
             // Enable or Disable privilege
             token_priv.Privileges[0].Attributes = (enable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
-            //BOOL status = 
-            AdjustTokenPrivileges (token_handle, FALSE, &token_priv, 0, PTOKEN_PRIVILEGES(nullptr), 0);
+            //bool status = 
+            AdjustTokenPrivileges (token_handle, false, &token_priv, 0, nullptr, 0);
 
             // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
             // So always check for the last error_code value.
