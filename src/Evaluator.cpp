@@ -188,7 +188,7 @@ namespace Evaluator {
             { S(0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S(0, 0) },  // Minor attackers
             { S(0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S(0, 0) },  // Major attackers
         };
-        // KingThreat[on one/on many] contains bonuses for King attacks on
+        // KingThreat[one/more] contains bonuses for King attacks on
         // pawns or pieces which are not pawn-defended.
         const Score KingThreat[2] =
         {
@@ -231,17 +231,14 @@ namespace Evaluator {
         };
     #undef V
 
-        // King danger constants and variables. The king danger scores are taken
-        // from the KingDanger[]. Various little "meta-bonuses" measuring
-        // the strength of the enemy attack are added up into an integer, which
-        // is used as an index to KingDanger[].
         const i32 MaxAttackUnits = 400;
-        // KingDanger[attack_units] contains the king danger weighted score
-        // indexed by a calculated integer number.
+        // Various little "meta-bonuses" measuring the strength of
+        // the enemy attack are added up into an integer, which
+        // is used as an index to KingDanger[].
         Score KingDanger[MaxAttackUnits];
 
         // KingAttackWeights[piece-type] contains king attack weights by piece type
-        const i32 KingAttackWeights[NONE] = { 1, 14, 10,  8,  2,  0 };
+        const i32 KingAttackWeights [NONE] = { 1, 14, 10,  8,  2,  0 };
 
         // Penalties for enemy's piece safe checks
         const i32 PieceSafeCheckUnit[NONE] = { 0, 17,  5, 45, 52 , 0 };
@@ -593,7 +590,6 @@ namespace Evaluator {
                     }
                 }
 
-
                 // Analyse the safe enemy's checks which are possible on safe area ...
                 Bitboard safe_area  = ~(ei.pin_attacked_by[Own][NONE] | (pos.pieces (Opp)));
                 // ... and some other potential checks, only requiring the square to be 
@@ -604,23 +600,18 @@ namespace Evaluator {
                 Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces ());
                 Bitboard niht_attack = PieceAttacks[NIHT][fk_sq];
 
-                // Queen safe and other checks
+                // Queen safe checks
                 if (((rook_attack | bshp_attack) & ei.pin_attacked_by[Opp][QUEN] & safe_area) != 0)
                 {
-                    attack_units += PieceSafeCheckUnit[QUEN];
                     score -= PieceSafeCheck;
-                }
-                else
-                if (((rook_attack | bshp_attack) & ei.pin_attacked_by[Opp][QUEN] & other_area) != 0)
-                {
-                    score -= PieceOtherCheck;
+                    attack_units += PieceSafeCheckUnit[QUEN];
                 }
 
                 // Rook safe and other checks
                 if ((rook_attack & ei.pin_attacked_by[Opp][ROOK] & safe_area) != 0)
                 {
-                    attack_units += PieceSafeCheckUnit[ROOK];
                     score -= PieceSafeCheck;
+                    attack_units += PieceSafeCheckUnit[ROOK];
                 }
                 else
                 if ((rook_attack & ei.pin_attacked_by[Opp][ROOK] & other_area) != 0)
@@ -631,8 +622,8 @@ namespace Evaluator {
                 // Bishop safe and other checks
                 if ((bshp_attack & ei.pin_attacked_by[Opp][BSHP] & safe_area) != 0)
                 {
-                    attack_units += PieceSafeCheckUnit[BSHP];
                     score -= PieceSafeCheck;
+                    attack_units += PieceSafeCheckUnit[BSHP];
                 }
                 else
                 if ((bshp_attack & ei.pin_attacked_by[Opp][BSHP] & other_area) != 0)
@@ -643,8 +634,8 @@ namespace Evaluator {
                 // Knight safe and other checks
                 if ((niht_attack & ei.pin_attacked_by[Opp][NIHT] & safe_area) != 0)
                 {
-                    attack_units += PieceSafeCheckUnit[NIHT];
                     score -= PieceSafeCheck;
+                    attack_units += PieceSafeCheckUnit[NIHT];
                 }
                 else
                 if ((niht_attack & ei.pin_attacked_by[Opp][NIHT] & other_area) != 0)
@@ -1181,7 +1172,7 @@ namespace Evaluator {
         auto mg = 0;
         for (auto i = 0; i < MaxAttackUnits; ++i)
         {
-            //                                  MaxSlope, MaxValue
+            //                              MaxIncrement, MaxValue
             mg = std::min (std::min (i*i - 16, mg + 322), 47410);
             KingDanger[i] = mk_score (mg * 268 / 7700, 0);
         }

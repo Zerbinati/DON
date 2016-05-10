@@ -8,7 +8,7 @@ namespace BitBoard {
 #if defined(ABM)
 #   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 //#       include <intrin.h> // Microsoft header for pop count instrinsics __popcnt64() & __popcnt()
-#       include <nmmintrin.h> // Intel and Microsoft header for pop count intrinsics _mm_popcnt_u64() & _mm_popcnt_u32()
+#       include <nmmintrin.h> // Microsoft or Intel header for pop count intrinsics _mm_popcnt_u64() & _mm_popcnt_u32()
 inline i32 pop_count (Bitboard bb)
 {
 #       if defined(BIT64)

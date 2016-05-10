@@ -250,14 +250,16 @@ namespace MovePick {
             std::copy (_ss->killer_moves, _ss->killer_moves + Killers, _killer_moves);
             (*_end_move).move = MOVE_NONE;
             // Be sure countermoves are different from killer_moves
-            if (_counter_move != MOVE_NONE && std::find (_cur_move, _end_move, _counter_move) == _end_move)
+            if (   _counter_move != MOVE_NONE
+                && std::find (_cur_move, _end_move, _counter_move) == _end_move
+               )
             {
                 (*_end_move++).move = _counter_move;
             }
             break;
 
         case S_GOOD_QUIET:
-            _end_move = _end_quiet = generate<QUIET> (_beg_move, _pos);
+            _end_move = _end_quiet_move = generate<QUIET> (_beg_move, _pos);
             value<QUIET> ();
             // Split positive(+ve) value from the list
             _end_move = std::partition (_cur_move, _end_move, [](const ValMove &m) { return m.value > VALUE_ZERO; });
@@ -269,15 +271,17 @@ namespace MovePick {
 
         case S_BAD_QUIET:
             _cur_move = _end_move;
-            _end_move = _end_quiet;
-            if (_cur_move < _end_move-1)
+            _end_move = _end_quiet_move;
+            if (   _cur_move < _end_move-1
+                && _depth >= 3*DEPTH_ONE
+               )
             {
                 insertion_sort (_cur_move, _end_move);
             }
             break;
 
         case S_BAD_CAPTURE:
-            _cur_move = _bad_capture;
+            _cur_move = _beg_bad_cap_move;
             _end_move = _beg_move+MaxMoves;
             break;
 
@@ -315,8 +319,7 @@ namespace MovePick {
     // taking care not to return the ttMove if it has already been searched.
     Move MovePicker::next_move ()
     {
-        do
-        {
+        do {
             while (   _cur_move == _end_move
                    && _stage != S_STOP
                   )
@@ -337,8 +340,7 @@ namespace MovePick {
                 break;
 
             case S_GOOD_CAPTURE:
-                do
-                {
+                do {
                     auto move = pick_best (_cur_move++, _end_move).move;
                     if (move != _tt_move)
                     {
@@ -348,16 +350,15 @@ namespace MovePick {
                             return move;
                         }
                         // Losing capture, move it to the tail of the array
-                        --_bad_capture;
-                        _bad_capture->move = move;
-                        _bad_capture->value = see_value;
+                        --_beg_bad_cap_move;
+                        _beg_bad_cap_move->move = move;
+                        _beg_bad_cap_move->value = see_value;
                     }
                 } while (_cur_move < _end_move);
                 break;
 
             case S_KILLER:
-                do
-                {
+                do {
                     auto move = (*_cur_move++).move;
                     if (   move != MOVE_NONE
                         && move != _tt_move
@@ -372,8 +373,7 @@ namespace MovePick {
 
             case S_GOOD_QUIET:
             case S_BAD_QUIET:
-                do
-                {
+                do {
                     auto move = (*_cur_move++).move;
                     if (   move != MOVE_NONE
                         && move != _tt_move
@@ -394,8 +394,7 @@ namespace MovePick {
             case S_ALL_EVASION:
             case S_QCAPTURE_1:
             case S_QCAPTURE_2:
-                do
-                {
+                do {
                     auto move = pick_best (_cur_move++, _end_move).move;
                     if (move != _tt_move)
                     {
@@ -405,8 +404,7 @@ namespace MovePick {
                 break;
 
             case S_QUIET_CHECK:
-                do
-                {
+                do {
                     auto move = (*_cur_move++).move;
                     if (move != _tt_move)
                     {
@@ -416,8 +414,7 @@ namespace MovePick {
                 break;
 
             case S_PROBCUT_CAPTURE:
-                do
-                {
+                do {
                     auto move = pick_best (_cur_move++, _end_move).move;
                     if (   move != _tt_move
                         && _pos.see (move) > _threshold
@@ -429,8 +426,7 @@ namespace MovePick {
                 break;
 
             case S_ALL_RECAPTURE:
-                do
-                {
+                do {
                     auto move = pick_best (_cur_move++, _end_move).move;
                     if (dst_sq (move) == _recapture_sq)
                     {

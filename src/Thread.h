@@ -49,9 +49,9 @@ public:
     void update (Color c);
 };
 
-// EasyMoveManager class is used to detect a so called 'easy move'.
+// MoveManager class is used to detect a so called 'easy move'.
 // When PV is stable across multiple search iterations engine can fast return the best move.
-class EasyMoveManager
+class MoveManager
 {
 public:
     static const u08 PVSize = 3;
@@ -63,12 +63,12 @@ private:
 public:
     u08 stable_count = 0; // Keep track of how many times in a row the 3rd ply remains stable
 
-    EasyMoveManager ()
+    MoveManager ()
     {
         clear ();
     }
-    EasyMoveManager (const EasyMoveManager&) = delete;
-    EasyMoveManager& operator= (const EasyMoveManager&) = delete;
+    MoveManager (const MoveManager&) = delete;
+    MoveManager& operator= (const MoveManager&) = delete;
 
     void clear ()
     {
@@ -265,13 +265,13 @@ namespace Threading {
     {
     public:
         bool   easy_played      = false;
-        bool   failed_low       = false;
         bool   time_mgr_used    = false;
+        bool   failed_low       = false;
         double best_move_change = 0.0;
-        Value  previous_value   = +VALUE_INFINITE;
+        Value  previous_value   = +VALUE_NONE;
 
         TimeManager     time_mgr;
-        EasyMoveManager easy_move_mgr;
+        MoveManager     move_mgr;
         SkillManager    skill_mgr;
 
         MainThread ();

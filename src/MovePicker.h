@@ -20,12 +20,12 @@ namespace MovePick {
     private:
 
         ValMove  _beg_move[MaxMoves]
-            ,   *_cur_move    = _beg_move
-            ,   *_end_move    = _beg_move
-            ,   *_end_quiet   = _beg_move
-            ,   *_bad_capture = _beg_move+MaxMoves;
+            ,   *_cur_move         = _beg_move
+            ,   *_end_move         = _beg_move
+            ,   *_end_quiet_move   = _beg_move
+            ,   *_beg_bad_cap_move = _beg_move+MaxMoves;
 
-        const Position &_pos;
+        const Position        &_pos;
         const Searcher::Stack *_ss = nullptr;
 
         Move    _tt_move        = MOVE_NONE;
@@ -33,10 +33,9 @@ namespace MovePick {
         Square  _recapture_sq   = SQ_NO;
         Value   _threshold      = VALUE_ZERO;
         Depth   _depth          = DEPTH_ZERO;
+        u08     _stage          = 0;
 
         ValMove _killer_moves[Killers + 1];
-
-        u08     _stage  = 0;
 
         template<GenType GT>
         // value() assign a numerical move ordering score to each move in a move list.

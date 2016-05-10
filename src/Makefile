@@ -112,7 +112,7 @@ ifeq ($(ARCH), x86-64-bm2)
 endif
 
 ifeq ($(ARCH), ppc-32)
-	arch = ppc
+	arch = ppc32
 endif
 
 ifeq ($(ARCH), ppc-64)
@@ -191,6 +191,8 @@ ifeq ($(COMP), clang)
 		DEPENDFLAGS += -stdlib=libc++
 	endif
 endif
+
+# ---
 
 ifeq ($(comp), icc)
 	profile_prepare = icc-profile-prepare

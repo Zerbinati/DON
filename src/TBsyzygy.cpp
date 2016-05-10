@@ -1577,8 +1577,7 @@ namespace TBSyzygy {
 
             if (litidx < 0)
             {
-                do
-                {
+                do {
                     litidx += pairs_data->table_size[--block] + 1;
                 } while (litidx < 0);
             }
@@ -1941,8 +1940,7 @@ namespace TBSyzygy {
                 pc = tbep->file[0].pieces[0];
                 Bitboard bb = pos.pieces (side == pos.active () ? color (pc[0]) : ~color (pc[0]), tb_ptype (pc[0]));
                 u08 s = 0;
-                do
-                {
+                do {
                     sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
                 } while (bb != 0);
 
@@ -1951,8 +1949,7 @@ namespace TBSyzygy {
                 while (s < tbep->num)
                 {
                     bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
-                    do
-                    {
+                    do {
                         sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
                     } while (bb != 0);
                 }
@@ -1966,8 +1963,7 @@ namespace TBSyzygy {
                 for (u08 s = 0; s < tbep->num;)
                 {
                     Bitboard bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
-                    do
-                    {
+                    do {
                         sq[std::min (s++, u08(TB_PieceLimit-1))] = pop_lsq (bb);
                     } while (bb != 0);
                 }
@@ -2055,8 +2051,7 @@ namespace TBSyzygy {
                 Piece p = side == pos.active () ? dtzep->file[0].pieces[0] : ~dtzep->file[0].pieces[0];
                 Bitboard bb = pos.pieces (color (p), tb_ptype (p));
                 u08 s = 0;
-                do
-                {
+                do {
                     sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
                 } while (bb != 0);
                 
@@ -2070,8 +2065,7 @@ namespace TBSyzygy {
                 while (s < dtzep->num)
                 {
                     bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
-                    do
-                    {
+                    do {
                         sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
                     } while (bb != 0);
                 }
@@ -2099,8 +2093,7 @@ namespace TBSyzygy {
                 for (u08 s = 0; s < dtzep->num;)
                 {
                     Bitboard bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
-                    do
-                    {
+                    do {
                         sq[std::min (s++, u08(TB_PieceLimit-1))] = pop_lsq (bb);
                     } while (bb != 0);
                 }
@@ -2340,8 +2333,7 @@ namespace TBSyzygy {
                     return false;
                 }
                 StateInfo *psi = si->ptr->ptr;
-                do
-                {
+                do {
                     psi = psi->ptr->ptr;
                     if (psi->posi_key == si->posi_key)
                     {

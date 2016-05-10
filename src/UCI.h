@@ -57,7 +57,7 @@ namespace UCI {
 
     extern void initialize ();
 
-    extern void loop (const std::string &arg = "");
+    extern void loop (i32 argc, const char *const *argv);
 
     extern void deinitialize ();
 

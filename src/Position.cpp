@@ -213,8 +213,7 @@ bool Position::repeated () const
             return false;
         }
         auto *psi = csi->ptr->ptr;
-        do
-        {
+        do {
             psi = psi->ptr->ptr;
             if (psi->posi_key == csi->posi_key)
             {
@@ -512,8 +511,7 @@ Value Position::see      (Move m) const
         auto captured = ptype (_board[org]);
 
         i08 depth = 1;
-        do
-        {
+        do {
             assert(depth < 32);
 
             // Add the new entry to the swap list

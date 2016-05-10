@@ -177,8 +177,7 @@ namespace BitBases {
         bool repeat;
         // Iterate through the positions until none of the unknown positions can be
         // changed to either wins or draws (15 cycles needed).
-        do
-        {
+        do {
             repeat = false;
             for (u32 idx = 0; idx < MaxIndex; ++idx)
             {

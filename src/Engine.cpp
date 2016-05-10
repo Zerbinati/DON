@@ -21,13 +21,13 @@ namespace Engine {
     namespace {
 
         // Version number. If Version is left empty, then show compile date in the format DD-MM-YY.
-        const string Version   = "";
-
-        const i08 Months = 12;
-        const string MonthStr[Months] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+        const string Version = "";
 
         i32 month_index (const string &month)
         {
+            static const i08 Months = 12;
+            static const string MonthStr[Months] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
             for (auto m = 0; m < Months; ++m)
             {
                 if (month == MonthStr[m])
@@ -51,9 +51,9 @@ namespace Engine {
         oss << "DON ";
 
         oss << std::setfill ('0');
-#if defined(VER)
+    #if defined(VER)
         oss << VER;
-#else
+    #else
         if (white_spaces (Version))
         {
             // From compiler, format is "Sep 2 1982"
@@ -68,33 +68,33 @@ namespace Engine {
         {
             oss << Version;
         }
-#endif
+    #endif
         oss << std::setfill (' ');
 
-#if defined(BIT64)
+    #if defined(BIT64)
         oss << ".64";
-#else
+    #else
         oss << ".32";
-#endif
+    #endif
 
-#if defined(BM2)
+    #if defined(BM2)
         oss << ".BM2";
-#elif defined(ABM)
+    #elif defined(ABM)
         oss << ".ABM";
-#elif defined(POP)
+    #elif defined(POP)
         oss << ".POP";
-#endif
+    #endif
 
-#if defined(LPAGES)
+    #if defined(LPAGES)
         oss << ".LP";
-#endif
+    #endif
 
         oss << (uci ? "\nid author " : " by ") << "Ehsan Rashid";
 
         return oss.str ();
     }
 
-    void run (const string &arg)
+    void run (i32 argc, const char *const *argv)
     {
         std::cout << info (false) << std::endl;
         std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency () << std::endl;
@@ -115,7 +115,7 @@ namespace Engine {
 
         TT.auto_size (i32(Options["Hash"]), true);
 
-        UCI::loop (arg);
+        UCI::loop (argc, argv);
     }
 
     void stop (i32 code)

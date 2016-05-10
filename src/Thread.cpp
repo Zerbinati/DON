@@ -186,12 +186,11 @@ namespace Threading {
     // ------------------------------------
 
     MainThread::MainThread ()
-        : Thread ()
-        , easy_played (false)
-        , failed_low (false)
+        : easy_played (false)
         , time_mgr_used (false)
+        , failed_low (false)
         , best_move_change (0.0)
-        , previous_value (+VALUE_INFINITE)
+        , previous_value (+VALUE_NONE)
     {}
 
     //MainThread::~MainThread ()
@@ -286,7 +285,7 @@ namespace Threading {
         {
             th->max_ply = 0;
             th->root_depth = DEPTH_ZERO;
-            th->root_pos.setup (pos.fen (Chess960), setup_states->back (), th, Chess960);
+            th->root_pos.setup (pos.fen (Chess960), setup_states->back (), th, Chess960, true);
             th->root_moves = root_moves;
         }
         setup_states->back () = tmp_si; // Restore si->ptr, cleared by Position::setup()

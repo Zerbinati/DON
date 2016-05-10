@@ -7,7 +7,7 @@ namespace BitBoard {
 
 #if defined(_MSC_VER)
 
-#   include <intrin.h> // MSVC popcnt and bsfq instrinsics _BitScanForward64() & _BitScanReverse64()
+#   include <intrin.h> // Microsoft header for instrinsics _BitScanForward64() & _BitScanReverse64()
 
 inline Square scan_lsq (Bitboard bb)
 {
@@ -53,7 +53,7 @@ inline Square scan_msq (Bitboard bb)
     return Square(index);
 }
 
-#elif defined(__GNUC__) //|| defined(__arm__)
+#elif defined(__GNUC__)
 
 inline Square scan_lsq (Bitboard bb)
 {
@@ -178,35 +178,35 @@ inline Square scan_msq (Bitboard bb)
     assert(bb != 0);
 
 #   if defined(BIT64)
-    // Set all bits including the MS1B and below
-    bb |= bb >> 0x01;
-    bb |= bb >> 0x02;
-    bb |= bb >> 0x04;
-    bb |= bb >> 0x08;
-    bb |= bb >> 0x10;
-    bb |= bb >> 0x20;
-    u08 index = (bb * DeBruijn_64) >> 58;
-    return Square(BSF_Table[index]);
+        // Set all bits including the MS1B and below
+        bb |= bb >> 0x01;
+        bb |= bb >> 0x02;
+        bb |= bb >> 0x04;
+        bb |= bb >> 0x08;
+        bb |= bb >> 0x10;
+        bb |= bb >> 0x20;
+        u08 index = (bb * DeBruijn_64) >> 58;
+        return Square(BSF_Table[index]);
 #   else
-    u08 msb = 0;
-    if (bb > 0xFFFFFFFF)
-    {
-        bb >>= 32;
-        msb = 32;
-    }
-    u32 bb32 = u32(bb);
-    if (bb32 > 0xFFFF)
-    {
-        bb32 >>= 16;
-        msb += 16;
-    }
-    u16 bb16 = u16(bb32);
-    if (bb16 > 0xFF)
-    {
-        bb16 >>= 8;
-        msb += 8;
-    }
-    return Square(msb + MSB_Table[bb16]);
+        u08 msb = 0;
+        if (bb > 0xFFFFFFFF)
+        {
+            bb >>= 32;
+            msb = 32;
+        }
+        u32 bb32 = u32(bb);
+        if (bb32 > 0xFFFF)
+        {
+            bb32 >>= 16;
+            msb += 16;
+        }
+        u16 bb16 = u16(bb32);
+        if (bb16 > 0xFF)
+        {
+            bb16 >>= 8;
+            msb += 8;
+        }
+        return Square(msb + MSB_Table[bb16]);
 #   endif
 
 }
@@ -221,11 +221,11 @@ inline Square scan_backmost_sq (Color c, Bitboard bb) { return c == WHITE ? scan
 inline Square pop_lsq (Bitboard &bb)
 {
     Square sq = scan_lsq (bb);
-#if defined(BM2)
-    bb = BLSR(bb);
-#else
-    bb &= (bb - 1);
-#endif
+#   if defined(BM2)
+        bb = BLSR(bb);
+#   else
+        bb &= (bb - 1);
+#   endif
     return sq;
 }
 

@@ -11,7 +11,6 @@ class Position;
 
 extern const std::string PieceChar;
 extern const std::string ColorChar;
-extern const std::string StartupFEN;
 
 namespace Notation {
 

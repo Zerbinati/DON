@@ -173,7 +173,7 @@
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="time_mgr" />
-      <Field Name="easy_move_mgr" />
+      <Field Name="move_mgr" />
     </ShowAsAssociation>
   </Class>
   <Class Name="Threading::ThreadPool">
@@ -232,7 +232,7 @@
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="EasyMoveManager">
+  <Class Name="MoveManager">
     <Position X="10" Y="2.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>CEAAAABSAIAAAAABAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>

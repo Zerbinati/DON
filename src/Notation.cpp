@@ -10,9 +10,7 @@ using namespace std;
 
 const string PieceChar ("PNBRQK  pnbrqk");
 const string ColorChar ("wb-");
-// Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
-// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-const string StartupFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
 
 namespace Notation {
 

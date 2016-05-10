@@ -253,8 +253,7 @@ namespace BitBoard {
                 // store the corresponding sliding attack bitboard in reference[].
                 u32 size = 0;
                 Bitboard occ = 0;
-                do
-                {
+                do {
 #               if defined(BM2)
                     attacks_bb[s][PEXT(occ, mask)] = sliding_attacks (deltas, s, occ);
 #               else
@@ -282,10 +281,8 @@ namespace BitBoard {
                 
                 // Find a magic for square 's' picking up an (almost) random number
                 // until found the one that passes the verification test.
-                do
-                {
-                    do
-                    {
+                do {
+                    do {
                         magics_bb[s] = rng.sparse_rand<Bitboard> ();
                     } while (pop_count ((mask * magics_bb[s]) >> 0x38) < 6);
 

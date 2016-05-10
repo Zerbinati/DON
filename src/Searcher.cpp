@@ -1425,11 +1425,11 @@ namespace Searcher {
                         if (   PVNode
                             && main_thread != nullptr
                             && main_thread->time_mgr_used
-                            && main_thread->easy_move_mgr.easy_move (pos.posi_key ()) != MOVE_NONE
-                            && (move != main_thread->easy_move_mgr.easy_move (pos.posi_key ()) || move_count > 1)
+                            && main_thread->move_mgr.easy_move (pos.posi_key ()) != MOVE_NONE
+                            && (move != main_thread->move_mgr.easy_move (pos.posi_key ()) || move_count > 1)
                            )
                         {
-                            main_thread->easy_move_mgr.clear ();
+                            main_thread->move_mgr.clear ();
                         }
 
                         best_move = move;
@@ -1732,7 +1732,7 @@ namespace Searcher {
         }
         if (Threadpool.main ()->time_mgr_used)
         {
-            Threadpool.main ()->previous_value = +VALUE_INFINITE;
+            Threadpool.main ()->previous_value = +VALUE_NONE;
         }
     }
 }
@@ -1774,9 +1774,10 @@ namespace Threading {
 
             if (main_thread->time_mgr_used)
             {
-                easy_move = main_thread->easy_move_mgr.easy_move (root_pos.posi_key ());
-                main_thread->easy_move_mgr.clear ();
+                easy_move = main_thread->move_mgr.easy_move (root_pos.posi_key ());
+                main_thread->move_mgr.clear ();
                 main_thread->easy_played = false;
+                main_thread->failed_low  = false;
                 main_thread->best_move_change = 0.0;
             }
             if (main_thread->skill_mgr.enabled ())
@@ -1797,8 +1798,6 @@ namespace Threading {
 
         leaf_depth = DEPTH_ZERO;
 
-        bool in_check = root_pos.checkers () != 0;
-
         // Iterative deepening loop until requested to stop or the target depth is reached.
         while (   !ForceStop
                && ++root_depth < DEPTH_MAX
@@ -1807,9 +1806,9 @@ namespace Threading {
         {
             if (main_thread != nullptr)
             {
-                main_thread->failed_low = false;
                 if (main_thread->time_mgr_used)
                 {
+                    main_thread->failed_low = false;
                     // Age out PV variability metric
                     main_thread->best_move_change *= 0.505;
                 }
@@ -1890,10 +1889,9 @@ namespace Threading {
 
                 // Start with a small aspiration window and, in case of fail high/low,
                 // research with bigger window until not failing high/low anymore.
-                do
-                {
+                do {
                     best_value =
-                        in_check ?
+                        root_pos.checkers () != 0 ?
                             depth_search<true, false, true > (root_pos, ss, alfa, beta, root_depth) :
                             depth_search<true, false, false> (root_pos, ss, alfa, beta, root_depth);
 
@@ -1940,7 +1938,10 @@ namespace Threading {
 
                         if (main_thread != nullptr)
                         {
-                            main_thread->failed_low = true;
+                            if (main_thread->time_mgr_used)
+                            {
+                                main_thread->failed_low = true;
+                            }
                             PonderhitStop = false;
                         }
                     }
@@ -1956,10 +1957,16 @@ namespace Threading {
                     }
 
                     window += window / 4 + 5;
+                    
+                    if (ContemptValue != 0)
+                    {
+                        auto valued_contempt = Value(i32(best_value)/ContemptValue);
+                        DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] - valued_contempt;
+                        DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] + valued_contempt;
+                    }
 
                     assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
-                }
-                while (true);
+                } while (true); // alfa < beta
 
                 // Sort the PV lines searched so far and update the GUI
                 std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
@@ -2025,14 +2032,17 @@ namespace Threading {
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
                             || (main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time * instability_factor *
+                                    // Improving Factor
                                     (320.0 - 80.0 * (!main_thread->failed_low)
                                            - 63.0 * (best_value >= main_thread->previous_value)
-                                           - 62.0 * (!main_thread->failed_low && best_value >= main_thread->previous_value)
+                                           - 62.0 * (  !main_thread->failed_low
+                                                    && best_value >= main_thread->previous_value
+                                                    )
                                     ) / 316.83))
                                )
                             || (main_thread->easy_played =
                                     (  main_thread->best_move_change < 0.03
-                                    && main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time * instability_factor / 8.16))
+                                    && main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time * instability_factor * 0.1225))
                                     && !root_moves.empty ()
                                     && !root_moves[0].empty ()
                                     &&  root_moves[0] == easy_move
@@ -2044,14 +2054,14 @@ namespace Threading {
                         }
 
                         if (   !root_moves.empty ()
-                            &&  root_moves[0].size () >= EasyMoveManager::PVSize
+                            &&  root_moves[0].size () >= MoveManager::PVSize
                            )
                         {
-                            main_thread->easy_move_mgr.update (root_pos, root_moves[0]);
+                            main_thread->move_mgr.update (root_pos, root_moves[0]);
                         }
                         else
                         {
-                            main_thread->easy_move_mgr.clear ();
+                            main_thread->move_mgr.clear ();
                         }
                     }
                     else
@@ -2086,11 +2096,11 @@ namespace Threading {
             // the second condition prevents consecutive fast moves.
             if (   main_thread->time_mgr_used
                 && (   main_thread->easy_played
-                    || main_thread->easy_move_mgr.stable_count < 6
+                    || main_thread->move_mgr.stable_count < 6
                    )
                )
             {
-                main_thread->easy_move_mgr.clear ();
+                main_thread->move_mgr.clear ();
             }
             // If skill level is enabled, swap best PV line with the sub-optimal one
             if (   main_thread->skill_mgr.enabled ()
@@ -2101,8 +2111,8 @@ namespace Threading {
             }
         }
     }
-    // MainThread::search() is called by the main thread when the program receives
-    // the UCI 'go' command. It searches from root position and and outputs the "bestmove" and "ponder".
+    // MainThread::search() is called by the main thread when receives the UCI 'go' command.
+    // It searches from root position and and outputs the "bestmove" and "ponder".
     void MainThread::search ()
     {
         static Book book; // Defined static to initialize the PRNG only once
