@@ -22,7 +22,6 @@ namespace MovePick {
         ValMove  _beg_move[MaxMoves]
             ,   *_cur_move         = _beg_move
             ,   *_end_move         = _beg_move
-            ,   *_end_quiet_move   = _beg_move
             ,   *_beg_bad_cap_move = _beg_move+MaxMoves;
 
         const Position        &_pos;

@@ -61,7 +61,7 @@ namespace Pawns {
         // Max bonus for king safety by pawns.
         // Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizon.
-        const Value KingSafetyByPawn = V(258);
+        const Value PawnKingSafety = V(258);
 
     #undef V
 
@@ -155,7 +155,7 @@ namespace Pawns {
                 // If it is sufficiently advanced (Rank 6), then it cannot be backward either.
                 if (   adjacents == 0
                     || levered 
-                    || rel_rank (Own, s) >= R_6
+                    || rel_rank (Own, s) >= R_5
                    )
                 {
                     backward = false;
@@ -169,15 +169,19 @@ namespace Pawns {
                     if (b != 0)
                     {
                         b = rank_bb (scan_backmost_sq (Own, b));
+                        // If have an enemy pawn in the same or next rank, the pawn is
+                        // backward because it cannot advance without being captured.
+                        backward = (stoppers & (b | shift_bb<Push> (b & AdjFile_bb[f]))) != 0;
                     }
-                    // If have an enemy pawn in the same or next rank, the pawn is
-                    // backward because it cannot advance without being captured.
-                    backward = (stoppers & (b | shift_bb<Push> (b & AdjFile_bb[f]))) != 0;
+                    else
+                    {
+                        backward = false;
+                    }
 
                     assert(!backward || (PawnAttackSpan[Opp][s + Push] & adjacents) == 0);
                 }
 
-                assert(stoppers == 0 || opposed || (opp_pawns & PawnAttackSpan[Own][s]));
+                assert(stoppers == 0 || opposed || (opp_pawns & PawnAttackSpan[Own][s]) != 0);
 
                 auto score = SCORE_ZERO;
 
@@ -245,7 +249,7 @@ namespace Pawns {
     {
         const auto Opp = Own == WHITE ? BLACK : WHITE;
 
-        auto value = KingSafetyByPawn;
+        auto value = PawnKingSafety;
 
         Bitboard front_pawns = pos.pieces (PAWN) & (FrontRank_bb[Own][_rank (k_sq)] | Rank_bb[_rank (k_sq)]);
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
@@ -264,7 +268,7 @@ namespace Pawns {
             auto opp_r = mid_pawns != 0 ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
             value -= ShelterWeakness[std::min (f, F_H - f)][own_r]
-                  +  StromDangerousness[f  == _file (k_sq) && opp_r == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
+                   + StromDangerousness[f  == _file (k_sq) && opp_r == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
                                         own_r == R_1                                            ? NO_FRIENDLY_PAWN :
                                         opp_r == own_r + 1                                      ? BLOCKED_BY_PAWN  : UNBLOCKED]
                                        [std::min (f, F_H - f)][opp_r];

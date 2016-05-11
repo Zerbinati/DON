@@ -1117,11 +1117,11 @@ namespace Evaluator {
         // In case of tracing add remaining individual evaluation terms
         if (Trace)
         {
-            write (PAWN       , ei.pe->pawn_score);
-            write (MATERIAL   , pos.psq_score ());
-            write (IMBALANCE  , ei.me->imbalance);
-            write (MOBILITY   , mobility[WHITE], mobility[BLACK]);
-            write (TOTAL      , score);
+            write (PAWN     , ei.pe->pawn_score);
+            write (MATERIAL , pos.psq_score ());
+            write (IMBALANCE, ei.me->imbalance);
+            write (MOBILITY , mobility[WHITE], mobility[BLACK]);
+            write (TOTAL    , score);
         }
 
         return (pos.active () == WHITE ? +value : -value) + Tempo;
@@ -1144,7 +1144,7 @@ namespace Evaluator {
 
         ostringstream oss;
         oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed
-            << "         Entity |    White    |    Black    |     Total    \n"
+            << "      Eval Term |    White    |    Black    |     Total    \n"
             << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
             << "----------------+-------------+-------------+--------------\n"
             << "       Material" << Term(MATERIAL)

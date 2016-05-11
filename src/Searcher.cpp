@@ -414,8 +414,8 @@ namespace Searcher {
 
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in quien_search use
-            // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            auto qs_depth = InCheck || depth >= DEPTH_QS_CHECKS ? DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
+            // only two types of depth in TT: DEPTH_QS_CHECK or DEPTH_QS_NO_CHECK.
+            auto qs_depth = InCheck || depth >= DEPTH_QS_CHECK ? DEPTH_QS_CHECK : DEPTH_QS_NO_CHECK;
 
             if (   !PVNode
                 && tt_hit
@@ -487,11 +487,10 @@ namespace Searcher {
             //auto *main_thread = Threadpool.main () == thread ? Threadpool.main () : nullptr;
             auto best_move = MOVE_NONE;
 
-            // Initialize a MovePicker object for the current position, and prepare
-            // to search the moves. Because the depth is <= 0 here, only captures,
-            // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
-            // be generated.
-            MovePicker mp (pos, tt_move, depth, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO);
+            // Initialize a MovePicker object for the current position, and prepare to search the moves.
+            // Because the depth is <= DEPTH_ZERO here, captures, queen promotions and
+            // checks (if depth >= DEPTH_QS_CHECK) will be generated.
+            MovePicker mp (pos, tt_move, depth, dst_sq ((ss-1)->current_move));
             StateInfo si;
             Move move;
             // Loop through the moves until no moves remain or a beta cutoff occurs.
@@ -1958,13 +1957,6 @@ namespace Threading {
 
                     window += window / 4 + 5;
                     
-                    if (ContemptValue != 0)
-                    {
-                        auto valued_contempt = Value(i32(best_value)/ContemptValue);
-                        DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] - valued_contempt;
-                        DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] + valued_contempt;
-                    }
-
                     assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
                 } while (true); // alfa < beta
 
@@ -1996,6 +1988,15 @@ namespace Threading {
                 leaf_depth = root_depth;
             }
 
+            //if (   ContemptValue != 0
+            //    && !root_moves.empty ()
+            //   )
+            //{
+            //    auto valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
+            //    DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] - valued_contempt;
+            //    DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] + valued_contempt;
+            //}
+
             if (main_thread != nullptr)
             {
                 // If skill level is enabled and can pick move, pick a sub-optimal best move
@@ -2020,7 +2021,7 @@ namespace Threading {
                     // Stop the search early:
                     bool stop = false;
 
-                    // Do have time for the next iteration? Can stop searching now?
+                    // Have time for the next iteration? Can stop searching now?
                     if (main_thread->time_mgr_used)
                     {
                         // Take some extra time if the best move has changed
@@ -2065,7 +2066,7 @@ namespace Threading {
                         }
                     }
                     else
-                    // Stop if have found a "mate in <x>"
+                    // Have found a "mate in <x>"?
                     if (   MateSearch
                         && best_value >= +VALUE_MATE - 2*Limits.mate
                        )

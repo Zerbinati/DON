@@ -317,9 +317,9 @@ enum Depth : i16
     DEPTH_ZERO          =  0,
 
     DEPTH_ONE           = +1, // One Ply
-    DEPTH_QS_CHECKS     =  0*i16(DEPTH_ONE),
-    DEPTH_QS_NO_CHECKS  = -1*i16(DEPTH_ONE),
-    DEPTH_QS_RECAPTURES = -5*i16(DEPTH_ONE),
+    DEPTH_QS_CHECK      =  0*i16(DEPTH_ONE),
+    DEPTH_QS_NO_CHECK   = -1*i16(DEPTH_ONE),
+    DEPTH_QS_RECAPTURE  = -5*i16(DEPTH_ONE),
     DEPTH_NONE          = -6*i16(DEPTH_ONE),
     DEPTH_MAX           = MaxPlies*i16(DEPTH_ONE),
 };

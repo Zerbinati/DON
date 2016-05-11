@@ -14,7 +14,7 @@ namespace MovePick {
 
         enum Stage : u08
         {
-            S_MAIN    , S_GOOD_CAPTURE, S_KILLER, S_GOOD_QUIET, S_BAD_QUIET, S_BAD_CAPTURE,
+            S_MAIN    , S_GOOD_CAPTURE, S_KILLER, S_QUIET, S_BAD_CAPTURE,
             S_EVASION , S_ALL_EVASION,
             S_QSEARCH_WITH_CHECK   , S_QCAPTURE_1, S_QUIET_CHECK,
             S_QSEARCH_WITHOUT_CHECK, S_QCAPTURE_2,
@@ -27,30 +27,6 @@ namespace MovePick {
         {
             VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_MG_QUEN+1, VALUE_ZERO
         };
-
-        // Insertion sort in the range [beg, end), which is guaranteed to be stable, as it should be
-        void insertion_sort (ValMove *beg, ValMove *end)
-        {
-            for (auto *p = beg+1; p < end; ++p)
-            {
-                ValMove t = *p, *q;
-                for (q = p; q != beg && *(q-1) < t; --q)
-                {
-                    *q = *(q-1);
-                }
-                *q = t;
-            }
-        }
-
-        // Generic insertion sort
-        //template<class Iterator, class BinaryPredicate = greater<>>
-        //void insertion_sort (Iterator beg, Iterator end, BinaryPredicate pred = BinaryPredicate{})
-        //{
-        //    for (auto it = beg; it != end; ++it)
-        //    {
-        //        rotate (std::upper_bound (beg, it, *it, pred), it, std::next (it));
-        //    }
-        //}
 
         // pick_best() finds the best move in the range [beg, end) and moves it to front,
         // it is faster than sorting all the moves in advance when there are few moves
@@ -103,12 +79,12 @@ namespace MovePick {
             _stage = S_EVASION;
         }
         else
-        if (_depth > DEPTH_QS_NO_CHECKS)
+        if (_depth >= DEPTH_QS_CHECK)
         {
             _stage = S_QSEARCH_WITH_CHECK;
         }
         else
-        if (_depth > DEPTH_QS_RECAPTURES)
+        if (_depth > DEPTH_QS_RECAPTURE)
         {
             _stage = S_QSEARCH_WITHOUT_CHECK;
         }
@@ -118,6 +94,7 @@ namespace MovePick {
             _recapture_sq = dst_sq;
             _tt_move = MOVE_NONE;
         }
+
         if (   _tt_move != MOVE_NONE
             && !_pos.pseudo_legal (_tt_move)
            )
@@ -155,9 +132,9 @@ namespace MovePick {
 
     template<>
     // Winning and equal captures in the main search are ordered by MVV/LVA.
-    // In the main search we want to push captures with negative SEE values to the
-    // badCaptures[] array, but instead of doing it now we delay until the move
-    // has been picked up, saving some SEE calls in case we get a cutoff.
+    // In the main search push captures with negative SEE values to the bad-captures[],
+    // but instead of doing it now we delay until the move has been picked up,
+    // saving some SEE calls in case of a cutoff.
     void MovePicker::value<CAPTURE> ()
     {
         for (auto &vm : *this)
@@ -225,9 +202,6 @@ namespace MovePick {
     void MovePicker::generate_next_stage ()
     {
         assert(_stage != S_STOP);
-
-        _cur_move = _beg_move;
-
         switch (++_stage)
         {
 
@@ -236,8 +210,8 @@ namespace MovePick {
         case S_QCAPTURE_2:
         case S_PROBCUT_CAPTURE:
         case S_ALL_RECAPTURE:
-            _end_move = _stage != S_ALL_RECAPTURE || _recapture_sq != SQ_NO ?
-                generate<CAPTURE> (_beg_move, _pos) : _beg_move;
+            _cur_move = _beg_move;
+            _end_move = generate<CAPTURE> (_beg_move, _pos);
             if (_cur_move < _end_move-1)
             {
                 value<CAPTURE> ();
@@ -258,25 +232,12 @@ namespace MovePick {
             }
             break;
 
-        case S_GOOD_QUIET:
-            _end_move = _end_quiet_move = generate<QUIET> (_beg_move, _pos);
-            value<QUIET> ();
-            // Split positive(+ve) value from the list
-            _end_move = std::partition (_cur_move, _end_move, [](const ValMove &m) { return m.value > VALUE_ZERO; });
+        case S_QUIET:
+            _cur_move = _beg_move;
+            _end_move = generate<QUIET> (_beg_move, _pos);
             if (_cur_move < _end_move-1)
             {
-                insertion_sort (_cur_move, _end_move);
-            }
-            break;
-
-        case S_BAD_QUIET:
-            _cur_move = _end_move;
-            _end_move = _end_quiet_move;
-            if (   _cur_move < _end_move-1
-                && _depth >= 3*DEPTH_ONE
-               )
-            {
-                insertion_sort (_cur_move, _end_move);
+                value<QUIET> ();
             }
             break;
 
@@ -287,6 +248,7 @@ namespace MovePick {
 
         case S_ALL_EVASION:
             assert(_pos.checkers () != 0);
+            _cur_move = _beg_move;
             _end_move = filter_illegal (_pos, _beg_move, generate<EVASION> (_beg_move, _pos));
             if (_cur_move < _end_move-1)
             {
@@ -295,6 +257,7 @@ namespace MovePick {
             break;
 
         case S_QUIET_CHECK:
+            _cur_move = _beg_move;
             _end_move = generate<QUIET_CHECK> (_beg_move, _pos);
             break;
 
@@ -316,12 +279,12 @@ namespace MovePick {
     // next_move() is the most important method of the MovePicker class.
     // It returns a new pseudo legal move every time it is called, until there are no more moves left.
     // It picks the move with the biggest value from a list of generated moves
-    // taking care not to return the ttMove if it has already been searched.
+    // taking care not to return the tt-move if it has already been searched.
     Move MovePicker::next_move ()
     {
         do {
-            while (   _cur_move == _end_move
-                   && _stage != S_STOP
+            while (   _stage != S_STOP
+                   && _cur_move == _end_move
                   )
             {
                 generate_next_stage ();
@@ -347,11 +310,12 @@ namespace MovePick {
                         auto see_value = _pos.see_sign (move);
                         if (see_value >= VALUE_ZERO)
                         {
+                            assert(move != MOVE_NONE);
                             return move;
                         }
                         // Losing capture, move it to the tail of the array
                         --_beg_bad_cap_move;
-                        _beg_bad_cap_move->move = move;
+                        _beg_bad_cap_move->move  = move;
                         _beg_bad_cap_move->value = see_value;
                     }
                 } while (_cur_move < _end_move);
@@ -371,15 +335,14 @@ namespace MovePick {
                 } while (_cur_move < _end_move);
                 break;
 
-            case S_GOOD_QUIET:
-            case S_BAD_QUIET:
+            case S_QUIET:
                 do {
-                    auto move = (*_cur_move++).move;
-                    if (   move != MOVE_NONE
-                        && move != _tt_move
+                    auto move = pick_best (_cur_move++, _end_move).move;
+                    if (   move != _tt_move
                         && std::find (_killer_moves, _killer_moves + Killers + 1, move) == _killer_moves + Killers + 1 // Not killer move
                        )
                     {
+                        assert(move != MOVE_NONE);
                         return move;
                     }
                 } while (_cur_move < _end_move);
@@ -398,6 +361,7 @@ namespace MovePick {
                     auto move = pick_best (_cur_move++, _end_move).move;
                     if (move != _tt_move)
                     {
+                        assert(move != MOVE_NONE);
                         return move;
                     }
                 } while (_cur_move < _end_move);
@@ -408,6 +372,7 @@ namespace MovePick {
                     auto move = (*_cur_move++).move;
                     if (move != _tt_move)
                     {
+                        assert(move != MOVE_NONE);
                         return move;
                     }
                 } while (_cur_move < _end_move);
@@ -420,6 +385,7 @@ namespace MovePick {
                         && _pos.see (move) > _threshold
                        )
                     {
+                        assert(move != MOVE_NONE);
                         return move;
                     }
                 } while (_cur_move < _end_move);
@@ -430,6 +396,7 @@ namespace MovePick {
                     auto move = pick_best (_cur_move++, _end_move).move;
                     if (dst_sq (move) == _recapture_sq)
                     {
+                        assert(move != MOVE_NONE);
                         return move;
                     }
                 } while (_cur_move < _end_move);
