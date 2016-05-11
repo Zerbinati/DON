@@ -1,4 +1,4 @@
-#ifdef LPAGES
+#if defined(LPAGES)
 
 #include "MemoryHandler.h"
 
@@ -13,10 +13,10 @@
 #   include <cstdio>
 
 // Disable macros min() and max()
-#   ifndef  NOMINMAX
+#   if !defined(NOMINMAX)
 #       define NOMINMAX
 #   endif
-#   ifndef  WIN32_LEAN_AND_MEAN
+#   if !defined(WIN32_LEAN_AND_MEAN)
 #       define WIN32_LEAN_AND_MEAN
 #   endif
 #   include <windows.h>
@@ -86,7 +86,7 @@ namespace Memory {
             {
                 //show_error (TEXT ("OpenProcessToken"), GetLastError ());
             }
-            
+
             TOKEN_PRIVILEGES token_priv;
             // Get the luid
             if (!LookupPrivilegeValue (nullptr, privilege_name, &token_priv.Privileges[0].Luid))
@@ -97,8 +97,8 @@ namespace Memory {
             token_priv.PrivilegeCount = 1;
             // Enable or Disable privilege
             token_priv.Privileges[0].Attributes = (enable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
-            //BOOL status = 
-            AdjustTokenPrivileges (token_handle, FALSE, &token_priv, 0, PTOKEN_PRIVILEGES(nullptr), 0);
+            //bool status = 
+            AdjustTokenPrivileges (token_handle, false, &token_priv, 0, nullptr, 0);
 
             // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
             // So always check for the last error_code value.

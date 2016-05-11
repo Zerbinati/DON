@@ -10,9 +10,7 @@ using namespace std;
 
 const string PieceChar ("PNBRQK  pnbrqk");
 const string ColorChar ("wb-");
-// Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
-// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-const string StartupFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
 
 namespace Notation {
 
@@ -47,7 +45,7 @@ namespace Notation {
 
             auto amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
             auto pcs = amb; // & ~pinneds; // If pinned piece is considered as ambiguous
-            while (pcs != U64(0))
+            while (pcs != 0)
             {
                 auto sq = pop_lsq (pcs);
                 if (!pos.legal (mk_move<NORMAL> (sq, dst), pinneds))
@@ -55,10 +53,10 @@ namespace Notation {
                     amb -= sq;
                 }
             }
-            if (amb != U64(0))
+            if (amb != 0)
             {
-                if ((amb & file_bb (org)) == U64(0)) return AMB_RANK;
-                if ((amb & rank_bb (org)) == U64(0)) return AMB_FILE;
+                if ((amb & file_bb (org)) == 0) return AMB_RANK;
+                if ((amb & rank_bb (org)) == 0) return AMB_FILE;
                 return AMB_SQR;
             }
             return AMB_NONE;
@@ -278,13 +276,13 @@ namespace Notation {
             oss << std::setw (7) << game_nodes / M << "M  ";
         }
 
-        StateStack states;
+        StateList states;
         u08 ply = 0;
         for (const auto m : main_thread->root_moves[0])
         {
             oss << move_to_san (m, root_pos) << " ";
-            states.push (StateInfo ());
-            root_pos.do_move (m, states.top (), root_pos.gives_check (m, CheckInfo (root_pos)));
+            states.push_back (StateInfo ());
+            root_pos.do_move (m, states.back (), root_pos.gives_check (m, CheckInfo (root_pos)));
             ++ply;
             ////---------------------------------
             //oss << move_to_can (m, root_pos.chess960 ()) << " ";
@@ -292,7 +290,7 @@ namespace Notation {
         for (; ply != 0; --ply)
         {
             root_pos.undo_move ();
-            states.pop ();
+            states.pop_back ();
         }
         ////---------------------------------
         //

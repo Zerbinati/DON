@@ -32,21 +32,16 @@ extern bool     Ponder;
 // moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
 class TimeManager
 {
-private:
-
-    TimePoint _optimum_time = 0;
-    TimePoint _maximum_time = 0;
-
 public:
+    TimePoint optimum_time = 0;
+    TimePoint maximum_time = 0;
 
-    u64 available_nodes = U64(0); // When in 'Nodes as Time' mode
+    u64 available_nodes = 0; // When in 'Nodes as Time' mode
 
     TimeManager () = default;
     TimeManager (const TimeManager&) = delete;
     TimeManager& operator= (const TimeManager&) = delete;
 
-    TimePoint optimum_time () const { return _optimum_time; }
-    TimePoint maximum_time () const { return _maximum_time; }
     TimePoint elapsed_time () const;
 
     void initialize (Color c, i16 ply);
@@ -54,31 +49,31 @@ public:
     void update (Color c);
 };
 
-// EasyMoveManager class is used to detect a so called 'easy move'.
+// MoveManager class is used to detect a so called 'easy move'.
 // When PV is stable across multiple search iterations engine can fast return the best move.
-class EasyMoveManager
+class MoveManager
 {
 public:
     static const u08 PVSize = 3;
 
 private:
-    Key  _posi_key = U64(0);
+    Key  _posi_key = 0;
     Move _pv[PVSize];
 
 public:
     u08 stable_count = 0; // Keep track of how many times in a row the 3rd ply remains stable
 
-    EasyMoveManager ()
+    MoveManager ()
     {
         clear ();
     }
-    EasyMoveManager (const EasyMoveManager&) = delete;
-    EasyMoveManager& operator= (const EasyMoveManager&) = delete;
+    MoveManager (const MoveManager&) = delete;
+    MoveManager& operator= (const MoveManager&) = delete;
 
     void clear ()
     {
         stable_count = 0;
-        _posi_key = U64(0);
+        _posi_key = 0;
         std::fill (_pv, _pv + PVSize, MOVE_NONE);
     }
 
@@ -133,6 +128,7 @@ public:
 
     explicit SkillManager (u08 skill_level = MaxSkillLevel)
         : _skill_level (skill_level)
+        , _best_move (MOVE_NONE)
     {}
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;
@@ -191,8 +187,8 @@ namespace Threading {
         Searcher::RootMoveVector    root_moves;
         Depth                       root_depth = DEPTH_ZERO
             ,                       leaf_depth = DEPTH_ZERO;
-        MovePick::HValueStats       history_values;
-        MovePick::MoveStats         counter_moves;
+        HValueStats                 history_values;
+        MoveStats                   counter_moves;
 
         std::atomic_bool            reset_check { false };
 
@@ -269,13 +265,13 @@ namespace Threading {
     {
     public:
         bool   easy_played      = false;
-        bool   failed_low       = false;
         bool   time_mgr_used    = false;
+        bool   failed_low       = false;
         double best_move_change = 0.0;
-        Value  previous_value   = +VALUE_INFINITE;
+        Value  previous_value   = +VALUE_NONE;
 
         TimeManager     time_mgr;
-        EasyMoveManager easy_move_mgr;
+        MoveManager     move_mgr;
         SkillManager    skill_mgr;
 
         MainThread ();
@@ -295,6 +291,9 @@ namespace Threading {
     class ThreadPool
         : public std::vector<Thread*>
     {
+    private:
+        StateListPtr setup_states;
+
     public:
         ThreadPool () = default;
         ThreadPool (const ThreadPool&) = delete;
@@ -315,7 +314,7 @@ namespace Threading {
         void initialize ();
         void deinitialize ();
 
-        void start_thinking (const Position &pos, const Limit &limits, StateStackPtr &states);
+        void start_thinking (const Position &pos, StateListPtr &states, const Limit &limits);
         void wait_while_thinking ();
     };
 

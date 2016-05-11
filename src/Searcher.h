@@ -2,7 +2,7 @@
 #define SEARCHER_H_INC_
 
 #include <cstring>
-#include <stack>
+#include <deque>
 #include <memory>
 #include <atomic>
 
@@ -10,8 +10,8 @@
 #include "Position.h"
 #include "MoveGenerator.h"
 
-typedef std::stack<StateInfo>       StateStack;
-typedef std::unique_ptr<StateStack> StateStackPtr;
+typedef std::deque<StateInfo>       StateList;
+typedef std::unique_ptr<StateList>  StateListPtr;
 
 // Limits stores information sent by GUI about available time to search the current move.
 //  - Maximum time and increment.
@@ -49,10 +49,74 @@ public:
         return !infinite
             && movetime == 0
             && depth    == 0
-            && nodes    == U64(0)
+            && nodes    == 0
             && mate     == 0;
     }
 };
+
+extern const Value MaxStatsValue;
+
+// The Stats struct stores different statistics.
+template<class T, bool CM = false>
+struct Stats
+{
+private:
+    T _table[MAX_PIECE][SQ_NO];
+
+    void _clear (Value &v) { v = VALUE_ZERO; }
+    void _clear (Stats<Value, false> &vs) { vs.clear (); }
+    void _clear (Stats<Value, true > &vs) { vs.clear (); }
+    void _clear (Move  &m) { m = MOVE_NONE; }
+
+public:
+    Stats () = default;
+    Stats (const Stats&) = delete;
+
+    const T* operator[] (Piece  pc) const { return _table[pc]; }
+    T*       operator[] (Piece  pc) { return _table[pc]; }
+
+    void clear ()
+    {
+        //std::memset (_table, 0x0, sizeof (_table));
+        for (auto &t : _table)
+        {
+            for (auto &e : t)
+            {
+                _clear (e);
+            }
+        }
+    }
+    // Piece, destiny square, value
+    void update (Piece p, Square s, Value v)
+    {
+        if (abs (i32(v)) < 324)
+        {
+            auto &e = _table[p][s];
+            e = e*(1.0 - (double) abs (i32(v)) / (CM ? 936 : 324)) + i32(v)*32;
+        }
+    }
+    // Piece, destiny square, move
+    void update (Piece p, Square s, Move m)
+    {
+        _table[p][s] = m;
+    }
+
+};
+
+// ValueStats stores the value that records how often different moves have been successful/unsuccessful
+// during the current search and is used for reduction and move ordering decisions.
+typedef Stats<Value, false>     HValueStats;
+typedef Stats<Value, true >     CMValueStats;
+
+// CM2DValueStats
+typedef Stats<CMValueStats>     CM2DValueStats;
+
+// MoveStats store the move that refute a previous move.
+// Entries are stored according only to moving piece and destination square,
+// in particular two moves with different origin but same piece and same destination
+// will be considered identical.
+typedef Stats<Move>             MoveStats;
+
 
 const u08 Killers = 2;
 
@@ -73,6 +137,7 @@ namespace Searcher {
         Value static_eval = VALUE_NONE;
         u08  move_count   = 0;
         bool skip_pruning = false;
+        CMValueStats *counter_move_values = nullptr;
 
         MoveVector pv;
 
@@ -82,8 +147,6 @@ namespace Searcher {
     };
 
     extern bool Chess960;
-
-    extern StateStackPtr SetupStates;
     extern Limit Limits;
 
     extern std::atomic_bool ForceStop

@@ -11,10 +11,9 @@
 #include "Benchmark.h"
 #include "Thread.h"
 
-using namespace std;
-
 namespace UCI {
 
+    using namespace std;
     using namespace Engine;
     using namespace Searcher;
     using namespace Evaluator;
@@ -24,13 +23,14 @@ namespace UCI {
 
     namespace {
 
-        // Root position
-        Position RootPos;
+        // Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
+        // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
+        const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
-        StateStackPtr SetupStates;
+        StateListPtr SetupStates(new StateList (1));
 
     }
 
@@ -39,23 +39,33 @@ namespace UCI {
     // GUI dies unexpectedly. When called with some command line arguments, e.g. to
     // run 'bench', once the command is executed the function returns immediately.
     // In addition to the UCI ones, also some additional debug commands are supported.
-    void loop (const string &arg)
+    void loop (i32 argc, const char *const *argv)
     {
-        RootPos.setup (StartupFEN, Threadpool.main (), Chess960);
+        Position root_pos;
+        root_pos.setup (StartFEN, SetupStates->back(), Threadpool.main (), false, true);
 
-        bool running = white_spaces (arg);
-        string cmd   = arg;
-        string token;
-        do
+        string cmd;
+        for (i32 i = 1; i < argc; ++i)
         {
+            cmd += string (argv[i]) + " ";
+        }
+
+        string token;
+        do {
             // Block here waiting for input or EOF
-            if (running && !std::getline (cin, cmd, '\n')) cmd = "quit";
+            if (argc == 1 && !std::getline (cin, cmd, '\n'))
+            {
+                cmd = "quit";
+            }
 
             istringstream iss (cmd);
             token.clear (); // std::getline() could return empty or blank line
             iss >> skipws >> token;
 
-            if (white_spaces (token)) continue;
+            if (white_spaces (token))
+            {
+                continue;
+            }
             else
             if (token == "uci")
             {
@@ -69,7 +79,7 @@ namespace UCI {
             if (token == "ucinewgame")
             {
                 clear ();
-                Threadpool.main ()->time_mgr.available_nodes = U64(0);
+                Threadpool.main ()->time_mgr.available_nodes = 0;
             }
             else
             if (token == "isready")
@@ -120,7 +130,7 @@ namespace UCI {
                 iss >> token;  // Consume "startpos" or "fen" token
                 if (token == "startpos")
                 {
-                    fen = StartupFEN;
+                    fen = StartFEN;
                     iss >> token;          // Consume "moves" token if any
                 }
                 else
@@ -134,26 +144,25 @@ namespace UCI {
                 }
                 else
                 {
-                    goto end_cmd;
+                    continue;
                 }
 
-                RootPos.setup (fen, Threadpool.main (), Chess960);
-
-                SetupStates = StateStackPtr (new StateStack);
+                SetupStates = StateListPtr (new StateList (1));
+                root_pos.setup (fen, SetupStates->back(), Threadpool.main (), Chess960, true);
 
                 if (token == "moves")
                 {
                     while (iss >> token && !iss.fail ())   // Parse and validate game moves (if any)
                     {
-                        auto m = move_from_can (token, RootPos);
+                        auto m = move_from_can (token, root_pos);
                         if (m == MOVE_NONE)
                         {
                             std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
                             break;
                         }
 
-                        SetupStates->push (StateInfo ());
-                        RootPos.do_move (m, SetupStates->top (), RootPos.gives_check (m, CheckInfo (RootPos)));
+                        SetupStates->push_back (StateInfo ());
+                        root_pos.do_move (m, SetupStates->back (), root_pos.gives_check (m, CheckInfo (root_pos)));
                     }
                 }
             }
@@ -203,7 +212,7 @@ namespace UCI {
                     {
                         while (iss >> token && !iss.fail ())
                         {
-                            auto m = move_from_can (token, RootPos);
+                            auto m = move_from_can (token, root_pos);
                             if (m == MOVE_NONE)
                             {
                                 std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
@@ -215,7 +224,7 @@ namespace UCI {
                     }
                 }
                 ForceStop = true;
-                Threadpool.start_thinking (RootPos, limits, SetupStates);
+                Threadpool.start_thinking (root_pos, SetupStates, limits);
             }
             // GUI sends 'ponderhit' to tell us to ponder on the same move the
             // opponent has played. In case Ponderhit Stop stream set are
@@ -236,46 +245,38 @@ namespace UCI {
             {
                 Limits.ponder = false;
             }
-            // It is the command to try to register an engine or to tell the engine that registration
-            // will be done later. This command should always be sent if the engine has sent "registration error"
-            // at program startup.
-            // The following tokens are allowed:
-            // * later
-            //   the user doesn't want to register the engine now.
-            // * name <x>
-            //   the engine should be registered with the name <x>
-            // * code <y>
-            //   the engine should be registered with the code <y>
-            // Example:
-            //   "register later"
-            //   "register name Stefan MK code 4359874324"
-            else
-            if (token == "register")
-            {
-                iss >> token;
-                if (token == "name")
-                {
-                    string name;
-                    // Read name (can contain spaces)
-                    // consume "value" token
-                    while (iss >> token && !iss.fail () && token != "code")
-                    {
-                        name += string (" ", !white_spaces (name) ? 1 : 0) + token;
-                    }
-
-                    string code;
-                    // Read code (can contain spaces)
-                    while (iss >> token && !iss.fail ())
-                    {
-                        code += string (" ", !white_spaces (code) ? 1 : 0) + token;
-                    }
-                    //std::cout << name << "\n" << code << std::endl;
-                }
-                else
-                if (token == "later")
-                {
-                }
-            }
+            //// Register an engin, with following tokens:
+            //// - later: the user doesn't want to register the engine now.
+            //// - name <x> code <y>: the engine should be registered with the name <x> and code <y>
+            //// Example:
+            ////   "register later"
+            ////   "register name Stefan MK code 4359874324"
+            //else
+            //if (token == "register")
+            //{
+            //    iss >> token;
+            //    if (token == "name")
+            //    {
+            //        string name;
+            //        // Read name (can contain spaces)
+            //        // consume "value" token
+            //        while (iss >> token && !iss.fail () && token != "code")
+            //        {
+            //            name += string (" ", !white_spaces (name) ? 1 : 0) + token;
+            //        }
+            //        string code;
+            //        // Read code (can contain spaces)
+            //        while (iss >> token && !iss.fail ())
+            //        {
+            //            code += string (" ", !white_spaces (code) ? 1 : 0) + token;
+            //        }
+            //        //std::cout << name << "\n" << code << std::endl;
+            //    }
+            //    else
+            //    if (token == "later")
+            //    {
+            //    }
+            //}
             else
             if (token == "debug")
             {
@@ -290,7 +291,7 @@ namespace UCI {
             else
             if (token == "show")
             {
-                sync_cout << RootPos << sync_endl;
+                sync_cout << root_pos << sync_endl;
             }
             // Print the root fen and keys
             else
@@ -298,10 +299,11 @@ namespace UCI {
             {
                 sync_cout
                     << std::hex << std::uppercase << std::setfill ('0')
-                    << "FEN: "                        << RootPos.fen ()      << "\n"
-                    << "Posi key: " << std::setw (16) << RootPos.posi_key () << "\n"
-                    << "Matl key: " << std::setw (16) << RootPos.matl_key () << "\n"
-                    << "Pawn key: " << std::setw (16) << RootPos.pawn_key ()
+                    << "FEN: "                        << root_pos.fen ()      << "\n"
+                    << "Posi key: " << std::setw (16) << root_pos.posi_key () << "\n"
+                    << "Poly key: " << std::setw (16) << root_pos.poly_key () << "\n"
+                    << "Matl key: " << std::setw (16) << root_pos.matl_key () << "\n"
+                    << "Pawn key: " << std::setw (16) << root_pos.pawn_key ()
                     << std::setfill (' ') << std::nouppercase << std::dec
                     << sync_endl;
             }
@@ -310,61 +312,61 @@ namespace UCI {
             {
                 sync_cout;
 
-                auto pinneds = RootPos.pinneds (RootPos.active ());
-                if (RootPos.checkers () != U64(0))
+                auto pinneds = root_pos.pinneds (root_pos.active ());
+                if (root_pos.checkers () != 0)
                 {
                     std::cout << "\nEvasion moves: ";
-                    for (const auto &vm : MoveList<EVASION> (RootPos))
+                    for (const auto &vm : MoveList<EVASION> (root_pos))
                     {
-                        if (RootPos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (vm.move, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << " ";
                         }
                     }
                 }
                 else
                 {
                     std::cout << "\nQuiet moves: ";
-                    for (const auto &vm : MoveList<QUIET> (RootPos))
+                    for (const auto &vm : MoveList<QUIET> (root_pos))
                     {
-                        if (RootPos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (vm.move, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << " ";
                         }
                     }
 
                     std::cout << "\nCheck moves: ";
-                    for (const auto &vm : MoveList<CHECK> (RootPos))
+                    for (const auto &vm : MoveList<CHECK> (root_pos))
                     {
-                        if (RootPos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (vm.move, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << " ";
                         }
                     }
 
                     std::cout << "\nQuiet Check moves: ";
-                    for (const auto &vm : MoveList<QUIET_CHECK> (RootPos))
+                    for (const auto &vm : MoveList<QUIET_CHECK> (root_pos))
                     {
-                        if (RootPos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (vm.move, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << " ";
                         }
                     }
 
                     std::cout << "\nCapture moves: ";
-                    for (const auto &vm : MoveList<CAPTURE> (RootPos))
+                    for (const auto &vm : MoveList<CAPTURE> (root_pos))
                     {
-                        if (RootPos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (vm.move, RootPos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << " ";
                         }
                     }
                 }
 
                 std::cout << "\nLegal moves: ";
-                for (const auto &vm : MoveList<LEGAL> (RootPos))
+                for (const auto &vm : MoveList<LEGAL> (root_pos))
                 {
-                    std::cout << move_to_san (vm.move, RootPos) << " ";
+                    std::cout << move_to_san (vm.move, root_pos) << " ";
                 }
 
                 std::cout << sync_endl;
@@ -372,12 +374,12 @@ namespace UCI {
             else
             if (token == "flip")
             {
-                RootPos.flip ();
+                root_pos.flip ();
             }
             else
             if (token == "eval")
             {
-                sync_cout << trace (RootPos) << sync_endl;
+                sync_cout << trace (root_pos) << sync_endl;
             }
             else
             if (token == "perft")
@@ -392,21 +394,21 @@ namespace UCI {
                     << i32(Options["Threads"]) << " "
                     << depth << " perft " << fen_fn;
 
-                benchmark (ss, RootPos);
+                benchmark (ss, root_pos);
             }
             else
             if (token == "bench")
             {
-                benchmark (iss, RootPos);
+                benchmark (iss, root_pos);
             }
             else
             {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
             }
-            end_cmd:;
-        } while (running && cmd != "quit");
+            
+        } while (argc == 1 && cmd != "quit");
 
-        Threadpool.wait_while_thinking (); // Can't quit while the search is running
+        Threadpool.wait_while_thinking ();
     }
 
 }

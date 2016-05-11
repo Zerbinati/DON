@@ -26,7 +26,6 @@
 /// -DNDEBUG    | Disable debugging mode. Always use this.
 /// -DPREFETCH  | Enable use of prefetch asm-instruction.
 ///             | Don't enable it if want the executable to run on some very old machines.
-/// -DBSFQ      | Add runtime support for use of Bitscans asm-instruction.
 /// -DPOP       | Enable use of internal pop count table. Works in both 32-bit & 64-bit mode.
 ///             | For compiling requires hardware without ABM support.
 /// -DABM       | Add runtime support for use of ABM asm-instruction. Works only in 64-bit mode.
@@ -34,7 +33,6 @@
 /// -DBM2       | Add runtime support for use of BM2 asm-instruction. Works only in 64-bit mode.
 ///             | For compiling requires hardware with BM2 support.
 /// -DLPAGES    | Add runtime support for large pages.
-
 
 /// Predefined macros hell:
 ///
@@ -44,29 +42,25 @@
 /// _WIN32             Building on Windows (any)
 /// _WIN64             Building on Windows 64 bit
 
-
 // Windows or MinGW
 #if defined(_WIN32)
 
 // Auto make 64-bit compiles
 #   if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
-#       ifndef BIT64
+#       if !defined(BIT64)
 #           define BIT64
-#       endif
-#       ifndef BSFQ
-#           define BSFQ
 #       endif
 #   endif
 
 #endif
 
-#ifdef BM2
+#if defined(BM2)
 #   include <immintrin.h>   // Header for BMI2 instructions
 // BEXT = Bit field extract (with register)
 // PDEP = Parallel bits deposit
 // PEXT = Parallel bits extract
 // BLSR = Reset lowest set bit
-#   ifdef BIT64
+#   if defined(BIT64)
 #       define BEXT(b, m, l)    _bextr_u64 (b, m, l)
 #       define PEXT(b, m)       _pext_u64 (b, m)
 #       define BLSR(b)          _blsr_u64 (b)
@@ -77,13 +71,12 @@
 #   endif
 #endif
 
-
 #undef S32
 #undef U32
 #undef S64
 #undef U64
 
-#ifdef _MSC_VER
+#if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
 #   pragma warning (disable: 4127) // Conditional expression is constant
 #   pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
@@ -138,7 +131,6 @@ typedef u64     Key;
 typedef u64     Bitboard;
 
 const u16 MaxPlies  = 128; // Maximum Plies
-const u16 MaxMoves  = 256; // Maximum Moves
 
 // File
 enum File : i08
@@ -325,9 +317,9 @@ enum Depth : i16
     DEPTH_ZERO          =  0,
 
     DEPTH_ONE           = +1, // One Ply
-    DEPTH_QS_CHECKS     =  0*i16(DEPTH_ONE),
-    DEPTH_QS_NO_CHECKS  = -1*i16(DEPTH_ONE),
-    DEPTH_QS_RECAPTURES = -5*i16(DEPTH_ONE),
+    DEPTH_QS_CHECK      =  0*i16(DEPTH_ONE),
+    DEPTH_QS_NO_CHECK   = -1*i16(DEPTH_ONE),
+    DEPTH_QS_RECAPTURE  = -5*i16(DEPTH_ONE),
     DEPTH_NONE          = -6*i16(DEPTH_ONE),
     DEPTH_MAX           = MaxPlies*i16(DEPTH_ONE),
 };
@@ -337,7 +329,7 @@ enum Value : i32
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
 
-    VALUE_NONE      = SHRT_MAX,
+    VALUE_NONE      = (1 << 15) - 1,
     VALUE_INFINITE  = +i32(VALUE_NONE) - 1,
 
     VALUE_MATE      = +i32(VALUE_INFINITE) - 1,
@@ -346,21 +338,21 @@ enum Value : i32
     VALUE_MATE_IN_MAX_PLY = +i32(VALUE_MATE) - 2 * MaxPlies,
 
     VALUE_MG_PAWN =  198,  VALUE_EG_PAWN =  258,
-    VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  846,
-    VALUE_MG_BSHP =  836,  VALUE_EG_BSHP =  857,
-    VALUE_MG_ROOK = 1270,  VALUE_EG_ROOK = 1281,
-    VALUE_MG_QUEN = 2521,  VALUE_EG_QUEN = 2558,
+    VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  896,
+    VALUE_MG_BSHP =  836,  VALUE_EG_BSHP =  907,
+    VALUE_MG_ROOK = 1270,  VALUE_EG_ROOK = 1356,
+    VALUE_MG_QUEN = 2521,  VALUE_EG_QUEN = 2658,
 
     VALUE_SPACE   = 12222, //2*VALUE_MG_QUEN + 4*VALUE_MG_ROOK + 2*VALUE_MG_NIHT
     VALUE_MIDGAME = 15581, VALUE_ENDGAME = 3998,
 };
-// Score enum stores a midgame and an endgame value in a single integer (enum),
+// Score stores a midgame and an endgame value in a 32bit integer,
 // the lower 16 bits are used to store the endgame value,
 // the upper 16 bits are used to store the midgame value.
 enum Score : i32
 {
     SCORE_ZERO = 0,
-    SCORE_MAX  = INT_MAX,
+    SCORE_MAX  = (1U << 31) - 1,
 };
 // Bound
 enum Bound : u08
@@ -409,7 +401,7 @@ enum Phase : u08
     PHASE_ENDGAME   =   0,
     PHASE_MIDGAME   = 128,
 };
-// ScaleFactor
+// Scale Factor
 enum ScaleFactor : u08
 {
     SCALE_FACTOR_DRAW    =   0,
@@ -417,7 +409,7 @@ enum ScaleFactor : u08
     SCALE_FACTOR_BISHOPS =  46,
     SCALE_FACTOR_NORMAL  =  64,
     SCALE_FACTOR_MAX     = 128,
-    SCALE_FACTOR_NONE    = UCHAR_MAX, // 255
+    SCALE_FACTOR_NONE    = 255,
 };
 
 #undef BASIC_OPERATORS
@@ -451,8 +443,8 @@ enum ScaleFactor : u08
     inline T& operator++ (T &t) { t = T(i32(t) + 1); return t; }           \
     inline T& operator-- (T &t) { t = T(i32(t) - 1); return t; }
 
-//inline T  operator++ (T &t, i32) { T o = t; t = T (i32 (t) + 1); return o; }  
-//inline T  operator-- (T &t, i32) { T o = t; t = T (i32 (t) - 1); return o; }  
+//inline T  operator++ (T &t, i32) { T o = t; t = T (i32(t) + 1); return o; }  
+//inline T  operator-- (T &t, i32) { T o = t; t = T (i32(t) - 1); return o; }  
 
 BASIC_OPERATORS(File)
 INC_DEC_OPERATORS(File)
@@ -462,18 +454,22 @@ INC_DEC_OPERATORS(Rank)
 
 INC_DEC_OPERATORS(Color)
 
+// Delta operators
+inline Delta  operator+  (Delta  d1, Delta d2) { return Delta(i32(d1) + i32(d2)); }
+inline Delta  operator-  (Delta  d1, Delta d2) { return Delta(i32(d1) - i32(d2)); }
+inline Delta  operator*  (Delta  d, i32 i) { return Delta(i32(d) * i); }
+inline Delta  operator*  (i32 i, Delta  d) { return Delta(i * i32(d)); }
+inline Delta  operator/  (Delta  d, i32 i) { return Delta(i32(d) / i); }
+//inline Delta& operator*= (Delta &d, i32 i) { d = Delta(i32(d) * i); return d; }
+//inline Delta& operator/= (Delta &d, i32 i) { d = Delta(i32(d) / i); return d; }
+
 // Square operators
-INC_DEC_OPERATORS(Square)
 inline Square  operator+  (Square  s, Delta d) { return Square(i32(s) + i32(d)); }
 inline Square  operator-  (Square  s, Delta d) { return Square(i32(s) - i32(d)); }
 inline Square& operator+= (Square &s, Delta d) { s = Square(i32(s) + i32(d)); return s; }
 inline Square& operator-= (Square &s, Delta d) { s = Square(i32(s) - i32(d)); return s; }
 inline Delta   operator-  (Square s1, Square s2) { return Delta(i32(s1) - i32(s2)); }
-
-// Delta operators
-ARTHMAT_OPERATORS(Delta)
-inline Delta  operator/  (Delta  d, i32 i) { return Delta(i32(d) / i); }
-inline Delta& operator/= (Delta &d, i32 i) { d = Delta(i32(d) / i); return d; }
+INC_DEC_OPERATORS(Square)
 
 INC_DEC_OPERATORS(CastleSide)
 
@@ -552,7 +548,7 @@ inline Square operator| (File f, Rank r) { return Square(( r << 3) | f); }
 inline Square operator| (Rank r, File f) { return Square((~r << 3) | f); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
-inline bool _ok (Square s) { return (s & ~i08(SQ_H8)) == 0; }
+inline bool _ok   (Square s) { return (s & ~i08(SQ_H8)) == 0; }
 inline File _file (Square s) { return File(s & i08(F_H)); }
 inline Rank _rank (Square s) { return Rank(s >> 3); }
 inline Color color (Square s) { return Color(!((s ^ (s >> 3)) & i08(BLACK))); }
@@ -610,16 +606,16 @@ inline bool _ok   (PieceType pt) { return PAWN <= pt && pt <= KING; }
 
 inline Piece  operator| (Color c, PieceType pt) { return Piece((c << 3) | pt); }
 
-inline bool _ok (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
+inline bool      _ok   (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
 inline PieceType ptype (Piece p) { return PieceType(p & MAX_PTYPE); }
-inline Color color (Piece p) { return Color(p >> 3); }
+inline Color     color (Piece p) { return Color(p >> 3); }
 inline Piece operator~ (Piece p) { return Piece(p ^ (BLACK << 3)); }
 
 inline Square org_sq (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
 inline Square dst_sq (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
 inline PieceType promote (Move m) { return PieceType(((m >> 12) & ROOK) + NIHT); }
 inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
-inline bool _ok (Move m)
+inline bool      _ok     (Move m)
 {
     // Catch all illegal moves
     //Square org = org_sq (m);

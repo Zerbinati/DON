@@ -4,7 +4,7 @@
 #include "Type.h"
 #include "Endgame.h"
 
-class Position;
+#include "Position.h"
 
 namespace Material {
 

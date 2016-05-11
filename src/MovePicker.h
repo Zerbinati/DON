@@ -8,70 +8,6 @@
 
 namespace MovePick {
 
-    const Value MaxStatsValue = Value(1 << 28);
-
-    // The Stats struct stores different statistics.
-    template<class T, bool CM = false>
-    struct Stats
-    {
-    private:
-        T _table[MAX_PIECE][SQ_NO];
-
-        void _clear (Value &v) { v = VALUE_ZERO; }
-        void _clear (Stats<Value, false> &vs) { vs.clear (); }
-        void _clear (Stats<Value, true > &vs) { vs.clear (); }
-        void _clear (Move  &m) { m = MOVE_NONE; }
-
-    public:
-        Stats () = default;
-        Stats (const Stats&) = delete;
-
-        const T* operator[] (Piece  pc) const { return _table[pc]; }
-        T*       operator[] (Piece  pc)       { return _table[pc]; }
-
-        void clear ()
-        {
-            //std::memset (_table, 0x0, sizeof (_table));
-            for (auto &t : _table)
-            {
-                for (auto &e : t)
-                {
-                    _clear (e);
-                }
-            }
-        }
-        // Piece, destiny square, value
-        void update (Piece p, Square s, Value v)
-        {
-            if (abs (i32(v)) < 324)
-            {
-                auto &e = _table[p][s];
-                e = std::min (std::max (e*(1.0 - (double)abs (i32(v)) / (CM ? 936 : 324)) + i32(v)*32, -MaxStatsValue), +MaxStatsValue);
-            }
-        }
-        // Piece, destiny square, move
-        void update (Piece p, Square s, Move m)
-        {
-            _table[p][s] = m;
-        }
-
-    };
-
-    // ValueStats stores the value that records how often different moves have been successful/unsuccessful
-    // during the current search and is used for reduction and move ordering decisions.
-    typedef Stats<Value, false>     HValueStats;
-    typedef Stats<Value, true >     CMValueStats;
-
-    // CM2DValueStats
-    typedef Stats<CMValueStats>     CM2DValueStats;
-
-    // MoveStats store the move that refute a previous move.
-    // Entries are stored according only to moving piece and destination square,
-    // in particular two moves with different origin but same piece and same destination
-    // will be considered identical.
-    typedef Stats<Move>             MoveStats;
-
-
     // MovePicker class is used to pick one pseudo legal move at a time from the
     // current position. The most important method is next_move(), which returns a
     // new pseudo legal move each time it is called, until there are no moves left,
@@ -84,25 +20,21 @@ namespace MovePick {
     private:
 
         ValMove  _beg_move[MaxMoves]
-            ,   *_cur_move    = _beg_move
-            ,   *_end_move    = _beg_move
-            ,   *_end_quiet   = _beg_move
-            ,   *_bad_capture = _beg_move+MaxMoves;
+            ,   *_cur_move         = _beg_move
+            ,   *_end_move         = _beg_move
+            ,   *_beg_bad_cap_move = _beg_move+MaxMoves;
 
-        const Position      &_pos;
-        const HValueStats   &_history_values;
-        const CMValueStats  *_counter_move_values  = nullptr;
-        const CMValueStats  *_followup_move_values = nullptr;
-        const Move          *_ss_killer_moves      = nullptr;
+        const Position        &_pos;
+        const Searcher::Stack *_ss = nullptr;
 
         Move    _tt_move        = MOVE_NONE;
         Move    _counter_move   = MOVE_NONE;
         Square  _recapture_sq   = SQ_NO;
         Value   _threshold      = VALUE_ZERO;
+        Depth   _depth          = DEPTH_ZERO;
+        u08     _stage          = 0;
 
         ValMove _killer_moves[Killers + 1];
-
-        u08     _stage  = 0;
 
         template<GenType GT>
         // value() assign a numerical move ordering score to each move in a move list.
@@ -117,9 +49,9 @@ namespace MovePick {
         MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
 
-        MovePicker (const Position&, const HValueStats&, const CMValueStats*, const CMValueStats*, Move, const Move*, Move);
-        MovePicker (const Position&, const HValueStats&, Move, Square, Depth);
-        MovePicker (const Position&, const HValueStats&, Move, Value);
+        MovePicker (const Position&, Move, Depth, Searcher::Stack*);
+        MovePicker (const Position&, Move, Depth, Square);
+        MovePicker (const Position&, Move, Value);
 
         ValMove* begin () { return _beg_move; }
         ValMove* end   () { return _end_move; }

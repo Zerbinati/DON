@@ -3,12 +3,12 @@
 
 #include "Type.h"
 
-class Position;
+#include "Position.h"
 
 namespace Evaluator {
 
     // Tempo bonus.
-    const Value Tempo = Value(20);
+    extern const Value Tempo;
 
     template<bool Trace = false>
     extern Value evaluate    (const Position &pos);

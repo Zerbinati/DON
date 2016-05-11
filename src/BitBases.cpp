@@ -11,7 +11,7 @@ namespace BitBases {
 
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
         const u32 MaxIndex = 2*24*i08(SQ_NO)*i08(SQ_NO); // stm * p_sq * wk_sq * bk_sq = 196608
-        
+
         // Each u32 entity stores results of 32 positions, one per bit
         u32 KPK_Bitbase[MaxIndex / 32];
 
@@ -43,14 +43,11 @@ namespace BitBases {
 
         struct KPK_Position
         {
-            
         private:
 
             Color  _active;
-            
             Square _k_sq[CLR_NO]
                 ,  _p_sq;
-
             Result _result;
 
             template<Color Own>
@@ -71,9 +68,8 @@ namespace BitBases {
                 const auto Bad  = Own == WHITE ? DRAW : WIN;
 
                 Result result = INVALID;
-                
                 Bitboard b = PieceAttacks[KING][_k_sq[Own]];
-                while (b != U64(0))
+                while (b != 0)
                 {
                     result |= Own == WHITE ?
                             kpk_db[index (Opp, pop_lsq (b), _k_sq[Opp], _p_sq)] :
@@ -122,7 +118,7 @@ namespace BitBases {
                 if (   dist (_k_sq[WHITE], _k_sq[BLACK]) <= 1
                     || _k_sq[WHITE] == _p_sq
                     || _k_sq[BLACK] == _p_sq
-                    || (_active == WHITE && (PawnAttacks[WHITE][_p_sq] & _k_sq[BLACK]) != U64(0))
+                    || (_active == WHITE && (PawnAttacks[WHITE][_p_sq] & _k_sq[BLACK]) != 0)
                    )
                 {
                     _result = INVALID;
@@ -133,7 +129,7 @@ namespace BitBases {
                     && _rank (_p_sq) == R_7
                     && _k_sq[WHITE] != (_p_sq + DEL_N)
                     && (   dist (_k_sq[BLACK], _p_sq + DEL_N) > 1
-                        || (PieceAttacks[KING][_k_sq[WHITE]] & (_p_sq + DEL_N)) != U64(0)
+                        || (PieceAttacks[KING][_k_sq[WHITE]] & (_p_sq + DEL_N)) != 0
                        )
                    )
                 {
@@ -142,8 +138,8 @@ namespace BitBases {
                 else
                 // Immediate draw if is a stalemate or king captures undefended pawn
                 if (   _active == BLACK
-                    && (   (PieceAttacks[KING][_k_sq[BLACK]] & ~(PieceAttacks[KING][_k_sq[WHITE]] | PawnAttacks[WHITE][_p_sq])) == U64(0)
-                        || ((PieceAttacks[KING][_k_sq[BLACK]] & ~PieceAttacks[KING][_k_sq[WHITE]]) & _p_sq) != U64(0)
+                    && (   (PieceAttacks[KING][_k_sq[BLACK]] & ~(PieceAttacks[KING][_k_sq[WHITE]] | PawnAttacks[WHITE][_p_sq])) == 0
+                        || ((PieceAttacks[KING][_k_sq[BLACK]] & ~PieceAttacks[KING][_k_sq[WHITE]]) & _p_sq) != 0
                        )
                    )
                 {
@@ -181,8 +177,7 @@ namespace BitBases {
         bool repeat;
         // Iterate through the positions until none of the unknown positions can be
         // changed to either wins or draws (15 cycles needed).
-        do
-        {
+        do {
             repeat = false;
             for (u32 idx = 0; idx < MaxIndex; ++idx)
             {

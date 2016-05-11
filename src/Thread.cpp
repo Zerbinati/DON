@@ -36,7 +36,7 @@ namespace {
         const auto  StepRatio = Maximum ? 7.09 : 1.00; // When in trouble, can step over reserved time with this ratio
         const auto StealRatio = Maximum ? 0.35 : 0.00; // However must not steal time from remaining moves over this ratio
 
-        auto  this_move_imp = move_importance (ply) * MoveSlowness;
+        auto  this_move_imp = std::max (move_importance (ply) * MoveSlowness, DBL_MIN);
         auto other_move_imp = 0.0;
         for (u08 i = 1; i < movestogo; ++i)
         {
@@ -65,7 +65,7 @@ void TimeManager::initialize (Color c, i16 ply)
     if (NodesTime != 0)
     {
         // Only once at game start
-        if (available_nodes == U64(0))
+        if (available_nodes == 0)
         {
             available_nodes = NodesTime * Limits.clock[c].time; // Time is in msec
         }
@@ -74,8 +74,8 @@ void TimeManager::initialize (Color c, i16 ply)
         Limits.clock[c].inc *= NodesTime;
     }
 
-    _optimum_time =
-    _maximum_time =
+    optimum_time =
+    maximum_time =
         std::max (Limits.clock[c].time, TimePoint(MinimumMoveTime));
 
     const auto MaxMovesToGo = Limits.movestogo != 0 ? std::min (Limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
@@ -90,18 +90,18 @@ void TimeManager::initialize (Color c, i16 ply)
             - OverheadClockTime
             - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
 
-        _optimum_time = std::min (remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, _optimum_time);
-        _maximum_time = std::min (remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, _maximum_time);
+        optimum_time = std::min (remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, optimum_time);
+        maximum_time = std::min (remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, maximum_time);
     }
 
     if (Ponder)
     {
-        _optimum_time = TimePoint(_optimum_time * 1.25);
+        optimum_time = TimePoint(optimum_time * 1.25);
     }
-    // Make sure that _optimum_time is not over _maximum_time
-    if (_optimum_time > _maximum_time)
+    // Make sure that optimum time is not over maximum time
+    if (optimum_time > maximum_time)
     {
-        _optimum_time = _maximum_time;
+        optimum_time = maximum_time;
     }
 }
 // TimeManager::update() is called at the end of the search.
@@ -122,7 +122,7 @@ void TimeManager::update (Color c)
 // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 Move SkillManager::pick_best_move (u16 pv_limit)
 {
-    const RootMoveVector &root_moves = Threadpool.main ()->root_moves;
+    const auto &root_moves = Threadpool.main ()->root_moves;
     assert(!root_moves.empty ());
     static PRNG prng (now ()); // PRNG sequence should be non-deterministic
 
@@ -138,15 +138,15 @@ Move SkillManager::pick_best_move (u16 pv_limit)
         // Then choose the move with the resulting highest value.
         for (u16 i = 0; i < pv_limit; ++i)
         {
-            auto value = root_moves[i].new_value;
+            auto value = root_moves[i].new_value
             // This is magic formula for push
-            auto push  = (  weakness  * i32(max_value - value)
+                       + (  weakness  * i32(max_value - root_moves[i].new_value)
                           + diversity * i32(prng.rand<u32> () % weakness)
                          ) / (i32(VALUE_EG_PAWN) / 2);
 
-            if (best_value < value + push)
+            if (best_value < value)
             {
-                best_value = value + push;
+                best_value = value;
                 _best_move = root_moves[i][0];
             }
         }
@@ -186,12 +186,11 @@ namespace Threading {
     // ------------------------------------
 
     MainThread::MainThread ()
-        : Thread ()
-        , easy_played (false)
-        , failed_low (false)
+        : easy_played (false)
         , time_mgr_used (false)
+        , failed_low (false)
         , best_move_change (0.0)
-        , previous_value (+VALUE_INFINITE)
+        , previous_value (+VALUE_NONE)
     {}
 
     //MainThread::~MainThread ()
@@ -202,7 +201,7 @@ namespace Threading {
     // ThreadPool::game_nodes() returns the total game nodes searched
     u64 ThreadPool::game_nodes () const
     {
-        u64 nodes = U64(0);
+        u64 nodes = 0;
         for (const auto *th : *this)
         {
             nodes += th->root_pos.game_nodes ();
@@ -259,21 +258,37 @@ namespace Threading {
 
     // ThreadPool::start_thinking() wakes up the main thread sleeping in Thread::idle_loop()
     // and starts a new search, then returns immediately.
-    void ThreadPool::start_thinking (const Position &pos, const Limit &limits, StateStackPtr &states)
+    void ThreadPool::start_thinking (const Position &pos, StateListPtr &states, const Limit &limits)
     {
         wait_while_thinking ();
 
         ForceStop       = false;
         PonderhitStop   = false;
 
-        Limits = limits;
-        main ()->root_pos = pos;
-        main ()->root_moves.initialize (pos, limits.search_moves);
-        if (states.get () != nullptr) // If don't set a new position, preserve current state
+        Limits  = limits;
+
+        RootMoveVector root_moves;
+        root_moves.initialize (pos, limits.search_moves);
+
+        // After ownership transfer 'states' becomes empty, so if we stop the search
+        // and call 'go' again without setting a new position states.get() == NULL.
+        assert(states.get () != nullptr || setup_states.get () != nullptr);
+
+        if (states.get () != nullptr)
         {
-            SetupStates = std::move (states); // Ownership transfer here
+            setup_states = std::move (states); // Ownership transfer, states is now empty
             assert(states.get () == nullptr);
         }
+
+        const auto tmp_si = setup_states->back ();
+        for (auto *th : *this)
+        {
+            th->max_ply = 0;
+            th->root_depth = DEPTH_ZERO;
+            th->root_pos.setup (pos.fen (Chess960), setup_states->back (), th, Chess960, true);
+            th->root_moves = root_moves;
+        }
+        setup_states->back () = tmp_si; // Restore si->ptr, cleared by Position::setup()
 
         main ()->start_searching (false);
     }

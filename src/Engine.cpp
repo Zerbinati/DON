@@ -21,16 +21,16 @@ namespace Engine {
     namespace {
 
         // Version number. If Version is left empty, then show compile date in the format DD-MM-YY.
-        const string Version   = "";
+        const string Version = "";
 
-        const i08 MaxMonth = 12;
-        const string Months[MaxMonth] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-
-        i32 index_month (const string &month)
+        i32 month_index (const string &month)
         {
-            for (auto m = 0; m < MaxMonth; ++m)
+            static const i08 Months = 12;
+            static const string MonthStr[Months] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+
+            for (auto m = 0; m < Months; ++m)
             {
-                if (month == Months[m])
+                if (month == MonthStr[m])
                 {
                     return m+1;
                 }
@@ -44,59 +44,62 @@ namespace Engine {
     {
         ostringstream oss;
 
-        if (uci) oss << "id name ";
+        if (uci)
+        {
+            oss << "id name ";
+        }
         oss << "DON ";
 
         oss << std::setfill ('0');
-#if defined (VER)
+    #if defined(VER)
         oss << VER;
-#else
+    #else
         if (white_spaces (Version))
         {
-            // From compiler, format is "Sep 2 2013"
+            // From compiler, format is "Sep 2 1982"
             istringstream iss (__DATE__);
             string month, day, year;
             iss >> month >> day >> year;
             oss << std::setw (2) << day
-                << std::setw (2) << index_month (month)
+                << std::setw (2) << month_index (month)
                 << std::setw (2) << year.substr (2);
         }
         else
         {
             oss << Version;
         }
-#endif
+    #endif
         oss << std::setfill (' ');
 
-#ifdef BIT64
+    #if defined(BIT64)
         oss << ".64";
-#else
+    #else
         oss << ".32";
-#endif
+    #endif
 
-#ifdef BM2
+    #if defined(BM2)
         oss << ".BM2";
-#elif ABM
+    #elif defined(ABM)
         oss << ".ABM";
-#elif POP
+    #elif defined(POP)
         oss << ".POP";
-#endif
+    #endif
 
-#ifdef LPAGES
+    #if defined(LPAGES)
         oss << ".LP";
-#endif
+    #endif
 
         oss << (uci ? "\nid author " : " by ") << "Ehsan Rashid";
 
         return oss.str ();
     }
 
-    void run (const string &arg)
+    void run (i32 argc, const char *const *argv)
     {
         std::cout << info (false) << std::endl;
         std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency () << std::endl;
 
-#ifdef LPAGES
+#if defined(LPAGES)
         Memory   ::initialize ();
 #endif
         UCI      ::initialize ();
@@ -112,7 +115,7 @@ namespace Engine {
 
         TT.auto_size (i32(Options["Hash"]), true);
 
-        UCI::loop (arg);
+        UCI::loop (argc, argv);
     }
 
     void stop (i32 code)
@@ -120,10 +123,10 @@ namespace Engine {
         Threadpool.deinitialize ();
         EndGame  ::deinitialize ();
         UCI      ::deinitialize ();
-#ifdef LPAGES
+#if defined(LPAGES)
         Memory   ::deinitialize ();
 #endif
-        ::exit (code);
+        exit (code);
     }
 
 }

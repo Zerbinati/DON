@@ -38,8 +38,6 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # bits    = 64/32     --- -DBIT64          --- 64/32-bit operating system
 # pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
-# bsfq    = yes/no    --- -DBSFQ           --- Use Bitscans x86_64 asm-instruction (only with GCC and ICC 64-bit)
-# pop     = yes/no    --- -DPOP            --- Use Internal POP count table
 # abm     = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions
 # bm2     = yes/no    --- -DBM2            --- Use BM2 (Bit Manipulation 2) x86_64 asm-instructions
 # lpg     = yes/no    --- -DLPAGES         --- Use Large Pages
@@ -48,15 +46,13 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # or modifying existing flags, you have to make sure there are no extra spaces
 # at the end of the line for flag values.
 
-### 2.1. General and architecture defaults
+### 2.1 General and architecture defaults
 debug   = no
 optimize= yes
 
 bits = 32
 pfch = no
 sse  = no
-pop  = no
-bsfq = no
 abm  = no
 bm2  = no
 lpg  = no
@@ -77,23 +73,6 @@ ifeq ($(ARCH), x86-32)
 	sse  = yes
 endif
 
-ifeq ($(ARCH), general-32-pop)
-	arch = any
-	pop  = yes
-endif
-
-ifeq ($(ARCH), x86-32-old-pop)
-	arch = i386
-	pop  = yes
-endif
-
-ifeq ($(ARCH), x86-32-pop)
-	arch = i386
-	pfch = yes
-	sse  = yes
-	pop  = yes
-endif
-
 ifeq ($(ARCH), x86-32-abm)
 	arch = i386
 	pfch = yes
@@ -111,24 +90,6 @@ ifeq ($(ARCH), x86-64)
 	bits = 64
 	pfch = yes
 	sse  = yes
-	bsfq = yes
-endif
-
-ifeq ($(ARCH), general-64-pop)
-	arch = any
-	bits = 64
-	lpg  = yes
-	pop  = yes
-endif
-
-ifeq ($(ARCH), x86-64-pop)
-	arch = x86_64
-	bits = 64
-	pfch = yes
-	sse  = yes
-	pop  = yes
-	bsfq = yes
-	lpg  = yes
 endif
 
 ifeq ($(ARCH), x86-64-abm)
@@ -136,7 +97,6 @@ ifeq ($(ARCH), x86-64-abm)
 	bits = 64
 	pfch = yes
 	sse  = yes
-	bsfq = yes
 	abm  = yes
 	lpg  = yes
 endif
@@ -146,14 +106,13 @@ ifeq ($(ARCH), x86-64-bm2)
 	bits = 64
 	pfch = yes
 	sse  = yes
-	bsfq = yes
 	abm  = yes
 	bm2  = yes
 	lpg  = yes
 endif
 
 ifeq ($(ARCH), ppc-32)
-	arch = ppc
+	arch = ppc32
 endif
 
 ifeq ($(ARCH), ppc-64)
@@ -162,29 +121,9 @@ ifeq ($(ARCH), ppc-64)
 	lpg  = yes
 endif
 
-ifeq ($(ARCH), ppc-32-pop)
-	arch = ppc
-	pop  = yes
-endif
-
-ifeq ($(ARCH), ppc-64-pop)
-	arch = ppc64
-	bits = 64
-	pop  = yes
-	lpg  = yes
-endif
-
 ifeq ($(ARCH), armv7)
 	arch = armv7
 	pfch = yes
-	bsfq = yes
-endif
-
-ifeq ($(ARCH), armv7-pop)
-	arch = armv7
-	pfch = yes
-	pop  = yes
-	bsfq = yes
 endif
 
 ### ==========================================================================
@@ -198,32 +137,31 @@ DEPENDFLAGS += -std=c++11
 LDFLAGS     += $(EXTRALDFLAGS)
 
 # Default (gcc)
-ifeq ($(COMP),)
+ifeq ($(COMP), )
 	COMP = gcc
 endif
 
-ifeq ($(COMP),gcc)
-
+ifeq ($(COMP), gcc)
 	comp = gcc
 	CXX  = g++
-	CXXFLAGS += -pedantic -Wextra -Wshadow
+	CXXFLAGS += -pedantic -Wextra -Wshadow -m$(bits)
 	ifneq ($(UNAME), Darwin)
 		LDFLAGS  += -Wl,--no-as-needed
 	endif
 endif
 
-ifeq ($(COMP),mingw)
+ifeq ($(COMP), mingw)
 	comp = mingw
 
-	ifeq ($(UNAME),Linux)
-		ifeq ($(bits),64)
-			ifeq ($(shell which x86_64-w64-mingw32-c++-posix),)
+	ifeq ($(UNAME), Linux)
+		ifeq ($(bits), 64)
+			ifeq ($(shell which x86_64-w64-mingw32-c++-posix), )
 				CXX = x86_64-w64-mingw32-c++
 			else
 				CXX = x86_64-w64-mingw32-c++-posix
 			endif
 		else
-			ifeq ($(shell which i686-w64-mingw32-c++-posix),)
+			ifeq ($(shell which i686-w64-mingw32-c++-posix), )
 				CXX = i686-w64-mingw32-c++
 			else
 				CXX = i686-w64-mingw32-c++-posix
@@ -237,21 +175,24 @@ ifeq ($(COMP),mingw)
 	LDFLAGS  += -static
 endif
 
-ifeq ($(COMP),icc)
+ifeq ($(COMP), icc)
 	comp = icc
 	CXX  = icpc
 	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
 endif
 
-ifeq ($(COMP),clang)
+ifeq ($(COMP), clang)
 	comp = clang
 	CXX  = clang++
-	CXXFLAGS += -pedantic -Wextra -Wshadow
+	CXXFLAGS += -pedantic -Wextra -Wshadow -m$(bits)
+	LDFLAGS  += -m$(bits)
 	ifeq ($(UNAME), Darwin)
 		CXXFLAGS    += -stdlib=libc++
 		DEPENDFLAGS += -stdlib=libc++
 	endif
 endif
+
+# ---
 
 ifeq ($(comp), icc)
 	profile_prepare = icc-profile-prepare
@@ -280,7 +221,7 @@ ifdef COMPCXX
 	CXX = $(COMPCXX)
 endif
 
-### Mingw has POSIX thread support built-in
+### On MinGW use Windows threads, otherwise POSIX
 ifneq ($(comp), mingw)
 	# On Android Bionic's C library comes with its own pthread implementation bundled in
 	ifneq ($(arch), armv7)
@@ -291,19 +232,18 @@ ifneq ($(comp), mingw)
 	endif
 endif
 
-### 3.4 Debugging
+### 3.2 Debugging
 ifeq ($(debug), no)
 	CXXFLAGS += -DNDEBUG
 else
 	CXXFLAGS += -g
 endif
 
-### 3.5 Optimization
+### 3.3 Optimization
 ifeq ($(optimize), yes)
+	CXXFLAGS += -O3
 
 	ifeq ($(comp), gcc)
-		CXXFLAGS += -O3
-
 		ifeq ($(UNAME), Darwin)
 			ifeq ($(arch), i386)
 				CXXFLAGS += -mdynamic-no-pic
@@ -318,21 +258,13 @@ ifeq ($(optimize), yes)
 		endif
 	endif
 
-	ifeq ($(comp), mingw)
-		CXXFLAGS += -O3
-	endif
-
 	ifeq ($(comp), icc)
 		ifeq ($(UNAME), Darwin)
-			CXXFLAGS += -fast -mdynamic-no-pic
-		else
-			CXXFLAGS += -fast
+			CXXFLAGS += -mdynamic-no-pic
 		endif
 	endif
 
 	ifeq ($(comp), clang)
-		CXXFLAGS += -O3
-
 		ifeq ($(UNAME), Darwin)
 			ifeq ($(bm2), no)
 				CXXFLAGS += -flto
@@ -348,12 +280,12 @@ ifeq ($(optimize), yes)
 	endif
 endif
 
-### 3.6 Bits
+### 3.4 Bits
 ifeq ($(bits), 64)
 	CXXFLAGS += -DBIT64
 endif
 
-### 3.7 Prefetch
+### 3.5 Prefetch
 ifeq ($(pfch), yes)
 	CXXFLAGS += -DPREFETCH
 	ifeq ($(sse), yes)
@@ -362,13 +294,8 @@ ifeq ($(pfch), yes)
 	endif
 endif
 
-### 3.8 Bitscans
-ifeq ($(bsfq), yes)
-	CXXFLAGS += -DBSFQ
-endif
-
-### 3.9 ABM (Advance Bit Manipulation)
-ifeq ($(abm),yes)
+### 3.6 ABM (Advance Bit Manipulation)
+ifeq ($(abm), yes)
 	CXXFLAGS += -DABM
 	ifeq ($(comp), icc)
 		CXXFLAGS += -msse3
@@ -377,25 +304,20 @@ ifeq ($(abm),yes)
 	endif
 endif
 
-### 3.10 BM2 (Bit Manipulation Instruction Set 2)
-ifeq ($(bm2),yes)
+### 3.7 BM2 (Bit Manipulation Instruction Set 2)
+ifeq ($(bm2), yes)
 	CXXFLAGS += -DBM2
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
-		CXXFLAGS += -mbmi -mbmi2
+		CXXFLAGS += -mbmi -mbmi2 #-mavx2
 	endif
 endif
 
-### 3.11 Large Pages
+### 3.8 Large Pages
 ifeq ($(lpg), yes)
 	CXXFLAGS += -DLPAGES
 endif
 
-### 3.12 Pop Tables
-ifeq ($(pop), yes)
-	CXXFLAGS += -DPOP
-endif
-
-### 3.13 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
+### 3.9 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(comp), gcc)
@@ -418,14 +340,14 @@ ifeq ($(comp),mingw)
 	endif
 endif
 
-### 3.14 Android 5 can only run position independent executables.
+### 3.10 Android 5 can only run position independent executables.
 ### Note that this breaks Android 4.0 and earlier.
 ifeq ($(arch), armv7)
 	CXXFLAGS += -fPIE
 	LDFLAGS  += -fPIE -pie
 endif
 
-### 3.15 Custom Version.
+### 3.11 Custom Version.
 ifneq ($(VER), )
 	CXXFLAGS += -DVER=$(VER)
 endif
@@ -446,7 +368,6 @@ help:
 	@echo "profile-build           > PGO build"
 	@echo "strip                   > Strip executable"
 	@echo "install                 > Install executable"
-	@echo "uninstall               > Remove executable"
 	@echo "clean                   > Clean up"
 	@echo ""
 	@echo "Supported architectures:"
@@ -454,22 +375,14 @@ help:
 	@echo "general-32              > unspecified 32-bit"
 	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "x86-32                  > x86 32-bit with SSE support"
-	@echo "general-32-pop          > unspecified 32-bit with POP"
-	@echo "x86-32-old-pop          > x86 32-bit fall back for old hardware with POP"
-	@echo "x86-32-pop              > x86 32-bit with SSE support with POP"
 	@echo "x86-32-abm              > x86 32-bit with ABM support"
 	@echo "general-64              > unspecified 64-bit"
 	@echo "x86-64                  > x86 64-bit"
-	@echo "general-64-pop          > unspecified 64-bit with POP"
-	@echo "x86-64-pop              > x86 64-bit with POP"
 	@echo "x86-64-abm              > x86 64-bit with ABM support"
 	@echo "x86-64-bm2              > x86 64-bit with BM2 support"
 	@echo "ppc-32                  > PPC 32-bit"
 	@echo "ppc-64                  > PPC 64-bit"
-	@echo "ppc-32-pop              > PPC 32-bit with POP"
-	@echo "ppc-64-pop              > PPC 64-bit with POP"
 	@echo "armv7                   > ARMv7 32-bit"
-	@echo "armv7-pop               > ARMv7 32-bit with POP"
 	@echo ""
 	@echo "Supported compilers:"
 	@echo "--------------------"
@@ -478,12 +391,12 @@ help:
 	@echo "clang                   > LLVM Clang compiler"
 	@echo "icc                     > Intel compiler"
 	@echo ""
-	@echo "Simple examples. For inexperienced users: "
+	@echo "Simple examples, for inexperienced users: "
 	@echo "----------------------------------------------------------------"
 	@echo "make build ARCH=x86-64    (This is for 64-bit systems)"
 	@echo "make build ARCH=x86-32    (This is for 32-bit systems)"
 	@echo ""
-	@echo "Advanced examples. For experienced users: "
+	@echo "Advanced examples, for experienced users: "
 	@echo ""
 	@echo "make build ARCH=x86-64 COMP=clang"
 	@echo "make profile-build ARCH=x86-64-modern COMP=gcc COMPCXX=g++-4.8"
@@ -522,11 +435,8 @@ install:
 	-cp $(EXE) $(BINDIR)
 	-strip $(BINDIR)/$(EXE)
 
-uninstall:
-	-$(RM) $(BINDIR)/$(EXE)
-
 clean:
-	$(RM) $(EXE) $(EXE).exe *.o *.gcda .depend *~ core bench.txt
+	$(RM) $(EXE) $(EXE).exe .depend *~ core bench.txt *.o *.gcda
 
 default:
 	help
@@ -550,8 +460,6 @@ config-sanity:
 	@echo "bits    : '$(bits)'"
 	@echo "pfch    : '$(pfch)'"
 	@echo "sse     : '$(sse)'"
-	@echo "pop     : '$(pop)'"
-	@echo "bsfq    : '$(bsfq)'"
 	@echo "abm     : '$(abm)'"
 	@echo "bm2     : '$(bm2)'"
 	@echo "lpg     : '$(lpg)'"
@@ -571,14 +479,12 @@ config-sanity:
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(pfch)" = "yes" || test "$(pfch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
-	@test "$(pop)" = "yes" || test "$(pop)" = "no"
-	@test "$(bsfq)" = "yes" || test "$(bsfq)" = "no"
 	@test "$(abm)" = "yes" || test "$(abm)" = "no"
 	@test "$(bm2)" = "yes" || test "$(bm2)" = "no"
 	@test "$(lpg)" = "yes" || test "$(lpg)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
-# Generating obj file
+# Generating obj files
 $(EXE): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
@@ -598,7 +504,7 @@ gcc-profile-use:
 	all
 
 gcc-profile-clean:
-	@rm -rf *.gcda *.gcno bench.txt
+	@rm -rf bench.txt *.gcda *.gcno
 
 icc-profile-prepare:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) icc-profile-clean

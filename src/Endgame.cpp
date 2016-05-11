@@ -1,6 +1,5 @@
 #include "Endgame.h"
 
-#include "Position.h"
 #include "BitBases.h"
 #include "MoveGenerator.h"
 
@@ -47,7 +46,7 @@ namespace EndGame {
         const i32 PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
         const i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
         bool verify_material (const Position &pos, Color c, Value npm, i32 num_pawns)
         {
             return pos.non_pawn_material (c) == npm && pos.count<PAWN> (c) == num_pawns;
@@ -92,7 +91,10 @@ namespace EndGame {
             string fen = sides[0] + char (8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
                        + sides[1] + char (8 - sides[1].length () + '0') + " w - - 0 1";
 
-            return Position (fen, nullptr, false, false).matl_key ();
+            Position pos;
+            StateInfo si;
+            pos.setup (fen, si, nullptr, false, false);
+            return pos.matl_key ();
         }
 
         template<class M>
@@ -137,7 +139,7 @@ namespace EndGame {
     Value Endgame<KXK>::operator() (const Position &pos) const
     {
         assert(verify_material (pos, ~_strong_side, VALUE_ZERO, 0));
-        assert(pos.checkers () == U64(0)); // Eval is never called when in check
+        assert(pos.checkers () == 0); // Eval is never called when in check
 
         // Stalemate detection with lone weak king
         if (   pos.active () == ~_strong_side
@@ -290,7 +292,7 @@ namespace EndGame {
 
         // To draw, the weak side should run towards the corner.
         // And not just any corner! Only a corner that's not the same color as the bishop will do.
-        if (   (Corner_bb & wk_sq) != U64(0)
+        if (   (Corner_bb & wk_sq) != 0
             && opposite_colors (wk_sq, wb_sq)
             && dist (wk_sq, wb_sq) == 1
             && dist (sk_sq, wb_sq) > 1
@@ -348,7 +350,7 @@ namespace EndGame {
 
         if (   rel_rank (~_strong_side, wp_sq) != R_7
             || dist (wk_sq, wp_sq) != 1
-            || ((FA_bb|FC_bb|FF_bb|FH_bb) & wp_sq) == U64(0)
+            || ((FA_bb|FC_bb|FF_bb|FH_bb) & wp_sq) == 0
            )
         {
             value += VALUE_EG_QUEN - VALUE_EG_PAWN;
@@ -559,7 +561,7 @@ namespace EndGame {
         assert(verify_material (pos, ~_strong_side, VALUE_MG_BSHP, 0));
 
         // Test for a rook pawn
-        if ((pos.pieces (PAWN) & (FA_bb|FH_bb)) != U64(0))
+        if ((pos.pieces (PAWN) & (FA_bb|FH_bb)) != 0)
         {
             auto wk_sq = pos.square<KING> (~_strong_side);
             auto wb_sq = pos.square<BSHP> (~_strong_side);
@@ -583,7 +585,7 @@ namespace EndGame {
             // and the defending king is near the corner
             if (   r == R_6
                 && dist (sp_sq + 2 * push, wk_sq) <= 1
-                && (PieceAttacks[BSHP][wb_sq] & (sp_sq + push)) != U64(0)
+                && (PieceAttacks[BSHP][wb_sq] & (sp_sq + push)) != 0
                 && dist<File> (wb_sq, sp_sq) >= 2
                )
             {
@@ -644,8 +646,8 @@ namespace EndGame {
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
-        if (   (spawns & ~FrontRank_bb[~_strong_side][_rank (wk_sq)]) == U64(0)
-            && ((spawns & ~FA_bb) == U64(0) || (spawns & ~FH_bb) == U64(0))
+        if (   (spawns & ~FrontRank_bb[~_strong_side][_rank (wk_sq)]) == 0
+            && ((spawns & ~FA_bb) == 0 || (spawns & ~FH_bb) == 0)
             && dist<File> (wk_sq, sp_sq) <= 1
            )
         {
@@ -752,8 +754,8 @@ namespace EndGame {
             }
 
             auto path = FrontSqrs_bb[_strong_side][sp_sq];
-            if (    (path & pos.pieces (~_strong_side, KING)) != U64(0)
-                || ((path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) != U64(0) && dist (wb_sq, sp_sq) >= 3)
+            if (    (path & pos.pieces (~_strong_side, KING)) != 0
+                || ((path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) != 0 && dist (wb_sq, sp_sq) >= 3)
                )
             {
                 return SCALE_FACTOR_DRAW;
@@ -817,7 +819,7 @@ namespace EndGame {
                 if (   wk_sq == block1_sq
                     && opposite_colors (wk_sq, sb_sq)
                     && (   wb_sq == block2_sq
-                        || (attacks_bb<BSHP> (block2_sq, pos.pieces ()) & pos.pieces (~_strong_side, BSHP)) != U64(0)
+                        || (attacks_bb<BSHP> (block2_sq, pos.pieces ()) & pos.pieces (~_strong_side, BSHP)) != 0
                         || dist<Rank> (sp1_sq, sp2_sq) >= 2
                        )
                    )
@@ -827,7 +829,7 @@ namespace EndGame {
                 if (   wk_sq == block2_sq
                     && opposite_colors (wk_sq, sb_sq)
                     && (   wb_sq == block1_sq
-                        || (attacks_bb<BSHP> (block1_sq, pos.pieces ()) & pos.pieces (~_strong_side, BSHP)) != U64(0)
+                        || (attacks_bb<BSHP> (block1_sq, pos.pieces ()) & pos.pieces (~_strong_side, BSHP)) != 0
                        )
                    )
                 {
@@ -882,7 +884,7 @@ namespace EndGame {
 
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        if ((FrontSqrs_bb[_strong_side][sp_sq] & attacks_bb<BSHP> (sb_sq, pos.pieces ())) != U64(0))
+        if ((FrontSqrs_bb[_strong_side][sp_sq] & attacks_bb<BSHP> (sb_sq, pos.pieces ())) != 0)
         {
             return ScaleFactor(dist (wk_sq, sp_sq));
         }
@@ -914,7 +916,7 @@ namespace EndGame {
         // All pawns on same A or H file? (rook file)
         // Then potential draw
         if (   (sp_f == F_A || sp_f == F_H)
-            && (spawns & ~File_bb[sp_f]) == U64(0)
+            && (spawns & ~File_bb[sp_f]) == 0
            )
         {
             auto sb_sq = pos.square<BSHP> (_strong_side);
@@ -935,7 +937,7 @@ namespace EndGame {
         // All pawns on same B or G file?
         // Then potential draw
         if (   (sp_f == F_B || sp_f == F_G)
-            && (pos.pieces (PAWN) & ~File_bb[sp_f]) == U64(0)
+            && (pos.pieces (PAWN) & ~File_bb[sp_f]) == 0
             && pos.non_pawn_material (~_strong_side) == VALUE_ZERO
            )
         {
@@ -988,8 +990,8 @@ namespace EndGame {
                 && dist (sp_sq, sk_sq) > 1
                 && rel_rank (_strong_side, sp_sq) == R_6
                 && rel_rank (_strong_side, sb_sq) == R_7
-                && (file_bb (sb_sq) & (FA_bb|FH_bb)) != U64(0)
-                && (PawnAttacks[~_strong_side][sb_sq] & spawns) != U64(0)
+                && (file_bb (sb_sq) & (FA_bb|FH_bb)) != 0
+                && (PawnAttacks[~_strong_side][sb_sq] & spawns) != 0
                )
             {
                 return SCALE_FACTOR_DRAW;
@@ -1018,7 +1020,7 @@ namespace EndGame {
             && (  pos.pieces (~_strong_side, PAWN)
                 & PieceAttacks[KING][wk_sq]
                 & PawnAttacks[_strong_side][wr_sq]
-               ) != U64(0)
+               ) != 0
            )
         {
             return SCALE_FACTOR_DRAW;

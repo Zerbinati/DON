@@ -30,7 +30,7 @@ inline std::string time_to_string (const std::chrono::system_clock::time_point &
     return stime;
 
 #   else
-    
+
     return "";
 
 #   endif
@@ -55,13 +55,15 @@ namespace Debugger {
         std::ofstream _ofs;
         std::tie_buf  _inb; // Input
         std::tie_buf  _otb; // Output
+        std::string   _filename;
 
     protected:
 
         // Constructor should be protected !!!
-        Logger ()
+        Logger (std::string filename)
             : _inb (std::cin .rdbuf (), _ofs.rdbuf ())
             , _otb (std::cout.rdbuf (), _ofs.rdbuf ())
+            , _filename (filename)
         {}
         Logger (const Logger&) = delete;
         Logger& operator= (const Logger&) = delete;
@@ -76,7 +78,7 @@ namespace Debugger {
         {
             // Guaranteed to be destroyed.
             // Instantiated on first use.
-            static Logger _instance;
+            static Logger _instance ("DebugLog.txt");
 
             return _instance;
         }
@@ -85,7 +87,7 @@ namespace Debugger {
         {
             if (!_ofs.is_open ())
             {
-                _ofs.open ("DebugLog.txt", std::ios_base::out|std::ios_base::app);
+                _ofs.open (_filename, std::ios_base::out|std::ios_base::app);
                 _ofs << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
 
                 std::cin .rdbuf (&_inb);
@@ -110,9 +112,7 @@ namespace Debugger {
     // Debug functions used mainly to collect run-time statistics
     extern void dbg_hit_on (bool hit);
     extern void dbg_hit_on (bool cond, bool hit);
-
     extern void dbg_mean_of (i64 item);
-    
     extern void dbg_print ();
 
 }
