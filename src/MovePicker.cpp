@@ -219,17 +219,10 @@ namespace MovePick {
             break;
 
         case S_KILLER:
-            _cur_move = _killer_moves;
-            _end_move = _killer_moves + Killers;
             std::copy (_ss->killer_moves, _ss->killer_moves + Killers, _killer_moves);
-            (*_end_move).move = MOVE_NONE;
-            // Be sure countermoves are different from killer_moves
-            if (   _counter_move != MOVE_NONE
-                && std::find (_cur_move, _end_move, _counter_move) == _end_move
-               )
-            {
-                (*_end_move++).move = _counter_move;
-            }
+            _killer_moves[Killers] = _counter_move;
+            _cur_move = _killer_moves;
+            _end_move = _killer_moves + Killers + (std::find (_killer_moves, _killer_moves + Killers, _counter_move) == _killer_moves + Killers);
             break;
 
         case S_QUIET:

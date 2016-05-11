@@ -70,11 +70,6 @@ namespace Pawns {
         // Connected pawn bonus by [opposed][phalanx][twice supported][rank] (by formula)
         Score Connected[2][2][2][R_NO];
 
-        // Doubled pawn penalty by [file]
-        const Score Doubled[F_NO] =
-        {
-            S(11,34), S(17,38), S(19,38), S(19,38), S(19,38), S(19,38), S(17,38), S(11,34)
-        };
 
         // Isolated pawn penalty by [opposed]
         const Score Isolated[2] =
@@ -88,8 +83,8 @@ namespace Pawns {
             S(56,33), S(41,19)
         };
 
-        // Lever pawn bonus by [rank]
-        const Score Lever[R_NO] =
+        // Levered pawn bonus by [rank]
+        const Score Levered[R_NO] =
         {
             S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0)
         };
@@ -101,7 +96,10 @@ namespace Pawns {
             S(17, 8), S(18, 9), S(21,12)
         };
 
-        const Score Unstoppable = S( 0, 20); // Bonus for unstoppable pawn going to promote
+        // Doubled pawn penalty
+        const Score Doubled   = S(18, 38);
+        // Unstopped pawn going to promote bonus
+        const Score Unstopped = S( 0, 20);
 
     #undef S
 
@@ -209,12 +207,12 @@ namespace Pawns {
 
                 if (levered)
                 {
-                    score += Lever[rel_rank (Own, s)];
+                    score += Levered[rel_rank (Own, s)];
                 }
 
                 if (doubled != 0)
                 {
-                    score -= Doubled[f] / dist<Rank> (s, scan_frntmost_sq (Own, doubled));
+                    score -= Doubled / dist<Rank> (s, scan_frntmost_sq (Own, doubled));
                 }
                 else
                 // Only the frontmost passed pawn on each file is considered a true passed pawn.
@@ -225,9 +223,9 @@ namespace Pawns {
                     e->passed_pawns[Own] += s;
                 }
 
-//#if !defined(NDEBUG)
+//#           if !defined(NDEBUG)
                 //std::cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << std::endl;
-//#endif
+//#           endif
                 pawn_score += score;
             }
 
@@ -284,7 +282,7 @@ namespace Pawns {
     Score Entry::evaluate_unstoppable_pawns () const
     {
         return passed_pawns[Own] != 0 ?
-                    Unstoppable * i32(rel_rank (Own, scan_frntmost_sq (Own, passed_pawns[Own]))) :
+                    Unstopped * i32(rel_rank (Own, scan_frntmost_sq (Own, passed_pawns[Own]))) :
                     SCORE_ZERO;
     }
 

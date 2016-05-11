@@ -2068,12 +2068,13 @@ namespace Threading {
                     else
                     // Have found a "mate in <x>"?
                     if (   MateSearch
+                        && best_value >= +VALUE_MATE_IN_MAX_PLY
                         && best_value >= +VALUE_MATE - 2*Limits.mate
                        )
                     {
                         stop = true;
                     }
-
+                    
                     if (stop)
                     {
                         // If allowed to ponder do not stop the search now but
