@@ -4,45 +4,25 @@
 #include "Type.h"
 #include "Position.h"
 
+const u16 MaxMoves  = 256;  // Maximum Moves
+
+// Generator Type
+enum GenType : u08
+{
+    // PSEUDO-LEGAL MOVES
+    RELAX,       // Normal.
+    EVASION,     // Save the friendly king from check.
+    CAPTURE,     // Change material balance where an enemy piece is captured.
+    QUIET,       // Do not capture pieces but under-promotion is allowed.
+    CHECK,       // Checks the enemy King in any way possible.
+    QUIET_CHECK, // Do not change material and only checks the enemy King (no capture or promotion).
+                 // ------------------------
+    LEGAL,       // Legal.
+};
+
 namespace MoveGen {
 
-    const u16 MaxMoves = 0x100; // Maximum Moves
-
-    struct ValMove
-    {
-    public:
-        Move  move  = MOVE_NONE;
-        Value value = VALUE_ZERO;
-
-        ValMove& operator= (const ValMove&) = default;
-
-        operator Move () const  { return move; }
-        void operator= (Move  m) { move  = m; }
-        //explicit operator Value () const { return value; }
-        //void operator= (Value v) { value = v; }
-
-        // Ascending sort
-        bool operator<  (const ValMove &vm) const { return value <  vm.value; }
-        bool operator>  (const ValMove &vm) const { return value >  vm.value; }
-        bool operator<= (const ValMove &vm) const { return value <= vm.value; }
-        bool operator>= (const ValMove &vm) const { return value >= vm.value; }
-        bool operator== (const ValMove &vm) const { return value == vm.value; }
-        bool operator!= (const ValMove &vm) const { return value != vm.value; }
-    };
-
-    // Generator Type
-    enum GenType : u08
-    {
-        // PSEUDO-LEGAL MOVES
-        RELAX,       // Normal.
-        EVASION,     // Save the friendly king from check.
-        CAPTURE,     // Change material balance where an enemy piece is captured.
-        QUIET,       // Do not capture pieces but under-promotion is allowed.
-        CHECK,       // Checks the enemy King in any way possible.
-        QUIET_CHECK, // Do not change material and only checks the enemy King (no capture or promotion).
-        // ------------------------
-        LEGAL,       // Legal.
-    };
+    extern ValMove* filter_illegal (const Position &pos, ValMove *beg_move, ValMove *end_move);
 
     template<GenType GT>
     extern ValMove* generate (ValMove *moves, const Position &pos);
@@ -55,35 +35,35 @@ namespace MoveGen {
     {
 
     private:
-        ValMove  _moves_beg[MaxMoves]
-              , *_moves_end = _moves_beg;
+        ValMove  _beg_move[MaxMoves]
+              , *_end_move = _beg_move;
 
     public:
 
         MoveList () = delete;
 
         explicit MoveList (const Position &pos)
-            : _moves_end (generate<GT> (_moves_beg, pos))
+            : _end_move (generate<GT> (_beg_move, pos))
         {
             //if (PT != NONE)
             //{
-            //    auto *moves_cur = _moves_beg;
-            //    while (moves_cur < _moves_end)
+            //    auto *cur_move = _beg_move;
+            //    while (cur_move < _end_move)
             //    {
-            //        if (PT != ptype (pos[org_sq (*moves_cur)]))
+            //        if (PT != ptype (pos[org_sq (*cur_move)]))
             //        {
-            //            *moves_cur = *(--_moves_end);
+            //            *cur_move = *(--_end_move);
             //            continue;
             //        }
-            //        ++moves_cur;
+            //        ++cur_move;
             //    }
             //}
         }
 
-        const ValMove* begin () const { return _moves_beg; }
-        const ValMove* end   () const { return _moves_end; }
+        const ValMove* begin () const { return _beg_move; }
+        const ValMove* end   () const { return _end_move; }
 
-        size_t size () const { return size_t(_moves_end - _moves_beg); }
+        size_t size () const { return size_t(_end_move - _beg_move); }
         
         bool contains (Move move) const
         {

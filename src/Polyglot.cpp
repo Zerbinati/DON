@@ -2,7 +2,6 @@
 
 #include <iomanip>
 
-#include "Position.h"
 #include "PRNG.h"
 #include "Zobrist.h"
 #include "MoveGenerator.h"
@@ -20,7 +19,7 @@ namespace Polyglot {
     // -------------------------
 
     const u08 Entry::Size = sizeof (Entry);
-    static_assert (Entry::Size == 16, "Incorrect Entry::size");
+    static_assert (Entry::Size == 16, "Entry size incorrect");
 
     const Entry Entry::NullEntry = { 0 , 0 , 0 , 0 };
 
@@ -45,7 +44,7 @@ namespace Polyglot {
     // -------------------------
 
     const u08 Book::HeaderSize = 96;
-    static_assert (Book::HeaderSize == 96, "Incorrect Book::HeaderSize");
+    static_assert (Book::HeaderSize == 96, "Book header size incorrect");
 
     Book::Book (const string &book_fn, openmode mode)
         : fstream (book_fn, mode|ios_base::binary)
@@ -63,7 +62,7 @@ namespace Polyglot {
     }
 
     // open() tries to open a book file with the given name after closing any existing one.
-    // mode:
+    // Mode:
     // Read -> ios_base::in
     // Write-> ios_base::out
     bool Book::open (const string &book_fn, openmode mode)
@@ -136,13 +135,13 @@ namespace Polyglot {
         auto end_index = size_t((size () - HeaderSize) / Entry::Size - 1);
         assert(beg_index <= end_index);
 
-        Entry pe;
         while (beg_index < end_index && good ())
         {
             auto mid_index = size_t((beg_index + end_index) / 2);
             assert(beg_index <= mid_index && mid_index < end_index);
 
             seekg (OFFSET(mid_index), ios_base::beg);
+            Entry pe;
             *this >> pe;
 
             if (key <= pe.key)
@@ -155,16 +154,18 @@ namespace Polyglot {
             }
         }
         assert(beg_index == end_index);
-
         return beg_index;
     }
     size_t Book::find_index (const Position &pos)
     {
-        return find_index (pos.posi_key ());
+        return find_index (pos.poly_key ());
     }
     size_t Book::find_index (const string &fen, bool c960)
     {
-        return find_index (Position (fen, nullptr, c960).posi_key ());
+        Position pos;
+        StateInfo si;
+        pos.setup (fen, si, nullptr, c960);
+        return find_index (pos.poly_key ());
     }
 
     // probe_move() tries to find a book move for the given position.
@@ -176,9 +177,9 @@ namespace Polyglot {
         static PRNG pr (now ());
         if (is_open ())
         {
-            Key posi_key = pos.posi_key ();
+            Key poly_key = pos.poly_key ();
 
-            auto index = find_index (posi_key);
+            auto index = find_index (poly_key);
 
             seekg (OFFSET(index));
 
@@ -237,9 +238,9 @@ namespace Polyglot {
             //    }
             //}
 
-            while (*this >> pe, pe.key == posi_key && good ())
+            while (*this >> pe, pe.key == poly_key && good ())
             {
-                if (pe == MOVE_NONE) continue; // Skip MOVE_NONE
+                if (pe.move == MOVE_NONE) continue; // Skip MOVE_NONE
 
                 if (max_weight < pe.weight)
                 {
@@ -249,7 +250,10 @@ namespace Polyglot {
 
                 if (pick_best)
                 {
-                    if (pe.weight == max_weight) move = Move(pe);
+                    if (pe.weight == max_weight)
+                    {
+                        move = Move(pe.move);
+                    }
                 }
                 // Choose book move according to its score.
                 // If a move has a very high score it has a higher probability
@@ -258,17 +262,23 @@ namespace Polyglot {
                 if (weight_sum != 0)
                 {
                     u16 rand = pr.rand<u16> () % weight_sum;
-                    if (pe.weight > rand) move = Move(pe);
+                    if (pe.weight > rand)
+                    {
+                        move = Move(pe.move);
+                    }
                 }
                 // Note that first entry is always chosen if not pick best and sum of weight = 0
                 else
                 if (move == MOVE_NONE)
                 {
-                    move = Move(pe);
+                    move = Move(pe.move);
                 }
             }
 
-            if (move == MOVE_NONE) return MOVE_NONE;
+            if (move == MOVE_NONE)
+            {
+                return MOVE_NONE;
+            }
 
             // Polyglot book move is encoded as follows:
             //
@@ -306,18 +316,18 @@ namespace Polyglot {
         ostringstream oss;
         if (is_open ())
         {
-            Key posi_key = pos.posi_key ();
+            Key poly_key = pos.poly_key ();
 
-            auto index = find_index (posi_key);
+            auto index = find_index (poly_key);
 
             seekg (OFFSET(index));
 
             Entry pe;
             vector<Entry> pes;
             u32 weight_sum = 0;
-            while (*this >> pe, pe.key == posi_key && good ())
+            while (*this >> pe, pe.key == poly_key && good ())
             {
-                if (pe == MOVE_NONE) continue; // Skip MOVE_NONE
+                if (pe.move == MOVE_NONE) continue; // Skip MOVE_NONE
 
                 pes.push_back (pe);
                 weight_sum += pe.weight;
@@ -327,7 +337,7 @@ namespace Polyglot {
             {
                 std::cerr
                     << "ERROR: Position not found... "
-                    << std::hex << std::uppercase << posi_key << std::nouppercase << std::dec
+                    << std::hex << std::uppercase << poly_key << std::nouppercase << std::dec
                     << std::endl;
             }
             else
@@ -337,7 +347,7 @@ namespace Polyglot {
                     oss << e << " prob: "
                         << std::setfill ('0') << std::fixed << std::width_prec (6, 2)
                         << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0)
-                        << std::defaultfloat << std::setfill (' ') << std::endl;
+                        << std::setfill (' ') << std::endl;
                 });
             }
         }

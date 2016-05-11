@@ -2,7 +2,6 @@
 
 #include <cstring>
 
-#include "Position.h"
 #include "Thread.h"
 
 namespace Material {
@@ -132,7 +131,7 @@ namespace Material {
         Key matl_key = pos.matl_key ();
         Entry *e     = pos.thread ()->matl_table[matl_key];
 
-        // If e->_matl_key matches the position's material hash key, it means that
+        // If material key matches the position's material hash key, it means that
         // have analysed this material configuration before, and can simply
         // return the information found the last time instead of recomputing it.
         if (e->matl_key != matl_key)
@@ -187,27 +186,25 @@ namespace Material {
                 }
             }
 
-            const Value npm[CLR_NO] = 
-            {
-                pos.non_pawn_material (WHITE),
-                pos.non_pawn_material (BLACK)
-            };
-
             // Only pawns on the board
-            if (   npm[WHITE] + npm[BLACK] == VALUE_ZERO
-                && pos.pieces (PAWN) != U64(0)
+            if (   pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK) == VALUE_ZERO
+                && pos.pieces (PAWN) != 0
                )
             {
-                if (pos.count<PAWN> (BLACK) == 0)
+                if (   pos.count<PAWN> (WHITE) == 0
+                    || pos.count<PAWN> (BLACK) == 0
+                   )
                 {
-                    assert(pos.count<PAWN> (WHITE) > 1);
-                    e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
-                }
-                else
-                if (pos.count<PAWN> (WHITE) == 0)
-                {
-                    assert(pos.count<PAWN> (BLACK) > 1);
-                    e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
+                    if (pos.count<PAWN> (BLACK) == 0)
+                    {
+                        assert(pos.count<PAWN> (WHITE) > 1);
+                        e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
+                    }
+                    if (pos.count<PAWN> (WHITE) == 0)
+                    {
+                        assert(pos.count<PAWN> (BLACK) > 1);
+                        e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
+                    }
                 }
                 else
                 if (   pos.count<PAWN> (WHITE) == 1
@@ -224,13 +221,13 @@ namespace Material {
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
 
-            if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BSHP)
+            if (pos.non_pawn_material (WHITE) - pos.non_pawn_material (BLACK) <= VALUE_MG_BSHP)
             {
                 if (pos.count<PAWN> (WHITE) == 0)
                 {
                     e->factor[WHITE] = ScaleFactor(
-                        npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm[BLACK] <= VALUE_MG_BSHP ? 4 : 14);
+                        pos.non_pawn_material (WHITE) <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
+                        pos.non_pawn_material (BLACK) <= VALUE_MG_BSHP ? 4 : 14);
                 }
                 if (pos.count<PAWN> (WHITE) == 1)
                 {
@@ -238,13 +235,13 @@ namespace Material {
                 }
             }
 
-            if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BSHP)
+            if (pos.non_pawn_material (BLACK) - pos.non_pawn_material (WHITE) <= VALUE_MG_BSHP)
             {
                 if (pos.count<PAWN> (BLACK) == 0)
                 {
                     e->factor[BLACK] = ScaleFactor(
-                        npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm[WHITE] <= VALUE_MG_BSHP ? 4 : 14);
+                        pos.non_pawn_material (BLACK) <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
+                        pos.non_pawn_material (WHITE) <= VALUE_MG_BSHP ? 4 : 14);
                 }
                 if (pos.count<PAWN> (BLACK) == 1)
                 {

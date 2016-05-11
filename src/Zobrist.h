@@ -5,46 +5,37 @@
 
 class Position;
 
-namespace Zobrist {
+// Zobrist class
+class Zobrist
+{
+public:
+    static Key ExclusionKey;
 
-    //const Key StartMatlKey = U64(0xB76D8438E5D28230);
-    //const Key StartPawnKey = U64(0x37FC40DA841E1692);
-    //const Key StartPosiKey = U64(0x463B96181691FC9C);
+    // 2*6*64 + 2*2 + 8 + 1
+    //=   768 +   4 + 8 + 1
+    //=                 781
+    Key piece_square[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
+    Key castle_right[CLR_NO][CS_NO];        // [color][castle-side]
+    Key en_passant  [F_NO];                 // [enpassant file]
+    Key act_side;                           // color
 
-    const Key ExclusionKey = U64(0xFFFFFFFFFFFFFFFF);
+    Zobrist () = default;
+    Zobrist (const Zobrist&) = delete;
+    Zobrist& operator= (const Zobrist&) = delete;
 
-    // Zobrist Random numbers
-    union Zob
-    {
-    public:
-        // 2*6*64 + 2*2 + 8 + 1
-        //    768 +   4 + 8 + 1
-        //                  781
-        Key zobrist[781];
+    // Hash key of the material situation.
+    Key compute_matl_key (const Position &pos) const;
+    // Hash key of the pawn structure.
+    Key compute_pawn_key (const Position &pos) const;
+    // Hash key of the complete position.
+    Key compute_posi_key (const Position &pos) const;
 
-        struct
-        {
-            Key piece_square[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
-            Key castle_right[CLR_NO][CS_NO];        // [color][castle-side]
-            Key en_passant  [F_NO];                 // [enpassant file]
-            Key act_side;                           // color
-        } _;
+    // Hash key of the FEN
+    Key compute_fen_key (const std::string &fen, bool c960 = false) const;
 
-    public:
-        // Hash key of the material situation.
-        Key compute_matl_key (const Position &pos) const;
-        // Hash key of the pawn structure.
-        Key compute_pawn_key (const Position &pos) const;
-        // Hash key of the complete position.
-        Key compute_posi_key (const Position &pos) const;
+};
 
-        // Hash key of the FEN
-        Key compute_fen_key (const std::string &fen, bool c960 = false) const;
-
-    };
-
-}
-
-extern const Zobrist::Zob Zob; // Global Zobrist
+extern       Zobrist Zob;
+extern const Zobrist PolyZob;
 
 #endif // _ZOBRIST_H_INC_

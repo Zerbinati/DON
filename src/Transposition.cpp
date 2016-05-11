@@ -12,21 +12,23 @@ namespace Transposition {
 
     using namespace std;
 
+    const u08 CacheLineSize = 64;
+
     // Size of Transposition entry (bytes)
     // 10 bytes
     const u08 Entry::Size = sizeof (Entry);
-    static_assert (Entry::Size == 10, "Incorrect Entry::Size");
+    static_assert (Entry::Size == 10, "Entry size incorrect");
     // Size of Transposition cluster in (bytes)
     // 32 bytes
     const u08 Cluster::Size = sizeof (Cluster);
-    static_assert (CacheLineSize % Cluster::Size == 0, "Incorrect Cluster::Size");
+    static_assert (CacheLineSize % Cluster::Size == 0, "Cluster size incorrect");
     // Minimum size of Transposition table (mega-byte)
     // 4 MB
     const u32 Table::MinSize = 4;
     // Maximum size of Transposition table (mega-byte)
     // 1048576 MB = 1048 GB = 1 TB
     const u32 Table::MaxSize =
-    #ifdef BIT64
+    #if defined(BIT64)
         (U64(1) << (MaxHashBit-1 - 20)) * Cluster::Size;
     #else
         2048;
@@ -37,7 +39,7 @@ namespace Transposition {
         assert((alignment & (alignment-1)) == 0);
         assert((mem_size  & (alignment-1)) == 0);
 
-    #ifdef LPAGES
+    #if defined(LPAGES)
 
         Memory::alloc_memory (_mem, mem_size, alignment);
         if (_mem != nullptr)
@@ -127,13 +129,13 @@ namespace Transposition {
     // Returns a pointer to the entry found or NULL if not found.
     Entry* Table::probe (Key key, bool &tt_hit) const
     {
-        assert(key != U64(0));
+        assert(key != 0);
         const u16 key16 = u16(key >> 0x30);
         auto *const fte = cluster_entry (key);
         assert(fte != nullptr);
         for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
         {
-            if (   ite->_key16 == U64(0)
+            if (   ite->_key16 == 0
                 || ite->_key16 == key16
                )
             {
@@ -149,11 +151,11 @@ namespace Transposition {
         }
         // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte;
-        auto rem = rte->_depth + ((rte->bound () == BOUND_EXACT) - ((0x100+BOUND_EXACT + _generation - rte->_gen_bnd)&u08(~BOUND_EXACT)))*2*u08(DEPTH_ONE);
+        auto rem = rte->_depth/DEPTH_ONE - 2*(u08(0x100+BOUND_EXACT + _generation - rte->_gen_bnd)&u08(~BOUND_EXACT));
         for (auto *ite = fte+1; ite < fte+Cluster::EntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
-            auto iem = ite->_depth + ((ite->bound () == BOUND_EXACT) - ((0x100+BOUND_EXACT + _generation - ite->_gen_bnd)&u08(~BOUND_EXACT)))*2*u08(DEPTH_ONE);
+            auto iem = ite->_depth/DEPTH_ONE - 2*(u08(0x100+BOUND_EXACT + _generation - ite->_gen_bnd)&u08(~BOUND_EXACT));
             if (rem > iem)
             {
                 rem = iem;
@@ -171,7 +173,7 @@ namespace Transposition {
         {
             ofs << *this;
             ofs.close ();
-            sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
+            sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
         }
     }
 
@@ -182,7 +184,7 @@ namespace Transposition {
         {
             ifs >> *this;
             ifs.close ();
-            sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
+            sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'" << sync_endl;
         }
     }
 

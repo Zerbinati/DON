@@ -2,6 +2,7 @@
 #define SEARCHER_H_INC_
 
 #include <cstring>
+#include <deque>
 #include <memory>
 #include <atomic>
 
@@ -9,7 +10,8 @@
 #include "Position.h"
 #include "MoveGenerator.h"
 
-typedef std::unique_ptr<StateStack> StateStackPtr;
+typedef std::deque<StateInfo>       StateList;
+typedef std::unique_ptr<StateList>  StateListPtr;
 
 // Limits stores information sent by GUI about available time to search the current move.
 //  - Maximum time and increment.
@@ -38,66 +40,148 @@ public:
     bool      infinite  = false; // Search until the "stop" command
     bool      ponder    = false; // Search on ponder move until the "stop" command
 
-    MoveVector moves;        // Restrict search to these root moves only
+    MoveVector search_moves; // Restrict search to these root moves only
 
-    TimePoint  start_time = 0;
+    TimePoint start_time = 0;
 
     bool time_management_used () const
     {
         return !infinite
             && movetime == 0
             && depth    == 0
-            && nodes    == U64(0)
+            && nodes    == 0
             && mate     == 0;
     }
 };
 
+extern const Value MaxStatsValue;
+
+// The Stats struct stores different statistics.
+template<class T, bool CM = false>
+struct Stats
+{
+private:
+    T _table[MAX_PIECE][SQ_NO];
+
+    void _clear (Value &v) { v = VALUE_ZERO; }
+    void _clear (Stats<Value, false> &vs) { vs.clear (); }
+    void _clear (Stats<Value, true > &vs) { vs.clear (); }
+    void _clear (Move  &m) { m = MOVE_NONE; }
+
+public:
+    Stats () = default;
+    Stats (const Stats&) = delete;
+
+    const T* operator[] (Piece  pc) const { return _table[pc]; }
+    T*       operator[] (Piece  pc) { return _table[pc]; }
+
+    void clear ()
+    {
+        //std::memset (_table, 0x0, sizeof (_table));
+        for (auto &t : _table)
+        {
+            for (auto &e : t)
+            {
+                _clear (e);
+            }
+        }
+    }
+    // Piece, destiny square, value
+    void update (Piece p, Square s, Value v)
+    {
+        if (abs (i32(v)) < 324)
+        {
+            auto &e = _table[p][s];
+            e = e*(1.0 - (double) abs (i32(v)) / (CM ? 936 : 324)) + i32(v)*32;
+        }
+    }
+    // Piece, destiny square, move
+    void update (Piece p, Square s, Move m)
+    {
+        _table[p][s] = m;
+    }
+
+};
+
+// ValueStats stores the value that records how often different moves have been successful/unsuccessful
+// during the current search and is used for reduction and move ordering decisions.
+typedef Stats<Value, false>     HValueStats;
+typedef Stats<Value, true >     CMValueStats;
+
+// CM2DValueStats
+typedef Stats<CMValueStats>     CM2DValueStats;
+
+// MoveStats store the move that refute a previous move.
+// Entries are stored according only to moving piece and destination square,
+// in particular two moves with different origin but same piece and same destination
+// will be considered identical.
+typedef Stats<Move>             MoveStats;
+
+
+const u08 Killers = 2;
+
 namespace Searcher {
 
-    extern bool             Chess960;
-    extern StateStackPtr    SetupStates;
-    extern Limit            Limits;
+    // The Stack struct keeps track of the information needed to remember from
+    // nodes shallower and deeper in the tree during the search. Each search thread
+    // has its own array of Stack objects, indexed by the current ply.
+    struct Stack
+    {
+        //static const size_t Size;
+
+        i16 ply = 0;
+        Move current_move = MOVE_NONE
+           , exclude_move = MOVE_NONE
+           , killer_moves[Killers];
+
+        Value static_eval = VALUE_NONE;
+        u08  move_count   = 0;
+        bool skip_pruning = false;
+        CMValueStats *counter_move_values = nullptr;
+
+        MoveVector pv;
+
+        Stack () = default;
+        Stack (const Stack&) = delete;
+        Stack& operator= (const Stack&) = delete;
+    };
+
+    extern bool Chess960;
+    extern Limit Limits;
 
     extern std::atomic_bool ForceStop
         ,                   PonderhitStop; 
 
-    extern u16              MultiPV;
-    //extern i32              MultiPV_cp;
+    extern u16 MultiPV;
+    //extern i32 MultiPV_cp;
 
-    extern i16              FixedContempt
-        ,                   ContemptTime 
-        ,                   ContemptValue;
+    extern i16 FixedContempt
+        ,      ContemptTime 
+        ,      ContemptValue;
 
-    extern std::string      HashFile;
-    extern u16              AutoSaveHashTime;
+    extern std::string HashFile;
     
-    extern bool             OwnBook;
-    extern std::string      BookFile;
-    extern bool             BookMoveBest;
-    extern i16              BookUptoMove;
+    extern bool OwnBook;
+    extern std::string BookFile;
+    extern bool BookMoveBest;
+    extern i16  BookUptoMove;
 
-    extern Depth            TBDepthLimit;
-    extern i32              TBPieceLimit;
-    extern bool             TBUseRule50;
-    extern u16              TBHits;
-    extern bool             TBHasRoot;
+    extern Depth TBDepthLimit;
+    extern i32   TBPieceLimit;
+    extern bool  TBUseRule50;
+    extern u16   TBHits;
+    extern bool  TBHasRoot;
 
-    extern std::string      LogFile;
+    extern std::string LogFile;
 
-    // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
-    // all the children have to be investigated. The best move found at a PV node leads
-    // to a successor PV node, while all the other investigated children are CUT nodes
-    // At a CUT node the child causing a beta cut-off is an ALL node. In a perfectly
-    // ordered tree only one child of a CUT node has to be explored. At an ALL node all
-    // the children have to be explored. The successors of an ALL node are CUT nodes.
+    // The root of the tree is a PV node.
+    // At a PV node all the children have to be investigated.
+    // The best move found at a PV node leads to a successor PV node,
+    // while all the other investigated children are CUT nodes
+    // At a CUT node the child causing a beta cut-off is an ALL node.
+    // In a perfectly ordered tree only one child of a CUT node has to be explored.
+    // At an ALL node all the children have to be explored. The successors of an ALL node are CUT nodes.
     // NonPV nodes = CUT nodes + ALL nodes
-    // Node types, used as template parameter
-    enum NodeType : u08
-    {
-        Root,
-        PV,
-        NonPV,
-    };
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
@@ -133,8 +217,6 @@ namespace Searcher {
         void operator+= (Move m) { push_back (m); }
         void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
-        void backup () { old_value = new_value; }
-
         void insert_pv_into_tt (Position &pos);
         bool extract_ponder_move_from_tt (Position &pos);
 
@@ -159,13 +241,13 @@ namespace Searcher {
         void operator+= (const RootMove &root_move) { push_back (root_move); }
         void operator-= (const RootMove &root_move) { erase (std::remove (begin (), end (), root_move), end ()); }
 
-        void initialize (const Position &pos, const MoveVector &moves)
+        void initialize (const Position &pos, const MoveVector &search_moves)
         {
             clear ();
-            for (const auto &vm : MoveGen::MoveList<MoveGen::LEGAL> (pos))
+            for (const auto &vm : MoveGen::MoveList<LEGAL> (pos))
             {
-                if (   moves.empty ()
-                    || std::find (moves.begin (), moves.end (), vm.move) != moves.end ()
+                if (   search_moves.empty ()
+                    || std::find (search_moves.begin (), search_moves.end (), vm.move) != search_moves.end ()
                    )
                 {
                     *this += RootMove (vm.move);
@@ -192,74 +274,6 @@ namespace Searcher {
         os << std::string(root_moves);
         return os;
     }
-
-    const u08 Killers = 2;
-    // The Stack struct keeps track of the information needed to remember from
-    // nodes shallower and deeper in the tree during the search. Each search thread
-    // has its own array of Stack objects, indexed by the current ply.
-    struct Stack
-    {
-        static const size_t Size;
-
-        u16  ply          = 0;
-        Move current_move = MOVE_NONE
-           , exclude_move = MOVE_NONE
-           , killer_moves[Killers];
-
-        Value static_eval = VALUE_NONE;
-        u08   move_count  = 0;
-        bool skip_pruning = false;
-        Move *pv          = nullptr;
-    };
-
-    const u08 MaxSkillLevel   = 32; // MaxSkillLevel should be <= MaxPly/4
-    // Skill Manager
-    class SkillManager
-    {
-
-    private:
-        u08  _level     = MaxSkillLevel;
-        Move _best_move = MOVE_NONE;
-
-    public:
-        static const u16 MultiPV = 4;
-
-        explicit SkillManager (u08 level = MaxSkillLevel)
-            : _level (level)
-        {}
-
-        void change_level (u08 level)
-        {
-            _level = level;
-        }
-
-        void clear ()
-        {
-            _best_move = MOVE_NONE;
-        }
-
-        bool enabled () const
-        {
-            return _level < MaxSkillLevel;
-        }
-
-        bool can_pick (Depth depth) const
-        {
-            return depth/DEPTH_ONE == (1 + _level);
-        }
-
-        Move best_move (const RootMoveVector &root_moves)
-        {
-            return _best_move == MOVE_NONE
-                && !root_moves.empty () ?
-                pick_best_move (root_moves) : _best_move;
-        }
-
-        Move pick_best_move (const RootMoveVector &root_moves);
-
-    };
-
-    extern SkillManager     SkillMgr;
 
 
     template<bool RootNode = true>

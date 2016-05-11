@@ -61,7 +61,7 @@ namespace UCI {
     Option::operator bool () const
     {
         assert(_type == "check");
-        return (_current_value == "true");
+        return _current_value == "true";
     }
     Option::operator i32 () const
     {
@@ -86,21 +86,40 @@ namespace UCI {
     {
         assert(!_type.empty ());
 
-        if (!( (_type != "button" && value.empty ())
-            || (_type == "check"  && value != "true" && value != "false")
-            || (_type == "spin"   && (_minimum > stoi (value) || stoi (value) > _maximum))
-             )
-           )
+        if (_type != "button")
         {
-            if (_type != "button")
+            if (value.empty ())
             {
-                if (_current_value != value)
+                return *this;
+            }
+
+            auto val = value;
+
+            if (_type == "check")
+            {
+                to_lower (val);
+                if (val != "true" && val != "false")
                 {
-                    _current_value = value;
+                    return *this;
                 }
             }
-            if (_on_change != nullptr) _on_change ();
+            else
+            if (_type == "spin")
+            {
+                val = std::to_string (std::min (std::max (stoi (val), _minimum), _maximum));
+            }
+
+            if (_current_value != val)
+            {
+                _current_value = val;
+            }
         }
+
+        if (_on_change != nullptr)
+        {
+            _on_change ();
+        }
+
         return *this;
     }
 
@@ -137,7 +156,7 @@ namespace UCI {
             TT.auto_size (i32(Options["Hash"]), false);
         }
 
-#   ifdef LPAGES
+#   if defined(LPAGES)
         void change_memory ()
         {
             Memory::LargePages = bool(Options["Large Pages"]);
@@ -223,10 +242,10 @@ namespace UCI {
                 convert_path (BookFile);
             }
         }
-        
+
         void configure_skill ()
         {
-            SkillMgr.change_level (u08(i32(Options["Skill Level"])));
+            Threadpool.main ()->skill_mgr.change_skill_level (u08(i32(Options["Skill Level"])));
         }
 
         void configure_time ()
@@ -282,21 +301,21 @@ namespace UCI {
 
         // The amount of memory to use for hash table during search by engine, in MB (megabytes).
         // This number should be smaller than the amount of physical memory for your system.
-        // Default 16, Min 4, Max 1048576 MB = 1024 GB.
+        // Default=16, Min=4, Max =1048576 MB =1024 GB.
         //
         // The value is rounded down to a power of 2 (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144) MB.
         //
         // For infinite analysis or long time control matches you should use the largest hash that fits in the physical memory of your system.
         // For example, on a system with 4 GB of memory you can use up to 2048 MB hash size.
         // For shorter games, for example 3 to 5 minute games, it'val better to use 256 MB or 512 MB as this will provide the best performance.
-        // For 16 Min games 1024 or 2048 MB hash size should be fine.
+        // For 16 Min=games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
         Options["Hash"]                         << Option (Table::DefSize,
                                                            0,//Table::MinSize, // 0 for auto-resize to maximum
                                                            Table::MaxSize, change_hash_size);
 
-#ifdef LPAGES
+#if defined(LPAGES)
         Options["Large Pages"]                  << Option (Memory::LargePages, change_memory);
 #endif
 
@@ -305,7 +324,7 @@ namespace UCI {
         Options["Clear Hash"]                   << Option (clear_hash);
 
         // This option prevents the Hash Memory from being cleared between successive games or positions belonging to different games.
-        // Default false
+        // Default=false
         //
         // Check this option also if you want to Load the Hash from disk file,
         // otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
@@ -374,31 +393,32 @@ namespace UCI {
 
         // The maximum number of Threads (cores) to use during the search.
         // This number should be set to the number of cores in your CPU.
-        // Default is hardware-dependent, Min 1, Max 32 (Standard) or 64 (Pro).
+        // Default=1, Min=0, Max=MaxThreads.
         //
+        // 0 for auto-resize to hardware-dependent number of threads
         // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      << Option ( 1, 1, MaxThreads, configure_threadpool);
+        Options["Threads"]                      << Option ( 1, 0, MaxThreads, configure_threadpool);
 
         // Game Play Options
         // -----------------
 
         // How well you want engine to play.
-        // Default MaxSkillLevel, Min 0, Max MaxSkillLevel.
+        // Default=MaxSkillLevel, Min=0, Max=MaxSkillLevel.
         //
         // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
-        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel, configure_skill);
+        Options["Skill Level"]                  << Option (SkillManager::MaxSkillLevel,  0, SkillManager::MaxSkillLevel, configure_skill);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
-        // Default 1, Min 1, Max 50.
+        // Default=MultiPV, Min=1, Max=50.
         //
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["MultiPV"]                      << Option (MultiPV  ,   1,  50, configure_multipv);
 
         // Limit the multi-PV analysis to moves within a range of the best move.
-        // Default 0, Min 0, Max 1000.
+        // Default=0, Min=0, Max=1000.
         //
         // Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
         // A value of 0 means that this parameter will not be taken into account.
@@ -410,17 +430,17 @@ namespace UCI {
         // Fixed Contempt roughly equivalent to "Optimism".
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
-        // Default 0, Min -100, Max +100.
+        // Default=0, Min=-100, Max=+100.
         Options["Fixed Contempt"]               << Option (FixedContempt,-100,+100, configure_contempt);
         // Time (sec) for Timed Contempt
-        // Default +6, Min 0, Max +900.
+        // Default=+6, Min=0, Max=+900.
         Options["Timed Contempt (sec)"]         << Option (ContemptTime ,   0,+900, configure_contempt);
         // Centipawn (cp) for Valued Contempt
-        // Default +50, Min 0, Max +1000.
+        // Default=+50, Min=0, Max=+1000.
         Options["Valued Contempt (cp)"]         << Option (ContemptValue,   0,+1000, configure_contempt);
 
         // The number of moves after which the clock-move rule will kick in.
-        // Default 50, Min 5, Max 50.
+        // Default=Position::DrawClockPly/2, Min=5, Max=50.
         //
         // This setting defines the number of moves after which the clock-move rule will kick in - the default value is 50,
         // i.e. the official clock-move rule.
@@ -443,10 +463,10 @@ namespace UCI {
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Move Time"]            << Option (MinimumMoveTime     , 0, 5000, configure_time);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (i32(MoveSlowness*100),+ 10,+ 1000, configure_time);
+        Options["Move Slowness"]                << Option (i32(std::round (MoveSlowness*100)),+ 10,+ 1000, configure_time);
         Options["Nodes Time"]                   << Option (NodesTime           ,   0,+10000, configure_time);
         // Whether or not the engine should analyze when it is the opponent's turn.
-        // Default true.
+        // Default=Ponder.
         //
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["Ponder"]                       << Option (Ponder, configure_time);
@@ -468,7 +488,7 @@ namespace UCI {
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        // Default false.
+        // Default=Chess960.
         Options["UCI_Chess960"]                 << Option (Chess960, uci_chess960);
 
     }

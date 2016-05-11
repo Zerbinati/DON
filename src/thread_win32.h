@@ -1,4 +1,3 @@
-
 #ifndef _THREAD_WIN32_H_INC_
 #define _THREAD_WIN32_H_INC_
 
@@ -17,10 +16,12 @@
 
 #if defined(_WIN32) && !defined(_MSC_VER)
 
-#   ifndef NOMINMAX
+#   if !defined(NOMINMAX)
 #       define NOMINMAX // Disable macros min() and max()
 #   endif
+#   if !defined(WIN32_LEAN_AND_MEAN)
 #   define WIN32_LEAN_AND_MEAN
+#   endif
 #   include <windows.h>
 #   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
@@ -34,6 +35,8 @@ private:
 
 public:
     Mutex () { InitializeCriticalSection (&cs); }
+    Mutex (const Mutex&) = delete;
+    Mutex& operator= (const Mutex&) = delete;
    ~Mutex () { DeleteCriticalSection (&cs); }
     void lock ()   { EnterCriticalSection (&cs); }
     void unlock () { LeaveCriticalSection (&cs); }

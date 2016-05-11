@@ -1,4 +1,4 @@
-#ifdef LPAGES
+#if defined(LPAGES)
 
 #include "MemoryHandler.h"
 
@@ -13,17 +13,15 @@
 #   include <cstdio>
 
 // Disable macros min() and max()
-#   ifndef  NOMINMAX
+#   if !defined(NOMINMAX)
 #       define NOMINMAX
 #   endif
-#   ifndef  WIN32_LEAN_AND_MEAN
+#   if !defined(WIN32_LEAN_AND_MEAN)
 #       define WIN32_LEAN_AND_MEAN
 #   endif
-
 #   include <windows.h>
-
-#   undef NOMINMAX
 #   undef WIN32_LEAN_AND_MEAN
+#   undef NOMINMAX
 
 #   define SE_PRIVILEGE_DISABLED       (0x00000000L)
 
@@ -88,7 +86,7 @@ namespace Memory {
             {
                 //show_error (TEXT ("OpenProcessToken"), GetLastError ());
             }
-            
+
             TOKEN_PRIVILEGES token_priv;
             // Get the luid
             if (!LookupPrivilegeValue (nullptr, privilege_name, &token_priv.Privileges[0].Luid))
@@ -99,8 +97,8 @@ namespace Memory {
             token_priv.PrivilegeCount = 1;
             // Enable or Disable privilege
             token_priv.Privileges[0].Attributes = (enable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
-            //BOOL status = 
-            AdjustTokenPrivileges (token_handle, FALSE, &token_priv, 0, PTOKEN_PRIVILEGES(nullptr), 0);
+            //bool status = 
+            AdjustTokenPrivileges (token_handle, false, &token_priv, 0, nullptr, 0);
 
             // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
             // So always check for the last error_code value.
@@ -160,7 +158,7 @@ namespace Memory {
                 sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                 return;
             }
-            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << (mem_size >> 20) << " MB" << std::endl;
+            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed " << (mem_size >> 20) << " MB" << std::endl;
 
 #   else
 
@@ -175,10 +173,10 @@ namespace Memory {
                     sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB" << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << std::endl;
                 if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
-                    std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
+                    std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
                 }
                 return;
             }
@@ -193,14 +191,14 @@ namespace Memory {
                     sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB" << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << std::endl;
                 if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
-                    std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
+                    std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
                 }
                 return;
             }
-            std::cerr << "ERROR: shmget() shared memory alloc failed." << (mem_size >> 20) << " MB" << std::endl;
+            std::cerr << "ERROR: shmget() shared memory alloc failed " << (mem_size >> 20) << " MB" << std::endl;
 
 #   endif
         }
@@ -223,17 +221,18 @@ namespace Memory {
         if (PagesUsed)
         {
 #   if defined(_WIN32)
-            if (VirtualFree (mem, 0, MEM_RELEASE))
+            if (!VirtualFree (mem, 0, MEM_RELEASE))
             {
+                std::cerr << "ERROR: VirtualFree() virtual memory free failed" << std::endl;
             }
 #   else
             if (shmdt (mem) == -1)
             {
-                std::cerr << "ERROR: shmdt() shared memory detach failed." << std::endl;
+                std::cerr << "ERROR: shmdt() shared memory detach failed" << std::endl;
             }
             if (shmctl (SHM, IPC_RMID, nullptr) == -1)
             {
-                std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
+                std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
             }
 #   endif
             PagesUsed = false;

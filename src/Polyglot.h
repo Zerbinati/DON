@@ -5,7 +5,7 @@
 
 #include "Type.h"
 
-class Position;
+#include "Position.h"
 
 namespace Polyglot {
 
@@ -19,7 +19,7 @@ namespace Polyglot {
         static const u08 Size;
         static const Entry NullEntry;
 
-        u64 key     = U64(0);
+        u64 key     = 0;
         u16 move    = 0;
         u16 weight  = 0;
         u32 learn   = 0;
@@ -34,7 +34,7 @@ namespace Polyglot {
 
         Entry& operator= (const Entry&) = default;
 
-        explicit operator Move () const { return Move (move); }
+        explicit operator Move () const { return Move(move); }
 
         bool operator== (const Entry &pe)
         {
@@ -120,7 +120,6 @@ namespace Polyglot {
 
         Book () = default;
         Book (const std::string &book_fn, openmode mode);
-
         Book (const Book&) = delete;
         Book& operator= (const Book&) = delete;
 

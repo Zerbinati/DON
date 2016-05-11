@@ -10,9 +10,7 @@ using namespace std;
 
 const string PieceChar ("PNBRQK  pnbrqk");
 const string ColorChar ("wb-");
-// Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
-// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-const string StartupFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
 
 namespace Notation {
 
@@ -47,18 +45,18 @@ namespace Notation {
 
             auto amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
             auto pcs = amb; // & ~pinneds; // If pinned piece is considered as ambiguous
-            while (pcs != U64(0))
+            while (pcs != 0)
             {
                 auto sq = pop_lsq (pcs);
-                if (!pos.legal (mk_move (sq, dst), pinneds))
+                if (!pos.legal (mk_move<NORMAL> (sq, dst), pinneds))
                 {
                     amb -= sq;
                 }
             }
-            if (amb != U64(0))
+            if (amb != 0)
             {
-                if ((amb & file_bb (org)) == U64(0)) return AMB_RANK;
-                if ((amb & rank_bb (org)) == U64(0)) return AMB_FILE;
+                if ((amb & file_bb (org)) == 0) return AMB_RANK;
+                if ((amb & rank_bb (org)) == 0) return AMB_FILE;
                 return AMB_SQR;
             }
             return AMB_NONE;
@@ -68,7 +66,7 @@ namespace Notation {
         string pretty_value (Value v, const Position &pos)
         {
             ostringstream oss;
-            if (abs (v) < +VALUE_MATE - i32(MaxPly))
+            if (abs (v) < +VALUE_MATE - i32(MaxPlies))
             {
                 oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (pos.active () == WHITE ? +v : -v);
             }
@@ -245,26 +243,6 @@ namespace Notation {
     //    return MOVE_NONE;
     //}
 
-    // to_string() converts a value to a string suitable
-    // for use with the UCI protocol specifications:
-    //
-    // cp   <x>   The score x from the engine's point of view in centipawns.
-    // mate <y>   Mate in y moves, not plies.
-    //            If the engine is getting mated use negative values for y.
-    string to_string (Value v)
-    {
-        ostringstream oss;
-        if (abs (v) < +VALUE_MATE - i32(MaxPly))
-        {
-            oss << "cp " << i32(100 * value_to_cp (v));
-        }
-        else
-        {
-            oss << "mate " << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v)) / 2;
-        }
-        return oss.str ();
-    }
-
     // pretty_pv_info() returns formated human-readable search information,
     // typically to be appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
@@ -298,28 +276,25 @@ namespace Notation {
             oss << std::setw (7) << game_nodes / M << "M  ";
         }
 
-        StateStack states;
+        StateList states;
         u08 ply = 0;
         for (const auto m : main_thread->root_moves[0])
         {
             oss << move_to_san (m, root_pos) << " ";
-            states.push (StateInfo ());
-            root_pos.do_move (m, states.top (), root_pos.gives_check (m, CheckInfo (root_pos)));
+            states.push_back (StateInfo ());
+            root_pos.do_move (m, states.back (), root_pos.gives_check (m, CheckInfo (root_pos)));
             ++ply;
             ////---------------------------------
             //oss << move_to_can (m, root_pos.chess960 ()) << " ";
         }
-
-        while (ply != 0)
+        for (; ply != 0; --ply)
         {
             root_pos.undo_move ();
-            states.pop ();
-            --ply;
+            states.pop_back ();
         }
         ////---------------------------------
         //
 
         return oss.str ();
-
     }
 }
