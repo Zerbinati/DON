@@ -187,7 +187,6 @@ namespace Threading {
 
     MainThread::MainThread ()
         : easy_played (false)
-        , time_mgr_used (false)
         , failed_low (false)
         , best_move_change (0.0)
         , previous_value (+VALUE_NONE)

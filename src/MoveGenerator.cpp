@@ -65,7 +65,10 @@ namespace MoveGen {
             auto step = king_dst > king_org ? DEL_E : DEL_W;
             for (auto s = king_dst; s != king_org; s -= step)
             {
-                if (pos.attackers_to (s, Opp) != 0) return;
+                if (pos.attackers_to (s, Opp) != 0)
+                {
+                    return;
+                }
             }
 
             if (chess960)
@@ -73,14 +76,20 @@ namespace MoveGen {
                 // Because generate only legal castling moves needed to verify that
                 // when moving the castling rook do not discover some hidden checker.
                 // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-                if ((attacks_bb<ROOK> (king_dst, pos.pieces () - rook_org) & pos.pieces (Opp, ROOK, QUEN)) != 0) return;
+                if ((attacks_bb<ROOK> (king_dst, pos.pieces () - rook_org) & pos.pieces (Opp, ROOK, QUEN)) != 0)
+                {
+                    return;
+                }
             }
 
             auto m = mk_move<CASTLE> (king_org, rook_org);
 
             if (GT == CHECK || GT == QUIET_CHECK)
             {
-                if (!pos.gives_check (m, *ci)) return;
+                if (!pos.gives_check (m, *ci))
+                {
+                    return;
+                }
             }
             else
             {

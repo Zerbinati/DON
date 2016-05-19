@@ -24,13 +24,12 @@ namespace Pawns {
         enum BlockType : u08
         {
             NO_FRIENDLY_PAWN,
-            UNBLOCKED,
+            BLOCKED_NONE,
             BLOCKED_BY_PAWN,
             BLOCKED_BY_KING,
-            BT_NO,
         };
         // Dangerousness of enemy pawns moving toward our king indexed by [block-type][distance from edge][rank]
-        const Value StromDangerousness[BT_NO][F_NO/2][R_NO] =
+        const Value StromDangerousness[4][F_NO/2][R_NO] =
         {
             {
                 { V( 0), V(  67), V(134), V(38), V(32), V( 0), V( 0), V( 0) },
@@ -70,31 +69,18 @@ namespace Pawns {
         // Connected pawn bonus by [opposed][phalanx][twice supported][rank] (by formula)
         Score Connected[2][2][2][R_NO];
 
-
         // Isolated pawn penalty by [opposed]
-        const Score Isolated[2] =
-        {
-            S(45, 40), S(30, 27)
-        };
+        const Score Isolated[2] = { S(45,40), S(30,27) };
 
         // Backward pawn penalty by [opposed]
-        const Score Backward[2] =
-        {
-            S(56,33), S(41,19)
-        };
+        const Score Backward[2] = { S(56,33), S(41,19) };
 
         // Levered pawn bonus by [rank]
-        const Score Levered[R_NO] =
-        {
-            S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0)
-        };
+        const Score Levered[R_NO] = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
 
         // Unsupported pawn penalty for pawns which are neither isolated or backward,
         // by number of pawns it supports [0, 1, 2].
-        const Score Unsupported[3] =
-        {
-            S(17, 8), S(18, 9), S(21,12)
-        };
+        const Score Unsupported[3] = { S(17, 8), S(18, 9), S(21,12) };
 
         // Doubled pawn penalty
         const Score Doubled   = S(18, 38);
@@ -268,7 +254,7 @@ namespace Pawns {
             value -= ShelterWeakness[std::min (f, F_H - f)][own_r]
                    + StromDangerousness[f  == _file (k_sq) && opp_r == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
                                         own_r == R_1                                            ? NO_FRIENDLY_PAWN :
-                                        opp_r == own_r + 1                                      ? BLOCKED_BY_PAWN  : UNBLOCKED]
+                                        opp_r == own_r + 1                                      ? BLOCKED_BY_PAWN  : BLOCKED_NONE]
                                        [std::min (f, F_H - f)][opp_r];
         }
 

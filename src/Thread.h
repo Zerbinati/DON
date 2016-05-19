@@ -265,7 +265,6 @@ namespace Threading {
     {
     public:
         bool   easy_played      = false;
-        bool   time_mgr_used    = false;
         bool   failed_low       = false;
         double best_move_change = 0.0;
         Value  previous_value   = +VALUE_NONE;

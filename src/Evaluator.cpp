@@ -30,20 +30,19 @@ namespace Evaluator {
                 PASSED_PAWN,
                 SPACE_ACTIVITY,
                 TOTAL,
-                T_NO,
             };
 
-            double cp[T_NO][CLR_NO][PH_NO];
+            double cp[TOTAL+1][CLR_NO][PH_NO];
 
-            void write (i32 idx, Color c, Score score)
+            void write (u08 term, Color c, Score score)
             {
-                cp[idx][c][MG] = value_to_cp (mg_value (score));
-                cp[idx][c][EG] = value_to_cp (eg_value (score));
+                cp[term][c][MG] = value_to_cp (mg_value (score));
+                cp[term][c][EG] = value_to_cp (eg_value (score));
             }
-            void write (i32 idx, Score wscore, Score bscore = SCORE_ZERO)
+            void write (u08 term, Score wscore, Score bscore = SCORE_ZERO)
             {
-                write (idx, WHITE, wscore);
-                write (idx, BLACK, bscore);
+                write (term, WHITE, wscore);
+                write (term, BLACK, bscore);
             }
 
             ostream& operator<< (ostream &os, Term term)
@@ -162,17 +161,11 @@ namespace Evaluator {
 
         // RookOnFile[semiopen/open] contains bonuses for rooks when there is no
         // friendly pawn on the rook file.
-        const Score RookOnFile[2] =
-        {
-            S(20, 7), S(45, 20)
-        };
+        const Score RookOnFile[2] = { S(20, 7), S(45,20) };
 
         // SafePawnThreat[piece-type] contains bonuses according to which piece type is attacked by pawn
         // which is protected or is not attacked.
-        const Score SafePawnThreat[NONE] =
-        {
-            S(0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S(0, 0)
-        };
+        const Score SafePawnThreat[NONE] = { S(  0,  0), S(176,139), S(131,127), S(217,218), S(203,215), S(  0,  0) };
 
         enum PieceCategory : u08
         {
@@ -185,39 +178,32 @@ namespace Evaluator {
         // Attacks on lesser pieces which are pawn-defended are not considered.
         const Score PieceThreat[CT_NO][NONE] =
         {
-            { S(0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S(0, 0) },  // Minor attackers
-            { S(0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S(0, 0) },  // Major attackers
+            { S( 0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S( 0, 0) },  // Minor attackers
+            { S( 0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S( 0, 0) },  // Major attackers
         };
         // KingThreat[one/more] contains bonuses for King attacks on
         // pawns or pieces which are not pawn-defended.
-        const Score KingThreat[2] =
-        {
-            S( 3, 62), S( 9,138)
-        };
+        const Score KingThreat[2] = { S( 3, 62), S( 9,138) };
 
-        const Score HangingPawnThreat   = S(71,61);
-        const Score PawnPushThreat      = S(38,22);
+        const Score HangingPawnThreat = S(71,61);
+        const Score PawnPushThreat    = S(38,22);
 
-        const Score PieceLoosed         = S( 0,25); // Bonus for each loosed piece
-        const Score PieceHanged         = S(48,27); // Bonus for each hanged piece
+        const Score PieceLoosed       = S( 0,25); // Bonus for each loosed piece
+        const Score PieceHanged       = S(48,27); // Bonus for each hanged piece
 
-        const Score MinorBehindPawn     = S(16, 0); // Bonus for minor behind a pawn
+        const Score MinorBehindPawn   = S(16, 0); // Bonus for minor behind a pawn
 
-        const Score BishopPawns         = S( 8,12); // Penalty for bishop with pawns on same color
-        const Score BishopTrapped       = S(50,50); // Penalty for bishop trapped with pawns (Chess960)
+        const Score BishopPawns       = S( 8,12); // Penalty for bishop with pawns on same color
+        const Score BishopTrapped     = S(50,50); // Penalty for bishop trapped with pawns (Chess960)
 
-        const Score RookOnPawns         = S( 8,24); // Bonus for rook on pawns
-        const Score RookTrapped         = S(92, 0); // Penalty for rook trapped
+        const Score RookOnPawns       = S( 8,24); // Bonus for rook on pawns
+        const Score RookTrapped       = S(92, 0); // Penalty for rook trapped
 
-        const Score PieceSafeCheck      = S(20,20);
-        const Score PieceOtherCheck     = S(10,10);
+        const Score PieceSafeCheck    = S(20,20);
+        const Score PieceOtherCheck   = S(10,10);
 
         // PawnPassedScore[file] contains a bonus for passed pawns according to the file of the pawn.
-        const Score PawnPassedScore[F_NO] =
-        {
-            S(  9, 10), S( 2, 10), S( 1, -8), S(-20,-12),
-            S(-20,-12), S( 1, -8), S( 2, 10), S(  9, 10)
-        };
+        const Score PawnPassedScore[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
 
     #undef S
 
@@ -345,13 +331,6 @@ namespace Evaluator {
                     ei.king_zone_attacks_count[Own] += u08(pop_count (zone_attacks));
                 }
 
-                //if (PT == ROOK)
-                //{
-                //    attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
-                //                 | ei.pin_attacked_by[Opp][BSHP]
-                //                );
-                //}
-                //else
                 if (PT == QUEN)
                 {
                     attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
@@ -674,7 +653,9 @@ namespace Evaluator {
             // Loose enemies (except Queen and King)
             Bitboard b =
                   (pos.pieces (Opp) ^ pos.pieces (Opp, QUEN, KING))
-                & (~ei.ful_attacked_by[Opp][NONE]);
+                & ~(  ei.pin_attacked_by[Own][NONE]
+                    | ei.pin_attacked_by[Opp][NONE]
+                   );
             score += PieceLoosed * pop_count (b);
 
             // Non-pawn enemies attacked by any friendly pawn
@@ -732,7 +713,7 @@ namespace Evaluator {
                 score += PieceHanged * pop_count (weak_pieces & ~ei.pin_attacked_by[Opp][NONE]);
 
                 // Weak enemies attacked by king
-                b = weak_pieces & ei.ful_attacked_by[Own][KING];
+                b = weak_pieces & ei.pin_attacked_by[Own][KING];
                 if (b != 0)
                 {
                     score += KingThreat[more_than_one (b) ? 1 : 0];
@@ -855,10 +836,10 @@ namespace Evaluator {
                 // If non-pawn count differ.
                 if (nonpawn_diff != 0)
                 {
-                    eg_value *= 1.0 + (double) (nonpawn_diff) / 5.0;
+                    eg_value *= 1.0 + (double) (nonpawn_diff) / 4.0;
                 }
 
-                score += mk_score (mg_value, eg_value) + PawnPassedScore[_file (s)];
+                score += mk_score (mg_value, eg_value) + PawnPassedScore[std::min (_file (s), F_H - _file (s))];
             }
 
             if (Trace)
@@ -1058,11 +1039,12 @@ namespace Evaluator {
             + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
             - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
 
-        // Evaluate mobility
-        score += mobility[WHITE] - mobility[BLACK];
+        // Evaluate piece mobility
+        score +=
+            + mobility[WHITE]
+            - mobility[BLACK];
 
-        // Evaluate kings after all other pieces because needed full attack
-        // information when computing the king safety evaluation.
+        // Evaluate kings after all other pieces, needed full attack information including king.
         score +=
             + evaluate_king<WHITE, Trace> (pos, ei)
             - evaluate_king<BLACK, Trace> (pos, ei);
@@ -1077,27 +1059,27 @@ namespace Evaluator {
             + evaluate_passed_pawns<WHITE, Trace> (pos, ei)
             - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
 
-        // Evaluate space for both sides, only during opening
-        if (pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK) >= VALUE_SPACE)
+        // If in the opening phase
+        if (  pos.non_pawn_material (WHITE)
+            + pos.non_pawn_material (BLACK)
+            >= VALUE_SPACE
+           )
         {
+            // Evaluate space activity
             score +=
                 + evaluate_space_activity<WHITE, Trace> (pos, ei)
                 - evaluate_space_activity<BLACK, Trace> (pos, ei);
         }
         else
+        // If both sides have only pawns
         if (   pos.non_pawn_material (WHITE) == VALUE_ZERO
-            || pos.non_pawn_material (BLACK) == VALUE_ZERO
+            && pos.non_pawn_material (BLACK) == VALUE_ZERO
            )
         {
-            // Check for potential unstoppable pawns
-            if (pos.non_pawn_material (WHITE) == VALUE_ZERO)
-            {
-                score -= ei.pe->evaluate_unstoppable_pawns<BLACK> ();
-            }
-            if (pos.non_pawn_material (BLACK) == VALUE_ZERO)
-            {
-                score += ei.pe->evaluate_unstoppable_pawns<WHITE> ();
-            }
+            // Evaluate potential unstoppable pawns
+            score +=
+                + ei.pe->evaluate_unstoppable_pawns<WHITE> ()
+                - ei.pe->evaluate_unstoppable_pawns<BLACK> ();
         }
 
         // Evaluate position potential for the winning side
@@ -1114,9 +1096,9 @@ namespace Evaluator {
                             + eg_value (score) * i32(PHASE_MIDGAME - ei.me->game_phase)*i32(scale_factor)/SCALE_FACTOR_NORMAL)
                             / PHASE_MIDGAME);
 
-        // In case of tracing add remaining individual evaluation terms
         if (Trace)
         {
+            // Write remaining evaluation terms
             write (PAWN     , ei.pe->pawn_score);
             write (MATERIAL , pos.psq_score ());
             write (IMBALANCE, ei.me->imbalance);

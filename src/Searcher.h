@@ -146,18 +146,19 @@ namespace Searcher {
         Stack& operator= (const Stack&) = delete;
     };
 
-    extern bool Chess960;
+    extern bool  Chess960;
     extern Limit Limits;
 
-    extern std::atomic_bool ForceStop
-        ,                   PonderhitStop; 
+    extern std::atomic_bool
+                ForceStop
+        ,       PonderhitStop; 
 
-    extern u16 MultiPV;
-    //extern i32 MultiPV_cp;
+    extern u16  MultiPV;
+    //extern i32  MultiPV_cp;
 
-    extern i16 FixedContempt
-        ,      ContemptTime 
-        ,      ContemptValue;
+    extern i16  FixedContempt
+        ,       ContemptTime 
+        ,       ContemptValue;
 
     extern std::string HashFile;
     

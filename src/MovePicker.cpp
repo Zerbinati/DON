@@ -25,7 +25,7 @@ namespace MovePick {
 
         const Value PieceCapValues[MAX_PTYPE] =
         {
-            VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_MG_QUEN+1, VALUE_ZERO
+            VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_MG_QUEN+512, VALUE_ZERO
         };
 
         // pick_best() finds the best move in the range [beg, end) and moves it to front,
@@ -131,7 +131,7 @@ namespace MovePick {
     // The moves with highest scores will be picked first.
 
     template<>
-    // Winning and equal captures in the main search are ordered by MVV/LVA.
+    // Winning and equal captures in the main search are ordered by MVV/LVA, preferring captures near our home rank.
     // In the main search push captures with negative SEE values to the bad-captures[],
     // but instead of doing it now we delay until the move has been picked up,
     // saving some SEE calls in case of a cutoff.
@@ -141,7 +141,8 @@ namespace MovePick {
         {
             assert(_pos.pseudo_legal (vm.move));
             vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                     - PieceCapValues[ptype (_pos[org_sq (vm.move)])];
+                     - PieceCapValues[ptype (_pos[org_sq (vm.move)])]
+                     - Value(rel_rank (_pos.active (), dst_sq (vm.move)));
         }
     }
 
@@ -177,15 +178,18 @@ namespace MovePick {
         for (auto &vm : *this)
         {
             assert(_pos.pseudo_legal (vm.move));
-            auto see_value = _pos.see (vm.move);
-            if (see_value < VALUE_ZERO)
+            
+            if (_pos.capture_or_promotion (vm.move))
             {
-                vm.value = see_value - MaxStatsValue;
-            }
-            else
-            if (_pos.capture (vm.move))
-            {
-                vm.value = see_value + MaxStatsValue;
+                auto cap_value = _pos.see (vm.move);
+                if (cap_value < VALUE_ZERO)
+                {
+                    vm.value = cap_value - Value(rel_rank (_pos.active (), dst_sq (vm.move))) - MaxStatsValue;
+                }
+                else
+                {
+                    vm.value = cap_value - Value(rel_rank (_pos.active (), dst_sq (vm.move))) + MaxStatsValue;
+                }
             }
             else
             {

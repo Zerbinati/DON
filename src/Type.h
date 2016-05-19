@@ -343,7 +343,7 @@ enum Value : i32
     VALUE_MG_ROOK = 1270,  VALUE_EG_ROOK = 1356,
     VALUE_MG_QUEN = 2521,  VALUE_EG_QUEN = 2658,
 
-    VALUE_SPACE   = 12222, //2*VALUE_MG_QUEN + 4*VALUE_MG_ROOK + 2*VALUE_MG_NIHT
+    VALUE_SPACE   = 12222,
     VALUE_MIDGAME = 15581, VALUE_ENDGAME = 3998,
 };
 // Score stores a midgame and an endgame value in a 32bit integer,

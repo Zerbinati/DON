@@ -575,8 +575,8 @@ namespace EndGame {
             // if the defending king is near the corner but not trapped there.
             if (r == R_5 && !opposite_colors (wb_sq, sp_sq))
             {
-                i32 d = dist (sp_sq + 3 * push, wk_sq);
-                return d <= 2 && !(d == 0 && wk_sq == pos.square<KING> (_strong_side) + 2 * push) ?
+                i32 d = dist (sp_sq + 3*push, wk_sq);
+                return d <= 2 && (d != 0 || wk_sq != pos.square<KING> (_strong_side) + 2*push) ?
                             ScaleFactor(24) : ScaleFactor(48);
             }
 
@@ -584,7 +584,7 @@ namespace EndGame {
             // if the bishop attacks the square in front of the pawn from a reasonable distance
             // and the defending king is near the corner
             if (   r == R_6
-                && dist (sp_sq + 2 * push, wk_sq) <= 1
+                && dist (sp_sq + 2*push, wk_sq) <= 1
                 && (PieceAttacks[BSHP][wb_sq] & (sp_sq + push)) != 0
                 && dist<File> (wb_sq, sp_sq) >= 2
                )
