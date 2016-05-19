@@ -104,7 +104,7 @@ namespace Searcher {
 
 #endif
 
-        const i32 RazorDepth    = 4;
+        const i32 RazorDepth = 4;
 
     #define V(v) Value(v)
 
@@ -131,7 +131,7 @@ namespace Searcher {
         Depth ReductionDepths[2][2][ReductionDepth][ReductionMoveCount];
         Depth reduction_depths (bool PVNode, bool imp, Depth d, u08 mc)
         {
-            return ReductionDepths[PVNode][imp][min (d/DEPTH_ONE, ReductionDepth-1)][min (mc/1, ReductionMoveCount-1)];
+            return ReductionDepths[PVNode ? 1 : 0][imp][min (d/DEPTH_ONE, ReductionDepth-1)][min (mc/1, ReductionMoveCount-1)];
         }
 
         const i32 ProbCutDepth = 4;
@@ -197,11 +197,10 @@ namespace Searcher {
 
             auto *thread = pos.thread ();
             auto opp_move_dst = dst_sq ((ss-1)->current_move);
-            
+
             thread->history_values.update (pos[org_sq (move)], dst_sq (move), bonus);
             if ((ss-1)->counter_move_values != nullptr)
             {
-                assert(_ok ((ss-1)->current_move));
                 thread->counter_moves.update (pos[opp_move_dst], opp_move_dst, move);
                 (ss-1)->counter_move_values->update (pos[org_sq (move)], dst_sq (move), bonus);
             }
@@ -213,12 +212,12 @@ namespace Searcher {
             {
                 (ss-4)->counter_move_values->update (pos[org_sq (move)], dst_sq (move), bonus);
             }
-            
+
             // Decrease all the other played quiet moves
-            assert(std::find (quiet_moves.begin (), quiet_moves.end (), move) == quiet_moves.end ());
+            //assert(std::find (quiet_moves.begin (), quiet_moves.end (), move) == quiet_moves.end ());
             for (const auto m : quiet_moves)
             {
-                assert(m != move);
+                //assert(m != move);
                 thread->history_values.update (pos[org_sq (m)], dst_sq (m), -bonus);
                 if ((ss-1)->counter_move_values != nullptr)
                 {
@@ -237,7 +236,6 @@ namespace Searcher {
             // Extra penalty for PV move in previous ply when it gets refuted
             if (   (ss-1)->move_count == 1
                 && pos.capture_type () == NONE
-                && (ss-1)->counter_move_values != nullptr
                )
             {
                 bonus = -bonus - 2*((depth/DEPTH_ONE) + 1);
@@ -261,6 +259,7 @@ namespace Searcher {
             static const MoveVector quiet_moves (0);
             update_stats (pos, ss, move, depth, quiet_moves);
         }
+
         // update_pv() add current move and appends child pv[]
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
@@ -482,8 +481,10 @@ namespace Searcher {
                     continue;
                 }
 
+                auto mpc = pos[org_sq (move)];
+                assert(mpc != NO_PIECE);
                 bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
-                                    (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != 0 :
+                                    (ci.checking_bb[ptype (mpc)] & dst_sq (move)) != 0 :
                                     pos.gives_check (move, ci);
 
                 if (Limits.mate == 0)
@@ -534,17 +535,16 @@ namespace Searcher {
                     }
                 }
 
+                ss->current_move = move;
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
-                ss->current_move = move;
-
                 // Make and search the move
                 pos.do_move (move, si, gives_check);
 
-                if (   ptype (pos[dst_sq (move)]) == PAWN
+                if (   ptype (mpc) == PAWN
                     || pos.capture_type () == PAWN
                    )
                 {
@@ -961,20 +961,22 @@ namespace Searcher {
                                 continue;
                             }
 
-                            // Speculative prefetch as early as possible
-                            prefetch (TT.cluster_entry (pos.move_posi_key (move)));
-
+                            auto mpc = pos[org_sq (move)];
+                            assert(mpc != NO_PIECE);
                             ss->current_move = move;
-                            ss->counter_move_values = &CounterMoveHistoryValues[pos[org_sq (move)]][dst_sq (move)];
+                            ss->counter_move_values = &CounterMoveHistoryValues[mpc][dst_sq (move)];
 
                             bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
-                                                (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != 0 :
+                                                (ci.checking_bb[ptype (mpc)] & dst_sq (move)) != 0 :
                                                 pos.gives_check (move, ci);
                             bool capture_or_promotion = pos.capture_or_promotion (move);
 
+                            // Speculative prefetch as early as possible
+                            prefetch (TT.cluster_entry (pos.move_posi_key (move)));
+
                             pos.do_move (move, si, gives_check);
 
-                            if (   ptype (pos[dst_sq (move)]) == PAWN
+                            if (   ptype (mpc) == PAWN
                                 || pos.capture_type () == PAWN
                                )
                             {
@@ -1066,10 +1068,9 @@ namespace Searcher {
                 || (ss-0)->static_eval == VALUE_NONE
                 || (ss-2)->static_eval == VALUE_NONE;
 
-            auto &opp_cmv =
-                (ss-1)->counter_move_values != nullptr ?
-                    *(ss-1)->counter_move_values :
-                    CounterMoveHistoryValues[NO_PIECE][dst_sq ((ss-1)->current_move)];
+            auto *cmv  = (ss-1)->counter_move_values;
+            auto *fmv1 = (ss-2)->counter_move_values;
+            auto *fmv2 = (ss-4)->counter_move_values;
 
             u08 move_count = 0;
             ss->current_move = MOVE_NONE;
@@ -1103,6 +1104,8 @@ namespace Searcher {
                 }
 
                 ss->move_count = ++move_count;
+                auto mpc = pos[org_sq (move)];
+                assert(mpc != NO_PIECE);
 
                 if (   root_node
                     && main_thread != nullptr
@@ -1127,7 +1130,7 @@ namespace Searcher {
                 }
 
                 bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
-                                    (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != 0 :
+                                    (ci.checking_bb[ptype (mpc)] & dst_sq (move)) != 0 :
                                     pos.gives_check (move, ci);
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
@@ -1187,8 +1190,10 @@ namespace Searcher {
                     // History based pruning
                     if (   depth <= HistoryPruningDepth*DEPTH_ONE
                         && move != ss->killer_moves[0]
-                        && thread->history_values[pos[org_sq (move)]][dst_sq (move)] < VALUE_ZERO
-                        && opp_cmv[pos[org_sq (move)]][dst_sq (move)] < VALUE_ZERO
+                        && thread->history_values[mpc][dst_sq (move)] < VALUE_ZERO
+                        && (!cmv  || (*cmv )[mpc][dst_sq (move)] < VALUE_ZERO)
+                        && (!fmv1 || (*fmv1)[mpc][dst_sq (move)] < VALUE_ZERO)
+                        && (!fmv2 || (*fmv2)[mpc][dst_sq (move)] < VALUE_ZERO)
                        )
                     {
                         continue;
@@ -1218,16 +1223,16 @@ namespace Searcher {
                     }
                 }
 
+                ss->current_move = move;
+                ss->counter_move_values = &CounterMoveHistoryValues[mpc][dst_sq (move)];
+
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
-
-                ss->current_move = move;
-                ss->counter_move_values = &CounterMoveHistoryValues[pos[org_sq (move)]][dst_sq (move)];
 
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check);
 
-                if (   ptype (pos[dst_sq (move)]) == PAWN
+                if (   ptype (mpc) == PAWN
                     || pos.capture_type () == PAWN
                    )
                 {
@@ -1250,17 +1255,6 @@ namespace Searcher {
                     assert(mtype (move) != PROMOTE);
 
                     auto dst = dst_sq (move);
-                    auto cp  = mtype (move) != CASTLE ? pos[dst] : (~pos.active ()|KING);
-                    assert(cp != NO_PIECE);
-
-                    auto h_value  = thread->history_values[cp][dst];
-                    auto cm_value = opp_cmv[cp][dst];
-
-                    const auto *const &fmv1 = (ss-2)->counter_move_values;
-                    const auto *const &fmv2 = (ss-4)->counter_move_values;
-                    auto fm_value1 = (fmv1 != nullptr ? (*fmv1)[cp][dst] : VALUE_ZERO);
-                    auto fm_value2 = (fmv2 != nullptr ? (*fmv2)[cp][dst] : VALUE_ZERO);
-
                     auto reduction_depth = reduction_depths (PVNode, improving, new_depth, move_count);
 
                     // Increase reduction for non-pv & cut-node
@@ -1270,14 +1264,17 @@ namespace Searcher {
                     }
 
                     // Decrease/Increase reduction for moves with a +ve/-ve history
-                    i32 r_hist = (i32(h_value) + i32(cm_value) + i32(fm_value1) + i32(fm_value2) - 10000)/20000;
+                    i32 r_hist = (i32(  thread->history_values[mpc][dst]
+                                      + (cmv  ? (*cmv )[mpc][dst] : VALUE_ZERO)
+                                      + (fmv1 ? (*fmv1)[mpc][dst] : VALUE_ZERO)
+                                      + (fmv2 ? (*fmv2)[mpc][dst] : VALUE_ZERO)) - 10000)/20000;
                     reduction_depth = std::max (reduction_depth - r_hist*DEPTH_ONE, DEPTH_ZERO);
 
                     // Decrease reduction for moves that escape a capture.
                     // Use see() instead of see_sign(), because the destination square is empty for normal move.
                     if (   reduction_depth != DEPTH_ZERO
                         && mtype (move) == NORMAL
-                        && ptype (cp) != PAWN
+                        && ptype (mpc) != PAWN
                         && pos.see (mk_move (dst, org_sq (move))) < VALUE_ZERO // SEE of reverse move
                        )
                     {
@@ -1653,31 +1650,23 @@ namespace Searcher {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        static const i32 K0[3] =
-        { 0, 200, 0 };
+        static const i32 K0[3] = { 0, 200, 0 };
         for (i32 d = 0; d < FutilityMarginDepth; ++d)
         {
             FutilityMargins[d] = Value(K0[0] + (K0[1] + K0[2]*d)*d);
         }
 
-        static const double K1[2][4] =
-        {
-            { 1.90, 0.773, 0.00, 1.8 },
-            { 2.40, 1.045, 0.49, 1.8 }
-        };
+        static const double K1[2][4] = { { 1.90, 0.773, 0.00, 1.8 }, { 2.40, 1.045, 0.49, 1.8 } };
         for (u08 imp = 0; imp <= 1; ++imp)
         {
             for (i32 d = 0; d < FutilityMoveCountDepth; ++d)
             {
                 FutilityMoveCounts[imp][d] = u08(std::round (K1[imp][0] + K1[imp][1] * pow (d + K1[imp][2], K1[imp][3])));
-                //printf (" %3d", FutilityMoveCounts[imp][d]);
             }
-            //printf ("\n");
         }
 
         for (u08 imp = 0; imp <= 1; ++imp)
         {
-            //printf ("\n\nimproving=%d\n", imp);
             for (i32 d = 1; d < ReductionDepth; ++d)
             {
                 for (u08 mc = 1; mc < ReductionMoveCount; ++mc)
@@ -1694,9 +1683,7 @@ namespace Searcher {
                             ReductionDepths[0][imp][d][mc] += DEPTH_ONE;
                         }
                     }
-                    //if (d%4 == 1 && mc%4 == 1) printf ("%2d", ReductionDepths[0][imp][d][mc]);
                 }
-                //if (d%4 == 1) printf ("\n");
             }
         }
     }
@@ -2006,26 +1993,15 @@ namespace Threading {
                     // Have time for the next iteration? Can stop searching now?
                     if (Limits.time_management_used ())
                     {
-                        // Take some extra time if the best move has changed
-                        double instability_factor = 1.0 + main_thread->best_move_change;
-
                         // Stop the search
                         // -If there is only one legal move available
                         // -If all of the available time has been used
                         // -If matched an easy move from the previous search and just did a fast verification.
-                        if (   root_moves.size () == 1
-                            || (main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time * instability_factor *
-                                    // Improving Factor
-                                    (1.01 - 0.2525 * (!main_thread->failed_low)
-                                          - 0.1988 * (best_value >= main_thread->previous_value)
-                                          - 0.1956 * (  !main_thread->failed_low
-                                                     && best_value >= main_thread->previous_value
-                                                     )
-                                    )))
-                               )
+                        if (   root_moves.size () == 1                                                                              // Improving Factor
+                            || main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time * std::max(0.365, std::min(1.138, 0.568 + 0.189 * (main_thread->failed_low ? 1 : 0) - 0.010 * i32(best_value - main_thread->previous_value)))))
                             || (main_thread->easy_played =
-                                    (  main_thread->best_move_change < 0.030
-                                    && main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time * instability_factor * 0.119))
+                                    (  main_thread->best_move_change < 0.030                                                        // Take some extra time if the best move has changed
+                                    && main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time * (1.0 + main_thread->best_move_change) * 0.119))
                                     && !root_moves.empty ()
                                     && !root_moves[0].empty ()
                                     &&  root_moves[0] == easy_move
@@ -2056,7 +2032,7 @@ namespace Threading {
                     {
                         stop = true;
                     }
-                    
+
                     if (stop)
                     {
                         // If allowed to ponder do not stop the search now but
