@@ -1260,21 +1260,18 @@ Value Position::compute_non_pawn_material (Color c) const
 
 #undef do_capture
 
-#define do_capture()                                                  \
-    remove_piece (cap);                                               \
-    if (cpt == PAWN)                                                  \
-    {                                                                 \
-        _psi->pawn_key ^=                                             \
-            Zob.piece_square[pasive][PAWN][cap];                      \
-    }                                                                 \
-    else                                                              \
-    {                                                                 \
-        _psi->non_pawn_matl[pasive] -= PieceValues[MG][cpt];          \
-    }                                                                 \
-    _psi->matl_key ^=                                                 \
-        Zob.piece_square[pasive][cpt][_piece_sq[pasive][cpt].size ()];\
-    key ^=                                                            \
-        Zob.piece_square[pasive][cpt][cap];                           \
+#define do_capture()                                                                \
+    remove_piece (cap);                                                             \
+    if (cpt == PAWN)                                                                \
+    {                                                                               \
+        _psi->pawn_key ^= Zob.piece_square[pasive][PAWN][cap];                      \
+    }                                                                               \
+    else                                                                            \
+    {                                                                               \
+        _psi->non_pawn_matl[pasive] -= PieceValues[MG][cpt];                        \
+    }                                                                               \
+    _psi->matl_key ^= Zob.piece_square[pasive][cpt][_piece_sq[pasive][cpt].size ()];\
+    key ^= Zob.piece_square[pasive][cpt][cap];                                      \
     _psi->psq_score -= PSQ[pasive][cpt][cap];
 
 // do_move() do the natural-move

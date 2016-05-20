@@ -1060,9 +1060,10 @@ namespace Evaluator {
             - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
 
         // If in the opening phase
-        if (  pos.non_pawn_material (WHITE)
-            + pos.non_pawn_material (BLACK)
-            >= VALUE_SPACE
+        if (   pos.non_pawn_material (WHITE)
+            +  pos.non_pawn_material (BLACK)
+             >= VALUE_SPACE
+            && (pos.count<NIHT> () + pos.count<BSHP> ()) != 0
            )
         {
             // Evaluate space activity
@@ -1091,7 +1092,7 @@ namespace Evaluator {
         // Evaluate scale factor for the winning side
         auto scale_factor = evaluate_scale_factor (pos, ei, eg_value (score));
 
-        // Interpolates between a middle game and a (scaled by 'scale_factor') endgame score, based on game phase.
+        // Interpolates between a middle game and a endgame score scaled by scale factor, based on game phase.
         auto value = Value((  mg_value (score) * i32(ei.me->game_phase)
                             + eg_value (score) * i32(PHASE_MIDGAME - ei.me->game_phase)*i32(scale_factor)/SCALE_FACTOR_NORMAL)
                             / PHASE_MIDGAME);

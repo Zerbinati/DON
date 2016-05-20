@@ -483,8 +483,10 @@ namespace Searcher {
 
                 auto mpc = pos[org_sq (move)];
                 assert(mpc != NO_PIECE);
+                auto dst = dst_sq (move);
+
                 bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
-                                    (ci.checking_bb[ptype (mpc)] & dst_sq (move)) != 0 :
+                                    (ci.checking_bb[ptype (mpc)] & dst) != 0 :
                                     pos.gives_check (move, ci);
 
                 if (Limits.mate == 0)
@@ -499,7 +501,7 @@ namespace Searcher {
                     {
                         assert(mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
 
-                        auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst_sq (move)])];
+                        auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst])];
                         
                         if (futility_value <= alfa)
                         {
@@ -963,11 +965,13 @@ namespace Searcher {
 
                             auto mpc = pos[org_sq (move)];
                             assert(mpc != NO_PIECE);
+                            auto dst = dst_sq (move);
+
                             ss->current_move = move;
-                            ss->counter_move_values = &CounterMoveHistoryValues[mpc][dst_sq (move)];
+                            ss->counter_move_values = &CounterMoveHistoryValues[mpc][dst];
 
                             bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
-                                                (ci.checking_bb[ptype (mpc)] & dst_sq (move)) != 0 :
+                                                (ci.checking_bb[ptype (mpc)] & dst) != 0 :
                                                 pos.gives_check (move, ci);
                             bool capture_or_promotion = pos.capture_or_promotion (move);
 
@@ -1068,9 +1072,9 @@ namespace Searcher {
                 || (ss-0)->static_eval == VALUE_NONE
                 || (ss-2)->static_eval == VALUE_NONE;
 
-            auto *cmv  = (ss-1)->counter_move_values;
-            auto *fmv1 = (ss-2)->counter_move_values;
-            auto *fmv2 = (ss-4)->counter_move_values;
+            auto *const &cmv  = (ss-1)->counter_move_values;
+            auto *const &fmv1 = (ss-2)->counter_move_values;
+            auto *const &fmv2 = (ss-4)->counter_move_values;
 
             u08 move_count = 0;
             ss->current_move = MOVE_NONE;
@@ -1106,6 +1110,7 @@ namespace Searcher {
                 ss->move_count = ++move_count;
                 auto mpc = pos[org_sq (move)];
                 assert(mpc != NO_PIECE);
+                auto dst = dst_sq (move);
 
                 if (   root_node
                     && main_thread != nullptr
@@ -1130,7 +1135,7 @@ namespace Searcher {
                 }
 
                 bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
-                                    (ci.checking_bb[ptype (mpc)] & dst_sq (move)) != 0 :
+                                    (ci.checking_bb[ptype (mpc)] & dst) != 0 :
                                     pos.gives_check (move, ci);
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
@@ -1190,10 +1195,12 @@ namespace Searcher {
                     // History based pruning
                     if (   depth <= HistoryPruningDepth*DEPTH_ONE
                         && move != ss->killer_moves[0]
-                        && thread->history_values[mpc][dst_sq (move)] < VALUE_ZERO
-                        && (!cmv  || (*cmv )[mpc][dst_sq (move)] < VALUE_ZERO)
-                        && (!fmv1 || (*fmv1)[mpc][dst_sq (move)] < VALUE_ZERO)
-                        && (!fmv2 || (*fmv2)[mpc][dst_sq (move)] < VALUE_ZERO)
+                        && (  thread->history_values[mpc][dst]
+                            + (cmv  != nullptr ? (*cmv )[mpc][dst] : VALUE_ZERO)
+                            + (fmv1 != nullptr ? (*fmv1)[mpc][dst] : VALUE_ZERO)
+                            + (fmv2 != nullptr ? (*fmv2)[mpc][dst] : VALUE_ZERO)
+                            < VALUE_ZERO
+                           )
                        )
                     {
                         continue;
@@ -1224,7 +1231,7 @@ namespace Searcher {
                 }
 
                 ss->current_move = move;
-                ss->counter_move_values = &CounterMoveHistoryValues[mpc][dst_sq (move)];
+                ss->counter_move_values = &CounterMoveHistoryValues[mpc][dst];
 
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
@@ -1253,8 +1260,6 @@ namespace Searcher {
                 {
                     assert(new_depth >= 2*DEPTH_ONE);
                     assert(mtype (move) != PROMOTE);
-
-                    auto dst = dst_sq (move);
                     auto reduction_depth = reduction_depths (PVNode, improving, new_depth, move_count);
 
                     // Increase reduction for non-pv & cut-node
@@ -1265,9 +1270,9 @@ namespace Searcher {
 
                     // Decrease/Increase reduction for moves with a +ve/-ve history
                     i32 r_hist = (i32(  thread->history_values[mpc][dst]
-                                      + (cmv  ? (*cmv )[mpc][dst] : VALUE_ZERO)
-                                      + (fmv1 ? (*fmv1)[mpc][dst] : VALUE_ZERO)
-                                      + (fmv2 ? (*fmv2)[mpc][dst] : VALUE_ZERO)) - 10000)/20000;
+                                      + (cmv  != nullptr ? (*cmv )[mpc][dst] : VALUE_ZERO)
+                                      + (fmv1 != nullptr ? (*fmv1)[mpc][dst] : VALUE_ZERO)
+                                      + (fmv2 != nullptr ? (*fmv2)[mpc][dst] : VALUE_ZERO)) - 10000)/20000;
                     reduction_depth = std::max (reduction_depth - r_hist*DEPTH_ONE, DEPTH_ZERO);
 
                     // Decrease reduction for moves that escape a capture.
@@ -1650,18 +1655,17 @@ namespace Searcher {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        static const i32 K0[3] = { 0, 200, 0 };
         for (i32 d = 0; d < FutilityMarginDepth; ++d)
         {
-            FutilityMargins[d] = Value(K0[0] + (K0[1] + K0[2]*d)*d);
+            FutilityMargins[d] = Value(0 + (200 + 0*d)*d);
         }
 
-        static const double K1[2][4] = { { 1.90, 0.773, 0.00, 1.8 }, { 2.40, 1.045, 0.49, 1.8 } };
+        static const double K[2][4] = { { 1.90, 0.773, 0.00, 1.8 }, { 2.40, 1.045, 0.49, 1.8 } };
         for (u08 imp = 0; imp <= 1; ++imp)
         {
             for (i32 d = 0; d < FutilityMoveCountDepth; ++d)
             {
-                FutilityMoveCounts[imp][d] = u08(std::round (K1[imp][0] + K1[imp][1] * pow (d + K1[imp][2], K1[imp][3])));
+                FutilityMoveCounts[imp][d] = u08(std::round (K[imp][0] + K[imp][1] * pow (d + K[imp][2], K[imp][3])));
             }
         }
 

@@ -53,7 +53,10 @@ namespace MovePick {
         assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
         assert(_depth > DEPTH_ZERO);
 
-        _counter_move = _pos.thread ()->counter_moves[_ok ((ss-1)->current_move) ? _pos[dst_sq ((ss-1)->current_move)] : NO_PIECE][dst_sq ((ss-1)->current_move)];
+        _counter_move = _pos.thread ()->counter_moves[_ok ((ss-1)->current_move) ?
+                                                        _pos[dst_sq ((ss-1)->current_move)] :
+                                                        NO_PIECE]
+                                                        [dst_sq ((ss-1)->current_move)];
 
         _stage = _pos.checkers () != 0 ? S_EVASION : S_MAIN;
 
