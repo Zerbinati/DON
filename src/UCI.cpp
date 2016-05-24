@@ -34,16 +34,16 @@ namespace UCI {
 
     }
 
-    // loop() waits for a command from stdin, parses it and calls the appropriate
-    // function. Also intercepts EOF from stdin to ensure gracefully exiting if the
-    // GUI dies unexpectedly. When called with some command line arguments, e.g. to
-    // run 'bench', once the command is executed the function returns immediately.
+    // loop() waits for a command from stdin, parses it and calls the appropriate function.
+    // Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
+    // When called with some command line arguments, e.g. to run 'bench',
+    // once the command is executed the function returns immediately.
     // In addition to the UCI ones, also some additional debug commands are supported.
     void loop (i32 argc, const char *const *argv)
     {
         Position root_pos;
         root_pos.setup (StartFEN, SetupStates->back(), Threadpool.main (), false, true);
-
+        // Join arguments
         string cmd;
         for (i32 i = 1; i < argc; ++i)
         {
@@ -67,6 +67,10 @@ namespace UCI {
                 continue;
             }
             else
+            {
+                to_lower (token);
+            }
+
             if (token == "uci")
             {
                 sync_cout

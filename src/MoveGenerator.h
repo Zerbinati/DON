@@ -16,7 +16,6 @@ enum GenType : u08
     QUIET,       // Do not capture pieces but under-promotion is allowed.
     CHECK,       // Checks the enemy King in any way possible.
     QUIET_CHECK, // Do not change material and only checks the enemy King (no capture or promotion).
-                 // ------------------------
     LEGAL,       // Legal.
 };
 

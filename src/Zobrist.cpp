@@ -156,9 +156,11 @@ Key Zobrist::compute_fen_key (const string &fen, bool c960) const
     return fen_key;
 }
 
+// Global Zobrist
+
 Zobrist Zob;
 // Random numbers from Polyglot, used to compute book hash keys
-const Zobrist PolyZob =
+Zobrist PolyZob =
 {
     // PieceSquare
     {

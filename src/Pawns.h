@@ -68,8 +68,8 @@ namespace Pawns {
                 king_sq      [Own] = pos.square<KING> (Own);
                 castle_rights[Own] = pos.can_castle (Own);
 
-                king_safety[Own][CS_KING] = rel_rank (Own, king_sq[Own]) == R_1 && pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_WKOO )) : VALUE_ZERO;
-                king_safety[Own][CS_QUEN] = rel_rank (Own, king_sq[Own]) == R_1 && pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_WKOOO)) : VALUE_ZERO;
+                king_safety[Own][CS_KING] = rel_rank (Own, king_sq[Own]) == R_1 && pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1)) : VALUE_ZERO;
+                king_safety[Own][CS_QUEN] = rel_rank (Own, king_sq[Own]) == R_1 && pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1)) : VALUE_ZERO;
                 king_safety[Own][CS_NO  ] = pawn_shelter_storm<Own> (pos, king_sq[Own]);
 
                 king_pawn_dist[Own] = 0;

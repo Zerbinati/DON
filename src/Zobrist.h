@@ -35,7 +35,7 @@ public:
 
 };
 
-extern       Zobrist Zob;
-extern const Zobrist PolyZob;
+extern Zobrist Zob;
+extern Zobrist PolyZob;
 
 #endif // _ZOBRIST_H_INC_

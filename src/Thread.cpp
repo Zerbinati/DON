@@ -261,13 +261,9 @@ namespace Threading {
     {
         wait_while_thinking ();
 
-        ForceStop       = false;
-        PonderhitStop   = false;
-
-        Limits  = limits;
-
         RootMoveVector root_moves;
         root_moves.initialize (pos, limits.search_moves);
+        Limits  = limits;
 
         // After ownership transfer 'states' becomes empty, so if we stop the search
         // and call 'go' again without setting a new position states.get() == NULL.
@@ -289,6 +285,8 @@ namespace Threading {
         }
         setup_states->back () = tmp_si; // Restore si->ptr, cleared by Position::setup()
 
+        ForceStop       = false;
+        PonderhitStop   = false;
         main ()->start_searching (false);
     }
     // ThreadPool::wait_while_thinking() waits for the main thread while searching.

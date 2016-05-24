@@ -181,11 +181,10 @@ enum Square : i08
     SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
     SQ_NO,
-
-    SQ_WKOOO = SQ_C1, SQ_WKOO = SQ_G1,
-    SQ_WROOO = SQ_D1, SQ_WROO = SQ_F1,
-    SQ_BKOOO = SQ_C8, SQ_BKOO = SQ_G8,
-    SQ_BROOO = SQ_D8, SQ_BROO = SQ_F8,
+    //SQ_KOOO   = SQ_Cx
+    //SQ_KOO    = SQ_Gx
+    //SQ_ROOO   = SQ_Dx
+    //SQ_ROO    = SQ_Fx
 };
 
 // Delta

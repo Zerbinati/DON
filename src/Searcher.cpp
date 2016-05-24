@@ -135,7 +135,6 @@ namespace Searcher {
         }
 
         const i32 ProbCutDepth = 4;
-        const i32 HistoryPruningDepth = 4;
 
         const u08 FullDepthMoveCount = 1;
 
@@ -799,7 +798,7 @@ namespace Searcher {
             }
 
             StateInfo si;
-            Move move;
+            Move move = MOVE_NONE;
 
             // Step 5. Evaluate the position statically
             if (InCheck)
@@ -852,8 +851,8 @@ namespace Searcher {
                     // you search it to a reduced depth, typically one less than normal depth.
                     if (   !PVNode
                         && Limits.mate == 0
-                        && tt_move == MOVE_NONE
                         && depth < RazorDepth*DEPTH_ONE
+                        && tt_move == MOVE_NONE
                         && tt_eval + RazorMargins[depth/DEPTH_ONE] <= alfa
                        )
                     {
@@ -1192,15 +1191,12 @@ namespace Searcher {
                     {
                         continue;
                     }
-                    // History based pruning
-                    if (   depth <= HistoryPruningDepth*DEPTH_ONE
+                    // Counter move values based pruning
+                    if (   depth <= 4*DEPTH_ONE
                         && move != ss->killer_moves[0]
-                        && (  thread->history_values[mpc][dst]
-                            + (cmv  != nullptr ? (*cmv )[mpc][dst] : VALUE_ZERO)
-                            + (fmv1 != nullptr ? (*fmv1)[mpc][dst] : VALUE_ZERO)
-                            + (fmv2 != nullptr ? (*fmv2)[mpc][dst] : VALUE_ZERO)
-                            < VALUE_ZERO
-                           )
+                        //&& thread->history_values[mpc][dst] < VALUE_ZERO
+                        && (cmv  == nullptr || (*cmv )[mpc][dst] < VALUE_ZERO)
+                        && (fmv1 == nullptr || (*fmv1)[mpc][dst] < VALUE_ZERO)
                        )
                     {
                         continue;
@@ -1276,11 +1272,11 @@ namespace Searcher {
                     reduction_depth = std::max (reduction_depth - r_hist*DEPTH_ONE, DEPTH_ZERO);
 
                     // Decrease reduction for moves that escape a capture.
-                    // Use see() instead of see_sign(), because the destination square is empty for normal move.
                     if (   reduction_depth != DEPTH_ZERO
                         && mtype (move) == NORMAL
                         && ptype (mpc) != PAWN
-                        && pos.see (mk_move (dst, org_sq (move))) < VALUE_ZERO // SEE of reverse move
+                        // For reverse move use see() instead of see_sign(), because the destination square is empty for normal move.
+                        && pos.see (mk_move (dst, org_sq (move))) < VALUE_ZERO
                        )
                     {
                         reduction_depth = std::max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
@@ -2001,11 +1997,15 @@ namespace Threading {
                         // -If there is only one legal move available
                         // -If all of the available time has been used
                         // -If matched an easy move from the previous search and just did a fast verification.
-                        if (   root_moves.size () == 1                                                                              // Improving Factor
-                            || main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time * std::max(0.365, std::min(1.138, 0.568 + 0.189 * (main_thread->failed_low ? 1 : 0) - 0.010 * i32(best_value - main_thread->previous_value)))))
+                        if (   root_moves.size () == 1
+                            || main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time *
+                                                                            // Improving factor
+                                                                            std::max(0.3646, std::min(1.1385, 0.5684 + 0.1894 * (main_thread->failed_low ? 1 : 0) - 0.0095 * i32(best_value - main_thread->previous_value)))))
                             || (main_thread->easy_played =
-                                    (  main_thread->best_move_change < 0.030                                                        // Take some extra time if the best move has changed
-                                    && main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time * (1.0 + main_thread->best_move_change) * 0.119))
+                                    (  main_thread->best_move_change < 0.0300
+                                    && main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time *
+                                                                                    // Unstable factor
+                                                                                    (1.0 + main_thread->best_move_change) * 0.1190))
                                     && !root_moves.empty ()
                                     && !root_moves[0].empty ()
                                     &&  root_moves[0] == easy_move

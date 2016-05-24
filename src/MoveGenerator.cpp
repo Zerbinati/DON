@@ -53,7 +53,7 @@ namespace MoveGen {
                  && pos.can_castle (CR) != CR_NONE
                  && pos.checkers () == 0);
 
-            static const bool KingSide = (CR & CR_KING) != CR_NONE;
+            static const bool KingSide = (CR == CR_WKING || CR == CR_BKING);
 
             const auto Opp = Own == WHITE ? BLACK : WHITE;
 
@@ -61,7 +61,7 @@ namespace MoveGen {
             auto rook_org = pos.castle_rook (CR);
             assert(ptype (pos[rook_org]) == ROOK);
 
-            auto king_dst = rel_sq (Own, KingSide ? SQ_WKOO : SQ_WKOOO);
+            auto king_dst = rel_sq (Own, KingSide ? SQ_G1 : SQ_C1);
             auto step = king_dst > king_org ? DEL_E : DEL_W;
             for (auto s = king_dst; s != king_org; s -= step)
             {

@@ -11,7 +11,6 @@ using namespace std;
 const string PieceChar ("PNBRQK  pnbrqk");
 const string ColorChar ("wb-");
 
-
 namespace Notation {
 
     using namespace BitBoard;
@@ -202,14 +201,14 @@ namespace Notation {
     // to the corresponding legal move, if any.
     Move move_from_can (const string &can, const Position &pos)
     {
-        string scan = can;
-        if (scan.length () == 5 && isupper (scan[4]))
+        auto ccan = can;
+        if (ccan.length () == 5 && isupper (ccan[4]))
         {
-            scan[4] = char(tolower (scan[4])); // Promotion piece in lowercase
+            ccan[4] = char(tolower (ccan[4])); // Promotion piece in lowercase
         }
         for (const auto &vm : MoveList<LEGAL> (pos))
         {
-            if (scan == move_to_can (vm.move, pos.chess960 ()))
+            if (ccan == move_to_can (vm.move, pos.chess960 ()))
             {
                 return vm.move;
             }
