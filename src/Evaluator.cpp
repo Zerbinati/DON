@@ -14,6 +14,7 @@ namespace Evaluator {
     using namespace BitBoard;
     using namespace MoveGen;
 
+    // Tempo bonus
     const Value Tempo = Value(20);
 
     namespace {

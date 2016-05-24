@@ -7,7 +7,6 @@
 
 namespace Evaluator {
 
-    // Tempo bonus.
     extern const Value Tempo;
 
     template<bool Trace = false>

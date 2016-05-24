@@ -2000,7 +2000,7 @@ namespace Threading {
                         if (   root_moves.size () == 1
                             || main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time *
                                                                             // Improving factor
-                                                                            std::max(0.3646, std::min(1.1385, 0.5684 + 0.1894 * (main_thread->failed_low ? 1 : 0) - 0.0095 * i32(best_value - main_thread->previous_value)))))
+                                                                            std::max(0.3646, std::min(1.1385, 0.5684 + 0.1894 * (main_thread->failed_low ? 1 : 0) - 0.0095 * i32(main_thread->previous_value != +VALUE_NONE ? best_value - main_thread->previous_value : VALUE_ZERO)))))
                             || (main_thread->easy_played =
                                     (  main_thread->best_move_change < 0.0300
                                     && main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time *
@@ -2295,15 +2295,15 @@ namespace Threading {
 
                 sync_cout << multipv_info (-VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
             }
+
+            if (Limits.time_management_used ())
+            {
+                previous_value = root_moves[0].new_value;
+            }
         }
 
         assert(!root_moves.empty ()
             && !root_moves[0].empty ());
-
-        if (Limits.time_management_used ())
-        {
-            previous_value = root_moves[0].new_value;
-        }
 
         if (LogStream.is_open ())
         {

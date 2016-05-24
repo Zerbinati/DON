@@ -4,6 +4,7 @@
 #include <iomanip>
 
 #include "UCI.h"
+#include "PieceSquare.h"
 #include "BitBases.h"
 #include "Pawns.h"
 #include "Material.h"
@@ -104,6 +105,7 @@ namespace Engine {
 #endif
         UCI      ::initialize ();
         BitBoard ::initialize ();
+        PSQTable ::initialize ();
         Position ::initialize ();
         BitBases ::initialize ();
         Pawns    ::initialize ();

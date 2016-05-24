@@ -4,13 +4,14 @@
 #include <sstream>
 
 #include "Transposition.h"
-#include "PieceSquareTable.h"
+#include "PieceSquare.h"
 #include "MoveGenerator.h"
 #include "Thread.h"
 #include "Notation.h"
 
 using namespace std;
 using namespace BitBoard;
+using namespace PSQTable;
 using namespace Transposition;
 using namespace MoveGen;
 using namespace Threading;
@@ -65,9 +66,6 @@ void Position::initialize ()
         Zob.en_passant[f] = prng.rand<Key> ();
     }
     Zob.act_side = prng.rand<Key> ();
-
-    // Initialize PSQ
-    PSQTable.initialize ();
 }
 
 // Draw by: 50 Move Rule, Threefold repetition.
@@ -274,7 +272,7 @@ bool Position::ok (i08 *failed_step) const
             if (   _si->matl_key != Zob.compute_matl_key (*this)
                 || _si->pawn_key != Zob.compute_pawn_key (*this)
                 || _si->posi_key != Zob.compute_posi_key (*this)
-                || _si->psq_score != PSQTable.compute_psq_score (*this)
+                || _si->psq_score != compute_psq_score (*this)
                 || _si->non_pawn_matl[WHITE] != compute_non_pawn_material (WHITE)
                 || _si->non_pawn_matl[BLACK] != compute_non_pawn_material (BLACK)
                )
@@ -1144,7 +1142,7 @@ bool Position::setup (const string &f, StateInfo &si, Thread *const th, bool c96
     _si->matl_key = Zob.compute_matl_key (*this);
     _si->pawn_key = Zob.compute_pawn_key (*this);
     _si->posi_key = Zob.compute_posi_key (*this);
-    _si->psq_score = PSQTable.compute_psq_score (*this);
+    _si->psq_score = compute_psq_score (*this);
     _si->non_pawn_matl[WHITE] = compute_non_pawn_material (WHITE);
     _si->non_pawn_matl[BLACK] = compute_non_pawn_material (BLACK);
     _si->clock_ply = u08(clk_ply);
@@ -1173,7 +1171,7 @@ bool Position::setup (const string &f, StateInfo &si, Thread *const th, bool c96
     }                                                                               \
     _si->matl_key ^= Zob.piece_square[pasive][cpt][_piece_sq[pasive][cpt].size ()]; \
     key ^= Zob.piece_square[pasive][cpt][cap];                                      \
-    _si->psq_score -= PSQTable.PSQ[pasive][cpt][cap];
+    _si->psq_score -= PSQ[pasive][cpt][cap];
 
 // do_move() do the natural-move
 void Position::do_move (Move m, StateInfo &si, bool gives_check)
@@ -1185,7 +1183,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     // Copy some fields of old state info to new state info object except
     // the ones which are going to be recalculated from scratch anyway, 
     std::memcpy (&si, _si, offsetof(StateInfo, posi_key));
-    // Switch state pointer to point to the new, ready to be updated, state.
+    // Point state pointer to point to the new state.
     si.ptr = _si;
     _si    = &si;
 
@@ -1244,8 +1242,8 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
             ^Zob.piece_square[_active][mpt][org];
 
         _si->psq_score +=
-             PSQTable.PSQ[_active][mpt][dst]
-            -PSQTable.PSQ[_active][mpt][org];
+             PSQ[_active][mpt][dst]
+            -PSQ[_active][mpt][org];
     }
         break;
 
@@ -1264,10 +1262,10 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
             ^Zob.piece_square[_active][ROOK][rook_org];
 
         _si->psq_score +=
-             PSQTable.PSQ[_active][KING][dst]
-            -PSQTable.PSQ[_active][KING][org]
-            +PSQTable.PSQ[_active][ROOK][rook_dst]
-            -PSQTable.PSQ[_active][ROOK][rook_org];
+             PSQ[_active][KING][dst]
+            -PSQ[_active][KING][org]
+            +PSQ[_active][ROOK][rook_dst]
+            -PSQ[_active][ROOK][rook_org];
 
         _si->clock_ply++;
     }
@@ -1302,8 +1300,8 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
             ^Zob.piece_square[_active][PAWN][org];
 
         _si->psq_score +=
-             PSQTable.PSQ[_active][PAWN][dst]
-            -PSQTable.PSQ[_active][PAWN][org];
+             PSQ[_active][PAWN][dst]
+            -PSQ[_active][PAWN][org];
     }
         break;
 
@@ -1341,8 +1339,8 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
             ^Zob.piece_square[_active][PAWN][org];
 
         _si->psq_score +=
-             PSQTable.PSQ[_active][ppt][dst]
-            -PSQTable.PSQ[_active][PAWN][org];
+             PSQ[_active][ppt][dst]
+            -PSQ[_active][PAWN][org];
 
         _si->non_pawn_matl[_active] += PieceValues[MG][ppt];
     }
@@ -1490,6 +1488,7 @@ void Position::undo_move ()
         place_piece (cap, ~_active, _si->capture_type);
     }
 
+    // Point state pointer back to the previous state
     _si = _si->ptr;
     --_game_ply;
 
@@ -1503,7 +1502,7 @@ void Position::do_null_move (StateInfo &si)
 
     // Full copy here
     std::memcpy (&si, _si, StateInfo::Size);
-    // Switch our state pointer to point to the new, ready to be updated, state.
+    // Point state pointer to point to the new state.
     si.ptr = _si;
     _si    = &si;
 
