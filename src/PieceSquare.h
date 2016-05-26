@@ -1,11 +1,11 @@
-#ifndef _PSQ_H_INC_
-#define _PSQ_H_INC_
+#ifndef _PIECE_SQUARE_H_INC_
+#define _PIECE_SQUARE_H_INC_
 
 #include "Type.h"
 
 class Position;
 
-namespace PSQTable {
+namespace PieceSquare {
 
     extern Score PSQ[CLR_NO][NONE][SQ_NO];
 
@@ -15,4 +15,4 @@ namespace PSQTable {
 
 }
 
-#endif // _PSQ_H_INC_
+#endif // _PIECE_SQUARE_H_INC_

@@ -53,7 +53,7 @@ namespace MoveGen {
                  && pos.can_castle (CR) != CR_NONE
                  && pos.checkers () == 0);
 
-            static const bool KingSide = (CR == CR_WKING || CR == CR_BKING);
+            static const bool KingSide = (CR & CR_KING) != CR_NONE;
 
             const auto Opp = Own == WHITE ? BLACK : WHITE;
 

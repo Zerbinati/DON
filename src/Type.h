@@ -127,10 +127,11 @@ typedef        uint64_t    u64;
 
 #endif
 
-typedef u64     Key;
-typedef u64     Bitboard;
+typedef u64 Key;
+typedef u64 Bitboard;
 
-const u16 MaxPlies  = 128; // Maximum Plies
+const u16 MaxPlies   = 128; // Maximum Plies
+const u16 MaxThreads = 128; // Maximum Threads
 
 // File
 enum File : i08
@@ -567,17 +568,6 @@ inline bool opposite_colors (Square s1, Square s2)
     return (((s >> 3) ^ s) & i08(BLACK)) != 0;
 }
 
-extern u08 SquareDist[SQ_NO][SQ_NO];
-
-template<class T>
-inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
-template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
-
-template<class T1, class T2>
-inline i32 dist (T2, T2) { return i32(); }
-template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
-template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
-
 inline Delta  pawn_push (Color c)
 {
     switch (c)
@@ -702,6 +692,20 @@ public:
     bool operator== (const ValMove &vm) const { return value == vm.value; }
     bool operator!= (const ValMove &vm) const { return value != vm.value; }
 };
+
+extern u08 SquareDist[SQ_NO][SQ_NO];
+
+template<class T>
+inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
+template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
+
+template<class T1, class T2>
+inline i32 dist (T2, T2) { return i32 (); }
+template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
+template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
+
+
+
 
 template<class Entry, u32 Size>
 struct HashTable

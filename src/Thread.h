@@ -6,11 +6,11 @@
 #include <iostream>
 
 #include "thread_win32.h"
+#include "UCI.h"
 #include "PRNG.h"
 #include "Position.h"
 #include "Pawns.h"
 #include "Material.h"
-#include "Searcher.h"
 #include "MovePicker.h"
 
 extern u08      MaximumMoveHorizon;
@@ -158,8 +158,6 @@ public:
 
 namespace Threading {
 
-    const u16 MaxThreads = 128; // Maximum Threads
-
     // Thread class keeps together all the thread related stuff like.
     // It also use pawn and material hash tables so that once get a pointer
     // to an entry its life time is unlimited and don't have to care about
@@ -267,7 +265,7 @@ namespace Threading {
         bool   easy_played      = false;
         bool   failed_low       = false;
         double best_move_change = 0.0;
-        Value  previous_value   = +VALUE_NONE;
+        Value  previous_value   = VALUE_NONE;
 
         TimeManager     time_mgr;
         MoveManager     move_mgr;
@@ -306,7 +304,7 @@ namespace Threading {
 
         u64  game_nodes () const;
 
-        void configure ();
+        void configure (size_t threads);
 
         // No constructor and destructor, threadpool rely on globals
         // that should be initialized and valid during the whole thread lifetime.

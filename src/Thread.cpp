@@ -2,6 +2,7 @@
 
 #include <cfloat>
 #include "UCI.h"
+#include "Searcher.h"
 
 u08     MaximumMoveHorizon =   50; // Plan time management at most this many moves ahead, in num of moves.
 u08     ReadyMoveHorizon   =   40; // Be prepared to always play at least this many moves, in num of moves.
@@ -15,6 +16,7 @@ bool    Ponder             = true; // Whether or not the engine should analyze w
 Threading::ThreadPool Threadpool; // Global ThreadPool
 
 using namespace std;
+using namespace UCI;
 using namespace Searcher;
 
 namespace {
@@ -211,10 +213,8 @@ namespace Threading {
     // UCI options and creates/destroys threads to match the requested number.
     // Thread objects are dynamically allocated to avoid creating in advance all possible
     // threads, with included pawns and material tables, if only few are used.
-    void ThreadPool::configure ()
+    void ThreadPool::configure (size_t threads)
     {
-        size_t threads = i32(Options["Threads"]);
-        //assert(threads != 0);
         if (threads == 0)
         {
             threads = thread::hardware_concurrency ();
@@ -238,7 +238,7 @@ namespace Threading {
     {
         assert(empty ());
         push_back (new MainThread);
-        configure ();
+        configure (i32(Options["Threads"]));
     }
     // ThreadPool::deinitialize() cleanly terminates the threads before the program exits.
     // Cannot be done in destructor because threads must be terminated before deleting any

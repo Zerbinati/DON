@@ -105,7 +105,7 @@ namespace Engine {
 #endif
         UCI      ::initialize ();
         BitBoard ::initialize ();
-        PSQTable ::initialize ();
+        PieceSquare::initialize ();
         Position ::initialize ();
         BitBases ::initialize ();
         Pawns    ::initialize ();

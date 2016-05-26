@@ -16,7 +16,6 @@ UCI::OptionMap  Options; // Global string mapping of Options
 namespace UCI {
 
     using namespace std;
-    using namespace Threading;
     using namespace Transposition;
     using namespace Searcher;
     using namespace TBSyzygy;
@@ -198,7 +197,7 @@ namespace UCI {
 
         void configure_threadpool ()
         {
-            Threadpool.configure ();
+            Threadpool.configure (i32(Options["Threads"]));
         }
 
         void configure_draw_clock_ply ()

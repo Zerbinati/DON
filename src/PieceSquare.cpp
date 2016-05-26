@@ -75,37 +75,40 @@ namespace {
     #undef S
 }
 
-// PSQ[color][piece-type][square] contains [color][piece-type][square] scores.
-Score PSQTable::PSQ[CLR_NO][NONE][SQ_NO];
-
-// compute_psq_score() computes the incremental scores for the middle
-// game and the endgame. These functions are used to initialize the incremental
-// scores when a new position is set up, and to verify that the scores are correctly
-// updated by do_move and undo_move when the program is running in debug mode.
-Score PSQTable::compute_psq_score (const Position &pos)
+namespace PieceSquare
 {
-    auto psqscore = SCORE_ZERO;
-    auto occ = pos.pieces ();
-    while (occ != 0)
-    {
-        auto s = pop_lsq (occ);
-        auto p = pos[s];
-        psqscore += PSQ[color (p)][ptype (p)][s];
-    }
-    return psqscore;
-}
+    // PSQ[color][piece-type][square] contains [color][piece-type][square] scores.
+    Score PSQ[CLR_NO][NONE][SQ_NO];
 
-// Initialize PSQ table
-void PSQTable::initialize ()
-{
-    for (auto pt = PAWN; pt <= KING; ++pt)
+    // compute_psq_score() computes the incremental scores for the middle
+    // game and the endgame. These functions are used to initialize the incremental
+    // scores when a new position is set up, and to verify that the scores are correctly
+    // updated by do_move and undo_move when the program is running in debug mode.
+    Score compute_psq_score (const Position &pos)
     {
-        auto score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
-        for (auto s = SQ_A1; s <= SQ_H8; ++s)
+        auto psqscore = SCORE_ZERO;
+        auto occ = pos.pieces ();
+        while (occ != 0)
         {
-            auto psq_bonus = score + HalfPSQ[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
-            PSQ[WHITE][pt][s] = +psq_bonus;
-            PSQ[BLACK][pt][~s] = -psq_bonus;
+            auto s = pop_lsq (occ);
+            auto p = pos[s];
+            psqscore += PSQ[color (p)][ptype (p)][s];
+        }
+        return psqscore;
+    }
+
+    // Initialize PSQ table
+    void initialize ()
+    {
+        for (auto pt = PAWN; pt <= KING; ++pt)
+        {
+            auto score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
+            for (auto s = SQ_A1; s <= SQ_H8; ++s)
+            {
+                auto psq_bonus = score + HalfPSQ[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
+                PSQ[WHITE][pt][s] = +psq_bonus;
+                PSQ[BLACK][pt][~s] = -psq_bonus;
+            }
         }
     }
 }

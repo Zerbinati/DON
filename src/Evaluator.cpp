@@ -760,12 +760,12 @@ namespace Evaluator {
                 auto s = pop_lsq (passed_pawns);
                 assert(pos.passed_pawn (Own, s));
 
-                auto rel_r = rel_rank (Own, s);
+                auto rank = rel_rank (Own, s);
                 // Base bonus depending on rank.
-                auto mg_value = PawnPassedValue[MG][rel_r];
-                auto eg_value = PawnPassedValue[EG][rel_r];
+                auto mg_value = PawnPassedValue[MG][rank];
+                auto eg_value = PawnPassedValue[EG][rank];
 
-                auto r  = i08(rel_r) - i08(R_2);
+                auto r  = i08(rank) - i08(R_2);
                 auto rr = r*(r-1);
 
                 if (rr != 0)

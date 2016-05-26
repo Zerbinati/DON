@@ -68,23 +68,17 @@ namespace Pawns {
 
         // Connected pawn bonus by [opposed][phalanx][twice supported][rank] (by formula)
         Score Connected[2][2][2][R_NO];
-
         // Isolated pawn penalty by [opposed]
         const Score Isolated[2]     = { S(45,40), S(30,27) };
-
         // Backward pawn penalty by [opposed]
         const Score Backward[2]     = { S(56,33), S(41,19) };
-
         // Levered pawn bonus by [rank]
         const Score Levered[R_NO]   = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
-
-        // Unsupported pawn penalty for pawns which are neither isolated or backward,
-        // by number of pawns it supports [0, 1, 2].
+        // Unsupported pawn penalty for pawns which are neither isolated or backward, by number of pawns it supports [0, 1, 2].
         const Score Unsupported[3]  = { S(17, 8), S(18, 9), S(21,12) };
-
         // Doubled pawn penalty
         const Score Doubled         = S(18,38);
-        // Unstopped pawn going to promote bonus
+        // Unstopped pawn bonus for pawns going to promote
         const Score Unstopped       = S( 0,20);
 
     #undef S
@@ -123,14 +117,14 @@ namespace Pawns {
                 e->semiopen_files[Own] &= ~(u08(1) << f);
                 e->pawn_attack_span[Own] |= PawnAttackSpan[Own][s];
 
-                Bitboard adjacents = own_pawns & AdjFile_bb[f];
-                Bitboard phalanx   = adjacents & rank_bb (s);
-                Bitboard supported = adjacents & rank_bb (s-Push);
-                Bitboard doubled   = own_pawns & FrontSqrs_bb[Own][s];
-                Bitboard stoppers  = opp_pawns & PawnPassSpan[Own][s];
-                bool opposed   = (opp_pawns & FrontSqrs_bb[Own][s]) != 0;
-                bool connected = (supported) != 0 || (phalanx) != 0;
-                bool levered   = (opp_pawns & PawnAttacks[Own][s]) != 0;
+                Bitboard adjacents  = own_pawns & AdjFile_bb[f];
+                Bitboard phalanx    = adjacents & rank_bb (s);
+                Bitboard supported  = adjacents & rank_bb (s-Push);
+                Bitboard stoppers   = opp_pawns & PawnPassSpan[Own][s];
+                bool doubled        = (own_pawns & (s+Push)) != 0;
+                bool opposed        = (opp_pawns & FrontSqrs_bb[Own][s]) != 0;
+                bool connected      = (phalanx) != 0 || (supported) != 0;
+                bool levered        = (opp_pawns & PawnAttacks[Own][s]) != 0;
 
                 bool backward;
                 // Test for backward pawn.
@@ -139,7 +133,7 @@ namespace Pawns {
                 // If it is sufficiently advanced (Rank 6), then it cannot be backward either.
                 if (   adjacents == 0
                     || levered 
-                    || rel_rank (Own, s) >= R_5
+                    || rel_rank (Own, s) >= R_6
                    )
                 {
                     backward = false;
@@ -196,14 +190,13 @@ namespace Pawns {
                     score += Levered[rel_rank (Own, s)];
                 }
 
-                if (doubled != 0)
+                if (doubled)
                 {
-                    score -= Doubled / dist<Rank> (s, scan_frntmost_sq (Own, doubled));
+                    score -= Doubled;
                 }
-                else
-                // Only the frontmost passed pawn on each file is considered a true passed pawn.
-                // Passed pawns will be properly scored in evaluation
-                // because complete attack info needed to evaluate them.
+
+                // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
+                // Only the frontmost passed pawn on each file is considered as true passed pawn.
                 if (stoppers == 0)
                 {
                     e->passed_pawns[Own] += s;
@@ -220,7 +213,6 @@ namespace Pawns {
 
             return pawn_score;
         }
-        // --------------------------------
         // Explicit template instantiations
         template Score evaluate<WHITE> (const Position&, Entry*);
         template Score evaluate<BLACK> (const Position&, Entry*);
@@ -260,26 +252,21 @@ namespace Pawns {
 
         return value;
     }
+    // Explicit template instantiations
+    template Value Entry::pawn_shelter_storm<WHITE> (const Position&, Square) const;
+    template Value Entry::pawn_shelter_storm<BLACK> (const Position&, Square) const;
 
     template<Color Own>
-    // Entry::evaluate_unstoppable_pawns<>() scores the most advanced passed pawns.
-    // In case opponent has no pieces but pawns, this is somewhat
-    // related to the possibility pawns are unstoppable.
+    // evaluate_unstoppable_pawns<>() scores the most advanced passed pawns.
     Score Entry::evaluate_unstoppable_pawns () const
     {
         return passed_pawns[Own] != 0 ?
                     Unstopped * i32(rel_rank (Own, scan_frntmost_sq (Own, passed_pawns[Own]))) :
                     SCORE_ZERO;
     }
-
     // Explicit template instantiations
-    // --------------------------------
-    template Value Entry::pawn_shelter_storm<WHITE> (const Position&, Square) const;
-    template Value Entry::pawn_shelter_storm<BLACK> (const Position&, Square) const;
-
     template Score Entry::evaluate_unstoppable_pawns<WHITE> () const;
     template Score Entry::evaluate_unstoppable_pawns<BLACK> () const;
-    // --------------------------------
 
     // probe() takes a position object as input, computes a Pawn::Entry object,
     // and returns a pointer to Pawn::Entry object.

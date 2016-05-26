@@ -30,9 +30,11 @@ namespace UCI {
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
-        StateListPtr SetupStates(new StateList (1));
+        StateListPtr SetupStates (new StateList (1));
 
     }
+
+    bool Chess960 = false;
 
     // loop() waits for a command from stdin, parses it and calls the appropriate function.
     // Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.

@@ -2,17 +2,18 @@
 #define _UCI_H_INC_
 
 #include <map>
+#include <deque>
+#include <memory>
 #include <iostream>
 
 #include "Type.h"
 #include "functor.h"
+#include "Position.h"
+
+typedef std::deque<StateInfo>       StateList;
+typedef std::unique_ptr<StateList>  StateListPtr;
 
 namespace UCI {
-
-    class Option;
-
-    // Our options container is actually a std::map
-    typedef std::map<std::string, Option, std::no_case_less_comparer> OptionMap;
 
     // Option class implements an option as defined by UCI protocol
     class Option
@@ -31,14 +32,12 @@ namespace UCI {
         OnChange _on_change = nullptr;
 
     public:
-        //Option () = delete;
         explicit Option (OnChange on_change = nullptr);
         Option (const bool  val, OnChange on_change = nullptr);
         Option (const char *val, OnChange on_change = nullptr);
         Option (const std::string &val, OnChange on_change = nullptr);
         Option (const i32 val, i32 minimum, i32 maximum, OnChange on_change = nullptr);
         Option (const Option&) = delete;
-        //Option& operator= (const Option&) = delete;
 
         u08 index () const { return _index; }
 
@@ -46,8 +45,8 @@ namespace UCI {
         explicit operator i32  () const;
         explicit operator std::string () const;
 
-        Option& operator= (const char        *value);
-        Option& operator= (const std::string &value);
+        Option& operator=  (const char        *value);
+        Option& operator=  (const std::string &value);
 
         void    operator<< (const Option &opt);
 
@@ -55,10 +54,14 @@ namespace UCI {
 
     };
 
-    extern void initialize ();
+    // Options container is actually a std::map of Option
+    typedef std::map<std::string, Option, std::no_case_less_comparer> OptionMap;
+
+    extern bool Chess960;
 
     extern void loop (i32 argc, const char *const *argv);
 
+    extern void initialize ();
     extern void deinitialize ();
 
     // ---------------------------------------------

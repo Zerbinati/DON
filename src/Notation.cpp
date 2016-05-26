@@ -3,6 +3,7 @@
 #include <sstream>
 #include <iomanip>
 
+#include "UCI.h"
 #include "Position.h"
 #include "MoveGenerator.h"
 
@@ -13,6 +14,7 @@ const string ColorChar ("wb-");
 
 namespace Notation {
 
+    using namespace UCI;
     using namespace BitBoard;
     using namespace MoveGen;
     using namespace Threading;
@@ -208,7 +210,7 @@ namespace Notation {
         }
         for (const auto &vm : MoveList<LEGAL> (pos))
         {
-            if (ccan == move_to_can (vm.move, pos.chess960 ()))
+            if (ccan == move_to_can (vm.move, Chess960))
             {
                 return vm.move;
             }
@@ -284,7 +286,7 @@ namespace Notation {
             root_pos.do_move (m, states.back (), root_pos.gives_check (m, CheckInfo (root_pos)));
             ++ply;
             ////---------------------------------
-            //oss << move_to_can (m, root_pos.chess960 ()) << " ";
+            //oss << move_to_can (m, Chess960) << " ";
         }
         for (; ply != 0; --ply)
         {

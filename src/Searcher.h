@@ -2,16 +2,11 @@
 #define SEARCHER_H_INC_
 
 #include <cstring>
-#include <deque>
-#include <memory>
 #include <atomic>
 
 #include "Type.h"
 #include "Position.h"
 #include "MoveGenerator.h"
-
-typedef std::deque<StateInfo>       StateList;
-typedef std::unique_ptr<StateList>  StateListPtr;
 
 // Limits stores information sent by GUI about available time to search the current move.
 //  - Maximum time and increment.
@@ -146,7 +141,6 @@ namespace Searcher {
         Stack& operator= (const Stack&) = delete;
     };
 
-    extern bool  Chess960;
     extern Limit Limits;
 
     extern std::atomic_bool

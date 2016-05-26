@@ -8,6 +8,7 @@
 #include "Debugger.h"
 
 using namespace std;
+using namespace UCI;
 using namespace Searcher;
 using namespace Debugger;
 

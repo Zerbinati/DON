@@ -21,6 +21,7 @@ const Value MaxStatsValue = Value(1 << 28);
 
 namespace Searcher {
 
+    using namespace UCI;
     using namespace BitBoard;
     using namespace MoveGen;
     using namespace MovePick;
@@ -34,7 +35,6 @@ namespace Searcher {
 
     //const size_t Stack::Size = sizeof (Stack);
 
-    bool   Chess960 = false;
     Limit  Limits;
 
     atomic_bool
@@ -216,7 +216,6 @@ namespace Searcher {
             //assert(std::find (quiet_moves.begin (), quiet_moves.end (), move) == quiet_moves.end ());
             for (const auto m : quiet_moves)
             {
-                //assert(m != move);
                 thread->history_values.update (pos[org_sq (m)], dst_sq (m), -bonus);
                 if ((ss-1)->counter_move_values != nullptr)
                 {
@@ -456,7 +455,7 @@ namespace Searcher {
                 }
 
                 best_value = tt_eval;
-                futility_base = best_value + i32(VALUE_EG_PAWN)/2; // QS Futility Margin
+                futility_base = best_value + 128; // QS Futility Margin
             }
 
             auto *thread = pos.thread ();
@@ -488,52 +487,50 @@ namespace Searcher {
                                     (ci.checking_bb[ptype (mpc)] & dst) != 0 :
                                     pos.gives_check (move, ci);
 
-                if (Limits.mate == 0)
+                // Futility pruning
+                if (   !InCheck
+                    && Limits.mate == 0
+                    && !gives_check
+                    && futility_base > -VALUE_KNOWN_WIN
+                    && futility_base <= alfa
+                    && !pos.advanced_pawn_push (move)
+                   )
                 {
-                    // Futility pruning
-                    if (   !InCheck
-                        && !gives_check
-                        && futility_base > -VALUE_KNOWN_WIN
-                        && futility_base <= alfa
-                        && !pos.advanced_pawn_push (move)
-                       )
-                    {
-                        assert(mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
+                    assert(mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
 
-                        auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst])];
-                        
-                        if (futility_value <= alfa)
-                        {
-                            if (best_value < futility_value)
-                            {
-                                best_value = futility_value;
-                            }
-                            continue;
-                        }
-                        // Prune moves with negative or zero SEE
-                        if (pos.see (move) <= VALUE_ZERO)
-                        {
-                            if (best_value < futility_base)
-                            {
-                                best_value = futility_base;
-                            }
-                            continue;
-                        }
-                    }
-
-                    // Don't search moves with negative SEE values
-                    if (   (   !InCheck
-                            // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
-                            || (   best_value > -VALUE_MATE_IN_MAX_PLY
-                                && !pos.capture (move)
-                               )
-                           )
-                        && mtype (move) != PROMOTE
-                        && pos.see_sign (move) < VALUE_ZERO //-VALUE_MG_PAWN/2
-                       )
+                    auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst])];
+                    if (futility_value <= alfa)
                     {
+                        if (best_value < futility_value)
+                        {
+                            best_value = futility_value;
+                        }
                         continue;
                     }
+                    // Prune moves with negative or zero SEE
+                    if (pos.see (move) <= VALUE_ZERO)
+                    {
+                        if (best_value < futility_base)
+                        {
+                            best_value = futility_base;
+                        }
+                        continue;
+                    }
+                }
+
+                // Don't search moves with negative SEE values
+                if (   (   !InCheck
+                        // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
+                        || (   best_value > -VALUE_MATE_IN_MAX_PLY
+                            && !pos.capture (move)
+                           )
+                       )
+                    && Limits.mate == 0
+                    && mtype (move) != PROMOTE
+                    && pos.see_sign (move) < VALUE_ZERO
+                    )
+                {
+                    continue;
                 }
 
                 ss->current_move = move;
@@ -835,12 +832,11 @@ namespace Searcher {
                     if (   !root_node
                         && Limits.mate == 0
                         && depth < FutilityMarginDepth*DEPTH_ONE
-                        && tt_eval < +VALUE_KNOWN_WIN // Do not return unproven wins
+                        && tt_eval < +VALUE_KNOWN_WIN                           // Do not return unproven wins
                         && pos.non_pawn_material (pos.active ()) != VALUE_ZERO
                        )
                     {
                         auto stand_pat = tt_eval - FutilityMargins[depth/DEPTH_ONE];
-
                         if (stand_pat >= beta)
                         {
                             return stand_pat;
@@ -851,8 +847,8 @@ namespace Searcher {
                     // you search it to a reduced depth, typically one less than normal depth.
                     if (   !PVNode
                         && Limits.mate == 0
-                        && depth < RazorDepth*DEPTH_ONE
                         && tt_move == MOVE_NONE
+                        && depth < RazorDepth*DEPTH_ONE
                         && tt_eval + RazorMargins[depth/DEPTH_ONE] <= alfa
                        )
                     {
@@ -864,9 +860,7 @@ namespace Searcher {
                         }
 
                         auto reduced_alpha = std::max (alfa - RazorMargins[depth/DEPTH_ONE], -VALUE_INFINITE);
-
                         auto value = quien_search<false, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
-
                         if (value <= reduced_alpha)
                         {
                             return value;
@@ -914,7 +908,7 @@ namespace Searcher {
                                )
                             {
                                 // Don't return unproven mates
-                                return abs (null_value) < +VALUE_MATE_IN_MAX_PLY ? null_value : beta;
+                                return null_value < +VALUE_MATE_IN_MAX_PLY ? null_value : beta;
                             }
 
                             // Do verification search at high depths
@@ -928,7 +922,7 @@ namespace Searcher {
                             if (value >= beta)
                             {
                                 // Don't return unproven mates
-                                return abs (null_value) < +VALUE_MATE_IN_MAX_PLY ? null_value : beta;
+                                return null_value < +VALUE_MATE_IN_MAX_PLY ? null_value : beta;
                             }
                         }
                     }
@@ -936,15 +930,15 @@ namespace Searcher {
                     // Step 9. ProbCut
                     // If have a very good capture (i.e. SEE > see[captured_piece_type])
                     // and a reduced search returns a value much above beta,
-                    // can (almost) safely prune the previous move.
+                    // then can (almost) safely prune the previous move.
                     if (   !PVNode
                         && Limits.mate == 0
                         && depth > ProbCutDepth*DEPTH_ONE
                         && abs (beta) < +VALUE_MATE_IN_MAX_PLY
                        )
                     {
-                        auto reduced_depth = depth - ProbCutDepth*DEPTH_ONE; // Shallow Depth
-                        auto extended_beta = std::min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
+                        auto reduced_depth = depth - ProbCutDepth*DEPTH_ONE;            // Shallow Depth
+                        auto extended_beta = std::min (beta + 200, +VALUE_INFINITE);    // ProbCut Threshold
 
                         assert(reduced_depth > DEPTH_ZERO);
                         assert(_ok ((ss-1)->current_move));
@@ -1006,8 +1000,8 @@ namespace Searcher {
 
                     // Step 10. Internal iterative deepening (IID)
                     if (   tt_move == MOVE_NONE
-                        && depth >= (PVNode ? 5 : 8)*DEPTH_ONE                      // IID activation depth
-                        && (PVNode || (ss->static_eval + VALUE_EG_PAWN) >= beta)    // IID margin
+                        && depth >= (PVNode ? 5 : 8)*DEPTH_ONE          // IID activation depth
+                        && (PVNode || (ss->static_eval + 256) >= beta)  // IID margin
                        )
                     {
                         auto iid_depth = depth - 2*DEPTH_ONE - (PVNode ? DEPTH_ZERO : depth/4); // IID reduced depth
@@ -1207,7 +1201,7 @@ namespace Searcher {
                     // Futility pruning: parent node
                     if (predicted_depth < FutilityMarginDepth*DEPTH_ONE)
                     {
-                        auto futility_value = ss->static_eval + FutilityMargins[predicted_depth/DEPTH_ONE] + VALUE_EG_PAWN;
+                        auto futility_value = ss->static_eval + FutilityMargins[predicted_depth/DEPTH_ONE] + 256;
                         if (alfa >= futility_value)
                         {
                             if (best_value < futility_value)
@@ -1218,8 +1212,8 @@ namespace Searcher {
                         }
                     }
                     // Negative SEE pruning at low depths
-                    if (   predicted_depth < RazorDepth*DEPTH_ONE
-                        && pos.see_sign (move) < VALUE_ZERO //-VALUE_MG_PAWN/2
+                    if (   predicted_depth < 4*DEPTH_ONE
+                        && pos.see_sign (move) < VALUE_ZERO
                        )
                     {
                         continue;
@@ -1293,8 +1287,8 @@ namespace Searcher {
 
                     // Before going to full depth, check whether a fail high with half the reduction
                     if (   full_depth_search
-                        && reduction_depth >= 6*DEPTH_ONE
-                        && reduction_depth >= new_depth/2
+                        && new_depth >= 12*DEPTH_ONE
+                        && new_depth < 2*reduction_depth
                        )
                     {
                         d = std::max (new_depth - reduction_depth/2, DEPTH_ONE);
@@ -1700,7 +1694,7 @@ namespace Searcher {
         }
         if (Limits.time_management_used ())
         {
-            Threadpool.main ()->previous_value = +VALUE_NONE;
+            Threadpool.main ()->previous_value = VALUE_NONE;
         }
     }
 }
@@ -2000,7 +1994,7 @@ namespace Threading {
                         if (   root_moves.size () == 1
                             || main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time *
                                                                             // Improving factor
-                                                                            std::max(0.3646, std::min(1.1385, 0.5684 + 0.1894 * (main_thread->failed_low ? 1 : 0) - 0.0095 * i32(main_thread->previous_value != +VALUE_NONE ? best_value - main_thread->previous_value : VALUE_ZERO)))))
+                                                                            std::max(0.3646, std::min(1.1385, 0.5684 + 0.1894 * (main_thread->failed_low ? 1 : 0) - 0.0095 * i32(main_thread->previous_value != VALUE_NONE ? best_value - main_thread->previous_value : VALUE_ZERO)))))
                             || (main_thread->easy_played =
                                     (  main_thread->best_move_change < 0.0300
                                     && main_thread->time_mgr.elapsed_time () > TimePoint(std::round (main_thread->time_mgr.optimum_time *
@@ -2295,15 +2289,15 @@ namespace Threading {
 
                 sync_cout << multipv_info (-VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
             }
-
-            if (Limits.time_management_used ())
-            {
-                previous_value = root_moves[0].new_value;
-            }
         }
 
         assert(!root_moves.empty ()
             && !root_moves[0].empty ());
+
+        if (Limits.time_management_used ())
+        {
+            previous_value = root_moves[0].new_value;
+        }
 
         if (LogStream.is_open ())
         {
