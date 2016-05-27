@@ -188,12 +188,10 @@ namespace Material {
 
             // Only pawns on the board
             if (   pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK) == VALUE_ZERO
-                && pos.pieces (PAWN) != 0
-               )
+                && pos.pieces (PAWN) != 0)
             {
                 if (   pos.count<PAWN> (WHITE) == 0
-                    || pos.count<PAWN> (BLACK) == 0
-                   )
+                    || pos.count<PAWN> (BLACK) == 0)
                 {
                     if (pos.count<PAWN> (BLACK) == 0)
                     {
@@ -208,8 +206,7 @@ namespace Material {
                 }
                 else
                 if (   pos.count<PAWN> (WHITE) == 1
-                    && pos.count<PAWN> (BLACK) == 1
-                   )
+                    && pos.count<PAWN> (BLACK) == 1)
                 {
                     // This is a special case because set scaling functions for both colors instead of only one.
                     e->scaling_func[WHITE] = &ScaleKPKP[WHITE];

@@ -122,7 +122,8 @@ void benchmark (istream &is, const Position &cur_pos)
         }
 
         string fen;
-        while (!ifs.eof () && std::getline (ifs, fen))
+        while (   !ifs.eof ()
+               && std::getline (ifs, fen))
         {
             if (!white_spaces (fen))
             {

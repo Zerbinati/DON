@@ -616,8 +616,7 @@ inline bool      _ok     (Move m)
     //    if (   del_f == del_r
     //        || 0 == del_f
     //        || 0 == del_r
-    //        || 5 == del_f*del_f + del_r*del_r
-    //       )
+    //        || 5 == del_f*del_f + del_r*del_r)
     //    {
     //        return true;
     //    }
@@ -747,8 +746,7 @@ inline std::string& trim_left (std::string &str)
     str.erase (str.begin (), 
                 std::find_if (str.begin (), str.end (), 
                     //[](char c) { return !std::isspace (c, std::locale ()); }
-                    std::not1 (std::ptr_fun<i32, i32> (std::isspace))
-              ));
+                    std::not1 (std::ptr_fun<i32, i32> (std::isspace))));
     return str;
 }
 inline std::string& trim_right (std::string &str)

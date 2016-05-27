@@ -60,8 +60,7 @@ namespace Transposition {
         {
             // Preserve any existing move for the position (key)
             if (   m != MOVE_NONE
-                || (k >> 0x30) != _key16
-               )
+                || (k >> 0x30) != _key16)
             {
                 _move       = u16(m);
             }
@@ -69,8 +68,7 @@ namespace Transposition {
             if (   (k >> 0x30) != _key16
                 || d > _depth - 6
              /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
-                || b == BOUND_EXACT
-               )
+                || b == BOUND_EXACT)
             {
                 _key16      = u16(k >> 0x30);
                 _value      = i16(v);
@@ -177,8 +175,7 @@ namespace Transposition {
         void clear ()
         {
             if (   !retain_hash
-                && _clusters != nullptr
-               )
+                && _clusters != nullptr)
             {
                 std::memset (_clusters, 0x00, _cluster_count * Cluster::Size);
                 _generation = 0;

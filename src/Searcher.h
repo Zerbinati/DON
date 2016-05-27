@@ -39,7 +39,7 @@ public:
 
     TimePoint start_time = 0;
 
-    bool time_management_used () const
+    bool use_time_management () const
     {
         return !infinite
             && movetime == 0
@@ -242,8 +242,7 @@ namespace Searcher {
             for (const auto &vm : MoveGen::MoveList<LEGAL> (pos))
             {
                 if (   search_moves.empty ()
-                    || std::find (search_moves.begin (), search_moves.end (), vm.move) != search_moves.end ()
-                   )
+                    || std::find (search_moves.begin (), search_moves.end (), vm.move) != search_moves.end ())
                 {
                     *this += RootMove (vm.move);
                 }

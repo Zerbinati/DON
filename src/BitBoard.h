@@ -158,7 +158,8 @@ namespace BitBoard {
         while ((del = deltas[i++]) != DEL_O)
         {
             auto sq = s + del;
-            while (_ok (sq) && dist (sq, sq - del) == 1)
+            while (   _ok (sq)
+                   && dist (sq, sq - del) == 1)
             {
                 slide_attacks += sq;
                 if ((occ & sq) != 0) break;

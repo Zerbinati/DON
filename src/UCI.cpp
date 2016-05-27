@@ -101,14 +101,17 @@ namespace UCI {
                 {
                     string name;
                     // Read option-name (can contain spaces) also consume "value" token
-                    while (iss >> token && !iss.fail () && token != "value")
+                    while (   iss >> token
+                           && !iss.fail ()
+                           && token != "value")
                     {
                         name += string (" ", !white_spaces (name) ? 1 : 0) + token;
                     }
 
                     string value;
                     // Read option-value (can contain spaces)
-                    while (iss >> token && !iss.fail ())
+                    while (   iss >> token
+                           && !iss.fail ())
                     {
                         value += string (" ", !white_spaces (value) ? 1 : 0) + token;
                     }
@@ -142,7 +145,9 @@ namespace UCI {
                 else
                 if (token == "fen")
                 {
-                    while (iss >> token && !iss.fail () && token != "moves") // Consume "moves" token if any
+                    while (   iss >> token
+                           && !iss.fail ()
+                           && token != "moves") // Consume "moves" token if any
                     {
                         fen += token + " ";
                     }
@@ -158,7 +163,8 @@ namespace UCI {
 
                 if (token == "moves")
                 {
-                    while (iss >> token && !iss.fail ())   // Parse and validate game moves (if any)
+                    while (   iss >> token
+                           && !iss.fail ())   // Parse and validate game moves (if any)
                     {
                         auto m = move_from_can (token, root_pos);
                         if (m == MOVE_NONE)
@@ -189,7 +195,8 @@ namespace UCI {
                 Limit limits;
                 limits.start_time = now (); // As early as possible!
                 i64 value;
-                while (iss >> token && !iss.fail ())
+                while (   iss >> token
+                       && !iss.fail ())
                 {
                     if (token == "wtime")      { iss >> value; limits.clock[WHITE].time = u64(abs (value)); }
                     else
@@ -216,7 +223,8 @@ namespace UCI {
                     // Parse and Validate search-moves (if any)
                     if (token == "searchmoves")
                     {
-                        while (iss >> token && !iss.fail ())
+                        while (   iss >> token
+                               && !iss.fail ())
                         {
                             auto m = move_from_can (token, root_pos);
                             if (m == MOVE_NONE)
@@ -240,8 +248,7 @@ namespace UCI {
             else
             if (   token == "quit"
                ||  token == "stop"
-               || (token == "ponderhit" && PonderhitStop)
-               )
+               || (token == "ponderhit" && PonderhitStop))
             {
                 ForceStop = true;
                 Threadpool.main ()->start_searching (true); // Could be sleeping
@@ -266,13 +273,16 @@ namespace UCI {
             //        string name;
             //        // Read name (can contain spaces)
             //        // consume "value" token
-            //        while (iss >> token && !iss.fail () && token != "code")
+            //        while (   iss >> token
+            //               && !iss.fail ()
+            //               && token != "code")
             //        {
             //            name += string (" ", !white_spaces (name) ? 1 : 0) + token;
             //        }
             //        string code;
             //        // Read code (can contain spaces)
-            //        while (iss >> token && !iss.fail ())
+            //        while (   iss >> token
+            //               && !iss.fail ())
             //        {
             //            code += string (" ", !white_spaces (code) ? 1 : 0) + token;
             //        }

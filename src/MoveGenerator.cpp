@@ -22,8 +22,7 @@ namespace MoveGen {
                 if (GT == CHECK || GT == QUIET_CHECK)
                 {
                     if (   (PT == BSHP || PT == ROOK || PT == QUEN)
-                        && (PieceAttacks[PT][s] & targets & ci->checking_bb[PT]) == 0
-                        )
+                        && (PieceAttacks[PT][s] & targets & ci->checking_bb[PT]) == 0)
                     {
                         continue;
                     }
@@ -116,18 +115,15 @@ namespace MoveGen {
             if (GT != CAPTURE)
             {
                 if (   pos.checkers () == 0
-                    && pos.can_castle (Own) != CR_NONE
-                   )
+                    && pos.can_castle (Own) != CR_NONE)
                 {
                     if (    pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE
-                        && !pos.castle_impeded (Castling<Own, CS_KING>::Right)
-                       )
+                        && !pos.castle_impeded (Castling<Own, CS_KING>::Right))
                     {
                         generate_castling_moves<GT, Castling<Own, CS_KING>::Right> (moves, pos, Own, pos.chess960 (), ci);
                     }
                     if (    pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE
-                        && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right)
-                       )
+                        && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right))
                     {
                         generate_castling_moves<GT, Castling<Own, CS_QUEN>::Right> (moves, pos, Own, pos.chess960 (), ci);
                     }
@@ -470,15 +466,13 @@ namespace MoveGen {
               PieceAttacks[KING][king_sq]
             & ~(  pos.pieces (active)
                 | checker_attacks
-                | PieceAttacks[KING][pos.square<KING> (~active)]
-               );
+                | PieceAttacks[KING][pos.square<KING> (~active)]);
 
         while (attacks != 0) { (*moves++).move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
 
         // If double-check, then only a king move can save the day, triple+ check not possible
         if (   more_than_one (checkers)
-            || pos.count<NONE> (active) == 1
-           )
+            || pos.count<NONE> (active) == 1)
         {
             return moves;
         }
@@ -508,10 +502,8 @@ namespace MoveGen {
         {
             if (   (   pinneds != 0
                     || org_sq (beg_move->move) == king_sq
-                    || mtype (beg_move->move) == ENPASSANT
-                   )
-                && !pos.legal (beg_move->move, pinneds)
-               )
+                    || mtype (beg_move->move) == ENPASSANT)
+                && !pos.legal (beg_move->move, pinneds))
             {
                 *beg_move = *(--end_move);
                 continue;

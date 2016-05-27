@@ -62,8 +62,7 @@ namespace Pawns {
         void evaluate_king_safety (const Position &pos)
         {
             if (   king_sq      [Own] != pos.square<KING> (Own)
-                || castle_rights[Own] != pos.can_castle (Own)
-               )
+                || castle_rights[Own] != pos.can_castle (Own))
             {
                 king_sq      [Own] = pos.square<KING> (Own);
                 castle_rights[Own] = pos.can_castle (Own);

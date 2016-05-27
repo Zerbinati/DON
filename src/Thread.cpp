@@ -35,8 +35,10 @@ namespace {
     // remaining_time<>() calculate the time remaining
     TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
     {
-        const auto  StepRatio = Maximum ? 7.09 : 1.00; // When in trouble, can step over reserved time with this ratio
-        const auto StealRatio = Maximum ? 0.35 : 0.00; // However must not steal time from remaining moves over this ratio
+        // When in trouble, can step over reserved time with this ratio
+        const auto  StepRatio = Maximum ? 7.09 : 1.00;
+        // However must not steal time from remaining moves over this ratio
+        const auto StealRatio = Maximum ? 0.35 : 0.00;
 
         auto  this_move_imp = std::max (move_importance (ply) * MoveSlowness, DBL_MIN);
         auto other_move_imp = 0.0;
@@ -141,10 +143,9 @@ Move SkillManager::pick_best_move (u16 pv_limit)
         for (u16 i = 0; i < pv_limit; ++i)
         {
             auto value = root_moves[i].new_value
-            // This is magic formula for push
+                        // This is magic formula for push
                        + (  weakness  * i32(max_value - root_moves[i].new_value)
-                          + diversity * i32(prng.rand<u32> () % weakness)
-                         ) / (i32(VALUE_EG_PAWN) / 2);
+                          + diversity * i32(prng.rand<u32> () % weakness)) / 128;
 
             if (best_value < value)
             {

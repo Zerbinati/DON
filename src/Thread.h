@@ -239,7 +239,8 @@ namespace Threading {
 
                 _searching = false;
 
-                while (_alive && !_searching)
+                while (   _alive
+                       && !_searching)
                 {
                     _sleep_condition.notify_one (); // Wake up main thread if needed
                     _sleep_condition.wait (lk);
@@ -332,7 +333,7 @@ inline std::ostream& operator<< (std::ostream &os, OutputState state)
     {
     case OS_LOCK  : mutex.lock ();   break;
     case OS_UNLOCK: mutex.unlock (); break;
-    default: assert(false);          break;
+    default:        assert(false);   break;
     }
     return os;
 }

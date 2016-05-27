@@ -82,7 +82,8 @@ Key Zobrist::compute_fen_key (const string &fen, bool c960) const
         iss >> noskipws;
         size_t idx;
         auto s = SQ_A8;
-        while (iss >> ch && !isspace (ch))
+        while (   iss >> ch
+               && !isspace (ch))
         {
             if (isdigit (ch))
             {
@@ -117,7 +118,8 @@ Key Zobrist::compute_fen_key (const string &fen, bool c960) const
         iss >> ch;
         if (c960)
         {
-            while ((iss >> ch) && !isspace (ch))
+            while (   iss >> ch
+                   && !isspace (ch))
             {
                 auto c = isupper (ch) ? WHITE : BLACK;
                 auto sym = char(tolower (ch));
@@ -133,7 +135,8 @@ Key Zobrist::compute_fen_key (const string &fen, bool c960) const
         }
         else
         {
-            while ((iss >> ch) && !isspace (ch))
+            while (   iss >> ch
+                   && !isspace (ch))
             {
                 auto c = isupper (ch) ? WHITE : BLACK;
                 switch (char(toupper (ch)))
@@ -147,8 +150,7 @@ Key Zobrist::compute_fen_key (const string &fen, bool c960) const
 
         u08 file, rank;
         if (   (iss >> file && (file >= 'a' && file <= 'h'))
-            && (iss >> rank && (rank == '3' || rank == '6'))
-           )
+            && (iss >> rank && (rank == '3' || rank == '6')))
         {
             fen_key ^= en_passant[to_file (file)];
         }

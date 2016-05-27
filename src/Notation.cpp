@@ -169,8 +169,7 @@ namespace Notation {
             san += to_string (dst);
 
             if (   pt == PAWN
-                && mtype (m) == PROMOTE
-               )
+                && mtype (m) == PROMOTE)
             {
                 san += "=";
                 san += PieceChar[WHITE|promote (m)]; // Uppercase (White)

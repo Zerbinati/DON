@@ -61,8 +61,7 @@ namespace MovePick {
         _stage = _pos.checkers () != 0 ? S_EVASION : S_MAIN;
 
         if (   _tt_move != MOVE_NONE
-            && !_pos.pseudo_legal (_tt_move)
-           )
+            && !_pos.pseudo_legal (_tt_move))
         {
             _tt_move = MOVE_NONE;
         }
@@ -99,8 +98,7 @@ namespace MovePick {
         }
 
         if (   _tt_move != MOVE_NONE
-            && !_pos.pseudo_legal (_tt_move)
-           )
+            && !_pos.pseudo_legal (_tt_move))
         {
             _tt_move = MOVE_NONE;
         }
@@ -121,9 +119,7 @@ namespace MovePick {
         if (   _tt_move != MOVE_NONE
             && (   !_pos.pseudo_legal (_tt_move)
                 || !_pos.capture (_tt_move)
-                || _pos.see (_tt_move) <= _threshold
-               )
-           )
+                || _pos.see (_tt_move) <= _threshold))
         {
             _tt_move = MOVE_NONE;
         }
@@ -284,8 +280,7 @@ namespace MovePick {
     {
         do {
             while (   _stage != S_STOP
-                   && _cur_move == _end_move
-                  )
+                   && _cur_move == _end_move)
             {
                 generate_next_stage ();
             }
@@ -327,8 +322,7 @@ namespace MovePick {
                     if (   move != MOVE_NONE
                         && move != _tt_move
                         && _pos.pseudo_legal (move)
-                        && !_pos.capture (move)
-                       )
+                        && !_pos.capture (move))
                     {
                         return move;
                     }
@@ -339,8 +333,8 @@ namespace MovePick {
                 do {
                     auto move = pick_best (_cur_move++, _end_move).move;
                     if (   move != _tt_move
-                        && std::find (_killer_moves, _killer_moves + Killers + 1, move) == _killer_moves + Killers + 1 // Not killer move
-                       )
+                        // Not killer move
+                        && std::find (_killer_moves, _killer_moves + Killers + 1, move) == _killer_moves + Killers + 1)
                     {
                         assert(move != MOVE_NONE);
                         return move;
@@ -382,8 +376,7 @@ namespace MovePick {
                 do {
                     auto move = pick_best (_cur_move++, _end_move).move;
                     if (   move != _tt_move
-                        && _pos.see (move) > _threshold
-                       )
+                        && _pos.see (move) > _threshold)
                     {
                         assert(move != MOVE_NONE);
                         return move;

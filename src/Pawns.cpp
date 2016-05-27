@@ -76,8 +76,8 @@ namespace Pawns {
         const Score Levered[R_NO]   = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
         // Unsupported pawn penalty for pawns which are neither isolated or backward, by number of pawns it supports [0, 1, 2].
         const Score Unsupported[3]  = { S(17, 8), S(18, 9), S(21,12) };
-        // Doubled pawn penalty
-        const Score Doubled         = S(18,38);
+        // Blocked pawn penalty
+        const Score Blocked         = S(18,38);
         // Unstopped pawn bonus for pawns going to promote
         const Score Unstopped       = S( 0,20);
 
@@ -121,7 +121,7 @@ namespace Pawns {
                 Bitboard phalanx    = adjacents & rank_bb (s);
                 Bitboard supported  = adjacents & rank_bb (s-Push);
                 Bitboard stoppers   = opp_pawns & PawnPassSpan[Own][s];
-                bool doubled        = (own_pawns & (s+Push)) != 0;
+                bool blocked        = (own_pawns & (s+Push)) != 0;
                 bool opposed        = (opp_pawns & FrontSqrs_bb[Own][s]) != 0;
                 bool connected      = (phalanx) != 0 || (supported) != 0;
                 bool levered        = (opp_pawns & PawnAttacks[Own][s]) != 0;
@@ -133,8 +133,7 @@ namespace Pawns {
                 // If it is sufficiently advanced (Rank 6), then it cannot be backward either.
                 if (   adjacents == 0
                     || levered 
-                    || rel_rank (Own, s) >= R_6
-                   )
+                    || rel_rank (Own, s) >= R_6)
                 {
                     backward = false;
                 }
@@ -190,9 +189,9 @@ namespace Pawns {
                     score += Levered[rel_rank (Own, s)];
                 }
 
-                if (doubled)
+                if (blocked)
                 {
-                    score -= Doubled;
+                    score -= Blocked;
                 }
 
                 // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.

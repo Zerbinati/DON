@@ -98,8 +98,7 @@ namespace Transposition {
         mem_size  = cluster_count * Cluster::Size;
 
         if (   cluster_count != _cluster_count
-            || force
-           )
+            || force)
         {
             free_aligned_memory ();
 
@@ -136,13 +135,11 @@ namespace Transposition {
         for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
         {
             if (   ite->_key16 == 0
-                || ite->_key16 == key16
-               )
+                || ite->_key16 == key16)
             {
                 tt_hit = ite->_key16 == key16;
                 if (   tt_hit
-                    && ite->gen () != _generation
-                   )
+                    && ite->gen () != _generation)
                 {
                     ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
                 }

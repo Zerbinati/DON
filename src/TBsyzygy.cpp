@@ -324,8 +324,7 @@ namespace TBSyzygy {
 
             u08 i = 0;
             while (   i < MaxHash
-                   && TB_Hash[hash_idx][i].tbe != nullptr
-                  )
+                   && TB_Hash[hash_idx][i].tbe != nullptr)
             {
                 ++i;
             }
@@ -452,8 +451,7 @@ namespace TBSyzygy {
                 tbep->pawns[0] = pcs[(WHITE|PAWN) + 1];
                 tbep->pawns[1] = pcs[(BLACK|PAWN) + 1];
                 if (   pcs[(BLACK|PAWN) + 1] > 0
-                    && (pcs[(WHITE|PAWN) + 1] == 0 || pcs[(WHITE|PAWN) + 1] > pcs[(BLACK|PAWN) + 1])
-                   )
+                    && (pcs[(WHITE|PAWN) + 1] == 0 || pcs[(WHITE|PAWN) + 1] > pcs[(BLACK|PAWN) + 1]))
                 {
                     tbep->pawns[0] = pcs[(BLACK|PAWN) + 1];
                     tbep->pawns[1] = pcs[(WHITE|PAWN) + 1];
@@ -1326,8 +1324,7 @@ namespace TBSyzygy {
             if (   data[0] != WDL_Magic[0]
                 || data[1] != WDL_Magic[1]
                 || data[2] != WDL_Magic[2]
-                || data[3] != WDL_Magic[3]
-               )
+                || data[3] != WDL_Magic[3])
             {
                 std::cout << "Corrupted table." << std::endl;
                 unmap_file (tbe->data, tbe->mapping);
@@ -1456,8 +1453,7 @@ namespace TBSyzygy {
             if (   data[0] != DTZ_Magic[0]
                 || data[1] != DTZ_Magic[1]
                 || data[2] != DTZ_Magic[2]
-                || data[3] != DTZ_Magic[3]
-               )
+                || data[3] != DTZ_Magic[3])
             {
                 std::cout << "Corrupted table." << std::endl;
                 return false;
@@ -1979,8 +1975,7 @@ namespace TBSyzygy {
             Key matl_key = pos.matl_key ();
 
             if (   DTZ_Table[0].key1 != matl_key
-                && DTZ_Table[0].key2 != matl_key
-               )
+                && DTZ_Table[0].key2 != matl_key)
             {
                 u08 i;
                 for (i = 1; i < DTZ_Entries; ++i)
@@ -2120,8 +2115,7 @@ namespace TBSyzygy {
             {
                 auto move = cur_move->move;
                 if (   mtype (move) == PROMOTE
-                    && !pos.empty (dst_sq (move))
-                   )
+                    && !pos.empty (dst_sq (move)))
                 {
                     (*extra++).move = Move(move - (NIHT << 12));
                     (*extra++).move = Move(move - (BSHP << 12));
@@ -2157,8 +2151,7 @@ namespace TBSyzygy {
                 auto move = cur_move->move;
                 if (   !pos.capture (move)
                     || mtype (move) == ENPASSANT
-                    || !pos.legal (move, ci.pinneds)
-                   )
+                    || !pos.legal (move, ci.pinneds))
                 {
                     continue;
                 }
@@ -2223,8 +2216,7 @@ namespace TBSyzygy {
                     auto move = cur_move->move;
                     if (   ptype (pos[org_sq (move)]) != PAWN
                         || pos.capture (move)
-                        || !pos.legal (move, ci.pinneds)
-                       )
+                        || !pos.legal (move, ci.pinneds))
                     {
                         continue;
                     }
@@ -2259,8 +2251,7 @@ namespace TBSyzygy {
                     auto move = cur_move->move;
                     if (   pos.capture (move)
                         || ptype (pos[org_sq (move)]) == PAWN
-                        || !pos.legal (move, ci.pinneds)
-                       )
+                        || !pos.legal (move, ci.pinneds))
                     {
                         continue;
                     }
@@ -2415,8 +2406,7 @@ namespace TBSyzygy {
         {
             auto move = cur_move->move;
             if (   mtype (move) != ENPASSANT
-                || !pos.legal (move, ci.pinneds)
-               )
+                || !pos.legal (move, ci.pinneds))
             {
                 continue;
             }
@@ -2478,15 +2468,13 @@ namespace TBSyzygy {
                 {
                     auto move = cur_move->move;
                     if (   mtype (move) != ENPASSANT
-                        && pos.legal (move, ci.pinneds)
-                       )
+                        && pos.legal (move, ci.pinneds))
                     {
                         break;
                     }
                 }
                 if (   cur_move == end_move
-                    && pos.checkers () == 0
-                   )
+                    && pos.checkers () == 0)
                 {
                     end_move = generate<QUIET> (end_move, pos);
                     for (; cur_move < end_move; ++cur_move)
@@ -2540,8 +2528,7 @@ namespace TBSyzygy {
         {
             auto move = cur_move->move;
             if (   mtype (move) != ENPASSANT
-                || !pos.legal (move, ci.pinneds)
-               )
+                || !pos.legal (move, ci.pinneds))
             {
                 continue;
             }
@@ -2570,15 +2557,13 @@ namespace TBSyzygy {
                 {
                     auto move = cur_move->move;
                     if (   mtype (move) != ENPASSANT
-                        && pos.legal (move, ci.pinneds)
-                       )
+                        && pos.legal (move, ci.pinneds))
                     {
                         break;
                     }
                 }
                 if (   cur_move == end_move
-                    && pos.checkers () == 0
-                   )
+                    && pos.checkers () == 0)
                 {
                     end_move = generate<QUIET> (end_move, pos);
                     for (; cur_move < end_move; ++cur_move)
@@ -2705,8 +2690,7 @@ namespace TBSyzygy {
             // If the current phase has not seen repetitions, then try all moves
             // that stay safely within the 50-move budget, if there are any.
             if (   !has_repeated (si.ptr)
-                && best_value + clock_ply <= 99
-               )
+                && best_value + clock_ply <= 99)
             {
                 best_value = Value(99 - clock_ply);
             }
@@ -2826,8 +2810,7 @@ namespace TBSyzygy {
 
         convert_path (PathString);
         if (   !white_spaces (PathString)
-            && PathString != "<empty>"
-           )
+            && PathString != "<empty>")
         {
             Paths = split (PathString, SepChar, false, true);
 

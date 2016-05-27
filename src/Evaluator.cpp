@@ -51,8 +51,7 @@ namespace Evaluator {
                 if (   term == Term(PAWN)
                     || term == MATERIAL
                     || term == IMBALANCE
-                    || term == TOTAL
-                   )
+                    || term == TOTAL)
                 {
                     os << " | ----- ----- | ----- ----- | ";
                 }
@@ -335,8 +334,7 @@ namespace Evaluator {
                 {
                     attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
                                  | ei.pin_attacked_by[Opp][BSHP]
-                                 | ei.pin_attacked_by[Opp][ROOK]
-                                );
+                                 | ei.pin_attacked_by[Opp][ROOK]);
                 }
 
                 i32 mob = pop_count (attacks & mobility_area);
@@ -352,8 +350,7 @@ namespace Evaluator {
 
                     // Bonus for minors (bishop or knight) when behind a pawn
                     if (   rel_rank (Own, s) < R_5
-                        && (pos.pieces (PAWN) & (s+Push)) != 0
-                       )
+                        && (pos.pieces (PAWN) & (s+Push)) != 0)
                     {
                         score += MinorBehindPawn;
                     }
@@ -397,8 +394,7 @@ namespace Evaluator {
                         score -= BishopPawns * ei.pe->pawns_on_squarecolor<Own> (s);
 
                         if (   rel_sq (Own, s) == SQ_A8
-                            || rel_sq (Own, s) == SQ_H8
-                           )
+                            || rel_sq (Own, s) == SQ_H8)
                         {
                             auto del = (F_A == _file (s) ? DEL_E : DEL_W)-Push;
                             if (pos[s + del] == (Own|PAWN))
@@ -413,8 +409,7 @@ namespace Evaluator {
                             // It is a very serious problem, especially when that pawn is also blocked.
                             // Bishop on a1/h1 or a8/h8 (white or black) which is trapped by own pawn on b2/g2 or b7/g7 (white or black).
                             if (   rel_sq (Own, s) == SQ_A1
-                                || rel_sq (Own, s) == SQ_H1
-                               )
+                                || rel_sq (Own, s) == SQ_H1)
                             {
                                 auto del = (F_A == _file (s) ? DEL_E : DEL_W)+Push;
                                 if (pos[s+del] == (Own|PAWN))
@@ -449,8 +444,7 @@ namespace Evaluator {
                         // Rooks trapped by own king, more if the king has lost its castling capability.
                         if (   (_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq))
                             && (rel_rank (Own, fk_sq) == R_1 || _rank (fk_sq) == _rank (s))
-                            && !ei.pe->side_semiopen<Own> (_file (fk_sq), _file (s) < _file (fk_sq))
-                           )
+                            && !ei.pe->side_semiopen<Own> (_file (fk_sq), _file (s) < _file (fk_sq)))
                         {
                             score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
                         }
@@ -482,20 +476,17 @@ namespace Evaluator {
             Value value = ei.pe->king_safety[Own][CS_NO];
             // If can castle use the value after the castle if is bigger
             if (   rel_rank (Own, fk_sq) == R_1
-                && pos.can_castle (Own) != CR_NONE
-               )
+                && pos.can_castle (Own) != CR_NONE)
             {
                 if (    pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE
                     && (pos.king_path (Castling<Own, CS_KING>::Right) & ei.ful_attacked_by[Opp][NONE]) == 0
-                    && (pos.castle_path (Castling<Own, CS_KING>::Right) & pos.pieces ()) == 0
-                   )
+                    && (pos.castle_path (Castling<Own, CS_KING>::Right) & pos.pieces ()) == 0)
                 {
                     value = std::max (ei.pe->king_safety[Own][CS_KING], value);
                 }
                 if (    pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE
                     && (pos.king_path (Castling<Own, CS_QUEN>::Right) & ei.ful_attacked_by[Opp][NONE]) == 0
-                    && (pos.castle_path (Castling<Own, CS_QUEN>::Right) & pos.pieces ()) == 0
-                   )
+                    && (pos.castle_path (Castling<Own, CS_QUEN>::Right) & pos.pieces ()) == 0)
                 {
                     value = std::max (ei.pe->king_safety[Own][CS_QUEN], value);
                 }
@@ -514,8 +505,7 @@ namespace Evaluator {
                         | ei.pin_attacked_by[Own][NIHT]
                         | ei.pin_attacked_by[Own][BSHP]
                         | ei.pin_attacked_by[Own][ROOK]
-                        | ei.pin_attacked_by[Own][QUEN]
-                       );
+                        | ei.pin_attacked_by[Own][QUEN]);
 
                 // ... and those which are not defended at all in the king ring
                 Bitboard king_ring_undef =
@@ -559,9 +549,7 @@ namespace Evaluator {
                             if (   (unsafe & sq) != 0
                                 || (  pos.count<QUEN> (Opp) > 1
                                     && more_than_one (pos.pieces (Opp, QUEN) & (PieceAttacks[QUEN][sq]))
-                                    && more_than_one (pos.pieces (Opp, QUEN) & (attacks_bb<QUEN> (sq, pos.pieces () ^ pos.pieces (Opp, QUEN))))
-                                   )
-                               )
+                                    && more_than_one (pos.pieces (Opp, QUEN) & (attacks_bb<QUEN> (sq, pos.pieces () ^ pos.pieces (Opp, QUEN))))))
                             {
                                 attack_units += QueenContactCheckUnit;
                             }
@@ -654,8 +642,7 @@ namespace Evaluator {
             Bitboard b =
                   (pos.pieces (Opp) ^ pos.pieces (Opp, QUEN, KING))
                 & ~(  ei.pin_attacked_by[Own][NONE]
-                    | ei.pin_attacked_by[Opp][NONE]
-                   );
+                    | ei.pin_attacked_by[Opp][NONE]);
             score += PieceLoosed * pop_count (b);
 
             // Non-pawn enemies attacked by any friendly pawn
@@ -667,8 +654,7 @@ namespace Evaluator {
                 // Safe Pawns
                 b = pos.pieces (Own, PAWN)
                   & ( ~ei.pin_attacked_by[Opp][NONE]
-                     | ei.pin_attacked_by[Own][NONE]
-                    );
+                     | ei.pin_attacked_by[Own][NONE]);
                 // Safe Pawn threats
                 b = weak_nonpawns & (shift_bb<RCap>(b) | shift_bb<LCap>(b));
                 score += HangingPawnThreat * pop_count (weak_nonpawns ^ b);
@@ -727,8 +713,7 @@ namespace Evaluator {
             b &= ~pos.pieces ()
               &  ~ei.pin_attacked_by[Opp][PAWN]
               &  ( ~ei.pin_attacked_by[Opp][NONE]
-                  | ei.pin_attacked_by[Own][NONE]
-                 );
+                  | ei.pin_attacked_by[Own][NONE]);
             // Safe pawn pushes attacks an enemy piece
             b =  (shift_bb<LCap> (b) | shift_bb<RCap> (b))
               &   pos.pieces (Opp)
@@ -876,8 +861,7 @@ namespace Evaluator {
                 & ~pos.pieces (Own, PAWN)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 & (   ei.pin_attacked_by[Own][NONE]
-                   | ~ei.pin_attacked_by[Opp][NONE]
-                  );
+                   | ~ei.pin_attacked_by[Opp][NONE]);
 
             // Since SpaceMask is fully on our half of the board
             assert(u32(safe_space >> (Own == WHITE ? 32 : 0)) == 0);
@@ -929,16 +913,14 @@ namespace Evaluator {
             // If don't already have an unusual scale factor, check for certain
             // types of endgames, and use a lower scale for those.
             if (   ei.me->game_phase < PHASE_MIDGAME
-                && (scale_factor == SCALE_FACTOR_NORMAL || scale_factor == SCALE_FACTOR_ONEPAWN)
-               )
+                && (scale_factor == SCALE_FACTOR_NORMAL || scale_factor == SCALE_FACTOR_ONEPAWN))
             {
                 if (pos.opposite_bishops ())
                 {
                     // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
                     // is almost a draw, in case of KBP vs KB is even more a draw.
                     if (   pos.non_pawn_material (WHITE) == VALUE_MG_BSHP
-                        && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP
-                       )
+                        && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
                     {
                         auto pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
                         scale_factor = ScaleFactor(pawn_diff != 0 ? 12 * pawn_diff : 8);
@@ -954,8 +936,7 @@ namespace Evaluator {
                 else
                 if (    abs (eg) <= VALUE_EG_BSHP
                     &&  ei.pe->pawn_span[strong_side] <= 1
-                    && !pos.passed_pawn (~strong_side, pos.square<KING> (~strong_side))
-                   )
+                    && !pos.passed_pawn (~strong_side, pos.square<KING> (~strong_side)))
                 {
                     scale_factor = ei.pe->pawn_span[strong_side] != 0 ? ScaleFactor(51) : ScaleFactor(37);
                 }
@@ -1060,11 +1041,8 @@ namespace Evaluator {
             - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
 
         // If in the opening phase
-        if (   pos.non_pawn_material (WHITE)
-            +  pos.non_pawn_material (BLACK)
-             >= VALUE_SPACE
-            && (pos.count<NIHT> () + pos.count<BSHP> ()) != 0
-           )
+        if (   pos.non_pawn_material (WHITE) +  pos.non_pawn_material (BLACK) >= VALUE_SPACE
+            && pos.count<NIHT> () + pos.count<BSHP> () != 0)
         {
             // Evaluate space activity
             score +=
@@ -1074,8 +1052,7 @@ namespace Evaluator {
         else
         // If both sides have only pawns
         if (   pos.non_pawn_material (WHITE) == VALUE_ZERO
-            && pos.non_pawn_material (BLACK) == VALUE_ZERO
-           )
+            && pos.non_pawn_material (BLACK) == VALUE_ZERO)
         {
             // Evaluate potential unstoppable pawns
             score +=
