@@ -31,10 +31,6 @@ bool _ok (const string &fen, bool c960, bool full)
     return pos.ok ();
 }
 
-const size_t StateInfo::Size = sizeof (StateInfo);
-
-const size_t Position::Size = sizeof (Position);
-
 u08 Position::DrawClockPly = 100;
 
 void Position::initialize ()
@@ -965,7 +961,7 @@ bool Position::setup (const string &fen_str, StateInfo &si, Thread *const th, bo
     iss >> std::noskipws;
 
     clear ();
-    std::memset (&si, 0x00, StateInfo::Size);
+    std::memset (&si, 0x00, sizeof (StateInfo));
     _si = &si;
 
     u08 ch;
@@ -1457,7 +1453,7 @@ void Position::do_null_move (StateInfo &si)
     assert(checkers () == 0);
 
     // Full copy here
-    std::memcpy (&si, _si, StateInfo::Size);
+    std::memcpy (&si, _si, sizeof (StateInfo));
     // Point state pointer to point to the new state.
     si.ptr = _si;
     _si    = &si;

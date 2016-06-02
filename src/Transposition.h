@@ -36,8 +36,6 @@ namespace Transposition {
         friend class Table;
 
     public:
-        static const u08 Size;
-
         u16   key16 () const { return u16  (_key16); }
         Move  move  () const { return Move (_move);  }
         Value value () const { return Value(_value); }
@@ -76,7 +74,6 @@ namespace Transposition {
     public:
         // Cluster entry count
         static const u08 EntryCount = 3;
-        static const u08 Size;
 
         Entry entries[EntryCount];
         char padding[2]; // Align to a divisor of the cache line size
@@ -155,7 +152,7 @@ namespace Transposition {
         // size() returns hash size in MB
         u32 size () const
         {
-            return u32((_cluster_count * Cluster::Size) >> 20);
+            return u32((_cluster_count * 32) >> 20);
         }
 
         // clear() overwrites the entire transposition table with zeroes.
@@ -167,7 +164,7 @@ namespace Transposition {
             if (   !retain_hash
                 && _clusters != nullptr)
             {
-                std::memset (_clusters, 0x00, _cluster_count * Cluster::Size);
+                std::memset (_clusters, 0x00, _cluster_count * sizeof (Cluster));
                 _generation = 0;
                 sync_cout << "info string Hash cleared" << sync_endl;
             }
@@ -235,7 +232,7 @@ namespace Transposition {
             u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
-                os.write (reinterpret_cast<const CharT*> (tt._clusters+i*BufferSize), Cluster::Size*BufferSize);
+                os.write (reinterpret_cast<const CharT*> (tt._clusters+i*BufferSize), sizeof (Cluster)*BufferSize);
             }
             return os;
         }
@@ -258,7 +255,7 @@ namespace Transposition {
             u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
-                is.read (reinterpret_cast<CharT*> (tt._clusters+i*BufferSize), Cluster::Size*BufferSize);
+                is.read (reinterpret_cast<CharT*> (tt._clusters+i*BufferSize), sizeof (Cluster)*BufferSize);
             }
             return is;
         }

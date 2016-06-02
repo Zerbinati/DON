@@ -30,8 +30,6 @@ extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 struct StateInfo
 {
 public:
-    static const size_t Size;
-
     // Copied when making a move
     Key         matl_key;   //= 0;          // Hash key of materials.
     Key         pawn_key;   //= 0;          // Hash key of pawns.
@@ -98,7 +96,6 @@ namespace Threading {
 class Position
 {
 private:
-
     Piece       _board[SQ_NO];  // Board for storing pieces.
 
     Bitboard    _color_bb[CLR_NO];
@@ -138,8 +135,6 @@ private:
     PieceType pick_least_val_att (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const;
 
 public:
-    static const size_t Size;
-
     static u08  DrawClockPly;
 
     static void initialize ();

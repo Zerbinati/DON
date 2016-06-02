@@ -699,9 +699,9 @@ namespace Evaluator {
             }
 
             // Loose enemies (except Queen and King)
-            b =   (pos.pieces (Opp) ^ pos.pieces (Opp, QUEN, KING))
-                & ~(  ei.pin_attacked_by[Own][NONE]
-                    | ei.pin_attacked_by[Opp][NONE]);
+            b = (pos.pieces (Opp) ^ pos.pieces (Opp, QUEN, KING))
+              & ~(  ei.pin_attacked_by[Own][NONE]
+                  | ei.pin_attacked_by[Opp][NONE]);
             score += PieceLoosed * pop_count (b);
 
             // Bonus if some friendly pawns can safely push and attack an enemy piece
@@ -713,9 +713,9 @@ namespace Evaluator {
               &  ( ~ei.pin_attacked_by[Opp][NONE]
                   | ei.pin_attacked_by[Own][NONE]);
             // Safe pawn pushes attacks an enemy piece
-            b =  (shift_bb<LCap> (b) | shift_bb<RCap> (b))
-              &   pos.pieces (Opp)
-              &  ~ei.pin_attacked_by[Own][PAWN];
+            b = (shift_bb<LCap> (b) | shift_bb<RCap> (b))
+              &  pos.pieces (Opp)
+              & ~ei.pin_attacked_by[Own][PAWN];
             score += PawnPushThreat * pop_count (b);
 
             if (Trace)
@@ -852,7 +852,7 @@ namespace Evaluator {
             // if it is attacked by an enemy pawn or
             // if it is undefended and attacked by an enemy piece.
             Bitboard safe_space =
-                   SpaceMask
+                  SpaceMask
                 & ~pos.pieces (Own, PAWN)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 & (   ei.pin_attacked_by[Own][NONE]
@@ -886,10 +886,8 @@ namespace Evaluator {
         {
             auto king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
                            - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
-
             // Compute the initiative bonus for the attacking side
             auto initiative = 8 * (asymmetry + king_dist) + 12 * pos.count<PAWN> () - 120;
-
             // Now apply the bonus: note that we find the attacking side by extracting
             // the sign of the endgame value, and that we carefully cap the bonus so
             // that the endgame score will never be divided by more than two.
@@ -904,7 +902,6 @@ namespace Evaluator {
             const auto strong_side = eg >= VALUE_ZERO ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
             auto scale_factor = ei.me->scale_factor (pos, strong_side);
-
             // If don't already have an unusual scale factor, check for certain
             // types of endgames, and use a lower scale for those.
             if (   ei.me->game_phase < PHASE_MIDGAME
@@ -929,8 +926,8 @@ namespace Evaluator {
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 else
-                if (    abs (eg) <= VALUE_EG_BSHP
-                    &&  ei.pe->pawn_span[strong_side] <= 1
+                if (   abs (eg) <= VALUE_EG_BSHP
+                    && ei.pe->pawn_span[strong_side] <= 1
                     && !pos.passed_pawn (~strong_side, pos.square<KING> (~strong_side)))
                 {
                     scale_factor = ei.pe->pawn_span[strong_side] != 0 ? ScaleFactor(51) : ScaleFactor(37);
@@ -1092,10 +1089,8 @@ namespace Evaluator {
     string trace   (const Position &pos)
     {
         std::memset (cp, 0x00, sizeof (cp));
-
-        auto value = pos.active () == WHITE ?  // White's point of view
-            +evaluate<true> (pos) :
-            -evaluate<true> (pos);
+        // White's point of view
+        auto value = (pos.active () == WHITE ? +1 : -1)*evaluate<true> (pos);
 
         ostringstream oss;
         oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed

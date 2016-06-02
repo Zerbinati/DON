@@ -33,8 +33,6 @@ namespace Searcher {
     using namespace Notation;
     using namespace Debugger;
 
-    //const size_t Stack::Size = sizeof (Stack);
-
     Limit  Limits;
 
     atomic_bool
@@ -449,11 +447,10 @@ namespace Searcher {
                 }
 
                 best_value = tt_eval;
-                futility_base = best_value + 128; // QS Futility Margin
+                futility_base = best_value + 128;
             }
 
             auto *thread = pos.thread ();
-            //auto *main_thread = Threadpool.main () == thread ? Threadpool.main () : nullptr;
             auto best_move = MOVE_NONE;
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
@@ -488,7 +485,8 @@ namespace Searcher {
                     && futility_base <= alfa
                     && !pos.advanced_pawn_push (move))
                 {
-                    assert(mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
+                    // Due to !pos.advanced_pawn_push()
+                    assert(mtype (move) != ENPASSANT);
 
                     // Futility pruning parent node
                     auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst])];
@@ -591,7 +589,8 @@ namespace Searcher {
             if (   InCheck
                 && best_value == -VALUE_INFINITE)
             {
-                return mated_in (ss->ply); // Plies to mate from the root
+                // Plies to mate from the root
+                return mated_in (ss->ply);
             }
 
             if (   tt_hit
@@ -1486,7 +1485,7 @@ namespace Searcher {
             if (   !tt_hit
                 || tte->move () != m)
             {
-                tte->save (pos.posi_key (), m, VALUE_NONE, /*pos.checkers () != 0 ?*/ VALUE_NONE /*: evaluate (pos)*/, DEPTH_NONE, BOUND_NONE, TT.generation ());
+                tte->save (pos.posi_key (), m, VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.generation ());
             }
             pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
             ++ply;
@@ -1891,13 +1890,13 @@ namespace Threading {
                 leaf_depth = root_depth;
             }
 
-            //if (   ContemptValue != 0
-            //    && !root_moves.empty ())
-            //{
-            //    auto valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
-            //    DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] - valued_contempt;
-            //    DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] + valued_contempt;
-            //}
+            if (   ContemptValue != 0
+                && !root_moves.empty ())
+            {
+                auto valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
+                DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] - valued_contempt;
+                DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] + valued_contempt;
+            }
 
             if (main_thread != nullptr)
             {
@@ -2175,13 +2174,11 @@ namespace Threading {
         {
             // Stop the threads if not already stopped.
             ForceStop = true;
-
             // Wait until all threads have finished.
             for (size_t i = 1; i < Threadpool.size (); ++i)
             {
                 Threadpool[i]->wait_while_searching ();
             }
-
             // Check if there are deeper thread than main thread.
             Thread *best_thread = this;
             if (   PVLimit == 1

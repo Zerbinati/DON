@@ -14,22 +14,16 @@ namespace Transposition {
 
     const u08 CacheLineSize = 64;
 
-    // Size of Transposition entry (bytes)
-    // 10 bytes
-    const u08 Entry::Size = sizeof (Entry);
-    static_assert (Entry::Size == 10, "Entry size incorrect");
-    // Size of Transposition cluster in (bytes)
-    // 32 bytes
-    const u08 Cluster::Size = sizeof (Cluster);
-    static_assert (CacheLineSize % Cluster::Size == 0, "Cluster size incorrect");
-    // Minimum size of Transposition table (mega-byte)
-    // 4 MB
+    // Size of Transposition entry (10 bytes)
+    static_assert (sizeof (Entry) == 10, "Entry size incorrect");
+    // Size of Transposition cluster (32 bytes)
+    static_assert (CacheLineSize % sizeof (Cluster) == 0, "Cluster size incorrect");
+    // Minimum size of Transposition table (4 MB)
     const u32 Table::MinSize = 4;
-    // Maximum size of Transposition table (mega-byte)
-    // 1048576 MB = 1048 GB = 1 TB
+    // Maximum size of Transposition table (1048576 MB = 1048 GB = 1 TB)
     const u32 Table::MaxSize =
     #if defined(BIT64)
-        (U64(1) << (MaxHashBit-1 - 20)) * Cluster::Size;
+        (U64(1) << (MaxHashBit-1 - 20)) * sizeof (Cluster);
     #else
         2048;
     #endif
@@ -90,12 +84,12 @@ namespace Transposition {
         if (mem_size_mb > MaxSize) mem_size_mb = MaxSize;
 
         size_t mem_size = size_t(mem_size_mb) << 20; // mem_size_mb * 1024 * 1024
-        u08 hash_bit = BitBoard::scan_msq (mem_size / Cluster::Size);
+        u08 hash_bit = BitBoard::scan_msq (mem_size / sizeof (Cluster));
         assert(hash_bit < MaxHashBit);
 
         size_t cluster_count = size_t(1) << hash_bit;
 
-        mem_size  = cluster_count * Cluster::Size;
+        mem_size  = cluster_count * sizeof (Cluster);
 
         if (   cluster_count != _cluster_count
             || force)

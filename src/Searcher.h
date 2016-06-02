@@ -122,8 +122,6 @@ namespace Searcher {
     // has its own array of Stack objects, indexed by the current ply.
     struct Stack
     {
-        //static const size_t Size;
-
         i16 ply = 0;
         Move current_move = MOVE_NONE
            , exclude_move = MOVE_NONE
