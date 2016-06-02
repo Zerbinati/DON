@@ -453,7 +453,7 @@ namespace MoveGen {
         {
             check_sq = pop_lsq (sliders);
             assert(color (pos[check_sq]) == ~active);
-            checker_attacks |= (attacks_bb (pos[check_sq], check_sq, pos.pieces ()) | RayLine_bb[check_sq][king_sq]) - check_sq;
+            checker_attacks |= (attacks_bb (pos[check_sq], check_sq, pos.pieces ()) | rayline_bb (check_sq, king_sq)) - check_sq;
         }
         if (check_sq == SQ_NO)
         {
@@ -478,7 +478,7 @@ namespace MoveGen {
         }
 
         // Generates blocking evasions or captures of the checking piece
-        auto targets = Between_bb[check_sq][king_sq] + check_sq;
+        auto targets = between_bb (check_sq, king_sq) + check_sq;
 
         return active == WHITE ? generate_moves<EVASION, WHITE> (moves, pos, targets) :
                active == BLACK ? generate_moves<EVASION, BLACK> (moves, pos, targets) :

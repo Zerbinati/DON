@@ -127,7 +127,7 @@ namespace BitBoard {
     Bitboard    Between_bb[SQ_NO][SQ_NO];
     Bitboard    RayLine_bb[SQ_NO][SQ_NO];
 
-    Bitboard  DistRings_bb[SQ_NO][F_NO];
+    Bitboard  DistRings_bb[SQ_NO][8];
 
     // Span of the attacks of pawn
     Bitboard PawnAttackSpan[CLR_NO][SQ_NO];

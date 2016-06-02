@@ -50,7 +50,7 @@ namespace BitBoard {
     extern Bitboard     Between_bb[SQ_NO][SQ_NO];
     extern Bitboard     RayLine_bb[SQ_NO][SQ_NO];
 
-    extern Bitboard   DistRings_bb[SQ_NO][F_NO];
+    extern Bitboard   DistRings_bb[SQ_NO][8];
 
     extern Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
     extern Bitboard   PawnPassSpan[CLR_NO][SQ_NO];
@@ -109,18 +109,28 @@ namespace BitBoard {
 
     // ----------------------------------------------------
 
+    inline Bitboard file_bb (File f) { return File_bb[f]; }
     inline Bitboard file_bb (Square s) { return File_bb[_file (s)]; }
 
+    inline Bitboard rank_bb (Rank r) { return Rank_bb[r]; }
     inline Bitboard rank_bb (Square s) { return Rank_bb[_rank (s)]; }
 
-    //inline Bitboard rel_rank_bb (Color c, Rank r) { return Rank_bb[rel_rank (c, r)]; }
-    //inline Bitboard rel_rank_bb (Color c, Square s) { return Rank_bb[rel_rank (c, s)]; }
+    inline Bitboard front_rank_bb (Color c, Square s) { return FrontRank_bb[c][_rank (s)]; }
+    inline Bitboard front_sqrs_bb (Color c, Square s) { return FrontSqrs_bb[c][s]; }
+
+    inline Bitboard between_bb (Square s1, Square s2) { return Between_bb[s1][s2]; }
+    inline Bitboard rayline_bb (Square s1, Square s2) { return RayLine_bb[s1][s2]; }
+
+    inline Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[s][d]; }
+
+    inline Bitboard pawn_attack_span (Color c, Square s) { return PawnAttackSpan[c][s]; }
+    inline Bitboard pawn_pass_span (Color c, Square s) { return PawnPassSpan[c][s]; }
+
+    // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
+    inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return (RayLine_bb[s1][s2] & s3) != 0; }
 
     // board_edges() returns a bitboard of edges of the board for given square
     inline Bitboard board_edges (Square s) { return ((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)); }
-
-    // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
-    inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return (RayLine_bb[s1][s2] & s3) != 0; }
 
     inline bool more_than_one (Bitboard bb)
     {

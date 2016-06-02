@@ -137,8 +137,6 @@ private:
     template<PieceType PT>
     PieceType pick_least_val_att (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const;
 
-    Bitboard check_blockers (Color c, Color king_c) const;
-
 public:
     static const size_t Size;
 
@@ -225,6 +223,7 @@ public:
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
 
+    Bitboard slider_blockers (Square s, Bitboard sliders, Bitboard target) const;
     Bitboard checkers    (Color c) const;
     Bitboard pinneds     (Color c) const;
     Bitboard discoverers (Color c) const;
@@ -428,11 +427,11 @@ inline Threading::Thread* Position::thread () const { return _thread; }
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
-    return((PawnAttacks[~c][s]          & pieces (PAWN))
-        |  (PieceAttacks[NIHT][s]       & pieces (NIHT))
-        |  (attacks_bb<BSHP> (s, occ)   & pieces (BSHP, QUEN))
-        |  (attacks_bb<ROOK> (s, occ)   & pieces (ROOK, QUEN))
-        |  (PieceAttacks[KING][s]       & pieces (KING))) & pieces (c);
+    return (  (PawnAttacks[~c][s]        & pieces (PAWN))
+            | (PieceAttacks[NIHT][s]     & pieces (NIHT))
+            | (attacks_bb<BSHP> (s, occ) & pieces (BSHP, QUEN))
+            | (attacks_bb<ROOK> (s, occ) & pieces (ROOK, QUEN))
+            | (PieceAttacks[KING][s]     & pieces (KING))) & pieces (c);
 }
 // Attackers to the square 's' by color 'c'
 inline Bitboard Position::attackers_to (Square s, Color c) const
@@ -443,12 +442,12 @@ inline Bitboard Position::attackers_to (Square s, Color c) const
 // Attackers to the square 's' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
-    return (PawnAttacks[WHITE][s]       & pieces (BLACK, PAWN))
-        |  (PawnAttacks[BLACK][s]       & pieces (WHITE, PAWN))
-        |  (PieceAttacks[NIHT][s]       & pieces (NIHT))
-        |  (attacks_bb<BSHP> (s, occ)   & pieces (BSHP, QUEN))
-        |  (attacks_bb<ROOK> (s, occ)   & pieces (ROOK, QUEN))
-        |  (PieceAttacks[KING][s]       & pieces (KING));
+    return (  (PawnAttacks[WHITE][s]     & pieces (BLACK, PAWN))
+            | (PawnAttacks[BLACK][s]     & pieces (WHITE, PAWN))
+            | (PieceAttacks[NIHT][s]     & pieces (NIHT))
+            | (attacks_bb<BSHP> (s, occ) & pieces (BSHP, QUEN))
+            | (attacks_bb<ROOK> (s, occ) & pieces (ROOK, QUEN))
+            | (PieceAttacks[KING][s]     & pieces (KING)));
 }
 // Attackers to the square 's'
 inline Bitboard Position::attackers_to (Square s) const
@@ -464,16 +463,16 @@ inline Bitboard Position::checkers (Color c) const
 // Pinneds are friend pieces, that save the friend king from enemy pinners.
 inline Bitboard Position::pinneds (Color c) const
 {
-    return check_blockers (c,  c);
+    return slider_blockers (square<KING> ( c), pieces (~c), pieces (c));
 }
 // Discoverers are candidate friend pieces, that give the discover check to enemy king when moved.
 inline Bitboard Position::discoverers (Color c) const
 {
-    return check_blockers (c, ~c);
+    return slider_blockers (square<KING> (~c), pieces ( c), pieces (c));
 }
 inline bool Position::passed_pawn (Color c, Square s) const
 {
-    return (pieces (~c, PAWN) & PawnPassSpan[c][s]) == 0;
+    return (pieces (~c, PAWN) & pawn_pass_span (c, s)) == 0;
 }
 // bishops_pair(c) check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
@@ -617,14 +616,11 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
 // CheckInfo constructor
 inline CheckInfo::CheckInfo (const Position &pos)
 {
-    Color own = pos.active ();
-    Color opp = ~own;
+    king_sq     = pos.square<KING> (~pos.active ());
+    pinneds     = pos.pinneds (pos.active ());
+    discoverers = pos.discoverers (pos.active ());
 
-    king_sq = pos.square<KING> (opp);
-    pinneds = pos.pinneds (own);
-    discoverers = pos.discoverers (own);
-
-    checking_bb[PAWN] = PawnAttacks[opp][king_sq];
+    checking_bb[PAWN] = PawnAttacks[~pos.active ()][king_sq];
     checking_bb[NIHT] = PieceAttacks[NIHT][king_sq];
     checking_bb[BSHP] = attacks_bb<BSHP> (king_sq, pos.pieces ());
     checking_bb[ROOK] = attacks_bb<ROOK> (king_sq, pos.pieces ());

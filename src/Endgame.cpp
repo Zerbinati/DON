@@ -160,7 +160,8 @@ namespace EndGame {
         if (    pos.count<QUEN> (_strong_side) != 0
             ||  pos.count<ROOK> (_strong_side) != 0
             ||  pos.bishops_pair (_strong_side)
-            || (pos.count<BSHP> (_strong_side) != 0 && pos.count<NIHT> (_strong_side) != 0)
+            || (   pos.count<BSHP> (_strong_side) != 0
+                && pos.count<NIHT> (_strong_side) != 0)
             ||  pos.count<NIHT> (_strong_side) > 2)
         {
             value = std::min (value + VALUE_KNOWN_WIN, +VALUE_MATE_IN_MAX_PLY - 1);
@@ -633,7 +634,7 @@ namespace EndGame {
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
-        if (   (spawns & ~FrontRank_bb[~_strong_side][_rank (wk_sq)]) == 0
+        if (   (spawns & ~front_rank_bb (~_strong_side, wk_sq)) == 0
             && ((spawns & ~FA_bb) == 0 || (spawns & ~FH_bb) == 0)
             && dist<File> (wk_sq, sp_sq) <= 1)
         {
@@ -736,7 +737,7 @@ namespace EndGame {
                 return SCALE_FACTOR_DRAW;
             }
 
-            auto path = FrontSqrs_bb[_strong_side][sp_sq];
+            auto path = front_sqrs_bb (_strong_side, sp_sq);
             if (    (path & pos.pieces (~_strong_side, KING)) != 0
                 || ((path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) != 0 && dist (wb_sq, sp_sq) >= 3))
             {
@@ -860,7 +861,7 @@ namespace EndGame {
 
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        if ((FrontSqrs_bb[_strong_side][sp_sq] & attacks_bb<BSHP> (sb_sq, pos.pieces ())) != 0)
+        if ((front_sqrs_bb (_strong_side, sp_sq) & attacks_bb<BSHP> (sb_sq, pos.pieces ())) != 0)
         {
             return ScaleFactor(dist (wk_sq, sp_sq));
         }
@@ -892,7 +893,7 @@ namespace EndGame {
         // All pawns on same A or H file? (rook file)
         // Then potential draw
         if (   (sp_f == F_A || sp_f == F_H)
-            && (spawns & ~File_bb[sp_f]) == 0)
+            && (spawns & ~file_bb (sp_f)) == 0)
         {
             auto sb_sq = pos.square<BSHP> (_strong_side);
             auto promote_sq = rel_sq (_strong_side, sp_f|R_8);
@@ -912,7 +913,7 @@ namespace EndGame {
         // All pawns on same B or G file?
         // Then potential draw
         if (   (sp_f == F_B || sp_f == F_G)
-            && (pos.pieces (PAWN) & ~File_bb[sp_f]) == 0
+            && (pos.pieces (PAWN) & ~file_bb (sp_f)) == 0
             && pos.non_pawn_material (~_strong_side) == VALUE_ZERO)
         {
             auto sk_sq = pos.square<KING> ( _strong_side);

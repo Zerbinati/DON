@@ -305,7 +305,6 @@ namespace MovePick {
                         auto see_value = _pos.see_sign (move);
                         if (see_value >= VALUE_ZERO)
                         {
-                            assert(move != MOVE_NONE);
                             return move;
                         }
                         // Losing capture, move it to the tail of the array
@@ -336,7 +335,6 @@ namespace MovePick {
                         // Not killer move
                         && std::find (_killer_moves, _killer_moves + Killers + 1, move) == _killer_moves + Killers + 1)
                     {
-                        assert(move != MOVE_NONE);
                         return move;
                     }
                 } while (_cur_move < _end_move);
@@ -355,7 +353,6 @@ namespace MovePick {
                     auto move = pick_best (_cur_move++, _end_move).move;
                     if (move != _tt_move)
                     {
-                        assert(move != MOVE_NONE);
                         return move;
                     }
                 } while (_cur_move < _end_move);
@@ -366,7 +363,6 @@ namespace MovePick {
                     auto move = (*_cur_move++).move;
                     if (move != _tt_move)
                     {
-                        assert(move != MOVE_NONE);
                         return move;
                     }
                 } while (_cur_move < _end_move);
@@ -378,7 +374,6 @@ namespace MovePick {
                     if (   move != _tt_move
                         && _pos.see (move) > _threshold)
                     {
-                        assert(move != MOVE_NONE);
                         return move;
                     }
                 } while (_cur_move < _end_move);
@@ -389,7 +384,6 @@ namespace MovePick {
                     auto move = pick_best (_cur_move++, _end_move).move;
                     if (dst_sq (move) == _recapture_sq)
                     {
-                        assert(move != MOVE_NONE);
                         return move;
                     }
                 } while (_cur_move < _end_move);

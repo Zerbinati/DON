@@ -46,16 +46,6 @@ namespace Transposition {
         Bound bound () const { return Bound(_gen_bnd & u08( BOUND_EXACT)); }
         u08   gen   () const { return u08  (_gen_bnd & u08(~BOUND_EXACT)); }
 
-        void clear ()
-        {
-            _key16  = 0;
-            _move   = MOVE_NONE;
-            _value  = VALUE_NONE;
-            _eval   = VALUE_NONE;
-            _depth  = DEPTH_NONE;
-            _gen_bnd= u08(0);
-        }
-
         void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
             // Preserve any existing move for the position (key)

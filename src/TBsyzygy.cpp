@@ -2223,7 +2223,7 @@ namespace TBSyzygy {
 
                     StateInfo si;
                     pos.do_move (move, si, pos.gives_check (move, ci));
-                    Value v = -probe_ab (pos, Value(-2), Value(-wdl + 1), success);
+                    Value v = -probe_wdl (pos, success);
                     pos.undo_move ();
                     if (success == 0) return VALUE_ZERO;
                     if (v == wdl)

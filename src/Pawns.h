@@ -38,21 +38,17 @@ namespace Pawns {
         Value       king_safety   [CLR_NO][3];
         u08         king_pawn_dist[CLR_NO];
 
-        template<Color Own>
-        bool file_semiopen (File f) const
+        bool file_semiopen (Color c, File f) const
         {
-            return semiopen_files[Own] & (1 << f);
+            return (semiopen_files[c] & (1 << f)) != 0;
         }
-        template<Color Own>
-        bool side_semiopen (File f, bool left) const
+        bool side_semiopen (Color c, File f, bool left) const
         {
-            return semiopen_files[Own] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
+            return (semiopen_files[c] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1))) != 0;
         }
-
-        template<Color Own>
-        i32 pawns_on_squarecolor (Square s) const
+        i32 pawns_on_squarecolor (Color c, Square s) const
         {
-            return pawns_on_sqrs[Own][(Liht_bb & s) != 0 ? WHITE : BLACK];
+            return pawns_on_sqrs[c][(Liht_bb & s) != 0 ? WHITE : BLACK];
         }
 
         template<Color Own>
@@ -75,7 +71,7 @@ namespace Pawns {
                 Bitboard own_pawns = pos.pieces (Own, PAWN);
                 if (own_pawns != 0)
                 {
-                    while ((DistRings_bb[king_sq[Own]][king_pawn_dist[Own]++] & own_pawns) == 0) {}
+                    while ((dist_rings_bb (king_sq[Own], king_pawn_dist[Own]++) & own_pawns) == 0) {}
                 }
             }
         }

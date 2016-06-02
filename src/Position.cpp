@@ -320,14 +320,14 @@ PieceType Position::pick_least_val_att (Square dst, Bitboard stm_attackers, Bitb
         {
         case PAWN:
         case BSHP:
-            attackers |= (attacks_bb<BSHP> (dst, mocc) & pieces (BSHP, QUEN));
+            attackers |= (pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc));
             break;
         case ROOK:
-            attackers |= (attacks_bb<ROOK> (dst, mocc) & pieces (ROOK, QUEN));
+            attackers |= (pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc));
             break;
         case QUEN:
-            attackers |= (attacks_bb<BSHP> (dst, mocc) & pieces (BSHP, QUEN))
-                      |  (attacks_bb<ROOK> (dst, mocc) & pieces (ROOK, QUEN));
+            attackers |= (pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc))
+                      |  (pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc));
             break;
         default:
             break;
@@ -447,27 +447,28 @@ Value Position::see_sign (Move m) const
         see (m);
 }
 
-Bitboard Position::check_blockers (Color c, Color king_c) const
+// slider_blockers() returns a bitboard of all the pieces in 'target' that
+// are blocking attacks on the square 's' from 'sliders'.
+// A piece blocks a slider if removing that piece from the board would result in a position
+// where square 's' is attacked by the 'sliders'.
+Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard target) const
 {
-    auto ksq = square<KING> (king_c);
-    // Pinners are sliders that give check when a pinned piece is removed
-    // Only one real pinner exist other are fake pinner
+    Bitboard slide_blockers = 0;
+    // Pinners are sliders that attack 's' when a pinned piece is removed
     Bitboard pinners =
-        (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][ksq])
-         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][ksq]))
-        & pieces (~king_c);
-
-    Bitboard chk_blockers = 0;
+          sliders
+        & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
+           | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     while (pinners != 0)
     {
-        auto blocker = Between_bb[ksq][pop_lsq (pinners)] & pieces ();
+        Bitboard blocker = between_bb (s, pop_lsq (pinners)) & pieces ();
         if (   blocker != 0
             && !more_than_one (blocker))
         {
-            chk_blockers |= blocker & pieces (c);
+            slide_blockers |= (blocker & target);
         }
     }
-    return chk_blockers;
+    return slide_blockers;
 }
 
 // pseudo_legal() tests whether a random move is pseudo-legal.
@@ -631,7 +632,8 @@ bool Position::pseudo_legal (Move m) const
         // as invalid moves like B1A1 when opposite queen is on C1.
         if (mpt == KING)
         {
-            return attackers_to (dst, ~_active, pieces () - org) == 0; // Remove 'org' but not place 'dst'
+            // Remove 'org' but not place 'dst'
+            return attackers_to (dst, ~_active, pieces () - org) == 0;
         }
         // Double check? In this case a king move is required
         if (more_than_one (checkers ()))
@@ -641,9 +643,9 @@ bool Position::pseudo_legal (Move m) const
         return en_passant (m) ?
             // Move must be a capture of the checking en-passant pawn
             // or a blocking evasion of the checking piece
-            (checkers () & cap) != 0 || (Between_bb[scan_lsq (checkers ())][square<KING> (_active)] & dst) != 0 :
+            (checkers () & cap) != 0 || (between_bb (scan_lsq (checkers ()), square<KING> (_active)) & dst) != 0 :
             // Move must be a capture or a blocking evasion of the checking piece
-            ((checkers () | Between_bb[scan_lsq (checkers ())][square<KING> (_active)]) & dst) != 0;
+            ((checkers () | between_bb (scan_lsq (checkers ()), square<KING> (_active))) & dst) != 0;
     }
     return true;
 }
@@ -670,7 +672,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // check whether the destination square is attacked by the opponent.
         if (mpt == KING)
         {
-            return attackers_to (dst, ~_active, pieces () - org) == 0; // Remove 'org' but not place 'dst'
+            // Remove 'org' but not place 'dst'
+            return attackers_to (dst, ~_active, pieces () - org) == 0;
         }
     }
     // NOTE: no break
@@ -708,9 +711,9 @@ bool Position::legal        (Move m, Bitboard pinned) const
             && _board[cap] == (~_active|PAWN));
 
         auto mocc = pieces () - org - cap + dst;
-        // If any attacker then in check & not legal
-        return (attacks_bb<BSHP> (square<KING> (_active), mocc) & pieces (~_active, BSHP, QUEN)) == 0
-            && (attacks_bb<ROOK> (square<KING> (_active), mocc) & pieces (~_active, ROOK, QUEN)) == 0;
+        // If any attacker then in check and not legal move
+        return (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
+            && (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0;
     }
         break;
 
@@ -732,16 +735,12 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     auto dst = dst_sq (m);
     assert((pieces (_active) & org) != 0);
 
-    // Is there a Direct check ?
-    if ((ci.checking_bb[ptype (_board[org])] & dst) != 0)
-    {
-        return true;
-    }
-    // Is there a Discovered check ?
-    // For discovery check we need to verify also direction
-    if (    ci.discoverers != 0
-        && (ci.discoverers & org) != 0
-        && !sqrs_aligned (org, dst, ci.king_sq))
+    if (// Is there a Direct check ?
+           (ci.checking_bb[ptype (_board[org])] & dst) != 0
+        // Is there a Discovered check ?
+        // For discovery check we need to verify also direction
+        || (  (ci.discoverers & org) != 0
+           && !sqrs_aligned (org, dst, ci.king_sq)))
     {
         return true;
     }
@@ -760,8 +759,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         auto rook_org = dst; // 'King captures the rook' notation
         dst           = rel_sq (_active, dst > org ? SQ_G1 : SQ_C1);
         auto rook_dst = rel_sq (_active, dst > org ? SQ_F1 : SQ_D1);
-
-        return (PieceAttacks[ROOK][rook_dst] & ci.king_sq) != 0 // First x-ray check then full check
+        // First x-ray check then full check
+        return (PieceAttacks[ROOK][rook_dst] & ci.king_sq) != 0
             && (attacks_bb<ROOK> (rook_dst, pieces () - org - rook_org + dst + rook_dst) & ci.king_sq) != 0;
     }
         break;
@@ -774,8 +773,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         auto cap = _file (dst)|_rank (org);
         auto mocc = pieces () - org - cap + dst;
         // If any attacker then in check
-        return (attacks_bb<BSHP> (ci.king_sq, mocc) & pieces (_active, BSHP, QUEN)) != 0
-            || (attacks_bb<ROOK> (ci.king_sq, mocc) & pieces (_active, ROOK, QUEN)) != 0;
+        return (pieces (_active, BSHP, QUEN) & attacks_bb<BSHP> (ci.king_sq, mocc)) != 0
+            || (pieces (_active, ROOK, QUEN) & attacks_bb<ROOK> (ci.king_sq, mocc)) != 0;
     }
         break;
 
@@ -900,11 +899,13 @@ bool Position::can_en_passant (Square ep_sq) const
     assert(rel_rank (_active, ep_sq) == R_6);
 
     auto cap = ep_sq - pawn_push (_active);
-    //if ((pieces (~_active, PAWN) & cap) == 0) return false;
-    if (_board[cap] != (~_active|PAWN)) return false;
-
+    if (//(pieces (~_active, PAWN) & cap) == 0
+        _board[cap] != (~_active|PAWN))
+    {
+        return false;
+    }
     // En-passant attackes
-    auto attacks = PawnAttacks[~_active][ep_sq] & pieces (_active, PAWN);
+    auto attacks = pieces (_active, PAWN) & PawnAttacks[~_active][ep_sq];
     assert(pop_count (attacks) <= 2);
     if (attacks != 0)
     {
@@ -918,8 +919,8 @@ bool Position::can_en_passant (Square ep_sq) const
         for (auto m : moves)
         {
             auto mocc = occ - org_sq (m);
-            if (   (attacks_bb<BSHP> (square<KING> (_active), mocc) & pieces (~_active, BSHP, QUEN)) == 0
-                && (attacks_bb<ROOK> (square<KING> (_active), mocc) & pieces (~_active, ROOK, QUEN)) == 0)
+            if (   (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
+                && (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0)
             {
                 return true;
             }
@@ -1053,7 +1054,7 @@ bool Position::setup (const string &fen_str, StateInfo &si, Thread *const th, bo
     // 4. En-passant square. Ignore if no pawn capture is possible
     u08 file, rank;
     if (   (iss >> file && ('a' <= file && file <= 'h'))
-        && (iss >> rank && ('3' == rank || rank == '6')))
+        && (iss >> rank && (rank == '3' || rank == '6')))
     {
         if (   (_active == WHITE && rank == '6')
             || (_active == BLACK && rank == '3'))
@@ -1506,7 +1507,6 @@ void Position::flip ()
     iss >> token;
     flip_fen += token + " ";
     toggle (flip_fen);
-
     // 4. En-passant square
     iss >> token;
     flip_fen += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" : token[1] == '6' ? "3" : "-"));
