@@ -8,9 +8,8 @@
 using namespace std;
 using namespace BitBoard;
 
-Key Zobrist::ExclusionKey = 0;
+Key ExclusionKey = 0;
 
-// Hash key of the material situation.
 Key Zobrist::compute_matl_key (const Position &pos) const
 {
     Key matl_key = 0;
@@ -26,7 +25,6 @@ Key Zobrist::compute_matl_key (const Position &pos) const
     }
     return matl_key;
 }
-// Hash key of the pawn structure.
 Key Zobrist::compute_pawn_key (const Position &pos) const
 {
     Key pawn_key = 0;
@@ -39,7 +37,6 @@ Key Zobrist::compute_pawn_key (const Position &pos) const
     }
     return pawn_key;
 }
-// Hash key of the complete position.
 Key Zobrist::compute_posi_key (const Position &pos) const
 {
     Key posi_key = 0;
@@ -68,8 +65,6 @@ Key Zobrist::compute_posi_key (const Position &pos) const
     }
     return posi_key;
 }
-
-// Hash key of the FEN
 Key Zobrist::compute_fen_key (const string &fen, bool c960) const
 {
     Key fen_key = 0;
@@ -158,10 +153,8 @@ Key Zobrist::compute_fen_key (const string &fen, bool c960) const
     return fen_key;
 }
 
-// Global Zobrist
 
 Zobrist Zob;
-// Random numbers from Polyglot, used to compute book hash keys
 Zobrist PolyZob =
 {
     // PieceSquare

@@ -14,12 +14,11 @@ namespace Polyglot {
     using namespace MoveGen;
     using namespace Notation;
 
-    #define OFFSET(x)  (Book::HeaderSize + (x)*Entry::Size)
+    #define OFFSET(x)  (Book::HeaderSize + (x)*sizeof (Entry))
 
     // -------------------------
-
-    const u08 Entry::Size = sizeof (Entry);
-    static_assert (Entry::Size == 16, "Entry size incorrect");
+    // Size of Book entry (16 bytes)
+    static_assert (sizeof (Entry) == 16, "Entry size incorrect");
 
     const Entry Entry::NullEntry = { 0 , 0 , 0 , 0 };
 
@@ -132,7 +131,7 @@ namespace Polyglot {
         if (!is_open ()) return streampos(-1);
 
         auto beg_index = size_t(0);
-        auto end_index = size_t((size () - HeaderSize) / Entry::Size - 1);
+        auto end_index = size_t((size () - HeaderSize) / sizeof (Entry) - 1);
         assert(beg_index <= end_index);
 
         while (beg_index < end_index && good ())

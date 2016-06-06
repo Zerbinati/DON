@@ -19,7 +19,7 @@
 
 namespace std {
 
-    // generic null stream buffer class
+    // Generic null stream buffer class
     template<class CharT, class Traits = char_traits<CharT> >
     class basic_null_buffer
         : public basic_streambuf<CharT, Traits>

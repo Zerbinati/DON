@@ -38,7 +38,7 @@ void Position::initialize ()
     assert(PolyZob.act_side == U64(0xF8D626AAAF278509));
 
     static PRNG prng (0x105524);
-    Zobrist::ExclusionKey = prng.rand<Key> ();
+    ExclusionKey = prng.rand<Key> ();
     // Initialize Random Zobrist
     for (auto c = WHITE; c <= BLACK; ++c)
     {
@@ -64,8 +64,8 @@ void Position::initialize ()
     Zob.act_side = prng.rand<Key> ();
 }
 
-// Draw by: 50 Move Rule, Threefold repetition.
-// It does not detect draw by Material and Stalemate, this must be done by the search.
+// draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
+// It does not detect Insufficient materials and Stalemate.
 bool Position::draw () const
 {
     // Draw by Clock Ply Rule?
@@ -75,47 +75,24 @@ bool Position::draw () const
     {
         return true;
     }
-    // Draw by Threefold Repetition?
+    // Draw by Repetition?
     const auto *psi = _si;
-    //u08 cnt = 1;
     for (i08 ply = std::min (psi->clock_ply, psi->null_ply); ply >= 2; ply -= 2)
     {
         psi = psi->ptr->ptr;
+        // Check first repetition
         if (psi->posi_key == posi_key ())
         {
-            //if (++cnt >= 3)
-            return true; // Draw at first repetition
+            return true;
         }
     }
-
-    /*
-    // Draw by Material?
-    if (   pieces (PAWN) == 0
-        && non_pawn_material (WHITE) + non_pawn_material (BLACK) <= VALUE_MG_BSHP)
-    {
-        return true;
-    }
-    */
-    /*
-    // Draw by Stalemate?
-    if (   checkers () == 0
-        //&& game_phase () < PHASE_MIDGAME - 50
-        && count<NONPAWN> (_active) < count<NONPAWN> (~_active)
-        && (count<NONPAWN> (_active) < 3 || (count<NONPAWN> (_active) < 5 && pinneds (_active)))
-        && MoveList<LEGAL> (*this).size () == 0)
-    {
-        return true;
-    }
-    */
-
     return false;
 }
 
-// Check whether there has been at least one repetition of positions
-// since the last capture or pawn move.
+// repeated() check whether there has been at least one repetition of position since the last capture or pawn move.
 bool Position::repeated () const
 {
-    auto *csi = _si;
+    auto *csi = _si->ptr;
     while (csi != nullptr)
     {
         i08 ply = std::min (csi->clock_ply, csi->null_ply);
@@ -137,7 +114,7 @@ bool Position::repeated () const
     return false;
 }
 
-// Position consistency test, for debugging
+// ok() performs some consistency checks for the position, helpful for debugging.
 bool Position::ok (i08 *failed_step) const
 {
     static const bool Fast = true;

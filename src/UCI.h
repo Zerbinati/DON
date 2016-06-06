@@ -97,6 +97,7 @@ namespace UCI {
 
 }
 
-extern UCI::OptionMap Options;  // Global string mapping of Options
+// Global string mapping of Options
+extern UCI::OptionMap Options;
 
 #endif // _UCI_H_INC_

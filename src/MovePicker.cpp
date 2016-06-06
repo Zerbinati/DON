@@ -129,11 +129,11 @@ namespace MovePick {
     // value() assigns a numerical move ordering score to each move in a move list.
     // The moves with highest scores will be picked first.
 
-    template<>
     // Winning and equal captures in the main search are ordered by MVV/LVA, preferring captures near our home rank.
     // In the main search push captures with negative SEE values to the bad-captures[],
     // but instead of doing it now we delay until the move has been picked up,
     // saving some SEE calls in case of a cutoff.
+    template<>
     void MovePicker::value<CAPTURE> ()
     {
         for (auto &vm : *this)
@@ -163,10 +163,10 @@ namespace MovePick {
         }
     }
 
-    template<>
     // First try winning and equal captures, ordered by SEE value,
     // then non-captures if destination square is not under attack, ordered by history values,
     // then bad-captures and quiet moves with a negative SEE, ordered by SEE value.
+    template<>
     void MovePicker::value<EVASION> ()
     {
         const auto &history_values = _pos.thread ()->history_values;

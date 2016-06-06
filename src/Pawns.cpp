@@ -195,8 +195,6 @@ namespace Pawns {
     }
 
     template<Color Own>
-    // pawn_shelter_storm() calculates shelter and storm penalties
-    // for the file the king is on, as well as the two adjacent files.
     Value Entry::pawn_shelter_storm (const Position &pos, Square k_sq) const
     {
         const auto Opp = Own == WHITE ? BLACK : WHITE;
@@ -234,7 +232,6 @@ namespace Pawns {
     template Value Entry::pawn_shelter_storm<BLACK> (const Position&, Square) const;
 
     template<Color Own>
-    // evaluate_unstoppable_pawns<>() scores the most advanced passed pawns.
     Score Entry::evaluate_unstoppable_pawns () const
     {
         return passed_pawns[Own] != 0 ?
@@ -245,10 +242,6 @@ namespace Pawns {
     template Score Entry::evaluate_unstoppable_pawns<WHITE> () const;
     template Score Entry::evaluate_unstoppable_pawns<BLACK> () const;
 
-    // probe() takes a position object as input, computes a Pawn::Entry object,
-    // and returns a pointer to Pawn::Entry object.
-    // The result is also stored in a hash table, so don't have
-    // to recompute everything when the same pawn structure occurs again.
     Entry* probe (const Position &pos)
     {
         Key pawn_key = pos.pawn_key ();
@@ -268,9 +261,6 @@ namespace Pawns {
         return e;
     }
 
-    // initialize() Instead of hard-coded tables, when makes sense,
-    // prefer to calculate them with a formula to reduce independent parameters
-    // and to allow easier tuning and better insight.
     void initialize ()
     {
         static const i32 Seeds[R_NO] = { 0, 8, 19, 13, 71, 94, 169, 324 };

@@ -224,14 +224,14 @@ namespace Evaluator {
         // KingAttackWeights[piece-type] contains king attack weights by piece type
         const i32 KingAttackWeights [NONE] = { 1, 14, 10,  8,  2, 0 };
         // Penalties for enemy's piece safe checks
-        const i32 PieceSafeCheckUnit[NONE] = { 0, 17,  5, 45, 52, 0 };
+        const i32 PieceSafeCheckUnit[NONE] = { 0, 78, 48, 57, 62, 0 };
         // Penalty for enemy's queen contact checks
         const i32 QueenContactCheckUnit = 89;
 
         //  --- init evaluation info --->
-        template<Color Own>
         // init_evaluation<>() initializes king ring bitboards for the given color
         // To be done at the beginning of the evaluation.
+        template<Color Own>
         void init_evaluation (const Position &pos, EvalInfo &ei)
         {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
@@ -288,8 +288,8 @@ namespace Evaluator {
             }
         }
 
-        template<Color Own, PieceType PT, bool Trace>
         // evaluate_pieces<>() assigns bonuses and penalties to the pieces of the given color and type
+        template<Color Own, PieceType PT, bool Trace>
         Score evaluate_pieces (const Position &pos, EvalInfo &ei, const Bitboard mobility_area, Score &mobility)
         {
             assert(PT == NIHT || PT == BSHP || PT == ROOK || PT == QUEN);
@@ -309,7 +309,7 @@ namespace Evaluator {
                     PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
                     PT == ROOK ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
                     PT == QUEN ? attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own]) :
-                    /*PT == NIHT*/PieceAttacks[PT][s];
+                    PieceAttacks[PT][s];
 
                 ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= attacks;
 
@@ -468,8 +468,8 @@ namespace Evaluator {
         }
         //  --- init evaluation info <---
 
-        template<Color Own, bool Trace>
         // evaluate_king<>() assigns bonuses and penalties to a king of the given color.
+        template<Color Own, bool Trace>
         Score evaluate_king (const Position &pos, const EvalInfo &ei)
         {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
@@ -527,8 +527,8 @@ namespace Evaluator {
                 i32 attack_units =
                     + std::min ((ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp])/2, 72)
                     +  9 * (ei.king_zone_attacks_count[Opp])
-                    + 27 * (pop_count (king_zone_undef))
-                    + 11 * (pop_count (king_ring_undef | ei.pinneds[Own]))
+                    + 21 * (pop_count (king_zone_undef))
+                    + 12 * (pop_count (king_ring_undef) + pop_count (ei.pinneds[Own]))
                     - 64 * (pos.count<QUEN>(Opp) == 0)
                     - i32(value) / 8;
 
@@ -537,7 +537,7 @@ namespace Evaluator {
                 Bitboard king_zone_undef_att = king_zone_undef & ~pos.pieces (Opp) & ei.pin_attacked_by[Opp][QUEN];
                 if (king_zone_undef_att != 0)
                 {
-                    // ...and then only consider squares supported by another enemy piece
+                    // ...and then only consider squares supported by another enemy piece.
                     Bitboard unsafe =
                           ei.ful_attacked_by[Opp][PAWN]
                         | ei.ful_attacked_by[Opp][NIHT]
@@ -622,9 +622,9 @@ namespace Evaluator {
             return score;
         }
 
-        template<Color Own, bool Trace>
         // evaluate_threats<>() evaluates the threats of the given color
         // according to the type of attacking piece and the type of attacked pieces.
+        template<Color Own, bool Trace>
         Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
             const auto Opp      = Own == WHITE ? BLACK : WHITE;
@@ -699,7 +699,7 @@ namespace Evaluator {
             }
 
             // Loose enemies (except Queen and King)
-            b = (pos.pieces (Opp) ^ pos.pieces (Opp, QUEN, KING))
+            b =  (pos.pieces (Opp) ^ pos.pieces (Opp, QUEN, KING))
               & ~(  ei.pin_attacked_by[Own][NONE]
                   | ei.pin_attacked_by[Opp][NONE]);
             score += PieceLoosed * pop_count (b);
@@ -726,8 +726,8 @@ namespace Evaluator {
             return score;
         }
 
-        template<Color Own, bool Trace>
         // evaluate_passed_pawns<>() evaluates the passed pawns of the given color.
+        template<Color Own, bool Trace>
         Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
         {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
@@ -830,12 +830,12 @@ namespace Evaluator {
             return score;
         }
 
-        template<Color Own, bool Trace>
         // evaluate_space_activity<>() computes the space evaluation of the given color.
         // The space evaluation is a simple bonus based on the number of safe squares
         // available for minor pieces on the central four files on ranks 2--4.
         // Safe squares one, two or three squares behind a friendly pawn are counted twice.
         // The aim is to improve play on game opening.
+        template<Color Own, bool Trace>
         Score evaluate_space_activity (const Position &pos, const EvalInfo &ei)
         {
             const auto Opp = Own == WHITE ? BLACK : WHITE;
@@ -939,8 +939,6 @@ namespace Evaluator {
     }
 
     template<bool Trace>
-    // evaluate<>() is the main evaluation function.
-    // It returns a static evaluation of the position from the point of view of the side to move.
     Value evaluate (const Position &pos)
     {
         assert(pos.checkers () == 0);
@@ -1078,14 +1076,10 @@ namespace Evaluator {
 
         return (pos.active () == WHITE ? +value : -value) + Tempo;
     }
-    // --------------------------------
     // Explicit template instantiations
     template Value evaluate<false> (const Position&);
     template Value evaluate<true > (const Position&);
 
-    // trace() is like evaluate() but instead of a value returns a string
-    // (suitable to be print on stdout) that contains the detailed descriptions
-    // and values of each evaluation term. Used for debugging.
     string trace   (const Position &pos)
     {
         std::memset (cp, 0x00, sizeof (cp));
@@ -1116,7 +1110,6 @@ namespace Evaluator {
         return oss.str ();
     }
 
-    // initialize() init tables
     void initialize ()
     {
         auto mg = 0;

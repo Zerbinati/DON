@@ -5,12 +5,12 @@
 
 class Position;
 
+extern Key ExclusionKey;
+
 // Zobrist class
 class Zobrist
 {
 public:
-    static Key ExclusionKey;
-
     // 2*6*64 + 2*2 + 8 + 1
     //=   768 +   4 + 8 + 1
     //=                 781
@@ -29,13 +29,13 @@ public:
     Key compute_pawn_key (const Position &pos) const;
     // Hash key of the complete position.
     Key compute_posi_key (const Position &pos) const;
-
     // Hash key of the FEN
     Key compute_fen_key (const std::string &fen, bool c960 = false) const;
-
 };
 
+// Random Zobrist filled with randoms, used to compute position key
 extern Zobrist Zob;
+// Random Zobrist from Polyglot, used to compute polyglot book hash key
 extern Zobrist PolyZob;
 
 #endif // _ZOBRIST_H_INC_

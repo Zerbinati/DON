@@ -8,8 +8,8 @@ namespace MoveGen {
 
     namespace {
 
-        template<GenType GT, PieceType PT>
         // Generates piece common move
+        template<GenType GT, PieceType PT>
         void generate_piece_moves (ValMove *&moves, const Position &pos, Color Own, Bitboard targets, const CheckInfo *ci = nullptr)
         {
             assert(PT == NIHT
@@ -43,8 +43,8 @@ namespace MoveGen {
             }
         }
 
-        template<GenType GT, CastleRight CR>
         // Generates KING castling move
+        template<GenType GT, CastleRight CR>
         void generate_castling_moves (ValMove *&moves, const Position &pos, Color Own, bool chess960, const CheckInfo *ci)
         {
             assert(GT != EVASION);
@@ -97,8 +97,8 @@ namespace MoveGen {
 
             (*moves++).move = m;
         }
-        template<GenType GT, Color Own>
         // Generates KING common move
+        template<GenType GT, Color Own>
         void generate_king_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
             assert(GT != EVASION);
@@ -131,8 +131,8 @@ namespace MoveGen {
             }
         }
 
-        template<GenType GT>
         // Generates PAWN promotion move
+        template<GenType GT>
         void generate_promotion_moves (ValMove *&moves, Square dst, Delta delta, const CheckInfo *ci)
         {
             assert(delta == DEL_N
@@ -174,8 +174,8 @@ namespace MoveGen {
                 (void) ci; // Silence a warning under MSVC
             }
         }
-        template<GenType GT, Color Own>
         // Generates PAWN common move
+        template<GenType GT, Color Own>
         void generate_pawn_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
             const auto Opp      = Own == WHITE ? BLACK  : WHITE;
@@ -301,8 +301,8 @@ namespace MoveGen {
         }
 
 
-        template<GenType GT, Color Own>
         // Generates all pseudo-legal moves of color for targets.
+        template<GenType GT, Color Own>
         ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
             generate_pawn_moves<GT, Own> (moves, pos, targets, ci);
@@ -316,8 +316,8 @@ namespace MoveGen {
 
     }
 
-    template<GenType GT>
     // Generates all pseudo-legal moves.
+    template<GenType GT>
     ValMove* generate (ValMove *moves, const Position &pos)
     {
         assert(GT == RELAX
@@ -339,8 +339,6 @@ namespace MoveGen {
                active == BLACK ? generate_moves<GT, BLACK> (moves, pos, targets) :
                moves;
     }
-
-    // --------------------------------
     // Explicit template instantiations
 
     // generate<RELAX> generates all pseudo-legal captures and non-captures.
@@ -352,11 +350,10 @@ namespace MoveGen {
     // generate<QUIETS> generates all pseudo-legal non-captures and underpromotions.
     // Returns a pointer to the end of the move list.
     template ValMove* generate<QUIET  > (ValMove*, const Position&);
-    // --------------------------------
 
-    template<>
     // Generates all pseudo-legal non-captures and knight underpromotions moves that give check.
     // Returns a pointer to the end of the move list.
+    template<>
     ValMove* generate<QUIET_CHECK> (ValMove *moves, const Position &pos)
     {
         assert(pos.checkers () == 0);
@@ -384,9 +381,9 @@ namespace MoveGen {
                moves;
     }
 
-    template<>
     // Generates all pseudo-legal check giving moves.
     // Returns a pointer to the end of the move list.
+    template<>
     ValMove* generate<CHECK      > (ValMove *moves, const Position &pos)
     {
         auto active =  pos.active ();
@@ -412,9 +409,9 @@ namespace MoveGen {
                moves;
     }
 
-    template<>
     // Generates all pseudo-legal check evasions moves when the side to move is in check.
     // Returns a pointer to the end of the move list.
+    template<>
     ValMove* generate<EVASION    > (ValMove *moves, const Position &pos)
     {
         auto checkers = pos.checkers ();
@@ -485,8 +482,8 @@ namespace MoveGen {
                moves;
     }
 
-    template<>
     // Generates all legal moves.
+    template<>
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
         return filter_illegal (pos, moves, pos.checkers () == 0 ?

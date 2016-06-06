@@ -176,10 +176,10 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        u16  index      = 0
-           , pv_index   = 0
-           , max_ply    = 0
-           , chk_count  = 0;
+        u16  index    = 0
+           , pv_index = 0
+           , max_ply  = 0
+           , count    = 0;
 
         Position                    root_pos;
         Searcher::RootMoveVector    root_moves;
@@ -188,7 +188,7 @@ namespace Threading {
         HValueStats                 history_values;
         MoveStats                   counter_moves;
 
-        std::atomic_bool            reset_check { false };
+        std::atomic_bool            reset_count { false };
 
         Thread ();
         Thread (const Thread&) = delete;
@@ -268,14 +268,13 @@ namespace Threading {
         double best_move_change = 0.0;
         Value  previous_value   = VALUE_NONE;
 
-        TimeManager     time_mgr;
-        MoveManager     move_mgr;
-        SkillManager    skill_mgr;
+        TimeManager  time_mgr;
+        MoveManager  move_mgr;
+        SkillManager skill_mgr;
 
         MainThread ();
         MainThread (const MainThread&) = delete;
         MainThread& operator= (const MainThread&) = delete;
-        //virtual ~MainThread ();
 
         virtual void search () override;
     };
@@ -312,7 +311,7 @@ namespace Threading {
         void initialize ();
         void deinitialize ();
 
-        void start_thinking (const Position &pos, StateListPtr &states, const Limit &limits);
+        void start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits);
         void wait_while_thinking ();
     };
 
@@ -341,7 +340,7 @@ inline std::ostream& operator<< (std::ostream &os, OutputState state)
 #define sync_cout std::cout << OS_LOCK
 #define sync_endl std::endl << OS_UNLOCK
 
-
+// Global ThreadPool
 extern Threading::ThreadPool  Threadpool;
 
 #endif // _THREAD_H_INC_

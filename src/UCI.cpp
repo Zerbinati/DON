@@ -6,10 +6,10 @@
 #include "Searcher.h"
 #include "Evaluator.h"
 #include "MoveGenerator.h"
+#include "Thread.h"
 #include "Notation.h"
 #include "Debugger.h"
 #include "Benchmark.h"
-#include "Thread.h"
 
 namespace UCI {
 
@@ -44,7 +44,7 @@ namespace UCI {
     void loop (i32 argc, const char *const *argv)
     {
         Position root_pos;
-        root_pos.setup (StartFEN, SetupStates->back(), Threadpool.main (), false, true);
+        root_pos.setup (StartFEN, SetupStates->back(), Threadpool.main (), Chess960);
         // Join arguments
         string cmd;
         for (i32 i = 1; i < argc; ++i)
@@ -159,7 +159,7 @@ namespace UCI {
                 }
 
                 SetupStates = StateListPtr (new StateList (1));
-                root_pos.setup (fen, SetupStates->back(), Threadpool.main (), Chess960, true);
+                root_pos.setup (fen, SetupStates->back(), Threadpool.main (), Chess960);
 
                 if (token == "moves")
                 {

@@ -84,10 +84,10 @@ namespace Material {
                 && pos.count<PAWN> (~c) != 0;
         }
 
-        template<Color Own>
         // imbalance<>() calculates the imbalance by comparing
         // the piece count of each piece type for both colors.
         // NOTE:: KING == BISHOP_PAIR
+        template<Color Own>
         Value imbalance (const i32 count[][NONE])
         {
             const auto Opp = Own == WHITE ? BLACK : WHITE;

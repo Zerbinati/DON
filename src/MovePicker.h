@@ -36,9 +36,9 @@ namespace MovePick {
 
         ValMove _killer_moves[Killers + 1];
 
-        template<GenType GT>
         // value() assign a numerical move ordering score to each move in a move list.
         // The moves with highest scores will be picked first.
+        template<GenType GT>
         void value ();
 
         void generate_next_stage ();

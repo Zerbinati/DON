@@ -6,7 +6,7 @@
 #include "BitScan.h"
 #include "Engine.h"
 
-Transposition::Table  TT; // Global Transposition Table
+Transposition::Table  TT;
 
 namespace Transposition {
 
@@ -14,19 +14,28 @@ namespace Transposition {
 
     const u08 CacheLineSize = 64;
 
+    // Maximum bit of hash for cluster
+    const u08 MaxHashBit = 35;
+    // Minimum size of Transposition table (4 MB)
+    const u32 MinTableSize = 4;
+    // Maximum size of Transposition table (1048576 MB = 1048 GB = 1 TB)
+    const u32 MaxTableSize =
+        #if defined(BIT64)
+            (U64(1) << (MaxHashBit - 20)) * sizeof (Cluster);
+        #else
+            2048;
+        #endif
+
+    // Defualt size of Transposition table (16 MB)
+    const u32 DefTableSize = 16;
+
+    const u32 BufferSize = 0x10000;
+
     // Size of Transposition entry (10 bytes)
     static_assert (sizeof (Entry) == 10, "Entry size incorrect");
     // Size of Transposition cluster (32 bytes)
     static_assert (CacheLineSize % sizeof (Cluster) == 0, "Cluster size incorrect");
-    // Minimum size of Transposition table (4 MB)
-    const u32 Table::MinSize = 4;
-    // Maximum size of Transposition table (1048576 MB = 1048 GB = 1 TB)
-    const u32 Table::MaxSize =
-    #if defined(BIT64)
-        (U64(1) << (MaxHashBit-1 - 20)) * sizeof (Cluster);
-    #else
-        2048;
-    #endif
+
 
     void Table::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
@@ -80,40 +89,54 @@ namespace Transposition {
     // each cluster consists of ClusterEntryCount number of entry.
     u32 Table::resize (u32 mem_size_mb, bool force)
     {
-        if (mem_size_mb < MinSize) mem_size_mb = MinSize;
-        if (mem_size_mb > MaxSize) mem_size_mb = MaxSize;
+        if (mem_size_mb < MinTableSize)
+        {
+            mem_size_mb = MinTableSize;
+        }
+        if (mem_size_mb > MaxTableSize)
+        {
+            mem_size_mb = MaxTableSize;
+        }
 
-        size_t mem_size = size_t(mem_size_mb) << 20; // mem_size_mb * 1024 * 1024
+        size_t mem_size = size_t(mem_size_mb) << 20;
         u08 hash_bit = BitBoard::scan_msq (mem_size / sizeof (Cluster));
-        assert(hash_bit < MaxHashBit);
+        assert(hash_bit <= MaxHashBit);
 
         size_t cluster_count = size_t(1) << hash_bit;
 
         mem_size  = cluster_count * sizeof (Cluster);
 
-        if (   cluster_count != _cluster_count
-            || force)
+        if (   force
+            || cluster_count != _cluster_count)
         {
             free_aligned_memory ();
 
-            alloc_aligned_memory (mem_size, CacheLineSize); // Cache Line Size
+            alloc_aligned_memory (mem_size, CacheLineSize);
 
-            if (_clusters == nullptr) return 0;
+            if (_clusters == nullptr)
+            {
+                return 0;
+            }
 
             _cluster_count = cluster_count;
             _cluster_mask  = cluster_count-1;
         }
 
-        return u32(mem_size >> 20); // mem_size_mb / 1024 / 1024
+        return u32(mem_size >> 20);
     }
 
     void Table::auto_size (u32 mem_size_mb, bool force)
     {
-        if (mem_size_mb == 0) mem_size_mb = MaxSize;
-
-        for (u32 msize_mb = mem_size_mb; msize_mb >= MinSize; msize_mb >>= 1)
+        if (mem_size_mb == 0)
         {
-            if (resize (msize_mb, force) != 0) return;
+            mem_size_mb = MaxTableSize;
+        }
+        for (u32 msize_mb = mem_size_mb; msize_mb >= MinTableSize; msize_mb >>= 1)
+        {
+            if (resize (msize_mb, force) != 0)
+            {
+                return;
+            }
         }
         Engine::stop (EXIT_FAILURE);
     }
@@ -126,7 +149,7 @@ namespace Transposition {
         const u16 key16 = u16(key >> 0x30);
         auto *const fte = cluster_entry (key);
         assert(fte != nullptr);
-        for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
+        for (auto *ite = fte+0; ite < fte+ClusterEntryCount; ++ite)
         {
             if (   ite->_key16 == 0
                 || ite->_key16 == key16)
@@ -143,7 +166,7 @@ namespace Transposition {
         // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte;
         auto rem = rte->_depth/DEPTH_ONE - 2*(u08(0x100+BOUND_EXACT + _generation - rte->_gen_bnd)&u08(~BOUND_EXACT));
-        for (auto *ite = fte+1; ite < fte+Cluster::EntryCount; ++ite)
+        for (auto *ite = fte+1; ite < fte+ClusterEntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
             auto iem = ite->_depth/DEPTH_ONE - 2*(u08(0x100+BOUND_EXACT + _generation - ite->_gen_bnd)&u08(~BOUND_EXACT));

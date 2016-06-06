@@ -10,8 +10,6 @@
 
 namespace Transposition {
 
-    extern const u08 CacheLineSize;
-
     // Transposition::Entry needs 16 byte to be stored
     //
     //  Key--------- 16 bits
@@ -67,20 +65,27 @@ namespace Transposition {
         }
     };
 
+    extern const u08 CacheLineSize;
+    extern const u08 MaxHashBit;
+    extern const u32 MinTableSize;
+    extern const u32 MaxTableSize;
+    extern const u32 DefTableSize;
+    extern const u32 BufferSize;
+
+    // Cluster entry count
+    const u08 ClusterEntryCount = 3;
     // Transposition::Cluster needs 32 bytes to be stored
     // 3 x 10 + 2
     struct Cluster
     {
     public:
-        // Cluster entry count
-        static const u08 EntryCount = 3;
-
-        Entry entries[EntryCount];
+        Entry entries[ClusterEntryCount];
         char padding[2]; // Align to a divisor of the cache line size
     };
 
+
     // Transposition::Table consists of a power of 2 number of clusters
-    // and each cluster consists of Cluster::EntryCount number of entry.
+    // and each cluster consists of ClusterEntryCount number of entry.
     // Each non-empty entry contains information of exactly one position.
     // Size of a cluster should divide the size of a cache line size,
     // to ensure that clusters never cross cache lines.
@@ -119,17 +124,6 @@ namespace Transposition {
         }
 
     public:
-
-        // Maximum bit of hash for cluster
-        static const u08 MaxHashBit  = 36;
-        // Defualt size of Transposition table (mega-byte)
-        static const u32 DefSize     = 16;
-
-        static const u32 MinSize;
-        static const u32 MaxSize;
-
-        static const u32 BufferSize  = 0x10000;
-
         bool retain_hash = false;
 
         Table () = default;
@@ -146,13 +140,13 @@ namespace Transposition {
 
         //size_t entry_count () const
         //{
-        //    return _cluster_count * Cluster::EntryCount;
+        //    return _cluster_count * ClusterEntryCount;
         //}
 
         // size() returns hash size in MB
         u32 size () const
         {
-            return u32((_cluster_count * 32) >> 20);
+            return u32((_cluster_count * sizeof (Cluster)) >> 20);
         }
 
         // clear() overwrites the entire transposition table with zeroes.
@@ -192,10 +186,10 @@ namespace Transposition {
         u32 hash_full () const
         {
             u32 full_entry_count = 0;
-            for (const auto *clt = _clusters; clt < _clusters + 1000/Cluster::EntryCount; ++clt)
+            for (const auto *clt = _clusters; clt < _clusters + 1000/ClusterEntryCount; ++clt)
             {
                 const auto *fte = clt->entries;
-                for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
+                for (const auto *ite = fte; ite < fte+ClusterEntryCount; ++ite)
                 {
                     if (ite->gen () == _generation)
                     {
@@ -263,6 +257,7 @@ namespace Transposition {
 
 }
 
-extern Transposition::Table TT; // Global Transposition Table
+// Global Transposition Table
+extern Transposition::Table TT;
 
 #endif // _TRANSPOSITION_H_INC_

@@ -2312,30 +2312,6 @@ namespace TBSyzygy {
             }
         }
 
-        // Check whether there has been at least one repetition of positions
-        // since the last capture or pawn move.
-        bool has_repeated (StateInfo *si)
-        {
-            while (true)
-            {
-                i32 i = 4, e = std::min (si->clock_ply, si->null_ply);
-                if (e < i)
-                {
-                    return false;
-                }
-                StateInfo *psi = si->ptr->ptr;
-                do {
-                    psi = psi->ptr->ptr;
-                    if (psi->posi_key == si->posi_key)
-                    {
-                        return true;
-                    }
-                    i += 2;
-                } while (i <= e);
-                si = si->ptr;
-            }
-        }
-
         Value Wdl_to_Dtz[5] =
         {
             Value(-1),
@@ -2590,28 +2566,28 @@ namespace TBSyzygy {
     //
     // A return value false indicates that not all probes were successful and that
     // no moves were filtered out.
-    bool root_probe_dtz (Position &pos, RootMoveVector &root_moves)
+    bool root_probe_dtz (Position &root_pos, RootMoveVector &root_moves)
     {
         assert(!root_moves.empty ());
 
         i32 success;
-        Value dtz = probe_dtz (pos, success);
+        Value dtz = probe_dtz (root_pos, success);
         if (success == 0) return false;
 
         StateInfo si;
-        CheckInfo ci (pos);
+        CheckInfo ci (root_pos);
 
         // Probe each move.
         for (size_t i = 0; i < root_moves.size (); ++i)
         {
             auto move = root_moves[i][0];
-            pos.do_move (move, si, pos.gives_check (move, ci));
+            root_pos.do_move (move, si, root_pos.gives_check (move, ci));
 
             Value value = VALUE_ZERO;
-            if (pos.checkers () != 0 && dtz > VALUE_ZERO)
+            if (root_pos.checkers () != 0 && dtz > VALUE_ZERO)
             {
                 ValMove moves[MaxMoves];
-                if (generate<LEGAL> (moves, pos) == moves)
+                if (generate<LEGAL> (moves, root_pos) == moves)
                 {
                     value = Value(1);
                 }
@@ -2621,25 +2597,17 @@ namespace TBSyzygy {
             {
                 if (si.clock_ply != 0)
                 {
-                    value = -probe_dtz (pos, success);
-                    if (value > 0)
-                    {
-                        ++value;
-                    }
-                    else
-                    if (value < 0)
-                    {
-                        --value;
-                    }
+                    value = -probe_dtz (root_pos, success);
+                    value += sign (value);
                 }
                 else
                 {
-                    value = -probe_wdl (pos, success);
+                    value = -probe_wdl (root_pos, success);
                     value = Wdl_to_Dtz[value + 2];
                 }
             }
 
-            pos.undo_move ();
+            root_pos.undo_move ();
             if (success == 0) return false;
             root_moves[i].new_value = value;
         }
@@ -2662,9 +2630,9 @@ namespace TBSyzygy {
         // If the position is winning or losing, but too few moves left, adjust the
         // score to show how close it is to winning or losing.
         // NOTE: i32(PawnValueEg) is used as scaling factor in score_to_uci().
-        if (wdl == 1 && dtz <= 100)
+        if (wdl == +1 && dtz <= +100)
         {
-            ProbeValue = Value(((200 - dtz - clock_ply) * i32(VALUE_EG_PAWN)) / 200);
+            ProbeValue = +Value(((200 - dtz - clock_ply) * i32(VALUE_EG_PAWN)) / 200);
         }
         else
         if (wdl == -1 && dtz >= -100)
@@ -2689,7 +2657,7 @@ namespace TBSyzygy {
             }
             // If the current phase has not seen repetitions, then try all moves
             // that stay safely within the 50-move budget, if there are any.
-            if (   !has_repeated (si.ptr)
+            if (   !root_pos.repeated ()
                 && best_value + clock_ply <= 99)
             {
                 best_value = Value(99 - clock_ply);
@@ -2751,12 +2719,12 @@ namespace TBSyzygy {
     //
     // A return value false indicates that not all probes were successful and that
     // no moves were filtered out.
-    bool root_probe_wdl (Position &pos, RootMoveVector &root_moves)
+    bool root_probe_wdl (Position &root_pos, RootMoveVector &root_moves)
     {
         assert(!root_moves.empty ());
 
         i32 success;
-        Value wdl = probe_wdl (pos, success);
+        Value wdl = probe_wdl (root_pos, success);
         assert(-2 <= wdl && wdl <= 2);
 
         if (success == 0) return false;
@@ -2764,16 +2732,16 @@ namespace TBSyzygy {
         ProbeValue = Wdl_to_Value[wdl + 2];
 
         StateInfo si;
-        CheckInfo ci (pos);
+        CheckInfo ci (root_pos);
 
         Value best_value = -VALUE_INFINITE;
         // Probe each move.
         for (size_t i = 0; i < root_moves.size (); ++i)
         {
             auto move = root_moves[i][0];
-            pos.do_move (move, si, pos.gives_check (move, ci));
-            Value v = -probe_wdl (pos, success);
-            pos.undo_move ();
+            root_pos.do_move (move, si, root_pos.gives_check (move, ci));
+            Value v = -probe_wdl (root_pos, success);
+            root_pos.undo_move ();
             if (success == 0) return false;
             if (best_value < v)
             {

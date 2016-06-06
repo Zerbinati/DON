@@ -128,6 +128,7 @@ namespace EndGame {
 
 }
 
-extern EndGame::Endgames *EndGames; // Global Endgames
+// Global Endgames
+extern EndGame::Endgames *EndGames;
 
 #endif // _ENDGAME_H_INC_

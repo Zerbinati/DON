@@ -11,7 +11,7 @@
 #include "Debugger.h"
 #include "MemoryHandler.h"
 
-UCI::OptionMap  Options; // Global string mapping of Options
+UCI::OptionMap  Options;
 
 namespace UCI {
 
@@ -207,7 +207,7 @@ namespace UCI {
 
         void configure_hash ()
         {
-            HashFile         = string(Options["Hash File"]);
+            HashFile = string(Options["Hash File"]);
             trim (HashFile);
             if (!HashFile.empty ())
             {
@@ -224,14 +224,14 @@ namespace UCI {
 
         void configure_multipv ()
         {
-            MultiPV     = u08(i32(Options["MultiPV"]));
+            MultiPV = u08(i32(Options["MultiPV"]));
             //MultiPV_cp  = i32(Options["MultiPV_cp"]);
         }
 
         void configure_book ()
         {
-            OwnBook      = bool(Options["OwnBook"]);
-            BookFile     = string(Options["Book File"]);
+            OwnBook = bool(Options["OwnBook"]);
+            BookFile = string(Options["Book File"]);
             BookMoveBest = bool(Options["Book Move Best"]);
             BookUptoMove = i16(i32(Options["Book Upto Move"]));
 
@@ -249,14 +249,14 @@ namespace UCI {
 
         void configure_time ()
         {
-            //MaximumMoveHorizon   = i32(Options["Maximum Move Horizon"]);
-            //ReadyMoveHorizon     = i32(Options["Ready Move Horizon"]);
-            //OverheadClockTime    = i32(Options["Overhead Clock Time"]);
-            //OverheadMoveTime     = i32(Options["Overhead Move Time"]);
-            //MinimumMoveTime      = i32(Options["Minimum Move Time"]);
-            MoveSlowness         = i32(Options["Move Slowness"])/100.0;
-            NodesTime            = i32(Options["Nodes Time"]);
-            Ponder               = bool(Options["Ponder"]);
+            //MaximumMoveHorizon = i32(Options["Maximum Move Horizon"]);
+            //ReadyMoveHorizon = i32(Options["Ready Move Horizon"]);
+            //OverheadClockTime = i32(Options["Overhead Clock Time"]);
+            //OverheadMoveTime = i32(Options["Overhead Move Time"]);
+            //MinimumMoveTime = i32(Options["Minimum Move Time"]);
+            MoveSlowness = i32(Options["Move Slowness"])/100.0;
+            NodesTime = i32(Options["Nodes Time"]);
+            Ponder = bool(Options["Ponder"]);
         }
 
         void debug_log ()
@@ -310,9 +310,9 @@ namespace UCI {
         // For 16 Min=games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
-        Options["Hash"]                         << Option (Table::DefSize,
-                                                           0,//Table::MinSize, // 0 for auto-resize to maximum
-                                                           Table::MaxSize, change_hash_size);
+        Options["Hash"]                         << Option (DefTableSize,
+                                                           0, // MinTableSize
+                                                           MaxTableSize, change_hash_size);
 
 #if defined(LPAGES)
         Options["Large Pages"]                  << Option (Memory::LargePages, change_memory);
@@ -392,13 +392,13 @@ namespace UCI {
 
         // The maximum number of Threads (cores) to use during the search.
         // This number should be set to the number of cores in your CPU.
-        // Default=1, Min=0, Max=MaxThreads.
+        // Default=1, Min=0, Max=128.
         //
         // 0 for auto-resize to hardware-dependent number of threads
         // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      << Option ( 1, 0, MaxThreads, configure_threadpool);
+        Options["Threads"]                      << Option ( 1, 0, 128, configure_threadpool);
 
         // Game Play Options
         // -----------------

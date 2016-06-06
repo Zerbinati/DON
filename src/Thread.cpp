@@ -3,6 +3,7 @@
 #include <cfloat>
 #include "UCI.h"
 #include "Searcher.h"
+#include "TBsyzygy.h"
 
 u08     MaximumMoveHorizon =   50; // Plan time management at most this many moves ahead, in num of moves.
 u08     ReadyMoveHorizon   =   40; // Be prepared to always play at least this many moves, in num of moves.
@@ -13,11 +14,12 @@ double  MoveSlowness       = 0.90; // Move Slowness, in %age.
 u32     NodesTime          =    0; // 'Nodes as Time' mode
 bool    Ponder             = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
-Threading::ThreadPool Threadpool; // Global ThreadPool
+Threading::ThreadPool Threadpool;
 
 using namespace std;
 using namespace UCI;
 using namespace Searcher;
+using namespace TBSyzygy;
 
 namespace {
 
@@ -164,8 +166,8 @@ namespace Threading {
         : _alive (true)
         , _searching (true)
         , max_ply (0)
-        , chk_count (0)
-        , reset_check (false)
+        , count (0)
+        , reset_count (false)
     {
         index = u16(Threadpool.size ()); // Starts from 0
         history_values.clear ();
@@ -194,9 +196,6 @@ namespace Threading {
         , best_move_change (0.0)
         , previous_value (+VALUE_NONE)
     {}
-
-    //MainThread::~MainThread ()
-    //{}
 
     // ------------------------------------
 
@@ -252,19 +251,16 @@ namespace Threading {
         while (!empty ())
         {
             delete back ();
-            pop_back ();    // Get rid of stale pointer
+            // Get rid of stale pointer
+            pop_back ();
         }
     }
 
     // ThreadPool::start_thinking() wakes up the main thread sleeping in Thread::idle_loop()
     // and starts a new search, then returns immediately.
-    void ThreadPool::start_thinking (const Position &pos, StateListPtr &states, const Limit &limits)
+    void ThreadPool::start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits)
     {
         wait_while_thinking ();
-
-        RootMoveVector root_moves;
-        root_moves.initialize (pos, limits.search_moves);
-        Limits  = limits;
 
         // After ownership transfer 'states' becomes empty, so if we stop the search
         // and call 'go' again without setting a new position states.get() == NULL.
@@ -272,8 +268,67 @@ namespace Threading {
 
         if (states.get () != nullptr)
         {
-            setup_states = std::move (states); // Ownership transfer, states is now empty
+            // Ownership transfer, states is now empty
+            setup_states = std::move (states);
             assert(states.get () == nullptr);
+        }
+
+        Limits  = limits;
+
+        RootMoveVector root_moves;
+        root_moves.initialize (root_pos, limits.search_moves);
+
+        TBDepthLimit = i32(Options["Syzygy Depth Limit"])*DEPTH_ONE;
+        TBPieceLimit = i32(Options["Syzygy Piece Limit"]);
+        TBUseRule50  = bool(Options["Syzygy Use Rule 50"]);
+        TBHits       = 0;
+        TBHasRoot    = false;
+
+        // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit
+        if (TBPieceLimit > MaxPieceLimit)
+        {
+            TBPieceLimit = MaxPieceLimit;
+            TBDepthLimit = DEPTH_ZERO;
+        }
+
+        // Filter root moves
+        if (   TBPieceLimit >= root_pos.count<NONE> ()
+            && root_pos.can_castle (CR_ANY) == CR_NONE)
+        {
+            // If the current root position is in the tablebases,
+            // then RootMoves contains only moves that preserve the draw or the win.
+            TBHasRoot = root_probe_dtz (root_pos, root_moves);
+
+            if (TBHasRoot)
+            {
+                // Do not probe tablebases during the search
+                TBPieceLimit = 0;
+            }
+            // If DTZ tables are missing, use WDL tables as a fallback
+            else
+            {
+                // Filter out moves that do not preserve the draw or the win
+                TBHasRoot = root_probe_wdl (root_pos, root_moves);
+
+                // Only probe during search if winning
+                if (   TBHasRoot
+                    && ProbeValue <= VALUE_DRAW)
+                {
+                    TBPieceLimit = 0;
+                }
+            }
+
+            if (TBHasRoot)
+            {
+                TBHits = u16(root_moves.size ());
+
+                if (!TBUseRule50)
+                {
+                    ProbeValue = ProbeValue > VALUE_DRAW ? +VALUE_MATE - i32(MaxPlies - 1) :
+                                 ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPlies + 1) :
+                                 VALUE_DRAW;
+                }
+            }
         }
 
         const auto tmp_si = setup_states->back ();
@@ -281,10 +336,11 @@ namespace Threading {
         {
             th->max_ply = 0;
             th->root_depth = DEPTH_ZERO;
-            th->root_pos.setup (pos.fen (Chess960), setup_states->back (), th, Chess960, true);
+            th->root_pos.setup (root_pos.fen (Chess960), setup_states->back (), th, Chess960);
             th->root_moves = root_moves;
         }
-        setup_states->back () = tmp_si; // Restore si->ptr, cleared by Position::setup()
+        // Restore si->ptr, cleared by Position::setup()
+        setup_states->back () = tmp_si;
 
         ForceStop       = false;
         PonderhitStop   = false;

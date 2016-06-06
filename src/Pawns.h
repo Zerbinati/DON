@@ -14,6 +14,8 @@ namespace Pawns {
     struct Entry
     {
     private:
+        // pawn_shelter_storm() calculates shelter and storm penalties
+        // for the file the king is on, as well as the two adjacent files.
         template<Color Own>
         Value pawn_shelter_storm (const Position &pos, Square k_sq) const;
 
@@ -51,6 +53,7 @@ namespace Pawns {
             return pawns_on_sqrs[c][(Liht_bb & s) != 0 ? WHITE : BLACK];
         }
 
+        // evaluate_unstoppable_pawns<>() scores the most advanced passed pawns.
         template<Color Own>
         Score evaluate_unstoppable_pawns () const;
 
@@ -80,8 +83,15 @@ namespace Pawns {
 
     typedef HashTable<Entry, 0x4000> Table; // 16384
 
+    // probe() takes a position object as input, computes a Pawn::Entry object,
+    // and returns a pointer to Pawn::Entry object.
+    // The result is also stored in a hash table, so don't have
+    // to recompute everything when the same pawn structure occurs again.
     extern Entry* probe (const Position &pos);
 
+    // initialize() instead of hard-coded tables, when makes sense,
+    // prefer to calculate them with a formula to reduce independent parameters
+    // and to allow easier tuning and better insight.
     extern void initialize ();
 }
 

@@ -131,7 +131,6 @@ typedef u64 Key;
 typedef u64 Bitboard;
 
 const u16 MaxPlies   = 128; // Maximum Plies
-const u16 MaxThreads = 128; // Maximum Threads
 
 // File
 enum File : i08

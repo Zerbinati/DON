@@ -16,7 +16,6 @@ namespace Polyglot {
     //  - Learn     4 bytes
     struct Entry
     {
-        static const u08 Size;
         static const Entry NullEntry;
 
         u64 key     = 0;
