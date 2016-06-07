@@ -9,8 +9,8 @@
 
 class Position;
 
-extern const std::string PieceChar;
-extern const std::string ColorChar;
+const std::string PieceChar ("PNBRQK  pnbrqk");
+const std::string ColorChar ("wb-");
 
 namespace Notation {
 

@@ -7,8 +7,6 @@
 class Position;
 using namespace BitBoard;
 
-extern const Value PieceValues[PH_NO][MAX_PTYPE];
-
 // Check the validity of FEN string
 extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 

@@ -17,8 +17,6 @@
 
 using namespace std;
 
-const Value MaxStatsValue = Value(1 << 28);
-
 namespace Searcher {
 
     using namespace UCI;
@@ -986,25 +984,25 @@ namespace Searcher {
                         tte = TT.probe (posi_key, tt_hit);
                     }
 
-                    if (   !root_node
-                        && tt_hit
-                        && tte->move () != MOVE_NONE
-                        && tte->move () != tt_move)
+                    if (tt_hit)
                     {
-                        tt_move = tte->move ();
-                        if (   tt_move != MOVE_NONE
-                            && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)))
+                        if (   !root_node
+                            && tte->move () != tt_move)
                         {
-                            tt_move = MOVE_NONE;
+                            tt_move = tte->move ();
+                            if (   tt_move != MOVE_NONE
+                                && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)))
+                            {
+                                tt_move = MOVE_NONE;
+                            }
+                            assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
                         }
-                        assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
-                    }
-                    if (   tt_hit
-                        && tte->move () == tt_move)
-                    {
-                        tt_value = value_of_tt (tte->value (), ss->ply);
-                        tt_depth = tte->depth ();
-                        tt_bound = tte->bound ();
+                        if (tte->move () == tt_move || (root_node && tte->move () == MOVE_NONE))
+                        {
+                            tt_value = value_of_tt (tte->value (), ss->ply);
+                            tt_depth = tte->depth ();
+                            tt_bound = tte->bound ();
+                        }
                     }
                 }
             }
@@ -1272,8 +1270,7 @@ namespace Searcher {
                 // Do a full PV search on:
                 // - 'full depth move count' move
                 // - 'fail high' move (search only if value < beta)
-                // otherwise let the parent node fail low with
-                // alfa >= value and try another move.
+                // otherwise let the parent node fail low with alfa >= value and try another move.
                 if (   PVNode
                     && (   move_count == 1
                         || (alfa < value && (root_node || value < beta))))
@@ -1385,15 +1382,6 @@ namespace Searcher {
                 }
             }
             assert(((root_node || exclude_move != MOVE_NONE || value >= beta) && move_count <= MoveList<LEGAL> (pos).size ()) || move_count == MoveList<LEGAL> (pos).size ());
-
-            // Step 19.
-            // The following condition would detect a stop only after move loop has been
-            // completed. But in this case best value is valid because we have fully
-            // searched our subtree, and we can anyhow save the result in TT.
-            //if (ForceStop)
-            //{
-            //    return VALUE_DRAW;
-            //}
 
             //quiet_moves.shrink_to_fit ();
 

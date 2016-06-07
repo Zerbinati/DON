@@ -7,7 +7,8 @@
 
 namespace Evaluator {
 
-    extern const Value Tempo;
+    // Tempo bonus
+    const Value Tempo = Value(20);
 
     template<bool Trace = false>
     // evaluate<>() is the main evaluation function.

@@ -17,12 +17,6 @@ using namespace MoveGen;
 using namespace Threading;
 using namespace Notation;
 
-const Value PieceValues[PH_NO][MAX_PTYPE] =
-{
-    { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
-    { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
-};
-
 bool _ok (const string &fen, bool c960, bool full)
 {
     Position pos;
@@ -77,39 +71,51 @@ bool Position::draw () const
     }
     // Draw by Repetition?
     const auto *psi = _si;
-    for (i08 ply = std::min (psi->clock_ply, psi->null_ply); ply >= 2; ply -= 2)
+    auto ply = std::min (psi->clock_ply, psi->null_ply);
+    if (ply < 4)
+    {
+        return false;
+    }
+    psi = psi->ptr->ptr;
+    ply -= 2;
+    while (ply >= 2)
     {
         psi = psi->ptr->ptr;
+        ply -= 2;
         // Check first repetition
-        if (psi->posi_key == posi_key ())
+        if (psi->posi_key == _si->posi_key)
         {
             return true;
         }
     }
+
     return false;
 }
 
 // repeated() check whether there has been at least one repetition of position since the last capture or pawn move.
 bool Position::repeated () const
 {
-    auto *csi = _si->ptr;
-    while (csi != nullptr)
+    const auto *bsi = _si;
+    while (bsi != nullptr)
     {
-        i08 ply = std::min (csi->clock_ply, csi->null_ply);
+        const auto *psi = bsi;
+        auto ply = std::min (psi->clock_ply, psi->null_ply);
         if (ply < 4)
         {
             return false;
         }
-        auto *psi = csi->ptr->ptr;
-        do {
+        psi = psi->ptr->ptr;
+        ply -= 2;
+        while (ply >= 2)
+        {
             psi = psi->ptr->ptr;
-            if (psi->posi_key == csi->posi_key)
+            ply -= 2;
+            if (psi->posi_key == bsi->posi_key)
             {
                 return true;
             }
-            ply -= 2;
-        } while (ply >= 4);
-        csi = csi->ptr;
+        }
+        bsi = bsi->ptr;
     }
     return false;
 }

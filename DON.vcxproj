@@ -615,8 +615,6 @@
     <ClInclude Include="src\Benchmark.h" />
     <ClInclude Include="src\BitBases.h" />
     <ClInclude Include="src\BitBoard.h" />
-    <ClInclude Include="src\BitCount.h" />
-    <ClInclude Include="src\BitScan.h" />
     <ClInclude Include="src\Debugger.h" />
     <ClInclude Include="src\Endgame.h" />
     <ClInclude Include="src\Engine.h" />

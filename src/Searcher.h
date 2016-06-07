@@ -49,7 +49,7 @@ public:
     }
 };
 
-extern const Value MaxStatsValue;
+const Value MaxStatsValue = Value(1 << 28);
 
 // The Stats struct stores different statistics.
 template<class T, bool CM = false>

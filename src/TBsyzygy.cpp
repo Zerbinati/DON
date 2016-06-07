@@ -62,7 +62,6 @@ const char SepChar = ';';
 #   define BSWAP64(v) _byteswap_uint64(v)
 #endif
 
-#include "BitCount.h"
 #include "BitBoard.h"
 #include "Position.h"
 #include "MoveGenerator.h"
@@ -2613,8 +2612,7 @@ namespace TBSyzygy {
         }
 
         // Obtain 50-move counter for the root position.
-        // In Stockfish there seems to be no clean way, so we do it like this:
-        i32 clock_ply = si.ptr->clock_ply;
+        i32 clock_ply = root_pos.clock_ply ();
 
         // Use 50-move counter to determine whether the root position is
         // won, lost or drawn.

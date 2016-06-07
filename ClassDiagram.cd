@@ -3,7 +3,7 @@
   <Class Name="Position">
     <Position X="4" Y="7.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>CEgAAQIPAQQAiBmhdYepIgEjgbEOHgVwBBowLCAgJSA=</HashCode>
+      <HashCode>AEgAAQIPAQQACBmxdYepIgUjgbEOHgVwBAgwLCAgJSA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -121,13 +121,13 @@
       <Field Name="_depth" />
     </ShowAsAssociation>
   </Class>
-  <Class Name="Transposition::Table">
+  <Class Name="Table">
     <Position X="21.5" Y="12.5" Width="1.5" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>AsiAAAAMCICAAAAQCIAAQAAACAAAJAAAAyAgEAwAAAA=</HashCode>
+      <HashCode>AMgAAAAMCICAAAAAAIAAQAAACAAAJAAAASAgFAwAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -144,7 +144,7 @@
   <Class Name="Threading::Thread">
     <Position X="6.5" Y="4" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>ACAAEiCACQIAABAggEACCABIDAAAAAQAACBgCAABCgA=</HashCode>
+      <HashCode>ACAAEiCACQIAAEAghEACCABIDAAAAAQAACBgAAABCgA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -240,7 +240,7 @@
   <Struct Name="StateInfo">
     <Position X="9.5" Y="15.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAQAEAAAAgAgAYQAAAAAhAAAAAEAQAAgAAAAAIAI=</HashCode>
+      <HashCode>AAAAAQAEAAAAAAgAYQAAAAAhAAAAAEAQAAgAAAAAIAI=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -366,7 +366,7 @@
   <Struct Name="Transposition::Entry" Collapsed="true">
     <Position X="31.5" Y="2.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AFCoAAAACACAgACAAAAIQAAAAEAAACAAAAICIAAAAAA=</HashCode>
+      <HashCode>ABCoAAAACACAAACAAAAIQAAAAEAAACAAAAICIAAAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -380,7 +380,7 @@
   <Struct Name="Polyglot::Entry" Collapsed="true">
     <Position X="33.25" Y="2.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAQAAAAAAAAgACAAAAkAQAEAAAAAACgAAAgAAAAAAA=</HashCode>
+      <HashCode>AAAQAAAAAAAAAACAAAAkAQAEAAAAAACgAAAgAAAAAAA=</HashCode>
       <FileName>src\Polyglot.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -390,14 +390,14 @@
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>AgAAAAAAAAAAAAEBAAACEAAAAAAAAAAAAIACMAAAIAI=</HashCode>
+      <HashCode>AgAAAAAAAAAAAAABAAACEAAAAAAAAAAAAIgCMAAAIAI=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="Transposition::Cluster">
     <Position X="18.5" Y="14.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAkAAAAAAgAAAAAAAAAAAAAAAAAAACAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAACAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -573,14 +573,14 @@
     <Position X="33.25" Y="9" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
+      <FileName>src\UCI.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="StateListPtr" Collapsed="true">
     <Position X="35" Y="9" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
+      <FileName>src\UCI.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="HValueStats" Collapsed="true">
@@ -642,7 +642,7 @@
   <Enum Name="Square" Collapsed="true">
     <Position X="6.75" Y="19" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>fgAAAAAAAIIAEACAXyAAAADA7xcIAAAABPr9QAD1+40=</HashCode>
+      <HashCode>fgAAAAAAAIAAAACAXyAAAADA7xcIAAAABPr9AADw+4U=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -768,7 +768,7 @@
   <Enum Name="Evaluator::`anonymous-namespace'::PieceCategory" Collapsed="true">
     <Position X="35" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>BAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAA=</HashCode>
+      <HashCode>AAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Enum>

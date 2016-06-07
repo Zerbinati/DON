@@ -3,7 +3,7 @@
 #include <string>
 #include <fstream>
 
-#include "BitScan.h"
+#include "BitBoard.h"
 #include "Engine.h"
 
 Transposition::Table  TT;
@@ -11,25 +11,6 @@ Transposition::Table  TT;
 namespace Transposition {
 
     using namespace std;
-
-    const u08 CacheLineSize = 64;
-
-    // Maximum bit of hash for cluster
-    const u08 MaxHashBit = 35;
-    // Minimum size of Transposition table (4 MB)
-    const u32 MinTableSize = 4;
-    // Maximum size of Transposition table (1048576 MB = 1048 GB = 1 TB)
-    const u32 MaxTableSize =
-        #if defined(BIT64)
-            (U64(1) << (MaxHashBit - 20)) * sizeof (Cluster);
-        #else
-            2048;
-        #endif
-
-    // Defualt size of Transposition table (16 MB)
-    const u32 DefTableSize = 16;
-
-    const u32 BufferSize = 0x10000;
 
     // Size of Transposition entry (10 bytes)
     static_assert (sizeof (Entry) == 10, "Entry size incorrect");
@@ -44,10 +25,10 @@ namespace Transposition {
 
     #if defined(LPAGES)
 
-        Memory::alloc_memory (_mem, mem_size, alignment);
-        if (_mem != nullptr)
+        Memory::alloc_memory (_blocks, mem_size, alignment);
+        if (_blocks != nullptr)
         {
-            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_mem) + alignment-1) & ~uintptr_t(alignment-1));
+            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_blocks) + alignment-1) & ~uintptr_t(alignment-1));
             assert((uintptr_t(_clusters) & (alignment-1)) == 0);
             return;
         }
@@ -70,11 +51,11 @@ namespace Transposition {
 
         alignment = std::max (u32(sizeof (void *)), alignment);
 
-        _mem = calloc (mem_size + alignment-1, 1);
-        if (_mem != nullptr)
+        _blocks = calloc (mem_size + alignment-1, 1);
+        if (_blocks != nullptr)
         {
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB" << sync_endl;
-            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_mem) + alignment-1) & ~uintptr_t(alignment-1));
+            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_blocks) + alignment-1) & ~uintptr_t(alignment-1));
             assert((uintptr_t(_clusters) & (alignment-1)) == 0);
             return;
         }

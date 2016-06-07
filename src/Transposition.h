@@ -44,19 +44,20 @@ namespace Transposition {
 
         void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
+            u16 key16 = u16(k >> 0x30);
             // Preserve any existing move for the position (key)
             if (   m != MOVE_NONE
-                || (k >> 0x30) != _key16)
+                || key16 != _key16)
             {
                 _move       = u16(m);
             }
             // Don't overwrite more valuable entries
-            if (   (k >> 0x30) != _key16
+            if (   key16 != _key16
                 || d > _depth - 6
              /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
                 || b == BOUND_EXACT)
             {
-                _key16      = u16(k >> 0x30);
+                _key16      = key16;
                 _value      = i16(v);
                 _eval       = i16(e);
                 _depth      = i08(d);
@@ -65,12 +66,7 @@ namespace Transposition {
         }
     };
 
-    extern const u08 CacheLineSize;
-    extern const u08 MaxHashBit;
-    extern const u32 MinTableSize;
-    extern const u32 MaxTableSize;
-    extern const u32 DefTableSize;
-    extern const u32 BufferSize;
+    const u08 CacheLineSize = 64;
 
     // Cluster entry count
     const u08 ClusterEntryCount = 3;
@@ -84,6 +80,23 @@ namespace Transposition {
     };
 
 
+    // Maximum bit of hash for cluster
+    const u08 MaxHashBit = 35;
+    // Minimum size of Transposition table (4 MB)
+    const u32 MinTableSize = 4;
+    // Maximum size of Transposition table (1048576 MB = 1048 GB = 1 TB)
+    const u32 MaxTableSize =
+        #if defined(BIT64)
+                (U64(1) << (MaxHashBit - 20)) * sizeof (Cluster);
+        #else
+                2048;
+        #endif
+
+    // Defualt size of Transposition table (16 MB)
+    const u32 DefTableSize = 16;
+
+    const u32 BufferSize = 0x10000;
+
     // Transposition::Table consists of a power of 2 number of clusters
     // and each cluster consists of ClusterEntryCount number of entry.
     // Each non-empty entry contains information of exactly one position.
@@ -94,8 +107,7 @@ namespace Transposition {
     class Table
     {
     private:
-
-        void    *_mem           = nullptr;
+        void    *_blocks        = nullptr;
         Cluster *_clusters      = nullptr;
         size_t   _cluster_count = 0;
         size_t   _cluster_mask  = 0;
@@ -107,15 +119,15 @@ namespace Transposition {
         // free_aligned_memory() frees the aligned memory
         void free_aligned_memory ()
         {
-            if (_mem != nullptr)
+            if (_blocks != nullptr)
             {
 
     #   if defined(LPAGES)
-                Memory::free_memory (_mem);
+                Memory::free_memory (_blocks);
     #   else
-                free (_mem);
+                free (_blocks);
     #   endif
-                _mem            = nullptr;
+                _blocks         = nullptr;
                 _clusters       = nullptr;
                 _cluster_count  = 0;
                 _cluster_mask   = 0;

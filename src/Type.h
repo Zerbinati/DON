@@ -691,19 +691,11 @@ public:
     bool operator!= (const ValMove &vm) const { return value != vm.value; }
 };
 
-extern u08 SquareDist[SQ_NO][SQ_NO];
-
-template<class T>
-inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
-template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
-
-template<class T1, class T2>
-inline i32 dist (T2, T2) { return i32 (); }
-template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
-template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
-
-
-
+const Value PieceValues[PH_NO][MAX_PTYPE] =
+{
+    { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
+    { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
+};
 
 template<class Entry, u32 Size>
 struct HashTable

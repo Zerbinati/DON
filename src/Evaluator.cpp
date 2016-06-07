@@ -14,9 +14,6 @@ namespace Evaluator {
     using namespace BitBoard;
     using namespace MoveGen;
 
-    // Tempo bonus
-    const Value Tempo = Value(20);
-
     namespace {
 
         namespace Tracer {
@@ -451,7 +448,7 @@ namespace Evaluator {
                 else
                 if (PT == QUEN)
                 {
-                    // Penalty for pin or discovered attack on the each enemy queen
+                    // Penalty for pin or discover attack on the queen
                     if (pos.slider_blockers (s, pos.pieces (Opp, BSHP, ROOK), pos.pieces ()) != 0)
                     {
                         score -= QueenWeaken;
@@ -622,8 +619,7 @@ namespace Evaluator {
             return score;
         }
 
-        // evaluate_threats<>() evaluates the threats of the given color
-        // according to the type of attacking piece and the type of attacked pieces.
+        // evaluate_threats<>() evaluates the threats of the given color.
         template<Color Own, bool Trace>
         Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {

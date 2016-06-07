@@ -9,9 +9,6 @@
 
 using namespace std;
 
-const string PieceChar ("PNBRQK  pnbrqk");
-const string ColorChar ("wb-");
-
 namespace Notation {
 
     using namespace UCI;

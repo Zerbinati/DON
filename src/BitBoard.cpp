@@ -3,156 +3,59 @@
 #include "PRNG.h"
 #include "Notation.h"
 
-u08 SquareDist[SQ_NO][SQ_NO];
-
 namespace BitBoard {
 
     using namespace std;
 
-    const Bitboard FA_bb = U64(0x0101010101010101);
-    const Bitboard FB_bb = FA_bb << 1;//U64(0x0202020202020202);
-    const Bitboard FC_bb = FA_bb << 2;//U64(0x0404040404040404);
-    const Bitboard FD_bb = FA_bb << 3;//U64(0x0808080808080808);
-    const Bitboard FE_bb = FA_bb << 4;//U64(0x1010101010101010);
-    const Bitboard FF_bb = FA_bb << 5;//U64(0x2020202020202020);
-    const Bitboard FG_bb = FA_bb << 6;//U64(0x4040404040404040);
-    const Bitboard FH_bb = FA_bb << 7;//U64(0x8080808080808080);
+    u08 SquareDist[SQ_NO][SQ_NO];
 
-    const Bitboard R1_bb = U64(0x00000000000000FF);
-    const Bitboard R2_bb = R1_bb << (8 * 1);//U64(0x000000000000FF00);
-    const Bitboard R3_bb = R1_bb << (8 * 2);//U64(0x0000000000FF0000);
-    const Bitboard R4_bb = R1_bb << (8 * 3);//U64(0x00000000FF000000);
-    const Bitboard R5_bb = R1_bb << (8 * 4);//U64(0x000000FF00000000);
-    const Bitboard R6_bb = R1_bb << (8 * 5);//U64(0x0000FF0000000000);
-    const Bitboard R7_bb = R1_bb << (8 * 6);//U64(0x00FF000000000000);
-    const Bitboard R8_bb = R1_bb << (8 * 7);//U64(0xFF00000000000000);
+    Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
 
-    //const Bitboard D18_bb = U64(0x8040201008040201);        // 08 DIAG-18 squares
-    //const Bitboard D81_bb = U64(0x0102040810204080);        // 08 DIAG-81 squares
+    Bitboard Between_bb[SQ_NO][SQ_NO];
+    Bitboard RayLine_bb[SQ_NO][SQ_NO];
 
-    const Bitboard Liht_bb = U64 (0x55AA55AA55AA55AA);      // 32 LIGHT squares
-    const Bitboard Dark_bb = U64 (0xAA55AA55AA55AA55);      // 32 DARK  squares
+    Bitboard DistRings_bb[SQ_NO][8];
 
-    const Bitboard Corner_bb = (FA_bb|FH_bb)&(R1_bb|R8_bb); // 04 CORNER squares
-
-    const Delta PawnDeltas[CLR_NO][3] =
-    {
-        { DEL_NW, DEL_NE, DEL_O },
-        { DEL_SE, DEL_SW, DEL_O },
-    };
-    const Delta PieceDeltas[NONE][9] =
-    {
-        { DEL_O },
-        { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE, DEL_O },
-        { DEL_SW, DEL_SE, DEL_NW, DEL_NE, DEL_O },
-        { DEL_S, DEL_W, DEL_E, DEL_N, DEL_O },
-        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
-        { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
-    };
-
-    const Bitboard Square_bb[SQ_NO] =
-    {
-#undef S_16
-#undef S_08
-#undef S_04
-#undef S_02
-#define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
-#define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
-#define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
-#define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)
-        S_16(0), S_16(1), S_16(2), S_16(3),
-#undef S_16
-#undef S_08
-#undef S_04
-#undef S_02
-    };
-    const Bitboard File_bb[F_NO] =
-    {
-        FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb
-    };
-    const Bitboard Rank_bb[R_NO] =
-    {
-        R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb
-    };
-
-    const Bitboard AdjFile_bb  [F_NO] =
-    {
-        FB_bb,
-        FA_bb|FC_bb,
-        FB_bb|FD_bb,
-        FC_bb|FE_bb,
-        FD_bb|FF_bb,
-        FE_bb|FG_bb,
-        FF_bb|FH_bb,
-        FG_bb
-    };
-    const Bitboard AdjRank_bb  [R_NO] =
-    {
-        R2_bb,
-        R1_bb|R3_bb,
-        R2_bb|R4_bb,
-        R3_bb|R5_bb,
-        R4_bb|R6_bb,
-        R5_bb|R7_bb,
-        R6_bb|R8_bb,
-        R7_bb,
-    };
-    const Bitboard FrontRank_bb[CLR_NO][R_NO] =
-    {
-        {
-            R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
-            R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
-            R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
-            R5_bb|R6_bb|R7_bb|R8_bb,
-            R6_bb|R7_bb|R8_bb,
-            R7_bb|R8_bb,
-            R8_bb,
-            0,
-        },
-        {
-            0,
-            R1_bb,
-            R2_bb|R1_bb,
-            R3_bb|R2_bb|R1_bb,
-            R4_bb|R3_bb|R2_bb|R1_bb,
-            R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
-            R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
-            R7_bb|R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb
-        }
-    };
-
-    // Front Squares
-    Bitboard  FrontSqrs_bb[CLR_NO][SQ_NO];
-
-    Bitboard    Between_bb[SQ_NO][SQ_NO];
-    Bitboard    RayLine_bb[SQ_NO][SQ_NO];
-
-    Bitboard  DistRings_bb[SQ_NO][8];
-
-    // Span of the attacks of pawn
     Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
-    // Path of the passed pawn
-    Bitboard   PawnPassSpan[CLR_NO][SQ_NO];
+    Bitboard PawnPassSpan[CLR_NO][SQ_NO];
 
-    // Attacks of the pawns & pieces
-    Bitboard   PawnAttacks[CLR_NO][SQ_NO];
-    Bitboard  PieceAttacks[NONE][SQ_NO];
+    Bitboard PawnAttacks[CLR_NO][SQ_NO];
+    Bitboard PieceAttacks[NONE][SQ_NO];
 
     Bitboard *B_Attacks_bb[SQ_NO];
     Bitboard *R_Attacks_bb[SQ_NO];
 
-    Bitboard    B_Masks_bb[SQ_NO];
-    Bitboard    R_Masks_bb[SQ_NO];
+    Bitboard B_Masks_bb[SQ_NO];
+    Bitboard R_Masks_bb[SQ_NO];
 
 #if !defined(BM2)
-    Bitboard   B_Magics_bb[SQ_NO];
-    Bitboard   R_Magics_bb[SQ_NO];
+    Bitboard B_Magics_bb[SQ_NO];
+    Bitboard R_Magics_bb[SQ_NO];
 
-    u08           B_Shifts[SQ_NO];
-    u08           R_Shifts[SQ_NO];
+    u08 B_Shifts[SQ_NO];
+    u08 R_Shifts[SQ_NO];
+#endif
+
+#if !defined(ABM)
+    u08 PopCount16[1 << 16];
 #endif
 
     namespace {
+
+        const Delta PawnDeltas[CLR_NO][3] =
+        {
+            { DEL_NW, DEL_NE, DEL_O },
+            { DEL_SE, DEL_SW, DEL_O },
+        };
+        const Delta PieceDeltas[NONE][9] =
+        {
+            { DEL_O },
+            { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE, DEL_O },
+            { DEL_SW, DEL_SE, DEL_NW, DEL_NE, DEL_O },
+            { DEL_S, DEL_W, DEL_E, DEL_N, DEL_O },
+            { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
+            { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
+        };
 
 //        // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
 //        const u64 DeBruijn_64 = U64(0x3F79D71B4CB0A89);
@@ -174,6 +77,17 @@ namespace BitBoard {
 //              (u32 ((bb >> 0) ^ (bb >> 32)) * DeBruijn_32) >> 26;
 //#       endif
 //        }
+
+    #if !defined(ABM)
+        // pop_count16() counts the non-zero bits using SWAR-Popcount algorithm
+        u08 pop_count16 (u32 u)
+        {
+            u -= (u >> 1) & 0x5555U;
+            u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
+            u = ((u >> 4) + u) & 0x0F0FU;
+            return u08((u * 0x0101U) >> 8);
+        }
+    #endif
 
         // Max Linear Table Size (for rook from any corner square)
         // 2 ^ 12 = 4096 = 0x1000
@@ -329,10 +243,17 @@ namespace BitBoard {
         //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;
         //    BSF_Table[bsf_index (Square_bb[s])] = s;
         //}
-        //for (auto b = 2; b <= UCHAR_MAX; ++b)
+        //for (auto b = 2; b < 256; ++b)
         //{
         //    MSB_Table[b] =  MSB_Table[b - 1] + !more_than_one (Bitboard(b));
         //}
+
+    #if !defined(ABM)
+        for (u32 i = 0; i < (1 << 16); ++i)
+        {
+            PopCount16[i] = pop_count16 (i);
+        }
+    #endif
 
         for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
