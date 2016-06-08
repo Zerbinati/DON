@@ -24,11 +24,11 @@ namespace Material {
 
         Key         matl_key;
         Score       imbalance;
-        ScaleFactor factor[CLR_NO];
         Phase       game_phase;
+        ScaleFactor factor[CLR_NO];
 
-        EndGame::EndgameBase<Value>         *evaluation_func;
-        EndGame::EndgameBase<ScaleFactor>   *scaling_func[CLR_NO];
+        EndGame::EndgameBase<Value>       *evaluation_func;
+        EndGame::EndgameBase<ScaleFactor> *scaling_func[CLR_NO];
 
         bool  specialized_eval_exists ()     const { return   evaluation_func != nullptr; }
         Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
@@ -39,13 +39,14 @@ namespace Material {
         // For instance, in KBP vs K endgames, a scaling function which checks for draws with rook pawns and wrong-colored bishops.
         ScaleFactor scale_factor (const Position &pos, Color c) const
         {
-            return scaling_func[c] == nullptr || (*scaling_func[c]) (pos) == SCALE_FACTOR_NONE ?
-                    factor[c] : (*scaling_func[c]) (pos);
+            ScaleFactor sf;
+            return scaling_func[c] == nullptr || (sf = (*scaling_func[c]) (pos)) == SCALE_FACTOR_NONE ?
+                    factor[c] : sf;
         }
 
     };
 
-    typedef HashTable<Entry, 0x2000> Table; // 8192
+    typedef HashTable<Entry, 0x2000> Table;
 
     extern Entry* probe (const Position &pos);
 

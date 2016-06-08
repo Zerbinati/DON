@@ -564,11 +564,6 @@ namespace Searcher {
                         // Fail high
                         if (value >= beta)
                         {
-                            if (   tt_hit
-                                && tte->key16 () != u16(posi_key >> 0x30))
-                            {
-                                tte = TT.probe (posi_key, tt_hit);
-                            }
                             tte->save (posi_key, move, value_to_tt (value, ss->ply), ss->static_eval, qs_depth, BOUND_LOWER, TT.generation ());
 
                             assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
@@ -591,11 +586,6 @@ namespace Searcher {
                 return mated_in (ss->ply);
             }
 
-            if (   tt_hit
-                && tte->key16 () != u16(posi_key >> 0x30))
-            {
-                tte = TT.probe (posi_key, tt_hit);
-            }
             tte->save (posi_key, best_move, value_to_tt (best_value, ss->ply), ss->static_eval, qs_depth,
                 PVNode && pv_alfa < best_value ? BOUND_EXACT : BOUND_UPPER, TT.generation ());
 
@@ -758,11 +748,6 @@ namespace Searcher {
                                 v > +draw_v ? +VALUE_MATE - i32(MaxPlies + ss->ply) :
                                 VALUE_ZERO + 2 * draw_v * v;
 
-                        if (   tt_hit
-                            && tte->key16 () != u16(posi_key >> 0x30))
-                        {
-                            tte = TT.probe (posi_key, tt_hit);
-                        }
                         tte->save (posi_key, MOVE_NONE, value_to_tt (value, ss->ply), VALUE_NONE,
                             std::min (depth + 6*DEPTH_ONE, DEPTH_MAX - DEPTH_ONE), BOUND_EXACT, TT.generation ());
 
@@ -1091,8 +1076,13 @@ namespace Searcher {
                                     pos.gives_check (move, ci);
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
-                auto extension = gives_check && pos.see_sign (move) >= VALUE_ZERO ?
-                                    DEPTH_ONE : DEPTH_ZERO;
+                auto extension =
+                       gives_check
+                    && (   move_count == 1
+                        || (   (   depth >= FutilityMoveCountDepth*DEPTH_ONE
+                                || move_count < FutilityMoveCounts[improving][depth/DEPTH_ONE])
+                            && pos.see_sign (move) >= VALUE_ZERO)) ?
+                      DEPTH_ONE : DEPTH_ZERO;
 
                 // Singular extensions (SE).
                 // We extend the TT move if its value is much better than its siblings.
@@ -1131,7 +1121,8 @@ namespace Searcher {
                     && best_value > -VALUE_MATE_IN_MAX_PLY
                     // ! Dangerous conditions
                     && !gives_check
-                    && !pos.advanced_pawn_push (move))
+                    && !(   ptype (mpc) == PAWN
+                         && pos.advanced_pawn_push (move)))
                 {
                     // Move count based pruning
                     if (   depth < FutilityMoveCountDepth*DEPTH_ONE
@@ -1195,16 +1186,15 @@ namespace Searcher {
                     if (   !PVNode
                         && CutNode)
                     {
-                        reduction_depth += DEPTH_ONE;
+                        reduction_depth += 2*DEPTH_ONE;
                     }
-                    else
                     // Decrease reduction for moves that escape a capture.
                     if (   mtype (move) == NORMAL
                         && (NIHT <= ptype (mpc) && ptype (mpc) <= QUEN)
                         // For reverse move use see() instead of see_sign(), because the destination square is empty for normal move.
                         && pos.see (mk_move (dst, org_sq (move))) < VALUE_ZERO)
                     {
-                        reduction_depth -= DEPTH_ONE;
+                        reduction_depth -= 2*DEPTH_ONE;
                     }
 
                     // Decrease/Increase reduction for moves with a +ve/-ve history
@@ -1338,6 +1328,7 @@ namespace Searcher {
                     }
                 }
 
+                // Step 19. Check best value
                 if (best_value < value)
                 {
                     best_value = value;
@@ -1430,11 +1421,6 @@ namespace Searcher {
                 }
             }
 
-            if (   tt_hit
-                && tte->key16 () != u16(posi_key >> 0x30))
-            {
-                tte = TT.probe (posi_key, tt_hit);
-            }
             tte->save (posi_key, best_move, value_to_tt (best_value, ss->ply), ss->static_eval, depth,
                 best_value >= beta ? BOUND_LOWER : PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER, TT.generation ());
 

@@ -83,17 +83,14 @@ namespace Transposition {
     // Maximum bit of hash for cluster
     const u08 MaxHashBit = 35;
     // Minimum size of Transposition table (4 MB)
-    const u32 MinTableSize = 4;
+    const u32 MinHashSize = 4;
     // Maximum size of Transposition table (1048576 MB = 1048 GB = 1 TB)
-    const u32 MaxTableSize =
+    const u32 MaxHashSize =
         #if defined(BIT64)
                 (U64(1) << (MaxHashBit - 20)) * sizeof (Cluster);
         #else
                 2048;
         #endif
-
-    // Defualt size of Transposition table (16 MB)
-    const u32 DefTableSize = 16;
 
     const u32 BufferSize = 0x10000;
 

@@ -1868,7 +1868,8 @@ namespace TBSyzygy {
             Key matl_key = pos.matl_key ();
 
             // Test for KvK.
-            if (matl_key == (Zob.piece_square[WHITE][KING][0] ^ Zob.piece_square[BLACK][KING][0]))
+            if (matl_key == (  Zob.piece_square[WHITE][KING][0]
+                             ^ Zob.piece_square[BLACK][KING][0]))
             {
                 return VALUE_ZERO;
             }

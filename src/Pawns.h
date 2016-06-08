@@ -23,7 +23,6 @@ namespace Pawns {
 
         Key      pawn_key;
         Score    pawn_score;
-
         i32      asymmetry;
 
         Bitboard pawn_attacks  [CLR_NO];
@@ -81,7 +80,7 @@ namespace Pawns {
 
     };
 
-    typedef HashTable<Entry, 0x4000> Table; // 16384
+    typedef HashTable<Entry, 0x4000> Table;
 
     // probe() takes a position object as input, computes a Pawn::Entry object,
     // and returns a pointer to Pawn::Entry object.

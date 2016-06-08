@@ -70,13 +70,13 @@ namespace Transposition {
     // each cluster consists of ClusterEntryCount number of entry.
     u32 Table::resize (u32 mem_size_mb, bool force)
     {
-        if (mem_size_mb < MinTableSize)
+        if (mem_size_mb < MinHashSize)
         {
-            mem_size_mb = MinTableSize;
+            mem_size_mb = MinHashSize;
         }
-        if (mem_size_mb > MaxTableSize)
+        if (mem_size_mb > MaxHashSize)
         {
-            mem_size_mb = MaxTableSize;
+            mem_size_mb = MaxHashSize;
         }
 
         size_t mem_size = size_t(mem_size_mb) << 20;
@@ -110,9 +110,9 @@ namespace Transposition {
     {
         if (mem_size_mb == 0)
         {
-            mem_size_mb = MaxTableSize;
+            mem_size_mb = MaxHashSize;
         }
-        for (u32 msize_mb = mem_size_mb; msize_mb >= MinTableSize; msize_mb >>= 1)
+        for (u32 msize_mb = mem_size_mb; msize_mb >= MinHashSize; msize_mb >>= 1)
         {
             if (resize (msize_mb, force) != 0)
             {

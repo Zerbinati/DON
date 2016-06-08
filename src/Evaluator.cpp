@@ -214,9 +214,8 @@ namespace Evaluator {
     #undef V
 
         const i32 MaxAttackUnits = 400;
-        // Various little "meta-bonuses" measuring the strength of
-        // the enemy attack are added up into an integer, which
-        // is used as an index to KingDanger[].
+        // Various little "meta-bonuses" measuring the strength of the enemy attack
+        // are added up into an integer, which is used as an index to KingDanger[].
         Score KingDanger[MaxAttackUnits];
         // KingAttackWeights[piece-type] contains king attack weights by piece type
         const i32 KingAttackWeights [NONE] = { 1, 14, 10,  8,  2, 0 };
@@ -898,8 +897,7 @@ namespace Evaluator {
             const auto strong_side = eg >= VALUE_ZERO ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
             auto scale_factor = ei.me->scale_factor (pos, strong_side);
-            // If don't already have an unusual scale factor, check for certain
-            // types of endgames, and use a lower scale for those.
+            // If don't already have an unusual scale factor, check for certain types of endgames.
             if (   ei.me->game_phase < PHASE_MIDGAME
                 && (scale_factor == SCALE_FACTOR_NORMAL || scale_factor == SCALE_FACTOR_ONEPAWN))
             {
@@ -911,7 +909,7 @@ namespace Evaluator {
                         && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
                     {
                         auto pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
-                        scale_factor = ScaleFactor(pawn_diff != 0 ? 12 * pawn_diff : 8);
+                        scale_factor = pawn_diff != 0 ? ScaleFactor(12 * pawn_diff) : ScaleFactor(8);
                     }
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops. 
@@ -1076,7 +1074,7 @@ namespace Evaluator {
     template Value evaluate<false> (const Position&);
     template Value evaluate<true > (const Position&);
 
-    string trace   (const Position &pos)
+    string trace (const Position &pos)
     {
         std::memset (cp, 0x00, sizeof (cp));
         // White's point of view

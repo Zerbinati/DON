@@ -57,7 +57,6 @@ void Position::initialize ()
     }
     Zob.act_side = prng.rand<Key> ();
 }
-
 // draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
 // It does not detect Insufficient materials and Stalemate.
 bool Position::draw () const
@@ -91,7 +90,6 @@ bool Position::draw () const
 
     return false;
 }
-
 // repeated() check whether there has been at least one repetition of position since the last capture or pawn move.
 bool Position::repeated () const
 {
@@ -119,7 +117,6 @@ bool Position::repeated () const
     }
     return false;
 }
-
 // ok() performs some consistency checks for the position, helpful for debugging.
 bool Position::ok (i08 *failed_step) const
 {
@@ -414,7 +411,7 @@ Value Position::see      (Move m) const
 
     return gain_list[0];
 }
-
+// see_sign()
 Value Position::see_sign (Move m) const
 {
     assert(_ok (m));
@@ -425,7 +422,6 @@ Value Position::see_sign (Move m) const
         VALUE_KNOWN_WIN :
         see (m);
 }
-
 // slider_blockers() returns a bitboard of all the pieces in 'target' that
 // are blocking attacks on the square 's' from 'sliders'.
 // A piece blocks a slider if removing that piece from the board would result in a position
@@ -449,7 +445,6 @@ Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard target)
     }
     return slide_blockers;
 }
-
 // pseudo_legal() tests whether a random move is pseudo-legal.
 // It is used to validate moves from TT that can be corrupted
 // due to SMP concurrent access or hash position key aliasing.
@@ -628,7 +623,6 @@ bool Position::pseudo_legal (Move m) const
     }
     return true;
 }
-
 // legal() tests whether a pseudo-legal move is legal
 bool Position::legal        (Move m, Bitboard pinned) const
 {
@@ -704,7 +698,6 @@ bool Position::legal        (Move m, Bitboard pinned) const
         break;
     }
 }
-
 // gives_check() tests whether a pseudo-legal move gives a check
 bool Position::gives_check  (Move m, const CheckInfo &ci) const
 {
@@ -772,7 +765,6 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         break;
     }
 }
-
 //// gives_checkmate() tests whether a pseudo-legal move gives a checkmate
 //bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
 //{
@@ -1465,7 +1457,6 @@ void Position::undo_null_move ()
 
     assert(ok ());
 }
-
 // flip() flips position with the white and black sides reversed.
 // This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip ()
@@ -1497,7 +1488,7 @@ void Position::flip ()
 
     assert(ok ());
 }
-
+// fen()
 string Position::fen (bool c960, bool full) const
 {
     ostringstream oss;
@@ -1571,7 +1562,6 @@ string Position::fen (bool c960, bool full) const
 
     return oss.str ();
 }
-
 // string() returns an ASCII representation of the position to be
 // printed to the standard output
 Position::operator string () const
