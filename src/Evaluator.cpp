@@ -862,10 +862,10 @@ namespace Evaluator {
             behind |= shift_bb<Own == WHITE ? DEL_SS : DEL_NN> (behind);
 
             // Count safe_space + (behind & safe_space) with a single pop_count
-            auto bonus = pop_count ((Own == WHITE ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
+            auto count = pop_count ((Own == WHITE ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
             auto weight = pos.count<NIHT> () + pos.count<BSHP> ();
 
-            auto score = mk_score (bonus * weight * weight * 2 / 11, 0);
+            auto score = mk_score (count * weight * weight * 2 / 11, 0);
 
             if (Trace)
             {
@@ -908,14 +908,14 @@ namespace Evaluator {
                     if (   pos.non_pawn_material (WHITE) == VALUE_MG_BSHP
                         && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
                     {
-                        auto pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
-                        scale_factor = pawn_diff != 0 ? ScaleFactor(12 * pawn_diff) : ScaleFactor(8);
+                        u32 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
+                        scale_factor = pawn_diff != 0 ? ScaleFactor(32) : ScaleFactor(8);
                     }
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops. 
                     else
                     {
-                        scale_factor = ScaleFactor(scale_factor * SCALE_FACTOR_BISHOPS/SCALE_FACTOR_NORMAL);
+                        scale_factor = ScaleFactor(46 * scale_factor/SCALE_FACTOR_NORMAL);
                     }
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
@@ -1025,8 +1025,10 @@ namespace Evaluator {
             - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
 
         // If in the opening phase
-        if (   pos.non_pawn_material (WHITE) +  pos.non_pawn_material (BLACK) >= VALUE_SPACE
-            && pos.count<NIHT> () + pos.count<BSHP> () != 0)
+        if (   pos.non_pawn_material (WHITE)
+             + pos.non_pawn_material (BLACK) >= VALUE_SPACE
+            && pos.count<NIHT> ()
+             + pos.count<BSHP> () != 0)
         {
             // Evaluate space activity
             score +=

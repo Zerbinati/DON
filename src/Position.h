@@ -230,7 +230,6 @@ public:
     bool en_passant     (Move m) const;
     bool gives_check    (Move m, const CheckInfo &ci) const;
     //bool gives_checkmate (Move m, const CheckInfo &ci) const;
-    bool advanced_pawn_push (Move m)    const;
 
     bool passed_pawn  (Color c, Square s) const;
     bool bishops_pair (Color c) const;
@@ -515,12 +514,6 @@ inline bool Position::en_passant (Move m) const
         && _board[org_sq (m)] == (_active|PAWN)
         && _si->en_passant_sq == dst_sq (m)
         && empty (dst_sq (m));
-}
-// advanced_pawn_push(m) checks move is advanced pawn push
-inline bool Position::advanced_pawn_push (Move m) const
-{
-    return _board[org_sq (m)] == (_active|PAWN)
-        && rel_rank (_active, org_sq (m)) > R_4;
 }
 
 inline void  Position::place_piece (Square s, Color c, PieceType pt)

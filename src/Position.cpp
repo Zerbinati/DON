@@ -711,8 +711,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
            (ci.checking_bb[ptype (_board[org])] & dst) != 0
         // Is there a Discovered check ?
         // For discovery check we need to verify also direction
-        || (  (ci.discoverers & org) != 0
-           && !sqrs_aligned (org, dst, ci.king_sq)))
+        || (   (ci.discoverers & org) != 0
+            && !sqrs_aligned (org, dst, ci.king_sq)))
     {
         return true;
     }

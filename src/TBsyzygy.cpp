@@ -233,7 +233,7 @@ namespace TBSyzygy {
         TBEntry_pawn  TB_Pawn [MaxTBPawn];
 
         const u08 TBHashBits = 10;
-        const u08 MaxHash    = 6;
+        const u08 MaxHash    = 5;
         TBHashEntry TB_Hash[1 << TBHashBits][MaxHash];
 
         const u08 DTZ_Entries = 64;

@@ -278,7 +278,7 @@ namespace UCI {
 
         void config_endgame_table ()
         {
-            PathString = string(Options["Syzygy Path"]);
+            PathString = string(Options["SyzygyPath"]);
             trim (PathString);
             if (!PathString.empty ())
             {
@@ -472,10 +472,10 @@ namespace UCI {
 
         // End-Game Table Bases Options
         // ----------------------------
-        Options["Syzygy Path"]                  << Option (PathString, config_endgame_table);
-        Options["Syzygy Depth Limit"]           << Option (TBDepthLimit/DEPTH_ONE, 1, 100);
-        Options["Syzygy Piece Limit"]           << Option (TBPieceLimit, 0,   6);
-        Options["Syzygy Use Rule 50"]           << Option (TBUseRule50);
+        Options["SyzygyPath"]                   << Option (PathString, config_endgame_table);
+        Options["SyzygyDepthLimit"]             << Option (TBDepthLimit/DEPTH_ONE, 1, 100);
+        Options["SyzygyPieceLimit"]             << Option (TBPieceLimit, 0,   6);
+        Options["SyzygyUseRule50"]              << Option (TBUseRule50);
 
         // -------------
         // Other Options

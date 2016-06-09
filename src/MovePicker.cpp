@@ -141,7 +141,7 @@ namespace MovePick {
             assert(_pos.pseudo_legal (vm.move));
             vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
                      - PieceCapValues[ptype (_pos[org_sq (vm.move)])]
-                     - Value(rel_rank (_pos.active (), dst_sq (vm.move)));
+                     + Value(R_NO - rel_rank (_pos.active (), dst_sq (vm.move)));
         }
     }
 
@@ -170,32 +170,25 @@ namespace MovePick {
     void MovePicker::value<EVASION> ()
     {
         const auto &history_values = _pos.thread ()->history_values;
-        const auto *const &cmv  = _ss != nullptr ? (_ss-1)->counter_move_values : nullptr;
-        const auto *const &fmv1 = _ss != nullptr ? (_ss-2)->counter_move_values : nullptr;
-        const auto *const &fmv2 = _ss != nullptr ? (_ss-4)->counter_move_values : nullptr;
 
         for (auto &vm : *this)
         {
             assert(_pos.pseudo_legal (vm.move));
-            
-            if (_pos.capture_or_promotion (vm.move))
+            auto cap_value = _pos.see_sign (vm.move);
+            if (cap_value < VALUE_ZERO)
             {
-                auto cap_value = _pos.see (vm.move);
-                if (cap_value < VALUE_ZERO)
-                {
-                    vm.value = cap_value - Value(rel_rank (_pos.active (), dst_sq (vm.move))) - MaxStatsValue;
-                }
-                else
-                {
-                    vm.value = cap_value - Value(rel_rank (_pos.active (), dst_sq (vm.move))) + MaxStatsValue;
-                }
+                vm.value = cap_value - MaxStatsValue;
+            }
+            else
+            if (_pos.capture (vm.move))
+            {
+                vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                         - PieceCapValues[ptype (_pos[org_sq (vm.move)])]
+                         + Value(R_NO - rel_rank (_pos.active (), dst_sq (vm.move))) + MaxStatsValue;
             }
             else
             {
-                vm.value = history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
-                    + (cmv  != nullptr ? (*cmv )[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO)
-                    + (fmv1 != nullptr ? (*fmv1)[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO)
-                    + (fmv2 != nullptr ? (*fmv2)[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO);
+                vm.value = history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
             }
         }
     }

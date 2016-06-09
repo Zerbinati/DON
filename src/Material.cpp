@@ -186,7 +186,8 @@ namespace Material {
                 }
                 else
                 // Only pawns on the board
-                if (   pos.non_pawn_material (c) + pos.non_pawn_material (~c) == VALUE_ZERO
+                if (   pos.non_pawn_material ( c)
+                     + pos.non_pawn_material (~c) == VALUE_ZERO
                     && pos.pieces (PAWN) != 0)
                 {
                     if (pos.count<PAWN> (~c) == 0)
@@ -205,16 +206,17 @@ namespace Material {
                 // Zero or just one pawn makes it difficult to win, even with a material advantage.
                 // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
                 // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
-                if (pos.non_pawn_material (c) - pos.non_pawn_material (~c) <= VALUE_MG_BSHP)
+                if (abs (  pos.non_pawn_material ( c)
+                         - pos.non_pawn_material (~c)) <= VALUE_MG_BSHP)
                 {
-                    if (pos.count<PAWN> (c) == 0)
+                    if (pos.count<PAWN> ( c) == 0)
                     {
                         e->factor[c] =
                             pos.non_pawn_material ( c) <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                            pos.non_pawn_material (~c) <= VALUE_MG_BSHP ? ScaleFactor(4) : ScaleFactor(16);
+                            pos.non_pawn_material (~c) <= VALUE_MG_BSHP ? ScaleFactor(4) : ScaleFactor(14);
                     }
                     else
-                    if (pos.count<PAWN> (c) == 1)
+                    if (pos.count<PAWN> ( c) == 1)
                     {
                         e->factor[c] = SCALE_FACTOR_ONEPAWN;
                     }

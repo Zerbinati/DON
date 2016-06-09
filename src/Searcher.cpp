@@ -185,7 +185,7 @@ namespace Searcher {
                 ss->killer_moves[0] = move;
             }
 
-            auto bonus = Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1);
+            auto bonus = Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 2) - 2);
 
             auto *thread = pos.thread ();
             auto opp_move_dst = dst_sq ((ss-1)->current_move);
@@ -228,7 +228,7 @@ namespace Searcher {
             if (   (ss-1)->move_count == 1
                 && pos.capture_type () == NONE)
             {
-                bonus = -bonus - 2*((depth/DEPTH_ONE) + 1);
+                bonus = -bonus - 2*((depth/DEPTH_ONE) + 1) - 1;
 
                 if ((ss-2)->counter_move_values != nullptr)
                 {
@@ -349,6 +349,7 @@ namespace Searcher {
             }
 
             ss->current_move = MOVE_NONE;
+            ss->counter_move_values = nullptr;
 
             // Check for an immediate draw or maximum ply reached
             if (   pos.draw ()
@@ -390,7 +391,11 @@ namespace Searcher {
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
             {
-                ss->current_move = tt_move; // Can be MOVE_NONE
+                if (tt_move != MOVE_NONE)
+                {
+                    ss->current_move = tt_move;
+                    ss->counter_move_values = &CounterMoveHistoryValues[pos[org_sq (tt_move)]][dst_sq (tt_move)];
+                }
                 return tt_value;
             }
 
@@ -471,9 +476,9 @@ namespace Searcher {
                 assert(mpc != NO_PIECE);
                 auto dst = dst_sq (move);
 
-                bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
-                                    (ci.checking_bb[ptype (mpc)] & dst) != 0 :
-                                    pos.gives_check (move, ci);
+                bool gives_check =
+                    mtype (move) == NORMAL && ci.discoverers == 0 ?
+                        (ci.checking_bb[ptype (mpc)] & dst) != 0 : pos.gives_check (move, ci);
 
                 // Futility pruning
                 if (   !InCheck
@@ -481,10 +486,13 @@ namespace Searcher {
                     && !gives_check
                     && futility_base > -VALUE_KNOWN_WIN
                     && futility_base <= alfa
-                    && !pos.advanced_pawn_push (move))
+                        // Advance pawn push
+                    && !(   ptype (mpc) == PAWN
+                         && rel_rank (pos.active (), dst) > R_5))
                 {
-                    // Due to !pos.advanced_pawn_push()
-                    assert(mtype (move) != ENPASSANT);
+                    // Due to not advanced pawn push
+                    assert(mtype (move) != ENPASSANT
+                        && mtype (move) != PROMOTE);
 
                     // Futility pruning parent node
                     auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst])];
@@ -520,6 +528,8 @@ namespace Searcher {
                 }
 
                 ss->current_move = move;
+                ss->counter_move_values = &CounterMoveHistoryValues[mpc][dst];
+
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 // Speculative prefetch as early as possible
@@ -708,9 +718,9 @@ namespace Searcher {
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
             {
-                ss->current_move = tt_move; // Can be MOVE_NONE
                 if (tt_move != MOVE_NONE)
                 {
+                    ss->current_move = tt_move;
                     ss->counter_move_values = &CounterMoveHistoryValues[pos[org_sq (tt_move)]][dst_sq (tt_move)];
 
                     // If tt_move is quiet, update killers, history, countermove and countermoves history on TT hit
@@ -920,9 +930,9 @@ namespace Searcher {
                             ss->current_move = move;
                             ss->counter_move_values = &CounterMoveHistoryValues[mpc][dst];
 
-                            bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
-                                                (ci.checking_bb[ptype (mpc)] & dst) != 0 :
-                                                pos.gives_check (move, ci);
+                            bool gives_check =
+                                mtype (move) == NORMAL && ci.discoverers == 0 ?
+                                    (ci.checking_bb[ptype (mpc)] & dst) != 0 : pos.gives_check (move, ci);
                             bool capture_or_promotion = pos.capture_or_promotion (move);
 
                             // Speculative prefetch as early as possible
@@ -1071,9 +1081,9 @@ namespace Searcher {
                     (ss+1)->pv.clear ();
                 }
 
-                bool gives_check = mtype (move) == NORMAL && ci.discoverers == 0 ?
-                                    (ci.checking_bb[ptype (mpc)] & dst) != 0 :
-                                    pos.gives_check (move, ci);
+                bool gives_check =
+                    mtype (move) == NORMAL && ci.discoverers == 0 ?
+                        (ci.checking_bb[ptype (mpc)] & dst) != 0 : pos.gives_check (move, ci);
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
                 auto extension =
@@ -1121,9 +1131,14 @@ namespace Searcher {
                     && best_value > -VALUE_MATE_IN_MAX_PLY
                     // ! Dangerous conditions
                     && !gives_check
+                        // Advance pawn push
                     && !(   ptype (mpc) == PAWN
-                         && pos.advanced_pawn_push (move)))
+                         && rel_rank (pos.active (), dst) > R_5))
                 {
+                    // Due to not advanced pawn push
+                    assert(mtype (move) != ENPASSANT
+                        && mtype (move) != PROMOTE);
+
                     // Move count based pruning
                     if (   depth < FutilityMoveCountDepth*DEPTH_ONE
                         && move_count >= FutilityMoveCounts[improving][depth/DEPTH_ONE])
@@ -1180,14 +1195,8 @@ namespace Searcher {
                 {
                     assert(new_depth >= 2*DEPTH_ONE);
                     assert(mtype (move) != PROMOTE);
-                    auto reduction_depth = reduction_depths (PVNode, improving, new_depth, move_count);
+                    auto reduction_depth = reduction_depths (PVNode, improving, new_depth, move_count) + (!PVNode && CutNode ? 2*DEPTH_ONE : DEPTH_ZERO);
 
-                    // Increase reduction for non-pv & cut-node
-                    if (   !PVNode
-                        && CutNode)
-                    {
-                        reduction_depth += 2*DEPTH_ONE;
-                    }
                     // Decrease reduction for moves that escape a capture.
                     if (   mtype (move) == NORMAL
                         && (NIHT <= ptype (mpc) && ptype (mpc) <= QUEN)
@@ -1405,7 +1414,7 @@ namespace Searcher {
                 && (ss-1)->counter_move_values != nullptr
                 && pos.capture_type () == NONE)
             {
-                auto bonus = Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 1) - 1);
+                auto bonus = Value((depth/DEPTH_ONE)*((depth/DEPTH_ONE) + 2) - 2);
                 auto opp_move_dst = dst_sq ((ss-1)->current_move);
                 if ((ss-2)->counter_move_values != nullptr)
                 {
@@ -1422,7 +1431,8 @@ namespace Searcher {
             }
 
             tte->save (posi_key, best_move, value_to_tt (best_value, ss->ply), ss->static_eval, depth,
-                best_value >= beta ? BOUND_LOWER : PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER, TT.generation ());
+                best_value >= beta ? BOUND_LOWER :
+                    PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER, TT.generation ());
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
