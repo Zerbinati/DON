@@ -163,7 +163,7 @@ namespace UCI {
         }
 #   endif
 
-        void clear_hash  ()
+        void clear_hash ()
         {
             clear ();
         }
@@ -173,7 +173,7 @@ namespace UCI {
             TT.retain_hash = bool(Options["Retain Hash"]);
         }
 
-        void save_hash   ()
+        void save_hash ()
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
@@ -184,7 +184,7 @@ namespace UCI {
             }
         }
 
-        void load_hash   ()
+        void load_hash ()
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
@@ -392,13 +392,13 @@ namespace UCI {
 
         // The maximum number of Threads (cores) to use during the search.
         // This number should be set to the number of cores in your CPU.
-        // Default=1, Min=0, Max=128.
+        // Default=1, Min=0, Max=256.
         //
         // 0 for auto-resize to hardware-dependent number of threads
-        // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
+        // engine will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      << Option ( 1, 0, 128, configure_threadpool);
+        Options["Threads"]                      << Option ( 1, 0, 256, configure_threadpool);
 
         // Game Play Options
         // -----------------
