@@ -13,14 +13,9 @@
 #include "Material.h"
 #include "MovePicker.h"
 
-extern u08      MaximumMoveHorizon;
-extern u08      ReadyMoveHorizon;
-extern u32      OverheadClockTime;
-extern u32      OverheadMoveTime;
-extern u32      MinimumMoveTime;
-extern double   MoveSlowness;
-extern u32      NodesTime;
-extern bool     Ponder;
+extern double MoveSlowness;
+extern u32    NodesTime;
+extern bool   Ponder;
 
 // TimeManager class computes the optimal time to think depending on the
 // maximum available time, the move game number and other parameters.
@@ -49,16 +44,15 @@ public:
     void update (Color c);
 };
 
+const u08 MoveManagerSize = 3;
+
 // MoveManager class is used to detect a so called 'easy move'.
 // When PV is stable across multiple search iterations engine can fast return the best move.
 class MoveManager
 {
-public:
-    static const u08 PVSize = 3;
-
 private:
     Key  _posi_key = 0;
-    Move _pv[PVSize];
+    Move _pv[MoveManagerSize];
 
 public:
     u08 stable_count = 0; // Keep track of how many times in a row the 3rd ply remains stable
@@ -74,19 +68,19 @@ public:
     {
         stable_count = 0;
         _posi_key = 0;
-        std::fill (_pv, _pv + PVSize, MOVE_NONE);
+        std::fill (_pv, _pv + MoveManagerSize, MOVE_NONE);
     }
 
     Move easy_move (const Key posi_key) const
     {
-        return posi_key == _posi_key ? _pv[PVSize-1] : MOVE_NONE;
+        return posi_key == _posi_key ? _pv[MoveManagerSize-1] : MOVE_NONE;
     }
 
     void update (Position &pos, const MoveVector &pv)
     {
-        assert(pv.size () >= PVSize);
+        assert(pv.size () >= MoveManagerSize);
 
-        if (pv[PVSize-1] == _pv[PVSize-1])
+        if (pv[MoveManagerSize-1] == _pv[MoveManagerSize-1])
         {
             ++stable_count;
         }
@@ -95,17 +89,17 @@ public:
             stable_count = 0;
         }
 
-        if (!std::equal (pv.begin (), pv.begin () + PVSize, _pv))
+        if (!std::equal (pv.begin (), pv.begin () + MoveManagerSize, _pv))
         {
-            std::copy (pv.begin (), pv.begin () + PVSize, _pv);
+            std::copy (pv.begin (), pv.begin () + MoveManagerSize, _pv);
 
-            StateInfo si[PVSize-1];
-            for (u08 i = 0; i < PVSize-1; ++i)
+            StateInfo si[MoveManagerSize-1];
+            for (u08 i = 0; i < MoveManagerSize-1; ++i)
             {
                 pos.do_move (_pv[i], si[i], pos.gives_check (_pv[i], CheckInfo (pos)));
             }
             _posi_key = pos.posi_key ();
-            for (u08 i = 0; i < PVSize-1; ++i)
+            for (u08 i = 0; i < MoveManagerSize-1; ++i)
             {
                 pos.undo_move ();
             }

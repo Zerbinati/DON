@@ -301,37 +301,37 @@ namespace Evaluator {
             for (Square s : pos.squares<PT> (Own))
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
-                Bitboard attacks =
+                Bitboard ful_attacks =
                     PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
                     PT == ROOK ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
                     PT == QUEN ? attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own]) :
                     PieceAttacks[PT][s];
 
-                ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= attacks;
+                ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= ful_attacks;
 
+                Bitboard pin_attacks = ful_attacks;
                 if ((ei.pinneds[Own] & s) != 0)
                 {
-                    attacks &= rayline_bb (pos.square<KING> (Own), s);
+                    pin_attacks &= rayline_bb (pos.square<KING> (Own), s);
                 }
-                ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PT] |= attacks;
+                ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PT] |= pin_attacks;
 
-                if ((ei.king_ring[Opp] & attacks) != 0)
+                if ((ei.king_ring[Opp] & ful_attacks) != 0)
                 {
                     ei.king_ring_attackers_count [Own]++;
                     ei.king_ring_attackers_weight[Own] += KingAttackWeights[PT];
-                    Bitboard zone_attacks = ei.ful_attacked_by[Opp][KING] & attacks;
+                    Bitboard zone_attacks = ei.ful_attacked_by[Opp][KING] & ful_attacks;
                     ei.king_zone_attacks_count[Own] += u08(pop_count (zone_attacks));
                 }
 
                 if (PT == QUEN)
                 {
-                    attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
-                                 | ei.pin_attacked_by[Opp][BSHP]
-                                 | ei.pin_attacked_by[Opp][ROOK]);
+                    pin_attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
+                                     | ei.pin_attacked_by[Opp][BSHP]
+                                     | ei.pin_attacked_by[Opp][ROOK]);
                 }
 
-                i32 mob = pop_count (attacks & mobility_area);
-                mobility += PieceMobility[PT][mob];
+                mobility += PieceMobility[PT][pop_count (pin_attacks & mobility_area)];
 
                 // Special extra evaluation for pieces
 
@@ -361,7 +361,7 @@ namespace Evaluator {
                         }
                         else
                         {
-                            b &= attacks & ~pos.pieces (Own);
+                            b &= pin_attacks & ~pos.pieces (Own);
                             if (b != 0)
                             {
                                 score += KnightReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0];
@@ -379,7 +379,7 @@ namespace Evaluator {
                         }
                         else
                         {
-                            b &= attacks & ~pos.pieces (Own);
+                            b &= pin_attacks & ~pos.pieces (Own);
                             if (b != 0)
                             {
                                 score += BishopReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0];
@@ -421,6 +421,7 @@ namespace Evaluator {
                 else
                 if (PT == ROOK)
                 {
+                    i32 mob;
                     // Bonus for rook aligning with enemy pawns on the same rank/file
                     if (rel_rank (Own, s) > R_4)
                     {
@@ -430,16 +431,16 @@ namespace Evaluator {
                     if (ei.pe->file_semiopen (Own, _file (s)))
                     {
                         score += RookOnFile[ei.pe->file_semiopen (Opp, _file (s)) ? 2 :
-                                                (pos.pieces (Opp, PAWN) & file_bb (s) & attacks & ~ei.pin_attacked_by[Opp][PAWN]) != 0 ? 1 : 0];
+                                                (pos.pieces (Opp, PAWN) & file_bb (s) & ful_attacks & ~ei.pin_attacked_by[Opp][PAWN]) != 0 ? 1 : 0];
                     }
                     else
                     // Penalty for rook when trapped by the king, even more if the king can't castle
-                    if (   mob <= 3
-                        && (_file (pos.square<KING> (Own)) < F_E) == (_file (s) < _file (pos.square<KING> (Own)))
+                    if (   (_file (pos.square<KING> (Own)) < F_E) == (_file (s) < _file (pos.square<KING> (Own)))
                         && (    rel_rank (Own, pos.square<KING> (Own)) == rel_rank (Own, s)
                             || (rel_rank (Own, pos.square<KING> (Own)) == R_1 && rel_rank (Own, s) < R_4))
                         && (front_sqrs_bb (Opp, scan_backmost_sq (Own, pos.pieces (Own, PAWN) & file_bb (s))) & s) != 0
-                        && !ei.pe->side_semiopen (Own, _file (pos.square<KING> (Own)), _file (s) < _file (pos.square<KING> (Own))))
+                        && !ei.pe->side_semiopen (Own, _file (pos.square<KING> (Own)), _file (s) < _file (pos.square<KING> (Own)))
+                        && (mob = pop_count (ful_attacks & mobility_area)) <= 3)
                     {
                         score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
                     }

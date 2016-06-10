@@ -127,15 +127,16 @@ namespace Material {
     // when the same material configuration occurs again.
     Entry* probe (const Position &pos)
     {
-        Key matl_key = pos.matl_key ();
+        auto matl_key = pos.matl_key ();
         auto *e = pos.thread ()->matl_table[matl_key];
-
-        // If material key matches the position's material hash key, it means that
-        // have analysed this material configuration before, and can simply
-        // return the information found the last time instead of recomputing it.
-        if (e->matl_key != matl_key)
+        // If material key matches the position's material hash key,
+        // it means that have analysed this material configuration before,
+        // and can simply return the information found instead of recomputing it.
+        if (  !e->eval
+            || e->matl_key != matl_key)
         {
             std::memset (e, 0x00, sizeof (*e));
+            e->eval = true;
             e->matl_key = matl_key;
             e->factor[WHITE] =
             e->factor[BLACK] = SCALE_FACTOR_NORMAL;

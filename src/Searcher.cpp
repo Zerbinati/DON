@@ -228,19 +228,19 @@ namespace Searcher {
             if (   (ss-1)->move_count == 1
                 && pos.capture_type () == NONE)
             {
-                bonus = -bonus - 2*((depth/DEPTH_ONE) + 1) - 1;
+                bonus += (depth/DEPTH_ONE)*(2) + 3;
 
                 if ((ss-2)->counter_move_values != nullptr)
                 {
-                    (ss-2)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    (ss-2)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, -bonus);
                 }
                 if ((ss-3)->counter_move_values != nullptr)
                 {
-                    (ss-3)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    (ss-3)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, -bonus);
                 }
                 if ((ss-5)->counter_move_values != nullptr)
                 {
-                    (ss-5)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    (ss-5)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, -bonus);
                 }
             }
         }
@@ -260,7 +260,6 @@ namespace Searcher {
             {
                 pv.reserve (child_pv.size () + 1);
                 std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (pv));
-                //pv.shrink_to_fit ();
             }
         }
 
@@ -1085,12 +1084,15 @@ namespace Searcher {
                     mtype (move) == NORMAL && ci.discoverers == 0 ?
                         (ci.checking_bb[ptype (mpc)] & dst) != 0 : pos.gives_check (move, ci);
 
+                bool move_count_pruning =
+                       depth < FutilityMoveCountDepth*DEPTH_ONE
+                    && move_count >= FutilityMoveCounts[improving][depth/DEPTH_ONE];
+
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
                 auto extension =
                        gives_check
                     && (   move_count == 1
-                        || (   (   depth >= FutilityMoveCountDepth*DEPTH_ONE
-                                || move_count < FutilityMoveCounts[improving][depth/DEPTH_ONE])
+                        || (   !move_count_pruning
                             && pos.see_sign (move) >= VALUE_ZERO)) ?
                       DEPTH_ONE : DEPTH_ZERO;
 
@@ -1139,17 +1141,14 @@ namespace Searcher {
                     assert(mtype (move) != ENPASSANT
                         && mtype (move) != PROMOTE);
 
-                    // Move count based pruning
-                    if (   depth < FutilityMoveCountDepth*DEPTH_ONE
-                        && move_count >= FutilityMoveCounts[improving][depth/DEPTH_ONE])
-                    {
-                        continue;
-                    }
-                    // Counter move values based pruning
-                    if (   depth <= 4*DEPTH_ONE
-                        && move != ss->killer_moves[0]
-                        && (cmv  == nullptr || (*cmv )[mpc][dst] < VALUE_ZERO)
-                        && (fmv1 == nullptr || (*fmv1)[mpc][dst] < VALUE_ZERO))
+                    if (// Move count based pruning
+                           move_count_pruning
+                        ||
+                        // Counter move values based pruning
+                           (   depth <= 4*DEPTH_ONE
+                            && move != ss->killer_moves[0]
+                            && (cmv  == nullptr || (*cmv )[mpc][dst] < VALUE_ZERO)
+                            && (fmv1 == nullptr || (*fmv1)[mpc][dst] < VALUE_ZERO)))
                     {
                         continue;
                     }
@@ -1211,7 +1210,12 @@ namespace Searcher {
                                       + (cmv  != nullptr ? (*cmv )[mpc][dst] : VALUE_ZERO)
                                       + (fmv1 != nullptr ? (*fmv1)[mpc][dst] : VALUE_ZERO)
                                       + (fmv2 != nullptr ? (*fmv2)[mpc][dst] : VALUE_ZERO)) - 10000)/20000;
-                    reduction_depth = std::max (reduction_depth - r_hist*DEPTH_ONE, DEPTH_ZERO);
+                    reduction_depth -= r_hist*DEPTH_ONE;
+
+                    if (reduction_depth < DEPTH_ZERO)
+                    {
+                        reduction_depth = DEPTH_ZERO;
+                    }
 
                     // Search with reduced depth
                     value =
@@ -1314,7 +1318,6 @@ namespace Searcher {
                         {
                             root_move.reserve (pv.size () + 1);
                             std::copy (pv.begin (), pv.end (), std::back_inserter (root_move));
-                            //root_move.shrink_to_fit ();
                         }
                         root_move.new_value = value;
 
@@ -1381,9 +1384,7 @@ namespace Searcher {
                     quiet_moves.push_back (move);
                 }
             }
-            assert(((root_node || exclude_move != MOVE_NONE || value >= beta) && move_count <= MoveList<LEGAL> (pos).size ()) || move_count == MoveList<LEGAL> (pos).size ());
-
-            //quiet_moves.shrink_to_fit ();
+            //assert(((root_node || exclude_move != MOVE_NONE || value >= beta) && move_count <= MoveList<LEGAL> (pos).size ()) || move_count == MoveList<LEGAL> (pos).size ());
 
             // Step 20. Check for checkmate and stalemate
             // If all possible moves have been searched and if there are no legal moves,
@@ -1441,14 +1442,14 @@ namespace Searcher {
 
     // ------------------------------------
 
-    // RootMove::insert_pv_into_tt() is called at the end of a search iteration, and
-    // inserts the PV back into the TT. This makes sure the old PV moves are searched
-    // first, even if the old TT entries have been overwritten.
+    // RootMove::insert_pv_into_tt() is called at the end of a search iteration,
+    // and inserts the PV back into the TT.
+    // This makes sure the old PV moves are searched first,
+    // even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos)
     {
         StateInfo states[MaxPlies], *si = states;
 
-        //shrink_to_fit ();
         u08 ply = 0;
         for (const auto m : *this)
         {
@@ -1496,7 +1497,6 @@ namespace Searcher {
             }
         }
         pos.undo_move ();
-        //shrink_to_fit ();
         return extracted;
     }
 
@@ -1531,9 +1531,10 @@ namespace Searcher {
             {
                 StateInfo si;
                 pos.do_move (vm.move, si, pos.gives_check (vm.move, CheckInfo (pos)));
-                inter_nodes = depth <= 2*DEPTH_ONE ?
-                    MoveList<LEGAL> (pos).size () :
-                    perft<false> (pos, depth-DEPTH_ONE);
+                inter_nodes =
+                    depth <= 2*DEPTH_ONE ?
+                        MoveList<LEGAL> (pos).size () :
+                        perft<false> (pos, depth-DEPTH_ONE);
                 pos.undo_move ();
             }
 
@@ -1756,9 +1757,8 @@ namespace Threading {
                 if (aspiration)
                 {
                     window = 
-                        Value(18);
-                        //// Increasing window
-                        //Value(root_depth <= 32*DEPTH_ONE ? 16 + (root_depth/DEPTH_ONE-1)/4 : 24);
+                        Value(18); // Fix window
+                        //Value(root_depth <= 32*DEPTH_ONE ? 16 + (root_depth/DEPTH_ONE-1)/4 : 24); // Increasing window
 
                     alfa = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
                     beta = std::min (root_moves[pv_index].old_value + window, +VALUE_INFINITE);
@@ -1799,7 +1799,7 @@ namespace Threading {
                     // (without cluttering the UI) before to re-search.
                     if (   main_thread != nullptr
                         && PVLimit == 1
-                        && (alfa >= best_value || best_value >= beta)
+                        && (best_value <= alfa || beta <= best_value)
                         && main_thread->time_mgr.elapsed_time () > 3*MilliSec)
                     {
                         sync_cout << multipv_info (alfa, beta) << sync_endl;
@@ -1822,7 +1822,7 @@ namespace Threading {
                         }
                     }
                     else
-                    if (best_value >= beta)
+                    if (beta <= best_value)
                     {
                         alfa = (alfa + beta) / 2;
                         beta = std::min (best_value + window, +VALUE_INFINITE);
@@ -1875,8 +1875,8 @@ namespace Threading {
             if (main_thread != nullptr)
             {
                 // If skill level is enabled and can pick move, pick a sub-optimal best move
-                if (   main_thread->skill_mgr.enabled ()
-                    && main_thread->skill_mgr.can_pick (root_depth)
+                if (    main_thread->skill_mgr.enabled ()
+                    &&  main_thread->skill_mgr.can_pick (root_depth)
                     && !main_thread->root_moves.empty ())
                 {
                     main_thread->skill_mgr.clear ();
@@ -1920,7 +1920,7 @@ namespace Threading {
                         }
 
                         if (   !root_moves.empty ()
-                            &&  root_moves[0].size () >= MoveManager::PVSize)
+                            &&  root_moves[0].size () >= MoveManagerSize)
                         {
                             main_thread->move_mgr.update (root_pos, root_moves[0]);
                         }

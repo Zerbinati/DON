@@ -21,7 +21,7 @@ namespace Material {
     private:
 
     public:
-
+        bool        eval;
         Key         matl_key;
         Score       imbalance;
         Phase       game_phase;

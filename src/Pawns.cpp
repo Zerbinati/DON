@@ -244,14 +244,15 @@ namespace Pawns {
 
     Entry* probe (const Position &pos)
     {
-        Key pawn_key = pos.pawn_key ();
+        auto pawn_key = pos.pawn_key ();
         auto *e = pos.thread ()->pawn_table[pawn_key];
-
-        // If pawn key matches the position's pawn hash key, it means that
-        // have analysed this pawn configuration before, and can simply
-        // return the information found the last time instead of recomputing it.
-        if (e->pawn_key != pawn_key)
+        // If pawn key matches the position's pawn hash key,
+        // it means that have analysed this pawn configuration before,
+        // and can simply return the information found instead of recomputing it.
+        if (  !e->eval
+            || e->pawn_key != pawn_key)
         {
+            e->eval = true;
             e->pawn_key = pawn_key;
             e->pawn_score =
                 + evaluate<WHITE> (pos, e)

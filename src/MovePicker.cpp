@@ -23,11 +23,6 @@ namespace MovePick {
             S_STOP
         };
 
-        const Value PieceCapValues[MAX_PTYPE] =
-        {
-            VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_MG_QUEN+512, VALUE_ZERO
-        };
-
         // pick_best() finds the best move in the range [beg, end) and moves it to front,
         // it is faster than sorting all the moves in advance when there are few moves
         // e.g. the possible captures.
@@ -130,6 +125,8 @@ namespace MovePick {
     // The moves with highest scores will be picked first.
 
     // Winning and equal captures in the main search are ordered by MVV/LVA, preferring captures near our home rank.
+    // Surprisingly, this appears to perform slightly better than SEE-based move ordering,
+    // exchanging big pieces before capturing a hanging piece probably helps to reduce the subtree size.
     // In the main search push captures with negative SEE values to the bad-captures[],
     // but instead of doing it now we delay until the move has been picked up,
     // saving some SEE calls in case of a cutoff.
@@ -139,9 +136,9 @@ namespace MovePick {
         for (auto &vm : *this)
         {
             assert(_pos.pseudo_legal (vm.move));
-            vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                     - PieceCapValues[ptype (_pos[org_sq (vm.move)])]
-                     + Value(R_NO - rel_rank (_pos.active (), dst_sq (vm.move)));
+            vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                     - 200 * Value(rel_rank (_pos.active (), dst_sq (vm.move)))
+                     - Value(ptype (_pos[org_sq (vm.move)]) + 1);
         }
     }
 
@@ -182,9 +179,8 @@ namespace MovePick {
             else
             if (_pos.capture (vm.move))
             {
-                vm.value = PieceCapValues[_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                         - PieceCapValues[ptype (_pos[org_sq (vm.move)])]
-                         + Value(R_NO - rel_rank (_pos.active (), dst_sq (vm.move))) + MaxStatsValue;
+                vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                         - Value(ptype (_pos[org_sq (vm.move)]) + 1) + MaxStatsValue;
             }
             else
             {
