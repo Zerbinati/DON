@@ -1212,44 +1212,50 @@ namespace Searcher {
                                       + (fmv2 != nullptr ? (*fmv2)[mpc][dst] : VALUE_ZERO)) - 10000)/20000;
                     reduction_depth -= r_hist*DEPTH_ONE;
 
-                    if (reduction_depth < DEPTH_ZERO)
+                    if (reduction_depth > DEPTH_ZERO)
                     {
-                        reduction_depth = DEPTH_ZERO;
-                    }
-
-                    // Search with reduced depth
-                    value =
-                        gives_check ?
-                            -depth_search<false, true, true > (pos, ss+1, -(alfa+1), -alfa, std::max (new_depth - reduction_depth, DEPTH_ONE)) :
-                            -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, std::max (new_depth - reduction_depth, DEPTH_ONE));
-
-                    full_depth_search = alfa < value && reduction_depth != DEPTH_ZERO;
-
-                    // Before going to full depth, check whether a fail high with half the reduction
-                    if (   full_depth_search
-                        && new_depth >= 8*DEPTH_ONE
-                        && new_depth <= 2*reduction_depth)
-                    {
-                        reduction_depth = reduction_depth / 2;
+                        if (reduction_depth > new_depth - DEPTH_ONE)
+                        {
+                            reduction_depth = new_depth - DEPTH_ONE;
+                        }
+                        // Search with reduced depth
                         value =
                             gives_check ?
-                                -depth_search<false, true, true > (pos, ss+1, -(alfa+1), -alfa, std::max (new_depth - reduction_depth, DEPTH_ONE)) :
-                                -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, std::max (new_depth - reduction_depth, DEPTH_ONE));
+                                -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth) :
+                                -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth);
 
                         full_depth_search = alfa < value && reduction_depth != DEPTH_ZERO;
 
+                        // Before going to full depth, check whether a fail high with half the reduction
                         if (   full_depth_search
-                            && new_depth >= 32*DEPTH_ONE
-                            && new_depth <= 4*reduction_depth)
+                            && new_depth >= 8*DEPTH_ONE
+                            && new_depth <= 2*reduction_depth)
                         {
                             reduction_depth = reduction_depth / 2;
                             value =
                                 gives_check ?
-                                -depth_search<false, true, true > (pos, ss+1, -(alfa+1), -alfa, std::max (new_depth - reduction_depth, DEPTH_ONE)) :
-                                -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, std::max (new_depth - reduction_depth, DEPTH_ONE));
+                                    -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth) :
+                                    -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth);
 
                             full_depth_search = alfa < value && reduction_depth != DEPTH_ZERO;
+
+                            if (   full_depth_search
+                                && new_depth >= 32*DEPTH_ONE
+                                && new_depth <= 4*reduction_depth)
+                            {
+                                reduction_depth = reduction_depth / 2;
+                                value =
+                                    gives_check ?
+                                    -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth) :
+                                    -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth);
+
+                                full_depth_search = alfa < value && reduction_depth != DEPTH_ZERO;
+                            }
                         }
+                    }
+                    else
+                    {
+                        full_depth_search = true;
                     }
                 }
                 else
