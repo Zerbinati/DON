@@ -165,7 +165,7 @@ namespace Searcher {
     extern u16   TBHits;
     extern bool  TBHasRoot;
 
-    extern std::string LogFile;
+    extern std::string SearchLogFile;
 
     // The root of the tree is a PV node.
     // At a PV node all the children have to be investigated.
@@ -210,7 +210,6 @@ namespace Searcher {
         void operator+= (Move m) { push_back (m); }
         void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
-        void insert_pv_into_tt (Position &pos);
         bool extract_ponder_move_from_tt (Position &pos);
 
         explicit operator std::string () const;

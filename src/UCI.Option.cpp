@@ -259,20 +259,24 @@ namespace UCI {
             Ponder = bool(Options["Ponder"]);
         }
 
-        void debug_log ()
+        void debug_log_file ()
         {
-            bool(Options["Debug Log"]) ?
-                Logger::instance ().start () :
-                Logger::instance ().stop ();
+            string filename = string(Options["Debug Log File"]);
+            trim (filename);
+            if (!filename.empty ())
+            {
+                convert_path (filename);
+                Logger::log (filename);
+            }
         }
 
-        void log_file ()
+        void search_log_file ()
         {
-            LogFile = string(Options["Log File"]);
-            trim (LogFile);
-            if (!LogFile.empty ())
+            SearchLogFile = string(Options["Search Log File"]);
+            trim (SearchLogFile);
+            if (!SearchLogFile.empty ())
             {
-                convert_path (LogFile);
+                convert_path (SearchLogFile);
             }
         }
 
@@ -480,9 +484,10 @@ namespace UCI {
         // -------------
         // Other Options
         // -------------
-        Options["Debug Log"]                    << Option (false, debug_log);
+        // The filename of the debug log.
+        Options["Debug Log File"]               << Option ("<empty>", debug_log_file);
         // The filename of the search log.
-        Options["Log File"]                     << Option (LogFile, log_file);
+        Options["Search Log File"]              << Option (SearchLogFile, search_log_file);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.

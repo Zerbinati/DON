@@ -8,7 +8,6 @@
 #include "MoveGenerator.h"
 #include "Thread.h"
 #include "Notation.h"
-#include "Debugger.h"
 #include "Benchmark.h"
 
 namespace UCI {
@@ -19,7 +18,6 @@ namespace UCI {
     using namespace Evaluator;
     using namespace MoveGen;
     using namespace Notation;
-    using namespace Debugger;
 
     namespace {
 
@@ -293,16 +291,6 @@ namespace UCI {
             //    {
             //    }
             //}
-            else
-            if (token == "debug")
-            {
-                iss >> token;
-                if (token == "on")  Logger::instance ().start ();
-                else
-                if (token == "off") Logger::instance ().stop ();
-                else
-                    sync_cout << "Invalid option." << sync_endl;
-            }
             // Print the root position
             else
             if (token == "show")

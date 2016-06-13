@@ -11,7 +11,6 @@
 #   include <ctime>
 #endif
 
-
 inline std::string time_to_string (const std::chrono::system_clock::time_point &tp)
 {
 
@@ -34,7 +33,7 @@ inline std::string time_to_string (const std::chrono::system_clock::time_point &
     return "";
 
 #   endif
-    
+
 }
 
 template<class CharT, class Traits>
@@ -55,55 +54,46 @@ namespace Debugger {
         std::ofstream _ofs;
         std::tie_buf  _inb; // Input
         std::tie_buf  _otb; // Output
-        std::string   _filename;
 
     protected:
 
         // Constructor should be protected !!!
-        Logger (std::string filename)
-            : _inb (std::cin .rdbuf (), _ofs.rdbuf ())
+        Logger ()
+            : _inb (std::cin.rdbuf (), _ofs.rdbuf ())
             , _otb (std::cout.rdbuf (), _ofs.rdbuf ())
-            , _filename (filename)
         {}
         Logger (const Logger&) = delete;
         Logger& operator= (const Logger&) = delete;
-
-    public:
+        
         ~Logger ()
         {
-            stop ();
+            log ("");
         }
 
-        static Logger& instance ()
-        {
-            // Guaranteed to be destroyed.
-            // Instantiated on first use.
-            static Logger _instance ("DebugLog.txt");
+    public:
 
-            return _instance;
-        }
-
-        void start ()
+        static void log (const std::string &filename)
         {
-            if (!_ofs.is_open ())
+            static Logger logger;
+
+            if (logger._ofs.is_open ())
             {
-                _ofs.open (_filename, std::ios_base::out|std::ios_base::app);
-                _ofs << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
+                std::cout.rdbuf (logger._otb.streambuf ());
+                std::cin.rdbuf (logger._inb.streambuf ());
 
-                std::cin .rdbuf (&_inb);
-                std::cout.rdbuf (&_otb);
+                logger._ofs << "[" << std::chrono::system_clock::now () << "] <-" << std::endl;
+                logger._ofs.close ();
             }
-        }
 
-        void stop ()
-        {
-            if (_ofs.is_open ())
+            if (   !white_spaces (filename)
+                && filename != "<empty>"
+                && !logger._ofs.is_open ())
             {
-                std::cout.rdbuf (_otb.streambuf ());
-                std::cin .rdbuf (_inb.streambuf ());
+                logger._ofs.open (filename, std::ios_base::out|std::ios_base::app);
+                logger._ofs << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
 
-                _ofs << "[" << std::chrono::system_clock::now () << "] <-" << std::endl;
-                _ofs.close ();
+                std::cin.rdbuf (&logger._inb);
+                std::cout.rdbuf (&logger._otb);
             }
         }
 
