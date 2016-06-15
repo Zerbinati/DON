@@ -86,7 +86,7 @@ namespace Debugger {
             }
 
             if (   !white_spaces (filename)
-                && filename != "<empty>"
+                && filename != Empty
                 && !logger._ofs.is_open ())
             {
                 logger._ofs.open (filename, std::ios_base::out|std::ios_base::app);

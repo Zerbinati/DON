@@ -210,6 +210,10 @@ namespace Searcher {
         void operator+= (Move m) { push_back (m); }
         void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
+        /*
+        void insert_pv_into_tt (Position &pos);
+        void extract_pv_from_tt (Position &pos);
+        */
         bool extract_ponder_move_from_tt (Position &pos);
 
         explicit operator std::string () const;

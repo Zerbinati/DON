@@ -201,7 +201,7 @@ namespace Pawns {
 
         auto value = MaxSafety;
 
-        Bitboard front_pawns = pos.pieces (PAWN) & (front_rank_bb (Own, k_sq) | rank_bb (k_sq));
+        Bitboard front_pawns = pos.pieces (PAWN) & front_rank_bb (Own, k_sq);
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 

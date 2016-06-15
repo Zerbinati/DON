@@ -74,7 +74,7 @@ namespace TBSyzygy {
     using namespace MoveGen;
     using namespace Searcher;
 
-    string  PathString      = "<empty>";
+    string  PathString      = Empty;
     i32     MaxPieceLimit   = 0;
     Value   ProbeValue      = VALUE_NONE;
 
@@ -2777,7 +2777,7 @@ namespace TBSyzygy {
 
         convert_path (PathString);
         if (   !white_spaces (PathString)
-            && PathString != "<empty>")
+            && PathString != Empty)
         {
             Paths = split (PathString, SepChar, false, true);
 

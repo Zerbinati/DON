@@ -162,7 +162,7 @@ namespace Evaluator {
 
         // SafePawnThreat[piece-type] contains bonuses according to which piece type is attacked by pawn
         // which is protected or is not attacked.
-        const Score SafePawnThreat[NONE] = { S(  0,  0), S(176,139), S(131,127), S(217,218), S(203,215), S(  0,  0) };
+        const Score SafePawnThreat[NONE] = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
 
         enum PieceCategory : u08
         {
@@ -231,7 +231,6 @@ namespace Evaluator {
         void init_evaluation (const Position &pos, EvalInfo &ei)
         {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            const auto Push = Own == WHITE ? DEL_N : DEL_S;
             const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
 
@@ -239,6 +238,7 @@ namespace Evaluator {
             ei.ful_attacked_by[Own][PAWN]  = ei.pe->pawn_attacks[Own];
 
             Bitboard pinneds = ei.pinneds[Own] = pos.pinneds (Own);
+
             Bitboard pinned_pawns = pinneds & pos.pieces (Own, PAWN);
             if (pinned_pawns != 0)
             {
@@ -258,9 +258,10 @@ namespace Evaluator {
                 ei.pin_attacked_by[Own][PAWN]  = ei.pe->pawn_attacks[Own];
             }
 
+            auto ek_sq = pos.square<KING> (Opp);
             Bitboard king_attacks         =
             ei.ful_attacked_by[Opp][KING] =
-            ei.pin_attacked_by[Opp][KING] = PieceAttacks[KING][pos.square<KING> (Opp)];
+            ei.pin_attacked_by[Opp][KING] = PieceAttacks[KING][ek_sq];
 
             ei.king_ring_attackers_count [Own] = 0;
             ei.king_ring_attackers_weight[Own] = 0;
@@ -271,13 +272,13 @@ namespace Evaluator {
             // Do not evaluate king safety when you are close to the endgame so the weight of king safety is small
             if (pos.non_pawn_material (Own) >= VALUE_MG_QUEN)
             {
-                ei.king_ring[Opp] = king_attacks|(dist_rings_bb (pos.square<KING> (Opp), 1) &
-                                                        (rel_rank (Opp, pos.square<KING> (Opp)) < R_5 ? pawn_pass_span (Opp, pos.square<KING> (Opp)) :
-                                                         rel_rank (Opp, pos.square<KING> (Opp)) < R_7 ? pawn_pass_span (Opp, pos.square<KING> (Opp))|pawn_pass_span (Own, pos.square<KING> (Opp)) :
-                                                                                                        pawn_pass_span (Own, pos.square<KING> (Opp))));
+                ei.king_ring[Opp] = king_attacks|(dist_rings_bb (ek_sq, 1) &
+                                                        (rel_rank (Opp, ek_sq) < R_5 ? pawn_pass_span (Opp, ek_sq) :
+                                                         rel_rank (Opp, ek_sq) < R_7 ? pawn_pass_span (Opp, ek_sq)|pawn_pass_span (Own, ek_sq) :
+                                                                                       pawn_pass_span (Own, ek_sq)));
                 if ((king_attacks & ei.pin_attacked_by[Own][PAWN]) != 0)
                 {
-                    Bitboard attackers = pos.pieces (Own, PAWN) & (king_attacks|(dist_rings_bb (pos.square<KING> (Opp), 1) & (rank_bb (pos.square<KING> (Opp)-Push)|rank_bb (pos.square<KING> (Opp)))));
+                    Bitboard attackers = pos.pieces (Own, PAWN) & (king_attacks | (dist_rings_bb (ek_sq, 1) & front_rank_bb (Opp, ek_sq)));
                     ei.king_ring_attackers_count [Own] = u08(pop_count (attackers));
                     ei.king_ring_attackers_weight[Own] = ei.king_ring_attackers_count [Own]*KingAttackWeights[PAWN];
                 }

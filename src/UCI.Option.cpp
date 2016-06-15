@@ -218,8 +218,8 @@ namespace UCI {
         void configure_contempt ()
         {
             FixedContempt = i16(i32(Options["Fixed Contempt"]));
-            ContemptTime  = i16(i32(Options["Timed Contempt (sec)"]));
-            ContemptValue = i16(i32(Options["Valued Contempt (cp)"]));
+            ContemptTime  = i16(i32(Options["Timed Contempt"]));
+            ContemptValue = i16(i32(Options["Valued Contempt"]));
         }
 
         void configure_multipv ()
@@ -437,10 +437,10 @@ namespace UCI {
         Options["Fixed Contempt"]               << Option (FixedContempt,-100,+100, configure_contempt);
         // Time (sec) for Timed Contempt
         // Default=+6, Min=0, Max=+900.
-        Options["Timed Contempt (sec)"]         << Option (ContemptTime ,   0,+900, configure_contempt);
+        Options["Timed Contempt"]               << Option (ContemptTime ,   0,+900, configure_contempt);
         // Centipawn (cp) for Valued Contempt
         // Default=+50, Min=0, Max=+1000.
-        Options["Valued Contempt (cp)"]         << Option (ContemptValue,   0,+1000, configure_contempt);
+        Options["Valued Contempt"]              << Option (ContemptValue,   0,+1000, configure_contempt);
 
         // The number of moves after which the clock-move rule will kick in.
         // Default=Position::DrawClockPly/2, Min=5, Max=50.
@@ -485,7 +485,7 @@ namespace UCI {
         // Other Options
         // -------------
         // The filename of the debug log.
-        Options["Debug Log File"]               << Option ("<empty>", debug_log_file);
+        Options["Debug Log File"]               << Option (Empty, debug_log_file);
         // The filename of the search log.
         Options["Search Log File"]              << Option (SearchLogFile, search_log_file);
 

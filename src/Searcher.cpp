@@ -57,7 +57,7 @@ namespace Searcher {
     u16    TBHits          = 0;
     bool   TBHasRoot       = false;
 
-    string SearchLogFile   = "<empty>";
+    string SearchLogFile   = Empty;
 
     // ------------------------------------
 
@@ -422,8 +422,7 @@ namespace Searcher {
                 }
                 else
                 {
-                    ss->static_eval = tt_eval = (ss-1)->current_move != MOVE_NULL ?
-                                                        evaluate (pos) : -(ss-1)->static_eval + 2*Tempo;
+                    ss->static_eval = tt_eval = (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*Tempo;
                 }
 
                 if (alfa < tt_eval)
@@ -706,7 +705,8 @@ namespace Searcher {
             }
             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
             auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
-            auto tt_ext   = tt_hit && (tte->move () == tt_move || (root_node && tte->move () == MOVE_NONE));
+            auto tt_ext   = tt_hit && (   tte->move () == tt_move
+                                       || (root_node && tte->move () == MOVE_NONE));
             auto tt_value = tt_ext ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
             auto tt_depth = tt_ext ? tte->depth () : DEPTH_NONE;
             auto tt_bound = tt_ext ? tte->bound () : BOUND_NONE;
@@ -789,8 +789,7 @@ namespace Searcher {
                 }
                 else
                 {
-                    ss->static_eval = tt_eval = (ss-1)->current_move != MOVE_NULL ?
-                                                        evaluate (pos) : -(ss-1)->static_eval + 2*Tempo;
+                    ss->static_eval = tt_eval = (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*Tempo;
 
                     tte->save (posi_key, MOVE_NONE, VALUE_NONE, ss->static_eval, DEPTH_NONE, BOUND_NONE, TT.generation ());
                 }
@@ -973,7 +972,7 @@ namespace Searcher {
                         auto iid_depth = depth - 2*DEPTH_ONE - (PVNode ? DEPTH_ZERO : depth/4);
 
                         ss->skip_pruning = true;
-                        depth_search<PVNode, true, false> (pos, ss, alfa, beta, iid_depth);
+                        depth_search<PVNode, CutNode, false> (pos, ss, alfa, beta, iid_depth);
                         ss->skip_pruning = false;
 
                         tte = TT.probe (posi_key, tt_hit);
@@ -992,7 +991,8 @@ namespace Searcher {
                             }
                             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
                         }
-                        if (tte->move () == tt_move || (root_node && tte->move () == MOVE_NONE))
+                        if (   tte->move () == tt_move
+                            || (root_node && tte->move () == MOVE_NONE))
                         {
                             tt_value = value_of_tt (tte->value (), ss->ply);
                             tt_depth = tte->depth ();
@@ -1050,7 +1050,7 @@ namespace Searcher {
                             std::find (thread->root_moves.begin () + thread->pv_index, thread->root_moves.end (), move) == thread->root_moves.end () :
                             !pos.legal (move, ci.pinneds))
                     // Skip exclusion move
-                    || (move == exclude_move))
+                    || move == exclude_move)
                 {
                     continue;
                 }
@@ -1202,66 +1202,64 @@ namespace Searcher {
                     {
                         reduction_depth += 2*DEPTH_ONE;
                     }
-
-                    // Decrease reduction for moves that escape a capture.
-                    if (   mtype (move) == NORMAL
-                        && (NIHT <= ptype (mpc) && ptype (mpc) <= QUEN)
-                        // For reverse move use see() instead of see_sign(), because the destination square is empty for normal move.
-                        && pos.see (mk_move (dst, org_sq (move))) < VALUE_ZERO)
+                    else
                     {
-                        reduction_depth -= 2*DEPTH_ONE;
+                        // Decrease reduction for moves that escape a capture in no-cut nodes.
+                        if (   mtype (move) == NORMAL
+                            && (NIHT <= ptype (mpc) && ptype (mpc) <= QUEN)
+                            // For reverse move use see() instead of see_sign(), because the destination square is empty for normal move.
+                            && pos.see (mk_move (dst, org_sq (move))) < VALUE_ZERO)
+                        {
+                            reduction_depth -= 2*DEPTH_ONE;
+                        }
                     }
-
                     // Decrease/Increase reduction for moves with a +ve/-ve history
                     reduction_depth -= ((i32(thread->history_values[mpc][dst]
-                                           + (cmv  != nullptr ? (*cmv )[mpc][dst] : VALUE_ZERO)
-                                           + (fmv1 != nullptr ? (*fmv1)[mpc][dst] : VALUE_ZERO)
-                                           + (fmv2 != nullptr ? (*fmv2)[mpc][dst] : VALUE_ZERO)) - 10000)/20000)*DEPTH_ONE;
+                                          + (cmv  != nullptr ? (*cmv )[mpc][dst] : VALUE_ZERO)
+                                          + (fmv1 != nullptr ? (*fmv1)[mpc][dst] : VALUE_ZERO)
+                                          + (fmv2 != nullptr ? (*fmv2)[mpc][dst] : VALUE_ZERO)) - 10000)/20000)*DEPTH_ONE;
 
-                    if (reduction_depth > DEPTH_ZERO)
+                    if (reduction_depth < DEPTH_ZERO)
                     {
-                        if (reduction_depth > new_depth - DEPTH_ONE)
-                        {
-                            reduction_depth = new_depth - DEPTH_ONE;
-                        }
-                        // Search with reduced depth
+                        reduction_depth = DEPTH_ZERO;
+                    }
+                    if (reduction_depth > new_depth - DEPTH_ONE)
+                    {
+                        reduction_depth = new_depth - DEPTH_ONE;
+                    }
+                    // Search with reduced depth
+                    value =
+                        gives_check ?
+                            -depth_search<false, true, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth) :
+                            -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth);
+
+                    full_depth_search = alfa < value && reduction_depth > DEPTH_ZERO;
+
+                    // Before going to full depth, check whether a fail high with half the reduction
+                    if (   full_depth_search
+                        && new_depth >= 8*DEPTH_ONE
+                        && new_depth <= 2*reduction_depth)
+                    {
+                        reduction_depth = reduction_depth / 2;
                         value =
                             gives_check ?
-                                -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth) :
-                                -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth);
+                                -depth_search<false, true, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth) :
+                                -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth);
 
                         full_depth_search = alfa < value;
 
-                        // Before going to full depth, check whether a fail high with half the reduction
                         if (   full_depth_search
-                            && new_depth >= 8*DEPTH_ONE
-                            && new_depth <= 2*reduction_depth)
+                            && new_depth >= 32*DEPTH_ONE
+                            && new_depth <= 4*reduction_depth)
                         {
                             reduction_depth = reduction_depth / 2;
                             value =
                                 gives_check ?
-                                    -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth) :
-                                    -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth);
+                                -depth_search<false, true, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth) :
+                                -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth);
 
                             full_depth_search = alfa < value;
-
-                            if (   full_depth_search
-                                && new_depth >= 32*DEPTH_ONE
-                                && new_depth <= 4*reduction_depth)
-                            {
-                                reduction_depth = reduction_depth / 2;
-                                value =
-                                    gives_check ?
-                                    -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth) :
-                                    -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth);
-
-                                full_depth_search = alfa < value;
-                            }
                         }
-                    }
-                    else
-                    {
-                        full_depth_search = true;
                     }
                 }
                 else
@@ -1451,7 +1449,78 @@ namespace Searcher {
     }
 
     // ------------------------------------
+    /*
+    // RootMove::insert_pv_into_tt() inserts the PV back into the TT.
+    // This makes sure the old PV moves are searched first,
+    // even if the old TT entries have been overwritten.
+    void RootMove::insert_pv_into_tt (Position &pos)
+    {
+        StateInfo states[MaxPlies], *si = states;
 
+        u08 ply = 0;
+        for (const auto m : *this)
+        {
+            assert(m != MOVE_NONE
+                && MoveList<LEGAL> (pos).contains (m));
+
+            bool tt_hit;
+            auto *tte = TT.probe (pos.posi_key (), tt_hit);
+            // Don't overwrite correct entries
+            if (   !tt_hit
+                || tte->move () != m)
+            {
+                tte->save (pos.posi_key (), m, VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.generation ());
+            }
+            pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
+            ++ply;
+        }
+        while (ply != 0)
+        {
+            pos.undo_move ();
+            --ply;
+        }
+    }
+
+    // RootMove::extract_pv_from_tt() extract the PV back from the TT.
+    // Consider also failing high nodes and not only EXACT nodes so to
+    // allow to always have a ponder move even when fail high at root node.
+    void RootMove::extract_pv_from_tt (Position &pos)
+    {
+        StateInfo states[MaxPlies], *si = states;
+
+        u08 ply = 0;
+        auto m = at (0);
+        resize (1);
+        pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
+        ++ply;
+        
+        auto expected_value = -new_value;
+        bool tt_hit;
+        const auto *tte = TT.probe (pos.posi_key (), tt_hit);
+        while (   tt_hit
+               && expected_value == value_of_tt (tte->value (), ply+1)
+               && (m = tte->move ()) != MOVE_NONE // Local copy, TT could change
+               && pos.pseudo_legal (m)
+               && pos.legal (m)
+               && ply < (pos.draw () ? 2 : MaxPlies))
+        {
+            assert(m != MOVE_NONE
+                && MoveList<LEGAL> (pos).contains (m));
+
+            *this += m;
+            pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
+            ++ply;
+
+            expected_value = -expected_value;
+            tte = TT.probe (pos.posi_key (), tt_hit);
+        }
+        while (ply != 0)
+        {
+            pos.undo_move ();
+            --ply;
+        }
+    }
+    */
     // RootMove::extract_ponder_move_from_tt() is called in case have no ponder move before
     // exiting the search, for instance, in case stop the search during a fail high at root.
     // Try hard to have a ponder move which has to return to the GUI,
@@ -1961,7 +2030,7 @@ namespace Threading {
         }
 
         if (   !white_spaces (SearchLogFile)
-            && SearchLogFile != "<empty>")
+            && SearchLogFile != Empty)
         {
             SearchLogStream.open (SearchLogFile, ios_base::out|ios_base::app);
 

@@ -712,6 +712,8 @@ i32 sign (T val)
     return (T(0) < val) - (val < T(0));
 }
 
+const std::string Empty = "<empty>";
+
 inline bool white_spaces (const std::string &str)
 {
     return str.empty () || str.find_first_not_of (" \t\n") == std::string::npos;
