@@ -31,7 +31,7 @@ public:
     TimePoint optimum_time = 0;
     TimePoint maximum_time = 0;
 
-    u64 available_nodes = 0; // When in 'Nodes as Time' mode
+    u64 available_nodes = 0; // 'Nodes as Time' mode
 
     TimeManager () = default;
     TimeManager (const TimeManager&) = delete;
@@ -44,7 +44,7 @@ public:
     void update (Color c);
 };
 
-const u08 MoveManagerSize = 3;
+const u08 MovePVSize = 3;
 
 // MoveManager class is used to detect a so called 'easy move'.
 // When PV is stable across multiple search iterations engine can fast return the best move.
@@ -52,7 +52,7 @@ class MoveManager
 {
 private:
     Key  _posi_key = 0;
-    Move _pv[MoveManagerSize];
+    Move _pv[MovePVSize];
 
 public:
     u08 stable_count = 0; // Keep track of how many times in a row the 3rd ply remains stable
@@ -68,19 +68,19 @@ public:
     {
         stable_count = 0;
         _posi_key = 0;
-        std::fill (_pv, _pv + MoveManagerSize, MOVE_NONE);
+        std::fill (_pv, _pv + MovePVSize, MOVE_NONE);
     }
 
     Move easy_move (const Key posi_key) const
     {
-        return posi_key == _posi_key ? _pv[MoveManagerSize-1] : MOVE_NONE;
+        return posi_key == _posi_key ? _pv[MovePVSize-1] : MOVE_NONE;
     }
 
     void update (Position &pos, const MoveVector &pv)
     {
-        assert(pv.size () >= MoveManagerSize);
+        assert(pv.size () >= MovePVSize);
 
-        if (pv[MoveManagerSize-1] == _pv[MoveManagerSize-1])
+        if (pv[MovePVSize-1] == _pv[MovePVSize-1])
         {
             ++stable_count;
         }
@@ -89,17 +89,17 @@ public:
             stable_count = 0;
         }
 
-        if (!std::equal (pv.begin (), pv.begin () + MoveManagerSize, _pv))
+        if (!std::equal (pv.begin (), pv.begin () + MovePVSize, _pv))
         {
-            std::copy (pv.begin (), pv.begin () + MoveManagerSize, _pv);
+            std::copy (pv.begin (), pv.begin () + MovePVSize, _pv);
 
-            StateInfo si[MoveManagerSize-1];
-            for (u08 i = 0; i < MoveManagerSize-1; ++i)
+            StateInfo si[MovePVSize-1];
+            for (u08 i = 0; i < MovePVSize-1; ++i)
             {
                 pos.do_move (_pv[i], si[i], pos.gives_check (_pv[i], CheckInfo (pos)));
             }
             _posi_key = pos.posi_key ();
-            for (u08 i = 0; i < MoveManagerSize-1; ++i)
+            for (u08 i = 0; i < MovePVSize-1; ++i)
             {
                 pos.undo_move ();
             }
@@ -107,6 +107,11 @@ public:
     }
 };
 
+// MaxSkillLevel should be <= MaxPlies/4
+const u08 MaxSkillLevel = 32;
+const u16 MinSkillPV    = 4;
+
+// Skill Manager class is used to implement strength limit
 class SkillManager
 {
 
@@ -115,10 +120,6 @@ private:
     Move _best_move   = MOVE_NONE;
 
 public:
-    // MaxSkillLevel should be <= MaxPlies/4
-    // Skill Manager class is used to implement strength limit
-    static const u08 MaxSkillLevel = 32;
-    static const u16 MinMultiPV    = 4;
 
     explicit SkillManager (u08 skill_level = MaxSkillLevel)
         : _skill_level (skill_level)
@@ -175,14 +176,14 @@ namespace Threading {
            , max_ply  = 0
            , count    = 0;
 
-        Position                    root_pos;
-        Searcher::RootMoveVector    root_moves;
-        Depth                       root_depth = DEPTH_ZERO
-            ,                       leaf_depth = DEPTH_ZERO;
-        HValueStats                 history_values;
-        MoveStats                   counter_moves;
+        Position    root_pos;
+        Searcher::RootMoveVector root_moves;
+        Depth       root_depth = DEPTH_ZERO
+            ,       leaf_depth = DEPTH_ZERO;
+        HValueStats history_values;
+        MoveStats   counter_moves;
 
-        std::atomic_bool            reset_count { false };
+        std::atomic_bool reset_count { false };
 
         Thread ();
         Thread (const Thread&) = delete;
@@ -290,11 +291,12 @@ namespace Threading {
         ThreadPool (const ThreadPool&) = delete;
         ThreadPool& operator= (const ThreadPool&) = delete;
 
-        MainThread* main () const
+        MainThread* main_thread () const
         {
-            static auto *main_thread = static_cast<MainThread*> (at (0));
-            return main_thread;
+            static auto *main_th = static_cast<MainThread*> (at (0));
+            return main_th;
         }
+        Thread* best_thread () const;
 
         u64  game_nodes () const;
 

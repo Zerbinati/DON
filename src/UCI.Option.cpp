@@ -202,7 +202,7 @@ namespace UCI {
 
         void configure_draw_clock_ply ()
         {
-            Position::DrawClockPly = u08(2 * i32(Options["Draw Clock Dist"]));
+            MaxClockPly = u08(2 * i32(Options["Max Clock Ply"]));
         }
 
         void configure_hash ()
@@ -244,7 +244,7 @@ namespace UCI {
 
         void configure_skill ()
         {
-            Threadpool.main ()->skill_mgr.change_skill_level (u08(i32(Options["Skill Level"])));
+            Threadpool.main_thread ()->skill_mgr.change_skill_level (u08(i32(Options["Skill Level"])));
         }
 
         void configure_time ()
@@ -261,7 +261,7 @@ namespace UCI {
 
         void debug_log_file ()
         {
-            string filename = string(Options["Debug Log File"]);
+            string filename = string(Options["Debug File"]);
             trim (filename);
             if (!filename.empty ())
             {
@@ -272,11 +272,11 @@ namespace UCI {
 
         void search_log_file ()
         {
-            SearchLogFile = string(Options["Search Log File"]);
-            trim (SearchLogFile);
-            if (!SearchLogFile.empty ())
+            OutputFile = string(Options["Output File"]);
+            trim (OutputFile);
+            if (!OutputFile.empty ())
             {
-                convert_path (SearchLogFile);
+                convert_path (OutputFile);
             }
         }
 
@@ -411,7 +411,7 @@ namespace UCI {
         // Default=MaxSkillLevel, Min=0, Max=MaxSkillLevel.
         //
         // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
-        Options["Skill Level"]                  << Option (SkillManager::MaxSkillLevel,  0, SkillManager::MaxSkillLevel, configure_skill);
+        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel, configure_skill);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
@@ -434,16 +434,16 @@ namespace UCI {
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default=0, Min=-100, Max=+100.
-        Options["Fixed Contempt"]               << Option (FixedContempt,-100,+100, configure_contempt);
+        Options["Fixed Contempt"]               << Option (FixedContempt, -100, 100, configure_contempt);
         // Time (sec) for Timed Contempt
         // Default=+6, Min=0, Max=+900.
-        Options["Timed Contempt"]               << Option (ContemptTime ,   0,+900, configure_contempt);
+        Options["Timed Contempt"]               << Option (ContemptTime , 0, 1000, configure_contempt);
         // Centipawn (cp) for Valued Contempt
         // Default=+50, Min=0, Max=+1000.
-        Options["Valued Contempt"]              << Option (ContemptValue,   0,+1000, configure_contempt);
+        Options["Valued Contempt"]              << Option (ContemptValue, 0, 1000, configure_contempt);
 
         // The number of moves after which the clock-move rule will kick in.
-        // Default=Position::DrawClockPly/2, Min=5, Max=50.
+        // Default=MaxClockPly/2, Min=5, Max=50.
         //
         // This setting defines the number of moves after which the clock-move rule will kick in - the default value is 50,
         // i.e. the official clock-move rule.
@@ -453,21 +453,21 @@ namespace UCI {
         //
         // By setting Draw Clock Move to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Draw Clock Dist"]              << Option (Position::DrawClockPly/2,+  5,+ 50, configure_draw_clock_ply);
+        Options["Max Clock Ply"]                << Option (MaxClockPly/2, 5, 50, configure_draw_clock_ply);
 
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, configure_time);
         //// Be prepared to always play at least this many moves, in num of moves.
         //Options["Ready Move Horizon"]           << Option (ReadyMoveHorizon, 0, 100, configure_time);
         //// Always attempt to keep at least this much time at clock, in milliseconds.
-        //Options["Overhead Clock Time"]          << Option (OverheadClockTime  , 0, 30000, configure_time);
+        //Options["Overhead Clock Time"]          << Option (OverheadClockTime, 0, 30000, configure_time);
         //// Attempt to keep at least this much time for each remaining move, in milliseconds.
-        //Options["Overhead Move Time"]           << Option (OverheadMoveTime   , 0, 5000, configure_time);
+        //Options["Overhead Move Time"]           << Option (OverheadMoveTime, 0, 5000, configure_time);
         //// The minimum amount of time to analyze, in milliseconds.
-        //Options["Minimum Move Time"]            << Option (MinimumMoveTime     , 0, 5000, configure_time);
+        //Options["Minimum Move Time"]            << Option (MinimumMoveTime, 0, 5000, configure_time);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (i32(std::round (MoveSlowness*100)),+ 10,+ 1000, configure_time);
-        Options["Nodes Time"]                   << Option (NodesTime           ,   0,+10000, configure_time);
+        Options["Move Slowness"]                << Option (i32(std::round (MoveSlowness*100)), 10, 1000, configure_time);
+        Options["Nodes Time"]                   << Option (NodesTime, 0, 10000, configure_time);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default=Ponder.
         //
@@ -478,16 +478,16 @@ namespace UCI {
         // ----------------------------
         Options["SyzygyPath"]                   << Option (PathString, config_endgame_table);
         Options["SyzygyDepthLimit"]             << Option (TBDepthLimit/DEPTH_ONE, 1, 100);
-        Options["SyzygyPieceLimit"]             << Option (TBPieceLimit, 0,   6);
+        Options["SyzygyPieceLimit"]             << Option (TBPieceLimit, 0, 6);
         Options["SyzygyUseRule50"]              << Option (TBUseRule50);
 
         // -------------
         // Other Options
         // -------------
         // The filename of the debug log.
-        Options["Debug Log File"]               << Option (Empty, debug_log_file);
+        Options["Debug File"]                   << Option (Empty, debug_log_file);
         // The filename of the search log.
-        Options["Search Log File"]              << Option (SearchLogFile, search_log_file);
+        Options["Output File"]                  << Option (OutputFile, search_log_file);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.

@@ -7,7 +7,7 @@ namespace BitBoard {
 
     using namespace std;
 
-    u08 SquareDist[SQ_NO][SQ_NO];
+    u08      SquareDist[SQ_NO][SQ_NO];
 
     Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
 
@@ -32,8 +32,8 @@ namespace BitBoard {
     Bitboard B_Magics_bb[SQ_NO];
     Bitboard R_Magics_bb[SQ_NO];
 
-    u08 B_Shifts[SQ_NO];
-    u08 R_Shifts[SQ_NO];
+    u08      B_Shifts[SQ_NO];
+    u08      R_Shifts[SQ_NO];
 #endif
 
 #if !defined(ABM)

@@ -25,7 +25,7 @@ bool _ok (const string &fen, bool c960, bool full)
     return pos.ok ();
 }
 
-u08 Position::DrawClockPly = 100;
+u08 MaxClockPly = 100;
 
 void Position::initialize ()
 {
@@ -63,7 +63,7 @@ bool Position::draw () const
 {
     // Draw by Clock Ply Rule?
     // Not in check or in check have legal moves 
-    if (    clock_ply () >= DrawClockPly
+    if (    clock_ply () >= MaxClockPly
         && (checkers () == 0 || MoveList<LEGAL> (*this).size () != 0))
     {
         return true;
@@ -143,7 +143,7 @@ bool Position::ok (i08 *failed_step) const
                 || (_board[square<KING> (BLACK)] != B_KING)
                 || count<NONE> () > 32 || count<NONE> () != pop_count (pieces ())
                 || (en_passant_sq () != SQ_NO && (rel_rank (_active, en_passant_sq ()) != R_6 || !can_en_passant (en_passant_sq ())))
-                || (clock_ply () > DrawClockPly))
+                || (clock_ply () > MaxClockPly))
             {
                 return false;
             }

@@ -75,6 +75,8 @@ namespace Threading {
     class Thread;
 }
 
+extern u08 MaxClockPly;
+
 // Position class stores information regarding the board representation:
 //  - 64-entry array of pieces, indexed by the square.
 //  - Bitboards of each piece type.
@@ -133,8 +135,6 @@ private:
     PieceType pick_least_val_att (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const;
 
 public:
-    static u08  DrawClockPly;
-
     static void initialize ();
 
     Position () = default;
@@ -521,7 +521,7 @@ inline void  Position::place_piece (Square s, Color c, PieceType pt)
     //assert(empty (s));
     _board[s] = (c | pt);
 
-    auto bb = Square_bb[s];
+    auto bb = square_bb (s);
     _color_bb[c]    |= bb;
     _types_bb[pt]   |= bb;
     _types_bb[NONE] |= bb;
@@ -541,7 +541,7 @@ inline void  Position::remove_piece (Square s)
     auto pt = ptype (_board[s]);
     //_board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 
-    auto bb = ~Square_bb[s];
+    auto bb = ~square_bb (s);
     _color_bb[c]    &= bb;
     _types_bb[pt]   &= bb;
     _types_bb[NONE] &= bb;
@@ -564,7 +564,7 @@ inline void  Position::move_piece (Square s1, Square s2)
     _board[s2] = _board[s1];
     _board[s1] = NO_PIECE;
 
-    auto bb = Square_bb[s1] ^ Square_bb[s2];
+    auto bb = square_bb (s1) ^ square_bb (s2);
     _color_bb[c]    ^= bb;
     _types_bb[pt]   ^= bb;
     _types_bb[NONE] ^= bb;

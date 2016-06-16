@@ -127,7 +127,7 @@ void TimeManager::update (Color c)
 // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 Move SkillManager::pick_best_move (u16 pv_limit)
 {
-    const auto &root_moves = Threadpool.main ()->root_moves;
+    const auto &root_moves = Threadpool.main_thread ()->root_moves;
     assert(!root_moves.empty ());
     static PRNG prng (now ()); // PRNG sequence should be non-deterministic
 
@@ -197,6 +197,20 @@ namespace Threading {
     {}
 
     // ------------------------------------
+
+    Thread* ThreadPool::best_thread () const
+    {
+        auto *best_th = at (0);
+        for (auto *th : *this)
+        {
+            if (   best_th->root_moves[0].new_value < th->root_moves[0].new_value
+                && best_th->leaf_depth < th->leaf_depth)
+            {
+                best_th = th;
+            }
+        }
+        return best_th;
+    }
 
     // ThreadPool::game_nodes() returns the total game nodes searched
     u64 ThreadPool::game_nodes () const
@@ -343,12 +357,12 @@ namespace Threading {
 
         ForceStop       = false;
         PonderhitStop   = false;
-        main ()->start_searching (false);
+        main_thread ()->start_searching (false);
     }
     // ThreadPool::wait_while_thinking() waits for the main thread while searching.
     void ThreadPool::wait_while_thinking ()
     {
-        main ()->wait_while_searching ();
+        main_thread ()->wait_while_searching ();
     }
 }
 

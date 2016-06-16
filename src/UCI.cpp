@@ -42,7 +42,7 @@ namespace UCI {
     void loop (i32 argc, const char *const *argv)
     {
         Position root_pos;
-        root_pos.setup (StartFEN, SetupStates->back(), Threadpool.main (), Chess960);
+        root_pos.setup (StartFEN, SetupStates->back(), Threadpool.main_thread (), Chess960);
         // Join arguments
         string cmd;
         for (i32 i = 1; i < argc; ++i)
@@ -83,7 +83,7 @@ namespace UCI {
             if (token == "ucinewgame")
             {
                 clear ();
-                Threadpool.main ()->time_mgr.available_nodes = 0;
+                Threadpool.main_thread ()->time_mgr.available_nodes = 0;
             }
             else
             if (token == "isready")
@@ -157,7 +157,7 @@ namespace UCI {
                 }
 
                 SetupStates = StateListPtr (new StateList (1));
-                root_pos.setup (fen, SetupStates->back(), Threadpool.main (), Chess960);
+                root_pos.setup (fen, SetupStates->back(), Threadpool.main_thread (), Chess960);
 
                 if (token == "moves")
                 {
@@ -249,7 +249,7 @@ namespace UCI {
                || (token == "ponderhit" && PonderhitStop))
             {
                 ForceStop = true;
-                Threadpool.main ()->start_searching (true); // Could be sleeping
+                Threadpool.main_thread ()->start_searching (true); // Could be sleeping
             }
             else
             if (token == "ponderhit")

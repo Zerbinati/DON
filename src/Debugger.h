@@ -30,7 +30,7 @@ inline std::string time_to_string (const std::chrono::system_clock::time_point &
 
 #   else
 
-    return "";
+    return Empty;
 
 #   endif
 
@@ -67,7 +67,7 @@ namespace Debugger {
         
         ~Logger ()
         {
-            log ("");
+            log (Empty);
         }
 
     public:

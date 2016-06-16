@@ -245,7 +245,7 @@ namespace Notation {
     // It uses the two helpers to pretty format the value and time respectively.
     string pretty_pv_info ()
     {
-        static auto *main_thread = Threadpool.main ();
+        static auto *main_thread = Threadpool.main_thread ();
 
         const u16 K = 1000;
         const u32 M = K*K;

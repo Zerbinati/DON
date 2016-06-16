@@ -201,9 +201,9 @@ namespace Pawns {
 
         auto value = MaxSafety;
 
-        Bitboard front_pawns = pos.pieces (PAWN) & front_rank_bb (Own, k_sq);
-        Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
-        Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
+        Bitboard all_front_pawns = pos.pieces (PAWN) & (rank_bb (k_sq) | front_rank_bb (Own, k_sq));
+        Bitboard own_front_pawns = pos.pieces (Own) & all_front_pawns;
+        Bitboard opp_front_pawns = pos.pieces (Opp) & all_front_pawns;
 
         auto kf = std::min (std::max (_file (k_sq), F_B), F_G);
         for (auto f = kf - 1; f <= kf + 1; ++f)

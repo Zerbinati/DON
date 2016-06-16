@@ -165,7 +165,7 @@ namespace Searcher {
     extern u16   TBHits;
     extern bool  TBHasRoot;
 
-    extern std::string SearchLogFile;
+    extern std::string OutputFile;
 
     // The root of the tree is a PV node.
     // At a PV node all the children have to be investigated.
@@ -178,8 +178,7 @@ namespace Searcher {
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
-    //  - Value[] { new , old }.
-    //  - Node count.
+    //  - New/Old values.
     //  - PV (really a refutation table in the case of moves which fail low).
     // Value is normally set at -VALUE_INFINITE for all non-pv moves.
     class RootMove
@@ -211,7 +210,7 @@ namespace Searcher {
         void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
         /*
-        void insert_pv_into_tt (Position &pos);
+        void insert_pv_into_tt (Position &pos) const;
         void extract_pv_from_tt (Position &pos);
         */
         bool extract_ponder_move_from_tt (Position &pos);

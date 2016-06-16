@@ -102,7 +102,7 @@ namespace BitBoard {
         }
     };
 
-    extern u08 SquareDist[SQ_NO][SQ_NO];
+    extern u08      SquareDist[SQ_NO][SQ_NO];
 
     extern Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
 
@@ -127,8 +127,8 @@ namespace BitBoard {
     extern Bitboard B_Magics_bb[SQ_NO];
     extern Bitboard R_Magics_bb[SQ_NO];
 
-    extern u08 B_Shifts[SQ_NO];
-    extern u08 R_Shifts[SQ_NO];
+    extern u08      B_Shifts[SQ_NO];
+    extern u08      R_Shifts[SQ_NO];
 #endif
 
     template<class T>
@@ -176,6 +176,8 @@ namespace BitBoard {
     */
 
     // ----------------------------------------------------
+
+    inline Bitboard square_bb (Square s) { return Square_bb[s]; }
 
     inline Bitboard file_bb (File f) { return File_bb[f]; }
     inline Bitboard file_bb (Square s) { return File_bb[_file (s)]; }

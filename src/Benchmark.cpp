@@ -151,7 +151,7 @@ void benchmark (istream &is, const Position &cur_pos)
     for (u16 i = 0; i < fens.size (); ++i)
     {
         StateListPtr states (new StateList (1));
-        pos.setup (fens[i], states->back (), Threadpool.main (), Chess960);
+        pos.setup (fens[i], states->back (), Threadpool.main_thread (), Chess960);
 
         std::cerr
             << "\n---------------\n"
