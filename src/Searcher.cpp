@@ -34,8 +34,8 @@ namespace Searcher {
     Limit  Limits;
 
     atomic_bool
-           ForceStop       { false }  // Stop search on request
-        ,  PonderhitStop   { false }; // Stop search on ponder-hit
+           ForceStop     { false }  // Stop search on request
+        ,  PonderhitStop { false }; // Stop search on ponder-hit
 
     u16    MultiPV       = 1;
     //i32    MultiPV_cp    = 0;
@@ -365,17 +365,16 @@ namespace Searcher {
             }
 
             CheckInfo ci (pos);
+
+            auto move = MOVE_NONE;
             // Transposition table lookup
             auto posi_key = pos.posi_key ();
             bool tt_hit;
             auto *tte = TT.probe (posi_key, tt_hit);
-            auto tt_move  = tt_hit ? tte->move () : MOVE_NONE;
-            if (   tt_hit
-                && tt_move != MOVE_NONE
-                && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)))
-            {
-                tt_move = MOVE_NONE;
-            }
+            auto tt_move = tt_hit
+                        && (move = tte->move ()) != MOVE_NONE
+                        && pos.pseudo_legal (move)
+                        && pos.legal (move, ci.pinneds) ? move : MOVE_NONE;
             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
             auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
             auto tt_ext   = tt_hit && tte->move () == tt_move;
@@ -463,7 +462,6 @@ namespace Searcher {
             // checks (if depth >= DEPTH_QS_CHECK) will be generated.
             MovePicker mp (pos, tt_move, depth, dst_sq ((ss-1)->current_move));
             StateInfo si;
-            Move move;
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
@@ -688,6 +686,8 @@ namespace Searcher {
             std::fill ((ss+2)->killer_moves, (ss+2)->killer_moves + Killers, MOVE_NONE);
 
             CheckInfo ci (pos);
+            
+            auto move = MOVE_NONE;
             // Step 4. Transposition table lookup
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
@@ -698,15 +698,12 @@ namespace Searcher {
                         pos.posi_key () ^ ExclusionKey;
             bool tt_hit;
             auto *tte = TT.probe (posi_key, tt_hit);
-            auto tt_move  = root_node ? thread->root_moves[thread->pv_index][0] :
-                                tt_hit ? tte->move () : MOVE_NONE;
-            if (   !root_node
-                && tt_hit
-                && tt_move != MOVE_NONE
-                && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)))
-            {
-                tt_move = MOVE_NONE;
-            }
+            auto tt_move = root_node ?
+                            thread->root_moves[thread->pv_index][0] :
+                               tt_hit
+                            && (move = tte->move ()) != MOVE_NONE
+                            && pos.pseudo_legal (move)
+                            && pos.legal (move, ci.pinneds) ? move : MOVE_NONE;
             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
             auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
             auto tt_ext   = tt_hit && (   tte->move () == tt_move
@@ -771,7 +768,7 @@ namespace Searcher {
             }
 
             StateInfo si;
-            Move move = MOVE_NONE;
+            move = MOVE_NONE;
 
             // Step 5. Evaluate the position statically
             if (InCheck)
@@ -987,12 +984,9 @@ namespace Searcher {
                         if (   !root_node
                             && tte->move () != tt_move)
                         {
-                            tt_move = tte->move ();
-                            if (   tt_move != MOVE_NONE
-                                && !(pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)))
-                            {
-                                tt_move = MOVE_NONE;
-                            }
+                            tt_move = (move = tte->move ()) != MOVE_NONE
+                                   && pos.pseudo_legal (move)
+                                   && pos.legal (move, ci.pinneds) ? move : MOVE_NONE;
                             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.pinneds)));
                         }
                         if (   tte->move () == tt_move

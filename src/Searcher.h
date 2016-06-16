@@ -196,12 +196,12 @@ namespace Searcher {
         RootMove& operator= (const RootMove&) = default;
 
         // Descending sort
-        bool operator<  (const RootMove &root_move) const { return new_value >  root_move.new_value; }
-        bool operator>  (const RootMove &root_move) const { return new_value <  root_move.new_value; }
-        bool operator<= (const RootMove &root_move) const { return new_value >= root_move.new_value; }
-        bool operator>= (const RootMove &root_move) const { return new_value <= root_move.new_value; }
-        bool operator== (const RootMove &root_move) const { return new_value == root_move.new_value; }
-        bool operator!= (const RootMove &root_move) const { return new_value != root_move.new_value; }
+        bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
+        bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
+        bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
+        bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
+        bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
+        bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
 
         bool operator== (Move m) const { return at (0) == m; }
         bool operator!= (Move m) const { return at (0) != m; }
@@ -220,9 +220,9 @@ namespace Searcher {
 
     template<class CharT, class Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &root_move)
+        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
     {
-        os << std::string(root_move);
+        os << std::string(rm);
         return os;
     }
 
@@ -233,16 +233,16 @@ namespace Searcher {
     public:
         RootMoveVector& operator= (const RootMoveVector&) = default;
 
-        void operator+= (const RootMove &root_move) { push_back (root_move); }
-        void operator-= (const RootMove &root_move) { erase (std::remove (begin (), end (), root_move), end ()); }
+        void operator+= (const RootMove &rm) { push_back (rm); }
+        void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
 
-        void initialize (const Position &pos, const MoveVector &search_moves)
+        void initialize (const Position &pos, const MoveVector &moves)
         {
             clear ();
             for (const auto &vm : MoveGen::MoveList<LEGAL> (pos))
             {
-                if (   search_moves.empty ()
-                    || std::find (search_moves.begin (), search_moves.end (), vm.move) != search_moves.end ())
+                if (   moves.empty ()
+                    || std::find (moves.begin (), moves.end (), vm.move) != moves.end ())
                 {
                     *this += RootMove (vm.move);
                 }
