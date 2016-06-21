@@ -366,7 +366,7 @@ namespace Searcher {
 
             CheckInfo ci (pos);
 
-            auto move = MOVE_NONE;
+            Move move;
             // Transposition table lookup
             auto posi_key = pos.posi_key ();
             bool tt_hit;
@@ -483,9 +483,9 @@ namespace Searcher {
                 // Futility pruning
                 if (   !InCheck
                     && Limits.mate == 0
-                    && !gives_check
                     && futility_base > -VALUE_KNOWN_WIN
                     && futility_base <= alfa
+                    && !gives_check
                         // Advance pawn push
                     && !(   ptype (mpc) == PAWN
                          && rel_rank (pos.active (), dst) > R_5))
@@ -535,7 +535,7 @@ namespace Searcher {
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
-                // Make and search the move
+                // Make the move
                 pos.do_move (move, si, gives_check);
 
                 if (   ptype (mpc) == PAWN
@@ -547,7 +547,7 @@ namespace Searcher {
                 {
                     prefetch (thread->matl_table[pos.matl_key ()]);
                 }
-
+                // Search
                 auto value =
                     gives_check ?
                         -quien_search<PVNode, true > (pos, ss+1, -beta, -alfa, depth-DEPTH_ONE) :
@@ -582,7 +582,10 @@ namespace Searcher {
 
                         assert(value < beta);
                         // Update alfa! Always alfa < beta
-                        if (PVNode) alfa = value;
+                        if (PVNode)
+                        {
+                            alfa = value;
+                        }
                     }
                 }
             }
@@ -687,7 +690,7 @@ namespace Searcher {
 
             CheckInfo ci (pos);
             
-            auto move = MOVE_NONE;
+            Move move;
             // Step 4. Transposition table lookup
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
@@ -768,8 +771,6 @@ namespace Searcher {
             }
 
             StateInfo si;
-            move = MOVE_NONE;
-
             // Step 5. Evaluate the position statically
             if (InCheck)
             {
@@ -965,8 +966,7 @@ namespace Searcher {
                     }
 
                     // Step 10. Internal iterative deepening (IID)
-                    if (   !root_node
-                        && tt_move == MOVE_NONE
+                    if (   tt_move == MOVE_NONE
                         && depth >= (PVNode ? 5 : 8)*DEPTH_ONE
                         && (PVNode || ss->static_eval + 256 >= beta))
                     {
@@ -1019,8 +1019,7 @@ namespace Searcher {
                 && (tt_bound & BOUND_LOWER) != BOUND_NONE;
 
             bool improving =
-                   (ss-0)->static_eval >= (ss-2)->static_eval
-                || (ss-0)->static_eval == VALUE_NONE
+                   (ss-2)->static_eval <= (ss-0)->static_eval
                 || (ss-2)->static_eval == VALUE_NONE;
 
             auto *const &cmv  = (ss-1)->counter_move_values;
@@ -1090,10 +1089,9 @@ namespace Searcher {
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
                 auto extension =
                        gives_check
-                    && (   move_count == 1
-                        || (   !move_count_pruning
-                            && pos.see_sign (move) >= VALUE_ZERO)) ?
-                      DEPTH_ONE : DEPTH_ZERO;
+                    && !move_count_pruning
+                    && pos.see_sign (move) >= VALUE_ZERO ?
+                        DEPTH_ONE : DEPTH_ZERO;
 
                 // Singular extensions (SE).
                 // We extend the TT move if its value is much better than its siblings.
@@ -1147,7 +1145,9 @@ namespace Searcher {
                            (   depth <= 4*DEPTH_ONE
                             && move != ss->killer_moves[0]
                             && (cmv  == nullptr || (*cmv )[mpc][dst] < VALUE_ZERO)
-                            && (fmv1 == nullptr || (*fmv1)[mpc][dst] < VALUE_ZERO)))
+                            && (fmv1 == nullptr || (*fmv1)[mpc][dst] < VALUE_ZERO)
+                            && (   (cmv  != nullptr && fmv1 != nullptr)
+                                || fmv2 == nullptr || (*fmv2)[mpc][dst] < VALUE_ZERO)))
                     {
                         continue;
                     }
@@ -1196,8 +1196,9 @@ namespace Searcher {
                     auto reduction_depth = reduction_depths (PVNode, improving, new_depth, move_count);
                     
                     // Increase reduction for cut nodes
-                    if (!PVNode && CutNode)
+                    if (CutNode)
                     {
+                        assert(!PVNode);
                         reduction_depth += 2*DEPTH_ONE;
                     }
                     else
@@ -1358,7 +1359,8 @@ namespace Searcher {
                         if (   PVNode
                             && main_thread != nullptr
                             && main_thread->move_mgr.easy_move (pos.posi_key ()) != MOVE_NONE
-                            && (move != main_thread->move_mgr.easy_move (pos.posi_key ()) || move_count > 1)
+                            && (   main_thread->move_mgr.easy_move (pos.posi_key ()) != move
+                                || move_count > 1)
                             && Limits.use_time_management ())
                         {
                             main_thread->move_mgr.clear ();
@@ -1366,7 +1368,8 @@ namespace Searcher {
 
                         best_move = move;
                         // Update pv even in fail-high case
-                        if (PVNode && !root_node)
+                        if (   PVNode
+                            && !root_node)
                         {
                             update_pv (ss->pv, move, (ss+1)->pv);
                         }
@@ -1465,7 +1468,7 @@ namespace Searcher {
             auto *tte = TT.probe (pos.posi_key (), tt_hit);
             // Don't overwrite correct entries
             if (   !tt_hit
-                || tte->move () != m)
+                || m != tte->move ())
             {
                 tte->save (pos.posi_key (), m, VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.generation ());
             }
@@ -1496,11 +1499,11 @@ namespace Searcher {
         const auto *tte = TT.probe (pos.posi_key (), tt_hit);
         while (   tt_hit
                && expected_value == value_of_tt (tte->value (), ply+1)
-               // Local copy to be SMP safe
-               && (m = tte->move ()) != MOVE_NONE
+               && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
                && pos.pseudo_legal (m)
                && pos.legal (m)
-               && ply < (pos.draw () ? 2 : MaxPlies))
+               && !pos.draw ()
+               && ply < MaxPlies)
         {
             assert(m != MOVE_NONE
                 && MoveList<LEGAL> (pos).contains (m));
@@ -1534,16 +1537,16 @@ namespace Searcher {
         pos.do_move (m, si, pos.gives_check (m, CheckInfo (pos)));
         bool tt_hit;
         const auto *tte = TT.probe (pos.posi_key (), tt_hit);
-        if (tt_hit)
+        if (   tt_hit
+            && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
+            && pos.pseudo_legal (m)
+            && pos.legal (m)
+            && !pos.draw ())
         {
-            // Local copy to be SMP safe
-            m = tte->move ();
-            if (   m != MOVE_NONE
-                && MoveList<LEGAL> (pos).contains (m))
-            {
-               *this += m;
-               extracted = true;
-            }
+            assert(m != MOVE_NONE
+                && MoveList<LEGAL> (pos).contains (m));
+            *this += m;
+            extracted = true;
         }
         pos.undo_move ();
         return extracted;
@@ -1631,13 +1634,13 @@ namespace Searcher {
                 for (u08 mc = 1; mc < ReductionMoveCount; ++mc)
                 {
                     auto r = log (d) * log (mc) / 2;
-
                     if (r >= 0.80)
                     {
                         ReductionDepths[0][imp][d][mc] = i32(std::round (r))*DEPTH_ONE;
                         ReductionDepths[1][imp][d][mc] = std::max (ReductionDepths[0][imp][d][mc] - DEPTH_ONE, DEPTH_ZERO);
                         // If evaluation is not improving increase reduction
-                        if (!imp && ReductionDepths[0][imp][d][mc] >= 2*DEPTH_ONE)
+                        if (   imp == 0
+                            && ReductionDepths[0][imp][d][mc] >= 2*DEPTH_ONE)
                         {
                             ReductionDepths[0][imp][d][mc] += DEPTH_ONE;
                         }
@@ -1828,16 +1831,6 @@ namespace Threading {
                     // that goes to the front. Note that in case of MultiPV search
                     // the already searched PV lines are preserved.
                     std::stable_sort (root_moves.begin () + pv_index, root_moves.end ());
-
-                    //if (this == Threadpool.best_thread ())
-                    //{
-                    //    // Write PV of the best thread back to the TT in case the relevant
-                    //    // entries have been overwritten during the search.
-                    //    for (u16 i = 0; i <= pv_index; ++i)
-                    //    {
-                    //        root_moves[i].insert_pv_into_tt (root_pos);
-                    //    }
-                    //}
 
                     // If search has been stopped, break immediately.
                     // Sorting and writing PV back to TT is safe becuase

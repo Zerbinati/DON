@@ -17,7 +17,7 @@ namespace MoveGen {
                 || PT == ROOK
                 || PT == QUEN);
 
-            for (Square s : pos.squares<PT> (Own))
+            for (auto s : pos.squares<PT> (Own))
             {
                 if (GT == CHECK || GT == QUIET_CHECK)
                 {

@@ -589,11 +589,15 @@ struct Castling
             CS == CS_KING ? CR_BKING : CR_BQUEN;
 };
 
-inline bool _ok   (PieceType pt) { return PAWN <= pt && pt <= KING; }
+inline bool _ok (PieceType pt) { return PAWN <= pt && pt <= KING; }
 
 inline Piece  operator| (Color c, PieceType pt) { return Piece((c << 3) | pt); }
 
-inline bool      _ok   (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
+inline bool _ok (Piece p)
+{
+    return (W_PAWN <= p && p <= W_KING)
+        || (B_PAWN <= p && p <= B_KING);
+}
 inline PieceType ptype (Piece p) { return PieceType(p & MAX_PTYPE); }
 inline Color     color (Piece p) { return Color(p >> 3); }
 inline Piece operator~ (Piece p) { return Piece(p ^ (BLACK << 3)); }

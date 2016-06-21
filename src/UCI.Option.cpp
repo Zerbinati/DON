@@ -202,7 +202,7 @@ namespace UCI {
 
         void configure_draw_clock_ply ()
         {
-            MaxClockPly = u08(2 * i32(Options["Max Clock Ply"]));
+            DrawClockPly = u08(2 * i32(Options["Draw Move Dist"]));
         }
 
         void configure_hash ()
@@ -415,10 +415,10 @@ namespace UCI {
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
-        // Default=MultiPV, Min=1, Max=50.
+        // Default=1, Min=1, Max=64.
         //
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["MultiPV"]                      << Option (MultiPV  ,   1,  50, configure_multipv);
+        Options["MultiPV"]                      << Option (MultiPV  ,   1,  64, configure_multipv);
 
         // Limit the multi-PV analysis to moves within a range of the best move.
         // Default=0, Min=0, Max=1000.
@@ -433,17 +433,17 @@ namespace UCI {
         // Fixed Contempt roughly equivalent to "Optimism".
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
-        // Default=0, Min=-100, Max=+100.
+        // Default=0, Min=-100, Max=100.
         Options["Fixed Contempt"]               << Option (FixedContempt, -100, 100, configure_contempt);
         // Time (sec) for Timed Contempt
-        // Default=+6, Min=0, Max=+900.
+        // Default=30, Min=0, Max=1000.
         Options["Timed Contempt"]               << Option (ContemptTime , 0, 1000, configure_contempt);
         // Centipawn (cp) for Valued Contempt
-        // Default=+50, Min=0, Max=+1000.
+        // Default=50, Min=0, Max=1000.
         Options["Valued Contempt"]              << Option (ContemptValue, 0, 1000, configure_contempt);
 
         // The number of moves after which the clock-move rule will kick in.
-        // Default=MaxClockPly/2, Min=5, Max=50.
+        // Default=50, Min=5, Max=50.
         //
         // This setting defines the number of moves after which the clock-move rule will kick in - the default value is 50,
         // i.e. the official clock-move rule.
@@ -451,9 +451,9 @@ namespace UCI {
         // - Closed positions in which no progress can be made without some sort of sacrifice (blockade);
         // - End games with a material advantage that is insufficient for winning (fortress).
         //
-        // By setting Draw Clock Move to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
+        // By setting Draw Move Dist to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Max Clock Ply"]                << Option (MaxClockPly/2, 5, 50, configure_draw_clock_ply);
+        Options["Draw Move Dist"]               << Option (DrawClockPly/2, 5, 50, configure_draw_clock_ply);
 
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, configure_time);
@@ -492,7 +492,7 @@ namespace UCI {
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        // Default=Chess960.
+        // Default=false.
         Options["UCI_Chess960"]                 << Option (Chess960, uci_chess960);
 
     }

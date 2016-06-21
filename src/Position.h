@@ -75,7 +75,7 @@ namespace Threading {
     class Thread;
 }
 
-extern u08 MaxClockPly;
+extern u08 DrawClockPly;
 
 // Position class stores information regarding the board representation:
 //  - 64-entry array of pieces, indexed by the square.

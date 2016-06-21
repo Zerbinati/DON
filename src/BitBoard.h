@@ -199,9 +199,6 @@ namespace BitBoard {
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
     inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return (RayLine_bb[s1][s2] & s3) != 0; }
 
-    // board_edges() returns a bitboard of edges of the board for given square
-    inline Bitboard board_edges (Square s) { return ((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)); }
-
     inline bool more_than_one (Bitboard bb)
     {
 #   if defined(BM2)

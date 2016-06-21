@@ -269,7 +269,6 @@ namespace Evaluator {
             ei.king_ring                 [Opp] = 0;
 
             // Init king safety tables only if going to use them
-            // Do not evaluate king safety when you are close to the endgame so the weight of king safety is small
             if (pos.non_pawn_material (Own) >= VALUE_MG_QUEN)
             {
                 ei.king_ring[Opp] = king_attacks | (dist_rings_bb (ek_sq, 1) &
@@ -299,7 +298,7 @@ namespace Evaluator {
             ei.ful_attacked_by[Own][PT] = 0;
             ei.pin_attacked_by[Own][PT] = 0;
 
-            for (Square s : pos.squares<PT> (Own))
+            for (auto s : pos.squares<PT> (Own))
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard ful_attacks =
@@ -913,7 +912,7 @@ namespace Evaluator {
                     // a bit drawish, but not as drawish as with only the two bishops. 
                     else
                     {
-                        scale_factor = ScaleFactor(46 * scale_factor/SCALE_FACTOR_NORMAL);
+                        scale_factor = ScaleFactor(46);
                     }
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
@@ -984,8 +983,8 @@ namespace Evaluator {
         // Do not include in mobility area squares protected by enemy pawns or occupied by friend blocked pawns or king
         const Bitboard mobility_area[CLR_NO] =
         {
-            ~(ei.pin_attacked_by[BLACK][PAWN] | blocked_pawns[WHITE] | pos.square<KING> (WHITE)),
-            ~(ei.pin_attacked_by[WHITE][PAWN] | blocked_pawns[BLACK] | pos.square<KING> (BLACK))
+            ~((ei.pin_attacked_by[BLACK][PAWN] | blocked_pawns[WHITE]) + pos.square<KING> (WHITE)),
+            ~((ei.pin_attacked_by[WHITE][PAWN] | blocked_pawns[BLACK]) + pos.square<KING> (BLACK))
         };
 
         // Evaluate all pieces but king and pawns

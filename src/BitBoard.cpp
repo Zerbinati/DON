@@ -139,17 +139,14 @@ namespace BitBoard {
 
             for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
-                // Board edges are not considered in the relevant occupancies
-                Bitboard edges = board_edges (s);
-
                 // Given a square 's', the mask is the bitboard of sliding attacks from 's'
                 // computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                Bitboard moves = sliding_attacks (deltas, s);
-
-                Bitboard mask = masks_bb[s] = moves & ~edges;
+                masks_bb[s] = sliding_attacks (deltas, s)
+                            // Board edges are not considered in the relevant occupancies
+                            & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
 
 #       if defined(BM2)
                 (void) shifts;
@@ -160,7 +157,7 @@ namespace BitBoard {
 #           else
                     32
 #           endif
-                    - u08(pop_count (mask));
+                    - u08(pop_count (masks_bb[s]));
 #       endif
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
@@ -169,14 +166,14 @@ namespace BitBoard {
                 Bitboard occ = 0;
                 do {
 #               if defined(BM2)
-                    attacks_bb[s][PEXT(occ, mask)] = sliding_attacks (deltas, s, occ);
+                    attacks_bb[s][PEXT(occ, masks_bb[s])] = sliding_attacks (deltas, s, occ);
 #               else
                     occupancy[size] = occ;
                     reference[size] = sliding_attacks (deltas, s, occ);
 #               endif
 
                     ++size;
-                    occ = (occ - mask) & mask;
+                    occ = (occ - masks_bb[s]) & masks_bb[s];
                 } while (occ != 0);
 
                 // Set the offset for the table_bb of the next square. Have individual
@@ -198,7 +195,7 @@ namespace BitBoard {
                 do {
                     do {
                         magics_bb[s] = rng.sparse_rand<Bitboard> ();
-                    } while (pop_count ((mask * magics_bb[s]) >> 0x38) < 6);
+                    } while (pop_count ((masks_bb[s] * magics_bb[s]) >> 0x38) < 6);
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
@@ -261,7 +258,7 @@ namespace BitBoard {
             {
                 if (s1 != s2)
                 {
-                    SquareDist[s1][s2] = u08(max (dist<File> (s1, s2) , dist<Rank> (s1, s2)));
+                    SquareDist[s1][s2] = u08(std::max (dist<File> (s1, s2), dist<Rank> (s1, s2)));
                     DistRings_bb[s1][SquareDist[s1][s2] - 1] += s2;
                 }
             }
@@ -288,7 +285,8 @@ namespace BitBoard {
                 while ((del = PawnDeltas[c][k++]) != DEL_O)
                 {
                     auto sq = s + del;
-                    if (_ok (sq) && dist (s, sq) == 1)
+                    if (   _ok (sq)
+                        && dist (s, sq) == 1)
                     {
                         PawnAttacks[c][s] += sq;
                     }
@@ -302,7 +300,8 @@ namespace BitBoard {
             while ((del = PieceDeltas[pt][k++]) != DEL_O)
             {
                 auto sq = s + del;
-                if (_ok (sq) && dist (s, sq) == 2)
+                if (   _ok (sq)
+                    && dist (s, sq) == 2)
                 {
                     PieceAttacks[pt][s] += sq;
                 }
@@ -313,7 +312,8 @@ namespace BitBoard {
             while ((del = PieceDeltas[pt][k++]) != DEL_O)
             {
                 auto sq = s + del;
-                if (_ok (sq) && dist (s, sq) == 1)
+                if (   _ok (sq)
+                    && dist (s, sq) == 1)
                 {
                     PieceAttacks[pt][s] += sq;
                 }

@@ -108,7 +108,7 @@ namespace Pawns {
             auto pawn_score = SCORE_ZERO;
 
             Bitboard b;
-            for (Square s : pos.squares<PAWN> (Own))
+            for (auto s : pos.squares<PAWN> (Own))
             {
                 assert(pos[s] == (Own|PAWN));
 
@@ -139,6 +139,13 @@ namespace Pawns {
                                     // If have an enemy pawn in the same or next rank, the pawn is
                                     // backward because it cannot advance without being captured.
                                     && (stoppers & (b | shift_bb<Push> (b & AdjFile_bb[f]))) != 0;
+
+                // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
+                if (   stoppers == 0
+                    && (own_pawns & front_sqrs_bb (Own, s)) == 0)
+                {
+                    e->passed_pawns[Own] += s;
+                }
 
                 auto score = SCORE_ZERO;
 
@@ -171,11 +178,6 @@ namespace Pawns {
                 if (blocked)
                 {
                     score -= Blocked;
-                }
-                // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
-                if (stoppers == 0)
-                {
-                    e->passed_pawns[Own] += s;
                 }
 
 //#           if !defined(NDEBUG)
