@@ -132,11 +132,11 @@ namespace Material {
         // If material key matches the position's material hash key,
         // it means that have analysed this material configuration before,
         // and can simply return the information found instead of recomputing it.
-        if (  !e->eval
+        if (   !e->used
             || e->matl_key != matl_key)
         {
             std::memset (e, 0x00, sizeof (*e));
-            e->eval = true;
+            e->used = true;
             e->matl_key = matl_key;
             e->factor[WHITE] =
             e->factor[BLACK] = SCALE_FACTOR_NORMAL;

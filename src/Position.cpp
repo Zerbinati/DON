@@ -270,8 +270,8 @@ bool Position::ok (i08 *failed_step) const
                     {
                         continue;
                     }
-                    if (    _board[castle_rook (cr)] != (c|ROOK)
-                        ||  _castle_mask[castle_rook (cr)] != cr
+                    if (   _board[castle_rook (cr)] != (c|ROOK)
+                        || _castle_mask[castle_rook (cr)] != cr
                         || (_castle_mask[square<KING> (c)] & cr) != cr)
                     {
                         return false;
@@ -567,7 +567,7 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
         // In case of non-promotional moves origin & destination cannot be on the 7th/2nd & 8th/1st rank.
-        if (    mtype (m) != PROMOTE
+        if (   mtype (m) != PROMOTE
             && (org_rel_rank == R_7 || dst_rel_rank == R_8))
         {
             return false;

@@ -145,7 +145,7 @@ public:
 
     bool can_pick (Depth depth) const
     {
-        return depth/DEPTH_ONE == (_skill_level + 1);
+        return i32(depth) == (_skill_level + 1);
     }
 
     Move pick_best_move (u16 pv_limit);

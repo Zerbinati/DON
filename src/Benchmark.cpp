@@ -98,7 +98,7 @@ void benchmark (istream &is, const Position &cur_pos)
     if (limit_type == "nodes")    limits.nodes    = u64(abs (limit_val));
     else
     if (limit_type == "mate")     limits.mate     = u08(abs (limit_val));
-    else  /*limit_type=="depth"*/ limits.depth    = u08(i32(abs (limit_val))*DEPTH_ONE);
+    else  /*limit_type=="depth"*/ limits.depth    = u08(abs (limit_val));
 
     vector<string> fens;
 
@@ -160,7 +160,7 @@ void benchmark (istream &is, const Position &cur_pos)
 
         if (limit_type == "perft")
         {
-            u64 leaf_nodes = perft (pos, i32(limits.depth)*DEPTH_ONE);
+            u64 leaf_nodes = perft (pos, Depth(limits.depth));
             std::cerr
                 << "\nLeaf nodes: " << leaf_nodes
                 << std::endl;

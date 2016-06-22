@@ -20,7 +20,7 @@ namespace Pawns {
         Value pawn_shelter_storm (const Position &pos, Square k_sq) const;
 
     public:
-        bool     eval;
+        bool     used;
         Key      pawn_key;
         Score    pawn_score;
         i32      asymmetry;

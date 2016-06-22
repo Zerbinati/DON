@@ -477,7 +477,7 @@ namespace UCI {
         // End-Game Table Bases Options
         // ----------------------------
         Options["SyzygyPath"]                   << Option (PathString, config_endgame_table);
-        Options["SyzygyDepthLimit"]             << Option (TBDepthLimit/DEPTH_ONE, 1, 100);
+        Options["SyzygyDepthLimit"]             << Option (TBDepthLimit, 1, 100);
         Options["SyzygyPieceLimit"]             << Option (TBPieceLimit, 0, 6);
         Options["SyzygyUseRule50"]              << Option (TBUseRule50);
 

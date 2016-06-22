@@ -313,14 +313,18 @@ enum Move : u16
 // Depth
 enum Depth : i16
 {
-    DEPTH_ZERO          =  0,
-
-    DEPTH_ONE           = +1, // One Ply
-    DEPTH_QS_CHECK      =  0*i16(DEPTH_ONE),
-    DEPTH_QS_NO_CHECK   = -1*i16(DEPTH_ONE),
-    DEPTH_QS_RECAPTURE  = -5*i16(DEPTH_ONE),
-    DEPTH_NONE          = -6*i16(DEPTH_ONE),
-    DEPTH_MAX           = MaxPlies*i16(DEPTH_ONE),
+    DEPTH_NONE                  = -6,
+    DEPTH_QS_RECAPTURE          = -5,
+    DEPTH_QS_NO_CHECK           = -1,
+    DEPTH_QS_CHECK              =  0,
+    DEPTH_ZERO                  =  0,
+    DEPTH_ONE                   = +1,
+    DEPTH_RAZOR                 = +4,
+    DEPTH_PROB_CUT              = +4,
+    DEPTH_FUTILITY_MARGIN       = +7,
+    DEPTH_FUTILITY_MOVE_COUNT   = +16,
+    DEPTH_REDUCTION             = +64,
+    DEPTH_MAX                   = MaxPlies,
 };
 // Value
 enum Value : i32

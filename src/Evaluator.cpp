@@ -174,8 +174,8 @@ namespace Evaluator {
         // Attacks on lesser pieces which are pawn-defended are not considered.
         const Score PieceThreat[2][NONE] =
         {
-            { S( 0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S( 0, 0) },  // Minor attackers
-            { S( 0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S( 0, 0) },  // Major attackers
+            { S( 0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S( 0, 0) }, // Minor attackers
+            { S( 0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S( 0, 0) }, // Major attackers
         };
         // KingThreat[one/more] contains bonuses for King attacks on
         // pawns or pieces which are not pawn-defended.
@@ -430,15 +430,19 @@ namespace Evaluator {
                         score += RookOnFile[!ei.pe->file_semiopen (Opp, _file (s)) ? (pos.pieces (Opp, PAWN) & file_bb (s) & ful_attacks & ~ei.pin_attacked_by[Opp][PAWN]) == 0 ? 0 : 1 : 2];
                     }
                     else
-                    // Penalty for rook when trapped by the king, even more if the king can't castle
-                    if (   (_file (pos.square<KING> (Own)) < F_E) == (_file (s) < _file (pos.square<KING> (Own)))
-                        && (    rel_rank (Own, pos.square<KING> (Own)) == rel_rank (Own, s)
-                            || (rel_rank (Own, pos.square<KING> (Own)) == R_1 && rel_rank (Own, s) < R_4))
-                        && (front_sqrs_bb (Opp, scan_backmost_sq (Own, pos.pieces (Own, PAWN) & file_bb (s))) & s) != 0
-                        && !ei.pe->side_semiopen (Own, _file (pos.square<KING> (Own)), _file (s) < _file (pos.square<KING> (Own)))
-                        && (mob = pop_count (ful_attacks & mobility_area)) <= 3)
                     {
-                        score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
+                        auto fk_sq = pos.square<KING> (Own);
+                        // Penalty for rook when trapped by the king, even more if the king can't castle
+                        if (   (_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq))
+                            && (   rel_rank (Own, fk_sq) == rel_rank (Own, s)
+                                || (   rel_rank (Own, fk_sq) == R_1
+                                    && rel_rank (Own, s) < R_4))
+                            && (front_sqrs_bb (Opp, scan_backmost_sq (Own, pos.pieces (Own, PAWN) & file_bb (s))) & s) != 0
+                            && !ei.pe->side_semiopen (Own, _file (fk_sq), _file (s) < _file (fk_sq))
+                            && (mob = pop_count (ful_attacks & mobility_area)) <= 3)
+                        {
+                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
+                        }
                     }
                 }
                 else
@@ -478,13 +482,13 @@ namespace Evaluator {
             if (   rel_rank (Own, fk_sq) == R_1
                 && pos.can_castle (Own) != CR_NONE)
             {
-                if (    pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE
+                if (   pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE
                     && (pos.king_path (Castling<Own, CS_KING>::Right) & ei.ful_attacked_by[Opp][NONE]) == 0
                     && (pos.castle_path (Castling<Own, CS_KING>::Right) & pos.pieces ()) == 0)
                 {
                     value = std::max (ei.pe->king_safety[Own][CS_KING], value);
                 }
-                if (    pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE
+                if (   pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE
                     && (pos.king_path (Castling<Own, CS_QUEN>::Right) & ei.ful_attacked_by[Opp][NONE]) == 0
                     && (pos.castle_path (Castling<Own, CS_QUEN>::Right) & pos.pieces ()) == 0)
                 {
@@ -905,8 +909,11 @@ namespace Evaluator {
                     if (   pos.non_pawn_material (WHITE) == VALUE_MG_BSHP
                         && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP)
                     {
-                        u32 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
-                        scale_factor = pawn_diff != 0 ? ScaleFactor(32) : ScaleFactor(8);
+                        scale_factor =
+                               pos.count<PAWN> (WHITE) == pos.count<PAWN> (BLACK)
+                            && ei.pe->passed_pawns[WHITE] == 0
+                            && ei.pe->passed_pawns[BLACK] == 0 ?
+                                ScaleFactor(9) : ScaleFactor(31);
                     }
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops. 
@@ -921,7 +928,9 @@ namespace Evaluator {
                     && ei.pe->pawn_span[strong_side] <= 1
                     && !pos.passed_pawn (~strong_side, pos.square<KING> (~strong_side)))
                 {
-                    scale_factor = ei.pe->pawn_span[strong_side] != 0 ? ScaleFactor(51) : ScaleFactor(37);
+                    scale_factor =
+                        ei.pe->pawn_span[strong_side] != 0 ?
+                            ScaleFactor(51) : ScaleFactor(37);
                 }
             }
             return scale_factor;

@@ -157,12 +157,12 @@ namespace EndGame {
                     + PushToEdge[wk_sq]
                     + PushClose[dist (sk_sq, wk_sq)], +VALUE_KNOWN_WIN - 1);
 
-        if (    pos.count<QUEN> (_strong_side) != 0
-            ||  pos.count<ROOK> (_strong_side) != 0
-            ||  pos.bishops_pair (_strong_side)
+        if (   pos.count<QUEN> (_strong_side) != 0
+            || pos.count<ROOK> (_strong_side) != 0
+            || pos.bishops_pair (_strong_side)
             || (   pos.count<BSHP> (_strong_side) != 0
                 && pos.count<NIHT> (_strong_side) != 0)
-            ||  pos.count<NIHT> (_strong_side) > 2)
+            || pos.count<NIHT> (_strong_side) > 2)
         {
             value = std::min (value + VALUE_KNOWN_WIN, +VALUE_MATE_IN_MAX_PLY - 1);
         }
@@ -389,8 +389,8 @@ namespace EndGame {
 
         if (pos.bishops_pair (_strong_side))
         {
-            if (  std::min (dist (wk_sq, SQ_A8), dist (wk_sq, SQ_H1))
-                < std::min (dist (wk_sq, SQ_A1), dist (wk_sq, SQ_H8)))
+            if (   std::min (dist (wk_sq, SQ_A8), dist (wk_sq, SQ_H1))
+                 < std::min (dist (wk_sq, SQ_A1), dist (wk_sq, SQ_H8)))
             {
                 sk_sq = ~sk_sq;
                 wk_sq = ~wk_sq;
@@ -738,7 +738,7 @@ namespace EndGame {
             }
 
             auto path = front_sqrs_bb (_strong_side, sp_sq);
-            if (    (path & pos.pieces (~_strong_side, KING)) != 0
+            if (   (path & pos.pieces (~_strong_side, KING)) != 0
                 || ((path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) != 0 && dist (wb_sq, sp_sq) >= 3))
             {
                 return SCALE_FACTOR_DRAW;

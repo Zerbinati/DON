@@ -251,10 +251,10 @@ namespace Pawns {
         // If pawn key matches the position's pawn hash key,
         // it means that have analysed this pawn configuration before,
         // and can simply return the information found instead of recomputing it.
-        if (  !e->eval
+        if (   !e->used
             || e->pawn_key != pawn_key)
         {
-            e->eval = true;
+            e->used = true;
             e->pawn_key = pawn_key;
             e->pawn_score =
                 + evaluate<WHITE> (pos, e)

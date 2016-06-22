@@ -291,7 +291,7 @@ namespace Threading {
         RootMoveVector root_moves;
         root_moves.initialize (root_pos, limits.search_moves);
 
-        TBDepthLimit = i32(Options["SyzygyDepthLimit"])*DEPTH_ONE;
+        TBDepthLimit = Depth(i32(Options["SyzygyDepthLimit"]));
         TBPieceLimit = i32(Options["SyzygyPieceLimit"]);
         TBUseRule50  = bool(Options["SyzygyUseRule50"]);
         TBHits       = 0;
