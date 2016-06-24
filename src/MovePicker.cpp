@@ -46,7 +46,7 @@ namespace MovePick {
         , _depth (d)
     {
         assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
-        assert(_depth > DEPTH_ZERO);
+        assert(_depth > DEPTH_0);
 
         _counter_move = _pos.thread ()->counter_moves[_ok ((ss-1)->current_move) ?
                                                         _pos[dst_sq ((ss-1)->current_move)] :
@@ -68,7 +68,7 @@ namespace MovePick {
         , _tt_move (ttm)
         , _depth (d)
     {
-        assert(_depth <= DEPTH_ZERO);
+        assert(_depth <= DEPTH_0);
         assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
 
         if (_pos.checkers () != 0)
@@ -76,12 +76,12 @@ namespace MovePick {
             _stage = S_EVASION;
         }
         else
-        if (_depth >= DEPTH_QS_CHECK)
+        if (_depth >= DEPTH_0)
         {
             _stage = S_QSEARCH_WITH_CHECK;
         }
         else
-        if (_depth > DEPTH_QS_RECAPTURE)
+        if (_depth > DEPTH_5_)
         {
             _stage = S_QSEARCH_WITHOUT_CHECK;
         }

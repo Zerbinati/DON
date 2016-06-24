@@ -1,6 +1,5 @@
 #include "Evaluator.h"
 
-#include <iomanip>
 #include <ostream>
 
 #include "Pawns.h"
@@ -81,7 +80,7 @@ namespace Evaluator {
             Bitboard pin_attacked_by[CLR_NO][MAX_PTYPE];
 
             // pinneds[color] contains all the pinned pieces
-            Bitboard pinneds[CLR_NO];
+            Bitboard abs_pinneds[CLR_NO];
 
             // king_ring[color] is the zone around the king which is considered
             // by the king safety evaluation. This consists of the squares directly
@@ -237,9 +236,9 @@ namespace Evaluator {
             ei.ful_attacked_by[Own][NONE] |=
             ei.ful_attacked_by[Own][PAWN]  = ei.pe->pawn_attacks[Own];
 
-            Bitboard pinneds = ei.pinneds[Own] = pos.pinneds (Own);
+            Bitboard abs_pinneds = ei.abs_pinneds[Own] = pos.abs_pinneds (Own);
 
-            Bitboard pinned_pawns = pinneds & pos.pieces (Own, PAWN);
+            Bitboard pinned_pawns = abs_pinneds & pos.pieces (Own, PAWN);
             if (pinned_pawns != 0)
             {
                 Bitboard loosed_pawns = ~pinned_pawns & pos.pieces (Own, PAWN);
@@ -302,15 +301,15 @@ namespace Evaluator {
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard ful_attacks =
-                    PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
-                    PT == ROOK ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
-                    PT == QUEN ? attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own]) :
+                    PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.abs_pinneds[Own]) :
+                    PT == ROOK ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.abs_pinneds[Own]) :
+                    PT == QUEN ? attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.abs_pinneds[Own]) :
                     PieceAttacks[PT][s];
 
                 ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= ful_attacks;
 
                 Bitboard pin_attacks = ful_attacks;
-                if ((ei.pinneds[Own] & s) != 0)
+                if ((ei.abs_pinneds[Own] & s) != 0)
                 {
                     pin_attacks &= rayline_bb (pos.square<KING> (Own), s);
                 }
@@ -525,7 +524,7 @@ namespace Evaluator {
                     + std::min ((ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp])/10, 72)
                     +  9 * (ei.king_zone_attacks_count[Opp])
                     + 21 * (pop_count (king_zone_undef))
-                    + 12 * (pop_count (king_ring_undef) + pop_count (ei.pinneds[Own]))
+                    + 12 * (pop_count (king_ring_undef) + pop_count (ei.abs_pinneds[Own]))
                     - 64 * (pos.count<QUEN>(Opp) == 0)
                     - i32(value) / 8;
 
@@ -547,7 +546,7 @@ namespace Evaluator {
                         if (   (unsafe & sq) != 0
                             || (   pos.count<QUEN> (Opp) > 1
                                 && more_than_one (pos.pieces (Opp, QUEN) & PieceAttacks[QUEN][sq])
-                                && more_than_one (pos.pieces (Opp, QUEN) & attacks_bb<QUEN> (sq, (pos.pieces () ^ pos.pieces (Opp, QUEN)) | ei.pinneds[Opp]))))
+                                && more_than_one (pos.pieces (Opp, QUEN) & attacks_bb<QUEN> (sq, (pos.pieces () ^ pos.pieces (Opp, QUEN)) | ei.abs_pinneds[Opp]))))
                         {
                             attack_units += QueenContactCheckUnit;
                         }
@@ -913,7 +912,7 @@ namespace Evaluator {
                                pos.count<PAWN> (WHITE) == pos.count<PAWN> (BLACK)
                             && ei.pe->passed_pawns[WHITE] == 0
                             && ei.pe->passed_pawns[BLACK] == 0 ?
-                                ScaleFactor(9) : ScaleFactor(31);
+                                ScaleFactor(8) : ScaleFactor(31);
                     }
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops. 

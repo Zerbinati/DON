@@ -1,8 +1,5 @@
 #include "Engine.h"
 
-#include <sstream>
-#include <iomanip>
-
 #include "UCI.h"
 #include "PieceSquare.h"
 #include "BitBases.h"

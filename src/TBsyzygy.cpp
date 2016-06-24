@@ -3,7 +3,6 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include <string.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string>
@@ -2151,7 +2150,7 @@ namespace TBSyzygy {
                 auto move = cur_move->move;
                 if (   !pos.capture (move)
                     || mtype (move) == ENPASSANT
-                    || !pos.legal (move, ci.pinneds))
+                    || !pos.legal (move, ci.abs_pinneds))
                 {
                     continue;
                 }
@@ -2216,7 +2215,7 @@ namespace TBSyzygy {
                     auto move = cur_move->move;
                     if (   ptype (pos[org_sq (move)]) != PAWN
                         || pos.capture (move)
-                        || !pos.legal (move, ci.pinneds))
+                        || !pos.legal (move, ci.abs_pinneds))
                     {
                         continue;
                     }
@@ -2251,7 +2250,7 @@ namespace TBSyzygy {
                     auto move = cur_move->move;
                     if (   pos.capture (move)
                         || ptype (pos[org_sq (move)]) == PAWN
-                        || !pos.legal (move, ci.pinneds))
+                        || !pos.legal (move, ci.abs_pinneds))
                     {
                         continue;
                     }
@@ -2282,7 +2281,7 @@ namespace TBSyzygy {
                 {
                     Value v;
                     auto move = cur_move->move;
-                    if (!pos.legal (move, ci.pinneds)) continue;
+                    if (!pos.legal (move, ci.abs_pinneds)) continue;
                     StateInfo si;
                     pos.do_move (move, si, pos.gives_check (move, ci));
                     if (si.clock_ply == 0)
@@ -2382,7 +2381,7 @@ namespace TBSyzygy {
         {
             auto move = cur_move->move;
             if (   mtype (move) != ENPASSANT
-                || !pos.legal (move, ci.pinneds))
+                || !pos.legal (move, ci.abs_pinneds))
             {
                 continue;
             }
@@ -2444,7 +2443,7 @@ namespace TBSyzygy {
                 {
                     auto move = cur_move->move;
                     if (   mtype (move) != ENPASSANT
-                        && pos.legal (move, ci.pinneds))
+                        && pos.legal (move, ci.abs_pinneds))
                     {
                         break;
                     }
@@ -2456,7 +2455,7 @@ namespace TBSyzygy {
                     for (; cur_move < end_move; ++cur_move)
                     {
                         auto move = cur_move->move;
-                        if (pos.legal (move, ci.pinneds))
+                        if (pos.legal (move, ci.abs_pinneds))
                         {
                             break;
                         }
@@ -2504,7 +2503,7 @@ namespace TBSyzygy {
         {
             auto move = cur_move->move;
             if (   mtype (move) != ENPASSANT
-                || !pos.legal (move, ci.pinneds))
+                || !pos.legal (move, ci.abs_pinneds))
             {
                 continue;
             }
@@ -2533,7 +2532,7 @@ namespace TBSyzygy {
                 {
                     auto move = cur_move->move;
                     if (   mtype (move) != ENPASSANT
-                        && pos.legal (move, ci.pinneds))
+                        && pos.legal (move, ci.abs_pinneds))
                     {
                         break;
                     }
@@ -2545,7 +2544,7 @@ namespace TBSyzygy {
                     for (; cur_move < end_move; ++cur_move)
                     {
                         auto move = cur_move->move;
-                        if (pos.legal (move, ci.pinneds))
+                        if (pos.legal (move, ci.abs_pinneds))
                         {
                             break;
                         }

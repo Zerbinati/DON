@@ -26,7 +26,7 @@ namespace MoveGen {
                     {
                         continue;
                     }
-                    if ((ci->discoverers & s) != 0)
+                    if ((ci->check_discoverers & s) != 0)
                     {
                         continue;
                     }
@@ -225,9 +225,9 @@ namespace MoveGen {
                     // This is possible only if the pawn is not on the same file as the enemy king,
                     // because don't generate captures.
                     // Note that a possible discovery check promotion has been already generated among captures.
-                    if ((Rx_pawns & ci->discoverers) != 0)
+                    if ((Rx_pawns & ci->check_discoverers) != 0)
                     {
-                        auto push_cd_1 = empties & shift_bb<Push> (Rx_pawns & ci->discoverers) & ~file_bb (ci->king_sq);
+                        auto push_cd_1 = empties & shift_bb<Push> (Rx_pawns & ci->check_discoverers) & ~file_bb (ci->king_sq);
                         auto push_cd_2 = empties & shift_bb<Push> (push_cd_1 & Rank3BB);
 
                         push_1 |= push_cd_1;
@@ -362,10 +362,10 @@ namespace MoveGen {
         auto targets= ~pos.pieces ();
         CheckInfo ci (pos);
         // Pawns is excluded, will be generated together with direct checks
-        auto discovers = ci.discoverers & ~pos.pieces (active, PAWN);
-        while (discovers != 0)
+        auto check_discoverers = ci.check_discoverers & ~pos.pieces (active, PAWN);
+        while (check_discoverers != 0)
         {
-            auto org = pop_lsq (discovers);
+            auto org = pop_lsq (check_discoverers);
             auto pt  = ptype (pos[org]);
             auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
             if (pt == KING)
@@ -390,10 +390,10 @@ namespace MoveGen {
         auto targets= ~pos.pieces (active);
         CheckInfo ci (pos);
         // Pawns is excluded, will be generated together with direct checks
-        auto discovers = ci.discoverers & ~pos.pieces (active, PAWN);
-        while (discovers != 0)
+        auto check_discoverers = ci.check_discoverers & ~pos.pieces (active, PAWN);
+        while (check_discoverers != 0)
         {
-            auto org = pop_lsq (discovers);
+            auto org = pop_lsq (check_discoverers);
             auto pt  = ptype (pos[org]);
             auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
             if (pt == KING)
@@ -493,14 +493,14 @@ namespace MoveGen {
 
     ValMove* filter_illegal (const Position &pos, ValMove *beg_move, ValMove *end_move)
     {
-        auto pinneds = pos.pinneds (pos.active ());
+        auto abs_pinneds = pos.abs_pinneds (pos.active ());
         auto king_sq = pos.square<KING> (pos.active ());
         while (beg_move < end_move)
         {
-            if (   (   pinneds != 0
+            if (   (   abs_pinneds != 0
                     || org_sq (beg_move->move) == king_sq
                     || mtype (beg_move->move) == ENPASSANT)
-                && !pos.legal (beg_move->move, pinneds))
+                && !pos.legal (beg_move->move, abs_pinneds))
             {
                 *beg_move = *(--end_move);
                 continue;

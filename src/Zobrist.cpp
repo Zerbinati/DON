@@ -1,7 +1,5 @@
 #include "Zobrist.h"
 
-#include <sstream>
-
 #include "Position.h"
 #include "Notation.h"
 

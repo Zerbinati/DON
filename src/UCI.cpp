@@ -149,7 +149,7 @@ namespace UCI {
                     {
                         fen += token + " ";
                     }
-                    //assert(_ok (fen, Chess960, true));
+                    assert(_ok (fen, Chess960, true));
                 }
                 else
                 {
@@ -316,7 +316,8 @@ namespace UCI {
             {
                 sync_cout;
 
-                auto pinneds = root_pos.pinneds (root_pos.active ());
+                auto pinneds = root_pos.abs_pinneds (root_pos.active ());
+
                 if (root_pos.checkers () != 0)
                 {
                     std::cout << "\nEvasion moves: ";

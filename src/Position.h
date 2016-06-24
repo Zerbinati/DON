@@ -62,10 +62,10 @@ public:
 struct CheckInfo
 {
 public:
-    Bitboard checking_bb[NONE];     // Checking squares from which the enemy king can be checked
-    Bitboard pinneds;    //= 0;     // Pinned pieces
-    Bitboard discoverers;//= 0;     // Check discoverer pieces
-    Square   king_sq;    //= SQ_NO; // Enemy king square
+    Bitboard checking_bb[NONE]; // Checking squares from which the enemy king can be checked
+    Bitboard abs_pinneds;       // Absolute pinned pieces
+    Bitboard check_discoverers; // Check discoverer pieces
+    Square   king_sq;           // Enemy king square
 
     CheckInfo () = delete;
     explicit CheckInfo (const Position &pos);
@@ -208,7 +208,7 @@ public:
 
     bool ok (i08 *failed_step = nullptr) const;
 
-    Value see      (Move m) const;
+    Value see (Move m) const;
     Value see_sign (Move m) const;
 
     Bitboard attackers_to (Square s, Color c, Bitboard occ) const;
@@ -216,13 +216,13 @@ public:
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
 
-    Bitboard slider_blockers (Square s, Bitboard sliders, Bitboard target) const;
     Bitboard checkers    (Color c) const;
-    Bitboard pinneds     (Color c) const;
-    Bitboard discoverers (Color c) const;
+    Bitboard slider_blockers (Square s, Bitboard sliders, Bitboard target) const;
+    Bitboard abs_pinneds (Color c) const;
+    Bitboard check_discoverers (Color c) const;
 
     bool pseudo_legal   (Move m) const;
-    bool legal          (Move m, Bitboard pinned) const;
+    bool legal          (Move m, Bitboard pinneds) const;
     bool legal          (Move m) const;
     bool capture        (Move m) const;
     bool promotion (Move m) const;
@@ -372,8 +372,8 @@ inline Key Position::move_posi_key (Move m) const
     }
 
     Key key = _si->posi_key ^ Zob.act_side
-        ^ Zob.piece_square[_active][mpt][org]
-        ^ Zob.piece_square[_active][ppt][dst];
+        ^ Zob.piece_square[_active][ppt][dst]
+        ^ Zob.piece_square[_active][mpt][org];
     if (cpt != NONE)
     {
         key ^= Zob.piece_square[~_active][cpt][cap];
@@ -453,14 +453,14 @@ inline Bitboard Position::checkers (Color c) const
     return attackers_to (square<KING> (c), ~c);
 }
 // Pinneds are friend pieces, that save the friend king from enemy pinners.
-inline Bitboard Position::pinneds (Color c) const
+inline Bitboard Position::abs_pinneds (Color c) const
 {
-    return slider_blockers (square<KING> ( c), pieces (~c), pieces (c));
+    return slider_blockers (square<KING> ( c), pieces (~c), pieces ( c));
 }
 // Discoverers are candidate friend pieces, that give the discover check to enemy king when moved.
-inline Bitboard Position::discoverers (Color c) const
+inline Bitboard Position::check_discoverers (Color c) const
 {
-    return slider_blockers (square<KING> (~c), pieces ( c), pieces (c));
+    return slider_blockers (square<KING> (~c), pieces ( c), pieces ( c));
 }
 inline bool Position::passed_pawn (Color c, Square s) const
 {
@@ -485,7 +485,7 @@ inline bool Position::opposite_bishops () const
         && count<BSHP> (BLACK) == 1
         && opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
 }
-inline bool Position::legal (Move m) const { return legal (m, pinneds (_active)); }
+inline bool Position::legal (Move m) const { return legal (m, abs_pinneds (_active)); }
 // capture(m) checks move is capture
 inline bool Position::capture (Move m) const
 {
@@ -518,7 +518,6 @@ inline bool Position::en_passant (Move m) const
 
 inline void  Position::place_piece (Square s, Color c, PieceType pt)
 {
-    //assert(empty (s));
     _board[s] = (c | pt);
 
     auto bb = square_bb (s);
@@ -536,7 +535,6 @@ inline void  Position::place_piece (Square s, Piece p)
 }
 inline void  Position::remove_piece (Square s)
 {
-    //assert(!empty (s));
     auto c  = color (_board[s]);
     auto pt = ptype (_board[s]);
     //_board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
@@ -556,8 +554,6 @@ inline void  Position::remove_piece (Square s)
 }
 inline void  Position::move_piece (Square s1, Square s2)
 {
-    //assert(!empty (s1));
-    //assert( empty (s2));
     auto c  = color (_board[s1]);
     auto pt = ptype (_board[s1]);
 
@@ -603,8 +599,8 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
 inline CheckInfo::CheckInfo (const Position &pos)
 {
     king_sq     = pos.square<KING> (~pos.active ());
-    pinneds     = pos.pinneds (pos.active ());
-    discoverers = pos.discoverers (pos.active ());
+    abs_pinneds = pos.abs_pinneds (pos.active ());
+    check_discoverers = pos.check_discoverers (pos.active ());
 
     checking_bb[PAWN] = PawnAttacks[~pos.active ()][king_sq];
     checking_bb[NIHT] = PieceAttacks[NIHT][king_sq];

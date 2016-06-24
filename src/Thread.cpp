@@ -204,7 +204,7 @@ namespace Threading {
         for (auto *th : *this)
         {
             if (   best_th->root_moves[0].new_value < th->root_moves[0].new_value
-                && best_th->leaf_depth < th->leaf_depth)
+                && best_th->finished_depth < th->finished_depth)
             {
                 best_th = th;
             }
@@ -301,7 +301,7 @@ namespace Threading {
         if (TBPieceLimit > MaxPieceLimit)
         {
             TBPieceLimit = MaxPieceLimit;
-            TBDepthLimit = DEPTH_ZERO;
+            TBDepthLimit = DEPTH_0;
         }
 
         // Filter root moves
@@ -347,8 +347,6 @@ namespace Threading {
         const auto tmp_si = setup_states->back ();
         for (auto *th : *this)
         {
-            th->max_ply = 0;
-            th->root_depth = DEPTH_ZERO;
             th->root_pos.setup (root_pos.fen (Chess960), setup_states->back (), th, Chess960);
             th->root_moves = root_moves;
         }

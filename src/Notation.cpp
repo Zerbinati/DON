@@ -1,8 +1,5 @@
 #include "Notation.h"
 
-#include <sstream>
-#include <iomanip>
-
 #include "UCI.h"
 #include "Position.h"
 #include "MoveGenerator.h"
@@ -39,7 +36,7 @@ namespace Notation {
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
 
-            auto pinneds = pos.pinneds (pos.active ());
+            auto pinneds = pos.abs_pinneds (pos.active ());
 
             auto amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
             auto pcs = amb; // & ~pinneds; // If pinned piece is considered as ambiguous
@@ -254,7 +251,7 @@ namespace Notation {
 
         auto &root_pos = main_thread->root_pos;
 
-        oss << std::setw ( 4) << main_thread->root_depth
+        oss << std::setw ( 4) << main_thread->running_depth
             << std::setw ( 8) << pretty_value (main_thread->root_moves[0].new_value, root_pos)
             << std::setw (12) << pretty_time (main_thread->time_mgr.elapsed_time ());
 

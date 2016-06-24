@@ -1,7 +1,5 @@
 #include "Polyglot.h"
 
-#include <iomanip>
-
 #include "PRNG.h"
 #include "Zobrist.h"
 #include "MoveGenerator.h"

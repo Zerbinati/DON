@@ -1,8 +1,5 @@
 #include "Position.h"
 
-#include <iomanip>
-#include <sstream>
-
 #include "Transposition.h"
 #include "PieceSquare.h"
 #include "MoveGenerator.h"
@@ -134,7 +131,10 @@ bool Position::ok (i08 *failed_step) const
 
     for (i08 step = BASIC; step <= (Fast ? BASIC : CASTLING); ++step)
     {
-        if (failed_step != nullptr) *failed_step = step;
+        if (failed_step != nullptr)
+        {
+            *failed_step = step;
+        }
 
         if (step == BASIC)
         {
@@ -326,7 +326,7 @@ PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitbo
 
 // see() is a Static Exchange Evaluator (SEE):
 // It tries to estimate the material gain or loss resulting from a move.
-Value Position::see      (Move m) const
+Value Position::see (Move m) const
 {
     assert(_ok (m));
 
@@ -351,14 +351,14 @@ Value Position::see      (Move m) const
         break;
 
     case ENPASSANT:
-        assert(ptype (_board[org]) == PAWN);
+        assert(_board[org] == (_active|PAWN));
         // Remove the captured pawn
         mocc = pieces () - org - (dst - pawn_push (stm));
         gain_list[0] = PieceValues[MG][PAWN];
         break;
 
     default:
-        assert(ptype (_board[org]) != NONE);
+        assert(_board[org] != NO_PIECE);
         mocc = pieces () - org;
         gain_list[0] = PieceValues[MG][ptype (_board[dst])];
         break;
@@ -435,15 +435,15 @@ Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard target)
     // Pinners are sliders that attack 's' when a pinned piece is removed
     Bitboard pinners =
           sliders
-        & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
-           | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
+        & (   (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
+            | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     while (pinners != 0)
     {
         Bitboard blocker = between_bb (s, pop_lsq (pinners)) & pieces ();
-        if (   blocker != 0
-            && !more_than_one (blocker))
+        if (   !more_than_one (blocker)
+            && (blocker & target) != 0)
         {
-            slide_blockers |= (blocker & target);
+            slide_blockers |= blocker;
         }
     }
     return slide_blockers;
@@ -627,10 +627,10 @@ bool Position::pseudo_legal (Move m) const
     return true;
 }
 // legal() tests whether a pseudo-legal move is legal
-bool Position::legal        (Move m, Bitboard pinned) const
+bool Position::legal (Move m, Bitboard pinneds) const
 {
     assert(_ok (m));
-    assert(pinned == pinneds (_active));
+    assert(pinneds == abs_pinneds (_active));
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
@@ -660,8 +660,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
-        return  pinned == 0
-            || (pinned & org) == 0
+        return  pinneds == 0
+            || (pinneds & org) == 0
             || sqrs_aligned (org, dst, square<KING> (_active));
     }
         break;
@@ -704,7 +704,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
 // gives_check() tests whether a pseudo-legal move gives a check
 bool Position::gives_check  (Move m, const CheckInfo &ci) const
 {
-    assert(ci.discoverers == discoverers (_active));
+    assert(ci.check_discoverers == check_discoverers (_active));
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
@@ -714,7 +714,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
            (ci.checking_bb[ptype (_board[org])] & dst) != 0
         // Is there a Discovered check ?
         // For discovery check we need to verify also direction
-        || (   (ci.discoverers & org) != 0
+        || (   (ci.check_discoverers & org) != 0
             && !sqrs_aligned (org, dst, ci.king_sq)))
     {
         return true;
@@ -1094,7 +1094,7 @@ bool Position::setup (const string &fen_str, StateInfo &si, Thread *const th, bo
     remove_piece (cap);                                                  \
     if (cpt == PAWN)                                                     \
     {                                                                    \
-        _si->pawn_key ^= Zob.piece_square[pasive][PAWN][cap];            \
+        _si->pawn_key ^= Zob.piece_square[pasive][cpt][cap];             \
     }                                                                    \
     else                                                                 \
     {                                                                    \
@@ -1133,6 +1133,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     auto cap = dst;
     auto cpt = NONE;
 
+    auto ppt = mpt;
     // Do move according to move type
     switch (mtype (m))
     {
@@ -1164,38 +1165,27 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         if (mpt == PAWN)
         {
             _si->pawn_key ^=
-                 Zob.piece_square[_active][PAWN][dst]
-                ^Zob.piece_square[_active][PAWN][org];
+                 Zob.piece_square[_active][mpt][dst]
+                ^Zob.piece_square[_active][mpt][org];
         }
-
-        key ^=
-             Zob.piece_square[_active][mpt][dst]
-            ^Zob.piece_square[_active][mpt][org];
-
-        _si->psq_score +=
-             PSQ[_active][mpt][dst]
-            -PSQ[_active][mpt][org];
     }
         break;
 
     case CASTLE:
     {
-        assert(_board[org] == (_active|KING)
+        assert(mpt == KING
+            && _board[org] == (_active|KING)
             && _board[dst] == (_active|ROOK));
 
         Square rook_org, rook_dst;
         do_castling<true> (org, dst, rook_org, rook_dst);
 
         key ^=
-             Zob.piece_square[_active][KING][dst]
-            ^Zob.piece_square[_active][KING][org]
-            ^Zob.piece_square[_active][ROOK][rook_dst]
+             Zob.piece_square[_active][ROOK][rook_dst]
             ^Zob.piece_square[_active][ROOK][rook_org];
 
         _si->psq_score +=
-             PSQ[_active][KING][dst]
-            -PSQ[_active][KING][org]
-            +PSQ[_active][ROOK][rook_dst]
+             PSQ[_active][ROOK][rook_dst]
             -PSQ[_active][ROOK][rook_org];
 
         _si->clock_ply++;
@@ -1223,16 +1213,8 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         move_piece (org, dst);
 
         _si->pawn_key ^=
-             Zob.piece_square[_active][PAWN][dst]
-            ^Zob.piece_square[_active][PAWN][org];
-
-        key ^=
-             Zob.piece_square[_active][PAWN][dst]
-            ^Zob.piece_square[_active][PAWN][org];
-
-        _si->psq_score +=
-             PSQ[_active][PAWN][dst]
-            -PSQ[_active][PAWN][org];
+             Zob.piece_square[_active][mpt][dst]
+            ^Zob.piece_square[_active][mpt][org];
     }
         break;
 
@@ -1251,7 +1233,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         }
         _si->clock_ply = 0;
 
-        auto ppt = promote (m);
+        ppt = promote (m);
         assert(NIHT <= ppt && ppt <= QUEN);
         // Replace the pawn with the Promoted piece
         remove_piece (org);
@@ -1259,19 +1241,11 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         place_piece (dst, _active, ppt);
 
         _si->matl_key ^=
-             Zob.piece_square[_active][PAWN][count (_active, PAWN)]
-            ^Zob.piece_square[_active][ppt ][count (_active, ppt) - 1];
+             Zob.piece_square[_active][mpt][count (_active, mpt)]
+            ^Zob.piece_square[_active][ppt][count (_active, ppt) - 1];
 
         _si->pawn_key ^=
-             Zob.piece_square[_active][PAWN][org];
-
-        key ^=
-             Zob.piece_square[_active][ppt ][dst]
-            ^Zob.piece_square[_active][PAWN][org];
-
-        _si->psq_score +=
-             PSQ[_active][ppt][dst]
-            -PSQ[_active][PAWN][org];
+             Zob.piece_square[_active][mpt][org];
 
         _si->non_pawn_matl[_active] += PieceValues[MG][ppt];
     }
@@ -1284,6 +1258,15 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     }
         break;
     }
+
+    key ^=
+         Zob.piece_square[_active][ppt][dst]
+        ^Zob.piece_square[_active][mpt][org];
+
+    _si->psq_score +=
+         PSQ[_active][ppt][dst]
+        -PSQ[_active][mpt][org];
+
     // Update castling rights if needed
     if (   _si->castle_rights != CR_NONE
         && (_castle_mask[org] | _castle_mask[dst]) != CR_NONE)

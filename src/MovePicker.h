@@ -31,7 +31,7 @@ namespace MovePick {
         Move    _counter_move   = MOVE_NONE;
         Square  _recapture_sq   = SQ_NO;
         Value   _threshold      = VALUE_ZERO;
-        Depth   _depth          = DEPTH_ZERO;
+        Depth   _depth          = DEPTH_0;
         u08     _stage          = 0;
 
         ValMove _killer_moves[Killers + 1];

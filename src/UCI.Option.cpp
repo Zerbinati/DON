@@ -1,8 +1,6 @@
 #include "UCI.h"
 
-#include <sstream>
 #include <fstream>
-#include <iomanip>
 
 #include "Thread.h"
 #include "Transposition.h"

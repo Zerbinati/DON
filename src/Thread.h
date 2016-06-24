@@ -96,7 +96,7 @@ public:
             StateInfo si[MovePVSize-1];
             for (u08 i = 0; i < MovePVSize-1; ++i)
             {
-                pos.do_move (_pv[i], si[i], pos.gives_check (_pv[i], CheckInfo (pos)));
+                pos.do_move (pv[i], si[i], pos.gives_check (pv[i], CheckInfo (pos)));
             }
             _posi_key = pos.posi_key ();
             for (u08 i = 0; i < MovePVSize-1; ++i)
@@ -178,8 +178,8 @@ namespace Threading {
 
         Position    root_pos;
         Searcher::RootMoveVector root_moves;
-        Depth       root_depth = DEPTH_ZERO
-            ,       leaf_depth = DEPTH_ZERO;
+        Depth       running_depth  = DEPTH_0
+            ,       finished_depth = DEPTH_0;
         HValueStats history_values;
         MoveStats   counter_moves;
 
