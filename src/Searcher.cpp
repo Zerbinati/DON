@@ -461,12 +461,10 @@ namespace Searcher {
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
-                assert(_ok (move) && pos.pseudo_legal (move));
                 // Check for legality before making the move
-                if (!pos.legal (move, ci.abs_pinneds))
-                {
-                    continue;
-                }
+                assert(_ok (move)
+                    && pos.pseudo_legal (move)
+                    && pos.legal (move, ci.abs_pinneds));
 
                 auto mpc = pos[org_sq (move)];
                 assert(mpc != NO_PIECE);
@@ -915,13 +913,11 @@ namespace Searcher {
                         // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
                         while ((move = mp.next_move ()) != MOVE_NONE)
                         {
-                            assert(_ok (move) && pos.pseudo_legal (move));
                             // Check for legality before making the move
-                            if (!pos.legal (move, ci.abs_pinneds))
-                            {
-                                continue;
-                            }
-
+                            assert(_ok (move)
+                                && pos.pseudo_legal (move)
+                                && pos.legal (move, ci.abs_pinneds));
+                            
                             auto mpc = pos[org_sq (move)];
                             assert(mpc != NO_PIECE);
                             auto dst = dst_sq (move);
@@ -1034,16 +1030,17 @@ namespace Searcher {
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
-                assert(_ok (move) && pos.pseudo_legal (move));
                 // Check for legality before making the move
-                if (
-                    // At root obey the "searchmoves" option and skip moves not listed in
-                    // RootMove list, as a consequence any illegal move is also skipped.
-                    // In MultiPV mode also skip PV moves which have been already searched.
-                       (root_node ?
-                            std::find (thread->root_moves.begin () + thread->pv_index, thread->root_moves.end (), move) == thread->root_moves.end () :
-                            !pos.legal (move, ci.abs_pinneds))
-                    // Skip exclusion move
+                assert(_ok (move)
+                    && pos.pseudo_legal (move)
+                    && pos.legal (move, ci.abs_pinneds));
+
+                if (   // At root obey the "searchmoves" option and skip moves not listed in
+                       // RootMove list, as a consequence any illegal move is also skipped.
+                       // In MultiPV mode also skip PV moves which have been already searched.
+                       (   root_node
+                        && std::find (thread->root_moves.begin () + thread->pv_index, thread->root_moves.end (), move) == thread->root_moves.end ())
+                       // Skip exclusion move
                     || move == exclude_move)
                 {
                     continue;

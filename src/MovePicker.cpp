@@ -55,11 +55,6 @@ namespace MovePick {
 
         _stage = _pos.checkers () != 0 ? S_EVASION : S_MAIN;
 
-        if (   _tt_move != MOVE_NONE
-            && !_pos.pseudo_legal (_tt_move))
-        {
-            _tt_move = MOVE_NONE;
-        }
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
@@ -92,11 +87,6 @@ namespace MovePick {
             _tt_move = MOVE_NONE;
         }
 
-        if (   _tt_move != MOVE_NONE
-            && !_pos.pseudo_legal (_tt_move))
-        {
-            _tt_move = MOVE_NONE;
-        }
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
@@ -112,8 +102,7 @@ namespace MovePick {
 
         // In ProbCut generate captures with SEE higher than the given threshold
         if (   _tt_move != MOVE_NONE
-            && (   !_pos.pseudo_legal (_tt_move)
-                || !_pos.capture (_tt_move)
+            && (   !_pos.capture (_tt_move)
                 || _pos.see (_tt_move) <= _threshold))
         {
             _tt_move = MOVE_NONE;
@@ -135,7 +124,8 @@ namespace MovePick {
     {
         for (auto &vm : *this)
         {
-            assert(_pos.pseudo_legal (vm.move));
+            assert(_pos.pseudo_legal (vm.move)
+                && _pos.legal (vm.move));
             vm.value = PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
                      - 200 * Value(rel_rank (_pos.active (), dst_sq (vm.move)))
                      - Value(ptype (_pos[org_sq (vm.move)]) + 1);
@@ -152,7 +142,8 @@ namespace MovePick {
 
         for (auto &vm : *this)
         {
-            assert(_pos.pseudo_legal (vm.move));
+            assert(_pos.pseudo_legal (vm.move)
+                && _pos.legal (vm.move));
             vm.value = history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
                 + (cmv  != nullptr ? (*cmv )[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO)
                 + (fmv1 != nullptr ? (*fmv1)[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO)
@@ -170,7 +161,8 @@ namespace MovePick {
 
         for (auto &vm : *this)
         {
-            assert(_pos.pseudo_legal (vm.move));
+            assert(_pos.pseudo_legal (vm.move)
+                && _pos.legal (vm.move));
             auto cap_value = _pos.see_sign (vm.move);
             if (cap_value < VALUE_ZERO)
             {
@@ -203,7 +195,7 @@ namespace MovePick {
         case S_PROBCUT_CAPTURE:
         case S_ALL_RECAPTURE:
             _cur_move = _beg_move;
-            _end_move = generate<CAPTURE> (_beg_move, _pos);
+            _end_move = filter_illegal (_pos, _beg_move, generate<CAPTURE> (_beg_move, _pos));
             if (_cur_move < _end_move-1)
             {
                 value<CAPTURE> ();
@@ -219,7 +211,7 @@ namespace MovePick {
 
         case S_QUIET:
             _cur_move = _beg_move;
-            _end_move = generate<QUIET> (_beg_move, _pos);
+            _end_move = filter_illegal (_pos, _beg_move, generate<QUIET> (_beg_move, _pos));
             if (_cur_move < _end_move-1)
             {
                 value<QUIET> ();
@@ -243,7 +235,7 @@ namespace MovePick {
 
         case S_QUIET_CHECK:
             _cur_move = _beg_move;
-            _end_move = generate<QUIET_CHECK> (_beg_move, _pos);
+            _end_move = filter_illegal (_pos, _beg_move, generate<QUIET_CHECK> (_beg_move, _pos));
             break;
 
         case S_EVASION:
@@ -309,8 +301,9 @@ namespace MovePick {
                     auto move = (*_cur_move++).move;
                     if (   move != MOVE_NONE
                         && move != _tt_move
+                        && !_pos.capture (move)
                         && _pos.pseudo_legal (move)
-                        && !_pos.capture (move))
+                        && _pos.legal (move))
                     {
                         return move;
                     }
