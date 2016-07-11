@@ -113,31 +113,30 @@ typedef Stats<CMValueStats>     CM2DValueStats;
 typedef Stats<Move>             MoveStats;
 
 
-const u08 Killers = 2;
+const u08 MaxKillers = 2;
+// The Stack struct keeps track of the information needed to remember from
+// nodes shallower and deeper in the tree during the search. Each search thread
+// has its own array of Stack objects, indexed by the current ply.
+struct Stack
+{
+    i16 ply = 0;
+    Move  current_move = MOVE_NONE
+        , exclude_move = MOVE_NONE
+        , killer_moves[MaxKillers];
+
+    Value static_eval = VALUE_NONE;
+    u08   move_count   = 0;
+    bool  skip_pruning = false;
+    CMValueStats *counter_move_values = nullptr;
+
+    MoveVector pv;
+
+    Stack () = default;
+    Stack (const Stack&) = delete;
+    Stack& operator= (const Stack&) = delete;
+};
 
 namespace Searcher {
-
-    // The Stack struct keeps track of the information needed to remember from
-    // nodes shallower and deeper in the tree during the search. Each search thread
-    // has its own array of Stack objects, indexed by the current ply.
-    struct Stack
-    {
-        i16 ply = 0;
-        Move current_move = MOVE_NONE
-           , exclude_move = MOVE_NONE
-           , killer_moves[Killers];
-
-        Value static_eval = VALUE_NONE;
-        u08  move_count   = 0;
-        bool skip_pruning = false;
-        CMValueStats *counter_move_values = nullptr;
-
-        MoveVector pv;
-
-        Stack () = default;
-        Stack (const Stack&) = delete;
-        Stack& operator= (const Stack&) = delete;
-    };
 
     extern Limit Limits;
 

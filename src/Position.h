@@ -14,7 +14,7 @@ extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 // when we retract a move. Whenever a move is made on the board (by calling do_move),
 // a StateInfo object must be passed as a parameter.
 //
-//  - Castling-rights information for both sides.
+//  - Castling-rights information.
 //  - En-passant square (SQ_NO if no en passant capture is possible).
 //  - Counter (clock) for detecting 50 move rule draws.
 //  - Hash key of the material situation.
@@ -35,7 +35,7 @@ public:
     Value       non_pawn_matl[CLR_NO];
     Score       psq_score;  //= SCORE_ZERO;
 
-    CastleRight castle_rights;//= CR_NONE;  // Castling-rights information for both side.
+    CastleRight castle_rights;//= CR_NONE;  // Castling-rights information.
     Square      en_passant_sq;//= SQ_NO;    // En-passant -> "In passing"
     u08         clock_ply;  //= 0;          // Number of halfmoves clock since the last pawn advance or any capture.
                                             // Used to determine if a draw can be claimed under the clock-move rule.
@@ -90,7 +90,7 @@ extern u08 DrawClockPly;
 //  - Nodes visited during search.
 //  - StateInfo object for the base status.
 //  - StateInfo pointer for the current status.
-//  - Information about the castling rights for both sides.
+//  - Information about the castling rights.
 //  - Initial files of both pairs of rooks, castle path and kings path, this is used to implement the Chess960 castling rules.
 //  - Chess960 info
 class Position
@@ -328,7 +328,7 @@ inline Square Position::square (Color c, i32 index) const
     return _piece_sq[c][PT][index];
 }
 
-// Castling rights for both side
+// Castling rights
 inline CastleRight Position::castle_rights () const { return _si->castle_rights; }
 // Target square in algebraic notation. If there's no en passant target square is "-"
 inline Square Position::en_passant_sq () const { return _si->en_passant_sq; }

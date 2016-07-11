@@ -16,25 +16,20 @@ namespace MovePick {
     // likely to get a cut-off first.
     class MovePicker
     {
-
     private:
-
         ValMove  _beg_move[MaxMoves]
             ,   *_cur_move         = _beg_move
             ,   *_end_move         = _beg_move
             ,   *_beg_bad_cap_move = _beg_move+MaxMoves;
 
-        const Position        &_pos;
-        const Searcher::Stack *_ss = nullptr;
+        const Position &_pos;
+        const Stack    *_ss = nullptr;
 
-        Move    _tt_move        = MOVE_NONE;
-        Move    _counter_move   = MOVE_NONE;
-        Square  _recapture_sq   = SQ_NO;
-        Value   _threshold      = VALUE_ZERO;
-        Depth   _depth          = DEPTH_0;
         u08     _stage          = 0;
 
-        ValMove _killer_moves[Killers + 1];
+        Move    _tt_move        = MOVE_NONE;
+        Square  _recapture_sq   = SQ_NO;
+        Value   _threshold      = VALUE_ZERO;
 
         // value() assign a numerical move ordering score to each move in a move list.
         // The moves with highest scores will be picked first.
@@ -49,7 +44,7 @@ namespace MovePick {
         MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
 
-        MovePicker (const Position&, Move, Depth, Searcher::Stack*);
+        MovePicker (const Position&, Move, const Stack*);
         MovePicker (const Position&, Move, Depth, Square);
         MovePicker (const Position&, Move, Value);
 
@@ -57,7 +52,6 @@ namespace MovePick {
         ValMove* end   () { return _end_move; }
 
         Move next_move ();
-
     };
 
 }

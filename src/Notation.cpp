@@ -253,7 +253,7 @@ namespace Notation {
 
         oss << std::setw ( 4) << main_thread->running_depth
             << std::setw ( 8) << pretty_value (main_thread->root_moves[0].new_value, root_pos)
-            << std::setw (12) << pretty_time (main_thread->time_mgr.elapsed_time ());
+            << std::setw (12) << pretty_time (Threadpool.time_mgr.elapsed_time ());
 
         u64 game_nodes = Threadpool.game_nodes ();
         if (game_nodes < 1*M)

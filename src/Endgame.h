@@ -63,7 +63,6 @@ namespace EndGame {
         explicit EndgameBase (Color c)
             : _strong_side (c)
         {}
-        //EndgameBase (const EndgameBase&) = delete;
         EndgameBase& operator= (const EndgameBase&) = delete;
         virtual ~EndgameBase () = default;
 
@@ -82,9 +81,8 @@ namespace EndGame {
         explicit Endgame (Color c)
             : EndgameBase<T> (c)
         {}
-        //Endgame (const Endgame&) = delete;
         Endgame& operator= (const Endgame&) = delete;
-        //virtual ~Endgame () = default;
+        virtual ~Endgame () = default;
 
         T operator() (const Position &pos) const override;
     };

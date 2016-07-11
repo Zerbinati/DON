@@ -3,7 +3,7 @@
   <Class Name="Position">
     <Position X="4" Y="7.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEgAAQIPAQQACBmxdYepIgUjgbEOHgVwBAgwLCAgJSA=</HashCode>
+      <HashCode>AEgAAQINAQQICBm1dYepIgUjgTEOHgRwBAgwLCAgJSA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -28,7 +28,7 @@
   <Class Name="Debugger::Logger">
     <Position X="21.5" Y="6.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAQQAAAAAAIAAAQgAAAAAAAAAABgAAAAAAAwAAAAAAg=</HashCode>
+      <HashCode>AAQQAAAAAAIAAAAAAAAACAAAAAAAAAAAAAAwAAAAAAg=</HashCode>
       <FileName>src\Debugger.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -108,17 +108,20 @@
     <Compartments>
       <Compartment Name="Fields" Collapsed="true" />
     </Compartments>
+    <AssociationLine Name="_tt_move" Type="Move">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.136" Y="0.189" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
-      <HashCode>BAAIAAgCAQgAAAQAAAABAAAQBgEAACCAAIggAAAAMAA=</HashCode>
+      <HashCode>BAAAAAgCAQgAAAQAAAABAAAQBgEAACCAAAggAAAAEAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="_pos" />
       <Field Name="_ss" />
       <Field Name="_tt_move" />
-      <Field Name="_counter_move" />
       <Field Name="_recapture_sq" />
-      <Field Name="_depth" />
     </ShowAsAssociation>
   </Class>
   <Class Name="Table">
@@ -144,7 +147,7 @@
   <Class Name="Threading::Thread">
     <Position X="6.5" Y="4" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>ACAAEiCACQIAAEAghEACCABIDAAAAAQAACBgAAABCgA=</HashCode>
+      <HashCode>AAAAECCgCQIAAEAghEACCABIDAAAAASAACBgAAABCgA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -155,30 +158,26 @@
   <Class Name="Threading::MainThread">
     <Position X="6.5" Y="9.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gAAAAAAAAAAAAAAAAAAAAAAACUhAAAAAACEgAQAAAAA=</HashCode>
+      <HashCode>gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgAAAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
-    <ShowAsAssociation>
-      <Field Name="time_mgr" />
-      <Field Name="move_mgr" />
-    </ShowAsAssociation>
   </Class>
   <Class Name="Threading::ThreadPool">
     <Position X="14.25" Y="5.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAACAAAAACAAAAUAAAACQAAAAIAAAAAhAAAAAAQ=</HashCode>
+      <HashCode>AAABAAACEAAAACAAAAUAAAAKSQhAAIAAAAEhAwAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Searcher::RootMove">
     <Position X="12" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAIAAAAAAAAAAAAAAAhgQAIAAAAAAAAgAAgAAAAAAA=</HashCode>
+      <HashCode>AAAIAAAAAAAAAAAAAAAggQAIAAAAAAAAgAAgAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="new_value" />
       <Field Name="old_value" />
+      <Field Name="new_value" />
     </ShowAsAssociation>
   </Class>
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
@@ -212,14 +211,14 @@
   <Class Name="MoveManager">
     <Position X="6.5" Y="13.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>CEAAAABCAIAAAAAAAAAAAAAEAAAAAAAAAACgAAAEAAA=</HashCode>
+      <HashCode>CEAAAABCAIAAAAAAAAAAAAAEAAAAAAAAAAAgAAAEAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="SkillManager" Collapsed="true">
     <Position X="31.5" Y="1.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEIAAAAgAAAAAAAAAACAAoAAoAAIAAAEAAAgAAAAAAA=</HashCode>
+      <HashCode>AEAAAAAgAAAAAAAAAACAAIAAoAAIAAAEAAAgAAAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -239,6 +238,11 @@
   </Struct>
   <Struct Name="StateInfo">
     <Position X="9.5" Y="15.25" Width="1.5" />
+    <AssociationLine Name="last_move" Type="Move">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="0.25" Y="-0.034" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AAAAAQAEAAAAAAgAYQAAAAAhAAAAAEAQAAgAAAAAIAI=</HashCode>
       <FileName>src\Position.h</FileName>
@@ -260,7 +264,7 @@
   <Struct Name="CheckInfo">
     <Position X="12.75" Y="18.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAIAAAAAAAAAAAAAAAAAAAABAIAAAAAAAAggAAAAAAA=</HashCode>
+      <HashCode>AAIAAAAAAAAIAAAEAAAAAAABAAAAAAAAAAAgAAAAAAA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -284,12 +288,12 @@
   <Struct Name="Evaluator::`anonymous-namespace'::EvalInfo" Collapsed="true">
     <Position X="35" Y="2.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAABgIAQAAAIAAAAAAAQgiAAQAAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAIAAAAABgIAQAAAIAAAAAAAQAiAAQAAAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="std::unary_nullfunctor&lt;T&gt;" Collapsed="true">
-    <Position X="14.5" Y="10.25" Width="1.5" />
+    <Position X="16" Y="10.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\functor.h</FileName>
@@ -326,7 +330,7 @@
   <Struct Name="Material::Entry">
     <Position X="9.5" Y="11.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>CAAAAAAAgAAEQBAEAAAAAAAAAAIAAAAAgAAAAAAAIAA=</HashCode>
+      <HashCode>CAAAAAAAgAAEQBAEAAAAAAAAAAIAAAAAgAAAQAAAIAA=</HashCode>
       <FileName>src\Material.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -338,7 +342,7 @@
   <Struct Name="Pawns::Entry">
     <Position X="0.5" Y="17" Width="1.75" />
     <TypeIdentifier>
-      <HashCode>AgoIAQAgAAAAIAgAAAAAIAAAQIEBAgAAEAEAAIEBAAA=</HashCode>
+      <HashCode>AgoIAQAgAAAAIAgAAAAAIAAAQIEBAgAAEAEAQIEBAAA=</HashCode>
       <FileName>src\Pawns.h</FileName>
     </TypeIdentifier>
     <ShowAsCollectionAssociation>
@@ -349,6 +353,21 @@
   </Struct>
   <Struct Name="Searcher::Stack">
     <Position X="14" Y="12.75" Width="1.5" />
+    <AssociationLine Name="current_move" Type="Move">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.361" Y="0.309" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="exclude_move" Type="Move">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.852" Y="0.145" />
+      </MemberNameLabel>
+    </AssociationLine>
+    <AssociationLine Name="killer_moves" Type="Move">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.034" Y="0.075" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AIAAAAAAAAAAAAAAAAQAAAAAgwIACAAAAAAgQCAQAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
@@ -402,7 +421,7 @@
     </TypeIdentifier>
   </Struct>
   <Struct Name="std::unary_function&lt;_Arg, _Result&gt;" Collapsed="true">
-    <Position X="14.5" Y="9" Width="1.5" />
+    <Position X="16" Y="9" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\xstddef</FileName>
@@ -689,7 +708,7 @@
     </TypeIdentifier>
   </Enum>
   <Enum Name="Move" Collapsed="true">
-    <Position X="6.5" Y="17" Width="1.5" />
+    <Position X="14.25" Y="16.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAACAAA=</HashCode>
       <FileName>src\Type.h</FileName>
@@ -712,7 +731,7 @@
   <Enum Name="Depth">
     <Position X="2.75" Y="24.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAEAAAAAACAAAgAAAAgQAAAAAgAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAiAAAgAAAAAAAgEABAAAgAAAAAAAAAEAI/gE=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -733,7 +752,7 @@
   <Enum Name="ScaleFactor" Collapsed="true">
     <Position X="31.5" Y="7.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAACAAABAAAAABAAAAAAAAAAAAAAAAAAAAAAAACAggA=</HashCode>
+      <HashCode>AAACAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAACAggA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>

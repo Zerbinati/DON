@@ -145,33 +145,35 @@ namespace UCI {
         return oss.str ();
     }
 
-    // Option change actions
+    
     namespace {
+        
+        // 'On change' actions, triggered by an option's value change
 
-        void change_hash_size ()
+        void on_hash_size ()
         {
             TT.auto_size (i32(Options["Hash"]), false);
         }
 
 #   if defined(LPAGES)
-        void change_memory ()
+        void on_memory_type ()
         {
             Memory::LargePages = bool(Options["Large Pages"]);
             TT.resize ();
         }
 #   endif
 
-        void clear_hash ()
+        void on_clear_hash ()
         {
             clear ();
         }
 
-        void retain_hash ()
+        void on_retain_hash ()
         {
             TT.retain_hash = bool(Options["Retain Hash"]);
         }
 
-        void save_hash ()
+        void on_save_hash ()
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
@@ -182,7 +184,7 @@ namespace UCI {
             }
         }
 
-        void load_hash ()
+        void on_load_hash ()
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
@@ -193,17 +195,17 @@ namespace UCI {
             }
         }
 
-        void configure_threadpool ()
+        void on_thread_count ()
         {
             Threadpool.configure (i32(Options["Threads"]));
         }
 
-        void configure_draw_clock_ply ()
+        void on_draw_move_dist ()
         {
             DrawClockPly = u08(2 * i32(Options["Draw Move Dist"]));
         }
 
-        void configure_hash ()
+        void on_hash_file ()
         {
             HashFile = string(Options["Hash File"]);
             trim (HashFile);
@@ -213,20 +215,20 @@ namespace UCI {
             }
         }
 
-        void configure_contempt ()
+        void on_contempt_opt ()
         {
             FixedContempt = i16(i32(Options["Fixed Contempt"]));
             ContemptTime  = i16(i32(Options["Timed Contempt"]));
             ContemptValue = i16(i32(Options["Valued Contempt"]));
         }
 
-        void configure_multipv ()
+        void on_multipv ()
         {
             MultiPV = u08(i32(Options["MultiPV"]));
             //MultiPV_cp  = i32(Options["MultiPV_cp"]);
         }
 
-        void configure_book ()
+        void on_book_opt ()
         {
             OwnBook = bool(Options["OwnBook"]);
             BookFile = string(Options["Book File"]);
@@ -240,12 +242,12 @@ namespace UCI {
             }
         }
 
-        void configure_skill ()
+        void on_skill_level ()
         {
-            Threadpool.main_thread ()->skill_mgr.change_skill_level (u08(i32(Options["Skill Level"])));
+            Threadpool.skill_mgr.change_skill_level (u08(i32(Options["Skill Level"])));
         }
 
-        void configure_time ()
+        void on_time_opt ()
         {
             //MaximumMoveHorizon = i32(Options["Maximum Move Horizon"]);
             //ReadyMoveHorizon = i32(Options["Ready Move Horizon"]);
@@ -257,7 +259,7 @@ namespace UCI {
             Ponder = bool(Options["Ponder"]);
         }
 
-        void debug_log_file ()
+        void on_debug_file ()
         {
             string filename = string(Options["Debug File"]);
             trim (filename);
@@ -268,7 +270,7 @@ namespace UCI {
             }
         }
 
-        void search_log_file ()
+        void on_output_file ()
         {
             OutputFile = string(Options["Output File"]);
             trim (OutputFile);
@@ -278,7 +280,7 @@ namespace UCI {
             }
         }
 
-        void config_endgame_table ()
+        void on_syzygy_path ()
         {
             PathString = string(Options["SyzygyPath"]);
             trim (PathString);
@@ -288,7 +290,7 @@ namespace UCI {
             }
         }
 
-        void uci_chess960 ()
+        void on_uci_chess960 ()
         {
             Chess960 = bool(Options["UCI_Chess960"]);
         }
@@ -312,24 +314,22 @@ namespace UCI {
         // For 16 Min=games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
-        Options["Hash"]                         << Option (16,
-                                                           0, // MinHashSize
-                                                           MaxHashSize, change_hash_size);
+        Options["Hash"]                         << Option (16, 0, MaxHashSize, on_hash_size);
 
 #if defined(LPAGES)
-        Options["Large Pages"]                  << Option (Memory::LargePages, change_memory);
+        Options["Large Pages"]                  << Option (Memory::LargePages, on_memory_type);
 #endif
 
         // Button to clear the Hash Memory.
         // If the Never Clear Hash option is enabled, this button doesn't do anything.
-        Options["Clear Hash"]                   << Option (clear_hash);
+        Options["Clear Hash"]                   << Option (on_clear_hash);
 
         // This option prevents the Hash Memory from being cleared between successive games or positions belonging to different games.
         // Default=false
         //
         // Check this option also if you want to Load the Hash from disk file,
         // otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
-        Options["Retain Hash"]                  << Option (TT.retain_hash, retain_hash);
+        Options["Retain Hash"]                  << Option (TT.retain_hash, on_retain_hash);
 
         // Persistent Hash Options
         // -----------------------
@@ -355,14 +355,14 @@ namespace UCI {
         // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
-        Options["Hash File"]                    << Option (HashFile, configure_hash);
+        Options["Hash File"]                    << Option (HashFile, on_hash_file);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
         // Some GUIs (e.g. Shredder, Fritz) wait for sending the button command to the engine until you click OK in the engine options window.
         // The size of the file will be identical to the size of the hash memory, so this operation could take a while.
         // This feature can be used to interrupt and restart a deep analysis at any time.
-        Options["Save Hash"]                    << Option (save_hash);
+        Options["Save Hash"]                    << Option (on_save_hash);
 
         // Load a previously saved Hash file from disk.
         // Use the Load Hash File button after loading the game or position, but before starting the analysis.
@@ -370,7 +370,7 @@ namespace UCI {
         // The size of the Hash memory will automatically be set to the size of the saved file.
         // Please make sure to check the Never Clear Hash option,
         // as otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
-        Options["Load Hash"]                    << Option (load_hash);
+        Options["Load Hash"]                    << Option (on_load_hash);
 
 
         // Position Learning Options
@@ -379,15 +379,15 @@ namespace UCI {
         // Book Options
         // ---------------------
         // Whether or not to always play with the book.
-        Options["OwnBook"]                      << Option (OwnBook, configure_book);
+        Options["OwnBook"]                      << Option (OwnBook, on_book_opt);
         // The filename of the Book.
-        Options["Book File"]                    << Option (BookFile, configure_book);
+        Options["Book File"]                    << Option (BookFile, on_book_opt);
         // Whether or not to always play the best move from the book.
         // False will lead to more variety in book play.
-        Options["Book Move Best"]               << Option (BookMoveBest, configure_book);
+        Options["Book Move Best"]               << Option (BookMoveBest, on_book_opt);
         // Play book upto move
         // Zero will lead to play till move present in book.
-        Options["Book Upto Move"]               << Option (BookUptoMove, 0, 50, configure_book);
+        Options["Book Upto Move"]               << Option (BookUptoMove, 0, 50, on_book_opt);
 
         // Cores and Threads Options
         // -------------------------
@@ -400,7 +400,7 @@ namespace UCI {
         // engine will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      << Option ( 1, 0, 256, configure_threadpool);
+        Options["Threads"]                      << Option ( 1, 0, 256, on_thread_count);
 
         // Game Play Options
         // -----------------
@@ -409,14 +409,14 @@ namespace UCI {
         // Default=MaxSkillLevel, Min=0, Max=MaxSkillLevel.
         //
         // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
-        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel, configure_skill);
+        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel, on_skill_level);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
         // Default=1, Min=1, Max=64.
         //
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["MultiPV"]                      << Option (MultiPV  ,   1,  64, configure_multipv);
+        Options["MultiPV"]                      << Option (MultiPV  ,   1,  64, on_multipv);
 
         // Limit the multi-PV analysis to moves within a range of the best move.
         // Default=0, Min=0, Max=1000.
@@ -424,7 +424,7 @@ namespace UCI {
         // Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
         // A value of 0 means that this parameter will not be taken into account.
         // The MultiPV_cp feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, 1000, configure_multipv);
+        //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, 1000, on_multipv);
 
         // Changes playing style.
         // ----------------------
@@ -432,13 +432,13 @@ namespace UCI {
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default=0, Min=-100, Max=100.
-        Options["Fixed Contempt"]               << Option (FixedContempt, -100, 100, configure_contempt);
+        Options["Fixed Contempt"]               << Option (FixedContempt, -100, 100, on_contempt_opt);
         // Time (sec) for Timed Contempt
         // Default=30, Min=0, Max=1000.
-        Options["Timed Contempt"]               << Option (ContemptTime , 0, 1000, configure_contempt);
+        Options["Timed Contempt"]               << Option (ContemptTime , 0, 1000, on_contempt_opt);
         // Centipawn (cp) for Valued Contempt
         // Default=50, Min=0, Max=1000.
-        Options["Valued Contempt"]              << Option (ContemptValue, 0, 1000, configure_contempt);
+        Options["Valued Contempt"]              << Option (ContemptValue, 0, 1000, on_contempt_opt);
 
         // The number of moves after which the clock-move rule will kick in.
         // Default=50, Min=5, Max=50.
@@ -451,30 +451,30 @@ namespace UCI {
         //
         // By setting Draw Move Dist to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Draw Move Dist"]               << Option (DrawClockPly/2, 5, 50, configure_draw_clock_ply);
+        Options["Draw Move Dist"]               << Option (DrawClockPly/2, 5, 50, on_draw_move_dist);
 
         //// Plan time management at most this many moves ahead, in num of moves.
-        //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, configure_time);
+        //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, on_time_opt);
         //// Be prepared to always play at least this many moves, in num of moves.
-        //Options["Ready Move Horizon"]           << Option (ReadyMoveHorizon, 0, 100, configure_time);
+        //Options["Ready Move Horizon"]           << Option (ReadyMoveHorizon, 0, 100, on_time_opt);
         //// Always attempt to keep at least this much time at clock, in milliseconds.
-        //Options["Overhead Clock Time"]          << Option (OverheadClockTime, 0, 30000, configure_time);
+        //Options["Overhead Clock Time"]          << Option (OverheadClockTime, 0, 30000, on_time_opt);
         //// Attempt to keep at least this much time for each remaining move, in milliseconds.
-        //Options["Overhead Move Time"]           << Option (OverheadMoveTime, 0, 5000, configure_time);
+        //Options["Overhead Move Time"]           << Option (OverheadMoveTime, 0, 5000, on_time_opt);
         //// The minimum amount of time to analyze, in milliseconds.
-        //Options["Minimum Move Time"]            << Option (MinimumMoveTime, 0, 5000, configure_time);
+        //Options["Minimum Move Time"]            << Option (MinimumMoveTime, 0, 5000, on_time_opt);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (i32(std::round (MoveSlowness*100)), 10, 1000, configure_time);
-        Options["Nodes Time"]                   << Option (NodesTime, 0, 10000, configure_time);
+        Options["Move Slowness"]                << Option (i32(std::round (MoveSlowness*100)), 10, 1000, on_time_opt);
+        Options["Nodes Time"]                   << Option (NodesTime, 0, 10000, on_time_opt);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default=Ponder.
         //
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["Ponder"]                       << Option (Ponder, configure_time);
+        Options["Ponder"]                       << Option (Ponder, on_time_opt);
 
         // End-Game Table Bases Options
         // ----------------------------
-        Options["SyzygyPath"]                   << Option (PathString, config_endgame_table);
+        Options["SyzygyPath"]                   << Option (PathString, on_syzygy_path);
         Options["SyzygyDepthLimit"]             << Option (TBDepthLimit, 1, 100);
         Options["SyzygyPieceLimit"]             << Option (TBPieceLimit, 0, 6);
         Options["SyzygyUseRule50"]              << Option (TBUseRule50);
@@ -483,15 +483,15 @@ namespace UCI {
         // Other Options
         // -------------
         // The filename of the debug log.
-        Options["Debug File"]                   << Option (Empty, debug_log_file);
+        Options["Debug File"]                   << Option (Empty, on_debug_file);
         // The filename of the search log.
-        Options["Output File"]                  << Option (OutputFile, search_log_file);
+        Options["Output File"]                  << Option (OutputFile, on_output_file);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         // Default=false.
-        Options["UCI_Chess960"]                 << Option (Chess960, uci_chess960);
+        Options["UCI_Chess960"]                 << Option (Chess960, on_uci_chess960);
 
     }
 

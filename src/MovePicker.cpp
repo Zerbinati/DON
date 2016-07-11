@@ -14,7 +14,7 @@ namespace MovePick {
 
         enum Stage : u08
         {
-            S_MAIN    , S_GOOD_CAPTURE, S_KILLER, S_QUIET, S_BAD_CAPTURE,
+            S_MAIN    , S_GOOD_CAPTURE, S_QUIET, S_BAD_CAPTURE,
             S_EVASION , S_ALL_EVASION,
             S_QSEARCH_WITH_CHECK   , S_QCAPTURE_1, S_QUIET_CHECK,
             S_QSEARCH_WITHOUT_CHECK, S_QCAPTURE_2,
@@ -39,21 +39,14 @@ namespace MovePick {
     // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
     // and about how important good move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &pos, Move ttm, Depth d, Stack *ss)
+    MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *ss)
         : _pos (pos)
         , _ss (ss)
         , _tt_move (ttm)
-        , _depth (d)
     {
-        assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
-        assert(_depth > DEPTH_0);
+        assert(ttm == MOVE_NONE || (pos.pseudo_legal (ttm) && pos.legal (ttm)));
 
-        _counter_move = _pos.thread ()->counter_moves[_ok ((ss-1)->current_move) ?
-                                                        _pos[dst_sq ((ss-1)->current_move)] :
-                                                        NO_PIECE]
-                                                        [dst_sq ((ss-1)->current_move)];
-
-        _stage = _pos.checkers () != 0 ? S_EVASION : S_MAIN;
+        _stage = pos.checkers () != 0 ? S_EVASION : S_MAIN;
 
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
@@ -61,22 +54,21 @@ namespace MovePick {
     MovePicker::MovePicker (const Position &pos, Move ttm, Depth d, Square dst_sq)
         : _pos (pos)
         , _tt_move (ttm)
-        , _depth (d)
     {
-        assert(_depth <= DEPTH_0);
-        assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
+        assert(d <= DEPTH_0);
+        assert(ttm == MOVE_NONE || (pos.pseudo_legal (ttm) && pos.legal (ttm)));
 
-        if (_pos.checkers () != 0)
+        if (pos.checkers () != 0)
         {
             _stage = S_EVASION;
         }
         else
-        if (_depth >= DEPTH_0)
+        if (d >= DEPTH_0)
         {
             _stage = S_QSEARCH_WITH_CHECK;
         }
         else
-        if (_depth > DEPTH_5_)
+        if (d > DEPTH_5_)
         {
             _stage = S_QSEARCH_WITHOUT_CHECK;
         }
@@ -95,8 +87,8 @@ namespace MovePick {
         , _tt_move (ttm)
         , _threshold (thr)
     {
-        assert(_pos.checkers () == 0);
-        assert(_tt_move == MOVE_NONE || (_pos.pseudo_legal (_tt_move) && _pos.legal (_tt_move)));
+        assert(pos.checkers () == 0);
+        assert(ttm == MOVE_NONE || (pos.pseudo_legal (ttm) && pos.legal (ttm)));
 
         _stage = S_PROBCUT;
 
@@ -202,19 +194,35 @@ namespace MovePick {
             }
             break;
 
-        case S_KILLER:
-            std::copy (_ss->killer_moves, _ss->killer_moves + Killers, _killer_moves);
-            _killer_moves[Killers] = _counter_move;
-            _cur_move = _killer_moves;
-            _end_move = _killer_moves + Killers + (std::find (_killer_moves, _killer_moves + Killers, _counter_move) == _killer_moves + Killers);
-            break;
-
         case S_QUIET:
             _cur_move = _beg_move;
             _end_move = filter_illegal (_pos, _beg_move, generate<QUIET> (_beg_move, _pos));
             if (_cur_move < _end_move-1)
             {
                 value<QUIET> ();
+            }
+            // Move killers to top of quiet move
+            {
+                vector<Move> killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
+                killer_moves.push_back (_pos.thread ()->counter_moves[_ok ((_ss-1)->current_move) ? _pos[dst_sq ((_ss-1)->current_move)] : NO_PIECE][dst_sq ((_ss-1)->current_move)]);
+                //killer_moves.erase (std::remove (killer_moves.begin (), killer_moves.end (), MOVE_NONE), killer_moves.end ());
+                for (u08 k = 0; k < killer_moves.size (); ++k)
+                {
+                    auto km = killer_moves[k];
+                    if (km != MOVE_NONE)
+                    {
+                        // Remove duplicates
+                        std::replace (killer_moves.begin () + k + 1, killer_moves.end (), km, MOVE_NONE);
+                        // Increase move value
+                        auto *itr = std::find (_beg_move, _end_move, km);
+                        if (itr != _end_move)
+                        {
+                            assert(_pos.pseudo_legal (km)
+                                && _pos.legal (km));
+                            itr->value = MaxStatsValue - i32(k);
+                        }
+                    }
+                }
             }
             break;
 
@@ -296,26 +304,10 @@ namespace MovePick {
                 } while (_cur_move < _end_move);
                 break;
 
-            case S_KILLER:
-                do {
-                    auto move = (*_cur_move++).move;
-                    if (   move != MOVE_NONE
-                        && move != _tt_move
-                        && !_pos.capture (move)
-                        && _pos.pseudo_legal (move)
-                        && _pos.legal (move))
-                    {
-                        return move;
-                    }
-                } while (_cur_move < _end_move);
-                break;
-
             case S_QUIET:
                 do {
                     auto move = pick_best (_cur_move++, _end_move).move;
-                    if (   move != _tt_move
-                        // Not killer move
-                        && std::find (_killer_moves, _killer_moves + Killers + 1, move) == _killer_moves + Killers + 1)
+                    if (move != _tt_move)
                     {
                         return move;
                     }

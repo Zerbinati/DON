@@ -190,10 +190,6 @@ namespace Threading {
     // ------------------------------------
 
     MainThread::MainThread ()
-        : easy_played (false)
-        , failed_low (false)
-        , best_move_change (0.0)
-        , previous_value (+VALUE_NONE)
     {}
 
     // ------------------------------------
@@ -226,18 +222,17 @@ namespace Threading {
     // UCI options and creates/destroys threads to match the requested number.
     // Thread objects are dynamically allocated to avoid creating in advance all possible
     // threads, with included pawns and material tables, if only few are used.
-    void ThreadPool::configure (size_t threads)
+    void ThreadPool::configure (i32 threads)
     {
         if (threads == 0)
         {
             threads = thread::hardware_concurrency ();
         }
-
-        while (size () < threads)
+        while (i32(size ()) < threads)
         {
             push_back (new Thread);
         }
-        while (size () > threads)
+        while (i32(size ()) > threads)
         {
             delete back ();
             pop_back ();

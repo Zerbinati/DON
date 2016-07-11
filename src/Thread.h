@@ -55,7 +55,7 @@ private:
     Move _pv[MovePVSize];
 
 public:
-    u08 stable_count = 0; // Keep track of how many times in a row the 3rd ply remains stable
+    u08  stable_count   = 0; // Keep track of how many times in a row the 3rd ply remains stable
 
     MoveManager ()
     {
@@ -66,12 +66,12 @@ public:
 
     void clear ()
     {
+        _posi_key    = 0;
         stable_count = 0;
-        _posi_key = 0;
         std::fill (_pv, _pv + MovePVSize, MOVE_NONE);
     }
 
-    Move easy_move (const Key posi_key) const
+    Move easy_move (Key posi_key) const
     {
         return posi_key == _posi_key ? _pv[MovePVSize-1] : MOVE_NONE;
     }
@@ -93,15 +93,18 @@ public:
         {
             std::copy (pv.begin (), pv.begin () + MovePVSize, _pv);
 
+            u08 ply = 0;
             StateInfo si[MovePVSize-1];
-            for (u08 i = 0; i < MovePVSize-1; ++i)
+            while (ply < MovePVSize-1)
             {
-                pos.do_move (pv[i], si[i], pos.gives_check (pv[i], CheckInfo (pos)));
+                pos.do_move (pv[ply], si[ply], pos.gives_check (pv[ply], CheckInfo (pos)));
+                ++ply;
             }
             _posi_key = pos.posi_key ();
-            for (u08 i = 0; i < MovePVSize-1; ++i)
+            while (ply != 0)
             {
                 pos.undo_move ();
+                --ply;
             }
         }
     }
@@ -120,7 +123,6 @@ private:
     Move _best_move   = MOVE_NONE;
 
 public:
-
     explicit SkillManager (u08 skill_level = MaxSkillLevel)
         : _skill_level (skill_level)
         , _best_move (MOVE_NONE)
@@ -258,15 +260,6 @@ namespace Threading {
         : public Thread
     {
     public:
-        bool   easy_played      = false;
-        bool   failed_low       = false;
-        double best_move_change = 0.0;
-        Value  previous_value   = VALUE_NONE;
-
-        TimeManager  time_mgr;
-        MoveManager  move_mgr;
-        SkillManager skill_mgr;
-
         MainThread ();
         MainThread (const MainThread&) = delete;
         MainThread& operator= (const MainThread&) = delete;
@@ -287,6 +280,20 @@ namespace Threading {
         StateListPtr setup_states;
 
     public:
+        u16   pv_limit    = 1;
+
+        bool  easy_played = false;
+        bool  failed_low  = false;
+
+        Move  last_easy   = MOVE_NONE;
+        Value last_value  = VALUE_NONE;
+
+        double best_move_change = 0.0;
+
+        TimeManager     time_mgr;
+        MoveManager     move_mgr;
+        SkillManager    skill_mgr;
+
         ThreadPool () = default;
         ThreadPool (const ThreadPool&) = delete;
         ThreadPool& operator= (const ThreadPool&) = delete;
@@ -300,7 +307,7 @@ namespace Threading {
 
         u64  game_nodes () const;
 
-        void configure (size_t threads);
+        void configure (i32 threads);
 
         // No constructor and destructor, threadpool rely on globals
         // that should be initialized and valid during the whole thread lifetime.
