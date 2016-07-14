@@ -19,19 +19,6 @@ namespace UCI {
     using namespace MoveGen;
     using namespace Notation;
 
-    namespace {
-
-        // Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
-        // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-        const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-
-        // Stack to keep track of the position states along the setup moves
-        // (from the start position to the position just before the search starts).
-        // Needed by 'draw by repetition' detection.
-        StateListPtr SetupStates (new StateList (1));
-
-    }
-
     bool Chess960 = false;
 
     // loop() waits for a command from stdin, parses it and calls the appropriate function.
@@ -41,19 +28,28 @@ namespace UCI {
     // In addition to the UCI ones, also some additional debug commands are supported.
     void loop (i32 argc, const char *const *argv)
     {
+        // Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
+        // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
+        static const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+        // Stack to keep track of the position states along the setup moves
+        // (from the start position to the position just before the search starts).
+        // Needed by 'draw by repetition' detection.
+        StateListPtr setup_states (new StateList (1));
+
         Position root_pos;
-        root_pos.setup (StartFEN, SetupStates->back(), Threadpool.main_thread (), Chess960);
+        root_pos.setup (StartFEN, setup_states->back(), Threadpool.main_thread (), Chess960);
         // Join arguments
         string cmd;
         for (i32 i = 1; i < argc; ++i)
         {
-            cmd += string (argv[i]) + " ";
+            cmd += string (" ", !white_spaces (cmd) ? 1 : 0) + string (argv[i]);
         }
-
         string token;
         do {
             // Block here waiting for input or EOF
-            if (argc == 1 && !std::getline (cin, cmd, '\n'))
+            if (   argc == 1
+                && !std::getline (cin, cmd, '\n'))
             {
                 cmd = "quit";
             }
@@ -66,15 +62,11 @@ namespace UCI {
             {
                 continue;
             }
-            else
-            {
-                to_lower (token);
-            }
 
             if (token == "uci")
             {
                 sync_cout
-                    << info (true) << "\n"
+                    << info (true) << '\n'
                     << Options
                     << "uciok"
                     << sync_endl;
@@ -147,7 +139,7 @@ namespace UCI {
                            && !iss.fail ()
                            && token != "moves") // Consume "moves" token if any
                     {
-                        fen += token + " ";
+                        fen += string (" ", !white_spaces (fen) ? 1 : 0) + token;
                     }
                     assert(_ok (fen, Chess960, true));
                 }
@@ -156,8 +148,8 @@ namespace UCI {
                     continue;
                 }
 
-                SetupStates = StateListPtr (new StateList (1));
-                root_pos.setup (fen, SetupStates->back(), Threadpool.main_thread (), Chess960);
+                setup_states = StateListPtr (new StateList (1));
+                root_pos.setup (fen, setup_states->back(), Threadpool.main_thread (), Chess960);
 
                 if (token == "moves")
                 {
@@ -171,8 +163,8 @@ namespace UCI {
                             break;
                         }
 
-                        SetupStates->push_back (StateInfo ());
-                        root_pos.do_move (m, SetupStates->back (), root_pos.gives_check (m, CheckInfo (root_pos)));
+                        setup_states->push_back (StateInfo ());
+                        root_pos.do_move (m, setup_states->back (), root_pos.gives_check (m, CheckInfo (root_pos)));
                     }
                 }
             }
@@ -236,7 +228,7 @@ namespace UCI {
                     }
                 }
                 ForceStop = true;
-                Threadpool.start_thinking (root_pos, SetupStates, limits);
+                Threadpool.start_thinking (root_pos, setup_states, limits);
             }
             // GUI sends 'ponderhit' to tell us to ponder on the same move the
             // opponent has played. In case Ponderhit Stop stream set are
@@ -269,8 +261,7 @@ namespace UCI {
             //    if (token == "name")
             //    {
             //        string name;
-            //        // Read name (can contain spaces)
-            //        // consume "value" token
+            //        // Read "name" (can contain spaces), consume "code" token
             //        while (   iss >> token
             //               && !iss.fail ()
             //               && token != "code")
@@ -278,13 +269,13 @@ namespace UCI {
             //            name += string (" ", !white_spaces (name) ? 1 : 0) + token;
             //        }
             //        string code;
-            //        // Read code (can contain spaces)
+            //        // Read "code" (can contain spaces)
             //        while (   iss >> token
             //               && !iss.fail ())
             //        {
             //            code += string (" ", !white_spaces (code) ? 1 : 0) + token;
             //        }
-            //        //std::cout << name << "\n" << code << std::endl;
+            //        //std::cout << name << '\n' << code << std::endl;
             //    }
             //    else
             //    if (token == "later")
@@ -303,10 +294,10 @@ namespace UCI {
             {
                 sync_cout
                     << std::hex << std::uppercase << std::setfill ('0')
-                    << "FEN: "                        << root_pos.fen ()      << "\n"
-                    << "Posi key: " << std::setw (16) << root_pos.posi_key () << "\n"
-                    << "Poly key: " << std::setw (16) << root_pos.poly_key () << "\n"
-                    << "Matl key: " << std::setw (16) << root_pos.matl_key () << "\n"
+                    << "FEN: "                        << root_pos.fen ()      << '\n'
+                    << "Posi key: " << std::setw (16) << root_pos.posi_key () << '\n'
+                    << "Poly key: " << std::setw (16) << root_pos.poly_key () << '\n'
+                    << "Matl key: " << std::setw (16) << root_pos.matl_key () << '\n'
                     << "Pawn key: " << std::setw (16) << root_pos.pawn_key ()
                     << std::setfill (' ') << std::nouppercase << std::dec
                     << sync_endl;
@@ -325,7 +316,7 @@ namespace UCI {
                     {
                         if (root_pos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (vm.move, root_pos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << ' ';
                         }
                     }
                 }
@@ -336,7 +327,7 @@ namespace UCI {
                     {
                         if (root_pos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (vm.move, root_pos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << ' ';
                         }
                     }
 
@@ -345,7 +336,7 @@ namespace UCI {
                     {
                         if (root_pos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (vm.move, root_pos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << ' ';
                         }
                     }
 
@@ -354,7 +345,7 @@ namespace UCI {
                     {
                         if (root_pos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (vm.move, root_pos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << ' ';
                         }
                     }
 
@@ -363,7 +354,7 @@ namespace UCI {
                     {
                         if (root_pos.legal (vm.move, pinneds))
                         {
-                            std::cout << move_to_san (vm.move, root_pos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << ' ';
                         }
                     }
                 }
@@ -371,7 +362,7 @@ namespace UCI {
                 std::cout << "\nLegal moves: ";
                 for (const auto &vm : MoveList<LEGAL> (root_pos))
                 {
-                    std::cout << move_to_san (vm.move, root_pos) << " ";
+                    std::cout << move_to_san (vm.move, root_pos) << ' ';
                 }
 
                 std::cout << sync_endl;
@@ -395,8 +386,8 @@ namespace UCI {
                 fen_fn = (iss >> fen_fn) && !iss.fail () ? fen_fn : "";
 
                 stringstream ss;
-                ss  << i32(Options["Hash"])    << " "
-                    << i32(Options["Threads"]) << " "
+                ss  << i32(Options["Hash"])    << ' '
+                    << i32(Options["Threads"]) << ' '
                     << depth << " perft " << fen_fn;
 
                 benchmark (ss, root_pos);

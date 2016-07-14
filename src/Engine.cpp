@@ -3,6 +3,7 @@
 #include "UCI.h"
 #include "PieceSquare.h"
 #include "BitBases.h"
+#include "Zobrist.h"
 #include "Pawns.h"
 #include "Material.h"
 #include "Evaluator.h"
@@ -103,7 +104,7 @@ namespace Engine {
         UCI      ::initialize ();
         BitBoard ::initialize ();
         PieceSquare::initialize ();
-        Position ::initialize ();
+        Zobrist  ::initialize ();
         BitBases ::initialize ();
         Pawns    ::initialize ();
         Evaluator::initialize ();

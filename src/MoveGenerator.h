@@ -40,35 +40,37 @@ namespace MoveGen {
     public:
 
         MoveList () = delete;
-
         explicit MoveList (const Position &pos)
             : _end_move (generate<GT> (_beg_move, pos))
         {
-            //if (PT != NONE)
-            //{
-            //    auto *cur_move = _beg_move;
-            //    while (cur_move < _end_move)
-            //    {
-            //        if (PT != ptype (pos[org_sq (*cur_move)]))
-            //        {
-            //            *cur_move = *(--_end_move);
-            //            continue;
-            //        }
-            //        ++cur_move;
-            //    }
-            //}
+            if (_ok (PT))
+            {
+                auto *cur_move = _beg_move;
+                while (cur_move < _end_move)
+                {
+                    if (PT != ptype (pos[org_sq (cur_move->move)]))
+                    {
+                        *cur_move = *(--_end_move);
+                        continue;
+                    }
+                    ++cur_move;
+                }
+            }
         }
 
         const ValMove* begin () const { return _beg_move; }
         const ValMove* end   () const { return _end_move; }
 
-        size_t size () const { return size_t(_end_move - _beg_move); }
+        u16 size () const { return u16(_end_move - _beg_move); }
         
         bool contains (Move move) const
         {
             for (const auto &vm : *this)
             {
-                if (vm.move == move) return true;
+                if (vm.move == move)
+                {
+                    return true;
+                }
             }
             return false;
         }

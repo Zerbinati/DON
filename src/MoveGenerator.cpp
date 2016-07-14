@@ -494,7 +494,7 @@ namespace MoveGen {
     ValMove* filter_illegal (const Position &pos, ValMove *beg_move, ValMove *end_move)
     {
         auto abs_pinneds = pos.abs_pinneds (pos.active ());
-        auto king_sq = pos.square<KING> (pos.active ());
+        auto king_sq     = pos.square<KING> (pos.active ());
         while (beg_move < end_move)
         {
             if (   (   abs_pinneds != 0
@@ -508,7 +508,6 @@ namespace MoveGen {
             assert(pos.pseudo_legal (beg_move->move));
             ++beg_move;
         }
-
         return end_move;
     }
 }

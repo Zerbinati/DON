@@ -140,7 +140,7 @@ namespace Material {
             e->matl_key = matl_key;
             e->factor[WHITE] =
             e->factor[BLACK] = SCALE_FACTOR_NORMAL;
-            e->game_phase = pos.game_phase ();
+            e->game_phase = pos.phase ();
 
             // Let's look if have a specialized evaluation function for this
             // particular material configuration. First look for a fixed

@@ -14,6 +14,7 @@ using namespace MoveGen;
 using namespace Threading;
 using namespace Notation;
 
+#if !defined(NDEBUG)
 bool _ok (const string &fen, bool c960, bool full)
 {
     Position pos;
@@ -21,39 +22,10 @@ bool _ok (const string &fen, bool c960, bool full)
     pos.setup (fen, si, nullptr, c960, full);
     return pos.ok ();
 }
+#endif
 
 u08 DrawClockPly = 100;
 
-void Position::initialize ()
-{
-    assert(PolyZob.act_side == U64(0xF8D626AAAF278509));
-
-    static PRNG prng (0x105524);
-    ExclusionKey = prng.rand<Key> ();
-    // Initialize Random Zobrist
-    for (auto c = WHITE; c <= BLACK; ++c)
-    {
-        for (auto pt = PAWN; pt <= KING; ++pt)
-        {
-            for (auto s = SQ_A1; s <= SQ_H8; ++s)
-            {
-                Zob.piece_square[c][pt][s] = prng.rand<Key> ();
-            }
-        }
-    }
-    for (auto c = WHITE; c <= BLACK; ++c)
-    {
-        for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
-        {
-            Zob.castle_right[c][cs] = prng.rand<Key> ();
-        }
-    }
-    for (auto f = F_A; f <= F_H; ++f)
-    {
-        Zob.en_passant[f] = prng.rand<Key> ();
-    }
-    Zob.act_side = prng.rand<Key> ();
-}
 // draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
 // It does not detect Insufficient materials and Stalemate.
 bool Position::draw () const
@@ -114,6 +86,7 @@ bool Position::repeated () const
     }
     return false;
 }
+#if !defined(NDEBUG)
 // ok() performs some consistency checks for the position, helpful for debugging.
 bool Position::ok (i08 *failed_step) const
 {
@@ -144,7 +117,8 @@ bool Position::ok (i08 *failed_step) const
                 || count<NONE> () > 32
                 || count<NONE> () != pop_count (pieces ())
                 || (   _si->en_passant_sq != SQ_NO
-                    && (rel_rank (_active, _si->en_passant_sq) != R_6 || !can_en_passant (_si->en_passant_sq)))
+                    && (   rel_rank (_active, _si->en_passant_sq) != R_6
+                        || !can_en_passant (_si->en_passant_sq)))
                 || _si->clock_ply > DrawClockPly)
             {
                 return false;
@@ -282,7 +256,7 @@ bool Position::ok (i08 *failed_step) const
     }
     return true;
 }
-
+#endif
 // pick_least_val_att() is a helper function used by see()
 // to locate the least valuable attacker for the side to move,
 // remove the attacker just found from the bitboards and
@@ -435,8 +409,8 @@ Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard target)
     // Pinners are sliders that attack 's' when a pinned piece is removed
     Bitboard pinners =
           sliders
-        & (   (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
-            | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
+        & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
+           | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     while (pinners != 0)
     {
         Bitboard blocker = between_bb (s, pop_lsq (pinners)) & pieces ();
@@ -561,14 +535,17 @@ bool Position::pseudo_legal (Move m) const
         auto org_rel_rank = rel_rank (_active, org);
         auto dst_rel_rank = rel_rank (_active, dst);
         // In case of any moves origin & destination cannot be on the 1st/8th & 1st/2nd rank.
-        if (   org_rel_rank == R_1 || dst_rel_rank == R_2
-            || org_rel_rank == R_8 || dst_rel_rank == R_1)
+        if (   org_rel_rank == R_1
+            || dst_rel_rank == R_2
+            || org_rel_rank == R_8
+            || dst_rel_rank == R_1)
         {
             return false;
         }
         // In case of non-promotional moves origin & destination cannot be on the 7th/2nd & 8th/1st rank.
         if (   mtype (m) != PROMOTE
-            && (org_rel_rank == R_7 || dst_rel_rank == R_8))
+            && (   org_rel_rank == R_7
+                || dst_rel_rank == R_8))
         {
             return false;
         }
@@ -618,10 +595,9 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
         return en_passant (m) ?
-            // Move must be a capture of the checking en-passant pawn
-            // or a blocking evasion of the checking piece
+            // Move must be a capture of the checking en-passant pawn or a blocking evasion of the checking piece
             (_si->checkers & cap) != 0 || (between_bb (scan_lsq (_si->checkers), square<KING> (_active)) & dst) != 0 :
-            // Move must be a capture or a blocking evasion of the checking piece
+            // Move must be a capture of the checking piece or a blocking evasion of the checking piece
             ((_si->checkers | between_bb (scan_lsq (_si->checkers), square<KING> (_active))) & dst) != 0;
     }
     return true;
@@ -655,8 +631,9 @@ bool Position::legal (Move m, Bitboard pinneds) const
     // NOTE: no break
     case PROMOTE:
     {
-        assert( mtype (m) == NORMAL
-            || (mtype (m) == PROMOTE && mpt == PAWN));
+        assert(mtype (m) == NORMAL
+            || (   mtype (m) == PROMOTE
+                && mpt == PAWN));
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
@@ -772,7 +749,9 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 //bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
 //{
 //    bool checkmate = false;
-//    Position pos(*this, nullptr);
+//    Position pos;
+//    StateInfo si;
+//    pos.setup (fen (_chess960), si, _thread, _chess960);
 //    if (pos.gives_check (m, ci))
 //    {
 //        StateInfo si;
@@ -828,8 +807,8 @@ void Position::clear ()
     }
 
     _active     = CLR_NO;
-    _game_ply   = 0;
-    _game_nodes = 0;
+    _ply        = 0;
+    _nodes      = 0;
     _chess960   = false;
     _thread     = nullptr;
 }
@@ -931,11 +910,11 @@ bool Position::can_en_passant (File ep_f) const
 //    This is used to determine if a draw can be claimed under the fifty-move rule.
 // 6) Fullmove number. The number of the full move.
 //    It starts at 1, and is incremented after Black's move.
-bool Position::setup (const string &fen_str, StateInfo &si, Thread *const th, bool c960, bool full)
+bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool c960, bool full)
 {
-    assert(!white_spaces (fen_str));
+    assert(!white_spaces (fen_));
 
-    istringstream iss (fen_str);
+    istringstream iss (fen_);
     iss >> std::noskipws;
 
     clear ();
@@ -954,10 +933,11 @@ bool Position::setup (const string &fen_str, StateInfo &si, Thread *const th, bo
     {
         if (isdigit (ch))
         {
-            f += (ch - '0'); // Advance the given number of files
+            f += (ch - '0');
         }
         else
-        if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
+        if (   isalpha (ch)
+            && (idx = PieceChar.find (ch)) != string::npos)
         {
             place_piece (f|r, Piece(idx));
             ++f;
@@ -970,6 +950,7 @@ bool Position::setup (const string &fen_str, StateInfo &si, Thread *const th, bo
         }
         else
         {
+            assert(false);
             return false;
         }
     }
@@ -996,12 +977,17 @@ bool Position::setup (const string &fen_str, StateInfo &si, Thread *const th, bo
 
         if (ch == '-')
         {
-            continue;
+            iss >> ch;
+            break;
         }
 
         if (c960)
         {
-            if (!('a' <= tolower (ch) && tolower (ch) <= 'h')) return false;
+            if (!('a' <= tolower (ch) && tolower (ch) <= 'h'))
+            {
+                assert(false);
+                return false;
+            }
             r_sq = to_file (char(tolower (ch))) | rel_rank (c, R_1);
         }
         else
@@ -1021,29 +1007,27 @@ bool Position::setup (const string &fen_str, StateInfo &si, Thread *const th, bo
             }
         }
 
-        if (_board[r_sq] != (c|ROOK)) return false;
+        if (_board[r_sq] != (c|ROOK))
+        {
+            assert(false);
+            return false;
+        }
         set_castle (c, r_sq);
     }
 
     // 4. En-passant square. Ignore if no pawn capture is possible
+    auto ep_sq = SQ_NO;
     u08 file, rank;
     if (   (iss >> file && ('a' <= file && file <= 'h'))
-        && (iss >> rank && (rank == '3' || rank == '6')))
+        && (iss >> rank && ('3' == rank || rank == '6')))
     {
-        if (   (_active == WHITE && rank == '6')
-            || (_active == BLACK && rank == '3'))
+        if (can_en_passant (to_square (file, rank)))
         {
-            auto ep_sq = to_square (file, rank);
-            if (can_en_passant (ep_sq))
-            {
-                _si->en_passant_sq = ep_sq;
-            }
+            ep_sq = to_square (file, rank);
         }
     }
-    else
-    {
-        _si->en_passant_sq = SQ_NO;
-    }
+    _si->en_passant_sq = ep_sq;
+
     // 5-6. clock ply and game-move count
     i16 clk_ply = 0
       , moves  = 1;
@@ -1057,8 +1041,12 @@ bool Position::setup (const string &fen_str, StateInfo &si, Thread *const th, bo
         {
             clk_ply = 0;
         }
-        // Rule 50 draw case
-        //if (clk_ply > 100) return false;
+        //// Rule 50 draw case
+        //if (clk_ply > 100)
+        //{
+        //    assert(false);
+        //    return false;
+        //}
 
         // Handle common problem move-num = 0.
         if (moves <= 0)
@@ -1068,7 +1056,7 @@ bool Position::setup (const string &fen_str, StateInfo &si, Thread *const th, bo
     }
 
     // Convert from game-move starting from 1 to game-ply starting from 0,
-    _game_ply = i16(2*(moves - 1) + (_active == BLACK ? 1 : 0));
+    _ply = i16(2*(moves - 1) + (_active == BLACK ? 1 : 0));
 
     _si->matl_key = Zob.compute_matl_key (*this);
     _si->pawn_key = Zob.compute_pawn_key (*this);
@@ -1077,13 +1065,11 @@ bool Position::setup (const string &fen_str, StateInfo &si, Thread *const th, bo
     _si->non_pawn_matl[WHITE] = compute_non_pawn_material (WHITE);
     _si->non_pawn_matl[BLACK] = compute_non_pawn_material (BLACK);
     _si->clock_ply = u08(clk_ply);
-    //_si->null_ply = 0;
-    //_si->last_move = MOVE_NONE;
     _si->capture_type = NONE;
     _si->checkers = checkers (_active);
-    //_game_nodes   = 0;
-    _chess960     = c960;
-    _thread       = th;
+    
+    _chess960 = c960;
+    _thread   = th;
 
     return true;
 }
@@ -1128,7 +1114,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         || mtype (m) == CASTLE);
 
     auto mpt = ptype (_board[org]);
-    assert(mpt != NONE);
+    assert(_ok (mpt));
 
     auto cap = dst;
     auto cpt = NONE;
@@ -1143,7 +1129,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         assert(promote (m) - NIHT == PAWN
             && cpt != KING);
 
-        if (cpt != NONE) // _ok (cpt)
+        if (_ok (cpt))
         {
             do_capture ();
             _si->clock_ply = 0;
@@ -1227,7 +1213,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
             && cpt != PAWN
             && cpt != KING);
 
-        if (cpt != NONE) // _ok (cpt)
+        if (_ok (cpt))
         {
             do_capture ();
         }
@@ -1276,7 +1262,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         _si->castle_rights &= ~cr;
         while (b != 0)
         {
-            key ^= Zob.castle_right[0][pop_lsq (b)];
+            key ^= (*Zob.castle_right)[pop_lsq (b)];
         }
     }
     assert(attackers_to (square<KING> (_active), pasive) == 0);
@@ -1309,8 +1295,8 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     _si->last_move    = m;
     _si->capture_type = cpt;
     ++_si->null_ply;
-    ++_game_ply;
-    ++_game_nodes;
+    ++_ply;
+    ++_nodes;
 
     assert(ok ());
 }
@@ -1396,14 +1382,14 @@ void Position::undo_move ()
         break;
     }
     // Restore the captured piece
-    if (_si->capture_type != NONE)
+    if (_ok (_si->capture_type))
     {
         place_piece (cap, ~_active, _si->capture_type);
     }
 
     // Point state pointer back to the previous state
     _si = _si->ptr;
-    --_game_ply;
+    --_ply;
 
     assert(ok ());
 }
@@ -1458,14 +1444,15 @@ void Position::flip ()
     // 2. Active color
     iss >> token;
     flip_fen += (token == "w" ? "B" : "W"); // Will be lowercased later
-    flip_fen += " ";
+    flip_fen += ' ';
     // 3. Castling availability
     iss >> token;
-    flip_fen += token + " ";
+    flip_fen += token + ' ';
     toggle (flip_fen);
     // 4. En-passant square
     iss >> token;
-    flip_fen += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" : token[1] == '6' ? "3" : "-"));
+    flip_fen += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" :
+                                                             token[1] == '6' ? "3" : "-"));
     // 5-6. Half and full moves
     std::getline (iss, token);
     flip_fen += token;
@@ -1479,14 +1466,16 @@ string Position::fen (bool c960, bool full) const
 {
     ostringstream oss;
 
-    for (auto r = R_8; r >= R_1; --r)
+    for (auto r = R_8; true; --r)
     {
-        for (auto f = F_A; f <= F_H; ++f)
+        for (auto f = F_A; true; ++f)
         {
-            i32 empty_count;
-            for (empty_count = 0; f <= F_H && empty (f|r); ++f)
+            i16 empty_count = 0;
+            while (   f <= F_H
+                   && empty (f|r))
             {
                 ++empty_count;
+                ++f;
             }
             if (empty_count != 0)
             {
@@ -1496,14 +1485,19 @@ string Position::fen (bool c960, bool full) const
             {
                 oss << _board[f|r];
             }
+            if (f >= F_H)
+            {
+                break;
+            }
         }
-        if (r > R_1)
+        if (r == R_1)
         {
-            oss << "/";
+            break;
         }
+        oss << '/';
     }
 
-    oss << " " << _active << " ";
+    oss << ' ' << _active << ' ';
 
     if (can_castle (CR_ANY) != CR_NONE)
     {
@@ -1511,39 +1505,39 @@ string Position::fen (bool c960, bool full) const
         {
             if (can_castle (CR_WHITE) != CR_NONE)
             {
-                if (can_castle (CR_WKING) != CR_NONE) oss << to_char<false> (_file (castle_rook (Castling<WHITE, CS_KING>::Right)));
-                if (can_castle (CR_WQUEN) != CR_NONE) oss << to_char<false> (_file (castle_rook (Castling<WHITE, CS_QUEN>::Right)));
+                if (can_castle (CR_WKING) != CR_NONE) oss << to_char (_file (castle_rook (Castling<WHITE, CS_KING>::Right)), false);
+                if (can_castle (CR_WQUEN) != CR_NONE) oss << to_char (_file (castle_rook (Castling<WHITE, CS_QUEN>::Right)), false);
             }
             if (can_castle (CR_BLACK) != CR_NONE)
             {
-                if (can_castle (CR_BKING) != CR_NONE) oss << to_char<true > (_file (castle_rook (Castling<BLACK, CS_KING>::Right)));
-                if (can_castle (CR_BQUEN) != CR_NONE) oss << to_char<true > (_file (castle_rook (Castling<BLACK, CS_QUEN>::Right)));
+                if (can_castle (CR_BKING) != CR_NONE) oss << to_char (_file (castle_rook (Castling<BLACK, CS_KING>::Right)), true);
+                if (can_castle (CR_BQUEN) != CR_NONE) oss << to_char (_file (castle_rook (Castling<BLACK, CS_QUEN>::Right)), true);
             }
         }
         else
         {
             if (can_castle (CR_WHITE) != CR_NONE)
             {
-                if (can_castle (CR_WKING) != CR_NONE) oss << "K";
-                if (can_castle (CR_WQUEN) != CR_NONE) oss << "Q";
+                if (can_castle (CR_WKING) != CR_NONE) oss << 'K';
+                if (can_castle (CR_WQUEN) != CR_NONE) oss << 'Q';
             }
             if (can_castle (CR_BLACK) != CR_NONE)
             {
-                if (can_castle (CR_BKING) != CR_NONE) oss << "k";
-                if (can_castle (CR_BQUEN) != CR_NONE) oss << "q";
+                if (can_castle (CR_BKING) != CR_NONE) oss << 'k';
+                if (can_castle (CR_BQUEN) != CR_NONE) oss << 'q';
             }
         }
     }
     else
     {
-        oss << "-";
+        oss << '-';
     }
 
-    oss << " " << (_si->en_passant_sq != SQ_NO ? to_string (_si->en_passant_sq) : "-");
+    oss << ' ' << (_si->en_passant_sq != SQ_NO ? to_string (_si->en_passant_sq) : "-");
 
     if (full)
     {
-        oss << " " << i16(_si->clock_ply) << " " << move_num ();
+        oss << ' ' << i16(_si->clock_ply) << ' ' << move_num ();
     }
 
     return oss.str ();
@@ -1565,7 +1559,7 @@ Position::operator string () const
     for (auto f = F_A; f <= F_H; ++f)
     {
         sboard += "   ";
-        sboard += to_char<false> (f);
+        sboard += to_char (f, false);
     }
 
     auto occ = pieces ();
@@ -1577,11 +1571,11 @@ Position::operator string () const
 
     ostringstream oss;
 
-    oss << sboard << "\n\n";
+    oss << sboard << '\n' << '\n';
 
-    oss << "FEN: " << fen () << "\n"
+    oss << "FEN: " << fen () << '\n'
         << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
-        << _si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << "\n";
+        << _si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << '\n';
 
     oss << "Checkers: ";
     auto chkrs = _si->checkers;
@@ -1590,7 +1584,7 @@ Position::operator string () const
         while (chkrs != 0)
         {
             auto chk_sq = pop_lsq (chkrs);
-            oss << (WHITE|ptype (_board[chk_sq])) << chk_sq << " ";
+            oss << (WHITE|ptype (_board[chk_sq])) << chk_sq << ' ';
         }
     }
     else

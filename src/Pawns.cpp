@@ -90,20 +90,18 @@ namespace Pawns {
             const auto Push = Own == WHITE ? DEL_N  : DEL_S;
             const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-            const auto CenterExtMask = Own == WHITE ?
-                (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R2_bb|R3_bb|R4_bb|R5_bb|R6_bb) :
-                (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R7_bb|R6_bb|R5_bb|R4_bb|R3_bb);
 
-            const auto own_pawns = pos.pieces (Own, PAWN);
-            const auto opp_pawns = pos.pieces (Opp, PAWN);
+            const Bitboard own_pawns = pos.pieces (Own, PAWN);
+            const Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            e->pawn_attacks    [Own] = shift_bb<LCap> (own_pawns) | shift_bb<RCap> (own_pawns);
+            e->pawn_attacks    [Own] = shift_bb<LCap> (own_pawns)
+                                     | shift_bb<RCap> (own_pawns);
             e->passed_pawns    [Own] = 0;
             e->pawn_attack_span[Own] = 0;
             e->semiopen_files  [Own] = u08(0xFF);
             e->king_sq         [Own] = SQ_NO;
-            e->pawns_on_sqrs   [Own][WHITE] = u08(pop_count (own_pawns & CenterExtMask & Liht_bb));
-            e->pawns_on_sqrs   [Own][BLACK] = u08(pop_count (own_pawns & CenterExtMask & Dark_bb));
+            e->pawns_on_sqrs   [Own][WHITE] = u08(pop_count (own_pawns & Liht_bb));
+            e->pawns_on_sqrs   [Own][BLACK] = u08(pop_count (own_pawns & Dark_bb));
 
             auto pawn_score = SCORE_ZERO;
 
@@ -113,11 +111,10 @@ namespace Pawns {
                 assert(pos[s] == (Own|PAWN));
 
                 auto f = _file (s);
-
                 e->semiopen_files[Own] &= u08(~(1 << f));
                 e->pawn_attack_span[Own] |= pawn_attack_span (Own, s);
 
-                Bitboard neighbours = own_pawns & AdjFile_bb[f];
+                Bitboard neighbours = own_pawns & adj_file_bb (f);
                 Bitboard supporters = neighbours & PawnAttacks[Opp][s];
                 Bitboard stoppers   = opp_pawns & pawn_pass_span (Own, s);
 
@@ -138,7 +135,7 @@ namespace Pawns {
                                     && (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers))) != 0
                                     // If have an enemy pawn in the same or next rank, the pawn is
                                     // backward because it cannot advance without being captured.
-                                    && (stoppers & (b | shift_bb<Push> (b & AdjFile_bb[f]))) != 0;
+                                    && (stoppers & (b | shift_bb<Push> (b & adj_file_bb (f)))) != 0;
 
                 // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
                 if (   stoppers == 0
@@ -164,6 +161,7 @@ namespace Pawns {
                     b = neighbours & PawnAttacks[Own][s];
                     score -= Unsupported[b != 0 ? more_than_one (b) ? 2 : 1 : 0];
                 }
+
                 if (connected)
                 {
                     score += Connected[opposed ? 1 : 0]
@@ -171,10 +169,12 @@ namespace Pawns {
                                       [more_than_one (supporters) ? 1 : 0]
                                       [rel_rank (Own, s)];
                 }
+
                 if (levered)
                 {
                     score += Levered[rel_rank (Own, s)];
                 }
+
                 if (blocked)
                 {
                     score -= Blocked;
@@ -203,9 +203,12 @@ namespace Pawns {
 
         auto value = MaxSafety;
 
-        Bitboard all_front_pawns = pos.pieces (PAWN) & (rank_bb (k_sq) | front_rank_bb (Own, k_sq));
-        Bitboard own_front_pawns = pos.pieces (Own) & all_front_pawns;
-        Bitboard opp_front_pawns = pos.pieces (Opp) & all_front_pawns;
+        Bitboard front_pawns =
+              pos.pieces (PAWN)
+            & (  rank_bb (k_sq)
+               | front_rank_bb (Own, k_sq));
+        Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
+        Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
         auto kf = std::min (std::max (_file (k_sq), F_B), F_G);
         for (auto f = kf - 1; f <= kf + 1; ++f)

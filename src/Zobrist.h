@@ -31,6 +31,8 @@ public:
     Key compute_posi_key (const Position &pos) const;
     // Hash key of the FEN
     Key compute_fen_key (const std::string &fen, bool c960 = false) const;
+
+    static void initialize ();
 };
 
 // Random Zobrist filled with randoms, used to compute position key

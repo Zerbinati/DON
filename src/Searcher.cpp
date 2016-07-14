@@ -157,7 +157,7 @@ namespace Searcher {
 
             if (   (Limits.use_time_management () && elapsed_time > Threadpool.time_mgr.maximum_time - 2 * TimerResolution)
                 || (Limits.movetime != 0          && elapsed_time >= Limits.movetime)
-                || (Limits.nodes != 0             && Threadpool.game_nodes () >= Limits.nodes))
+                || (Limits.nodes != 0             && Threadpool.nodes () >= Limits.nodes))
             {
                 ForceStop = true;
             }
@@ -278,43 +278,45 @@ namespace Searcher {
         // and so refer to the previous search score.
         string multipv_info (const Thread *const &thread, Value alfa, Value beta)
         {
+            auto pv_index     = thread->pv_index;
+            auto total_nodes  = Threadpool.nodes ();
             auto elapsed_time = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
             assert(elapsed_time > 0);
-            auto pv_index   = thread->pv_index;
-            auto game_nodes = Threadpool.game_nodes ();
 
-            stringstream ss;
+            ostringstream oss;
             for (u16 i = 0; i < Threadpool.pv_limit; ++i)
             {
-                Depth d = i <= pv_index ? thread->running_depth : thread->running_depth - DEPTH_1;
+                auto d = i <= pv_index ?
+                    thread->running_depth :
+                    thread->running_depth - DEPTH_1;
                 if (d <= DEPTH_0)
                 {
                     continue;
                 }
-                Value v = i <= pv_index ? thread->root_moves[i].new_value : thread->root_moves[i].old_value;
+                auto v = i <= pv_index ?
+                    thread->root_moves[i].new_value :
+                    thread->root_moves[i].old_value;
                 bool tb =
                        TBHasRoot
                     && abs (v) < +VALUE_MATE - i32(MaxPlies);
 
-                // Check if not at line start
-                if (ss.rdbuf ()->in_avail ())
-                {
-                    ss << "\n";
-                }
-                ss  << "info"
+                oss << "info"
                     << " multipv "  << std::setw (2) << i + 1
                     << " depth "    << d
                     << " seldepth " << thread->max_ply
                     << " score "    << to_string (tb ? ProbeValue : v)
-                    << (!tb && i == pv_index ? (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "") : "")
-                    << " nodes "    << game_nodes
+                    << (!tb && i == pv_index ?
+                            beta <= v ? " lowerbound" :
+                                v <= alfa ? " upperbound" : "" : "")
+                    << " nodes "    << total_nodes
                     << " time "     << elapsed_time
-                    << " nps "      << game_nodes * MilliSec / elapsed_time
+                    << " nps "      << total_nodes * MilliSec / elapsed_time
                     << " hashfull " << (elapsed_time > MilliSec ? TT.hash_full () : 0)
                     << " tbhits "   << TBHits
-                    << " pv"        << thread->root_moves[i];
+                    << " pv"        << thread->root_moves[i]
+                    << (i+1 < Threadpool.pv_limit ? '\n' : '\0');
             }
-            return ss.str ();
+            return oss.str ();
         }
 
         // quien_search<>() is the quiescence search function,
@@ -364,8 +366,9 @@ namespace Searcher {
                 && pos.pseudo_legal (move)
                 && pos.legal (move, ci.abs_pinneds) ? move : MOVE_NONE;
             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.abs_pinneds)));
-            auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
-            auto tt_ext   = tt_hit && tte->move () == tt_move;
+            auto tt_ext   = tt_hit
+                         && tte->move () == tt_move;
+            auto tt_eval  = tt_ext ? tte->eval () : VALUE_NONE;
             auto tt_value = tt_ext ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
             auto tt_depth = tt_ext ? tte->depth () : DEPTH_NONE;
             auto tt_bound = tt_ext ? tte->bound () : BOUND_NONE;
@@ -697,9 +700,10 @@ namespace Searcher {
                     && pos.pseudo_legal (move)
                     && pos.legal (move, ci.abs_pinneds) ? move : MOVE_NONE;
             assert(tt_move == MOVE_NONE || (pos.pseudo_legal (tt_move) && pos.legal (tt_move, ci.abs_pinneds)));
-            auto tt_eval  = tt_hit ? tte->eval () : VALUE_NONE;
-            auto tt_ext   = tt_hit && (   tte->move () == tt_move
-                                       || (root_node && tte->move () == MOVE_NONE));
+            auto tt_ext   = tt_hit
+                         && (   tte->move () == tt_move
+                             || (root_node && tte->move () == MOVE_NONE));
+            auto tt_eval  = tt_ext ? tte->eval () : VALUE_NONE;
             auto tt_value = tt_ext ? value_of_tt (tte->value (), ss->ply) : VALUE_NONE;
             auto tt_depth = tt_ext ? tte->depth () : DEPTH_NONE;
             auto tt_bound = tt_ext ? tte->bound () : BOUND_NONE;
@@ -985,6 +989,7 @@ namespace Searcher {
                         if (   tte->move () == tt_move
                             || (root_node && tte->move () == MOVE_NONE))
                         {
+                            //tt_eval  = tte->eval (); // No need
                             tt_value = value_of_tt (tte->value (), ss->ply);
                             tt_depth = tte->depth ();
                             tt_bound = tte->bound ();
@@ -1427,7 +1432,7 @@ namespace Searcher {
 
     // ------------------------------------
     /*
-    // RootMove::insert_pv_into_tt() inserts the PV back into the TT.
+    // insert_pv_into_tt() inserts the PV back into the TT.
     // This makes sure the old PV moves are searched first,
     // even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos) const
@@ -1437,8 +1442,8 @@ namespace Searcher {
         u08 ply = 0;
         for (const auto m : *this)
         {
-            assert(m != MOVE_NONE
-                && MoveList<LEGAL> (pos).contains (m));
+            assert(m != MOVE_NONE);
+            assert(MoveList<LEGAL> (pos).contains (m));
 
             bool tt_hit;
             auto *tte = TT.probe (pos.posi_key (), tt_hit);
@@ -1449,7 +1454,10 @@ namespace Searcher {
                 tte->save (pos.posi_key (), m, VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.generation ());
             }
             pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
-            ++ply;
+            if (++ply >= MaxPlies)
+            {
+                break;
+            }
         }
         while (ply != 0)
         {
@@ -1457,16 +1465,14 @@ namespace Searcher {
             --ply;
         }
     }
-    // RootMove::extract_pv_from_tt() extract the PV back from the TT.
-    // Consider also failing high nodes and not only EXACT nodes so to
-    // allow to always have a ponder move even when fail high at root node.
+    // extract_pv_from_tt() extract the PV back from the TT.
     void RootMove::extract_pv_from_tt (Position &pos)
     {
         StateInfo states[MaxPlies], *si = states;
 
         resize (1);
         u08 ply = 0;
-        auto m = at (0);
+        auto m = at (ply);
         pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
         ++ply;
         
@@ -1478,11 +1484,11 @@ namespace Searcher {
                && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
                && pos.pseudo_legal (m)
                && pos.legal (m)
-               && !pos.draw ()
                && ply < MaxPlies)
         {
-            assert(m != MOVE_NONE
-                && MoveList<LEGAL> (pos).contains (m));
+            //assert(m != MOVE_NONE);
+            assert(MoveList<LEGAL> (pos).contains (m));
+            assert(!pos.draw ());
 
             *this += m;
             pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
@@ -1498,16 +1504,14 @@ namespace Searcher {
         }
     }
     */
-    // RootMove::extract_ponder_move_from_tt() is called in case have no ponder move before
-    // exiting the search, for instance, in case stop the search during a fail high at root.
-    // Try hard to have a ponder move which has to return to the GUI,
-    // otherwise in case of 'ponder on' we have nothing to think on.
+    // extract_ponder_move_from_tt() is called in case have no ponder move before exiting the search,
+    // for instance, in case stop the search during a fail high at root.
+    // Try hard to have a ponder move which has to return to the GUI, otherwise in case of 'ponder on' have nothing to think on.
     bool RootMove::extract_ponder_move_from_tt (Position &pos)
     {
         assert(size () == 1);
         assert(_ok (at (0)));
 
-        bool extracted = false;
         StateInfo si;
         auto m = at (0);
         pos.do_move (m, si, pos.gives_check (m, CheckInfo (pos)));
@@ -1516,16 +1520,15 @@ namespace Searcher {
         if (   tt_hit
             && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
             && pos.pseudo_legal (m)
-            && pos.legal (m)
-            && !pos.draw ())
+            && pos.legal (m))
         {
-            assert(m != MOVE_NONE
-                && MoveList<LEGAL> (pos).contains (m));
+            //assert(m != MOVE_NONE);
+            assert(MoveList<LEGAL> (pos).contains (m));
+            assert(!pos.draw ());
             *this += m;
-            extracted = true;
         }
         pos.undo_move ();
-        return extracted;
+        return size () > 1;
     }
 
     RootMove::operator string () const
@@ -1534,7 +1537,7 @@ namespace Searcher {
         for (const auto m : *this)
         {
             assert(_ok (m));
-            oss << " " << move_to_can (m, Chess960);
+            oss << ' ' << move_to_can (m, Chess960);
         }
         return oss.str ();
     }
@@ -1560,9 +1563,9 @@ namespace Searcher {
                 StateInfo si;
                 pos.do_move (vm.move, si, pos.gives_check (vm.move, CheckInfo (pos)));
                 inter_nodes =
-                    depth <= DEPTH_2 ?
-                        MoveList<LEGAL> (pos).size () :
-                        perft<false> (pos, depth-DEPTH_1);
+                    depth > DEPTH_2 ?
+                        perft<false> (pos, depth-DEPTH_1) :
+                        MoveList<LEGAL> (pos).size ();
                 pos.undo_move ();
             }
 
@@ -1685,7 +1688,8 @@ namespace Threading {
         // Iterative deepening loop until requested to stop or the target depth is reached.
         while (   !ForceStop
                && ++running_depth < DEPTH_MAX
-               && (Limits.depth == 0 || Threadpool.main_thread ()->running_depth <= Limits.depth))
+               && (   Limits.depth == 0
+                   || Threadpool.main_thread ()->running_depth <= Limits.depth))
         {
             if (Threadpool.main_thread () == this)
             {
@@ -1741,7 +1745,7 @@ namespace Threading {
                 };
 
                 const auto &hdm = HalfDensityMap[(index - 1) % HalfDensityMapSize];
-                if (hdm[(u16(running_depth) + root_pos.game_ply ()) % hdm.size ()])
+                if (hdm[(u16(running_depth) + root_pos.ply ()) % hdm.size ()])
                 {
                     continue;
                 }
@@ -1843,14 +1847,17 @@ namespace Threading {
                 {
                     if (ForceStop)
                     {
+                        auto total_nodes  = Threadpool.nodes ();
+                        auto elapsed_time = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
                         sync_cout
                             << "info"
-                            << " nodes " << root_pos.game_nodes ()
-                            << " time "  << Threadpool.time_mgr.elapsed_time ()
+                            << " nodes " << total_nodes
+                            << " time "  << elapsed_time
+                            << " nps "   << total_nodes * MilliSec / elapsed_time
                             << sync_endl;
                     }
                     else
-                    if (   Threadpool.pv_limit == (pv_index + 1)
+                    if (   Threadpool.pv_limit == pv_index + 1
                         || Threadpool.time_mgr.elapsed_time () > 3*MilliSec)
                     {
                         sync_cout << multipv_info (this, alfa, beta) << sync_endl;
@@ -1863,9 +1870,9 @@ namespace Threading {
                 finished_depth = running_depth;
             }
 
-            if (   ContemptValue != 0
-                && !root_moves.empty ())
+            if (ContemptValue != 0)
             {
+                assert(!root_moves.empty ());
                 auto valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
                 DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] - valued_contempt;
                 DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] + valued_contempt;
@@ -1875,9 +1882,9 @@ namespace Threading {
             {
                 // If skill level is enabled and can pick move, pick a sub-optimal best move
                 if (   Threadpool.skill_mgr.enabled ()
-                    && Threadpool.skill_mgr.can_pick (running_depth)
-                    && !root_moves.empty ())
+                    && Threadpool.skill_mgr.can_pick (running_depth))
                 {
+                    assert(!root_moves.empty ());
                     Threadpool.skill_mgr.clear ();
                     Threadpool.skill_mgr.pick_best_move (Threadpool.pv_limit);
                 }
@@ -1896,6 +1903,7 @@ namespace Threading {
                     // Have time for the next iteration? Can stop searching now?
                     if (Limits.use_time_management ())
                     {
+                        assert(!root_moves.empty ());
                         // Stop the search
                         // -If there is only one legal move available
                         // -If all of the available time has been used
@@ -1911,15 +1919,13 @@ namespace Threading {
                                      && Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time *
                                                                                     // Unstable factor
                                                                                     (1.0 + Threadpool.best_move_change) * 0.1190))
-                                     && !root_moves.empty ()
                                      && !root_moves[0].empty ()
-                                     &&  root_moves[0] == Threadpool.last_easy), Threadpool.easy_played))
+                                     &&  root_moves[0] == Threadpool.easy_move), Threadpool.easy_played))
                         {
                             stop = true;
                         }
 
-                        if (   !root_moves.empty ()
-                            &&  root_moves[0].size () >= MovePVSize)
+                        if (root_moves[0].size () >= MovePVSize)
                         {
                             Threadpool.move_mgr.update (root_pos, root_moves[0]);
                         }
@@ -1961,29 +1967,31 @@ namespace Threading {
         static Book book; // Defined static to initialize the PRNG only once
         assert(this == Threadpool.main_thread ());
 
-        if (Limits.use_time_management ())
-        {
-            // Initialize the time manager before searching.
-            Threadpool.time_mgr.initialize (root_pos.active (), root_pos.game_ply ());
-        }
-
         if (   !white_spaces (OutputFile)
             && OutputFile != Empty)
         {
             ofs.open (OutputFile, ios_base::out|ios_base::app);
             ofs << "----------->\n" << boolalpha
-                << "RootPos  : " << root_pos.fen ()                 << "\n"
-                << "RootSize : " << root_moves.size ()              << "\n"
-                << "Infinite : " << Limits.infinite                 << "\n"
-                << "Ponder   : " << Limits.ponder                   << "\n"
-                << "ClockTime: " << Limits.clock[root_pos.active ()].time << "\n"
-                << "Increment: " << Limits.clock[root_pos.active ()].inc  << "\n"
-                << "MoveTime : " << Limits.movetime                 << "\n"
-                << "MovesToGo: " << u16(Limits.movestogo)           << "\n"
+                << "RootPos  : " << root_pos.fen ()                 << '\n'
+                << "RootSize : " << root_moves.size ()              << '\n'
+                << "Infinite : " << Limits.infinite                 << '\n'
+                << "Ponder   : " << Limits.ponder                   << '\n'
+                << "ClockTime: " << Limits.clock[root_pos.active ()].time << '\n'
+                << "Increment: " << Limits.clock[root_pos.active ()].inc  << '\n'
+                << "MoveTime : " << Limits.movetime                 << '\n'
+                << "MovesToGo: " << u16(Limits.movestogo)           << '\n'
                 << " Depth Score    Time       Nodes  PV\n"
                 << "-----------------------------------------------------------"
                 << noboolalpha << std::endl;
         }
+
+        if (Limits.use_time_management ())
+        {
+            // Initialize the time manager before searching.
+            Threadpool.time_mgr.initialize (root_pos.active (), root_pos.ply ());
+        }
+
+        TT.generation (root_pos.ply () + 1);
 
         bool filtering = false;
 
@@ -2003,7 +2011,8 @@ namespace Threading {
             // Check if can play with own book.
             if (   OwnBook
                 && !BookFile.empty ()
-                && (BookUptoMove == 0 || root_pos.move_num () <= BookUptoMove)
+                && (   BookUptoMove == 0
+                    || root_pos.move_num () <= BookUptoMove)
                 && Limits.mate == 0
                 && !Limits.infinite)
             {
@@ -2042,11 +2051,9 @@ namespace Threading {
             DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] = VALUE_DRAW - contempt;
             DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] = VALUE_DRAW + contempt;
 
-            TT.generation (root_pos.game_ply () + 1);
-
             if (Limits.use_time_management ())
             {
-                Threadpool.last_easy = Threadpool.move_mgr.easy_move (root_pos.posi_key ());
+                Threadpool.easy_move = Threadpool.move_mgr.easy_move (root_pos.posi_key ());
                 Threadpool.move_mgr.clear ();
                 Threadpool.easy_played = false;
                 Threadpool.failed_low  = false;
@@ -2063,6 +2070,7 @@ namespace Threading {
             Threadpool.pv_limit = std::min (std::max (MultiPV, u16(Threadpool.skill_mgr.enabled () ? MinSkillPV : 0)), u16(root_moves.size ()));
 
             filtering = true;
+
             for (auto *th : Threadpool)
             {
                 if (th != this)
@@ -2081,18 +2089,17 @@ namespace Threading {
             {
                 Threadpool.move_mgr.clear ();
             }
-            // If skill level is enabled, swap best PV line with the sub-optimal one
-            if (   Threadpool.skill_mgr.enabled ()
-                && !root_moves.empty ())
+            // Swap best PV line with the sub-optimal one if skill level is enabled
+            if (Threadpool.skill_mgr.enabled ())
             {
                 std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), Threadpool.skill_mgr.pick_best_move (Threadpool.pv_limit)));
             }
         }
 
     finish:
-        // Update the time manager after searching.
         if (Limits.use_time_management ())
         {
+            // Update the time manager after searching.
             Threadpool.time_mgr.update (root_pos.active ());
         }
         // When reach max depth arrive here even without Force Stop is raised,
@@ -2150,20 +2157,20 @@ namespace Threading {
 
         if (ofs.is_open ())
         {
+            auto total_nodes  = Threadpool.nodes ();
             auto elapsed_time = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
-
-            ofs << "Time (ms)  : " << elapsed_time                                      << "\n"
-                << "Nodes (N)  : " << Threadpool.game_nodes ()                          << "\n"
-                << "Speed (N/s): " << Threadpool.game_nodes ()*MilliSec / elapsed_time  << "\n"
-                << "Hash-full  : " << TT.hash_full ()                                   << "\n"
-                << "Best Move  : " << move_to_san (root_moves[0][0], root_pos)          << "\n";
+            ofs << "Nodes (N)  : " << total_nodes                               << '\n'
+                << "Time (ms)  : " << elapsed_time                              << '\n'
+                << "Speed (N/s): " << total_nodes*MilliSec / elapsed_time       << '\n'
+                << "Hash-full  : " << TT.hash_full ()                           << '\n'
+                << "Best Move  : " << move_to_san (root_moves[0][0], root_pos)  << '\n';
             if (   root_moves[0][0] != MOVE_NONE
                 && (   root_moves[0].size () > 1
                     || root_moves[0].extract_ponder_move_from_tt (root_pos)))
             {
                 StateInfo si;
                 root_pos.do_move (root_moves[0][0], si, root_pos.gives_check (root_moves[0][0], CheckInfo (root_pos)));
-                ofs << "Ponder Move: " << move_to_san (root_moves[0][1], root_pos) << "\n";
+                ofs << "Ponder Move: " << move_to_san (root_moves[0][1], root_pos) << '\n';
                 root_pos.undo_move ();
             }
             ofs << std::endl;

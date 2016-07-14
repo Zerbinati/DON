@@ -313,10 +313,10 @@ enum Move : u16
 // Depth
 enum Depth : i16
 {
-    DEPTH_NONE  = -6, // DEPTH_UNKNOWN
-    DEPTH_5_    = -5, // DEPTH_QS_RECAPTURE
-    DEPTH_1_    = -1, // DEPTH_QS_NO_CHECK
-    DEPTH_0     =  0, // DEPTH_QS_CHECK
+    DEPTH_NONE  = -6, // UNKNOWN
+    DEPTH_5_    = -5, // QS_RECAPTURE
+    DEPTH_1_    = -1, // QS_NO_CHECK
+    DEPTH_0     =  0, // QS_CHECK
     DEPTH_1     = +1,
     DEPTH_2     = +2,
     DEPTH_3     = +3,
@@ -520,9 +520,11 @@ inline Score mk_score (i32 mg, i32 eg) { return Score((mg << 16) + eg); }
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
 // and so is a right shift of a signed integer.
-
-union ValueUnion { u16 u; i16 s; };
-
+union ValueUnion
+{
+    u16 u;
+    i16 s;
+};
 inline Value mg_value (Score s) { ValueUnion mg = { u16(u32(s + 0x8000) >> 16) }; return Value(mg.s); }
 inline Value eg_value (Score s) { ValueUnion eg = { u16(u32(s         )      ) }; return Value(eg.s); }
 
@@ -587,7 +589,7 @@ inline Delta  pawn_push (Color c)
 }
 
 inline CastleRight mk_castle_right (Color c)                { return CastleRight(CR_WHITE << (c << BLACK)); }
-inline CastleRight mk_castle_right (Color c, CastleSide cs) { return CastleRight(CR_WKING << ((CS_QUEN == cs) + (c << BLACK))); }
+inline CastleRight mk_castle_right (Color c, CastleSide cs) { return CastleRight(CR_WKING << ((CS_QUEN == cs ? 1 : 0) + (c << BLACK))); }
 inline CastleRight operator~ (CastleRight cr) { return CastleRight(((cr >> 2) & CR_WHITE) | ((cr << 2) & CR_BLACK)); }
 
 template<Color C, CastleSide CS>

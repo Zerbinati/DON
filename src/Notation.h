@@ -14,10 +14,15 @@ const std::string ColorChar ("wb-");
 
 namespace Notation {
 
-    template<bool Lower = true>
-    inline char to_char (File f) { return char((Lower ? 'a' : 'A') + i08(f) - i08(F_A)); }
+    inline char to_char (File f, bool lower = true)
+    {
+        return char((lower ? 'a' : 'A') + i08(f) - i08(F_A));
+    }
 
-    inline char to_char (Rank r) { return char('1' + i08(r) - i08(R_1)); }
+    inline char to_char (Rank r)
+    {
+        return char('1' + i08(r) - i08(R_1));
+    }
 
     inline std::string to_string (Square s)
     {

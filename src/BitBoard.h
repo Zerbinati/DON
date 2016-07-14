@@ -185,6 +185,9 @@ namespace BitBoard {
     inline Bitboard rank_bb (Rank r) { return Rank_bb[r]; }
     inline Bitboard rank_bb (Square s) { return Rank_bb[_rank (s)]; }
 
+    inline Bitboard adj_file_bb (File f) { return AdjFile_bb[f]; }
+    inline Bitboard adj_rank_bb (Rank r) { return AdjRank_bb[r]; }
+
     inline Bitboard front_rank_bb (Color c, Square s) { return FrontRank_bb[c][_rank (s)]; }
     inline Bitboard front_sqrs_bb (Color c, Square s) { return FrontSqrs_bb[c][s]; }
 
@@ -337,9 +340,11 @@ namespace BitBoard {
     inline i32 pop_count (Bitboard bb)
     {
         extern u08 PopCount16[1 << 16];
-
-        union { Bitboard b; u16 u16[4]; } v = { bb };
-
+        union
+        {
+            Bitboard b;
+            u16 u16[4];
+        } v = { bb };
         return PopCount16[v.u16[0]]
              + PopCount16[v.u16[1]]
              + PopCount16[v.u16[2]]
@@ -616,8 +621,6 @@ namespace BitBoard {
 
 #if !defined(NDEBUG)
     extern std::string pretty (Bitboard bb, char p = 'o');
-
-    //extern void test_attacks ();
 #endif
 
 }

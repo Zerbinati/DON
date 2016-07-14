@@ -77,18 +77,18 @@ namespace {
 // example: bench 32 1 10000 movetime default
 void benchmark (istream &is, const Position &cur_pos)
 {
-    u32    hash     = 16;
-    u16    threads  =  1;
-    i64    limit_val= 13;
+    u32    hash      = 16;
+    u16    threads   =  1;
+    i64    limit_val = 13;
     string token;
     string limit_type;
     string fen_fn;
     // Assign default values to missing arguments
-    hash       = (is >> hash) && !is.fail ()             ? hash      : 16;
-    threads    = (is >> threads) && !is.fail ()          ? threads   :  1;
-    limit_val  = (is >> limit_val) && !is.fail ()        ? limit_val : 13;
-    limit_type = (is >> token) && !white_spaces (token)  ? token : "depth";
-    fen_fn     = (is >> token) && !white_spaces (token)  ? token : "default";
+    hash       = is >> hash      && !is.fail ()                          ? hash      : 16;
+    threads    = is >> threads   && !is.fail ()                          ? threads   :  1;
+    limit_val  = is >> limit_val && !is.fail ()                          ? limit_val : 13;
+    limit_type = is >> token     && !is.fail () && !white_spaces (token) ? token : "depth";
+    fen_fn     = is >> token     && !is.fail () && !white_spaces (token) ? token : "default";
 
     Limit limits;
     if (limit_type == "time")     limits.clock[WHITE].time = limits.clock[BLACK].time = u64(abs (limit_val));
@@ -144,7 +144,7 @@ void benchmark (istream &is, const Position &cur_pos)
         clear ();
     }
 
-    u64  nodes = 0;
+    u64  total_nodes = 0;
     auto start_time = now ();
     Position pos;
 
@@ -164,14 +164,14 @@ void benchmark (istream &is, const Position &cur_pos)
             std::cerr
                 << "\nLeaf nodes: " << leaf_nodes
                 << std::endl;
-            nodes += leaf_nodes;
+            total_nodes += leaf_nodes;
         }
         else
         {
             limits.start_time = now ();
             Threadpool.start_thinking (pos, states, limits);
             Threadpool.wait_while_thinking ();
-            nodes += Threadpool.game_nodes ();
+            total_nodes += Threadpool.nodes ();
         }
     }
 
@@ -180,9 +180,9 @@ void benchmark (istream &is, const Position &cur_pos)
     dbg_print (); // Just before exit
     std::cerr << std::right
         << "\n=================================\n"
-        << "Total time (ms) :" << std::setw (16) << elapsed_time << "\n"
-        << "Nodes searched  :" << std::setw (16) << nodes        << "\n"
-        << "Nodes/second    :" << std::setw (16) << nodes * MilliSec / elapsed_time
+        << "Total time (ms) :" << std::setw (16) << elapsed_time << '\n'
+        << "Nodes searched  :" << std::setw (16) << total_nodes  << '\n'
+        << "Nodes/second    :" << std::setw (16) << total_nodes * MilliSec / elapsed_time
         << "\n---------------------------------\n"    
         << std::left << std::endl;
 }

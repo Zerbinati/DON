@@ -349,7 +349,6 @@ namespace BitBoard {
     }
 
 #if !defined(NDEBUG)
-
     // pretty() returns an ASCII representation of a bitboard to print on console output
     // Bitboard in an easily readable format. This is sometimes useful for debugging.
     string pretty (Bitboard bb, char p)
@@ -367,7 +366,7 @@ namespace BitBoard {
         {
             sbb += " "; sbb += Notation::to_char (f);
         }
-        sbb += "\n";
+        sbb += '\n';
 
         while (bb != 0)
         {
@@ -377,33 +376,6 @@ namespace BitBoard {
 
         return sbb;
     }
-
-    //void test_attacks ()
-    //{
-    //    Bitboard occ = U64(0x1234);
-    //    std::cout << "occupancy:\n" << pretty (occ);
-    //    // Knight
-    //    for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-    //    {
-    //        std::cout << pretty (attacks_bb<NIHT> (s1, occ));
-    //        if (s1 && (s1+1)%8 == 0) system ("PAUSE");
-    //    }
-    //    std::cout << "occupancy:\n" << pretty (occ);
-    //    // Bishop
-    //    for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-    //    {
-    //        std::cout << pretty (attacks_bb<BSHP> (s1, occ));
-    //        if (s1 && (s1+1)%8 == 0) system("PAUSE");
-    //    }
-    //    std::cout << "occupancy:\n" << pretty (occ);
-    //    // Rook
-    //    for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-    //    {
-    //        std::cout << pretty (attacks_bb<ROOK> (s1, occ));
-    //        if (s1 && (s1+1)%8 == 0) system ("PAUSE");
-    //    }
-    //}
-
 #endif
 
 }

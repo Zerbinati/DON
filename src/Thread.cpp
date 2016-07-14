@@ -16,11 +16,11 @@ using namespace TBSyzygy;
 
 namespace {
 
-    const u08 MaximumMoveHorizon = 50; // Plan time management at most this many moves ahead, in num of moves.
-    const u08 ReadyMoveHorizon   = 40; // Be prepared to always play at least this many moves, in num of moves.
-    const u32 OverheadClockTime  = 60; // Attempt to keep at least this much time at clock, in milliseconds.
-    const u32 OverheadMoveTime   = 30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
-    const u32 MinimumMoveTime    = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
+    const u08       MaximumMoveHorizon = 50; // Plan time management at most this many moves ahead, in num of moves.
+    const u08       ReadyMoveHorizon   = 40; // Be prepared to always play at least this many moves, in num of moves.
+    const TimePoint OverheadClockTime  = 60; // Attempt to keep at least this much time at clock, in milliseconds.
+    const TimePoint OverheadMoveTime   = 30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
+    const TimePoint MinimumMoveTime    = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
 
     // move_importance() is a skew-logistic function based on naive statistical
     // analysis of "how many games are still undecided after n half-moves".
@@ -41,7 +41,7 @@ namespace {
         // However must not steal time from remaining moves over this ratio
         const auto StealRatio = Maximum ? 0.35 : 0.00;
 
-        auto  this_move_imp = std::max (move_importance (ply) * MoveSlowness, DBL_MIN);
+        auto  this_move_imp = move_importance (ply) * MoveSlowness;
         auto other_move_imp = 0.0;
         for (u08 i = 1; i < movestogo; ++i)
         {
@@ -57,7 +57,9 @@ namespace {
 
 TimePoint TimeManager::elapsed_time () const
 {
-    return TimePoint(NodesTime != 0 ? Threadpool.game_nodes () : now () - Limits.start_time);
+    return NodesTime != 0 ?
+            Threadpool.nodes () :
+            now () - Limits.start_time;
 }
 // TimeManager::initialize() is called at the beginning of the search.
 // It calculates the allowed thinking time out of the time control and current game ply.
@@ -81,7 +83,7 @@ void TimeManager::initialize (Color c, i16 ply)
 
     optimum_time =
     maximum_time =
-        std::max (Limits.clock[c].time, TimePoint(MinimumMoveTime));
+        std::max (Limits.clock[c].time, MinimumMoveTime);
 
     const auto MaxMovesToGo = Limits.movestogo != 0 ? std::min (Limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
     // Calculate optimum time usage for different hypothetic "moves to go" and choose the
@@ -95,13 +97,22 @@ void TimeManager::initialize (Color c, i16 ply)
             - OverheadClockTime
             - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
 
-        optimum_time = std::min (remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, optimum_time);
-        maximum_time = std::min (remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, maximum_time);
+        TimePoint time;
+        time = remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
+        if (optimum_time > time)
+        {
+            optimum_time = time;
+        }
+        time = remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
+        if (maximum_time > time)
+        {
+            maximum_time = time;
+        }
     }
 
     if (Ponder)
     {
-        optimum_time = TimePoint(optimum_time * 1.25);
+        optimum_time += optimum_time / 4;
     }
     // Make sure that optimum time is not over maximum time
     if (optimum_time > maximum_time)
@@ -117,7 +128,7 @@ void TimeManager::update (Color c)
     // subtract the searched nodes from the available ones.
     if (NodesTime != 0)
     {
-        available_nodes += Limits.clock[c].inc - Threadpool.game_nodes ();
+        available_nodes += Limits.clock[c].inc - Threadpool.nodes ();
     }
 }
 
@@ -209,12 +220,12 @@ namespace Threading {
     }
 
     // ThreadPool::game_nodes() returns the total game nodes searched
-    u64 ThreadPool::game_nodes () const
+    u64 ThreadPool::nodes () const
     {
         u64 nodes = 0;
         for (const auto *th : *this)
         {
-            nodes += th->root_pos.game_nodes ();
+            nodes += th->root_pos.nodes ();
         }
         return nodes;
     }
@@ -273,15 +284,13 @@ namespace Threading {
         // After ownership transfer 'states' becomes empty, so if we stop the search
         // and call 'go' again without setting a new position states.get() == NULL.
         assert(states.get () != nullptr || setup_states.get () != nullptr);
-
         if (states.get () != nullptr)
         {
             // Ownership transfer, states is now empty
             setup_states = std::move (states);
             assert(states.get () == nullptr);
         }
-
-        Limits  = limits;
+        Limits = limits;
 
         RootMoveVector root_moves;
         root_moves.initialize (root_pos, limits.search_moves);
@@ -291,14 +300,12 @@ namespace Threading {
         TBUseRule50  = bool(Options["SyzygyUseRule50"]);
         TBHits       = 0;
         TBHasRoot    = false;
-
         // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit
         if (TBPieceLimit > MaxPieceLimit)
         {
             TBPieceLimit = MaxPieceLimit;
             TBDepthLimit = DEPTH_0;
         }
-
         // Filter root moves
         if (   TBPieceLimit >= root_pos.count<NONE> ()
             && root_pos.can_castle (CR_ANY) == CR_NONE)
@@ -340,16 +347,17 @@ namespace Threading {
         }
 
         const auto tmp_si = setup_states->back ();
+        const auto fen = root_pos.fen (Chess960);
         for (auto *th : *this)
         {
-            th->root_pos.setup (root_pos.fen (Chess960), setup_states->back (), th, Chess960);
+            th->root_pos.setup (fen, setup_states->back (), th, Chess960);
             th->root_moves = root_moves;
         }
         // Restore si->ptr, cleared by Position::setup()
         setup_states->back () = tmp_si;
 
-        ForceStop       = false;
-        PonderhitStop   = false;
+        ForceStop     = false;
+        PonderhitStop = false;
         main_thread ()->start_searching (false);
     }
     // ThreadPool::wait_while_thinking() waits for the main thread while searching.

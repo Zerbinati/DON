@@ -255,31 +255,31 @@ namespace Notation {
             << std::setw ( 8) << pretty_value (main_thread->root_moves[0].new_value, root_pos)
             << std::setw (12) << pretty_time (Threadpool.time_mgr.elapsed_time ());
 
-        u64 game_nodes = Threadpool.game_nodes ();
-        if (game_nodes < 1*M)
+        u64 total_nodes = Threadpool.nodes ();
+        if (total_nodes < 1*M)
         {
-            oss << std::setw (8) << game_nodes / 1 << "  ";
+            oss << std::setw (8) << total_nodes / 1 << "  ";
         }
         else
-        if (game_nodes < K*M)
+        if (total_nodes < K*M)
         {
-            oss << std::setw (7) << game_nodes / K << "K  ";
+            oss << std::setw (7) << total_nodes / K << "K  ";
         }
         else
         {
-            oss << std::setw (7) << game_nodes / M << "M  ";
+            oss << std::setw (7) << total_nodes / M << "M  ";
         }
 
         StateList states;
         u08 ply = 0;
         for (const auto m : main_thread->root_moves[0])
         {
-            oss << move_to_san (m, root_pos) << " ";
+            oss << move_to_san (m, root_pos) << ' ';
             states.push_back (StateInfo ());
             root_pos.do_move (m, states.back (), root_pos.gives_check (m, CheckInfo (root_pos)));
             ++ply;
             ////---------------------------------
-            //oss << move_to_can (m, Chess960) << " ";
+            //oss << move_to_can (m, Chess960) << ' ';
         }
         for (; ply != 0; --ply)
         {

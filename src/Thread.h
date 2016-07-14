@@ -285,7 +285,7 @@ namespace Threading {
         bool  easy_played = false;
         bool  failed_low  = false;
 
-        Move  last_easy   = MOVE_NONE;
+        Move  easy_move   = MOVE_NONE;
         Value last_value  = VALUE_NONE;
 
         double best_move_change = 0.0;
@@ -305,7 +305,7 @@ namespace Threading {
         }
         Thread* best_thread () const;
 
-        u64  game_nodes () const;
+        u64  nodes () const;
 
         void configure (i32 threads);
 

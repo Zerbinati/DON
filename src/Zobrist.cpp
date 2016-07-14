@@ -51,7 +51,7 @@ Key Zobrist::compute_posi_key (const Position &pos) const
     Bitboard b = pos.castle_rights ();
     while (b != 0)
     {
-        posi_key ^= castle_right[0][pop_lsq (b)];
+        posi_key ^= (*castle_right)[pop_lsq (b)];
     }
     if (pos.en_passant_sq () != SQ_NO)
     {
@@ -142,13 +142,44 @@ Key Zobrist::compute_fen_key (const string &fen, bool c960) const
         }
 
         u08 file, rank;
-        if (   (iss >> file && (file >= 'a' && file <= 'h'))
-            && (iss >> rank && (rank == '3' || rank == '6')))
+        if (   (iss >> file && ('a' <= file && file <= 'h'))
+            && (iss >> rank && ('3' == rank || rank == '6')))
         {
             fen_key ^= en_passant[to_file (file)];
         }
     }
     return fen_key;
+}
+
+void Zobrist::initialize ()
+{
+    assert(PolyZob.act_side == U64(0xF8D626AAAF278509));
+
+    static PRNG prng (0x105524);
+    ExclusionKey = prng.rand<Key> ();
+    // Initialize Random Zobrist
+    for (auto c = WHITE; c <= BLACK; ++c)
+    {
+        for (auto pt = PAWN; pt <= KING; ++pt)
+        {
+            for (auto s = SQ_A1; s <= SQ_H8; ++s)
+            {
+                Zob.piece_square[c][pt][s] = prng.rand<Key> ();
+            }
+        }
+    }
+    for (auto c = WHITE; c <= BLACK; ++c)
+    {
+        for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
+        {
+            Zob.castle_right[c][cs] = prng.rand<Key> ();
+        }
+    }
+    for (auto f = F_A; f <= F_H; ++f)
+    {
+        Zob.en_passant[f] = prng.rand<Key> ();
+    }
+    Zob.act_side = prng.rand<Key> ();
 }
 
 

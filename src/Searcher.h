@@ -124,7 +124,7 @@ struct Stack
         , exclude_move = MOVE_NONE
         , killer_moves[MaxKillers];
 
-    Value static_eval = VALUE_NONE;
+    Value static_eval  = VALUE_NONE;
     u08   move_count   = 0;
     bool  skip_pruning = false;
     CMValueStats *counter_move_values = nullptr;
@@ -254,7 +254,7 @@ namespace Searcher {
             std::ostringstream oss;
             for (const auto &rm : *this)
             {
-                oss << rm << "\n";
+                oss << rm << '\n';
             }
             return oss.str ();
         }

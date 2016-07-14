@@ -1814,21 +1814,20 @@ namespace TBSyzygy {
         }
 
 
-        bool is_little_endian ()
+        bool little_endian ()
         {
             union
             {
-                i32 integer;
-                char character[sizeof (i32)];
-            } x;
-            x.integer = 1;
-            return x.character[0] == 1;
+                i32 i;
+                char ch[sizeof (i32)];
+            } x = { 1 };
+            return x.ch[0] == 1;
         }
 
         u08 decompress_pairs (PairsData *pairs_data, u64 idx)
         {
-            static const bool IsLittleEndian = is_little_endian ();
-            return IsLittleEndian ?
+            static const bool LittleEndian = little_endian ();
+            return LittleEndian ?
                 decompress_pairs<true > (pairs_data, idx) :
                 decompress_pairs<false> (pairs_data, idx);
         }
@@ -2787,7 +2786,8 @@ namespace TBSyzygy {
             // 3-men files
             for (i08 wp1 = QUEN; wp1 >= PAWN; --wp1)
             {
-                oss.str (""); oss << "K" << PieceChar[wp1] << "vK";
+                oss.str ("");
+                oss << 'K' << PieceChar[wp1] << 'v' << 'K';
                 init_tb (oss.str ());
             }
             // 4-men files
@@ -2795,7 +2795,8 @@ namespace TBSyzygy {
             {
                 for (i08 bp1 = wp1; bp1 >= PAWN; --bp1)
                 {
-                    oss.str (""); oss << "K" << PieceChar[wp1] << "vK" << PieceChar[bp1];
+                    oss.str ("");
+                    oss << 'K' << PieceChar[wp1] << 'v' << 'K' << PieceChar[bp1];
                     init_tb (oss.str ());
                 }
             }
@@ -2803,7 +2804,8 @@ namespace TBSyzygy {
             {
                 for (i08 wp2 = wp1; wp2 >= PAWN; --wp2)
                 {
-                    oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK";
+                    oss.str ("");
+                    oss << 'K' << PieceChar[wp1] << PieceChar[wp2] << 'v' << 'K';
                     init_tb (oss.str ());
                 }
             }
@@ -2814,7 +2816,8 @@ namespace TBSyzygy {
                 {
                     for (i08 bp1 = QUEN; bp1 >= PAWN; --bp1)
                     {
-                        oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1];
+                        oss.str ("");
+                        oss << 'K' << PieceChar[wp1] << PieceChar[wp2] << 'v' << 'K' << PieceChar[bp1];
                         init_tb (oss.str ());
                     }
                 }
@@ -2825,7 +2828,8 @@ namespace TBSyzygy {
                 {
                     for (i08 wp3 = wp2; wp3 >= PAWN; --wp3)
                     {
-                        oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK";
+                        oss.str ("");
+                        oss << 'K' << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << 'v' << 'K';
                         init_tb (oss.str ());
                     }
                 }
@@ -2839,7 +2843,8 @@ namespace TBSyzygy {
                     {
                         for (i08 bp2 = (wp1 == bp1) ? wp2 : bp1; bp2 >= PAWN; --bp2)
                         {
-                            oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << "vK" << PieceChar[bp1] << PieceChar[bp2];
+                            oss.str ("");
+                            oss << 'K' << PieceChar[wp1] << PieceChar[wp2] << 'v' << 'K' << PieceChar[bp1] << PieceChar[bp2];
                             init_tb (oss.str ());
                         }
                     }
@@ -2853,7 +2858,8 @@ namespace TBSyzygy {
                     {
                         for (i08 bp1 = QUEN; bp1 >= PAWN; --bp1)
                         {
-                            oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1];
+                            oss.str ("");
+                            oss << 'K' << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << 'v' << 'K' << PieceChar[bp1];
                             init_tb (oss.str ());
                         }
                     }
@@ -2867,7 +2873,8 @@ namespace TBSyzygy {
                     {
                         for (i08 wp4 = wp3; wp4 >= PAWN; --wp4)
                         {
-                            oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK";
+                            oss.str ("");
+                            oss << 'K' << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << 'v' << 'K';
                             init_tb (oss.str ());
                         }
                     }
@@ -2885,7 +2892,8 @@ namespace TBSyzygy {
                         {
                             for (i08 bp2 = bp1; bp2 >= PAWN; --bp2)
                             {
-                                oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << "vK" << PieceChar[bp1] << PieceChar[bp2];
+                                oss.str ("");
+                                oss << 'K' << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << 'v' << 'K' << PieceChar[bp1] << PieceChar[bp2];
                                 init_tb (oss.str ());
                             }
                         }
@@ -2902,7 +2910,8 @@ namespace TBSyzygy {
                         {
                             for (i08 bp1 = QUEN; bp1 >= PAWN; --bp1)
                             {
-                                oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << "vK" << PieceChar[bp1];
+                                oss.str ("");
+                                oss << 'K' << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << 'v' << 'K' << PieceChar[bp1];
                                 init_tb (oss.str ());
                             }
                         }
@@ -2919,7 +2928,8 @@ namespace TBSyzygy {
                         {
                             for (i08 wp5 = wp4; wp5 >= PAWN; --wp5)
                             {
-                                oss.str (""); oss << "K" << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << PieceChar[wp5] << "vK";
+                                oss.str ("");
+                                oss << 'K' << PieceChar[wp1] << PieceChar[wp2] << PieceChar[wp3] << PieceChar[wp4] << PieceChar[wp5] << 'v' << 'K';
                                 init_tb (oss.str ());
                             }
                         }

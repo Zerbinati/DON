@@ -85,17 +85,18 @@ namespace UCI {
 
         if (_type != "button")
         {
-            if (value.empty ())
+            auto val = value;
+
+            if (val.empty ())
             {
                 return *this;
             }
 
-            auto val = value;
-
             if (_type == "check")
             {
                 to_lower (val);
-                if (val != "true" && val != "false")
+                if (   val != "true"
+                    && val != "false")
                 {
                     return *this;
                 }
@@ -249,14 +250,14 @@ namespace UCI {
 
         void on_time_opt ()
         {
-            //MaximumMoveHorizon = i32(Options["Maximum Move Horizon"]);
-            //ReadyMoveHorizon = i32(Options["Ready Move Horizon"]);
-            //OverheadClockTime = i32(Options["Overhead Clock Time"]);
-            //OverheadMoveTime = i32(Options["Overhead Move Time"]);
-            //MinimumMoveTime = i32(Options["Minimum Move Time"]);
-            MoveSlowness = i32(Options["Move Slowness"])/100.0;
-            NodesTime = i32(Options["Nodes Time"]);
-            Ponder = bool(Options["Ponder"]);
+            //MaximumMoveHorizon  = i32(Options["Maximum Move Horizon"]);
+            //ReadyMoveHorizon    = i32(Options["Ready Move Horizon"]);
+            //OverheadClockTime   = TimePoint(i32(Options["Overhead Clock Time"]));
+            //OverheadMoveTime    = TimePoint(i32(Options["Overhead Move Time"]));
+            //MinimumMoveTime     = TimePoint(i32(Options["Minimum Move Time"]));
+            MoveSlowness        = i32(Options["Move Slowness"])/100.0;
+            NodesTime           = i32(Options["Nodes Time"]);
+            Ponder              = bool(Options["Ponder"]);
         }
 
         void on_debug_file ()
