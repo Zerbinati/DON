@@ -1,16 +1,14 @@
 #ifndef _POSITION_H_INC_
 #define _POSITION_H_INC_
 
+#include <deque>
+#include <memory>
+
 #include "BitBoard.h"
 #include "Zobrist.h"
 
 class Position;
 using namespace BitBoard;
-
-#if !defined(NDEBUG)
-// Check the validity of FEN string
-extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
-#endif
 
 // StateInfo stores information needed to restore a Position object to its previous state
 // when we retract a move. Whenever a move is made on the board (by calling do_move),
@@ -54,6 +52,9 @@ public:
     StateInfo () = default;
 };
 
+typedef std::deque<StateInfo>       StateList;
+typedef std::unique_ptr<StateList>  StateListPtr;
+
 // CheckInfo struct is initialized at constructor time
 // and stores critical information used to detect if a move gives check.
 //
@@ -73,13 +74,15 @@ public:
     explicit CheckInfo (const Position &pos);
 };
 
-extern u08 DrawClockPly;
-
 namespace Threading {
     class Thread;
 }
-
 using namespace Threading;
+
+#if !defined(NDEBUG)
+// Check the validity of FEN string
+extern bool _ok (const std::string &fen, bool full = true);
+#endif
 
 // Position class stores information regarding the board representation:
 //  - 64-entry array of pieces, indexed by the square.
@@ -96,7 +99,6 @@ using namespace Threading;
 //  - StateInfo pointer for the current status.
 //  - Information about the castling rights.
 //  - Initial files of both pairs of rooks, castle path and kings path, this is used to implement the Chess960 castling rules.
-//  - Chess960 info
 class Position
 {
 private:
@@ -113,7 +115,6 @@ private:
     Bitboard    _king_path  [CR_NO];
 
     Color       _active;
-    bool        _chess960;
     i16         _ply;
     u64         _nodes;
 
@@ -139,6 +140,9 @@ private:
     PieceType pick_least_val_att (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const;
 
 public:
+    static u08  DrawClockPly;
+    static bool Chess960;
+
     Position () = default;
     Position (const Position&) = delete;
     Position& operator= (const Position &pos) = delete;
@@ -196,7 +200,6 @@ public:
     bool  castle_impeded (CastleRight cr) const;
 
     Color   active   () const;
-    bool    chess960 () const;
     i16     ply      () const;
     u64     nodes    ()  const;
 
@@ -224,7 +227,7 @@ public:
     Bitboard check_discoverers (Color c) const;
 
     bool pseudo_legal   (Move m) const;
-    bool legal          (Move m, Bitboard pinneds) const;
+    bool legal          (Move m, Bitboard abs_pinned) const;
     bool legal          (Move m) const;
     bool capture        (Move m) const;
     bool promotion (Move m) const;
@@ -241,7 +244,7 @@ public:
 
     void clear ();
 
-    bool setup (const std::string &fen_, StateInfo &si, Thread *const th = nullptr, bool c960 = false, bool full = true);
+    bool setup (const std::string &fen_, StateInfo &si, Thread *const th = nullptr, bool full = true);
 
     void do_move (Move m, StateInfo &si, bool gives_check);
     void do_move (const std::string &can, StateInfo &si);
@@ -251,7 +254,7 @@ public:
 
     void flip ();
 
-    std::string fen (bool c960 = false, bool full = true) const;
+    std::string fen (bool full = true) const;
 
     explicit operator std::string () const;
 
@@ -359,7 +362,7 @@ inline Key Position::move_posi_key (Move m) const
 
     auto ppt = promotion (m) ? promote (m) : mpt;
     auto cpt = en_passant (m) ? PAWN : ptype (_board[dst]);
-    Key key = _si->posi_key ^ Zob.act_side
+    Key key = _si->posi_key ^ Zob.active_color
         ^ Zob.piece_square[_active][ppt][dst]
         ^ Zob.piece_square[_active][mpt][org];
     if (_ok (cpt))
@@ -383,7 +386,6 @@ inline Bitboard Position::king_path   (CastleRight cr) const { return _king_path
 inline bool  Position::castle_impeded (CastleRight cr) const { return (_castle_path[cr] & pieces ()) != 0; }
 // Color of the side on move
 inline Color Position::active  () const { return _active; }
-inline bool Position::chess960 () const { return _chess960; }
 // ply starts at 0, and is incremented after every move.
 // ply  = max ((move_num - 1) * 2, 0) + (active == BLACK)
 inline i16  Position::ply () const { return _ply; }

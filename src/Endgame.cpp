@@ -93,7 +93,7 @@ namespace EndGame {
 
             Position pos;
             StateInfo si;
-            pos.setup (fen, si, nullptr, false, false);
+            pos.setup (fen, si, nullptr, false);
             return pos.matl_key ();
         }
 

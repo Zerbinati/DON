@@ -471,7 +471,7 @@ namespace Searcher {
                 bool gives_check =
                        mtype (move) == NORMAL
                     && ci.check_discoverers == 0 ?
-                            (ci.checking_bb[ptype (mpc)] & dst) != 0 : pos.gives_check (move, ci);
+                        (ci.checking_bb[ptype (mpc)] & dst) != 0 : pos.gives_check (move, ci);
 
                 // Futility pruning
                 if (   !InCheck
@@ -850,7 +850,9 @@ namespace Searcher {
                         auto reduced_depth = depth - Depth((67*i32(depth) + 823) / 256 + std::min ((tt_eval - beta)/VALUE_MG_PAWN, 3));
 
                         // Speculative prefetch as early as possible
-                        prefetch (TT.cluster_entry (pos.posi_key () ^ Zob.act_side ^ (pos.en_passant_sq () != SQ_NO ? Zob.en_passant[_file (pos.en_passant_sq ())] : 0)));
+                        prefetch (TT.cluster_entry (  pos.posi_key ()
+                                                    ^ Zob.active_color
+                                                    ^ (pos.en_passant_sq () != SQ_NO ? Zob.en_passant[_file (pos.en_passant_sq ())] : 0)));
 
                         // Do null move
                         pos.do_null_move (si);
@@ -930,7 +932,7 @@ namespace Searcher {
                             bool gives_check =
                                    mtype (move) == NORMAL
                                 && ci.check_discoverers == 0 ?
-                                        (ci.checking_bb[ptype (mpc)] & dst) != 0 : pos.gives_check (move, ci);
+                                    (ci.checking_bb[ptype (mpc)] & dst) != 0 : pos.gives_check (move, ci);
                             bool capture_or_promotion = pos.capture_or_promotion (move);
 
                             // Speculative prefetch as early as possible
@@ -1064,7 +1066,7 @@ namespace Searcher {
                             << "info"
                             << " depth "          << depth
                             << " currmovenumber " << std::setw (2) << thread->pv_index + move_count
-                            << " currmove "       << move_to_can (move, Chess960)
+                            << " currmove "       << move_to_can (move)
                             << " time "           << elapsed_time
                             << sync_endl;
                     }
@@ -1078,7 +1080,7 @@ namespace Searcher {
                 bool gives_check =
                        mtype (move) == NORMAL
                     && ci.check_discoverers == 0 ?
-                            (ci.checking_bb[ptype (mpc)] & dst) != 0 : pos.gives_check (move, ci);
+                        (ci.checking_bb[ptype (mpc)] & dst) != 0 : pos.gives_check (move, ci);
                 bool move_count_pruning =
                        depth < DEPTH_16
                     && move_count >= FutilityMoveCounts[improving][depth];
@@ -1537,7 +1539,7 @@ namespace Searcher {
         for (const auto m : *this)
         {
             assert(_ok (m));
-            oss << ' ' << move_to_can (m, Chess960);
+            oss << ' ' << move_to_can (m);
         }
         return oss.str ();
     }
@@ -1573,7 +1575,7 @@ namespace Searcher {
             {
                 sync_cout << std::left
                     << std::setw ( 7)
-                    //<< move_to_can (vm.move, Chess960)
+                    //<< move_to_can (vm.move)
                     << move_to_san (vm.move, pos)
                     << std::right << std::setfill ('.')
                     << std::setw (16) << inter_nodes
@@ -1925,7 +1927,7 @@ namespace Threading {
                             stop = true;
                         }
 
-                        if (root_moves[0].size () >= MovePVSize)
+                        if (root_moves[0].size () >= MoveManager::PVSize)
                         {
                             Threadpool.move_mgr.update (root_pos, root_moves[0]);
                         }
@@ -2067,7 +2069,7 @@ namespace Threading {
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            Threadpool.pv_limit = std::min (std::max (MultiPV, u16(Threadpool.skill_mgr.enabled () ? MinSkillPV : 0)), u16(root_moves.size ()));
+            Threadpool.pv_limit = std::min (std::max (MultiPV, u16(Threadpool.skill_mgr.enabled () ? SkillManager::MinSkillPV : 0)), u16(root_moves.size ()));
 
             filtering = true;
 
@@ -2177,12 +2179,12 @@ namespace Threading {
             ofs.close ();
         }
         // Best move could be MOVE_NONE when searching on a stalemate position.
-        sync_cout << "bestmove " << move_to_can (root_moves[0][0], Chess960);
+        sync_cout << "bestmove " << move_to_can (root_moves[0][0]);
         if (   root_moves[0][0] != MOVE_NONE
             && (   root_moves[0].size () > 1
                 || root_moves[0].extract_ponder_move_from_tt (root_pos)))
         {
-            std::cout << " ponder " << move_to_can (root_moves[0][1], Chess960);
+            std::cout << " ponder " << move_to_can (root_moves[0][1]);
         }
         std::cout << sync_endl;
     }

@@ -9,7 +9,7 @@
 #include "Debugger.h"
 #include "MemoryHandler.h"
 
-UCI::OptionMap  Options;
+OptionMap Options;
 
 namespace UCI {
 
@@ -203,7 +203,7 @@ namespace UCI {
 
         void on_draw_move_dist ()
         {
-            DrawClockPly = u08(2 * i32(Options["Draw Move Dist"]));
+            Position::DrawClockPly = u08(2 * i32(Options["Draw Move Dist"]));
         }
 
         void on_hash_file ()
@@ -293,7 +293,7 @@ namespace UCI {
 
         void on_uci_chess960 ()
         {
-            Chess960 = bool(Options["UCI_Chess960"]);
+            Position::Chess960 = bool(Options["UCI_Chess960"]);
         }
     }
 
@@ -410,7 +410,7 @@ namespace UCI {
         // Default=MaxSkillLevel, Min=0, Max=MaxSkillLevel.
         //
         // At level 0, engine will make dumb moves. MaxSkillLevel is best/strongest play.
-        Options["Skill Level"]                  << Option (MaxSkillLevel,  0, MaxSkillLevel, on_skill_level);
+        Options["Skill Level"]                  << Option (SkillManager::MaxSkillLevel,  0, SkillManager::MaxSkillLevel, on_skill_level);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
@@ -452,7 +452,7 @@ namespace UCI {
         //
         // By setting Draw Move Dist to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Draw Move Dist"]               << Option (DrawClockPly/2, 5, 50, on_draw_move_dist);
+        Options["Draw Move Dist"]               << Option (Position::DrawClockPly/2, 5, 50, on_draw_move_dist);
 
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, on_time_opt);
@@ -492,7 +492,7 @@ namespace UCI {
         // Chess960 is a chess variant where the back ranks are scrambled.
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         // Default=false.
-        Options["UCI_Chess960"]                 << Option (Chess960, on_uci_chess960);
+        Options["UCI_Chess960"]                 << Option (Position::Chess960, on_uci_chess960);
 
     }
 

@@ -41,7 +41,7 @@ namespace Notation {
             "mate " + std::to_string (i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v))/2);
     }
 
-    extern std::string move_to_can (Move m, bool c960 = false);
+    extern std::string move_to_can (Move m);
     extern std::string move_to_san (Move m, Position &pos);
     //extern std::string move_to_lan (Move m, Position &pos);
 

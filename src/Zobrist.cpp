@@ -59,7 +59,7 @@ Key Zobrist::compute_posi_key (const Position &pos) const
     }
     if (pos.active () == WHITE)
     {
-        posi_key ^= act_side;
+        posi_key ^= active_color;
     }
     return posi_key;
 }
@@ -106,7 +106,7 @@ Key Zobrist::compute_fen_key (const string &fen, bool c960) const
         iss >> ch;
         if ('w' == ch)
         {
-            fen_key ^= act_side;
+            fen_key ^= active_color;
         }
         iss >> ch;
         if (c960)
@@ -122,6 +122,7 @@ Key Zobrist::compute_fen_key (const string &fen, bool c960) const
                 }
                 else
                 {
+                    assert(false);
                     return 0;
                 }
             }
@@ -153,7 +154,7 @@ Key Zobrist::compute_fen_key (const string &fen, bool c960) const
 
 void Zobrist::initialize ()
 {
-    assert(PolyZob.act_side == U64(0xF8D626AAAF278509));
+    assert(PolyZob.active_color == U64(0xF8D626AAAF278509));
 
     static PRNG prng (0x105524);
     ExclusionKey = prng.rand<Key> ();
@@ -179,7 +180,7 @@ void Zobrist::initialize ()
     {
         Zob.en_passant[f] = prng.rand<Key> ();
     }
-    Zob.act_side = prng.rand<Key> ();
+    Zob.active_color = prng.rand<Key> ();
 }
 
 

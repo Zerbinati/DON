@@ -151,11 +151,12 @@ void benchmark (istream &is, const Position &cur_pos)
     for (u16 i = 0; i < fens.size (); ++i)
     {
         StateListPtr states (new StateList (1));
-        pos.setup (fens[i], states->back (), Threadpool.main_thread (), Chess960);
+        pos.setup (fens[i], states->back (), Threadpool.main_thread (), true);
+        assert(pos.fen (true) == fens[i]);
 
         std::cerr
             << "\n---------------\n"
-            << "Position: " << std::setw (2) << (i + 1) << "/" << fens.size () << " "
+            << "Position: " << std::setw (2) << i+1 << "/" << fens.size () << " "
             << fens[i] << std::endl;
 
         if (limit_type == "perft")

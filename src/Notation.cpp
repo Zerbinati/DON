@@ -1,6 +1,5 @@
 #include "Notation.h"
 
-#include "UCI.h"
 #include "Position.h"
 #include "MoveGenerator.h"
 
@@ -8,7 +7,6 @@ using namespace std;
 
 namespace Notation {
 
-    using namespace UCI;
     using namespace BitBoard;
     using namespace MoveGen;
     using namespace Threading;
@@ -100,14 +98,15 @@ namespace Notation {
     //  - e1g1 notation in normal chess mode,
     //  - e1h1 notation in chess960 mode.
     // Internally castle moves are always coded as "king captures rook".
-    string move_to_can (Move m, bool c960)
+    string move_to_can (Move m)
     {
         if (m == MOVE_NONE) return "(none)";
         if (m == MOVE_NULL) return "(null)";
 
         auto org = org_sq (m);
         auto dst = dst_sq (m);
-        if (mtype (m) == CASTLE && !c960)
+        if (  !Position::Chess960
+            && mtype (m) == CASTLE)
         {
             dst = (dst > org ? F_G : F_C) | _rank (org);
         }
@@ -203,7 +202,7 @@ namespace Notation {
         }
         for (const auto &vm : MoveList<LEGAL> (pos))
         {
-            if (ccan == move_to_can (vm.move, Chess960))
+            if (ccan == move_to_can (vm.move))
             {
                 return vm.move;
             }
@@ -279,7 +278,7 @@ namespace Notation {
             root_pos.do_move (m, states.back (), root_pos.gives_check (m, CheckInfo (root_pos)));
             ++ply;
             ////---------------------------------
-            //oss << move_to_can (m, Chess960) << ' ';
+            //oss << move_to_can (m) << ' ';
         }
         for (; ply != 0; --ply)
         {

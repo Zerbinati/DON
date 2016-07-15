@@ -6,7 +6,6 @@
 #include <iostream>
 
 #include "thread_win32.h"
-#include "UCI.h"
 #include "PRNG.h"
 #include "Position.h"
 #include "Pawns.h"
@@ -44,15 +43,15 @@ public:
     void update (Color c);
 };
 
-const u08 MovePVSize = 3;
-
 // MoveManager class is used to detect a so called 'easy move'.
 // When PV is stable across multiple search iterations engine can fast return the best move.
 class MoveManager
 {
+public:
+    static const u08 PVSize = 3;
 private:
     Key  _posi_key = 0;
-    Move _pv[MovePVSize];
+    Move _pv[PVSize];
 
 public:
     u08  stable_count   = 0; // Keep track of how many times in a row the 3rd ply remains stable
@@ -68,19 +67,21 @@ public:
     {
         _posi_key    = 0;
         stable_count = 0;
-        std::fill (_pv, _pv + MovePVSize, MOVE_NONE);
+        std::fill (_pv, _pv + PVSize, MOVE_NONE);
     }
 
     Move easy_move (Key posi_key) const
     {
-        return posi_key == _posi_key ? _pv[MovePVSize-1] : MOVE_NONE;
+        return posi_key == _posi_key ?
+                _pv[PVSize-1] :
+                MOVE_NONE;
     }
 
     void update (Position &pos, const MoveVector &pv)
     {
-        assert(pv.size () >= MovePVSize);
+        assert(pv.size () >= PVSize);
 
-        if (pv[MovePVSize-1] == _pv[MovePVSize-1])
+        if (pv[PVSize-1] == _pv[PVSize-1])
         {
             ++stable_count;
         }
@@ -89,13 +90,13 @@ public:
             stable_count = 0;
         }
 
-        if (!std::equal (pv.begin (), pv.begin () + MovePVSize, _pv))
+        if (!std::equal (pv.begin (), pv.begin () + PVSize, _pv))
         {
-            std::copy (pv.begin (), pv.begin () + MovePVSize, _pv);
+            std::copy (pv.begin (), pv.begin () + PVSize, _pv);
 
             u08 ply = 0;
-            StateInfo si[MovePVSize-1];
-            while (ply < MovePVSize-1)
+            StateInfo si[PVSize-1];
+            while (ply < PVSize-1)
             {
                 pos.do_move (pv[ply], si[ply], pos.gives_check (pv[ply], CheckInfo (pos)));
                 ++ply;
@@ -110,13 +111,13 @@ public:
     }
 };
 
-// MaxSkillLevel should be <= MaxPlies/4
-const u08 MaxSkillLevel = 32;
-const u16 MinSkillPV    = 4;
-
 // Skill Manager class is used to implement strength limit
 class SkillManager
 {
+public:
+    // MaxSkillLevel should be <= MaxPlies/4
+    static const u08 MaxSkillLevel = 32;
+    static const u16 MinSkillPV    = 4;
 
 private:
     u08  _skill_level = MaxSkillLevel;
@@ -130,24 +131,22 @@ public:
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;
 
-    void change_skill_level (u08 skill_level)
-    {
-        _skill_level = skill_level;
-    }
-
-    void clear ()
-    {
-        _best_move = MOVE_NONE;
-    }
-
     bool enabled () const
     {
         return _skill_level < MaxSkillLevel;
     }
-
     bool can_pick (Depth depth) const
     {
-        return i32(depth) == (_skill_level + 1);
+        return i32(depth) == _skill_level + 1;
+    }
+
+    void change_skill_level (u08 skill_level)
+    {
+        _skill_level = skill_level;
+    }
+    void clear ()
+    {
+        _best_move = MOVE_NONE;
     }
 
     Move pick_best_move (u16 pv_limit);
@@ -173,10 +172,10 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        u16  index    = 0
-           , pv_index = 0
-           , max_ply  = 0
-           , count    = 0;
+        u16   index    = 0
+            , pv_index = 0
+            , max_ply  = 0
+            , count    = 0;
 
         Position    root_pos;
         Searcher::RootMoveVector root_moves;
@@ -284,11 +283,9 @@ namespace Threading {
 
         bool  easy_played = false;
         bool  failed_low  = false;
-
+        double best_move_change = 0.0;
         Move  easy_move   = MOVE_NONE;
         Value last_value  = VALUE_NONE;
-
-        double best_move_change = 0.0;
 
         TimeManager     time_mgr;
         MoveManager     move_mgr;

@@ -19,8 +19,6 @@ namespace UCI {
     using namespace MoveGen;
     using namespace Notation;
 
-    bool Chess960 = false;
-
     // loop() waits for a command from stdin, parses it and calls the appropriate function.
     // Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     // When called with some command line arguments, e.g. to run 'bench',
@@ -38,7 +36,7 @@ namespace UCI {
         StateListPtr setup_states (new StateList (1));
 
         Position root_pos;
-        root_pos.setup (StartFEN, setup_states->back(), Threadpool.main_thread (), Chess960);
+        root_pos.setup (StartFEN, setup_states->back(), Threadpool.main_thread (), true);
         // Join arguments
         string cmd;
         for (i32 i = 1; i < argc; ++i)
@@ -141,7 +139,7 @@ namespace UCI {
                     {
                         fen += string (" ", !white_spaces (fen) ? 1 : 0) + token;
                     }
-                    assert(_ok (fen, Chess960, true));
+                    assert(_ok (fen, true));
                 }
                 else
                 {
@@ -149,7 +147,7 @@ namespace UCI {
                 }
 
                 setup_states = StateListPtr (new StateList (1));
-                root_pos.setup (fen, setup_states->back(), Threadpool.main_thread (), Chess960);
+                root_pos.setup (fen, setup_states->back(), Threadpool.main_thread (), true);
 
                 if (token == "moves")
                 {

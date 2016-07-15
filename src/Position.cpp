@@ -15,16 +15,17 @@ using namespace Threading;
 using namespace Notation;
 
 #if !defined(NDEBUG)
-bool _ok (const string &fen, bool c960, bool full)
+bool _ok (const string &fen, bool full)
 {
     Position pos;
     StateInfo si;
-    pos.setup (fen, si, nullptr, c960, full);
+    pos.setup (fen, si, nullptr, full);
     return pos.ok ();
 }
 #endif
 
-u08 DrawClockPly = 100;
+u08  Position::DrawClockPly = 100;
+bool Position::Chess960     = false;
 
 // draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
 // It does not detect Insufficient materials and Stalemate.
@@ -603,10 +604,10 @@ bool Position::pseudo_legal (Move m) const
     return true;
 }
 // legal() tests whether a pseudo-legal move is legal
-bool Position::legal (Move m, Bitboard pinneds) const
+bool Position::legal (Move m, Bitboard abs_pinned) const
 {
     assert(_ok (m));
-    assert(pinneds == abs_pinneds (_active));
+    assert(abs_pinned == abs_pinneds (_active));
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
@@ -637,8 +638,8 @@ bool Position::legal (Move m, Bitboard pinneds) const
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
-        return  pinneds == 0
-            || (pinneds & org) == 0
+        return  abs_pinned == 0
+            || (abs_pinned & org) == 0
             || sqrs_aligned (org, dst, square<KING> (_active));
     }
         break;
@@ -751,7 +752,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 //    bool checkmate = false;
 //    Position pos;
 //    StateInfo si;
-//    pos.setup (fen (_chess960), si, _thread, _chess960);
+//    pos.setup (fen (true), si, _thread, true);
 //    if (pos.gives_check (m, ci))
 //    {
 //        StateInfo si;
@@ -806,11 +807,10 @@ void Position::clear ()
         _king_path[r]   = 0;
     }
 
-    _active     = CLR_NO;
-    _ply        = 0;
-    _nodes      = 0;
-    _chess960   = false;
-    _thread     = nullptr;
+    _active = CLR_NO;
+    _ply    = 0;
+    _nodes  = 0;
+    _thread = nullptr;
 }
 
 // set_castle() set the castling for the particular color & rook
@@ -824,21 +824,22 @@ void Position::set_castle (Color c, Square rook_org)
     auto rook_dst = rel_sq (c, rook_org > king_org ? SQ_F1 : SQ_D1);
 
     _si->castle_rights     |= cr;
-
     _castle_mask[king_org] |= cr;
     _castle_mask[rook_org] |= cr;
     _castle_rook[cr] = rook_org;
 
     for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
     {
-        if (king_org != s && rook_org != s)
+        if (   king_org != s
+            && rook_org != s)
         {
             _castle_path[cr] += s;
         }
     }
     for (auto s = std::min (king_org, king_dst); s <= std::max (king_org, king_dst); ++s)
     {
-        if (king_org != s && rook_org != s)
+        if (   king_org != s
+            && rook_org != s)
         {
             _castle_path[cr] += s;
             _king_path[cr] += s;
@@ -857,15 +858,15 @@ bool Position::can_en_passant (Square ep_sq) const
     {
         return false;
     }
-    // En-passant attackes
-    auto attacks = pieces (_active, PAWN) & PawnAttacks[~_active][ep_sq];
-    assert(pop_count (attacks) <= 2);
-    if (attacks != 0)
+    // En-passant attackers
+    auto attackers = pieces (_active, PAWN) & PawnAttacks[~_active][ep_sq];
+    assert(pop_count (attackers) <= 2);
+    if (attackers != 0)
     {
         MoveVector moves;
-        while (attacks != 0)
+        while (attackers != 0)
         {
-            moves.push_back (mk_move<ENPASSANT> (pop_lsq (attacks), ep_sq));
+            moves.push_back (mk_move<ENPASSANT> (pop_lsq (attackers), ep_sq));
         }
         // Check en-passant is legal for the position
         auto occ = pieces () + ep_sq - cap;
@@ -910,7 +911,7 @@ bool Position::can_en_passant (File ep_f) const
 //    This is used to determine if a draw can be claimed under the fifty-move rule.
 // 6) Fullmove number. The number of the full move.
 //    It starts at 1, and is incremented after Black's move.
-bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool c960, bool full)
+bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool full)
 {
     assert(!white_spaces (fen_));
 
@@ -981,14 +982,18 @@ bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool 
             break;
         }
 
-        if (c960)
+        if (Chess960)
         {
-            if (!('a' <= tolower (ch) && tolower (ch) <= 'h'))
+            ch = char(tolower (ch));
+            if ('a' <= ch && ch <= 'h')
+            {
+                r_sq = to_file (ch) | rel_rank (c, R_1);
+            }
+            else
             {
                 assert(false);
                 return false;
             }
-            r_sq = to_file (char(tolower (ch))) | rel_rank (c, R_1);
         }
         else
         {
@@ -1068,8 +1073,7 @@ bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool 
     _si->capture_type = NONE;
     _si->checkers = checkers (_active);
     
-    _chess960 = c960;
-    _thread   = th;
+    _thread = th;
 
     return true;
 }
@@ -1096,7 +1100,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     assert(_ok (m));
     assert(&si != _si);
 
-    Key key = _si->posi_key ^ Zob.act_side;
+    Key key = _si->posi_key ^ Zob.active_color;
     // Copy some fields of old state info to new state info object except
     // the ones which are going to be recalculated from scratch anyway, 
     std::memcpy (&si, _si, offsetof(StateInfo, posi_key));
@@ -1410,7 +1414,7 @@ void Position::do_null_move (StateInfo &si)
         _si->posi_key ^= Zob.en_passant[_file (_si->en_passant_sq)];
         _si->en_passant_sq = SQ_NO;
     }
-    _si->posi_key ^= Zob.act_side;
+    _si->posi_key ^= Zob.active_color;
     _si->clock_ply++;
     _si->null_ply = 0;
 
@@ -1434,7 +1438,7 @@ void Position::undo_null_move ()
 void Position::flip ()
 {
     string flip_fen, token;
-    istringstream iss (fen ());
+    istringstream iss (fen (true));
     // 1. Piece placement
     for (auto rank = R_8; rank >= R_1; --rank)
     {
@@ -1457,12 +1461,12 @@ void Position::flip ()
     std::getline (iss, token);
     flip_fen += token;
 
-    setup (flip_fen, *_si, _thread, _chess960, true);
+    setup (flip_fen, *_si, _thread, true);
 
     assert(ok ());
 }
 // fen()
-string Position::fen (bool c960, bool full) const
+string Position::fen (bool full) const
 {
     ostringstream oss;
 
@@ -1501,7 +1505,7 @@ string Position::fen (bool c960, bool full) const
 
     if (can_castle (CR_ANY) != CR_NONE)
     {
-        if (_chess960 || c960)
+        if (Chess960)
         {
             if (can_castle (CR_WHITE) != CR_NONE)
             {

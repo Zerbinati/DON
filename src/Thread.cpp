@@ -347,10 +347,10 @@ namespace Threading {
         }
 
         const auto tmp_si = setup_states->back ();
-        const auto fen = root_pos.fen (Chess960);
+        const auto fen = root_pos.fen (true);
         for (auto *th : *this)
         {
-            th->root_pos.setup (fen, setup_states->back (), th, Chess960);
+            th->root_pos.setup (fen, setup_states->back (), th, true);
             th->root_moves = root_moves;
         }
         // Restore si->ptr, cleared by Position::setup()

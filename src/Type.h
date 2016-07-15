@@ -851,16 +851,17 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
     }
     */
 
-    std::istringstream buf (str);
+    std::istringstream iss (str);
     do
     {
         std::string token;
-        bool fail = std::getline (buf, token, delimiter).fail ();
+        bool fail = std::getline (iss, token, delimiter).fail ();
         if (do_trim)
         {
             token = trim (token);
         }
-        if (!token.empty () || keep_empty)
+        if (   keep_empty
+            || !token.empty ())
         {
             tokens.push_back (token);
         }
@@ -869,7 +870,7 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
             break;
         }
     }
-    while (buf.good ());
+    while (iss.good ());
 
     return tokens;
 }
