@@ -79,7 +79,7 @@ namespace BitBoard {
 //        }
 
     #if !defined(ABM)
-        // pop_count16() counts the non-zero bits using SWAR-Popcount algorithm
+        // Counts the non-zero bits using SWAR-Popcount algorithm
         u08 pop_count16 (u32 u)
         {
             u -= (u >> 1) & 0x5555U;
@@ -112,7 +112,7 @@ namespace BitBoard {
 
         typedef u16(*Indexer) (Square s, Bitboard occ);
 
-        // initialize_table() computes all rook and bishop attacks at startup.
+        // Initialize all bishop and rook attacks at startup.
         // Magic bitboards are used to look up attacks of sliding pieces.
         // As a reference see chessprogramming.wikispaces.com/Magic+Bitboards.
         // In particular, here we use the so called "fancy" approach.
@@ -349,7 +349,7 @@ namespace BitBoard {
     }
 
 #if !defined(NDEBUG)
-    // pretty() returns an ASCII representation of a bitboard to print on console output
+    // Returns an ASCII representation of a bitboard to print on console output
     // Bitboard in an easily readable format. This is sometimes useful for debugging.
     string pretty (Bitboard bb, char p)
     {

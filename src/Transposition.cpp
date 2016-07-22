@@ -17,7 +17,7 @@ namespace Transposition {
     // Size of Transposition cluster (32 bytes)
     static_assert (CacheLineSize % sizeof (Cluster) == 0, "Cluster size incorrect");
 
-
+    // Alocate the aligned memory
     void Table::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
         assert((alignment & (alignment-1)) == 0);
@@ -64,10 +64,28 @@ namespace Transposition {
     #endif
 
     }
+    // Free the aligned memory
+    void Table::free_aligned_memory ()
+    {
+        if (_blocks != nullptr)
+        {
+
+        #   if defined(LPAGES)
+            Memory::free_memory (_blocks);
+        #   else
+            free (_blocks);
+        #   endif
+            _blocks         = nullptr;
+            _clusters       = nullptr;
+            _cluster_count  = 0;
+            _cluster_mask   = 0;
+            _generation     = 0;
+        }
+    }
 
     // resize(mb) sets the size of the table, measured in mega-bytes.
     // Transposition table consists of a power of 2 number of clusters and
-    // each cluster consists of ClusterEntryCount number of entry.
+    // each cluster consists of Cluster::EntryCount number of entry.
     u32 Table::resize (u32 mem_size_mb, bool force)
     {
         if (mem_size_mb < MinHashSize)
@@ -85,7 +103,7 @@ namespace Transposition {
 
         size_t cluster_count = size_t(1) << hash_bit;
 
-        mem_size  = cluster_count * sizeof (Cluster);
+        mem_size = cluster_count * sizeof (Cluster);
 
         if (   force
             || cluster_count != _cluster_count)
@@ -98,7 +116,6 @@ namespace Transposition {
             {
                 return 0;
             }
-
             _cluster_count = cluster_count;
             _cluster_mask  = cluster_count-1;
         }
@@ -112,12 +129,14 @@ namespace Transposition {
         {
             mem_size_mb = MaxHashSize;
         }
-        for (u32 msize_mb = mem_size_mb; msize_mb >= MinHashSize; msize_mb >>= 1)
+        u32 msize_mb = mem_size_mb;
+        while (msize_mb >= MinHashSize)
         {
             if (resize (msize_mb, force) != 0)
             {
                 return;
             }
+            msize_mb >>= 1;
         }
         Engine::stop (EXIT_FAILURE);
     }
@@ -130,7 +149,7 @@ namespace Transposition {
         const u16 key16 = u16(key >> 0x30);
         auto *const fte = cluster_entry (key);
         assert(fte != nullptr);
-        for (auto *ite = fte+0; ite < fte+ClusterEntryCount; ++ite)
+        for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
         {
             if (   ite->_key16 == 0
                 || ite->_key16 == key16)
@@ -147,7 +166,7 @@ namespace Transposition {
         // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte;
         auto rem = rte->_depth - 2*(u08(0x100+BOUND_EXACT + _generation - rte->_gen_bnd)&u08(~BOUND_EXACT));
-        for (auto *ite = fte+1; ite < fte+ClusterEntryCount; ++ite)
+        for (auto *ite = fte+1; ite < fte+Cluster::EntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
             auto iem = ite->_depth - 2*(u08(0x100+BOUND_EXACT + _generation - ite->_gen_bnd)&u08(~BOUND_EXACT));

@@ -5,12 +5,12 @@
 
 class Position;
 
-extern Key ExclusionKey;
-
 // Zobrist class
 class Zobrist
 {
 public:
+    static Key ExclusionKey;
+
     // 2*6*64 + 2*2 + 8 + 1
     //=   768 +   4 + 8 + 1
     //=                 781

@@ -68,9 +68,9 @@ namespace Memory {
         //                     msg_buffer_lp, 0, nullptr);
         //
         //    //... now display this string
-        //    _tprintf (TEXT ("ERROR: API        = %s.\n") , api_name);
-        //    _tprintf (TEXT ("       Error code = %lu.\n"), error_code);
-        //    _tprintf (TEXT ("       Message    = %s.\n") , msg_buffer_lp);
+        //    _tprintf (TEXT("ERROR: API        = %s.\n") , api_name);
+        //    _tprintf (TEXT("       Error code = %lu.\n"), error_code);
+        //    _tprintf (TEXT("       Message    = %s.\n") , msg_buffer_lp);
         //
         //    // Free the buffer allocated by the system
         //    LocalFree (msg_buffer_lp);
@@ -84,14 +84,14 @@ namespace Memory {
             // Open process token
             if (!OpenProcessToken (GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &token_handle))
             {
-                //show_error (TEXT ("OpenProcessToken"), GetLastError ());
+                //show_error (TEXT("OpenProcessToken"), GetLastError ());
             }
 
             TOKEN_PRIVILEGES token_priv;
             // Get the luid
             if (!LookupPrivilegeValue (nullptr, privilege_name, &token_priv.Privileges[0].Luid))
             {
-                //show_error (TEXT ("LookupPrivilegeValue"), GetLastError ());
+                //show_error (TEXT("LookupPrivilegeValue"), GetLastError ());
             }
 
             token_priv.PrivilegeCount = 1;
@@ -105,13 +105,13 @@ namespace Memory {
             //DWORD error_code = GetLastError ();
             //if (!status || error_code != ERROR_SUCCESS)
             //{
-            //    show_error (TEXT ("AdjustTokenPrivileges"), GetLastError ());
+            //    show_error (TEXT("AdjustTokenPrivileges"), GetLastError ());
             //}
 
             // Close the handle
             if (!CloseHandle (token_handle))
             {
-                //show_error (TEXT ("CloseHandle"), GetLastError ());
+                //show_error (TEXT("CloseHandle"), GetLastError ());
             }
         }
 

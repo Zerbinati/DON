@@ -65,9 +65,23 @@ namespace Pawns {
                 king_sq      [Own] = pos.square<KING> (Own);
                 castle_rights[Own] = pos.can_castle (Own);
 
-                king_safety[Own][CS_KING] = rel_rank (Own, king_sq[Own]) == R_1 && pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1)) : VALUE_ZERO;
-                king_safety[Own][CS_QUEN] = rel_rank (Own, king_sq[Own]) == R_1 && pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1)) : VALUE_ZERO;
-                king_safety[Own][CS_NO  ] = pawn_shelter_storm<Own> (pos, king_sq[Own]);
+                if (   rel_rank (Own, king_sq[Own]) == R_1
+                    && castle_rights[Own] != CR_NONE)
+                {
+                    king_safety[Own][CS_KING] =
+                        pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE ?
+                            pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1)) : VALUE_ZERO;
+                    king_safety[Own][CS_QUEN] =
+                        pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE ?
+                            pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1)) : VALUE_ZERO;
+                }
+                else
+                {
+                    king_safety[Own][CS_KING] = VALUE_ZERO;
+                    king_safety[Own][CS_QUEN] = VALUE_ZERO;
+                }
+
+                king_safety[Own][CS_NO] = pawn_shelter_storm<Own> (pos, king_sq[Own]);
 
                 king_pawn_dist[Own] = 0;
                 Bitboard own_pawns = pos.pieces (Own, PAWN);

@@ -80,10 +80,9 @@ namespace PieceSquare
     // PSQ[color][piece-type][square] contains [color][piece-type][square] scores.
     Score PSQ[CLR_NO][NONE][SQ_NO];
 
-    // compute_psq_score() computes the incremental scores for the middle
-    // game and the endgame. These functions are used to initialize the incremental
-    // scores when a new position is set up, and to verify that the scores are correctly
-    // updated by do_move and undo_move when the program is running in debug mode.
+    // Computes the scores for the middle game and the endgame.
+    // These functions are used to initialize the scores when a new position is set up,
+    // and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
     Score compute_psq_score (const Position &pos)
     {
         auto psqscore = SCORE_ZERO;

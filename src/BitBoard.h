@@ -272,14 +272,12 @@ namespace BitBoard {
     {
 #   if defined(BM2)
         return u16(PEXT(occ, B_Masks_bb[s]));
-#   else
-#       if defined(BIT64)
+#   elif defined(BIT64)
             return u16(((occ & B_Masks_bb[s]) * B_Magics_bb[s]) >> B_Shifts[s]);
-#       else
+#   else
             u32 lo = (u32(occ >> 0x00) & u32(B_Masks_bb[s] >> 0x00)) * u32(B_Magics_bb[s] >> 0x00);
             u32 hi = (u32(occ >> 0x20) & u32(B_Masks_bb[s] >> 0x20)) * u32(B_Magics_bb[s] >> 0x20);
             return ((lo ^ hi) >> B_Shifts[s]);
-#       endif
 #   endif
     }
 
@@ -288,14 +286,12 @@ namespace BitBoard {
     {
 #   if defined(BM2)
         return u16(PEXT(occ, R_Masks_bb[s]));
-#   else
-#       if defined(BIT64)
+#   elif defined(BIT64)
             return u16(((occ & R_Masks_bb[s]) * R_Magics_bb[s]) >> R_Shifts[s]);
-#       else
+#   else
             u32 lo = (u32(occ >> 0x00) & u32(R_Masks_bb[s] >> 0x00)) * u32(R_Magics_bb[s] >> 0x00);
             u32 hi = (u32(occ >> 0x20) & u32(R_Masks_bb[s] >> 0x20)) * u32(R_Magics_bb[s] >> 0x20);
             return ((lo ^ hi) >> R_Shifts[s]);
-#       endif
 #   endif
     }
 
@@ -601,8 +597,8 @@ namespace BitBoard {
 
 #endif
 
-    // scan_frntmost_sq() and scan_backmost_sq() find the square
-    // corresponding to the most/least advanced bit relative to the given color.
+    // Find the square corresponding to the most/least advanced bit relative to the given color.
+
     inline Square scan_frntmost_sq (Color c, Bitboard bb) { return c == WHITE ? scan_msq (bb) : scan_lsq (bb); }
     inline Square scan_backmost_sq (Color c, Bitboard bb) { return c == WHITE ? scan_lsq (bb) : scan_msq (bb); }
 

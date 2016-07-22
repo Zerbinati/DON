@@ -28,8 +28,7 @@ namespace Notation {
     {
         return std::string{ to_char (_file (s)), to_char (_rank (s)) };
     }
-    // to_string() converts a value to a string suitable
-    // for use with the UCI protocol specifications:
+    // Converts a value to a string suitable for use with the UCI protocol specifications:
     //
     // cp   <x>   The score x from the engine's point of view in centipawns.
     // mate <y>   Mate in y moves, not plies.

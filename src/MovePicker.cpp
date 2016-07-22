@@ -23,7 +23,7 @@ namespace MovePick {
             S_STOP
         };
 
-        // pick_best() finds the best move in the range [beg, end) and moves it to front,
+        // Finds the best move in the range [beg, end) and moves it to front,
         // it is faster than sorting all the moves in advance when there are few moves
         // e.g. the possible captures.
         ValMove& pick_best (ValMove *beg, ValMove *end)
@@ -44,9 +44,13 @@ namespace MovePick {
         , _ss (ss)
         , _tt_move (ttm)
     {
-        assert(ttm == MOVE_NONE || (pos.pseudo_legal (ttm) && pos.legal (ttm)));
+        assert(   ttm == MOVE_NONE
+               || (   pos.pseudo_legal (ttm)
+                   && pos.legal (ttm)));
 
-        _stage = pos.checkers () != 0 ? S_EVASION : S_MAIN;
+        _stage =
+            pos.checkers () != 0 ?
+                S_EVASION : S_MAIN;
 
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
@@ -56,14 +60,16 @@ namespace MovePick {
         , _tt_move (ttm)
     {
         assert(d <= DEPTH_0);
-        assert(ttm == MOVE_NONE || (pos.pseudo_legal (ttm) && pos.legal (ttm)));
+        assert(   ttm == MOVE_NONE
+               || (   pos.pseudo_legal (ttm)
+                   && pos.legal (ttm)));
 
         if (pos.checkers () != 0)
         {
             _stage = S_EVASION;
         }
         else
-        if (d >= DEPTH_0)
+        if (d == DEPTH_0)
         {
             _stage = S_QSEARCH_WITH_CHECK;
         }
@@ -88,7 +94,9 @@ namespace MovePick {
         , _threshold (thr)
     {
         assert(pos.checkers () == 0);
-        assert(ttm == MOVE_NONE || (pos.pseudo_legal (ttm) && pos.legal (ttm)));
+        assert(   ttm == MOVE_NONE
+               || (   pos.pseudo_legal (ttm)
+                   && pos.legal (ttm)));
 
         _stage = S_PROBCUT;
 
@@ -102,7 +110,7 @@ namespace MovePick {
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
-    // value() assigns a numerical move ordering score to each move in a move list.
+    // Assigns a numerical move ordering score to each move in a move list.
     // The moves with highest scores will be picked first.
 
     // Winning and equal captures in the main search are ordered by MVV/LVA, preferring captures near our home rank.
@@ -173,7 +181,7 @@ namespace MovePick {
         }
     }
 
-    // generate_next_stage() generates, scores, and sorts the next bunch of moves,
+    // Generates and sorts the next bunch of moves,
     // when there are no more moves to try for the current stage.
     void MovePicker::generate_next_stage ()
     {
@@ -261,8 +269,7 @@ namespace MovePick {
         }
     }
 
-    // next_move() is the most important method of the MovePicker class.
-    // It returns a new pseudo legal move every time it is called, until there are no more moves left.
+    // Returns a new legal move every time it is called, until there are no more moves left.
     // It picks the move with the biggest value from a list of generated moves
     // taking care not to return the tt-move if it has already been searched.
     Move MovePicker::next_move ()
@@ -373,5 +380,4 @@ namespace MovePick {
             }
         } while (true);
     }
-
 }

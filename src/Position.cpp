@@ -17,24 +17,23 @@ using namespace Notation;
 #if !defined(NDEBUG)
 bool _ok (const string &fen, bool full)
 {
-    Position pos;
     StateInfo si;
-    pos.setup (fen, si, nullptr, full);
-    return pos.ok ();
+    return Position ().setup (fen, si, nullptr, full).ok ();
 }
 #endif
 
 u08  Position::DrawClockPly = 100;
 bool Position::Chess960     = false;
 
-// draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
+// Checks whether position is drawn by: Clock Ply Rule, Repetition.
 // It does not detect Insufficient materials and Stalemate.
 bool Position::draw () const
 {
     // Draw by Clock Ply Rule?
     // Not in check or in check have legal moves 
     if (   _si->clock_ply >= DrawClockPly
-        && (_si->checkers == 0 || MoveList<LEGAL> (*this).size () != 0))
+        && (   _si->checkers == 0
+            || MoveList<LEGAL> (*this).size () != 0))
     {
         return true;
     }
@@ -60,7 +59,7 @@ bool Position::draw () const
 
     return false;
 }
-// repeated() check whether there has been at least one repetition of position since the last capture or pawn move.
+// Check whether there has been at least one repetition of position since the last capture or pawn move.
 bool Position::repeated () const
 {
     const auto *bsi = _si;
@@ -88,7 +87,7 @@ bool Position::repeated () const
     return false;
 }
 #if !defined(NDEBUG)
-// ok() performs some consistency checks for the position, helpful for debugging.
+// Performs some consistency checks for the position, helpful for debugging.
 bool Position::ok (i08 *failed_step) const
 {
     static const bool Fast = true;
@@ -258,10 +257,8 @@ bool Position::ok (i08 *failed_step) const
     return true;
 }
 #endif
-// pick_least_val_att() is a helper function used by see()
-// to locate the least valuable attacker for the side to move,
-// remove the attacker just found from the bitboards and
-// scan for new X-ray attacks behind it.
+// Helper function used by see() to locate the least valuable attacker for the side to move,
+// remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
 template<PieceType PT>
 PieceType Position::pick_least_val_att (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
@@ -274,14 +271,18 @@ PieceType Position::pick_least_val_att (Square dst, Bitboard stm_attackers, Bitb
         {
         case PAWN:
         case BSHP:
-            attackers |= (pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc));
+            attackers |= pieces (BSHP, QUEN)
+                       & attacks_bb<BSHP> (dst, mocc);
             break;
         case ROOK:
-            attackers |= (pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc));
+            attackers |= pieces (ROOK, QUEN)
+                       & attacks_bb<ROOK> (dst, mocc);
             break;
         case QUEN:
-            attackers |= (pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc))
-                      |  (pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc));
+            attackers |= (  pieces (BSHP, QUEN)
+                          & attacks_bb<BSHP> (dst, mocc))
+                      |  (  pieces (ROOK, QUEN)
+                          & attacks_bb<ROOK> (dst, mocc));
             break;
         default:
             break;
@@ -299,8 +300,7 @@ PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitbo
     return KING; // No need to update bitboards, it is the last cycle
 }
 
-// see() is a Static Exchange Evaluator (SEE):
-// It tries to estimate the material gain or loss resulting from a move.
+// Static Exchange Evaluator (SEE): It tries to estimate the material gain or loss resulting from a move.
 Value Position::see (Move m) const
 {
     assert(_ok (m));
@@ -389,7 +389,7 @@ Value Position::see (Move m) const
 
     return gain_list[0];
 }
-// see_sign()
+// Sign of SSE
 Value Position::see_sign (Move m) const
 {
     assert(_ok (m));
@@ -400,7 +400,7 @@ Value Position::see_sign (Move m) const
         VALUE_KNOWN_WIN :
         see (m);
 }
-// slider_blockers() returns a bitboard of all the pieces in 'target' that
+// Returns a bitboard of all the pieces in 'target' that
 // are blocking attacks on the square 's' from 'sliders'.
 // A piece blocks a slider if removing that piece from the board would result in a position
 // where square 's' is attacked by the 'sliders'.
@@ -410,8 +410,10 @@ Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard target)
     // Pinners are sliders that attack 's' when a pinned piece is removed
     Bitboard pinners =
           sliders
-        & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
-           | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
+        & (  (  pieces (BSHP, QUEN)
+              & PieceAttacks[BSHP][s])
+           | (  pieces (ROOK, QUEN)
+              & PieceAttacks[ROOK][s]));
     while (pinners != 0)
     {
         Bitboard blocker = between_bb (s, pop_lsq (pinners)) & pieces ();
@@ -423,7 +425,7 @@ Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard target)
     }
     return slide_blockers;
 }
-// pseudo_legal() tests whether a random move is pseudo-legal.
+// Tests whether a random move is pseudo-legal.
 // It is used to validate moves from TT that can be corrupted
 // due to SMP concurrent access or hash position key aliasing.
 bool Position::pseudo_legal (Move m) const
@@ -525,7 +527,8 @@ bool Position::pseudo_legal (Move m) const
         break;
     }
     // The captured square cannot be occupied by a friendly piece or kings
-    if (((pieces (_active)|pieces (KING)) & cap) != 0)
+    if (((  pieces (_active)
+          | pieces (KING)) & cap) != 0)
     {
         return false;
     }
@@ -603,7 +606,7 @@ bool Position::pseudo_legal (Move m) const
     }
     return true;
 }
-// legal() tests whether a pseudo-legal move is legal
+// Tests whether a pseudo-legal move is legal
 bool Position::legal (Move m, Bitboard abs_pinned) const
 {
     assert(_ok (m));
@@ -666,8 +669,10 @@ bool Position::legal (Move m, Bitboard abs_pinned) const
 
         auto mocc = pieces () - org - cap + dst;
         // If any attacker then in check and not legal move
-        return (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
-            && (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0;
+        return (  pieces (~_active, BSHP, QUEN)
+                & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
+            && (  pieces (~_active, ROOK, QUEN)
+                & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0;
     }
         break;
 
@@ -679,10 +684,10 @@ bool Position::legal (Move m, Bitboard abs_pinned) const
         break;
     }
 }
-// gives_check() tests whether a pseudo-legal move gives a check
+// Tests whether a pseudo-legal move gives a check
 bool Position::gives_check  (Move m, const CheckInfo &ci) const
 {
-    assert(ci.check_discoverers == check_discoverers (_active));
+    assert(ci.dsc_checkers == dsc_checkers (_active));
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
@@ -692,7 +697,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
            (ci.checking_bb[ptype (_board[org])] & dst) != 0
         // Is there a Discovered check ?
         // For discovery check we need to verify also direction
-        || (   (ci.check_discoverers & org) != 0
+        || (   (ci.dsc_checkers & org) != 0
             && !sqrs_aligned (org, dst, ci.king_sq)))
     {
         return true;
@@ -726,8 +731,10 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         auto cap = _file (dst)|_rank (org);
         auto mocc = pieces () - org - cap + dst;
         // If any attacker then in check
-        return (pieces (_active, BSHP, QUEN) & attacks_bb<BSHP> (ci.king_sq, mocc)) != 0
-            || (pieces (_active, ROOK, QUEN) & attacks_bb<ROOK> (ci.king_sq, mocc)) != 0;
+        return (  pieces (_active, BSHP, QUEN)
+                & attacks_bb<BSHP> (ci.king_sq, mocc)) != 0
+            || (  pieces (_active, ROOK, QUEN)
+                & attacks_bb<ROOK> (ci.king_sq, mocc)) != 0;
     }
         break;
 
@@ -746,7 +753,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         break;
     }
 }
-//// gives_checkmate() tests whether a pseudo-legal move gives a checkmate
+//// Tests whether a pseudo-legal move gives a checkmate
 //bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
 //{
 //    bool checkmate = false;
@@ -763,7 +770,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 //    return checkmate;
 //}
 
-// compute_non_pawn_material() computes the total non-pawn middle
+// Computes the total non-pawn middle
 // game material value for the given side. Material values are updated
 // incrementally during the search, this function is only used while
 // initializing a new Position object.
@@ -777,7 +784,7 @@ Value Position::compute_non_pawn_material (Color c) const
     return npm_value;
 }
 
-// clear() clear the position
+// Clear the position
 void Position::clear ()
 {
     for (auto s = SQ_A1; s <= SQ_H8; ++s)
@@ -813,7 +820,7 @@ void Position::clear ()
     _thread = nullptr;
 }
 
-// set_castle() set the castling for the particular color & rook
+// Set the castling for the particular color & rook
 void Position::set_castle (Color c, Square rook_org)
 {
     auto king_org = square<KING> (c);
@@ -846,7 +853,7 @@ void Position::set_castle (Color c, Square rook_org)
         }
     }
 }
-// can_en_passant() tests the en-passant square
+// Tests the en-passant square
 bool Position::can_en_passant (Square ep_sq) const
 {
     assert(_ok (ep_sq));
@@ -859,7 +866,9 @@ bool Position::can_en_passant (Square ep_sq) const
         return false;
     }
     // En-passant attackers
-    auto attackers = pieces (_active, PAWN) & PawnAttacks[~_active][ep_sq];
+    auto attackers =
+          pieces (_active, PAWN)
+        & PawnAttacks[~_active][ep_sq];
     assert(pop_count (attackers) <= 2);
     if (attackers != 0)
     {
@@ -873,8 +882,10 @@ bool Position::can_en_passant (Square ep_sq) const
         for (auto m : moves)
         {
             auto mocc = occ - org_sq (m);
-            if (   (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
-                && (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0)
+            if (   (  pieces (~_active, BSHP, QUEN)
+                    & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
+                && (  pieces (~_active, ROOK, QUEN)
+                    & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0)
             {
                 return true;
             }
@@ -911,11 +922,11 @@ bool Position::can_en_passant (File ep_f) const
 //    This is used to determine if a draw can be claimed under the fifty-move rule.
 // 6) Fullmove number. The number of the full move.
 //    It starts at 1, and is incremented after Black's move.
-bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool full)
+Position& Position::setup (const string &ff, StateInfo &si, Thread *const th, bool full)
 {
-    assert(!white_spaces (fen_));
+    assert(!white_spaces (ff));
 
-    istringstream iss (fen_);
+    istringstream iss (ff);
     iss >> std::noskipws;
 
     clear ();
@@ -952,7 +963,6 @@ bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool 
         else
         {
             assert(false);
-            return false;
         }
     }
 
@@ -992,7 +1002,7 @@ bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool 
             else
             {
                 assert(false);
-                return false;
+                r_sq = SQ_NO;
             }
         }
         else
@@ -1007,17 +1017,19 @@ bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool 
                 break;
             default:
                 assert(false);
-                return false;
+                r_sq = SQ_NO;
                 break;
             }
         }
 
-        if (_board[r_sq] != (c|ROOK))
+        if (_board[r_sq] == (c|ROOK))
+        {
+            set_castle (c, r_sq);
+        }
+        else
         {
             assert(false);
-            return false;
         }
-        set_castle (c, r_sq);
     }
 
     // 4. En-passant square. Ignore if no pawn capture is possible
@@ -1050,7 +1062,6 @@ bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool 
         //if (clk_ply > 100)
         //{
         //    assert(false);
-        //    return false;
         //}
 
         // Handle common problem move-num = 0.
@@ -1075,7 +1086,30 @@ bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool 
     
     _thread = th;
 
-    return true;
+    return *this;
+}
+// Overload to initialize the position object with the given endgame code string like "KBPKN".
+// It is manily an helper to get the material key out of an endgame code.
+// Position is not playable, indeed is not even guaranteed to be legal.
+Position& Position::setup (const string &code, StateInfo &si, Color c)
+{
+    assert(0 < code.length () && code.length () <= 8);
+    assert(code[0] == 'K');
+    assert(code.find ('K', 1) != string::npos);
+
+    string sides[CLR_NO] =
+    {
+        code.substr (   code.find ('K', 1)), // Weak
+        code.substr (0, code.find ('K', 1)), // Strong
+    };
+
+    to_lower (sides[c]);
+
+    string fen = sides[0] + char(8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
+               + sides[1] + char(8 - sides[1].length () + '0') + " w - - 0 1";
+
+    setup (fen, si, nullptr, false);
+    return *this;
 }
 
 #undef do_capture
@@ -1094,7 +1128,7 @@ bool Position::setup (const string &fen_, StateInfo &si, Thread *const th, bool 
     key ^= Zob.piece_square[pasive][cpt][cap];                           \
     _si->psq_score -= PSQ[pasive][cpt][cap];
 
-// do_move() do the natural-move
+// Do the natural-move
 void Position::do_move (Move m, StateInfo &si, bool gives_check)
 {
     assert(_ok (m));
@@ -1261,7 +1295,8 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     if (   _si->castle_rights != CR_NONE
         && (_castle_mask[org] | _castle_mask[dst]) != CR_NONE)
     {
-        i32 cr = _si->castle_rights & (_castle_mask[org] | _castle_mask[dst]);
+        i32 cr = _si->castle_rights
+               & (_castle_mask[org] | _castle_mask[dst]);
         Bitboard b = cr;
         _si->castle_rights &= ~cr;
         while (b != 0)
@@ -1271,7 +1306,10 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     }
     assert(attackers_to (square<KING> (_active), pasive) == 0);
     // Calculate checkers bitboard (if move is check)
-    _si->checkers = gives_check ? attackers_to (square<KING> (pasive), _active) : 0;
+    _si->checkers =
+        gives_check ?
+            attackers_to (square<KING> (pasive), _active) :
+            0;
     // Switch sides
     _active = pasive;
     // Reset en-passant square
@@ -1305,7 +1343,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     assert(ok ());
 }
 #undef do_capture
-// do_move() do the natural-move (CAN)
+// Do the natural-move (CAN)
 void Position::do_move (const string &can, StateInfo &si)
 {
     auto m = move_from_can (can, *this);
@@ -1314,7 +1352,7 @@ void Position::do_move (const string &can, StateInfo &si)
         do_move (m, si, gives_check (m, CheckInfo (*this)));
     }
 }
-// undo_move() undo the last natural-move
+// Undo the last natural-move
 void Position::undo_move ()
 {
     assert(_si->ptr != nullptr);
@@ -1397,7 +1435,7 @@ void Position::undo_move ()
 
     assert(ok ());
 }
-// do_null_move() do the null-move
+// Do the null-move
 void Position::do_null_move (StateInfo &si)
 {
     assert(&si != _si);
@@ -1422,7 +1460,7 @@ void Position::do_null_move (StateInfo &si)
 
     assert(ok ());
 }
-// undo_null_move() undo the last null-move
+// Undo the last null-move
 void Position::undo_null_move ()
 {
     assert(_si->ptr != nullptr);
@@ -1433,39 +1471,39 @@ void Position::undo_null_move ()
 
     assert(ok ());
 }
-// flip() flips position with the white and black sides reversed.
+// Flips position with the white and black sides reversed.
 // This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip ()
 {
-    string flip_fen, token;
+    string ff, token;
     istringstream iss (fen (true));
     // 1. Piece placement
     for (auto rank = R_8; rank >= R_1; --rank)
     {
         std::getline (iss, token, rank > R_1 ? '/' : ' ');
-        flip_fen.insert (0, token + (!white_spaces (flip_fen) ? "/" : " "));
+        ff.insert (0, token + (!white_spaces (ff) ? "/" : " "));
     }
     // 2. Active color
     iss >> token;
-    flip_fen += (token == "w" ? "B" : "W"); // Will be lowercased later
-    flip_fen += ' ';
+    ff += (token == "w" ? "B" : "W"); // Will be lowercased later
+    ff += ' ';
     // 3. Castling availability
     iss >> token;
-    flip_fen += token + ' ';
-    toggle (flip_fen);
+    ff += token + ' ';
+    toggle (ff);
     // 4. En-passant square
     iss >> token;
-    flip_fen += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" :
-                                                             token[1] == '6' ? "3" : "-"));
+    ff += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" :
+                                                       token[1] == '6' ? "3" : "-"));
     // 5-6. Half and full moves
     std::getline (iss, token);
-    flip_fen += token;
+    ff += token;
 
-    setup (flip_fen, *_si, _thread, true);
+    setup (ff, *_si, _thread, true);
 
     assert(ok ());
 }
-// fen()
+// Returns the fen of position
 string Position::fen (bool full) const
 {
     ostringstream oss;
@@ -1546,54 +1584,38 @@ string Position::fen (bool full) const
 
     return oss.str ();
 }
-// string() returns an ASCII representation of the position to be
+// Returns an ASCII representation of the position to be
 // printed to the standard output
 Position::operator string () const
 {
-    const string Edge = " +---+---+---+---+---+---+---+---+\n";
-    const string Row1 = "| . |   | . |   | . |   | . |   |\n" + Edge;
-    const string Row2 = "|   | . |   | . |   | . |   | . |\n" + Edge;
-
-    auto sboard = Edge;
-
-    for (auto r = R_8; r >= R_1; --r)
-    {
-        sboard += to_char (r) + ((r % 2) != 0 ? Row1 : Row2);
-    }
-    for (auto f = F_A; f <= F_H; ++f)
-    {
-        sboard += "   ";
-        sboard += to_char (f, false);
-    }
-
-    auto occ = pieces ();
-    while (occ != 0)
-    {
-        auto s = pop_lsq (occ);
-        sboard[3 + i32((Row1.length () + 1) * (7.5 - _rank (s)) + 4 * _file (s))] = PieceChar[_board[s]];
-    }
-
     ostringstream oss;
 
-    oss << sboard << '\n' << '\n';
+    oss << " +---+---+---+---+---+---+---+---+\n";
+    for (auto r = R_8; true; --r)
+    {
+        oss << to_char (r) << "| ";
+        for (auto f = F_A; true; ++f)
+        {
+            oss << _board[(f|r)] << " | ";
+            if (f == F_H)
+            {
+                break;
+            }
+        }
+        oss << "\n +---+---+---+---+---+---+---+---+\n";
+        if (r == R_1)
+        {
+            break;
+        }
+    }
 
     oss << "FEN: " << fen () << '\n'
         << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
         << _si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << '\n';
-
     oss << "Checkers: ";
-    auto chkrs = _si->checkers;
-    if (chkrs != 0)
+    for (Bitboard checkers = _si->checkers; checkers != 0; )
     {
-        while (chkrs != 0)
-        {
-            auto chk_sq = pop_lsq (chkrs);
-            oss << (WHITE|ptype (_board[chk_sq])) << chk_sq << ' ';
-        }
-    }
-    else
-    {
-        oss << "<none>";
+        oss << pop_lsq (checkers) << ' ';
     }
 
     return oss.str ();

@@ -12,12 +12,13 @@ namespace Pawns {
 
     #define V(v) Value(v)
 
-        // Weakness of friend pawn shelter in front of the friend king indexed by [distance from edge][rank]
+        // Weakness of friend pawn shelter in front of the friend king,
+        // indexed by [distance from edge][rank]
         const Value ShelterWeak[F_NO/2][R_NO] =
         {
             { V( 99), V(21), V(26), V(51), V(87), V( 89), V( 99), V( 0) }, // => A and H file
             { V(120), V( 0), V(28), V(76), V(88), V(103), V(104), V( 0) }, // => B and G file
-            { V(101), V( 7), V(54), V(78), V(77), V( 92), V(101), V( 0) }, // => C and F file
+            { V(101), V( 7), V(54), V(78), V(85), V( 92), V(101), V( 0) }, // => C and F file
             { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119), V( 0) }  // => D and E file
         };
 
@@ -28,7 +29,8 @@ namespace Pawns {
             BLOCKED_BY_PAWN,
             BLOCKED_BY_KING,
         };
-        // Dangerousness of enemy pawns moving toward the friend king indexed by [block-type][distance from edge][rank]
+        // Dangerousness of enemy pawns moving toward the friend king,
+        // indexed by [block-type][distance from edge][rank]
         const Value StromDanger[4][F_NO/2][R_NO] =
         {
             {
@@ -86,7 +88,7 @@ namespace Pawns {
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
         {
-            const auto Opp  = Own == WHITE ? BLACK  : WHITE;
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
             const auto Push = Own == WHITE ? DEL_N  : DEL_S;
             const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
@@ -106,7 +108,7 @@ namespace Pawns {
             auto pawn_score = SCORE_ZERO;
 
             Bitboard b;
-            for (auto s : pos.squares<PAWN> (Own))
+            for (Square s : pos.squares<PAWN> (Own))
             {
                 assert(pos[s] == (Own|PAWN));
 
@@ -118,30 +120,31 @@ namespace Pawns {
                 Bitboard supporters = neighbours & PawnAttacks[Opp][s];
                 Bitboard stoppers   = opp_pawns & pawn_pass_span (Own, s);
 
-                bool opposed        = (opp_pawns & front_sqrs_bb (Own, s)) != 0;
-                bool blocked        = (own_pawns & (s+Push)) != 0;
-                bool phalanxed      = (neighbours & rank_bb (s)) != 0;
-                bool connected      = phalanxed || supporters != 0;
-                bool levered        = (opp_pawns & PawnAttacks[Own][s]) != 0;
+                bool opposed    = (opp_pawns & front_sqrs_bb (Own, s)) != 0;
+                bool blocked    = (own_pawns & (s+Push)) != 0;
+                bool phalanxed  = (neighbours & rank_bb (s)) != 0;
+                bool connected  = phalanxed || supporters != 0;
+                bool levered    = (opp_pawns & PawnAttacks[Own][s]) != 0;
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
                 // The pawn is backward when it cannot safely progress to next rank:
                 // either there is a stoppers in the way on next rank
                 // or there is a stoppers on adjacent file which controls the way to next rank.
-                bool backward       =  !levered
-                                    && stoppers != 0
-                                    && neighbours != 0
-                                    && rel_rank (Own, s) < R_6
-                                    // Find the backmost rank with neighbours or stoppers
-                                    && (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers))) != 0
-                                    // If have an enemy pawn in the same or next rank, the pawn is
-                                    // backward because it cannot advance without being captured.
-                                    && (stoppers & (b | shift_bb<Push> (b & adj_file_bb (f)))) != 0;
+                bool backward   = !levered
+                               && stoppers != 0
+                               && neighbours != 0
+                               && rel_rank (Own, s) < R_6
+                               // Find the backmost rank with neighbours or stoppers
+                               && (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers))) != 0
+                               // If have an enemy pawn in the same or next rank, the pawn is
+                               // backward because it cannot advance without being captured.
+                               && (stoppers & (b | shift_bb<Push> (b & adj_file_bb (f)))) != 0;
 
                 // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
                 if (   stoppers == 0
-                    && (own_pawns & front_sqrs_bb (Own, s)) == 0)
+                    && (  own_pawns
+                        & front_sqrs_bb (Own, s)) == 0)
                 {
-                    e->passed_pawns[Own] += s;
+                    e->passed_pawns[Own] |= square_bb (s);
                 }
 
                 auto score = SCORE_ZERO;
@@ -240,8 +243,8 @@ namespace Pawns {
     Score Entry::evaluate_unstoppable_pawns () const
     {
         return passed_pawns[Own] != 0 ?
-                    Unstopped * i32(rel_rank (Own, scan_frntmost_sq (Own, passed_pawns[Own]))) :
-                    SCORE_ZERO;
+                Unstopped * i32(rel_rank (Own, scan_frntmost_sq (Own, passed_pawns[Own]))) :
+                SCORE_ZERO;
     }
     // Explicit template instantiations
     template Score Entry::evaluate_unstoppable_pawns<WHITE> () const;
@@ -254,7 +257,7 @@ namespace Pawns {
         // If pawn key matches the position's pawn hash key,
         // it means that have analysed this pawn configuration before,
         // and can simply return the information found instead of recomputing it.
-        if (   !e->used
+        if (  !e->used
             || e->pawn_key != pawn_key)
         {
             e->used = true;
@@ -286,5 +289,4 @@ namespace Pawns {
             }
         }
     }
-
 }

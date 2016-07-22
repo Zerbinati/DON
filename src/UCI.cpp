@@ -19,7 +19,7 @@ namespace UCI {
     using namespace MoveGen;
     using namespace Notation;
 
-    // loop() waits for a command from stdin, parses it and calls the appropriate function.
+    // Waits for a command from stdin, parses it and calls the appropriate function.
     // Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     // When called with some command line arguments, e.g. to run 'bench',
     // once the command is executed the function returns immediately.

@@ -578,7 +578,7 @@ inline bool opposite_colors (Square s1, Square s2)
     return (((s >> 3) ^ s) & i08(BLACK)) != 0;
 }
 
-inline Delta  pawn_push (Color c)
+inline Delta pawn_push (Color c)
 {
     switch (c)
     {

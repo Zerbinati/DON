@@ -22,8 +22,8 @@ namespace {
     const TimePoint OverheadMoveTime   = 30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
     const TimePoint MinimumMoveTime    = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
 
-    // move_importance() is a skew-logistic function based on naive statistical
-    // analysis of "how many games are still undecided after n half-moves".
+    // Skew-logistic function based on naive statistical analysis of
+    // "how many games are still undecided after n half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
     // Data was extracted from the CCRL game database with some simple filtering criteria.
     double move_importance (i16 ply)
@@ -33,7 +33,7 @@ namespace {
     }
 
     template<bool Maximum>
-    // remaining_time<>() calculate the time remaining
+    // Calculate the remaining time.
     TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
     {
         // When in trouble, can step over reserved time with this ratio
@@ -61,8 +61,7 @@ TimePoint TimeManager::elapsed_time () const
             Threadpool.nodes () :
             now () - Limits.start_time;
 }
-// TimeManager::initialize() is called at the beginning of the search.
-// It calculates the allowed thinking time out of the time control and current game ply.
+// Calculates the allowed thinking time out of the time control and current game ply.
 void TimeManager::initialize (Color c, i16 ply)
 {
     // If we have to play in 'Nodes as Time' mode, then convert from time
@@ -120,8 +119,7 @@ void TimeManager::initialize (Color c, i16 ply)
         optimum_time = maximum_time;
     }
 }
-// TimeManager::update() is called at the end of the search.
-// It updates the allowed thinking time.
+// Updates the allowed thinking time.
 void TimeManager::update (Color c)
 {
     // When playing in 'Nodes as Time' mode,
@@ -219,7 +217,7 @@ namespace Threading {
         return best_th;
     }
 
-    // ThreadPool::game_nodes() returns the total game nodes searched
+    // Returns the total game nodes searched
     u64 ThreadPool::nodes () const
     {
         u64 nodes = 0;
@@ -229,21 +227,24 @@ namespace Threading {
         }
         return nodes;
     }
-    // ThreadPool::configure() updates internal threads parameters from the corresponding
-    // UCI options and creates/destroys threads to match the requested number.
+    // Updates internal threads parameters creates/destroys threads to match the requested number.
     // Thread objects are dynamically allocated to avoid creating in advance all possible
     // threads, with included pawns and material tables, if only few are used.
-    void ThreadPool::configure (i32 threads)
+    void ThreadPool::configure (u32 threads)
     {
         if (threads == 0)
         {
             threads = thread::hardware_concurrency ();
         }
-        while (i32(size ()) < threads)
+        assert(threads > 0);
+
+        wait_while_thinking ();
+
+        while (size () < threads)
         {
             push_back (new Thread);
         }
-        while (i32(size ()) > threads)
+        while (size () > threads)
         {
             delete back ();
             pop_back ();
@@ -251,31 +252,8 @@ namespace Threading {
         shrink_to_fit ();
         sync_cout << "info string Thread(s) used " << threads << sync_endl;
     }
-    // ThreadPool::initialize() creates and launches requested threads, that will go immediately to sleep.
-    // Cannot use a constructor becuase threadpool is a static object and require a fully initialized engine.
-    void ThreadPool::initialize ()
-    {
-        assert(empty ());
-        push_back (new MainThread);
-        configure (i32(Options["Threads"]));
-    }
-    // ThreadPool::deinitialize() cleanly terminates the threads before the program exits.
-    // Cannot be done in destructor because threads must be terminated before deleting any
-    // static objects related to search while still in main().
-    void ThreadPool::deinitialize ()
-    {
-        ForceStop = true;
-        wait_while_thinking ();
-        assert(!empty ());
-        while (!empty ())
-        {
-            delete back ();
-            // Get rid of stale pointer
-            pop_back ();
-        }
-    }
 
-    // ThreadPool::start_thinking() wakes up the main thread sleeping in Thread::idle_loop()
+    // Wakes up the main thread sleeping in Thread::idle_loop()
     // and starts a new search, then returns immediately.
     void ThreadPool::start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits)
     {
@@ -360,11 +338,36 @@ namespace Threading {
         PonderhitStop = false;
         main_thread ()->start_searching (false);
     }
-    // ThreadPool::wait_while_thinking() waits for the main thread while searching.
+    // Waits for the main thread while searching.
     void ThreadPool::wait_while_thinking ()
     {
         main_thread ()->wait_while_searching ();
     }
+
+    // Creates and launches requested threads, that will go immediately to sleep.
+    // Cannot use a constructor becuase threadpool is a static object and require a fully initialized engine.
+    void ThreadPool::initialize ()
+    {
+        assert(empty ());
+        push_back (new MainThread);
+        configure (i32(Options["Threads"]));
+    }
+    // Cleanly terminates the threads before the program exits.
+    // Cannot be done in destructor because threads must be terminated before deleting any
+    // static objects related to search while still in main().
+    void ThreadPool::deinitialize ()
+    {
+        ForceStop = true;
+        wait_while_thinking ();
+        assert(!empty ());
+        while (!empty ())
+        {
+            delete back ();
+            // Get rid of stale pointer
+            pop_back ();
+        }
+    }
+
 }
 
 Threading::ThreadPool Threadpool;

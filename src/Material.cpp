@@ -57,7 +57,8 @@ namespace Material {
         Endgame<KPsK>   ScaleKPsK   [CLR_NO] = { Endgame<KPsK>   (WHITE), Endgame<KPsK>   (BLACK) };
         Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
 
-        // Helper used to detect a given material distribution
+        // Helpers used to detect a given material distribution
+
         bool is_KXK (const Position &pos, Color c)
         {
             return pos.non_pawn_material (c) >= VALUE_MG_ROOK
@@ -65,14 +66,12 @@ namespace Material {
                 //&& pos.count<PAWN> (~c) == 0
                 && !more_than_one (pos.pieces (~c));
         }
-
         bool is_KBPsKs (const Position &pos, Color c)
         {
             return pos.non_pawn_material ( c) == VALUE_MG_BSHP
                 && pos.count<BSHP> ( c) == 1
                 && pos.count<PAWN> ( c) != 0;
         }
-
         bool is_KQKRPs (const Position &pos, Color c)
         {
             return pos.non_pawn_material ( c) == VALUE_MG_QUEN
@@ -83,7 +82,7 @@ namespace Material {
                 && pos.count<PAWN> (~c) != 0;
         }
 
-        // imbalance<>() calculates the imbalance by comparing
+        // Calculates the imbalance by comparing
         // the piece count of each piece type for both colors.
         // NOTE:: KING == BISHOP_PAIR
         template<Color Own>
@@ -120,8 +119,7 @@ namespace Material {
 
     }
 
-    // probe() takes a position object as input,
-    // looks up a MaterialEntry object, and returns a pointer to it.
+    // Looks up a MaterialEntry object, and returns a pointer to it.
     // If the material configuration is not already present in the table,
     // it is computed and stored there, so don't have to recompute everything
     // when the same material configuration occurs again.
@@ -132,7 +130,7 @@ namespace Material {
         // If material key matches the position's material hash key,
         // it means that have analysed this material configuration before,
         // and can simply return the information found instead of recomputing it.
-        if (   !e->used
+        if (  !e->used
             || e->matl_key != matl_key)
         {
             std::memset (e, 0x00, sizeof (*e));
@@ -210,14 +208,14 @@ namespace Material {
                 if (abs (  pos.non_pawn_material ( c)
                          - pos.non_pawn_material (~c)) <= VALUE_MG_BSHP)
                 {
-                    if (pos.count<PAWN> ( c) == 0)
+                    if (pos.count<PAWN> (c) == 0)
                     {
                         e->factor[c] =
                             pos.non_pawn_material ( c) <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                             pos.non_pawn_material (~c) <= VALUE_MG_BSHP ? ScaleFactor(4) : ScaleFactor(14);
                     }
                     else
-                    if (pos.count<PAWN> ( c) == 1)
+                    if (pos.count<PAWN> (c) == 1)
                     {
                         e->factor[c] = SCALE_FACTOR_ONEPAWN;
                     }
@@ -245,5 +243,4 @@ namespace Material {
 
         return e;
     }
-
 }

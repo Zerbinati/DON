@@ -18,6 +18,9 @@ namespace UCI {
     using namespace Searcher;
     using namespace TBSyzygy;
     using namespace Debugger;
+#if defined(LPAGES)
+    using namespace Memory;
+#endif
 
     Option::Option (OnChange on_change)
         : _type ("button")
@@ -159,7 +162,7 @@ namespace UCI {
 #   if defined(LPAGES)
         void on_memory_type ()
         {
-            Memory::LargePages = bool(Options["Large Pages"]);
+            LargePages = bool(Options["Large Pages"]);
             TT.resize ();
         }
 #   endif
@@ -305,7 +308,7 @@ namespace UCI {
 
         // The amount of memory to use for hash table during search by engine, in MB (megabytes).
         // This number should be smaller than the amount of physical memory for your system.
-        // Default=16, Min=4, Max =1048576.
+        // Default=16, Min=0, Max =1048576.
         //
         // The value is rounded down to a power of 2 (4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536, 131072, 262144) MB.
         //
@@ -315,10 +318,10 @@ namespace UCI {
         // For 16 Min=games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
-        Options["Hash"]                         << Option (16, 0, MaxHashSize, on_hash_size);
+        Options["Hash"]                         << Option (16, 0, Table::MaxHashSize, on_hash_size);
 
 #if defined(LPAGES)
-        Options["Large Pages"]                  << Option (Memory::LargePages, on_memory_type);
+        Options["Large Pages"]                  << Option (LargePages, on_memory_type);
 #endif
 
         // Button to clear the Hash Memory.

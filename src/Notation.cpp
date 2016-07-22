@@ -93,7 +93,7 @@ namespace Notation {
 
     }
 
-    // move_to_can() converts a move to a string in coordinate algebraic notation representation.
+    // Converts a move to a string in coordinate algebraic notation representation.
     // The only special case is castling moves,
     //  - e1g1 notation in normal chess mode,
     //  - e1h1 notation in chess960 mode.
@@ -117,7 +117,7 @@ namespace Notation {
         }
         return can;
     }
-    // move_to_san() converts a move to a string in short algebraic notation representation.
+    // Converts a move to a string in short algebraic notation representation.
     string move_to_san (Move m, Position &pos)
     {
         if (m == MOVE_NONE) return "(none)";
@@ -184,14 +184,14 @@ namespace Notation {
 
         return san;
     }
-    //// move_to_lan() converts a move to a string in long algebraic notation representation.
+    //// Converts a move to a string in long algebraic notation representation.
     //string move_to_lan (Move m, Position &pos)
     //{
     //    string lan;
     //    return lan;
     //}
 
-    // move_from_can() converts a string representing a move in coordinate algebraic notation
+    // Converts a string representing a move in coordinate algebraic notation
     // to the corresponding legal move, if any.
     Move move_from_can (const string &can, const Position &pos)
     {
@@ -209,7 +209,7 @@ namespace Notation {
         }
         return MOVE_NONE;
     }
-    // move_from_san() converts a string representing a move in short algebraic notation
+    // Converts a string representing a move in short algebraic notation
     // to the corresponding legal move, if any.
     Move move_from_san (const string &san,       Position &pos)
     {
@@ -222,7 +222,7 @@ namespace Notation {
         }
         return MOVE_NONE;
     }
-    //// move_from_lan() converts a string representing a move in long algebraic notation
+    //// Converts a string representing a move in long algebraic notation
     //// to the corresponding legal move, if any.
     //Move move_from_lan (const string &lan,       Position &pos)
     //{
@@ -236,7 +236,7 @@ namespace Notation {
     //    return MOVE_NONE;
     //}
 
-    // pretty_pv_info() returns formated human-readable search information,
+    // Returns formated human-readable search information,
     // typically to be appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
     string pretty_pv_info ()

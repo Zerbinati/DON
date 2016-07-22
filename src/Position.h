@@ -29,25 +29,25 @@ struct StateInfo
 {
 public:
     // Copied when making a move
-    Key         matl_key;   //= 0;          // Hash key of materials.
-    Key         pawn_key;   //= 0;          // Hash key of pawns.
+    Key         matl_key;       // Hash key of materials.
+    Key         pawn_key;       // Hash key of pawns.
 
     Value       non_pawn_matl[CLR_NO];
-    Score       psq_score;  //= SCORE_ZERO;
+    Score       psq_score;
 
-    CastleRight castle_rights;//= CR_NONE;  // Castling-rights information.
-    Square      en_passant_sq;//= SQ_NO;    // En-passant -> "In passing"
-    u08         clock_ply;  //= 0;          // Number of halfmoves clock since the last pawn advance or any capture.
-                                            // Used to determine if a draw can be claimed under the clock-move rule.
-    u08         null_ply;   //= 0;
+    CastleRight castle_rights;  // Castling-rights information.
+    Square      en_passant_sq;  // En-passant -> "In passing"
+    u08         clock_ply;      // Number of halfmoves clock since the last pawn advance or any capture.
+                                // Used to determine if a draw can be claimed under the clock-move rule.
+    u08         null_ply;   
 
     // Not copied when making a move
-    Key         posi_key;   //= 0;          // Hash key of position.
-    Move        last_move;  //= MOVE_NONE;  // Move played on the previous position.
-    PieceType   capture_type;//= NONE;      // Piece type captured.
-    Bitboard    checkers;   //= 0;          // Checkers bitboard.
+    Key         posi_key;       // Hash key of position.
+    Move        last_move;      // Move played on the previous position.
+    PieceType   capture_type;   // Piece type captured.
+    Bitboard    checkers;       // Checkers bitboard.
 
-    StateInfo   *ptr;       //= nullptr;    // Previous StateInfo.
+    StateInfo   *ptr;           // Previous StateInfo.
 
     StateInfo () = default;
 };
@@ -55,20 +55,14 @@ public:
 typedef std::deque<StateInfo>       StateList;
 typedef std::unique_ptr<StateList>  StateListPtr;
 
-// CheckInfo struct is initialized at constructor time
-// and stores critical information used to detect if a move gives check.
-//
-//  - Checking squares from which the enemy king can be checked
-//  - Pinned pieces.
-//  - Check discoverer pieces.
-//  - Enemy king square.
+// CheckInfo struct stores information used to detect if a move gives check.
 struct CheckInfo
 {
 public:
-    Bitboard checking_bb[NONE]; // Checking squares from which the enemy king can be checked
-    Bitboard abs_pinneds;       // Absolute pinned pieces
-    Bitboard check_discoverers; // Check discoverer pieces
-    Square   king_sq;           // Enemy king square
+    Bitboard checking_bb[NONE]; // Checking squares from which the enemy king can be checked.
+    Bitboard abs_pinneds;       // Absolute pinneds pieces.
+    Bitboard dsc_checkers;      // Discovered checkers pieces.
+    Square   king_sq;           // Enemy king square.
 
     CheckInfo () = delete;
     explicit CheckInfo (const Position &pos);
@@ -224,7 +218,7 @@ public:
 
     Bitboard slider_blockers (Square s, Bitboard sliders, Bitboard target) const;
     Bitboard abs_pinneds (Color c) const;
-    Bitboard check_discoverers (Color c) const;
+    Bitboard dsc_checkers (Color c) const;
 
     bool pseudo_legal   (Move m) const;
     bool legal          (Move m, Bitboard abs_pinned) const;
@@ -236,7 +230,7 @@ public:
     bool gives_check    (Move m, const CheckInfo &ci) const;
     //bool gives_checkmate (Move m, const CheckInfo &ci) const;
 
-    bool passed_pawn  (Color c, Square s) const;
+    bool pawn_passed_at (Color c, Square s) const;
     bool bishops_pair (Color c) const;
     bool opposite_bishops ()    const;
 
@@ -244,7 +238,8 @@ public:
 
     void clear ();
 
-    bool setup (const std::string &fen_, StateInfo &si, Thread *const th = nullptr, bool full = true);
+    Position& setup (const std::string &ff, StateInfo &si, Thread *const th = nullptr, bool full = true);
+    Position& setup (const std::string &code, StateInfo &si, Color c);
 
     void do_move (Move m, StateInfo &si, bool gives_check);
     void do_move (const std::string &can, StateInfo &si);
@@ -349,7 +344,7 @@ inline Key Position::matl_key () const { return _si->matl_key; }
 inline Key Position::pawn_key () const { return _si->pawn_key; }
 inline Key Position::posi_key () const { return _si->posi_key; }
 inline Key Position::poly_key () const { return PolyZob.compute_posi_key (*this); }
-// move_posi_key() computes the new hash key after the given moven. Needed for speculative prefetch.
+// Computes the new hash key after the given moven. Needed for speculative prefetch.
 // It doesn't recognize special moves like castling, en-passant and promotions.
 inline Key Position::move_posi_key (Move m) const
 {
@@ -394,8 +389,7 @@ inline i16  Position::ply () const { return _ply; }
 inline i16  Position::move_num () const { return i16(std::max ((_ply - (_active == BLACK ? 1 : 0)) / 2, 0) + 1); }
 // Nodes searched
 inline u64  Position::nodes () const { return _nodes; }
-// phase() calculates the phase interpolating total
-// non-pawn material between endgame and midgame limits.
+// Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
 inline Phase Position::phase () const
 {
     return Phase(
@@ -435,28 +429,28 @@ inline Bitboard Position::attackers_to (Square s) const
 {
     return attackers_to (s, pieces ());
 }
-// Checkers are enemy pieces that give the direct Check to friend King of color 'c'
+// Checkers are enemy pieces that give the direct check to friend King of color 'c'
 inline Bitboard Position::checkers (Color c) const
 {
     return attackers_to (square<KING> (c), ~c);
 }
 
-// Pinneds are friend pieces, that save the friend king from enemy pinners.
+// Absolute pinneds are friend pieces, that save the friend king from enemy checkers.
 inline Bitboard Position::abs_pinneds (Color c) const
 {
     return slider_blockers (square<KING> ( c), pieces (~c), pieces (c));
 }
-// Discoverers are candidate friend pieces, that give the discover check to enemy king when moved.
-inline Bitboard Position::check_discoverers (Color c) const
+// Discovered checkers are friend pieces, that give the discover check to enemy king when moved.
+inline Bitboard Position::dsc_checkers (Color c) const
 {
     return slider_blockers (square<KING> (~c), pieces ( c), pieces (c));
 }
-
-inline bool Position::passed_pawn (Color c, Square s) const
+// Pawn passed at the given square
+inline bool Position::pawn_passed_at (Color c, Square s) const
 {
     return (pieces (~c, PAWN) & pawn_pass_span (c, s)) == 0;
 }
-// bishops_pair(c) check the side has pair of opposite color bishops
+// Check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
 {
     for (i32 pc = 1; pc < count<BSHP> (c); ++pc)
@@ -468,7 +462,7 @@ inline bool Position::bishops_pair (Color c) const
     }
     return false;
 }
-// opposite_bishops() check the opposite sides have opposite bishops
+// Check the opposite sides have opposite bishops
 inline bool Position::opposite_bishops () const
 {
     return count<BSHP> (WHITE) == 1
@@ -476,28 +470,28 @@ inline bool Position::opposite_bishops () const
         && opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
 }
 inline bool Position::legal (Move m) const { return legal (m, abs_pinneds (_active)); }
-// capture(m) checks move is capture
+// Checks move is capture
 inline bool Position::capture (Move m) const
 {
     // Castling is encoded as "king captures the rook"
     return ((mtype (m) == NORMAL || promotion (m)) && (pieces (~_active) & dst_sq (m)) != 0)
         || en_passant (m);
 }
-// promotion(m) checks move is promotion
+// Checks move is promotion
 inline bool Position::promotion (Move m) const
 {
     return mtype (m) == PROMOTE
         && _board[org_sq (m)] == (_active|PAWN)
         && rel_rank (_active, dst_sq (m)) == R_8;
 }
-// capture_or_promotion(m) checks move is capture or promotion
+// Checks move is capture or promotion
 inline bool Position::capture_or_promotion (Move m) const
 {
     return (mtype (m) == NORMAL && (pieces (~_active) & dst_sq (m)) != 0)
         || en_passant (m)
         || promotion (m);
 }
-// en_passant(m) checks move is en-passant
+// Checks move is en-passant
 inline bool Position::en_passant (Move m) const
 {
     return mtype (m) == ENPASSANT
@@ -510,7 +504,7 @@ inline void  Position::place_piece (Square s, Color c, PieceType pt)
 {
     _board[s] = (c|pt);
 
-    auto bb = square_bb (s);
+    Bitboard bb = square_bb (s);
     _color_bb[c]    |= bb;
     _types_bb[pt]   |= bb;
     _types_bb[NONE] |= bb;
@@ -529,7 +523,7 @@ inline void  Position::remove_piece (Square s)
     auto pt = ptype (_board[s]);
     //_board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 
-    auto bb = ~square_bb (s);
+    Bitboard bb = ~square_bb (s);
     _color_bb[c]    &= bb;
     _types_bb[pt]   &= bb;
     _types_bb[NONE] &= bb;
@@ -550,7 +544,9 @@ inline void  Position::move_piece (Square s1, Square s2)
     _board[s2] = _board[s1];
     _board[s1] = NO_PIECE;
 
-    auto bb = square_bb (s1) ^ square_bb (s2);
+    Bitboard bb =
+          square_bb (s1)
+        ^ square_bb (s2);
     _color_bb[c]    ^= bb;
     _types_bb[pt]   ^= bb;
     _types_bb[NONE] ^= bb;
@@ -571,7 +567,8 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     // Remove both pieces first since squares could overlap in chess960
     remove_piece (Do ? king_org : king_dst);
     remove_piece (Do ? rook_org : rook_dst);
-    _board[Do ? king_org : king_dst] = _board[Do ? rook_org : rook_dst] = NO_PIECE; // Not done by remove_piece()
+    _board[Do ? king_org : king_dst] =
+    _board[Do ? rook_org : rook_dst] = NO_PIECE; // Not done by remove_piece()
     place_piece (Do ? king_dst : king_org, _active, KING);
     place_piece (Do ? rook_dst : rook_org, _active, ROOK);
 }
@@ -588,10 +585,10 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
 // CheckInfo constructor
 inline CheckInfo::CheckInfo (const Position &pos)
 {
-    king_sq     = pos.square<KING> (~pos.active ());
-    abs_pinneds = pos.abs_pinneds (pos.active ());
-    check_discoverers = pos.check_discoverers (pos.active ());
-
+    king_sq      = pos.square<KING> (~pos.active ());
+    abs_pinneds  = pos.abs_pinneds (pos.active ());
+    dsc_checkers = pos.dsc_checkers (pos.active ());
+    
     checking_bb[PAWN] = PawnAttacks[~pos.active ()][king_sq];
     checking_bb[NIHT] = PieceAttacks[NIHT][king_sq];
     checking_bb[BSHP] = attacks_bb<BSHP> (king_sq, pos.pieces ());

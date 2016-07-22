@@ -192,7 +192,7 @@ namespace Threading {
 
         virtual ~Thread ();
 
-        // Thread::start_searching() wakes up the thread that will start the search
+        // Wakes up the thread that will start the search
         void start_searching (bool resume = false)
         {
             std::unique_lock<Mutex> lk (_mutex);
@@ -203,7 +203,7 @@ namespace Threading {
             _sleep_condition.notify_one ();
             lk.unlock ();
         }
-        // Thread::wait_while_searching() waits on sleep condition until not searching
+        // Waits on sleep condition until not searching
         void wait_while_searching ()
         {
             std::unique_lock<Mutex> lk (_mutex);
@@ -211,14 +211,14 @@ namespace Threading {
             lk.unlock ();
         }
 
-        // Thread::wait_until() waits on sleep condition until 'condition' turns true
+        // Waits on sleep condition until 'condition' turns true
         void wait_until (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return bool(condition); });
             lk.unlock ();
         }
-        // Thread::wait_while() waits on sleep condition until 'condition' turns false
+        // Waits on sleep condition until 'condition' turns false
         void wait_while (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
@@ -226,7 +226,7 @@ namespace Threading {
             lk.unlock ();
         }
 
-        // Thread::idle_loop() is where the thread is parked when it has no work to do
+        // Function where the thread is parked when it has no work to do
         void idle_loop ()
         {
             while (_alive)
@@ -304,15 +304,15 @@ namespace Threading {
 
         u64  nodes () const;
 
-        void configure (i32 threads);
-
-        // No constructor and destructor, threadpool rely on globals
-        // that should be initialized and valid during the whole thread lifetime.
-        void initialize ();
-        void deinitialize ();
+        void configure (u32 threads);
 
         void start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits);
         void wait_while_thinking ();
+
+        // No constructor and destructor, Threadpool rely on globals
+        // that should be initialized and valid during the whole thread lifetime.
+        void initialize ();
+        void deinitialize ();
     };
 
 }
