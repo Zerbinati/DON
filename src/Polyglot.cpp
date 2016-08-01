@@ -14,7 +14,6 @@ namespace Polyglot {
 
     #define OFFSET(x)  (Book::HeaderSize + (x)*sizeof (Entry))
 
-    // -------------------------
     // Size of Book entry (16 bytes)
     static_assert (sizeof (Entry) == 16, "Entry size incorrect");
 
@@ -37,8 +36,6 @@ namespace Polyglot {
 
         return oss.str ();
     }
-
-    // -------------------------
 
     const u08 Book::HeaderSize = 96;
     static_assert (Book::HeaderSize == 96, "Book header size incorrect");

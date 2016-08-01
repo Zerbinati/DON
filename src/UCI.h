@@ -61,8 +61,6 @@ namespace UCI {
     extern void initialize ();
     extern void deinitialize ();
 
-    // ---------------------------------------------
-
     template<class CharT, class Traits>
     inline std::basic_ostream<CharT, Traits>&
         operator<< (std::basic_ostream<CharT, Traits> &os, const Option &opt)

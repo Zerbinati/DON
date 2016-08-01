@@ -105,7 +105,7 @@ namespace Notation {
 
         auto org = org_sq (m);
         auto dst = dst_sq (m);
-        if (  !Position::Chess960
+        if (   !Position::Chess960
             && mtype (m) == CASTLE)
         {
             dst = (dst > org ? F_G : F_C) | _rank (org);
@@ -196,7 +196,8 @@ namespace Notation {
     Move move_from_can (const string &can, const Position &pos)
     {
         auto ccan = can;
-        if (ccan.length () == 5 && isupper (ccan[4]))
+        if (   ccan.length () == 5
+            && isupper (ccan[4]))
         {
             ccan[4] = char(tolower (ccan[4])); // Promotion piece in lowercase
         }

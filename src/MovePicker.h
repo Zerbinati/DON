@@ -25,11 +25,11 @@ namespace MovePick {
         const Position &_pos;
         const Stack    *_ss = nullptr;
 
-        u08     _stage          = 0;
+        u08     _stage      = 0;
 
-        Move    _tt_move        = MOVE_NONE;
-        Square  _recapture_sq   = SQ_NO;
-        Value   _threshold      = VALUE_ZERO;
+        Move    _tt_move    = MOVE_NONE;
+        Square  _recap_sq   = SQ_NO;
+        Value   _threshold  = VALUE_ZERO;
 
         // value() assign a numerical move ordering score to each move in a move list.
         // The moves with highest scores will be picked first.
@@ -45,7 +45,7 @@ namespace MovePick {
         MovePicker& operator= (const MovePicker&) = delete;
 
         MovePicker (const Position&, Move, const Stack*);
-        MovePicker (const Position&, Move, Depth, Square);
+        MovePicker (const Position&, Move, Depth, Move);
         MovePicker (const Position&, Move, Value);
 
         ValMove* begin () { return _beg_move; }

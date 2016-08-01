@@ -84,7 +84,10 @@ void TimeManager::initialize (Color c, i16 ply)
     maximum_time =
         std::max (Limits.clock[c].time, MinimumMoveTime);
 
-    const auto MaxMovesToGo = Limits.movestogo != 0 ? std::min (Limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
+    const auto MaxMovesToGo =
+        Limits.movestogo != 0 ?
+            std::min (Limits.movestogo, MaximumMoveHorizon) :
+            MaximumMoveHorizon;
     // Calculate optimum time usage for different hypothetic "moves to go" and choose the
     // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
     for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
@@ -129,8 +132,6 @@ void TimeManager::update (Color c)
         available_nodes += Limits.clock[c].inc - Threadpool.nodes ();
     }
 }
-
-// ------------------------------------
 
 // When playing with a strength handicap, choose best move among the first 'candidates'
 // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
@@ -196,12 +197,8 @@ namespace Threading {
         _native_thread.join ();
     }
 
-    // ------------------------------------
-
     MainThread::MainThread ()
     {}
-
-    // ------------------------------------
 
     Thread* ThreadPool::best_thread () const
     {

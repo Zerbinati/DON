@@ -115,8 +115,6 @@ private:
     StateInfo   *_si; // Current state information pointer
     Thread      *_thread;
 
-    // ------------------------
-
     void place_piece (Square s, Color c, PieceType pt);
     void place_piece (Square s, Piece p);
     void remove_piece (Square s);
@@ -242,7 +240,6 @@ public:
     Position& setup (const std::string &code, StateInfo &si, Color c);
 
     void do_move (Move m, StateInfo &si, bool gives_check);
-    void do_move (const std::string &can, StateInfo &si);
     void undo_move ();
     void do_null_move (StateInfo &si);
     void undo_null_move ();
@@ -254,8 +251,6 @@ public:
     explicit operator std::string () const;
 
 };
-
-// -------------------------------
 
 inline Piece Position::operator[] (Square s) const { return _board[s]; }
 //inline Bitboard Position::operator[] (Color  c) const { return _color_bb[c];  }
@@ -353,14 +348,14 @@ inline Key Position::move_posi_key (Move m) const
     auto mpt = ptype (_board[org]);
     assert(!empty (org)
           && color (_board[org]) == _active
-          && _ok (mpt));
+          && mpt != NONE);
 
     auto ppt = promotion (m) ? promote (m) : mpt;
     auto cpt = en_passant (m) ? PAWN : ptype (_board[dst]);
     Key key = _si->posi_key ^ Zob.active_color
         ^ Zob.piece_square[_active][ppt][dst]
         ^ Zob.piece_square[_active][mpt][org];
-    if (_ok (cpt))
+    if (cpt != NONE)
     {
         key ^= Zob.piece_square[~_active][cpt][en_passant (m) ? dst - pawn_push (_active) : dst];
     }
@@ -581,7 +576,6 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
     return os;
 }
 
-// ----------------------------------------------
 // CheckInfo constructor
 inline CheckInfo::CheckInfo (const Position &pos)
 {

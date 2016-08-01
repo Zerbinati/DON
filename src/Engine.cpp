@@ -43,11 +43,7 @@ namespace Engine {
     {
         ostringstream oss;
 
-        if (uci)
-        {
-            oss << "id name ";
-        }
-        oss << "DON ";
+        oss << (uci ? "id name " : "") << "DON ";
 
         oss << std::setfill ('0');
     #if defined(VER)
@@ -104,7 +100,7 @@ namespace Engine {
         UCI      ::initialize ();
         BitBoard ::initialize ();
         PieceSquare::initialize ();
-        Zobrist  ::initialize ();
+        Zobrists ::initialize ();
         BitBases ::initialize ();
         Pawns    ::initialize ();
         Evaluator::initialize ();

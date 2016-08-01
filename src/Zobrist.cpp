@@ -6,188 +6,192 @@
 using namespace std;
 using namespace BitBoard;
 
-Key Zobrist::ExclusionKey = 0;
+namespace Zobrists {
 
-Key Zobrist::compute_matl_key (const Position &pos) const
-{
-    Key matl_key = 0;
-    for (auto c = WHITE; c <= BLACK; ++c)
-    {
-        for (auto pt = PAWN; pt <= KING; ++pt)
-        {
-            for (auto pc = 0; pc < pos.count (c, pt); ++pc)
-            {
-                matl_key ^= piece_square[c][pt][pc];
-            }
-        }
-    }
-    return matl_key;
-}
-Key Zobrist::compute_pawn_key (const Position &pos) const
-{
-    Key pawn_key = 0;
-    for (auto c = WHITE; c <= BLACK; ++c)
-    {
-        for (Square s : pos.squares<PAWN> (c))
-        {
-            pawn_key ^= piece_square[c][PAWN][s];
-        }
-    }
-    return pawn_key;
-}
-Key Zobrist::compute_posi_key (const Position &pos) const
-{
-    Key posi_key = 0;
-    for (auto c = WHITE; c <= BLACK; ++c)
-    {
-        for (auto pt = PAWN; pt <= KING; ++pt)
-        {
-            for (Square s : pos[c|pt])
-            {
-                posi_key ^= piece_square[c][pt][s];
-            }
-        }
-    }
-    Bitboard b = pos.castle_rights ();
-    while (b != 0)
-    {
-        posi_key ^= (*castle_right)[pop_lsq (b)];
-    }
-    if (pos.en_passant_sq () != SQ_NO)
-    {
-        posi_key ^= en_passant[_file (pos.en_passant_sq ())];
-    }
-    if (pos.active () == WHITE)
-    {
-        posi_key ^= active_color;
-    }
-    return posi_key;
-}
-Key Zobrist::compute_fen_key (const string &fen, bool c960) const
-{
-    Key fen_key = 0;
+    Key Zobrist::ExclusionKey = 0;
 
-    if (!white_spaces (fen))
+    Key Zobrist::compute_matl_key (const Position &pos) const
     {
-        File kf[CLR_NO] = {F_NO, F_NO};
-        istringstream iss (fen);
-        u08 ch;
-        iss >> noskipws;
-        size_t idx;
-        auto s = SQ_A8;
-        while (   iss >> ch
-               && !isspace (ch))
+        Key matl_key = 0;
+        for (auto c = WHITE; c <= BLACK; ++c)
         {
-            if (isdigit (ch))
+            for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                s += Delta(ch - '0'); // Advance the given number of files
-            }
-            else
-            if (isalpha (ch) && (idx = PieceChar.find (ch)) != string::npos)
-            {
-                auto p = Piece(idx);
-                if (ptype (p) == KING)
+                for (auto pc = 0; pc < pos.count (c, pt); ++pc)
                 {
-                    kf[color (p)] = _file (s);
-                }
-                fen_key ^= piece_square[color (p)][ptype (p)][s];
-                ++s;
-            }
-            else
-            if (ch == '/')
-            {
-                s += DEL_SS;
-            }
-        }
-
-        assert(kf[WHITE] != F_NO);
-        assert(kf[BLACK] != F_NO);
-
-        iss >> ch;
-        if ('w' == ch)
-        {
-            fen_key ^= active_color;
-        }
-        iss >> ch;
-        if (c960)
-        {
-            while (   iss >> ch
-                   && !isspace (ch))
-            {
-                auto c = isupper (ch) ? WHITE : BLACK;
-                auto sym = char(tolower (ch));
-                if ('a' <= sym && sym <= 'h')
-                {
-                    fen_key ^= castle_right[c][(kf[c] < to_file (sym)) ? CS_KING : CS_QUEN];
-                }
-                else
-                {
-                    assert(false);
-                    return 0;
+                    matl_key ^= piece_square[c][pt][pc];
                 }
             }
         }
-        else
+        return matl_key;
+    }
+    Key Zobrist::compute_pawn_key (const Position &pos) const
+    {
+        Key pawn_key = 0;
+        for (auto c = WHITE; c <= BLACK; ++c)
         {
-            while (   iss >> ch
-                   && !isspace (ch))
+            for (Square s : pos.squares<PAWN> (c))
             {
-                auto c = isupper (ch) ? WHITE : BLACK;
-                switch (char(toupper (ch)))
+                pawn_key ^= piece_square[c][PAWN][s];
+            }
+        }
+        return pawn_key;
+    }
+    Key Zobrist::compute_posi_key (const Position &pos) const
+    {
+        Key posi_key = 0;
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            for (auto pt = PAWN; pt <= KING; ++pt)
+            {
+                for (Square s : pos[c|pt])
                 {
-                case 'K': fen_key ^= castle_right[c][CS_KING]; break;
-                case 'Q': fen_key ^= castle_right[c][CS_QUEN]; break;
-                default : break;
+                    posi_key ^= piece_square[c][pt][s];
                 }
             }
         }
-
-        u08 file, rank;
-        if (   (iss >> file && ('a' <= file && file <= 'h'))
-            && (iss >> rank && ('3' == rank || rank == '6')))
+        Bitboard b = pos.castle_rights ();
+        while (b != 0)
         {
-            fen_key ^= en_passant[to_file (file)];
+            posi_key ^= (*castle_right)[pop_lsq (b)];
         }
-    }
-    return fen_key;
-}
-
-void Zobrist::initialize ()
-{
-    assert(PolyZob.active_color == U64(0xF8D626AAAF278509));
-
-    static PRNG prng (0x105524);
-
-    ExclusionKey = prng.rand<Key> ();
-
-    // Initialize Random Zobrist
-    for (auto c = WHITE; c <= BLACK; ++c)
-    {
-        for (auto pt = PAWN; pt <= KING; ++pt)
+        if (pos.en_passant_sq () != SQ_NO)
         {
-            for (auto s = SQ_A1; s <= SQ_H8; ++s)
+            posi_key ^= en_passant[_file (pos.en_passant_sq ())];
+        }
+        if (pos.active () == WHITE)
+        {
+            posi_key ^= active_color;
+        }
+        return posi_key;
+    }
+    //Key Zobrist::compute_fen_key (const string &fen) const
+    //{
+    //    assert(!white_spaces (fen));
+    //
+    //    Key fen_key = 0;
+    //    istringstream iss (fen);
+    //    iss >> std::noskipws;
+    //    File kf[CLR_NO] = { F_NO, F_NO };
+    //    u08 token;
+    //    size_t idx;
+    //    auto f = F_A;
+    //    auto r = R_8;
+    //    while (   iss >> token
+    //            && !isspace (token)
+    //            && f <= F_NO
+    //            && r >= R_1)
+    //    {
+    //        if (isdigit (token))
+    //        {
+    //            f += Delta(token - '0'); // Advance the given number of files
+    //        }
+    //        else
+    //        if (   isalpha (token)
+    //            && (idx = PieceChar.find (token)) != string::npos)
+    //        {
+    //            auto p = Piece(idx);
+    //            if (ptype (p) == KING)
+    //            {
+    //                kf[color (p)] = f;
+    //            }
+    //            fen_key ^= piece_square[color (p)][ptype (p)][(f|r)];
+    //            ++f;
+    //        }
+    //        else
+    //        {
+    //            assert(token == '/');
+    //            f = F_A;
+    //            --r;
+    //        }
+    //    }
+    //
+    //    assert(kf[WHITE] != F_NO);
+    //    assert(kf[BLACK] != F_NO);
+    //
+    //    iss >> token;
+    //    if (token == 'w')
+    //    {
+    //        fen_key ^= active_color;
+    //    }
+    //
+    //    iss >> token;
+    //    while (   iss >> token
+    //           && !isspace (token))
+    //    {
+    //        auto c = isupper (token) ? WHITE : BLACK;
+    //        token = char(tolower (token));
+    //        if (token == 'k')
+    //        {
+    //            fen_key ^= castle_right[c][CS_KING];
+    //        }
+    //        else
+    //        if (token == 'q')
+    //        {
+    //            fen_key ^= castle_right[c][CS_QUEN];
+    //        }
+    //        else
+    //        // Chess960
+    //        if ('a' <= token && token <= 'h')
+    //        {
+    //            fen_key ^= castle_right[c][kf[c] < to_file (token) ? CS_KING : CS_QUEN];
+    //        }
+    //        else
+    //        {
+    //            assert(token == '-');
+    //            continue;
+    //        }
+    //    }
+    //
+    //    u08 file, rank;
+    //    if (   (iss >> file && ('a' <= file && file <= 'h'))
+    //        && (iss >> rank && ('3' == rank || rank == '6')))
+    //    {
+    //        fen_key ^= en_passant[to_file (file)];
+    //    }
+    //
+    //    return fen_key;
+    //}
+
+    void initialize ()
+    {
+        assert(PolyZob.active_color == U64(0xF8D626AAAF278509));
+
+        static PRNG prng (0x105524);
+
+        // Initialize Random Zobrist
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                Zob.piece_square[c][pt][s] = prng.rand<Key> ();
+                for (auto s = SQ_A1; s <= SQ_H8; ++s)
+                {
+                    Zob.piece_square[c][pt][s] = prng.rand<Key> ();
+                }
             }
         }
-    }
-    for (auto c = WHITE; c <= BLACK; ++c)
-    {
-        for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
+        for (auto f = F_A; f <= F_H; ++f)
         {
-            Zob.castle_right[c][cs] = prng.rand<Key> ();
+            Zob.en_passant[f] = prng.rand<Key> ();
         }
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
+            {
+                Zob.castle_right[c][cs] = prng.rand<Key> ();
+            }
+        }
+        Zob.active_color = prng.rand<Key> ();
+
+        Zobrist::ExclusionKey = prng.rand<Key> ();
     }
-    for (auto f = F_A; f <= F_H; ++f)
-    {
-        Zob.en_passant[f] = prng.rand<Key> ();
-    }
-    Zob.active_color = prng.rand<Key> ();
+
 }
 
-
-Zobrist Zob;
-Zobrist PolyZob =
+// Random Zobrist filled with randoms, used to compute position key
+Zobrists::Zobrist Zob;
+// Random Zobrist from Polyglot, used to compute polyglot book hash key
+Zobrists::Zobrist PolyZob =
 {
     // PieceSquare
     {

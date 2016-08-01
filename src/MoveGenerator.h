@@ -43,7 +43,7 @@ namespace MoveGen {
         explicit MoveList (const Position &pos)
             : _end_move (generate<GT> (_beg_move, pos))
         {
-            if (_ok (PT))
+            if (PT != NONE)
             {
                 auto *cur_move = _beg_move;
                 while (cur_move < _end_move)

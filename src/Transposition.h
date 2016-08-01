@@ -50,29 +50,28 @@ namespace Transposition {
                    Bound b,
                    u08 g)
         {
-            const u16 key16 = u16(k >> 0x30);
             // Preserve any existing move for the position (key)
-            if (   key16 != _key16
+            if (  (k >> 0x30) != _key16
                 || m != MOVE_NONE)
             {
                 _move       = u16(m);
             }
             // Don't overwrite more valuable entries
-            if (   key16 != _key16
+            if (  (k >> 0x30) != _key16
                 || e != VALUE_NONE)
             {
                 _eval       = i16(e);
             }
-            if (   key16 != _key16
+            if (  (k >> 0x30) != _key16
                 || d > _depth - DEPTH_4
-                /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
+             /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
                 || b == BOUND_EXACT)
             {
+                _key16      = u16(k >> 0x30);
                 _value      = i16(v);
                 _depth      = i08(d);
                 _gen_bnd    = u08(g | b);
             }
-            _key16 = key16;
         }
     };
 
@@ -102,7 +101,6 @@ namespace Transposition {
         void    *_blocks        = nullptr;
         Cluster *_clusters      = nullptr;
         size_t   _cluster_count = 0;
-        size_t   _cluster_mask  = 0;
         u08      _generation    = 0;
 
         void alloc_aligned_memory (size_t mem_size, u32 alignment);
@@ -148,61 +146,33 @@ namespace Transposition {
             return u32((_cluster_count * sizeof (Cluster)) >> 20);
         }
 
-        // Reset the entire transposition table with zeroes.
-        void clear ()
-        {
-            if (   !retain_hash
-                && _clusters != nullptr)
-            {
-                std::memset (_clusters, 0x00, _cluster_count * sizeof (Cluster));
-                _generation = 0;
-                sync_cout << "info string Hash cleared" << sync_endl;
-            }
-        }
+        void clear ();
 
         // "Generation" variable distinguish transposition table entries from different searches.
-        void generation (u16 ply) { _generation = u08(ply << 2)&u08(~BOUND_EXACT); }
-        u08  generation () const { return _generation; }
+        void new_generation (u16 ply)
+        {
+            _generation = u08(ply << 2)&u08(~BOUND_EXACT);
+        }
+        u08  generation () const
+        {
+            return _generation;
+        }
 
         // Returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
         Entry* cluster_entry (const Key key) const
         {
-            return _clusters[size_t(key) & _cluster_mask].entries;
-        }
-
-        // Returns an approximation of the per-mille of the 
-        // all transposition entries during a search which have received
-        // at least one write during the current search.
-        // It is used to display the "info hashfull ..." information in UCI.
-        // "the hash is <x> permill full", the engine should send this info regularly.
-        // hash, are using <x>%. of the state of full.
-        u32 hash_full () const
-        {
-            u32 full_entry_count = 0;
-            for (const auto *clt = _clusters; clt < _clusters + 1000/Cluster::EntryCount; ++clt)
-            {
-                const auto *fte = clt->entries;
-                for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
-                {
-                    if (ite->gen () == _generation)
-                    {
-                        ++full_entry_count;
-                    }
-                }
-            }
-            return full_entry_count;
+            return _clusters[size_t(key) & (_cluster_count-1)].entries;
         }
 
         u32 resize (u32 mem_size_mb, bool force = false);
-        u32 resize ()
-        {
-            return resize (size (), true);
-        }
+        u32 resize ();
 
         void auto_size (u32 mem_size_mb, bool force = false);
 
         Entry* probe (Key key, bool &tt_hit) const;
+
+        u32 hash_full () const;
 
         void save (const std::string &hash_fn) const;
         void load (const std::string &hash_fn);

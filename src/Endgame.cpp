@@ -384,13 +384,9 @@ namespace EndGame {
     }
 
 
-    // ---------------------------------------------------------
     // Scaling functions are used when any side have some pawns
-    // ---------------------------------------------------------
 
-    // ---------------------------------------------------------
     // Special Scaling functions
-    // ---------------------------------------------------------
 
     // KRP vs KR. This function knows a handful of the most important classes of
     // drawn positions, but is far from perfect. It would probably be a good idea
@@ -857,9 +853,7 @@ namespace EndGame {
         return SCALE_FACTOR_NONE;
     }
 
-    // --------------------------------------------------------------
     // Generic Scaling functions
-    // --------------------------------------------------------------
 
     // KB and one or more pawns vs K and zero or more pawns.
     // It checks for draws with rook pawns and a bishop of the wrong color.

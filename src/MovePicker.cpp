@@ -55,7 +55,7 @@ namespace MovePick {
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
-    MovePicker::MovePicker (const Position &pos, Move ttm, Depth d, Square dst_sq)
+    MovePicker::MovePicker (const Position &pos, Move ttm, Depth d, Move lm)
         : _pos (pos)
         , _tt_move (ttm)
     {
@@ -80,8 +80,10 @@ namespace MovePick {
         }
         else
         {
+            assert(_ok (lm));
+
             _stage = S_RECAPTURE;
-            _recapture_sq = dst_sq;
+            _recap_sq = dst_sq (lm);
             _tt_move = MOVE_NONE;
         }
 
@@ -103,7 +105,7 @@ namespace MovePick {
         // In ProbCut generate captures with SEE higher than the given threshold
         if (   _tt_move != MOVE_NONE
             && (   !_pos.capture (_tt_move)
-                || _pos.see (_tt_move) <= _threshold))
+                || _pos.see (_tt_move) <= thr))
         {
             _tt_move = MOVE_NONE;
         }
@@ -211,8 +213,9 @@ namespace MovePick {
             }
             // Move killers to top of quiet move
             {
-                vector<Move> killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
-                killer_moves.push_back (_pos.thread ()->counter_moves[_ok ((_ss-1)->current_move) ? _pos[dst_sq ((_ss-1)->current_move)] : NO_PIECE][dst_sq ((_ss-1)->current_move)]);
+                MoveVector killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
+                killer_moves.push_back (_pos.thread ()->counter_moves[_ok ((_ss-1)->current_move) ? _pos[dst_sq ((_ss-1)->current_move)] : NO_PIECE]
+                                                                     [dst_sq ((_ss-1)->current_move)]);
                 //killer_moves.erase (std::remove (killer_moves.begin (), killer_moves.end (), MOVE_NONE), killer_moves.end ());
                 for (u08 k = 0; k < killer_moves.size (); ++k)
                 {
@@ -363,7 +366,7 @@ namespace MovePick {
             case S_ALL_RECAPTURE:
                 do {
                     auto move = pick_best (_cur_move++, _end_move).move;
-                    if (dst_sq (move) == _recapture_sq)
+                    if (dst_sq (move) == _recap_sq)
                     {
                         return move;
                     }

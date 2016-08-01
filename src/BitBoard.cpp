@@ -12,7 +12,7 @@ namespace BitBoard {
     Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
 
     Bitboard Between_bb[SQ_NO][SQ_NO];
-    Bitboard RayLine_bb[SQ_NO][SQ_NO];
+    Bitboard StrLine_bb[SQ_NO][SQ_NO];
 
     Bitboard DistRings_bb[SQ_NO][8];
 
@@ -70,11 +70,11 @@ namespace BitBoard {
 //            bb ^= (bb - 1);
 //            return
 //#       if defined(BIT64)
-//          // Use Kim Walisch extending trick for 64-bit
-//              (bb * DeBruijn_64) >> 58;
+//            // Use Kim Walisch extending trick for 64-bit
+//            (bb * DeBruijn_64) >> 58;
 //#       else
-//          // Use Matt Taylor's folding trick for 32-bit
-//              (u32 ((bb >> 0) ^ (bb >> 32)) * DeBruijn_32) >> 26;
+//            // Use Matt Taylor's folding trick for 32-bit
+//            (u32 ((bb >> 0) ^ (bb >> 32)) * DeBruijn_32) >> 26;
 //#       endif
 //        }
 
@@ -118,8 +118,11 @@ namespace BitBoard {
         // In particular, here we use the so called "fancy" approach.
         void initialize_table (Bitboard tables_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shifts[], const Delta deltas[], const Indexer magic_index)
         {
-
-#       if !defined(BM2)
+#       if defined(BM2)
+            (void) shifts;
+            (void) magics_bb;
+            (void) magic_index;
+#       else
             const u32 Seeds[R_NO] =
 #           if defined(BIT64)
                 { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
@@ -131,7 +134,6 @@ namespace BitBoard {
                    , reference[MaxLTSize];
 
             i32 max_ages[MaxLTSize] = {0}, cur_age = 0;
-
 #       endif
 
             // attacks_bb[s] is a pointer to the beginning of the attacks table for square 's'
@@ -148,17 +150,15 @@ namespace BitBoard {
                             // Board edges are not considered in the relevant occupancies
                             & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
 
-#       if defined(BM2)
-                (void) shifts;
-#       else
+#           if !defined(BM2)
                 shifts[s] =
-#           if defined(BIT64)
+#               if defined(BIT64)
                     64
-#           else
+#               else
                     32
-#           endif
+#               endif
                     - u08(pop_count (masks_bb[s]));
-#       endif
+#           endif
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
@@ -183,10 +183,7 @@ namespace BitBoard {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
 
-#       if defined(BM2)
-                (void) magics_bb;
-                (void) magic_index;
-#       else
+#           if !defined(BM2)
                 PRNG rng (Seeds[_rank (s)]);
                 u32 i;
                 
@@ -212,19 +209,22 @@ namespace BitBoard {
                         }
                         else
                         {
-                            if (attacks_bb[s][idx] != reference[i]) break;
+                            if (attacks_bb[s][idx] != reference[i])
+                            {
+                                break;
+                            }
                         }
                     }
                 } while (i < size);
-#       endif
+#           endif
             }
         }
 
         void initialize_sliding ()
         {
 #       if defined(BM2)
-            initialize_table (B_Tables_bb, B_Attacks_bb, B_Masks_bb, nullptr, nullptr, PieceDeltas[BSHP], magic_index<BSHP>);
-            initialize_table (R_Tables_bb, R_Attacks_bb, R_Masks_bb, nullptr, nullptr, PieceDeltas[ROOK], magic_index<ROOK>);
+            initialize_table (B_Tables_bb, B_Attacks_bb, B_Masks_bb, nullptr, nullptr, PieceDeltas[BSHP], nullptr);
+            initialize_table (R_Tables_bb, R_Attacks_bb, R_Masks_bb, nullptr, nullptr, PieceDeltas[ROOK], nullptr);
 #       else
             initialize_table (B_Tables_bb, B_Attacks_bb, B_Masks_bb, B_Magics_bb, B_Shifts, PieceDeltas[BSHP], magic_index<BSHP>);
             initialize_table (R_Tables_bb, R_Attacks_bb, R_Masks_bb, R_Magics_bb, R_Shifts, PieceDeltas[ROOK], magic_index<ROOK>);
@@ -340,7 +340,7 @@ namespace BitBoard {
                     if ((PieceAttacks[pt][s1] & s2) != 0)
                     {
                         Between_bb[s1][s2] = (attacks_bb (Piece(pt), s1, Square_bb[s2]) & attacks_bb (Piece(pt), s2, Square_bb[s1]));
-                        RayLine_bb[s1][s2] = (attacks_bb (Piece(pt), s1,        0) & attacks_bb (Piece(pt), s2,        0)) + s1 + s2;
+                        StrLine_bb[s1][s2] = (attacks_bb (Piece(pt), s1,        0) & attacks_bb (Piece(pt), s2,        0)) + s1 + s2;
                     }
                 }
             }
@@ -351,30 +351,32 @@ namespace BitBoard {
 #if !defined(NDEBUG)
     // Returns an ASCII representation of a bitboard to print on console output
     // Bitboard in an easily readable format. This is sometimes useful for debugging.
-    string pretty (Bitboard bb, char p)
+    string pretty (Bitboard bb)
     {
-        const string ROW  = "|. . . . . . . .|\n";
-
-        string sbb;
-        sbb = " /---------------\\\n";
+        string s;
+        s = " /---------------\\\n";
         for (auto r = R_8; r >= R_1; --r)
         {
-            sbb += Notation::to_char (r) + ROW;
+            s += Notation::to_char (r);
+            s += "|";
+            for (auto f = F_A; f <= F_H; ++f)
+            {
+                s += (bb & (f|r) ? '+' : '-');
+                if (f < F_H)
+                {
+                    s += " ";
+                }
+            }
+            s += "|\n";
         }
-        sbb += " \\---------------/\n ";
+        s += " \\---------------/\n ";
         for (auto f = F_A; f <= F_H; ++f)
         {
-            sbb += " "; sbb += Notation::to_char (f);
+            s += " ";
+            s += Notation::to_char (f, false);
         }
-        sbb += '\n';
-
-        while (bb != 0)
-        {
-            auto s = pop_lsq (bb);
-            sbb[2 + (ROW.length () + 1) * (8 - _rank (s)) + 2 * _file (s)] = p;
-        }
-
-        return sbb;
+        s += '\n';
+        return s;
     }
 #endif
 

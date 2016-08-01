@@ -17,30 +17,28 @@
 //#include <locale>
 //#include <utility>
 
-/// When compiling with provided Makefile (e.g. for Linux and OSX), configuration
-/// is done automatically. To get started type 'make help'.
-///
-/// When Makefile is not used (e.g. with Microsoft Visual Studio) some switches
-/// need to be set manually:
-///
-/// -DNDEBUG    | Disable debugging mode. Always use this.
-/// -DPREFETCH  | Enable use of prefetch asm-instruction.
-///             | Don't enable it if want the executable to run on some very old machines.
-/// -DPOP       | Enable use of internal pop count table. Works in both 32-bit & 64-bit mode.
-///             | For compiling requires hardware without ABM support.
-/// -DABM       | Add runtime support for use of ABM asm-instruction. Works only in 64-bit mode.
-///             | For compiling requires hardware with ABM support.
-/// -DBM2       | Add runtime support for use of BM2 asm-instruction. Works only in 64-bit mode.
-///             | For compiling requires hardware with BM2 support.
-/// -DLPAGES    | Add runtime support for large pages.
+// Compiling:
+// With Makefile (e.g. for Linux and OSX), configuration is done automatically, to get started type 'make help'.
+// Without Makefile (e.g. with Microsoft Visual Studio) some switches need to be set manually:
+//
+// -DNDEBUG    | Disable debugging mode. Always use this.
+// -DPREFETCH  | Enable use of prefetch asm-instruction.
+//             | Don't enable it if want the executable to run on some very old machines.
+// -DPOP       | Enable use of internal pop count table. Works in both 32-bit & 64-bit mode.
+//             | For compiling requires hardware without ABM support.
+// -DABM       | Add runtime support for use of ABM asm-instruction. Works only in 64-bit mode.
+//             | For compiling requires hardware with ABM support.
+// -DBM2       | Add runtime support for use of BM2 asm-instruction. Works only in 64-bit mode.
+//             | For compiling requires hardware with BM2 support.
+// -DLPAGES    | Add runtime support for large pages.
 
-/// Predefined macros hell:
-///
-/// __GNUC__           Compiler is gcc, Clang or Intel on Linux
-/// __INTEL_COMPILER   Compiler is Intel
-/// _MSC_VER           Compiler is MSVC or Intel on Windows
-/// _WIN32             Building on Windows (any)
-/// _WIN64             Building on Windows 64 bit
+// Predefined macros hell:
+//
+// __GNUC__           Compiler is gcc, Clang or Intel on Linux
+// __INTEL_COMPILER   Compiler is Intel
+// _MSC_VER           Compiler is MSVC or Intel on Windows
+// _WIN32             Building on Windows (any)
+// _WIN64             Building on Windows 64 bit
 
 // Windows or MinGW
 #if defined(_WIN32)
@@ -325,6 +323,7 @@ enum Depth : i16
     DEPTH_6     = +6,
     DEPTH_7     = +7,
     DEPTH_8     = +8,
+    DEPTH_9     = +9,
     DEPTH_12    = +12,
     DEPTH_16    = +16,
     DEPTH_32    = +32,
@@ -653,7 +652,6 @@ inline void promote (Move &m, PieceType pt)  { m &= 0x0FFF; m |= (pt - NIHT) << 
 //    return mm;
 //}
 
-// --------------------------------
 template<MoveType MT=NORMAL>
 inline Move mk_move (Square org, Square dst, PieceType pt=NIHT) { return Move(dst | (org | ((pt - NIHT) << 6)) << 6 | MT); }
 
@@ -717,9 +715,8 @@ struct HashTable
 {
 private:
     std::vector<Entry> _table = std::vector<Entry> (Size);
-    u32 _mask = Size - 1;
 public:
-    Entry* operator[] (Key k) { return &_table[u32(k) & _mask]; }
+    Entry* operator[] (Key k) { return &_table[u32(k) & (Size - 1)]; }
 };
 
 template<class T>

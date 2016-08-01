@@ -24,9 +24,7 @@ public:
     {
         TimePoint time  = 0; // Remaining Time          [milli-seconds]
         TimePoint inc   = 0; // Increment Time per move [milli-seconds]
-    };
-
-    Clock clock[CLR_NO];     // Clock for both sides
+    }         clock[CLR_NO]; // Clock for both sides
     TimePoint movetime  = 0; // Search <x> exact time in milli-seconds
     u08       movestogo = 0; // Search <x> moves to the next time control
     u08       depth     = 0; // Search <x> depth (plies) only
@@ -34,7 +32,6 @@ public:
     u08       mate      = 0; // Search mate in <x> moves
     bool      infinite  = false; // Search until the "stop" command
     bool      ponder    = false; // Search on ponder move until the "stop" command
-
     MoveVector search_moves; // Restrict search to these root moves only
 
     TimePoint start_time = 0;
@@ -68,11 +65,10 @@ public:
     Stats (const Stats&) = delete;
 
     const T* operator[] (Piece  pc) const { return _table[pc]; }
-    T*       operator[] (Piece  pc) { return _table[pc]; }
+    T*       operator[] (Piece  pc)       { return _table[pc]; }
 
     void clear ()
     {
-        //std::memset (_table, 0x0, sizeof (_table));
         for (auto &t : _table)
         {
             for (auto &e : t)
@@ -119,15 +115,15 @@ const u08 MaxKillers = 2;
 // has its own array of Stack objects, indexed by the current ply.
 struct Stack
 {
-    i16 ply = 0;
-    Move  current_move = MOVE_NONE
-        , exclude_move = MOVE_NONE
-        , killer_moves[MaxKillers];
+    i16   ply;
+    Move  current_move
+        , exclude_move;
+    Move  killer_moves[MaxKillers];
 
-    Value static_eval  = VALUE_NONE;
-    u08   move_count   = 0;
-    bool  skip_pruning = false;
-    CMValueStats *counter_move_values = nullptr;
+    Value static_eval;
+    u08   move_count;
+    bool  skip_pruning;
+    CMValueStats *counter_move_values;
 
     MoveVector pv;
 
@@ -141,22 +137,22 @@ namespace Searcher {
     extern Limit Limits;
 
     extern std::atomic_bool
-                ForceStop
-        ,       PonderhitStop; 
+                 ForceStop
+        ,        PonderhitStop; 
 
-    extern u16  MultiPV;
-    //extern i32  MultiPV_cp;
+    extern u16   MultiPV;
+    //extern i32   MultiPV_cp;
 
-    extern i16  FixedContempt
-        ,       ContemptTime 
-        ,       ContemptValue;
+    extern i16   FixedContempt
+        ,        ContemptTime 
+        ,        ContemptValue;
 
     extern std::string HashFile;
     
-    extern bool OwnBook;
+    extern bool  OwnBook;
     extern std::string BookFile;
-    extern bool BookMoveBest;
-    extern i16  BookUptoMove;
+    extern bool  BookMoveBest;
+    extern i16   BookUptoMove;
 
     extern Depth TBDepthLimit;
     extern i32   TBPieceLimit;
@@ -183,9 +179,7 @@ namespace Searcher {
     class RootMove
         : public MoveVector
     {
-
     public:
-
         Value new_value = -VALUE_INFINITE
             , old_value = -VALUE_INFINITE;
 

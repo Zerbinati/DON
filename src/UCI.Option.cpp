@@ -304,7 +304,6 @@ namespace UCI {
     {
 
         // Hash Memory Options
-        // -------------------
 
         // The amount of memory to use for hash table during search by engine, in MB (megabytes).
         // This number should be smaller than the amount of physical memory for your system.
@@ -336,7 +335,6 @@ namespace UCI {
         Options["Retain Hash"]                  << Option (TT.retain_hash, on_retain_hash);
 
         // Persistent Hash Options
-        // -----------------------
 
         // Persistent Hash means that the in-memory hash table can be saved to a disk file and reloaded later for continuing the analysis.
         // The goal is to be able to interrupt a long position analysis anytime and save the hash table to a disk file.
@@ -354,7 +352,6 @@ namespace UCI {
         // .    Load the correspondence game
         // .    Go to the options window, enter the name of the Hash File(e.g. C:\Chess\Game.dat)
         // .    Press the Load Hash from File button, and OK in the options window.
-        // -----------------------------------------------------------------------------------------
 
         // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
@@ -378,10 +375,9 @@ namespace UCI {
 
 
         // Position Learning Options
-        // -------------------------
 
         // Book Options
-        // ---------------------
+
         // Whether or not to always play with the book.
         Options["OwnBook"]                      << Option (OwnBook, on_book_opt);
         // The filename of the Book.
@@ -394,7 +390,6 @@ namespace UCI {
         Options["Book Upto Move"]               << Option (BookUptoMove, 0, 50, on_book_opt);
 
         // Cores and Threads Options
-        // -------------------------
 
         // The maximum number of Threads (cores) to use during the search.
         // This number should be set to the number of cores in your CPU.
@@ -407,7 +402,6 @@ namespace UCI {
         Options["Threads"]                      << Option ( 1, 0, 256, on_thread_count);
 
         // Game Play Options
-        // -----------------
 
         // How well you want engine to play.
         // Default=MaxSkillLevel, Min=0, Max=MaxSkillLevel.
@@ -431,7 +425,7 @@ namespace UCI {
         //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, 1000, on_multipv);
 
         // Changes playing style.
-        // ----------------------
+
         // Fixed Contempt roughly equivalent to "Optimism".
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
@@ -462,11 +456,11 @@ namespace UCI {
         //// Be prepared to always play at least this many moves, in num of moves.
         //Options["Ready Move Horizon"]           << Option (ReadyMoveHorizon, 0, 100, on_time_opt);
         //// Always attempt to keep at least this much time at clock, in milliseconds.
-        //Options["Overhead Clock Time"]          << Option (OverheadClockTime, 0, 30000, on_time_opt);
+        //Options["Overhead Clock Time"]          << Option (i32(OverheadClockTime), 0, 30000, on_time_opt);
         //// Attempt to keep at least this much time for each remaining move, in milliseconds.
-        //Options["Overhead Move Time"]           << Option (OverheadMoveTime, 0, 5000, on_time_opt);
+        //Options["Overhead Move Time"]           << Option (i32(OverheadMoveTime), 0, 5000, on_time_opt);
         //// The minimum amount of time to analyze, in milliseconds.
-        //Options["Minimum Move Time"]            << Option (MinimumMoveTime, 0, 5000, on_time_opt);
+        //Options["Minimum Move Time"]            << Option (i32(MinimumMoveTime), 0, 5000, on_time_opt);
         // How slow you want engine to play, 100 is neutral, in %age.
         Options["Move Slowness"]                << Option (i32(std::round (MoveSlowness*100)), 10, 1000, on_time_opt);
         Options["Nodes Time"]                   << Option (NodesTime, 0, 10000, on_time_opt);
@@ -477,15 +471,11 @@ namespace UCI {
         Options["Ponder"]                       << Option (Ponder, on_time_opt);
 
         // End-Game Table Bases Options
-        // ----------------------------
         Options["SyzygyPath"]                   << Option (PathString, on_syzygy_path);
         Options["SyzygyDepthLimit"]             << Option (TBDepthLimit, 1, 100);
         Options["SyzygyPieceLimit"]             << Option (TBPieceLimit, 0, 6);
         Options["SyzygyUseRule50"]              << Option (TBUseRule50);
 
-        // -------------
-        // Other Options
-        // -------------
         // The filename of the debug log.
         Options["Debug File"]                   << Option (Empty, on_debug_file);
         // The filename of the search log.

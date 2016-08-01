@@ -69,7 +69,6 @@ namespace Transposition {
     {
         if (_blocks != nullptr)
         {
-
         #   if defined(LPAGES)
             Memory::free_memory (_blocks);
         #   else
@@ -77,9 +76,20 @@ namespace Transposition {
         #   endif
             _blocks         = nullptr;
             _clusters       = nullptr;
-            _cluster_count  = 0;
-            _cluster_mask   = 0;
-            _generation     = 0;
+        }
+        _cluster_count  = 0;
+        _generation     = 0;
+    }
+
+    // Reset the entire transposition table with zeroes.
+    void Table::clear ()
+    {
+        if (!retain_hash
+            && _clusters != nullptr)
+        {
+            std::memset (_clusters, 0x00, _cluster_count * sizeof (Cluster));
+            _generation = 0;
+            sync_cout << "info string Hash cleared" << sync_endl;
         }
     }
 
@@ -117,10 +127,13 @@ namespace Transposition {
                 return 0;
             }
             _cluster_count = cluster_count;
-            _cluster_mask  = cluster_count-1;
         }
 
         return u32(mem_size >> 20);
+    }
+    u32 Table::resize ()
+    {
+        return resize (size (), true);
     }
 
     void Table::auto_size (u32 mem_size_mb, bool force)
@@ -178,6 +191,29 @@ namespace Transposition {
         }
         tt_hit = false;
         return rte;
+    }
+
+    // Returns an approximation of the per-mille of the 
+    // all transposition entries during a search which have received
+    // at least one write during the current search.
+    // It is used to display the "info hashfull ..." information in UCI.
+    // "the hash is <x> permill full", the engine should send this info regularly.
+    // hash, are using <x>%. of the state of full.
+    u32 Table::hash_full () const
+    {
+        u32 full_entry_count = 0;
+        for (const auto *clt = _clusters; clt < _clusters + 1000/Cluster::EntryCount; ++clt)
+        {
+            const auto *fte = clt->entries;
+            for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
+            {
+                if (ite->gen () == _generation)
+                {
+                    ++full_entry_count;
+                }
+            }
+        }
+        return full_entry_count;
     }
 
     void Table::save (const string &hash_fn) const

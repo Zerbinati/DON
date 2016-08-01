@@ -260,9 +260,9 @@ bool Position::ok (i08 *failed_step) const
 // Helper function used by see() to locate the least valuable attacker for the side to move,
 // remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
 template<PieceType PT>
-PieceType Position::pick_least_val_att (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const
+PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
-    auto b = stm_attackers & pieces (PT);
+    auto b = c_attackers & pieces (PT);
     if (b != 0)
     {
         mocc ^= b & ~(b - 1);
@@ -292,7 +292,7 @@ PieceType Position::pick_least_val_att (Square dst, Bitboard stm_attackers, Bitb
         return PT;
     }
 
-    return pick_least_val_att<PieceType(PT+1)> (dst, stm_attackers, mocc, attackers);
+    return pick_least_val_att<PieceType(PT+1)> (dst, c_attackers, mocc, attackers);
 }
 template<>
 PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
@@ -309,11 +309,9 @@ Value Position::see (Move m) const
     auto dst = dst_sq (m);
     assert(!empty (org));
 
-    // Side to move
-    auto stm = color (_board[org]);
+    auto c = color (_board[org]);
 
-    // Gain list
-    Value gain_list[32];
+    Value gain_values[32];
     Bitboard mocc;
 
     switch (mtype (m))
@@ -328,14 +326,14 @@ Value Position::see (Move m) const
     case ENPASSANT:
         assert(_board[org] == (_active|PAWN));
         // Remove the captured pawn
-        mocc = pieces () - org - (dst - pawn_push (stm));
-        gain_list[0] = PieceValues[MG][PAWN];
+        mocc = pieces () - org - (dst - pawn_push (c));
+        gain_values[0] = PieceValues[MG][PAWN];
         break;
 
     default:
         assert(_board[org] != NO_PIECE);
         mocc = pieces () - org;
-        gain_list[0] = PieceValues[MG][ptype (_board[dst])];
+        gain_values[0] = PieceValues[MG][ptype (_board[dst])];
         break;
     }
 
@@ -344,10 +342,10 @@ Value Position::see (Move m) const
     auto attackers = attackers_to (dst, mocc) & mocc;
 
     // If the opponent has any attackers
-    stm = ~stm;
-    auto stm_attackers = attackers & pieces (stm);
+    c = ~c;
+    auto c_attackers = attackers & pieces (c);
 
-    if (stm_attackers != 0)
+    if (c_attackers != 0)
     {
         // The destination square is defended, which makes things rather more
         // difficult to compute. Proceed by building up a "swap list" containing
@@ -362,16 +360,16 @@ Value Position::see (Move m) const
             assert(depth < 32);
 
             // Add the new entry to the swap list
-            gain_list[depth] = PieceValues[MG][captured] - gain_list[depth - 1];
+            gain_values[depth] = PieceValues[MG][captured] - gain_values[depth - 1];
 
             // Locate and remove the next least valuable attacker
-            captured = pick_least_val_att<PAWN> (dst, stm_attackers, mocc, attackers);
+            captured = pick_least_val_att<PAWN> (dst, c_attackers, mocc, attackers);
 
-            stm = ~stm;
-            stm_attackers = attackers & pieces (stm);
+            c = ~c;
+            c_attackers = attackers & pieces (c);
 
             ++depth;
-        } while (   stm_attackers != 0
+        } while (   c_attackers != 0
                  // Stop before a king capture
                  && (captured != KING || (--depth, false)));
 
@@ -380,14 +378,14 @@ Value Position::see (Move m) const
         while (--depth != 0)
         {
             // Find minimum gain
-            if (gain_list[depth - 1] > -gain_list[depth])
+            if (gain_values[depth - 1] > -gain_values[depth])
             {
-                gain_list[depth - 1] = -gain_list[depth];
+                gain_values[depth - 1] = -gain_values[depth];
             }
         }
     }
 
-    return gain_list[0];
+    return gain_values[0];
 }
 // Sign of SSE
 Value Position::see_sign (Move m) const
@@ -904,16 +902,18 @@ bool Position::can_en_passant (File ep_f) const
 //    within each rank, the contents of each square are described from file A through file H.
 //    Following the Standard Algebraic Notation (SAN),
 //    each piece is identified by a single letter taken from the standard English names.
-//    White pieces are designated using upper-case letters ("PNBRQK") while Black take lowercase ("pnbrqk").
+//    White pieces are designated using upper-case letters ("PNBRQK") while
+//    Black pieces are designated using lower-case letters ("pnbrqk").
 //    Blank squares are noted using digits 1 through 8 (the number of blank squares),
 //    and "/" separates ranks.
-// 2) Active color. "w" means white, "b" means black - moves next,.
+// 2) Active color. "w" means white, "b" means black - moves next.
 // 3) Castling availability. If neither side can castle, this is "-". 
 //    Otherwise, this has one or more letters:
-//    "K" (White can castle  Kingside),
-//    "Q" (White can castle Queenside),
-//    "k" (Black can castle  Kingside),
+//    "K" (White can castle  Kingside).
+//    "Q" (White can castle Queenside).
+//    "k" (Black can castle  Kingside).
 //    "q" (Black can castle Queenside).
+//    In Chess 960 file "a-h" is used.
 // 4) En passant target square (in algebraic notation).
 //    If there's no en passant target square, this is "-".
 //    If a pawn has just made a 2-square move, this is the position "behind" the pawn.
@@ -933,36 +933,32 @@ Position& Position::setup (const string &ff, StateInfo &si, Thread *const th, bo
     std::memset (&si, 0x00, sizeof (StateInfo));
     _si = &si;
 
-    u08 ch;
+    u08 token;
     // 1. Piece placement on Board
     size_t idx;
     auto f = F_A;
     auto r = R_8;
-    while (   iss >> ch
-           && !isspace (ch)
+    while (   iss >> token
+           && !isspace (token)
            && f <= F_NO
            && r >= R_1)
     {
-        if (isdigit (ch))
+        if (isdigit (token))
         {
-            f += (ch - '0');
+            f += (token - '0');
         }
         else
-        if (   isalpha (ch)
-            && (idx = PieceChar.find (ch)) != string::npos)
+        if (   isalpha (token)
+            && (idx = PieceChar.find (token)) != string::npos)
         {
             place_piece (f|r, Piece(idx));
             ++f;
         }
         else
-        if (ch == '/')
         {
+            assert(token == '/');
             f = F_A;
             --r;
-        }
-        else
-        {
-            assert(false);
         }
     }
 
@@ -970,66 +966,47 @@ Position& Position::setup (const string &ff, StateInfo &si, Thread *const th, bo
         && square<KING> (BLACK) != SQ_NO);
 
     // 2. Active color
-    iss >> ch;
-    _active = Color(ColorChar.find (ch));
+    iss >> token;
+    _active = Color(ColorChar.find (token));
 
-    // 3. Castling rights availability
-    // Compatible with 3 standards:
-    // 1-Normal FEN standard,
-    // 2-Shredder-FEN that uses the letters of the columns on which the rooks began the game instead of KQkq
-    // 3-X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
-    // tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
-    iss >> ch;
-    while (   iss >> ch
-           && !isspace (ch))
+    // 3. Castling availability
+    iss >> token;
+    while (   iss >> token
+           && !isspace (token))
     {
         Square r_sq;
-        auto c = isupper (ch) ? WHITE : BLACK;
 
-        if (ch == '-')
+        Color c = isupper (token) ? WHITE : BLACK;
+        token = char(tolower (token));
+        if (token == 'k')
         {
-            iss >> ch;
-            break;
+            for (r_sq  = rel_sq (c, SQ_H1);
+                 r_sq >= rel_sq (c, SQ_A1)
+              && _board[r_sq] != (c|ROOK);
+                 --r_sq) {}
         }
-
-        if (Chess960)
+        else
+        if (token == 'q')
         {
-            ch = char(tolower (ch));
-            if ('a' <= ch && ch <= 'h')
-            {
-                r_sq = to_file (ch) | rel_rank (c, R_1);
-            }
-            else
-            {
-                assert(false);
-                r_sq = SQ_NO;
-            }
+            for (r_sq  = rel_sq (c, SQ_A1);
+                 r_sq <= rel_sq (c, SQ_H1)
+              && _board[r_sq] != (c|ROOK);
+                 ++r_sq) {}
+        }
+        else
+        // Chess960
+        if ('a' <= token && token <= 'h')
+        {
+            r_sq = to_file (token) | rel_rank (c, R_1);
         }
         else
         {
-            switch (char(toupper (ch)))
-            {
-            case 'K':
-                for (r_sq  = rel_sq (c, SQ_H1); r_sq >= rel_sq (c, SQ_A1) && _board[r_sq] != (c|ROOK); --r_sq) {}
-                break;
-            case 'Q':
-                for (r_sq  = rel_sq (c, SQ_A1); r_sq <= rel_sq (c, SQ_H1) && _board[r_sq] != (c|ROOK); ++r_sq) {}
-                break;
-            default:
-                assert(false);
-                r_sq = SQ_NO;
-                break;
-            }
+            assert(token == '-');
+            continue;
         }
 
-        if (_board[r_sq] == (c|ROOK))
-        {
-            set_castle (c, r_sq);
-        }
-        else
-        {
-            assert(false);
-        }
+        assert(_board[r_sq] == (c|ROOK));
+        set_castle (c, r_sq);
     }
 
     // 4. En-passant square. Ignore if no pawn capture is possible
@@ -1045,7 +1022,7 @@ Position& Position::setup (const string &ff, StateInfo &si, Thread *const th, bo
     }
     _si->en_passant_sq = ep_sq;
 
-    // 5-6. clock ply and game-move count
+    // 5-6. Clock ply and Game move count
     i16 clk_ply = 0
       , moves  = 1;
     if (full)
@@ -1058,11 +1035,8 @@ Position& Position::setup (const string &ff, StateInfo &si, Thread *const th, bo
         {
             clk_ply = 0;
         }
-        //// Rule 50 draw case
-        //if (clk_ply > 100)
-        //{
-        //    assert(false);
-        //}
+        // Rule 50 draw case
+        assert(clk_ply <= 100);
 
         // Handle common problem move-num = 0.
         if (moves <= 0)
@@ -1083,7 +1057,7 @@ Position& Position::setup (const string &ff, StateInfo &si, Thread *const th, bo
     _si->clock_ply = u08(clk_ply);
     _si->capture_type = NONE;
     _si->checkers = checkers (_active);
-    
+
     _thread = th;
 
     return *this;
@@ -1152,7 +1126,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         || mtype (m) == CASTLE);
 
     auto mpt = ptype (_board[org]);
-    assert(_ok (mpt));
+    assert(mpt != NONE);
 
     auto cap = dst;
     auto cpt = NONE;
@@ -1167,7 +1141,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         assert(promote (m) - NIHT == PAWN
             && cpt != KING);
 
-        if (_ok (cpt))
+        if (cpt != NONE)
         {
             do_capture ();
             _si->clock_ply = 0;
@@ -1251,7 +1225,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
             && cpt != PAWN
             && cpt != KING);
 
-        if (_ok (cpt))
+        if (cpt != NONE)
         {
             do_capture ();
         }
@@ -1295,9 +1269,9 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     if (   _si->castle_rights != CR_NONE
         && (_castle_mask[org] | _castle_mask[dst]) != CR_NONE)
     {
-        i32 cr = _si->castle_rights
-               & (_castle_mask[org] | _castle_mask[dst]);
-        Bitboard b = cr;
+        i32 cr = _castle_mask[org]
+               | _castle_mask[dst];
+        Bitboard b = _si->castle_rights & cr;
         _si->castle_rights &= ~cr;
         while (b != 0)
         {
@@ -1343,15 +1317,6 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     assert(ok ());
 }
 #undef do_capture
-// Do the natural-move (CAN)
-void Position::do_move (const string &can, StateInfo &si)
-{
-    auto m = move_from_can (can, *this);
-    if (m != MOVE_NONE)
-    {
-        do_move (m, si, gives_check (m, CheckInfo (*this)));
-    }
-}
 // Undo the last natural-move
 void Position::undo_move ()
 {
@@ -1424,7 +1389,7 @@ void Position::undo_move ()
         break;
     }
     // Restore the captured piece
-    if (_ok (_si->capture_type))
+    if (_si->capture_type != NONE)
     {
         place_piece (cap, ~_active, _si->capture_type);
     }
@@ -1475,17 +1440,18 @@ void Position::undo_null_move ()
 // This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip ()
 {
-    string ff, token;
     istringstream iss (fen (true));
+    string ff, token;
     // 1. Piece placement
-    for (auto rank = R_8; rank >= R_1; --rank)
+    for (auto r = R_8; r >= R_1; --r)
     {
-        std::getline (iss, token, rank > R_1 ? '/' : ' ');
+        std::getline (iss, token, r > R_1 ? '/' : ' ');
         ff.insert (0, token + (!white_spaces (ff) ? "/" : " "));
     }
     // 2. Active color
     iss >> token;
-    ff += (token == "w" ? "B" : "W"); // Will be lowercased later
+    ff += (token[0] == 'w' ? 'B' :
+           token[0] == 'b' ? 'W' : '-');
     ff += ' ';
     // 3. Castling availability
     iss >> token;
@@ -1493,8 +1459,8 @@ void Position::flip ()
     toggle (ff);
     // 4. En-passant square
     iss >> token;
-    ff += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" :
-                                                       token[1] == '6' ? "3" : "-"));
+    ff += (token[0] == '-' ? token : token.replace (1, 1, token[1] == '3' ? "6" :
+                                                          token[1] == '6' ? "3" : "-"));
     // 5-6. Half and full moves
     std::getline (iss, token);
     ff += token;
@@ -1508,16 +1474,16 @@ string Position::fen (bool full) const
 {
     ostringstream oss;
 
-    for (auto r = R_8; true; --r)
+    for (auto r = R_8; r >= R_1; --r)
     {
-        for (auto f = F_A; true; ++f)
+        for (auto f = F_A; f <= F_H; ++f)
         {
-            i16 empty_count = 0;
-            while (   f <= F_H
-                   && empty (f|r))
+            i16 empty_count;
+            for (empty_count = 0;
+                    f <= F_H
+                 && empty (f|r); ++f)
             {
                 ++empty_count;
-                ++f;
             }
             if (empty_count != 0)
             {
@@ -1527,46 +1493,37 @@ string Position::fen (bool full) const
             {
                 oss << _board[f|r];
             }
-            if (f >= F_H)
-            {
-                break;
-            }
         }
-        if (r == R_1)
+        if (r > R_1)
         {
-            break;
+            oss << '/';
         }
-        oss << '/';
     }
 
     oss << ' ' << _active << ' ';
 
     if (can_castle (CR_ANY) != CR_NONE)
     {
-        if (Chess960)
+        if (can_castle (CR_WHITE) != CR_NONE)
         {
-            if (can_castle (CR_WHITE) != CR_NONE)
+            if (can_castle (CR_WKING) != CR_NONE)
             {
-                if (can_castle (CR_WKING) != CR_NONE) oss << to_char (_file (castle_rook (Castling<WHITE, CS_KING>::Right)), false);
-                if (can_castle (CR_WQUEN) != CR_NONE) oss << to_char (_file (castle_rook (Castling<WHITE, CS_QUEN>::Right)), false);
+                oss << (Chess960 ? to_char (_file (castle_rook (Castling<WHITE, CS_KING>::Right)), false) : 'K');
             }
-            if (can_castle (CR_BLACK) != CR_NONE)
+            if (can_castle (CR_WQUEN) != CR_NONE)
             {
-                if (can_castle (CR_BKING) != CR_NONE) oss << to_char (_file (castle_rook (Castling<BLACK, CS_KING>::Right)), true);
-                if (can_castle (CR_BQUEN) != CR_NONE) oss << to_char (_file (castle_rook (Castling<BLACK, CS_QUEN>::Right)), true);
+                oss << (Chess960 ? to_char (_file (castle_rook (Castling<WHITE, CS_QUEN>::Right)), false) : 'Q');
             }
         }
-        else
+        if (can_castle (CR_BLACK) != CR_NONE)
         {
-            if (can_castle (CR_WHITE) != CR_NONE)
+            if (can_castle (CR_BKING) != CR_NONE)
             {
-                if (can_castle (CR_WKING) != CR_NONE) oss << 'K';
-                if (can_castle (CR_WQUEN) != CR_NONE) oss << 'Q';
+                oss << (Chess960 ? to_char (_file (castle_rook (Castling<BLACK, CS_KING>::Right)),  true) : 'k');
             }
-            if (can_castle (CR_BLACK) != CR_NONE)
+            if (can_castle (CR_BQUEN) != CR_NONE)
             {
-                if (can_castle (CR_BKING) != CR_NONE) oss << 'k';
-                if (can_castle (CR_BQUEN) != CR_NONE) oss << 'q';
+                oss << (Chess960 ? to_char (_file (castle_rook (Castling<BLACK, CS_QUEN>::Right)),  true) : 'q');
             }
         }
     }
@@ -1588,25 +1545,18 @@ string Position::fen (bool full) const
 // printed to the standard output
 Position::operator string () const
 {
+    static const string Line = " +---+---+---+---+---+---+---+---+\n";
     ostringstream oss;
 
-    oss << " +---+---+---+---+---+---+---+---+\n";
-    for (auto r = R_8; true; --r)
+    oss << Line;
+    for (auto r = R_8; r >= R_1; --r)
     {
         oss << to_char (r) << "| ";
-        for (auto f = F_A; true; ++f)
+        for (auto f = F_A; f <= F_H; ++f)
         {
             oss << _board[(f|r)] << " | ";
-            if (f == F_H)
-            {
-                break;
-            }
         }
-        oss << "\n +---+---+---+---+---+---+---+---+\n";
-        if (r == R_1)
-        {
-            break;
-        }
+        oss << '\n' << Line;
     }
 
     oss << "FEN: " << fen () << '\n'
@@ -1617,6 +1567,6 @@ Position::operator string () const
     {
         oss << pop_lsq (checkers) << ' ';
     }
-
+    oss << '\n';
     return oss.str ();
 }

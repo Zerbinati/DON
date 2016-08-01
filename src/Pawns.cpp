@@ -274,11 +274,11 @@ namespace Pawns {
     {
         static const i32 Seeds[R_NO] = { 0, 8, 19, 13, 71, 94, 169, 324 };
 
-        for (u08 opposed = 0; opposed <= 1; ++opposed)
+        for (u08 opposed = 0; opposed < 2; ++opposed)
         {
-            for (u08 phalanx = 0; phalanx <= 1; ++phalanx)
+            for (u08 phalanx = 0; phalanx < 2; ++phalanx)
             {
-                for (u08 apex = 0; apex <= 1; ++apex)
+                for (u08 apex = 0; apex < 2; ++apex)
                 {
                     for (auto r = R_2; r < R_8; ++r)
                     {
