@@ -171,6 +171,8 @@ namespace Searcher {
             auto bonus = Value(i32(depth)*(i32(depth) + 2) - 2);
 
             thread->history_values.update (pos[org_sq (move)], dst_sq (move), bonus);
+            thread->org_dst_values.update (pos.active (), move, bonus);
+
             if ((ss-1)->counter_move_values != nullptr)
             {
                 thread->counter_moves.update (pos[opp_move_dst], opp_move_dst, move);
@@ -187,9 +189,11 @@ namespace Searcher {
 
             // Decrease all the other played quiet moves
             assert(std::find (quiet_moves.begin (), quiet_moves.end (), move) == quiet_moves.end ());
-            for (const auto m : quiet_moves)
+            for (auto m : quiet_moves)
             {
                 thread->history_values.update (pos[org_sq (m)], dst_sq (m), -bonus);
+                thread->org_dst_values.update (pos.active (), m, -bonus);
+
                 if ((ss-1)->counter_move_values != nullptr)
                 {
                     (ss-1)->counter_move_values->update (pos[org_sq (m)], dst_sq (m), -bonus);
@@ -1274,6 +1278,7 @@ namespace Searcher {
                     // Decrease/Increase reduction for moves with a +ve/-ve history
                     reduction_depth -=
                         Depth((i32(thread->history_values[mpc][dst]
+                             +     thread->org_dst_values.get (~pos.active (), move)
                              + (cmv  != nullptr ? (*cmv )[mpc][dst] : VALUE_ZERO)
                              + (fmv1 != nullptr ? (*fmv1)[mpc][dst] : VALUE_ZERO)
                              + (fmv2 != nullptr ? (*fmv2)[mpc][dst] : VALUE_ZERO)) - 10000)/20000);
@@ -1714,6 +1719,7 @@ namespace Searcher {
         {
             th->history_values.clear ();
             th->counter_moves.clear ();
+            th->org_dst_values.clear ();
         }
         if (Limits.use_time_management ())
         {

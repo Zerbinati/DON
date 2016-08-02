@@ -183,6 +183,7 @@ namespace Threading {
             ,       finished_depth = DEPTH_0;
         HValueStats history_values;
         MoveStats   counter_moves;
+        OrgDstStats org_dst_values;
 
         std::atomic_bool reset_count { false };
 

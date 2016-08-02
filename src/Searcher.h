@@ -77,7 +77,6 @@ public:
             }
         }
     }
-    // Piece, destiny square, value
     void update (Piece p, Square s, Value v)
     {
         if (abs (i32(v)) < 324)
@@ -86,12 +85,10 @@ public:
             e = e*(1.0 - (double) abs (i32(v)) / (CM ? 936 : 324)) + i32(v)*32;
         }
     }
-    // Piece, destiny square, move
     void update (Piece p, Square s, Move m)
     {
         _table[p][s] = m;
     }
-
 };
 
 // ValueStats stores the value that records how often different moves have been successful/unsuccessful
@@ -108,6 +105,39 @@ typedef Stats<CMValueStats>     CM2DValueStats;
 // will be considered identical.
 typedef Stats<Move>             MoveStats;
 
+struct OrgDstStats
+{
+private:
+    Value _table[CLR_NO][SQ_NO][SQ_NO];
+
+public:
+
+    Value get (Color c, Move m) const
+    {
+        return _table[c][org_sq (m)][dst_sq (m)];
+    }
+    void clear ()
+    {
+        for (Color c = WHITE; c <= BLACK; ++c)
+        {
+            for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+            {
+                for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+                {
+                    _table[c][s1][s2] = VALUE_ZERO;
+                }
+            }
+        }
+    }
+    void update (Color c, Move m, Value v)
+    {
+        if (abs (i32(v)) < 324)
+        {
+            auto &e = _table[c][org_sq (m)][dst_sq (m)];
+            e = e*(1.0 - (double) abs (i32(v)) / 324) + i32(v)*32;
+        }
+    }
+};
 
 const u08 MaxKillers = 2;
 // The Stack struct keeps track of the information needed to remember from

@@ -138,6 +138,7 @@ namespace MovePick {
     void MovePicker::value<QUIET> ()
     {
         const auto &history_values = _pos.thread ()->history_values;
+        const auto &org_dst_values = _pos.thread ()->org_dst_values;
         const auto *const &cmv  = (_ss-1)->counter_move_values;
         const auto *const &fmv1 = (_ss-2)->counter_move_values;
         const auto *const &fmv2 = (_ss-4)->counter_move_values;
@@ -147,6 +148,7 @@ namespace MovePick {
             assert(_pos.pseudo_legal (vm.move)
                 && _pos.legal (vm.move));
             vm.value = history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
+                + org_dst_values.get (_pos.active (), vm.move)
                 + (cmv  != nullptr ? (*cmv )[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO)
                 + (fmv1 != nullptr ? (*fmv1)[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO)
                 + (fmv2 != nullptr ? (*fmv2)[_pos[org_sq (vm.move)]][dst_sq (vm.move)] : VALUE_ZERO);
@@ -160,6 +162,7 @@ namespace MovePick {
     void MovePicker::value<EVASION> ()
     {
         const auto &history_values = _pos.thread ()->history_values;
+        const auto &org_dst_values = _pos.thread ()->org_dst_values;
 
         for (auto &vm : *this)
         {
@@ -178,7 +181,8 @@ namespace MovePick {
             }
             else
             {
-                vm.value = history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
+                vm.value = history_values[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
+                         + org_dst_values.get (_pos.active (), vm.move);
             }
         }
     }
