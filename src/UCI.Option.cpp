@@ -156,7 +156,7 @@ namespace UCI {
 
         void on_hash_size ()
         {
-            TT.auto_size (i32(Options["Hash"]), false);
+            TT.auto_resize (i32(Options["Hash"]), false);
         }
 
 #   if defined(LPAGES)
