@@ -1264,46 +1264,42 @@ namespace Searcher {
                     && ci.dsc_checkers == 0 ?
                         (ci.checking_bb[mpt] & dst) != 0 :
                         pos.gives_check (move, ci);
+                bool capture_or_promotion = pos.capture_or_promotion (move);
+
                 bool move_count_pruning =
                        depth < DEPTH_16
                     && move_count >= FutilityMoveCounts[improving][depth];
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
-                auto extension =
+                bool extension =
                        gives_check
                     && !move_count_pruning
-                    && pos.see_sign (move) >= VALUE_ZERO ?
-                        DEPTH_1 :
-                        DEPTH_0;
+                    && pos.see_sign (move) >= VALUE_ZERO;
 
                 // Singular extensions (SE).
                 // We extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
-                // and just one fails high on (alfa, beta), then that move is singular
-                // and should be extended. To verify this do a reduced search on all the other moves
-                // but the tt_move, if result is lower than tt_value minus a margin then extend tt_move.
-                if (   singular_ext_node
-                    && move == tt_move
-                    && extension == DEPTH_0)
+                // and just one fails high on (alfa, beta), then that move is singular and should be extended.
+                // To verify this do a reduced search on all the other moves but the tt_move,
+                // if result is lower than and equal to tt_value minus a margin then extend tt_move.
+                if (   !extension
+                    && singular_ext_node
+                    && move == tt_move)
                 {
-                    auto r_beta = std::max (tt_value - 2*i32(depth), -VALUE_INFINITE+1);
-                    assert(-VALUE_INFINITE < r_beta && r_beta <= +VALUE_INFINITE);
-
+                    auto reduced_alfa = std::max (tt_value - 2*i32(depth), -VALUE_INFINITE);
                     ss->exclude_move = move;
                     ss->skip_pruning = true;
-                    value = depth_search<false, CutNode, InCheck> (pos, ss, r_beta-1, r_beta, depth/2);
+                    value = depth_search<false, CutNode, InCheck> (pos, ss, reduced_alfa, reduced_alfa+1, depth/2);
                     ss->skip_pruning = false;
                     ss->exclude_move = MOVE_NONE;
-
-                    if (value < r_beta)
+                    if (value <= reduced_alfa)
                     {
-                        extension = DEPTH_1;
+                        extension = true;
                     }
                 }
 
                 // Update the current move (this must be done after singular extension search)
-                auto new_depth = depth - DEPTH_1 + extension;
-                bool capture_or_promotion = pos.capture_or_promotion (move);
+                auto new_depth = depth - DEPTH_1 + (extension ? DEPTH_1 : DEPTH_0);
 
                 // Step 13. Pruning at shallow depth
                 if (   !InCheck
