@@ -14,7 +14,7 @@ namespace Notation {
     namespace {
 
         // Type of the Ambiguity
-        enum Ambiguity : u08
+        enum AmbiguityType : u08
         {
             AMB_NONE,
             AMB_RANK,
@@ -24,7 +24,7 @@ namespace Notation {
 
         // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
         // NOTE: for pawns it is not needed because 'org' file is explicit.
-        Ambiguity ambiguity (Move m, const Position &pos)
+        AmbiguityType ambiguity (Move m, const Position &pos)
         {
             assert(pos.legal (m));
 
@@ -55,22 +55,24 @@ namespace Notation {
             return AMB_NONE;
         }
 
-        // value to string
-        string pretty_value (Value v, const Position &pos)
+        // Value to string
+        string pretty_value (Value v, Color c)
         {
             ostringstream oss;
             if (abs (v) < +VALUE_MATE - i32(MaxPlies))
             {
-                oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (pos.active () == WHITE ? +v : -v);
+                oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (c == WHITE ? +v : -v);
             }
             else
             {
-                oss << "#" << std::showpos << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
+                oss << "#" << std::showpos << i32(v > VALUE_ZERO ?
+                                                    +(VALUE_MATE - v + 1) :
+                                                    -(VALUE_MATE + v + 0)) / 2;
             }
             return oss.str ();
         }
 
-        // time to string
+        // Time to string
         string pretty_time (TimePoint time)
         {
             u32 hours  = u32(time / HourMilliSec);
@@ -113,7 +115,7 @@ namespace Notation {
         auto can = to_string (org) + to_string (dst);
         if (mtype (m) == PROMOTE)
         {
-            can += PieceChar[BLACK|promote (m)]; // Lowercase (Black)
+            can += char(tolower (char(PieceChar[promote (m)])));
         }
         return can;
     }
@@ -165,7 +167,7 @@ namespace Notation {
                 && mtype (m) == PROMOTE)
             {
                 san += "=";
-                san += PieceChar[WHITE|promote (m)]; // Uppercase (White)
+                san += PieceChar[promote (m)];
             }
         }
         else
@@ -240,22 +242,17 @@ namespace Notation {
     // Returns formated human-readable search information,
     // typically to be appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv_info ()
+    string pretty_pv_info (Thread *const &thread)
     {
-        static auto *main_thread = Threadpool.main_thread ();
-
-        const u16 K = 1000;
-        const u32 M = K*K;
+        static const u16 K = 1000;
+        static const u32 M = K*K;
 
         ostringstream oss;
 
-        auto &root_pos = main_thread->root_pos;
-
-        oss << std::setw ( 4) << main_thread->running_depth
-            << std::setw ( 8) << pretty_value (main_thread->root_moves[0].new_value, root_pos)
-            << std::setw (12) << pretty_time (Threadpool.time_mgr.elapsed_time ());
-
         u64 total_nodes = Threadpool.nodes ();
+        oss << std::setw ( 4) << thread->running_depth
+            << std::setw ( 8) << pretty_value (thread->root_moves[0].new_value, thread->root_pos.active ())
+            << std::setw (12) << pretty_time (Threadpool.time_mgr.elapsed_time ());
         if (total_nodes < 1*M)
         {
             oss << std::setw (8) << total_nodes / 1 << "  ";
@@ -272,18 +269,18 @@ namespace Notation {
 
         StateList states;
         u08 ply = 0;
-        for (const auto m : main_thread->root_moves[0])
+        for (auto m : thread->root_moves[0])
         {
-            oss << move_to_san (m, root_pos) << ' ';
+            oss << move_to_san (m, thread->root_pos) << ' ';
             states.push_back (StateInfo ());
-            root_pos.do_move (m, states.back (), root_pos.gives_check (m, CheckInfo (root_pos)));
+            thread->root_pos.do_move (m, states.back (), thread->root_pos.gives_check (m, CheckInfo (thread->root_pos)));
             ++ply;
             ////---------------------------------
             //oss << move_to_can (m) << ' ';
         }
         for (; ply != 0; --ply)
         {
-            root_pos.undo_move ();
+            thread->root_pos.undo_move ();
             states.pop_back ();
         }
         ////---------------------------------

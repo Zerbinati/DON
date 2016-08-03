@@ -181,6 +181,7 @@ namespace Threading {
         index = u16(Threadpool.size ()); // Starts from 0
         history_values.clear ();
         counter_moves.clear ();
+        org_dst_values.clear ();
 
         std::unique_lock<Mutex> lk (_mutex);
         _native_thread = std::thread (&Thread::idle_loop, this);

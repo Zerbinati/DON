@@ -100,7 +100,7 @@ namespace Evaluator {
                     while (pinned_pawns != 0)
                     {
                         auto s = pop_lsq (pinned_pawns);
-                        pawn_attacks |= PawnAttacks[Own][s] & rayline_bb (fk_sq, s);
+                        pawn_attacks |= PawnAttacks[Own][s] & strline_bb (fk_sq, s);
                     }
                     pin_attacked_by[Own][NONE] |=
                     pin_attacked_by[Own][PAWN]  = pawn_attacks;
@@ -368,7 +368,7 @@ namespace Evaluator {
                 Bitboard pin_attacks = ful_attacks;
                 if ((abs_pinneds & s_bb) != 0)
                 {
-                    pin_attacks &= rayline_bb (pos.square<KING> (Own), s);
+                    pin_attacks &= strline_bb (pos.square<KING> (Own), s);
                 }
                 ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE] & pin_attacks;
                 ei.pin_attacked_by[Own][NONE] |=
@@ -995,13 +995,13 @@ namespace Evaluator {
         // Computes the scale factor for the position
         ScaleFactor evaluate_scale_factor (const Position &pos, const EvalInfo &ei, Value eg)
         {
-            assert(PHASE_ENDGAME <= ei.me->game_phase && ei.me->game_phase <= PHASE_MIDGAME);
+            assert(PHASE_ENDGAME <= ei.me->phase && ei.me->phase <= PHASE_MIDGAME);
 
             auto strong_side = eg >= VALUE_ZERO ? WHITE : BLACK;
             // Scale factor if position is more drawish than it appears
             auto scale_factor = ei.me->scale_factor (pos, strong_side);
             // If don't already have an unusual scale factor, check for certain types of endgames.
-            if (   ei.me->game_phase < PHASE_MIDGAME
+            if (   ei.me->phase < PHASE_MIDGAME
                 && (   scale_factor == SCALE_FACTOR_NORMAL
                     || scale_factor == SCALE_FACTOR_ONEPAWN))
             {
@@ -1142,8 +1142,8 @@ namespace Evaluator {
         assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
 
         // Interpolates between a middle game and a endgame score scaled by scale factor, based on game phase.
-        auto value = Value((  mg_value (score) * i32(ei.me->game_phase)
-                            + eg_value (score) * i32(PHASE_MIDGAME - ei.me->game_phase)
+        auto value = Value((  mg_value (score) * i32(ei.me->phase)
+                            + eg_value (score) * i32(PHASE_MIDGAME - ei.me->phase)
                                                 // Evaluate scale factor for the position
                                                * i32(evaluate_scale_factor (pos, ei, eg_value (score)))/SCALE_FACTOR_NORMAL)
                             / PHASE_MIDGAME);

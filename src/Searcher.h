@@ -61,37 +61,37 @@ private:
     void _clear (Move  &m) { m = MOVE_NONE; }
 
 public:
-    Stats () = default;
-    Stats (const Stats&) = delete;
-
-    const T* operator[] (Piece  pc) const { return _table[pc]; }
-    T*       operator[] (Piece  pc)       { return _table[pc]; }
+    T& operator()(Piece pc, Square s)
+    {
+        return _table[pc][s];
+    }
+    const T& operator()(Piece pc, Square s) const
+    {
+        return _table[pc][s];
+    }
 
     void clear ()
     {
-        for (auto &t : _table)
+        for (i16 pc = 0; pc < MAX_PIECE; ++pc)
         {
-            for (auto &e : t)
+            for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
-                _clear (e);
+                _clear (_table[pc][s]);
             }
         }
     }
-    // Piece, destiny square, value
-    void update (Piece p, Square s, Value v)
+    void update (Piece pc, Square s, Value v)
     {
-        if (abs (i32(v)) < 324)
+        if (abs (v) < 324)
         {
-            auto &e = _table[p][s];
-            e = e*(1.0 - (double) abs (i32(v)) / (CM ? 936 : 324)) + i32(v)*32;
+            auto &e = _table[pc][s];
+            e = e*(1.0 - (double) abs (v) / (CM ? 936 : 324)) + 32*v;
         }
     }
-    // Piece, destiny square, move
-    void update (Piece p, Square s, Move m)
+    void update (Piece pc, Square s, Move m)
     {
-        _table[p][s] = m;
+        _table[pc][s] = m;
     }
-
 };
 
 // ValueStats stores the value that records how often different moves have been successful/unsuccessful
@@ -108,6 +108,44 @@ typedef Stats<CMValueStats>     CM2DValueStats;
 // will be considered identical.
 typedef Stats<Move>             MoveStats;
 
+
+struct OrgDstStats
+{
+private:
+    Value _table[CLR_NO][SQ_NO][SQ_NO];
+
+public:
+    Value& operator()(Color c, Move m)
+    {
+        return _table[c][org_sq (m)][dst_sq (m)];
+    }
+    const Value& operator()(Color c, Move m) const
+    {
+        return _table[c][org_sq (m)][dst_sq (m)];
+    }
+
+    void clear ()
+    {
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+            {
+                for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+                {
+                    _table[c][s1][s2] = VALUE_ZERO;
+                }
+            }
+        }
+    }
+    void update (Color c, Move m, Value v)
+    {
+        if (abs (v) < 324)
+        {
+            auto &e = _table[c][org_sq (m)][dst_sq (m)];
+            e = e*(1.0 - (double) abs (v) / 324) + 32*v;
+        }
+    }
+};
 
 const u08 MaxKillers = 2;
 // The Stack struct keeps track of the information needed to remember from
@@ -126,10 +164,6 @@ struct Stack
     CMValueStats *counter_move_values;
 
     MoveVector pv;
-
-    Stack () = default;
-    Stack (const Stack&) = delete;
-    Stack& operator= (const Stack&) = delete;
 };
 
 namespace Searcher {

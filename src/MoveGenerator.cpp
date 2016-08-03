@@ -57,7 +57,7 @@ namespace MoveGen {
         void generate_castling_moves (ValMove *&moves, const Position &pos, Color Own, const CheckInfo *ci)
         {
             assert(GT != EVASION);
-            assert(!pos.castle_impeded (CR)
+            assert(!pos.impeded_castle (CR)
                  && pos.can_castle (CR) != CR_NONE
                  && pos.checkers () == 0);
 
@@ -133,12 +133,12 @@ namespace MoveGen {
                     && pos.can_castle (Own) != CR_NONE)
                 {
                     if (   pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE
-                        && !pos.castle_impeded (Castling<Own, CS_KING>::Right))
+                        && !pos.impeded_castle (Castling<Own, CS_KING>::Right))
                     {
                         generate_castling_moves<GT, Castling<Own, CS_KING>::Right> (moves, pos, Own, ci);
                     }
                     if (   pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE
-                        && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right))
+                        && !pos.impeded_castle (Castling<Own, CS_QUEN>::Right))
                     {
                         generate_castling_moves<GT, Castling<Own, CS_QUEN>::Right> (moves, pos, Own, ci);
                     }
@@ -469,7 +469,7 @@ namespace MoveGen {
             check_sq = pop_lsq (sliders);
             assert(color (pos[check_sq]) == ~active);
             checker_attacks |= (  attacks_bb (pos[check_sq], check_sq, pos.pieces ())
-                                | rayline_bb (check_sq, king_sq)) - check_sq;
+                                | strline_bb (check_sq, king_sq)) - check_sq;
         }
         if (check_sq == SQ_NO)
         {

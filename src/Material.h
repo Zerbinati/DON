@@ -24,7 +24,7 @@ namespace Material {
         bool        used;
         Key         matl_key;
         Score       imbalance;
-        Phase       game_phase;
+        Phase       phase;
         ScaleFactor factor[CLR_NO];
 
         EndGame::EndgameBase<Value>       *evaluation_func;

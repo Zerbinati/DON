@@ -683,13 +683,6 @@ public:
     Move  move  = MOVE_NONE;
     Value value = VALUE_ZERO;
 
-    ValMove () = default;
-    ValMove (Move m, Value v)
-        : move (m)
-        , value (v)
-    {}
-    ValMove& operator= (const ValMove&) = default;
-
     operator Move () const { return move; }
     void operator= (Move  m) { move  = m; }
     //operator Value () const { return value; }

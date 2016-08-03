@@ -465,7 +465,7 @@ bool Position::pseudo_legal (Move m) const
               && _board[dst] == (_active|ROOK)
               && _si->checkers == 0
               && (_si->castle_rights & mk_castle_right (_active, dst > org ? CS_KING : CS_QUEN)) != CR_NONE
-              && !castle_impeded (mk_castle_right (_active, dst > org ? CS_KING : CS_QUEN))))
+              && !impeded_castle (mk_castle_right (_active, dst > org ? CS_KING : CS_QUEN))))
         {
             return false;
         }

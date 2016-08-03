@@ -6,17 +6,15 @@
 
 const u16 MaxMoves  = 256;  // Maximum Moves
 
-// Generator Type
 enum GenType : u08
 {
-    // PSEUDO-LEGAL MOVES
-    RELAX,       // Normal.
-    EVASION,     // Save the friendly king from check.
-    CAPTURE,     // Change material balance where an enemy piece is captured.
-    QUIET,       // Do not capture pieces but under-promotion is allowed.
-    CHECK,       // Checks the enemy King in any way possible.
-    QUIET_CHECK, // Do not change material and only checks the enemy King (no capture or promotion).
-    LEGAL,       // Legal.
+    RELAX,
+    EVASION,
+    CAPTURE,
+    QUIET,
+    CHECK,
+    QUIET_CHECK,
+    LEGAL,
 };
 
 namespace MoveGen {

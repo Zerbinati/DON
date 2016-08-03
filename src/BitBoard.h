@@ -193,7 +193,7 @@ namespace BitBoard {
     inline Bitboard front_sqrs_bb (Color c, Square s) { return FrontSqrs_bb[c][s]; }
 
     inline Bitboard between_bb (Square s1, Square s2) { return Between_bb[s1][s2]; }
-    inline Bitboard rayline_bb (Square s1, Square s2) { return StrLine_bb[s1][s2]; }
+    inline Bitboard strline_bb (Square s1, Square s2) { return StrLine_bb[s1][s2]; }
 
     inline Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[s][d]; }
 
@@ -311,6 +311,8 @@ namespace BitBoard {
     template<>
     inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
+        //assert((B_Attacks_bb[s][magic_index<BSHP> (s, occ)]
+        //      & R_Attacks_bb[s][magic_index<ROOK> (s, occ)]) == 0);
         return B_Attacks_bb[s][magic_index<BSHP> (s, occ)]
              | R_Attacks_bb[s][magic_index<ROOK> (s, occ)];
     }

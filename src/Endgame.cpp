@@ -130,7 +130,7 @@ namespace EndGame {
 
         if (   pos.count<QUEN> (_strong_side) != 0
             || pos.count<ROOK> (_strong_side) != 0
-            || pos.bishops_pair (_strong_side)
+            || pos.paired_bishop (_strong_side)
             || (   pos.count<BSHP> (_strong_side) != 0
                 && pos.count<NIHT> (_strong_side) != 0)
             || pos.count<NIHT> (_strong_side) > 2)
@@ -360,7 +360,7 @@ namespace EndGame {
 
         Value value;
 
-        if (pos.bishops_pair (_strong_side))
+        if (pos.paired_bishop (_strong_side))
         {
             if (   std::min (dist (wk_sq, SQ_A8), dist (wk_sq, SQ_H1))
                  < std::min (dist (wk_sq, SQ_A1), dist (wk_sq, SQ_H8)))

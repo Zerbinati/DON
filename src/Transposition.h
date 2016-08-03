@@ -124,10 +124,6 @@ namespace Transposition {
         bool retain_hash = false;
 
         Table () = default;
-        explicit Table (u32 mem_size_mb)
-        {
-            resize (mem_size_mb, true);
-        }
         Table (const Table&) = delete;
         Table& operator= (const Table&) = delete;
         ~Table ()
@@ -168,7 +164,7 @@ namespace Transposition {
         u32 resize (u32 mem_size_mb, bool force = false);
         u32 resize ();
 
-        void auto_size (u32 mem_size_mb, bool force = false);
+        void auto_resize (u32 mem_size_mb, bool force = false);
 
         Entry* probe (Key key, bool &tt_hit) const;
 

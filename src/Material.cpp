@@ -138,7 +138,7 @@ namespace Material {
             e->matl_key = matl_key;
             e->factor[WHITE] =
             e->factor[BLACK] = SCALE_FACTOR_NORMAL;
-            e->game_phase = pos.phase ();
+            e->phase = pos.phase ();
 
             // Let's look if have a specialized evaluation function for this
             // particular material configuration. First look for a fixed
@@ -229,11 +229,11 @@ namespace Material {
             {
                 {
                     pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
-                    pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.bishops_pair (WHITE) ? 1 : 0
+                    pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.paired_bishop (WHITE) ? 1 : 0
                 },
                 {
                     pos.count<PAWN> (BLACK), pos.count<NIHT> (BLACK), pos.count<BSHP> (BLACK),
-                    pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.bishops_pair (BLACK) ? 1 : 0
+                    pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.paired_bishop (BLACK) ? 1 : 0
                 }
             };
 

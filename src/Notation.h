@@ -36,8 +36,10 @@ namespace Notation {
     inline std::string to_string (Value v)
     {
         return abs (v) < +VALUE_MATE - i32(MaxPlies) ?
-            "cp " + std::to_string (i32(value_to_cp (v)*100)) :
-            "mate " + std::to_string (i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v))/2);
+            "cp "   + std::to_string (i32(100 * value_to_cp (v))) :
+            "mate " + std::to_string (i32(v > VALUE_ZERO ?
+                                            +(VALUE_MATE - v + 1) :
+                                            -(VALUE_MATE + v + 0)) / 2);
     }
 
     extern std::string move_to_can (Move m);
@@ -48,7 +50,7 @@ namespace Notation {
     extern Move move_from_san (const std::string &san,       Position &pos);
     //extern Move move_from_lan (const std::string &lan,       Position &pos);
 
-    extern std::string pretty_pv_info ();
+    extern std::string pretty_pv_info (Thread *const &thread);
 }
 
 template<class CharT, class Traits>

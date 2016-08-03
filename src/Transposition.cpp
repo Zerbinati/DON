@@ -67,16 +67,13 @@ namespace Transposition {
     // Free the aligned memory
     void Table::free_aligned_memory ()
     {
-        if (_blocks != nullptr)
-        {
-        #   if defined(LPAGES)
-            Memory::free_memory (_blocks);
-        #   else
-            free (_blocks);
-        #   endif
-            _blocks         = nullptr;
-            _clusters       = nullptr;
-        }
+    #   if defined(LPAGES)
+        Memory::free_memory (_blocks);
+    #   else
+        free (_blocks);
+    #   endif
+        _blocks         = nullptr;
+        _clusters       = nullptr;
         _cluster_count  = 0;
         _generation     = 0;
     }
@@ -136,7 +133,7 @@ namespace Transposition {
         return resize (size (), true);
     }
 
-    void Table::auto_size (u32 mem_size_mb, bool force)
+    void Table::auto_resize (u32 mem_size_mb, bool force)
     {
         if (mem_size_mb == 0)
         {

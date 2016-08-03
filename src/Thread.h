@@ -54,7 +54,8 @@ private:
     Move _pv[PVSize];
 
 public:
-    u08  stable_count   = 0; // Keep track of how many times in a row the 3rd ply remains stable
+    // Keep track of how many times in a row the 3rd ply remains stable
+    u08  stable_count   = 0;
 
     MoveManager ()
     {
@@ -63,20 +64,19 @@ public:
     MoveManager (const MoveManager&) = delete;
     MoveManager& operator= (const MoveManager&) = delete;
 
+    Move easy_move (Key posi_key) const
+    {
+        return posi_key == _posi_key ?
+            _pv[PVSize-1] :
+            MOVE_NONE;
+    }
+
     void clear ()
     {
         _posi_key    = 0;
         stable_count = 0;
         std::fill (_pv, _pv + PVSize, MOVE_NONE);
     }
-
-    Move easy_move (Key posi_key) const
-    {
-        return posi_key == _posi_key ?
-                _pv[PVSize-1] :
-                MOVE_NONE;
-    }
-
     void update (Position &pos, const MoveVector &pv)
     {
         assert(pv.size () >= PVSize);
@@ -183,6 +183,7 @@ namespace Threading {
             ,       finished_depth = DEPTH_0;
         HValueStats history_values;
         MoveStats   counter_moves;
+        OrgDstStats org_dst_values;
 
         std::atomic_bool reset_count { false };
 

@@ -109,7 +109,7 @@ namespace Engine {
         Searcher ::initialize ();
         TBSyzygy ::initialize ();
 
-        TT.auto_size (i32(Options["Hash"]), true);
+        TT.auto_resize (i32(Options["Hash"]), true);
 
         UCI::loop (argc, argv);
     }

@@ -48,8 +48,6 @@ public:
     Bitboard    checkers;       // Checkers bitboard.
 
     StateInfo   *ptr;           // Previous StateInfo.
-
-    StateInfo () = default;
 };
 
 typedef std::deque<StateInfo>       StateList;
@@ -59,10 +57,10 @@ typedef std::unique_ptr<StateList>  StateListPtr;
 struct CheckInfo
 {
 public:
-    Bitboard checking_bb[NONE]; // Checking squares from which the enemy king can be checked.
+    Square   king_sq;           // Enemy king square.
     Bitboard abs_pinneds;       // Absolute pinneds pieces.
     Bitboard dsc_checkers;      // Discovered checkers pieces.
-    Square   king_sq;           // Enemy king square.
+    Bitboard checking_bb[NONE]; // Checking squares from which the enemy king can be checked.
 
     CheckInfo () = delete;
     explicit CheckInfo (const Position &pos);
@@ -189,7 +187,7 @@ public:
     Square   castle_rook (CastleRight cr) const;
     Bitboard castle_path (CastleRight cr) const;
     Bitboard king_path   (CastleRight cr) const;
-    bool  castle_impeded (CastleRight cr) const;
+    bool  impeded_castle (CastleRight cr) const;
 
     Color   active   () const;
     i16     ply      () const;
@@ -222,14 +220,14 @@ public:
     bool legal          (Move m, Bitboard abs_pinned) const;
     bool legal          (Move m) const;
     bool capture        (Move m) const;
-    bool promotion (Move m) const;
+    bool promotion      (Move m) const;
     bool capture_or_promotion (Move m) const;
     bool en_passant     (Move m) const;
     bool gives_check    (Move m, const CheckInfo &ci) const;
     //bool gives_checkmate (Move m, const CheckInfo &ci) const;
 
     bool pawn_passed_at (Color c, Square s) const;
-    bool bishops_pair (Color c) const;
+    bool paired_bishop  (Color c) const;
     bool opposite_bishops ()    const;
 
     Value compute_non_pawn_material (Color c) const;
@@ -373,7 +371,7 @@ inline Square   Position::castle_rook (CastleRight cr) const { return _castle_ro
 inline Bitboard Position::castle_path (CastleRight cr) const { return _castle_path[cr]; }
 inline Bitboard Position::king_path   (CastleRight cr) const { return _king_path[cr]; }
 
-inline bool  Position::castle_impeded (CastleRight cr) const { return (_castle_path[cr] & pieces ()) != 0; }
+inline bool  Position::impeded_castle (CastleRight cr) const { return (_castle_path[cr] & pieces ()) != 0; }
 // Color of the side on move
 inline Color Position::active  () const { return _active; }
 // ply starts at 0, and is incremented after every move.
@@ -387,9 +385,8 @@ inline u64  Position::nodes () const { return _nodes; }
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
 inline Phase Position::phase () const
 {
-    return Phase(
-        i32(std::max (std::min (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK], VALUE_MIDGAME), VALUE_ENDGAME) - VALUE_ENDGAME) * i32(PHASE_MIDGAME) /
-        i32(VALUE_MIDGAME - VALUE_ENDGAME));
+    return Phase(i32(std::min (std::max (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK], VALUE_ENDGAME), VALUE_MIDGAME)
+                        - VALUE_ENDGAME) * PHASE_MIDGAME / (VALUE_MIDGAME - VALUE_ENDGAME));
 }
 
 inline Thread* Position::thread () const { return _thread; }
@@ -446,7 +443,7 @@ inline bool Position::pawn_passed_at (Color c, Square s) const
     return (pieces (~c, PAWN) & pawn_pass_span (c, s)) == 0;
 }
 // Check the side has pair of opposite color bishops
-inline bool Position::bishops_pair (Color c) const
+inline bool Position::paired_bishop (Color c) const
 {
     for (i32 pc = 1; pc < count<BSHP> (c); ++pc)
     {
@@ -469,7 +466,9 @@ inline bool Position::legal (Move m) const { return legal (m, abs_pinneds (_acti
 inline bool Position::capture (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return ((mtype (m) == NORMAL || promotion (m)) && (pieces (~_active) & dst_sq (m)) != 0)
+    return (   (mtype (m) == NORMAL
+            || promotion (m))
+        && (pieces (~_active) & dst_sq (m)) != 0)
         || en_passant (m);
 }
 // Checks move is promotion
@@ -482,7 +481,8 @@ inline bool Position::promotion (Move m) const
 // Checks move is capture or promotion
 inline bool Position::capture_or_promotion (Move m) const
 {
-    return (mtype (m) == NORMAL && (pieces (~_active) & dst_sq (m)) != 0)
+    return (   mtype (m) == NORMAL
+            && (pieces (~_active) & dst_sq (m)) != 0)
         || en_passant (m)
         || promotion (m);
 }
