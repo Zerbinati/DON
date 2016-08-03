@@ -881,6 +881,11 @@ namespace Evaluator {
                         }
                         // Squares to queen
                         Bitboard front_squares = front_sqrs_bb (Own, s);
+                        if (   rel_rank (Own, block_sq) == R_3
+                            && pos.empty (block_sq+Push))
+                        {
+                            front_squares -= block_sq;
+                        }
                         Bitboard safe_front_squares = front_squares
                             ,  unsafe_front_squares = front_squares;
                         // If there is an enemy rook or queen attacking the pawn from behind,
