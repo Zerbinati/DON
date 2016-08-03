@@ -144,13 +144,13 @@ Move SkillManager::pick_best_move (u16 pv_limit)
     if (_best_move == MOVE_NONE)
     {
         // RootMoves are already sorted by value in descending order
-        auto weakness   = Value(MaxPlies - 4 * _skill_level);
         auto max_value  = root_moves[0].new_value;
-        auto diversity  = std::min (max_value - root_moves[pv_limit - 1].new_value, VALUE_MG_PAWN);
-        auto best_value = -VALUE_INFINITE;
+        i32  weakness   = MaxPlies - 4 * _skill_level;
+        i32  diversity  = std::min (max_value - root_moves[pv_limit - 1].new_value, VALUE_MG_PAWN);
         // Choose best move. For each move score add two terms, both dependent on weakness.
         // One is deterministic with weakness, and one is random with diversity.
         // Then choose the move with the resulting highest value.
+        auto best_value = -VALUE_INFINITE;
         for (u16 i = 0; i < pv_limit; ++i)
         {
             auto value = root_moves[i].new_value
@@ -178,10 +178,10 @@ namespace Threading {
         , count (0)
         , reset_count (false)
     {
-        index = u16(Threadpool.size ()); // Starts from 0
+        index = u16(Threadpool.size ());
         history_values.clear ();
-        counter_moves.clear ();
         org_dst_values.clear ();
+        counter_moves.clear ();
 
         std::unique_lock<Mutex> lk (_mutex);
         _native_thread = std::thread (&Thread::idle_loop, this);
@@ -198,9 +198,6 @@ namespace Threading {
         _native_thread.join ();
     }
 
-    MainThread::MainThread ()
-    {}
-
     Thread* ThreadPool::best_thread () const
     {
         auto *best_th = at (0);
@@ -214,7 +211,6 @@ namespace Threading {
         }
         return best_th;
     }
-
     // Returns the total game nodes searched
     u64 ThreadPool::nodes () const
     {
@@ -250,7 +246,6 @@ namespace Threading {
         shrink_to_fit ();
         sync_cout << "info string Thread(s) used " << threads << sync_endl;
     }
-
     // Wakes up the main thread sleeping in Thread::idle_loop()
     // and starts a new search, then returns immediately.
     void ThreadPool::start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits)
@@ -259,11 +254,11 @@ namespace Threading {
 
         // After ownership transfer 'states' becomes empty, so if we stop the search
         // and call 'go' again without setting a new position states.get() == NULL.
-        assert(states.get () != nullptr || setup_states.get () != nullptr);
+        assert(states.get () != nullptr || _states.get () != nullptr);
         if (states.get () != nullptr)
         {
             // Ownership transfer, states is now empty
-            setup_states = std::move (states);
+            _states = std::move (states);
             assert(states.get () == nullptr);
         }
         Limits = limits;
@@ -322,15 +317,15 @@ namespace Threading {
             }
         }
 
-        const auto tmp_si = setup_states->back ();
+        const auto tmp_si = _states->back ();
         const auto fen = root_pos.fen (true);
         for (auto *th : *this)
         {
-            th->root_pos.setup (fen, setup_states->back (), th, true);
+            th->root_pos.setup (fen, _states->back (), th, true);
             th->root_moves = root_moves;
         }
         // Restore si->ptr, cleared by Position::setup()
-        setup_states->back () = tmp_si;
+        _states->back () = tmp_si;
 
         ForceStop     = false;
         PonderhitStop = false;

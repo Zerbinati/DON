@@ -15,21 +15,140 @@
 #include "Debugger.h"
 
 using namespace std;
+using namespace UCI;
+using namespace BitBoard;
+using namespace MoveGen;
+using namespace MovePick;
+using namespace Transposition;
+using namespace Evaluator;
+using namespace Threading;
+using namespace Zobrists;
+using namespace TBSyzygy;
+using namespace Polyglot;
+using namespace Notation;
+using namespace Debugger;
+
+/*
+// insert_pv_into_tt() inserts the PV back into the TT.
+// This makes sure the old PV moves are searched first,
+// even if the old TT entries have been overwritten.
+void RootMove::insert_pv_into_tt (Position &pos) const
+{
+    StateInfo states[MaxPlies], *si = states;
+
+    u08 ply = 0;
+    for (auto m : *this)
+    {
+        assert(m != MOVE_NONE);
+        assert(MoveList<LEGAL> (pos).contains (m));
+
+        bool tt_hit;
+        auto *tte = TT.probe (pos.posi_key (), tt_hit);
+        // Don't overwrite correct entries
+        if (   !tt_hit
+            || m != tte->move ())
+        {
+            tte->save (pos.posi_key (),
+                        m,
+                        VALUE_NONE,
+                        //pos.checkers () == 0 ?
+                        //    evaluate (pos) :
+                            VALUE_NONE,
+                        DEPTH_NONE,
+                        BOUND_NONE,
+                        TT.generation ());
+        }
+        pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
+        if (++ply >= MaxPlies)
+        {
+            break;
+        }
+    }
+    while (ply != 0)
+    {
+        pos.undo_move ();
+        --ply;
+    }
+}
+// extract_pv_from_tt() extract the PV back from the TT.
+void RootMove::extract_pv_from_tt (Position &pos)
+{
+    StateInfo states[MaxPlies], *si = states;
+
+    resize (1);
+    u08 ply = 0;
+    auto m = at (ply);
+    pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
+    ++ply;
+        
+    auto expected_value = -new_value;
+    bool tt_hit;
+    const auto *tte = TT.probe (pos.posi_key (), tt_hit);
+    while (   tt_hit
+            && ply < MaxPlies 
+            && expected_value == value_of_tt (tte->value (), ply+1)
+            && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
+            && pos.pseudo_legal (m)
+            && pos.legal (m))
+    {
+        //assert(m != MOVE_NONE);
+        assert(MoveList<LEGAL> (pos).contains (m));
+        assert(!pos.draw ());
+
+        *this += m;
+        pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
+        ++ply;
+
+        expected_value = -expected_value;
+        tte = TT.probe (pos.posi_key (), tt_hit);
+    }
+    while (ply != 0)
+    {
+        pos.undo_move ();
+        --ply;
+    }
+}
+*/
+
+// extract_ponder_move_from_tt() is called in case have no ponder move before exiting the search,
+// for instance, in case stop the search during a fail high at root.
+// Try hard to have a ponder move which has to return to the GUI, otherwise in case of 'ponder on' have nothing to think on.
+bool RootMove::extract_ponder_move_from_tt (Position &pos)
+{
+    assert(size () == 1);
+    assert(_ok (at (0)));
+
+    StateInfo si;
+    auto m = at (0);
+    pos.do_move (m, si, pos.gives_check (m, CheckInfo (pos)));
+    bool tt_hit;
+    const auto *tte = TT.probe (pos.posi_key (), tt_hit);
+    if (   tt_hit
+        && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
+        && pos.pseudo_legal (m)
+        && pos.legal (m))
+    {
+        //assert(m != MOVE_NONE);
+        assert(MoveList<LEGAL> (pos).contains (m));
+        assert(!pos.draw ());
+        *this += m;
+    }
+    pos.undo_move ();
+    return size () > 1;
+}
+
+RootMove::operator string () const
+{
+    ostringstream oss;
+    for (auto m : *this)
+    {
+        assert(_ok (m));
+        oss << ' ' << move_to_can (m);
+    }
+    return oss.str ();
+}
 
 namespace Searcher {
-
-    using namespace UCI;
-    using namespace BitBoard;
-    using namespace MoveGen;
-    using namespace MovePick;
-    using namespace Transposition;
-    using namespace Evaluator;
-    using namespace Threading;
-    using namespace Zobrists;
-    using namespace TBSyzygy;
-    using namespace Polyglot;
-    using namespace Notation;
-    using namespace Debugger;
 
     Limit  Limits;
 
@@ -1509,126 +1628,6 @@ namespace Searcher {
         }
     }
 
-    /*
-    // insert_pv_into_tt() inserts the PV back into the TT.
-    // This makes sure the old PV moves are searched first,
-    // even if the old TT entries have been overwritten.
-    void RootMove::insert_pv_into_tt (Position &pos) const
-    {
-        StateInfo states[MaxPlies], *si = states;
-
-        u08 ply = 0;
-        for (auto m : *this)
-        {
-            assert(m != MOVE_NONE);
-            assert(MoveList<LEGAL> (pos).contains (m));
-
-            bool tt_hit;
-            auto *tte = TT.probe (pos.posi_key (), tt_hit);
-            // Don't overwrite correct entries
-            if (   !tt_hit
-                || m != tte->move ())
-            {
-                tte->save (pos.posi_key (),
-                           m,
-                           VALUE_NONE,
-                           //pos.checkers () == 0 ?
-                           //    evaluate (pos) :
-                               VALUE_NONE,
-                           DEPTH_NONE,
-                           BOUND_NONE,
-                           TT.generation ());
-            }
-            pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
-            if (++ply >= MaxPlies)
-            {
-                break;
-            }
-        }
-        while (ply != 0)
-        {
-            pos.undo_move ();
-            --ply;
-        }
-    }
-    // extract_pv_from_tt() extract the PV back from the TT.
-    void RootMove::extract_pv_from_tt (Position &pos)
-    {
-        StateInfo states[MaxPlies], *si = states;
-
-        resize (1);
-        u08 ply = 0;
-        auto m = at (ply);
-        pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
-        ++ply;
-        
-        auto expected_value = -new_value;
-        bool tt_hit;
-        const auto *tte = TT.probe (pos.posi_key (), tt_hit);
-        while (   tt_hit
-               && ply < MaxPlies 
-               && expected_value == value_of_tt (tte->value (), ply+1)
-               && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
-               && pos.pseudo_legal (m)
-               && pos.legal (m))
-        {
-            //assert(m != MOVE_NONE);
-            assert(MoveList<LEGAL> (pos).contains (m));
-            assert(!pos.draw ());
-
-            *this += m;
-            pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
-            ++ply;
-
-            expected_value = -expected_value;
-            tte = TT.probe (pos.posi_key (), tt_hit);
-        }
-        while (ply != 0)
-        {
-            pos.undo_move ();
-            --ply;
-        }
-    }
-    */
-
-    // extract_ponder_move_from_tt() is called in case have no ponder move before exiting the search,
-    // for instance, in case stop the search during a fail high at root.
-    // Try hard to have a ponder move which has to return to the GUI, otherwise in case of 'ponder on' have nothing to think on.
-    bool RootMove::extract_ponder_move_from_tt (Position &pos)
-    {
-        assert(size () == 1);
-        assert(_ok (at (0)));
-
-        StateInfo si;
-        auto m = at (0);
-        pos.do_move (m, si, pos.gives_check (m, CheckInfo (pos)));
-        bool tt_hit;
-        const auto *tte = TT.probe (pos.posi_key (), tt_hit);
-        if (   tt_hit
-            && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
-            && pos.pseudo_legal (m)
-            && pos.legal (m))
-        {
-            //assert(m != MOVE_NONE);
-            assert(MoveList<LEGAL> (pos).contains (m));
-            assert(!pos.draw ());
-            *this += m;
-        }
-        pos.undo_move ();
-        return size () > 1;
-    }
-
-    RootMove::operator string () const
-    {
-        ostringstream oss;
-        for (auto m : *this)
-        {
-            assert(_ok (m));
-            oss << ' ' << move_to_can (m);
-        }
-        return oss.str ();
-    }
-
     // perft<>() is utility to verify move generation.
     // All the leaf nodes up to the given depth are generated, and the sum is returned.
     template<bool RootNode>
@@ -1718,8 +1717,8 @@ namespace Searcher {
         for (auto *th : Threadpool)
         {
             th->history_values.clear ();
-            th->counter_moves.clear ();
             th->org_dst_values.clear ();
+            th->counter_moves.clear ();
         }
         if (Limits.use_time_management ())
         {

@@ -33,10 +33,10 @@ namespace UCI {
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
-        StateListPtr setup_states (new StateList (1));
+        StateListPtr states (new StateList (1));
 
         Position root_pos;
-        root_pos.setup (StartFEN, setup_states->back(), Threadpool.main_thread (), true);
+        root_pos.setup (StartFEN, states->back(), Threadpool.main_thread (), true);
         // Join arguments
         string cmd;
         for (i32 i = 1; i < argc; ++i)
@@ -143,16 +143,18 @@ namespace UCI {
                 }
                 else
                 {
+                    assert(false);
                     continue;
                 }
 
-                setup_states = StateListPtr (new StateList (1));
-                root_pos.setup (fen, setup_states->back(), Threadpool.main_thread (), true);
+                states = StateListPtr (new StateList (1));
+                root_pos.setup (fen, states->back(), Threadpool.main_thread (), true);
 
                 if (token == "moves")
                 {
+                    // Parse and validate moves (if any)
                     while (   iss >> token
-                           && !iss.fail ())   // Parse and validate game moves (if any)
+                           && !iss.fail ())
                     {
                         auto m = move_from_can (token, root_pos);
                         if (m == MOVE_NONE)
@@ -161,8 +163,8 @@ namespace UCI {
                             break;
                         }
 
-                        setup_states->push_back (StateInfo ());
-                        root_pos.do_move (m, setup_states->back (), root_pos.gives_check (m, CheckInfo (root_pos)));
+                        states->push_back (StateInfo ());
+                        root_pos.do_move (m, states->back (), root_pos.gives_check (m, CheckInfo (root_pos)));
                     }
                 }
             }
@@ -186,27 +188,69 @@ namespace UCI {
                 while (   iss >> token
                        && !iss.fail ())
                 {
-                    if (token == "wtime")      { iss >> value; limits.clock[WHITE].time = u64(abs (value)); }
+                    if (token == "wtime")
+                    {
+                        iss >> value;
+                        limits.clock[WHITE].time = u64(abs (value));
+                    }
                     else
-                    if (token == "btime")      { iss >> value; limits.clock[BLACK].time = u64(abs (value)); }
+                    if (token == "btime")
+                    {
+                        iss >> value;
+                        limits.clock[BLACK].time = u64(abs (value));
+                    }
                     else
-                    if (token == "winc")       { iss >> value; limits.clock[WHITE].inc  = u64(abs (value)); }
+                    if (token == "winc")
+                    {
+                        iss >> value;
+                        limits.clock[WHITE].inc  = u64(abs (value));
+                    }
                     else
-                    if (token == "binc")       { iss >> value; limits.clock[BLACK].inc  = u64(abs (value)); }
+                    if (token == "binc")
+                    {
+                        iss >> value;
+                        limits.clock[BLACK].inc  = u64(abs (value));
+                    }
                     else
-                    if (token == "movetime")   { iss >> value; limits.movetime  = u64(abs (value)); }
+                    if (token == "movetime")
+                    {
+                        iss >> value;
+                        limits.movetime  = u64(abs (value));
+                    }
                     else
-                    if (token == "movestogo")  { iss >> value; limits.movestogo = u08(abs (value)); }
+                    if (token == "movestogo")
+                    {
+                        iss >> value;
+                        limits.movestogo = u08(abs (value));
+                    }
                     else
-                    if (token == "depth")      { iss >> value; limits.depth     = u08(abs (value)); }
+                    if (token == "depth")
+                    {
+                        iss >> value;
+                        limits.depth     = Depth(abs (value));
+                    }
                     else
-                    if (token == "nodes")      { iss >> value; limits.nodes     = u64(abs (value)); }
+                    if (token == "nodes")
+                    {
+                        iss >> value;
+                        limits.nodes     = u64(abs (value));
+                    }
                     else
-                    if (token == "mate")       { iss >> value; limits.mate      = u08(abs (value)); }
+                    if (token == "mate")
+                    {
+                        iss >> value;
+                        limits.mate      = u08(abs (value));
+                    }
                     else
-                    if (token == "infinite")   { limits.infinite  = true; }
+                    if (token == "infinite")
+                    {
+                        limits.infinite  = true;
+                    }
                     else
-                    if (token == "ponder")     { limits.ponder    = true; }
+                    if (token == "ponder")
+                    {
+                        limits.ponder    = true;
+                    }
                     else
                     // Parse and Validate search-moves (if any)
                     if (token == "searchmoves")
@@ -226,7 +270,7 @@ namespace UCI {
                     }
                 }
                 ForceStop = true;
-                Threadpool.start_thinking (root_pos, setup_states, limits);
+                Threadpool.start_thinking (root_pos, states, limits);
             }
             // GUI sends 'ponderhit' to tell us to ponder on the same move the
             // opponent has played. In case Ponderhit Stop stream set are
@@ -236,7 +280,8 @@ namespace UCI {
             else
             if (   token == "quit"
                ||  token == "stop"
-               || (token == "ponderhit" && PonderhitStop))
+               || (token == "ponderhit"
+                && PonderhitStop))
             {
                 ForceStop = true;
                 Threadpool.main_thread ()->start_searching (true); // Could be sleeping
@@ -380,14 +425,12 @@ namespace UCI {
             {
                 i32    depth;
                 string fen_fn;
-                depth  = (iss >> depth) && !iss.fail ()  ? depth : 1;
+                depth  = (iss >> depth)  && !iss.fail () ? depth  : 1;
                 fen_fn = (iss >> fen_fn) && !iss.fail () ? fen_fn : "";
 
-                stringstream ss;
-                ss  << i32(Options["Hash"])    << ' '
-                    << i32(Options["Threads"]) << ' '
-                    << depth << " perft " << fen_fn;
-
+                istringstream ss(to_string (i32(Options["Hash"]))    + ' '
+                               + to_string (i32(Options["Threads"])) + ' '
+                               + to_string (depth) + " perft " + fen_fn);
                 benchmark (ss, root_pos);
             }
             else
@@ -400,7 +443,8 @@ namespace UCI {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
             }
             
-        } while (argc == 1 && cmd != "quit");
+        } while (   argc == 1
+                 && cmd != "quit");
 
         Threadpool.wait_while_thinking ();
     }

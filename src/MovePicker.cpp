@@ -1,5 +1,7 @@
 #include "MovePicker.h"
 
+#include <set>
+
 #include "Thread.h"
 
 namespace MovePick {
@@ -22,6 +24,25 @@ namespace MovePick {
             S_RECAPTURE, S_ALL_RECAPTURE,
             S_STOP
         };
+
+        // Remove duplicates keeping order unchanged
+        template<typename T>
+        void remove_duplicates (std::vector<T> &vec)
+        {
+            std::set<T> set;
+            vec.erase (std::remove_if (vec.begin (),
+                                       vec.end (),
+                                       [&set](const T &item)
+                                        {
+                                            if (set.find (item) == set.end ())
+                                            {
+                                                set.insert (item);
+                                                return false;
+                                            }
+                                            return true;
+                                        }),
+                       vec.end ());
+        }
 
         // Finds the best move in the range [beg, end) and moves it to front,
         // it is faster than sorting all the moves in advance when there are few moves
@@ -227,22 +248,18 @@ namespace MovePick {
                                                                         _pos[dst_sq ((_ss-1)->current_move)] :
                                                                         NO_PIECE,
                                                                       dst_sq ((_ss-1)->current_move)));
-                //killer_moves.erase (std::remove (killer_moves.begin (), killer_moves.end (), MOVE_NONE), killer_moves.end ());
-                for (u08 k = 0; k < killer_moves.size (); ++k)
+                killer_moves.erase (std::remove (killer_moves.begin (), killer_moves.end (), MOVE_NONE), killer_moves.end ());
+                remove_duplicates (killer_moves);
+                i32 k = 0;
+                for (auto km : killer_moves)
                 {
-                    auto km = killer_moves[k];
-                    if (km != MOVE_NONE)
+                    // Increase move value
+                    auto *itr = std::find (_beg_move, _end_move, km);
+                    if (itr != _end_move)
                     {
-                        // Remove duplicates
-                        std::replace (killer_moves.begin () + k + 1, killer_moves.end (), km, MOVE_NONE);
-                        // Increase move value
-                        auto *itr = std::find (_beg_move, _end_move, km);
-                        if (itr != _end_move)
-                        {
-                            assert(_pos.pseudo_legal (km)
-                                && _pos.legal (km));
-                            itr->value = MaxStatsValue - i32(k);
-                        }
+                        assert(_pos.pseudo_legal (km)
+                            && _pos.legal (km));
+                        itr->value = MaxStatsValue - k++;
                     }
                 }
             }

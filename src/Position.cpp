@@ -924,8 +924,6 @@ bool Position::can_en_passant (File ep_f) const
 //    It starts at 1, and is incremented after Black's move.
 Position& Position::setup (const string &ff, StateInfo &si, Thread *const th, bool full)
 {
-    assert(!white_spaces (ff));
-
     istringstream iss (ff);
     iss >> std::noskipws;
 

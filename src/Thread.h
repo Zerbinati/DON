@@ -177,13 +177,13 @@ namespace Threading {
             , max_ply  = 0
             , count    = 0;
 
-        Position    root_pos;
-        Searcher::RootMoveVector root_moves;
-        Depth       running_depth  = DEPTH_0
-            ,       finished_depth = DEPTH_0;
+        Position root_pos;
+        RootMoveVector root_moves;
+        Depth running_depth  = DEPTH_0
+            , finished_depth = DEPTH_0;
         HValueStats history_values;
-        MoveStats   counter_moves;
         OrgDstStats org_dst_values;
+        MoveStats   counter_moves;
 
         std::atomic_bool reset_count { false };
 
@@ -260,7 +260,7 @@ namespace Threading {
         : public Thread
     {
     public:
-        MainThread ();
+        MainThread () = default;
         MainThread (const MainThread&) = delete;
         MainThread& operator= (const MainThread&) = delete;
 
@@ -277,7 +277,7 @@ namespace Threading {
         : public std::vector<Thread*>
     {
     private:
-        StateListPtr setup_states;
+        StateListPtr _states;
 
     public:
         u16   pv_limit    = 1;

@@ -13,8 +13,8 @@ namespace TBSyzygy {
     Value probe_dtz (Position &pos, i32 &success);
     Value probe_wdl (Position &pos, i32 &success);
 
-    bool root_probe_dtz (Position &root_pos, Searcher::RootMoveVector &root_moves);
-    bool root_probe_wdl (Position &root_pos, Searcher::RootMoveVector &root_moves);
+    bool root_probe_dtz (Position &root_pos, RootMoveVector &root_moves);
+    bool root_probe_wdl (Position &root_pos, RootMoveVector &root_moves);
 
     void initialize ();
 }

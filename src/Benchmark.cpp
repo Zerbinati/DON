@@ -59,15 +59,15 @@ namespace {
     };
 }
 
-// Runs a simple benchmark by letting engine analyze a set of positions for a given limit each.
+// Runs a simple benchmark by letting engine analyze a set of positions for a given limit.
 // There are five optional parameters:
 //  - Transposition table size (default is 16 MB)
-//  - Number of search threads that should be used (default is 1 Thread)
-//  - Limit value spent for each position (default is 13 Depth)
+//  - Threads count (default is 1 Thread)
+//  - Limit value spent for each position (default is 13)
 //  - Type of the Limit value:
 //     * 'depth' (default)
-//     * 'time' [millisecs]
-//     * 'movetime' [millisecs]
+//     * 'time'
+//     * 'movetime'
 //     * 'nodes'
 //     * 'mate'
 //  - FEN positions to be used:
@@ -75,30 +75,46 @@ namespace {
 //     * 'current' for current position
 //     * '<filename>' for file containing FEN positions
 // example: bench 32 1 10000 movetime default
-void benchmark (istream &is, const Position &cur_pos)
+void benchmark (istringstream &is, const Position &cur_pos)
 {
-    u32    hash      = 16;
-    u16    threads   =  1;
-    i64    limit_val = 13;
+    u32    hash     = 16;
+    u16    threads  =  1;
+    i64    value    = 13;
     string token;
-    string limit_type;
+    string mode;
     string fen_fn;
     // Assign default values to missing arguments
-    hash       = is >> hash      && !is.fail ()                          ? hash      : 16;
-    threads    = is >> threads   && !is.fail ()                          ? threads   :  1;
-    limit_val  = is >> limit_val && !is.fail ()                          ? limit_val : 13;
-    limit_type = is >> token     && !is.fail () && !white_spaces (token) ? token : "depth";
-    fen_fn     = is >> token     && !is.fail () && !white_spaces (token) ? token : "default";
+    hash    = is >> hash    && !is.fail ()                          ? hash      : 16;
+    threads = is >> threads && !is.fail ()                          ? threads   :  1;
+    value   = is >> value   && !is.fail ()                          ? value     : 13;
+    mode    = is >> token   && !is.fail () && !white_spaces (token) ? token     : "depth";
+    fen_fn  = is >> token   && !is.fail () && !white_spaces (token) ? token     : "default";
 
     Limit limits;
-    if (limit_type == "time")     limits.clock[WHITE].time = limits.clock[BLACK].time = u64(abs (limit_val));
+    if (mode == "time")
+    {
+        limits.clock[WHITE].time =
+        limits.clock[BLACK].time = u64(abs (value));
+    }
     else
-    if (limit_type == "movetime") limits.movetime = u64(abs (limit_val));
+    if (mode == "movetime")
+    {
+        limits.movetime = u64(abs (value));
+    }
     else
-    if (limit_type == "nodes")    limits.nodes    = u64(abs (limit_val));
+    if (mode == "nodes")
+    {
+        limits.nodes    = u64(abs (value));
+    }
     else
-    if (limit_type == "mate")     limits.mate     = u08(abs (limit_val));
-    else  /*limit_type=="depth"*/ limits.depth    = u08(abs (limit_val));
+    if (mode == "mate")
+    {
+        limits.mate     = u08(abs (value));
+    }
+    else //mode=="depth"
+    {
+        limits.depth    = Depth(abs (value));
+    }
 
     vector<string> fens;
 
@@ -136,7 +152,7 @@ void benchmark (istream &is, const Position &cur_pos)
 
     fens.shrink_to_fit ();
 
-    if (limit_type != "perft")
+    if (mode != "perft")
     {
         Options["Hash"]        = to_string (hash);
         Options["Threads"]     = to_string (threads);
@@ -159,9 +175,9 @@ void benchmark (istream &is, const Position &cur_pos)
             << "Position: " << std::setw (2) << i+1 << "/" << fens.size () << " "
             << fens[i] << std::endl;
 
-        if (limit_type == "perft")
+        if (mode == "perft")
         {
-            u64 leaf_nodes = perft (pos, Depth(limits.depth));
+            u64 leaf_nodes = perft (pos, limits.depth);
             std::cerr
                 << "\nLeaf nodes: " << leaf_nodes
                 << std::endl;
