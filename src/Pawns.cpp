@@ -144,7 +144,7 @@ namespace Pawns {
                     && (  own_pawns
                         & front_sqrs_bb (Own, s)) == 0)
                 {
-                    e->passed_pawns[Own] |= square_bb (s);
+                    e->passed_pawns[Own] += s;
                 }
 
                 auto score = SCORE_ZERO;

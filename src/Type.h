@@ -845,7 +845,7 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
     do
     {
         std::string token;
-        bool fail = std::getline (iss, token, delimiter).fail ();
+        bool fail = !std::getline (iss, token, delimiter);
         if (do_trim)
         {
             token = trim (token);

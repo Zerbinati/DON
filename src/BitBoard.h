@@ -238,13 +238,15 @@ namespace BitBoard {
         Delta del;
         while ((del = deltas[i++]) != DEL_O)
         {
-            auto sq = s + del;
-            while (   _ok (sq)
-                   && dist (sq, sq - del) == 1)
+            for (auto sq = s + del;
+                 _ok (sq) && dist (sq, sq - del) == 1;
+                 sq += del)
             {
                 slide_attacks += sq;
-                if ((occ & sq) != 0) break;
-                sq += del;
+                if ((occ & sq) != 0)
+                {
+                    break;
+                }
             }
         }
         return slide_attacks;
@@ -253,13 +255,6 @@ namespace BitBoard {
     // Attacks of the PieceType with occupancy
     template<PieceType PT>
     extern Bitboard attacks_bb (Square s, Bitboard occ);
-
-    // Knight attacks
-    template<>
-    inline Bitboard attacks_bb<NIHT> (Square s, Bitboard) { return PieceAttacks[NIHT][s]; }
-    // King attacks
-    template<>
-    inline Bitboard attacks_bb<KING> (Square s, Bitboard) { return PieceAttacks[KING][s]; }
 
     // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
     // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,

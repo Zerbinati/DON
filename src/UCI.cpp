@@ -43,6 +43,7 @@ namespace UCI {
         {
             cmd += string (" ", !white_spaces (cmd) ? 1 : 0) + string (argv[i]);
         }
+
         string token;
         do {
             // Block here waiting for input or EOF

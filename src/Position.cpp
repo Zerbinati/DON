@@ -14,14 +14,6 @@ using namespace MoveGen;
 using namespace Threading;
 using namespace Notation;
 
-#if !defined(NDEBUG)
-bool _ok (const string &fen, bool full)
-{
-    StateInfo si;
-    return Position ().setup (fen, si, nullptr, full).ok ();
-}
-#endif
-
 u08  Position::DrawClockPly = 100;
 bool Position::Chess960     = false;
 
@@ -39,224 +31,41 @@ bool Position::draw () const
     }
     // Draw by Repetition?
     const auto *psi = _si;
-    auto ply = std::min (psi->clock_ply, psi->null_ply);
-    if (ply < 4)
-    {
-        return false;
-    }
-    psi = psi->ptr->ptr;
-    ply -= 2;
-    while (ply >= 2)
+    for (auto ply = std::min (psi->clock_ply, psi->null_ply);
+              ply >= 2;
+              ply -= 2)
     {
         psi = psi->ptr->ptr;
-        ply -= 2;
         // Check first repetition
         if (psi->posi_key == _si->posi_key)
         {
             return true;
         }
     }
-
     return false;
 }
 // Check whether there has been at least one repetition of position since the last capture or pawn move.
 bool Position::repeated () const
 {
-    const auto *bsi = _si;
-    while (bsi != nullptr)
+    for (const auto *bsi = _si;
+            bsi != nullptr;
+            bsi = bsi->ptr)
     {
         const auto *psi = bsi;
-        auto ply = std::min (psi->clock_ply, psi->null_ply);
-        if (ply < 4)
-        {
-            return false;
-        }
-        psi = psi->ptr->ptr;
-        ply -= 2;
-        while (ply >= 2)
+        for (auto ply = std::min (psi->clock_ply, psi->null_ply);
+                  ply >= 2;
+                  ply -= 2)
         {
             psi = psi->ptr->ptr;
-            ply -= 2;
+            // Check first repetition
             if (psi->posi_key == bsi->posi_key)
             {
                 return true;
             }
         }
-        bsi = bsi->ptr;
     }
     return false;
 }
-#if !defined(NDEBUG)
-// Performs some consistency checks for the position, helpful for debugging.
-bool Position::ok (i08 *failed_step) const
-{
-    static const bool Fast = true;
-
-    enum Step : u08
-    {
-        BASIC,
-        PIECE,
-        BITBOARD,
-        STATE,
-        LIST,
-        CASTLING
-    };
-
-    for (i08 step = BASIC; step <= (Fast ? BASIC : CASTLING); ++step)
-    {
-        if (failed_step != nullptr)
-        {
-            *failed_step = step;
-        }
-
-        if (step == BASIC)
-        {
-            if (   (_active != WHITE && _active != BLACK)
-                || _board[square<KING> (WHITE)] != W_KING
-                || _board[square<KING> (BLACK)] != B_KING
-                || count<NONE> () > 32
-                || count<NONE> () != pop_count (pieces ())
-                || (   _si->en_passant_sq != SQ_NO
-                    && (   rel_rank (_active, _si->en_passant_sq) != R_6
-                        || !can_en_passant (_si->en_passant_sq)))
-                || _si->clock_ply > DrawClockPly)
-            {
-                return false;
-            }
-        }
-        if (step == PIECE)
-        {
-            if (   std::count (_board, _board + SQ_NO, W_KING) != 1
-                || std::count (_board, _board + SQ_NO, B_KING) != 1
-                || attackers_to (square<KING> (~_active), _active) != 0
-                || pop_count (_si->checkers) > 2)
-            {
-                return false;
-            }
-        }
-        if (step == BITBOARD)
-        {
-            if (   (pieces (WHITE) & pieces (BLACK)) != 0
-                || (pieces (WHITE) | pieces (BLACK)) != pieces ()
-                || (pieces (WHITE) ^ pieces (BLACK)) != pieces ())
-            {
-                return false;
-            }
-
-            for (auto pt1 = PAWN; pt1 <= KING; ++pt1)
-            {
-                for (auto pt2 = PAWN; pt2 <= KING; ++pt2)
-                {
-                    if (pt1 != pt2 && (pieces (pt1) & pieces (pt2)))
-                    {
-                        return false;
-                    }
-                }
-            }
-            if (   (pieces (PAWN)|pieces (NIHT)|pieces (BSHP)|pieces (ROOK)|pieces (QUEN)|pieces (KING)) != pieces ()
-                || (pieces (PAWN)^pieces (NIHT)^pieces (BSHP)^pieces (ROOK)^pieces (QUEN)^pieces (KING)) != pieces ())
-            {
-                return false;
-            }
-
-            if (((R1_bb|R8_bb) & pieces (PAWN)) != 0)
-            {
-                return false;
-            }
-
-            for (auto c = WHITE; c <= BLACK; ++c)
-            {
-                // Too many Piece of color
-                if (   count<NONE> (c) > 16
-                    || count<NONE> (c) != pop_count (pieces (c)))
-                {
-                    return false;
-                }
-                // check if the number of Pawns plus the number of
-                // extra Queens, Rooks, Bishops, Knights exceeds 8
-                // (which can result only by promotion)
-                if (           (count (c, PAWN)
-                    + std::max (count (c, NIHT)-2, 0)
-                    + std::max (count (c, BSHP)-2, 0)
-                    + std::max (count (c, ROOK)-2, 0)
-                    + std::max (count (c, QUEN)-1, 0)) > 8)
-                {
-                    return false; // Too many Promoted Piece of color
-                }
-
-                if (           (count (c, PAWN)
-                    + std::max (pop_count (pieces (c, BSHP) & Liht_bb)-1, 0)
-                    + std::max (pop_count (pieces (c, BSHP) & Dark_bb)-1, 0)) > 8)
-                {
-                    return false; // Too many Promoted Bishop of color
-                }
-
-                // There should be one and only one KING of color
-                if (pieces (c, KING) == 0 || more_than_one (pieces (c, KING)))
-                {
-                    return false;
-                }
-            }
-        }
-        if (step == STATE)
-        {
-            if (   _si->matl_key != Zob.compute_matl_key (*this)
-                || _si->pawn_key != Zob.compute_pawn_key (*this)
-                || _si->posi_key != Zob.compute_posi_key (*this)
-                || _si->psq_score != compute_psq_score (*this)
-                || _si->non_pawn_matl[WHITE] != compute_non_pawn_material (WHITE)
-                || _si->non_pawn_matl[BLACK] != compute_non_pawn_material (BLACK))
-            {
-                return false;
-            }
-        }
-        if (step == LIST)
-        {
-            for (auto c = WHITE; c <= BLACK; ++c)
-            {
-                for (auto pt = PAWN; pt <= KING; ++pt)
-                {
-                    if (count (c, pt) != pop_count (pieces (c, pt)))
-                    {
-                        return false;
-                    }
-
-                    for (auto i = 0; i < count (c, pt); ++i)
-                    {
-                        if (   !_ok  (_piece_sq[c][pt][i])
-                            || _board[_piece_sq[c][pt][i]] != (c|pt))
-                        {
-                            return false;
-                        }
-                    }
-                }
-            }
-        }
-        if (step == CASTLING)
-        {
-            for (auto c = WHITE; c <= BLACK; ++c)
-            {
-                for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
-                {
-                    auto cr = mk_castle_right (c, cs);
-
-                    if (can_castle (cr) == CR_NONE)
-                    {
-                        continue;
-                    }
-                    if (   _board[castle_rook (cr)] != (c|ROOK)
-                        || _castle_mask[castle_rook (cr)] != cr
-                        || (_castle_mask[square<KING> (c)] & cr) != cr)
-                    {
-                        return false;
-                    }
-                }
-            }
-        }
-    }
-    return true;
-}
-#endif
 // Helper function used by see() to locate the least valuable attacker for the side to move,
 // remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
 template<PieceType PT>
@@ -271,18 +80,14 @@ PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboa
         {
         case PAWN:
         case BSHP:
-            attackers |= pieces (BSHP, QUEN)
-                       & attacks_bb<BSHP> (dst, mocc);
+            attackers |= pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc);
             break;
         case ROOK:
-            attackers |= pieces (ROOK, QUEN)
-                       & attacks_bb<ROOK> (dst, mocc);
+            attackers |= pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc);
             break;
         case QUEN:
-            attackers |= (  pieces (BSHP, QUEN)
-                          & attacks_bb<BSHP> (dst, mocc))
-                      |  (  pieces (ROOK, QUEN)
-                          & attacks_bb<ROOK> (dst, mocc));
+            attackers |= (pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc))
+                      |  (pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc));
             break;
         default:
             break;
@@ -408,10 +213,8 @@ Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard target)
     // Pinners are sliders that attack 's' when a pinned piece is removed
     Bitboard pinners =
           sliders
-        & (  (  pieces (BSHP, QUEN)
-              & PieceAttacks[BSHP][s])
-           | (  pieces (ROOK, QUEN)
-              & PieceAttacks[ROOK][s]));
+        & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
+           | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     while (pinners != 0)
     {
         Bitboard blocker = between_bb (s, pop_lsq (pinners)) & pieces ();
@@ -667,10 +470,8 @@ bool Position::legal (Move m, Bitboard abs_pinned) const
 
         auto mocc = pieces () - org - cap + dst;
         // If any attacker then in check and not legal move
-        return (  pieces (~_active, BSHP, QUEN)
-                & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
-            && (  pieces (~_active, ROOK, QUEN)
-                & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0;
+        return (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
+            && (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0;
     }
         break;
 
@@ -729,10 +530,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         auto cap = _file (dst)|_rank (org);
         auto mocc = pieces () - org - cap + dst;
         // If any attacker then in check
-        return (  pieces (_active, BSHP, QUEN)
-                & attacks_bb<BSHP> (ci.king_sq, mocc)) != 0
-            || (  pieces (_active, ROOK, QUEN)
-                & attacks_bb<ROOK> (ci.king_sq, mocc)) != 0;
+        return (pieces (_active, BSHP, QUEN) & attacks_bb<BSHP> (ci.king_sq, mocc)) != 0
+            || (pieces (_active, ROOK, QUEN) & attacks_bb<ROOK> (ci.king_sq, mocc)) != 0;
     }
         break;
 
@@ -880,10 +679,8 @@ bool Position::can_en_passant (Square ep_sq) const
         for (auto m : moves)
         {
             auto mocc = occ - org_sq (m);
-            if (   (  pieces (~_active, BSHP, QUEN)
-                    & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
-                && (  pieces (~_active, ROOK, QUEN)
-                    & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0)
+            if (   (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
+                && (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0)
             {
                 return true;
             }
@@ -927,8 +724,8 @@ Position& Position::setup (const string &ff, StateInfo &si, Thread *const th, bo
     istringstream iss (ff);
     iss >> std::noskipws;
 
-    clear ();
     std::memset (&si, 0x00, sizeof (StateInfo));
+    clear ();
     _si = &si;
 
     u08 token;
@@ -1568,3 +1365,176 @@ Position::operator string () const
     oss << '\n';
     return oss.str ();
 }
+
+#if !defined(NDEBUG)
+// Performs some consistency checks for the position, helpful for debugging.
+bool Position::ok (i08 *failed_step) const
+{
+    static const bool Fast = true;
+
+    enum Step : u08
+    {
+        BASIC,
+        PIECE,
+        BITBOARD,
+        STATE,
+        LIST,
+        CASTLING
+    };
+
+    for (i08 step = BASIC; step <= (Fast ? BASIC : CASTLING); ++step)
+    {
+        if (failed_step != nullptr)
+        {
+            *failed_step = step;
+        }
+
+        if (step == BASIC)
+        {
+            if (   (_active != WHITE && _active != BLACK)
+                || _board[square<KING> (WHITE)] != W_KING
+                || _board[square<KING> (BLACK)] != B_KING
+                || count<NONE> () > 32
+                || count<NONE> () != pop_count (pieces ())
+                || (   _si->en_passant_sq != SQ_NO
+                    && (   rel_rank (_active, _si->en_passant_sq) != R_6
+                        || !can_en_passant (_si->en_passant_sq)))
+                || _si->clock_ply > DrawClockPly)
+            {
+                return false;
+            }
+        }
+        if (step == PIECE)
+        {
+            if (   std::count (_board, _board + SQ_NO, W_KING) != 1
+                || std::count (_board, _board + SQ_NO, B_KING) != 1
+                || attackers_to (square<KING> (~_active), _active) != 0
+                || pop_count (_si->checkers) > 2)
+            {
+                return false;
+            }
+        }
+        if (step == BITBOARD)
+        {
+            if (   (pieces (WHITE) & pieces (BLACK)) != 0
+                || (pieces (WHITE) | pieces (BLACK)) != pieces ()
+                || (pieces (WHITE) ^ pieces (BLACK)) != pieces ())
+            {
+                return false;
+            }
+
+            for (auto pt1 = PAWN; pt1 <= KING; ++pt1)
+            {
+                for (auto pt2 = PAWN; pt2 <= KING; ++pt2)
+                {
+                    if (   pt1 != pt2
+                        && (pieces (pt1) & pieces (pt2)) != 0)
+                    {
+                        return false;
+                    }
+                }
+            }
+            if (   (pieces (PAWN)|pieces (NIHT)|pieces (BSHP)|pieces (ROOK)|pieces (QUEN)|pieces (KING)) != pieces ()
+                || (pieces (PAWN)^pieces (NIHT)^pieces (BSHP)^pieces (ROOK)^pieces (QUEN)^pieces (KING)) != pieces ())
+            {
+                return false;
+            }
+
+            if (((R1_bb|R8_bb) & pieces (PAWN)) != 0)
+            {
+                return false;
+            }
+
+            for (auto c = WHITE; c <= BLACK; ++c)
+            {
+                // Too many Piece of color
+                if (   count<NONE> (c) > 16
+                    || count<NONE> (c) != pop_count (pieces (c)))
+                {
+                    return false;
+                }
+                // check if the number of Pawns plus the number of
+                // extra Queens, Rooks, Bishops, Knights exceeds 8
+                // (which can result only by promotion)
+                if (           (count (c, PAWN)
+                    + std::max (count (c, NIHT)-2, 0)
+                    + std::max (count (c, BSHP)-2, 0)
+                    + std::max (count (c, ROOK)-2, 0)
+                    + std::max (count (c, QUEN)-1, 0)) > 8)
+                {
+                    return false; // Too many Promoted Piece of color
+                }
+
+                if (           (count (c, PAWN)
+                    + std::max (pop_count (pieces (c, BSHP) & Liht_bb)-1, 0)
+                    + std::max (pop_count (pieces (c, BSHP) & Dark_bb)-1, 0)) > 8)
+                {
+                    return false; // Too many Promoted Bishop of color
+                }
+
+                // There should be one and only one KING of color
+                if (pieces (c, KING) == 0 || more_than_one (pieces (c, KING)))
+                {
+                    return false;
+                }
+            }
+        }
+        if (step == STATE)
+        {
+            if (   _si->matl_key != Zob.compute_matl_key (*this)
+                || _si->pawn_key != Zob.compute_pawn_key (*this)
+                || _si->posi_key != Zob.compute_posi_key (*this)
+                || _si->psq_score != compute_psq_score (*this)
+                || _si->non_pawn_matl[WHITE] != compute_non_pawn_material (WHITE)
+                || _si->non_pawn_matl[BLACK] != compute_non_pawn_material (BLACK))
+            {
+                return false;
+            }
+        }
+        if (step == LIST)
+        {
+            for (auto c = WHITE; c <= BLACK; ++c)
+            {
+                for (auto pt = PAWN; pt <= KING; ++pt)
+                {
+                    if (count (c, pt) != pop_count (pieces (c, pt)))
+                    {
+                        return false;
+                    }
+
+                    for (auto i = 0; i < count (c, pt); ++i)
+                    {
+                        if (   !_ok  (_piece_sq[c][pt][i])
+                            || _board[_piece_sq[c][pt][i]] != (c|pt))
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+        }
+        if (step == CASTLING)
+        {
+            for (auto c = WHITE; c <= BLACK; ++c)
+            {
+                for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
+                {
+                    auto cr = mk_castle_right (c, cs);
+
+                    if (can_castle (cr) == CR_NONE)
+                    {
+                        continue;
+                    }
+                    if (   _board[castle_rook (cr)] != (c|ROOK)
+                        || _castle_mask[castle_rook (cr)] != cr
+                        || (_castle_mask[square<KING> (c)] & cr) != cr)
+                    {
+                        return false;
+                    }
+                }
+            }
+        }
+    }
+    return true;
+}
+#endif

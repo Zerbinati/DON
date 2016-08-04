@@ -75,7 +75,7 @@ public:
     {
         _posi_key    = 0;
         stable_count = 0;
-        std::fill (_pv, _pv + PVSize, MOVE_NONE);
+        std::fill_n (_pv, PVSize, MOVE_NONE);
     }
     void update (Position &pos, const MoveVector &pv)
     {

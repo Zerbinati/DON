@@ -317,7 +317,7 @@ namespace Threading {
             }
         }
 
-        const auto tmp_si = _states->back ();
+        const auto last_si = _states->back ();
         const auto fen = root_pos.fen (true);
         for (auto *th : *this)
         {
@@ -325,7 +325,7 @@ namespace Threading {
             th->root_moves = root_moves;
         }
         // Restore si->ptr, cleared by Position::setup()
-        _states->back () = tmp_si;
+        _states->back () = last_si;
 
         ForceStop     = false;
         PonderhitStop = false;

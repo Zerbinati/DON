@@ -326,21 +326,17 @@ namespace BitBoard {
 
         initialize_sliding ();
 
-#if !defined(NDEBUG)
-        //test_attacks ();
-#endif
-
         // NOTE:: must be after initialize_sliding()
-        for (auto pt = BSHP; pt <= ROOK; ++pt)
+        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+            for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
-                for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+                for (auto pt = BSHP; pt <= ROOK; ++pt)
                 {
                     if ((PieceAttacks[pt][s1] & s2) != 0)
                     {
                         Between_bb[s1][s2] = (attacks_bb (Piece(pt), s1, Square_bb[s2]) & attacks_bb (Piece(pt), s2, Square_bb[s1]));
-                        StrLine_bb[s1][s2] = (attacks_bb (Piece(pt), s1,        0) & attacks_bb (Piece(pt), s2,        0)) + s1 + s2;
+                        StrLine_bb[s1][s2] = (attacks_bb (Piece(pt), s1,             0) & attacks_bb (Piece(pt), s2,             0)) + s1 + s2;
                     }
                 }
             }

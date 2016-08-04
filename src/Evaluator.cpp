@@ -485,8 +485,7 @@ namespace Evaluator {
                     if (ei.pe->file_semiopen (Own, _file (s)))
                     {
                         score += RookOnFile[ei.pe->file_semiopen (Opp, _file (s)) ? 2 :
-                                                (  square_bb (scan_frntmost_sq (Opp, pos.pieces (Opp, PAWN) & file_bb (s)))
-                                                 & ~ei.pin_attacked_by[Opp][PAWN]) != 0 ? 1 : 0];
+                                                (~ei.pin_attacked_by[Opp][PAWN] & scan_frntmost_sq (Opp, pos.pieces (Opp, PAWN) & file_bb (s))) != 0 ? 1 : 0];
                     }
                     else
                     {
@@ -542,10 +541,8 @@ namespace Evaluator {
                 && pos.can_castle (Own) != CR_NONE)
             {
                 if (   pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE
-                    && (  pos.king_path (Castling<Own, CS_KING>::Right)
-                        & ei.ful_attacked_by[Opp][NONE]) == 0
-                    && (  pos.castle_path (Castling<Own, CS_KING>::Right)
-                        & pos.pieces ()) == 0)
+                    && (pos.king_path (Castling<Own, CS_KING>::Right) & ei.ful_attacked_by[Opp][NONE]) == 0
+                    && (pos.castle_path (Castling<Own, CS_KING>::Right) & pos.pieces ()) == 0)
                 {
                     if (value < ei.pe->king_safety[Own][CS_KING])
                     {
@@ -553,10 +550,8 @@ namespace Evaluator {
                     }
                 }
                 if (   pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE
-                    && (  pos.king_path (Castling<Own, CS_QUEN>::Right)
-                        & ei.ful_attacked_by[Opp][NONE]) == 0
-                    && (  pos.castle_path (Castling<Own, CS_QUEN>::Right)
-                        & pos.pieces ()) == 0)
+                    && (pos.king_path (Castling<Own, CS_QUEN>::Right) & ei.ful_attacked_by[Opp][NONE]) == 0
+                    && (pos.castle_path (Castling<Own, CS_QUEN>::Right) & pos.pieces ()) == 0)
                 {
                     if (value < ei.pe->king_safety[Own][CS_QUEN])
                     {
@@ -619,13 +614,11 @@ namespace Evaluator {
                 // ... and probable potential checks, only requiring the square to be 
                 // not being occupied by a blocked pawn and safe from pawn-attacks.
                 Bitboard prob_area =
-                      ~(  pos.pieces (Opp, PAWN)
-                        & shift_bb<Push> (pos.pieces (PAWN)))
+                      ~(pos.pieces (Opp, PAWN) & shift_bb<Push> (pos.pieces (PAWN)))
                     & ~ei.pin_attacked_by[Own][PAWN];
 
                 // Enemy queens safe checks
-                b =   (  rook_attack
-                       | bshp_attack)
+                b =   (rook_attack | bshp_attack)
                     & ei.pin_attacked_by[Opp][QUEN];
                 if ((b & safe_area) != 0)
                 {
@@ -881,23 +874,16 @@ namespace Evaluator {
                         }
                         // Squares to queen
                         Bitboard front_squares = front_sqrs_bb (Own, s);
-                        if (   rel_rank (Own, block_sq) == R_3
-                            && pos.empty (block_sq+Push))
-                        {
-                            front_squares -= block_sq;
-                        }
                         Bitboard safe_front_squares = front_squares
                             ,  unsafe_front_squares = front_squares;
                         // If there is an enemy rook or queen attacking the pawn from behind,
                         // add all X-ray attacks by the rook or queen. Otherwise consider only
                         // the squares in the pawn's path attacked or occupied by the enemy.
-                        if ((  behind_majors
-                             & pos.pieces (Opp)) == 0)
+                        if ((behind_majors & pos.pieces (Opp)) == 0)
                         {
                             unsafe_front_squares &= ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp);
                         }
-                        if ((  behind_majors
-                             & pos.pieces (Own)) == 0)
+                        if ((behind_majors & pos.pieces (Own)) == 0)
                         {
                             safe_front_squares   &= ei.pin_attacked_by[Own][NONE];
                         }
@@ -930,7 +916,8 @@ namespace Evaluator {
                 // Non-pawn count difference bonus.
                 eg_value *= 1.0 + nonpawn_diff / 4.0;
 
-                score += mk_score (mg_value, eg_value) + PawnFilePassed[std::min (_file (s), F_H - _file (s))];
+                score += mk_score (mg_value, eg_value)
+                       + PawnFilePassed[std::min (_file (s), F_H - _file (s))];
             }
 
             if (Trace)

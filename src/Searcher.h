@@ -24,7 +24,7 @@ public:
     {
         TimePoint time  = 0;        // Remaining Time          [milli-seconds]
         TimePoint inc   = 0;        // Increment Time per move [milli-seconds]
-    }         clock[CLR_NO];        // Clock for both sides
+    }         clock[CLR_NO];        // Search with Clock
     TimePoint movetime  = 0;        // Search <x> exact time in milli-seconds
     u08       movestogo = 0;        // Search <x> moves to the next time control
     Depth     depth     = DEPTH_0;  // Search <x> depth (plies) only
@@ -61,15 +61,6 @@ private:
     void _clear (Move  &m) { m = MOVE_NONE; }
 
 public:
-    T& operator()(Piece pc, Square s)
-    {
-        return _table[pc][s];
-    }
-    const T& operator()(Piece pc, Square s) const
-    {
-        return _table[pc][s];
-    }
-
     void clear ()
     {
         for (i16 pc = 0; pc < MAX_PIECE; ++pc)
@@ -79,6 +70,15 @@ public:
                 _clear (_table[pc][s]);
             }
         }
+    }
+
+    T& operator()(Piece pc, Square s)
+    {
+        return _table[pc][s];
+    }
+    const T& operator()(Piece pc, Square s) const
+    {
+        return _table[pc][s];
     }
     void update (Piece pc, Square s, Value v)
     {
@@ -109,15 +109,6 @@ private:
     Value _table[CLR_NO][SQ_NO][SQ_NO];
 
 public:
-    Value& operator()(Color c, Move m)
-    {
-        return _table[c][org_sq (m)][dst_sq (m)];
-    }
-    const Value& operator()(Color c, Move m) const
-    {
-        return _table[c][org_sq (m)][dst_sq (m)];
-    }
-
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -130,6 +121,15 @@ public:
                 }
             }
         }
+    }
+
+    Value& operator()(Color c, Move m)
+    {
+        return _table[c][org_sq (m)][dst_sq (m)];
+    }
+    const Value& operator()(Color c, Move m) const
+    {
+        return _table[c][org_sq (m)][dst_sq (m)];
     }
     void update (Color c, Move m, Value v)
     {

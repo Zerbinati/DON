@@ -231,7 +231,7 @@ namespace Searcher {
         {
             return ReductionDepths[PVNode ? 1 : 0]
                                   [imp ? 1 : 0]
-                                  [min (d, DEPTH_64-DEPTH_1)]
+                                  [min (d, DEPTH_64 - DEPTH_1)]
                                   [min (mc, u08(ReductionMoveCount-1))];
         }
 
@@ -687,8 +687,8 @@ namespace Searcher {
 
                 auto value =
                     gives_check ?
-                        -quien_search<PVNode, true > (pos, ss+1, -beta, -alfa, depth-DEPTH_1) :
-                        -quien_search<PVNode, false> (pos, ss+1, -beta, -alfa, depth-DEPTH_1);
+                        -quien_search<PVNode, true > (pos, ss+1, -beta, -alfa, depth - DEPTH_1) :
+                        -quien_search<PVNode, false> (pos, ss+1, -beta, -alfa, depth - DEPTH_1);
 
                 // Undo the move
                 pos.undo_move ();
@@ -703,6 +703,7 @@ namespace Searcher {
                     if (alfa < value)
                     {
                         best_move = move;
+
                         // Update pv even in fail-high case
                         if (PVNode)
                         {
@@ -834,7 +835,7 @@ namespace Searcher {
             assert((ss+1)->exclude_move == MOVE_NONE);
             assert(!(ss+1)->skip_pruning);
 
-            std::fill ((ss+2)->killer_moves, (ss+2)->killer_moves + MaxKillers, MOVE_NONE);
+            std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
 
             CheckInfo ci (pos);
             
@@ -1005,9 +1006,9 @@ namespace Searcher {
                         {
                             return quien_search<false, false> (pos, ss, alfa, beta, DEPTH_0);
                         }
-                        auto reduced_alfa = std::max (alfa - RazorMargins[depth], -VALUE_INFINITE);
-                        auto value = quien_search<false, false> (pos, ss, reduced_alfa, reduced_alfa+1, DEPTH_0);
-                        if (value <= reduced_alfa)
+                        auto alfa_margin = std::max (alfa - RazorMargins[depth], -VALUE_INFINITE);
+                        auto value = quien_search<false, false> (pos, ss, alfa_margin, alfa_margin+1, DEPTH_0);
+                        if (value <= alfa_margin)
                         {
                             return value;
                         }
@@ -1084,8 +1085,7 @@ namespace Searcher {
                     {
                         // ProbCut shallow depth
                         auto reduced_depth = depth - DEPTH_4;
-                        // ProbCut extended beta
-                        auto extended_beta = std::min (beta + 200, +VALUE_INFINITE);
+                        auto beta_margin = std::min (beta + 200, +VALUE_INFINITE);
 
                         assert(reduced_depth > DEPTH_0);
                         assert(_ok ((ss-1)->current_move)
@@ -1134,12 +1134,12 @@ namespace Searcher {
 
                             auto value =
                                 gives_check ?
-                                    -depth_search<false, !CutNode, true > (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth) :
-                                    -depth_search<false, !CutNode, false> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth);
+                                    -depth_search<false, !CutNode, true > (pos, ss+1, -beta_margin, -beta_margin+1, reduced_depth) :
+                                    -depth_search<false, !CutNode, false> (pos, ss+1, -beta_margin, -beta_margin+1, reduced_depth);
 
                             pos.undo_move ();
 
-                            if (value >= extended_beta)
+                            if (value >= beta_margin)
                             {
                                 return value;
                             }
@@ -1197,10 +1197,6 @@ namespace Searcher {
             bool improving =
                    (ss-2)->static_eval <= (ss-0)->static_eval
                 || (ss-2)->static_eval == VALUE_NONE;
-
-            auto *const &cmv  = (ss-1)->counter_move_values;
-            auto *const &fmv1 = (ss-2)->counter_move_values;
-            auto *const &fmv2 = (ss-4)->counter_move_values;
 
             u08 move_count = 0;
 
@@ -1286,13 +1282,13 @@ namespace Searcher {
                     && singular_ext_node
                     && move == tt_move)
                 {
-                    auto reduced_alfa = std::max (tt_value - 2*i32(depth), -VALUE_INFINITE);
+                    auto alfa_margin = std::max (tt_value - 2*i32(depth), -VALUE_INFINITE);
                     ss->exclude_move = move;
                     ss->skip_pruning = true;
-                    value = depth_search<false, CutNode, InCheck> (pos, ss, reduced_alfa, reduced_alfa+1, depth/2);
+                    value = depth_search<false, CutNode, InCheck> (pos, ss, alfa_margin, alfa_margin+1, depth/2);
                     ss->skip_pruning = false;
                     ss->exclude_move = MOVE_NONE;
-                    if (value <= reduced_alfa)
+                    if (value <= alfa_margin)
                     {
                         extension = true;
                     }
@@ -1323,10 +1319,10 @@ namespace Searcher {
                             // Counter move values based pruning
                            (   depth < DEPTH_5
                             && move != ss->killer_moves[0]
-                            && (cmv  == nullptr || (*cmv )(mpc, dst) < VALUE_ZERO)
-                            && (fmv1 == nullptr || (*fmv1)(mpc, dst) < VALUE_ZERO)
-                            && (   (cmv  != nullptr && fmv1 != nullptr)
-                                || fmv2 == nullptr || (*fmv2)(mpc, dst) < VALUE_ZERO)))
+                            && ((ss-1)->counter_move_values == nullptr || (*(ss-1)->counter_move_values)(mpc, dst) < VALUE_ZERO)
+                            && ((ss-2)->counter_move_values == nullptr || (*(ss-2)->counter_move_values)(mpc, dst) < VALUE_ZERO)
+                            && (   ((ss-1)->counter_move_values != nullptr && (ss-2)->counter_move_values != nullptr)
+                                || (ss-4)->counter_move_values == nullptr || (*(ss-4)->counter_move_values)(mpc, dst) < VALUE_ZERO)))
                     {
                         continue;
                     }
@@ -1394,9 +1390,9 @@ namespace Searcher {
                     reduction_depth -=
                         Depth((i32(thread->history_values(mpc, dst)
                              +     thread->org_dst_values(~pos.active (), move)
-                             + (cmv  != nullptr ? (*cmv )(mpc, dst) : VALUE_ZERO)
-                             + (fmv1 != nullptr ? (*fmv1)(mpc, dst) : VALUE_ZERO)
-                             + (fmv2 != nullptr ? (*fmv2)(mpc, dst) : VALUE_ZERO)) - 10000)/20000);
+                             + ((ss-1)->counter_move_values != nullptr ? (*(ss-1)->counter_move_values)(mpc, dst) : VALUE_ZERO)
+                             + ((ss-2)->counter_move_values != nullptr ? (*(ss-2)->counter_move_values)(mpc, dst) : VALUE_ZERO)
+                             + ((ss-4)->counter_move_values != nullptr ? (*(ss-4)->counter_move_values)(mpc, dst) : VALUE_ZERO)) - 10000)/20000);
 
                     reduction_depth = std::min (std::max (reduction_depth, DEPTH_0), new_depth - DEPTH_1);
 
@@ -1534,6 +1530,7 @@ namespace Searcher {
                         }
 
                         best_move = move;
+
                         // Update pv even in fail-high case
                         if (   PVNode
                             && !root_node)
@@ -1644,7 +1641,7 @@ namespace Searcher {
                 pos.do_move (vm.move, si, pos.gives_check (vm.move, CheckInfo (pos)));
                 inter_nodes =
                     depth > DEPTH_2 ?
-                        perft<false> (pos, depth-DEPTH_1) :
+                        perft<false> (pos, depth - DEPTH_1) :
                         MoveList<LEGAL> (pos).size ();
                 pos.undo_move ();
             }
@@ -1654,8 +1651,9 @@ namespace Searcher {
                 sync_cout
                     << std::left
                     << std::setw ( 7)
-                    //<< move_to_can (vm.move)
-                    << move_to_san (vm.move, pos)
+                    << 
+                        //move_to_can (vm.move)
+                        move_to_san (vm.move, pos)
                     << std::right << std::setfill ('.')
                     << std::setw (16) << inter_nodes
                     << std::setfill (' ') << std::left
@@ -1741,7 +1739,7 @@ namespace Threading {
             s->ply = i16(s - stacks - 4);
             s->current_move = MOVE_NONE;
             s->exclude_move = MOVE_NONE;
-            std::fill (s->killer_moves, s->killer_moves + MaxKillers, MOVE_NONE);
+            std::fill_n (s->killer_moves, MaxKillers, MOVE_NONE);
             s->static_eval  = VALUE_ZERO;
             s->move_count   = 0;
             s->skip_pruning = false;
@@ -1761,7 +1759,7 @@ namespace Threading {
         // Iterative deepening loop until requested to stop or the target depth is reached.
         while (   !ForceStop
                && ++running_depth < DEPTH_MAX
-               && (   Limits.depth == 0
+               && (   Limits.depth == DEPTH_0
                    || Threadpool.main_thread ()->running_depth <= Limits.depth))
         {
             if (Threadpool.main_thread () == this)
@@ -1987,15 +1985,17 @@ namespace Threading {
                         // -If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
                             || (Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time *
-                                                                            // Improving factor
-                                                                            std::min (1.1385, std::max (0.3646, 0.5685
-                                                                                                              + 0.1895 * (Threadpool.failed_low ? 1 : 0)
-                                                                                                              - 0.0096 * i32(Threadpool.last_value != VALUE_NONE ? best_value - Threadpool.last_value : VALUE_ZERO))))))
+                                                                                    // Improving factor
+                                                                                    std::min (1.1385,
+                                                                                        std::max (0.3646,
+                                                                                                  0.5685
+                                                                                                + 0.1895 * (Threadpool.failed_low ? 1 : 0)
+                                                                                                - 0.0096 * (Threadpool.last_value != VALUE_NONE ? i32(best_value - Threadpool.last_value) : 0))))))
                             || (Threadpool.easy_played =
                                     (   Threadpool.best_move_change < 0.030
                                      && Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time *
-                                                                                    // Unstable factor
-                                                                                    (1.0 + Threadpool.best_move_change) * 0.1190))
+                                                                                            // Unstable factor
+                                                                                            0.1190 * (1.0 + Threadpool.best_move_change)))
                                      && !root_moves[0].empty ()
                                      &&  root_moves[0] == Threadpool.easy_move), Threadpool.easy_played))
                         {
@@ -2207,7 +2207,7 @@ namespace Threading {
             // Check if there are deeper thread than main thread.
             if (   Threadpool.pv_limit == 1
                 && !Threadpool.easy_played
-                //&& Limits.depth == 0 // Depth limit search don't use deeper thread
+                //&& Limits.depth == DEPTH_0 // Depth limit search don't use deeper thread
                 && !Threadpool.skill_mgr.enabled ())
             {
                 auto *const best_thread = Threadpool.best_thread ();

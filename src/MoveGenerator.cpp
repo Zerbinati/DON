@@ -25,23 +25,26 @@ namespace MoveGen {
                     if (   (   PT == BSHP
                             || PT == ROOK
                             || PT == QUEN)
-                        && (  PieceAttacks[PT][s]
-                            & targets
-                            & ci->checking_bb[PT]) == 0)
+                        && (PieceAttacks[PT][s] & targets & ci->checking_bb[PT]) == 0)
                     {
                         continue;
                     }
-                    if ((  ci->dsc_checkers
-                         & square_bb (s)) != 0)
+                    if ((ci->dsc_checkers & s) != 0)
                     {
                         continue;
                     }
                 }
 
-                Bitboard attacks =
-                       targets
-                    &  attacks_bb<PT> (s, pos.pieces ());
-                    
+                Bitboard attacks;
+                switch (PT)
+                {
+                case NIHT: attacks = PieceAttacks[NIHT][s]               & targets; break;
+                case BSHP: attacks = attacks_bb<BSHP> (s, pos.pieces ()) & targets; break;
+                case ROOK: attacks = attacks_bb<ROOK> (s, pos.pieces ()) & targets; break;
+                case QUEN: attacks = attacks_bb<QUEN> (s, pos.pieces ()) & targets; break;
+                default:   attacks = 0;                                             break;
+                }
+
                 if (   GT == CHECK
                     || GT == QUIET_CHECK)
                 {

@@ -71,11 +71,6 @@ namespace Threading {
 }
 using namespace Threading;
 
-#if !defined(NDEBUG)
-// Check the validity of FEN string
-extern bool _ok (const std::string &fen, bool full = true);
-#endif
-
 // Position class stores information regarding the board representation:
 //  - 64-entry array of pieces, indexed by the square.
 //  - Bitboards of each piece type.
@@ -199,9 +194,6 @@ public:
     Phase   phase    ()  const;
 
     Thread* thread   ()  const;
-#if !defined(NDEBUG)
-    bool ok (i08 *failed_step = nullptr) const;
-#endif
 
     Value see (Move m) const;
     Value see_sign (Move m) const;
@@ -247,6 +239,10 @@ public:
     std::string fen (bool full = true) const;
 
     explicit operator std::string () const;
+
+#if !defined(NDEBUG)
+    bool ok (i08 *failed_step = nullptr) const;
+#endif
 
 };
 
@@ -590,5 +586,14 @@ inline CheckInfo::CheckInfo (const Position &pos)
     checking_bb[QUEN] = checking_bb[BSHP] | checking_bb[ROOK];
     checking_bb[KING] = 0;
 }
+
+#if !defined(NDEBUG)
+// Check the validity of FEN string
+inline bool _ok (const std::string &fen, bool full = true)
+{
+    StateInfo si;
+    return Position().setup (fen, si, nullptr, full).ok ();
+}
+#endif
 
 #endif // _POSITION_H_INC_

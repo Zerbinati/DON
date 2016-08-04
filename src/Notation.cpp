@@ -271,20 +271,18 @@ namespace Notation {
         u08 ply = 0;
         for (auto m : thread->root_moves[0])
         {
-            oss << move_to_san (m, thread->root_pos) << ' ';
+            oss <<
+                //move_to_can (m)
+                move_to_san (m, thread->root_pos) << ' ';
             states.push_back (StateInfo ());
             thread->root_pos.do_move (m, states.back (), thread->root_pos.gives_check (m, CheckInfo (thread->root_pos)));
             ++ply;
-            ////---------------------------------
-            //oss << move_to_can (m) << ' ';
         }
         for (; ply != 0; --ply)
         {
             thread->root_pos.undo_move ();
             states.pop_back ();
         }
-        ////---------------------------------
-        //
 
         return oss.str ();
     }
