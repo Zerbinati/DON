@@ -349,24 +349,21 @@ namespace Evaluator {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
             const auto Push = Own == WHITE ? DEL_N : DEL_S;
 
-            const Bitboard abs_pinneds = ei.abs_pinneds[Own];
-
             auto score = SCORE_ZERO;
             for (Square s : pos.squares<PT> (Own))
             {
-                Bitboard s_bb = square_bb (s);
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard ful_attacks =
-                    PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | abs_pinneds) :
-                    PT == ROOK ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | abs_pinneds) :
-                    PT == QUEN ? attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, QUEN))       | abs_pinneds) :
-                    PieceAttacks[PT][s];
+                    PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.abs_pinneds[Own]) :
+                    PT == ROOK ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.abs_pinneds[Own]) :
+                    PT == QUEN ? attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, QUEN      )) | ei.abs_pinneds[Own]) :
+                                 PieceAttacks[NIHT][s];
 
                 ei.ful_attacked_by[Own][NONE] |=
                 ei.ful_attacked_by[Own][PT]   |= ful_attacks;
 
                 Bitboard pin_attacks = ful_attacks;
-                if ((abs_pinneds & s_bb) != 0)
+                if ((ei.abs_pinneds[Own] & s) != 0)
                 {
                     pin_attacks &= strline_bb (pos.square<KING> (Own), s);
                 }
@@ -409,9 +406,9 @@ namespace Evaluator {
                     if (PT == NIHT)
                     {
                         // Bonus for knight outpost square
-                        if ((b & s_bb) != 0)
+                        if ((b & s) != 0)
                         {
-                            score += KnightOutpost[(ei.pin_attacked_by[Own][PAWN] & s_bb) != 0 ? 1 : 0];
+                            score += KnightOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0];
                         }
                         else
                         {
@@ -427,9 +424,9 @@ namespace Evaluator {
                     if (PT == BSHP)
                     {
                         // Bonus for bishop outpost square
-                        if ((b & s_bb) != 0)
+                        if ((b & s) != 0)
                         {
-                            score += BishopOutpost[(ei.pin_attacked_by[Own][PAWN] & s_bb) != 0 ? 1 : 0];
+                            score += BishopOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0];
                         }
                         else
                         {
@@ -485,7 +482,7 @@ namespace Evaluator {
                     if (ei.pe->file_semiopen (Own, _file (s)))
                     {
                         score += RookOnFile[ei.pe->file_semiopen (Opp, _file (s)) ? 2 :
-                                                (~ei.pin_attacked_by[Opp][PAWN] & scan_frntmost_sq (Opp, pos.pieces (Opp, PAWN) & file_bb (s))) != 0 ? 1 : 0];
+                                                ((~ei.pin_attacked_by[Opp][PAWN]) & scan_frntmost_sq (Opp, pos.pieces (Opp, PAWN) & file_bb (s))) != 0 ? 1 : 0];
                     }
                     else
                     {
@@ -496,7 +493,7 @@ namespace Evaluator {
                             && (   rel_rank (Own, fk_sq) == rel_rank (Own, s)
                                 || (   rel_rank (Own, fk_sq) == R_1
                                     && rel_rank (Own, s) < R_4))
-                            && (front_sqrs_bb (Opp, scan_backmost_sq (Own, pos.pieces (Own, PAWN) & file_bb (s))) & s_bb) != 0
+                            && (front_sqrs_bb (Opp, scan_backmost_sq (Own, pos.pieces (Own, PAWN) & file_bb (s))) & s) != 0
                             && !ei.pe->side_semiopen (Own, _file (fk_sq), _file (s) < _file (fk_sq)))
                         {
                             score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
