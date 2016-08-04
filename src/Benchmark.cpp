@@ -84,11 +84,11 @@ void benchmark (istringstream &is, const Position &cur_pos)
     string mode;
     string fen_fn;
     // Assign default values to missing arguments
-    hash    = is >> hash    && !is.fail ()                          ? hash      : 16;
-    threads = is >> threads && !is.fail ()                          ? threads   :  1;
-    value   = is >> value   && !is.fail ()                          ? value     : 13;
-    mode    = is >> token   && !is.fail () && !white_spaces (token) ? token     : "depth";
-    fen_fn  = is >> token   && !is.fail () && !white_spaces (token) ? token     : "default";
+    hash    = is >> hash    && !is.fail ()                          ? hash    : 16;
+    threads = is >> threads && !is.fail ()                          ? threads :  1;
+    value   = is >> value   && !is.fail ()                          ? value   : 13;
+    mode    = is >> token   && !is.fail () && !white_spaces (token) ? token   : "depth";
+    fen_fn  = is >> token   && !is.fail () && !white_spaces (token) ? token   : "default";
 
     Limit limits;
     if (mode == "time")
@@ -125,7 +125,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
     else
     if (fen_fn == "current")
     {
-        fens.push_back (cur_pos.fen ());
+        fens.push_back (cur_pos.fen (true));
     }
     else
     {

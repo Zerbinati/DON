@@ -602,7 +602,7 @@ struct Castling
 
 inline bool _ok (PieceType pt) { return PAWN <= pt && pt <= KING; }
 
-inline Piece  operator| (Color c, PieceType pt) { return Piece((c << 3) | pt); }
+inline Piece operator| (Color c, PieceType pt) { return Piece((c << 3) | pt); }
 
 inline bool _ok (Piece p)
 {

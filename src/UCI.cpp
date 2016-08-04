@@ -338,7 +338,7 @@ namespace UCI {
             {
                 sync_cout
                     << std::hex << std::uppercase << std::setfill ('0')
-                    << "FEN: "                        << root_pos.fen ()      << '\n'
+                    << "FEN: "                        << root_pos.fen (true)  << '\n'
                     << "Posi key: " << std::setw (16) << root_pos.posi_key () << '\n'
                     << "Poly key: " << std::setw (16) << root_pos.poly_key () << '\n'
                     << "Matl key: " << std::setw (16) << root_pos.matl_key () << '\n'

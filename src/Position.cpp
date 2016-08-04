@@ -1354,7 +1354,7 @@ Position::operator string () const
         oss << '\n' << Line;
     }
 
-    oss << "FEN: " << fen () << '\n'
+    oss << "FEN: " << fen (true) << '\n'
         << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
         << _si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << '\n';
     oss << "Checkers: ";
@@ -1473,7 +1473,8 @@ bool Position::ok (i08 *failed_step) const
                 }
 
                 // There should be one and only one KING of color
-                if (pieces (c, KING) == 0 || more_than_one (pieces (c, KING)))
+                if (   pieces (c, KING) == 0
+                    || more_than_one (pieces (c, KING)))
                 {
                     return false;
                 }
@@ -1520,14 +1521,10 @@ bool Position::ok (i08 *failed_step) const
                 for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
                 {
                     auto cr = mk_castle_right (c, cs);
-
-                    if (can_castle (cr) == CR_NONE)
-                    {
-                        continue;
-                    }
-                    if (   _board[castle_rook (cr)] != (c|ROOK)
-                        || _castle_mask[castle_rook (cr)] != cr
-                        || (_castle_mask[square<KING> (c)] & cr) != cr)
+                    if (   can_castle (cr) != CR_NONE
+                        && (   _board[castle_rook (cr)] != (c|ROOK)
+                            || _castle_mask[castle_rook (cr)] != cr
+                            || (_castle_mask[square<KING> (c)] & cr) != cr))
                     {
                         return false;
                     }

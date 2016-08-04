@@ -2050,7 +2050,7 @@ namespace Threading {
             OutputStream.open (OutputFile, ios_base::out|ios_base::app);
             OutputStream
                 << boolalpha
-                << "RootPos  : " << root_pos.fen ()                       << '\n'
+                << "RootPos  : " << root_pos.fen (true)                   << '\n'
                 << "RootSize : " << root_moves.size ()                    << '\n'
                 << "Infinite : " << Limits.infinite                       << '\n'
                 << "Ponder   : " << Limits.ponder                         << '\n'
