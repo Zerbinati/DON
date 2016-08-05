@@ -88,10 +88,10 @@ namespace Pawns {
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
         {
-            const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            const auto Push = Own == WHITE ? DEL_N  : DEL_S;
-            const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            static const auto Push = Own == WHITE ? DEL_N  : DEL_S;
+            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
 
             const Bitboard own_pawns = pos.pieces (Own, PAWN);
             const Bitboard opp_pawns = pos.pieces (Opp, PAWN);
@@ -202,7 +202,7 @@ namespace Pawns {
     template<Color Own>
     Value Entry::pawn_shelter_storm (const Position &pos, Square k_sq) const
     {
-        const auto Opp = Own == WHITE ? BLACK : WHITE;
+        static const auto Opp = Own == WHITE ? BLACK : WHITE;
 
         auto value = MaxSafety;
 

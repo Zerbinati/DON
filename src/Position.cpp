@@ -1341,8 +1341,8 @@ string Position::fen (bool full) const
 Position::operator string () const
 {
     static const string Line = " +---+---+---+---+---+---+---+---+\n";
+    
     ostringstream oss;
-
     oss << Line;
     for (auto r = R_8; r >= R_1; --r)
     {
@@ -1353,8 +1353,13 @@ Position::operator string () const
         }
         oss << '\n' << Line;
     }
-
-    oss << "FEN: " << fen (true) << '\n'
+    for (auto f = F_A; f <= F_H; ++f)
+    {
+        oss << "   " << Notation::to_char (f, false);
+    }
+    
+    oss << '\n'
+        << "FEN: " << fen (true) << '\n'
         << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
         << _si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << '\n';
     oss << "Checkers: ";

@@ -37,9 +37,9 @@ namespace {
     TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
     {
         // When in trouble, can step over reserved time with this ratio
-        const auto  StepRatio = Maximum ? 7.09 : 1.00;
+        static const auto  StepRatio = Maximum ? 7.09 : 1.00;
         // However must not steal time from remaining moves over this ratio
-        const auto StealRatio = Maximum ? 0.35 : 0.00;
+        static const auto StealRatio = Maximum ? 0.35 : 0.00;
 
         auto  this_move_imp = move_importance (ply) * MoveSlowness;
         auto other_move_imp = 0.0;

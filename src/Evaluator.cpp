@@ -77,6 +77,9 @@ namespace Evaluator {
             template<Color Own>
             void initialize (const Position &pos)
             {
+                static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+                static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+
                 auto fk_sq = pos.square<KING> (Own);
 
                 abs_pinneds [Own] = pos.abs_pinneds (Own);
@@ -95,8 +98,8 @@ namespace Evaluator {
                 {
                     Bitboard loosed_pawns = pos.pieces (Own, PAWN) & ~pinned_pawns;
                     Bitboard pawn_attacks =
-                          shift_bb<Own == WHITE ? DEL_NW : DEL_SE> (loosed_pawns)
-                        | shift_bb<Own == WHITE ? DEL_NE : DEL_SW> (loosed_pawns);
+                          shift_bb<LCap> (loosed_pawns)
+                        | shift_bb<RCap> (loosed_pawns);
                     while (pinned_pawns != 0)
                     {
                         auto s = pop_lsq (pinned_pawns);
@@ -315,7 +318,7 @@ namespace Evaluator {
         template<Color Own>
         void init_king_ring (const Position &pos, EvalInfo &ei)
         {
-            const auto Opp = Own == WHITE ? BLACK : WHITE;
+            static const auto Opp = Own == WHITE ? BLACK : WHITE;
 
             if (pos.non_pawn_material (Own) >= VALUE_MG_QUEN)
             {
@@ -344,10 +347,10 @@ namespace Evaluator {
         template<Color Own, PieceType PT, bool Trace>
         Score evaluate_pieces (const Position &pos, EvalInfo &ei, const Bitboard mobility_area, Score &mobility)
         {
-            assert(NIHT <= PT && PT <= QUEN);
+            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            static const auto Push = Own == WHITE ? DEL_N : DEL_S;
 
-            const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            assert (NIHT <= PT && PT <= QUEN);
 
             auto score = SCORE_ZERO;
             for (Square s : pos.squares<PT> (Own))
@@ -445,7 +448,7 @@ namespace Evaluator {
                             || rel_sq (Own, s) == SQ_H8)
                         {
                             auto del = (F_A == _file (s) ? DEL_E : DEL_W)-Push;
-                            if (pos[s + del] == (Own|PAWN))
+                            if (pos[s+del] == (Own|PAWN))
                             {
                                 score -= BishopTrapped;
                             }
@@ -482,7 +485,9 @@ namespace Evaluator {
                     if (ei.pe->file_semiopen (Own, _file (s)))
                     {
                         score += RookOnFile[ei.pe->file_semiopen (Opp, _file (s)) ? 2 :
-                                                ((~ei.pin_attacked_by[Opp][PAWN]) & scan_frntmost_sq (Opp, pos.pieces (Opp, PAWN) & file_bb (s))) != 0 ? 1 : 0];
+                                                (~(  ei.pin_attacked_by[Opp][PAWN]
+                                                   | ei.pin_attacked_by[Opp][NIHT]
+                                                   | ei.pin_attacked_by[Opp][BSHP]) & scan_frntmost_sq (Opp, pos.pieces (Opp, PAWN) & file_bb (s))) != 0 ? 1 : 0];
                     }
                     else
                     {
@@ -524,8 +529,8 @@ namespace Evaluator {
         template<Color Own, bool Trace>
         Score evaluate_king (const Position &pos, const EvalInfo &ei)
         {
-            const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            static const auto Push = Own == WHITE ? DEL_N : DEL_S;
 
             auto fk_sq = pos.square<KING> (Own);
 
@@ -686,10 +691,13 @@ namespace Evaluator {
         template<Color Own, bool Trace>
         Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
-            const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            const auto Push = Own == WHITE ? DEL_N  : DEL_S;
-            const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            static const auto Push = Own == WHITE ? DEL_N  : DEL_S;
+            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+
+            static const Bitboard Rank2BB = Own == WHITE ? R2_bb : R7_bb;
+            static const Bitboard Rank7BB = Own == WHITE ? R7_bb : R2_bb;
 
             auto score = SCORE_ZERO;
 
@@ -782,10 +790,10 @@ namespace Evaluator {
 
             // Bonus if some friend pawns safely push can attack an enemy piece
             b =   pos.pieces (Own, PAWN)
-                & ~(Own == WHITE ? R7_bb : R2_bb)
+                & ~Rank7BB
                 & ~ei.abs_pinneds[Own];
             // Friend pawns push
-            b =   shift_bb<Push> (b | (  shift_bb<Push> (b & (Own == WHITE ? R2_bb : R7_bb))
+            b =   shift_bb<Push> (b | (  shift_bb<Push> (b & Rank2BB)
                                        & ~pos.pieces ()))
                 & ~pos.pieces ();
             // Friend pawns safe push
@@ -820,8 +828,8 @@ namespace Evaluator {
         template<Color Own, bool Trace>
         Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
         {
-            const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            static const auto Push = Own == WHITE ? DEL_N : DEL_S;
 
             const auto nonpawn_diff =
                   pos.count<NONPAWN> (Own)
@@ -933,7 +941,9 @@ namespace Evaluator {
         template<Color Own, bool Trace>
         Score evaluate_space_activity (const Position &pos, const EvalInfo &ei)
         {
-            const auto Opp = Own == WHITE ? BLACK : WHITE;
+            static const auto Opp   = Own == WHITE ? BLACK : WHITE;
+            static const auto SPull = Own == WHITE ? DEL_S : DEL_N;
+            static const auto DPull = Own == WHITE ? DEL_SS : DEL_NN;
 
             // Find the safe squares for our pieces inside the area defined by SpaceMask.
             // A square is unsafe:
@@ -951,8 +961,8 @@ namespace Evaluator {
 
             // Find all squares which are at most three squares behind some friend pawn
             Bitboard behind = pos.pieces (Own, PAWN);
-            behind |= shift_bb<Own == WHITE ? DEL_S  : DEL_N > (behind);
-            behind |= shift_bb<Own == WHITE ? DEL_SS : DEL_NN> (behind);
+            behind |= shift_bb<SPull> (behind);
+            behind |= shift_bb<DPull> (behind);
             auto count = pop_count (  (behind & safe_space)
                                     | (Own == WHITE ? safe_space << 32 : safe_space >> 32));
             auto weight = pos.count<NIHT> () + pos.count<BSHP> ();
