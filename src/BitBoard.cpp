@@ -128,9 +128,6 @@ namespace BitBoard {
             Bitboard occupancy[MaxIndex]
                 ,    reference[MaxIndex];
 
-            i32   max_ages[MaxIndex] = {0}
-                , age = 0;
-
             const u32 Seeds[R_NO] =
 #           if defined(BIT64)
                 { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
@@ -212,8 +209,8 @@ namespace BitBoard {
                 } while (occ != 0);
 
 #           if !defined(BM2)
-                PRNG rng (Seeds[_rank (s)]);
                 u32 i;
+                PRNG rng (Seeds[_rank (s)]);
                 
                 // Find a magic for square 's' picking up an (almost) random number
                 // until found the one that passes the verification test.
@@ -226,20 +223,20 @@ namespace BitBoard {
                     // looks up the correct sliding attack in the attacks_bb[s] database.
                     // Note that build up the database for square 's' as a side
                     // effect of verifying the magic.
-                    ++age;
+                    bool used[MaxIndex] = {false};
                     for (i = 0; i < size; ++i)
                     {
                         u16 idx = indexer (s, occupancy[i]);
-                        if (max_ages[idx] < age)
+                        if (used[idx])
                         {
-                            max_ages[idx] = age;
-                            attacks_bb[s][idx] = reference[i];
+                            if (attacks_bb[s][idx] != reference[i])
+                            {
+                                break;
+                            }
+                            continue;
                         }
-                        else
-                        if (attacks_bb[s][idx] != reference[i])
-                        {
-                            break;
-                        }
+                        used[idx] = true;
+                        attacks_bb[s][idx] = reference[i];
                     }
                 } while (i < size);
 #           endif
