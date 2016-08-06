@@ -109,22 +109,15 @@ namespace BitBoard {
         // Magic bitboards are used to look up attacks of sliding pieces.
         // As a reference see chessprogramming.wikispaces.com/Magic+Bitboards.
         // In particular, here we use the so called "fancy" approach.
-        template<PieceType PT>
-        void initialize_table ()
+#   if defined(BM2)
+        void initialize_table (Bitboard *const tables_bb, Bitboard **const attacks_bb, Bitboard *const masks_bb, const Delta *const deltas)
+#   else
+        void initialize_table (Bitboard *const tables_bb, Bitboard **const attacks_bb, Bitboard *const masks_bb, const Delta *const deltas, Bitboard *const magics_bb, u08 *const shifts, u16 (*indexer)(Square s, Bitboard occ))
+#   endif
         {
-            assert(PT == BSHP
-                || PT == ROOK);
 
-            Bitboard *tables_bb;
-            Bitboard **attacks_bb;
-            Bitboard *masks_bb;
-            const Delta *deltas;
 #       if !defined(BM2)
-            Bitboard *magics_bb;
-            u08 *shifts;
-            u16 (*indexer)(Square s, Bitboard occ);
-
-            const i16 MaxIndex = PT == BSHP ? 0x200 : 0x1000;
+            const i16 MaxIndex = 0x1000;
             Bitboard occupancy[MaxIndex]
                 ,    reference[MaxIndex];
 
@@ -136,35 +129,6 @@ namespace BitBoard {
 #           endif
 
 #       endif
-            switch (PT)
-            {
-            case BSHP:
-                tables_bb = B_Tables_bb;
-                attacks_bb = B_Attacks_bb;
-                masks_bb = B_Masks_bb;
-                deltas = PieceDeltas[BSHP];
-#           if !defined(BM2)
-                magics_bb = B_Magics_bb;
-                shifts = B_Shifts;
-                indexer = magic_index<BSHP>;
-#           endif
-                break;
-            case ROOK:
-                tables_bb = R_Tables_bb;
-                attacks_bb = R_Attacks_bb;
-                masks_bb = R_Masks_bb;
-                deltas = PieceDeltas[ROOK];
-#           if !defined(BM2)
-                magics_bb = R_Magics_bb;
-                shifts = R_Shifts;
-                indexer = magic_index<ROOK>;
-#           endif
-                break;
-            default:
-                assert(false);
-                return;
-                break;
-            }
 
             u32 offset = 0;
             for (auto s = SQ_A1; s <= SQ_H8; ++s)
@@ -254,9 +218,9 @@ namespace BitBoard {
         //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;
         //    BSF_Table[bsf_index (Square_bb[s])] = s;
         //}
-        //for (auto b = 2; b < 256; ++b)
+        //for (u32 b = 2; b < 256; ++b)
         //{
-        //    MSB_Table[b] =  MSB_Table[b - 1] + !more_than_one (Bitboard(b));
+        //    MSB_Table[b] =  MSB_Table[b - 1] + !more_than_one (b);
         //}
 
     #if !defined(ABM)
@@ -339,8 +303,13 @@ namespace BitBoard {
         }
 
         // Initialize Sliding
-        initialize_table<BSHP> ();
-        initialize_table<ROOK> ();
+#       if defined(BM2)
+            initialize_table (B_Tables_bb, B_Attacks_bb, B_Masks_bb, PieceDeltas[BSHP]);
+            initialize_table (R_Tables_bb, R_Attacks_bb, R_Masks_bb, PieceDeltas[ROOK]);
+#       else
+            initialize_table (B_Tables_bb, B_Attacks_bb, B_Masks_bb, PieceDeltas[BSHP], B_Magics_bb, B_Shifts, magic_index<BSHP>);
+            initialize_table (R_Tables_bb, R_Attacks_bb, R_Masks_bb, PieceDeltas[ROOK], R_Magics_bb, R_Shifts, magic_index<ROOK>);
+#       endif
 
         // NOTE:: must be after Initialize Sliding
         for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
