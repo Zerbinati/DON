@@ -61,7 +61,7 @@ namespace BitBoard {
 //        const u64 DeBruijn_64 = U64(0x3F79D71B4CB0A89);
 //        const u32 DeBruijn_32 = U32(0x783A9B23);
 //
-//        i08 MSB_Table[256];
+//        i08 MSB_Table[(1 << 8)];
 //        Square BSF_Table[SQ_NO];
 //
 //        unsigned bsf_index (Bitboard bb)
@@ -218,7 +218,7 @@ namespace BitBoard {
         //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;
         //    BSF_Table[bsf_index (Square_bb[s])] = s;
         //}
-        //for (u32 b = 2; b < 256; ++b)
+        //for (u32 b = 2; b < (1 << 8); ++b)
         //{
         //    MSB_Table[b] =  MSB_Table[b - 1] + !more_than_one (b);
         //}

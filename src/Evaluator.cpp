@@ -308,7 +308,7 @@ namespace Evaluator {
         };
         
         // SpaceMask contains the area of the board which is considered by the space evaluation.
-        // Bonus is given based on how many squares inside this area are safe and available for friend minor pieces.
+        // Bonus is given based on how many squares inside this area are safe.
         const Bitboard SpaceMask[CLR_NO] =
         {
             (FC_bb|FD_bb|FE_bb|FF_bb)&(R2_bb|R3_bb|R4_bb),
@@ -946,9 +946,10 @@ namespace Evaluator {
             static const auto DPull = Own == WHITE ? DEL_SS : DEL_NN;
 
             // Find the safe squares for our pieces inside the area defined by SpaceMask.
-            // A square is unsafe:
-            // if it is attacked by an enemy pawn or
-            // if it is undefended and attacked by an enemy piece.
+            // A square is safe:
+            // - it is not occupied by friend pawns
+            // - it is not attacked by an enemy pawns
+            // - it is defended or not attacked by an enemy pieces.
             Bitboard safe_space =
                   SpaceMask[Own]
                 & ~pos.pieces (Own, PAWN)
@@ -965,9 +966,8 @@ namespace Evaluator {
             behind |= shift_bb<DPull> (behind);
             auto count = pop_count (  (behind & safe_space)
                                     | (Own == WHITE ? safe_space << 32 : safe_space >> 32));
-            auto weight = pos.count<NIHT> () + pos.count<BSHP> ();
-
-            auto score = mk_score (count * weight * weight * 2 / 11, 0);
+            auto weight = pos.count<NONE> (Own);
+            auto score = mk_score (count * weight * weight / 22, 0);
 
             if (Trace)
             {
@@ -1114,9 +1114,7 @@ namespace Evaluator {
             - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
         // If in the opening phase
         if (   pos.non_pawn_material (WHITE)
-             + pos.non_pawn_material (BLACK) >= VALUE_SPACE
-            && pos.count<NIHT> ()
-             + pos.count<BSHP> () != 0)
+             + pos.non_pawn_material (BLACK) >= VALUE_SPACE)
         {
             // Evaluate space activity
             score +=
