@@ -350,64 +350,82 @@ namespace UCI {
             if (token == "moves")
             {
                 sync_cout;
-
+                i32 count;
                 auto pinneds = root_pos.abs_pinneds (root_pos.active ());
 
                 if (root_pos.checkers () != 0)
                 {
                     std::cout << "\nEvasion moves: ";
+                    count = 0;
                     for (const auto &vm : MoveList<EVASION> (root_pos))
                     {
                         if (root_pos.legal (vm.move, pinneds))
                         {
                             std::cout << move_to_san (vm.move, root_pos) << ' ';
+                            ++count;
                         }
                     }
+                    std::cout << "(" << count << ")";
                 }
                 else
                 {
                     std::cout << "\nQuiet moves: ";
+                    count = 0;
                     for (const auto &vm : MoveList<QUIET> (root_pos))
                     {
                         if (root_pos.legal (vm.move, pinneds))
                         {
                             std::cout << move_to_san (vm.move, root_pos) << ' ';
+                            ++count;
                         }
                     }
+                    std::cout << "(" << count << ")";
 
                     std::cout << "\nCheck moves: ";
+                    count = 0;
                     for (const auto &vm : MoveList<CHECK> (root_pos))
                     {
                         if (root_pos.legal (vm.move, pinneds))
                         {
                             std::cout << move_to_san (vm.move, root_pos) << ' ';
+                            ++count;
                         }
                     }
+                    std::cout << "(" << count << ")";
 
                     std::cout << "\nQuiet Check moves: ";
+                    count = 0;
                     for (const auto &vm : MoveList<QUIET_CHECK> (root_pos))
                     {
                         if (root_pos.legal (vm.move, pinneds))
                         {
                             std::cout << move_to_san (vm.move, root_pos) << ' ';
+                            ++count;
                         }
                     }
+                    std::cout << "(" << count << ")";
 
                     std::cout << "\nCapture moves: ";
+                    count = 0;
                     for (const auto &vm : MoveList<CAPTURE> (root_pos))
                     {
                         if (root_pos.legal (vm.move, pinneds))
                         {
                             std::cout << move_to_san (vm.move, root_pos) << ' ';
+                            ++count;
                         }
                     }
+                    std::cout << "(" << count << ")";
                 }
 
                 std::cout << "\nLegal moves: ";
+                count = 0;
                 for (const auto &vm : MoveList<LEGAL> (root_pos))
                 {
                     std::cout << move_to_san (vm.move, root_pos) << ' ';
+                    ++count;
                 }
+                std::cout << "(" << count << ")";
 
                 std::cout << sync_endl;
             }
