@@ -436,26 +436,6 @@ namespace MoveGen {
 
         auto check_sq = SQ_NO;
 
-        //// Generates evasions for king, capture and non-capture moves excluding friends
-        //Bitboard attacks = PieceAttacks[KING][king_sq] & ~pos.pieces (active);
-        //check_sq = pop_lsq (checkers);
-        //
-        //Bitboard enemies = pos.pieces (~active);
-        //Bitboard mocc    = pos.pieces () - king_sq;
-        //// Remove squares attacked by enemies, from the king evasions.
-        //// so to skip known illegal moves avoiding useless legality check later.
-        //for (u08 k = 0; PieceDeltas[KING][k]; ++k)
-        //{
-        //    auto sq = king_sq + PieceDeltas[KING][k];
-        //    if (_ok (sq))
-        //    {
-        //        if ((attacks & sq) && pos.attackers_to (sq, ~active, mocc))
-        //        {
-        //            attacks -= sq;
-        //        }
-        //    }
-        //}
-
         Bitboard checker_attacks = 0;
         Bitboard sliders = checkers & ~pos.pieces (PAWN, NIHT);
         // Find squares attacked by slider checkers, will remove them from the king

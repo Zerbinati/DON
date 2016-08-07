@@ -58,12 +58,13 @@ namespace BitBoard {
         };
 
 //        // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
+//#   if defined(BIT64)
 //        const u64 DeBruijn_64 = U64(0x3F79D71B4CB0A89);
+//#   else
 //        const u32 DeBruijn_32 = U32(0x783A9B23);
+//#   endif
 //
-//        i08 MSB_Table[(1 << 8)];
 //        Square BSF_Table[SQ_NO];
-//
 //        unsigned bsf_index (Bitboard bb)
 //        {
 //            assert(bb != 0);
@@ -77,6 +78,8 @@ namespace BitBoard {
 //            (u32 ((bb >> 0) ^ (bb >> 32)) * DeBruijn_32) >> 26;
 //#       endif
 //        }
+//
+//        u08 MSB_Table[(1 << 8)];
 
     #if !defined(ABM)
         // Counts the non-zero bits using SWAR-Popcount algorithm

@@ -842,8 +842,7 @@ namespace Evaluator {
             {
                 auto s = pop_lsq (passed_pawns);
                 assert(pos.pawn_passed_at (Own, s));
-                assert((  pos.pieces (Own, PAWN)
-                        & front_sqrs_bb (Own, s)) == 0);
+                assert((pos.pieces (Own, PAWN) & front_sqrs_bb (Own, s)) == 0);
 
                 auto rank = rel_rank (Own, s);
                 // Base bonus depending on rank.

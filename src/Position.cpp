@@ -358,8 +358,8 @@ bool Position::pseudo_legal (Move m) const
                !(((PawnAttacks[_active][org] & pieces (~_active)) & dst) != 0)
                // Not an enpassant capture
             && !(   mtype (m) == ENPASSANT 
-                 && ((PawnAttacks[_active][org] & ~pieces ()) & dst) != 0
                  && _si->en_passant_sq == dst
+                 && ((PawnAttacks[_active][org] & ~pieces ()) & dst) != 0
                  && _board[cap] == (~_active|PAWN))
                // Not a single push
             && !(   empty (dst)

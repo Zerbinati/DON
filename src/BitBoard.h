@@ -6,25 +6,22 @@
 namespace BitBoard {
 
     const Bitboard FA_bb = U64(0x0101010101010101);
-    const Bitboard FB_bb = FA_bb << 1;//U64(0x0202020202020202);
-    const Bitboard FC_bb = FA_bb << 2;//U64(0x0404040404040404);
-    const Bitboard FD_bb = FA_bb << 3;//U64(0x0808080808080808);
-    const Bitboard FE_bb = FA_bb << 4;//U64(0x1010101010101010);
-    const Bitboard FF_bb = FA_bb << 5;//U64(0x2020202020202020);
-    const Bitboard FG_bb = FA_bb << 6;//U64(0x4040404040404040);
-    const Bitboard FH_bb = FA_bb << 7;//U64(0x8080808080808080);
+    const Bitboard FB_bb = FA_bb << 1;
+    const Bitboard FC_bb = FA_bb << 2;
+    const Bitboard FD_bb = FA_bb << 3;
+    const Bitboard FE_bb = FA_bb << 4;
+    const Bitboard FF_bb = FA_bb << 5;
+    const Bitboard FG_bb = FA_bb << 6;
+    const Bitboard FH_bb = FA_bb << 7;
 
     const Bitboard R1_bb = U64(0x00000000000000FF);
-    const Bitboard R2_bb = R1_bb << (8 * 1);//U64(0x000000000000FF00);
-    const Bitboard R3_bb = R1_bb << (8 * 2);//U64(0x0000000000FF0000);
-    const Bitboard R4_bb = R1_bb << (8 * 3);//U64(0x00000000FF000000);
-    const Bitboard R5_bb = R1_bb << (8 * 4);//U64(0x000000FF00000000);
-    const Bitboard R6_bb = R1_bb << (8 * 5);//U64(0x0000FF0000000000);
-    const Bitboard R7_bb = R1_bb << (8 * 6);//U64(0x00FF000000000000);
-    const Bitboard R8_bb = R1_bb << (8 * 7);//U64(0xFF00000000000000);
-
-    //const Bitboard D18_bb = U64(0x8040201008040201);        // 08 DIAG-18 squares
-    //const Bitboard D81_bb = U64(0x0102040810204080);        // 08 DIAG-81 squares
+    const Bitboard R2_bb = R1_bb << (8 * 1);
+    const Bitboard R3_bb = R1_bb << (8 * 2);
+    const Bitboard R4_bb = R1_bb << (8 * 3);
+    const Bitboard R5_bb = R1_bb << (8 * 4);
+    const Bitboard R6_bb = R1_bb << (8 * 5);
+    const Bitboard R7_bb = R1_bb << (8 * 6);
+    const Bitboard R8_bb = R1_bb << (8 * 7);
 
     const Bitboard Liht_bb = U64 (0x55AA55AA55AA55AA);      // 32 LIGHT squares
     const Bitboard Dark_bb = U64 (0xAA55AA55AA55AA55);      // 32 DARK  squares
@@ -510,7 +507,7 @@ namespace BitBoard {
         38, 28, 58, 20, 37, 17, 36,  8
     };
 
-    const u08 MSB_Table[256] =
+    const u08 MSB_Table[(1 << 8)] =
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,

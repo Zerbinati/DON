@@ -141,8 +141,7 @@ namespace Pawns {
 
                 // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
                 if (   stoppers == 0
-                    && (  own_pawns
-                        & front_sqrs_bb (Own, s)) == 0)
+                    && (own_pawns & front_sqrs_bb (Own, s)) == 0)
                 {
                     e->passed_pawns[Own] += s;
                 }
@@ -265,7 +264,8 @@ namespace Pawns {
             e->pawn_score =
                 + evaluate<WHITE> (pos, e)
                 - evaluate<BLACK> (pos, e);
-            e->asymmetry = pop_count (e->semiopen_files[WHITE] ^ e->semiopen_files[BLACK]);
+            e->asymmetry = pop_count (e->semiopen_files[WHITE]
+                                    ^ e->semiopen_files[BLACK]);
         }
         return e;
     }
