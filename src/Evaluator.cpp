@@ -485,9 +485,7 @@ namespace Evaluator {
                     if (ei.pe->file_semiopen (Own, _file (s)))
                     {
                         score += RookOnFile[ei.pe->file_semiopen (Opp, _file (s)) ? 2 :
-                                                (~(  ei.pin_attacked_by[Opp][PAWN]
-                                                   | ei.pin_attacked_by[Opp][NIHT]
-                                                   | ei.pin_attacked_by[Opp][BSHP]) & scan_frntmost_sq (Opp, pos.pieces (Opp, PAWN) & file_bb (s))) != 0 ? 1 : 0];
+                                                ((ei.pin_attacked_by[Opp][PAWN]) & scan_frntmost_sq (Opp, pos.pieces (Opp, PAWN) & file_bb (s))) == 0 ? 1 : 0];
                     }
                     else
                     {
@@ -535,9 +533,14 @@ namespace Evaluator {
             auto fk_sq = pos.square<KING> (Own);
 
             // King Safety: friend pawns shelter and enemy pawns storm
-            ei.pe->evaluate_king_safety<Own> (pos);
-
-            Value value = ei.pe->king_safety[Own][CS_NO];
+            
+            Value value = ei.pe->pawn_shelter_storm<Own> (pos, fk_sq);
+            u08 king_pawn_dist = 0;
+            Bitboard own_pawns = pos.pieces (Own, PAWN);
+            if (own_pawns != 0)
+            {
+                while ((own_pawns & dist_rings_bb (fk_sq, king_pawn_dist++)) == 0) {}
+            }
             // If can castle use the value after the castle if is bigger
             if (   rel_rank (Own, fk_sq) == R_1
                 && pos.can_castle (Own) != CR_NONE)
@@ -562,7 +565,7 @@ namespace Evaluator {
                 }
             }
 
-            auto score = mk_score (value, -16 * ei.pe->king_pawn_dist[Own]);
+            auto score = mk_score (value, -16 * king_pawn_dist);
 
             Bitboard non_opp = ~pos.pieces (Opp);
 
@@ -869,6 +872,10 @@ namespace Evaluator {
                     // If the pawn is free to advance.
                     if (pos.empty (block_sq))
                     {
+                        // Squares to queen
+                        Bitboard front_squares = front_sqrs_bb (Own, s);
+                        Bitboard safe_front_squares = front_squares
+                            ,  unsafe_front_squares = front_squares;
                         // If there is a rook or queen attacking/defending the pawn from behind, consider front squares.
                         // Otherwise consider only the squares in the pawn's path attacked or occupied by the enemy.
                         Bitboard behind_majors = front_sqrs_bb (Opp, s) & pos.pieces (ROOK, QUEN);
@@ -876,10 +883,6 @@ namespace Evaluator {
                         {
                             behind_majors &= attacks_bb<ROOK> (s, pos.pieces ());
                         }
-                        // Squares to queen
-                        Bitboard front_squares = front_sqrs_bb (Own, s);
-                        Bitboard safe_front_squares = front_squares
-                            ,  unsafe_front_squares = front_squares;
                         // If there is an enemy rook or queen attacking the pawn from behind,
                         // add all X-ray attacks by the rook or queen. Otherwise consider only
                         // the squares in the pawn's path attacked or occupied by the enemy.
@@ -891,6 +894,7 @@ namespace Evaluator {
                         {
                             safe_front_squares   &= ei.pin_attacked_by[Own][NONE];
                         }
+
                         // Give a big bonus if there aren't enemy attacks on the path,
                         // otherwise a smaller bonus if the block square is not attacked.
                         i32 k =
@@ -906,15 +910,15 @@ namespace Evaluator {
                                         0 : 4 : 6;
                         }
 
-                        mg_value += k*rr + 0*r + 0;
-                        eg_value += k*rr + 0*r + 0;
+                        mg_value += k*rr;
+                        eg_value += k*rr;
                     }
                     else
                     // If the pawn is blocked by own pieces.
                     if ((pos.pieces (Own) & block_sq) != 0)
                     {
-                        mg_value += 1*rr + 2*r + 0;
-                        eg_value += 1*rr + 2*r + 0;
+                        mg_value += 1*rr + 2*r;
+                        eg_value += 1*rr + 2*r;
                     }
                 }
                 // Non-pawn count difference bonus.
@@ -957,15 +961,17 @@ namespace Evaluator {
                    | ~ei.pin_attacked_by[Opp][NONE]);
 
             // Since SpaceMask[Own] is fully on our half of the board
-            assert(u32(safe_space >> (Own == WHITE ? 32 : 0)) == 0);
+            assert((Own == WHITE ? safe_space & U64(0xFFFFFFFF00000000)
+                                 : safe_space & U64(0x00000000FFFFFFFF)) == 0);
 
             // Find all squares which are at most three squares behind some friend pawn
             Bitboard behind = pos.pieces (Own, PAWN);
             behind |= shift_bb<SPull> (behind);
             behind |= shift_bb<DPull> (behind);
-            auto count = pop_count (  (behind & safe_space)
-                                    | (Own == WHITE ? safe_space << 32 : safe_space >> 32));
-            auto weight = pos.count<NONE> (Own);
+            i32 count  = std::min (pop_count (  (behind & safe_space)
+                                              | (Own == WHITE ? safe_space << 32 :
+                                                                safe_space >> 32)), 16);
+            i32 weight = pos.count<NONE> (Own);
             auto score = mk_score (count * weight * weight / 22, 0);
 
             if (Trace)
@@ -978,7 +984,7 @@ namespace Evaluator {
 
         // Computes the initiative correction value for the position
         // i.e. second order bonus/malus based on the known attacking/defending status of the players.
-        Score evaluate_initiative (const Position &pos, i32 asymmetry, Value eg)
+        Score evaluate_initiative (const Position &pos, i08 asymmetry, Value eg)
         {
             auto king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
                            - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));

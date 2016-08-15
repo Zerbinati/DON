@@ -56,15 +56,14 @@ namespace EndGame {
     class EndgameBase
     {
     protected:
-        
         Color _strong_side;
-    public:
 
+    public:
         explicit EndgameBase (Color c)
             : _strong_side (c)
         {}
-        EndgameBase& operator= (const EndgameBase&) = delete;
         virtual ~EndgameBase () = default;
+        EndgameBase& operator= (const EndgameBase&) = delete;
 
         Color strong_side () const { return _strong_side; }
 
@@ -75,14 +74,12 @@ namespace EndGame {
     class Endgame
         : public EndgameBase<T>
     {
-
     public:
-
         explicit Endgame (Color c)
             : EndgameBase<T> (c)
         {}
-        Endgame& operator= (const Endgame&) = delete;
         virtual ~Endgame () = default;
+        Endgame& operator= (const Endgame&) = delete;
 
         T operator() (const Position &pos) const override;
     };
@@ -91,7 +88,6 @@ namespace EndGame {
     // Uses polymorphism to invoke the actual endgame function by calling its virtual operator().
     class Endgames
     {
-
     private:
         template<class T>
         using Map = std::map<Key, std::unique_ptr<EndgameBase<T>>>;
@@ -108,7 +104,6 @@ namespace EndGame {
         void add (const std::string &code);
 
     public:
-
         Endgames ();
         Endgames (const Endgames&) = delete;
         Endgames& operator= (const Endgames&) = delete;

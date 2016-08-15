@@ -5,6 +5,7 @@
 #include <climits>
 #include <cmath>
 #include <string>
+#include <cstring>
 #include <vector>
 #include <algorithm>
 #include <functional>
@@ -707,9 +708,17 @@ template<class Entry, u32 Size>
 struct HashTable
 {
 private:
-    std::vector<Entry> _table = std::vector<Entry> (Size);
+    Entry _table[Size];
 public:
-    Entry* operator[] (Key k) { return &_table[u32(k) & (Size - 1)]; }
+    Entry* operator[] (Key k)
+    {
+        return &_table[u32(k) & (Size - 1)];
+    }
+
+    void clear ()
+    {
+        std::memset (&_table, 0x00, sizeof (_table));
+    }
 };
 
 template<class T>

@@ -169,6 +169,8 @@ namespace UCI {
 
         void on_clear_hash ()
         {
+            ForceStop = true;
+            Threadpool.wait_while_thinking ();
             clear ();
         }
 

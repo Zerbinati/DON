@@ -162,7 +162,6 @@ void benchmark (istringstream &is, const Position &cur_pos)
     u64  total_nodes = 0;
     auto start_time = now ();
     Position pos;
-
     for (u16 i = 0; i < fens.size (); ++i)
     {
         StateListPtr states (new StateList (1));
@@ -171,8 +170,9 @@ void benchmark (istringstream &is, const Position &cur_pos)
 
         std::cerr
             << "\n---------------\n"
-            << "Position: " << std::setw (2) << i+1 << "/" << fens.size () << " "
-            << fens[i] << std::endl;
+            << "Position: " << std::right
+            << std::setw (2) << i+1 << "/" << fens.size () << " "
+            << std::left << fens[i] << std::endl;
 
         if (mode == "perft")
         {

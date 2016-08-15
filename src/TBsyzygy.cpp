@@ -2128,8 +2128,7 @@ namespace TBSyzygy {
             ValMove moves[MaxMoves];
             ValMove *end_move;
             
-            // Generate (at least) all legal non-ep captures including (under)promotions.
-            // It is OK to generate more, as long as they are filtered out below.
+            // Generate all pseudo-legal captures including (under)promotions.
             if (pos.checkers () == 0)
             {
                 end_move = generate<CAPTURE> (moves, pos);
@@ -2371,6 +2370,7 @@ namespace TBSyzygy {
         Value v1 = ep;
 
         ValMove moves[MaxMoves];
+        // Generate all pseudo-legal captures.
         ValMove *end_move = pos.checkers () == 0 ?
             generate<CAPTURE> (moves, pos) :
             generate<EVASION> (moves, pos);
@@ -2491,8 +2491,9 @@ namespace TBSyzygy {
         // Now handle en-passant.
         Value ep = Value(-3);
         Value v1 = ep;
-        // Generate (at least) all legal en-passant captures.
+        
         ValMove moves[MaxMoves];
+        // Generate all pseudo-legal captures.
         ValMove *end_move = pos.checkers () == 0 ?
             generate<CAPTURE> (moves, pos) :
             generate<EVASION> (moves, pos);

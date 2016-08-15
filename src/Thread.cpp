@@ -179,6 +179,8 @@ namespace Threading {
         , reset_count (false)
     {
         index = u16(Threadpool.size ());
+        pawn_table.clear ();
+        matl_table.clear ();
         history_values.clear ();
         org_dst_values.clear ();
         counter_moves.clear ();
@@ -221,6 +223,31 @@ namespace Threading {
         }
         return nodes;
     }
+
+    void ThreadPool::reset_counts ()
+    {
+        for (auto *th : *this)
+        {
+            th->reset_count = true;
+        }
+    }
+    void ThreadPool::clear ()
+    {
+        for (auto *th : *this)
+        {
+            th->pawn_table.clear ();
+            th->matl_table.clear ();
+            th->history_values.clear ();
+            th->org_dst_values.clear ();
+            th->counter_moves.clear ();
+        }
+        if (Limits.use_time_management ())
+        {
+            move_mgr.clear ();
+            last_value = VALUE_NONE;
+        }
+    }
+
     // Updates internal threads parameters creates/destroys threads to match the requested number.
     // Thread objects are dynamically allocated to avoid creating in advance all possible
     // threads, with included pawns and material tables, if only few are used.
@@ -250,11 +277,10 @@ namespace Threading {
     // and starts a new search, then returns immediately.
     void ThreadPool::start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits)
     {
-        wait_while_thinking ();
-
         // After ownership transfer 'states' becomes empty, so if we stop the search
         // and call 'go' again without setting a new position states.get() == NULL.
-        assert(states.get () != nullptr || _states.get () != nullptr);
+        assert(states.get () != nullptr
+            || _states.get () != nullptr);
         if (states.get () != nullptr)
         {
             // Ownership transfer, states is now empty
@@ -267,8 +293,8 @@ namespace Threading {
         root_moves.initialize (root_pos, limits.search_moves);
 
         TBDepthLimit = Depth(i32(Options["SyzygyDepthLimit"]));
-        TBPieceLimit = i32(Options["SyzygyPieceLimit"]);
-        TBUseRule50  = bool(Options["SyzygyUseRule50"]);
+        TBPieceLimit =       i32(Options["SyzygyPieceLimit"]);
+        TBUseRule50  =      bool(Options["SyzygyUseRule50"]);
         TBHits       = 0;
         TBHasRoot    = false;
         // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit

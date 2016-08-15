@@ -194,6 +194,7 @@ namespace BitBoard {
                     for (i = 0; i < size; ++i)
                     {
                         u16 idx = indexer (s, occupancy[i]);
+                        assert(idx < size);
                         if (used[idx])
                         {
                             if (attacks_bb[s][idx] != reference[i])

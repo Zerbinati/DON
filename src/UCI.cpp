@@ -73,6 +73,8 @@ namespace UCI {
             else
             if (token == "ucinewgame")
             {
+                ForceStop = true;
+                Threadpool.wait_while_thinking ();
                 clear ();
                 Threadpool.time_mgr.available_nodes = 0;
             }
@@ -271,6 +273,7 @@ namespace UCI {
                     }
                 }
                 ForceStop = true;
+                Threadpool.wait_while_thinking ();
                 Threadpool.start_thinking (root_pos, states, limits);
             }
             // GUI sends 'ponderhit' to tell us to ponder on the same move the

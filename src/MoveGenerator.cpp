@@ -30,22 +30,19 @@ namespace MoveGen {
                     targets &= ci->checking_bb[PT];
                 }
                 
-                if ((PieceAttacks[PT][s] & targets) == 0)
+                if ((PieceAttacks[PT][s] & targets) != 0)
                 {
-                    continue;
-                }
+                    Bitboard attacks = targets;
+                    switch (PT)
+                    {
+                    case NIHT: attacks &= PieceAttacks[NIHT][s]              ; break;
+                    case BSHP: attacks &= attacks_bb<BSHP> (s, pos.pieces ()); break;
+                    case ROOK: attacks &= attacks_bb<ROOK> (s, pos.pieces ()); break;
+                    case QUEN: attacks &= attacks_bb<QUEN> (s, pos.pieces ()); break;
+                    }
 
-                Bitboard attacks;
-                switch (PT)
-                {
-                case NIHT: attacks = PieceAttacks[NIHT][s]               & targets; break;
-                case BSHP: attacks = attacks_bb<BSHP> (s, pos.pieces ()) & targets; break;
-                case ROOK: attacks = attacks_bb<ROOK> (s, pos.pieces ()) & targets; break;
-                case QUEN: attacks = attacks_bb<QUEN> (s, pos.pieces ()) & targets; break;
-                default:   attacks = 0;                                             break;
+                    while (attacks != 0) { (*moves++).move = mk_move<NORMAL> (s, pop_lsq (attacks)); }
                 }
-
-                while (attacks != 0) { (*moves++).move = mk_move<NORMAL> (s, pop_lsq (attacks)); }
             }
         }
 
@@ -138,7 +135,7 @@ namespace MoveGen {
 
         // Generates PAWN promotion move
         template<GenType GT>
-        void generate_promotion_moves (ValMove *&moves, Square dst, Delta delta, const CheckInfo *ci)
+        void generate_promotion_moves (ValMove *&moves, const Position &pos, Square dst, Delta delta, const CheckInfo *ci)
         {
             assert(delta == DEL_N
                 || delta == DEL_NE
@@ -146,31 +143,60 @@ namespace MoveGen {
                 || delta == DEL_S
                 || delta == DEL_SE
                 || delta == DEL_SW);
-
-            if (   GT == RELAX
-                || GT == EVASION
-                || GT == CAPTURE)
+            switch (GT)
             {
-                (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, QUEN);
-            }
-            if (   GT == RELAX
-                || GT == EVASION
-                //|| GT == CAPTURE
-                || GT == QUIET)
-            {
-                (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, ROOK);
-                (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, BSHP);
-                (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, NIHT);
-            }
-            // Knight-promotion is the only one that can give a direct check
-            // not already included in the queen-promotion (queening).
-            if (   GT == CHECK
-                || GT == QUIET_CHECK)
-            {
-                //if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != 0) (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, QUEN);
-                //if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != 0) (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, ROOK);
-                //if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != 0) (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, BSHP);
-                if ((PieceAttacks[NIHT][dst] & ci->king_sq) != 0) (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, NIHT);
+            case RELAX:
+            case EVASION:
+            case CAPTURE:
+            case QUIET:
+                if (GT != QUIET)
+                {
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, QUEN);
+                }
+                if (GT != CAPTURE)
+                {
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, ROOK);
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, BSHP);
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, NIHT);
+                }
+                break;
+            case QUIET_CHECK:
+                if (   (PieceAttacks[ROOK][dst] & ci->king_sq) != 0
+                    && (attacks_bb<ROOK> (dst, pos.pieces () - (dst - delta)) & ci->king_sq) != 0)
+                {
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, ROOK);
+                }
+                if (   (PieceAttacks[BSHP][dst] & ci->king_sq) != 0
+                    && (attacks_bb<BSHP> (dst, pos.pieces () - (dst - delta)) & ci->king_sq) != 0)
+                {
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, BSHP);
+                }
+                if ((PieceAttacks[NIHT][dst] & ci->king_sq) != 0)
+                {
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, NIHT);
+                }
+                break;
+            case CHECK:
+                if (   (PieceAttacks[QUEN][dst] & ci->king_sq) != 0
+                    && (attacks_bb<QUEN> (dst, pos.pieces () - (dst - delta)) & ci->king_sq) != 0)
+                {
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, QUEN);
+                }
+                if (   (PieceAttacks[ROOK][dst] & ci->king_sq) != 0
+                    && (attacks_bb<ROOK> (dst, pos.pieces () - (dst - delta)) & ci->king_sq) != 0)
+                {
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, ROOK);
+                }
+                if (   (PieceAttacks[BSHP][dst] & ci->king_sq) != 0
+                    && (attacks_bb<BSHP> (dst, pos.pieces () - (dst - delta)) & ci->king_sq) != 0)
+                {
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, BSHP);
+                }
+                if ((PieceAttacks[NIHT][dst] & ci->king_sq) != 0)
+                {
+                    (*moves++).move = mk_move<PROMOTE> (dst - delta, dst, NIHT);
+                }
+                break;
             }
         }
         // Generates PAWN common move
@@ -185,7 +211,6 @@ namespace MoveGen {
             static const Bitboard Rank3BB = Own == WHITE ? R3_bb : R6_bb;
             static const Bitboard Rank5BB = Own == WHITE ? R5_bb : R4_bb;
             static const Bitboard Rank7BB = Own == WHITE ? R7_bb : R2_bb;
-            static const Bitboard Rank8BB = Own == WHITE ? R8_bb : R1_bb;
 
             // Pawns on 7th Rank
             Bitboard R7_pawns = pos.pieces (Own, PAWN) &  Rank7BB;
@@ -199,12 +224,11 @@ namespace MoveGen {
             {
                 Bitboard push_1 = empties & shift_bb<Push> (Rx_pawns);
                 Bitboard push_2 = empties & shift_bb<Push> (push_1 & Rank3BB);
-                
                 if (   GT == CHECK
                     || GT == QUIET_CHECK)
                 {
-                    push_1 &= PawnAttacks[Opp][ci->king_sq];
-                    push_2 &= PawnAttacks[Opp][ci->king_sq];
+                    push_1 &= ci->checking_bb[PAWN];
+                    push_2 &= ci->checking_bb[PAWN];
                     // Pawns which give discovered check
                     // Add pawn pushes which give discovered check.
                     // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
@@ -218,25 +242,34 @@ namespace MoveGen {
                         push_2 |= push_cd_2;
                     }
                 }
-                else
-                {
-                    push_1 &= targets;
-                    push_2 &= targets;
-                }
-
+                push_1 &= targets;
+                push_2 &= targets;
                 while (push_1 != 0) { auto dst = pop_lsq (push_1); (*moves++).move = mk_move<NORMAL> (dst - Push, dst); }
                 while (push_2 != 0) { auto dst = pop_lsq (push_2); (*moves++).move = mk_move<NORMAL> (dst - Push-Push, dst); }
             }
             // Pawn normal and en-passant captures, no promotions
-            if (   GT == RELAX
-                || GT == EVASION
-                || GT == CAPTURE)
+            if (   GT != QUIET
+                && GT != QUIET_CHECK)
             {
-                Bitboard l_attacks = enemies & shift_bb<LCap> (Rx_pawns);
-                Bitboard r_attacks = enemies & shift_bb<RCap> (Rx_pawns);
-
-                while (l_attacks != 0) { auto dst = pop_lsq (l_attacks); (*moves++).move = mk_move<NORMAL> (dst - LCap, dst); }
-                while (r_attacks != 0) { auto dst = pop_lsq (r_attacks); (*moves++).move = mk_move<NORMAL> (dst - RCap, dst); }
+                Bitboard attack_l = enemies & shift_bb<LCap> (Rx_pawns);
+                Bitboard attack_r = enemies & shift_bb<RCap> (Rx_pawns);
+                if (GT == CHECK)
+                {
+                    attack_l &= ci->checking_bb[PAWN];
+                    attack_r &= ci->checking_bb[PAWN];
+                    // Pawns which give discovered check
+                    // Add pawn captures which give discovered check.
+                    Bitboard dsc_pawns = Rx_pawns & ci->dsc_checkers;
+                    if (dsc_pawns != 0)
+                    {
+                        Bitboard attack_cd_l = enemies & shift_bb<LCap> (dsc_pawns);
+                        Bitboard attack_cd_r = enemies & shift_bb<RCap> (dsc_pawns);
+                        attack_l |= attack_cd_l;
+                        attack_r |= attack_cd_r;
+                    }
+                }
+                while (attack_l != 0) { auto dst = pop_lsq (attack_l); (*moves++).move = mk_move<NORMAL> (dst - LCap, dst); }
+                while (attack_r != 0) { auto dst = pop_lsq (attack_r); (*moves++).move = mk_move<NORMAL> (dst - RCap, dst); }
 
                 auto ep_sq = pos.en_passant_sq ();
                 if (ep_sq != SQ_NO)
@@ -245,18 +278,17 @@ namespace MoveGen {
                     Bitboard ep_captures = Rx_pawns & Rank5BB;
                     if (ep_captures != 0)
                     {
-                        // An en-passant capture can be an evasion only if the checking piece
-                        // is the double pushed pawn and so is in the target.
+                        // If the checking piece is the double pushed pawn and also is in the target.
                         // Otherwise this is a discovery check and are forced to do otherwise.
-                        if (   GT != EVASION
-                            || (targets & (ep_sq - Push)) != 0)
+                        if (GT == EVASION)
                         {
-                            Bitboard ep_attacks = ep_captures & PawnAttacks[Opp][ep_sq];
-                            assert(ep_attacks != 0);
-                            assert(pop_count (ep_attacks) <= 2);
-
-                            while (ep_attacks != 0) { (*moves++).move = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq); }
+                            ep_captures &= (  shift_bb<DEL_E> (targets)
+                                            | shift_bb<DEL_W> (targets));
                         }
+                        ep_captures &= PawnAttacks[Opp][ep_sq];
+                        assert(ep_captures != 0);
+                        assert(pop_count (ep_captures) <= 2);
+                        while (ep_captures != 0) { (*moves++).move = mk_move<ENPASSANT> (pop_lsq (ep_captures), ep_sq); }
                     }
                 }
             }
@@ -264,8 +296,6 @@ namespace MoveGen {
             // Promotions (queening and under-promotions)
             if (R7_pawns != 0)
             {
-                empties &= Rank8BB;
-                enemies &= Rank8BB;
                 if (GT == EVASION)
                 {
                     empties &= targets;
@@ -273,13 +303,11 @@ namespace MoveGen {
                 // Promoting pawns
                 Bitboard proms;
                 proms = empties & shift_bb<Push> (R7_pawns);
-                while (proms != 0) generate_promotion_moves<GT> (moves, pop_lsq (proms), Push, ci);
-
+                while (proms != 0) generate_promotion_moves<GT> (moves, pos, pop_lsq (proms), Push, ci);
                 proms = enemies & shift_bb<LCap> (R7_pawns);
-                while (proms != 0) generate_promotion_moves<GT> (moves, pop_lsq (proms), LCap, ci);
-
+                while (proms != 0) generate_promotion_moves<GT> (moves, pos, pop_lsq (proms), LCap, ci);
                 proms = enemies & shift_bb<RCap> (R7_pawns);
-                while (proms != 0) generate_promotion_moves<GT> (moves, pop_lsq (proms), RCap, ci);
+                while (proms != 0) generate_promotion_moves<GT> (moves, pos, pop_lsq (proms), RCap, ci);
             }
         }
 

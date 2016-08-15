@@ -16,16 +16,16 @@ namespace Pawns {
         // indexed by [distance from edge][rank]
         const Value ShelterWeak[F_NO/2][R_NO] =
         {
-            { V( 99), V(21), V(26), V(51), V(87), V( 89), V( 99), V( 0) }, // => A and H file
-            { V(120), V( 0), V(28), V(76), V(88), V(103), V(104), V( 0) }, // => B and G file
-            { V(101), V( 7), V(54), V(78), V(85), V( 92), V(101), V( 0) }, // => C and F file
-            { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119), V( 0) }  // => D and E file
+            { V(100), V(21), V(26), V(51), V(87), V( 89), V( 99), V(0) }, // => A and H file
+            { V(120), V( 0), V(28), V(76), V(88), V(103), V(104), V(0) }, // => B and G file
+            { V(102), V( 7), V(54), V(78), V(85), V( 92), V(101), V(0) }, // => C and F file
+            { V(120), V(11), V(44), V(68), V(87), V( 90), V(119), V(0) }  // => D and E file
         };
 
         enum BlockType : u08
         {
-            NO_FRIENDLY_PAWN,
-            BLOCKED_NONE,
+            BLOCKED_NO,     // Clear path
+            BLOCKED_BY_NONE,
             BLOCKED_BY_PAWN,
             BLOCKED_BY_KING,
         };
@@ -34,28 +34,28 @@ namespace Pawns {
         const Value StromDanger[4][F_NO/2][R_NO] =
         {
             {
-                { V( 0), V(  67), V(134), V(38), V(32), V( 0), V( 0), V( 0) },
-                { V( 0), V(  57), V(139), V(37), V(22), V( 0), V( 0), V( 0) },
-                { V( 0), V(  43), V(115), V(43), V(27), V( 0), V( 0), V( 0) },
-                { V( 0), V(  68), V(124), V(57), V(32), V( 0), V( 0), V( 0) }
+                { V(0), V(  67), V(134), V(38), V(32), V(0), V(0), V(0) },
+                { V(0), V(  57), V(139), V(37), V(22), V(0), V(0), V(0) },
+                { V(0), V(  43), V(115), V(43), V(27), V(0), V(0), V(0) },
+                { V(0), V(  68), V(124), V(57), V(32), V(0), V(0), V(0) }
             },
             {
-                { V(20), V(  43), V(100), V(56), V(20), V( 0), V( 0), V( 0) },
-                { V(23), V(  20), V( 98), V(40), V(15), V( 0), V( 0), V( 0) },
-                { V(23), V(  39), V(103), V(36), V(18), V( 0), V( 0), V( 0) },
-                { V(28), V(  19), V(108), V(42), V(26), V( 0), V( 0), V( 0) }
+                { V(0), V(  43), V(100), V(56), V(20), V(0), V(0), V(0) },
+                { V(0), V(  20), V( 98), V(40), V(15), V(0), V(0), V(0) },
+                { V(0), V(  39), V(103), V(36), V(18), V(0), V(0), V(0) },
+                { V(0), V(  19), V(108), V(42), V(26), V(0), V(0), V(0) }
             },
             {
-                { V( 0), V(   0), V( 75), V(14), V( 2), V( 0), V( 0), V( 0) },
-                { V( 0), V(   0), V(150), V(30), V( 4), V( 0), V( 0), V( 0) },
-                { V( 0), V(   0), V(160), V(22), V( 5), V( 0), V( 0), V( 0) },
-                { V( 0), V(   0), V(166), V(24), V(13), V( 0), V( 0), V( 0) }
+                { V(0), V(   0), V( 75), V(14), V( 2), V(0), V(0), V(0) },
+                { V(0), V(   0), V(150), V(30), V( 4), V(0), V(0), V(0) },
+                { V(0), V(   0), V(160), V(22), V( 5), V(0), V(0), V(0) },
+                { V(0), V(   0), V(166), V(24), V(13), V(0), V(0), V(0) }
             },
             {
-                { V( 0), V(-283), V(-281), V(57), V(31), V( 0), V( 0), V( 0) },
-                { V( 0), V(  58), V( 141), V(39), V(18), V( 0), V( 0), V( 0) },
-                { V( 0), V(  65), V( 142), V(48), V(32), V( 0), V( 0), V( 0) },
-                { V( 0), V(  60), V( 126), V(51), V(19), V( 0), V( 0), V( 0) }
+                { V(0), V(-283), V(-281), V(57), V(31), V(0), V(0), V(0) },
+                { V(0), V(  58), V( 141), V(39), V(18), V(0), V(0), V(0) },
+                { V(0), V(  65), V( 142), V(48), V(32), V(0), V(0), V(0) },
+                { V(0), V(  60), V( 126), V(51), V(19), V(0), V(0), V(0) }
             }
         };
 
@@ -101,7 +101,6 @@ namespace Pawns {
             e->passed_pawns    [Own] = 0;
             e->pawn_attack_span[Own] = 0;
             e->semiopen_files  [Own] = u08(0xFF);
-            e->king_sq         [Own] = SQ_NO;
             e->pawns_on_sqrs   [Own][WHITE] = u08(pop_count (own_pawns & Liht_bb));
             e->pawns_on_sqrs   [Own][BLACK] = u08(pop_count (own_pawns & Dark_bb));
 
@@ -183,13 +182,14 @@ namespace Pawns {
                 }
 
 //#           if !defined(NDEBUG)
-                //std::cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << std::endl;
+//                std::cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << std::endl;
 //#           endif
                 pawn_score += score;
             }
 
             b = e->semiopen_files[Own] ^ u08(0xFF);
-            e->pawn_span[Own] = u08(b != 0 ? scan_msq (b) - scan_lsq (b) : 0);
+            e->pawn_span[Own] = u08(b != 0 ?
+                                        scan_msq (b) - scan_lsq (b) : 0);
 
             return pawn_score;
         }
@@ -204,7 +204,6 @@ namespace Pawns {
         static const auto Opp = Own == WHITE ? BLACK : WHITE;
 
         auto value = MaxSafety;
-
         Bitboard front_pawns =
               pos.pieces (PAWN)
             & (  rank_bb (k_sq)
@@ -216,22 +215,22 @@ namespace Pawns {
         for (auto f = kf - 1; f <= kf + 1; ++f)
         {
             assert(F_A <= f && f <= F_H);
+            Bitboard file = file_bb (f);
 
-            Bitboard mid_pawns;
-            mid_pawns = own_front_pawns & file_bb (f);
-            auto own_r = mid_pawns != 0 ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
-
-            mid_pawns = opp_front_pawns & file_bb (f);
-            auto opp_r = mid_pawns != 0 ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
+            Bitboard file_front_pawns;
+            file_front_pawns = own_front_pawns & file;
+            auto own_r = file_front_pawns != 0 ? rel_rank (Own, scan_backmost_sq (Own, file_front_pawns)) : R_1;
+            file_front_pawns = opp_front_pawns & file;
+            auto opp_r = file_front_pawns != 0 ? rel_rank (Own, scan_frntmost_sq (Opp, file_front_pawns)) : R_1;
 
             value -= ShelterWeak[std::min (f, F_H - f)][own_r]
                    + StromDanger[   f == _file (k_sq)
-                                 && opp_r == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
-                                    own_r == R_1                      ? NO_FRIENDLY_PAWN :
-                                    opp_r == own_r + 1                ? BLOCKED_BY_PAWN  : BLOCKED_NONE]
+                                 && opp_r == rel_rank (Own, k_sq) + 1                ? BLOCKED_BY_KING  :
+                                    own_r == R_1                                     ? BLOCKED_NO :
+                                    opp_r != R_1
+                                 && (front_pawns & (f|rel_rank (Own, opp_r-1))) != 0 ? BLOCKED_BY_PAWN  : BLOCKED_BY_NONE]
                                 [std::min (f, F_H - f)][opp_r];
         }
-
         return value;
     }
     // Explicit template instantiations
@@ -253,20 +252,23 @@ namespace Pawns {
     {
         auto pawn_key = pos.pawn_key ();
         auto *e = pos.thread ()->pawn_table[pawn_key];
-        // If pawn key matches the position's pawn hash key,
-        // it means that have analysed this pawn configuration before,
-        // and can simply return the information found instead of recomputing it.
-        if (  !e->used
-            || e->pawn_key != pawn_key)
+
+        if (   e->used
+            && e->pawn_key == pawn_key)
         {
-            e->used = true;
-            e->pawn_key = pawn_key;
-            e->pawn_score =
-                + evaluate<WHITE> (pos, e)
-                - evaluate<BLACK> (pos, e);
-            e->asymmetry = pop_count (e->semiopen_files[WHITE]
-                                    ^ e->semiopen_files[BLACK]);
+            return e;
         }
+        
+        e->used = false;
+        e->pawn_key = pawn_key;
+        e->pawn_score =
+            + evaluate<WHITE> (pos, e)
+            - evaluate<BLACK> (pos, e);
+        e->asymmetry = i08(pop_count (  e->semiopen_files[WHITE]
+                                      ^ e->semiopen_files[BLACK]));
+        e->evaluate_king_safety<WHITE> (pos);
+        e->evaluate_king_safety<BLACK> (pos);
+        e->used = true;
         return e;
     }
 

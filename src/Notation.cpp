@@ -255,17 +255,18 @@ namespace Notation {
             << std::setw (12) << pretty_time (Threadpool.time_mgr.elapsed_time ());
         if (total_nodes < 1*M)
         {
-            oss << std::setw (8) << total_nodes / 1 << "  ";
+            oss << std::setw (8) << total_nodes / 1;
         }
         else
         if (total_nodes < K*M)
         {
-            oss << std::setw (7) << total_nodes / K << "K  ";
+            oss << std::setw (7) << total_nodes / K << 'K';
         }
         else
         {
-            oss << std::setw (7) << total_nodes / M << "M  ";
+            oss << std::setw (7) << total_nodes / M << 'M';
         }
+        oss << ' ';
 
         StateList states;
         u08 ply = 0;

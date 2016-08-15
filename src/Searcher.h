@@ -1,7 +1,6 @@
 #ifndef SEARCHER_H_INC_
 #define SEARCHER_H_INC_
 
-#include <cstring>
 #include <atomic>
 
 #include "Type.h"

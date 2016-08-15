@@ -89,7 +89,7 @@ PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboa
             attackers |= (pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc))
                       |  (pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc));
             break;
-        default:
+        case NIHT:
             break;
         }
 
@@ -470,8 +470,10 @@ bool Position::legal (Move m, Bitboard abs_pinned) const
 
         auto mocc = pieces () - org - cap + dst;
         // If any attacker then in check and not legal move
-        return (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
-            && (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0;
+        return (   (pieces (~_active, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (_active)]) == 0
+                || (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0)
+            && (   (pieces (~_active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (_active)]) == 0
+                || (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0);
     }
         break;
 
@@ -527,11 +529,12 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         // En-passant capture with check ?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
-        auto cap = _file (dst)|_rank (org);
-        auto mocc = pieces () - org - cap + dst;
+        auto mocc = pieces () - org - (_file (dst)|_rank (org)) + dst;
         // If any attacker then in check
-        return (pieces (_active, BSHP, QUEN) & attacks_bb<BSHP> (ci.king_sq, mocc)) != 0
-            || (pieces (_active, ROOK, QUEN) & attacks_bb<ROOK> (ci.king_sq, mocc)) != 0;
+        return (   (pieces (_active, BSHP, QUEN) & PieceAttacks[BSHP][ci.king_sq]) != 0
+                && (pieces (_active, BSHP, QUEN) & attacks_bb<BSHP> (ci.king_sq, mocc)) != 0)
+            || (   (pieces (_active, ROOK, QUEN) & PieceAttacks[ROOK][ci.king_sq]) != 0
+                && (pieces (_active, ROOK, QUEN) & attacks_bb<ROOK> (ci.king_sq, mocc)) != 0);
     }
         break;
 
@@ -679,8 +682,10 @@ bool Position::can_en_passant (Square ep_sq) const
         for (auto m : moves)
         {
             auto mocc = occ - org_sq (m);
-            if (   (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0
-                && (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0)
+            if (   (   (pieces (~_active, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (_active)]) == 0
+                    || (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0)
+                && (   (pieces (~_active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (_active)]) == 0
+                    || (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0))
             {
                 return true;
             }
@@ -1241,17 +1246,18 @@ void Position::flip ()
     for (auto r = R_8; r >= R_1; --r)
     {
         std::getline (iss, token, r > R_1 ? '/' : ' ');
+        toggle (token);
         ff.insert (0, token + (!white_spaces (ff) ? "/" : " "));
     }
     // 2. Active color
     iss >> token;
-    ff += (token[0] == 'w' ? 'B' :
-           token[0] == 'b' ? 'W' : '-');
+    ff += (token[0] == 'w' ? 'b' :
+           token[0] == 'b' ? 'w' : '-');
     ff += ' ';
     // 3. Castling availability
     iss >> token;
+    toggle (token);
     ff += token + ' ';
-    toggle (ff);
     // 4. En-passant square
     iss >> token;
     ff += (token[0] == '-' ? token : token.replace (1, 1, token[1] == '3' ? "6" :

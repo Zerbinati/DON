@@ -60,7 +60,7 @@ namespace MovePick {
     // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
     // and about how important good move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *ss)
+    MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
         : _pos (pos)
         , _ss (ss)
         , _tt_move (ttm)

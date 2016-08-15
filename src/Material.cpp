@@ -1,7 +1,4 @@
 #include "Material.h"
-
-#include <cstring>
-
 #include "Thread.h"
 
 namespace Material {
@@ -127,120 +124,121 @@ namespace Material {
     {
         auto matl_key = pos.matl_key ();
         auto *e = pos.thread ()->matl_table[matl_key];
-        // If material key matches the position's material hash key,
-        // it means that have analysed this material configuration before,
-        // and can simply return the information found instead of recomputing it.
-        if (  !e->used
-            || e->matl_key != matl_key)
+
+        if (   e->used
+            && e->matl_key == matl_key)
         {
-            std::memset (e, 0x00, sizeof (*e));
-            e->used = true;
-            e->matl_key = matl_key;
-            e->factor[WHITE] =
-            e->factor[BLACK] = SCALE_FACTOR_NORMAL;
-            e->phase = pos.phase ();
-
-            // Let's look if have a specialized evaluation function for this
-            // particular material configuration. First look for a fixed
-            // configuration one, then a generic one if previous search failed.
-            if ((e->evaluation_func = EndGames->probe<Value> (matl_key)) != nullptr)
-            {
-                return e;
-            }
-            // Generic evaluation
-            for (auto c = WHITE; c <= BLACK; ++c)
-            {
-                if (is_KXK (pos, c))
-                {
-                    e->evaluation_func = &EvaluateKXK[c];
-                    return e;
-                }
-            }
-
-            // OK, didn't find any special evaluation function for the current
-            // material configuration. Is there a suitable scaling function?
-            //
-            // Face problems when there are several conflicting applicable
-            // scaling functions and need to decide which one to use.
-            EndgameBase<ScaleFactor> *scaling_func;
-            if ((scaling_func = EndGames->probe<ScaleFactor> (matl_key)) != nullptr)
-            {
-                e->scaling_func[scaling_func->strong_side ()] = scaling_func;
-                return e;
-            }
-
-            // Didn't find any specialized scaling function, so fall back on
-            // generic scaling functions that refer to more than one material distribution.
-            // Note that these ones don't return after setting the function.
-            for (auto c = WHITE; c <= BLACK; ++c)
-            {
-                if (is_KBPsKs (pos, c))
-                {
-                    e->scaling_func[c] = &ScaleKBPsKs[c];
-                }
-                else
-                if (is_KQKRPs (pos, c))
-                {
-                    e->scaling_func[c] = &ScaleKQKRPs[c];
-                }
-                else
-                // Only pawns on the board
-                if (   pos.non_pawn_material ( c)
-                     + pos.non_pawn_material (~c) == VALUE_ZERO
-                    && pos.pieces (PAWN) != 0)
-                {
-                    if (pos.count<PAWN> (~c) == 0)
-                    {
-                        assert(pos.count<PAWN> (c) > 1);
-                        e->scaling_func[c] = &ScaleKPsK[c];
-                    }
-                    else
-                    if (   pos.count<PAWN> ( c) == 1
-                        && pos.count<PAWN> (~c) == 1)
-                    {
-                        e->scaling_func[c] = &ScaleKPKP[c];
-                    }
-                }
-
-                // Zero or just one pawn makes it difficult to win, even with a material advantage.
-                // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
-                // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
-                if (abs (  pos.non_pawn_material ( c)
-                         - pos.non_pawn_material (~c)) <= VALUE_MG_BSHP)
-                {
-                    if (pos.count<PAWN> (c) == 0)
-                    {
-                        e->factor[c] =
-                            pos.non_pawn_material ( c) <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                            pos.non_pawn_material (~c) <= VALUE_MG_BSHP ? ScaleFactor(4) : ScaleFactor(14);
-                    }
-                    else
-                    if (pos.count<PAWN> (c) == 1)
-                    {
-                        e->factor[c] = SCALE_FACTOR_ONEPAWN;
-                    }
-                }
-            }
-
-            // Evaluate the material imbalance.
-            // Use KING as a place holder for the bishop pair "extended piece",
-            // this allow us to be more flexible in defining bishop pair bonuses.
-            const i32 piece_count[CLR_NO][NONE] =
-            {
-                {
-                    pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
-                    pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.paired_bishop (WHITE) ? 1 : 0
-                },
-                {
-                    pos.count<PAWN> (BLACK), pos.count<NIHT> (BLACK), pos.count<BSHP> (BLACK),
-                    pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.paired_bishop (BLACK) ? 1 : 0
-                }
-            };
-
-            auto value = Value((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
-            e->imbalance = mk_score (value, value);
+            return e;
         }
 
+        std::memset (e, 0x00, sizeof (*e));
+        e->matl_key = matl_key;
+        e->factor[WHITE] =
+        e->factor[BLACK] = SCALE_FACTOR_NORMAL;
+        e->phase = pos.phase ();
+
+        // Let's look if have a specialized evaluation function for this
+        // particular material configuration. First look for a fixed
+        // configuration one, then a generic one if previous search failed.
+        if ((e->evaluation_func = EndGames->probe<Value> (matl_key)) != nullptr)
+        {
+            goto unblock;
+        }
+        // Generic evaluation
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            if (is_KXK (pos, c))
+            {
+                e->evaluation_func = &EvaluateKXK[c];
+                goto unblock;
+            }
+        }
+
+        // OK, didn't find any special evaluation function for the current
+        // material configuration. Is there a suitable scaling function?
+        //
+        // Face problems when there are several conflicting applicable
+        // scaling functions and need to decide which one to use.
+        EndgameBase<ScaleFactor> *scaling_func;
+        if ((scaling_func = EndGames->probe<ScaleFactor> (matl_key)) != nullptr)
+        {
+            e->scaling_func[scaling_func->strong_side ()] = scaling_func;
+            goto unblock;
+        }
+
+        // Didn't find any specialized scaling function, so fall back on
+        // generic scaling functions that refer to more than one material distribution.
+        // Note that these ones don't return after setting the function.
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            if (is_KBPsKs (pos, c))
+            {
+                e->scaling_func[c] = &ScaleKBPsKs[c];
+            }
+            else
+            if (is_KQKRPs (pos, c))
+            {
+                e->scaling_func[c] = &ScaleKQKRPs[c];
+            }
+            else
+            // Only pawns on the board
+            if (   pos.non_pawn_material ( c)
+                 + pos.non_pawn_material (~c) == VALUE_ZERO
+                && pos.pieces (PAWN) != 0)
+            {
+                if (pos.count<PAWN> (~c) == 0)
+                {
+                    assert(pos.count<PAWN> (c) > 1);
+                    e->scaling_func[c] = &ScaleKPsK[c];
+                }
+                else
+                if (   pos.count<PAWN> ( c) == 1
+                    && pos.count<PAWN> (~c) == 1)
+                {
+                    e->scaling_func[c] = &ScaleKPKP[c];
+                }
+            }
+
+            // Zero or just one pawn makes it difficult to win, even with a material advantage.
+            // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
+            // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
+            if (abs (  pos.non_pawn_material ( c)
+                     - pos.non_pawn_material (~c)) <= VALUE_MG_BSHP)
+            {
+                if (pos.count<PAWN> (c) == 0)
+                {
+                    e->factor[c] =
+                        pos.non_pawn_material ( c) <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
+                        pos.non_pawn_material (~c) <= VALUE_MG_BSHP ? ScaleFactor(4) : ScaleFactor(14);
+                }
+                else
+                if (pos.count<PAWN> (c) == 1)
+                {
+                    e->factor[c] = SCALE_FACTOR_ONEPAWN;
+                }
+            }
+        }
+        {
+        // Evaluate the material imbalance.
+        // Use KING as a place holder for the bishop pair "extended piece",
+        // this allow us to be more flexible in defining bishop pair bonuses.
+        const i32 piece_count[CLR_NO][NONE] =
+        {
+            {
+                pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
+                pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.paired_bishop (WHITE) ? 1 : 0
+            },
+            {
+                pos.count<PAWN> (BLACK), pos.count<NIHT> (BLACK), pos.count<BSHP> (BLACK),
+                pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.paired_bishop (BLACK) ? 1 : 0
+            }
+        };
+
+        auto value = Value((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
+        e->imbalance = mk_score (value, value);
+        }
+    unblock:
+        e->used = true;
         return e;
     }
 }

@@ -23,7 +23,7 @@ namespace MovePick {
             ,   *_beg_bad_cap_move = _beg_move+MaxMoves;
 
         const Position &_pos;
-        const Stack    *_ss = nullptr;
+        const Stack *const _ss = nullptr;
 
         u08     _stage      = 0;
 
@@ -44,7 +44,7 @@ namespace MovePick {
         MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
 
-        MovePicker (const Position&, Move, const Stack*);
+        MovePicker (const Position&, Move, const Stack *const&);
         MovePicker (const Position&, Move, Depth, Move);
         MovePicker (const Position&, Move, Value);
 

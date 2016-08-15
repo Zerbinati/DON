@@ -721,7 +721,8 @@ namespace EndGame {
 
             auto path = front_sqrs_bb (_strong_side, sp_sq);
             if (   (path & pos.pieces (~_strong_side, KING)) != 0
-                || (   (path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) != 0
+                || (   (path & PieceAttacks[BSHP][wb_sq]) != 0
+                    && (path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) != 0
                     && dist (wb_sq, sp_sq) >= 3))
             {
                 return SCALE_FACTOR_DRAW;
@@ -781,20 +782,23 @@ namespace EndGame {
             // behind this square on the file of the other pawn.
             case 1:
             {
-                if (   wk_sq == block1_sq
-                    && opposite_colors (wk_sq, sb_sq)
-                    && (   wb_sq == block2_sq
-                        || (attacks_bb<BSHP> (block2_sq, pos.pieces ()) & pos.pieces (~_strong_side, BSHP)) != 0
-                        || dist<Rank> (sp1_sq, sp2_sq) >= 2))
+                if (opposite_colors (wk_sq, sb_sq))
                 {
-                    return SCALE_FACTOR_DRAW;
-                }
-                if (   wk_sq == block2_sq
-                    && opposite_colors (wk_sq, sb_sq)
-                    && (   wb_sq == block1_sq
-                        || (attacks_bb<BSHP> (block1_sq, pos.pieces ()) & pos.pieces (~_strong_side, BSHP)) != 0))
-                {
-                    return SCALE_FACTOR_DRAW;
+                    if (   wk_sq == block1_sq
+                        && (   wb_sq == block2_sq
+                            || (   (pos.pieces (~_strong_side, BSHP) & PieceAttacks[BSHP][block2_sq]) != 0
+                                && (pos.pieces (~_strong_side, BSHP) & attacks_bb<BSHP> (block2_sq, pos.pieces ())) != 0)
+                            || dist<Rank> (sp1_sq, sp2_sq) >= 2))
+                    {
+                        return SCALE_FACTOR_DRAW;
+                    }
+                    if (   wk_sq == block2_sq
+                        && (   wb_sq == block1_sq
+                            || (   (pos.pieces (~_strong_side, BSHP) & PieceAttacks[BSHP][block1_sq]) != 0
+                                && (pos.pieces (~_strong_side, BSHP) & attacks_bb<BSHP> (block1_sq, pos.pieces ())) != 0)))
+                    {
+                        return SCALE_FACTOR_DRAW;
+                    }
                 }
                 break;
             }
@@ -845,7 +849,9 @@ namespace EndGame {
 
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        if ((front_sqrs_bb (_strong_side, sp_sq) & attacks_bb<BSHP> (sb_sq, pos.pieces ())) != 0)
+        Bitboard front_squares = front_sqrs_bb (_strong_side, sp_sq);
+        if (   (front_squares & PieceAttacks[BSHP][sb_sq]) != 0
+            && (front_squares & attacks_bb<BSHP> (sb_sq, pos.pieces ())) != 0)
         {
             return ScaleFactor(dist (wk_sq, sp_sq));
         }
@@ -926,11 +932,11 @@ namespace EndGame {
                         || pos.count<PAWN> (_strong_side) == 1))
                 {
                     // It's a draw if the weak king is on its back two ranks, within 2
-                    // squares of the blocking pawn and the strong king is not
-                    // closer. (I think this rule only fails in practically
-                    // unreachable positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w
-                    // and positions where qsearch will immediately correct the
-                    // problem such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w)
+                    // squares of the blocking pawn and the strong king is not closer.
+                    // This rule only fails in practically unreachable
+                    // positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w and
+                    // where qsearch will immediately correct the problem
+                    // positions such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w
                     if (   rel_rank (_strong_side, wk_sq) >= R_7
                         && dist (wk_sq, wp_sq) <= 2
                         && dist (wk_sq, wp_sq) <= dist (sk_sq, wp_sq))

@@ -13,17 +13,11 @@ namespace Pawns {
     // returns a pointer to an Entry object.
     struct Entry
     {
-    private:
-        // pawn_shelter_storm() calculates shelter and storm penalties
-        // for the file the king is on, as well as the two adjacent files.
-        template<Color Own>
-        Value pawn_shelter_storm (const Position &pos, Square k_sq) const;
-
     public:
         bool     used;
         Key      pawn_key;
         Score    pawn_score;
-        i32      asymmetry;
+        i08      asymmetry;
 
         Bitboard pawn_attacks  [CLR_NO];
         Bitboard passed_pawns  [CLR_NO];
@@ -32,12 +26,9 @@ namespace Pawns {
         u08      semiopen_files[CLR_NO];
         u08      pawn_span     [CLR_NO];
         // Count of pawns on LIGHT and DARK squares
-        u08      pawns_on_sqrs [CLR_NO][CLR_NO]; // [color][square color]
+        u08      pawns_on_sqrs [CLR_NO][CLR_NO];
 
-        Square      king_sq       [CLR_NO];
-        CastleRight castle_rights [CLR_NO];
-        Value       king_safety   [CLR_NO][3];
-        u08         king_pawn_dist[CLR_NO];
+        Value    king_safety   [CLR_NO][CS_NO];
 
         bool file_semiopen (Color c, File f) const
         {
@@ -56,42 +47,17 @@ namespace Pawns {
         template<Color Own>
         Score evaluate_unstoppable_pawns () const;
 
+        // pawn_shelter_storm() calculates shelter and storm penalties
+        // for the file the king is on, as well as the two adjacent files.
+        template<Color Own>
+        Value pawn_shelter_storm (const Position &pos, Square k_sq) const;
+
         template<Color Own>
         void evaluate_king_safety (const Position &pos)
         {
-            if (   king_sq      [Own] != pos.square<KING> (Own)
-                || castle_rights[Own] != pos.can_castle (Own))
-            {
-                king_sq      [Own] = pos.square<KING> (Own);
-                castle_rights[Own] = pos.can_castle (Own);
-
-                if (   rel_rank (Own, king_sq[Own]) == R_1
-                    && castle_rights[Own] != CR_NONE)
-                {
-                    king_safety[Own][CS_KING] =
-                        pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE ?
-                            pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1)) : VALUE_ZERO;
-                    king_safety[Own][CS_QUEN] =
-                        pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE ?
-                            pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1)) : VALUE_ZERO;
-                }
-                else
-                {
-                    king_safety[Own][CS_KING] = VALUE_ZERO;
-                    king_safety[Own][CS_QUEN] = VALUE_ZERO;
-                }
-
-                king_safety[Own][CS_NO] = pawn_shelter_storm<Own> (pos, king_sq[Own]);
-
-                king_pawn_dist[Own] = 0;
-                Bitboard own_pawns = pos.pieces (Own, PAWN);
-                if (own_pawns != 0)
-                {
-                    while ((dist_rings_bb (king_sq[Own], king_pawn_dist[Own]++) & own_pawns) == 0) {}
-                }
-            }
+            king_safety[Own][CS_KING] = pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1));
+            king_safety[Own][CS_QUEN] = pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1));
         }
-
     };
 
     typedef HashTable<Entry, 0x4000> Table;

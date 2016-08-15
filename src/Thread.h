@@ -169,9 +169,6 @@ namespace Threading {
             , _searching = false;
 
     public:
-        Pawns   ::Table pawn_table;
-        Material::Table matl_table;
-
         u16   index    = 0
             , pv_index = 0
             , max_ply  = 0
@@ -181,6 +178,10 @@ namespace Threading {
         RootMoveVector root_moves;
         Depth running_depth  = DEPTH_0
             , finished_depth = DEPTH_0;
+
+        Pawns   ::Table pawn_table;
+        Material::Table matl_table;
+
         HValueStats history_values;
         OrgDstStats org_dst_values;
         MoveStats   counter_moves;
@@ -302,9 +303,10 @@ namespace Threading {
             return main_th;
         }
         Thread* best_thread () const;
-
         u64  nodes () const;
 
+        void reset_counts ();
+        void clear ();
         void configure (u32 threads);
 
         void start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits);

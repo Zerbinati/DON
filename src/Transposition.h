@@ -1,7 +1,6 @@
 #ifndef _TRANSPOSITION_H_INC_
 #define _TRANSPOSITION_H_INC_
 
-#include <cstring>
 #include <cstdlib>
 
 #include "Type.h"
@@ -145,9 +144,9 @@ namespace Transposition {
         void clear ();
 
         // "Generation" variable distinguish transposition table entries from different searches.
-        void new_generation (u16 ply)
+        void generation (u16 ply)
         {
-            _generation = u08(ply << 2)&u08(~BOUND_EXACT);
+            _generation = u08(ply << 2);
         }
         u08  generation () const
         {

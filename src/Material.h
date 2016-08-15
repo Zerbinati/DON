@@ -18,8 +18,6 @@ namespace Material {
     // of 4, which will result in scores of absolute value less than one pawn.
     struct Entry
     {
-    private:
-
     public:
         bool        used;
         Key         matl_key;
@@ -43,7 +41,6 @@ namespace Material {
             return scaling_func[c] == nullptr || (sf = (*scaling_func[c]) (pos)) == SCALE_FACTOR_NONE ?
                     factor[c] : sf;
         }
-
     };
 
     typedef HashTable<Entry, 0x2000> Table;
