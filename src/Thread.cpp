@@ -176,7 +176,6 @@ namespace Threading {
         , _searching (true)
         , max_ply (0)
         , count (0)
-        , reset_count (false)
     {
         index = u16(Threadpool.size ());
         pawn_table.clear ();
@@ -224,11 +223,11 @@ namespace Threading {
         return nodes;
     }
 
-    void ThreadPool::reset_counts ()
+    void ThreadPool::reset_count ()
     {
         for (auto *th : *this)
         {
-            th->reset_count = true;
+            th->count = 0;
         }
     }
     void ThreadPool::clear ()
@@ -275,18 +274,8 @@ namespace Threading {
     }
     // Wakes up the main thread sleeping in Thread::idle_loop()
     // and starts a new search, then returns immediately.
-    void ThreadPool::start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits)
+    void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits)
     {
-        // After ownership transfer 'states' becomes empty, so if we stop the search
-        // and call 'go' again without setting a new position states.get() == NULL.
-        assert(states.get () != nullptr
-            || _states.get () != nullptr);
-        if (states.get () != nullptr)
-        {
-            // Ownership transfer, states is now empty
-            _states = std::move (states);
-            assert(states.get () == nullptr);
-        }
         Limits = limits;
 
         RootMoveVector root_moves;
@@ -343,15 +332,15 @@ namespace Threading {
             }
         }
 
-        const auto last_si = _states->back ();
+        const auto back_si = states.back ();
         const auto fen = root_pos.fen (true);
         for (auto *th : *this)
         {
-            th->root_pos.setup (fen, _states->back (), th, true);
+            th->root_pos.setup (fen, states.back (), th, true);
             th->root_moves = root_moves;
         }
         // Restore si->ptr, cleared by Position::setup()
-        _states->back () = last_si;
+        states.back () = back_si;
 
         ForceStop     = false;
         PonderhitStop = false;

@@ -59,9 +59,7 @@ namespace Material {
         bool is_KXK (const Position &pos, Color c)
         {
             return pos.non_pawn_material (c) >= VALUE_MG_ROOK
-                //&& pos.count<NONPAWN> (~c) == 0
-                //&& pos.count<PAWN> (~c) == 0
-                && !more_than_one (pos.pieces (~c));
+                && pos.count<NONE> (~c) == 1;
         }
         bool is_KBPsKs (const Position &pos, Color c)
         {
@@ -87,7 +85,7 @@ namespace Material {
         {
             static const auto Opp = Own == WHITE ? BLACK : WHITE;
 
-            auto value = VALUE_ZERO;
+            i32 value = 0;
 
             // "The Evaluation of Material Imbalances in Chess"
 
@@ -111,7 +109,7 @@ namespace Material {
             }
             value += count[Own][KING] * OwnSideLinearCoefficient[KING];
 
-            return value;
+            return Value(value);
         }
 
     }
@@ -186,16 +184,18 @@ namespace Material {
                  + pos.non_pawn_material (~c) == VALUE_ZERO
                 && pos.pieces (PAWN) != 0)
             {
-                if (pos.count<PAWN> (~c) == 0)
+                switch (pos.count<PAWN> (~c))
                 {
+                case 0:
                     assert(pos.count<PAWN> (c) > 1);
                     e->scaling_func[c] = &ScaleKPsK[c];
-                }
-                else
-                if (   pos.count<PAWN> ( c) == 1
-                    && pos.count<PAWN> (~c) == 1)
-                {
-                    e->scaling_func[c] = &ScaleKPKP[c];
+                    break;
+                case 1:
+                    if (pos.count<PAWN> (c) == 1)
+                    {
+                        e->scaling_func[c] = &ScaleKPKP[c];
+                    }
+                    break;
                 }
             }
 
@@ -205,16 +205,16 @@ namespace Material {
             if (abs (  pos.non_pawn_material ( c)
                      - pos.non_pawn_material (~c)) <= VALUE_MG_BSHP)
             {
-                if (pos.count<PAWN> (c) == 0)
+                switch (pos.count<PAWN> (c))
                 {
+                case 0:
                     e->factor[c] =
                         pos.non_pawn_material ( c) <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         pos.non_pawn_material (~c) <= VALUE_MG_BSHP ? ScaleFactor(4) : ScaleFactor(14);
-                }
-                else
-                if (pos.count<PAWN> (c) == 1)
-                {
+                    break;
+                case 1:
                     e->factor[c] = SCALE_FACTOR_ONEPAWN;
+                    break;
                 }
             }
         }

@@ -101,8 +101,8 @@ namespace Pawns {
             e->passed_pawns    [Own] = 0;
             e->pawn_attack_span[Own] = 0;
             e->semiopen_files  [Own] = u08(0xFF);
-            e->pawns_on_sqrs   [Own][WHITE] = u08(pop_count (own_pawns & Liht_bb));
-            e->pawns_on_sqrs   [Own][BLACK] = u08(pop_count (own_pawns & Dark_bb));
+            e->pawns_on_sq_clr [Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
+            e->pawns_on_sq_clr [Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
 
             auto pawn_score = SCORE_ZERO;
 
@@ -188,8 +188,7 @@ namespace Pawns {
             }
 
             b = e->semiopen_files[Own] ^ u08(0xFF);
-            e->pawn_span[Own] = u08(b != 0 ?
-                                        scan_msq (b) - scan_lsq (b) : 0);
+            e->pawn_span[Own] = u08(b != 0 ? u08(scan_msq (b)) - u08(scan_lsq (b)) + 1 : 0);
 
             return pawn_score;
         }
@@ -225,10 +224,12 @@ namespace Pawns {
 
             value -= ShelterWeak[std::min (f, F_H - f)][own_r]
                    + StromDanger[   f == _file (k_sq)
-                                 && opp_r == rel_rank (Own, k_sq) + 1                ? BLOCKED_BY_KING  :
-                                    own_r == R_1                                     ? BLOCKED_NO :
-                                    opp_r != R_1
-                                 && (front_pawns & (f|rel_rank (Own, opp_r-1))) != 0 ? BLOCKED_BY_PAWN  : BLOCKED_BY_NONE]
+                                 && opp_r == rel_rank (Own, k_sq) + 1                    ? BLOCKED_BY_KING  :
+                                    own_r != R_1                                         ?                                
+                                        opp_r != R_1
+                                     && (front_pawns & (f|rel_rank (Own, opp_r-1))) != 0 ? BLOCKED_BY_PAWN  :
+                                                                                           BLOCKED_BY_NONE :
+                                                                                           BLOCKED_NO]
                                 [std::min (f, F_H - f)][opp_r];
         }
         return value;

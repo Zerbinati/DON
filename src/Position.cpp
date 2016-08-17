@@ -319,17 +319,9 @@ bool Position::pseudo_legal (Move m) const
         }
     }
         break;
-
-    default:
-    {
-        assert(false);
-        return false;
-    }
-        break;
     }
     // The captured square cannot be occupied by a friendly piece or kings
-    if (((  pieces (_active)
-          | pieces (KING)) & cap) != 0)
+    if (((pieces (_active)|pieces (KING)) & cap) != 0)
     {
         return false;
     }
@@ -451,7 +443,8 @@ bool Position::legal (Move m, Bitboard abs_pinned) const
     case CASTLE:
     {
         // Castling moves are checked for legality during move generation.
-        return mpt == KING && _board[dst] == (_active|ROOK);
+        return mpt == KING
+            && _board[dst] == (_active|ROOK);
     }
         break;
 
@@ -476,14 +469,8 @@ bool Position::legal (Move m, Bitboard abs_pinned) const
                 || (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0);
     }
         break;
-
-    default:
-    {
-        assert(false);
-        return false;
     }
-        break;
-    }
+    return false;
 }
 // Tests whether a pseudo-legal move gives a check
 bool Position::gives_check  (Move m, const CheckInfo &ci) const
@@ -544,14 +531,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         return (attacks_bb (Piece(promote (m)), dst, pieces () - org + dst) & ci.king_sq) != 0;
     }
         break;
-
-    default:
-    {
-        assert(false);
-        return false;
     }
-        break;
-    }
+    return false;
 }
 //// Tests whether a pseudo-legal move gives a checkmate
 //bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
@@ -660,8 +641,8 @@ bool Position::can_en_passant (Square ep_sq) const
     assert(rel_rank (_active, ep_sq) == R_6);
 
     auto cap = ep_sq - pawn_push (_active);
-    if (//(pieces (~_active, PAWN) & cap) == 0
-        _board[cap] != (~_active|PAWN))
+    if (   (pieces (~_active, PAWN) & cap) == 0
+        || _board[cap] != (~_active|PAWN))
     {
         return false;
     }
@@ -1048,13 +1029,6 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         _si->non_pawn_matl[_active] += PieceValues[MG][ppt];
     }
         break;
-
-    default:
-    {
-        assert(false);
-        return;
-    }
-        break;
     }
 
     key ^=
@@ -1178,13 +1152,6 @@ void Position::undo_move ()
         remove_piece (dst);
         _board[dst] = NO_PIECE; // Not done by remove_piece()
         place_piece (org, _active, PAWN);
-    }
-        break;
-
-    default:
-    {
-        assert(false);
-        return;
     }
         break;
     }
@@ -1402,11 +1369,11 @@ bool Position::ok (i08 *failed_step) const
 
         if (step == BASIC)
         {
-            if (   (_active != WHITE && _active != BLACK)
-                || _board[square<KING> (WHITE)] != W_KING
-                || _board[square<KING> (BLACK)] != B_KING
-                || count<NONE> () > 32
-                || count<NONE> () != pop_count (pieces ())
+            if (   (   _active != WHITE
+                    && _active != BLACK)
+                || (count<KING> (WHITE) != 1 || _board[square<KING> (WHITE)] != W_KING)
+                || (count<KING> (BLACK) != 1 || _board[square<KING> (BLACK)] != B_KING)
+                || (count<NONE> () > 32 || count<NONE> () != pop_count (pieces ()))
                 || (   _si->en_passant_sq != SQ_NO
                     && (   rel_rank (_active, _si->en_passant_sq) != R_6
                         || !can_en_passant (_si->en_passant_sq)))
@@ -1445,8 +1412,8 @@ bool Position::ok (i08 *failed_step) const
                     }
                 }
             }
-            if (   (pieces (PAWN)|pieces (NIHT)|pieces (BSHP)|pieces (ROOK)|pieces (QUEN)|pieces (KING)) != pieces ()
-                || (pieces (PAWN)^pieces (NIHT)^pieces (BSHP)^pieces (ROOK)^pieces (QUEN)^pieces (KING)) != pieces ())
+            if (   (pieces (PAWN)|pieces (NIHT)|pieces (BSHP)|pieces (ROOK)|pieces (QUEN)|pieces (KING))    // pieces ()
+                != (pieces (PAWN)^pieces (NIHT)^pieces (BSHP)^pieces (ROOK)^pieces (QUEN)^pieces (KING)))
             {
                 return false;
             }
@@ -1477,8 +1444,8 @@ bool Position::ok (i08 *failed_step) const
                 }
 
                 if (           (count (c, PAWN)
-                    + std::max (pop_count (pieces (c, BSHP) & Liht_bb)-1, 0)
-                    + std::max (pop_count (pieces (c, BSHP) & Dark_bb)-1, 0)) > 8)
+                    + std::max (pop_count (pieces (c, BSHP) & Color_bb[WHITE])-1, 0)
+                    + std::max (pop_count (pieces (c, BSHP) & Color_bb[BLACK])-1, 0)) > 8)
                 {
                     return false; // Too many Promoted Bishop of color
                 }

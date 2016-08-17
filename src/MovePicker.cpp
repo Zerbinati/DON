@@ -244,10 +244,10 @@ namespace MovePick {
             // Move killers to top of quiet move
             {
                 MoveVector killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
-                killer_moves.push_back (_pos.thread ()->counter_moves(_ok ((_ss-1)->current_move) ?
-                                                                        _pos[dst_sq ((_ss-1)->current_move)] :
-                                                                        NO_PIECE,
-                                                                      dst_sq ((_ss-1)->current_move)));
+                if ((_ss-1)->counter_move_values != nullptr)
+                {
+                    killer_moves.push_back (_pos.thread ()->counter_moves (_pos[fix_dst_sq ((_ss-1)->current_move)], dst_sq ((_ss-1)->current_move)));
+                }
                 killer_moves.erase (std::remove (killer_moves.begin (), killer_moves.end (), MOVE_NONE), killer_moves.end ());
                 remove_duplicates (killer_moves);
                 i32 k = 0;

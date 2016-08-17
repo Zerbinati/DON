@@ -6,8 +6,6 @@
 
 namespace Pawns {
 
-    using namespace BitBoard;
-
     // Pawns::Entry contains various information about a pawn structure.
     // A lookup to the pawn hash table (performed by calling the probe function)
     // returns a pointer to an Entry object.
@@ -19,16 +17,13 @@ namespace Pawns {
         Score    pawn_score;
         i08      asymmetry;
 
-        Bitboard pawn_attacks  [CLR_NO];
-        Bitboard passed_pawns  [CLR_NO];
+        Bitboard pawn_attacks    [CLR_NO];
+        Bitboard passed_pawns    [CLR_NO];
         Bitboard pawn_attack_span[CLR_NO];
-
-        u08      semiopen_files[CLR_NO];
-        u08      pawn_span     [CLR_NO];
-        // Count of pawns on LIGHT and DARK squares
-        u08      pawns_on_sqrs [CLR_NO][CLR_NO];
-
-        Value    king_safety   [CLR_NO][CS_NO];
+        u08      semiopen_files  [CLR_NO];
+        u08      pawn_span       [CLR_NO];
+        u08      pawns_on_sq_clr [CLR_NO][CLR_NO];
+        Value    king_safety     [CLR_NO][CS_NO];
 
         bool file_semiopen (Color c, File f) const
         {
@@ -37,10 +32,6 @@ namespace Pawns {
         bool side_semiopen (Color c, File f, bool left) const
         {
             return (semiopen_files[c] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1))) != 0;
-        }
-        i32 pawns_on_squarecolor (Color c, Square s) const
-        {
-            return pawns_on_sqrs[c][(Liht_bb & s) != 0 ? WHITE : BLACK];
         }
 
         // evaluate_unstoppable_pawns<>() scores the most advanced passed pawns.

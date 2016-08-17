@@ -186,8 +186,6 @@ namespace Threading {
         OrgDstStats org_dst_values;
         MoveStats   counter_moves;
 
-        std::atomic_bool reset_count { false };
-
         Thread ();
         Thread (const Thread&) = delete;
         Thread& operator= (const Thread&) = delete;
@@ -277,21 +275,18 @@ namespace Threading {
     class ThreadPool
         : public std::vector<Thread*>
     {
-    private:
-        StateListPtr _states;
-
     public:
-        u16   pv_limit    = 1;
+        u16    pv_limit    = 1;
 
-        bool  easy_played = false;
-        bool  failed_low  = false;
+        bool   easy_played = false;
+        bool   failed_low  = false;
         double best_move_change = 0.0;
-        Move  easy_move   = MOVE_NONE;
-        Value last_value  = VALUE_NONE;
+        Move   easy_move   = MOVE_NONE;
+        Value  last_value  = VALUE_NONE;
 
-        TimeManager     time_mgr;
-        MoveManager     move_mgr;
-        SkillManager    skill_mgr;
+        TimeManager  time_mgr;
+        MoveManager  move_mgr;
+        SkillManager skill_mgr;
 
         ThreadPool () = default;
         ThreadPool (const ThreadPool&) = delete;
@@ -302,14 +297,16 @@ namespace Threading {
             static auto *main_th = static_cast<MainThread*> (at (0));
             return main_th;
         }
+        
         Thread* best_thread () const;
+        
         u64  nodes () const;
 
-        void reset_counts ();
+        void reset_count ();
         void clear ();
         void configure (u32 threads);
 
-        void start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits);
+        void start_thinking (Position &root_pos, StateList &states, const Limit &limits);
         void wait_while_thinking ();
 
         // No constructor and destructor, Threadpool rely on globals

@@ -162,10 +162,11 @@ void benchmark (istringstream &is, const Position &cur_pos)
     u64  total_nodes = 0;
     auto start_time = now ();
     Position pos;
+    StateList states (1);
     for (u16 i = 0; i < fens.size (); ++i)
     {
-        StateListPtr states (new StateList (1));
-        pos.setup (fens[i], states->back (), Threadpool.main_thread (), true);
+        states.resize (1);
+        pos.setup (fens[i], states.back (), Threadpool.main_thread (), true);
         assert(pos.fen (true) == fens[i]);
 
         std::cerr

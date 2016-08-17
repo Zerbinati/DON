@@ -130,8 +130,8 @@ namespace Evaluator {
 
         public:
             // Pointers to pawn and material hash table entries
-            Pawns   ::Entry *pe = nullptr;
-            Material::Entry *me = nullptr;
+            Pawns   ::Entry *const &pe = nullptr;
+            Material::Entry *const &me = nullptr;
 
             // abs_pinneds[color] contains the absolute pinneds pieces.
             Bitboard abs_pinneds [CLR_NO];
@@ -442,7 +442,7 @@ namespace Evaluator {
                         }
 
                         // Penalty for pawns on the same color square as the bishop
-                        score -= BishopPawns * ei.pe->pawns_on_squarecolor (Own, s);
+                        score -= BishopPawns * i32(ei.pe->pawns_on_sq_clr[Own][color (s)]);
 
                         if (   rel_sq (Own, s) == SQ_A8
                             || rel_sq (Own, s) == SQ_H8)
@@ -845,7 +845,7 @@ namespace Evaluator {
             {
                 auto s = pop_lsq (passed_pawns);
                 assert(pos.pawn_passed_at (Own, s));
-                assert((pos.pieces (Own, PAWN) & front_sqrs_bb (Own, s)) == 0);
+                assert((front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)) == 0);
 
                 auto rank = rel_rank (Own, s);
                 // Base bonus depending on rank.
@@ -895,20 +895,17 @@ namespace Evaluator {
                             safe_front_squares   &= ei.pin_attacked_by[Own][NONE];
                         }
 
-                        // Give a big bonus if there aren't enemy attacks on the path,
-                        // otherwise a smaller bonus if the block square is not attacked.
+                        // Give a big bonus if the path to the queen is not attacked,
+                        // a smaller bonus if the block square is not attacked.
                         i32 k =
                             unsafe_front_squares != 0 ?
                                 (unsafe_front_squares & block_sq) != 0 ?
                                     0 : 8 : 18;
-                        if (safe_front_squares != 0)
-                        {
-                            // Give a big bonus if the path to the queen is fully defended,
-                            // a smaller bonus if at least the block square is defended.
-                            k += safe_front_squares != front_squares ?
-                                    (safe_front_squares & block_sq) == 0 ?
-                                        0 : 4 : 6;
-                        }
+                        // Give a big bonus if the path to the queen is fully defended,
+                        // a smaller bonus if the block square is defended.
+                        k += safe_front_squares != front_squares ?
+                                (safe_front_squares & block_sq) == 0 ?
+                                    0 : 4 : 6;
 
                         mg_value += k*rr;
                         eg_value += k*rr;
@@ -971,7 +968,7 @@ namespace Evaluator {
             i32 count  = std::min (pop_count (  (behind & safe_space)
                                               | (Own == WHITE ? safe_space << 32 :
                                                                 safe_space >> 32)), 16);
-            i32 weight = pos.count<NONE> (Own);
+            i32 weight = pos.count<NONPAWN> (Own);
             auto score = mk_score (count * weight * weight / 22, 0);
 
             if (Trace)
@@ -1027,12 +1024,11 @@ namespace Evaluator {
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 else
                 if (   abs (eg) <= VALUE_EG_BSHP
-                    && ei.pe->pawn_span[strong_side] <= 1
-                    && !pos.pawn_passed_at (~strong_side, pos.square<KING> (~strong_side)))
+                    && ei.pe->pawn_span[strong_side] <= 2
+                    && (   pos.pieces (strong_side, PAWN)
+                        & ~pawn_pass_span (~strong_side, pos.square<KING> (~strong_side))) == 0)
                 {
-                    return ei.pe->pawn_span[strong_side] != 0 ?
-                            ScaleFactor(51) :
-                            ScaleFactor(37);
+                    return ScaleFactor(36 + 8 * ei.pe->pawn_span[strong_side]);
                 }
             }
             return scale_factor;
@@ -1046,16 +1042,13 @@ namespace Evaluator {
 
         // Probe the material hash table
         auto *me = Material::probe (pos);
-
         // If have a specialized evaluation function for the material configuration
         if (me->specialized_eval_exists ())
         {
             return me->evaluate (pos);
         }
-
         // Probe the pawn hash table
         auto *pe = Pawns::probe (pos);
-
         // Initialize score by reading the incrementally updated scores
         // included in the position object (material + piece square tables).
         // Score is computed internally from the white point of view.

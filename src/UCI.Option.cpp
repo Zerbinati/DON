@@ -9,7 +9,7 @@
 #include "Debugger.h"
 #include "MemoryHandler.h"
 
-OptionMap Options;
+UCI::OptionMap Options;
 
 namespace UCI {
 

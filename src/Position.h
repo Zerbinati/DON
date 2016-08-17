@@ -2,7 +2,6 @@
 #define _POSITION_H_INC_
 
 #include <deque>
-#include <memory>
 
 #include "BitBoard.h"
 #include "Zobrist.h"
@@ -50,8 +49,7 @@ public:
     StateInfo   *ptr;           // Previous StateInfo.
 };
 
-typedef std::deque<StateInfo>       StateList;
-typedef std::unique_ptr<StateList>  StateListPtr;
+typedef std::deque<StateInfo> StateList;
 
 // CheckInfo struct stores information used to detect if a move gives check.
 struct CheckInfo
@@ -122,7 +120,7 @@ private:
     void do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst);
 
     template<PieceType PT>
-    PieceType pick_least_val_att (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const;
+    PieceType pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const;
 
 public:
     static u08  DrawClockPly;
@@ -436,7 +434,7 @@ inline Bitboard Position::dsc_checkers (Color c) const
 // Pawn passed at the given square
 inline bool Position::pawn_passed_at (Color c, Square s) const
 {
-    return (pieces (~c, PAWN) & pawn_pass_span (c, s)) == 0;
+    return (pawn_pass_span (c, s) & pieces (~c, PAWN)) == 0;
 }
 // Check the side has pair of opposite color bishops
 inline bool Position::paired_bishop (Color c) const

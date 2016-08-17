@@ -217,6 +217,9 @@ namespace BitBoard {
 
     void initialize ()
     {
+        assert((Color_bb[WHITE] & Color_bb[BLACK]) == 0
+            && (Color_bb[WHITE] | Color_bb[BLACK]) == (Color_bb[WHITE] ^ Color_bb[BLACK]));
+
         //for (auto s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;

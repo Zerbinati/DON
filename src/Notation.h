@@ -42,11 +42,12 @@ namespace Notation {
     }
 
     extern std::string move_to_can (Move m);
-    extern std::string move_to_san (Move m, Position &pos);
-    //extern std::string move_to_lan (Move m, Position &pos);
+    extern Move move_from_can (std::string &can, const Position &pos);
 
-    extern Move move_from_can (const std::string &can, const Position &pos);
-    extern Move move_from_san (const std::string &san,       Position &pos);
+    extern std::string move_to_san (Move m, Position &pos);
+    extern Move move_from_san (const std::string &san, Position &pos);
+
+    //extern std::string move_to_lan (Move m, Position &pos);
     //extern Move move_from_lan (const std::string &lan,       Position &pos);
 
     extern std::string pretty_pv_info (Thread *const &thread);

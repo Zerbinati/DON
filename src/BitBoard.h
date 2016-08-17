@@ -23,10 +23,13 @@ namespace BitBoard {
     const Bitboard R7_bb = R1_bb << (8 * 6);
     const Bitboard R8_bb = R1_bb << (8 * 7);
 
-    const Bitboard Liht_bb = U64 (0x55AA55AA55AA55AA);      // 32 LIGHT squares
-    const Bitboard Dark_bb = U64 (0xAA55AA55AA55AA55);      // 32 DARK  squares
-
     const Bitboard Corner_bb = (FA_bb|FH_bb)&(R1_bb|R8_bb); // 04 CORNER squares
+
+    const Bitboard Color_bb[CLR_NO] =
+    {
+        U64(0x55AA55AA55AA55AA),    // 32 LIGHT squares
+        U64(0xAA55AA55AA55AA55)     // 32 DARK  squares
+    };
 
     const Bitboard Square_bb[SQ_NO] =
     {

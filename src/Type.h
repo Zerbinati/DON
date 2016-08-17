@@ -167,8 +167,8 @@ enum Color : i08
 };
 
 // Square
-// File: 3-bit lower
-// Rank: 3-bit upper
+// bit 0-2: File
+// bit 3-5: Rank
 enum Square : i08
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
@@ -180,10 +180,6 @@ enum Square : i08
     SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
     SQ_NO,
-    //SQ_KOOO   = SQ_Cx
-    //SQ_KOO    = SQ_Gx
-    //SQ_ROOO   = SQ_Dx
-    //SQ_ROO    = SQ_Fx
 };
 
 // Delta
@@ -264,24 +260,23 @@ enum PieceType : i08
 // bit   3: Color of piece { White = 0..., Black = 1... }
 enum Piece : u08
 {
-    W_PAWN = 0, //  0000
-    W_NIHT    , //  0001
-    W_BSHP    , //  0010
-    W_ROOK    , //  0011
-    W_QUEN    , //  0100
-    W_KING    , //  0101
+    W_PAWN   = 0, //  0000
+    W_NIHT      , //  0001
+    W_BSHP      , //  0010
+    W_ROOK      , //  0011
+    W_QUEN      , //  0100
+    W_KING      , //  0101
 
     NO_PIECE = 6, //  0110
 
-    B_PAWN = 8, //  1000
-    B_NIHT    , //  1001
-    B_BSHP    , //  1010
-    B_ROOK    , //  1011
-    B_QUEN    , //  1100
-    B_KING    , //  1101
+    B_PAWN   = 8, //  1000
+    B_NIHT      , //  1001
+    B_BSHP      , //  1010
+    B_ROOK      , //  1011
+    B_QUEN      , //  1100
+    B_KING      , //  1101
 
-    // Total piece is 14
-    MAX_PIECE, //  1110
+    MAX_PIECE   , //  1110
 };
 
 // Move Type
@@ -295,15 +290,12 @@ enum MoveType : u16
 
 // Move stored in 16-bits
 //
-// bit 00-05: destiny square: (0...63)
-// bit 06-11:  origin square: (0...63)
-// bit 12-13: promotion piece: (Knight...Queen) - 1
-// bit 14-15: special move flag: (0) Normal (1) Castle, (2) En-Passant, (3) Promotion
-// NOTE: EN-PASSANT bit is set only when a pawn can be captured
+// bit 00-05: Destiny square: (0...63)
+// bit 06-11: Origin square: (0...63)
+// bit 12-13: Promotion piece: (Knight...Queen) - 1
+// bit 14-15: Move flag: (0) Normal (1) Castle (2) En-Passant (3) Promotion
 //
-// Special cases are MOVE_NONE and MOVE_NULL. Can sneak these in because in
-// any normal move destination square is always different from origin square
-// while MOVE_NONE and MOVE_NULL have the same origin and destination square.
+// Special cases are MOVE_NONE and MOVE_NULL.
 enum Move : u16
 {
     MOVE_NONE = 0x00,
@@ -361,7 +353,6 @@ enum Value : i32
 enum Score : i32
 {
     SCORE_ZERO = 0,
-    SCORE_MAX  = (1U << 31) - 1,
 };
 // Bound
 enum Bound : u08
@@ -428,7 +419,7 @@ enum ScaleFactor : u08
     inline T  operator+  (T  t, i32 i) { return T(i32(t) + i); }                 \
     inline T  operator-  (T  t, i32 i) { return T(i32(t) - i); }                 \
     inline T& operator+= (T &t, i32 i) { t = T(i32(t) + i); return t; }          \
-    inline T& operator-= (T &t, i32 i) { t = T(i32(t) - i); return t; }          \
+    inline T& operator-= (T &t, i32 i) { t = T(i32(t) - i); return t; }
 
 #define ARTHMAT_OPERATORS(T)                                                     \
     BASIC_OPERATORS(T)                                                           \
@@ -442,17 +433,9 @@ enum ScaleFactor : u08
     inline T  operator*  (i32 i, T  t) { return T(i * i32(t)); }                 \
     inline T& operator*= (T &t, i32 i) { t = T(i32(t) * i); return t; }
 
-//inline T  operator+  (i32 i, T t) { return T(i + i32(t)); }                  
-//inline T  operator-  (i32 i, T t) { return T(i - i32(t)); }                  
-//inline T  operator/  (T  t, i32 i) { return T(i32(t) / i); }                 
-//inline T& operator/= (T &t, i32 i) { t = T(i32(t) / i); return t; }
-
-#define INC_DEC_OPERATORS(T)                                               \
-    inline T& operator++ (T &t) { t = T(i32(t) + 1); return t; }           \
+#define INC_DEC_OPERATORS(T)                                                     \
+    inline T& operator++ (T &t) { t = T(i32(t) + 1); return t; }                 \
     inline T& operator-- (T &t) { t = T(i32(t) - 1); return t; }
-
-//inline T  operator++ (T &t, i32) { T o = t; t = T (i32(t) + 1); return o; }  
-//inline T  operator-- (T &t, i32) { T o = t; t = T (i32(t) - 1); return o; }  
 
 BASIC_OPERATORS(File)
 INC_DEC_OPERATORS(File)
@@ -462,16 +445,12 @@ INC_DEC_OPERATORS(Rank)
 
 INC_DEC_OPERATORS(Color)
 
-// Delta operators
 inline Delta  operator+  (Delta  d1, Delta d2) { return Delta(i32(d1) + i32(d2)); }
 inline Delta  operator-  (Delta  d1, Delta d2) { return Delta(i32(d1) - i32(d2)); }
 inline Delta  operator*  (Delta  d, i32 i) { return Delta(i32(d) * i); }
 inline Delta  operator*  (i32 i, Delta  d) { return Delta(i * i32(d)); }
 inline Delta  operator/  (Delta  d, i32 i) { return Delta(i32(d) / i); }
-//inline Delta& operator*= (Delta &d, i32 i) { d = Delta(i32(d) * i); return d; }
-//inline Delta& operator/= (Delta &d, i32 i) { d = Delta(i32(d) / i); return d; }
 
-// Square operators
 inline Square  operator+  (Square  s, Delta d) { return Square(i32(s) + i32(d)); }
 inline Square  operator-  (Square  s, Delta d) { return Square(i32(s) - i32(d)); }
 inline Square& operator+= (Square &s, Delta d) { s = Square(i32(s) + i32(d)); return s; }
@@ -481,7 +460,6 @@ INC_DEC_OPERATORS(Square)
 
 INC_DEC_OPERATORS(CastleSide)
 
-// CastleRight operators
 inline CastleRight  operator|  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) | i); }
 inline CastleRight  operator&  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) & i); }
 inline CastleRight  operator^  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) ^ i); }
@@ -491,19 +469,16 @@ inline CastleRight& operator^= (CastleRight &cr, i32 i) { cr = CastleRight(i32(c
 
 INC_DEC_OPERATORS(PieceType)
 
-// Move operators
 inline Move& operator|= (Move &m, i32 i) { m = Move(i32(m) | i); return m; }
 inline Move& operator&= (Move &m, i32 i) { m = Move(i32(m) & i); return m; }
 
-// Depth operators
 BASIC_OPERATORS(Depth)
 INC_DEC_OPERATORS(Depth)
 inline Depth  operator*  (Depth d, i32 i) { return Depth(i32(d) * i); }
 inline Depth  operator*  (i32 i, Depth d) { return Depth(i * i32(d)); }
 inline Depth  operator/  (Depth d, i32 i) { return Depth(i32(d) / i); }
-inline i32    operator/  (Depth d1, Depth d2) { return i32(d1)/i32(d2); }
+//inline i32    operator/  (Depth d1, Depth d2) { return i32(d1)/i32(d2); }
 
-// Value operators
 ARTHMAT_OPERATORS(Value)
 INC_DEC_OPERATORS(Value)
 inline Value  operator+  (i32 i, Value v) { return Value(i + i32(v)); }
@@ -530,42 +505,34 @@ inline Value eg_value (Score s) { ValueUnion eg = { u16(u32(s         )      ) }
 
 // Score operators
 ARTHMAT_OPERATORS(Score)
-// Only declared but not defined. Don't want to multiply two scores due to
-// a very high risk of overflow. So user should explicitly convert to integer.
-inline Score  operator*  (Score s1, Score s2);
 // Multiplication & Division of a Score must be handled separately for each term
 inline Score  operator*  (Score  s, double d) { return mk_score (mg_value (s) * d, eg_value (s) * d); }
 inline Score& operator*= (Score &s, double d) { s = mk_score (mg_value (s) * d, eg_value (s) * d); return s; }
-inline Score  operator/  (Score  s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
-inline Score& operator/= (Score &s, i32 i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
+inline Score  operator/  (Score  s, i32    i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+inline Score& operator/= (Score &s, i32    i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
 
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
-//inline bool _ok (Color c) { return (c & ~i08(CLR_NO)) == 0; }
 inline Color operator~ (Color c) { return Color(c ^ i08(BLACK)); }
 
-//inline bool _ok (File f) { return (f & ~i08(F_H)) == 0; }
 inline File operator~ (File f) { return File(f ^ i08(F_H)); }
-inline File to_file (char f) { return File(f - 'a'); }
+inline File to_file   (char f) { return File(f - 'a'); }
 
-//inline bool _ok (Rank r) { return (r & ~i08(R_8)) == 0; }
 inline Rank operator~ (Rank r) { return Rank(r ^ i08(R_8)); }
-inline Rank to_rank (char r) { return Rank(r - '1'); }
+inline Rank to_rank   (char r) { return Rank(r - '1'); }
 
 inline Square operator| (File f, Rank r) { return Square(( r << 3) | f); }
 inline Square operator| (Rank r, File f) { return Square((~r << 3) | f); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
-inline bool _ok   (Square s) { return (s & ~i08(SQ_H8)) == 0; }
-inline File _file (Square s) { return File(s & i08(F_H)); }
-inline Rank _rank (Square s) { return Rank(s >> 3); }
-inline Color color (Square s) { return Color(!((s ^ (s >> 3)) & i08(BLACK))); }
+inline bool _ok    (Square s) { return (s & ~i08(SQ_H8)) == 0; }
+inline File _file  (Square s) { return File(s & i08(F_H)); }
+inline Rank _rank  (Square s) { return Rank(s >> 3); }
+inline Color color (Square s) { return Color(((s ^ (s >> 3)) & 1) != 1); }
 
-// Flip   => SQ_A1 -> SQ_A8
 inline Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
-// Mirror => SQ_A1 -> SQ_H1
 inline Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
 
 inline Rank rel_rank (Color c, Rank   r) { return   Rank(r ^ (c * i08(R_8))); }
@@ -575,35 +542,24 @@ inline Square rel_sq (Color c, Square s) { return Square(s ^ (c * i08(SQ_A8))); 
 inline bool opposite_colors (Square s1, Square s2)
 {
     i08 s = i08(s1) ^ i08(s2);
-    return (((s >> 3) ^ s) & i08(BLACK)) != 0;
+    return ((s ^ (s >> 3)) & 1) == 1;
 }
 
 inline Delta pawn_push (Color c)
 {
-    switch (c)
-    {
-    case WHITE: return DEL_N; break;
-    case BLACK: return DEL_S; break;
-    default: assert(false); return DEL_O; break;
-    }
+    return Delta(i08(DEL_N) - i08(DEL_NN) * c);
 }
 
-inline CastleRight mk_castle_right (Color c)                { return CastleRight(CR_WHITE << (c << BLACK)); }
-inline CastleRight mk_castle_right (Color c, CastleSide cs) { return CastleRight(CR_WKING << ((CS_QUEN == cs ? 1 : 0) + (c << BLACK))); }
-inline CastleRight operator~ (CastleRight cr) { return CastleRight(((cr >> 2) & CR_WHITE) | ((cr << 2) & CR_BLACK)); }
+inline CastleRight mk_castle_right (Color c)                { return CastleRight(CR_WHITE << (2*c)); }
+inline CastleRight mk_castle_right (Color c, CastleSide cs) { return CastleRight(CR_WKING << (2*c + 1*cs)); }
 
 template<Color C, CastleSide CS>
 struct Castling
 {
-    static const CastleRight Right =
-        C == WHITE ?
-            CS == CS_KING ? CR_WKING : CR_WQUEN :
-            CS == CS_KING ? CR_BKING : CR_BQUEN;
+    static const CastleRight Right = CastleRight(CR_WKING << (2*C + 1*CS));
 };
 
-inline bool _ok (PieceType pt) { return PAWN <= pt && pt <= KING; }
-
-inline Piece operator| (Color c, PieceType pt) { return Piece((c << 3) | pt); }
+inline Piece operator| (Color c, PieceType pt) { return Piece(8*c | pt); }
 
 inline bool _ok (Piece p)
 {
@@ -612,11 +568,11 @@ inline bool _ok (Piece p)
 }
 inline PieceType ptype (Piece p) { return PieceType(p & MAX_PTYPE); }
 inline Color     color (Piece p) { return Color(p >> 3); }
-inline Piece operator~ (Piece p) { return Piece(p ^ (BLACK << 3)); }
+inline Piece operator~ (Piece p) { return Piece(p ^ 8); }
 
-inline Square org_sq (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
-inline Square dst_sq (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
-inline PieceType promote (Move m) { return PieceType(((m >> 12) & ROOK) + NIHT); }
+inline Square    org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
+inline Square    dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
+inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + 1); }
 inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
 inline bool      _ok     (Move m)
 {
@@ -640,21 +596,17 @@ inline bool      _ok     (Move m)
     // Catch MOVE_NONE & MOVE_NULL
     return org_sq (m) != dst_sq (m);
 }
-
-//inline void org_sq  (Move &m, Square org) { m &= 0xF03F; m |= org << 6; }
-//inline void dst_sq  (Move &m, Square dst) { m &= 0xFFC0; m |= dst << 0; }
-inline void promote (Move &m, PieceType pt)  { m &= 0x0FFF; m |= (pt - NIHT) << 12 | PROMOTE; }
-//inline void mtype   (Move &m, MoveType mt)   { m &= ~PROMOTE; m |= mt; }
-//inline Move operator~ (Move m)
-//{
-//    Move mm = m;
-//    org_sq (mm, ~org_sq (m));
-//    dst_sq (mm, ~dst_sq (m));
-//    return mm;
-//}
+inline Square fix_dst_sq (Move m, bool chess960 = false)
+{
+    return !chess960
+        && mtype (m) == CASTLE ?
+            (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m)) :
+            dst_sq (m);
+}
+inline void promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= (pt - 1) << 12 | PROMOTE; }
 
 template<MoveType MT=NORMAL>
-inline Move mk_move (Square org, Square dst, PieceType pt=NIHT) { return Move(dst | (org | ((pt - NIHT) << 6)) << 6 | MT); }
+inline Move mk_move (Square org, Square dst, PieceType pt=NIHT) { return Move(dst | (org | ((pt - 1) << 6)) << 6 | MT); }
 
 inline double value_to_cp (Value   v) { return double(v) / i32(VALUE_EG_PAWN); }
 inline Value  cp_to_value (double cp) { return Value(i32(std::round (cp * i32(VALUE_EG_PAWN)))); }
@@ -663,10 +615,9 @@ inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
 typedef std::vector<Square> SquareVector;
-typedef std::vector<Move>   MoveVector;
+typedef std::vector<Move> MoveVector;
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
-//inline TimePoint  operator- (TimePoint  t1, TimePoint t2) { return TimePoint(i64(t1) - i64(t2)); }
 
 const u32 MilliSec       = 1000;
 const u32 MinuteMilliSec = MilliSec * 60;

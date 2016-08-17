@@ -33,10 +33,10 @@ namespace UCI {
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
-        StateListPtr states (new StateList (1));
+        StateList states (1);
 
         Position root_pos;
-        root_pos.setup (StartFEN, states->back(), Threadpool.main_thread (), true);
+        root_pos.setup (StartFEN, states.back(), Threadpool.main_thread (), true);
         // Join arguments
         string cmd;
         for (i32 i = 1; i < argc; ++i)
@@ -150,8 +150,8 @@ namespace UCI {
                     continue;
                 }
 
-                states = StateListPtr (new StateList (1));
-                root_pos.setup (fen, states->back(), Threadpool.main_thread (), true);
+                states.resize (1);
+                root_pos.setup (fen, states.back(), Threadpool.main_thread (), true);
 
                 if (token == "moves")
                 {
@@ -166,8 +166,8 @@ namespace UCI {
                             break;
                         }
 
-                        states->push_back (StateInfo ());
-                        root_pos.do_move (m, states->back (), root_pos.gives_check (m, CheckInfo (root_pos)));
+                        states.push_back (StateInfo ());
+                        root_pos.do_move (m, states.back (), root_pos.gives_check (m, CheckInfo (root_pos)));
                     }
                 }
             }

@@ -89,15 +89,14 @@ namespace EndGame {
     class Endgames
     {
     private:
-        template<class T>
-        using Map = std::map<Key, std::unique_ptr<EndgameBase<T>>>;
+        template<class T> using Map = std::map<Key, std::unique_ptr<EndgameBase<T>>>;
 
-        std::pair<Map<Value>, Map<ScaleFactor>> maps;
+        std::pair<Map<Value>, Map<ScaleFactor>> _maps;
 
         template<class T>
         Map<T>& map ()
         {
-            return std::get<std::is_same<T, ScaleFactor>::value> (maps);
+            return std::get<std::is_same<T, ScaleFactor>::value> (_maps);
         }
 
         template<EndgameType ET, class T = EndgameCategory<ET>>

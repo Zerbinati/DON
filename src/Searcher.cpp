@@ -258,8 +258,9 @@ namespace Searcher {
                 dbg_print ();
             }
 
-            // An engine may not stop pondering until told so by the GUI
-            if (Limits.ponder)
+            // Do not stop until told so by the GUI
+            if (   Limits.infinite
+                || Limits.ponder)
             {
                 return;
             }
@@ -286,7 +287,10 @@ namespace Searcher {
 
             auto *th = pos.thread ();
 
-            auto opp_move_dst = dst_sq ((ss-1)->current_move);
+            auto opp_move = (ss-1)->current_move;
+            auto fix_move_dst = fix_dst_sq (opp_move);
+            auto opp_move_dst = dst_sq (opp_move);
+
             auto bonus = Value(i32(depth)*(i32(depth) + 2) - 2);
 
             th->history_values.update (pos[org_sq (move)], dst_sq (move), bonus);
@@ -294,7 +298,7 @@ namespace Searcher {
 
             if ((ss-1)->counter_move_values != nullptr)
             {
-                th->counter_moves.update (pos[opp_move_dst], opp_move_dst, move);
+                th->counter_moves.update (pos[fix_move_dst], opp_move_dst, move);
                 (ss-1)->counter_move_values->update (pos[org_sq (move)], dst_sq (move), bonus);
             }
             if ((ss-2)->counter_move_values != nullptr)
@@ -335,15 +339,15 @@ namespace Searcher {
 
                 if ((ss-2)->counter_move_values != nullptr)
                 {
-                    (ss-2)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, -bonus);
+                    (ss-2)->counter_move_values->update (pos[fix_move_dst], opp_move_dst, -bonus);
                 }
                 if ((ss-3)->counter_move_values != nullptr)
                 {
-                    (ss-3)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, -bonus);
+                    (ss-3)->counter_move_values->update (pos[fix_move_dst], opp_move_dst, -bonus);
                 }
                 if ((ss-5)->counter_move_values != nullptr)
                 {
-                    (ss-5)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, -bonus);
+                    (ss-5)->counter_move_values->update (pos[fix_move_dst], opp_move_dst, -bonus);
                 }
             }
         }
@@ -392,24 +396,27 @@ namespace Searcher {
         // and so refer to the previous search score.
         string multipv_info (Thread *const &th, Value alfa, Value beta)
         {
-            auto pv_index     = th->pv_index;
-            auto total_nodes  = Threadpool.nodes ();
-            auto elapsed_time = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
+            auto max_ply        = th->max_ply;
+            auto pv_index       = th->pv_index;
+            auto running_depth  = th->running_depth;
+            auto &root_moves    = th->root_moves;
+            auto total_nodes    = Threadpool.nodes ();
+            auto elapsed_time   = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
             assert(elapsed_time > 0);
 
             ostringstream oss;
             for (u16 i = 0; i < Threadpool.pv_limit; ++i)
             {
                 auto d = i <= pv_index ?
-                    th->running_depth :
-                    th->running_depth - DEPTH_1;
+                    running_depth :
+                    running_depth - DEPTH_1;
                 if (d <= DEPTH_0)
                 {
                     continue;
                 }
                 auto v = i <= pv_index ?
-                    th->root_moves[i].new_value :
-                    th->root_moves[i].old_value;
+                    root_moves[i].new_value :
+                    root_moves[i].old_value;
                 bool tb =
                        TBHasRoot
                     && abs (v) < +VALUE_MATE - i32(MaxPlies);
@@ -417,7 +424,7 @@ namespace Searcher {
                 oss << "info"
                     << " multipv "  << std::setw (2) << i + 1
                     << " depth "    << d
-                    << " seldepth " << th->max_ply
+                    << " seldepth " << max_ply
                     << " score "    << to_string (tb ? ProbeValue : v)
                     << (!tb && i == pv_index ?
                             beta <= v ? " lowerbound" :
@@ -427,7 +434,7 @@ namespace Searcher {
                     << " nps "      << total_nodes * MilliSec / elapsed_time
                     << " hashfull " << (elapsed_time > MilliSec ? TT.hash_full () : 0)
                     << " tbhits "   << TBHits
-                    << " pv"        << th->root_moves[i]
+                    << " pv"        << root_moves[i]
                     << (i+1 < Threadpool.pv_limit ? '\n' : '\0');
             }
             return oss.str ();
@@ -445,7 +452,7 @@ namespace Searcher {
             assert(depth <= DEPTH_0);
             assert(ss->ply > 1
                 && ss->ply == (ss-1)->ply + 1
-                && ss->ply < MaxPlies);
+                && ss->ply <= MaxPlies);
 
             auto pv_alfa = -VALUE_INFINITE;
 
@@ -489,8 +496,8 @@ namespace Searcher {
             auto tt_ext   = tt_hit
                          && tte->move () == tt_move;
             auto tt_value = tt_ext ?
-                            value_of_tt (tte->value (), ss->ply) :
-                            VALUE_NONE;
+                                value_of_tt (tte->value (), ss->ply) :
+                                VALUE_NONE;
 
             // Decide whether or not to include checks,
             // this fixes also the type of TT entry depth that are going to use.
@@ -769,22 +776,18 @@ namespace Searcher {
             assert(InCheck == (pos.checkers () != 0));
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
-            assert(DEPTH_0 < depth && depth < DEPTH_MAX);
+            assert(depth > DEPTH_0
+                && depth < DEPTH_MAX);
             assert(ss->ply >= 1
                 && ss->ply == (ss-1)->ply + 1
-                && ss->ply < MaxPlies);
+                && ss->ply <= MaxPlies);
 
             // Step 1. Initialize node
             auto *th = pos.thread ();
             // Check for the available remaining limit
-            if (th->reset_count.load (memory_order_relaxed))
-            {
-                th->reset_count = false;
-                th->count = 0;
-            }
             if (++th->count >= TimerResolution*MilliSec)
             {
-                Threadpool.reset_counts ();
+                Threadpool.reset_count ();
                 check_limits ();
             }
 
@@ -864,8 +867,8 @@ namespace Searcher {
                              || (   root_node
                                  && tte->move () == MOVE_NONE));
             auto tt_value = tt_ext ?
-                            value_of_tt (tte->value (), ss->ply) :
-                            VALUE_NONE;
+                                value_of_tt (tte->value (), ss->ply) :
+                                VALUE_NONE;
 
             // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
@@ -1584,19 +1587,22 @@ namespace Searcher {
                 && (ss-1)->counter_move_values != nullptr
                 && pos.capture_type () == NONE)
             {
-                auto opp_move_dst = dst_sq ((ss-1)->current_move);
+                auto opp_move = (ss-1)->current_move;
+                auto fix_move_dst = fix_dst_sq (opp_move);
+                auto opp_move_dst = dst_sq (opp_move);
+
                 auto bonus = Value(i32(depth)*(i32(depth) + 2) - 2);
                 if ((ss-2)->counter_move_values != nullptr)
                 {
-                    (ss-2)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    (ss-2)->counter_move_values->update (pos[fix_move_dst], opp_move_dst, bonus);
                 }
                 if ((ss-3)->counter_move_values != nullptr)
                 {
-                    (ss-3)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    (ss-3)->counter_move_values->update (pos[fix_move_dst], opp_move_dst, bonus);
                 }
                 if ((ss-5)->counter_move_values != nullptr)
                 {
-                    (ss-5)->counter_move_values->update (pos[opp_move_dst], opp_move_dst, bonus);
+                    (ss-5)->counter_move_values->update (pos[fix_move_dst], opp_move_dst, bonus);
                 }
             }
 

@@ -30,13 +30,11 @@ namespace MoveGen {
     template<GenType GT, PieceType PT = NONE>
     class MoveList
     {
-
     private:
         ValMove  _beg_move[MaxMoves]
               , *_end_move = _beg_move;
 
     public:
-
         MoveList () = delete;
         explicit MoveList (const Position &pos)
             : _end_move (generate<GT> (_beg_move, pos))

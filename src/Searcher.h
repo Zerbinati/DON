@@ -52,7 +52,7 @@ template<class T, bool CM = false>
 struct Stats
 {
 private:
-    T _table[MAX_PIECE][SQ_NO];
+    T _table[CLR_NO][NONE][SQ_NO];
 
     void _clear (Value &v) { v = VALUE_ZERO; }
     void _clear (Stats<Value, false> &vs) { vs.clear (); }
@@ -62,34 +62,41 @@ private:
 public:
     void clear ()
     {
-        for (i16 pc = 0; pc < MAX_PIECE; ++pc)
+        for (auto c = WHITE; c <= BLACK; ++c)
         {
-            for (auto s = SQ_A1; s <= SQ_H8; ++s)
+            for (auto pt = PAWN; pt < NONE; ++pt)
             {
-                _clear (_table[pc][s]);
+                for (auto s = SQ_A1; s <= SQ_H8; ++s)
+                {
+                    _clear (_table[c][pt][s]);
+                }
             }
         }
     }
 
     T& operator()(Piece pc, Square s)
     {
-        return _table[pc][s];
+        assert(ptype (pc) != NONE);
+        return _table[color (pc)][ptype (pc)][s];
     }
     const T& operator()(Piece pc, Square s) const
     {
-        return _table[pc][s];
+        assert(ptype (pc) != NONE);
+        return _table[color (pc)][ptype (pc)][s];
     }
     void update (Piece pc, Square s, Value v)
     {
+        assert(ptype (pc) != NONE);
         if (abs (v) < 324)
         {
-            auto &e = _table[pc][s];
+            auto &e = _table[color (pc)][ptype (pc)][s];
             e = e*(1.0 - double(abs (v)) / (CM ? 936 : 324)) + 32*v;
         }
     }
     void update (Piece pc, Square s, Move m)
     {
-        _table[pc][s] = m;
+        assert(ptype (pc) != NONE);
+        _table[color (pc)][ptype (pc)][s] = m;
     }
 };
 

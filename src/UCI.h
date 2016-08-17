@@ -9,13 +9,6 @@
 #include "Position.h"
 
 namespace UCI {
-    class Option;
-}
-
-// Options container is actually a std::map of Option
-typedef std::map<std::string, UCI::Option, std::no_case_less_comparer> OptionMap;
-
-namespace UCI {
 
     // Option class implements an option as defined by UCI protocol
     class Option
@@ -56,6 +49,9 @@ namespace UCI {
 
     };
 
+    // Options container is actually a std::map of Option
+    typedef std::map<std::string, Option, std::no_case_less_comparer> OptionMap;
+
     extern void loop (i32 argc, const char *const *argv);
 
     extern void initialize ();
@@ -89,10 +85,9 @@ namespace UCI {
         }
         return os;
     }
-
 }
 
 // Global string mapping of Options
-extern OptionMap Options;
+extern UCI::OptionMap Options;
 
 #endif // _UCI_H_INC_

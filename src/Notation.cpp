@@ -105,20 +105,33 @@ namespace Notation {
         if (m == MOVE_NONE) return "(none)";
         if (m == MOVE_NULL) return "(null)";
 
-        auto org = org_sq (m);
-        auto dst = dst_sq (m);
-        if (   !Position::Chess960
-            && mtype (m) == CASTLE)
-        {
-            dst = (dst > org ? F_G : F_C) | _rank (org);
-        }
-        auto can = to_string (org) + to_string (dst);
+        auto can = to_string (org_sq (m))
+                 + to_string (fix_dst_sq (m, Position::Chess960));
         if (mtype (m) == PROMOTE)
         {
             can += char(tolower (char(PieceChar[promote (m)])));
         }
         return can;
     }
+    // Converts a string representing a move in coordinate algebraic notation
+    // to the corresponding legal move, if any.
+    Move move_from_can (string &can, const Position &pos)
+    {
+        if (   can.length () == 5
+            && isupper (can[4]))
+        {
+            can[4] = char (tolower (can[4])); // Promotion piece in lowercase
+        }
+        for (const auto &vm : MoveList<LEGAL> (pos))
+        {
+            if (can == move_to_can (vm.move))
+            {
+                return vm.move;
+            }
+        }
+        return MOVE_NONE;
+    }
+
     // Converts a move to a string in short algebraic notation representation.
     string move_to_san (Move m, Position &pos)
     {
@@ -186,35 +199,9 @@ namespace Notation {
 
         return san;
     }
-    //// Converts a move to a string in long algebraic notation representation.
-    //string move_to_lan (Move m, Position &pos)
-    //{
-    //    string lan;
-    //    return lan;
-    //}
-
-    // Converts a string representing a move in coordinate algebraic notation
-    // to the corresponding legal move, if any.
-    Move move_from_can (const string &can, const Position &pos)
-    {
-        auto ccan = can;
-        if (   ccan.length () == 5
-            && isupper (ccan[4]))
-        {
-            ccan[4] = char(tolower (ccan[4])); // Promotion piece in lowercase
-        }
-        for (const auto &vm : MoveList<LEGAL> (pos))
-        {
-            if (ccan == move_to_can (vm.move))
-            {
-                return vm.move;
-            }
-        }
-        return MOVE_NONE;
-    }
     // Converts a string representing a move in short algebraic notation
     // to the corresponding legal move, if any.
-    Move move_from_san (const string &san,       Position &pos)
+    Move move_from_san (const string &san, Position &pos)
     {
         for (const auto &vm : MoveList<LEGAL> (pos))
         {
@@ -225,9 +212,16 @@ namespace Notation {
         }
         return MOVE_NONE;
     }
+
+    //// Converts a move to a string in long algebraic notation representation.
+    //string move_to_lan (Move m, Position &pos)
+    //{
+    //    string lan;
+    //    return lan;
+    //}
     //// Converts a string representing a move in long algebraic notation
     //// to the corresponding legal move, if any.
-    //Move move_from_lan (const string &lan,       Position &pos)
+    //Move move_from_lan (const string &lan, Position &pos)
     //{
     //    for (const auto &vm : MoveList<LEGAL> (pos))
     //    {
