@@ -36,7 +36,7 @@ namespace UCI {
         StateList states (1);
 
         Position root_pos;
-        root_pos.setup (StartFEN, states.back(), Threadpool.main_thread (), true);
+        root_pos.setup (StartFEN, states.back (), Threadpool.main_thread (), true);
         // Join arguments
         string cmd;
         for (i32 i = 1; i < argc; ++i)
@@ -151,7 +151,7 @@ namespace UCI {
                 }
 
                 states.resize (1);
-                root_pos.setup (fen, states.back(), Threadpool.main_thread (), true);
+                root_pos.setup (fen, states.back (), Threadpool.main_thread (), true);
 
                 if (token == "moves")
                 {
@@ -230,7 +230,7 @@ namespace UCI {
                     if (token == "depth")
                     {
                         iss >> value;
-                        limits.depth     = Depth(abs (value));
+                        limits.depth     = i16(abs (value));
                     }
                     else
                     if (token == "nodes")

@@ -123,7 +123,7 @@ namespace EndGame {
         auto wk_sq = pos.square<KING> (~_strong_side);
 
         Value value = std::min (
-                      pos.count<PAWN> (_strong_side) * VALUE_EG_PAWN
+                      VALUE_EG_PAWN*pos.count<PAWN> (_strong_side)
                     + pos.non_pawn_material (_strong_side)
                     + PushToEdge[wk_sq]
                     + PushClose[dist (sk_sq, wk_sq)], +VALUE_KNOWN_WIN - 1);
@@ -194,7 +194,7 @@ namespace EndGame {
     template<>
     Value Endgame<KNNK>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos, _strong_side, 2 * VALUE_MG_NIHT, 0));
+        assert(verify_material (pos, _strong_side, VALUE_MG_NIHT*2, 0));
         (void) pos;
         return VALUE_DRAW;
     }
@@ -351,8 +351,8 @@ namespace EndGame {
     template<>
     Value Endgame<KBBKN>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, 2 * VALUE_MG_BSHP, 0));
-        assert(verify_material (pos, ~_strong_side,     VALUE_MG_NIHT, 0));
+        assert(verify_material (pos,  _strong_side, VALUE_MG_BSHP*2, 0));
+        assert(verify_material (pos, ~_strong_side, VALUE_MG_NIHT*1, 0));
 
         auto sk_sq = pos.square<KING> ( _strong_side);
         auto wk_sq = pos.square<KING> (~_strong_side);
@@ -534,10 +534,10 @@ namespace EndGame {
             if (   r == R_5
                 && !opposite_colors (wb_sq, sp_sq))
             {
-                i32 d = dist (sp_sq + 3*push, wk_sq);
+                i32 d = dist (sp_sq + push*3, wk_sq);
                 return d <= 2
                     && (   d != 0
-                        || wk_sq != pos.square<KING> (_strong_side) + 2*push) ?
+                        || wk_sq != pos.square<KING> (_strong_side) + push*2) ?
                             ScaleFactor(24) : ScaleFactor(48);
             }
 
@@ -545,7 +545,7 @@ namespace EndGame {
             // if the bishop attacks the square in front of the pawn from a reasonable distance
             // and the defending king is near the corner
             if (   r == R_6
-                && dist (sp_sq + 2*push, wk_sq) <= 1
+                && dist (sp_sq + push*2, wk_sq) <= 1
                 && (PieceAttacks[BSHP][wb_sq] & (sp_sq + push)) != 0
                 && dist<File> (wb_sq, sp_sq) >= 2)
             {

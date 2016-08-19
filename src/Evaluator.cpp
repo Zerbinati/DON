@@ -350,7 +350,7 @@ namespace Evaluator {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
 
-            assert (NIHT <= PT && PT <= QUEN);
+            assert(NIHT <= PT && PT <= QUEN);
 
             auto score = SCORE_ZERO;
             for (Square s : pos.squares<PT> (Own))
@@ -1163,7 +1163,7 @@ namespace Evaluator {
     {
         std::memset (cp, 0x00, sizeof (cp));
         // White's point of view
-        auto value = (pos.active () == WHITE ? +1 : -1)*evaluate<true> (pos);
+        auto value = evaluate<true> (pos)*(pos.active () == WHITE ? +1 : -1);
 
         ostringstream oss;
         oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed

@@ -37,7 +37,7 @@ namespace Transposition {
         Move  move  () const { return Move (_move);  }
         Value value () const { return Value(_value); }
         Value eval  () const { return Value(_eval);  }
-        Depth depth () const { return Depth(_depth); }
+        i16   depth () const { return i16  (_depth); }
         Bound bound () const { return Bound(_gen_bnd & u08( BOUND_EXACT)); }
         u08   gen   () const { return u08  (_gen_bnd & u08(~BOUND_EXACT)); }
 
@@ -45,7 +45,7 @@ namespace Transposition {
                    Move m,
                    Value v,
                    Value e,
-                   Depth d,
+                   i16   d,
                    Bound b,
                    u08 g)
         {
@@ -62,7 +62,7 @@ namespace Transposition {
                 _eval       = i16(e);
             }
             if (  (k >> 0x30) != _key16
-                || d > _depth - DEPTH_4
+                || d > _depth - 4
              /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
                 || b == BOUND_EXACT)
             {

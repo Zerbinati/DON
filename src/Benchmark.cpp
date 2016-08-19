@@ -113,7 +113,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
     }
     else //mode=="depth"
     {
-        limits.depth    = Depth(abs (value));
+        limits.depth    = i16(abs (value));
     }
 
     vector<string> fens;
@@ -161,8 +161,8 @@ void benchmark (istringstream &is, const Position &cur_pos)
 
     u64  total_nodes = 0;
     auto start_time = now ();
-    Position pos;
     StateList states (1);
+    Position pos;
     for (u16 i = 0; i < fens.size (); ++i)
     {
         states.resize (1);

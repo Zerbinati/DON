@@ -331,20 +331,32 @@ namespace MoveGen {
     template<GenType GT>
     ValMove* generate (ValMove *moves, const Position &pos)
     {
+        assert(pos.checkers () == 0);
         assert(GT == RELAX
             || GT == CAPTURE
             || GT == QUIET);
-        assert(pos.checkers () == 0);
 
-        auto active  = pos.active ();
-        Bitboard targets =
-            GT == RELAX   ? ~pos.pieces (active) :
-            GT == CAPTURE ? pos.pieces (~active) :
-            GT == QUIET   ? ~pos.pieces () : 0;
+        Bitboard targets;
+        switch (GT)
+        {
+        case RELAX:
+            targets = ~pos.pieces ( pos.active ());
+            break;
+        case CAPTURE:
+            targets =  pos.pieces (~pos.active ());
+            break;
+        case QUIET:
+            targets = ~pos.pieces ();
+            break;
+        default:
+            assert(false);
+            targets = 0;
+            break;
+        }
 
-        return active == WHITE ? generate_moves<GT, WHITE> (moves, pos, targets) :
-               active == BLACK ? generate_moves<GT, BLACK> (moves, pos, targets) :
-               moves;
+        return pos.active () == WHITE ?
+                generate_moves<GT, WHITE> (moves, pos, targets) :
+                generate_moves<GT, BLACK> (moves, pos, targets);
     }
     // Explicit template instantiations
 
@@ -365,11 +377,10 @@ namespace MoveGen {
     {
         assert(pos.checkers () == 0);
 
-        auto active = pos.active ();
         Bitboard targets = ~pos.pieces ();
         CheckInfo ci (pos);
         // Pawns is excluded, will be generated together with direct checks
-        Bitboard dsc_checkers = ci.dsc_checkers & ~pos.pieces (active, PAWN);
+        Bitboard dsc_checkers = ci.dsc_checkers & ~pos.pieces (pos.active (), PAWN);
         while (dsc_checkers != 0)
         {
             auto org = pop_lsq (dsc_checkers);
@@ -384,9 +395,9 @@ namespace MoveGen {
             while (attacks != 0) { (*moves++).move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
-        return active == WHITE ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets, &ci) :
-               active == BLACK ? generate_moves<QUIET_CHECK, BLACK> (moves, pos, targets, &ci) :
-               moves;
+        return pos.active () == WHITE ?
+                generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets, &ci) :
+                generate_moves<QUIET_CHECK, BLACK> (moves, pos, targets, &ci);
     }
 
     // Generates all pseudo-legal check giving moves.
@@ -394,11 +405,12 @@ namespace MoveGen {
     template<>
     ValMove* generate<CHECK      > (ValMove *moves, const Position &pos)
     {
-        auto active = pos.active ();
-        Bitboard targets = ~pos.pieces (active);
+        assert(pos.checkers () == 0);
+
+        Bitboard targets = ~pos.pieces (pos.active ());
         CheckInfo ci (pos);
         // Pawns is excluded, will be generated together with direct checks
-        Bitboard dsc_checkers = ci.dsc_checkers & ~pos.pieces (active, PAWN);
+        Bitboard dsc_checkers = ci.dsc_checkers & ~pos.pieces (pos.active (), PAWN);
         while (dsc_checkers != 0)
         {
             auto org = pop_lsq (dsc_checkers);
@@ -412,9 +424,9 @@ namespace MoveGen {
             while (attacks != 0) { (*moves++).move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
-        return active == WHITE ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
-               active == BLACK ? generate_moves<CHECK, BLACK> (moves, pos, targets, &ci) :
-               moves;
+        return pos.active () == WHITE ?
+                generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
+                generate_moves<CHECK, BLACK> (moves, pos, targets, &ci);
     }
 
     // Generates all pseudo-legal check evasions moves when the side to move is in check.
@@ -425,9 +437,6 @@ namespace MoveGen {
         Bitboard checkers = pos.checkers ();
         assert(checkers != 0); // If any checker exists
 
-        auto active  = pos.active ();
-        auto king_sq = pos.square<KING> (active);
-
         auto check_sq = SQ_NO;
 
         Bitboard checker_attacks = 0;
@@ -437,9 +446,9 @@ namespace MoveGen {
         while (sliders != 0)
         {
             check_sq = pop_lsq (sliders);
-            assert(color (pos[check_sq]) == ~active);
+            assert(color (pos[check_sq]) == ~pos.active ());
             checker_attacks |= (  attacks_bb (pos[check_sq], check_sq, pos.pieces ())
-                                | strline_bb (check_sq, king_sq)) - check_sq;
+                                | strline_bb (check_sq, pos.square<KING> (pos.active ()))) - check_sq;
         }
         if (check_sq == SQ_NO)
         {
@@ -449,26 +458,26 @@ namespace MoveGen {
 
         // Generate evasions for king, capture and non capture moves
         Bitboard attacks =
-              PieceAttacks[KING][king_sq]
-            & ~(  pos.pieces (active)
+              PieceAttacks[KING][pos.square<KING> (pos.active ())]
+            & ~(  pos.pieces (pos.active ())
                 | checker_attacks
-                | PieceAttacks[KING][pos.square<KING> (~active)]);
+                | PieceAttacks[KING][pos.square<KING> (~pos.active ())]);
 
-        while (attacks != 0) { (*moves++).move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
+        while (attacks != 0) { (*moves++).move = mk_move<NORMAL> (pos.square<KING> (pos.active ()), pop_lsq (attacks)); }
 
         // If double-check, then only a king move can save the day, triple+ check not possible
         if (   more_than_one (checkers)
-            || pos.count<NONE> (active) == 1)
+            || pos.count<NONE> (pos.active ()) == 1)
         {
             return moves;
         }
 
         // Generates blocking evasions or captures of the checking piece
-        Bitboard targets = between_bb (check_sq, king_sq) + check_sq;
+        Bitboard targets = between_bb (check_sq, pos.square<KING> (pos.active ())) + check_sq;
 
-        return active == WHITE ? generate_moves<EVASION, WHITE> (moves, pos, targets) :
-               active == BLACK ? generate_moves<EVASION, BLACK> (moves, pos, targets) :
-               moves;
+        return pos.active () == WHITE ?
+                generate_moves<EVASION, WHITE> (moves, pos, targets) :
+                generate_moves<EVASION, BLACK> (moves, pos, targets);
     }
 
     // Generates all legal moves.

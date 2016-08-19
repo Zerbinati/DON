@@ -14,6 +14,8 @@ namespace MovePick {
 
     namespace {
 
+        const Value MaxValue = Value(1 << 28);
+
         enum Stage : u08
         {
             S_RELAX   , S_GOOD_CAPTURE, S_QUIET, S_BAD_CAPTURE,
@@ -77,11 +79,11 @@ namespace MovePick {
         _end_move += _tt_move != MOVE_NONE ? 1 : 0;
     }
 
-    MovePicker::MovePicker (const Position &pos, Move ttm, Depth d, Move lm)
+    MovePicker::MovePicker (const Position &pos, Move ttm, i16 d, Move lm)
         : _pos (pos)
         , _tt_move (ttm)
     {
-        assert(d <= DEPTH_0);
+        assert(d <= 0);
         assert(   ttm == MOVE_NONE
                || (   pos.pseudo_legal (ttm)
                    && pos.legal (ttm)));
@@ -91,18 +93,18 @@ namespace MovePick {
             _stage = S_EVASION;
         }
         else
-        if (d == DEPTH_0)
+        if (d == 0)
         {
             _stage = S_QSEARCH_WITH_CHECK;
         }
         else
-        if (d > DEPTH_5_)
+        if (d > -5)
         {
             _stage = S_QSEARCH_WITHOUT_CHECK;
         }
         else
         {
-            assert(_ok (lm));
+            assert(lm != MOVE_NONE);
 
             _stage = S_RECAPTURE;
             _recap_sq = dst_sq (lm);
@@ -160,22 +162,15 @@ namespace MovePick {
     template<>
     void MovePicker::value<QUIET> ()
     {
-        const auto &history_values = _pos.thread ()->history_values;
-        const auto &org_dst_values = _pos.thread ()->org_dst_values;
-        const auto *const &cmv  = (_ss-1)->counter_move_values;
-        const auto *const &fmv1 = (_ss-2)->counter_move_values;
-        const auto *const &fmv2 = (_ss-4)->counter_move_values;
-
         for (auto &vm : *this)
         {
             assert(_pos.pseudo_legal (vm.move)
                 && _pos.legal (vm.move));
             vm.value =
-                  history_values(_pos[org_sq (vm.move)], dst_sq (vm.move))
-                + org_dst_values(_pos.active (), vm.move)
-                + (cmv  != nullptr ? (*cmv )(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-                + (fmv1 != nullptr ? (*fmv1)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-                + (fmv2 != nullptr ? (*fmv2)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO);
+                  _pos.thread ()->history_values(_pos[org_sq (vm.move)], vm.move)
+                + ((_ss-1)->cm_history_values != nullptr ? (*(_ss-1)->cm_history_values)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
+                + ((_ss-2)->cm_history_values != nullptr ? (*(_ss-2)->cm_history_values)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
+                + ((_ss-4)->cm_history_values != nullptr ? (*(_ss-4)->cm_history_values)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO);
         }
     }
 
@@ -185,9 +180,6 @@ namespace MovePick {
     template<>
     void MovePicker::value<EVASION> ()
     {
-        const auto &history_values = _pos.thread ()->history_values;
-        const auto &org_dst_values = _pos.thread ()->org_dst_values;
-
         for (auto &vm : *this)
         {
             assert(_pos.pseudo_legal (vm.move)
@@ -195,20 +187,19 @@ namespace MovePick {
             auto cap_value = _pos.see_sign (vm.move);
             if (cap_value < VALUE_ZERO)
             {
-                vm.value = cap_value - MaxStatsValue;
+                vm.value = cap_value - MaxValue;
             }
             else
             if (_pos.capture (vm.move))
             {
                 vm.value =
                       PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                    - Value(ptype (_pos[org_sq (vm.move)]) + 1) + MaxStatsValue;
+                    - Value(ptype (_pos[org_sq (vm.move)]) + 1) + MaxValue;
             }
             else
             {
                 vm.value =
-                      history_values(_pos[org_sq (vm.move)], dst_sq (vm.move))
-                    + org_dst_values(_pos.active (), vm.move);
+                      _pos.thread ()->history_values(_pos[org_sq (vm.move)], vm.move);
             }
         }
     }
@@ -244,9 +235,9 @@ namespace MovePick {
             // Move killers to top of quiet move
             {
                 MoveVector killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
-                if ((_ss-1)->counter_move_values != nullptr)
+                if ((_ss-1)->cm_history_values != nullptr)
                 {
-                    killer_moves.push_back (_pos.thread ()->counter_moves (_pos[fix_dst_sq ((_ss-1)->current_move)], dst_sq ((_ss-1)->current_move)));
+                    killer_moves.push_back (_pos.thread ()->counter_moves (_pos[fix_dst_sq ((_ss-1)->current_move)], (_ss-1)->current_move));
                 }
                 killer_moves.erase (std::remove (killer_moves.begin (), killer_moves.end (), MOVE_NONE), killer_moves.end ());
                 remove_duplicates (killer_moves);
@@ -259,7 +250,7 @@ namespace MovePick {
                     {
                         assert(_pos.pseudo_legal (km)
                             && _pos.legal (km));
-                        itr->value = MaxStatsValue - k++;
+                        itr->value = MaxValue - k++;
                     }
                 }
             }

@@ -344,7 +344,8 @@ inline Key Position::move_posi_key (Move m) const
 
     auto ppt = promotion (m) ? promote (m) : mpt;
     auto cpt = en_passant (m) ? PAWN : ptype (_board[dst]);
-    Key key = _si->posi_key ^ Zob.active_color
+    Key key = _si->posi_key
+        ^ Zob.active_color
         ^ Zob.piece_square[_active][ppt][dst]
         ^ Zob.piece_square[_active][mpt][org];
     if (cpt != NONE)

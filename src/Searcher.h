@@ -26,7 +26,7 @@ public:
     }         clock[CLR_NO];        // Search with Clock
     TimePoint movetime  = 0;        // Search <x> exact time in milli-seconds
     u08       movestogo = 0;        // Search <x> moves to the next time control
-    Depth     depth     = DEPTH_0;  // Search <x> depth (plies) only
+    i16       depth     = 0;        // Search <x> depth (plies) only
     u64       nodes     = 0;        // Search <x> nodes only
     u08       mate      = 0;        // Search mate in <x> moves
     bool      infinite  = false;    // Search until the "stop" command
@@ -39,25 +39,16 @@ public:
     {
         return !infinite
             && movetime == 0
-            && depth    == DEPTH_0
+            && depth    == 0
             && nodes    == 0
             && mate     == 0;
     }
 };
 
-const Value MaxStatsValue = Value(1 << 28);
-
-// The Stats struct stores different statistics.
-template<class T, bool CM = false>
-struct Stats
+struct ValueStats
 {
 private:
-    T _table[CLR_NO][NONE][SQ_NO];
-
-    void _clear (Value &v) { v = VALUE_ZERO; }
-    void _clear (Stats<Value, false> &vs) { vs.clear (); }
-    void _clear (Stats<Value, true > &vs) { vs.clear (); }
-    void _clear (Move  &m) { m = MOVE_NONE; }
+    Value _table[CLR_NO][NONE][SQ_NO][SQ_NO];
 
 public:
     void clear ()
@@ -66,84 +57,75 @@ public:
         {
             for (auto pt = PAWN; pt < NONE; ++pt)
             {
-                for (auto s = SQ_A1; s <= SQ_H8; ++s)
+                for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
                 {
-                    _clear (_table[c][pt][s]);
+                    for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+                    {
+                        _table[c][pt][s1][s2] = VALUE_ZERO;
+                    }
                 }
             }
         }
     }
 
-    T& operator()(Piece pc, Square s)
+    Value& operator() (Piece pc, Move m)
     {
         assert(ptype (pc) != NONE);
-        return _table[color (pc)][ptype (pc)][s];
+        return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
     }
-    const T& operator()(Piece pc, Square s) const
+    const Value& operator() (Piece pc, Move m) const
     {
         assert(ptype (pc) != NONE);
-        return _table[color (pc)][ptype (pc)][s];
+        return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
     }
-    void update (Piece pc, Square s, Value v)
+    void update (Piece pc, Move m, Value v)
     {
+        static const i32 Range  = 0x400;
+        static const i32 Weight = 0x8000/Range;
         assert(ptype (pc) != NONE);
-        if (abs (v) < 324)
-        {
-            auto &e = _table[color (pc)][ptype (pc)][s];
-            e = e*(1.0 - double(abs (v)) / (CM ? 936 : 324)) + 32*v;
-        }
-    }
-    void update (Piece pc, Square s, Move m)
-    {
-        assert(ptype (pc) != NONE);
-        _table[color (pc)][ptype (pc)][s] = m;
+        auto &e = _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
+        i32   x = std::min (std::max (i32(v), -Range), +Range);
+        assert(double(abs (x)) / Range <= 1.0);
+        e = Value(i32(i32(e)*(1.0 -  double(abs (x)) / Range)) + x*Weight);
     }
 };
-
-// ValueStats stores the value that records how often different moves have been successful/unsuccessful
-// during the current search and is used for reduction and move ordering decisions.
-typedef Stats<Value, false>     HValueStats;
-typedef Stats<Value, true >     CMValueStats;
-// CM2DValueStats
-typedef Stats<CMValueStats>     CM2DValueStats;
-// MoveStats store the move that refute a previous move.
-typedef Stats<Move>             MoveStats;
-
-struct OrgDstStats
+struct MoveStats
 {
 private:
-    Value _table[CLR_NO][SQ_NO][SQ_NO];
+    Move _table[CLR_NO][NONE][SQ_NO][SQ_NO];
 
 public:
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+            for (auto pt = PAWN; pt < NONE; ++pt)
             {
-                for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+                for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
                 {
-                    _table[c][s1][s2] = VALUE_ZERO;
+                    for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+                    {
+                        _table[c][pt][s1][s2] = MOVE_NONE;
+                    }
                 }
             }
         }
     }
 
-    Value& operator()(Color c, Move m)
+    Move& operator() (Piece pc, Move m)
     {
-        return _table[c][org_sq (m)][dst_sq (m)];
+        assert(ptype (pc) != NONE);
+        return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
     }
-    const Value& operator()(Color c, Move m) const
+    const Move& operator() (Piece pc, Move m) const
     {
-        return _table[c][org_sq (m)][dst_sq (m)];
+        assert(ptype (pc) != NONE);
+        return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
     }
-    void update (Color c, Move m, Value v)
+    void update (Piece pc, Move m, Move cm)
     {
-        if (abs (v) < 324)
-        {
-            auto &e = _table[c][org_sq (m)][dst_sq (m)];
-            e = e*(1.0 - double(abs (v)) / 324) + 32*v;
-        }
+        assert(ptype (pc) != NONE);
+        _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)] = cm;
     }
 };
 
@@ -157,7 +139,7 @@ public:
 // NonPV nodes = CUT nodes + ALL nodes
 
 // RootMove is used for moves at the root of the tree.
-// For each root move stores:
+// Root move stores:
 //  - New/Old values.
 //  - PV (really a refutation table in the case of moves which fail low).
 // Value is normally set at -VALUE_INFINITE for all non-pv moves.
@@ -165,15 +147,14 @@ class RootMove
     : public MoveVector
 {
 public:
-    Value new_value = -VALUE_INFINITE
-        , old_value = -VALUE_INFINITE;
+    Value old_value = -VALUE_INFINITE
+        , new_value = -VALUE_INFINITE;
 
     explicit RootMove (Move m = MOVE_NONE)
         : MoveVector (1, m)
     {}
     RootMove& operator= (const RootMove&) = default;
 
-    // Descending sort
     bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
     bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
     bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
@@ -207,7 +188,6 @@ inline std::basic_ostream<CharT, Traits>&
 class RootMoveVector
     : public std::vector<RootMove>
 {
-
 public:
     RootMoveVector& operator= (const RootMoveVector&) = default;
 
@@ -228,15 +208,7 @@ public:
         shrink_to_fit ();
     }
 
-    explicit operator std::string () const
-    {
-        std::ostringstream oss;
-        for (const auto &rm : *this)
-        {
-            oss << rm << '\n';
-        }
-        return oss.str ();
-    }
+    explicit operator std::string () const;
 };
 
 template<class CharT, class Traits>
@@ -261,7 +233,7 @@ struct Stack
     Value static_eval;
     u08   move_count;
     bool  skip_pruning;
-    CMValueStats *counter_move_values;
+    ValueStats *cm_history_values;
 
     MoveVector pv;
 };
@@ -288,7 +260,7 @@ namespace Searcher {
     extern bool  BookMoveBest;
     extern i16   BookUptoMove;
 
-    extern Depth TBDepthLimit;
+    extern i16   TBDepthLimit;
     extern i32   TBPieceLimit;
     extern bool  TBUseRule50;
     extern u16   TBHits;
@@ -297,7 +269,7 @@ namespace Searcher {
     extern std::string OutputFile;
 
     template<bool RootNode = true>
-    extern u64 perft (Position &pos, Depth depth);
+    extern u64 perft (Position &pos, i16 depth);
 
     extern void initialize ();
 

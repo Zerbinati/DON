@@ -135,9 +135,9 @@ public:
     {
         return _skill_level < MaxSkillLevel;
     }
-    bool can_pick (Depth depth) const
+    bool can_pick (i16 depth) const
     {
-        return i32(depth) == _skill_level + 1;
+        return depth == _skill_level + 1;
     }
 
     void change_skill_level (u08 skill_level)
@@ -176,14 +176,13 @@ namespace Threading {
 
         Position root_pos;
         RootMoveVector root_moves;
-        Depth running_depth  = DEPTH_0
-            , finished_depth = DEPTH_0;
+        i16   running_depth  = 0
+            , finished_depth = 0;
 
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        HValueStats history_values;
-        OrgDstStats org_dst_values;
+        ValueStats  history_values;
         MoveStats   counter_moves;
 
         Thread ();
@@ -191,6 +190,14 @@ namespace Threading {
         Thread& operator= (const Thread&) = delete;
 
         virtual ~Thread ();
+
+        void clear ()
+        {
+            pawn_table.clear ();
+            matl_table.clear ();
+            history_values.clear ();
+            counter_moves.clear ();
+        }
 
         // Wakes up the thread that will start the search
         void start_searching (bool resume = false)

@@ -178,12 +178,7 @@ namespace Threading {
         , count (0)
     {
         index = u16(Threadpool.size ());
-        pawn_table.clear ();
-        matl_table.clear ();
-        history_values.clear ();
-        org_dst_values.clear ();
-        counter_moves.clear ();
-
+        clear ();
         std::unique_lock<Mutex> lk (_mutex);
         _native_thread = std::thread (&Thread::idle_loop, this);
         _sleep_condition.wait (lk, [&] { return !_searching; });
@@ -204,8 +199,8 @@ namespace Threading {
         auto *best_th = at (0);
         for (auto *th : *this)
         {
-            if (   best_th->root_moves[0].new_value < th->root_moves[0].new_value
-                && best_th->finished_depth < th->finished_depth)
+            if (   best_th->finished_depth < th->finished_depth
+                && best_th->root_moves[0].new_value < th->root_moves[0].new_value)
             {
                 best_th = th;
             }
@@ -234,11 +229,7 @@ namespace Threading {
     {
         for (auto *th : *this)
         {
-            th->pawn_table.clear ();
-            th->matl_table.clear ();
-            th->history_values.clear ();
-            th->org_dst_values.clear ();
-            th->counter_moves.clear ();
+            th->clear ();
         }
         if (Limits.use_time_management ())
         {
@@ -281,16 +272,16 @@ namespace Threading {
         RootMoveVector root_moves;
         root_moves.initialize (root_pos, limits.search_moves);
 
-        TBDepthLimit = Depth(i32(Options["SyzygyDepthLimit"]));
-        TBPieceLimit =       i32(Options["SyzygyPieceLimit"]);
-        TBUseRule50  =      bool(Options["SyzygyUseRule50"]);
+        TBDepthLimit = i16(i32(Options["SyzygyDepthLimit"]));
+        TBPieceLimit =     i32(Options["SyzygyPieceLimit"]);
+        TBUseRule50  =    bool(Options["SyzygyUseRule50"]);
         TBHits       = 0;
         TBHasRoot    = false;
         // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit
         if (TBPieceLimit > MaxPieceLimit)
         {
             TBPieceLimit = MaxPieceLimit;
-            TBDepthLimit = DEPTH_0;
+            TBDepthLimit = 0;
         }
         // Filter root moves
         if (   TBPieceLimit >= root_pos.count<NONE> ()

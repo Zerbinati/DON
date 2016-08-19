@@ -45,7 +45,7 @@ namespace MovePick {
         MovePicker& operator= (const MovePicker&) = delete;
 
         MovePicker (const Position&, Move, const Stack *const&);
-        MovePicker (const Position&, Move, Depth, Move);
+        MovePicker (const Position&, Move, i16, Move);
         MovePicker (const Position&, Move, Value);
 
         ValMove* begin () { return _beg_move; }

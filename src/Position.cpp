@@ -108,7 +108,7 @@ PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitbo
 // Static Exchange Evaluator (SEE): It tries to estimate the material gain or loss resulting from a move.
 Value Position::see (Move m) const
 {
-    assert(_ok (m));
+    assert(m != MOVE_NONE);
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
@@ -160,7 +160,7 @@ Value Position::see (Move m) const
         // new X-ray attacks from behind the capturing piece.
         auto captured = ptype (_board[org]);
 
-        i08 depth = 1;
+        i16 depth = 1;
         do {
             assert(depth < 32);
 
@@ -195,7 +195,7 @@ Value Position::see (Move m) const
 // Sign of SSE
 Value Position::see_sign (Move m) const
 {
-    assert(_ok (m));
+    assert(m != MOVE_NONE);
     // If SEE cannot be negative because captured piece value is not less then capturing one.
     // Note that king moves always return here because king value is set to VALUE_ZERO.
     return (  PieceValues[MG][ptype (_board[org_sq (m)])]
@@ -231,7 +231,7 @@ Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard target)
 // due to SMP concurrent access or hash position key aliasing.
 bool Position::pseudo_legal (Move m) const
 {
-    assert(_ok (m));
+    assert(m != MOVE_NONE);
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     // If the org square is not occupied by a piece belonging to the side to move,
@@ -402,7 +402,7 @@ bool Position::pseudo_legal (Move m) const
 // Tests whether a pseudo-legal move is legal
 bool Position::legal (Move m, Bitboard abs_pinned) const
 {
-    assert(_ok (m));
+    assert(m != MOVE_NONE);
     assert(abs_pinned == abs_pinneds (_active));
 
     auto org = org_sq (m);
@@ -886,7 +886,7 @@ Position& Position::setup (const string &code, StateInfo &si, Color c)
 // Do the natural-move
 void Position::do_move (Move m, StateInfo &si, bool gives_check)
 {
-    assert(_ok (m));
+    assert(m != MOVE_NONE);
     assert(&si != _si);
 
     Key key = _si->posi_key ^ Zob.active_color;
@@ -1096,7 +1096,7 @@ void Position::undo_move ()
 {
     assert(_si->ptr != nullptr);
     auto m = _si->last_move;
-    assert(_ok (m));
+    assert(m != MOVE_NONE);
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);

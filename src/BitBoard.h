@@ -479,9 +479,8 @@ namespace BitBoard {
 
 #   if defined(BIT64)
 
-    const u64 DeBruijn_64 = U64(0x03F79D71B4CB0A89);
     // * @author Kim Walisch (2012)
-    // * DeBruijn(U32(0x4000000)) = U64(0x03F79D71B4CB0A89)
+    const u64 DeBruijn_64 = U64(0x03F79D71B4CB0A89);
     const u08 BSF_Table[SQ_NO] =
     {
         00, 47, 01, 56, 48, 27, 02, 60,
@@ -497,7 +496,6 @@ namespace BitBoard {
 #   else
 
     const u32 DeBruijn_32 = U32(0x783A9B23);
-
     const u08 BSF_Table[SQ_NO] =
     {
         63, 30, 03, 32, 25, 41, 22, 33,

@@ -55,18 +55,20 @@
 
 #if defined(BM2)
 #   include <immintrin.h>   // Header for BMI2 instructions
-// BEXT = Bit field extract (with register)
-// PDEP = Parallel bits deposit
-// PEXT = Parallel bits extract
-// BLSR = Reset lowest set bit
+// BEXTR = Bit field extract (with register)
+// PDEP  = Parallel bits deposit
+// PEXT  = Parallel bits extract
+// BLSR  = Reset lowest set bit
 #   if defined(BIT64)
-#       define BEXT(b, m, l)    _bextr_u64 (b, m, l)
+#       define BEXTR(b, m, l)   _bextr_u64 (b, m, l)
+#       define PDEP(b, m)       _pdep_u64 (b, m)
 #       define PEXT(b, m)       _pext_u64 (b, m)
 #       define BLSR(b)          _blsr_u64 (b)
 #   else
-#       define BEXT(b, m, l)    _pext_u32 (b, (m&0xFF)|((l&0xFF)<<8))
-#       define PEXT(b, m)       _pext_u32 (b, m)
-#       define BLSR(b)          _blsr_u32 (b)
+//#       define BEXTR(b, m, l)   _bextr_u32 (b, m, l)
+//#       define PDEP(b, m)       _pdep_u32 (b, m)
+//#       define PEXT(b, m)       _pext_u32 (b, m)
+//#       define BLSR(b)          _blsr_u32 (b)
 #   endif
 #endif
 
@@ -187,10 +189,11 @@ enum Delta : i08
 {
     DEL_O =  0,
 
-    DEL_N =  8,
     DEL_E =  1,
-    DEL_S = -i08(DEL_N),
+    DEL_N =  8,
+    
     DEL_W = -i08(DEL_E),
+    DEL_S = -i08(DEL_N),
 
     DEL_NN = i08(DEL_N) + i08(DEL_N),
     DEL_EE = i08(DEL_E) + i08(DEL_E),
@@ -227,18 +230,18 @@ enum CastleSide : i08
 // Castle Right defined as in Polyglot book hash key
 enum CastleRight : u08
 {
-    CR_NONE  = 0,               // 0000
-    CR_WKING = 1,               // 0001
-    CR_WQUEN = CR_WKING << 1,   // 0010
-    CR_BKING = CR_WKING << 2,   // 0100
-    CR_BQUEN = CR_WKING << 3,   // 1000
+    CR_NONE  = 0,                   // 0000
+    CR_WKING = 1,                   // 0001
+    CR_WQUEN = u08(CR_WKING) << 1,  // 0010
+    CR_BKING = u08(CR_WKING) << 2,  // 0100
+    CR_BQUEN = u08(CR_WKING) << 3,  // 1000
 
     CR_WHITE = u08(CR_WKING) | u08(CR_WQUEN),   // 0011
     CR_BLACK = u08(CR_BKING) | u08(CR_BQUEN),   // 1100
     CR_KING  = u08(CR_WKING) | u08(CR_BKING),   // 0101
     CR_QUEN  = u08(CR_WQUEN) | u08(CR_BQUEN),   // 1010
     CR_ANY   = u08(CR_WHITE) | u08(CR_BLACK),   // 1111
-    CR_NO    = CR_ANY+1,
+    CR_NO,
 };
 
 // Piece Type
@@ -301,29 +304,7 @@ enum Move : u16
     MOVE_NONE = 0x00,
     MOVE_NULL = 0x41,
 };
-// Depth
-enum Depth : i16
-{
-    DEPTH_NONE  = -6, // UNKNOWN
-    DEPTH_5_    = -5, // QS_RECAPTURE
-    DEPTH_1_    = -1, // QS_NO_CHECK
-    DEPTH_0     =  0, // QS_CHECK
-    DEPTH_1     = +1,
-    DEPTH_2     = +2,
-    DEPTH_3     = +3,
-    DEPTH_4     = +4,
-    DEPTH_5     = +5,
-    DEPTH_6     = +6,
-    DEPTH_7     = +7,
-    DEPTH_8     = +8,
-    DEPTH_9     = +9,
-    DEPTH_12    = +12,
-    DEPTH_16    = +16,
-    DEPTH_32    = +32,
-    DEPTH_64    = +64,
 
-    DEPTH_MAX   = MaxPlies,
-};
 // Value
 enum Value : i32
 {
@@ -331,12 +312,12 @@ enum Value : i32
     VALUE_DRAW      = 0,
 
     VALUE_NONE      = (1 << 15) - 1,
-    VALUE_INFINITE  = +i32(VALUE_NONE) - 1,
+    VALUE_INFINITE  = +i16(VALUE_NONE) - 1,
 
-    VALUE_MATE      = +i32(VALUE_INFINITE) - 1,
-    VALUE_KNOWN_WIN = +i32(VALUE_MATE) / 3,
+    VALUE_MATE      = +i16(VALUE_INFINITE) - 1,
+    VALUE_KNOWN_WIN = +i16(VALUE_MATE) / 3,
 
-    VALUE_MATE_IN_MAX_PLY = +i32(VALUE_MATE) - 2 * MaxPlies,
+    VALUE_MATE_IN_MAX_PLY = +i16(VALUE_MATE) - 2 * MaxPlies,
 
     VALUE_MG_PAWN =  198,  VALUE_EG_PAWN =  258,
     VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  896,
@@ -430,7 +411,6 @@ enum ScaleFactor : u08
     inline T  operator-  (T  t       ) { return T(-i32(t)); }                    \
     inline T& operator+= (T &t1, T t2) { t1 = T(i32(t1) + i32(t2)); return t1; } \
     inline T& operator-= (T &t1, T t2) { t1 = T(i32(t1) - i32(t2)); return t1; } \
-    inline T  operator*  (i32 i, T  t) { return T(i * i32(t)); }                 \
     inline T& operator*= (T &t, i32 i) { t = T(i32(t) * i); return t; }
 
 #define INC_DEC_OPERATORS(T)                                                     \
@@ -447,9 +427,8 @@ INC_DEC_OPERATORS(Color)
 
 inline Delta  operator+  (Delta  d1, Delta d2) { return Delta(i32(d1) + i32(d2)); }
 inline Delta  operator-  (Delta  d1, Delta d2) { return Delta(i32(d1) - i32(d2)); }
-inline Delta  operator*  (Delta  d, i32 i) { return Delta(i32(d) * i); }
-inline Delta  operator*  (i32 i, Delta  d) { return Delta(i * i32(d)); }
-inline Delta  operator/  (Delta  d, i32 i) { return Delta(i32(d) / i); }
+inline Delta  operator*  (Delta   d, i32    i) { return Delta(i32(d) * i); }
+inline Delta  operator/  (Delta   d, i32    i) { return Delta(i32(d) / i); }
 
 inline Square  operator+  (Square  s, Delta d) { return Square(i32(s) + i32(d)); }
 inline Square  operator-  (Square  s, Delta d) { return Square(i32(s) - i32(d)); }
@@ -472,36 +451,39 @@ INC_DEC_OPERATORS(PieceType)
 inline Move& operator|= (Move &m, i32 i) { m = Move(i32(m) | i); return m; }
 inline Move& operator&= (Move &m, i32 i) { m = Move(i32(m) & i); return m; }
 
-BASIC_OPERATORS(Depth)
-INC_DEC_OPERATORS(Depth)
-inline Depth  operator*  (Depth d, i32 i) { return Depth(i32(d) * i); }
-inline Depth  operator*  (i32 i, Depth d) { return Depth(i * i32(d)); }
-inline Depth  operator/  (Depth d, i32 i) { return Depth(i32(d) / i); }
-//inline i32    operator/  (Depth d1, Depth d2) { return i32(d1)/i32(d2); }
-
 ARTHMAT_OPERATORS(Value)
 INC_DEC_OPERATORS(Value)
-inline Value  operator+  (i32 i, Value v) { return Value(i + i32(v)); }
-inline Value  operator-  (i32 i, Value v) { return Value(i - i32(v)); }
 inline Value  operator*  (Value  v, double d) { return Value(i32(i32(v) * d)); }
 inline Value& operator*= (Value &v, double d) { v = Value(i32(i32(v) * d)); return v; }
-inline Value  operator/  (Value  v, i32 i) { return Value(i32(v) / i); }
-inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
+inline Value  operator/  (Value  v, i32    i) { return Value(i32(v) / i); }
+inline Value& operator/= (Value &v, i32    i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1)/i32(v2); }
 
-// Make score from mid and end values
-inline Score mk_score (i32 mg, i32 eg) { return Score((mg << 16) + eg); }
-
-// Extracting the signed lower and upper 16 bits it not so trivial because
-// according to the standard a simple cast to short is implementation defined
-// and so is a right shift of a signed integer.
-union ValueUnion
+union ScoreUnion
 {
-    u16 u;
-    i16 s;
+    u32 s;
+    i16 v[2];
 };
-inline Value mg_value (Score s) { ValueUnion mg = { u16(u32(s + 0x8000) >> 16) }; return Value(mg.s); }
-inline Value eg_value (Score s) { ValueUnion eg = { u16(u32(s         )      ) }; return Value(eg.s); }
+inline Value mg_value (u32 s)
+{
+    return Value(ScoreUnion{ s }.v[0]);
+}
+inline Value eg_value (u32 s)
+{
+    return Value(ScoreUnion{ s }.v[1]);
+}
+
+inline Score mk_score (i32 mg, i32 eg)
+{
+    union ScoreUnion
+    {
+        i16 v[2];
+        u32 s;
+    };
+    //assert(mg_value(Score(su.s)) == mg);
+    //assert(eg_value(Score(su.s)) == eg);
+    return Score(ScoreUnion{ { i16(mg), i16(eg) } }.s);
+}
 
 // Score operators
 ARTHMAT_OPERATORS(Score)
@@ -535,9 +517,9 @@ inline Color color (Square s) { return Color(((s ^ (s >> 3)) & 1) != 1); }
 inline Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
 inline Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
 
-inline Rank rel_rank (Color c, Rank   r) { return   Rank(r ^ (c * i08(R_8))); }
+inline Rank rel_rank (Color c, Rank   r) { return   Rank(r ^ (c*i08(R_8))); }
 inline Rank rel_rank (Color c, Square s) { return rel_rank (c, _rank (s)); }
-inline Square rel_sq (Color c, Square s) { return Square(s ^ (c * i08(SQ_A8))); }
+inline Square rel_sq (Color c, Square s) { return Square(s ^ (c*i08(SQ_A8))); }
 
 inline bool opposite_colors (Square s1, Square s2)
 {
@@ -547,7 +529,7 @@ inline bool opposite_colors (Square s1, Square s2)
 
 inline Delta pawn_push (Color c)
 {
-    return Delta(i08(DEL_N) - i08(DEL_NN) * c);
+    return Delta(i08(DEL_N) - i08(DEL_NN)*c);
 }
 
 inline CastleRight mk_castle_right (Color c)                { return CastleRight(CR_WHITE << (2*c)); }
@@ -574,28 +556,6 @@ inline Square    org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
 inline Square    dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
 inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + 1); }
 inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
-inline bool      _ok     (Move m)
-{
-    // Catch all illegal moves
-    //Square org = org_sq (m);
-    //Square dst = dst_sq (m);
-    //if (org != dst)
-    //{
-    //    i32 del_f = dist<File> (org, dst);
-    //    i32 del_r = dist<Rank> (org, dst);
-    //    if (   del_f == del_r
-    //        || 0 == del_f
-    //        || 0 == del_r
-    //        || 5 == del_f*del_f + del_r*del_r)
-    //    {
-    //        return true;
-    //    }
-    //}
-    //return false;
-    
-    // Catch MOVE_NONE & MOVE_NULL
-    return org_sq (m) != dst_sq (m);
-}
 inline Square fix_dst_sq (Move m, bool chess960 = false)
 {
     return !chess960
@@ -608,8 +568,8 @@ inline void promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= (pt - 1) << 12 |
 template<MoveType MT=NORMAL>
 inline Move mk_move (Square org, Square dst, PieceType pt=NIHT) { return Move(dst | (org | ((pt - 1) << 6)) << 6 | MT); }
 
-inline double value_to_cp (Value   v) { return double(v) / i32(VALUE_EG_PAWN); }
-inline Value  cp_to_value (double cp) { return Value(i32(std::round (cp * i32(VALUE_EG_PAWN)))); }
+inline double value_to_cp (Value   v) { return double(v)/i32(VALUE_EG_PAWN); }
+inline Value  cp_to_value (double cp) { return Value(i32(std::round (cp*i32(VALUE_EG_PAWN)))); }
 
 inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
@@ -620,8 +580,8 @@ typedef std::vector<Move> MoveVector;
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
 
 const u32 MilliSec       = 1000;
-const u32 MinuteMilliSec = MilliSec * 60;
-const u32 HourMilliSec   = MinuteMilliSec * 60;
+const u32 MinuteMilliSec = 60*MilliSec;
+const u32 HourMilliSec   = 60*MinuteMilliSec;
 
 inline TimePoint now ()
 {
