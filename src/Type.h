@@ -592,9 +592,7 @@ public:
     Value value = VALUE_ZERO;
 
     operator Move () const { return move; }
-    void operator= (Move  m) { move  = m; }
-    //operator Value () const { return value; }
-    //void operator= (Value v) { value = v; }
+    void operator= (Move m) { move = m; }
 
     // Ascending sort
     bool operator<  (const ValMove &vm) const { return value <  vm.value; }
@@ -655,7 +653,7 @@ inline void toggle (std::string &str)
         [](char c) { return char (islower (c) ? ::toupper (c) : ::tolower (c)); });
 }
 
-inline std::string& trim_left (std::string &str)
+inline std::string& trim_beg (std::string &str)
 {
     str.erase (str.begin (), 
                 std::find_if (str.begin (), str.end (), 
@@ -663,7 +661,7 @@ inline std::string& trim_left (std::string &str)
                     std::not1 (std::ptr_fun<i32, i32> (std::isspace))));
     return str;
 }
-inline std::string& trim_right (std::string &str)
+inline std::string& trim_end (std::string &str)
 {
     str.erase (std::find_if (str.rbegin (), str.rend (), 
                 //[](char c) { return !std::isspace (c, std::locale ()); }).base (), 
@@ -681,7 +679,7 @@ inline std::string& trim (std::string &str)
     str = str.substr (beg, end);
     return str;
     */
-    return trim_left (trim_right (str));
+    return trim_beg (trim_end (str));
 }
 
 inline std::vector<std::string> split (const std::string str, char delimiter = ' ', bool keep_empty = true, bool do_trim = false)
