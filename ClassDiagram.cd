@@ -107,7 +107,7 @@
     </Compartments>
     <AssociationLine Name="_tt_move" Type="Move">
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-0.136" Y="0.189" />
+        <Position X="0.14" Y="0.063" />
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
@@ -125,7 +125,7 @@
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>gggAAAAACAAAAAAAAAAAAAAACAAAIAAAACACBAAAAAA=</HashCode>
+      <HashCode>gggAAAAAAAAAAAAAAAAAAAgAKAAAAAAAACACBAAAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -142,7 +142,7 @@
   <Class Name="Threading::Thread">
     <Position X="6.5" Y="4" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAECCgCQIAAAAghEACGABIDAAAAASAACBgAAABCgA=</HashCode>
+      <HashCode>AEAAECCgCQIAAAAghEACCABIDAAAAASAACBgAAABCgA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -171,8 +171,8 @@
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="new_value" />
       <Field Name="old_value" />
+      <Field Name="new_value" />
     </ShowAsAssociation>
   </Class>
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
@@ -235,7 +235,7 @@
     <Position X="9.5" Y="15.25" Width="1.5" />
     <AssociationLine Name="last_move" Type="Move">
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.25" Y="-0.034" />
+        <Position X="-0.372" Y="0.446" />
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
@@ -325,13 +325,12 @@
   <Struct Name="Material::Entry">
     <Position X="9.5" Y="11.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>CAAAAAAAgAAEQAAEAAAAAAAAAAIAAAAAgAAEQAAAIAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAEAAAAAgACAAAAAAAAAAAEQAAAKAA=</HashCode>
       <FileName>src\Material.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="imbalance" />
-      <Field Name="evaluation_func" />
-      <Field Name="scaling_func" />
+      <Field Name="scale_func" />
     </ShowAsAssociation>
   </Struct>
   <Struct Name="Pawns::Entry">
@@ -358,11 +357,11 @@
     </AssociationLine>
     <AssociationLine Name="killer_moves" Type="Move">
       <MemberNameLabel ManuallyPlaced="true">
-        <Position X="-0.034" Y="0.075" />
+        <Position X="-0.357" Y="0.154" />
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AIAAAAAAAAAAAAAAAAQAAAAAAwIACAAAAAAAQCAQAAA=</HashCode>
+      <HashCode>AIAAAAAAAAAAAAAAAAQAAAAAAwAACAAAAAAIQCAQAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -427,10 +426,10 @@
       <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\xstddef</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Stats&lt;T, CM&gt;" Collapsed="true">
+  <Struct Name="ValueStats&lt;CM&gt;" Collapsed="true">
     <Position X="17.5" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAAAAAAAAAgAAEAAAQAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
+      <HashCode>AEAAAAAAAAAAAgAAEAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -439,6 +438,13 @@
     <TypeIdentifier>
       <HashCode>AAAQAAAAAAAAAACAAAAAAQAAAAAAACAAAAAgAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="MoveStats" Collapsed="true">
+    <Position X="15.25" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAAAgAAEAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Typedef Name="Material::Table" Collapsed="true">
@@ -588,29 +594,8 @@
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="HValueStats" Collapsed="true">
-    <Position X="14.5" Y="0.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="CMValueStats" Collapsed="true">
-    <Position X="20.5" Y="2.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="CM2DValueStats" Collapsed="true">
-    <Position X="17.5" Y="4.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="MoveStats" Collapsed="true">
-    <Position X="17.5" Y="0.5" Width="1.5" />
+  <Typedef Name="FValueStats" Collapsed="true">
+    <Position X="16.75" Y="4.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
@@ -621,6 +606,13 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="TValueStats" Collapsed="true">
+    <Position X="18.5" Y="4.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Enum Name="OutputState" Collapsed="true">
@@ -701,7 +693,7 @@
     </TypeIdentifier>
   </Enum>
   <Enum Name="Move" Collapsed="true">
-    <Position X="14.25" Y="16.5" Width="1.5" />
+    <Position X="14.25" Y="16.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAACAAA=</HashCode>
       <FileName>src\Type.h</FileName>
@@ -721,13 +713,6 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="Depth">
-    <Position X="2.75" Y="24.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAiAAAgAAAAAAAgEABAAAgAAAAAAAAAEAY/gE=</HashCode>
-      <FileName>src\Type.h</FileName>
-    </TypeIdentifier>
-  </Enum>
   <Enum Name="Bound" Collapsed="true">
     <Position X="31.5" Y="5" Width="1.5" />
     <TypeIdentifier>
@@ -742,10 +727,10 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="ScaleFactor" Collapsed="true">
+  <Enum Name="Scale" Collapsed="true">
     <Position X="31.5" Y="7.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAACAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAACAggA=</HashCode>
+      <HashCode>AAAAQAAAAAACAAAAACAAAAAAAAQAAAAAgAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -759,7 +744,7 @@
   <Enum Name="EndGame::EndgameType" Collapsed="true">
     <Position X="29.75" Y="5.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAAAAAAACAARAAAAAAEDAgBCKIABAQQABAIAAAAE=</HashCode>
+      <HashCode>AEAAAAAAAAACAARAAAAAAEDAgBCCIABAQQABAIAAAAE=</HashCode>
       <FileName>src\Endgame.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -773,7 +758,7 @@
   <Enum Name="Evaluator::`anonymous-namespace'::Tracer::Term" Collapsed="true">
     <Position X="33.25" Y="7.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAEAAgQAAAAEAAEAAAABAAAAAAAAAAAAAAAAAIAA=</HashCode>
+      <HashCode>AAAAAEAAgQAAAAEAAEAAAABAAAAAAAAAAAAAAABAIAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Enum>

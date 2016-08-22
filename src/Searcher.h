@@ -45,6 +45,7 @@ public:
     }
 };
 
+template<bool CM>
 struct ValueStats
 {
 private:
@@ -80,8 +81,9 @@ public:
     }
     void update (Piece pc, Move m, Value v)
     {
-        static const i32 Range  = 0x400;
-        static const i32 Weight = 0x8000/Range;
+        static const i32 Range  = CM ? 936 : 324;
+        static const i32 Weight = 32;
+
         assert(ptype (pc) != NONE);
         auto &e = _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
         i32   x = std::min (std::max (i32(v), -Range), +Range);
@@ -89,6 +91,10 @@ public:
         e = Value(i32(i32(e)*(1.0 -  double(abs (x)) / Range)) + x*Weight);
     }
 };
+
+typedef ValueStats<false>   FValueStats;
+typedef ValueStats<true >   TValueStats;
+
 struct MoveStats
 {
 private:
@@ -233,7 +239,7 @@ struct Stack
     Value static_eval;
     u08   move_count;
     bool  skip_pruning;
-    ValueStats *cm_history_values;
+    TValueStats *cm_history_values;
 
     MoveVector pv;
 };

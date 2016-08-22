@@ -130,9 +130,9 @@ namespace Polyglot {
         {
             if (_size != 0U) return _size;
 
-            size_t cur_pos = tellg ();
+            auto cur_pos = tellg ();
             seekg (0L, ios_base::end);
-            _size = tellg ();
+            _size = size_t(tellg ());
             seekg (cur_pos, ios_base::beg);
             clear ();
             return _size;

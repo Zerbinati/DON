@@ -61,7 +61,7 @@
     <Node Id="@63" Category="CodeSchema_Struct" Bounds="18183.3663551144,27295.9586206723,140.513333333336,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="DTZEntry_pawn" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@64" Category="CodeSchema_Struct" Bounds="18271.4142703708,27350.9986075389,119.946666666667,25.9599999999991" DelayedCrossGroupLinksState="Fetched" Label="DTZEntry_piece" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@65" Category="CodeSchema_Struct" Bounds="17637.7650920998,27692.7186206723,114.423333333332,25.9599999999991" DelayedCrossGroupLinksState="Fetched" Label="DTZTableEntry" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@66" Category="CodeSchema_TypeDef" Bounds="18119.3742860282,27834.9255287398,103.493333333332,26" DelayedCrossGroupLinksState="Fetched" Label="HValueStats" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@66" Category="CodeSchema_TypeDef" Bounds="18119.3742860282,27834.9255287398,103.493333333332,26" DelayedCrossGroupLinksState="Fetched" Label="FValueStats" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@67" Category="CodeSchema_Class" Bounds="18080.3635127181,27779.9255287398,122.41333333333,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="MovePicker" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@68" Category="CodeSchema_TypeDef" Bounds="18280.4506058938,27613.9255287398,96.1500000000015,26" DelayedCrossGroupLinksState="Fetched" Label="MoveStats" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@69" Category="CodeSchema_Struct" Bounds="18199.2484653082,27406.958550688,88.2833333333328,25.9599999999991" DelayedCrossGroupLinksState="Fetched" Label="PairsData" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -732,7 +732,7 @@
     <Alias n="63" Id="(@1 @4 Type=DTZEntry_pawn)" />
     <Alias n="64" Id="(@1 @4 Type=DTZEntry_piece)" />
     <Alias n="65" Id="(@1 @4 Type=DTZTableEntry)" />
-    <Alias n="66" Id="(@1 @23 Type=HValueStats)" />
+    <Alias n="66" Id="(@1 @23 Type=FValueStats)" />
     <Alias n="67" Id="(@1 @23 Type=MovePicker)" />
     <Alias n="68" Id="(@1 @23 Type=MoveStats)" />
     <Alias n="69" Id="(@1 @4 Type=PairsData)" />

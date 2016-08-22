@@ -182,7 +182,7 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        ValueStats  history_values;
+        FValueStats history_values;
         MoveStats   counter_moves;
 
         Thread ();

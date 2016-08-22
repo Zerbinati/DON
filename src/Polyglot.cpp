@@ -119,7 +119,10 @@ namespace Polyglot {
     // Returns the index of the 1st book entry with the same key as the input.
     size_t Book::find_index (const Key key)
     {
-        if (!is_open ()) return streampos(-1);
+        if (!is_open ())
+        {
+            return size_t(-1);
+        }
 
         auto beg_index = size_t(0);
         auto end_index = size_t((size () - HeaderSize) / sizeof (Entry) - 1);

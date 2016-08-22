@@ -133,7 +133,6 @@ typedef u64 Bitboard;
 
 const u16 MaxPlies   = 128; // Maximum Plies
 
-// File
 enum File : i08
 {
     F_A,
@@ -146,7 +145,7 @@ enum File : i08
     F_H,
     F_NO,
 };
-// Rank
+
 enum Rank : i08
 {
     R_1,
@@ -160,7 +159,6 @@ enum Rank : i08
     R_NO,
 };
 
-// Color
 enum Color : i08
 {
     WHITE,
@@ -168,7 +166,7 @@ enum Color : i08
     CLR_NO,
 };
 
-// Square
+// Square needs 6-bits to be stored
 // bit 0-2: File
 // bit 3-5: Rank
 enum Square : i08
@@ -184,7 +182,6 @@ enum Square : i08
     SQ_NO,
 };
 
-// Delta
 enum Delta : i08
 {
     DEL_O =  0,
@@ -219,7 +216,6 @@ enum Delta : i08
 
 };
 
-// Castle Side
 enum CastleSide : i08
 {
     CS_KING,    // King  Side (Short Castle)
@@ -244,7 +240,6 @@ enum CastleRight : u08
     CR_NO,
 };
 
-// Piece Type
 enum PieceType : i08
 {
     PAWN     , // 000
@@ -258,7 +253,7 @@ enum PieceType : i08
     NONPAWN  ,
 };
 
-// Piece needs 4 bits to be stored
+// Piece needs 4-bits to be stored
 // bit 0-2: Type of piece
 // bit   3: Color of piece { White = 0..., Black = 1... }
 enum Piece : u08
@@ -282,7 +277,6 @@ enum Piece : u08
     MAX_PIECE   , //  1110
 };
 
-// Move Type
 enum MoveType : u16
 {
     NORMAL    = 0x0000, // 0000
@@ -291,7 +285,7 @@ enum MoveType : u16
     PROMOTE   = 0xC000, // 11xx
 };
 
-// Move stored in 16-bits
+// Move needs 16-bits to be stored
 //
 // bit 00-05: Destiny square: (0...63)
 // bit 06-11: Origin square: (0...63)
@@ -305,7 +299,6 @@ enum Move : u16
     MOVE_NULL = 0x41,
 };
 
-// Value
 enum Value : i32
 {
     VALUE_ZERO      = 0,
@@ -328,14 +321,15 @@ enum Value : i32
     VALUE_SPACE   = 12222,
     VALUE_MIDGAME = 15581, VALUE_ENDGAME = 3998,
 };
-// Score stores a midgame and an endgame value in a 32bit integer,
-// the lower 16 bits are used to store the endgame value,
-// the upper 16 bits are used to store the midgame value.
-enum Score : i32
+
+// Score needs 32-bits to be stored
+// the lower 16-bits are used to store the endgame value
+// the upper 16-bits are used to store the midgame value
+enum Score : u32
 {
     SCORE_ZERO = 0,
 };
-// Bound
+
 enum Bound : u08
 {
     // NONE BOUND           - NO_NODE
@@ -369,27 +363,27 @@ enum Bound : u08
     BOUND_EXACT = BOUND_LOWER | BOUND_UPPER,
 
 };
-// PhaseType
+
 enum PhaseType : u08
 {
     MG      = 0,
     EG      = 1,
     PH_NO   = 2,
 };
-// Phase
+
 enum Phase : u08
 {
     PHASE_ENDGAME   =   0,
     PHASE_MIDGAME   = 128,
 };
-// Scale Factor
-enum ScaleFactor : u08
+
+enum Scale : u08
 {
-    SCALE_FACTOR_DRAW    =   0,
-    SCALE_FACTOR_ONEPAWN =  48,
-    SCALE_FACTOR_NORMAL  =  64,
-    SCALE_FACTOR_MAX     = 128,
-    SCALE_FACTOR_NONE    = 255,
+    SCALE_DRAW    =   0,
+    SCALE_ONEPAWN =  48,
+    SCALE_NORMAL  =  64,
+    SCALE_MAX     = 128,
+    SCALE_NONE    = 255,
 };
 
 #undef BASIC_OPERATORS
@@ -459,33 +453,35 @@ inline Value  operator/  (Value  v, i32    i) { return Value(i32(v) / i); }
 inline Value& operator/= (Value &v, i32    i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1)/i32(v2); }
 
-union ScoreUnion
-{
-    u32 s;
-    i16 v[2];
-};
 inline Value mg_value (u32 s)
 {
-    return Value(ScoreUnion{ s }.v[0]);
+    union ScoreSplit
+    {
+        u32 s;
+        i16 v[2];
+    };
+    return Value(ScoreSplit{ s }.v[0]);
 }
 inline Value eg_value (u32 s)
 {
-    return Value(ScoreUnion{ s }.v[1]);
+    union ScoreSplit
+    {
+        u32 s;
+        i16 v[2];
+    };
+    return Value(ScoreSplit{ s }.v[1]);
 }
 
 inline Score mk_score (i32 mg, i32 eg)
 {
-    union ScoreUnion
+    union ValueUnion
     {
         i16 v[2];
         u32 s;
     };
-    //assert(mg_value(Score(su.s)) == mg);
-    //assert(eg_value(Score(su.s)) == eg);
-    return Score(ScoreUnion{ { i16(mg), i16(eg) } }.s);
+    return Score(ValueUnion{ { i16(mg), i16(eg) } }.s);
 }
 
-// Score operators
 ARTHMAT_OPERATORS(Score)
 // Multiplication & Division of a Score must be handled separately for each term
 inline Score  operator*  (Score  s, double d) { return mk_score (mg_value (s) * d, eg_value (s) * d); }

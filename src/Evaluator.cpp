@@ -12,6 +12,7 @@ namespace Evaluator {
     using namespace std;
     using namespace BitBoard;
     using namespace MoveGen;
+    using namespace EndGame;
 
     namespace {
 
@@ -27,9 +28,10 @@ namespace Evaluator {
                 PASSED_PAWN,
                 SPACE_ACTIVITY,
                 TOTAL,
+                TERM_NO,
             };
 
-            double cp[TOTAL+1][CLR_NO][PH_NO];
+            double cp[TERM_NO][CLR_NO][PH_NO];
 
             void write (u08 term, Color c, Score score)
             {
@@ -44,20 +46,21 @@ namespace Evaluator {
 
             ostream& operator<< (ostream &os, Term term)
             {
-                if (   term == Term(PAWN)
-                    || term == MATERIAL
-                    || term == IMBALANCE
-                    || term == TOTAL)
+                switch (u08(term))
                 {
+                case PAWN:
+                case MATERIAL:
+                case IMBALANCE:
+                case TOTAL:
                     os << " | ----- ----- | ----- ----- | ";
-                }
-                else
-                {
+                    break;
+                default:
                     os << " | " << std::setw (5) << cp[term][WHITE][MG]
                        << " "   << std::setw (5) << cp[term][WHITE][EG]
                        << " | " << std::setw (5) << cp[term][BLACK][MG]
                        << " "   << std::setw (5) << cp[term][BLACK][EG]
                        << " | ";
+                    break;
                 }
                 os << std::setw (5) << cp[term][WHITE][MG] - cp[term][BLACK][MG] << " "
                    << std::setw (5) << cp[term][WHITE][EG] - cp[term][BLACK][EG]
@@ -994,17 +997,22 @@ namespace Evaluator {
         }
 
         // Computes the scale factor for the position
-        ScaleFactor evaluate_scale_factor (const Position &pos, const EvalInfo &ei, Value eg)
+        Scale evaluate_scale_factor (const Position &pos, const EvalInfo &ei, Value eg)
         {
             assert(PHASE_ENDGAME <= ei.me->phase && ei.me->phase <= PHASE_MIDGAME);
 
             auto strong_side = eg >= VALUE_ZERO ? WHITE : BLACK;
             // Scale factor if position is more drawish than it appears
-            auto scale_factor = ei.me->scale_factor (pos, strong_side);
+            Scale scale;
+            if (   ei.me->scale_func[strong_side] == nullptr
+                || (scale = (*ei.me->scale_func[strong_side]) (pos)) == SCALE_NONE)
+            {
+                scale = ei.me->scale[strong_side];
+            }
             // If don't already have an unusual scale factor, check for certain types of endgames.
             if (   ei.me->phase < PHASE_MIDGAME
-                && (   scale_factor == SCALE_FACTOR_NORMAL
-                    || scale_factor == SCALE_FACTOR_ONEPAWN))
+                && (   scale == SCALE_NORMAL
+                    || scale == SCALE_ONEPAWN))
             {
                 if (pos.opposite_bishops ())
                 {
@@ -1015,11 +1023,11 @@ namespace Evaluator {
                         && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP ?
                                pos.count<PAWN> (WHITE) <= 1
                             && pos.count<PAWN> (BLACK) <= 1 ?
-                                ScaleFactor( 8) :
-                                ScaleFactor(32) :
+                                Scale( 8) :
+                                Scale(32) :
                         // Endgame with opposite-colored bishops but also other pieces
                         // is still a bit drawish, but not as drawish as with only the two bishops. 
-                            ScaleFactor(46);
+                            Scale(46);
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 else
@@ -1028,10 +1036,10 @@ namespace Evaluator {
                     && (   pos.pieces (strong_side, PAWN)
                         & ~pawn_pass_span (~strong_side, pos.square<KING> (~strong_side))) == 0)
                 {
-                    return ScaleFactor(36 + 8 * ei.pe->pawn_span[strong_side]);
+                    return Scale(36 + 8 * ei.pe->pawn_span[strong_side]);
                 }
             }
-            return scale_factor;
+            return scale;
         }
     }
 
@@ -1043,9 +1051,9 @@ namespace Evaluator {
         // Probe the material hash table
         auto *me = Material::probe (pos);
         // If have a specialized evaluation function for the material configuration
-        if (me->specialized_eval_exists ())
+        if (me->value_func != nullptr)
         {
-            return me->evaluate (pos);
+            return (*me->value_func) (pos);
         }
         // Probe the pawn hash table
         auto *pe = Pawns::probe (pos);
@@ -1140,7 +1148,7 @@ namespace Evaluator {
         auto value = Value((  mg_value (score) * i32(ei.me->phase)
                             + eg_value (score) * i32(PHASE_MIDGAME - ei.me->phase)
                                                 // Evaluate scale factor for the position
-                                               * i32(evaluate_scale_factor (pos, ei, eg_value (score)))/SCALE_FACTOR_NORMAL)
+                                               * i32(evaluate_scale_factor (pos, ei, eg_value (score)))/SCALE_NORMAL)
                             / PHASE_MIDGAME);
 
         if (Trace)

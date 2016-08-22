@@ -193,7 +193,7 @@ namespace Searcher {
         struct CMValueStats
         {
         private:
-            ValueStats _table[CLR_NO][NONE][SQ_NO];
+            TValueStats _table[CLR_NO][NONE][SQ_NO];
 
         public:
             void clear ()
@@ -210,12 +210,12 @@ namespace Searcher {
                 }
             }
 
-            ValueStats& operator() (Piece pc, Square s)
+            TValueStats& operator() (Piece pc, Square s)
             {
                 assert(ptype (pc) != NONE);
                 return _table[color (pc)][ptype (pc)][s];
             }
-            const ValueStats& operator() (Piece pc, Square s) const
+            const TValueStats& operator() (Piece pc, Square s) const
             {
                 assert(ptype (pc) != NONE);
                 return _table[color (pc)][ptype (pc)][s];
@@ -271,7 +271,7 @@ namespace Searcher {
         // ReductionDepths lookup table (initialize at startup)
         // [pv][improving][depth][move_count]
         i16 ReductionDepths[2][2][64][ReductionMoveCount];
-        i16 reduction_depths (bool PVNode, bool imp, i16 d, u08 mc)
+        i16 reduction_depth (bool PVNode, bool imp, i16 d, u08 mc)
         {
             return ReductionDepths[PVNode ? 1 : 0]
                                   [imp ? 1 : 0]
@@ -1187,7 +1187,7 @@ namespace Searcher {
                             || ss->static_eval + 256 >= beta))
                     {
                         ss->skip_pruning = true;
-                        depth_search<PVNode, CutNode, false> (pos, ss, alfa, beta, (3*depth - 8)/4);
+                        depth_search<PVNode, CutNode, false> (pos, ss, alfa, beta, (3*depth)/4 - 2);
                         ss->skip_pruning = false;
 
                         tte = TT.probe (posi_key, tt_hit);
@@ -1353,7 +1353,7 @@ namespace Searcher {
                     }
 
                     // Value based pruning
-                    auto predicted_depth = std::max (new_depth - reduction_depths (PVNode, improving, new_depth, move_count), 0);
+                    auto predicted_depth = std::max (new_depth - reduction_depth (PVNode, improving, new_depth, move_count), 0);
                     if (    // Counter move values based pruning
                            (   predicted_depth < 3
                             && move != ss->killer_moves[0]
@@ -1400,11 +1400,11 @@ namespace Searcher {
                     && (   move_count_pruning
                         || !capture_or_promotion))
                 {
-                    auto reduction_depth = reduction_depths (PVNode, improving, new_depth, move_count);
+                    auto reduce_depth = reduction_depth (PVNode, improving, new_depth, move_count);
                     
                     if (capture_or_promotion)
                     {
-                        reduction_depth -= 1;
+                        reduce_depth -= 1;
                     }
                     else
                     {
@@ -1412,7 +1412,7 @@ namespace Searcher {
                         // Increase reduction for cut nodes
                         if (CutNode)
                         {
-                            reduction_depth += 2;
+                            reduce_depth += 2;
                         }
                         else
                         // Decrease reduction for moves that escape a capture in no-cut nodes.
@@ -1421,46 +1421,46 @@ namespace Searcher {
                             // For reverse move use see() instead of see_sign(), because the destination square is empty for normal move.
                             && pos.see (mk_move<NORMAL> (dst, org_sq (move))) < VALUE_ZERO)
                         {
-                            reduction_depth -= 2;
+                            reduce_depth -= 2;
                         }
 
                         // Decrease/Increase reduction for moves with +ve/-ve history
-                        reduction_depth -=
+                        reduce_depth -=
                             i16((i32(  th->history_values(mpc, move)
                                      + ((ss-1)->cm_history_values != nullptr ? (*(ss-1)->cm_history_values)(mpc, move) : VALUE_ZERO)
                                      + ((ss-2)->cm_history_values != nullptr ? (*(ss-2)->cm_history_values)(mpc, move) : VALUE_ZERO)
                                      + ((ss-4)->cm_history_values != nullptr ? (*(ss-4)->cm_history_values)(mpc, move) : VALUE_ZERO)) - 10000)/20000);
                     }
 
-                    if (reduction_depth < 0)
+                    if (reduce_depth < 0)
                     {
-                        reduction_depth = 0;
+                        reduce_depth = 0;
                     }
-                    if (reduction_depth > new_depth - 1)
+                    if (reduce_depth > new_depth - 1)
                     {
-                        reduction_depth = new_depth - 1;
+                        reduce_depth = new_depth - 1;
                     }
 
                     value =
                         gives_check ?
-                            -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth) :
-                            -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth);
+                            -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth) :
+                            -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth);
 
                     full_depth_search = alfa < value
-                                     && reduction_depth > 0;
+                                     && reduce_depth > 0;
 
                     // Before going to full depth, check whether a fail high with half the reduction
                     i08 i = 0;
                     while (   i < 2
                            && full_depth_search
                            && new_depth >= 8*i32(pow (4, i))
-                           && new_depth <= 2*i32(pow (2, i))*reduction_depth)
+                           && new_depth <= 2*i32(pow (2, i))*reduce_depth)
                     {
-                        reduction_depth = reduction_depth / 2;
+                        reduce_depth = reduce_depth / 2;
                         value =
                             gives_check ?
-                                -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth) :
-                                -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduction_depth);
+                                -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth) :
+                                -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth);
 
                         full_depth_search = alfa < value;
                         ++i;

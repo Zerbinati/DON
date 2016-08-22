@@ -82,7 +82,6 @@ namespace EndGame {
         add<KRKN>    ("KRKN");
         add<KQKP>    ("KQKP");
         add<KQKR>    ("KQKR");
-        add<KBBKN>   ("KBBKN");
 
         add<KNPK>    ("KNPK");
         add<KNPKB>   ("KNPKB");
@@ -343,49 +342,6 @@ namespace EndGame {
         return pos.active () == _strong_side ? +value : -value;
     }
 
-    // KBB vs KN. This is almost always a win. Try to push enemy king to a corner
-    // and away from his knight. For a reference of this difficult endgame see:
-    // en.wikipedia.org/wiki/Chess_endgame#Effect_of_tablebases_on_endgame_theory
-    // But this endgame is not known, there are many position where it takes 50+ moves to win.
-    // Because exact rule is not possible better to retire and allow the search to workout the endgame.
-    template<>
-    Value Endgame<KBBKN>::operator() (const Position &pos) const
-    {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_BSHP*2, 0));
-        assert(verify_material (pos, ~_strong_side, VALUE_MG_NIHT*1, 0));
-
-        auto sk_sq = pos.square<KING> ( _strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
-        auto wn_sq = pos.square<NIHT> (~_strong_side);
-
-        Value value;
-
-        if (pos.paired_bishop (_strong_side))
-        {
-            if (   std::min (dist (wk_sq, SQ_A8), dist (wk_sq, SQ_H1))
-                 < std::min (dist (wk_sq, SQ_A1), dist (wk_sq, SQ_H8)))
-            {
-                sk_sq = ~sk_sq;
-                wk_sq = ~wk_sq;
-                wn_sq = ~wn_sq;
-            }
-
-            value = VALUE_MG_BSHP
-                  + PushClose[dist (sk_sq, wk_sq)] // Bring attacking king close to defending king
-                  + PushAway [dist (wk_sq, wn_sq)] // Driving the defending king and knight apart
-                  + PushToEdge[wn_sq];             // Restricting the knight's mobility
-        }
-        else
-        {
-            value = Value(PushClose[dist (sk_sq, wk_sq)]);
-        }
-
-        return pos.active () == _strong_side ? +value : -value;
-    }
-
-
-    // Scaling functions are used when any side have some pawns
-
     // Special Scaling functions
 
     // KRP vs KR. This function knows a handful of the most important classes of
@@ -395,7 +351,7 @@ namespace EndGame {
     // It would also be nice to rewrite the actual code for this function,
     // which is mostly copied from Glaurung 1.x, and isn't very pretty.
     template<>
-    ScaleFactor Endgame<KRPKR>::operator() (const Position &pos) const
+    Scale Endgame<KRPKR>::operator() (const Position &pos) const
     {
         assert(verify_material (pos,  _strong_side, VALUE_MG_ROOK, 1));
         assert(verify_material (pos, ~_strong_side, VALUE_MG_ROOK, 0));
@@ -420,7 +376,7 @@ namespace EndGame {
             && (   _rank (wr_sq) == R_6
                 || (r <= R_3 && _rank (sr_sq) != R_6)))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
         // The defending side saves a draw by checking from behind in case the pawn
@@ -432,7 +388,7 @@ namespace EndGame {
                 || (   tempo == 0
                     && dist<File> (wr_sq, sp_sq) >= 3)))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
         if (   r >= R_6
@@ -441,7 +397,7 @@ namespace EndGame {
             && (   tempo == 0
                 || dist (sk_sq, sp_sq) >= 2))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
         // White pawn on a7 and rook on a8 is a draw if black's king is on g7 or h7
         // and the black rook is behind the pawn.
@@ -454,7 +410,7 @@ namespace EndGame {
                 || _file (sk_sq) >= F_D
                 || _rank (sk_sq) <= R_5))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
         // If the defending king blocks the pawn and the attacking king is too far away, it's a draw.
@@ -463,7 +419,7 @@ namespace EndGame {
             && dist (sk_sq, sp_sq) - tempo >= 2
             && dist (sk_sq, wr_sq) - tempo >= 2)
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
         // Pawn on the 7th rank supported by the rook from behind usually wins if the
         // attacking king is closer to the queening square than the defending king,
@@ -475,7 +431,8 @@ namespace EndGame {
             && dist (sk_sq, promote_sq) < dist (wk_sq, promote_sq) - 2 + tempo
             && dist (sk_sq, promote_sq) < dist (wk_sq, sr_sq) + tempo)
         {
-            return ScaleFactor(SCALE_FACTOR_MAX - 2 * dist (sk_sq, promote_sq));
+            return Scale(SCALE_MAX
+                            - 2 * dist (sk_sq, promote_sq));
         }
 
         // Similar to the above, but with the pawn further back
@@ -488,9 +445,9 @@ namespace EndGame {
                 || (   dist (sk_sq, promote_sq) < dist (wk_sq, sr_sq) + tempo
                     && dist (sk_sq, sp_sq+DEL_N) < dist (wk_sq, sr_sq) + tempo)))
         {
-            return ScaleFactor(  SCALE_FACTOR_MAX
-                               - 8 * dist (sp_sq, promote_sq)
-                               - 2 * dist (sk_sq, promote_sq));
+            return Scale(SCALE_MAX
+                            - 8 * dist (sp_sq, promote_sq)
+                            - 2 * dist (sk_sq, promote_sq));
         }
 
         // If the pawn is not far advanced, and the defending king is somewhere in
@@ -499,21 +456,21 @@ namespace EndGame {
         {
             if (_file (wk_sq) == _file (sp_sq))
             {
-                return ScaleFactor(10);
+                return Scale(10);
             }
             if (   dist<File> (wk_sq, sp_sq) == 1
                 && dist (sk_sq, wk_sq) > 2)
             {
-                return ScaleFactor(24 - 2 * dist (sk_sq, wk_sq));
+                return Scale(24 - 2 * dist (sk_sq, wk_sq));
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KRP vs KB.
     template<>
-    ScaleFactor Endgame<KRPKB>::operator() (const Position &pos) const
+    Scale Endgame<KRPKB>::operator() (const Position &pos) const
     {
         assert(verify_material (pos,  _strong_side, VALUE_MG_ROOK, 1));
         assert(verify_material (pos, ~_strong_side, VALUE_MG_BSHP, 0));
@@ -538,7 +495,7 @@ namespace EndGame {
                 return d <= 2
                     && (   d != 0
                         || wk_sq != pos.square<KING> (_strong_side) + push*2) ?
-                            ScaleFactor(24) : ScaleFactor(48);
+                            Scale(24) : Scale(48);
             }
 
             // When the pawn has moved to the 6th rank can be fairly sure it's drawn
@@ -549,32 +506,32 @@ namespace EndGame {
                 && (PieceAttacks[BSHP][wb_sq] & (sp_sq + push)) != 0
                 && dist<File> (wb_sq, sp_sq) >= 2)
             {
-                return ScaleFactor(8);
+                return Scale(8);
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KRPP vs KRP. There is just a single rule: if the strong side has no passed
     // pawns and the defending king is actively placed, the position is drawish.
     template<>
-    ScaleFactor Endgame<KRPPKRP>::operator() (const Position &pos) const
+    Scale Endgame<KRPPKRP>::operator() (const Position &pos) const
     {
         assert(verify_material (pos,  _strong_side, VALUE_MG_ROOK, 2));
         assert(verify_material (pos, ~_strong_side, VALUE_MG_ROOK, 1));
 
         // Pawn Rank based scaling factors used in KRPPKRP endgame
-        static const ScaleFactor KRPPKRPScaleFactors[R_NO] =
+        static const Scale KRPPKRPScale[R_NO] =
         {
-            ScaleFactor(0),
-            ScaleFactor(9),
-            ScaleFactor(10),
-            ScaleFactor(14),
-            ScaleFactor(21),
-            ScaleFactor(44),
-            ScaleFactor(0),
-            ScaleFactor(0)
+            Scale(0),
+            Scale(9),
+            Scale(10),
+            Scale(14),
+            Scale(21),
+            Scale(44),
+            Scale(0),
+            Scale(0)
         };
 
         auto wk_sq  = pos.square<KING> (~_strong_side);
@@ -592,17 +549,17 @@ namespace EndGame {
                 && rel_rank (_strong_side, wk_sq) > r)
             {
                 assert(R_1 < r && r < R_7);
-                return KRPPKRPScaleFactors[r];
+                return KRPPKRPScale[r];
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // K and two or more pawns vs K. There is just a single rule here: If all pawns
     // are on the same rook file and are blocked by the defending king, it's a draw.
     template<>
-    ScaleFactor Endgame<KPsK>::operator() (const Position &pos) const
+    Scale Endgame<KPsK>::operator() (const Position &pos) const
     {
         assert(pos.non_pawn_material (_strong_side) == VALUE_ZERO);
         assert(pos.count<PAWN> (_strong_side) >= 2);
@@ -619,10 +576,10 @@ namespace EndGame {
                 || (spawns & ~FH_bb) == 0)
             && dist<File> (wk_sq, sp_sq) <= 1)
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KP vs KP. This is done by removing the weakest side's pawn and probing the
@@ -631,7 +588,7 @@ namespace EndGame {
     // side's pawn is far advanced and not on a rook file; in this case it is often
     // possible to win (e.g. 8/4k3/3p4/3P4/6K1/8/8/8 w - - 0 1).
     template<>
-    ScaleFactor Endgame<KPKP>::operator() (const Position &pos) const
+    Scale Endgame<KPKP>::operator() (const Position &pos) const
     {
         assert(verify_material (pos,  _strong_side, VALUE_ZERO, 1));
         assert(verify_material (pos, ~_strong_side, VALUE_ZERO, 1));
@@ -650,17 +607,17 @@ namespace EndGame {
             // If it's a draw, it's probably at least a draw even with the pawn.
             if (!probe (pos.active () == _strong_side ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
             {
-                return SCALE_FACTOR_DRAW;
+                return SCALE_DRAW;
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KNP vs K. There is a single rule: if the pawn is a rook pawn on the 7th rank
     // and the defending king prevents the pawn from advancing the position is drawn.
     template<>
-    ScaleFactor Endgame<KNPK>::operator() (const Position &pos) const
+    Scale Endgame<KNPK>::operator() (const Position &pos) const
     {
         assert(verify_material (pos,  _strong_side, VALUE_MG_NIHT, 1));
         assert(verify_material (pos, ~_strong_side, VALUE_ZERO   , 0));
@@ -672,10 +629,10 @@ namespace EndGame {
         if (   sp_sq == SQ_A7
             && dist (wk_sq, SQ_A8) <= 1)
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KBP vs KB. There are two rules: if the defending king is somewhere along the
@@ -683,7 +640,7 @@ namespace EndGame {
     // strong side's bishop, it's a draw. If the two bishops have opposite color,
     // it's almost always a draw.
     template<>
-    ScaleFactor Endgame<KBPKB>::operator() (const Position &pos) const
+    Scale Endgame<KBPKB>::operator() (const Position &pos) const
     {
         assert(verify_material (pos,  _strong_side, VALUE_MG_BSHP, 1));
         assert(verify_material (pos, ~_strong_side, VALUE_MG_BSHP, 0));
@@ -699,7 +656,7 @@ namespace EndGame {
             && (   opposite_colors (wk_sq, sb_sq)
                 || rel_rank (_strong_side, wk_sq) <= R_6))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
         // Case 2: Opposite colored bishops
@@ -716,7 +673,7 @@ namespace EndGame {
 
             if (rel_rank (_strong_side, sp_sq) <= R_5)
             {
-                return SCALE_FACTOR_DRAW;
+                return SCALE_DRAW;
             }
 
             auto path = front_sqrs_bb (_strong_side, sp_sq);
@@ -725,16 +682,16 @@ namespace EndGame {
                     && (path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) != 0
                     && dist (wb_sq, sp_sq) >= 3))
             {
-                return SCALE_FACTOR_DRAW;
+                return SCALE_DRAW;
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KBPP vs KB. It detects a few basic draws with opposite-colored bishops.
     template<>
-    ScaleFactor Endgame<KBPPKB>::operator() (const Position &pos) const
+    Scale Endgame<KBPPKB>::operator() (const Position &pos) const
     {
         assert(verify_material (pos,  _strong_side, VALUE_MG_BSHP, 2));
         assert(verify_material (pos, ~_strong_side, VALUE_MG_BSHP, 0));
@@ -773,7 +730,7 @@ namespace EndGame {
                     && rel_rank (_strong_side, wk_sq) >= rel_rank (_strong_side, block1_sq)
                     && opposite_colors (wk_sq, sb_sq))
                 {
-                    return SCALE_FACTOR_DRAW;
+                    return SCALE_DRAW;
                 }
                 break;
             }
@@ -790,14 +747,14 @@ namespace EndGame {
                                 && (pos.pieces (~_strong_side, BSHP) & attacks_bb<BSHP> (block2_sq, pos.pieces ())) != 0)
                             || dist<Rank> (sp1_sq, sp2_sq) >= 2))
                     {
-                        return SCALE_FACTOR_DRAW;
+                        return SCALE_DRAW;
                     }
                     if (   wk_sq == block2_sq
                         && (   wb_sq == block1_sq
                             || (   (pos.pieces (~_strong_side, BSHP) & PieceAttacks[BSHP][block1_sq]) != 0
                                 && (pos.pieces (~_strong_side, BSHP) & attacks_bb<BSHP> (block1_sq, pos.pieces ())) != 0)))
                     {
-                        return SCALE_FACTOR_DRAW;
+                        return SCALE_DRAW;
                     }
                 }
                 break;
@@ -808,14 +765,14 @@ namespace EndGame {
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KBP vs KN. There is a single rule: If the defending king is somewhere along
     // the path of the pawn, and the square of the king is not of the same color as
     // the strong side's bishop, it's a draw.
     template<>
-    ScaleFactor Endgame<KBPKN>::operator() (const Position &pos) const
+    Scale Endgame<KBPKN>::operator() (const Position &pos) const
     {
         assert(verify_material (pos,  _strong_side, VALUE_MG_BSHP, 1));
         assert(verify_material (pos, ~_strong_side, VALUE_MG_NIHT, 0));
@@ -829,16 +786,16 @@ namespace EndGame {
             && (   opposite_colors (wk_sq, sb_sq)
                 || rel_rank (_strong_side, wk_sq) <= R_6))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KNP vs KB. If knight can block bishop from taking pawn, it's a win.
     // Otherwise the position is a draw.
     template<>
-    ScaleFactor Endgame<KNPKB>::operator() (const Position &pos) const
+    Scale Endgame<KNPKB>::operator() (const Position &pos) const
     {
         assert(verify_material (pos,  _strong_side, VALUE_MG_NIHT, 1));
         assert(verify_material (pos, ~_strong_side, VALUE_MG_BSHP, 0));
@@ -853,20 +810,20 @@ namespace EndGame {
         if (   (front_squares & PieceAttacks[BSHP][sb_sq]) != 0
             && (front_squares & attacks_bb<BSHP> (sb_sq, pos.pieces ())) != 0)
         {
-            return ScaleFactor(dist (wk_sq, sp_sq));
+            return Scale(dist (wk_sq, sp_sq));
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // Generic Scaling functions
 
     // KB and one or more pawns vs K and zero or more pawns.
     // It checks for draws with rook pawns and a bishop of the wrong color.
-    // If such a draw is detected, SCALE_FACTOR_DRAW is returned.
-    // If not, the return value is SCALE_FACTOR_NONE, i.e. no scaling will be used.
+    // If such a draw is detected, SCALE_DRAW is returned.
+    // If not, the return value is SCALE_NONE, i.e. no scaling will be used.
     template<>
-    ScaleFactor Endgame<KBPsKs>::operator() (const Position &pos) const
+    Scale Endgame<KBPsKs>::operator() (const Position &pos) const
     {
         assert(pos.non_pawn_material (_strong_side) == VALUE_MG_BSHP);
         assert(pos.count<BSHP> (_strong_side) == 1);
@@ -894,7 +851,7 @@ namespace EndGame {
                 // If the defending king defends the queening square.
                 if (dist (promote_sq, wk_sq) <= 1)
                 {
-                    return SCALE_FACTOR_DRAW;
+                    return SCALE_DRAW;
                 }
             }
         }
@@ -921,7 +878,7 @@ namespace EndGame {
                 //    && opposite_colors (sb_sq, wp_sq)
                 //    && dist (wp_sq, wk_sq) <= dist (wp_sq, sk_sq))
                 //{
-                //    return SCALE_FACTOR_DRAW;
+                //    return SCALE_DRAW;
                 //}
 
                 // There's potential for a draw if weak pawn is blocked on the 7th rank
@@ -941,7 +898,7 @@ namespace EndGame {
                         && dist (wk_sq, wp_sq) <= 2
                         && dist (wk_sq, wp_sq) <= dist (sk_sq, wp_sq))
                     {
-                        return SCALE_FACTOR_DRAW;
+                        return SCALE_DRAW;
                     }
                 }
             }
@@ -956,17 +913,17 @@ namespace EndGame {
                 && (file_bb (sb_sq) & (FA_bb|FH_bb)) != 0
                 && (PawnAttacks[~_strong_side][sb_sq] & spawns) != 0)
             {
-                return SCALE_FACTOR_DRAW;
+                return SCALE_DRAW;
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KQ vs KR and one or more pawns.
     // It tests for fortress draws with a rook on the 3rd rank defended by a pawn.
     template<>
-    ScaleFactor Endgame<KQKRPs>::operator() (const Position &pos) const
+    Scale Endgame<KQKRPs>::operator() (const Position &pos) const
     {
         assert(verify_material (pos, _strong_side, VALUE_MG_QUEN, 0));
         assert(pos.count<ROOK> (~_strong_side) == 1);
@@ -983,10 +940,10 @@ namespace EndGame {
                 & PieceAttacks[KING][wk_sq]
                 & PawnAttacks[_strong_side][wr_sq]) != 0)
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
 

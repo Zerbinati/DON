@@ -25,15 +25,8 @@ namespace EndGame {
         KRKN,  // KR vs KN
         KQKP,  // KQ vs KP
         KQKR,  // KQ vs KR
-        KBBKN, // KBB vs KN
 
-        // Scaling functions
-        SCALE_FUNS,
-
-        // Generic Scaling functions
-        KBPsKs,  // KBPs vs K+s
-        KQKRPs,  // KQ vs KR+Ps
-
+        // Scaling functions are used when any side have some pawns
         KRPKR,   // KRP vs KR
         KRPKB,   // KRP vs KB
         KRPPKRP, // KRPP vs KRP
@@ -43,13 +36,16 @@ namespace EndGame {
         KBPKB,   // KBP vs KB
         KBPPKB,  // KBPP vs KB
         KBPKN,   // KBP vs KN
-        KNPKB    // KNP vs KB
+        KNPKB,   // KNP vs KB
 
+        // Generic Scale functions
+        KBPsKs,  // KBPs vs K+s
+        KQKRPs,  // KQ vs KR+Ps
     };
 
-    // Endgame functions can be of two category depending on whether they return Value or ScaleFactor.
+    // Endgame functions can be of two category depending on whether they return Value or Scale.
     template<EndgameType ET>
-    using EndgameCategory = typename std::conditional<ET < SCALE_FUNS, Value, ScaleFactor>::type;
+    using EndgameCategory = typename std::conditional<ET < KRPKR, Value, Scale>::type;
 
     // Base and derived templates for endgame evaluation and scaling functions
     template<class T>
@@ -91,12 +87,12 @@ namespace EndGame {
     private:
         template<class T> using Map = std::map<Key, std::unique_ptr<EndgameBase<T>>>;
 
-        std::pair<Map<Value>, Map<ScaleFactor>> _maps;
+        std::pair<Map<Value>, Map<Scale>> _maps;
 
         template<class T>
         Map<T>& map ()
         {
-            return std::get<std::is_same<T, ScaleFactor>::value> (_maps);
+            return std::get<std::is_same<T, Scale>::value> (_maps);
         }
 
         template<EndgameType ET, class T = EndgameCategory<ET>>

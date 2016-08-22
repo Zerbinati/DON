@@ -54,31 +54,7 @@ namespace Material {
         Endgame<KPsK>   ScaleKPsK   [CLR_NO] = { Endgame<KPsK>   (WHITE), Endgame<KPsK>   (BLACK) };
         Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
 
-        // Helpers used to detect a given material distribution
-
-        bool is_KXK (const Position &pos, Color c)
-        {
-            return pos.non_pawn_material (c) >= VALUE_MG_ROOK
-                && pos.count<NONE> (~c) == 1;
-        }
-        bool is_KBPsKs (const Position &pos, Color c)
-        {
-            return pos.non_pawn_material ( c) == VALUE_MG_BSHP
-                && pos.count<BSHP> ( c) == 1
-                && pos.count<PAWN> ( c) != 0;
-        }
-        bool is_KQKRPs (const Position &pos, Color c)
-        {
-            return pos.non_pawn_material ( c) == VALUE_MG_QUEN
-                && pos.count<QUEN> ( c) == 1
-                && pos.count<PAWN> ( c) == 0
-                && pos.non_pawn_material (~c) == VALUE_MG_ROOK
-                && pos.count<ROOK> (~c) == 1
-                && pos.count<PAWN> (~c) != 0;
-        }
-
-        // Calculates the imbalance by comparing
-        // the piece count of each piece type for both colors.
+        // Calculates the imbalance by comparing the piece count of each piece type for both colors.
         // NOTE:: KING == BISHOP_PAIR
         template<Color Own>
         Value imbalance (const i32 count[][NONE])
@@ -111,13 +87,9 @@ namespace Material {
 
             return Value(value);
         }
-
     }
 
     // Looks up a MaterialEntry object, and returns a pointer to it.
-    // If the material configuration is not already present in the table,
-    // it is computed and stored there, so don't have to recompute everything
-    // when the same material configuration occurs again.
     Entry* probe (const Position &pos)
     {
         auto matl_key = pos.matl_key ();
@@ -131,23 +103,24 @@ namespace Material {
 
         std::memset (e, 0x00, sizeof (*e));
         e->matl_key = matl_key;
-        e->factor[WHITE] =
-        e->factor[BLACK] = SCALE_FACTOR_NORMAL;
+        e->scale[WHITE] =
+        e->scale[BLACK] = SCALE_NORMAL;
         e->phase = pos.phase ();
 
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
         // configuration one, then a generic one if previous search failed.
-        if ((e->evaluation_func = EndGames->probe<Value> (matl_key)) != nullptr)
+        if ((e->value_func = EndGames->probe<Value> (matl_key)) != nullptr)
         {
             goto unblock;
         }
         // Generic evaluation
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            if (is_KXK (pos, c))
+            if (   pos.non_pawn_material ( c) >= VALUE_MG_ROOK
+                && pos.count<NONE> (~c) == 1)
             {
-                e->evaluation_func = &EvaluateKXK[c];
+                e->value_func = &EvaluateKXK[c];
                 goto unblock;
             }
         }
@@ -157,10 +130,10 @@ namespace Material {
         //
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
-        EndgameBase<ScaleFactor> *scaling_func;
-        if ((scaling_func = EndGames->probe<ScaleFactor> (matl_key)) != nullptr)
+        EndgameBase<Scale> *scale_func;
+        if ((scale_func = EndGames->probe<Scale> (matl_key)) != nullptr)
         {
-            e->scaling_func[scaling_func->strong_side ()] = scaling_func;
+            e->scale_func[scale_func->strong_side ()] = scale_func;
             goto unblock;
         }
 
@@ -169,14 +142,21 @@ namespace Material {
         // Note that these ones don't return after setting the function.
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            if (is_KBPsKs (pos, c))
+            if (   pos.non_pawn_material ( c) == VALUE_MG_BSHP
+                && pos.count<BSHP> ( c) == 1
+                && pos.count<PAWN> ( c) != 0)
             {
-                e->scaling_func[c] = &ScaleKBPsKs[c];
+                e->scale_func[c] = &ScaleKBPsKs[c];
             }
             else
-            if (is_KQKRPs (pos, c))
+            if (   pos.non_pawn_material ( c) == VALUE_MG_QUEN
+                && pos.count<QUEN> ( c) == 1
+                && pos.count<PAWN> ( c) == 0
+                && pos.non_pawn_material (~c) == VALUE_MG_ROOK
+                && pos.count<ROOK> (~c) == 1
+                && pos.count<PAWN> (~c) != 0)
             {
-                e->scaling_func[c] = &ScaleKQKRPs[c];
+                e->scale_func[c] = &ScaleKQKRPs[c];
             }
             else
             // Only pawns on the board
@@ -187,13 +167,13 @@ namespace Material {
                 switch (pos.count<PAWN> (~c))
                 {
                 case 0:
-                    assert(pos.count<PAWN> (c) > 1);
-                    e->scaling_func[c] = &ScaleKPsK[c];
+                    assert(pos.count<PAWN> ( c) > 1);
+                    e->scale_func[c] = &ScaleKPsK[c];
                     break;
                 case 1:
-                    if (pos.count<PAWN> (c) == 1)
+                    if (pos.count<PAWN> ( c) == 1)
                     {
-                        e->scaling_func[c] = &ScaleKPKP[c];
+                        e->scale_func[c] = &ScaleKPKP[c];
                     }
                     break;
                 }
@@ -205,15 +185,17 @@ namespace Material {
             if (abs (  pos.non_pawn_material ( c)
                      - pos.non_pawn_material (~c)) <= VALUE_MG_BSHP)
             {
-                switch (pos.count<PAWN> (c))
+                switch (pos.count<PAWN> ( c))
                 {
                 case 0:
-                    e->factor[c] =
-                        pos.non_pawn_material ( c) <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        pos.non_pawn_material (~c) <= VALUE_MG_BSHP ? ScaleFactor(4) : ScaleFactor(14);
+                    e->scale[c] =
+                        pos.non_pawn_material ( c) <  VALUE_MG_ROOK ?
+                            SCALE_DRAW :
+                            pos.non_pawn_material (~c) <= VALUE_MG_BSHP ?
+                                Scale(4) : Scale(14);
                     break;
                 case 1:
-                    e->factor[c] = SCALE_FACTOR_ONEPAWN;
+                    e->scale[c] = SCALE_ONEPAWN;
                     break;
                 }
             }

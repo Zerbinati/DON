@@ -102,8 +102,8 @@ namespace Transposition {
         size_t   _cluster_count = 0;
         u08      _generation    = 0;
 
-        void alloc_aligned_memory (size_t mem_size, u32 alignment);
-        void free_aligned_memory ();
+        void _alloc_aligned_memory (size_t mem_size, u32 alignment);
+        void _free_aligned_memory ();
 
     public:
         // Maximum bit of hash for cluster
@@ -127,7 +127,7 @@ namespace Transposition {
         Table& operator= (const Table&) = delete;
         ~Table ()
         {
-            free_aligned_memory ();
+            _free_aligned_memory ();
         }
 
         size_t entry_count () const

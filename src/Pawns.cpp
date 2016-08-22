@@ -249,6 +249,7 @@ namespace Pawns {
     template Score Entry::evaluate_unstoppable_pawns<WHITE> () const;
     template Score Entry::evaluate_unstoppable_pawns<BLACK> () const;
 
+    // Looks up a PawnEntry object, and returns a pointer to it.
     Entry* probe (const Position &pos)
     {
         auto pawn_key = pos.pawn_key ();
