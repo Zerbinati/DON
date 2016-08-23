@@ -588,7 +588,7 @@ void Position::clear ()
             _piece_sq[c][pt].clear ();
         }
     }
-    for (auto r = 0; r <= CR_ANY; ++r)
+    for (auto r = 0; r < CR_NO; ++r)
     {
         _castle_rook[r] = SQ_NO;
         _castle_path[r] = 0;
@@ -616,14 +616,6 @@ void Position::set_castle (Color c, Square rook_org)
     _castle_mask[rook_org] |= cr;
     _castle_rook[cr] = rook_org;
 
-    for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
-    {
-        if (   king_org != s
-            && rook_org != s)
-        {
-            _castle_path[cr] += s;
-        }
-    }
     for (auto s = std::min (king_org, king_dst); s <= std::max (king_org, king_dst); ++s)
     {
         if (   king_org != s
@@ -631,6 +623,14 @@ void Position::set_castle (Color c, Square rook_org)
         {
             _castle_path[cr] += s;
             _king_path[cr] += s;
+        }
+    }
+    for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
+    {
+        if (   king_org != s
+            && rook_org != s)
+        {
+            _castle_path[cr] += s;
         }
     }
 }
@@ -789,7 +789,7 @@ Position& Position::setup (const string &ff, StateInfo &si, Thread *const th, bo
         assert(_board[r_sq] == (c|ROOK));
         set_castle (c, r_sq);
     }
-
+    
     // 4. En-passant square. Ignore if no pawn capture is possible
     auto ep_sq = SQ_NO;
     u08 file, rank;
@@ -1336,9 +1336,9 @@ Position::operator string () const
         << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
         << _si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << '\n';
     oss << "Checkers: ";
-    for (Bitboard checkers = _si->checkers; checkers != 0; )
+    for (Bitboard b = _si->checkers; b != 0; )
     {
-        oss << pop_lsq (checkers) << ' ';
+        oss << pop_lsq (b) << ' ';
     }
     oss << '\n';
     return oss.str ();

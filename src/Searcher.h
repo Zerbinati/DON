@@ -7,7 +7,7 @@
 #include "Position.h"
 #include "MoveGenerator.h"
 
-// Limits stores information sent by GUI about available time to search the current move.
+// Limit stores information sent by GUI about available time to search the current move.
 //  - Maximum time and increment.
 //  - Maximum depth.
 //  - Maximum nodes.
@@ -82,13 +82,11 @@ public:
     void update (Piece pc, Move m, Value v)
     {
         static const i32 Range  = CM ? 936 : 324;
-        static const i32 Weight = 32;
-
         assert(ptype (pc) != NONE);
         auto &e = _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
-        i32   x = std::min (std::max (i32(v), -Range), +Range);
+        i32   x = std::min (std::max (i32(v), -324), +324);
         assert(double(abs (x)) / Range <= 1.0);
-        e = Value(i32(i32(e)*(1.0 -  double(abs (x)) / Range)) + x*Weight);
+        e = e*(1.0 -  double(abs (x)) / Range) + 32*x;
     }
 };
 
@@ -143,7 +141,7 @@ public:
 // In a perfectly ordered tree only one child of a CUT node has to be explored.
 // At an ALL node all the children have to be explored. The successors of an ALL node are CUT nodes.
 // NonPV nodes = CUT nodes + ALL nodes
-
+//
 // RootMove is used for moves at the root of the tree.
 // Root move stores:
 //  - New/Old values.
@@ -226,9 +224,7 @@ inline std::basic_ostream<CharT, Traits>&
 }
 
 const u08 MaxKillers = 2;
-// The Stack struct keeps track of the information needed to remember from
-// nodes shallower and deeper in the tree during the search.
-// Each search thread has its own Stacks.
+// Stack keeps the information of the nodes in the tree during the search.
 struct Stack
 {
     i16   ply;

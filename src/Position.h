@@ -254,9 +254,9 @@ inline bool Position::empty  (Square s)  const { return _board[s] == NO_PIECE; }
 inline Bitboard Position::pieces () const { return _types_bb[NONE]; }
 inline Bitboard Position::pieces (Color c) const { return _color_bb[c]; }
 inline Bitboard Position::pieces (PieceType pt) const { return _types_bb[pt]; }
-inline Bitboard Position::pieces (Color c,   PieceType pt) const { return _color_bb[c]&_types_bb[pt]; }
-inline Bitboard Position::pieces (PieceType p1, PieceType p2) const { return _types_bb[p1]|_types_bb[p2]; }
-inline Bitboard Position::pieces (Color c, PieceType p1, PieceType p2) const { return _color_bb[c]&(_types_bb[p1]|_types_bb[p2]); }
+inline Bitboard Position::pieces (Color c, PieceType pt) const { return _color_bb[c]&_types_bb[pt]; }
+inline Bitboard Position::pieces (PieceType pt1, PieceType pt2) const { return _types_bb[pt1]|_types_bb[pt2]; }
+inline Bitboard Position::pieces (Color c, PieceType pt1, PieceType pt2) const { return _color_bb[c]&(_types_bb[pt1]|_types_bb[pt2]); }
 
 template<PieceType PT>
 // Count specific piece

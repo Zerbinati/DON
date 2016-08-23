@@ -19,20 +19,18 @@ enum GenType : u08
 
 namespace MoveGen {
 
-    extern ValMove* filter_illegal (const Position &pos, ValMove *beg_move, ValMove *end_move);
-
     template<GenType GT>
     extern ValMove* generate (ValMove *moves, const Position &pos);
 
-    // The MoveList<T> class is a simple wrapper around generate().
-    // It sometimes comes in handy to use this class instead of
-    // the low level generate() function.
+    extern ValMove* filter_illegal (const Position &pos, ValMove *cur_move, ValMove *end_move);
+
+    // The MoveList class is a simple wrapper around generate().
     template<GenType GT, PieceType PT = NONE>
     class MoveList
     {
     private:
-        ValMove  _beg_move[MaxMoves]
-              , *_end_move = _beg_move;
+        ValMove _beg_move[MaxMoves]
+            ,  *_end_move;
 
     public:
         MoveList () = delete;
@@ -46,7 +44,7 @@ namespace MoveGen {
                 {
                     if (PT != ptype (pos[org_sq (cur_move->move)]))
                     {
-                        *cur_move = *(--_end_move);
+                        cur_move->move = (--_end_move)->move;
                         continue;
                     }
                     ++cur_move;
@@ -70,20 +68,8 @@ namespace MoveGen {
             }
             return false;
         }
-
-        //explicit operator std::string () const;
     };
 
-    //template<class CharT, class Traits, GenType GT>
-    //inline std::basic_ostream<CharT, Traits>&
-    //    operator<< (std::basic_ostream<CharT, Traits> &os, MoveList<GT> &movelist)
-    //{
-    //    for (const auto &vm : movelist)
-    //    {
-    //        os << vm.move << std::endl;
-    //    }
-    //    return os;
-    //}
 }
 
 #endif // _MOVE_GENERATOR_H_INC_

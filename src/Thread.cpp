@@ -301,7 +301,6 @@ namespace Threading {
             {
                 // Filter out moves that do not preserve the draw or the win
                 TBHasRoot = root_probe_wdl (root_pos, root_moves);
-
                 // Only probe during search if winning
                 if (   TBHasRoot
                     && ProbeValue <= VALUE_DRAW)

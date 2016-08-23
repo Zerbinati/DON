@@ -946,7 +946,6 @@ namespace EndGame {
         return SCALE_NONE;
     }
 
-
     void initialize ()
     {
         if (EndGames == nullptr)
@@ -964,5 +963,4 @@ namespace EndGame {
             EndGames = nullptr;
         }
     }
-
 }

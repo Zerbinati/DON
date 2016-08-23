@@ -536,7 +536,7 @@ namespace Evaluator {
             auto fk_sq = pos.square<KING> (Own);
 
             // King Safety: friend pawns shelter and enemy pawns storm
-            
+
             Value value = ei.pe->pawn_shelter_storm<Own> (pos, fk_sq);
             u08 king_pawn_dist = 0;
             Bitboard own_pawns = pos.pieces (Own, PAWN);

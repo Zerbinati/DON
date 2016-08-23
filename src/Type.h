@@ -636,7 +636,8 @@ const std::string Empty = "<empty>";
 
 inline bool white_spaces (const std::string &str)
 {
-    return str.empty () || str.find_first_not_of (" \t\n") == std::string::npos;
+    return str.empty ()
+        || str.find_first_not_of (" \t\n") == std::string::npos;
 }
 
 inline void to_lower (std::string &str)

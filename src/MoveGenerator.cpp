@@ -22,7 +22,6 @@ namespace MoveGen {
                 if (   GT == CHECK
                     || GT == QUIET_CHECK)
                 {
-                    // Already generated
                     if ((ci->dsc_checkers & s) != 0)
                     {
                         continue;
@@ -40,7 +39,6 @@ namespace MoveGen {
                     case ROOK: attacks &= attacks_bb<ROOK> (s, pos.pieces ()); break;
                     case QUEN: attacks &= attacks_bb<QUEN> (s, pos.pieces ()); break;
                     }
-
                     while (attacks != 0) { (*moves++).move = mk_move<NORMAL> (s, pop_lsq (attacks)); }
                 }
             }
@@ -84,17 +82,12 @@ namespace MoveGen {
             }
 
             auto m = mk_move<CASTLE> (king_org, rook_org);
-
-            if (   GT == CHECK
-                || GT == QUIET_CHECK)
+            if (   (   GT != CHECK
+                    && GT != QUIET_CHECK)
+                || pos.gives_check (m, *ci))
             {
-                if (!pos.gives_check (m, *ci))
-                {
-                    return;
-                }
+                (*moves++).move = m;
             }
-
-            (*moves++).move = m;
         }
         // Generates KING common move
         template<GenType GT, Color Own>
@@ -311,18 +304,19 @@ namespace MoveGen {
             }
         }
 
-
         // Generates all pseudo-legal moves of color for targets.
         template<GenType GT, Color Own>
-        ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
+        void generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
             generate_pawn_moves<GT, Own> (moves, pos, targets, ci);
             generate_piece_moves<GT, Own, NIHT> (moves, pos, targets, ci);
             generate_piece_moves<GT, Own, BSHP> (moves, pos, targets, ci);
             generate_piece_moves<GT, Own, ROOK> (moves, pos, targets, ci);
             generate_piece_moves<GT, Own, QUEN> (moves, pos, targets, ci);
-            if (GT != EVASION) generate_king_moves<GT, Own> (moves, pos, targets, ci);
-            return moves;
+            if (GT != EVASION)
+            {
+                generate_king_moves<GT, Own> (moves, pos, targets, ci);
+            }
         }
 
     }
@@ -354,9 +348,10 @@ namespace MoveGen {
             break;
         }
 
-        return pos.active () == WHITE ?
-                generate_moves<GT, WHITE> (moves, pos, targets) :
-                generate_moves<GT, BLACK> (moves, pos, targets);
+        pos.active () == WHITE ?
+            generate_moves<GT, WHITE> (moves, pos, targets) :
+            generate_moves<GT, BLACK> (moves, pos, targets);
+        return moves;
     }
     // Explicit template instantiations
 
@@ -391,13 +386,13 @@ namespace MoveGen {
                 // Clear path for checker
                 attacks &= ~PieceAttacks[QUEN][ci.king_sq];
             }
-
             while (attacks != 0) { (*moves++).move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
-        return pos.active () == WHITE ?
-                generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets, &ci) :
-                generate_moves<QUIET_CHECK, BLACK> (moves, pos, targets, &ci);
+        pos.active () == WHITE ?
+            generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets, &ci) :
+            generate_moves<QUIET_CHECK, BLACK> (moves, pos, targets, &ci);
+        return moves;
     }
 
     // Generates all pseudo-legal check giving moves.
@@ -420,13 +415,13 @@ namespace MoveGen {
             {
                 attacks &= ~PieceAttacks[QUEN][ci.king_sq]; // Clear path for checker
             }
-
             while (attacks != 0) { (*moves++).move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
-        return pos.active () == WHITE ?
-                generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
-                generate_moves<CHECK, BLACK> (moves, pos, targets, &ci);
+        pos.active () == WHITE ?
+            generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
+            generate_moves<CHECK, BLACK> (moves, pos, targets, &ci);
+        return moves;
     }
 
     // Generates all pseudo-legal check evasions moves when the side to move is in check.
@@ -462,7 +457,6 @@ namespace MoveGen {
             & ~(  pos.pieces (pos.active ())
                 | checker_attacks
                 | PieceAttacks[KING][pos.square<KING> (~pos.active ())]);
-
         while (attacks != 0) { (*moves++).move = mk_move<NORMAL> (pos.square<KING> (pos.active ()), pop_lsq (attacks)); }
 
         // If double-check, then only a king move can save the day, triple+ check not possible
@@ -475,36 +469,38 @@ namespace MoveGen {
         // Generates blocking evasions or captures of the checking piece
         Bitboard targets = between_bb (check_sq, pos.square<KING> (pos.active ())) + check_sq;
 
-        return pos.active () == WHITE ?
-                generate_moves<EVASION, WHITE> (moves, pos, targets) :
-                generate_moves<EVASION, BLACK> (moves, pos, targets);
+        pos.active () == WHITE ?
+            generate_moves<EVASION, WHITE> (moves, pos, targets) :
+            generate_moves<EVASION, BLACK> (moves, pos, targets);
+        return moves;
     }
 
     // Generates all legal moves.
     template<>
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
-        return filter_illegal (pos, moves, pos.checkers () == 0 ?
-                                               generate<RELAX  > (moves, pos) :
-                                               generate<EVASION> (moves, pos));
+        return filter_illegal (pos,
+                               moves,
+                               pos.checkers () == 0 ?
+                                    generate<RELAX  > (moves, pos) :
+                                    generate<EVASION> (moves, pos));
     }
 
-    ValMove* filter_illegal (const Position &pos, ValMove *beg_move, ValMove *end_move)
+    ValMove* filter_illegal (const Position &pos, ValMove *cur_move, ValMove *end_move)
     {
-        auto king_sq = pos.square<KING> (pos.active ());
         Bitboard abs_pinneds = pos.abs_pinneds (pos.active ());
-        while (beg_move < end_move)
+        while (cur_move < end_move)
         {
             if (   (   abs_pinneds != 0
-                    || org_sq (beg_move->move) == king_sq
-                    || mtype (beg_move->move) == ENPASSANT)
-                && !pos.legal (beg_move->move, abs_pinneds))
+                    || mtype (cur_move->move) == ENPASSANT
+                    || org_sq (cur_move->move) == pos.square<KING> (pos.active ()))
+                && !pos.legal (cur_move->move, abs_pinneds))
             {
-                *beg_move = *(--end_move);
+                cur_move->move = (--end_move)->move;
                 continue;
             }
-            assert(pos.pseudo_legal (beg_move->move));
-            ++beg_move;
+            assert(pos.pseudo_legal (cur_move->move));
+            ++cur_move;
         }
         return end_move;
     }
