@@ -1053,13 +1053,10 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         }
     }
     assert(attackers_to (square<KING> (_active), pasive) == 0);
-    // Calculate checkers bitboard (if move is check)
-    _si->checkers =
-        gives_check ?
-            attackers_to (square<KING> (pasive), _active) :
-            0;
+
     // Switch sides
     _active = pasive;
+
     // Reset en-passant square
     if (_si->en_passant_sq != SQ_NO)
     {
@@ -1084,6 +1081,8 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     _si->posi_key     = key;
     _si->last_move    = m;
     _si->capture_type = cpt;
+    // Calculate checkers bitboard (if move is check)
+    _si->checkers = gives_check ? checkers (_active) : 0;
     ++_si->null_ply;
     ++_ply;
     ++_nodes;
@@ -1105,7 +1104,6 @@ void Position::undo_move ()
 
     assert(empty (org)
         || mtype (m) == CASTLE);
-
     assert(_si->capture_type != KING);
 
     auto cap = dst;
@@ -1313,18 +1311,16 @@ string Position::fen (bool full) const
 // printed to the standard output
 Position::operator string () const
 {
-    static const string Line = " +---+---+---+---+---+---+---+---+\n";
-    
     ostringstream oss;
-    oss << Line;
+    oss << " +---+---+---+---+---+---+---+---+\n";
     for (auto r = R_8; r >= R_1; --r)
     {
         oss << to_char (r) << "| ";
         for (auto f = F_A; f <= F_H; ++f)
         {
-            oss << _board[(f|r)] << " | ";
+            oss << _board[f|r] << " | ";
         }
-        oss << '\n' << Line;
+        oss << '\n' << " +---+---+---+---+---+---+---+---+\n";
     }
     for (auto f = F_A; f <= F_H; ++f)
     {
