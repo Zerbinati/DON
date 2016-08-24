@@ -321,6 +321,34 @@ namespace Searcher {
         {
             assert(!pos.empty (org_sq (move)));
 
+            auto bonus = Value(depth*(depth + 2) - 2);
+
+            auto opp_move = (ss-1)->current_move;
+            auto fix_move_dst = fix_dst_sq (opp_move);
+
+            // Extra penalty for quiet TT move in previous ply when it gets refuted
+            if (   (ss-1)->move_count == 1
+                && pos.capture_type () == NONE)
+            {
+                if ((ss-2)->cm_history_values != nullptr)
+                {
+                    (ss-2)->cm_history_values->update (pos[fix_move_dst], opp_move, -bonus - 2*depth - 3);
+                }
+                if ((ss-3)->cm_history_values != nullptr)
+                {
+                    (ss-3)->cm_history_values->update (pos[fix_move_dst], opp_move, -bonus - 2*depth - 3);
+                }
+                if ((ss-5)->cm_history_values != nullptr)
+                {
+                    (ss-5)->cm_history_values->update (pos[fix_move_dst], opp_move, -bonus - 2*depth - 3);
+                }
+            }
+            
+            if (pos.capture_or_promotion (move))
+            {
+                return;
+            }
+
             if (ss->killer_moves[0] != move)
             {
                 ss->killer_moves[1] = ss->killer_moves[0];
@@ -328,11 +356,6 @@ namespace Searcher {
             }
 
             auto *th = pos.thread ();
-
-            auto opp_move = (ss-1)->current_move;
-            auto fix_move_dst = fix_dst_sq (opp_move);
-
-            auto bonus = Value(depth*(depth + 2) - 2);
 
             th->history_values.update (pos[org_sq (move)], move, bonus);
 
@@ -367,26 +390,6 @@ namespace Searcher {
                 if ((ss-4)->cm_history_values != nullptr)
                 {
                     (ss-4)->cm_history_values->update (pos[org_sq (m)], m, -bonus);
-                }
-            }
-
-            // Extra penalty for PV move in previous ply when it gets refuted
-            if (   (ss-1)->move_count == 1
-                && pos.capture_type () == NONE)
-            {
-                bonus += Value(2*depth + 3);
-
-                if ((ss-2)->cm_history_values != nullptr)
-                {
-                    (ss-2)->cm_history_values->update (pos[fix_move_dst], opp_move, -bonus);
-                }
-                if ((ss-3)->cm_history_values != nullptr)
-                {
-                    (ss-3)->cm_history_values->update (pos[fix_move_dst], opp_move, -bonus);
-                }
-                if ((ss-5)->cm_history_values != nullptr)
-                {
-                    (ss-5)->cm_history_values->update (pos[fix_move_dst], opp_move, -bonus);
                 }
             }
         }
@@ -919,8 +922,7 @@ namespace Searcher {
                     ss->cm_history_values = &CMHistoryValues(pos[org_sq (tt_move)], dst_sq (tt_move));
 
                     // If tt_move is quiet, update killers, history, countermove and countermoves history on TT hit
-                    if (   tt_value >= beta
-                        && !pos.capture_or_promotion (tt_move))
+                    if (tt_value >= beta)
                     {
                         update_stats (pos, ss, tt_move, depth);
                     }
@@ -1429,7 +1431,7 @@ namespace Searcher {
                             i16((i32(  th->history_values(mpc, move)
                                      + ((ss-1)->cm_history_values != nullptr ? (*(ss-1)->cm_history_values)(mpc, move) : VALUE_ZERO)
                                      + ((ss-2)->cm_history_values != nullptr ? (*(ss-2)->cm_history_values)(mpc, move) : VALUE_ZERO)
-                                     + ((ss-4)->cm_history_values != nullptr ? (*(ss-4)->cm_history_values)(mpc, move) : VALUE_ZERO)) - 10000)/20000);
+                                     + ((ss-4)->cm_history_values != nullptr ? (*(ss-4)->cm_history_values)(mpc, move) : VALUE_ZERO)) - 8000)/20000);
                     }
 
                     if (reduce_depth < 0)
@@ -1620,15 +1622,13 @@ namespace Searcher {
             }
             else
             // Quiet best move: update killers, history, countermoves and countermoves history
-            if (   best_move != MOVE_NONE
-                && !pos.capture_or_promotion (best_move))
+            if (best_move != MOVE_NONE)
             {
                 update_stats (pos, ss, best_move, depth, quiet_moves);
             }
             else
             // Bonus for prior countermove that caused the fail low
             if (   depth > 2
-                && best_move == MOVE_NONE
                 && (ss-1)->cm_history_values != nullptr
                 && pos.capture_type () == NONE)
             {

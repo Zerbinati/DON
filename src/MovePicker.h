@@ -17,10 +17,9 @@ namespace MovePick {
     class MovePicker
     {
     private:
-        ValMove  _beg_move[MaxMoves]
-            ,   *_cur_move         = _beg_move
-            ,   *_end_move         = _beg_move
-            ,   *_beg_bad_cap_move = _beg_move+MaxMoves;
+        std::vector<ValMove> _moves;
+        std::vector<ValMove> _bad_cap_moves;
+        i32 _index = 0;
 
         const Position &_pos;
         const Stack *const _ss = nullptr;
@@ -38,6 +37,8 @@ namespace MovePick {
 
         void generate_next_stage ();
 
+        ValMove& pick_best (i32 i);
+
     public:
 
         MovePicker () = delete;
@@ -47,9 +48,6 @@ namespace MovePick {
         MovePicker (const Position&, Move, const Stack *const&);
         MovePicker (const Position&, Move, i16, Move);
         MovePicker (const Position&, Move, Value);
-
-        ValMove* begin () { return _beg_move; }
-        ValMove* end   () { return _end_move; }
 
         Move next_move ();
     };

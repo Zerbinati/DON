@@ -2106,46 +2106,43 @@ namespace TBSyzygy {
         }
 
         // Add underpromotion captures to list of captures.
-        ValMove* generate_underprom_cap (ValMove *beg_move, ValMove *end_move, const Position &pos)
+        void generate_underprom_cap (const Position &pos, vector<ValMove> &moves)
         {
-            ValMove *extra = end_move;
-            for (ValMove *cur_move = beg_move; cur_move < end_move; ++cur_move)
+            auto end = moves.end ();
+            for (auto itr = moves.begin (); itr < end; ++itr)
             {
-                auto move = cur_move->move;
+                auto move = itr->move;
                 if (   mtype (move) == PROMOTE
-                    && !pos.empty (dst_sq (move)))
+                    && (pos.pieces (~pos.active ()) & dst_sq (move)) != 0)
                 {
-                    (*extra++).move = Move(move - (NIHT << 12));
-                    (*extra++).move = Move(move - (BSHP << 12));
-                    (*extra++).move = Move(move - (ROOK << 12));
+                    moves.push_back ({Move(move - (ROOK << 12)), VALUE_ZERO}); 
+                    moves.push_back ({Move(move - (BSHP << 12)), VALUE_ZERO});
+                    moves.push_back ({Move(move - (NIHT << 12)), VALUE_ZERO});
                 }
             }
-            return extra;
         }
 
         Value probe_ab (Position &pos, Value alfa, Value beta, i32 &success)
         {
-            ValMove moves[MaxMoves];
-            ValMove *end_move;
-            
+            vector<ValMove> moves;
+                       
             // Generate all pseudo-legal captures including (under)promotions.
             if (pos.checkers () == 0)
             {
-                end_move = generate<CAPTURE> (moves, pos);
+                generate<CAPTURE> (pos, moves);
                 // Since underpromotion captures are not included, we need to add them.
-                end_move = generate_underprom_cap (moves, end_move, pos);
+                generate_underprom_cap (pos, moves);
             }
             else
             {
-                end_move = generate<EVASION> (moves, pos);
+                generate<EVASION> (pos, moves);
             }
 
             Value v;
             CheckInfo ci (pos);
-            
-            for (ValMove *cur_move = moves; cur_move < end_move; ++cur_move)
+            for (auto &vm : moves)
             {
-                auto move = cur_move->move;
+                auto move = vm.move;
                 if (   !pos.capture (move)
                     || mtype (move) == ENPASSANT
                     || !pos.legal (move, ci.abs_pinneds))
@@ -2195,8 +2192,7 @@ namespace TBSyzygy {
                 return Value(wdl == 2 ? 1 : 101);
             }
 
-            ValMove moves[MaxMoves];
-            ValMove *end_move = nullptr;
+            vector<ValMove> moves;
             
             CheckInfo ci (pos);
 
@@ -2204,13 +2200,13 @@ namespace TBSyzygy {
             {
                 // Generate at least all legal non-capturing pawn moves
                 // including non-capturing promotions.
-                end_move = pos.checkers () == 0 ?
-                    generate<RELAX  > (moves, pos) :
-                    generate<EVASION> (moves, pos);
+                pos.checkers () == 0 ?
+                    generate<RELAX  > (pos, moves) :
+                    generate<EVASION> (pos, moves);
 
-                for (ValMove *cur_move = moves; cur_move < end_move; ++cur_move)
+                for (auto &vm : moves)
                 {
-                    auto move = cur_move->move;
+                    auto move = vm.move;
                     if (   ptype (pos[org_sq (move)]) != PAWN
                         || pos.capture (move)
                         || !pos.legal (move, ci.abs_pinneds))
@@ -2243,9 +2239,9 @@ namespace TBSyzygy {
             if (wdl > 0)
             {
                 Value best_value = +VALUE_INFINITE;
-                for (ValMove *cur_move = moves; cur_move < end_move; ++cur_move)
+                for (auto &vm : moves)
                 {
-                    auto move = cur_move->move;
+                    auto move = vm.move;
                     if (   pos.capture (move)
                         || ptype (pos[org_sq (move)]) == PAWN
                         || !pos.legal (move, ci.abs_pinneds))
@@ -2271,15 +2267,14 @@ namespace TBSyzygy {
             else
             {
                 Value best_value = Value(-1);
-                end_move = pos.checkers () == 0 ?
-                    generate<RELAX  > (moves, pos) :
-                    generate<EVASION> (moves, pos);
-
-                for (ValMove *cur_move = moves; cur_move < end_move; ++cur_move)
+                pos.checkers () == 0 ?
+                    generate<RELAX  > (pos, moves) :
+                    generate<EVASION> (pos, moves);
+                filter_illegal (pos, moves);
+                for (auto &vm : moves)
                 {
+                    auto move = vm.move;
                     Value v;
-                    auto move = cur_move->move;
-                    if (!pos.legal (move, ci.abs_pinneds)) continue;
                     StateInfo si;
                     pos.do_move (move, si, pos.gives_check (move, ci));
                     if (si.clock_ply == 0)
@@ -2369,16 +2364,16 @@ namespace TBSyzygy {
         Value ep = Value(-3);
         Value v1 = ep;
 
-        ValMove moves[MaxMoves];
+        vector<ValMove> moves;
         // Generate all pseudo-legal captures.
-        ValMove *end_move = pos.checkers () == 0 ?
-            generate<CAPTURE> (moves, pos) :
-            generate<EVASION> (moves, pos);
+        pos.checkers () == 0 ?
+            generate<CAPTURE> (pos, moves) :
+            generate<EVASION> (pos, moves);
 
         CheckInfo ci (pos);
-        for (ValMove *cur_move = moves; cur_move < end_move; ++cur_move)
+        for (auto &vm : moves)
         {
-            auto move = cur_move->move;
+            auto move = vm.move;
             if (   mtype (move) != ENPASSANT
                 || !pos.legal (move, ci.abs_pinneds))
             {
@@ -2437,31 +2432,34 @@ namespace TBSyzygy {
             else
             {
                 // Check whether there is at least one legal non-ep move.
-                ValMove *cur_move;
-                for (cur_move = moves; cur_move < end_move; ++cur_move)
+                i32 i = 0;
+                for (auto &vm : moves)
                 {
-                    auto move = cur_move->move;
+                    auto move = vm.move;
                     if (   mtype (move) != ENPASSANT
                         && pos.legal (move, ci.abs_pinneds))
                     {
                         break;
                     }
+                    ++i;
                 }
-                if (   cur_move == end_move
+                if (   i == i32(moves.size ())
                     && pos.checkers () == 0)
                 {
-                    end_move = generate<QUIET> (end_move, pos);
-                    for (; cur_move < end_move; ++cur_move)
+                    generate<QUIET> (pos, moves);
+                    i = 0;
+                    for (auto &vm : moves)
                     {
-                        auto move = cur_move->move;
+                        auto move = vm.move;
                         if (pos.legal (move, ci.abs_pinneds))
                         {
                             break;
                         }
+                        ++i;
                     }
                 }
                 // If not, then we are forced to play the losing ep capture.
-                if (cur_move == end_move)
+                if (i == i32(moves.size ()))
                 {
                     v = v1;
                 }
@@ -2492,16 +2490,16 @@ namespace TBSyzygy {
         Value ep = Value(-3);
         Value v1 = ep;
         
-        ValMove moves[MaxMoves];
+        vector<ValMove> moves;
         // Generate all pseudo-legal captures.
-        ValMove *end_move = pos.checkers () == 0 ?
-            generate<CAPTURE> (moves, pos) :
-            generate<EVASION> (moves, pos);
+        pos.checkers () == 0 ?
+            generate<CAPTURE> (pos, moves) :
+            generate<EVASION> (pos, moves);
 
         CheckInfo ci (pos);
-        for (ValMove *cur_move = moves; cur_move < end_move; ++cur_move)
+        for (auto &vm : moves)
         {
-            auto move = cur_move->move;
+            auto move = vm.move;
             if (   mtype (move) != ENPASSANT
                 || !pos.legal (move, ci.abs_pinneds))
             {
@@ -2527,31 +2525,34 @@ namespace TBSyzygy {
             if (v == VALUE_ZERO)
             {
                 // Check whether there is at least one legal non-ep move.
-                ValMove *cur_move;
-                for (cur_move = moves; cur_move < end_move; ++cur_move)
+                i32 i = 0;
+                for (auto &vm : moves)
                 {
-                    auto move = cur_move->move;
+                    auto move = vm.move;
                     if (   mtype (move) != ENPASSANT
                         && pos.legal (move, ci.abs_pinneds))
                     {
                         break;
                     }
+                    ++i;
                 }
-                if (   cur_move == end_move
+                if (   i == i32(moves.size ())
                     && pos.checkers () == 0)
                 {
-                    end_move = generate<QUIET> (end_move, pos);
-                    for (; cur_move < end_move; ++cur_move)
+                    generate<QUIET> (pos, moves);
+                    i = 0;
+                    for (auto &vm : moves)
                     {
-                        auto move = cur_move->move;
+                        auto move = vm.move;
                         if (pos.legal (move, ci.abs_pinneds))
                         {
                             break;
                         }
+                        ++i;
                     }
                 }
                 // If not, then we are forced to play the losing ep capture.
-                if (cur_move == end_move)
+                if (i == i32(moves.size ()))
                 {
                     v = v1;
                 }
@@ -2585,8 +2586,9 @@ namespace TBSyzygy {
             Value value = VALUE_ZERO;
             if (root_pos.checkers () != 0 && dtz > VALUE_ZERO)
             {
-                ValMove moves[MaxMoves];
-                if (generate<LEGAL> (moves, root_pos) == moves)
+                vector<ValMove> moves;
+                generate<LEGAL> (root_pos, moves);
+                if (moves.size () == 0)
                 {
                     value = Value(1);
                 }
