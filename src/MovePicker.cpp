@@ -221,8 +221,8 @@ namespace MovePick {
         case S_QCAPTURE_2:
         case S_PROBCUT_CAPTURE:
         case S_ALL_RECAPTURE:
-            generate<CAPTURE> (_pos, _moves);
-            filter_illegal (_pos, _moves);
+            generate<CAPTURE> (_moves, _pos);
+            filter_illegal (_moves, _pos);
             _index = 0;
             if (_moves.size () > 1)
             {
@@ -231,8 +231,8 @@ namespace MovePick {
             break;
 
         case S_QUIET:
-            generate<QUIET> (_pos, _moves);
-            filter_illegal (_pos, _moves);
+            generate<QUIET> (_moves, _pos);
+            filter_illegal (_moves, _pos);
             _index = 0;
             if (_moves.size () > 1)
             {
@@ -268,8 +268,8 @@ namespace MovePick {
 
         case S_ALL_EVASION:
             assert(_pos.checkers () != 0);
-            generate<EVASION> (_pos, _moves);
-            filter_illegal (_pos, _moves);
+            generate<EVASION> (_moves, _pos);
+            filter_illegal (_moves, _pos);
             _index = 0;
             if (_moves.size () > 1)
             {
@@ -278,8 +278,8 @@ namespace MovePick {
             break;
 
         case S_QUIET_CHECK:
-            generate<QUIET_CHECK> (_pos, _moves);
-            filter_illegal (_pos, _moves);
+            generate<QUIET_CHECK> (_moves, _pos);
+            filter_illegal (_moves, _pos);
             _index = 0;
             break;
 
@@ -324,7 +324,7 @@ namespace MovePick {
 
             case S_GOOD_CAPTURE:
                 do {
-                    auto move = pick_best (_index++).move;
+                    auto move = pick_best_move (_index++).move;
                     if (move != _tt_move)
                     {
                         auto see_value = _pos.see_sign (move);
@@ -340,7 +340,7 @@ namespace MovePick {
 
             case S_QUIET:
                 do {
-                    auto move = pick_best (_index++).move;
+                    auto move = pick_best_move (_index++).move;
                     if (move != _tt_move)
                     {
                         return move;
@@ -350,7 +350,7 @@ namespace MovePick {
 
             case S_BAD_CAPTURE:
                 {
-                    return pick_best (_index++).move;
+                    return pick_best_move (_index++).move;
                 }
                 break;
 
@@ -358,7 +358,7 @@ namespace MovePick {
             case S_QCAPTURE_1:
             case S_QCAPTURE_2:
                 do {
-                    auto move = pick_best (_index++).move;
+                    auto move = pick_best_move (_index++).move;
                     if (move != _tt_move)
                     {
                         return move;
@@ -378,7 +378,7 @@ namespace MovePick {
 
             case S_PROBCUT_CAPTURE:
                 do {
-                    auto move = pick_best (_index++).move;
+                    auto move = pick_best_move (_index++).move;
                     if (   move != _tt_move
                         && _pos.see (move) > _threshold)
                     {
@@ -389,7 +389,7 @@ namespace MovePick {
 
             case S_ALL_RECAPTURE:
                 do {
-                    auto move = pick_best (_index++).move;
+                    auto move = pick_best_move (_index++).move;
                     if (dst_sq (move) == _recap_sq)
                     {
                         return move;
@@ -400,10 +400,6 @@ namespace MovePick {
             case S_STOP:
                 return MOVE_NONE;
                 break;
-
-            default:
-                assert(false);
-                break;
             }
         } while (true);
     }
@@ -411,7 +407,7 @@ namespace MovePick {
     // Finds the best move in the range [beg, end) and moves it to front,
     // it is faster than sorting all the moves in advance when there are few moves
     // e.g. the possible captures.
-    ValMove& MovePicker::pick_best (i32 i)
+    ValMove& MovePicker::pick_best_move (i32 i)
     {
         auto itr = _moves.begin () + i;
         std::swap (*itr, *std::max_element (itr, _moves.end ()));

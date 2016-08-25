@@ -165,7 +165,6 @@ namespace UCI {
                             std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
                             break;
                         }
-
                         states.push_back (StateInfo ());
                         root_pos.do_move (m, states.back (), root_pos.gives_check (m, CheckInfo (root_pos)));
                     }

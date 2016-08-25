@@ -27,7 +27,7 @@ namespace Polyglot {
         // Set new type for promotion piece
         auto pt = PieceType((m >> 12) & MAX_PTYPE);
         if (pt != PAWN) promote (m, pt);
-        // TODO::Add special move flags and verify it is legal
+        // TODO:: Add special move flags and verify it is legal
         oss << " key: "    << std::setw (16) << std::setfill ('0') << std::hex << std::uppercase << key << std::nouppercase
             << " move: "   << std::setw ( 5) << std::setfill (' ') << std::left << move_to_can (m) << std::right
             << " weight: " << std::setw ( 4) << std::setfill ('0') << std::dec << weight

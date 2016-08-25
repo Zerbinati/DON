@@ -592,6 +592,9 @@ public:
     Value value = VALUE_ZERO;
     
     ValMove () = default;
+    explicit ValMove (Move m)
+        : move (m)
+    {}
     ValMove (Move m, Value v)
         : move (m)
         , value (v)

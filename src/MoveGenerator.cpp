@@ -12,10 +12,10 @@ namespace MoveGen {
         template<GenType GT, Color Own, PieceType PT>
         void generate_piece_moves (vector<ValMove> &moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
-            assert(   PT == NIHT
-                   || PT == BSHP
-                   || PT == ROOK
-                   || PT == QUEN);
+            assert(PT == NIHT
+                || PT == BSHP
+                || PT == ROOK
+                || PT == QUEN);
 
             for (Square s : pos.squares<PT> (Own))
             {
@@ -39,7 +39,7 @@ namespace MoveGen {
                     case ROOK: attacks &= attacks_bb<ROOK> (s, pos.pieces ()); break;
                     case QUEN: attacks &= attacks_bb<QUEN> (s, pos.pieces ()); break;
                     }
-                    while (attacks != 0) { moves.push_back ({mk_move<NORMAL> (s, pop_lsq (attacks)), VALUE_ZERO}); }
+                    while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (s, pop_lsq (attacks)))); }
                 }
             }
         }
@@ -54,6 +54,7 @@ namespace MoveGen {
                 || delta == DEL_S
                 || delta == DEL_SE
                 || delta == DEL_SW);
+
             switch (GT)
             {
             case RELAX:
@@ -62,50 +63,50 @@ namespace MoveGen {
             case QUIET:
                 if (GT != QUIET)
                 {
-                    moves.push_back ({mk_move<PROMOTE> (dst - delta, dst, QUEN), VALUE_ZERO});
+                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, QUEN)));
                 }
                 if (GT != CAPTURE)
                 {
-                    moves.push_back ({mk_move<PROMOTE> (dst - delta, dst, ROOK), VALUE_ZERO});
-                    moves.push_back ({mk_move<PROMOTE> (dst - delta, dst, BSHP), VALUE_ZERO});
-                    moves.push_back ({mk_move<PROMOTE> (dst - delta, dst, NIHT), VALUE_ZERO});
+                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, ROOK)));
+                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, BSHP)));
+                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, NIHT)));
                 }
                 break;
             case QUIET_CHECK:
                 if (   (PieceAttacks[ROOK][dst] & ci->king_sq) != 0
                     && (attacks_bb<ROOK> (dst, pos.pieces () - (dst - delta)) & ci->king_sq) != 0)
                 {
-                    moves.push_back ({mk_move<PROMOTE> (dst - delta, dst, ROOK), VALUE_ZERO});
+                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, ROOK)));
                 }
                 if (   (PieceAttacks[BSHP][dst] & ci->king_sq) != 0
                     && (attacks_bb<BSHP> (dst, pos.pieces () - (dst - delta)) & ci->king_sq) != 0)
                 {
-                    moves.push_back ({mk_move<PROMOTE> (dst - delta, dst, BSHP), VALUE_ZERO});
+                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, BSHP)));
                 }
                 if ((PieceAttacks[NIHT][dst] & ci->king_sq) != 0)
                 {
-                    moves.push_back ({mk_move<PROMOTE> (dst - delta, dst, NIHT), VALUE_ZERO});
+                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, NIHT)));
                 }
                 break;
             case CHECK:
                 if (   (PieceAttacks[QUEN][dst] & ci->king_sq) != 0
                     && (attacks_bb<QUEN> (dst, pos.pieces () - (dst - delta)) & ci->king_sq) != 0)
                 {
-                    moves.push_back ({mk_move<PROMOTE> (dst - delta, dst, QUEN), VALUE_ZERO});
+                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, QUEN)));
                 }
                 if (   (PieceAttacks[ROOK][dst] & ci->king_sq) != 0
                     && (attacks_bb<ROOK> (dst, pos.pieces () - (dst - delta)) & ci->king_sq) != 0)
                 {
-                    moves.push_back ({mk_move<PROMOTE> (dst - delta, dst, ROOK), VALUE_ZERO});
+                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, ROOK)));
                 }
                 if (   (PieceAttacks[BSHP][dst] & ci->king_sq) != 0
                     && (attacks_bb<BSHP> (dst, pos.pieces () - (dst - delta)) & ci->king_sq) != 0)
                 {
-                    moves.push_back ({mk_move<PROMOTE> (dst - delta, dst, BSHP), VALUE_ZERO});
+                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, BSHP)));
                 }
                 if ((PieceAttacks[NIHT][dst] & ci->king_sq) != 0)
                 {
-                    moves.push_back ({mk_move<PROMOTE> (dst - delta, dst, NIHT), VALUE_ZERO});
+                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, NIHT)));
                 }
                 break;
             }
@@ -155,8 +156,8 @@ namespace MoveGen {
                 }
                 push_1 &= targets;
                 push_2 &= targets;
-                while (push_1 != 0) { auto dst = pop_lsq (push_1); moves.push_back ({mk_move<NORMAL> (dst - Push, dst), VALUE_ZERO}); }
-                while (push_2 != 0) { auto dst = pop_lsq (push_2); moves.push_back ({mk_move<NORMAL> (dst - Push*2, dst), VALUE_ZERO}); }
+                while (push_1 != 0) { auto dst = pop_lsq (push_1); moves.push_back (ValMove(mk_move<NORMAL> (dst - Push, dst))); }
+                while (push_2 != 0) { auto dst = pop_lsq (push_2); moves.push_back (ValMove(mk_move<NORMAL> (dst - Push*2, dst))); }
             }
             // Pawn normal and en-passant captures, no promotions
             if (   GT != QUIET
@@ -179,8 +180,8 @@ namespace MoveGen {
                         attack_r |= attack_cd_r;
                     }
                 }
-                while (attack_l != 0) { auto dst = pop_lsq (attack_l); moves.push_back ({mk_move<NORMAL> (dst - LCap, dst), VALUE_ZERO}); }
-                while (attack_r != 0) { auto dst = pop_lsq (attack_r); moves.push_back ({mk_move<NORMAL> (dst - RCap, dst), VALUE_ZERO}); }
+                while (attack_l != 0) { auto dst = pop_lsq (attack_l); moves.push_back (ValMove(mk_move<NORMAL> (dst - LCap, dst))); }
+                while (attack_r != 0) { auto dst = pop_lsq (attack_r); moves.push_back (ValMove(mk_move<NORMAL> (dst - RCap, dst))); }
 
                 auto ep_sq = pos.en_passant_sq ();
                 if (ep_sq != SQ_NO)
@@ -199,7 +200,7 @@ namespace MoveGen {
                         ep_captures &= PawnAttacks[Opp][ep_sq];
                         assert(ep_captures != 0);
                         assert(pop_count (ep_captures) <= 2);
-                        while (ep_captures != 0) { moves.push_back ({mk_move<ENPASSANT> (pop_lsq (ep_captures), ep_sq), VALUE_ZERO}); }
+                        while (ep_captures != 0) { moves.push_back (ValMove(mk_move<ENPASSANT> (pop_lsq (ep_captures), ep_sq))); }
                     }
                 }
             }
@@ -264,7 +265,7 @@ namespace MoveGen {
                     && GT != QUIET_CHECK)
                 || pos.gives_check (m, *ci))
             {
-                moves.push_back ({m, VALUE_ZERO});
+                moves.push_back (ValMove(m));
             }
         }
         // Generates KING common move
@@ -282,7 +283,7 @@ namespace MoveGen {
                 Bitboard attacks =  PieceAttacks[KING][king_sq]
                                  & ~PieceAttacks[KING][pos.square<KING> (Opp)]
                                  & targets;
-                while (attacks != 0) { moves.push_back ({mk_move<NORMAL> (king_sq, pop_lsq (attacks)), VALUE_ZERO}); }
+                while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (king_sq, pop_lsq (attacks)))); }
             }
 
             if (GT != CAPTURE)
@@ -322,12 +323,12 @@ namespace MoveGen {
     }
 
     template<GenType GT>
-    void generate (const Position &pos, vector<ValMove> &moves)
+    void generate (vector<ValMove> &moves, const Position &pos)
     {
         assert(pos.checkers () == 0);
         assert(GT == RELAX
-                || GT == CAPTURE
-                || GT == QUIET);
+            || GT == CAPTURE
+            || GT == QUIET);
         moves.clear ();
         Bitboard targets;
         switch (GT)
@@ -356,18 +357,18 @@ namespace MoveGen {
 
     // generate<RELAX> generates all pseudo-legal captures and non-captures.
     // Returns a pointer to the end of the move list.
-    template void generate<RELAX  > (const Position&, vector<ValMove>&);
+    template void generate<RELAX  > (vector<ValMove>&, const Position&);
     // generate<CAPTURES> generates all pseudo-legal captures and queen promotions.
     // Returns a pointer to the end of the move list.
-    template void generate<CAPTURE> (const Position&, vector<ValMove>&);
+    template void generate<CAPTURE> (vector<ValMove>&, const Position&);
     // generate<QUIETS> generates all pseudo-legal non-captures and underpromotions.
     // Returns a pointer to the end of the move list.
-    template void generate<QUIET  > (const Position&, vector<ValMove>&);
+    template void generate<QUIET  > (vector<ValMove>&, const Position&);
 
     // Generates all pseudo-legal non-captures and knight underpromotions moves that give check.
     // Returns a pointer to the end of the move list.
     template<>
-    void generate<QUIET_CHECK> (const Position &pos, vector<ValMove> &moves)
+    void generate<QUIET_CHECK> (vector<ValMove> &moves, const Position &pos)
     {
         assert(pos.checkers () == 0);
         moves.clear ();
@@ -379,13 +380,13 @@ namespace MoveGen {
         {
             auto org = pop_lsq (dsc_checkers);
             auto pt  = ptype (pos[org]);
-            Bitboard attacks = attacks_bb (Piece (pt), org, pos.pieces ()) & targets;
+            Bitboard attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
             if (pt == KING)
             {
                 // Clear path for checker
                 attacks &= ~PieceAttacks[QUEN][ci.king_sq];
             }
-            while (attacks != 0) { moves.push_back ({mk_move<NORMAL> (org, pop_lsq (attacks)), VALUE_ZERO}); }
+            while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (org, pop_lsq (attacks)))); }
         }
 
         pos.active () == WHITE ?
@@ -396,7 +397,7 @@ namespace MoveGen {
     // Generates all pseudo-legal check giving moves.
     // Returns a pointer to the end of the move list.
     template<>
-    void generate<CHECK      > (const Position &pos, vector<ValMove> &moves)
+    void generate<CHECK      > (vector<ValMove> &moves, const Position &pos)
     {
         assert(pos.checkers () == 0);
         moves.clear ();
@@ -408,12 +409,12 @@ namespace MoveGen {
         {
             auto org = pop_lsq (dsc_checkers);
             auto pt  = ptype (pos[org]);
-            Bitboard attacks = attacks_bb (Piece (pt), org, pos.pieces ()) & targets;
+            Bitboard attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
             if (pt == KING)
             {
                 attacks &= ~PieceAttacks[QUEN][ci.king_sq]; // Clear path for checker
             }
-            while (attacks != 0) { moves.push_back ({mk_move<NORMAL> (org, pop_lsq (attacks)), VALUE_ZERO}); }
+            while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (org, pop_lsq (attacks)))); }
         }
 
         pos.active () == WHITE ?
@@ -424,7 +425,7 @@ namespace MoveGen {
     // Generates all pseudo-legal check evasions moves when the side to move is in check.
     // Returns a pointer to the end of the move list.
     template<>
-    void generate<EVASION    > (const Position &pos, vector<ValMove> &moves)
+    void generate<EVASION    > (vector<ValMove> &moves, const Position &pos)
     {
         assert(pos.checkers () != 0); // If any checker exists
         moves.clear ();
@@ -452,7 +453,7 @@ namespace MoveGen {
             & ~(  pos.pieces (pos.active ())
                 | checker_attacks
                 | PieceAttacks[KING][pos.square<KING> (~pos.active ())]);
-        while (attacks != 0) { moves.push_back ({mk_move<NORMAL> (pos.square<KING> (pos.active ()), pop_lsq (attacks)), VALUE_ZERO}); }
+        while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (pos.square<KING> (pos.active ()), pop_lsq (attacks)))); }
 
         // If double-check, then only a king move can save the day, triple+ check not possible
         if (   more_than_one (pos.checkers ())
@@ -471,15 +472,15 @@ namespace MoveGen {
 
     // Generates all legal moves.
     template<>
-    void generate<LEGAL      > (const Position &pos, vector<ValMove> &moves)
+    void generate<LEGAL      > (vector<ValMove> &moves, const Position &pos)
     {
         pos.checkers () == 0 ?
-            generate<RELAX  > (pos, moves) :
-            generate<EVASION> (pos, moves);
-        filter_illegal (pos, moves);
+            generate<RELAX  > (moves, pos) :
+            generate<EVASION> (moves, pos);
+        filter_illegal (moves, pos);
     }
 
-    void filter_illegal (const Position &pos, vector<ValMove> &moves)
+    void filter_illegal (vector<ValMove> &moves, const Position &pos)
     {
         auto k_sq = pos.square<KING> (pos.active ());
         Bitboard abs_pinneds = pos.abs_pinneds (pos.active ());

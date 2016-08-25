@@ -8,22 +8,18 @@
 
 namespace MovePick {
 
-    // MovePicker class is used to pick one pseudo legal move at a time from the
-    // current position. The most important method is next_move(), which returns a
-    // new pseudo legal move each time it is called, until there are no moves left,
-    // when MOVE_NONE is returned. In order to improve the efficiency of the
-    // alfa-beta algorithm, MovePicker attempts to return the moves which are most
-    // likely to get a cut-off first.
+    // MovePicker class is used to pick one legal moves from the current position.
+    // next_move() which returns a new legal move each time it is called, until there are no moves left,
     class MovePicker
     {
     private:
-        std::vector<ValMove> _moves;
-        std::vector<ValMove> _bad_cap_moves;
-        i32 _index = 0;
-
         const Position &_pos;
         const Stack *const _ss = nullptr;
 
+        std::vector<ValMove> _moves;
+        std::vector<ValMove> _bad_cap_moves;
+        
+        i32     _index      = 0;
         u08     _stage      = 0;
 
         Move    _tt_move    = MOVE_NONE;
@@ -37,7 +33,7 @@ namespace MovePick {
 
         void generate_next_stage ();
 
-        ValMove& pick_best (i32 i);
+        ValMove& pick_best_move (i32 i);
 
     public:
 
