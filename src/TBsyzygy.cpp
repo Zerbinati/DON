@@ -2139,19 +2139,18 @@ namespace TBSyzygy {
             }
 
             Value v;
-            CheckInfo ci (pos);
             for (auto &vm : moves)
             {
                 auto move = vm.move;
                 if (   !pos.capture (move)
                     || mtype (move) == ENPASSANT
-                    || !pos.legal (move, ci.abs_pinneds))
+                    || !pos.legal (move))
                 {
                     continue;
                 }
 
                 StateInfo si;
-                pos.do_move (move, si, pos.gives_check (move, ci));
+                pos.do_move (move, si, pos.gives_check (move));
                 v = -probe_ab (pos, -beta, -alfa, success);
                 pos.undo_move ();
                 if (success == 0) return VALUE_ZERO;
@@ -2194,8 +2193,6 @@ namespace TBSyzygy {
 
             vector<ValMove> moves;
             
-            CheckInfo ci (pos);
-
             if (wdl > 0)
             {
                 // Generate at least all legal non-capturing pawn moves
@@ -2209,13 +2206,13 @@ namespace TBSyzygy {
                     auto move = vm.move;
                     if (   ptype (pos[org_sq (move)]) != PAWN
                         || pos.capture (move)
-                        || !pos.legal (move, ci.abs_pinneds))
+                        || !pos.legal (move))
                     {
                         continue;
                     }
 
                     StateInfo si;
-                    pos.do_move (move, si, pos.gives_check (move, ci));
+                    pos.do_move (move, si, pos.gives_check (move));
                     Value v = -probe_wdl (pos, success);
                     pos.undo_move ();
                     if (success == 0) return VALUE_ZERO;
@@ -2244,13 +2241,13 @@ namespace TBSyzygy {
                     auto move = vm.move;
                     if (   pos.capture (move)
                         || ptype (pos[org_sq (move)]) == PAWN
-                        || !pos.legal (move, ci.abs_pinneds))
+                        || !pos.legal (move))
                     {
                         continue;
                     }
 
                     StateInfo si;
-                    pos.do_move (move, si, pos.gives_check (move, ci));
+                    pos.do_move (move, si, pos.gives_check (move));
                     Value v = -probe_dtz (pos, success);
                     pos.undo_move ();
                     if (success == 0) return VALUE_ZERO;
@@ -2276,7 +2273,7 @@ namespace TBSyzygy {
                     auto move = vm.move;
                     Value v;
                     StateInfo si;
-                    pos.do_move (move, si, pos.gives_check (move, ci));
+                    pos.do_move (move, si, pos.gives_check (move));
                     if (si.clock_ply == 0)
                     {
                         if (wdl == -2)
@@ -2370,18 +2367,17 @@ namespace TBSyzygy {
             generate<CAPTURE> (moves, pos) :
             generate<EVASION> (moves, pos);
 
-        CheckInfo ci (pos);
         for (auto &vm : moves)
         {
             auto move = vm.move;
             if (   mtype (move) != ENPASSANT
-                || !pos.legal (move, ci.abs_pinneds))
+                || !pos.legal (move))
             {
                 continue;
             }
 
             StateInfo si;
-            pos.do_move (move, si, pos.gives_check (move, ci));
+            pos.do_move (move, si, pos.gives_check (move));
             Value v0 = -probe_ab (pos, Value(-2), Value(+2), success);
             pos.undo_move ();
             if (success == 0) return VALUE_ZERO;
@@ -2437,7 +2433,7 @@ namespace TBSyzygy {
                 {
                     auto move = vm.move;
                     if (   mtype (move) != ENPASSANT
-                        && pos.legal (move, ci.abs_pinneds))
+                        && pos.legal (move))
                     {
                         break;
                     }
@@ -2451,7 +2447,7 @@ namespace TBSyzygy {
                     for (auto &vm : moves)
                     {
                         auto move = vm.move;
-                        if (pos.legal (move, ci.abs_pinneds))
+                        if (pos.legal (move))
                         {
                             break;
                         }
@@ -2496,17 +2492,16 @@ namespace TBSyzygy {
             generate<CAPTURE> (moves, pos) :
             generate<EVASION> (moves, pos);
 
-        CheckInfo ci (pos);
         for (auto &vm : moves)
         {
             auto move = vm.move;
             if (   mtype (move) != ENPASSANT
-                || !pos.legal (move, ci.abs_pinneds))
+                || !pos.legal (move))
             {
                 continue;
             }
             StateInfo si;
-            pos.do_move (move, si, pos.gives_check (move, ci));
+            pos.do_move (move, si, pos.gives_check (move));
             Value v0 = -probe_ab (pos, Value(-2), Value(+2), success);
             pos.undo_move ();
             if (success == 0) return VALUE_ZERO;
@@ -2530,7 +2525,7 @@ namespace TBSyzygy {
                 {
                     auto move = vm.move;
                     if (   mtype (move) != ENPASSANT
-                        && pos.legal (move, ci.abs_pinneds))
+                        && pos.legal (move))
                     {
                         break;
                     }
@@ -2544,7 +2539,7 @@ namespace TBSyzygy {
                     for (auto &vm : moves)
                     {
                         auto move = vm.move;
-                        if (pos.legal (move, ci.abs_pinneds))
+                        if (pos.legal (move))
                         {
                             break;
                         }
@@ -2575,13 +2570,12 @@ namespace TBSyzygy {
         if (success == 0) return false;
 
         StateInfo si;
-        CheckInfo ci (root_pos);
 
         // Probe each move.
         for (size_t i = 0; i < root_moves.size (); ++i)
         {
             auto move = root_moves[i][0];
-            root_pos.do_move (move, si, root_pos.gives_check (move, ci));
+            root_pos.do_move (move, si, root_pos.gives_check (move));
 
             Value value = VALUE_ZERO;
             if (   root_pos.checkers () != 0
@@ -2733,14 +2727,13 @@ namespace TBSyzygy {
         ProbeValue = Wdl_to_Value[wdl + 2];
 
         StateInfo si;
-        CheckInfo ci (root_pos);
 
         Value best_value = -VALUE_INFINITE;
         // Probe each move.
         for (size_t i = 0; i < root_moves.size (); ++i)
         {
             auto move = root_moves[i][0];
-            root_pos.do_move (move, si, root_pos.gives_check (move, ci));
+            root_pos.do_move (move, si, root_pos.gives_check (move));
             Value v = -probe_wdl (root_pos, success);
             root_pos.undo_move ();
             if (success == 0) return false;

@@ -156,6 +156,7 @@ namespace MovePick {
         {
             assert(_pos.pseudo_legal (vm.move)
                 && _pos.legal (vm.move));
+
             vm.value =
                   PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
                 - 200 * Value(rel_rank (_pos.active (), dst_sq (vm.move)))
@@ -170,6 +171,7 @@ namespace MovePick {
         {
             assert(_pos.pseudo_legal (vm.move)
                 && _pos.legal (vm.move));
+
             vm.value =
                   _pos.thread ()->history_values(_pos[org_sq (vm.move)], vm.move)
                 + ((_ss-1)->cm_history_values != nullptr ? (*(_ss-1)->cm_history_values)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
@@ -188,17 +190,21 @@ namespace MovePick {
         {
             assert(_pos.pseudo_legal (vm.move)
                 && _pos.legal (vm.move));
-            auto cap_value = _pos.see_sign (vm.move);
-            if (cap_value < VALUE_ZERO)
-            {
-                vm.value = cap_value - MaxValue;
-            }
-            else
+
             if (_pos.capture (vm.move))
             {
-                vm.value =
-                      PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                    - Value(ptype (_pos[org_sq (vm.move)]) + 1) + MaxValue;
+                auto cap_value = _pos.see_sign (vm.move);
+                if (cap_value < VALUE_ZERO)
+                {
+                    vm.value = cap_value - MaxValue;
+                }
+                else
+                {
+                    vm.value =
+                          PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                        - 200 * Value(rel_rank (_pos.active (), dst_sq (vm.move)))
+                        - Value(ptype (_pos[org_sq (vm.move)]) + 1) + MaxValue;
+                }
             }
             else
             {
@@ -223,6 +229,10 @@ namespace MovePick {
         case S_ALL_RECAPTURE:
             generate<CAPTURE> (_moves, _pos);
             filter_illegal (_moves, _pos);
+            if (_tt_move != MOVE_NONE)
+            {
+                _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            }
             _index = 0;
             if (_moves.size () > 1)
             {
@@ -233,6 +243,10 @@ namespace MovePick {
         case S_QUIET:
             generate<QUIET> (_moves, _pos);
             filter_illegal (_moves, _pos);
+            if (_tt_move != MOVE_NONE)
+            {
+                _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            }
             _index = 0;
             if (_moves.size () > 1)
             {
@@ -243,9 +257,13 @@ namespace MovePick {
                 MoveVector killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
                 if ((_ss-1)->cm_history_values != nullptr)
                 {
-                    killer_moves.push_back (_pos.thread ()->counter_moves (_pos[fix_dst_sq ((_ss-1)->current_move)], (_ss-1)->current_move));
+                    auto cm = _pos.thread ()->counter_moves (_pos[fix_dst_sq ((_ss-1)->current_move)], (_ss-1)->current_move);
+                    if (cm != MOVE_NONE)
+                    {
+                        killer_moves.push_back (cm);
+                    }
                 }
-                killer_moves.erase (std::remove (killer_moves.begin (), killer_moves.end (), MOVE_NONE), killer_moves.end ());
+                //killer_moves.erase (std::remove (killer_moves.begin (), killer_moves.end (), MOVE_NONE), killer_moves.end ());
                 remove_duplicates (killer_moves);
                 i32 k = 0;
                 for (auto km : killer_moves)
@@ -270,6 +288,10 @@ namespace MovePick {
             assert(_pos.checkers () != 0);
             generate<EVASION> (_moves, _pos);
             filter_illegal (_moves, _pos);
+            if (_tt_move != MOVE_NONE)
+            {
+                _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            }
             _index = 0;
             if (_moves.size () > 1)
             {
@@ -280,6 +302,10 @@ namespace MovePick {
         case S_QUIET_CHECK:
             generate<QUIET_CHECK> (_moves, _pos);
             filter_illegal (_moves, _pos);
+            if (_tt_move != MOVE_NONE)
+            {
+                _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            }
             _index = 0;
             break;
 
@@ -319,82 +345,61 @@ namespace MovePick {
             case S_QSEARCH_WITHOUT_CHECK:
             case S_PROBCUT:
                 ++_index;
+                assert(MoveList<LEGAL> (_pos).contains (_tt_move));
                 return _tt_move;
                 break;
 
             case S_GOOD_CAPTURE:
-                do {
+                {
                     auto move = pick_best_move (_index++).move;
-                    if (move != _tt_move)
-                    {
-                        auto see_value = _pos.see_sign (move);
-                        if (see_value >= VALUE_ZERO)
-                        {
-                            return move;
-                        }
-                        // Losing capture, add it to the bad capture moves
-                        _bad_cap_moves.push_back ({move, see_value});
-                    }
-                } while (_index < i32(_moves.size ()));
-                break;
-
-            case S_QUIET:
-                do {
-                    auto move = pick_best_move (_index++).move;
-                    if (move != _tt_move)
+                    assert(move != _tt_move);
+                    auto see_value = _pos.see_sign (move);
+                    if (see_value >= VALUE_ZERO)
                     {
                         return move;
                     }
-                } while (_index < i32(_moves.size ()));
+                    // Losing capture, add it to the bad capture moves
+                    _bad_cap_moves.push_back ({move, see_value});
+                }
+                break;
+
+            case S_QUIET:
+                return pick_best_move (_index++).move;
                 break;
 
             case S_BAD_CAPTURE:
-                {
-                    return pick_best_move (_index++).move;
-                }
+                return pick_best_move (_index++).move;
                 break;
 
             case S_ALL_EVASION:
             case S_QCAPTURE_1:
             case S_QCAPTURE_2:
-                do {
-                    auto move = pick_best_move (_index++).move;
-                    if (move != _tt_move)
-                    {
-                        return move;
-                    }
-                } while (_index < i32(_moves.size ()));
+                return pick_best_move (_index++).move;
                 break;
 
             case S_QUIET_CHECK:
-                do {
-                    auto move = _moves[_index++].move;
-                    if (move != _tt_move)
-                    {
-                        return move;
-                    }
-                } while (_index < i32(_moves.size ()));
+                return _moves[_index++].move;
                 break;
 
             case S_PROBCUT_CAPTURE:
-                do {
+                {
                     auto move = pick_best_move (_index++).move;
-                    if (   move != _tt_move
-                        && _pos.see (move) > _threshold)
+                    assert(move != _tt_move);
+                    if (_pos.see (move) > _threshold)
                     {
                         return move;
                     }
-                } while (_index < i32(_moves.size ()));
+                }
                 break;
 
             case S_ALL_RECAPTURE:
-                do {
+                {
                     auto move = pick_best_move (_index++).move;
                     if (dst_sq (move) == _recap_sq)
                     {
                         return move;
                     }
-                } while (_index < i32(_moves.size ()));
+                }
                 break;
 
             case S_STOP:

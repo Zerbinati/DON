@@ -34,14 +34,12 @@ namespace Notation {
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
 
-            auto pinneds = pos.abs_pinneds (pos.active ());
-
             auto amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
-            auto pcs = amb; // & ~pinneds; // If pinned piece is considered as ambiguous
+            auto pcs = amb; // & ~pos.abs_pinneds (pos.active ()); // If pinned piece is considered as ambiguous
             while (pcs != 0)
             {
                 auto sq = pop_lsq (pcs);
-                if (!pos.legal (mk_move<NORMAL> (sq, dst), pinneds))
+                if (!pos.legal (mk_move<NORMAL> (sq, dst)))
                 {
                     amb -= sq;
                 }
@@ -189,7 +187,7 @@ namespace Notation {
         }
 
         // Move marker for check & checkmate
-        if (pos.gives_check (m, CheckInfo (pos)))
+        if (pos.gives_check (m))
         {
             StateInfo si;
             pos.do_move (m, si, true);
@@ -270,7 +268,7 @@ namespace Notation {
                 //move_to_can (m)
                 move_to_san (m, thread->root_pos) << ' ';
             states.push_back (StateInfo ());
-            thread->root_pos.do_move (m, states.back (), thread->root_pos.gives_check (m, CheckInfo (thread->root_pos)));
+            thread->root_pos.do_move (m, states.back (), thread->root_pos.gives_check (m));
             ++ply;
         }
         for (; ply != 0; --ply)

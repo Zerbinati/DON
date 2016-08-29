@@ -3,7 +3,7 @@
   <Class Name="Position">
     <Position X="4" Y="7.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gEAAARIOAQQIGAmxdYapIgVngTEOFAVwAAg0aCBgJQA=</HashCode>
+      <HashCode>gEAAARIOAQUIGAmxdYapIgVngTEOFAVwAAg0aCBgJQA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -96,7 +96,7 @@
   <Class Name="MoveGen::MoveList&lt;GT, PT&gt;" Collapsed="true">
     <Position X="31.5" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>BBAAAAACAAAAAAAAAIAAAAAQAAEAAQAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MoveGenerator.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -111,7 +111,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>BAAAAAgCAQAAAAQAAAABgAAQBgEAACCAAAggAAAAEAA=</HashCode>
+      <HashCode>AAAAAAgAAQAAAAQAAAApgAAAAgEAACAEAAggACAAEAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -239,7 +239,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAAAAQAEAAAAAAgAIQAAAAAhAAAAAEAQAAgAAAAAIAI=</HashCode>
+      <HashCode>AAAAAQAEAAAAAAgAIQAAAAAhAAQAAEAQAAgAAAAIIAI=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -255,16 +255,6 @@
     <ShowAsCollectionAssociation>
       <Field Name="non_pawn_matl" />
     </ShowAsCollectionAssociation>
-  </Struct>
-  <Struct Name="CheckInfo">
-    <Position X="12.75" Y="18.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAIAAAAAAAAIAAAAAAAAAABBAAAAAAAAAAAgAAAAAAA=</HashCode>
-      <FileName>src\Position.h</FileName>
-    </TypeIdentifier>
-    <ShowAsAssociation>
-      <Field Name="king_sq" />
-    </ShowAsAssociation>
   </Struct>
   <Struct Name="Castling&lt;C, CS&gt;" Collapsed="true">
     <Position X="29.75" Y="2.75" Width="1.5" />
@@ -436,7 +426,7 @@
   <Struct Name="ValMove" Collapsed="true">
     <Position X="3" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAQAAAAAAAAAACAAAAAAQAAAAAAACAAAAAgAAAAAAA=</HashCode>
+      <HashCode>AAAQAAAAAAAAAACAAAAAAQAAAAAAACQAAAAgAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Struct>

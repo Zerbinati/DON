@@ -207,9 +207,9 @@ Value Position::see_sign (Move m) const
 // are blocking attacks on the square 's' from 'sliders'.
 // A piece blocks a slider if removing that piece from the board would result in a position
 // where square 's' is attacked by the 'sliders'.
-Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard target) const
+Bitboard Position::slider_blockers (Square s, Bitboard sliders) const
 {
-    Bitboard slide_blockers = 0;
+    Bitboard blockers = 0;
     // Pinners are sliders that attack 's' when a pinned piece is removed
     Bitboard pinners =
           sliders
@@ -217,14 +217,13 @@ Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard target)
            | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     while (pinners != 0)
     {
-        Bitboard blocker = between_bb (s, pop_lsq (pinners)) & pieces ();
-        if (   !more_than_one (blocker)
-            && (blocker & target) != 0)
+        Bitboard b = between_bb (s, pop_lsq (pinners)) & pieces ();
+        if (!more_than_one (b))
         {
-            slide_blockers |= blocker;
+            blockers |= b;
         }
     }
-    return slide_blockers;
+    return blockers;
 }
 // Tests whether a random move is pseudo-legal.
 // It is used to validate moves from TT that can be corrupted
@@ -387,23 +386,22 @@ bool Position::pseudo_legal (Move m) const
             return attackers_to (dst, ~_active, pieces () - org) == 0;
         }
         // Double check? In this case a king move is required
-        if (more_than_one (_si->checkers))
+        if (!more_than_one (_si->checkers))
         {
-            return false;
+            return en_passant (m) ?
+                // Move must be a capture of the checking en-passant pawn or a blocking evasion of the checking piece
+                (_si->checkers & cap) != 0 || (between_bb (scan_lsq (_si->checkers), square<KING> (_active)) & dst) != 0 :
+                // Move must be a capture of the checking piece or a blocking evasion of the checking piece
+                ((_si->checkers | between_bb (scan_lsq (_si->checkers), square<KING> (_active))) & dst) != 0;
         }
-        return en_passant (m) ?
-            // Move must be a capture of the checking en-passant pawn or a blocking evasion of the checking piece
-            (_si->checkers & cap) != 0 || (between_bb (scan_lsq (_si->checkers), square<KING> (_active)) & dst) != 0 :
-            // Move must be a capture of the checking piece or a blocking evasion of the checking piece
-            ((_si->checkers | between_bb (scan_lsq (_si->checkers), square<KING> (_active))) & dst) != 0;
+        return false;
     }
     return true;
 }
 // Tests whether a pseudo-legal move is legal
-bool Position::legal (Move m, Bitboard abs_pinned) const
+bool Position::legal (Move m) const
 {
     assert(m != MOVE_NONE);
-    assert(abs_pinned == abs_pinneds (_active));
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
@@ -434,8 +432,7 @@ bool Position::legal (Move m, Bitboard abs_pinned) const
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
-        return  abs_pinned == 0
-            || (abs_pinned & org) == 0
+        return (abs_pinneds (_active) & org) == 0
             || sqrs_aligned (org, dst, square<KING> (_active));
     }
         break;
@@ -473,20 +470,17 @@ bool Position::legal (Move m, Bitboard abs_pinned) const
     return false;
 }
 // Tests whether a pseudo-legal move gives a check
-bool Position::gives_check  (Move m, const CheckInfo &ci) const
+bool Position::gives_check  (Move m) const
 {
-    assert(ci.dsc_checkers == dsc_checkers (_active));
-
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     assert((pieces (_active) & org) != 0);
 
-    if (// Is there a Direct check ?
-           (ci.checking_bb[ptype (_board[org])] & dst) != 0
-        // Is there a Discovered check ?
-        // For discovery check we need to verify also direction
-        || (   (ci.dsc_checkers & org) != 0
-            && !sqrs_aligned (org, dst, ci.king_sq)))
+    if (// Direct check ?
+           (piece_checks (ptype (_board[org])) & dst) != 0
+        // Discovered check ?
+        || (   (dsc_checkers (_active) & org) != 0
+            && !sqrs_aligned (org, dst, square<KING> (~_active))))
     {
         return true;
     }
@@ -506,8 +500,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         dst           = rel_sq (_active, dst > org ? SQ_G1 : SQ_C1);
         auto rook_dst = rel_sq (_active, dst > org ? SQ_F1 : SQ_D1);
         // First x-ray check then full check
-        return (PieceAttacks[ROOK][rook_dst] & ci.king_sq) != 0
-            && (attacks_bb<ROOK> (rook_dst, pieces () - org - rook_org + dst + rook_dst) & ci.king_sq) != 0;
+        return (PieceAttacks[ROOK][rook_dst] & square<KING> (~_active)) != 0
+            && (attacks_bb<ROOK> (rook_dst, pieces () - org - rook_org + dst + rook_dst) & square<KING> (~_active)) != 0;
     }
         break;
 
@@ -518,38 +512,22 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
         auto mocc = pieces () - org - (_file (dst)|_rank (org)) + dst;
         // If any attacker then in check
-        return (   (pieces (_active, BSHP, QUEN) & PieceAttacks[BSHP][ci.king_sq]) != 0
-                && (pieces (_active, BSHP, QUEN) & attacks_bb<BSHP> (ci.king_sq, mocc)) != 0)
-            || (   (pieces (_active, ROOK, QUEN) & PieceAttacks[ROOK][ci.king_sq]) != 0
-                && (pieces (_active, ROOK, QUEN) & attacks_bb<ROOK> (ci.king_sq, mocc)) != 0);
+        return (   (pieces (_active, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (~_active)]) != 0
+                && (pieces (_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (~_active), mocc)) != 0)
+            || (   (pieces (_active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (~_active)]) != 0
+                && (pieces (_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (~_active), mocc)) != 0);
     }
         break;
 
     case PROMOTE:
     {
         // Promotion with check ?
-        return (attacks_bb (Piece(promote (m)), dst, pieces () - org + dst) & ci.king_sq) != 0;
+        return (attacks_bb (Piece(promote (m)), dst, pieces () - org + dst) & square<KING> (~_active)) != 0;
     }
         break;
     }
     return false;
 }
-//// Tests whether a pseudo-legal move gives a checkmate
-//bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
-//{
-//    bool checkmate = false;
-//    Position pos;
-//    StateInfo si;
-//    pos.setup (fen (true), si, _thread, true);
-//    if (pos.gives_check (m, ci))
-//    {
-//        StateInfo si;
-//        pos.do_move (m, si, true);
-//        checkmate = MoveList<LEGAL> (pos).size () == 0;
-//        pos.undo_move ();
-//    }
-//    return checkmate;
-//}
 
 // Computes the total non-pawn middle
 // game material value for the given side. Material values are updated
@@ -837,8 +815,8 @@ Position& Position::setup (const string &ff, StateInfo &si, Thread *const th, bo
     _si->non_pawn_matl[BLACK] = compute_non_pawn_material (BLACK);
     _si->clock_ply = u08(clk_ply);
     _si->capture_type = NONE;
-    _si->checkers = checkers (_active);
-
+    _si->checkers = attackers_to (square<KING> (_active), ~_active);
+    _si->set_king_info (*this);
     _thread = th;
 
     return *this;
@@ -1052,7 +1030,11 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
             key ^= (*Zob.castle_right)[pop_lsq (b)];
         }
     }
+
     assert(attackers_to (square<KING> (_active), pasive) == 0);
+
+    // Calculate checkers bitboard (if move is check)
+    _si->checkers = gives_check ? attackers_to (square<KING> (pasive), _active) : 0;
 
     // Switch sides
     _active = pasive;
@@ -1081,9 +1063,9 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     _si->posi_key     = key;
     _si->last_move    = m;
     _si->capture_type = cpt;
-    // Calculate checkers bitboard (if move is check)
-    _si->checkers = gives_check ? checkers (_active) : 0;
     ++_si->null_ply;
+    // Update king attacks used for fast check detection
+    _si->set_king_info (*this);
     ++_ply;
     ++_nodes;
 
@@ -1182,11 +1164,11 @@ void Position::do_null_move (StateInfo &si)
         _si->posi_key ^= Zob.en_passant[_file (_si->en_passant_sq)];
         _si->en_passant_sq = SQ_NO;
     }
+    _active = ~_active;
     _si->posi_key ^= Zob.active_color;
     _si->clock_ply++;
     _si->null_ply = 0;
-
-    _active = ~_active;
+    _si->set_king_info (*this);
 
     assert(ok ());
 }

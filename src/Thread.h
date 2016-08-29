@@ -98,7 +98,7 @@ public:
             StateInfo si[PVSize-1];
             while (ply < PVSize-1)
             {
-                pos.do_move (pv[ply], si[ply], pos.gives_check (pv[ply], CheckInfo (pos)));
+                pos.do_move (pv[ply], si[ply], pos.gives_check (pv[ply]));
                 ++ply;
             }
             _posi_key = pos.posi_key ();

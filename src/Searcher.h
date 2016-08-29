@@ -81,14 +81,14 @@ public:
     }
     void update (Piece pc, Move m, Value v)
     {
-        static const i32 Range = CM ? 936 : 324;
+        static const i32 Range = 324;
+        static const i32 Decay = CM ? 936 : 324;
         assert(ptype (pc) != NONE);
-        if (abs (i32(v)) <= 324)
-        {
-            auto &e = _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
-            assert (double (abs (i32(v))) / Range <= 1.0);
-            e = e*(1.0 -  double (abs (i32(v))) / Range) + 32*i32(v);
-        }
+
+        auto &e = _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
+        i32   x = std::min (std::max (i32(v), -Range), +Range);
+        assert(double (abs (x)) / Decay <= 1.0);
+        e = e*(1.0 - double (abs (x)) / Decay) + x*32;
     }
 };
 

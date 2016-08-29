@@ -166,7 +166,7 @@ namespace UCI {
                             break;
                         }
                         states.push_back (StateInfo ());
-                        root_pos.do_move (m, states.back (), root_pos.gives_check (m, CheckInfo (root_pos)));
+                        root_pos.do_move (m, states.back (), root_pos.gives_check (m));
                     }
                 }
             }
@@ -353,15 +353,13 @@ namespace UCI {
             {
                 sync_cout;
                 i32 count;
-                auto pinneds = root_pos.abs_pinneds (root_pos.active ());
-
                 if (root_pos.checkers () != 0)
                 {
                     std::cout << "\nEvasion moves: ";
                     count = 0;
                     for (const auto &vm : MoveList<EVASION> (root_pos))
                     {
-                        if (root_pos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move))
                         {
                             std::cout << move_to_san (vm.move, root_pos) << ' ';
                             ++count;
@@ -375,7 +373,7 @@ namespace UCI {
                     count = 0;
                     for (const auto &vm : MoveList<QUIET> (root_pos))
                     {
-                        if (root_pos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move))
                         {
                             std::cout << move_to_san (vm.move, root_pos) << ' ';
                             ++count;
@@ -387,7 +385,7 @@ namespace UCI {
                     count = 0;
                     for (const auto &vm : MoveList<CHECK> (root_pos))
                     {
-                        if (root_pos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move))
                         {
                             std::cout << move_to_san (vm.move, root_pos) << ' ';
                             ++count;
@@ -399,7 +397,7 @@ namespace UCI {
                     count = 0;
                     for (const auto &vm : MoveList<QUIET_CHECK> (root_pos))
                     {
-                        if (root_pos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move))
                         {
                             std::cout << move_to_san (vm.move, root_pos) << ' ';
                             ++count;
@@ -411,7 +409,7 @@ namespace UCI {
                     count = 0;
                     for (const auto &vm : MoveList<CAPTURE> (root_pos))
                     {
-                        if (root_pos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move))
                         {
                             std::cout << move_to_san (vm.move, root_pos) << ' ';
                             ++count;

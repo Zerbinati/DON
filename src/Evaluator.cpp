@@ -232,6 +232,7 @@ namespace Evaluator {
         const Score RookOnPawns     = S( 8,24); // Bonus for rook on pawns
         const Score RookTrapped     = S(92, 0); // Penalty for rook trapped
         const Score QueenWeaken     = S(35, 0); // Penalty for queen weaken
+        const Score PieceCloseKing  = S( 7, 0);
 
         const Score PieceSafeCheck  = S(20,20);
         const Score PieceProbCheck  = S(10,10);
@@ -332,8 +333,7 @@ namespace Evaluator {
                                      & (rel_rank (Opp, ek_sq) < R_5 ? pawn_pass_span (Opp, ek_sq) :
                                         rel_rank (Opp, ek_sq) < R_7 ? pawn_pass_span (Opp, ek_sq)|pawn_pass_span (Own, ek_sq) :
                                                                       pawn_pass_span (Own, ek_sq)));
-                if ((  king_zone
-                     & ei.pin_attacked_by[Own][PAWN]) != 0)
+                if ((king_zone & ei.pin_attacked_by[Own][PAWN]) != 0)
                 {
                     auto pawn_attack_count = u08(pop_count (  pos.pieces (Own, PAWN)
                                                             & (  king_zone
@@ -510,7 +510,7 @@ namespace Evaluator {
                 if (PT == QUEN)
                 {
                     // Penalty for pin or discover attack on the queen
-                    b = pos.slider_blockers (s, pos.pieces (Opp, BSHP, ROOK), pos.pieces ());
+                    b = pos.slider_blockers (s, pos.pieces (Opp, BSHP, ROOK));
                     if (b != 0)
                     {
                         score -= QueenWeaken;
@@ -570,6 +570,7 @@ namespace Evaluator {
 
             auto score = mk_score (value, -16 * king_pawn_dist);
 
+            Bitboard b;
             Bitboard non_opp = ~pos.pieces (Opp);
 
             // Main king safety evaluation
@@ -596,13 +597,11 @@ namespace Evaluator {
                     + std::min ((ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp])/10, 72)
                     +  9 * (ei.king_zone_attacks_count[Opp])
                     + 21 * (pop_count (king_zone_undef))
-                    + 12 * (  pop_count (king_ring_undef)
-                            + ((  ei.abs_pinneds [Own]
-                                | ei.dsc_checkers[Opp]) != 0 ? 1 : 0))
+                    + 12 * (pop_count (king_ring_undef))
+                    + 12 * ((  ei.abs_pinneds [Own]
+                             | ei.dsc_checkers[Opp]) != 0 ? 1 : 0)
                     - 64 * (pos.count<QUEN>(Opp) == 0)
                     - i32(value) / 8;
-
-                Bitboard b;
 
                 // Analyze enemy's queen safe contact checks.
                 // Undefended squares around the king not occupied by enemy's and attacked by enemy queen and keep squares supported by another enemy piece.
@@ -684,6 +683,18 @@ namespace Evaluator {
                 // Finally, extract the king danger score from the KingDanger[].
                 score -= KingDanger[std::min (std::max (attack_units, 0), MaxAttackUnits-1)];
             }
+
+            // King tropism: Find squares that enemy attacks in the friend king flank
+            b =   KingFlankMask[Own][_file (fk_sq)]
+                & ei.pin_attacked_by[Opp][NONE];
+            assert(((Own == WHITE ? b << 4 : b >> 4) & b) == 0);
+            assert(pop_count (Own == WHITE ? b << 4 : b >> 4) == pop_count (b));
+            // Add the squares which are attacked twice in that flank and are not protected by a friend pawn.
+            b =   (   b
+                   &  ei.dbl_attacked[Opp]
+                   & ~ei.pin_attacked_by[Own][PAWN])
+                | (Own == WHITE ? b << 4 : b >> 4);
+            score -= PieceCloseKing * pop_count (b);
 
             if (Trace)
             {
@@ -811,16 +822,6 @@ namespace Evaluator {
                 & (  shift_bb<LCap> (b)
                    | shift_bb<RCap> (b));
             score += PawnPushThreat * pop_count (b);
-
-            // King tropism: Find squares that we attack in the enemy king flank
-            b =   KingFlankMask[Opp][_file (pos.square<KING> (Opp))]
-                & ei.pin_attacked_by[Own][NONE];
-            // Add to the bitboard the squares which we attack twice in that flank but which are not protected by a enemy pawn.
-            // Note the trick to shift away the previous attack bits to the empty part of the bitboard.
-            score += mk_score (7 * pop_count (  (   b
-                                                 &  ei.dbl_attacked[Own]
-                                                 & ~ei.pin_attacked_by[Opp][PAWN])
-                                              | (Own == WHITE ? b >> 4 : b << 4)), 0);
 
             if (Trace)
             {
