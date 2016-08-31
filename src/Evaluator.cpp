@@ -232,7 +232,7 @@ namespace Evaluator {
         const Score RookOnPawns     = S( 8,24); // Bonus for rook on pawns
         const Score RookTrapped     = S(92, 0); // Penalty for rook trapped
         const Score QueenWeaken     = S(35, 0); // Penalty for queen weaken
-        const Score PieceCloseKing  = S( 7, 0);
+        const Score KingTropism     = S( 7, 0);
 
         const Score PieceSafeCheck  = S(20,20);
         const Score PieceProbCheck  = S(10,10);
@@ -694,7 +694,7 @@ namespace Evaluator {
                    &  ei.dbl_attacked[Opp]
                    & ~ei.pin_attacked_by[Own][PAWN])
                 | (Own == WHITE ? b << 4 : b >> 4);
-            score -= PieceCloseKing * pop_count (b);
+            score -= KingTropism * pop_count (b);
 
             if (Trace)
             {

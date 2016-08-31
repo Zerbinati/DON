@@ -186,6 +186,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
         else
         {
             limits.start_time = now ();
+            limits.elapsed_time = 0;
             Threadpool.start_thinking (pos, states, limits);
             Threadpool.wait_while_thinking ();
             total_nodes += Threadpool.nodes ();

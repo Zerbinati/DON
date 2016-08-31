@@ -3,7 +3,7 @@
   <Class Name="Position">
     <Position X="4" Y="7.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gEAAARIOAQUIGAmxdYapIgVngTEOFAVwAAg0aCBgJQA=</HashCode>
+      <HashCode>gEAAARIOAQQIGAmxdYapIgVngTEOFAVwAAg0aCBgJQA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -239,7 +239,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAAAAQAEAAAAAAgAIQAAAAAhAAQAAEAQAAgAAAAIIAI=</HashCode>
+      <HashCode>AAAAAQAEAQAIAAgAIQAAAAAhAAAAAEAQAAgAAAAAIAI=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -334,7 +334,7 @@
     </ShowAsCollectionAssociation>
   </Struct>
   <Struct Name="Stack">
-    <Position X="14" Y="12.75" Width="1.5" />
+    <Position X="14.75" Y="12.25" Width="1.5" />
     <AssociationLine Name="current_move" Type="Move">
       <MemberNameLabel ManuallyPlaced="true">
         <Position X="-0.361" Y="0.309" />
@@ -416,7 +416,7 @@
       <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\xstddef</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="ValueStats&lt;CM&gt;" Collapsed="true">
+  <Struct Name="PieceValueStats&lt;CM&gt;" Collapsed="true">
     <Position X="17.5" Y="2.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AEAAAAAAAAAAAgAAEAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
@@ -430,7 +430,7 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="MoveStats" Collapsed="true">
+  <Struct Name="PieceCMoveStats" Collapsed="true">
     <Position X="15.25" Y="3.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AEAAAAAAAAAAAgAAEAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
@@ -584,7 +584,7 @@
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="FValueStats" Collapsed="true">
+  <Typedef Name="FPieceValueStats" Collapsed="true">
     <Position X="16.75" Y="4.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
@@ -598,7 +598,7 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="TValueStats" Collapsed="true">
+  <Typedef Name="TPieceValueStats" Collapsed="true">
     <Position X="18.5" Y="4.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>

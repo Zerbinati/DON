@@ -475,9 +475,12 @@ bool Position::gives_check  (Move m) const
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     assert((pieces (_active) & org) != 0);
+    
+    auto mpt = ptype (_board[org]);
 
     if (// Direct check ?
-           (piece_checks (ptype (_board[org])) & dst) != 0
+           (   mpt != KING
+            && (checks (mpt) & dst) != 0)
         // Discovered check ?
         || (   (dsc_checkers (_active) & org) != 0
             && !sqrs_aligned (org, dst, square<KING> (~_active))))
@@ -625,9 +628,7 @@ bool Position::can_en_passant (Square ep_sq) const
         return false;
     }
     // En-passant attackers
-    auto attackers =
-          pieces (_active, PAWN)
-        & PawnAttacks[~_active][ep_sq];
+    auto attackers = pieces (_active, PAWN) & PawnAttacks[~_active][ep_sq];
     assert(pop_count (attackers) <= 2);
     if (attackers != 0)
     {
@@ -816,7 +817,7 @@ Position& Position::setup (const string &ff, StateInfo &si, Thread *const th, bo
     _si->clock_ply = u08(clk_ply);
     _si->capture_type = NONE;
     _si->checkers = attackers_to (square<KING> (_active), ~_active);
-    _si->set_king_info (*this);
+    _si->set_check_info (*this);
     _thread = th;
 
     return *this;
@@ -1065,7 +1066,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     _si->capture_type = cpt;
     ++_si->null_ply;
     // Update king attacks used for fast check detection
-    _si->set_king_info (*this);
+    _si->set_check_info (*this);
     ++_ply;
     ++_nodes;
 
@@ -1168,7 +1169,7 @@ void Position::do_null_move (StateInfo &si)
     _si->posi_key ^= Zob.active_color;
     _si->clock_ply++;
     _si->null_ply = 0;
-    _si->set_king_info (*this);
+    _si->set_check_info (*this);
 
     assert(ok ());
 }

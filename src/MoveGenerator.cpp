@@ -26,7 +26,7 @@ namespace MoveGen {
                     {
                         continue;
                     }
-                    targets &= pos.piece_checks (PT);
+                    targets &= pos.checks (PT);
                 }
 
                 if ((PieceAttacks[PT][s] & targets) != 0)
@@ -139,8 +139,8 @@ namespace MoveGen {
                 if (   GT == CHECK
                     || GT == QUIET_CHECK)
                 {
-                    push_1 &= pos.piece_checks (PAWN);
-                    push_2 &= pos.piece_checks (PAWN);
+                    push_1 &= pos.checks (PAWN);
+                    push_2 &= pos.checks (PAWN);
                     // Pawns which give discovered check
                     // Add pawn pushes which give discovered check.
                     // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
@@ -167,8 +167,8 @@ namespace MoveGen {
                 Bitboard attack_r = enemies & shift_bb<RCap> (Rx_pawns);
                 if (GT == CHECK)
                 {
-                    attack_l &= pos.piece_checks (PAWN);
-                    attack_r &= pos.piece_checks (PAWN);
+                    attack_l &= pos.checks (PAWN);
+                    attack_r &= pos.checks (PAWN);
                     // Pawns which give discovered check
                     // Add pawn captures which give discovered check.
                     Bitboard dsc_pawns = Rx_pawns & pos.dsc_checkers (pos.active ());

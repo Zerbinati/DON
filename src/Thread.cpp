@@ -28,30 +28,26 @@ namespace {
     // Data was extracted from the CCRL game database with some simple filtering criteria.
     double move_importance (i16 ply)
     {
-        //                                      PlyShift / PlyScale, PlySkewRate
-        return std::max (pow (1.0 + exp ((ply - 58.400) / 7.640), -0.183), DBL_MIN); // Ensure non-zero
+        return std::max (std::pow (1.0 + std::exp ((ply - 58.400) / 7.640), -0.183), DBL_MIN); // Ensure non-zero
     }
 
     template<bool Maximum>
-    // Calculate the remaining time.
     TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
     {
-        // When in trouble, can step over reserved time with this ratio
-        static const auto  StepRatio = Maximum ? 7.09 : 1.00;
-        // However must not steal time from remaining moves over this ratio
-        static const auto StealRatio = Maximum ? 0.35 : 0.00;
+        static const auto  StepRatio = Maximum ? 7.09 : 1.00; // When in trouble, can step over reserved time with this ratio
+        static const auto StealRatio = Maximum ? 0.35 : 0.00; // However must not steal time from remaining moves over this ratio
 
-        auto  this_move_imp = move_importance (ply) * MoveSlowness;
-        auto other_move_imp = 0.0;
+        auto move_imp1 = move_importance (ply) * MoveSlowness;
+        auto move_imp2 = 0.0;
         for (u08 i = 1; i < movestogo; ++i)
         {
-            other_move_imp += move_importance (ply + 2 * i);
+            move_imp2 += move_importance (ply + 2 * i);
         }
 
-        auto  step_time_ratio = (this_move_imp * StepRatio + other_move_imp * 0.00      ) / (this_move_imp * StepRatio + other_move_imp);
-        auto steal_time_ratio = (this_move_imp * 1.00      + other_move_imp * StealRatio) / (this_move_imp * 1.00      + other_move_imp);
+        auto time_ratio1 = (move_imp1 * StepRatio + move_imp2 * 0.00      ) / (move_imp1 * StepRatio + move_imp2 * 1.00);
+        auto time_ratio2 = (move_imp1 * 1.00      + move_imp2 * StealRatio) / (move_imp1 * 1.00      + move_imp2 * 1.00);
 
-        return TimePoint(std::round (time * std::min (step_time_ratio, steal_time_ratio))); // Intel C++ asks for an explicit cast
+        return TimePoint(std::round (time * std::min (time_ratio1, time_ratio2)));
     }
 }
 

@@ -34,6 +34,7 @@ public:
     MoveVector search_moves;        // Restrict search to these root moves only
 
     TimePoint start_time = 0;
+    TimePoint elapsed_time = 0;
 
     bool use_time_management () const
     {
@@ -46,7 +47,7 @@ public:
 };
 
 template<bool CM>
-struct ValueStats
+struct PieceValueStats
 {
 private:
     Value _table[CLR_NO][NONE][SQ_NO][SQ_NO];
@@ -71,19 +72,19 @@ public:
 
     Value& operator() (Piece pc, Move m)
     {
-        assert(ptype (pc) != NONE);
+        assert(pc != NO_PIECE);
         return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
     }
     const Value& operator() (Piece pc, Move m) const
     {
-        assert(ptype (pc) != NONE);
+        assert(pc != NO_PIECE);
         return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
     }
     void update (Piece pc, Move m, Value v)
     {
         static const i32 Range = 324;
         static const i32 Decay = CM ? 936 : 324;
-        assert(ptype (pc) != NONE);
+        assert(pc != NO_PIECE);
 
         auto &e = _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
         i32   x = std::min (std::max (i32(v), -Range), +Range);
@@ -92,10 +93,51 @@ public:
     }
 };
 
-typedef ValueStats<false>   FValueStats;
-typedef ValueStats<true >   TValueStats;
+typedef PieceValueStats<false>   FPieceValueStats;
+typedef PieceValueStats<true >   TPieceValueStats;
 
-struct MoveStats
+struct ColorValueStats
+{
+private:
+    Value _table[CLR_NO][SQ_NO][SQ_NO];
+
+public:
+    void clear ()
+    {
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+            {
+                for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+                {
+                    _table[c][s1][s2] = VALUE_ZERO;
+                }
+            }
+        }
+    }
+
+    Value& operator() (Color c, Move m)
+    {
+        return _table[c][org_sq (m)][dst_sq (m)];
+    }
+    const Value& operator() (Color c, Move m) const
+    {
+        return _table[c][org_sq (m)][dst_sq (m)];
+    }
+
+    void update (Color c, Move m, Value v)
+    {
+        static const i32 Range = 324;
+        static const i32 Decay = 324;
+
+        auto &e = _table[c][org_sq (m)][dst_sq (m)];
+        i32   x = std::min (std::max (i32(v), -Range), +Range);
+        assert (double (abs (x)) / Decay <= 1.0);
+        e = e*(1.0 - double (abs (x)) / Decay) + x*32;
+    }
+};
+
+struct PieceCMoveStats
 {
 private:
     Move _table[CLR_NO][NONE][SQ_NO][SQ_NO];
@@ -237,7 +279,7 @@ struct Stack
     Value static_eval;
     u08   move_count;
     bool  skip_pruning;
-    TValueStats *cm_history_values;
+    TPieceValueStats *cm_history;
 
     MoveVector pv;
 };

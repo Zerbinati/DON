@@ -193,7 +193,7 @@ namespace Searcher {
         struct CMValueStats
         {
         private:
-            TValueStats _table[CLR_NO][NONE][SQ_NO];
+            TPieceValueStats _table[CLR_NO][NONE][SQ_NO];
 
         public:
             void clear ()
@@ -210,19 +210,19 @@ namespace Searcher {
                 }
             }
 
-            TValueStats& operator() (Piece pc, Square s)
+            TPieceValueStats& operator() (Piece pc, Square s)
             {
                 assert(ptype (pc) != NONE);
                 return _table[color (pc)][ptype (pc)][s];
             }
-            const TValueStats& operator() (Piece pc, Square s) const
+            const TPieceValueStats& operator() (Piece pc, Square s) const
             {
                 assert(ptype (pc) != NONE);
                 return _table[color (pc)][ptype (pc)][s];
             }
         };
 
-        CMValueStats CMHistoryValues;
+        CMValueStats CMHistory;
 
 // prefetch() preloads the given address in L1/L2 cache.
 // This is a non-blocking function that doesn't stall
@@ -260,23 +260,24 @@ namespace Searcher {
 
 #endif
 
-        // Razor margin lookup table (initialize at startup)
-        // [depth]
-        Value RazorMargins[3];
-        // Futility move count lookup table (initialize at startup)
-        // [improving][depth]
-        u08   FutilityMoveCounts[2][16];
+        const i16 MaxRazorDepth = 4;
+        // RazorMargins[depth]
+        Value RazorMargins[MaxRazorDepth];
 
-        const u08 ReductionMoveCount = 64;
-        // ReductionDepths lookup table (initialize at startup)
-        // [pv][improving][depth][move_count]
-        i16 ReductionDepths[2][2][64][ReductionMoveCount];
+        const i16 MaxFutilityDepth = 16;
+        // FutilityMoveCounts[improving][depth]
+        u08 FutilityMoveCounts[2][MaxFutilityDepth];
+
+        const i16 MaxReductionDepth = 64;
+        const u08 MaxReductionMoveCount = 64;
+        // ReductionDepths[pv][improving][depth][move_count]
+        i16 ReductionDepths[2][2][MaxReductionDepth][MaxReductionMoveCount];
         i16 reduction_depth (bool PVNode, bool imp, i16 d, u08 mc)
         {
             return ReductionDepths[PVNode ? 1 : 0]
                                   [imp ? 1 : 0]
-                                  [min (d, i16(64 - 1))]
-                                  [min (mc, u08(ReductionMoveCount-1))];
+                                  [min (d, i16(MaxReductionDepth-1))]
+                                  [min (mc, u08(MaxReductionMoveCount-1))];
         }
 
         Value DrawValue     [CLR_NO]
@@ -289,14 +290,11 @@ namespace Searcher {
         // to detect when out of available limits and thus stop the search.
         void check_limits ()
         {
-            static auto last_info_time = now ();
-
             auto elapsed_time = Threadpool.time_mgr.elapsed_time ();
 
-            auto now_time = Limits.start_time + elapsed_time;
-            if (now_time - last_info_time >= MilliSec)
+            if (elapsed_time - Limits.elapsed_time >= MilliSec)
             {
-                last_info_time = now_time;
+                Limits.elapsed_time = elapsed_time;
                 dbg_print ();
             }
 
@@ -315,8 +313,28 @@ namespace Searcher {
             }
         }
 
-        // update_stats() updates killers, history, countermoves, countermoves and followupmoves history stats
-        void update_stats (const Position &pos, Stack *const &ss, Move move, Value bonus, const MoveVector &quiet_moves)
+        // update_cm_stats() updates countermoves and followupmoves history stats
+        void update_cm_stats (Stack *const &ss, Piece pc, Move move, Value bonus)
+        {
+            assert(pc != NO_PIECE);
+            assert(move != MOVE_NONE);
+
+            if ((ss-1)->cm_history != nullptr)
+            {
+                (ss-1)->cm_history->update (pc, move, bonus);
+            }
+            if ((ss-2)->cm_history != nullptr)
+            {
+                (ss-2)->cm_history->update (pc, move, bonus);
+            }
+            if ((ss-4)->cm_history != nullptr)
+            {
+                (ss-4)->cm_history->update (pc, move, bonus);
+            }
+        }
+
+        // update_stats() updates killers, history, countermoves and followupmoves history stats
+        void update_stats (Stack *const &ss, const Position &pos, Move move, Value bonus, const MoveVector &quiet_moves)
         {
             assert(!pos.empty (org_sq (move)));
 
@@ -326,68 +344,28 @@ namespace Searcher {
                 ss->killer_moves[0] = move;
             }
 
-            pos.thread ()->history_values.update (pos[org_sq (move)], move, bonus);
+            if ((ss-1)->cm_history != nullptr)
+            {
+                pos.thread ()->piece_cmove.update (pos[fix_dst_sq ((ss-1)->current_move)], (ss-1)->current_move, move);
+            }
 
-            if ((ss-1)->cm_history_values != nullptr)
-            {
-                auto opp_move = (ss-1)->current_move;
-                auto fix_move_dst = fix_dst_sq (opp_move);
-                pos.thread ()->counter_moves.update (pos[fix_move_dst], opp_move, move);
-
-                (ss-1)->cm_history_values->update (pos[org_sq (move)], move, bonus);
-            }
-            if ((ss-2)->cm_history_values != nullptr)
-            {
-                (ss-2)->cm_history_values->update (pos[org_sq (move)], move, bonus);
-            }
-            if ((ss-4)->cm_history_values != nullptr)
-            {
-                (ss-4)->cm_history_values->update (pos[org_sq (move)], move, bonus);
-            }
+            pos.thread ()->piece_history.update (pos[org_sq (move)], move, bonus);
+            pos.thread ()->color_history.update (pos.active (), move, bonus);
+            update_cm_stats (ss, pos[org_sq (move)], move, bonus);
 
             // Decrease all the other played quiet moves
             assert(std::find (quiet_moves.begin (), quiet_moves.end (), move) == quiet_moves.end ());
             for (auto m : quiet_moves)
             {
-                pos.thread ()->history_values.update (pos[org_sq (m)], m, -bonus);
-
-                if ((ss-1)->cm_history_values != nullptr)
-                {
-                    (ss-1)->cm_history_values->update (pos[org_sq (m)], m, -bonus);
-                }
-                if ((ss-2)->cm_history_values != nullptr)
-                {
-                    (ss-2)->cm_history_values->update (pos[org_sq (m)], m, -bonus);
-                }
-                if ((ss-4)->cm_history_values != nullptr)
-                {
-                    (ss-4)->cm_history_values->update (pos[org_sq (m)], m, -bonus);
-                }
+                pos.thread ()->piece_history.update (pos[org_sq (m)], m, -bonus);
+                pos.thread ()->color_history.update (pos.active (), m, -bonus);
+                update_cm_stats (ss, pos[org_sq (m)], m, -bonus);
             }
         }
-        void update_stats (const Position &pos, Stack *const &ss, Move move, Value bonus)
+        void update_stats (Stack *const &ss, const Position &pos, Move move, Value bonus)
         {
             static const MoveVector quiet_moves (0);
-            update_stats (pos, ss, move, bonus, quiet_moves);
-        }
-
-        void update_cm_stats (const Position &pos, Stack *const &ss, Move move, Value bonus)
-        {
-            assert(move != MOVE_NONE);
-            auto fix_move_dst = fix_dst_sq (move);
-
-            if ((ss-2)->cm_history_values != nullptr)
-            {
-                (ss-2)->cm_history_values->update (pos[fix_move_dst], move, bonus);
-            }
-            if ((ss-3)->cm_history_values != nullptr)
-            {
-                (ss-3)->cm_history_values->update (pos[fix_move_dst], move, bonus);
-            }
-            if ((ss-5)->cm_history_values != nullptr)
-            {
-                (ss-5)->cm_history_values->update (pos[fix_move_dst], move, bonus);
-            }
+            update_stats (ss, pos, move, bonus, quiet_moves);
         }
 
         // update_pv() appends the move and child pv[]
@@ -497,7 +475,7 @@ namespace Searcher {
             }
 
             ss->current_move = MOVE_NONE;
-            ss->cm_history_values = nullptr;
+            ss->cm_history = nullptr;
 
             // Check for an immediate draw or maximum ply reached
             if (   pos.draw ()
@@ -530,22 +508,22 @@ namespace Searcher {
                                 value_of_tt (tte->value (), ss->ply) :
                                 VALUE_NONE;
 
-            // Decide whether or not to include checks,
-            // this fixes also the type of TT entry depth that are going to use.
-            // Note that in quien_search use only 2 depth in TT: QS_CHECK (0) or QS_NO_CHECK (-1).
+            // Decide whether or not to include checks.
+            // Fixes also the type of TT entry depth that are going to use.
+            // Note that in quien_search use only 2 types of depth: (0) or (-1).
             i16 qs_depth = InCheck || depth == 0 ? 0 : -1;
 
             if (   !PVNode
                 && tt_ext
-                && tte->depth () >= qs_depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
+                && tte->depth () >= qs_depth
                 && (  tte->bound ()
                     & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
             {
                 if (tt_move != MOVE_NONE)
                 {
                     ss->current_move = tt_move;
-                    ss->cm_history_values = &CMHistoryValues(pos[org_sq (tt_move)], dst_sq (tt_move));
+                    ss->cm_history = &CMHistory(pos[org_sq (tt_move)], dst_sq (tt_move));
                 }
                 return tt_value;
             }
@@ -629,13 +607,12 @@ namespace Searcher {
             auto *th = pos.thread ();
             auto best_move = MOVE_NONE;
 
-            // Initialize move picker for the current position, and prepare to search the moves.
+            // Initialize move picker for the current position.
             MovePicker mp (pos, tt_move, depth, (ss-1)->current_move);
             StateInfo si;
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
-                // Check for legality before making the move
                 assert(pos.pseudo_legal (move)
                     && pos.legal (move));
 
@@ -646,25 +623,22 @@ namespace Searcher {
                 auto dst = dst_sq (move);
 
                 bool gives_check =
-                       mtype (move) == NORMAL
+                       mpt != KING
+                    && mtype (move) == NORMAL
                     && pos.dsc_checkers (pos.active ()) == 0 ?
-                        (pos.piece_checks (mpt) & dst) != 0 :
+                        (pos.checks (mpt) & dst) != 0 :
                         pos.gives_check (move);
 
                 // Futility pruning
                 if (   !InCheck
-                    && Limits.mate == 0
                     && futility_base > -VALUE_KNOWN_WIN
                     && futility_base <= alfa
                     && !gives_check
+                    && Limits.mate == 0
                         // Advance pawn push
                     && !(   mpt == PAWN
                          && rel_rank (pos.active (), dst) > R_5))
                 {
-                    // Due to not advanced pawn push
-                    assert(mtype (move) != ENPASSANT
-                        && mtype (move) != PROMOTE);
-
                     // Futility pruning parent node
                     auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst])];
                     if (futility_value <= alfa)
@@ -691,15 +665,15 @@ namespace Searcher {
                         // Evasion Prunable: Detect non-capture evasions that are candidate to be pruned
                         || (   best_value > -VALUE_MATE_IN_MAX_PLY
                             && !pos.capture (move)))
-                    && Limits.mate == 0
                     && mtype (move) != PROMOTE
+                    && Limits.mate == 0
                     && pos.see_sign (move) < VALUE_ZERO)
                 {
                     continue;
                 }
 
                 ss->current_move = move;
-                ss->cm_history_values = &CMHistoryValues(mpc, dst);
+                ss->cm_history = &CMHistory(mpc, dst);
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
@@ -829,7 +803,7 @@ namespace Searcher {
 
             ss->move_count = 0;
             ss->current_move = MOVE_NONE;
-            ss->cm_history_values = nullptr;
+            ss->cm_history = nullptr;
 
             if (!root_node)
             {
@@ -898,28 +872,28 @@ namespace Searcher {
             // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
                 && tt_ext
-                && tte->depth () >= depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
+                && tte->depth () >= depth
                 && (  tte->bound ()
                     & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
             {
                 if (tt_move != MOVE_NONE)
                 {
                     ss->current_move = tt_move;
-                    ss->cm_history_values = &CMHistoryValues(pos[org_sq (tt_move)], dst_sq (tt_move));
+                    ss->cm_history = &CMHistory(pos[org_sq (tt_move)], dst_sq (tt_move));
 
                     // If tt_move is quiet, update killers, history, countermove and countermoves history on TT hit
                     if (tt_value >= beta)
                     {
                         if (!pos.capture_or_promotion (tt_move))
                         {
-                            update_stats (pos, ss, tt_move, +Value((depth+1)*(depth+1)));
+                            update_stats (ss, pos, tt_move, +Value((depth+1)*(depth+1)-3));
                         }
                         // Penalty for a quiet TT move in previous ply when it gets refuted
                         if (   (ss-1)->move_count == 1
                             && pos.capture_type () == NONE)
                         {
-                            update_cm_stats (pos, ss, (ss-1)->current_move, -Value((depth+2)*(depth+2)));
+                            update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], (ss-1)->current_move, -Value((depth+2)*(depth+2)-3));
                         }
                     }
                 }
@@ -1014,9 +988,9 @@ namespace Searcher {
                     // Betting that the opponent doesn't have a move that will reduce
                     // the score by more than futility margins [depth] if do a null move.
                     if (   !root_node
-                        && Limits.mate == 0
                         && depth < 7
                         && tt_eval < +VALUE_KNOWN_WIN
+                        && Limits.mate == 0
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
                     {
                         auto stand_pat = tt_eval - 150*depth;
@@ -1029,13 +1003,12 @@ namespace Searcher {
                     // Step 7. Razoring sort of forward pruning where rather than
                     // skipping an entire subtree, search it to a reduced depth.
                     if (   !PVNode
-                        && Limits.mate == 0
                         && tt_move == MOVE_NONE
-                        && depth < 3
+                        && depth < MaxRazorDepth
+                        && Limits.mate == 0
                         && tt_eval + RazorMargins[depth] <= alfa)
                     {
-                        if (   depth == 1
-                            && tt_eval + RazorMargins[0] <= alfa)
+                        if (depth == 1)
                         {
                             return quien_search<false, false> (pos, ss, alfa, beta, 0);
                         }
@@ -1049,18 +1022,18 @@ namespace Searcher {
 
                     // Step 8. Null move search with verification search
                     if (   !PVNode
-                        && Limits.mate == 0
                         && tt_eval >= beta
+                        && Limits.mate == 0
                         && (   depth > 12
                             || ss->static_eval + 35*(depth - 6) >= beta)
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
                     {
                         assert(exclude_move == MOVE_NONE);
                         assert((ss-1)->current_move != MOVE_NONE
-                            && (ss-1)->cm_history_values != nullptr);
+                            && (ss-1)->cm_history != nullptr);
 
                         ss->current_move = MOVE_NULL;
-                        ss->cm_history_values = nullptr;
+                        ss->cm_history = nullptr;
 
                         // Null move dynamic reduction based on depth and static evaluation
                         auto reduced_depth = i16(depth - (67*depth + 823) / 256 + std::min (i16(tt_eval - beta)/200, 3));
@@ -1108,28 +1081,25 @@ namespace Searcher {
                     }
 
                     // Step 9. ProbCut
-                    // If have a very good capture (i.e. SEE > see[captured_piece_type])
-                    // and a reduced search returns a value much above beta,
+                    // If good enough capture and a reduced search returns a value much above beta,
                     // then can (almost) safely prune the previous move.
                     if (   !PVNode
-                        && Limits.mate == 0
                         && depth > 4
+                        && Limits.mate == 0
                         && abs (beta) < +VALUE_MATE_IN_MAX_PLY)
                     {
-                        // ProbCut shallow depth
                         auto reduced_depth = i16(depth - 4);
                         auto beta_margin = std::min (beta + 200, +VALUE_INFINITE);
 
                         assert(reduced_depth > 0);
                         assert((ss-1)->current_move != MOVE_NONE
-                            && (ss-1)->cm_history_values != nullptr);
+                            && (ss-1)->cm_history != nullptr);
 
-                        // Initialize move picker for the current position, and prepare to search the moves.
-                        MovePicker mp (pos, tt_move, PieceValues[MG][pos.capture_type ()]);
-                        // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
+                        // Initialize move picker for the current position.
+                        MovePicker mp (pos, tt_move, beta_margin - ss->static_eval);
+                        // Loop through all legal moves until no moves remain or a beta cutoff occurs.
                         while ((move = mp.next_move ()) != MOVE_NONE)
                         {
-                            // Check for legality before making the move
                             assert(pos.pseudo_legal (move)
                                 && pos.legal (move));
 
@@ -1140,12 +1110,13 @@ namespace Searcher {
                             auto dst = dst_sq (move);
 
                             ss->current_move = move;
-                            ss->cm_history_values = &CMHistoryValues(mpc, dst);
+                            ss->cm_history = &CMHistory(mpc, dst);
 
                             bool gives_check =
-                                   mtype (move) == NORMAL
+                                   mpt != KING
+                                && mtype (move) == NORMAL
                                 && pos.dsc_checkers (pos.active ()) == 0 ?
-                                    (pos.piece_checks(mpt) & dst) != 0 :
+                                    (pos.checks (mpt) & dst) != 0 :
                                     pos.gives_check (move);
                             bool capture_or_promotion = pos.capture_or_promotion (move);
 
@@ -1235,13 +1206,12 @@ namespace Searcher {
             MoveVector quiet_moves;
             quiet_moves.reserve (16);
 
-            // Initialize move picker for the current position, and prepare to search the moves.
+            // Initialize move picker for the current position.
             MovePicker mp (pos, tt_move, ss);
             // Step 11. Loop through moves
-            // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
+            // Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
-                // Check for legality before making the move
                 assert(pos.pseudo_legal (move)
                     && pos.legal (move));
 
@@ -1287,14 +1257,15 @@ namespace Searcher {
                 }
 
                 bool gives_check =
-                       mtype (move) == NORMAL
+                       mpt != KING
+                    && mtype (move) == NORMAL
                     && pos.dsc_checkers (pos.active ()) == 0 ?
-                        (pos.piece_checks(mpt) & dst) != 0 :
+                        (pos.checks (mpt) & dst) != 0 :
                         pos.gives_check (move);
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 bool move_count_pruning =
-                       depth < 16
+                       depth < MaxFutilityDepth
                     && move_count >= FutilityMoveCounts[improving][depth];
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
@@ -1331,19 +1302,14 @@ namespace Searcher {
                 // Step 13. Pruning at shallow depth
                 if (   !InCheck
                     && !root_node
-                    && Limits.mate == 0
                     && !capture_or_promotion
-                    && best_value > -VALUE_MATE_IN_MAX_PLY
-                        // ! Dangerous conditions
                     && !gives_check
+                    && best_value > -VALUE_MATE_IN_MAX_PLY
+                    && Limits.mate == 0
                         // Advance pawn push
                     && !(   mpt == PAWN
                          && rel_rank (pos.active (), dst) > R_5))
                 {
-                    // Due to not advanced pawn push
-                    assert(mtype (move) != ENPASSANT
-                        && mtype (move) != PROMOTE);
-
                     // Move count based pruning
                     if (move_count_pruning)
                     {
@@ -1354,11 +1320,10 @@ namespace Searcher {
                     auto predicted_depth = std::max (new_depth - reduction_depth (PVNode, improving, new_depth, move_count), 0);
                     if (    // Counter move values based pruning
                            (   predicted_depth < 3
-                            && move != ss->killer_moves[0]
-                            && ((ss-1)->cm_history_values == nullptr || (*(ss-1)->cm_history_values)(mpc, move) < VALUE_ZERO)
-                            && ((ss-2)->cm_history_values == nullptr || (*(ss-2)->cm_history_values)(mpc, move) < VALUE_ZERO)
-                            && (  ((ss-1)->cm_history_values != nullptr && (ss-2)->cm_history_values != nullptr)
-                                || (ss-4)->cm_history_values == nullptr || (*(ss-4)->cm_history_values)(mpc, move) < VALUE_ZERO))
+                            && ((ss-1)->cm_history == nullptr || (*(ss-1)->cm_history)(mpc, move) < VALUE_ZERO)
+                            && ((ss-2)->cm_history == nullptr || (*(ss-2)->cm_history)(mpc, move) < VALUE_ZERO)
+                            && (  ((ss-1)->cm_history != nullptr && (ss-2)->cm_history != nullptr)
+                                || (ss-4)->cm_history == nullptr || (*(ss-4)->cm_history)(mpc, move) < VALUE_ZERO))
                             // Futility pruning: parent node
                         || (   predicted_depth < 7
                             && ss->static_eval + 200*predicted_depth + 256 <= alfa)
@@ -1372,7 +1337,7 @@ namespace Searcher {
                 }
 
                 ss->current_move = move;
-                ss->cm_history_values = &CMHistoryValues(mpc, dst);
+                ss->cm_history = &CMHistory(mpc, dst);
 
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
@@ -1424,10 +1389,11 @@ namespace Searcher {
 
                         // Decrease/Increase reduction for moves with +ve/-ve history
                         reduce_depth -=
-                            i16(double(  th->history_values(mpc, move)
-                                       + ((ss-1)->cm_history_values != nullptr ? (*(ss-1)->cm_history_values)(mpc, move) : VALUE_ZERO)
-                                       + ((ss-2)->cm_history_values != nullptr ? (*(ss-2)->cm_history_values)(mpc, move) : VALUE_ZERO)
-                                       + ((ss-4)->cm_history_values != nullptr ? (*(ss-4)->cm_history_values)(mpc, move) : VALUE_ZERO))/20000 - 0.4);
+                            i16(double(  th->piece_history(mpc, move)
+                                       + th->color_history(~pos.active (), move)
+                                       + ((ss-1)->cm_history != nullptr ? (*(ss-1)->cm_history)(mpc, move) : VALUE_ZERO)
+                                       + ((ss-2)->cm_history != nullptr ? (*(ss-2)->cm_history)(mpc, move) : VALUE_ZERO)
+                                       + ((ss-4)->cm_history != nullptr ? (*(ss-4)->cm_history)(mpc, move) : VALUE_ZERO))/20000 - 0.4);
                     }
 
                     if (reduce_depth < 0)
@@ -1451,8 +1417,8 @@ namespace Searcher {
                     i08 i = 0;
                     while (   i < 2
                            && full_depth_search
-                           && new_depth >= 8*i32(pow (4, i))
-                           && new_depth <= 2*i32(pow (2, i))*reduce_depth)
+                           && new_depth >= 8*i32(std::pow (4, i))
+                           && new_depth <= 2*i32(std::pow (2, i))*reduce_depth)
                     {
                         reduce_depth = reduce_depth / 2;
                         value =
@@ -1622,22 +1588,22 @@ namespace Searcher {
             {
                 if (!pos.capture_or_promotion (best_move))
                 {
-                    update_stats (pos, ss, best_move, +Value((depth+1)*(depth+1)), quiet_moves);
+                    update_stats (ss, pos, best_move, +Value((depth+1)*(depth+1)-3), quiet_moves);
                 }
                 // Penalty for a quiet best move in previous ply when it gets refuted
                 if (   (ss-1)->move_count == 1
                     && pos.capture_type () == NONE)
                 {
-                    update_cm_stats (pos, ss, (ss-1)->current_move, -Value((depth+2)*(depth+2)));
+                    update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], (ss-1)->current_move, -Value((depth+2)*(depth+2)-3));
                 }
             }
             else
             // Bonus for prior countermove that caused the fail low
             if (   depth > 2
-                && (ss-1)->cm_history_values != nullptr
+                && (ss-1)->cm_history != nullptr
                 && pos.capture_type () == NONE)
             {
-                update_cm_stats (pos, ss, (ss-1)->current_move, +Value((depth+1)*(depth+1)));
+                update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], (ss-1)->current_move, +Value((depth+1)*(depth+1)-3));
             }
 
             tte->save (posi_key,
@@ -1708,20 +1674,20 @@ namespace Searcher {
     // Initialize various lookup tables during startup
     void initialize ()
     {
-        for (i16 d = 0; d < 3; ++d)
+        for (i16 d = 1; d < MaxRazorDepth; ++d)
         {
-            RazorMargins[d] = Value(d != 0 ? 64*d + 474 : 570);
+            RazorMargins[d] = Value(32*d + 538);
         }
-        for (i16 d = 0; d < 16; ++d)
+        for (i16 d = 0; d < MaxFutilityDepth; ++d)
         {
-            FutilityMoveCounts[0][d] = u08(0.773 * pow (d + 0.00, 1.8) + 2.40);
-            FutilityMoveCounts[1][d] = u08(1.045 * pow (d + 0.49, 1.8) + 2.90);
+            FutilityMoveCounts[0][d] = u08(0.773 * std::pow (d + 0.00, 1.8) + 2.40);
+            FutilityMoveCounts[1][d] = u08(1.045 * std::pow (d + 0.49, 1.8) + 2.90);
         }
         for (u08 imp = 0; imp < 2; ++imp)
         {
-            for (i16 d = 1; d < 64; ++d)
+            for (i16 d = 1; d < MaxReductionDepth; ++d)
             {
-                for (u08 mc = 1; mc < ReductionMoveCount; ++mc)
+                for (u08 mc = 1; mc < MaxReductionMoveCount; ++mc)
                 {
                     auto r = log (d) * log (mc) / 2;
                     if (r >= 0.80)
@@ -1742,7 +1708,7 @@ namespace Searcher {
     void clear ()
     {
         TT.clear ();
-        CMHistoryValues.clear ();
+        CMHistory.clear ();
         Threadpool.clear ();
     }
 }
@@ -1768,7 +1734,7 @@ namespace Threading {
             s->static_eval  = VALUE_ZERO;
             s->move_count   = 0;
             s->skip_pruning = false;
-            s->cm_history_values = nullptr;
+            s->cm_history = nullptr;
             assert(s->pv.empty ());
         }
 
@@ -1863,12 +1829,7 @@ namespace Threading {
                 // Reset aspiration window starting size.
                 if (running_depth > 4)
                 {
-                    window = 
-                        // Fix window
-                        Value(18);
-                        //// Increasing window
-                        //Value(running_depth <= 32 ? 16 + (depth-1)/4 : 24);
-
+                    window = Value(18);
                     alfa = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
                     beta = std::min (root_moves[pv_index].old_value + window, +VALUE_INFINITE);
                 }

@@ -182,8 +182,9 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        FValueStats history_values;
-        MoveStats   counter_moves;
+        FPieceValueStats  piece_history;
+        ColorValueStats   color_history;
+        PieceCMoveStats   piece_cmove;
 
         Thread ();
         Thread (const Thread&) = delete;
@@ -195,8 +196,9 @@ namespace Threading {
         {
             pawn_table.clear ();
             matl_table.clear ();
-            history_values.clear ();
-            counter_moves.clear ();
+            piece_history.clear ();
+            color_history.clear ();
+            piece_cmove.clear ();
         }
 
         // Wakes up the thread that will start the search

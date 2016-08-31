@@ -27,7 +27,7 @@ using namespace BitBoard;
 struct StateInfo
 {
 public:
-    // Copied when making a move
+    // ---Copied when making a move---
     Key         matl_key;       // Hash key of materials.
     Key         pawn_key;       // Hash key of pawns.
 
@@ -40,19 +40,19 @@ public:
                                 // Used to determine if a draw can be claimed under the clock-move rule.
     u08         null_ply;   
 
-    // Not copied when making a move
+    // ---Not copied when making a move---
     Key         posi_key;       // Hash key of position.
     Move        last_move;      // Move played on the previous position.
     PieceType   capture_type;   // Piece type captured.
-    Bitboard    checkers;       // Checkers bitboard.
+    Bitboard    checkers;       // Checkers.
 
-    // King info
-    Bitboard king_blockers[CLR_NO]; // Pins and Discover Checkers
-    Bitboard checking_bb[NONE];
+    // Check info
+    Bitboard check_blockers[CLR_NO]; // Pins and Discover Checkers
+    Bitboard checks[NONE];
 
     StateInfo   *ptr;           // Previous StateInfo.
 
-    void set_king_info (const Position &pos);
+    void set_check_info (const Position &pos);
 
 };
 
@@ -198,7 +198,7 @@ public:
     Bitboard slider_blockers (Square s, Bitboard sliders) const;
     Bitboard abs_pinneds (Color c) const;
     Bitboard dsc_checkers (Color c) const;
-    Bitboard piece_checks (PieceType pt) const;
+    Bitboard checks (PieceType pt) const;
 
     bool pseudo_legal   (Move m) const;
     bool legal          (Move m) const;
@@ -411,16 +411,16 @@ inline Bitboard Position::attackers_to (Square s) const
 // Absolute pinneds are friend pieces, that save the friend king from enemy checkers.
 inline Bitboard Position::abs_pinneds (Color c) const
 {
-    return _si->king_blockers[ c] & pieces (c);
+    return _si->check_blockers[ c] & pieces (c);
 }
 // Discovered checkers are friend pieces, that give the discover check to enemy king when moved.
 inline Bitboard Position::dsc_checkers (Color c) const
 {
-    return _si->king_blockers[~c] & pieces (c);
+    return _si->check_blockers[~c] & pieces (c);
 }
-inline Bitboard Position::piece_checks (PieceType pt) const
+inline Bitboard Position::checks (PieceType pt) const
 {
-    return _si->checking_bb[pt];
+    return _si->checks[pt];
 }
 
 // Check if pawn passed at the given square
@@ -556,17 +556,17 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
     return os;
 }
 
-inline void StateInfo::set_king_info (const Position &pos)
+inline void StateInfo::set_check_info (const Position &pos)
 {
-    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), pos.pieces (BLACK));
-    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), pos.pieces (WHITE));
+    check_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), pos.pieces (BLACK));
+    check_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), pos.pieces (WHITE));
 
-    checking_bb[PAWN] = PawnAttacks[~pos.active ()][pos.square<KING> (~pos.active ())];
-    checking_bb[NIHT] = PieceAttacks[NIHT][pos.square<KING> (~pos.active ())];
-    checking_bb[BSHP] = attacks_bb<BSHP> (pos.square<KING> (~pos.active ()), pos.pieces ());
-    checking_bb[ROOK] = attacks_bb<ROOK> (pos.square<KING> (~pos.active ()), pos.pieces ());
-    checking_bb[QUEN] = checking_bb[BSHP] | checking_bb[ROOK];
-    checking_bb[KING] = 0;
+    checks[PAWN] = PawnAttacks[~pos.active ()][pos.square<KING> (~pos.active ())];
+    checks[NIHT] = PieceAttacks[NIHT][pos.square<KING> (~pos.active ())];
+    checks[BSHP] = attacks_bb<BSHP> (pos.square<KING> (~pos.active ()), pos.pieces ());
+    checks[ROOK] = attacks_bb<ROOK> (pos.square<KING> (~pos.active ()), pos.pieces ());
+    checks[QUEN] = checks[BSHP] | checks[ROOK];
+    checks[KING] = 0;
 }
 
 #if !defined(NDEBUG)

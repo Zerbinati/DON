@@ -28,7 +28,7 @@ namespace MovePick {
         };
 
         // Remove duplicates keeping order unchanged
-        template<typename T>
+        template<class T>
         void remove_duplicates (std::vector<T> &vec)
         {
             std::set<T> set;
@@ -173,10 +173,11 @@ namespace MovePick {
                 && _pos.legal (vm.move));
 
             vm.value =
-                  _pos.thread ()->history_values(_pos[org_sq (vm.move)], vm.move)
-                + ((_ss-1)->cm_history_values != nullptr ? (*(_ss-1)->cm_history_values)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
-                + ((_ss-2)->cm_history_values != nullptr ? (*(_ss-2)->cm_history_values)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
-                + ((_ss-4)->cm_history_values != nullptr ? (*(_ss-4)->cm_history_values)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO);
+                  _pos.thread ()->piece_history(_pos[org_sq (vm.move)], vm.move)
+                + _pos.thread ()->color_history(_pos.active (), vm.move)
+                + ((_ss-1)->cm_history != nullptr ? (*(_ss-1)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
+                + ((_ss-2)->cm_history != nullptr ? (*(_ss-2)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
+                + ((_ss-4)->cm_history != nullptr ? (*(_ss-4)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO);
         }
     }
 
@@ -209,7 +210,8 @@ namespace MovePick {
             else
             {
                 vm.value =
-                      _pos.thread ()->history_values(_pos[org_sq (vm.move)], vm.move);
+                      _pos.thread ()->piece_history(_pos[org_sq (vm.move)], vm.move)
+                    + _pos.thread ()->color_history(_pos.active (), vm.move);
             }
         }
     }
@@ -255,15 +257,16 @@ namespace MovePick {
             // Move killers to top of quiet move
             {
                 MoveVector killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
-                if ((_ss-1)->cm_history_values != nullptr)
+                if ((_ss-1)->cm_history != nullptr)
                 {
-                    auto cm = _pos.thread ()->counter_moves (_pos[fix_dst_sq ((_ss-1)->current_move)], (_ss-1)->current_move);
-                    if (cm != MOVE_NONE)
+                    auto cm = _pos.thread ()->piece_cmove (_pos[fix_dst_sq ((_ss-1)->current_move)], (_ss-1)->current_move);
+                    if (   cm != MOVE_NONE
+                        && cm != _tt_move)
                     {
                         killer_moves.push_back (cm);
                     }
                 }
-                //killer_moves.erase (std::remove (killer_moves.begin (), killer_moves.end (), MOVE_NONE), killer_moves.end ());
+                killer_moves.erase (std::remove (killer_moves.begin (), killer_moves.end (), MOVE_NONE), killer_moves.end ());
                 remove_duplicates (killer_moves);
                 i32 k = 0;
                 for (auto km : killer_moves)
