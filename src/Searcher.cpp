@@ -1426,7 +1426,7 @@ namespace Searcher {
                         ss->cm_history = nullptr;
 
                         // Null move dynamic reduction based on depth and static evaluation
-                        auto reduced_depth = i16(depth - (67*depth + 823) / 256 + std::min (i16(tt_eval - beta)/200, 3));
+                        auto reduced_depth = i16(depth - (67*depth + 823) / 256 + std::min (i16(tt_eval - beta)/VALUE_MG_PAWN, 3));
 
                         // Speculative prefetch as early as possible
                         prefetch (TT.cluster_entry (  pos.posi_key ()
@@ -1718,7 +1718,7 @@ namespace Searcher {
                             && ss->static_eval + 200*predicted_depth + 256 <= alfa)
                             // SEE pruning below a decreasing threshold with depth.
                         || (   predicted_depth < 8
-                            && pos.see_sign (move) < -400*std::max (predicted_depth - 3, 0)))
+                            && pos.see_sign (move) < -VALUE_MG_PAWN*2*std::max (predicted_depth - 3, 0)))
                     {
                         continue;
                     }

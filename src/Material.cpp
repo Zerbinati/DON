@@ -11,35 +11,25 @@ namespace Material {
 
         // Polynomial material imbalance parameters:
 
-        const i32 OwnSideLinearCoefficient[NONE] =
+        const i32 OwnQuadratic[NONE][NONE] =
         {
-            - 168, // P
-            -1027, // N
-            - 166, // B 
-            + 238, // R
-            - 138, // Q
-            +1667  // BP
-        };
-
-        const i32 OwnSideQuadraticCoefficient[NONE][NONE] =
-        {
-            //          OWN PIECES
+            //          Own Pieces
             //  P     N     B     R     Q    BP
-            { +  2,    0,    0,    0,    0, + 40 }, // P
-            { +255, -  3,    0,    0,    0, + 32 }, // N
-            { +104, +  4,    0,    0,    0,    0 }, // B     OWN PIECES
-            { -  2, + 47, +105, -149,    0, - 26 }, // R
-            { + 24, +122, +137, -134,    0, -185 }, // Q
-            {    0,    0,    0,    0,    0,    0 }  // BP
+            { +  2,    0,    0,    0,    0, +  40 }, // P
+            { +255, -  3,    0,    0,    0, +  32 }, // N
+            { +104, +  4,    0,    0,    0,     0 }, // B     Own Pieces
+            { -  2, + 47, +105, -149,    0, -  26 }, // R
+            { + 24, +122, +137, -134,    0, - 185 }, // Q
+            {    0,    0,    0,    0,    0, +1667 }  // BP
         };
 
-        const i32 OppSideQuadraticCoefficient[NONE][NONE] =
+        const i32 OppQuadratic[NONE][NONE] =
         {
-            //          OPP PIECES
+            //          Opp Pieces
             //  P     N     B     R     Q    BP
             {    0,    0,    0,    0,    0, + 36 }, // P
             { + 63,    0,    0,    0,    0, +  9 }, // N
-            { + 65, + 42,    0,    0,    0, + 59 }, // B     OWN PIECES
+            { + 65, + 42,    0,    0,    0, + 59 }, // B     Own Pieces
             { + 39, + 24, - 24,    0,    0, + 46 }, // R
             { +100, - 37, +141, +268,    0, +101 }, // Q
             {    0,    0,    0,    0,    0,    0 }  // BP
@@ -57,33 +47,36 @@ namespace Material {
         // Calculates the imbalance by comparing the piece count of each piece type for both colors.
         // NOTE:: KING == BISHOP_PAIR
         template<Color Own>
-        Value imbalance (const i32 count[][NONE])
+        Value imbalance (const i32 (*count)[NONE])
         {
             static const auto Opp = Own == WHITE ? BLACK : WHITE;
 
             i32 value = 0;
 
             // "The Evaluation of Material Imbalances in Chess"
-
             // Second-degree polynomial material imbalance by Tord Romstad
             for (auto pt1 = PAWN; pt1 < KING; ++pt1)
             {
                 if (count[Own][pt1] != 0)
                 {
-                    auto v = OwnSideLinearCoefficient[pt1];
+                    i32 v = 0;
 
                     for (auto pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
-                        v += count[Own][pt2] * OwnSideQuadraticCoefficient[pt1][pt2]
-                          +  count[Opp][pt2] * OppSideQuadraticCoefficient[pt1][pt2];
+                        v += count[Own][pt2] * OwnQuadratic[pt1][pt2]
+                          +  count[Opp][pt2] * OppQuadratic[pt1][pt2];
                     }
-                    v += count[Own][KING] * OwnSideQuadraticCoefficient[pt1][KING]
-                      +  count[Opp][KING] * OppSideQuadraticCoefficient[pt1][KING];
+                    v += count[Own][KING] * OwnQuadratic[pt1][KING]
+                      +  count[Opp][KING] * OppQuadratic[pt1][KING];
 
                     value += count[Own][pt1] * v;
                 }
             }
-            value += count[Own][KING] * OwnSideLinearCoefficient[KING];
+            if (count[Own][KING] != 0)
+            {
+                value += count[Own][KING] * OwnQuadratic[KING][KING];
+                      //+  count[Opp][KING] * OppQuadratic[KING][KING];
+            }
 
             return Value(value);
         }
