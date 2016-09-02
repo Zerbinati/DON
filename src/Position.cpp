@@ -198,10 +198,11 @@ Value Position::see_sign (Move m) const
     assert(m != MOVE_NONE);
     // If SEE cannot be negative because captured piece value is not less then capturing one.
     // Note that king moves always return here because king value is set to VALUE_ZERO.
-    return (  PieceValues[MG][ptype (_board[org_sq (m)])]
-           <= PieceValues[MG][ptype (_board[dst_sq (m)])]) ?
-        VALUE_KNOWN_WIN :
-        see (m);
+    return
+        (   PieceValues[MG][ptype (_board[org_sq (m)])]
+         <= PieceValues[MG][ptype (_board[dst_sq (m)])]) ?
+            VALUE_KNOWN_WIN :
+            see (m);
 }
 // Returns a bitboard of all the pieces in 'target' that
 // are blocking attacks on the square 's' from 'sliders'.
@@ -367,7 +368,17 @@ bool Position::pseudo_legal (Move m) const
     }
     else
     {
-        if ((attacks_bb (_board[org], org, pieces ()) & dst) == 0)
+        Bitboard attacks = 0;
+        switch (mpt)
+        {
+        case NIHT: attacks = PieceAttacks[NIHT][org];           break;
+        case BSHP: attacks = attacks_bb<BSHP> (org, pieces ()); break;
+        case ROOK: attacks = attacks_bb<ROOK> (org, pieces ()); break;
+        case QUEN: attacks = attacks_bb<QUEN> (org, pieces ()); break;
+        case KING: attacks = PieceAttacks[KING][org];           break;
+        default: assert(false); break;
+        }
+        if ((attacks & dst) == 0)
         {
             return false;
         }
@@ -479,8 +490,7 @@ bool Position::gives_check  (Move m) const
     auto mpt = ptype (_board[org]);
 
     if (// Direct check ?
-           (   mpt != KING
-            && (checks (mpt) & dst) != 0)
+           ((checks (mpt) & dst) != 0)
         // Discovered check ?
         || (   (dsc_checkers (_active) & org) != 0
             && !sqrs_aligned (org, dst, square<KING> (~_active))))
@@ -513,19 +523,26 @@ bool Position::gives_check  (Move m) const
         // En-passant capture with check ?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
-        auto mocc = pieces () - org - (_file (dst)|_rank (org)) + dst;
-        // If any attacker then in check
         return (   (pieces (_active, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (~_active)]) != 0
-                && (pieces (_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (~_active), mocc)) != 0)
+                && (pieces (_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (~_active), pieces () - org - (_file (dst)|_rank (org)) + dst)) != 0)
             || (   (pieces (_active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (~_active)]) != 0
-                && (pieces (_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (~_active), mocc)) != 0);
+                && (pieces (_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (~_active), pieces () - org - (_file (dst)|_rank (org)) + dst)) != 0);
     }
         break;
 
     case PROMOTE:
     {
         // Promotion with check ?
-        return (attacks_bb (Piece(promote (m)), dst, pieces () - org + dst) & square<KING> (~_active)) != 0;
+        Bitboard attacks = 0;
+        switch (promote (m))
+        {
+        case NIHT: attacks = PieceAttacks[NIHT][dst];                       break;
+        case BSHP: attacks = attacks_bb<BSHP> (dst, pieces () - org + dst); break;
+        case ROOK: attacks = attacks_bb<ROOK> (dst, pieces () - org + dst); break;
+        case QUEN: attacks = attacks_bb<QUEN> (dst, pieces () - org + dst); break;
+        default: assert(false); break;
+        }
+        return (attacks & square<KING> (~_active)) != 0;
     }
         break;
     }

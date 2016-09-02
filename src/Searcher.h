@@ -82,14 +82,14 @@ public:
     }
     void update (Piece pc, Move m, Value v)
     {
-        static const i32 Range = 324;
-        static const i32 Decay = CM ? 936 : 324;
         assert(pc != NO_PIECE);
-
-        auto &e = _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
-        i32   x = std::min (std::max (i32(v), -Range), +Range);
-        assert(double (abs (x)) / Decay <= 1.0);
-        e = e*(1.0 - double (abs (x)) / Decay) + x*32;
+        
+        i32 x = abs(i32(v));
+        if (x < 324)
+        {
+            auto &e = _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
+            e = e*(1.0 - double(x) / (CM ? 936 : 324)) + i32(v)*32;
+        }
     }
 };
 
@@ -127,13 +127,12 @@ public:
 
     void update (Color c, Move m, Value v)
     {
-        static const i32 Range = 324;
-        static const i32 Decay = 324;
-
-        auto &e = _table[c][org_sq (m)][dst_sq (m)];
-        i32   x = std::min (std::max (i32(v), -Range), +Range);
-        assert (double (abs (x)) / Decay <= 1.0);
-        e = e*(1.0 - double (abs (x)) / Decay) + x*32;
+        i32 x = abs(i32(v));
+        if (x < 324)
+        {
+            auto &e = _table[c][org_sq (m)][dst_sq (m)];
+            e = e*(1.0 - double(x) / 324) + i32(v)*32;
+        }
     }
 };
 
@@ -267,6 +266,7 @@ inline std::basic_ostream<CharT, Traits>&
     return os;
 }
 
+
 const u08 MaxKillers = 2;
 // Stack keeps the information of the nodes in the tree during the search.
 struct Stack
@@ -282,6 +282,46 @@ struct Stack
     TPieceValueStats *cm_history;
 
     MoveVector pv;
+};
+
+// MovePicker class is used to pick one legal moves from the current position.
+// next_move() which returns a new legal move each time it is called, until there are no moves left,
+class MovePicker
+{
+private:
+    const Position &_pos;
+    const Stack *const _ss = nullptr;
+
+    std::vector<ValMove> _moves;
+    std::vector<ValMove> _bad_cap_moves;
+
+    i32     _index      = 0;
+    u08     _stage      = 0;
+
+    Move    _tt_move    = MOVE_NONE;
+    Square  _recap_sq   = SQ_NO;
+    Value   _threshold  = VALUE_ZERO;
+
+    // value() assign a numerical move ordering score to each move in a move list.
+    // The moves with highest scores will be picked first.
+    template<GenType GT>
+    void value ();
+
+    void generate_next_stage ();
+
+    ValMove& pick_best_move (i32 i);
+
+public:
+
+    MovePicker () = delete;
+    MovePicker (const MovePicker&) = delete;
+    MovePicker& operator= (const MovePicker&) = delete;
+
+    MovePicker (const Position&, Move, const Stack *const&);
+    MovePicker (const Position&, Move, i16, Move);
+    MovePicker (const Position&, Move, Value);
+
+    Move next_move ();
 };
 
 namespace Searcher {

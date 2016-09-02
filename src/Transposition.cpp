@@ -2,6 +2,7 @@
 
 #include <string>
 #include <fstream>
+#include <iostream>
 
 #include "BitBoard.h"
 #include "Engine.h"

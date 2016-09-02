@@ -81,7 +81,7 @@ using namespace Threading;
 class Position
 {
 private:
-    Piece       _board[SQ_NO];  // Board for storing pieces.
+    Piece       _board[SQ_NO];
 
     Bitboard    _color_bb[CLR_NO];
     Bitboard    _types_bb[MAX_PTYPE];
@@ -125,8 +125,6 @@ public:
     Position& operator= (const Position &pos) = delete;
 
     Piece operator[] (Square s) const;
-    //Bitboard operator[] (Color  c) const;
-    //Bitboard operator[] (PieceType pt) const;
     const SquareVector& operator[] (Piece p)  const;
 
     bool empty  (Square s)  const;
@@ -155,7 +153,6 @@ public:
     u08  clock_ply () const;
     Move last_move () const;
     PieceType capture_type () const;
-    //Piece  capture_piece () const;  // Last piece captured
     Bitboard checkers () const;
 
     Key matl_key () const;
@@ -237,8 +234,6 @@ public:
 };
 
 inline Piece Position::operator[] (Square s) const { return _board[s]; }
-//inline Bitboard Position::operator[] (Color  c) const { return _color_bb[c];  }
-//inline Bitboard Position::operator[] (PieceType pt) const { return _types_bb[pt]; }
 inline const SquareVector& Position::operator[] (Piece  p) const { return _piece_sq[color (p)][ptype (p)]; }
 
 inline bool Position::empty  (Square s)  const { return _board[s] == NO_PIECE; }
@@ -316,7 +311,6 @@ inline Square Position::en_passant_sq () const { return _si->en_passant_sq; }
 inline u08 Position::clock_ply () const { return _si->clock_ply; }
 inline Move Position::last_move () const { return _si->last_move; }
 inline PieceType Position::capture_type () const { return _si->capture_type; }
-//inline Piece  Position::capture_piece () const { return _ok (_si->capture_type) ? _active|_si->capture_type : NO_PIECE; }
 inline Bitboard Position::checkers () const { return _si->checkers; }
 
 inline Key Position::matl_key () const { return _si->matl_key; }

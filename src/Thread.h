@@ -3,14 +3,15 @@
 
 #include <bitset>
 #include <thread>
-#include <iostream>
+#include <atomic>
 
 #include "thread_win32.h"
+#include "Type.h"
 #include "PRNG.h"
 #include "Position.h"
 #include "Pawns.h"
 #include "Material.h"
-#include "MovePicker.h"
+#include "Searcher.h"
 
 extern double MoveSlowness;
 extern u32    NodesTime;

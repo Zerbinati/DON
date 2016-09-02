@@ -100,25 +100,6 @@
       <FileName>src\MoveGenerator.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="MovePick::MovePicker">
-    <Position X="5.75" Y="22.5" Width="1.75" />
-    <Compartments>
-      <Compartment Name="Fields" Collapsed="true" />
-    </Compartments>
-    <AssociationLine Name="_tt_move" Type="Move">
-      <MemberNameLabel ManuallyPlaced="true">
-        <Position X="0.14" Y="0.063" />
-      </MemberNameLabel>
-    </AssociationLine>
-    <TypeIdentifier>
-      <HashCode>AAAAAAgAAQAAAAQAAAApgAAAAgEAACAEAAggACAAEAA=</HashCode>
-      <FileName>src\MovePicker.h</FileName>
-    </TypeIdentifier>
-    <ShowAsAssociation>
-      <Field Name="_pos" />
-      <Field Name="_tt_move" />
-    </ShowAsAssociation>
-  </Class>
   <Class Name="Transposition::Table">
     <Position X="21.5" Y="12.5" Width="1.5" />
     <Compartments>
@@ -142,7 +123,7 @@
   <Class Name="Threading::Thread">
     <Position X="6.5" Y="4" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAECCgCQIAAAAghEACCABIDAAAAASAACBgAAABCgA=</HashCode>
+      <HashCode>AEAAECCgCQIAAQBgBEACCABIBAAAAASAACBgAAABCkA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -215,6 +196,13 @@
     <TypeIdentifier>
       <HashCode>AEAAAAAgAAEAAAAAAACAAoAAoAAIAAAEAAAgAAAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="MovePicker">
+    <Position X="23.25" Y="2.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAgAAQAAAAQAAAApgAAAAgEAACAEAAggACAAEAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Class>
   <Struct Name="BitBases::`anonymous-namespace'::KPK_Position">
@@ -351,7 +339,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AIAAAAAAAAAAAAAAAAQAAAAAAwAACAAAAAAIQCAQAAA=</HashCode>
+      <HashCode>AIAAAAAAAAAAAAAAAAQAAAAAAwAACAAAAAAAQCAQgAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -391,7 +379,7 @@
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>AgAAAAAAAAAAAAABAAACEAAAAAAAAAAAAIgCMAAAIAI=</HashCode>
+      <HashCode>AgAAAAAAAAAAAAAJAAACEAAAAAAAAAAAAIgCMAAAIAI=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -432,6 +420,13 @@
   </Struct>
   <Struct Name="PieceCMoveStats" Collapsed="true">
     <Position X="15.25" Y="3.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AEAAAAAAAAAAAgAAEAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="ColorValueStats" Collapsed="true">
+    <Position X="15.25" Y="4" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AEAAAAAAAAAAAgAAEAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
