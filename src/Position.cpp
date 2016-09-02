@@ -293,10 +293,10 @@ bool Position::pseudo_legal (Move m) const
     case ENPASSANT:
     {
         if (!(   mpt == PAWN
+              && empty (dst)
               && _si->en_passant_sq == dst
               && rel_rank (_active, org) == R_5
-              && rel_rank (_active, dst) == R_6
-              && empty (dst)))
+              && rel_rank (_active, dst) == R_6))
         {
             return false;
         }
@@ -329,39 +329,30 @@ bool Position::pseudo_legal (Move m) const
     // Handle the special case of a piece move
     if (mpt == PAWN)
     {
-        auto org_rel_rank = rel_rank (_active, org);
-        auto dst_rel_rank = rel_rank (_active, dst);
-        // In case of any moves origin & destination cannot be on the 1st/8th & 1st/2nd rank.
-        if (   org_rel_rank == R_1
-            || dst_rel_rank == R_2
-            || org_rel_rank == R_8
-            || dst_rel_rank == R_1)
-        {
-            return false;
-        }
         // In case of non-promotional moves origin & destination cannot be on the 7th/2nd & 8th/1st rank.
         if (   mtype (m) != PROMOTE
-            && (   org_rel_rank == R_7
-                || dst_rel_rank == R_8))
+            && (   rel_rank (_active, org) == R_7
+                || rel_rank (_active, dst) == R_8))
         {
             return false;
         }
-        if (   // Not a capture
-               !(((PawnAttacks[_active][org] & pieces (~_active)) & dst) != 0)
-               // Not an enpassant capture
-            && !(   mtype (m) == ENPASSANT 
-                 && _si->en_passant_sq == dst
-                 && ((PawnAttacks[_active][org] & ~pieces ()) & dst) != 0
-                 && _board[cap] == (~_active|PAWN))
-               // Not a single push
-            && !(   empty (dst)
+        if (   // Not a single push
+               !(   empty (dst)
                  && (org + pawn_push (_active) == dst))
+            && // Not a normal capture
+               !(   mtype (m) != ENPASSANT
+                 && ((pieces (~_active) & PawnAttacks[_active][org]) & dst) != 0)
+               // Not an enpassant capture
+            && !(   mtype (m) == ENPASSANT
+                 && _si->en_passant_sq == dst
+                 && ((~pieces () & PawnAttacks[_active][org]) & dst) != 0
+                 && _board[cap] == (~_active|PAWN))
                // Not a double push
-            && !(   org_rel_rank == R_2
-                 && dst_rel_rank == R_4
+            && !(   rel_rank (_active, org) == R_2
+                 && rel_rank (_active, dst) == R_4
                  && empty (dst)
                  && empty (dst - pawn_push (_active))
-                 && (org + 2*pawn_push (_active) == dst)))
+                 && (org + pawn_push (_active)*2 == dst)))
         {
             return false;
         }
@@ -865,18 +856,18 @@ Position& Position::setup (const string &code, StateInfo &si, Color c)
 
 #undef do_capture
 
-#define do_capture()                                                     \
-    remove_piece (cap);                                                  \
-    if (cpt == PAWN)                                                     \
-    {                                                                    \
-        _si->pawn_key ^= Zob.piece_square[pasive][cpt][cap];             \
-    }                                                                    \
-    else                                                                 \
-    {                                                                    \
-        _si->non_pawn_matl[pasive] -= PieceValues[MG][cpt];              \
-    }                                                                    \
-    _si->matl_key ^= Zob.piece_square[pasive][cpt][count (pasive, cpt)]; \
-    key ^= Zob.piece_square[pasive][cpt][cap];                           \
+#define do_capture()                                                        \
+    remove_piece (cap);                                                     \
+    if (cpt == PAWN)                                                        \
+    {                                                                       \
+        _si->pawn_key ^= Zob.piece_square_key[pasive][cpt][cap];            \
+    }                                                                       \
+    else                                                                    \
+    {                                                                       \
+        _si->non_pawn_matl[pasive] -= PieceValues[MG][cpt];                 \
+    }                                                                       \
+    _si->matl_key ^= Zob.piece_square_key[pasive][cpt][count (pasive, cpt)];\
+    key ^= Zob.piece_square_key[pasive][cpt][cap];                          \
     _si->psq_score -= PSQ[pasive][cpt][cap];
 
 // Do the natural-move
@@ -885,7 +876,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     assert(m != MOVE_NONE);
     assert(&si != _si);
 
-    Key key = _si->posi_key ^ Zob.active_color;
+    Key key = _si->posi_key ^ Zob.color_key;
     // Copy some fields of old state info to new state info object except
     // the ones which are going to be recalculated from scratch anyway, 
     std::memcpy (&si, _si, offsetof(StateInfo, posi_key));
@@ -940,8 +931,8 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         if (mpt == PAWN)
         {
             _si->pawn_key ^=
-                 Zob.piece_square[_active][mpt][dst]
-                ^Zob.piece_square[_active][mpt][org];
+                 Zob.piece_square_key[_active][mpt][dst]
+                ^Zob.piece_square_key[_active][mpt][org];
         }
     }
         break;
@@ -956,8 +947,8 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         do_castling<true> (org, dst, rook_org, rook_dst);
 
         key ^=
-             Zob.piece_square[_active][ROOK][rook_dst]
-            ^Zob.piece_square[_active][ROOK][rook_org];
+             Zob.piece_square_key[_active][ROOK][rook_dst]
+            ^Zob.piece_square_key[_active][ROOK][rook_org];
 
         _si->psq_score +=
              PSQ[_active][ROOK][rook_dst]
@@ -988,8 +979,8 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         move_piece (org, dst);
 
         _si->pawn_key ^=
-             Zob.piece_square[_active][mpt][dst]
-            ^Zob.piece_square[_active][mpt][org];
+             Zob.piece_square_key[_active][mpt][dst]
+            ^Zob.piece_square_key[_active][mpt][org];
     }
         break;
 
@@ -1016,11 +1007,11 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         place_piece (dst, _active, ppt);
 
         _si->matl_key ^=
-             Zob.piece_square[_active][mpt][count (_active, mpt)]
-            ^Zob.piece_square[_active][ppt][count (_active, ppt) - 1];
+             Zob.piece_square_key[_active][mpt][count (_active, mpt)]
+            ^Zob.piece_square_key[_active][ppt][count (_active, ppt) - 1];
 
         _si->pawn_key ^=
-             Zob.piece_square[_active][mpt][org];
+             Zob.piece_square_key[_active][mpt][org];
 
         _si->non_pawn_matl[_active] += PieceValues[MG][ppt];
     }
@@ -1028,8 +1019,8 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     }
 
     key ^=
-         Zob.piece_square[_active][ppt][dst]
-        ^Zob.piece_square[_active][mpt][org];
+         Zob.piece_square_key[_active][ppt][dst]
+        ^Zob.piece_square_key[_active][mpt][org];
 
     _si->psq_score +=
          PSQ[_active][ppt][dst]
@@ -1045,7 +1036,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         _si->castle_rights &= ~cr;
         while (b != 0)
         {
-            key ^= (*Zob.castle_right)[pop_lsq (b)];
+            key ^= (*Zob.castle_right_key)[pop_lsq (b)];
         }
     }
 
@@ -1060,7 +1051,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     // Reset en-passant square
     if (_si->en_passant_sq != SQ_NO)
     {
-        key ^= Zob.en_passant[_file (_si->en_passant_sq)];
+        key ^= Zob.en_passant_key[_file (_si->en_passant_sq)];
         _si->en_passant_sq = SQ_NO;
     }
     // If the moving piece is a pawn check for en-passant square
@@ -1073,7 +1064,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
             if (can_en_passant (ep_sq))
             {
                 _si->en_passant_sq = ep_sq;
-                key ^= Zob.en_passant[_file (ep_sq)];
+                key ^= Zob.en_passant_key[_file (ep_sq)];
             }
         }
     }
@@ -1179,11 +1170,11 @@ void Position::do_null_move (StateInfo &si)
 
     if (_si->en_passant_sq != SQ_NO)
     {
-        _si->posi_key ^= Zob.en_passant[_file (_si->en_passant_sq)];
+        _si->posi_key ^= Zob.en_passant_key[_file (_si->en_passant_sq)];
         _si->en_passant_sq = SQ_NO;
     }
     _active = ~_active;
-    _si->posi_key ^= Zob.active_color;
+    _si->posi_key ^= Zob.color_key;
     _si->clock_ply++;
     _si->null_ply = 0;
     _si->set_check_info (*this);

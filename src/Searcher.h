@@ -53,6 +53,7 @@ private:
     Value _table[CLR_NO][NONE][SQ_NO][SQ_NO];
 
 public:
+
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -70,16 +71,12 @@ public:
         }
     }
 
-    Value& operator() (Piece pc, Move m)
+    Value operator() (Piece pc, Move m) const
     {
         assert(pc != NO_PIECE);
         return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
     }
-    const Value& operator() (Piece pc, Move m) const
-    {
-        assert(pc != NO_PIECE);
-        return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
-    }
+
     void update (Piece pc, Move m, Value v)
     {
         assert(pc != NO_PIECE);
@@ -102,6 +99,7 @@ private:
     Value _table[CLR_NO][SQ_NO][SQ_NO];
 
 public:
+
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -116,11 +114,7 @@ public:
         }
     }
 
-    Value& operator() (Color c, Move m)
-    {
-        return _table[c][org_sq (m)][dst_sq (m)];
-    }
-    const Value& operator() (Color c, Move m) const
+    Value operator() (Color c, Move m) const
     {
         return _table[c][org_sq (m)][dst_sq (m)];
     }
@@ -142,6 +136,7 @@ private:
     Move _table[CLR_NO][NONE][SQ_NO][SQ_NO];
 
 public:
+
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -159,12 +154,7 @@ public:
         }
     }
 
-    Move& operator() (Piece pc, Move m)
-    {
-        assert(ptype (pc) != NONE);
-        return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
-    }
-    const Move& operator() (Piece pc, Move m) const
+    Move operator() (Piece pc, Move m) const
     {
         assert(ptype (pc) != NONE);
         return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];

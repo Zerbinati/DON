@@ -8,8 +8,6 @@ using namespace BitBoard;
 
 namespace Zobrists {
 
-    Key Zobrist::ExclusionKey = 0;
-
     Key Zobrist::compute_matl_key (const Position &pos) const
     {
         Key matl_key = 0;
@@ -19,12 +17,13 @@ namespace Zobrists {
             {
                 for (auto pc = 0; pc < pos.count (c, pt); ++pc)
                 {
-                    matl_key ^= piece_square[c][pt][pc];
+                    matl_key ^= piece_square_key[c][pt][pc];
                 }
             }
         }
         return matl_key;
     }
+
     Key Zobrist::compute_pawn_key (const Position &pos) const
     {
         Key pawn_key = 0;
@@ -32,11 +31,12 @@ namespace Zobrists {
         {
             for (Square s : pos.squares<PAWN> (c))
             {
-                pawn_key ^= piece_square[c][PAWN][s];
+                pawn_key ^= piece_square_key[c][PAWN][s];
             }
         }
         return pawn_key;
     }
+
     Key Zobrist::compute_posi_key (const Position &pos) const
     {
         Key posi_key = 0;
@@ -46,25 +46,26 @@ namespace Zobrists {
             {
                 for (Square s : pos[c|pt])
                 {
-                    posi_key ^= piece_square[c][pt][s];
+                    posi_key ^= piece_square_key[c][pt][s];
                 }
             }
         }
         Bitboard b = pos.castle_rights ();
         while (b != 0)
         {
-            posi_key ^= (*castle_right)[pop_lsq (b)];
+            posi_key ^= (*castle_right_key)[pop_lsq (b)];
         }
         if (pos.en_passant_sq () != SQ_NO)
         {
-            posi_key ^= en_passant[_file (pos.en_passant_sq ())];
+            posi_key ^= en_passant_key[_file (pos.en_passant_sq ())];
         }
         if (pos.active () == WHITE)
         {
-            posi_key ^= active_color;
+            posi_key ^= color_key;
         }
         return posi_key;
     }
+
     //Key Zobrist::compute_fen_key (const string &fen) const
     //{
     //    assert(!white_spaces (fen));
@@ -95,7 +96,7 @@ namespace Zobrists {
     //            {
     //                kf[color (p)] = f;
     //            }
-    //            fen_key ^= piece_square[color (p)][ptype (p)][(f|r)];
+    //            fen_key ^= piece_square_key[color (p)][ptype (p)][(f|r)];
     //            ++f;
     //        }
     //        else
@@ -112,7 +113,7 @@ namespace Zobrists {
     //    iss >> token;
     //    if (token == 'w')
     //    {
-    //        fen_key ^= active_color;
+    //        fen_key ^= color_key;
     //    }
     //
     //    iss >> token;
@@ -123,18 +124,18 @@ namespace Zobrists {
     //        token = char(tolower (token));
     //        if (token == 'k')
     //        {
-    //            fen_key ^= castle_right[c][CS_KING];
+    //            fen_key ^= castle_right_key[c][CS_KING];
     //        }
     //        else
     //        if (token == 'q')
     //        {
-    //            fen_key ^= castle_right[c][CS_QUEN];
+    //            fen_key ^= castle_right_key[c][CS_QUEN];
     //        }
     //        else
     //        // Chess960
     //        if ('a' <= token && token <= 'h')
     //        {
-    //            fen_key ^= castle_right[c][kf[c] < to_file (token) ? CS_KING : CS_QUEN];
+    //            fen_key ^= castle_right_key[c][kf[c] < to_file (token) ? CS_KING : CS_QUEN];
     //        }
     //        else
     //        {
@@ -147,7 +148,7 @@ namespace Zobrists {
     //    if (   (iss >> file && ('a' <= file && file <= 'h'))
     //        && (iss >> rank && ('3' == rank || rank == '6')))
     //    {
-    //        fen_key ^= en_passant[to_file (file)];
+    //        fen_key ^= en_passant_key[to_file (file)];
     //    }
     //
     //    return fen_key;
@@ -155,7 +156,7 @@ namespace Zobrists {
 
     void initialize ()
     {
-        assert(PolyZob.active_color == U64(0xF8D626AAAF278509));
+        assert(PolyZob.color_key == U64(0xF8D626AAAF278509));
 
         static PRNG prng (0x105524);
 
@@ -166,32 +167,30 @@ namespace Zobrists {
             {
                 for (auto s = SQ_A1; s <= SQ_H8; ++s)
                 {
-                    Zob.piece_square[c][pt][s] = prng.rand<Key> ();
+                    Zob.piece_square_key[c][pt][s] = prng.rand<Key> ();
                 }
             }
         }
         for (auto f = F_A; f <= F_H; ++f)
         {
-            Zob.en_passant[f] = prng.rand<Key> ();
+            Zob.en_passant_key[f] = prng.rand<Key> ();
         }
         for (auto c = WHITE; c <= BLACK; ++c)
         {
             for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
             {
-                Zob.castle_right[c][cs] = prng.rand<Key> ();
+                Zob.castle_right_key[c][cs] = prng.rand<Key> ();
             }
         }
-        Zob.active_color = prng.rand<Key> ();
-
-        Zobrist::ExclusionKey = prng.rand<Key> ();
+        Zob.color_key = prng.rand<Key> ();
     }
 
 }
 
-// Random Zobrist filled with randoms, used to compute position key
+// Random numbers, used to compute position key
 Zobrists::Zobrist Zob;
-// Random Zobrist from Polyglot, used to compute polyglot book hash key
-Zobrists::Zobrist PolyZob =
+// Constant numbers from Polyglot, used to compute polyglot book hash key
+const Zobrists::Zobrist PolyZob =
 {
     // PieceSquare
     {

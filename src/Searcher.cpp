@@ -593,6 +593,7 @@ namespace Searcher {
             TPieceValueStats _table[CLR_NO][NONE][SQ_NO];
 
         public:
+
             void clear ()
             {
                 for (auto c = WHITE; c <= BLACK; ++c)
@@ -609,12 +610,7 @@ namespace Searcher {
 
             TPieceValueStats& operator() (Piece pc, Square s)
             {
-                assert(ptype (pc) != NONE);
-                return _table[color (pc)][ptype (pc)][s];
-            }
-            const TPieceValueStats& operator() (Piece pc, Square s) const
-            {
-                assert(ptype (pc) != NONE);
+                assert(pc != NO_PIECE);
                 return _table[color (pc)][ptype (pc)][s];
             }
         };
@@ -1240,10 +1236,7 @@ namespace Searcher {
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
             auto exclude_move = ss->exclude_move;
-            auto posi_key =
-                exclude_move == MOVE_NONE ?
-                    pos.posi_key () :
-                    pos.posi_key () ^ Zobrist::ExclusionKey;
+            auto posi_key = pos.posi_key () ^ Key(exclude_move);
             bool tt_hit;
             auto *tte = TT.probe (posi_key, tt_hit);
             auto tt_move =
@@ -1437,8 +1430,8 @@ namespace Searcher {
 
                         // Speculative prefetch as early as possible
                         prefetch (TT.cluster_entry (  pos.posi_key ()
-                                                    ^ Zob.active_color
-                                                    ^ (pos.en_passant_sq () != SQ_NO ? Zob.en_passant[_file (pos.en_passant_sq ())] : 0)));
+                                                    ^ Zob.color_key
+                                                    ^ (pos.en_passant_sq () != SQ_NO ? Zob.en_passant_key[_file (pos.en_passant_sq ())] : 0)));
 
                         pos.do_null_move (si);
                         (ss+1)->skip_pruning = true;
@@ -1625,6 +1618,7 @@ namespace Searcher {
                 }
 
                 ss->move_count = ++move_count;
+
                 auto mpc = pos[org_sq (move)];
                 auto mpt = ptype (mpc);
                 assert(mpc != NO_PIECE

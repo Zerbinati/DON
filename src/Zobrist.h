@@ -7,19 +7,17 @@ class Position;
 
 namespace Zobrists {
 
-    // Zobrist class
     class Zobrist
     {
     public:
-        static Key ExclusionKey;
 
         // 2*6*64 + 2*2 + 8 + 1
         //=   768 +   4 + 8 + 1
         //=                 781
-        Key piece_square[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
-        Key castle_right[CLR_NO][CS_NO];        // [color][castle-side]
-        Key en_passant  [F_NO];                 // [enpassant file]
-        Key active_color;                       // color
+        Key piece_square_key[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
+        Key castle_right_key[CLR_NO][CS_NO];        // [color][castle-side]
+        Key en_passant_key  [F_NO];                 // [enpassant file]
+        Key color_key;                              // color
 
         Zobrist () = default;
         Zobrist (const Zobrist&) = delete;
@@ -37,9 +35,8 @@ namespace Zobrists {
 
     extern void initialize ();
 }
-// Random Zobrist filled with randoms, used to compute position key
+
 extern Zobrists::Zobrist Zob;
-// Random Zobrist from Polyglot, used to compute polyglot book hash key
-extern Zobrists::Zobrist PolyZob;
+extern const Zobrists::Zobrist PolyZob;
 
 #endif // _ZOBRIST_H_INC_

@@ -325,18 +325,18 @@ inline Key Position::move_posi_key (Move m) const
     auto dst = dst_sq (m);
     auto mpt = ptype (_board[org]);
     assert(!empty (org)
-          && color (_board[org]) == _active
-          && mpt != NONE);
+        && color (_board[org]) == _active
+        && mpt != NONE);
 
     auto ppt = promotion (m) ? promote (m) : mpt;
     auto cpt = en_passant (m) ? PAWN : ptype (_board[dst]);
     Key key = _si->posi_key
-        ^ Zob.active_color
-        ^ Zob.piece_square[_active][ppt][dst]
-        ^ Zob.piece_square[_active][mpt][org];
+        ^ Zob.color_key
+        ^ Zob.piece_square_key[_active][ppt][dst]
+        ^ Zob.piece_square_key[_active][mpt][org];
     if (cpt != NONE)
     {
-        key ^= Zob.piece_square[~_active][cpt][en_passant (m) ? dst - pawn_push (_active) : dst];
+        key ^= Zob.piece_square_key[~_active][cpt][en_passant (m) ? dst - pawn_push (_active) : dst];
     }
     return key;
 }

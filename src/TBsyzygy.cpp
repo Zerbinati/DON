@@ -350,7 +350,7 @@ namespace TBSyzygy {
             {
                 for (auto pc = pcs[(color|pt) + 1]; pc > 0; --pc)
                 {
-                    key ^= Zob.piece_square[WHITE][pt][pc - 1];
+                    key ^= Zob.piece_square_key[WHITE][pt][pc - 1];
                 }
             }
             color = ~color;
@@ -358,7 +358,7 @@ namespace TBSyzygy {
             {
                 for (auto pc = pcs[(color|pt) + 1]; pc > 0; --pc)
                 {
-                    key ^= Zob.piece_square[BLACK][pt][pc - 1];
+                    key ^= Zob.piece_square_key[BLACK][pt][pc - 1];
                 }
             }
             return key;
@@ -1845,7 +1845,7 @@ namespace TBSyzygy {
             {
                 for (auto i = pos.count (color, pt); i > 0; --i)
                 {
-                    key ^= Zob.piece_square[WHITE][pt][i - 1];
+                    key ^= Zob.piece_square_key[WHITE][pt][i - 1];
                 }
             }
             color = ~color;
@@ -1853,7 +1853,7 @@ namespace TBSyzygy {
             {
                 for (auto i = pos.count (color, pt); i > 0; --i)
                 {
-                    key ^= Zob.piece_square[BLACK][pt][i - 1];
+                    key ^= Zob.piece_square_key[BLACK][pt][i - 1];
                 }
             }
             return key;
@@ -1866,8 +1866,8 @@ namespace TBSyzygy {
             Key matl_key = pos.matl_key ();
 
             // Test for KvK.
-            if (matl_key == (  Zob.piece_square[WHITE][KING][0]
-                             ^ Zob.piece_square[BLACK][KING][0]))
+            if (matl_key == (  Zob.piece_square_key[WHITE][KING][0]
+                             ^ Zob.piece_square_key[BLACK][KING][0]))
             {
                 return VALUE_ZERO;
             }
