@@ -141,14 +141,23 @@ Value Position::see (Move m) const
         gain_values[0] = PieceValues[MG][ptype (_board[dst])];
         break;
     }
+    // For the case when captured piece is a pinner
+    mocc -= dst;
 
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
-    auto attackers = attackers_to (dst, mocc) & mocc;
+    Bitboard attackers = attackers_to (dst, mocc) & mocc;
 
-    // If the opponent has any attackers
+    Bitboard c_attackers;
     c = ~c;
-    auto c_attackers = attackers & pieces (c);
+    c_attackers = attackers & pieces (c);
+    // Don't allow pinned pieces to attack as long all pinners (this includes also potential ones) are on their original square.
+    // When a pinner moves to the exchange-square or get captured on it, we fall back to standard SEE behaviour.
+    if (   (c_attackers & abs_pinneds (c)) != 0
+        && (_si->pinners[c] & mocc) == _si->pinners[c])
+    {
+        c_attackers &= ~abs_pinneds (c);
+    }
 
     if (c_attackers != 0)
     {
@@ -172,6 +181,11 @@ Value Position::see (Move m) const
 
             c = ~c;
             c_attackers = attackers & pieces (c);
+            if (   (c_attackers & abs_pinneds (c)) != 0
+                && (_si->pinners[c] & mocc) == _si->pinners[c])
+            {
+                c_attackers &= ~abs_pinneds (c);
+            }
 
             ++depth;
         } while (   c_attackers != 0
@@ -204,21 +218,22 @@ Value Position::see_sign (Move m) const
             VALUE_KNOWN_WIN :
             see (m);
 }
-// Returns a bitboard of all the pieces in 'target' that
-// are blocking attacks on the square 's' from 'sliders'.
-// A piece blocks a slider if removing that piece from the board would result in a position
-// where square 's' is attacked by the 'sliders'.
-Bitboard Position::slider_blockers (Square s, Bitboard sliders) const
+// Returns a bitboard of all the pieces that are blocking attacks on the square 's' from 'sliders'.
+// A piece blocks a slider if removing that piece from the board would result in a position where square 's' is attacked by the 'sliders'.
+// For example, a king-attack blocking piece can be either a pinned or a discovered check piece,
+// according if its color is the opposite or the same of the color of the slider.
+// The pinners bitboard get filled with real and potential pinners.
+Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard &pinners) const
 {
     Bitboard blockers = 0;
     // Pinners are sliders that attack 's' when a pinned piece is removed
-    Bitboard pinners =
+    Bitboard p = pinners =
           sliders
         & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
            | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
-    while (pinners != 0)
+    while (p != 0)
     {
-        Bitboard b = between_bb (s, pop_lsq (pinners)) & pieces ();
+        Bitboard b = between_bb (s, pop_lsq (p)) & pieces ();
         if (!more_than_one (b))
         {
             blockers |= b;

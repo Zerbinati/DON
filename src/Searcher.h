@@ -290,13 +290,12 @@ private:
     Square  _recap_sq   = SQ_NO;
     Value   _threshold  = VALUE_ZERO;
 
-    // Orders move list according to score.
     template<GenType GT>
     void value ();
 
-    void generate_next_stage ();
-
     ValMove& pick_best_move (i32 i);
+
+    void generate_next_stage ();
 
 public:
     MovePicker () = delete;

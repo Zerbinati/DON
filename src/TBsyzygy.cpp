@@ -2198,7 +2198,7 @@ namespace TBSyzygy {
                 // Generate at least all legal non-capturing pawn moves
                 // including non-capturing promotions.
                 pos.checkers () == 0 ?
-                    generate<RELAX  > (moves, pos) :
+                    generate<NATURAL> (moves, pos) :
                     generate<EVASION> (moves, pos);
 
                 for (auto &vm : moves)
@@ -2265,7 +2265,7 @@ namespace TBSyzygy {
             {
                 Value best_value = Value(-1);
                 pos.checkers () == 0 ?
-                    generate<RELAX  > (moves, pos) :
+                    generate<NATURAL> (moves, pos) :
                     generate<EVASION> (moves, pos);
                 filter_illegal (moves, pos);
                 for (auto &vm : moves)

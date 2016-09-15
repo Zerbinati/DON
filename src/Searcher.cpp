@@ -160,7 +160,7 @@ namespace {
 
     enum Stage : u08
     {
-        S_RELAX, S_GOOD_CAPTURE, S_QUIET, S_BAD_CAPTURE,
+        S_NATURAL, S_GOOD_CAPTURE, S_QUIET, S_BAD_CAPTURE,
         S_EVASION, S_ALL_EVASION,
         S_QSEARCH_WITH_CHECK, S_QCAPTURE_1, S_QUIET_CHECK,
         S_QSEARCH_WITHOUT_CHECK, S_QCAPTURE_2,
@@ -189,7 +189,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
     _stage =
         pos.checkers () != 0 ?
             S_EVASION :
-            S_RELAX;
+            S_NATURAL;
     if (_tt_move != MOVE_NONE)
     {
         _index = -1;
@@ -266,7 +266,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
 // Winning and equal captures in the main search are ordered by MVV/LVA, preferring captures near our home rank.
 // Surprisingly, this appears to perform slightly better than SEE-based move ordering,
 // exchanging big pieces before capturing a hanging piece probably helps to reduce the subtree size.
-// In the main search push captures with negative SEE values to the bad-captures[],
+// In the main search push captures with negative SEE values to the bad captures[],
 // but instead of doing it now we delay until the move has been picked up,
 // saving some SEE calls in case of a cutoff.
 template<>
@@ -299,9 +299,9 @@ void MovePicker::value<QUIET> ()
             + ((_ss-4)->cm_history != nullptr ? (*(_ss-4)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO);
     }
 }
-// First try winning and equal captures, ordered by SEE value,
-// then non-captures if destination square is not under attack, ordered by history values,
-// then bad-captures and quiet moves with a negative SEE, ordered by SEE value.
+// First try good and equal captures, ordered by SEE value,
+// then good quiet moves if destination square is not under attack, ordered by history values,
+// then bad captures and good quiet moves with a negative SEE, ordered by SEE value.
 template<>
 void MovePicker::value<EVASION> ()
 {
@@ -309,21 +309,18 @@ void MovePicker::value<EVASION> ()
     {
         assert(_pos.pseudo_legal (vm.move)
             && _pos.legal (vm.move));
-
+        
+        auto cap_value = _pos.see_sign (vm.move);
+        if (cap_value < VALUE_ZERO)
+        {
+            vm.value = cap_value - MaxValue;
+        }
+        else
         if (_pos.capture (vm.move))
         {
-            auto cap_value = _pos.see_sign (vm.move);
-            if (cap_value < VALUE_ZERO)
-            {
-                vm.value = cap_value - MaxValue;
-            }
-            else
-            {
-                vm.value =
-                      PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-                    - 200 * Value(rel_rank (_pos.active (), dst_sq (vm.move)))
-                    - Value(ptype (_pos[org_sq (vm.move)]) + 1) + MaxValue;
-            }
+            vm.value =
+                  PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                - Value(ptype (_pos[org_sq (vm.move)]) + 1) + MaxValue;
         }
         else
         {
@@ -333,6 +330,16 @@ void MovePicker::value<EVASION> ()
         }
     }
 }
+
+// Finds the best move in the range [beg, end) and moves it to front,
+// it is faster than sorting all the moves in advance when there are few moves (e.g. the possible captures).
+ValMove& MovePicker::pick_best_move (i32 i)
+{
+    auto itr = _moves.begin () + i;
+    std::swap (*itr, *std::max_element (itr, _moves.end ()));
+    return *itr;
+}
+
 // Generates and sorts the next bunch of moves,
 // when there are no more moves to try for the current stage.
 void MovePicker::generate_next_stage ()
@@ -450,14 +457,7 @@ void MovePicker::generate_next_stage ()
         break;
     }
 }
-// Finds the best move in the range [beg, end) and moves it to front,
-// it is faster than sorting all the moves in advance when there are few moves (e.g. the possible captures).
-ValMove& MovePicker::pick_best_move (i32 i)
-{
-    auto itr = _moves.begin () + i;
-    std::swap (*itr, *std::max_element (itr, _moves.end ()));
-    return *itr;
-}
+
 // Returns a new legal move every time it is called, until there are no more moves left.
 // It picks the move with the biggest value from a list of generated moves.
 Move MovePicker::next_move ()
@@ -473,7 +473,7 @@ Move MovePicker::next_move ()
         switch (_stage)
         {
 
-        case S_RELAX:
+        case S_NATURAL:
         case S_EVASION:
         case S_QSEARCH_WITH_CHECK:
         case S_QSEARCH_WITHOUT_CHECK:
@@ -1695,27 +1695,28 @@ namespace Searcher {
                             continue;
                         }
 
-                        // Value based pruning
-                        auto predicted_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
-                        if (    // Counter move values based pruning
-                               (   predicted_depth < 3
+                        // Reduced depth of the next LMR search
+                        auto lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
+                        if (    // Counter moves value based pruning
+                               (   lmr_depth < 3
                                 && ((ss-1)->cm_history == nullptr || (*(ss-1)->cm_history)(mpc, move) < VALUE_ZERO)
                                 && ((ss-2)->cm_history == nullptr || (*(ss-2)->cm_history)(mpc, move) < VALUE_ZERO)
                                 && (  ((ss-1)->cm_history != nullptr && (ss-2)->cm_history != nullptr)
                                     || (ss-4)->cm_history == nullptr || (*(ss-4)->cm_history)(mpc, move) < VALUE_ZERO))
                                 // Futility pruning: parent node
-                            || (   predicted_depth < 7
-                                && ss->static_eval + 200*predicted_depth + 256 <= alfa)
-                                // SEE pruning below a decreasing threshold with depth.
-                            || (   predicted_depth < 8
-                                && pos.see_sign (move) < -400*std::max (predicted_depth - 3, 0)))
+                            || (   lmr_depth < 7
+                                && ss->static_eval + 200*lmr_depth + 256 <= alfa)
+                                // Negative SEE based pruning
+                            || (   lmr_depth < 8
+                                && pos.see_sign (move) < -35*lmr_depth*lmr_depth))
                         {
                             continue;
                         }
                     }
                     else
-                    if (   depth < 3
-                        && pos.see_sign (move) < VALUE_ZERO)
+                    // Negative SEE based pruning
+                    if (   depth < 7
+                        && pos.see_sign (move) < -35*depth*depth)
                     {
                         continue;
                     }

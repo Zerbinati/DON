@@ -57,7 +57,7 @@ namespace MoveGen {
 
             switch (GT)
             {
-            case RELAX:
+            case NATURAL:
             case EVASION:
             case CAPTURE:
             case QUIET:
@@ -326,14 +326,14 @@ namespace MoveGen {
     void generate (vector<ValMove> &moves, const Position &pos)
     {
         assert(pos.checkers () == 0);
-        assert(GT == RELAX
+        assert(GT == NATURAL
             || GT == CAPTURE
             || GT == QUIET);
         moves.clear ();
         Bitboard targets;
         switch (GT)
         {
-        case RELAX:
+        case NATURAL:
             targets = ~pos.pieces (pos.active ());
             break;
         case CAPTURE:
@@ -355,8 +355,8 @@ namespace MoveGen {
 
     // Explicit template instantiations
 
-    // generate<RELAX> generates all pseudo-legal captures and non-captures.
-    template void generate<RELAX  > (vector<ValMove>&, const Position&);
+    // generate<NATURAL> generates all pseudo-legal captures and non-captures.
+    template void generate<NATURAL> (vector<ValMove>&, const Position&);
     // generate<CAPTURES> generates all pseudo-legal captures and queen promotions.
     template void generate<CAPTURE> (vector<ValMove>&, const Position&);
     // generate<QUIETS> generates all pseudo-legal non-captures and underpromotions.
@@ -492,7 +492,7 @@ namespace MoveGen {
     void generate<LEGAL      > (vector<ValMove> &moves, const Position &pos)
     {
         pos.checkers () == 0 ?
-            generate<RELAX  > (moves, pos) :
+            generate<NATURAL> (moves, pos) :
             generate<EVASION> (moves, pos);
         filter_illegal (moves, pos);
     }

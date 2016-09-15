@@ -6,7 +6,7 @@
 
 enum GenType : u08
 {
-    RELAX,
+    NATURAL,
     EVASION,
     CAPTURE,
     QUIET,
