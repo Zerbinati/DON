@@ -284,8 +284,7 @@ namespace UCI {
             else
             if (   token == "quit"
                ||  token == "stop"
-               || (token == "ponderhit"
-                && PonderhitStop))
+               || (token == "ponderhit" && PonderhitStop))
             {
                 ForceStop = true;
                 Threadpool.main_thread ()->start_searching (true); // Could be sleeping

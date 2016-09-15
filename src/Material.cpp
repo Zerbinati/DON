@@ -9,7 +9,7 @@ namespace Material {
 
     namespace {
 
-        // Polynomial material imbalance parameters:
+        // Polynomial material imbalance parameters
 
         const i32 OwnQuadratic[NONE][NONE] =
         {
@@ -45,14 +45,13 @@ namespace Material {
         Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
 
         // Calculates the imbalance by comparing the piece count of each piece type for both colors.
-        // NOTE:: KING == BISHOP_PAIR
+        // NOTE:: King == Bishop Pair
         template<Color Own>
         Value imbalance (const i32 (*count)[NONE])
         {
             static const auto Opp = Own == WHITE ? BLACK : WHITE;
 
             i32 value = 0;
-
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
             for (auto pt1 = PAWN; pt1 < KING; ++pt1)
@@ -77,25 +76,25 @@ namespace Material {
                 value += count[Own][KING] * OwnQuadratic[KING][KING];
                       //+  count[Opp][KING] * OppQuadratic[KING][KING];
             }
-
             return Value(value);
         }
     }
 
     // Looks up a MaterialEntry object, and returns a pointer to it.
+    // The pointer is also stored in a hash table.
     Entry* probe (const Position &pos)
     {
         auto matl_key = pos.matl_key ();
         auto *e = pos.thread ()->matl_table[matl_key];
 
         if (   e->used
-            && e->matl_key == matl_key)
+            && e->key == matl_key)
         {
             return e;
         }
 
         std::memset (e, 0x00, sizeof (*e));
-        e->matl_key = matl_key;
+        e->key = matl_key;
         e->scale[WHITE] =
         e->scale[BLACK] = SCALE_NORMAL;
         e->phase = pos.phase ();
@@ -118,7 +117,7 @@ namespace Material {
             }
         }
 
-        // OK, didn't find any special evaluation function for the current
+        // Didn't find any special evaluation function for the current
         // material configuration. Is there a suitable scaling function?
         //
         // Face problems when there are several conflicting applicable
@@ -174,7 +173,7 @@ namespace Material {
 
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
-            // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
+            // scale for cases such as KRKBP and KmmKm (except for KBBKN).
             if (abs (  pos.non_pawn_material ( c)
                      - pos.non_pawn_material (~c)) <= VALUE_MG_BSHP)
             {

@@ -44,7 +44,6 @@ namespace BitBases {
         struct KPK_Position
         {
         private:
-
             Color  _active;
             Square _k_sq[CLR_NO]
                 ,  _p_sq;
@@ -104,9 +103,7 @@ namespace BitBases {
             }
 
         public:
-
             KPK_Position () = default;
-
             explicit KPK_Position (u32 idx)
             {
                 _k_sq[WHITE] = Square(         (idx >>  0) & 0x3F);
@@ -156,7 +153,6 @@ namespace BitBases {
                         classify<WHITE> (kpk_db) :
                         classify<BLACK> (kpk_db);
             }
-
         };
 
     }

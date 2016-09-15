@@ -12,11 +12,11 @@ namespace Material {
     struct Entry
     {
     public:
-        bool  used;
-        Key   matl_key;
-        Score imbalance;
-        Phase phase;
-        Scale scale[CLR_NO];
+        bool    used;
+        Key     key;
+        Score   imbalance;
+        Phase   phase;
+        Scale   scale[CLR_NO];
 
         EndGame::EndgameBase<Value> *value_func;
         EndGame::EndgameBase<Scale> *scale_func[CLR_NO];
@@ -25,7 +25,6 @@ namespace Material {
     typedef HashTable<Entry, 0x2000> Table;
 
     extern Entry* probe (const Position &pos);
-
 }
 
 #endif // _MATERIAL_H_INC_

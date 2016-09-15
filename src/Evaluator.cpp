@@ -76,7 +76,6 @@ namespace Evaluator {
         struct EvalInfo
         {
         private:
-
             template<Color Own>
             void initialize (const Position &pos)
             {
@@ -95,14 +94,13 @@ namespace Evaluator {
                 }
 
                 ful_attacked_by[Own][NONE] |=
-                ful_attacked_by[Own][PAWN]  = pe->pawn_attacks[Own];
-                Bitboard pinned_pawns = pos.pieces (Own, PAWN) & abs_pinneds[Own];
+                ful_attacked_by[Own][PAWN]  = pe->attacks[Own];
+                Bitboard pinned_pawns = abs_pinneds[Own] & pos.pieces (Own, PAWN);
                 if (pinned_pawns != 0)
                 {
-                    Bitboard loosed_pawns = pos.pieces (Own, PAWN) & ~pinned_pawns;
-                    Bitboard pawn_attacks =
-                          shift_bb<LCap> (loosed_pawns)
-                        | shift_bb<RCap> (loosed_pawns);
+                    Bitboard loosed_pawns = ~pinned_pawns & pos.pieces (Own, PAWN);
+                    Bitboard pawn_attacks = shift_bb<LCap> (loosed_pawns)
+                                          | shift_bb<RCap> (loosed_pawns);
                     while (pinned_pawns != 0)
                     {
                         auto s = pop_lsq (pinned_pawns);
@@ -114,7 +112,7 @@ namespace Evaluator {
                 else
                 {
                     pin_attacked_by[Own][NONE] |=
-                    pin_attacked_by[Own][PAWN]  = pe->pawn_attacks[Own];
+                    pin_attacked_by[Own][PAWN]  = pe->attacks[Own];
                 }
 
                 Bitboard king_attacks = PieceAttacks[KING][fk_sq];
@@ -136,33 +134,29 @@ namespace Evaluator {
             Pawns   ::Entry *const &pe = nullptr;
             Material::Entry *const &me = nullptr;
 
-            // abs_pinneds[color] contains the absolute pinneds pieces.
+            // Contains the absolute pinneds pieces.
             Bitboard abs_pinneds [CLR_NO];
-            // dsc_checkers[color] contains the discovered checkers pieces.
+            // Contains the discovered checkers pieces.
             Bitboard dsc_checkers[CLR_NO];
 
-            // ful_attacked_by[color][piece-type] contains all squares attacked by the given color and piece type,
-            // ful_attacked_by[color][NONE] contains all squares attacked by the given color.
+            // Contains all squares attacked by the given color and piece type.
             Bitboard ful_attacked_by[CLR_NO][MAX_PTYPE];
-            // pin_attacked_by[color][piece-type] contains all squares attacked by the given color and piece type with pinned removed,
-            // pin_attacked_by[color][NONE] contains all squares attacked by the given color with pinned removed.
+            // Contains all squares attacked by the given color and piece type with pinned removed.
             Bitboard pin_attacked_by[CLR_NO][MAX_PTYPE];
-            // dbl_attacked[color] are the squares attacked by more than one pieces of a given color, possibly via x-ray or by one pawn and one piece.
+            // Squares attacked by more than one pieces of a given color, possibly via x-ray or by one pawn and one piece.
             // Diagonal x-ray through pawn or squares attacked by 2 pawns are not explicitly added.
             Bitboard dbl_attacked   [CLR_NO];
 
-            // king_ring[color] is the zone around the king which is considered by the king safety evaluation.
+            // Zone around the king which is considered by the king safety evaluation.
             // This consists of the squares directly adjacent to the king, and the three (or two, for a king on an edge file) squares two ranks in front of the king.
             // For instance, if black's king is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8, f7, g7, h7, f6, g6 and h6.
             Bitboard king_ring                 [CLR_NO];
-            // king_ring_attackers_count[color] is the number of pieces of the given color, which attack a square in the king_ring of the enemy king.
+            // Number of pieces of the given color, which attack a square in the king_ring of the enemy king.
             u08      king_ring_attackers_count [CLR_NO];
-            // king_ring_attackers_weight[color] is the sum of the "weight" of the pieces
-            // of the given color which attack a square in the king_ring of the enemy king.
+            // Sum of the "weight" of the pieces of the given color which attack a square in the king_ring of the enemy king.
             // The weights of the individual piece types are given by the KingAttackWeights[piece-type]
             i32      king_ring_attackers_weight[CLR_NO];
-            // king_zone_attacks_count[color] is the number of attacks by
-            // the given color to squares directly adjacent to the enemy king.
+            // Number of attacks by the given color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
             u08      king_zone_attacks_count   [CLR_NO];
 
@@ -243,8 +237,8 @@ namespace Evaluator {
         const Score PawnPushThreat  = S(38,22);
 
         const Score HangPawnThreat  = S(71,61);
-        // SafePawnThreat[piece-type] contains bonuses according to which piece type is attacked by pawn
-        // which is protected or is not attacked.
+        // SafePawnThreat[piece-type] contains bonuses
+        // according to which piece type is attacked by pawn which is protected or is not attacked.
         const Score SafePawnThreat[NONE] = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
 
         enum PieceCategory : u08
@@ -252,19 +246,18 @@ namespace Evaluator {
             MINOR,
             MAJOR,
         };
-        // PieceThreat[attacker category][attacked type] contains
-        // bonuses according to which piece type attacks which one.
+        // PieceThreat[attacker category][attacked type] contains bonuses
+        // according to which piece type attacks which one.
         // Attacks on lesser pieces which are pawn-defended are not considered.
         const Score PieceThreat[2][NONE] =
         {
             { S( 0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S( 0, 0) }, // Minor attackers
             { S( 0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S( 0, 0) }, // Major attackers
         };
-        // KingThreat[one/more] contains bonuses for King attacks on
-        // pawns or pieces which are not pawn-defended.
+        // KingThreat[one/more] contains bonuses for king attacks on pawns or pieces which are not pawn-defended.
         const Score KingThreat[2] = { S( 3, 62), S( 9,138) };
 
-        // PawnFilePassed[file] contains a bonus for passed pawns according to the file of the pawn.
+        // PawnFilePassed[file] contains a bonus for passed pawns according to distance from edge.
         const Score PawnFilePassed[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
 
     #undef S
@@ -272,7 +265,6 @@ namespace Evaluator {
     #define V(v) Value(v)
 
         // PawnRankPassed[phase][rank] contains bonuses for passed pawns according to the rank of the pawn.
-        // Don't use a Score because the two components processed independently.
         const Value PawnRankPassed[PH_NO][R_NO] =
         {
             { V(0), V(5), V( 5), V(31), V(73), V(166), V(252), V(0) },
@@ -286,9 +278,9 @@ namespace Evaluator {
         // are added up into an integer, which is used as an index to the KingDanger[].
         Score KingDanger[MaxAttackUnits];
 
-        // KingAttackWeights[piece-type] contains king attack weights by piece type
+        // King attack weights by piece type
         const i32 KingAttackWeights [NONE] = { 4, 70, 50, 40, 10, 0 };
-        // Penalties for enemy's piece safe checks
+        // Penalties for enemy's piece safe checks by piece type
         const i32 PieceSafeCheckUnit[NONE] = { 0, 78, 48, 57, 62, 0 };
         // Penalty for enemy's queen contact checks
         const i32 QueenContactCheckUnit = 89;
@@ -408,7 +400,7 @@ namespace Evaluator {
                     }
 
                     b =   OutpostMask[Own]
-                        & ~ei.pe->pawn_attack_span[Opp];
+                        & ~ei.pe->attack_span[Opp];
                     if (PT == NIHT)
                     {
                         // Bonus for knight outpost square
@@ -445,7 +437,7 @@ namespace Evaluator {
                         }
 
                         // Penalty for pawns on the same color square as the bishop
-                        score -= BishopPawns * i32(ei.pe->pawns_on_sq_clr[Own][color (s)]);
+                        score -= BishopPawns * i32(ei.pe->color_count[Own][color (s)]);
 
                         if (   rel_sq (Own, s) == SQ_A8
                             || rel_sq (Own, s) == SQ_H8)
@@ -844,10 +836,10 @@ namespace Evaluator {
 
             auto score = SCORE_ZERO;
 
-            Bitboard passed_pawns = ei.pe->passed_pawns[Own];
-            while (passed_pawns != 0)
+            Bitboard passers = ei.pe->passers[Own];
+            while (passers != 0)
             {
-                auto s = pop_lsq (passed_pawns);
+                auto s = pop_lsq (passers);
                 assert(pos.pawn_passed_at (Own, s));
                 assert((front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)) == 0);
 
@@ -970,10 +962,10 @@ namespace Evaluator {
             behind |= shift_bb<SPull> (behind);
             behind |= shift_bb<DPull> (behind);
             i32 count  = std::min (pop_count (  (behind & safe_space)
-                                              | (Own == WHITE ? safe_space << 32 :
-                                                                safe_space >> 32)), 16);
-            i32 weight = pos.count<NONPAWN> (Own);
-            auto score = mk_score (count * weight * weight / 22, 0);
+                                              | (Own == WHITE ? safe_space << 32 : safe_space >> 32)), 16);
+
+            i32 weight = pos.count<NONE> (Own) - 2 * ei.pe->open_count;
+            auto score = mk_score (count * weight * weight / 18, 0);
 
             if (Trace)
             {
@@ -985,32 +977,33 @@ namespace Evaluator {
 
         // Computes the initiative correction value for the position
         // i.e. second order bonus/malus based on the known attacking/defending status of the players.
-        Score evaluate_initiative (const Position &pos, i08 asymmetry, Value eg)
+        Score evaluate_initiative (const Position &pos, u08 asymmetry, Value eg)
         {
-            auto king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
-                           - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
+            i32 king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
+                          - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
             // Compute the initiative bonus for the attacking side
-            auto initiative = 8 * (asymmetry + king_dist) + 12 * pos.count<PAWN> () - 120;
+            i32 initiative = 8 * (king_dist + asymmetry) + 12 * pos.count<PAWN> () - 120;
             // Now apply the bonus: note that we find the attacking side by extracting
             // the sign of the endgame value, and that we carefully cap the bonus so
             // that the endgame score will never be divided by more than two.
             return mk_score (0, sign (eg) * std::max (initiative, -abs (eg / 2)));
         }
 
-        // Computes the scale factor for the position
-        Scale evaluate_scale_factor (const Position &pos, const EvalInfo &ei, Value eg)
+        // Computes the scale for the position
+        Scale evaluate_scale (const Position &pos, const EvalInfo &ei, Value eg)
         {
             assert(PHASE_ENDGAME <= ei.me->phase && ei.me->phase <= PHASE_MIDGAME);
 
-            auto strong_side = eg >= VALUE_ZERO ? WHITE : BLACK;
-            // Scale factor if position is more drawish than it appears
+            auto strong_color = eg >= VALUE_ZERO ? WHITE : BLACK;
             Scale scale;
-            if (   ei.me->scale_func[strong_side] == nullptr
-                || (scale = (*ei.me->scale_func[strong_side]) (pos)) == SCALE_NONE)
+            if (   ei.me->scale_func[strong_color] == nullptr
+                || (scale = (*ei.me->scale_func[strong_color]) (pos)) == SCALE_NONE)
             {
-                scale = ei.me->scale[strong_side];
+                scale = ei.me->scale[strong_color];
             }
-            // If don't already have an unusual scale factor, check for certain types of endgames.
+            assert(scale != SCALE_NONE);
+
+            // If don't already have an unusual scale, check for certain types of endgames.
             if (   ei.me->phase < PHASE_MIDGAME
                 && (   scale == SCALE_NORMAL
                     || scale == SCALE_ONEPAWN))
@@ -1019,31 +1012,30 @@ namespace Evaluator {
                 {
                     return
                         // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
-                        // is almost a draw, in case of KBP vs KB is even more a draw.
                            pos.non_pawn_material (WHITE) == VALUE_MG_BSHP
                         && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP ?
                                pos.count<PAWN> (WHITE) <= 1
                             && pos.count<PAWN> (BLACK) <= 1 ?
-                                Scale( 8) :
-                                Scale(32) :
+                                Scale( 9) :
+                                Scale(31) :
                         // Endgame with opposite-colored bishops but also other pieces
                         // is still a bit drawish, but not as drawish as with only the two bishops. 
                             Scale(46);
                 }
-                // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 else
+                // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 if (   abs (eg) <= VALUE_EG_BSHP
-                    && ei.pe->pawn_span[strong_side] <= 2
-                    && (   pos.pieces (strong_side, PAWN)
-                        & ~pawn_pass_span (~strong_side, pos.square<KING> (~strong_side))) == 0)
+                    && ei.pe->fill_count[strong_color] <= 2
+                    && !pos.pawn_passed_at (~strong_color, pos.square<KING> (~strong_color)))
                 {
-                    return Scale(36 + 8 * ei.pe->pawn_span[strong_side]);
+                    return Scale(37 + 7 * ei.pe->fill_count[strong_color]);
                 }
             }
             return scale;
         }
     }
 
+    // Returns a static evaluation of the position from the point of view of the side to move.
     template<bool Trace>
     Value evaluate (const Position &pos)
     {
@@ -1058,13 +1050,6 @@ namespace Evaluator {
         }
         // Probe the pawn hash table
         auto *pe = Pawns::probe (pos);
-        // Initialize score by reading the incrementally updated scores
-        // included in the position object (material + piece square tables).
-        // Score is computed internally from the white point of view.
-        auto score =
-              pos.psq_score ()
-            + pe->pawn_score
-            + me->imbalance;
 
         EvalInfo ei (pos, pe, me);
 
@@ -1075,20 +1060,29 @@ namespace Evaluator {
         Score mobility[CLR_NO] =
         {
             SCORE_ZERO,
-            SCORE_ZERO
+            SCORE_ZERO,
         };
         // Pawns blocked or on ranks 2-3 will be excluded from the mobility area
         const Bitboard blocked_pawns[CLR_NO] =
         {
             pos.pieces (WHITE, PAWN) & (shift_bb<DEL_S> (pos.pieces ()) | R2_bb | R3_bb),
-            pos.pieces (BLACK, PAWN) & (shift_bb<DEL_N> (pos.pieces ()) | R7_bb | R6_bb)
+            pos.pieces (BLACK, PAWN) & (shift_bb<DEL_N> (pos.pieces ()) | R7_bb | R6_bb),
         };
         // Do not include in mobility area squares protected by enemy pawns or occupied by friend blocked pawns or king
         const Bitboard mobility_area[CLR_NO] =
         {
             ~((ei.pin_attacked_by[BLACK][PAWN] | blocked_pawns[WHITE]) + pos.square<KING> (WHITE)),
-            ~((ei.pin_attacked_by[WHITE][PAWN] | blocked_pawns[BLACK]) + pos.square<KING> (BLACK))
+            ~((ei.pin_attacked_by[WHITE][PAWN] | blocked_pawns[BLACK]) + pos.square<KING> (BLACK)),
         };
+
+        // Score is computed internally from the white point of view, initialize by
+        // - the incrementally updated scores (material + piece square tables).
+        // - the material imbalance.
+        // - the pawn score
+        auto score =
+              pos.psq_score ()
+            + me->imbalance
+            + pe->score;
 
         // Evaluate all pieces except pawns and king
         score +=
@@ -1145,19 +1139,19 @@ namespace Evaluator {
         assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
 
-        // Interpolates between a middle game and a endgame score scaled by scale factor, based on game phase.
+        // Interpolates between a middle game and a endgame score scaled, based on game phase.
         auto value = Value((  mg_value (score) * i32(ei.me->phase)
                             + eg_value (score) * i32(PHASE_MIDGAME - ei.me->phase)
-                                                // Evaluate scale factor for the position
-                                               * i32(evaluate_scale_factor (pos, ei, eg_value (score)))/SCALE_NORMAL)
+                                                // Evaluate scale for the position
+                                               * i32(evaluate_scale (pos, ei, eg_value (score)))/SCALE_NORMAL)
                             / PHASE_MIDGAME);
 
         if (Trace)
         {
             // Write remaining evaluation terms
-            write (PAWN     , ei.pe->pawn_score);
+            write (PAWN     , pe->score);
             write (MATERIAL , pos.psq_score ());
-            write (IMBALANCE, ei.me->imbalance);
+            write (IMBALANCE, me->imbalance);
             write (MOBILITY , mobility[WHITE], mobility[BLACK]);
             write (TOTAL    , score);
         }
@@ -1168,11 +1162,11 @@ namespace Evaluator {
     template Value evaluate<false> (const Position&);
     template Value evaluate<true > (const Position&);
 
+    // Returns a string (suitable to be print on stdout) that contains the detailed descriptions.
     string trace (const Position &pos)
     {
         std::memset (cp, 0x00, sizeof (cp));
-        // White's point of view
-        auto value = evaluate<true> (pos)*(pos.active () == WHITE ? +1 : -1);
+        auto value = evaluate<true> (pos)*(pos.active () == WHITE ? +1 : -1); // White's point of view
 
         ostringstream oss;
         oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed
@@ -1198,12 +1192,12 @@ namespace Evaluator {
         return oss.str ();
     }
 
+    // Initialize lookup tables during startup
     void initialize ()
     {
         auto mg = 0;
         for (auto i = 0; i < MaxAttackUnits; ++i)
         {
-            //                              MaxIncrement, MaxValue
             mg = std::min (std::min (i*i - 16, mg + 322), 47410);
             KingDanger[i] = mk_score (mg * 268 / 7700, 0);
         }

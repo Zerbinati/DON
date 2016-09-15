@@ -109,7 +109,6 @@ namespace Polyglot {
         : public std::fstream
     {
     private:
-
         std::string _book_fn = "";
         openmode    _mode    = openmode(0);
         size_t      _size    = 0U;

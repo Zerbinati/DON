@@ -77,7 +77,7 @@ namespace {
 
 namespace PieceSquare
 {
-    // PSQ[color][piece-type][square] contains [color][piece-type][square] scores.
+    // PSQ[color][piece-type][square] scores.
     Score PSQ[CLR_NO][NONE][SQ_NO];
 
     // Computes the scores for the middle game and the endgame.
@@ -96,7 +96,7 @@ namespace PieceSquare
         return psqscore;
     }
 
-    // Initialize PSQ table
+    // Initialize lookup tables during startup
     void initialize ()
     {
         for (auto pt = PAWN; pt <= KING; ++pt)

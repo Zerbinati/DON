@@ -24,7 +24,7 @@ namespace Pawns {
 
         enum BlockType : u08
         {
-            BLOCKED_NO,     // Clear path
+            BLOCKED_NO,
             BLOCKED_BY_NONE,
             BLOCKED_BY_PAWN,
             BLOCKED_BY_KING,
@@ -34,46 +34,42 @@ namespace Pawns {
         const Value StromDanger[4][F_NO/2][R_NO] =
         {
             {
-                { V(0), V(  67), V(134), V(38), V(32), V(0), V(0), V(0) },
-                { V(0), V(  57), V(139), V(37), V(22), V(0), V(0), V(0) },
-                { V(0), V(  43), V(115), V(43), V(27), V(0), V(0), V(0) },
-                { V(0), V(  68), V(124), V(57), V(32), V(0), V(0), V(0) }
+                { V( 0), V(  67), V(134), V(38), V(32), V(0), V(0), V(0) },
+                { V( 0), V(  57), V(139), V(37), V(22), V(0), V(0), V(0) },
+                { V( 0), V(  43), V(115), V(43), V(27), V(0), V(0), V(0) },
+                { V( 0), V(  68), V(124), V(57), V(32), V(0), V(0), V(0) }
             },
             {
-                { V(0), V(  43), V(100), V(56), V(20), V(0), V(0), V(0) },
-                { V(0), V(  20), V( 98), V(40), V(15), V(0), V(0), V(0) },
-                { V(0), V(  39), V(103), V(36), V(18), V(0), V(0), V(0) },
-                { V(0), V(  19), V(108), V(42), V(26), V(0), V(0), V(0) }
+                { V(20), V(  43), V(100), V(56), V(20), V(0), V(0), V(0) },
+                { V(23), V(  20), V( 98), V(40), V(15), V(0), V(0), V(0) },
+                { V(23), V(  39), V(103), V(36), V(18), V(0), V(0), V(0) },
+                { V(28), V(  19), V(108), V(42), V(26), V(0), V(0), V(0) }
             },
             {
-                { V(0), V(   0), V( 75), V(14), V( 2), V(0), V(0), V(0) },
-                { V(0), V(   0), V(150), V(30), V( 4), V(0), V(0), V(0) },
-                { V(0), V(   0), V(160), V(22), V( 5), V(0), V(0), V(0) },
-                { V(0), V(   0), V(166), V(24), V(13), V(0), V(0), V(0) }
+                { V( 0), V(   0), V( 75), V(14), V( 2), V(0), V(0), V(0) },
+                { V( 0), V(   0), V(150), V(30), V( 4), V(0), V(0), V(0) },
+                { V( 0), V(   0), V(160), V(22), V( 5), V(0), V(0), V(0) },
+                { V( 0), V(   0), V(166), V(24), V(13), V(0), V(0), V(0) }
             },
             {
-                { V(0), V(-283), V(-281), V(57), V(31), V(0), V(0), V(0) },
-                { V(0), V(  58), V( 141), V(39), V(18), V(0), V(0), V(0) },
-                { V(0), V(  65), V( 142), V(48), V(32), V(0), V(0), V(0) },
-                { V(0), V(  60), V( 126), V(51), V(19), V(0), V(0), V(0) }
+                { V( 0), V(-283), V(-281), V(57), V(31), V(0), V(0), V(0) },
+                { V( 0), V(  58), V( 141), V(39), V(18), V(0), V(0), V(0) },
+                { V( 0), V(  65), V( 142), V(48), V(32), V(0), V(0), V(0) },
+                { V( 0), V(  60), V( 126), V(51), V(19), V(0), V(0), V(0) }
             }
         };
-
-        // Max bonus for king safety by pawns.
-        // Corresponds position with all the pawns in front of the king and no enemy pawn on the horizon.
-        const Value MaxSafety = V(258);
 
     #undef V
 
     #define S(mg, eg) mk_score(mg, eg)
         
-        // Isolated pawn penalty by [opposed]
+        // Isolated pawn penalty indexed by [opposed]
         const Score Isolated[2]     = { S(45,40), S(30,27) };
-        // Backward pawn penalty by [opposed]
+        // Backward pawn penalty indexed by [opposed]
         const Score Backward[2]     = { S(56,33), S(41,19) };
-        // Unsupported pawn penalty for pawns which are neither isolated or backward, by number of pawns it supports [0, 1, 2].
+        // Unsupported pawn penalty indexed by number of pawns it supports [0, 1, 2].
         const Score Unsupported[3]  = { S(17, 8), S(18, 9), S(21,12) };
-        // Levered pawn bonus by [rank]
+        // Levered pawn bonus indexed by [rank]
         const Score Levered[R_NO]   = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
         // Blocked pawn penalty
         const Score Blocked         = S(18, 38);
@@ -82,7 +78,7 @@ namespace Pawns {
 
     #undef S
 
-        // Connected pawn bonus by [opposed][phalanx][twice supported][rank] (by formula)
+        // Connected pawn bonus indexed by [opposed][phalanx][twice supported][rank]
         Score Connected[2][2][2][R_NO];
 
         template<Color Own>
@@ -96,15 +92,17 @@ namespace Pawns {
             const Bitboard own_pawns = pos.pieces (Own, PAWN);
             const Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            e->pawn_attacks    [Own] = shift_bb<LCap> (own_pawns)
-                                     | shift_bb<RCap> (own_pawns);
-            e->passed_pawns    [Own] = 0;
-            e->pawn_attack_span[Own] = 0;
-            e->semiopen_files  [Own] = u08(0xFF);
-            e->pawns_on_sq_clr [Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
-            e->pawns_on_sq_clr [Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
+            e->attacks    [Own] = shift_bb<LCap> (own_pawns)
+                                | shift_bb<RCap> (own_pawns);
+            e->passers    [Own] = 0;
+            e->attack_span[Own] = 0;
+            e->semiopens  [Own] = u08(0xFF);
+            e->color_count[Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
+            e->color_count[Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
+            e->king_safety[Own][CS_KING] = e->pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1));
+            e->king_safety[Own][CS_QUEN] = e->pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1));
 
-            auto pawn_score = SCORE_ZERO;
+            auto score = SCORE_ZERO;
 
             Bitboard b;
             for (Square s : pos.squares<PAWN> (Own))
@@ -112,8 +110,8 @@ namespace Pawns {
                 assert(pos[s] == (Own|PAWN));
 
                 auto f = _file (s);
-                e->semiopen_files[Own] &= u08(~(1 << f));
-                e->pawn_attack_span[Own] |= pawn_attack_span (Own, s);
+                e->semiopens[Own] &= u08(~(0x01 << f));
+                e->attack_span[Own] |= pawn_attack_span (Own, s);
 
                 Bitboard neighbours = own_pawns & adj_file_bb (f);
                 Bitboard supporters = neighbours & PawnAttacks[Opp][s];
@@ -142,10 +140,8 @@ namespace Pawns {
                 if (   stoppers == 0
                     && (own_pawns & front_sqrs_bb (Own, s)) == 0)
                 {
-                    e->passed_pawns[Own] += s;
+                    e->passers[Own] += s;
                 }
-
-                auto score = SCORE_ZERO;
 
                 if (neighbours == 0)
                 {
@@ -180,29 +176,25 @@ namespace Pawns {
                 {
                     score -= Blocked;
                 }
-
-//#           if !defined(NDEBUG)
-//                std::cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << std::endl;
-//#           endif
-                pawn_score += score;
             }
 
-            b = e->semiopen_files[Own] ^ u08(0xFF);
-            e->pawn_span[Own] = u08(b != 0 ? u08(scan_msq (b)) - u08(scan_lsq (b)) + 1 : 0);
+            b = e->semiopens[Own] ^ u08(0xFF);
+            e->fill_count[Own] = u08(pop_count (b));
 
-            return pawn_score;
+            return score;
         }
         // Explicit template instantiations
         template Score evaluate<WHITE> (const Position&, Entry*);
         template Score evaluate<BLACK> (const Position&, Entry*);
     }
 
+    // Calculates shelter and storm penalties.
     template<Color Own>
     Value Entry::pawn_shelter_storm (const Position &pos, Square k_sq) const
     {
         static const auto Opp = Own == WHITE ? BLACK : WHITE;
-
-        auto value = MaxSafety;
+        // Max bonus for king safety by pawns.
+        auto value = Value(258);
         Bitboard front_pawns =
               pos.pieces (PAWN)
             & (  rank_bb (k_sq)
@@ -214,22 +206,20 @@ namespace Pawns {
         for (auto f = kf - 1; f <= kf + 1; ++f)
         {
             assert(F_A <= f && f <= F_H);
-            Bitboard file = file_bb (f);
 
             Bitboard file_front_pawns;
-            file_front_pawns = own_front_pawns & file;
+            file_front_pawns = own_front_pawns & file_bb (f);
             auto own_r = file_front_pawns != 0 ? rel_rank (Own, scan_backmost_sq (Own, file_front_pawns)) : R_1;
-            file_front_pawns = opp_front_pawns & file;
+            file_front_pawns = opp_front_pawns & file_bb (f);
             auto opp_r = file_front_pawns != 0 ? rel_rank (Own, scan_frntmost_sq (Opp, file_front_pawns)) : R_1;
-
+            assert((own_r == R_1 && opp_r == R_1)
+                || (own_r != opp_r));
             value -= ShelterWeak[std::min (f, F_H - f)][own_r]
                    + StromDanger[   f == _file (k_sq)
-                                 && opp_r == rel_rank (Own, k_sq) + 1                    ? BLOCKED_BY_KING  :
-                                    own_r != R_1                                         ?                                
-                                        opp_r != R_1
-                                     && (front_pawns & (f|rel_rank (Own, opp_r-1))) != 0 ? BLOCKED_BY_PAWN  :
-                                                                                           BLOCKED_BY_NONE :
-                                                                                           BLOCKED_NO]
+                                 && opp_r == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING :
+                                    own_r == R_1                      ? BLOCKED_NO      :
+                                    opp_r == own_r + 1                ? BLOCKED_BY_PAWN :
+                                                                        BLOCKED_BY_NONE]
                                 [std::min (f, F_H - f)][opp_r];
         }
         return value;
@@ -238,11 +228,12 @@ namespace Pawns {
     template Value Entry::pawn_shelter_storm<WHITE> (const Position&, Square) const;
     template Value Entry::pawn_shelter_storm<BLACK> (const Position&, Square) const;
 
+    // Scores the most advanced passed pawns.
     template<Color Own>
     Score Entry::evaluate_unstoppable_pawns () const
     {
-        return passed_pawns[Own] != 0 ?
-                Unstopped * i32(rel_rank (Own, scan_frntmost_sq (Own, passed_pawns[Own]))) :
+        return passers[Own] != 0 ?
+                Unstopped * i32(rel_rank (Own, scan_frntmost_sq (Own, passers[Own]))) :
                 SCORE_ZERO;
     }
     // Explicit template instantiations
@@ -250,30 +241,32 @@ namespace Pawns {
     template Score Entry::evaluate_unstoppable_pawns<BLACK> () const;
 
     // Looks up a PawnEntry object, and returns a pointer to it.
+    // The pointer is also stored in a hash table.
     Entry* probe (const Position &pos)
     {
         auto pawn_key = pos.pawn_key ();
         auto *e = pos.thread ()->pawn_table[pawn_key];
 
         if (   e->used
-            && e->pawn_key == pawn_key)
+            && e->key == pawn_key)
         {
             return e;
         }
         
         e->used = false;
-        e->pawn_key = pawn_key;
-        e->pawn_score =
+        e->key = pawn_key;
+        e->score =
             + evaluate<WHITE> (pos, e)
             - evaluate<BLACK> (pos, e);
-        e->asymmetry = i08(pop_count (  e->semiopen_files[WHITE]
-                                      ^ e->semiopen_files[BLACK]));
-        e->evaluate_king_safety<WHITE> (pos);
-        e->evaluate_king_safety<BLACK> (pos);
+        e->asymmetry    = u08(pop_count (  e->semiopens[WHITE]
+                                         ^ e->semiopens[BLACK]));
+        e->open_count   = u08(pop_count (  e->semiopens[WHITE]
+                                         & e->semiopens[BLACK]));
         e->used = true;
         return e;
     }
 
+    // Initialize lookup tables during startup
     void initialize ()
     {
         static const i32 Seeds[R_NO] = { 0, 8, 19, 13, 71, 94, 169, 324 };

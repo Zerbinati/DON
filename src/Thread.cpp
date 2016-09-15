@@ -347,8 +347,7 @@ namespace Threading {
         configure (i32(Options["Threads"]));
     }
     // Cleanly terminates the threads before the program exits.
-    // Cannot be done in destructor because threads must be terminated before deleting any
-    // static objects related to search while still in main().
+    // Cannot be done in destructor because threads must be terminated before deleting any static objects.
     void ThreadPool::deinitialize ()
     {
         ForceStop = true;

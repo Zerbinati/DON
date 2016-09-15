@@ -453,33 +453,23 @@ inline Value  operator/  (Value  v, i32    i) { return Value(i32(v) / i); }
 inline Value& operator/= (Value &v, i32    i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1)/i32(v2); }
 
+union ValueSplit
+{
+    u16 u;
+    i16 s;
+};
 inline Value mg_value (u32 s)
 {
-    union ScoreSplit
-    {
-        u32 s;
-        i16 v[2];
-    };
-    return Value(ScoreSplit{ s }.v[0]);
+    return Value(ValueSplit{ u16((s + 0x8000) >> 0x10) }.s);
 }
 inline Value eg_value (u32 s)
 {
-    union ScoreSplit
-    {
-        u32 s;
-        i16 v[2];
-    };
-    return Value(ScoreSplit{ s }.v[1]);
+    return Value(ValueSplit{ u16((s + 0x0000) >> 0x00) }.s);
 }
 
 inline Score mk_score (i32 mg, i32 eg)
 {
-    union ValueUnion
-    {
-        i16 v[2];
-        u32 s;
-    };
-    return Score(ValueUnion{ { i16(mg), i16(eg) } }.s);
+    return Score((mg << 0x10) + eg);
 }
 
 ARTHMAT_OPERATORS(Score)

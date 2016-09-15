@@ -356,17 +356,13 @@ namespace MoveGen {
     // Explicit template instantiations
 
     // generate<RELAX> generates all pseudo-legal captures and non-captures.
-    // Returns a pointer to the end of the move list.
     template void generate<RELAX  > (vector<ValMove>&, const Position&);
     // generate<CAPTURES> generates all pseudo-legal captures and queen promotions.
-    // Returns a pointer to the end of the move list.
     template void generate<CAPTURE> (vector<ValMove>&, const Position&);
     // generate<QUIETS> generates all pseudo-legal non-captures and underpromotions.
-    // Returns a pointer to the end of the move list.
     template void generate<QUIET  > (vector<ValMove>&, const Position&);
 
     // Generates all pseudo-legal non-captures and knight underpromotions moves that give check.
-    // Returns a pointer to the end of the move list.
     template<>
     void generate<QUIET_CHECK> (vector<ValMove> &moves, const Position &pos)
     {
@@ -400,9 +396,7 @@ namespace MoveGen {
             generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets) :
             generate_moves<QUIET_CHECK, BLACK> (moves, pos, targets);
     }
-
     // Generates all pseudo-legal check giving moves.
-    // Returns a pointer to the end of the move list.
     template<>
     void generate<CHECK      > (vector<ValMove> &moves, const Position &pos)
     {
@@ -437,9 +431,7 @@ namespace MoveGen {
             generate_moves<CHECK, WHITE> (moves, pos, targets) :
             generate_moves<CHECK, BLACK> (moves, pos, targets);
     }
-
     // Generates all pseudo-legal check evasions moves when the side to move is in check.
-    // Returns a pointer to the end of the move list.
     template<>
     void generate<EVASION    > (vector<ValMove> &moves, const Position &pos)
     {
@@ -495,7 +487,6 @@ namespace MoveGen {
             generate_moves<EVASION, WHITE> (moves, pos, targets) :
             generate_moves<EVASION, BLACK> (moves, pos, targets);
     }
-
     // Generates all legal moves.
     template<>
     void generate<LEGAL      > (vector<ValMove> &moves, const Position &pos)

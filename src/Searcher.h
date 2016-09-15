@@ -53,7 +53,6 @@ private:
     Value _table[CLR_NO][NONE][SQ_NO][SQ_NO];
 
 public:
-
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -99,7 +98,6 @@ private:
     Value _table[CLR_NO][SQ_NO][SQ_NO];
 
 public:
-
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -136,7 +134,6 @@ private:
     Move _table[CLR_NO][NONE][SQ_NO][SQ_NO];
 
 public:
-
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -159,6 +156,7 @@ public:
         assert(ptype (pc) != NONE);
         return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
     }
+
     void update (Piece pc, Move m, Move cm)
     {
         assert(ptype (pc) != NONE);
@@ -261,6 +259,7 @@ const u08 MaxKillers = 2;
 // Stack keeps the information of the nodes in the tree during the search.
 struct Stack
 {
+public:
     i16   ply;
     Move  current_move
         , exclude_move;
@@ -275,7 +274,6 @@ struct Stack
 };
 
 // MovePicker class is used to pick one legal moves from the current position.
-// next_move() which returns a new legal move each time it is called, until there are no moves left,
 class MovePicker
 {
 private:
@@ -292,8 +290,7 @@ private:
     Square  _recap_sq   = SQ_NO;
     Value   _threshold  = VALUE_ZERO;
 
-    // value() assign a numerical move ordering score to each move in a move list.
-    // The moves with highest scores will be picked first.
+    // Orders move list according to score.
     template<GenType GT>
     void value ();
 
@@ -302,7 +299,6 @@ private:
     ValMove& pick_best_move (i32 i);
 
 public:
-
     MovePicker () = delete;
     MovePicker (const MovePicker&) = delete;
     MovePicker& operator= (const MovePicker&) = delete;

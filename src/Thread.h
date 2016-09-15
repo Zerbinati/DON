@@ -183,9 +183,9 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        FPieceValueStats  piece_history;
-        ColorValueStats   color_history;
-        PieceCMoveStats   piece_cmove;
+        FPieceValueStats piece_history;
+        ColorValueStats  color_history;
+        PieceCMoveStats  piece_cmove;
 
         Thread ();
         Thread (const Thread&) = delete;
@@ -319,8 +319,6 @@ namespace Threading {
         void start_thinking (Position &root_pos, StateList &states, const Limit &limits);
         void wait_while_thinking ();
 
-        // No constructor and destructor, Threadpool rely on globals
-        // that should be initialized and valid during the whole thread lifetime.
         void initialize ();
         void deinitialize ();
     };

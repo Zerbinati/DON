@@ -23,12 +23,10 @@ namespace BitBoard {
     const Bitboard R7_bb = R1_bb << (8 * 6);
     const Bitboard R8_bb = R1_bb << (8 * 7);
 
-    const Bitboard Corner_bb = (FA_bb|FH_bb)&(R1_bb|R8_bb); // 04 CORNER squares
-
     const Bitboard Color_bb[CLR_NO] =
     {
-        U64(0x55AA55AA55AA55AA),    // 32 LIGHT squares
-        U64(0xAA55AA55AA55AA55)     // 32 DARK  squares
+        U64(0x55AA55AA55AA55AA),
+        U64(0xAA55AA55AA55AA55),
     };
 
     const Bitboard Square_bb[SQ_NO] =
@@ -47,13 +45,14 @@ namespace BitBoard {
 #undef S_04
 #undef S_02
     };
+
     const Bitboard File_bb[F_NO] =
     {
-        FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb
+        FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb,
     };
     const Bitboard Rank_bb[R_NO] =
     {
-        R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb
+        R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb,
     };
 
     const Bitboard AdjFile_bb  [F_NO] =
@@ -65,7 +64,7 @@ namespace BitBoard {
         FD_bb|FF_bb,
         FE_bb|FG_bb,
         FF_bb|FH_bb,
-        FG_bb
+        FG_bb,
     };
     const Bitboard AdjRank_bb  [R_NO] =
     {
@@ -98,7 +97,7 @@ namespace BitBoard {
             R4_bb|R3_bb|R2_bb|R1_bb,
             R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
             R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
-            R7_bb|R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb
+            R7_bb|R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
         }
     };
 

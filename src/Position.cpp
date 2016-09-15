@@ -71,7 +71,7 @@ bool Position::repeated () const
 template<PieceType PT>
 PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
-    auto b = c_attackers & pieces (PT);
+    Bitboard b = c_attackers & pieces (PT);
     if (b != 0)
     {
         mocc ^= b & ~(b - 1);
@@ -460,12 +460,11 @@ bool Position::legal (Move m) const
             && dst == _si->en_passant_sq
             && _board[cap] == (~_active|PAWN));
 
-        auto mocc = pieces () - org - cap + dst;
         // If any attacker then in check and not legal move
         return (   (pieces (~_active, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (_active)]) == 0
-                || (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0)
+                || (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), pieces () - org - cap + dst)) == 0)
             && (   (pieces (~_active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (_active)]) == 0
-                || (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0);
+                || (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), pieces () - org - cap + dst)) == 0);
     }
         break;
     }
@@ -646,14 +645,13 @@ bool Position::can_en_passant (Square ep_sq) const
             moves.push_back (mk_move<ENPASSANT> (pop_lsq (attackers), ep_sq));
         }
         // Check en-passant is legal for the position
-        auto occ = pieces () + ep_sq - cap;
+        auto mocc = pieces () + ep_sq - cap;
         for (auto m : moves)
         {
-            auto mocc = occ - org_sq (m);
             if (   (   (pieces (~_active, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (_active)]) == 0
-                    || (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0)
+                    || (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc - org_sq (m))) == 0)
                 && (   (pieces (~_active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (_active)]) == 0
-                    || (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0))
+                    || (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc - org_sq (m))) == 0))
             {
                 return true;
             }
@@ -990,8 +988,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         assert(mpt == PAWN
             && rel_rank (_active, org) == R_7
             && rel_rank (_active, dst) == R_8
-            && cpt != PAWN
-            && cpt != KING);
+            && cpt != PAWN && cpt != KING);
 
         if (cpt != NONE)
         {

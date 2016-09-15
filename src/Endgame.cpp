@@ -258,7 +258,7 @@ namespace EndGame {
 
         // To draw, the weak side should run towards the corner.
         // And not just any corner! Only a corner that's not the same color as the bishop will do.
-        if (   (Corner_bb & wk_sq) != 0
+        if (   (((FA_bb|FH_bb)&(R1_bb|R8_bb)) & wk_sq) != 0
             && opposite_colors (wk_sq, wb_sq)
             && dist (wk_sq, wb_sq) == 1
             && dist (sk_sq, wb_sq) > 1)

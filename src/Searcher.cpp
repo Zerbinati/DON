@@ -27,7 +27,7 @@ using namespace Notation;
 using namespace Debugger;
 
 /*
-// insert_pv_into_tt() inserts the PV back into the TT.
+// Inserts the PV back into the TT.
 // This makes sure the old PV moves are searched first,
 // even if the old TT entries have been overwritten.
 void RootMove::insert_pv_into_tt (Position &pos) const
@@ -68,7 +68,7 @@ void RootMove::insert_pv_into_tt (Position &pos) const
         --ply;
     }
 }
-// extract_pv_from_tt() extract the PV back from the TT.
+// Extract the PV back from the TT.
 void RootMove::extract_pv_from_tt (Position &pos)
 {
     StateInfo states[MaxPlies], *si = states;
@@ -108,9 +108,7 @@ void RootMove::extract_pv_from_tt (Position &pos)
 }
 */
 
-// extract_ponder_move_from_tt() is called in case have no ponder move before exiting the search,
-// for instance, in case stop the search during a fail high at root.
-// Try hard to have a ponder move which has to return to the GUI, otherwise in case of 'ponder on' have nothing to think on.
+// Extract ponder move from TT is called in case have no ponder move before exiting the search,
 bool RootMove::extract_ponder_move_from_tt (Position &pos)
 {
     assert(size () == 1);
@@ -197,7 +195,6 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
         _index = -1;
     }
 }
-
 MovePicker::MovePicker (const Position &pos, Move ttm, i16 d, Move lm)
     : _pos (pos)
     , _tt_move (ttm)
@@ -236,7 +233,6 @@ MovePicker::MovePicker (const Position &pos, Move ttm, i16 d, Move lm)
         _index = -1;
     }
 }
-
 MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
     : _pos (pos)
     , _tt_move (ttm)
@@ -287,7 +283,6 @@ void MovePicker::value<CAPTURE> ()
             - Value(ptype (_pos[org_sq (vm.move)]) + 1);
     }
 }
-
 template<>
 void MovePicker::value<QUIET> ()
 {
@@ -304,7 +299,6 @@ void MovePicker::value<QUIET> ()
             + ((_ss-4)->cm_history != nullptr ? (*(_ss-4)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO);
     }
 }
-
 // First try winning and equal captures, ordered by SEE value,
 // then non-captures if destination square is not under attack, ordered by history values,
 // then bad-captures and quiet moves with a negative SEE, ordered by SEE value.
@@ -339,7 +333,6 @@ void MovePicker::value<EVASION> ()
         }
     }
 }
-
 // Generates and sorts the next bunch of moves,
 // when there are no more moves to try for the current stage.
 void MovePicker::generate_next_stage ()
@@ -457,10 +450,16 @@ void MovePicker::generate_next_stage ()
         break;
     }
 }
-
+// Finds the best move in the range [beg, end) and moves it to front,
+// it is faster than sorting all the moves in advance when there are few moves (e.g. the possible captures).
+ValMove& MovePicker::pick_best_move (i32 i)
+{
+    auto itr = _moves.begin () + i;
+    std::swap (*itr, *std::max_element (itr, _moves.end ()));
+    return *itr;
+}
 // Returns a new legal move every time it is called, until there are no more moves left.
-// It picks the move with the biggest value from a list of generated moves
-// taking care not to return the tt-move if it has already been searched.
+// It picks the move with the biggest value from a list of generated moves.
 Move MovePicker::next_move ()
 {
     do
@@ -545,16 +544,6 @@ Move MovePicker::next_move ()
     while (true);
 }
 
-// Finds the best move in the range [beg, end) and moves it to front,
-// it is faster than sorting all the moves in advance when there are few moves
-// e.g. the possible captures.
-ValMove& MovePicker::pick_best_move (i32 i)
-{
-    auto itr = _moves.begin () + i;
-    std::swap (*itr, *std::max_element (itr, _moves.end ()));
-    return *itr;
-}
-
 namespace Searcher {
 
     Limit  Limits;
@@ -617,7 +606,7 @@ namespace Searcher {
 
         CMValueStats CMHistory;
 
-// prefetch() preloads the given address in L1/L2 cache.
+// Preloads the given address in L1/L2 cache.
 // This is a non-blocking function that doesn't stall
 // the CPU waiting for data to be loaded from memory,
 // which can be quite slow.
@@ -706,7 +695,7 @@ namespace Searcher {
             }
         }
 
-        // update_cm_stats() updates countermoves and followupmoves history stats
+        // Updates countermoves and followupmoves history stats
         void update_cm_stats (Stack *const &ss, Piece pc, Move move, Value value)
         {
             assert(pc != NO_PIECE);
@@ -726,7 +715,7 @@ namespace Searcher {
             }
         }
 
-        // update_stats() updates killers, history, countermoves and followupmoves history stats
+        // Updates killers, history, countermoves and followupmoves history stats
         void update_stats (Stack *const &ss, const Position &pos, Move move, Value value, const MoveVector &quiet_moves)
         {
             assert(!pos.empty (org_sq (move)));
@@ -762,7 +751,7 @@ namespace Searcher {
             update_stats (ss, pos, move, value, quiet_moves);
         }
 
-        // update_pv() appends the move and child pv[]
+        // Appends the move and child pv[]
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
             assert(move != MOVE_NONE);
@@ -845,7 +834,7 @@ namespace Searcher {
             return oss.str ();
         }
 
-        // quien_search<>() is the quiescence search function,
+        // The quiescence search function,
         // which is called by the main depth limited search function
         // when the remaining depth is less than equal to 0.
         template<bool PVNode, bool InCheck>
@@ -1159,7 +1148,7 @@ namespace Searcher {
             return best_value;
         }
 
-        // depth_search<>() is the main depth limited search function.
+        // The main depth limited search function.
         template<bool PVNode, bool CutNode, bool InCheck>
         Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth)
         {
@@ -1686,39 +1675,47 @@ namespace Searcher {
                 }
 
                 // Update the current move (this must be done after singular extension search)
-                auto new_depth = i16(depth - 1 + (extension ? 1 : 0));
+                auto new_depth = i16(depth - (extension ? 0 : 1));
 
                 // Step 13. Pruning at shallow depth
                 if (   !InCheck
                     && !root_node
-                    && !capture_or_promotion
-                    && !gives_check
-                    && best_value > -VALUE_MATE_IN_MAX_PLY
                     //&& Limits.mate == 0
-                        // Advance pawn push
-                    && !(   mpt == PAWN
-                         && rel_rank (pos.active (), dst) > R_5))
+                    && best_value > -VALUE_MATE_IN_MAX_PLY)
                 {
-                    // Move count based pruning
-                    if (move_count_pruning)
+                    if (   !capture_or_promotion
+                        && !gives_check
+                            // Advance pawn push
+                        && !(   mpt == PAWN
+                             && rel_rank (pos.active (), dst) > R_5))
                     {
-                        continue;
-                    }
+                        // Move count based pruning
+                        if (move_count_pruning)
+                        {
+                            continue;
+                        }
 
-                    // Value based pruning
-                    auto predicted_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
-                    if (    // Counter move values based pruning
-                           (   predicted_depth < 3
-                            && ((ss-1)->cm_history == nullptr || (*(ss-1)->cm_history)(mpc, move) < VALUE_ZERO)
-                            && ((ss-2)->cm_history == nullptr || (*(ss-2)->cm_history)(mpc, move) < VALUE_ZERO)
-                            && (  ((ss-1)->cm_history != nullptr && (ss-2)->cm_history != nullptr)
-                                || (ss-4)->cm_history == nullptr || (*(ss-4)->cm_history)(mpc, move) < VALUE_ZERO))
-                            // Futility pruning: parent node
-                        || (   predicted_depth < 7
-                            && ss->static_eval + 200*predicted_depth + 256 <= alfa)
-                            // SEE pruning below a decreasing threshold with depth.
-                        || (   predicted_depth < 8
-                            && pos.see_sign (move) < -VALUE_MG_PAWN*2*std::max (predicted_depth - 3, 0)))
+                        // Value based pruning
+                        auto predicted_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
+                        if (    // Counter move values based pruning
+                               (   predicted_depth < 3
+                                && ((ss-1)->cm_history == nullptr || (*(ss-1)->cm_history)(mpc, move) < VALUE_ZERO)
+                                && ((ss-2)->cm_history == nullptr || (*(ss-2)->cm_history)(mpc, move) < VALUE_ZERO)
+                                && (  ((ss-1)->cm_history != nullptr && (ss-2)->cm_history != nullptr)
+                                    || (ss-4)->cm_history == nullptr || (*(ss-4)->cm_history)(mpc, move) < VALUE_ZERO))
+                                // Futility pruning: parent node
+                            || (   predicted_depth < 7
+                                && ss->static_eval + 200*predicted_depth + 256 <= alfa)
+                                // SEE pruning below a decreasing threshold with depth.
+                            || (   predicted_depth < 8
+                                && pos.see_sign (move) < -400*std::max (predicted_depth - 3, 0)))
+                        {
+                            continue;
+                        }
+                    }
+                    else
+                    if (   depth < 3
+                        && pos.see_sign (move) < VALUE_ZERO)
                     {
                         continue;
                     }
@@ -2012,7 +2009,7 @@ namespace Searcher {
         }
     }
 
-    // perft<>() is utility to verify move generation.
+    // Utility to verify move generation.
     // All the leaf nodes up to the given depth are generated, and the sum is returned.
     template<bool RootNode>
     u64 perft (Position &pos, i16 depth)
@@ -2059,7 +2056,7 @@ namespace Searcher {
     template u64 perft<false> (Position&, i16);
     template u64 perft<true > (Position&, i16);
 
-    // Initialize various lookup tables during startup
+    // Initialize lookup tables during startup
     void initialize ()
     {
         for (i16 d = 1; d < MaxRazorDepth; ++d)
@@ -2107,8 +2104,8 @@ namespace Threading {
 
     // Main iterative deepening loop function.
     // It calls depth_search() repeatedly with increasing depth until
+    // - the force stop requested.
     // - the allocated thinking time has been consumed.
-    // - the user stops the search.
     // - the maximum search depth is reached.
     void Thread::search ()
     {
@@ -2122,7 +2119,7 @@ namespace Threading {
             s->static_eval  = VALUE_ZERO;
             s->move_count   = 0;
             s->skip_pruning = false;
-            s->cm_history = nullptr;
+            s->cm_history   = nullptr;
             assert(s->pv.empty ());
         }
 
@@ -2250,8 +2247,7 @@ namespace Threading {
                     // (without cluttering the UI) before to re-search.
                     if (   Threadpool.main_thread () == this
                         && Threadpool.pv_limit == 1
-                        && (   best_value <= alfa
-                            || beta <= best_value)
+                        && (best_value <= alfa || beta <= best_value)
                         && Threadpool.time_mgr.elapsed_time () > 3*MilliSec)
                     {
                         sync_cout << multipv_info (this, alfa, beta) << sync_endl;
@@ -2285,9 +2281,9 @@ namespace Threading {
                     }
 
                     window += window / 4 + 5;
-                    
+
                     assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
-                } while (true); // alfa < beta
+                } while (true);
 
                 // Sort the PV lines searched so far and update the GUI
                 std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
@@ -2410,8 +2406,8 @@ namespace Threading {
             }
         }
     }
-    // Main thread function when receives the UCI 'go' command.
-    // It searches from root position and and outputs the "bestmove" and "ponder".
+    // Main thread function.
+    // It searches from root position and outputs the "bestmove"/"ponder".
     void MainThread::search ()
     {
         static Book book; // Defined static to initialize the PRNG only once
