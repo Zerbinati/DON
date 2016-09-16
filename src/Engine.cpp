@@ -6,7 +6,6 @@
 #include "Zobrist.h"
 #include "Pawns.h"
 #include "Material.h"
-#include "Evaluator.h"
 #include "Endgame.h"
 #include "Thread.h"
 #include "Searcher.h"
@@ -103,7 +102,6 @@ namespace Engine {
         Zobrists ::initialize ();
         BitBases ::initialize ();
         Pawns    ::initialize ();
-        Evaluator::initialize ();
         EndGame  ::initialize ();
         Threadpool.initialize ();
         Searcher ::initialize ();

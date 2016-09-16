@@ -273,17 +273,12 @@ namespace Evaluator {
 
     #undef V
 
-        const i32 MaxAttackUnits = 400;
-        // Various little "meta-bonuses" measuring the strength of the enemy attack
-        // are added up into an integer, which is used as an index to the KingDanger[].
-        Score KingDanger[MaxAttackUnits];
-
         // King attack weights by piece type
-        const i32 KingAttackWeights [NONE] = { 4, 70, 50, 40, 10, 0 };
+        const i32 KingAttackWeights [NONE] = { 1, 78, 56, 45, 11, 0 };
         // Penalties for enemy's piece safe checks by piece type
-        const i32 PieceSafeCheckUnit[NONE] = { 0, 78, 48, 57, 62, 0 };
+        const i32 PieceSafeCheckUnit[NONE] = { 0, 874, 538, 638, 695, 0 };
         // Penalty for enemy's queen contact checks
-        const i32 QueenContactCheckUnit = 89;
+        const i32 QueenContactCheckUnit = 997;
 
         // Mask of allowed outpost squares
         const Bitboard OutpostMask[CLR_NO] =
@@ -327,13 +322,13 @@ namespace Evaluator {
                                                                       pawn_pass_span (Own, ek_sq)));
                 if ((king_zone & ei.pin_attacked_by[Own][PAWN]) != 0)
                 {
-                    auto pawn_attack_count = u08(pop_count (  pos.pieces (Own, PAWN)
-                                                            & (  king_zone
-                                                               | (  dist_rings_bb (ek_sq, 1)
-                                                                  & (  rank_bb (ek_sq)
-                                                                     | front_rank_bb (Opp, ek_sq))))));
-                    ei.king_ring_attackers_count [Own] = pawn_attack_count;
-                    ei.king_ring_attackers_weight[Own] = pawn_attack_count*KingAttackWeights[PAWN];
+                    auto attackers_count = u08(pop_count (  pos.pieces (Own, PAWN)
+                                                          & (  king_zone
+                                                             | (  dist_rings_bb (ek_sq, 1)
+                                                                & (  rank_bb (ek_sq)
+                                                                   | front_rank_bb (Opp, ek_sq))))));
+                    ei.king_ring_attackers_count [Own] = attackers_count;
+                    ei.king_ring_attackers_weight[Own] = attackers_count*KingAttackWeights[PAWN];
                 }
             }
         }
@@ -582,19 +577,21 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][NONE]
                     & ~ei.pin_attacked_by[Own][NONE];
 
-                // Initialize the attack units, which is used as an index to the KingDanger[].
+                // Initialize the king danger, which will be transformed later into a king danger score.
+                // The initial value is based on the
                 // - the number and types of the enemy's attacking pieces,
                 // - the number of attacked and undefended squares around our king,
                 // - the quality of the pawn shelter ('mg score' value).
-                i32 attack_units =
-                    + std::min ((ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp])/10, 72)
-                    +  9 * (ei.king_zone_attacks_count[Opp])
-                    + 21 * (pop_count (king_zone_undef))
-                    + 12 * (pop_count (king_ring_undef))
-                    + 12 * ((  ei.abs_pinneds [Own]
-                             | ei.dsc_checkers[Opp]) != 0 ? 1 : 0)
-                    - 64 * (pos.count<QUEN>(Opp) == 0)
-                    - i32(value) / 8;
+                i32 king_danger =
+                    + std::min (ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp], 807)
+                    + 101 * (ei.king_zone_attacks_count[Opp])
+                    + 235 * (pop_count (king_zone_undef))
+                    + 134 * (pop_count (king_ring_undef))
+                    + 134 * ((  ei.abs_pinneds [Own]
+                              | ei.dsc_checkers[Opp]) != 0 ? 1 : 0)
+                    - 717 * (pos.count<QUEN>(Opp) == 0)
+                    -   7 * i32(value) / 5
+                    -   5;
 
                 // Analyze enemy's queen safe contact checks.
                 // Undefended squares around the king not occupied by enemy's and attacked by enemy queen and keep squares supported by another enemy piece.
@@ -602,7 +599,7 @@ namespace Evaluator {
                     & non_opp
                     & ei.pin_attacked_by[Opp][QUEN]
                     & ei.dbl_attacked[Opp];
-                attack_units += QueenContactCheckUnit * pop_count (b);
+                king_danger += QueenContactCheckUnit * pop_count (b);
 
                 Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces ());
                 Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces ());
@@ -623,7 +620,7 @@ namespace Evaluator {
                 if ((b & safe_area) != 0)
                 {
                     score -= PieceSafeCheck;
-                    attack_units += PieceSafeCheckUnit[QUEN];
+                    king_danger += PieceSafeCheckUnit[QUEN];
                 }
 
                 // Attacked twice and only defended by a queen.
@@ -639,7 +636,7 @@ namespace Evaluator {
                 if ((b & safe_area) != 0)
                 {
                     score -= PieceSafeCheck;
-                    attack_units += PieceSafeCheckUnit[ROOK];
+                    king_danger += PieceSafeCheckUnit[ROOK];
                 }
                 else
                 if ((b & prob_area) != 0)
@@ -652,7 +649,7 @@ namespace Evaluator {
                 if ((b & safe_area) != 0)
                 {
                     score -= PieceSafeCheck;
-                    attack_units += PieceSafeCheckUnit[BSHP];
+                    king_danger += PieceSafeCheckUnit[BSHP];
                 }
                 else
                 if ((b & prob_area) != 0)
@@ -665,7 +662,7 @@ namespace Evaluator {
                 if ((b & safe_area) != 0)
                 {
                     score -= PieceSafeCheck;
-                    attack_units += PieceSafeCheckUnit[NIHT];
+                    king_danger += PieceSafeCheckUnit[NIHT];
                 }
                 else
                 if ((b & prob_area) != 0)
@@ -673,8 +670,11 @@ namespace Evaluator {
                     score -= PieceProbCheck;
                 }
 
-                // Finally, extract the king danger score from the KingDanger[].
-                score -= KingDanger[std::min (std::max (attack_units, 0), MaxAttackUnits-1)];
+                // Compute the king danger score and subtract it from the evaluation
+                if (king_danger > 0)
+                {
+                    score -= mk_score (std::min (king_danger*king_danger / 4096, 2 * i32(VALUE_MG_BSHP)), 0);
+                }
             }
 
             // King tropism: Find squares that enemy attacks in the friend king flank
@@ -1186,16 +1186,4 @@ namespace Evaluator {
             << std::noshowpoint << std::noshowpos;
         return oss.str ();
     }
-
-    // Initialize lookup tables during startup
-    void initialize ()
-    {
-        auto mg = 0;
-        for (auto i = 0; i < MaxAttackUnits; ++i)
-        {
-            mg = std::min (std::min (i*i - 16, mg + 322), 47410);
-            KingDanger[i] = mk_score (mg * 268 / 7700, 0);
-        }
-    }
-
 }
