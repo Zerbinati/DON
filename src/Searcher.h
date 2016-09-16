@@ -281,9 +281,9 @@ private:
     const Stack *const _ss = nullptr;
 
     std::vector<ValMove> _moves;
-    std::vector<ValMove> _bad_cap_moves;
+    std::vector<ValMove> _capture_moves;
 
-    i32     _index      = 0;
+    u08     _index      = 0;
     u08     _stage      = 0;
 
     Move    _tt_move    = MOVE_NONE;
@@ -293,9 +293,7 @@ private:
     template<GenType GT>
     void value ();
 
-    ValMove& pick_best_move (i32 i);
-
-    void generate_next_stage ();
+    ValMove& pick_best_move (u08 i);
 
 public:
     MovePicker () = delete;

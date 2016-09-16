@@ -502,8 +502,8 @@ namespace Evaluator {
                 if (PT == QUEN)
                 {
                     // Penalty for pin or discover attack on the queen
-                    Bitboard pinners;
-                    b = pos.slider_blockers (s, pos.pieces (Opp, BSHP, ROOK), pinners);
+                    Bitboard x_attackers;
+                    b = pos.slider_blockers (s, pos.pieces (Opp, BSHP, ROOK), x_attackers);
                     if (b != 0)
                     {
                         score -= QueenWeaken;
@@ -916,7 +916,7 @@ namespace Evaluator {
                     }
                 }
                 // Non-pawn count difference bonus.
-                eg_value *= 1.0 + nonpawn_diff / 4.0;
+                eg_value *= 1.0 + nonpawn_diff / 8.0;
 
                 score += mk_score (mg_value, eg_value)
                        + PawnFilePassed[std::min (_file (s), F_H - _file (s))];

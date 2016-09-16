@@ -154,7 +154,7 @@ Value Position::see (Move m) const
     // Don't allow pinned pieces to attack as long all pinners (this includes also potential ones) are on their original square.
     // When a pinner moves to the exchange-square or get captured on it, we fall back to standard SEE behaviour.
     if (   (c_attackers & abs_pinneds (c)) != 0
-        && (_si->pinners[c] & mocc) == _si->pinners[c])
+        && (_si->x_checkers[c] & mocc) == _si->x_checkers[c])
     {
         c_attackers &= ~abs_pinneds (c);
     }
@@ -182,7 +182,7 @@ Value Position::see (Move m) const
             c = ~c;
             c_attackers = attackers & pieces (c);
             if (   (c_attackers & abs_pinneds (c)) != 0
-                && (_si->pinners[c] & mocc) == _si->pinners[c])
+                && (_si->x_checkers[c] & mocc) == _si->x_checkers[c])
             {
                 c_attackers &= ~abs_pinneds (c);
             }
@@ -213,8 +213,8 @@ Value Position::see_sign (Move m) const
     // If SEE cannot be negative because captured piece value is not less then capturing one.
     // Note that king moves always return here because king value is set to VALUE_ZERO.
     return
-        (   PieceValues[MG][ptype (_board[org_sq (m)])]
-         <= PieceValues[MG][ptype (_board[dst_sq (m)])]) ?
+           PieceValues[MG][ptype (_board[org_sq (m)])]
+        <= PieceValues[MG][ptype (_board[dst_sq (m)])] ?
             VALUE_KNOWN_WIN :
             see (m);
 }
@@ -223,17 +223,16 @@ Value Position::see_sign (Move m) const
 // For example, a king-attack blocking piece can be either a pinned or a discovered check piece,
 // according if its color is the opposite or the same of the color of the slider.
 // The pinners bitboard get filled with real and potential pinners.
-Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard &pinners) const
+Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard &x_attackers) const
 {
     Bitboard blockers = 0;
-    // Pinners are sliders that attack 's' when a pinned piece is removed
-    Bitboard p = pinners =
+    Bitboard x = x_attackers =
           sliders
         & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
            | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
-    while (p != 0)
+    while (x != 0)
     {
-        Bitboard b = between_bb (s, pop_lsq (p)) & pieces ();
+        Bitboard b = between_bb (s, pop_lsq (x)) & pieces ();
         if (!more_than_one (b))
         {
             blockers |= b;
@@ -494,9 +493,9 @@ bool Position::gives_check  (Move m) const
     
     auto mpt = ptype (_board[org]);
 
-    if (// Direct check ?
+    if (    // Direct check ?
            ((checks (mpt) & dst) != 0)
-        // Discovered check ?
+            // Discovered check ?
         || (   (dsc_checkers (_active) & org) != 0
             && !sqrs_aligned (org, dst, square<KING> (~_active))))
     {
@@ -1329,7 +1328,7 @@ Position::operator string () const
     {
         oss << "   " << Notation::to_char (f, false);
     }
-    
+
     oss << '\n'
         << "FEN: " << fen (true) << '\n'
         << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)

@@ -63,10 +63,10 @@ namespace Material {
                     for (auto pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
                         v += count[Own][pt2] * OwnQuadratic[pt1][pt2]
-                          +  count[Opp][pt2] * OppQuadratic[pt1][pt2];
+                           + count[Opp][pt2] * OppQuadratic[pt1][pt2];
                     }
                     v += count[Own][KING] * OwnQuadratic[pt1][KING]
-                      +  count[Opp][KING] * OppQuadratic[pt1][KING];
+                       + count[Opp][KING] * OppQuadratic[pt1][KING];
 
                     value += count[Own][pt1] * v;
                 }
@@ -74,7 +74,7 @@ namespace Material {
             if (count[Own][KING] != 0)
             {
                 value += count[Own][KING] * OwnQuadratic[KING][KING];
-                      //+  count[Opp][KING] * OppQuadratic[KING][KING];
+                       //+ count[Opp][KING] * OppQuadratic[KING][KING];
             }
             return Value(value);
         }
