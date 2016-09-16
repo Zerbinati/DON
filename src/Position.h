@@ -260,15 +260,6 @@ inline i32 Position::count<NONE> () const
              + _piece_sq[WHITE][QUEN].size () + _piece_sq[BLACK][QUEN].size ()
              + _piece_sq[WHITE][KING].size () + _piece_sq[BLACK][KING].size ());
 }
-template<>
-// Count non-pawn pieces
-inline i32 Position::count<NONPAWN> () const
-{
-    return i32(_piece_sq[WHITE][NIHT].size () + _piece_sq[BLACK][NIHT].size ()
-             + _piece_sq[WHITE][BSHP].size () + _piece_sq[BLACK][BSHP].size ()
-             + _piece_sq[WHITE][ROOK].size () + _piece_sq[BLACK][ROOK].size ()
-             + _piece_sq[WHITE][QUEN].size () + _piece_sq[BLACK][QUEN].size ());
-}
 template<PieceType PT>
 // Count specific piece of color
 inline i32 Position::count (Color c) const { return i32(_piece_sq[c][PT].size ()); }
@@ -283,15 +274,7 @@ inline i32 Position::count<NONE> (Color c) const
              + _piece_sq[c][QUEN].size ()
              + _piece_sq[c][KING].size ());
 }
-template<>
-// Count non-pawn pieces of color
-inline i32 Position::count<NONPAWN> (Color c) const
-{
-    return i32(_piece_sq[c][NIHT].size ()
-             + _piece_sq[c][BSHP].size ()
-             + _piece_sq[c][ROOK].size ()
-             + _piece_sq[c][QUEN].size ());
-}
+
 inline i32 Position::count (Color c, PieceType pt) const { return i32(_piece_sq[c][pt].size ()); }
 
 template<PieceType PT>

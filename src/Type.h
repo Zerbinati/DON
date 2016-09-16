@@ -250,7 +250,6 @@ enum PieceType : i08
     KING     , // 101
     NONE     , // 110
     MAX_PTYPE, // 111
-    NONPAWN  ,
 };
 
 // Piece needs 4-bits to be stored

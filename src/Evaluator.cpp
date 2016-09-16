@@ -831,10 +831,6 @@ namespace Evaluator {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
 
-            const auto nonpawn_diff =
-                  pos.count<NONPAWN> (Own)
-                - pos.count<NONPAWN> (Opp);
-
             auto score = SCORE_ZERO;
 
             Bitboard passers = ei.pe->passers[Own];
@@ -915,8 +911,6 @@ namespace Evaluator {
                         eg_value += 1*rr + 2*r;
                     }
                 }
-                // Non-pawn count difference bonus.
-                eg_value *= 1.0 + nonpawn_diff / 8.0;
 
                 score += mk_score (mg_value, eg_value)
                        + PawnFilePassed[std::min (_file (s), F_H - _file (s))];
