@@ -184,6 +184,7 @@ namespace Threading {
         Material::Table matl_table;
 
         FPieceValueStats piece_history;
+        CMValueStats     cm_history;
         ColorValueStats  color_history;
         PieceCMoveStats  piece_cmove;
 
@@ -198,6 +199,7 @@ namespace Threading {
             pawn_table.clear ();
             matl_table.clear ();
             piece_history.clear ();
+            cm_history.clear ();
             color_history.clear ();
             piece_cmove.clear ();
         }

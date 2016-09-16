@@ -92,6 +92,34 @@ public:
 typedef PieceValueStats<false>   FPieceValueStats;
 typedef PieceValueStats<true >   TPieceValueStats;
 
+struct CMValueStats
+{
+private:
+    TPieceValueStats _table[CLR_NO][NONE][SQ_NO];
+
+public:
+
+    void clear ()
+    {
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            for (auto pt = PAWN; pt < NONE; ++pt)
+            {
+                for (auto s = SQ_A1; s <= SQ_H8; ++s)
+                {
+                    _table[c][pt][s].clear ();
+                }
+            }
+        }
+    }
+
+    TPieceValueStats& operator() (Piece pc, Square s)
+    {
+        assert(pc != NO_PIECE);
+        return _table[color (pc)][ptype (pc)][s];
+    }
+};
+
 struct ColorValueStats
 {
 private:

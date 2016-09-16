@@ -564,36 +564,6 @@ namespace Searcher {
 
     namespace {
 
-        struct CMValueStats
-        {
-        private:
-            TPieceValueStats _table[CLR_NO][NONE][SQ_NO];
-
-        public:
-
-            void clear ()
-            {
-                for (auto c = WHITE; c <= BLACK; ++c)
-                {
-                    for (auto pt = PAWN; pt < NONE; ++pt)
-                    {
-                        for (auto s = SQ_A1; s <= SQ_H8; ++s)
-                        {
-                            _table[c][pt][s].clear ();
-                        }
-                    }
-                }
-            }
-
-            TPieceValueStats& operator() (Piece pc, Square s)
-            {
-                assert(pc != NO_PIECE);
-                return _table[color (pc)][ptype (pc)][s];
-            }
-        };
-
-        CMValueStats CMHistory;
-
 // Preloads the given address in L1/L2 cache.
 // This is a non-blocking function that doesn't stall
 // the CPU waiting for data to be loaded from memory,
@@ -858,6 +828,8 @@ namespace Searcher {
                         DrawValue[pos.active ()];
             }
 
+            auto *th = pos.thread ();
+
             Move move;
             // Transposition table lookup
             auto posi_key = pos.posi_key ();
@@ -894,7 +866,7 @@ namespace Searcher {
                 if (tt_move != MOVE_NONE)
                 {
                     ss->current_move = tt_move;
-                    ss->cm_history = &CMHistory(pos[org_sq (tt_move)], dst_sq (tt_move));
+                    ss->cm_history = &th->cm_history(pos[org_sq (tt_move)], dst_sq (tt_move));
                 }
                 return tt_value;
             }
@@ -975,7 +947,6 @@ namespace Searcher {
                 futility_base = best_value + 128;
             }
 
-            auto *th = pos.thread ();
             auto best_move = MOVE_NONE;
 
             // Initialize move picker for the current position.
@@ -1043,7 +1014,7 @@ namespace Searcher {
                 }
 
                 ss->current_move = move;
-                ss->cm_history = &CMHistory(mpc, dst);
+                ss->cm_history = &th->cm_history(mpc, dst);
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
@@ -1135,7 +1106,6 @@ namespace Searcher {
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
         }
-
         // The main depth limited search function.
         template<bool PVNode, bool CutNode, bool InCheck>
         Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth)
@@ -1247,7 +1217,7 @@ namespace Searcher {
                 if (tt_move != MOVE_NONE)
                 {
                     ss->current_move = tt_move;
-                    ss->cm_history = &CMHistory(pos[org_sq (tt_move)], dst_sq (tt_move));
+                    ss->cm_history = &th->cm_history(pos[org_sq (tt_move)], dst_sq (tt_move));
 
                     // If tt_move is quiet, update killers, history, countermove and countermoves history on TT hit
                     if (tt_value >= beta)
@@ -1477,7 +1447,7 @@ namespace Searcher {
                             auto dst = dst_sq (move);
 
                             ss->current_move = move;
-                            ss->cm_history = &CMHistory(mpc, dst);
+                            ss->cm_history = &th->cm_history(mpc, dst);
 
                             bool gives_check =
                                    mtype (move) == NORMAL
@@ -1711,7 +1681,7 @@ namespace Searcher {
                 }
 
                 ss->current_move = move;
-                ss->cm_history = &CMHistory(mpc, dst);
+                ss->cm_history = &th->cm_history(mpc, dst);
 
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
@@ -2082,7 +2052,6 @@ namespace Searcher {
     void clear ()
     {
         TT.clear ();
-        CMHistory.clear ();
         Threadpool.clear ();
     }
 }
