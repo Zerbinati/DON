@@ -188,7 +188,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
         pos.checkers () == 0 ?
             S_NATURAL_TT :
             S_EVASION_TT;
-    _stage += (_tt_move == MOVE_NONE);
+    _stage += (_tt_move == MOVE_NONE ? 1 : 0);
 }
 MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i16 d, Move lm)
     : _pos (pos)
@@ -228,7 +228,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
             _tt_move = MOVE_NONE;
         }
     }
-    _stage += (_tt_move == MOVE_NONE);
+    _stage += (_tt_move == MOVE_NONE ? 1 : 0);
 }
 MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
     : _pos (pos)
@@ -250,7 +250,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
     {
         _tt_move = MOVE_NONE;
     }
-    _stage += (_tt_move == MOVE_NONE);
+    _stage += (_tt_move == MOVE_NONE ? 1 : 0);
 }
 
 // Assigns a numerical move ordering score to each move in a move list.
@@ -1375,7 +1375,8 @@ namespace Searcher {
                         //&& Limits.mate == 0
                         && tt_eval + RazorMargins[depth] <= alfa)
                     {
-                        if (depth == 1)
+                        if (   depth == 1
+                            && tt_eval + RazorMargins[0] <= alfa)
                         {
                             return quien_search<false, false> (pos, ss, alfa, beta, 0);
                         }
@@ -2050,7 +2051,7 @@ namespace Searcher {
     {
         for (i16 d = 0; d < MaxRazorDepth; ++d)
         {
-            RazorMargins[d] = Value(48*d + 506);
+            RazorMargins[d] = Value(d != 0 ? 48*d + 506 : 578);
         }
         for (i16 d = 0; d < MaxFutilityDepth; ++d)
         {

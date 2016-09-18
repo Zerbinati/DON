@@ -151,10 +151,10 @@ Value Position::see (Move m) const
     Bitboard c_attackers;
     c = ~c;
     c_attackers = attackers & pieces (c);
-    // Don't allow pinned pieces to attack as long all pinners (this includes also potential ones) are on their original square.
+    // Don't allow pinned pieces to attack pieces except the king as long all pinners are on their original square.
     // When a pinner moves to the exchange-square or get captured on it, we fall back to standard SEE behaviour.
     if (   (c_attackers & abs_pinneds (c)) != 0
-        && (_si->x_checkers[c] & mocc) == _si->x_checkers[c])
+        && (_si->pinners[c] & mocc) == _si->pinners[c])
     {
         c_attackers &= ~abs_pinneds (c);
     }
@@ -181,8 +181,9 @@ Value Position::see (Move m) const
 
             c = ~c;
             c_attackers = attackers & pieces (c);
-            if (   (c_attackers & abs_pinneds (c)) != 0
-                && (_si->x_checkers[c] & mocc) == _si->x_checkers[c])
+            if (   captured != KING // for resolving Bxf2 on fen: r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1
+                && (c_attackers & abs_pinneds (c)) != 0
+                && (_si->pinners[c] & mocc) == _si->pinners[c])
             {
                 c_attackers &= ~abs_pinneds (c);
             }
@@ -222,20 +223,26 @@ Value Position::see_sign (Move m) const
 // A piece blocks a slider if removing that piece from the board would result in a position where square 's' is attacked by the 'sliders'.
 // For example, a king-attack blocking piece can be either a pinned or a discovered check piece,
 // according if its color is the opposite or the same of the color of the slider.
-// The pinners bitboard get filled with real and potential pinners.
-Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard &x_attackers) const
+Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard &pinners) const
 {
-    Bitboard blockers = 0;
-    Bitboard x = x_attackers =
+    Bitboard blockers = pinners = 0;
+    Bitboard defenders = pieces (color (_board[s]));
+    // Snipers are sliders that attack 's' in x-ray
+    Bitboard snipers =
           sliders
         & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
            | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
-    while (x != 0)
+    while (snipers != 0)
     {
-        Bitboard b = between_bb (s, pop_lsq (x)) & pieces ();
+        auto sniper_sq = pop_lsq (snipers);
+        Bitboard b = pieces () & between_bb (s, sniper_sq);
         if (!more_than_one (b))
         {
             blockers |= b;
+            if ((b & defenders) != 0)
+            {
+                pinners += sniper_sq;
+            }
         }
     }
     return blockers;
