@@ -41,35 +41,30 @@ namespace Transposition {
         Bound bound () const { return Bound(_gen_bnd & u08( BOUND_EXACT)); }
         u08   gen   () const { return u08  (_gen_bnd & u08(~BOUND_EXACT)); }
 
-        void save (u64 k,
-                   Move m,
+        void save (u64   k,
+                   Move  m,
                    Value v,
                    Value e,
                    i16   d,
                    Bound b,
-                   u08 g)
+                   u08   g)
         {
-            // Preserve any existing move for the position (key)
-            if (  (k >> 0x30) != _key16
-                || m != MOVE_NONE)
+            // Preserve any existing move for the position
+            if (   m != MOVE_NONE
+                || (k >> 0x30) != _key16)
             {
                 _move       = u16(m);
             }
-            // Don't overwrite more valuable entries
-            if (  (k >> 0x30) != _key16
-                || e != VALUE_NONE)
+            // Preserve more valuable entries
+            if (   d > _depth - 4
+                || b == BOUND_EXACT
+                || (k >> 0x30) != _key16)
             {
-                _eval       = i16(e);
-            }
-            if (  (k >> 0x30) != _key16
-                || d > _depth - 4
-             /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
-                || b == BOUND_EXACT)
-            {
-                _key16      = u16(k >> 0x30);
-                _value      = i16(v);
                 _depth      = i08(d);
                 _gen_bnd    = u08(g | b);
+                _key16      = u16(k >> 0x30);
+                _value      = i16(v);
+                _eval       = i16(e);
             }
         }
     };

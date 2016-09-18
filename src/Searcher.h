@@ -329,7 +329,7 @@ public:
     MovePicker& operator= (const MovePicker&) = delete;
 
     MovePicker (const Position&, Move, const Stack *const&);
-    MovePicker (const Position&, Move, i16, Move);
+    MovePicker (const Position&, Move, const Stack *const&, i16, Move);
     MovePicker (const Position&, Move, Value);
 
     Move next_move ();

@@ -160,12 +160,12 @@ namespace {
 
     enum Stage : u08
     {
-        S_NATURAL, S_GOOD_CAPTURE, S_QUIET, S_BAD_CAPTURE,
-        S_EVASION, S_ALL_EVASION,
-        S_PROBCUT_CAPTURE, S_ALL_PROBCUT_CAPTURE,
-        S_Q_CHECK, S_Q_CHECK_CAPTURE, S_Q_CHECK_QUIET,
-        S_Q_NO_CHECK, S_Q_NO_CHECK_CAPTURE,
-        S_Q_RECAPTURE, S_Q_ALL_RECAPTURE,
+        S_NATURAL_TT, S_NATURAL, S_GOOD_CAPTURE, S_QUIET, S_BAD_CAPTURE,
+        S_EVASION_TT, S_EVASION, S_ALL_EVASION,
+        S_PROBCUT_CAPTURE_TT, S_PROBCUT_CAPTURE, S_ALL_PROBCUT_CAPTURE,
+        S_Q_CHECK_TT, S_Q_CHECK, S_Q_CHECK_CAPTURE, S_Q_CHECK_QUIET,
+        S_Q_NO_CHECK_TT, S_Q_NO_CHECK, S_Q_NO_CHECK_CAPTURE,
+        S_Q_RECAPTURE_TT, S_Q_RECAPTURE, S_Q_ALL_RECAPTURE,
     };
 }
 
@@ -186,11 +186,13 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
 
     _stage =
         pos.checkers () == 0 ?
-            S_NATURAL :
-            S_EVASION;
+            S_NATURAL_TT :
+            S_EVASION_TT;
+    _stage += (_tt_move == MOVE_NONE);
 }
-MovePicker::MovePicker (const Position &pos, Move ttm, i16 d, Move lm)
+MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i16 d, Move lm)
     : _pos (pos)
+    , _ss (ss)
     , _tt_move (ttm)
 {
     assert(d <= 0);
@@ -201,26 +203,32 @@ MovePicker::MovePicker (const Position &pos, Move ttm, i16 d, Move lm)
 
     if (pos.checkers () != 0)
     {
-        _stage = S_EVASION;
+        _stage = S_EVASION_TT;
     }
     else
     if (d >= 0)
     {
-        _stage = S_Q_CHECK;
+        _stage = S_Q_CHECK_TT;
     }
     else
     if (d > -5)
     {
-        _stage = S_Q_NO_CHECK;
+        _stage = S_Q_NO_CHECK_TT;
     }
     else
     {
         assert(lm != MOVE_NONE);
 
-        _stage = S_Q_RECAPTURE;
+        _stage = S_Q_RECAPTURE_TT;
         _recap_sq = dst_sq (lm);
-        _tt_move = MOVE_NONE;
+        if (   _tt_move != MOVE_NONE
+            && !(   pos.capture (_tt_move)
+                 && dst_sq (_tt_move) == _recap_sq))
+        {
+            _tt_move = MOVE_NONE;
+        }
     }
+    _stage += (_tt_move == MOVE_NONE);
 }
 MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
     : _pos (pos)
@@ -233,7 +241,16 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
          && pos.legal (ttm)));
     assert(_moves.empty ());
 
-    _stage = S_PROBCUT_CAPTURE;
+    _stage = S_PROBCUT_CAPTURE_TT;
+
+    // In ProbCut we generate captures with SEE higher than the given threshold
+    if (   _tt_move != MOVE_NONE
+        && !(   pos.capture (_tt_move)
+             && pos.see (_tt_move) > _threshold))
+    {
+        _tt_move = MOVE_NONE;
+    }
+    _stage += (_tt_move == MOVE_NONE);
 }
 
 // Assigns a numerical move ordering score to each move in a move list.
@@ -295,7 +312,10 @@ void MovePicker::value<EVASION> ()
         {
             vm.value =
                   _pos.thread ()->piece_history(_pos[org_sq (vm.move)], vm.move)
-                + _pos.thread ()->color_history(_pos.active (), vm.move);
+                + _pos.thread ()->color_history(_pos.active (), vm.move)
+                + ((_ss-1)->cm_history != nullptr ? (*(_ss-1)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
+                + ((_ss-2)->cm_history != nullptr ? (*(_ss-2)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
+                + ((_ss-4)->cm_history != nullptr ? (*(_ss-4)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO);
         }
     }
 }
@@ -315,6 +335,15 @@ Move MovePicker::next_move ()
     switch (_stage)
     {
 
+    case S_NATURAL_TT:
+    case S_EVASION_TT:
+    case S_PROBCUT_CAPTURE_TT:
+    case S_Q_CHECK_TT:
+    case S_Q_NO_CHECK_TT:
+    case S_Q_RECAPTURE_TT:
+        ++_stage;
+        return _tt_move;
+
     case S_NATURAL:
         generate<CAPTURE> (_moves, _pos);
         filter_illegal (_moves, _pos);
@@ -323,24 +352,22 @@ Move MovePicker::next_move ()
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        value<CAPTURE> ();
-
-        ++_stage;
-        if (_tt_move != MOVE_NONE)
+        if (_moves.size () > 1)
         {
-            return _tt_move;
+            value<CAPTURE> ();
         }
+        ++_stage;
     case S_GOOD_CAPTURE:
         while (_index < _moves.size ())
         {
             auto move = pick_best_move (_index++).move;
             auto see_value = _pos.see_sign (move);
-            if (see_value < VALUE_ZERO)
+            if (see_value >= VALUE_ZERO)
             {
-                // Losing capture, add it to the bad capture moves
-                _capture_moves.push_back ({ move, see_value });
+                return move;
             }
-            return move;
+            // Losing capture, add it to the bad capture moves
+            _capture_moves.push_back ({ move, see_value });
         }
         generate<QUIET> (_moves, _pos);
         filter_illegal (_moves, _pos);
@@ -349,7 +376,10 @@ Move MovePicker::next_move ()
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        value<QUIET> ();
+        if (_moves.size () > 1)
+        {
+            value<QUIET> ();
+        }
         // Killers to top of quiet move
         {
             MoveVector killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
@@ -408,13 +438,11 @@ Move MovePicker::next_move ()
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        value<EVASION> ();
-
-        ++_stage;
-        if (_tt_move != MOVE_NONE)
+        if (_moves.size () > 1)
         {
-            return _tt_move;
+            value<EVASION> ();
         }
+        ++_stage;
     case S_ALL_EVASION:
         while (_index < _moves.size ())
         {
@@ -423,7 +451,6 @@ Move MovePicker::next_move ()
         break; // BREAK
 
     case S_PROBCUT_CAPTURE:
-        // In ProbCut generate captures with SEE higher than the threshold
         generate<CAPTURE> (_moves, _pos);
         filter_illegal (_moves, _pos);
         if (_tt_move != MOVE_NONE)
@@ -431,15 +458,11 @@ Move MovePicker::next_move ()
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        value<CAPTURE> ();
-
-        ++_stage;
-        if (   _tt_move != MOVE_NONE
-            && _pos.capture (_tt_move)
-            && _pos.see (_tt_move) > _threshold)
+        if (_moves.size () > 1)
         {
-            return _tt_move;
+            value<CAPTURE> ();
         }
+        ++_stage;
     case S_ALL_PROBCUT_CAPTURE:
         while (_index < _moves.size ())
         {
@@ -459,13 +482,11 @@ Move MovePicker::next_move ()
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        value<CAPTURE> ();
-
-        ++_stage;
-        if (_tt_move != MOVE_NONE)
+        if (_moves.size () > 1)
         {
-            return _tt_move;
+            value<CAPTURE> ();
         }
+        ++_stage;
     case S_Q_CHECK_CAPTURE:
         while (_index < _moves.size ())
         {
@@ -478,11 +499,15 @@ Move MovePicker::next_move ()
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
+        if (_moves.size () > 1)
+        {
+            value<QUIET> ();
+        }
         ++_stage;
     case S_Q_CHECK_QUIET:
         while (_index < _moves.size ())
         {
-            return _moves[_index++].move;
+            return pick_best_move (_index++).move;
         }
         break; // BREAK
 
@@ -494,13 +519,11 @@ Move MovePicker::next_move ()
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        value<CAPTURE> ();
-
-        ++_stage;
-        if (_tt_move != MOVE_NONE)
+        if (_moves.size () > 1)
         {
-            return _tt_move;
+            value<CAPTURE> ();
         }
+        ++_stage;
     case S_Q_NO_CHECK_CAPTURE:
         while (_index < _moves.size ())
         {
@@ -511,8 +534,15 @@ Move MovePicker::next_move ()
     case S_Q_RECAPTURE:
         generate<CAPTURE> (_moves, _pos);
         filter_illegal (_moves, _pos);
+        if (_tt_move != MOVE_NONE)
+        {
+            _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+        }
         _index = 0;
-        value<CAPTURE> ();
+        if (_moves.size () > 1)
+        {
+            value<CAPTURE> ();
+        }
         ++_stage;
     case S_Q_ALL_RECAPTURE:
         while (_index < _moves.size ())
@@ -950,7 +980,7 @@ namespace Searcher {
             auto best_move = MOVE_NONE;
 
             // Initialize move picker for the current position.
-            MovePicker mp (pos, tt_move, depth, (ss-1)->current_move);
+            MovePicker mp (pos, tt_move, ss, depth, (ss-1)->current_move);
             StateInfo si;
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while ((move = mp.next_move ()) != MOVE_NONE)
@@ -2018,9 +2048,9 @@ namespace Searcher {
     // Initialize lookup tables during startup
     void initialize ()
     {
-        for (i16 d = 1; d < MaxRazorDepth; ++d)
+        for (i16 d = 0; d < MaxRazorDepth; ++d)
         {
-            RazorMargins[d] = Value(32*d + 538);
+            RazorMargins[d] = Value(48*d + 506);
         }
         for (i16 d = 0; d < MaxFutilityDepth; ++d)
         {
@@ -2313,6 +2343,8 @@ namespace Threading {
                         // -If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
                             || (Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time *
+                                                                                    // Unstable factor
+                                                                                    (1.0 + Threadpool.best_move_change) *
                                                                                     // Improving factor
                                                                                     std::min (1.1385,
                                                                                         std::max (0.3646,
@@ -2321,9 +2353,7 @@ namespace Threading {
                                                                                                 - 0.0096 * (Threadpool.last_value != VALUE_NONE ? i32(best_value - Threadpool.last_value) : 0))))))
                             || (Threadpool.easy_played =
                                     (   Threadpool.best_move_change < 0.030
-                                     && Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time *
-                                                                                            // Unstable factor
-                                                                                            0.1190 * (1.0 + Threadpool.best_move_change)))
+                                     && Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time * 0.1190))
                                      && !root_moves[0].empty ()
                                      &&  root_moves[0] == Threadpool.easy_move), Threadpool.easy_played))
                         {

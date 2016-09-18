@@ -459,16 +459,16 @@ union ValueSplit
 };
 inline Value mg_value (u32 s)
 {
-    return Value(ValueSplit{ u16((s + 0x8000) >> 0x10) }.s);
+    return Value(ValueSplit{ u16((s + 0x0000) >> 0x00) }.s);
 }
 inline Value eg_value (u32 s)
 {
-    return Value(ValueSplit{ u16((s + 0x0000) >> 0x00) }.s);
+    return Value(ValueSplit{ u16((s + 0x8000) >> 0x10) }.s);
 }
 
 inline Score mk_score (i32 mg, i32 eg)
 {
-    return Score((mg << 0x10) + eg);
+    return Score((eg << 0x10) + mg);
 }
 
 ARTHMAT_OPERATORS(Score)
