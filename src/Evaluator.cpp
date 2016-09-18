@@ -498,7 +498,7 @@ namespace Evaluator {
                 {
                     // Penalty for pin or discover attack on the queen
                     Bitboard pinners;
-                    b = pos.slider_blockers (s, pos.pieces (Opp, BSHP, ROOK), pinners);
+                    b = pos.slider_blockers (s, pos.pieces (Own), pos.pieces (Opp, BSHP, ROOK), pinners);
                     if (b != 0)
                     {
                         score -= QueenWeaken;

@@ -193,7 +193,7 @@ public:
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
 
-    Bitboard slider_blockers (Square s, Bitboard sliders, Bitboard &pinners) const;
+    Bitboard slider_blockers (Square s, Bitboard defenders, Bitboard attackers, Bitboard &pinners) const;
     Bitboard abs_pinneds (Color c) const;
     Bitboard dsc_checkers (Color c) const;
     Bitboard checks (PieceType pt) const;
@@ -536,8 +536,8 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
 
 inline void StateInfo::set_check_info (const Position &pos)
 {
-    check_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), pos.pieces (BLACK), pinners[WHITE]);
-    check_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), pos.pieces (WHITE), pinners[BLACK]);
+    check_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), pos.pieces (WHITE), pos.pieces (BLACK), pinners[WHITE]);
+    check_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), pos.pieces (BLACK), pos.pieces (WHITE), pinners[BLACK]);
 
     checks[PAWN] = PawnAttacks[~pos.active ()][pos.square<KING> (~pos.active ())];
     checks[NIHT] = PieceAttacks[NIHT][pos.square<KING> (~pos.active ())];

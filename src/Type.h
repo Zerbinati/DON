@@ -232,11 +232,11 @@ enum CastleRight : u08
     CR_BKING = u08(CR_WKING) << 2,  // 0100
     CR_BQUEN = u08(CR_WKING) << 3,  // 1000
 
-    CR_WHITE = u08(CR_WKING) | u08(CR_WQUEN),   // 0011
-    CR_BLACK = u08(CR_BKING) | u08(CR_BQUEN),   // 1100
-    CR_KING  = u08(CR_WKING) | u08(CR_BKING),   // 0101
-    CR_QUEN  = u08(CR_WQUEN) | u08(CR_BQUEN),   // 1010
-    CR_ANY   = u08(CR_WHITE) | u08(CR_BLACK),   // 1111
+    CR_WHITE = u08(CR_WKING) + u08(CR_WQUEN),   // 0011
+    CR_BLACK = u08(CR_BKING) + u08(CR_BQUEN),   // 1100
+    CR_KING  = u08(CR_WKING) + u08(CR_BKING),   // 0101
+    CR_QUEN  = u08(CR_WQUEN) + u08(CR_BQUEN),   // 1010
+    CR_ANY   = u08(CR_WHITE) + u08(CR_BLACK),   // 1111
     CR_NO,
 };
 
@@ -359,7 +359,7 @@ enum Bound : u08
     // while the min-player improved his score as well (score < beta), beta the min so far.
     // The current node searched was an expected PV-Node,
     // which was confirmed by the search in finding and collecting a principal variation.
-    BOUND_EXACT = BOUND_LOWER | BOUND_UPPER,
+    BOUND_EXACT = BOUND_LOWER + BOUND_UPPER,
 
 };
 
@@ -490,8 +490,8 @@ inline File to_file   (char f) { return File(f - 'a'); }
 inline Rank operator~ (Rank r) { return Rank(r ^ i08(R_8)); }
 inline Rank to_rank   (char r) { return Rank(r - '1'); }
 
-inline Square operator| (File f, Rank r) { return Square(( r << 3) | f); }
-inline Square operator| (Rank r, File f) { return Square((~r << 3) | f); }
+inline Square operator| (File f, Rank r) { return Square(( r << 3) + f); }
+inline Square operator| (Rank r, File f) { return Square((~r << 3) + f); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
 inline bool _ok    (Square s) { return (s & ~i08(SQ_H8)) == 0; }
@@ -526,7 +526,7 @@ struct Castling
     static const CastleRight Right = CastleRight(CR_WKING << (2*C + 1*CS));
 };
 
-inline Piece operator| (Color c, PieceType pt) { return Piece(8*c | pt); }
+inline Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
 
 inline bool _ok (Piece p)
 {
@@ -539,7 +539,7 @@ inline Piece operator~ (Piece p) { return Piece(p ^ 8); }
 
 inline Square    org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
 inline Square    dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
-inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + 1); }
+inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
 inline Square fix_dst_sq (Move m, bool chess960 = false)
 {
@@ -551,7 +551,7 @@ inline Square fix_dst_sq (Move m, bool chess960 = false)
 inline void promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= (pt - 1) << 12 | PROMOTE; }
 
 template<MoveType MT=NORMAL>
-inline Move mk_move (Square org, Square dst, PieceType pt=NIHT) { return Move(dst | (org | ((pt - 1) << 6)) << 6 | MT); }
+inline Move mk_move (Square org, Square dst, PieceType pt=NIHT) { return Move(MT + (dst + ((org + ((pt - NIHT) << 6)) << 6))); }
 
 inline double value_to_cp (Value   v) { return double(v)/i32(VALUE_EG_PAWN); }
 inline Value  cp_to_value (double cp) { return Value(i32(std::round (cp*i32(VALUE_EG_PAWN)))); }

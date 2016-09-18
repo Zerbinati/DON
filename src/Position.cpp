@@ -219,17 +219,16 @@ Value Position::see_sign (Move m) const
             VALUE_KNOWN_WIN :
             see (m);
 }
-// Returns a bitboard of all the pieces that are blocking attacks on the square 's' from 'sliders'.
+// Returns a bitboard of all the pieces that are blocking attacks on the square 's' from 'attackers'.
 // A piece blocks a slider if removing that piece from the board would result in a position where square 's' is attacked by the 'sliders'.
 // For example, a king-attack blocking piece can be either a pinned or a discovered check piece,
 // according if its color is the opposite or the same of the color of the slider.
-Bitboard Position::slider_blockers (Square s, Bitboard sliders, Bitboard &pinners) const
+Bitboard Position::slider_blockers (Square s, Bitboard defenders, Bitboard attackers, Bitboard &pinners) const
 {
     Bitboard blockers = pinners = 0;
-    Bitboard defenders = pieces (color (_board[s]));
-    // Snipers are sliders that attack 's' in x-ray
+    // Snipers are attackers that attack 's' in x-ray
     Bitboard snipers =
-          sliders
+          attackers
         & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
            | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     while (snipers != 0)
