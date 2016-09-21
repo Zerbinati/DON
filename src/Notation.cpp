@@ -192,7 +192,7 @@ namespace Notation {
             StateInfo si;
             pos.do_move (m, si, true);
             san += (MoveList<LEGAL> (pos).size () != 0 ? "+" : "#");
-            pos.undo_move ();
+            pos.undo_move (m);
         }
 
         return san;
@@ -271,9 +271,9 @@ namespace Notation {
             thread->root_pos.do_move (m, states.back (), thread->root_pos.gives_check (m));
             ++ply;
         }
-        for (; ply != 0; --ply)
+        while (ply != 0)
         {
-            thread->root_pos.undo_move ();
+            thread->root_pos.undo_move (thread->root_moves[0][--ply]);
             states.pop_back ();
         }
 

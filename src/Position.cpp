@@ -76,24 +76,24 @@ PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboa
     {
         mocc ^= b & ~(b - 1);
 
-        switch (PT)
+        if (   PT == PAWN
+            || PT == BSHP)
         {
-        case PAWN:
-        case BSHP:
             attackers |= pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc);
-            break;
-        case ROOK:
+        }
+        else
+        if (PT == ROOK)
+        {
             attackers |= pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc);
-            break;
-        case QUEN:
+        }
+        else
+        if (PT == QUEN)
+        {
             attackers |= (pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc))
                       |  (pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc));
-            break;
-        case NIHT:
-            break;
         }
-
-        attackers &= mocc; // After X-ray that may add already processed pieces
+        // Remove already processed pieces in X-ray
+        attackers &= mocc;
         return PT;
     }
 
@@ -109,6 +109,14 @@ PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitbo
 Value Position::see (Move m) const
 {
     assert(m != MOVE_NONE);
+    if (mtype (m) == CASTLE)
+    {
+        // Castle moves are implemented as king capturing the rook so cannot be
+        // handled correctly. Simply return 0 that is always the correct value
+        // unless in the rare case the rook ends up under attack.
+        return VALUE_ZERO;
+    }
+
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     assert(!empty (org));
@@ -116,30 +124,19 @@ Value Position::see (Move m) const
     vector<Value> gain_values;
     gain_values.reserve (8);
 
-    auto c = color (_board[org]);
     Bitboard mocc;
 
-    switch (mtype (m))
+    if (mtype (m) == ENPASSANT)
     {
-    case CASTLE:
-        // Castle moves are implemented as king capturing the rook so cannot be
-        // handled correctly. Simply return 0 that is always the correct value
-        // unless in the rare case the rook ends up under attack.
-        return VALUE_ZERO;
-        break;
-
-    case ENPASSANT:
         assert(_board[org] == (_active|PAWN));
-        // Remove the captured pawn
-        mocc = pieces () - org - (dst - pawn_push (c));
+        mocc = pieces () - org - (dst - pawn_push (_active));
         gain_values.push_back (PieceValues[MG][PAWN]);
-        break;
-
-    default:
+    }
+    else
+    {
         assert(_board[org] != NO_PIECE);
         mocc = pieces () - org;
         gain_values.push_back (PieceValues[MG][ptype (_board[dst])]);
-        break;
     }
 
     // Find all attackers to the destination square, with the moving piece
@@ -147,17 +144,16 @@ Value Position::see (Move m) const
     Bitboard attackers = attackers_to (dst, mocc) & mocc;
     // For the case when captured piece is a pinner
     mocc -= dst;
-
-    auto captured = ptype (_board[org]);
-
-    Bitboard c_attackers;
-    c = ~c;
-    c_attackers = attackers & pieces (c);
+    // The first victim
+    auto victim = ptype (_board[org]);
+    auto c = ~color (_board[org]);
+    Bitboard c_attackers = attackers & pieces (c);
     // Don't allow pinned pieces to attack pieces except the king as long all pinners are on their original square.
     // When a pinner moves to the exchange-square or get captured on it, we fall back to standard SEE behaviour.
-    if (   (c_attackers & abs_pinneds (c)) != 0
-        && (mocc & _si->pinners[c]) == _si->pinners[c])
+    if (   c_attackers != 0
+        && (_si->pinners[c] & ~mocc) == 0)
     {
+        assert(victim != KING);
         c_attackers &= ~abs_pinneds (c);
     }
 
@@ -171,26 +167,29 @@ Value Position::see (Move m) const
         assert(gain_values.size () < 32);
 
         // Add the new entry to the swap list
-        gain_values.push_back (PieceValues[MG][captured] - gain_values[gain_values.size () - 1]);
-
+        gain_values.push_back (PieceValues[MG][victim] - gain_values[gain_values.size () - 1]);
         // Locate and remove the next least valuable attacker
-        captured = pick_least_val_att<PAWN> (dst, c_attackers, mocc, attackers);
-
+        victim = pick_least_val_att<PAWN> (dst, c_attackers, mocc, attackers);
         c = ~c;
         c_attackers = attackers & pieces (c);
-        if (   captured != KING // for resolving Bxf2 on fen: r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1
-            && (c_attackers & abs_pinneds (c)) != 0
-            && (mocc & _si->pinners[c]) == _si->pinners[c])
-        {
-            c_attackers &= ~abs_pinneds (c);
-        }
 
-        // Stop before a king capture
-        if (   captured == KING
-            && c_attackers != 0)
+        if (victim != KING)
         {
-            gain_values.pop_back ();
-            break;
+            // for resolving Bxf2 on fen: r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1
+            if (   c_attackers != 0
+                && (_si->pinners[c] & ~mocc) == 0)
+            {
+                c_attackers &= ~abs_pinneds (c);
+            }
+        }
+        else
+        {
+            if (c_attackers != 0)
+            {
+                // Stop before a king capture
+                gain_values.pop_back ();
+                break;
+            }
         }
     }
     // Having built the gain list, negamax through it to find the best
@@ -1085,7 +1084,6 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     }
     // Update state information
     _si->posi_key     = key;
-    _si->last_move    = m;
     _si->capture_type = cpt;
     ++_si->null_ply;
     // Update king attacks used for fast check detection
@@ -1097,10 +1095,9 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
 }
 #undef do_capture
 // Undo the last natural-move
-void Position::undo_move ()
+void Position::undo_move (Move m)
 {
     assert(_si->ptr != nullptr);
-    auto m = _si->last_move;
     assert(m != MOVE_NONE);
     auto org = org_sq (m);
     auto dst = dst_sq (m);

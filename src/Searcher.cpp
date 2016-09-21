@@ -64,8 +64,7 @@ void RootMove::insert_pv_into_tt (Position &pos) const
     }
     while (ply != 0)
     {
-        pos.undo_move ();
-        --ply;
+        pos.undo_move (at (--ply));
     }
 }
 // Extract the PV back from the TT.
@@ -102,8 +101,7 @@ void RootMove::extract_pv_from_tt (Position &pos)
     }
     while (ply != 0)
     {
-        pos.undo_move ();
-        --ply;
+        pos.undo_move (at (--ply));
     }
 }
 */
@@ -119,17 +117,18 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     pos.do_move (m, si, pos.gives_check (m));
     bool tt_hit;
     const auto *tte = TT.probe (pos.posi_key (), tt_hit);
+    Move ponder_move;
     if (   tt_hit
-        && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
-        && pos.pseudo_legal (m)
-        && pos.legal (m))
+        && (ponder_move = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
+        && pos.pseudo_legal (ponder_move)
+        && pos.legal (ponder_move))
     {
-        //assert(m != MOVE_NONE);
-        assert(MoveList<LEGAL> (pos).contains (m));
+        //assert(ponder_move != MOVE_NONE);
+        assert(MoveList<LEGAL> (pos).contains (ponder_move));
         assert(!pos.draw ());
-        *this += m;
+        *this += ponder_move;
     }
-    pos.undo_move ();
+    pos.undo_move (m);
     return size () > 1;
 }
 
@@ -1070,7 +1069,7 @@ namespace Searcher {
                         -quien_search<PVNode, false> (pos, ss+1, -beta, -alfa, depth - 1);
 
                 // Undo the move
-                pos.undo_move ();
+                pos.undo_move (move);
 
                 assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
@@ -1505,7 +1504,7 @@ namespace Searcher {
                                     -depth_search<false, !CutNode, true > (pos, ss+1, -beta_margin, -beta_margin+1, reduced_depth) :
                                     -depth_search<false, !CutNode, false> (pos, ss+1, -beta_margin, -beta_margin+1, reduced_depth);
 
-                            pos.undo_move ();
+                            pos.undo_move (move);
 
                             if (value >= beta_margin)
                             {
@@ -1795,6 +1794,7 @@ namespace Searcher {
                            && new_depth <= 2*i32(std::pow (2, i))*reduce_depth)
                     {
                         reduce_depth = reduce_depth / 2;
+                        assert(reduce_depth > 0);
                         value =
                             gives_check ?
                                 -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth) :
@@ -1846,7 +1846,7 @@ namespace Searcher {
                 }
 
                 // Step 17. Undo move
-                pos.undo_move ();
+                pos.undo_move (move);
 
                 assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
@@ -2020,7 +2020,7 @@ namespace Searcher {
                     depth > 2 ?
                         perft<false> (pos, depth - 1) :
                         MoveList<LEGAL> (pos).size ();
-                pos.undo_move ();
+                pos.undo_move (vm.move);
             }
 
             if (RootNode)
@@ -2459,7 +2459,7 @@ namespace Threading {
                     root_pos.do_move (book_best_move, si, root_pos.gives_check (book_best_move));
                     auto book_ponder_move = book.probe_move (root_pos, BookMoveBest);
                     root_moves[0] += book_ponder_move;
-                    root_pos.undo_move ();
+                    root_pos.undo_move (book_best_move);
                 }
                 book.close ();
                 if (found)
@@ -2603,7 +2603,7 @@ namespace Threading {
                 StateInfo si;
                 root_pos.do_move (root_moves[0][0], si, root_pos.gives_check (root_moves[0][0]));
                 OutputStream << "Ponder Move: " << move_to_san (root_moves[0][1], root_pos) << '\n';
-                root_pos.undo_move ();
+                root_pos.undo_move (root_moves[0][0]);
             }
             OutputStream << std::endl;
             OutputStream.close ();

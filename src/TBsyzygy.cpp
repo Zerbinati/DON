@@ -2152,7 +2152,7 @@ namespace TBSyzygy {
                 StateInfo si;
                 pos.do_move (move, si, pos.gives_check (move));
                 v = -probe_ab (pos, -beta, -alfa, success);
-                pos.undo_move ();
+                pos.undo_move (move);
                 if (success == 0) return VALUE_ZERO;
                 if (alfa < v)
                 {
@@ -2214,7 +2214,7 @@ namespace TBSyzygy {
                     StateInfo si;
                     pos.do_move (move, si, pos.gives_check (move));
                     Value v = -probe_wdl (pos, success);
-                    pos.undo_move ();
+                    pos.undo_move (move);
                     if (success == 0) return VALUE_ZERO;
                     if (v == wdl)
                     {
@@ -2249,7 +2249,7 @@ namespace TBSyzygy {
                     StateInfo si;
                     pos.do_move (move, si, pos.gives_check (move));
                     Value v = -probe_dtz (pos, success);
-                    pos.undo_move ();
+                    pos.undo_move (move);
                     if (success == 0) return VALUE_ZERO;
                     if (v > VALUE_ZERO)
                     {
@@ -2290,7 +2290,7 @@ namespace TBSyzygy {
                     {
                         v = -probe_dtz (pos, success) - 1;
                     }
-                    pos.undo_move ();
+                    pos.undo_move (move);
                     if (success == 0) return VALUE_ZERO;
                     if (best_value > v)
                     {
@@ -2379,7 +2379,7 @@ namespace TBSyzygy {
             StateInfo si;
             pos.do_move (move, si, pos.gives_check (move));
             Value v0 = -probe_ab (pos, Value(-2), Value(+2), success);
-            pos.undo_move ();
+            pos.undo_move (move);
             if (success == 0) return VALUE_ZERO;
             if (v1 < v0)
             {
@@ -2503,7 +2503,7 @@ namespace TBSyzygy {
             StateInfo si;
             pos.do_move (move, si, pos.gives_check (move));
             Value v0 = -probe_ab (pos, Value(-2), Value(+2), success);
-            pos.undo_move ();
+            pos.undo_move (move);
             if (success == 0) return VALUE_ZERO;
             if (v1 < v0)
             {
@@ -2603,7 +2603,7 @@ namespace TBSyzygy {
                 }
             }
 
-            root_pos.undo_move ();
+            root_pos.undo_move (move);
             if (success == 0) return false;
             root_moves[i].new_value = value;
         }
@@ -2735,7 +2735,7 @@ namespace TBSyzygy {
             auto move = root_moves[i][0];
             root_pos.do_move (move, si, root_pos.gives_check (move));
             Value v = -probe_wdl (root_pos, success);
-            root_pos.undo_move ();
+            root_pos.undo_move (move);
             if (success == 0) return false;
             if (best_value < v)
             {

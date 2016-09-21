@@ -42,7 +42,6 @@ public:
 
     // ---Not copied when making a move---
     Key         posi_key;       // Hash key of position.
-    Move        last_move;      // Move played on the previous position.
     PieceType   capture_type;   // Piece type captured.
     Bitboard    checkers;       // Checkers.
 
@@ -152,7 +151,6 @@ public:
     Square en_passant_sq () const;
 
     u08  clock_ply () const;
-    Move last_move () const;
     PieceType capture_type () const;
     Bitboard checkers () const;
 
@@ -218,7 +216,7 @@ public:
     Position& setup (const std::string &code, StateInfo &si, Color c);
 
     void do_move (Move m, StateInfo &si, bool gives_check);
-    void undo_move ();
+    void undo_move (Move m);
     void do_null_move (StateInfo &si);
     void undo_null_move ();
 
@@ -293,7 +291,6 @@ inline Square Position::en_passant_sq () const { return _si->en_passant_sq; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the clock-move rule.
 inline u08 Position::clock_ply () const { return _si->clock_ply; }
-inline Move Position::last_move () const { return _si->last_move; }
 inline PieceType Position::capture_type () const { return _si->capture_type; }
 inline Bitboard Position::checkers () const { return _si->checkers; }
 
