@@ -109,14 +109,14 @@ PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitbo
 Value Position::see (Move m) const
 {
     assert(m != MOVE_NONE);
-
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     assert(!empty (org));
 
-    auto c = color (_board[org]);
+    vector<Value> gain_values;
+    gain_values.reserve (8);
 
-    Value gain_values[32];
+    auto c = color (_board[org]);
     Bitboard mocc;
 
     switch (mtype (m))
@@ -132,21 +132,23 @@ Value Position::see (Move m) const
         assert(_board[org] == (_active|PAWN));
         // Remove the captured pawn
         mocc = pieces () - org - (dst - pawn_push (c));
-        gain_values[0] = PieceValues[MG][PAWN];
+        gain_values.push_back (PieceValues[MG][PAWN]);
         break;
 
     default:
         assert(_board[org] != NO_PIECE);
         mocc = pieces () - org;
-        gain_values[0] = PieceValues[MG][ptype (_board[dst])];
+        gain_values.push_back (PieceValues[MG][ptype (_board[dst])]);
         break;
     }
-    // For the case when captured piece is a pinner
-    mocc -= dst;
 
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, mocc) & mocc;
+    // For the case when captured piece is a pinner
+    mocc -= dst;
+
+    auto captured = ptype (_board[org]);
 
     Bitboard c_attackers;
     c = ~c;
@@ -154,55 +156,54 @@ Value Position::see (Move m) const
     // Don't allow pinned pieces to attack pieces except the king as long all pinners are on their original square.
     // When a pinner moves to the exchange-square or get captured on it, we fall back to standard SEE behaviour.
     if (   (c_attackers & abs_pinneds (c)) != 0
-        && (_si->pinners[c] & mocc) == _si->pinners[c])
+        && (mocc & _si->pinners[c]) == _si->pinners[c])
     {
         c_attackers &= ~abs_pinneds (c);
     }
 
-    if (c_attackers != 0)
+    // The destination square is defended, which makes things rather more difficult to compute.
+    // Proceed by building up a "gain list" containing the material gain or loss at each stop in
+    // a sequence of captures to the destination square, where the sides alternately capture,
+    // and always capture with the least valuable piece.
+    // After each capture, look for new X-ray attacks from behind the capturing piece.
+    while (c_attackers != 0)
     {
-        // The destination square is defended, which makes things rather more
-        // difficult to compute. Proceed by building up a "swap list" containing
-        // the material gain or loss at each stop in a sequence of captures to the
-        // destination square, where the sides alternately capture, and always
-        // capture with the least valuable piece. After each capture, look for
-        // new X-ray attacks from behind the capturing piece.
-        auto captured = ptype (_board[org]);
+        assert(gain_values.size () < 32);
 
-        i16 depth = 1;
-        do {
-            assert(depth < 32);
+        // Add the new entry to the swap list
+        gain_values.push_back (PieceValues[MG][captured] - gain_values[gain_values.size () - 1]);
 
-            // Add the new entry to the swap list
-            gain_values[depth] = PieceValues[MG][captured] - gain_values[depth - 1];
+        // Locate and remove the next least valuable attacker
+        captured = pick_least_val_att<PAWN> (dst, c_attackers, mocc, attackers);
 
-            // Locate and remove the next least valuable attacker
-            captured = pick_least_val_att<PAWN> (dst, c_attackers, mocc, attackers);
-
-            c = ~c;
-            c_attackers = attackers & pieces (c);
-            if (   captured != KING // for resolving Bxf2 on fen: r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1
-                && (c_attackers & abs_pinneds (c)) != 0
-                && (_si->pinners[c] & mocc) == _si->pinners[c])
-            {
-                c_attackers &= ~abs_pinneds (c);
-            }
-
-            ++depth;
-        } while (   c_attackers != 0
-                 // Stop before a king capture
-                 && (captured != KING || (--depth, false)));
-
-        // Having built the swap list, negamax through it to find the best
-        // achievable score from the point of view of the side to move.
-        while (--depth != 0)
+        c = ~c;
+        c_attackers = attackers & pieces (c);
+        if (   captured != KING // for resolving Bxf2 on fen: r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1
+            && (c_attackers & abs_pinneds (c)) != 0
+            && (mocc & _si->pinners[c]) == _si->pinners[c])
         {
-            // Find minimum gain
-            if (gain_values[depth - 1] > -gain_values[depth])
-            {
-                gain_values[depth - 1] = -gain_values[depth];
-            }
+            c_attackers &= ~abs_pinneds (c);
         }
+
+        // Stop before a king capture
+        if (   captured == KING
+            && c_attackers != 0)
+        {
+            gain_values.pop_back ();
+            break;
+        }
+    }
+    // Having built the gain list, negamax through it to find the best
+    // achievable score from the point of view of the side to move.
+    auto depth = i08(gain_values.size () - 1);
+    while (depth != 0)
+    {
+        // Find minimum gain
+        if (gain_values[depth - 1] > -gain_values[depth])
+        {
+            gain_values[depth - 1] = -gain_values[depth];
+        }
+        --depth;
     }
 
     return gain_values[0];
@@ -219,14 +220,14 @@ Value Position::see_sign (Move m) const
             VALUE_KNOWN_WIN :
             see (m);
 }
-// Returns a bitboard of all the pieces that are blocking attacks on the square 's' from 'attackers'.
-// A piece blocks a slider if removing that piece from the board would result in a position where square 's' is attacked by the 'sliders'.
+// Returns a bitboard of all the pieces that are blocking attacks on the square 's' from sliders in 'attackers'.
+// A piece blocks a slider if removing that piece from the board would result in a position where square 's' is attacked by the sliders in 'attackers'.
 // For example, a king-attack blocking piece can be either a pinned or a discovered check piece,
 // according if its color is the opposite or the same of the color of the slider.
 Bitboard Position::slider_blockers (Square s, Bitboard defenders, Bitboard attackers, Bitboard &pinners) const
 {
     Bitboard blockers = pinners = 0;
-    // Snipers are attackers that attack 's' in x-ray
+    // Snipers are attackers that are aligned on 's' in x-ray
     Bitboard snipers =
           attackers
         & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
@@ -424,7 +425,6 @@ bool Position::pseudo_legal (Move m) const
 bool Position::legal (Move m) const
 {
     assert(m != MOVE_NONE);
-
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     assert((pieces (_active) & org) != 0);
@@ -497,10 +497,8 @@ bool Position::gives_check  (Move m) const
     auto dst = dst_sq (m);
     assert((pieces (_active) & org) != 0);
     
-    auto mpt = ptype (_board[org]);
-
     if (    // Direct check ?
-           ((checks (mpt) & dst) != 0)
+           ((checks (ptype (_board[org])) & dst) != 0)
             // Discovered check ?
         || (   (dsc_checkers (_active) & org) != 0
             && !sqrs_aligned (org, dst, square<KING> (~_active))))
@@ -860,7 +858,7 @@ Position& Position::setup (const string &code, StateInfo &si, Color c)
     string sides[CLR_NO] =
     {
         code.substr (   code.find ('K', 1)), // Weak
-        code.substr (0, code.find ('K', 1)), // Strong
+        code.substr (0, code.find ('K', 1))  // Strong
     };
 
     to_lower (sides[c]);
@@ -1104,7 +1102,6 @@ void Position::undo_move ()
     assert(_si->ptr != nullptr);
     auto m = _si->last_move;
     assert(m != MOVE_NONE);
-
     auto org = org_sq (m);
     auto dst = dst_sq (m);
 

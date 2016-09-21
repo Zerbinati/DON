@@ -509,21 +509,21 @@ inline Square rel_sq (Color c, Square s) { return Square(s ^ (c*i08(SQ_A8))); }
 inline bool opposite_colors (Square s1, Square s2)
 {
     i08 s = i08(s1) ^ i08(s2);
-    return ((s ^ (s >> 3)) & 1) == 1;
+    return (((s >> 3) ^ s) & 1) == 1;
 }
 
 inline Delta pawn_push (Color c)
 {
-    return Delta(i08(DEL_N) - i08(DEL_NN)*c);
+    return c == WHITE ? DEL_N : DEL_S;
 }
 
-inline CastleRight mk_castle_right (Color c)                { return CastleRight(CR_WHITE << (2*c)); }
-inline CastleRight mk_castle_right (Color c, CastleSide cs) { return CastleRight(CR_WKING << (2*c + 1*cs)); }
+inline CastleRight mk_castle_right (Color c)                { return CastleRight(CR_WHITE << ((c << 1))); }
+inline CastleRight mk_castle_right (Color c, CastleSide cs) { return CastleRight(CR_WKING << ((c << 1) + cs)); }
 
 template<Color C, CastleSide CS>
 struct Castling
 {
-    static const CastleRight Right = CastleRight(CR_WKING << (2*C + 1*CS));
+    static const CastleRight Right = CastleRight(CR_WKING << ((C << 1) + CS));
 };
 
 inline Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
@@ -548,7 +548,7 @@ inline Square fix_dst_sq (Move m, bool chess960 = false)
             (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m)) :
             dst_sq (m);
 }
-inline void promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= (pt - 1) << 12 | PROMOTE; }
+inline void promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= PROMOTE + ((pt - 1) << 12); }
 
 template<MoveType MT=NORMAL>
 inline Move mk_move (Square org, Square dst, PieceType pt=NIHT) { return Move(MT + (dst + ((org + ((pt - NIHT) << 6)) << 6))); }

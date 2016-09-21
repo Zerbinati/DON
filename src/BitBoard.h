@@ -23,11 +23,7 @@ namespace BitBoard {
     const Bitboard R7_bb = R1_bb << (8 * 6);
     const Bitboard R8_bb = R1_bb << (8 * 7);
 
-    const Bitboard Color_bb[CLR_NO] =
-    {
-        U64(0x55AA55AA55AA55AA),
-        U64(0xAA55AA55AA55AA55),
-    };
+    const Bitboard Color_bb[CLR_NO] = { U64(0x55AA55AA55AA55AA), U64(0xAA55AA55AA55AA55) };
 
     const Bitboard Square_bb[SQ_NO] =
     {
@@ -46,14 +42,8 @@ namespace BitBoard {
 #undef S_02
     };
 
-    const Bitboard File_bb[F_NO] =
-    {
-        FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb,
-    };
-    const Bitboard Rank_bb[R_NO] =
-    {
-        R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb,
-    };
+    const Bitboard File_bb[F_NO] = { FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb };
+    const Bitboard Rank_bb[R_NO] = { R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb };
 
     const Bitboard AdjFile_bb  [F_NO] =
     {
@@ -64,7 +54,7 @@ namespace BitBoard {
         FD_bb|FF_bb,
         FE_bb|FG_bb,
         FF_bb|FH_bb,
-        FG_bb,
+        FG_bb
     };
     const Bitboard AdjRank_bb  [R_NO] =
     {
@@ -75,7 +65,7 @@ namespace BitBoard {
         R4_bb|R6_bb,
         R5_bb|R7_bb,
         R6_bb|R8_bb,
-        R7_bb,
+        R7_bb
     };
     const Bitboard FrontRank_bb[CLR_NO][R_NO] =
     {
@@ -87,7 +77,7 @@ namespace BitBoard {
             R6_bb|R7_bb|R8_bb,
             R7_bb|R8_bb,
             R8_bb,
-            0,
+            0
         },
         {
             0,
@@ -97,7 +87,7 @@ namespace BitBoard {
             R4_bb|R3_bb|R2_bb|R1_bb,
             R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
             R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
-            R7_bb|R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb,
+            R7_bb|R6_bb|R5_bb|R4_bb|R3_bb|R2_bb|R1_bb
         }
     };
 
@@ -230,16 +220,14 @@ namespace BitBoard {
     //// Rotate Left  (toward MSB)
     //inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08(SQ_NO) - k)); }
 
-    inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = 0)
+    inline Bitboard sliding_attacks (const Delta *deltas, Square s, Bitboard occ = 0)
     {
         Bitboard slide_attacks = 0;
-        u08 i = 0;
-        Delta del;
-        while ((del = deltas[i++]) != DEL_O)
+        while (*deltas != DEL_O)
         {
-            for (auto sq = s + del;
-                 _ok (sq) && dist (sq, sq - del) == 1;
-                 sq += del)
+            for (auto sq = s + *deltas;
+                 _ok (sq) && dist (sq, sq - *deltas) == 1;
+                 sq += *deltas)
             {
                 slide_attacks += sq;
                 if ((occ & sq) != 0)
@@ -247,6 +235,7 @@ namespace BitBoard {
                     break;
                 }
             }
+            ++deltas;
         }
         return slide_attacks;
     }

@@ -121,11 +121,11 @@ namespace EndGame {
         auto sk_sq = pos.square<KING> ( _strong_side);
         auto wk_sq = pos.square<KING> (~_strong_side);
 
-        Value value = std::min (
-                      VALUE_EG_PAWN*pos.count<PAWN> (_strong_side)
-                    + pos.non_pawn_material (_strong_side)
-                    + PushToEdge[wk_sq]
-                    + PushClose[dist (sk_sq, wk_sq)], +VALUE_KNOWN_WIN - 1);
+        auto value = std::min (
+                     VALUE_EG_PAWN*pos.count<PAWN> (_strong_side)
+                   + pos.non_pawn_material (_strong_side)
+                   + PushToEdge[wk_sq]
+                   + PushClose[dist (sk_sq, wk_sq)], +VALUE_KNOWN_WIN - 1);
 
         if (   pos.count<QUEN> (_strong_side) != 0
             || pos.count<ROOK> (_strong_side) != 0
@@ -157,7 +157,7 @@ namespace EndGame {
             return VALUE_DRAW;
         }
 
-        Value value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value(_rank (sp_sq));
+        auto value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value(_rank (sp_sq));
 
         return pos.active () == _strong_side ? +value : -value;
     }
@@ -183,9 +183,9 @@ namespace EndGame {
             wk_sq = ~wk_sq;
         }
 
-        Value value = VALUE_KNOWN_WIN
-                    + PushClose[dist (sk_sq, wk_sq)]
-                    + PushToCorner[wk_sq];
+        auto value = VALUE_KNOWN_WIN
+                   + PushClose[dist (sk_sq, wk_sq)]
+                   + PushToCorner[wk_sq];
 
         return pos.active () == _strong_side ? +value : -value;
     }
@@ -214,7 +214,7 @@ namespace EndGame {
 
         auto promote_sq = _file (wp_sq)|R_1;
 
-        Value value;
+        auto value = VALUE_ZERO;
 
         // If the strong side's king is in front of the pawn, it's a win. or
         // If the weak side's king is too far from the pawn and the rook, it's a win.
@@ -225,20 +225,20 @@ namespace EndGame {
         {
             value = VALUE_EG_ROOK - dist (sk_sq, wp_sq);
         }
-        // If the pawn is far advanced and supported by the defending king, it's a drawish.
         else
+        // If the pawn is far advanced and supported by the defending king, it's a drawish.
         if (   _rank (wk_sq) <= R_3
             && dist (wk_sq, wp_sq) == 1
             && _rank (sk_sq) >= R_4
             && dist (sk_sq, wp_sq) > 2 + (pos.active () == _strong_side ? 1 : 0))
         {
-            value = Value(80 - 8 * dist (sk_sq, wp_sq));
+            value = Value(- 8 * dist (sk_sq, wp_sq) + 80);
         }
         else
         {
-            value = Value(200 - 8 * (  dist (sk_sq, wp_sq+DEL_S)
-                                     - dist (wk_sq, wp_sq+DEL_S)
-                                     - dist (wp_sq, promote_sq)));
+            value = Value(- 8 * (  dist (sk_sq, wp_sq+DEL_S)
+                                 - dist (wk_sq, wp_sq+DEL_S)
+                                 - dist (wp_sq, promote_sq)) + 200);
         }
 
         return pos.active () == _strong_side ? +value : -value;
@@ -256,7 +256,7 @@ namespace EndGame {
         auto wk_sq = pos.square<KING> (~_strong_side);
         auto wb_sq = pos.square<BSHP> (~_strong_side);
 
-        // To draw, the weak side should run towards the corner.
+        // To draw, the weak side's king should run towards the corner.
         // And not just any corner! Only a corner that's not the same color as the bishop will do.
         if (   (((FA_bb|FH_bb)&(R1_bb|R8_bb)) & wk_sq) != 0
             && opposite_colors (wk_sq, wb_sq)
@@ -267,7 +267,7 @@ namespace EndGame {
         }
 
         // When the weak side ended up in the same corner as bishop.
-        Value value = Value(PushToEdge[wk_sq]);
+        auto value = Value(PushToEdge[wk_sq]);
 
         return pos.active () == _strong_side ? +value : -value;
     }
@@ -291,7 +291,7 @@ namespace EndGame {
             return VALUE_DRAW;
         }
 
-        Value value = Value(PushAway[dist (wk_sq, wn_sq)] + PushToEdge[wk_sq]);
+        auto value = Value(PushAway[dist (wk_sq, wn_sq)] + PushToEdge[wk_sq]);
 
         return pos.active () == _strong_side ? +value : -value;
     }
@@ -310,7 +310,7 @@ namespace EndGame {
         auto wk_sq = pos.square<KING> (~_strong_side);
         auto wp_sq = pos.square<PAWN> (~_strong_side);
 
-        Value value = Value(PushClose[dist (sk_sq, wk_sq)]);
+        auto value = Value(PushClose[dist (sk_sq, wk_sq)]);
 
         if (   rel_rank (~_strong_side, wp_sq) != R_7
             || dist (wk_sq, wp_sq) != 1
@@ -335,9 +335,9 @@ namespace EndGame {
         auto sk_sq = pos.square<KING> ( _strong_side);
         auto wk_sq = pos.square<KING> (~_strong_side);
 
-        Value value = VALUE_EG_QUEN - VALUE_EG_ROOK
-                    + PushClose[dist (sk_sq, wk_sq)]
-                    + PushToEdge[wk_sq];
+        auto value = VALUE_EG_QUEN - VALUE_EG_ROOK
+                   + PushClose[dist (sk_sq, wk_sq)]
+                   + PushToEdge[wk_sq];
 
         return pos.active () == _strong_side ? +value : -value;
     }
@@ -475,7 +475,7 @@ namespace EndGame {
         assert(verify_material (pos,  _strong_side, VALUE_MG_ROOK, 1));
         assert(verify_material (pos, ~_strong_side, VALUE_MG_BSHP, 0));
 
-        // Test for a rook pawn
+        // If rook pawns
         if ((pos.pieces (PAWN) & (FA_bb|FH_bb)) != 0)
         {
             auto wk_sq = pos.square<KING> (~_strong_side);
@@ -513,16 +513,15 @@ namespace EndGame {
         return SCALE_NONE;
     }
 
-    // KRPP vs KRP. There is just a single rule: if the strong side has no passed
-    // pawns and the defending king is actively placed, the position is drawish.
+    // KRPP vs KRP. If the defending king is actively placed, the position is drawish.
     template<>
     Scale Endgame<KRPPKRP>::operator() (const Position &pos) const
     {
         assert(verify_material (pos,  _strong_side, VALUE_MG_ROOK, 2));
         assert(verify_material (pos, ~_strong_side, VALUE_MG_ROOK, 1));
 
-        // Pawn Rank based scaling factors used in KRPPKRP endgame
-        static const Scale KRPPKRPScale[R_NO] =
+        // Pawn Rank based scaling.
+        static const Scale Scales[R_NO] =
         {
             Scale(0),
             Scale(9),
@@ -538,19 +537,13 @@ namespace EndGame {
         auto sp1_sq = pos.square<PAWN> ( _strong_side, 0);
         auto sp2_sq = pos.square<PAWN> ( _strong_side, 1);
 
-        // Does the strong side have a passed pawn?
-        if (   !pos.pawn_passed_at (_strong_side, sp1_sq)
-            && !pos.pawn_passed_at (_strong_side, sp2_sq))
+        auto r = std::max (rel_rank (_strong_side, sp1_sq), rel_rank (_strong_side, sp2_sq));
+        if (   dist<File> (wk_sq, sp1_sq) <= 1
+            && dist<File> (wk_sq, sp2_sq) <= 1
+            && rel_rank (_strong_side, wk_sq) > r)
         {
-            auto r = std::max (rel_rank (_strong_side, sp1_sq), rel_rank (_strong_side, sp2_sq));
-
-            if (   dist<File> (wk_sq, sp1_sq) <= 1
-                && dist<File> (wk_sq, sp2_sq) <= 1
-                && rel_rank (_strong_side, wk_sq) > r)
-            {
-                assert(R_1 < r && r < R_7);
-                return KRPPKRPScale[r];
-            }
+            assert(R_1 < r && r < R_7);
+            return Scales[r];
         }
 
         return SCALE_NONE;
@@ -567,14 +560,13 @@ namespace EndGame {
 
         auto wk_sq  = pos.square<KING> (~_strong_side);
         auto spawns = pos.pieces (_strong_side, PAWN);
-        auto sp_sq  = scan_frntmost_sq (_strong_side, spawns);
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
         if (   (spawns & ~front_rank_bb (~_strong_side, wk_sq)) == 0
             && (   (spawns & ~FA_bb) == 0
                 || (spawns & ~FH_bb) == 0)
-            && dist<File> (wk_sq, sp_sq) <= 1)
+            && dist<File> (wk_sq, scan_frntmost_sq (_strong_side, spawns)) <= 1)
         {
             return SCALE_DRAW;
         }

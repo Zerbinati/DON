@@ -632,7 +632,7 @@ namespace Searcher {
 
         const i16 MaxRazorDepth = 4;
         // RazorMargins[depth]
-        Value RazorMargins[MaxRazorDepth];
+        Value RazorMargins[MaxRazorDepth] = { Value(0), Value(578), Value(602), Value(554) };
 
         const i16 MaxFutilityDepth = 16;
         // FutilityMoveCounts[improving][depth]
@@ -979,7 +979,7 @@ namespace Searcher {
 
             auto best_move = MOVE_NONE;
 
-            // Initialize move picker for the current position.
+            // Initialize move picker (2) for the current position.
             MovePicker mp (pos, tt_move, ss, depth, (ss-1)->current_move);
             StateInfo si;
             // Loop through the moves until no moves remain or a beta cutoff occurs.
@@ -1002,8 +1002,8 @@ namespace Searcher {
 
                 // Futility pruning
                 if (   !InCheck
-                    && futility_base > -VALUE_KNOWN_WIN
                     && futility_base <= alfa
+                    && futility_base > -VALUE_KNOWN_WIN
                     && !gives_check
                     //&& Limits.mate == 0
                         // Advance pawn push
@@ -1375,12 +1375,12 @@ namespace Searcher {
                         //&& Limits.mate == 0
                         && tt_eval + RazorMargins[depth] <= alfa)
                     {
-                        if (   depth == 1
-                            && tt_eval + RazorMargins[0] <= alfa)
+                        if (depth == 1)
                         {
                             return quien_search<false, false> (pos, ss, alfa, beta, 0);
                         }
-                        auto alfa_margin = std::max (alfa - RazorMargins[depth], -VALUE_INFINITE);
+                        auto alfa_margin = alfa - RazorMargins[depth];
+                        assert(alfa_margin >= -VALUE_INFINITE);
                         auto value = quien_search<false, false> (pos, ss, alfa_margin, alfa_margin+1, 0);
                         if (value <= alfa_margin)
                         {
@@ -1457,13 +1457,14 @@ namespace Searcher {
                         && abs (beta) < +VALUE_MATE_IN_MAX_PLY)
                     {
                         auto reduced_depth = i16(depth - 4);
-                        auto beta_margin = std::min (beta + 200, +VALUE_INFINITE);
-
                         assert(reduced_depth > 0);
+                        auto beta_margin = beta + 200;
+                        assert(beta_margin <= +VALUE_INFINITE);
+
                         assert((ss-1)->current_move != MOVE_NONE
                             && (ss-1)->cm_history != nullptr);
 
-                        // Initialize move picker for the current position.
+                        // Initialize move picker (3) for the current position.
                         MovePicker mp (pos, tt_move, beta_margin - ss->static_eval);
                         // Loop through all legal moves until no moves remain or a beta cutoff occurs.
                         while ((move = mp.next_move ()) != MOVE_NONE)
@@ -1485,7 +1486,6 @@ namespace Searcher {
                                 && pos.dsc_checkers (pos.active ()) == 0 ?
                                     (pos.checks (mpt) & dst) != 0 :
                                     pos.gives_check (move);
-                            bool capture_or_promotion = pos.capture_or_promotion (move);
 
                             // Speculative prefetch as early as possible
                             prefetch (TT.cluster_entry (pos.move_posi_key (move)));
@@ -1497,10 +1497,8 @@ namespace Searcher {
                             {
                                 prefetch (th->pawn_table[pos.pawn_key ()]);
                             }
-                            if (capture_or_promotion)
-                            {
-                                prefetch (th->matl_table[pos.matl_key ()]);
-                            }
+                            // NOTE:: All moves are capture
+                            prefetch (th->matl_table[pos.matl_key ()]);
 
                             auto value =
                                 gives_check ?
@@ -1573,7 +1571,7 @@ namespace Searcher {
             MoveVector quiet_moves;
             quiet_moves.reserve (16);
 
-            // Initialize move picker for the current position.
+            // Initialize move picker (1) for the current position.
             MovePicker mp (pos, tt_move, ss);
             // Step 11. Loop through moves
             // Loop through all legal moves until no moves remain or a beta cutoff occurs.
@@ -1651,7 +1649,8 @@ namespace Searcher {
                     && singular_ext_node
                     && move == tt_move)
                 {
-                    auto alfa_margin = std::max (tt_value - 2*depth, -VALUE_INFINITE);
+                    auto alfa_margin = tt_value - 2*depth - 1;
+                    assert(alfa_margin >= -VALUE_INFINITE);
                     ss->exclude_move = move;
                     ss->skip_pruning = true;
                     value = depth_search<false, CutNode, InCheck> (pos, ss, alfa_margin, alfa_margin+1, depth/2);
@@ -1696,16 +1695,16 @@ namespace Searcher {
                             || (   lmr_depth < 7
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
                                 // Negative SEE based pruning
-                            || (   lmr_depth < 8
-                                && pos.see_sign (move) < -35*lmr_depth*lmr_depth))
+                            || (   lmr_depth < 9
+                                && pos.see_sign (move) < Value(-35*lmr_depth*lmr_depth)))
                         {
                             continue;
                         }
                     }
                     else
                     // Negative SEE based pruning
-                    if (   depth < 7
-                        && pos.see_sign (move) < -35*depth*depth)
+                    if (   depth < 8
+                        && pos.see_sign (move) < Value(-35*depth*depth))
                     {
                         continue;
                     }
@@ -2049,10 +2048,6 @@ namespace Searcher {
     // Initialize lookup tables during startup
     void initialize ()
     {
-        for (i16 d = 0; d < MaxRazorDepth; ++d)
-        {
-            RazorMargins[d] = Value(d != 0 ? 48*d + 506 : 578);
-        }
         for (i16 d = 0; d < MaxFutilityDepth; ++d)
         {
             FutilityMoveCounts[0][d] = u08(0.773 * std::pow (d + 0.00, 1.8) + 2.40);
@@ -2195,10 +2190,10 @@ namespace Threading {
             }
 
             // MultiPV loop. Perform a full root search for each PV line
-            for (pv_index = 0;
-                 !ForceStop
-              && pv_index < Threadpool.pv_limit;
-                 ++pv_index)
+            for (   pv_index = 0;
+                    !ForceStop
+                 && pv_index < Threadpool.pv_limit;
+                    ++pv_index)
             {
                 // Reset aspiration window starting size.
                 if (running_depth > 4)
@@ -2304,13 +2299,13 @@ namespace Threading {
                 finished_depth = running_depth;
             }
 
-            if (ContemptValue != 0)
-            {
-                assert(!root_moves.empty ());
-                auto valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
-                DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] - valued_contempt;
-                DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] + valued_contempt;
-            }
+            //if (ContemptValue != 0)
+            //{
+            //    assert(!root_moves.empty ());
+            //    auto valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
+            //    DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] - valued_contempt;
+            //    DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] + valued_contempt;
+            //}
 
             if (Threadpool.main_thread () == this)
             {

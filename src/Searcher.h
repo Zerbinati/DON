@@ -79,7 +79,6 @@ public:
     void update (Piece pc, Move m, Value v)
     {
         assert(pc != NO_PIECE);
-        
         i32 x = abs(i32(v));
         if (x < 324)
         {
@@ -98,7 +97,6 @@ private:
     TPieceValueStats _table[CLR_NO][NONE][SQ_NO];
 
 public:
-
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
