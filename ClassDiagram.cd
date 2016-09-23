@@ -337,7 +337,7 @@
       <FileName>src\Pawns.h</FileName>
     </TypeIdentifier>
     <ShowAsCollectionAssociation>
-      <Field Name="king_safety" />
+      <Field Name="castle_safety" />
     </ShowAsCollectionAssociation>
   </Struct>
   <Struct Name="Stack">

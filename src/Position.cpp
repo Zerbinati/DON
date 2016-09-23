@@ -108,7 +108,7 @@ PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitbo
 // Static Exchange Evaluator (SEE): It tries to estimate the material gain or loss resulting from a move.
 Value Position::see (Move m) const
 {
-    assert(m != MOVE_NONE);
+    assert(_ok (m));
     if (mtype (m) == CASTLE)
     {
         // Castle moves are implemented as king capturing the rook so cannot be
@@ -149,7 +149,6 @@ Value Position::see (Move m) const
     auto c = ~color (_board[org]);
     Bitboard c_attackers = attackers & pieces (c);
     // Don't allow pinned pieces to attack pieces except the king as long all pinners are on their original square.
-    // When a pinner moves to the exchange-square or get captured on it, we fall back to standard SEE behaviour.
     if (   c_attackers != 0
         && (_si->pinners[c] & ~mocc) == 0)
     {
@@ -210,7 +209,7 @@ Value Position::see (Move m) const
 // Sign of SSE
 Value Position::see_sign (Move m) const
 {
-    assert(m != MOVE_NONE);
+    assert(_ok (m));
     // If SEE cannot be negative because captured piece value is not less then capturing one.
     // Note that king moves always return here because king value is set to VALUE_ZERO.
     return
@@ -251,7 +250,7 @@ Bitboard Position::slider_blockers (Square s, Bitboard defenders, Bitboard attac
 // due to SMP concurrent access or hash position key aliasing.
 bool Position::pseudo_legal (Move m) const
 {
-    assert(m != MOVE_NONE);
+    assert(_ok (m));
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     // If the org square is not occupied by a piece belonging to the side to move,
@@ -356,19 +355,23 @@ bool Position::pseudo_legal (Move m) const
         {
             return false;
         }
-        if (   // Not a single push
-               !(   empty (dst)
+        if (    // Not a single push
+               !(   (   mtype (m) == NORMAL
+                     || mtype (m) == PROMOTE)
+                 && empty (dst)
                  && (org + pawn_push (_active) == dst))
-            && // Not a normal capture
-               !(   mtype (m) != ENPASSANT
+                // Not a normal capture
+            && !(   (   mtype (m) == NORMAL
+                     || mtype (m) == PROMOTE)
                  && ((pieces (~_active) & PawnAttacks[_active][org]) & dst) != 0)
-               // Not an enpassant capture
+                // Not an enpassant capture
             && !(   mtype (m) == ENPASSANT
                  && _si->en_passant_sq == dst
                  && ((~pieces () & PawnAttacks[_active][org]) & dst) != 0
                  && _board[cap] == (~_active|PAWN))
-               // Not a double push
-            && !(   rel_rank (_active, org) == R_2
+                // Not a double push
+            && !(   mtype (m) == NORMAL
+                 && rel_rank (_active, org) == R_2
                  && rel_rank (_active, dst) == R_4
                  && empty (dst)
                  && empty (dst - pawn_push (_active))
@@ -423,7 +426,7 @@ bool Position::pseudo_legal (Move m) const
 // Tests whether a pseudo-legal move is legal
 bool Position::legal (Move m) const
 {
-    assert(m != MOVE_NONE);
+    assert(_ok (m));
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     assert((pieces (_active) & org) != 0);
@@ -888,7 +891,7 @@ Position& Position::setup (const string &code, StateInfo &si, Color c)
 // Do the natural-move
 void Position::do_move (Move m, StateInfo &si, bool gives_check)
 {
-    assert(m != MOVE_NONE);
+    assert(_ok (m));
     assert(&si != _si);
 
     Key key = _si->posi_key ^ Zob.color_key;
@@ -1098,7 +1101,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
 void Position::undo_move (Move m)
 {
     assert(_si->ptr != nullptr);
-    assert(m != MOVE_NONE);
+    assert(_ok (m));
     auto org = org_sq (m);
     auto dst = dst_sq (m);
 

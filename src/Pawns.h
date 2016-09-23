@@ -22,7 +22,11 @@ namespace Pawns {
         u08      semiopens  [CLR_NO];
         u08      fill_count [CLR_NO];
         u08      color_count[CLR_NO][CLR_NO];
-        Value    king_safety[CLR_NO][CS_NO];
+        Value    castle_safety[CLR_NO][CS_NO];
+
+        Square   king_square    [CLR_NO];
+        Value    king_safety    [CLR_NO];
+        u08      king_pawn_dist [CLR_NO];
 
         bool file_semiopen (Color c, File f) const
         {
@@ -38,6 +42,23 @@ namespace Pawns {
 
         template<Color Own>
         Value pawn_shelter_storm (const Position &pos, Square k_sq) const;
+
+        template<Color Own>
+        Value do_king_safety (const Position &pos, Square k_sq)
+        {
+            if (king_square[Own] != k_sq)
+            {
+                king_pawn_dist[Own] = 0;
+                Bitboard pawns = pos.pieces (Own, PAWN);
+                if (pawns != 0)
+                {
+                    while ((pawns & dist_rings_bb (k_sq, king_pawn_dist[Own]++)) == 0) {}
+                }
+                king_safety[Own] = pawn_shelter_storm<Own> (pos, k_sq);
+                king_square[Own] = k_sq;
+            }
+            return king_safety[Own];
+        }
 
     };
 

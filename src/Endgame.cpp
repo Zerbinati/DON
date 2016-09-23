@@ -537,7 +537,14 @@ namespace EndGame {
         auto sp1_sq = pos.square<PAWN> ( _strong_side, 0);
         auto sp2_sq = pos.square<PAWN> ( _strong_side, 1);
 
-        auto r = std::max (rel_rank (_strong_side, sp1_sq), rel_rank (_strong_side, sp2_sq));
+        // Does the stronger side have a passed pawn?
+        if (   pos.pawn_passed_at (_strong_side, sp1_sq)
+            || pos.pawn_passed_at (_strong_side, sp2_sq))
+        {
+            return SCALE_NONE;
+        }
+        auto r = std::max (rel_rank (_strong_side, sp1_sq),
+                           rel_rank (_strong_side, sp2_sq));
         if (   dist<File> (wk_sq, sp1_sq) <= 1
             && dist<File> (wk_sq, sp2_sq) <= 1
             && rel_rank (_strong_side, wk_sq) > r)

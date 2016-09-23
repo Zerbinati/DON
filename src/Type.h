@@ -539,6 +539,7 @@ inline Piece operator~ (Piece p) { return Piece(p ^ 8); }
 
 inline Square    org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
 inline Square    dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
+inline bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
 inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
 inline Square fix_dst_sq (Move m, bool chess960 = false)

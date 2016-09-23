@@ -37,7 +37,7 @@ void RootMove::insert_pv_into_tt (Position &pos) const
     u08 ply = 0;
     for (auto m : *this)
     {
-        assert(m != MOVE_NONE);
+        assert(_ok (m));
         assert(MoveList<LEGAL> (pos).contains (m));
 
         bool tt_hit;
@@ -84,11 +84,11 @@ void RootMove::extract_pv_from_tt (Position &pos)
     while (   tt_hit
             && ply < MaxPlies 
             && expected_value == value_of_tt (tte->value (), ply+1)
-            && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
+            && _ok (m = tte->move ()) // Local copy to be SMP safe
             && pos.pseudo_legal (m)
             && pos.legal (m))
     {
-        //assert(m != MOVE_NONE);
+        //assert(_ok (m));
         assert(MoveList<LEGAL> (pos).contains (m));
         assert(!pos.draw ());
 
@@ -110,7 +110,7 @@ void RootMove::extract_pv_from_tt (Position &pos)
 bool RootMove::extract_ponder_move_from_tt (Position &pos)
 {
     assert(size () == 1);
-    assert(at (0) != MOVE_NONE);
+    assert(_ok (at (0)));
 
     StateInfo si;
     auto m = at (0);
@@ -119,11 +119,11 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     const auto *tte = TT.probe (pos.posi_key (), tt_hit);
     Move ponder_move;
     if (   tt_hit
-        && (ponder_move = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
+        && _ok (ponder_move = tte->move ()) // Local copy to be SMP safe
         && pos.pseudo_legal (ponder_move)
         && pos.legal (ponder_move))
     {
-        //assert(ponder_move != MOVE_NONE);
+        //assert(_ok (ponder_move));
         assert(MoveList<LEGAL> (pos).contains (ponder_move));
         assert(!pos.draw ());
         *this += ponder_move;
@@ -137,7 +137,7 @@ RootMove::operator string () const
     ostringstream oss;
     for (auto m : *this)
     {
-        assert(m != MOVE_NONE);
+        assert(_ok (m));
         oss << ' ' << move_to_can (m);
     }
     return oss.str ();
@@ -216,7 +216,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
     }
     else
     {
-        assert(lm != MOVE_NONE);
+        assert(_ok (lm));
 
         _stage = S_Q_RECAPTURE_TT;
         _recap_sq = dst_sq (lm);
@@ -686,7 +686,7 @@ namespace Searcher {
         void update_cm_stats (Stack *const &ss, Piece pc, Move move, Value value)
         {
             assert(pc != NO_PIECE);
-            assert(move != MOVE_NONE);
+            assert(_ok (move));
 
             if ((ss-1)->cm_history != nullptr)
             {
@@ -741,7 +741,7 @@ namespace Searcher {
         // Appends the move and child pv[]
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
-            assert(move != MOVE_NONE);
+            assert(_ok (move));
             pv.clear ();
             pv.push_back (move);
             if (!child_pv.empty ())
@@ -866,7 +866,7 @@ namespace Searcher {
             auto *tte = TT.probe (posi_key, tt_hit);
             auto tt_move =
                    tt_hit
-                && (move = tte->move ()) != MOVE_NONE
+                && _ok (move = tte->move ())
                 && pos.pseudo_legal (move)
                 && pos.legal (move) ?
                     move :
@@ -1219,7 +1219,7 @@ namespace Searcher {
                 root_node ?
                     th->root_moves[th->pv_index][0] :
                        tt_hit
-                    && (move = tte->move ()) != MOVE_NONE
+                    && _ok (move = tte->move ())
                     && pos.pseudo_legal (move)
                     && pos.legal (move) ?
                         move :
@@ -1396,7 +1396,7 @@ namespace Searcher {
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
                     {
                         assert(exclude_move == MOVE_NONE);
-                        assert((ss-1)->current_move != MOVE_NONE
+                        assert(_ok ((ss-1)->current_move)
                             && (ss-1)->cm_history != nullptr);
 
                         ss->current_move = MOVE_NULL;
@@ -1460,7 +1460,7 @@ namespace Searcher {
                         auto beta_margin = beta + 200;
                         assert(beta_margin <= +VALUE_INFINITE);
 
-                        assert((ss-1)->current_move != MOVE_NONE
+                        assert(_ok ((ss-1)->current_move)
                             && (ss-1)->cm_history != nullptr);
 
                         // Initialize move picker (3) for the current position.
@@ -1527,7 +1527,7 @@ namespace Searcher {
                         if (tt_hit)
                         {
                             tt_move =
-                                   (move = tte->move ()) != MOVE_NONE
+                                   _ok (move = tte->move ())
                                 && pos.pseudo_legal (move)
                                 && pos.legal (move) ?
                                     move :
@@ -1558,7 +1558,7 @@ namespace Searcher {
                 && tt_move != MOVE_NONE
                 && depth > 7
                 && depth < tte->depth () + 4
-                && abs (tt_value) < +VALUE_KNOWN_WIN
+                && tt_value != VALUE_NONE
                 && (tte->bound () & BOUND_LOWER) != BOUND_NONE;
 
             bool improving =
@@ -1648,8 +1648,7 @@ namespace Searcher {
                     && singular_ext_node
                     && move == tt_move)
                 {
-                    auto alfa_margin = tt_value - 2*depth - 1;
-                    assert(alfa_margin >= -VALUE_INFINITE);
+                    auto alfa_margin = std::max (tt_value - 2*depth - 1, -VALUE_INFINITE);
                     ss->exclude_move = move;
                     ss->skip_pruning = true;
                     value = depth_search<false, CutNode, InCheck> (pos, ss, alfa_margin, alfa_margin+1, depth/2);
@@ -1683,7 +1682,7 @@ namespace Searcher {
                         }
 
                         // Reduced depth of the next LMR search
-                        auto lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
+                        auto lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 1));
                         if (    // Counter moves value based pruning
                                (   lmr_depth < 3
                                 && ((ss-1)->cm_history == nullptr || (*(ss-1)->cm_history)(mpc, move) < VALUE_ZERO)
@@ -1702,7 +1701,7 @@ namespace Searcher {
                     }
                     else
                     // Negative SEE based pruning
-                    if (   depth < 8
+                    if (   depth < 7
                         && pos.see_sign (move) < Value(-35*depth*depth))
                     {
                         continue;

@@ -482,10 +482,10 @@ namespace Evaluator {
                             && (   rel_rank (Own, fk_sq) == rel_rank (Own, s)
                                 || (   rel_rank (Own, fk_sq) == R_1
                                     && rel_rank (Own, s) < R_4))
-                            && (front_sqrs_bb (Opp, scan_backmost_sq (Own, pos.pieces (Own, PAWN) & file_bb (s))) & s) != 0
-                            && !ei.pe->side_semiopen (Own, _file (fk_sq), _file (s) < _file (fk_sq)))
+                            && !ei.pe->side_semiopen (Own, _file (s) < _file (fk_sq) ? _file (s) + 1 : _file (s) - 1, _file (s) < _file (fk_sq))
+                            && (front_sqrs_bb (Opp, scan_backmost_sq (Own, pos.pieces (Own, PAWN) & file_bb (s))) & s) != 0)
                         {
-                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
+                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (rel_rank (Own, fk_sq) != R_1 || pos.can_castle (Own) ? 1 : 2);
                         }
                     }
                 }
@@ -520,15 +520,7 @@ namespace Evaluator {
             auto fk_sq = pos.square<KING> (Own);
 
             // King Safety: friend pawns shelter and enemy pawns storm
-
-            Value value = ei.pe->pawn_shelter_storm<Own> (pos, fk_sq);
-            u08 king_pawn_dist = 0;
-            Bitboard own_pawns = pos.pieces (Own, PAWN);
-            if (own_pawns != 0)
-            {
-                while ((own_pawns & dist_rings_bb (fk_sq, king_pawn_dist++)) == 0) {}
-            }
-            // If can castle use the value after the castle if is bigger
+            auto value = ei.pe->do_king_safety<Own> (pos, fk_sq);
             if (   rel_rank (Own, fk_sq) == R_1
                 && pos.can_castle (Own) != CR_NONE)
             {
@@ -536,23 +528,23 @@ namespace Evaluator {
                     && (pos.king_path (Castling<Own, CS_KING>::Right) & ei.ful_attacked_by[Opp][NONE]) == 0
                     && (pos.castle_path (Castling<Own, CS_KING>::Right) & pos.pieces ()) == 0)
                 {
-                    if (value < ei.pe->king_safety[Own][CS_KING])
+                    if (value < ei.pe->castle_safety[Own][CS_KING])
                     {
-                        value = ei.pe->king_safety[Own][CS_KING];
+                        value = ei.pe->castle_safety[Own][CS_KING];
                     }
                 }
                 if (   pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE
                     && (pos.king_path (Castling<Own, CS_QUEN>::Right) & ei.ful_attacked_by[Opp][NONE]) == 0
                     && (pos.castle_path (Castling<Own, CS_QUEN>::Right) & pos.pieces ()) == 0)
                 {
-                    if (value < ei.pe->king_safety[Own][CS_QUEN])
+                    if (value < ei.pe->castle_safety[Own][CS_QUEN])
                     {
-                        value = ei.pe->king_safety[Own][CS_QUEN];
+                        value = ei.pe->castle_safety[Own][CS_QUEN];
                     }
                 }
             }
 
-            auto score = mk_score (value, -16 * king_pawn_dist);
+            auto score = mk_score (value, -16 * ei.pe->king_pawn_dist[Own]);
 
             Bitboard b;
             Bitboard non_opp = ~pos.pieces (Opp);
@@ -1093,7 +1085,7 @@ namespace Evaluator {
         score +=
             + mobility[WHITE]
             - mobility[BLACK];
-        // Evaluate kings after all other pieces, needed full attack information including king.
+        // Evaluate kings, needed full attack information including king
         score +=
             + evaluate_king<WHITE, Trace> (pos, ei)
             - evaluate_king<BLACK, Trace> (pos, ei);

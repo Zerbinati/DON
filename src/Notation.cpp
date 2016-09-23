@@ -240,10 +240,10 @@ namespace Notation {
         static const u32 M = K*K;
 
         ostringstream oss;
-
+        auto &root_move = thread->root_moves[0];
         u64 total_nodes = Threadpool.nodes ();
         oss << std::setw ( 4) << thread->running_depth
-            << std::setw ( 8) << pretty_value (thread->root_moves[0].new_value, thread->root_pos.active ())
+            << std::setw ( 8) << pretty_value (root_move.new_value, thread->root_pos.active ())
             << std::setw (12) << pretty_time (Threadpool.time_mgr.elapsed_time ());
         if (total_nodes < 1*M)
         {
@@ -262,7 +262,7 @@ namespace Notation {
 
         StateList states;
         u08 ply = 0;
-        for (auto m : thread->root_moves[0])
+        for (auto m : root_move)
         {
             oss <<
                 //move_to_can (m)
@@ -273,7 +273,7 @@ namespace Notation {
         }
         while (ply != 0)
         {
-            thread->root_pos.undo_move (thread->root_moves[0][--ply]);
+            thread->root_pos.undo_move (root_move[--ply]);
             states.pop_back ();
         }
 
