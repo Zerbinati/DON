@@ -1648,7 +1648,7 @@ namespace Searcher {
                     && singular_ext_node
                     && move == tt_move)
                 {
-                    auto alfa_margin = std::max (tt_value - 2*depth - 1, -VALUE_INFINITE);
+                    auto alfa_margin = std::max (tt_value - 2*depth - 1, -VALUE_MATE);
                     ss->exclude_move = move;
                     ss->skip_pruning = true;
                     value = depth_search<false, CutNode, InCheck> (pos, ss, alfa_margin, alfa_margin+1, depth/2);
@@ -1682,7 +1682,7 @@ namespace Searcher {
                         }
 
                         // Reduced depth of the next LMR search
-                        auto lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 1));
+                        auto lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Counter moves value based pruning
                                (   lmr_depth < 3
                                 && ((ss-1)->cm_history == nullptr || (*(ss-1)->cm_history)(mpc, move) < VALUE_ZERO)

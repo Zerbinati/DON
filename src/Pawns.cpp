@@ -179,9 +179,6 @@ namespace Pawns {
                 }
             }
 
-            b = e->semiopens[Own] ^ u08(0xFF);
-            e->fill_count[Own] = u08(pop_count (b));
-
             return score;
         }
         // Explicit template instantiations

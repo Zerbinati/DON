@@ -20,7 +20,6 @@ namespace Pawns {
         Bitboard attack_span[CLR_NO];
         Bitboard passers    [CLR_NO];
         u08      semiopens  [CLR_NO];
-        u08      fill_count [CLR_NO];
         u08      color_count[CLR_NO][CLR_NO];
         Value    castle_safety[CLR_NO][CS_NO];
 
@@ -48,12 +47,13 @@ namespace Pawns {
         {
             if (king_square[Own] != k_sq)
             {
-                king_pawn_dist[Own] = 0;
+                u08 kp_dist = 0;
                 Bitboard pawns = pos.pieces (Own, PAWN);
                 if (pawns != 0)
                 {
-                    while ((pawns & dist_rings_bb (k_sq, king_pawn_dist[Own]++)) == 0) {}
+                    while ((pawns & dist_rings_bb (k_sq, kp_dist++)) == 0) {}
                 }
+                king_pawn_dist[Own] = kp_dist;
                 king_safety[Own] = pawn_shelter_storm<Own> (pos, k_sq);
                 king_square[Own] = k_sq;
             }

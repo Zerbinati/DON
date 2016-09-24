@@ -216,7 +216,7 @@ namespace Evaluator {
 
         // RookOnFile[semiopen-defended/semiopen-undefended/open] contains bonuses for rooks
         // when there is no friend pawn on the rook file.
-        const Score RookOnFile[3] = { S(15, 2), S(25,12), S(45,20) };
+        const Score RookOnFile[3] = { S(15, 4), S(25,10), S(45,20) };
 
         const Score MinorBehindPawn = S(16, 0); // Bonus for minor behind a pawn
 
@@ -429,9 +429,10 @@ namespace Evaluator {
 
                         // Penalty for pawns on the same color square as the bishop
                         score -= BishopPawns * i32(ei.pe->color_count[Own][color (s)]);
-
-                        if (   rel_sq (Own, s) == SQ_A8
-                            || rel_sq (Own, s) == SQ_H8)
+                        
+                        if (   mob <= 1
+                            && rel_rank (Own, s) >= R_4
+                            && ((FA_bb|FH_bb) & s) != 0)
                         {
                             auto del = (F_A == _file (s) ? DEL_E : DEL_W)-Push;
                             if (pos[s+del] == (Own|PAWN))
@@ -445,8 +446,8 @@ namespace Evaluator {
                             // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
                             // It is a very serious problem, especially when that pawn is also blocked.
                             // Bishop on a1/h1 or a8/h8 (white or black) which is trapped by own pawn on b2/g2 or b7/g7 (white or black).
-                            if (   rel_sq (Own, s) == SQ_A1
-                                || rel_sq (Own, s) == SQ_H1)
+                            if (   rel_rank (Own, s) == R_1
+                                && ((FA_bb|FH_bb) & s) != 0)
                             {
                                 auto del = (F_A == _file (s) ? DEL_E : DEL_W)+Push;
                                 if (pos[s+del] == (Own|PAWN))
@@ -479,11 +480,10 @@ namespace Evaluator {
                         // Penalty for rook when trapped by the king, even more if the king can't castle
                         if (   mob <= 3
                             && (_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq))
-                            && (   rel_rank (Own, fk_sq) == rel_rank (Own, s)
-                                || (   rel_rank (Own, fk_sq) == R_1
-                                    && rel_rank (Own, s) < R_4))
-                            && !ei.pe->side_semiopen (Own, _file (s) < _file (fk_sq) ? _file (s) + 1 : _file (s) - 1, _file (s) < _file (fk_sq))
-                            && (front_sqrs_bb (Opp, scan_backmost_sq (Own, pos.pieces (Own, PAWN) & file_bb (s))) & s) != 0)
+                            && (   rel_rank (Own, fk_sq) < R_4
+                                && rel_rank (Own, s) < R_4)
+                            && (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)) != 0
+                            && !ei.pe->side_semiopen (Own, _file (s) < _file (fk_sq) ? _file (fk_sq) - 1 : _file (fk_sq) + 1, _file (s) < _file (fk_sq)))
                         {
                             score -= (RookTrapped - mk_score (22 * mob, 0)) * (rel_rank (Own, fk_sq) != R_1 || pos.can_castle (Own) ? 1 : 2);
                         }
@@ -998,8 +998,7 @@ namespace Evaluator {
                         // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
                            pos.non_pawn_material (WHITE) == VALUE_MG_BSHP
                         && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP ?
-                               pos.count<PAWN> (WHITE) <= 1
-                            && pos.count<PAWN> (BLACK) <= 1 ?
+                               pos.count<PAWN> () <= 1 ?
                                 Scale( 9) :
                                 Scale(31) :
                         // Endgame with opposite-colored bishops but also other pieces
@@ -1009,10 +1008,10 @@ namespace Evaluator {
                 else
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 if (   abs (eg) <= VALUE_EG_BSHP
-                    && ei.pe->fill_count[strong_color] <= 2
+                    && pos.count<PAWN> (strong_color) <= 2
                     && !pos.pawn_passed_at (~strong_color, pos.square<KING> (~strong_color)))
                 {
-                    return Scale(37 + 7 * ei.pe->fill_count[strong_color]);
+                    return Scale(37 + 7 * pos.count<PAWN> (strong_color));
                 }
             }
             return scale;
