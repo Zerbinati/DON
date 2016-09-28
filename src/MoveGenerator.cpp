@@ -134,8 +134,8 @@ namespace MoveGen {
             // Pawn single-push and double-push, no promotions
             if (GT != CAPTURE)
             {
-                Bitboard push_1 = empties & shift_bb<Push> (Rx_pawns);
-                Bitboard push_2 = empties & shift_bb<Push> (push_1 & Rank3BB);
+                Bitboard push_1 = empties & shift<Push> (Rx_pawns);
+                Bitboard push_2 = empties & shift<Push> (push_1 & Rank3BB);
                 if (   GT == CHECK
                     || GT == QUIET_CHECK)
                 {
@@ -148,8 +148,8 @@ namespace MoveGen {
                     Bitboard dsc_pawns = Rx_pawns & pos.dsc_checkers (pos.active ()) & ~file_bb (pos.square<KING> (Opp));
                     if (dsc_pawns != 0)
                     {
-                        Bitboard push_cd_1 = empties & shift_bb<Push> (dsc_pawns);
-                        Bitboard push_cd_2 = empties & shift_bb<Push> (push_cd_1 & Rank3BB);
+                        Bitboard push_cd_1 = empties & shift<Push> (dsc_pawns);
+                        Bitboard push_cd_2 = empties & shift<Push> (push_cd_1 & Rank3BB);
                         push_1 |= push_cd_1;
                         push_2 |= push_cd_2;
                     }
@@ -163,8 +163,8 @@ namespace MoveGen {
             if (   GT != QUIET
                 && GT != QUIET_CHECK)
             {
-                Bitboard attack_l = enemies & shift_bb<LCap> (Rx_pawns);
-                Bitboard attack_r = enemies & shift_bb<RCap> (Rx_pawns);
+                Bitboard attack_l = enemies & shift<LCap> (Rx_pawns);
+                Bitboard attack_r = enemies & shift<RCap> (Rx_pawns);
                 if (GT == CHECK)
                 {
                     attack_l &= pos.checks (PAWN);
@@ -174,8 +174,8 @@ namespace MoveGen {
                     Bitboard dsc_pawns = Rx_pawns & pos.dsc_checkers (pos.active ());
                     if (dsc_pawns != 0)
                     {
-                        Bitboard attack_cd_l = enemies & shift_bb<LCap> (dsc_pawns);
-                        Bitboard attack_cd_r = enemies & shift_bb<RCap> (dsc_pawns);
+                        Bitboard attack_cd_l = enemies & shift<LCap> (dsc_pawns);
+                        Bitboard attack_cd_r = enemies & shift<RCap> (dsc_pawns);
                         attack_l |= attack_cd_l;
                         attack_r |= attack_cd_r;
                     }
@@ -194,8 +194,8 @@ namespace MoveGen {
                         // Otherwise this is a discovery check and are forced to do otherwise.
                         if (GT == EVASION)
                         {
-                            ep_captures &= (  shift_bb<DEL_E> (targets)
-                                            | shift_bb<DEL_W> (targets));
+                            ep_captures &= (  shift<DEL_E> (targets)
+                                            | shift<DEL_W> (targets));
                         }
                         ep_captures &= PawnAttacks[Opp][ep_sq];
                         assert(ep_captures != 0);
@@ -214,11 +214,11 @@ namespace MoveGen {
                 }
                 // Promoting pawns
                 Bitboard proms;
-                proms = empties & shift_bb<Push> (R7_pawns);
+                proms = empties & shift<Push> (R7_pawns);
                 while (proms != 0) generate_promotion_moves<GT> (moves, pos, pop_lsq (proms), Push);
-                proms = enemies & shift_bb<LCap> (R7_pawns);
+                proms = enemies & shift<LCap> (R7_pawns);
                 while (proms != 0) generate_promotion_moves<GT> (moves, pos, pop_lsq (proms), LCap);
-                proms = enemies & shift_bb<RCap> (R7_pawns);
+                proms = enemies & shift<RCap> (R7_pawns);
                 while (proms != 0) generate_promotion_moves<GT> (moves, pos, pop_lsq (proms), RCap);
             }
         }
@@ -322,8 +322,7 @@ namespace MoveGen {
         }
     }
 
-    template<GenType GT>
-    void generate (vector<ValMove> &moves, const Position &pos)
+    template<GenType GT> void generate (vector<ValMove> &moves, const Position &pos)
     {
         assert(pos.checkers () == 0);
         assert(GT == NATURAL
@@ -352,7 +351,6 @@ namespace MoveGen {
             generate_moves<GT, WHITE> (moves, pos, targets) :
             generate_moves<GT, BLACK> (moves, pos, targets);
     }
-
     // Explicit template instantiations
 
     // generate<NATURAL> generates all pseudo-legal captures and non-captures.
@@ -363,14 +361,13 @@ namespace MoveGen {
     template void generate<QUIET  > (vector<ValMove>&, const Position&);
 
     // Generates all pseudo-legal non-captures and knight underpromotions moves that give check.
-    template<>
-    void generate<QUIET_CHECK> (vector<ValMove> &moves, const Position &pos)
+    template<> void generate<QUIET_CHECK> (vector<ValMove> &moves, const Position &pos)
     {
         assert(pos.checkers () == 0);
         moves.clear ();
         Bitboard targets = ~pos.pieces ();
         // Pawns is excluded, will be generated together with direct checks
-        Bitboard dsc_checkers = pos.dsc_checkers (pos.active ()) & ~pos.pieces (pos.active (), PAWN);
+        Bitboard dsc_checkers = pos.dsc_checkers (pos.active ()) & ~pos.pieces (PAWN);
         while (dsc_checkers != 0)
         {
             auto org = pop_lsq (dsc_checkers);
@@ -397,15 +394,13 @@ namespace MoveGen {
             generate_moves<QUIET_CHECK, BLACK> (moves, pos, targets);
     }
     // Generates all pseudo-legal check giving moves.
-    template<>
-    void generate<CHECK      > (vector<ValMove> &moves, const Position &pos)
+    template<> void generate<CHECK      > (vector<ValMove> &moves, const Position &pos)
     {
         assert(pos.checkers () == 0);
         moves.clear ();
         Bitboard targets = ~pos.pieces (pos.active ());
-
         // Pawns is excluded, will be generated together with direct checks
-        Bitboard dsc_checkers = pos.dsc_checkers (pos.active ()) & ~pos.pieces (pos.active (), PAWN);
+        Bitboard dsc_checkers = pos.dsc_checkers (pos.active ()) & ~pos.pieces (PAWN);
         while (dsc_checkers != 0)
         {
             auto org = pop_lsq (dsc_checkers);
@@ -432,8 +427,7 @@ namespace MoveGen {
             generate_moves<CHECK, BLACK> (moves, pos, targets);
     }
     // Generates all pseudo-legal check evasions moves when the side to move is in check.
-    template<>
-    void generate<EVASION    > (vector<ValMove> &moves, const Position &pos)
+    template<> void generate<EVASION    > (vector<ValMove> &moves, const Position &pos)
     {
         assert(pos.checkers () != 0);
         moves.clear ();
@@ -488,8 +482,7 @@ namespace MoveGen {
             generate_moves<EVASION, BLACK> (moves, pos, targets);
     }
     // Generates all legal moves.
-    template<>
-    void generate<LEGAL      > (vector<ValMove> &moves, const Position &pos)
+    template<> void generate<LEGAL      > (vector<ValMove> &moves, const Position &pos)
     {
         pos.checkers () == 0 ?
             generate<NATURAL> (moves, pos) :

@@ -108,13 +108,10 @@ private:
     void set_castle (Color c, Square rook_org);
 
     bool can_en_passant (Square ep_sq) const;
-    bool can_en_passant (File ep_f) const;
 
-    template<bool Do>
-    void do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst);
+    template<bool Do> void do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst);
 
-    template<PieceType PT>
-    PieceType pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const;
+    template<PieceType PT> PieceType pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const;
 
 public:
     static u08  DrawClockPly;
@@ -136,21 +133,17 @@ public:
     Bitboard pieces (PieceType p1, PieceType p2) const;
     Bitboard pieces (Color c, PieceType p1, PieceType p2) const;
 
-    template<PieceType PT>
-    i32      count  () const;
-    template<PieceType PT>
-    i32      count  (Color c) const;
-    i32      count  (Color c, PieceType pt) const;
+    template<PieceType PT> i32 count  () const;
+    template<PieceType PT> i32 count  (Color c) const;
+    i32 count  (Color c, PieceType pt) const;
 
-    template<PieceType PT>
-    const SquareVector& squares (Color c) const;
-    template<PieceType PT>
-    Square square (Color c, i08 index = 0) const;
+    template<PieceType PT> const SquareVector& squares (Color c) const;
+    template<PieceType PT> Square square (Color c, i08 index = 0) const;
 
     CastleRight castle_rights () const;
     Square en_passant_sq () const;
 
-    u08  clock_ply () const;
+    u08 clock_ply () const;
     PieceType capture_type () const;
     Bitboard checkers () const;
 
@@ -244,12 +237,10 @@ inline Bitboard Position::pieces (Color c, PieceType pt) const { return _color_b
 inline Bitboard Position::pieces (PieceType pt1, PieceType pt2) const { return _types_bb[pt1]|_types_bb[pt2]; }
 inline Bitboard Position::pieces (Color c, PieceType pt1, PieceType pt2) const { return _color_bb[c]&(_types_bb[pt1]|_types_bb[pt2]); }
 
-template<PieceType PT>
 // Count specific piece
-inline i32 Position::count () const { return i32(_piece_sq[WHITE][PT].size () + _piece_sq[BLACK][PT].size ()); }
-template<>
+template<PieceType PT> inline i32 Position::count () const { return i32(_piece_sq[WHITE][PT].size () + _piece_sq[BLACK][PT].size ()); }
 // Count total pieces
-inline i32 Position::count<NONE> () const
+template<> inline i32 Position::count<NONE> () const
 {
     return i32(_piece_sq[WHITE][PAWN].size () + _piece_sq[BLACK][PAWN].size ()
              + _piece_sq[WHITE][NIHT].size () + _piece_sq[BLACK][NIHT].size ()
@@ -258,12 +249,10 @@ inline i32 Position::count<NONE> () const
              + _piece_sq[WHITE][QUEN].size () + _piece_sq[BLACK][QUEN].size ()
              + _piece_sq[WHITE][KING].size () + _piece_sq[BLACK][KING].size ());
 }
-template<PieceType PT>
 // Count specific piece of color
-inline i32 Position::count (Color c) const { return i32(_piece_sq[c][PT].size ()); }
-template<>
+template<PieceType PT> inline i32 Position::count (Color c) const { return i32(_piece_sq[c][PT].size ()); }
 // Count total pieces of color
-inline i32 Position::count<NONE> (Color c) const
+template<> inline i32 Position::count<NONE> (Color c) const
 {
     return i32(_piece_sq[c][PAWN].size ()
              + _piece_sq[c][NIHT].size ()
@@ -275,10 +264,8 @@ inline i32 Position::count<NONE> (Color c) const
 
 inline i32 Position::count (Color c, PieceType pt) const { return i32(_piece_sq[c][pt].size ()); }
 
-template<PieceType PT>
-inline const SquareVector& Position::squares (Color c) const { return _piece_sq[c][PT]; }
-template<PieceType PT>
-inline Square Position::square (Color c, i08 index) const
+template<PieceType PT> inline const SquareVector& Position::squares (Color c) const { return _piece_sq[c][PT]; }
+template<PieceType PT> inline Square Position::square (Color c, i08 index) const
 {
     assert(i08(_piece_sq[c][PT].size ()) > index);
     return _piece_sq[c][PT][index];
@@ -425,8 +412,8 @@ inline bool Position::en_passant (Move m) const
 {
     return mtype (m) == ENPASSANT
         && _board[org_sq (m)] == (_active|PAWN)
-        && _si->en_passant_sq == dst_sq (m)
-        && empty (dst_sq (m));
+        && empty (dst_sq (m))
+        && _si->en_passant_sq == dst_sq (m);
 }
 inline bool Position::capture (Move m) const
 {
@@ -452,6 +439,7 @@ inline bool Position::capture_or_promotion (Move m) const
 
 inline void  Position::place_piece (Square s, Color c, PieceType pt)
 {
+    //assert(empty (s)); // Not needed, in case of remove_piece()
     _board[s] = (c|pt);
 
     Bitboard bb = square_bb (s);
@@ -469,6 +457,7 @@ inline void  Position::place_piece (Square s, Piece p)
 }
 inline void  Position::remove_piece (Square s)
 {
+    assert(!empty (s));
     auto c  = color (_board[s]);
     auto pt = ptype (_board[s]);
     //_board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
@@ -488,15 +477,14 @@ inline void  Position::remove_piece (Square s)
 }
 inline void  Position::move_piece (Square s1, Square s2)
 {
+    assert(!empty (s1));
     auto c  = color (_board[s1]);
     auto pt = ptype (_board[s1]);
 
     _board[s2] = _board[s1];
     _board[s1] = NO_PIECE;
 
-    Bitboard bb =
-          square_bb (s1)
-        ^ square_bb (s2);
+    Bitboard bb = square_bb (s1) ^ square_bb (s2);
     _color_bb[c]    ^= bb;
     _types_bb[pt]   ^= bb;
     _types_bb[NONE] ^= bb;
@@ -507,8 +495,7 @@ inline void  Position::move_piece (Square s1, Square s2)
 }
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.
-template<bool Do>
-inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
+template<bool Do> inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
     // Move the piece. The tricky Chess960 castle is handled earlier
     rook_org = king_dst; // castle is always encoded as "King captures friendly Rook"

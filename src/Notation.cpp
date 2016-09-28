@@ -34,8 +34,8 @@ namespace Notation {
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
 
-            auto amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
-            auto pcs = amb; // & ~pos.abs_pinneds (pos.active ()); // If pinned piece is considered as ambiguous
+            Bitboard amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
+            Bitboard pcs = amb; // & ~pos.abs_pinneds (pos.active ()); // If pinned piece is considered as ambiguous
             while (pcs != 0)
             {
                 auto sq = pop_lsq (pcs);

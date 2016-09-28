@@ -124,12 +124,10 @@ namespace BitBoard {
     extern u08 PopCount16[1 << 16];
 #endif
 
-    template<class T>
-    inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
+    template<class T> inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
     template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
 
-    template<class T1, class T2>
-    inline i32 dist (T2, T2) { return i32 (); }
+    template<class T1, class T2> inline i32 dist (T2, T2) { return i32 (); }
     template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
     template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
@@ -202,18 +200,18 @@ namespace BitBoard {
     }
 
     // Shift the bitboard using delta
-    template<Delta DEL> inline Bitboard shift_bb (Bitboard bb);
+    template<Delta DEL> inline Bitboard shift (Bitboard bb);
 
-    template<> inline Bitboard shift_bb<DEL_N > (Bitboard bb) { return (bb) << +DEL_N; }
-    template<> inline Bitboard shift_bb<DEL_S > (Bitboard bb) { return (bb) >> -DEL_S; }
-    template<> inline Bitboard shift_bb<DEL_NN> (Bitboard bb) { return (bb) << +DEL_NN; }
-    template<> inline Bitboard shift_bb<DEL_SS> (Bitboard bb) { return (bb) >> -DEL_SS; }
-    template<> inline Bitboard shift_bb<DEL_E > (Bitboard bb) { return (bb & ~FH_bb) << +DEL_E; }
-    template<> inline Bitboard shift_bb<DEL_W > (Bitboard bb) { return (bb & ~FA_bb) >> -DEL_W; }
-    template<> inline Bitboard shift_bb<DEL_NE> (Bitboard bb) { return (bb & ~FH_bb) << +DEL_NE; }
-    template<> inline Bitboard shift_bb<DEL_SE> (Bitboard bb) { return (bb & ~FH_bb) >> -DEL_SE; }
-    template<> inline Bitboard shift_bb<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) << +DEL_NW; }
-    template<> inline Bitboard shift_bb<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> -DEL_SW; }
+    template<> inline Bitboard shift<DEL_N > (Bitboard bb) { return (bb) << 8; }
+    template<> inline Bitboard shift<DEL_S > (Bitboard bb) { return (bb) >> 8; }
+    template<> inline Bitboard shift<DEL_NN> (Bitboard bb) { return (bb) << 16; }
+    template<> inline Bitboard shift<DEL_SS> (Bitboard bb) { return (bb) >> 16; }
+    template<> inline Bitboard shift<DEL_E > (Bitboard bb) { return (bb & ~FH_bb) << 1; }
+    template<> inline Bitboard shift<DEL_W > (Bitboard bb) { return (bb & ~FA_bb) >> 1; }
+    template<> inline Bitboard shift<DEL_NE> (Bitboard bb) { return (bb & ~FH_bb) << 9; }
+    template<> inline Bitboard shift<DEL_SE> (Bitboard bb) { return (bb & ~FH_bb) >> 7; }
+    template<> inline Bitboard shift<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) << 7; }
+    template<> inline Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> 9; }
 
     //// Rotate Right (toward LSB)
     //inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08(SQ_NO) - k)); }
@@ -240,18 +238,11 @@ namespace BitBoard {
         return slide_attacks;
     }
 
-    // Attacks of the PieceType with occupancy
-    template<PieceType PT>
-    extern Bitboard attacks_bb (Square s, Bitboard occ);
 
-    // Function 'magic_index(s, occ)' for computing index for sliding attack bitboards.
-    // Function 'attacks_bb(s, occ)' takes a square and a bitboard of occupied squares as input,
-    // and returns a bitboard representing all squares attacked by PT (Bishop or Rook) on the given square.
-    template<PieceType PT>
-    extern inline u16 magic_index (Square s, Bitboard occ);
+    // magic_index(s, occ) computes index for sliding attack bitboards.
+    template<PieceType PT> u16 magic_index (Square s, Bitboard occ);
 
-    template<>
-    inline u16 magic_index<BSHP> (Square s, Bitboard occ)
+    template<> inline u16 magic_index<BSHP> (Square s, Bitboard occ)
     {
 #   if defined(BM2)
         return u16(PEXT(occ, B_Masks_bb[s]));
@@ -262,9 +253,7 @@ namespace BitBoard {
                   ^ u32((u32(occ >> 0x20) & u32(B_Masks_bb[s] >> 0x20)) * u32(B_Magics_bb[s] >> 0x20))) >> B_Shifts[s]);
 #   endif
     }
-
-    template<>
-    inline u16 magic_index<ROOK> (Square s, Bitboard occ)
+    template<> inline u16 magic_index<ROOK> (Square s, Bitboard occ)
     {
 #   if defined(BM2)
         return u16(PEXT(occ, R_Masks_bb[s]));
@@ -276,21 +265,22 @@ namespace BitBoard {
 #   endif
     }
 
+    // attacks_bb(s, occ) takes a square and a bitboard of occupied squares,
+    // and returns a bitboard representing all squares attacked by PT (Bishop or Rook) on the given square.
+    template<PieceType PT> Bitboard attacks_bb (Square s, Bitboard occ);
+
     // Attacks of the Bishop with occupancy
-    template<>
-    inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
+    template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
     {
         return B_Attacks_bb[s][magic_index<BSHP> (s, occ)];
     }
     // Attacks of the Rook with occupancy
-    template<>
-    inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
+    template<> inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
     {
         return R_Attacks_bb[s][magic_index<ROOK> (s, occ)];
     }
     // Attacks of the Queen with occupancy
-    template<>
-    inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
+    template<> inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
         //assert((B_Attacks_bb[s][magic_index<BSHP> (s, occ)]
         //      & R_Attacks_bb[s][magic_index<ROOK> (s, occ)]) == 0);

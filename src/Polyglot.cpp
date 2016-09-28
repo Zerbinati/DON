@@ -73,8 +73,7 @@ namespace Polyglot {
         }
     }
 
-    template<class T>
-    Book& Book::operator>> (      T &t)
+    template<class T> Book& Book::operator>> (      T &t)
     {
         t = T ();
         for (u08 i = 0; i < sizeof (t) && good (); ++i)
@@ -84,8 +83,7 @@ namespace Polyglot {
         }
         return *this;
     }
-    template<class T>
-    Book& Book::operator<< (const T &t)
+    template<class T> Book& Book::operator<< (const T &t)
     {
         for (u08 i = 0; i < sizeof (t) && good (); ++i)
         {
@@ -95,8 +93,7 @@ namespace Polyglot {
         return *this;
     }
 
-    template<>
-    Book& Book::operator>> (      Entry &pe)
+    template<> Book& Book::operator>> (      Entry &pe)
     {
         *this
             >> pe.key
@@ -105,8 +102,7 @@ namespace Polyglot {
             >> pe.learn;
         return *this;
     }
-    template<>
-    Book& Book::operator<< (const Entry &pe)
+    template<> Book& Book::operator<< (const Entry &pe)
     {
         *this
             << pe.key

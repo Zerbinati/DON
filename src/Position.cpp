@@ -68,8 +68,7 @@ bool Position::repeated () const
 }
 // Helper function used by see() to locate the least valuable attacker for the side to move,
 // remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
-template<PieceType PT>
-PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const
+template<PieceType PT> PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
     Bitboard b = c_attackers & pieces (PT);
     if (b != 0)
@@ -99,8 +98,7 @@ PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboa
 
     return pick_least_val_att<PieceType(PT+1)> (dst, c_attackers, mocc, attackers);
 }
-template<>
-PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
+template<> PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
 {
     return KING; // No need to update bitboards, it is the last cycle
 }
@@ -234,7 +232,8 @@ Bitboard Position::slider_blockers (Square s, Bitboard defenders, Bitboard attac
     {
         auto sniper_sq = pop_lsq (snipers);
         Bitboard b = pieces () & between_bb (s, sniper_sq);
-        if (!more_than_one (b))
+        if (   b != 0
+            && !more_than_one (b))
         {
             blockers |= b;
             if ((b & defenders) != 0)
@@ -500,9 +499,9 @@ bool Position::gives_check  (Move m) const
     assert((pieces (_active) & org) != 0);
     
     if (    // Direct check ?
-           ((checks (ptype (_board[org])) & dst) != 0)
+           (_si->checks[ptype (_board[org])] & dst) != 0
             // Discovered check ?
-        || (   (dsc_checkers (_active) & org) != 0
+        || (   (_si->check_blockers[~_active] & org) != 0
             && !sqrs_aligned (org, dst, square<KING> (~_active))))
     {
         return true;
@@ -559,10 +558,8 @@ bool Position::gives_check  (Move m) const
     return false;
 }
 
-// Computes the total non-pawn middle
-// game material value for the given side. Material values are updated
-// incrementally during the search, this function is only used while
-// initializing a new Position object.
+// Computes the non-pawn middle game material value for the given side.
+// Material values are updated incrementally during the search.
 Value Position::compute_non_pawn_material (Color c) const
 {
     auto npm_value = VALUE_ZERO;
@@ -645,44 +642,33 @@ void Position::set_castle (Color c, Square rook_org)
 // Tests the en-passant square
 bool Position::can_en_passant (Square ep_sq) const
 {
-    assert(_ok (ep_sq));
+    assert(ep_sq != SQ_NO);
     assert(rel_rank (_active, ep_sq) == R_6);
 
     auto cap = ep_sq - pawn_push (_active);
-    if (   (pieces (~_active, PAWN) & cap) == 0
-        || _board[cap] != (~_active|PAWN))
+    if ((pieces (~_active, PAWN) & cap) == 0)
     {
         return false;
     }
+    Bitboard mocc = pieces () + ep_sq - cap;
     // En-passant attackers
-    auto attackers = pieces (_active, PAWN) & PawnAttacks[~_active][ep_sq];
+    Bitboard attackers = pieces (_active, PAWN) & PawnAttacks[~_active][ep_sq];
     assert(pop_count (attackers) <= 2);
-    if (attackers != 0)
+    while (attackers != 0)
     {
-        MoveVector moves;
-        while (attackers != 0)
-        {
-            moves.push_back (mk_move<ENPASSANT> (pop_lsq (attackers), ep_sq));
-        }
+        auto org = pop_lsq (attackers);
         // Check en-passant is legal for the position
-        auto mocc = pieces () + ep_sq - cap;
-        for (auto m : moves)
+        if (   (   (pieces (~_active, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (_active)]) == 0
+                || (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc - org)) == 0)
+            && (   (pieces (~_active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (_active)]) == 0
+                || (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc - org)) == 0))
         {
-            if (   (   (pieces (~_active, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (_active)]) == 0
-                    || (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc - org_sq (m))) == 0)
-                && (   (pieces (~_active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (_active)]) == 0
-                    || (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc - org_sq (m))) == 0))
-            {
-                return true;
-            }
+            return true;
         }
     }
     return false;
 }
-bool Position::can_en_passant (File ep_f) const
-{
-    return can_en_passant (ep_f | rel_rank (_active, R_6));
-}
+
 // A FEN string defines a particular position using only the ASCII character set.
 // A FEN string contains six fields separated by a space.
 // 1) Piece placement (from white's perspective).
@@ -1018,7 +1004,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
 
         ppt = promote (m);
         assert(NIHT <= ppt && ppt <= QUEN);
-        // Replace the pawn with the Promoted piece
+        // Replace the pawn with the promoted piece
         remove_piece (org);
         _board[org] = NO_PIECE; // Not done by remove_piece()
         place_piece (dst, _active, ppt);
@@ -1045,16 +1031,17 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
 
     // Update castling rights if needed
     if (   _si->castle_rights != CR_NONE
-        && (_castle_mask[org] | _castle_mask[dst]) != CR_NONE)
+        && (  _castle_mask[org]
+            | _castle_mask[dst]) != CR_NONE)
     {
         i32 cr = _castle_mask[org]
                | _castle_mask[dst];
         Bitboard b = _si->castle_rights & cr;
-        _si->castle_rights &= ~cr;
         while (b != 0)
         {
             key ^= (*Zob.castle_right_key)[pop_lsq (b)];
         }
+        _si->castle_rights &= ~cr;
     }
 
     assert(attackers_to (square<KING> (_active), pasive) == 0);
@@ -1075,7 +1062,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     if (mpt == PAWN)
     {
         // Set en-passant square if the moved pawn can be captured
-        if ((u08(dst) ^ u08(org)) == DEL_NN)
+        if ((u08(dst) ^ u08(org)) == 16)
         {
             auto ep_sq = org + (dst - org) / 2;
             if (can_en_passant (ep_sq))
@@ -1161,6 +1148,7 @@ void Position::undo_move (Move m)
     // Restore the captured piece
     if (_si->capture_type != NONE)
     {
+        assert(empty (cap));
         place_piece (cap, ~_active, _si->capture_type);
     }
 

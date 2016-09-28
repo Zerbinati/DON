@@ -261,8 +261,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
 // In the main search push captures with negative SEE values to the bad captures[],
 // but instead of doing it now we delay until the move has been picked up,
 // saving some SEE calls in case of a cutoff.
-template<>
-void MovePicker::value<CAPTURE> ()
+template<> void MovePicker::value<CAPTURE> ()
 {
     for (auto &vm : _moves)
     {
@@ -275,8 +274,7 @@ void MovePicker::value<CAPTURE> ()
             - Value(ptype (_pos[org_sq (vm.move)]) + 1);
     }
 }
-template<>
-void MovePicker::value<QUIET> ()
+template<> void MovePicker::value<QUIET> ()
 {
     for (auto &vm : _moves)
     {
@@ -294,8 +292,7 @@ void MovePicker::value<QUIET> ()
 // Good captures, ordered by SEE value, then
 // Quiet moves, ordered by history values, then
 // Bad captures, ordered by SEE value.
-template<>
-void MovePicker::value<EVASION> ()
+template<> void MovePicker::value<EVASION> ()
 {
     for (auto &vm : _moves)
     {
@@ -889,8 +886,7 @@ namespace Searcher {
                 && tt_ext
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && tte->depth () >= qs_depth
-                && (  tte->bound ()
-                    & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
+                && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
             {
                 if (tt_move != MOVE_NONE)
                 {
@@ -922,8 +918,7 @@ namespace Searcher {
                             evaluate (pos);
                     // Can tt_value be used as a better position evaluation?
                     if (   tt_value != VALUE_NONE
-                        && (  tte->bound ()
-                            & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
+                        && (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
                     {
                         tt_eval = tt_value;
                     }
@@ -1240,8 +1235,7 @@ namespace Searcher {
                 && tt_ext
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && tte->depth () >= depth
-                && (  tte->bound ()
-                    & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
+                && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
             {
                 if (tt_move != MOVE_NONE)
                 {
@@ -1326,8 +1320,7 @@ namespace Searcher {
                             evaluate (pos);
                     // Can tt_value be used as a better position evaluation?
                     if (   tt_value != VALUE_NONE
-                        && (  tte->bound ()
-                            & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
+                        && (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
                     {
                         tt_eval = tt_value;
                     }
@@ -1485,6 +1478,7 @@ namespace Searcher {
                                 && pos.dsc_checkers (pos.active ()) == 0 ?
                                     (pos.checks (mpt) & dst) != 0 :
                                     pos.gives_check (move);
+                            assert(pos.capture_or_promotion (move));
 
                             // Speculative prefetch as early as possible
                             prefetch (TT.cluster_entry (pos.move_posi_key (move)));
@@ -1496,7 +1490,7 @@ namespace Searcher {
                             {
                                 prefetch (th->pawn_table[pos.pawn_key ()]);
                             }
-                            // NOTE:: All moves are capture
+                            // NOTE:: All moves are capture or promotion
                             prefetch (th->matl_table[pos.matl_key ()]);
 
                             auto value =
@@ -1905,8 +1899,8 @@ namespace Searcher {
                             && Limits.use_time_management ()
                             && Threadpool.main_thread () == th
                             && Threadpool.move_mgr.easy_move (pos.posi_key ()) != MOVE_NONE
-                            && (   Threadpool.move_mgr.easy_move (pos.posi_key ()) != move
-                                || move_count > 1))
+                            && (   move_count > 1
+                                || Threadpool.move_mgr.easy_move (pos.posi_key ()) != move))
                         {
                             Threadpool.move_mgr.clear ();
                         }
@@ -2332,6 +2326,7 @@ namespace Threading {
                     if (Limits.use_time_management ())
                     {
                         assert(!root_moves.empty ());
+                        auto &root_move = root_moves[0];
                         // Stop the search
                         // -If there is only one legal move available
                         // -If all of the available time has been used
@@ -2349,15 +2344,15 @@ namespace Threading {
                             || (Threadpool.easy_played =
                                     (   Threadpool.best_move_change < 0.030
                                      && Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time * 0.1190))
-                                     && !root_moves[0].empty ()
-                                     &&  root_moves[0] == Threadpool.easy_move), Threadpool.easy_played))
+                                     && !root_move.empty ()
+                                     &&  root_move == Threadpool.easy_move), Threadpool.easy_played))
                         {
                             stop = true;
                         }
 
-                        if (root_moves[0].size () >= MoveManager::PVSize)
+                        if (root_move.size () >= MoveManager::PVSize)
                         {
-                            Threadpool.move_mgr.update (root_pos, root_moves[0]);
+                            Threadpool.move_mgr.update (root_pos, root_move);
                         }
                         else
                         {
@@ -2544,6 +2539,7 @@ namespace Threading {
             wait_until (ForceStop);
         }
 
+        Thread *best_thread = this;
         if (filtering)
         {
             // Stop the threads if not already stopped.
@@ -2562,27 +2558,21 @@ namespace Threading {
                 //&& Limits.depth == 0 // Depth limit search don't use deeper thread
                 && !Threadpool.skill_mgr.enabled ())
             {
-                auto *const best_thread = Threadpool.best_thread ();
-                // If thread is not main thread then copy to main thread.
-                if (best_thread != this)
+                // If best thread is not main thread send new PV.
+                if ((best_thread = Threadpool.best_thread ()) != this)
                 {
-                    pv_index        = best_thread->pv_index;
-                    max_ply         = best_thread->max_ply;
-                    root_moves      = best_thread->root_moves;
-                    running_depth   = best_thread->running_depth;
-                    finished_depth  = best_thread->finished_depth;
-                    // Send new PV.
-                    sync_cout << multipv_info (this, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
+                    sync_cout << multipv_info (best_thread, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
                 }
             }
         }
 
-        assert(!root_moves.empty ()
-            && !root_moves[0].empty ());
+        assert(!best_thread->root_moves.empty ()
+            && !best_thread->root_moves[0].empty ());
+        auto &root_move = best_thread->root_moves[0];
 
         if (Limits.use_time_management ())
         {
-            Threadpool.last_value = root_moves[0].new_value;
+            Threadpool.last_value = root_move.new_value;
         }
 
         if (OutputStream.is_open ())
@@ -2594,26 +2584,27 @@ namespace Threading {
                 << "Time (ms)  : " << elapsed_time                              << '\n'
                 << "Speed (N/s): " << total_nodes*MilliSec / elapsed_time       << '\n'
                 << "Hash-full  : " << TT.hash_full ()                           << '\n'
-                << "Best Move  : " << move_to_san (root_moves[0][0], root_pos)  << '\n';
-            if (   root_moves[0][0] != MOVE_NONE
-                && (   root_moves[0].size () > 1
-                    || root_moves[0].extract_ponder_move_from_tt (root_pos)))
+                << "Best Move  : " << move_to_san (root_move[0], root_pos)  << '\n';
+            if (   root_move[0] != MOVE_NONE
+                && (   root_move.size () > 1
+                    || root_move.extract_ponder_move_from_tt (root_pos)))
             {
                 StateInfo si;
-                root_pos.do_move (root_moves[0][0], si, root_pos.gives_check (root_moves[0][0]));
-                OutputStream << "Ponder Move: " << move_to_san (root_moves[0][1], root_pos) << '\n';
-                root_pos.undo_move (root_moves[0][0]);
+                root_pos.do_move (root_move[0], si, root_pos.gives_check (root_move[0]));
+                OutputStream << "Ponder Move: " << move_to_san (root_move[1], root_pos) << '\n';
+                root_pos.undo_move (root_move[0]);
             }
             OutputStream << std::endl;
             OutputStream.close ();
         }
+
         // Best move could be MOVE_NONE when searching on a stalemate position.
-        sync_cout << "bestmove " << move_to_can (root_moves[0][0]);
-        if (   root_moves[0][0] != MOVE_NONE
-            && (   root_moves[0].size () > 1
-                || root_moves[0].extract_ponder_move_from_tt (root_pos)))
+        sync_cout << "bestmove " << move_to_can (root_move[0]);
+        if (   root_move[0] != MOVE_NONE
+            && (   root_move.size () > 1
+                || root_move.extract_ponder_move_from_tt (root_pos)))
         {
-            std::cout << " ponder " << move_to_can (root_moves[0][1]);
+            std::cout << " ponder " << move_to_can (root_move[1]);
         }
         std::cout << sync_endl;
     }

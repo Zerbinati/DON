@@ -43,7 +43,7 @@ namespace Pawns {
         Value pawn_shelter_storm (const Position &pos, Square k_sq) const;
 
         template<Color Own>
-        Value do_king_safety (const Position &pos, Square k_sq)
+        void do_king_safety (const Position &pos, Square k_sq)
         {
             if (king_square[Own] != k_sq)
             {
@@ -57,7 +57,6 @@ namespace Pawns {
                 king_safety[Own] = pawn_shelter_storm<Own> (pos, k_sq);
                 king_square[Own] = k_sq;
             }
-            return king_safety[Own];
         }
 
     };
