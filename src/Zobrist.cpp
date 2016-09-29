@@ -50,14 +50,14 @@ namespace Zobrists {
                 }
             }
         }
-        Bitboard b = pos.castle_rights ();
+        Bitboard b = pos.si->castle_rights;
         while (b != 0)
         {
             posi_key ^= (*castle_right_key)[pop_lsq (b)];
         }
-        if (pos.en_passant_sq () != SQ_NO)
+        if (pos.si->en_passant_sq != SQ_NO)
         {
-            posi_key ^= en_passant_key[_file (pos.en_passant_sq ())];
+            posi_key ^= en_passant_key[_file (pos.si->en_passant_sq)];
         }
         if (pos.active () == WHITE)
         {

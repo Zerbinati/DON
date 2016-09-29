@@ -41,15 +41,15 @@ void RootMove::insert_pv_into_tt (Position &pos) const
         assert(MoveList<LEGAL> (pos).contains (m));
 
         bool tt_hit;
-        auto *tte = TT.probe (pos.posi_key (), tt_hit);
+        auto *tte = TT.probe (pos.si->posi_key, tt_hit);
         // Don't overwrite correct entries
         if (   !tt_hit
             || m != tte->move ())
         {
-            tte->save (pos.posi_key (),
+            tte->save (pos.si->posi_key,
                         m,
                         VALUE_NONE,
-                        //pos.checkers () == 0 ?
+                        //pos.si->checkers == 0 ?
                         //    evaluate (pos) :
                             VALUE_NONE,
                         -6,
@@ -80,7 +80,7 @@ void RootMove::extract_pv_from_tt (Position &pos)
         
     auto expected_value = -new_value;
     bool tt_hit;
-    const auto *tte = TT.probe (pos.posi_key (), tt_hit);
+    const auto *tte = TT.probe (pos.si->posi_key, tt_hit);
     while (   tt_hit
             && ply < MaxPlies 
             && expected_value == value_of_tt (tte->value (), ply+1)
@@ -97,7 +97,7 @@ void RootMove::extract_pv_from_tt (Position &pos)
         ++ply;
 
         expected_value = -expected_value;
-        tte = TT.probe (pos.posi_key (), tt_hit);
+        tte = TT.probe (pos.si->posi_key, tt_hit);
     }
     while (ply != 0)
     {
@@ -116,7 +116,7 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     auto m = at (0);
     pos.do_move (m, si, pos.gives_check (m));
     bool tt_hit;
-    const auto *tte = TT.probe (pos.posi_key (), tt_hit);
+    const auto *tte = TT.probe (pos.si->posi_key, tt_hit);
     Move ponder_move;
     if (   tt_hit
         && _ok (ponder_move = tte->move ()) // Local copy to be SMP safe
@@ -184,7 +184,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
     assert(_moves.empty ());
 
     _stage =
-        pos.checkers () == 0 ?
+        pos.si->checkers == 0 ?
             S_NATURAL_TT :
             S_EVASION_TT;
     _stage += (_tt_move == MOVE_NONE ? 1 : 0);
@@ -200,7 +200,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
          && pos.legal (ttm)));
     assert(_moves.empty ());
 
-    if (pos.checkers () != 0)
+    if (pos.si->checkers != 0)
     {
         _stage = S_EVASION_TT;
     }
@@ -234,7 +234,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
     , _tt_move (ttm)
     , _threshold (thr)
 {
-    assert(pos.checkers () == 0);
+    assert(pos.si->checkers == 0);
     assert(ttm == MOVE_NONE
         || (pos.pseudo_legal (ttm)
          && pos.legal (ttm)));
@@ -426,7 +426,7 @@ Move MovePicker::next_move ()
         break; // BREAK
 
     case S_EVASION:
-        assert(_pos.checkers () != 0);
+        assert(_pos.si->checkers != 0);
         generate<EVASION> (_moves, _pos);
         filter_illegal (_moves, _pos);
         if (_tt_move != MOVE_NONE)
@@ -824,7 +824,7 @@ namespace Searcher {
         template<bool PVNode, bool InCheck>
         Value quien_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth)
         {
-            assert(InCheck == (pos.checkers () != 0));
+            assert(InCheck == (pos.si->checkers != 0));
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(depth <= 0);
@@ -858,7 +858,7 @@ namespace Searcher {
 
             Move move;
             // Transposition table lookup
-            auto posi_key = pos.posi_key ();
+            auto posi_key = pos.si->posi_key;
             bool tt_hit;
             auto *tte = TT.probe (posi_key, tt_hit);
             auto tt_move =
@@ -982,17 +982,20 @@ namespace Searcher {
                 assert(pos.pseudo_legal (move)
                     && pos.legal (move));
 
-                auto mpc = pos[org_sq (move)];
+                auto org = org_sq (move);
+                auto dst = dst_sq (move);
+                auto mpc = pos[org];
                 auto mpt = ptype (mpc);
                 assert(mpc != NO_PIECE
                     && mpt != NONE);
-                auto dst = dst_sq (move);
-
+                
                 bool gives_check =
                        mtype (move) == NORMAL
-                    && pos.dsc_checkers (pos.active ()) == 0 ?
-                        (pos.checks (mpt) & dst) != 0 :
+                    && (   (pos.si->check_blockers[~pos.active ()] & org) == 0
+                        || sqrs_aligned (org, dst, pos.square<KING> (~pos.active ()))) ?
+                        (pos.si->checks[mpt] & dst) != 0 :
                         pos.gives_check (move);
+                assert(gives_check == pos.gives_check (move));
 
                 // Futility pruning
                 if (   !InCheck
@@ -1049,13 +1052,13 @@ namespace Searcher {
                 pos.do_move (move, si, gives_check);
 
                 if (   mpt == PAWN
-                    || pos.capture_type () == PAWN)
+                    || pos.si->capture_type == PAWN)
                 {
-                    prefetch (th->pawn_table[pos.pawn_key ()]);
+                    prefetch (th->pawn_table[pos.si->pawn_key]);
                 }
                 if (capture_or_promotion)
                 {
-                    prefetch (th->matl_table[pos.matl_key ()]);
+                    prefetch (th->matl_table[pos.si->matl_key]);
                 }
 
                 auto value =
@@ -1138,7 +1141,7 @@ namespace Searcher {
                    PVNode
                 && ss->ply == 1;
             assert(!(PVNode && CutNode));
-            assert(InCheck == (pos.checkers () != 0));
+            assert(InCheck == (pos.si->checkers != 0));
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(depth > 0
@@ -1207,7 +1210,7 @@ namespace Searcher {
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
             auto exclude_move = ss->exclude_move;
-            auto posi_key = pos.posi_key () ^ Key(exclude_move);
+            auto posi_key = pos.si->posi_key ^ Key(exclude_move);
             bool tt_hit;
             auto *tte = TT.probe (posi_key, tt_hit);
             auto tt_move =
@@ -1251,7 +1254,7 @@ namespace Searcher {
                         }
                         // Penalty for a quiet TT move in previous ply when it gets refuted
                         if (   (ss-1)->move_count == 1
-                            && pos.capture_type () == NONE)
+                            && pos.si->capture_type == NONE)
                         {
                             update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], (ss-1)->current_move, -Value((depth+2)*(depth+2)-3));
                         }
@@ -1269,7 +1272,7 @@ namespace Searcher {
                 if (   (   piece_count < TBPieceLimit
                         || (   piece_count == TBPieceLimit
                             && depth >= TBDepthLimit))
-                    && pos.clock_ply () == 0
+                    && pos.si->clock_ply == 0
                     && pos.can_castle (CR_ANY) == CR_NONE)
                 {
                     i32 found;
@@ -1289,7 +1292,7 @@ namespace Searcher {
                         tte->save (posi_key,
                                    MOVE_NONE,
                                    value_to_tt (value, ss->ply),
-                                   //pos.checkers () == 0 ?
+                                   //pos.si->checkers == 0 ?
                                    //    evaluate (pos) :
                                        VALUE_NONE,
                                    i16(std::min (depth + 6, MaxPlies - 1)),
@@ -1350,7 +1353,7 @@ namespace Searcher {
                         && depth < 7
                         && tt_eval < +VALUE_KNOWN_WIN
                         //&& Limits.mate == 0
-                        && pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
+                        && pos.si->non_pawn_matl[pos.active ()] > VALUE_ZERO)
                     {
                         auto stand_pat = tt_eval - 150*depth;
                         if (stand_pat >= beta)
@@ -1386,7 +1389,7 @@ namespace Searcher {
                         //&& Limits.mate == 0
                         && (   depth > 12
                             || ss->static_eval + 36*(depth - 6) >= beta)
-                        && pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
+                        && pos.si->non_pawn_matl[pos.active ()] > VALUE_ZERO)
                     {
                         assert(exclude_move == MOVE_NONE);
                         assert(_ok ((ss-1)->current_move)
@@ -1399,9 +1402,9 @@ namespace Searcher {
                         auto reduced_depth = i16(depth - (67*depth + 823) / 256 + std::min (i16(tt_eval - beta)/VALUE_MG_PAWN, 3));
 
                         // Speculative prefetch as early as possible
-                        prefetch (TT.cluster_entry (  pos.posi_key ()
+                        prefetch (TT.cluster_entry (  pos.si->posi_key
                                                     ^ Zob.color_key
-                                                    ^ (pos.en_passant_sq () != SQ_NO ? Zob.en_passant_key[_file (pos.en_passant_sq ())] : 0)));
+                                                    ^ (pos.si->en_passant_sq != SQ_NO ? Zob.en_passant_key[_file (pos.si->en_passant_sq)] : 0)));
 
                         pos.do_null_move (si);
                         (ss+1)->skip_pruning = true;
@@ -1464,20 +1467,23 @@ namespace Searcher {
                             assert(pos.pseudo_legal (move)
                                 && pos.legal (move));
 
-                            auto mpc = pos[org_sq (move)];
+                            auto org = org_sq (move);
+                            auto dst = dst_sq (move);
+                            auto mpc = pos[org];
                             auto mpt = ptype (mpc);
                             assert(mpc != NO_PIECE
                                 && mpt != NONE);
-                            auto dst = dst_sq (move);
-
+                            
                             ss->current_move = move;
                             ss->cm_history = &th->cm_history(mpc, dst);
 
                             bool gives_check =
                                    mtype (move) == NORMAL
-                                && pos.dsc_checkers (pos.active ()) == 0 ?
-                                    (pos.checks (mpt) & dst) != 0 :
+                                && (   (pos.si->check_blockers[~pos.active ()] & org) == 0
+                                    || sqrs_aligned (org, dst, pos.square<KING> (~pos.active ()))) ?
+                                    (pos.si->checks[mpt] & dst) != 0 :
                                     pos.gives_check (move);
+                            assert(gives_check == pos.gives_check (move));
                             assert(pos.capture_or_promotion (move));
 
                             // Speculative prefetch as early as possible
@@ -1486,12 +1492,12 @@ namespace Searcher {
                             pos.do_move (move, si, gives_check);
 
                             if (   mpt == PAWN
-                                || pos.capture_type () == PAWN)
+                                || pos.si->capture_type == PAWN)
                             {
-                                prefetch (th->pawn_table[pos.pawn_key ()]);
+                                prefetch (th->pawn_table[pos.si->pawn_key]);
                             }
                             // NOTE:: All moves are capture or promotion
-                            prefetch (th->matl_table[pos.matl_key ()]);
+                            prefetch (th->matl_table[pos.si->matl_key]);
 
                             auto value =
                                 gives_check ?
@@ -1588,11 +1594,13 @@ namespace Searcher {
 
                 ss->move_count = ++move_count;
 
-                auto mpc = pos[org_sq (move)];
+                auto org = org_sq (move);
+                auto dst = dst_sq (move);
+                auto mpc = pos[org];
                 auto mpt = ptype (mpc);
                 assert(mpc != NO_PIECE
                     && mpt != NONE);
-                auto dst = dst_sq (move);
+                
 
                 if (   root_node
                     && Threadpool.main_thread () == th)
@@ -1617,9 +1625,11 @@ namespace Searcher {
 
                 bool gives_check =
                        mtype (move) == NORMAL
-                    && pos.dsc_checkers (pos.active ()) == 0 ?
-                        (pos.checks (mpt) & dst) != 0 :
+                    && (   (pos.si->check_blockers[~pos.active ()] & org) == 0
+                        || sqrs_aligned (org, dst, pos.square<KING> (~pos.active ()))) ?
+                        (pos.si->checks[mpt] & dst) != 0 :
                         pos.gives_check (move);
+                assert(gives_check == pos.gives_check (move));
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 bool move_count_pruning =
@@ -1712,13 +1722,13 @@ namespace Searcher {
                 pos.do_move (move, si, gives_check);
 
                 if (   mpt == PAWN
-                    || pos.capture_type () == PAWN)
+                    || pos.si->capture_type == PAWN)
                 {
-                    prefetch (th->pawn_table[pos.pawn_key ()]);
+                    prefetch (th->pawn_table[pos.si->pawn_key]);
                 }
                 if (capture_or_promotion)
                 {
-                    prefetch (th->matl_table[pos.matl_key ()]);
+                    prefetch (th->matl_table[pos.si->matl_key]);
                 }
 
                 bool full_depth_search;
@@ -1748,7 +1758,7 @@ namespace Searcher {
                         if (   mtype (move) == NORMAL
                             && (NIHT <= mpt && mpt <= QUEN)
                             // For reverse move use see() instead of see_sign(), because the destination square is empty for normal move.
-                            && pos.see (mk_move<NORMAL> (dst, org_sq (move))) < VALUE_ZERO)
+                            && pos.see (mk_move<NORMAL> (dst, org)) < VALUE_ZERO)
                         {
                             reduce_depth -= 2;
                         }
@@ -1898,9 +1908,9 @@ namespace Searcher {
                         if (   PVNode
                             && Limits.use_time_management ()
                             && Threadpool.main_thread () == th
-                            && Threadpool.move_mgr.easy_move (pos.posi_key ()) != MOVE_NONE
+                            && Threadpool.move_mgr.easy_move (pos.si->posi_key) != MOVE_NONE
                             && (   move_count > 1
-                                || Threadpool.move_mgr.easy_move (pos.posi_key ()) != move))
+                                || Threadpool.move_mgr.easy_move (pos.si->posi_key) != move))
                         {
                             Threadpool.move_mgr.clear ();
                         }
@@ -1959,7 +1969,7 @@ namespace Searcher {
                 }
                 // Penalty for a quiet best move in previous ply when it gets refuted
                 if (   (ss-1)->move_count == 1
-                    && pos.capture_type () == NONE)
+                    && pos.si->capture_type == NONE)
                 {
                     update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], (ss-1)->current_move, -Value((depth+2)*(depth+2)-3));
                 }
@@ -1968,7 +1978,7 @@ namespace Searcher {
             // Bonus for prior countermove that caused the fail low
             if (   depth > 2
                 && (ss-1)->cm_history != nullptr
-                && pos.capture_type () == NONE)
+                && pos.si->capture_type == NONE)
             {
                 update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], (ss-1)->current_move, +Value((depth+1)*(depth+1)-3));
             }
@@ -2200,7 +2210,7 @@ namespace Threading {
                 // research with bigger window until not failing high/low anymore.
                 do {
                     best_value =
-                        root_pos.checkers () != 0 ?
+                        root_pos.si->checkers != 0 ?
                             depth_search<true, false, true > (root_pos, stacks+5, alfa, beta, running_depth) :
                             depth_search<true, false, false> (root_pos, stacks+5, alfa, beta, running_depth);
 
@@ -2427,7 +2437,7 @@ namespace Threading {
             sync_cout
                 << "info"
                 << " depth " << 0
-                << " score " << to_string (root_pos.checkers () != 0 ? -VALUE_MATE : VALUE_DRAW)
+                << " score " << to_string (root_pos.si->checkers != 0 ? -VALUE_MATE : VALUE_DRAW)
                 << " time "  << 0
                 << sync_endl;
         }
@@ -2479,7 +2489,7 @@ namespace Threading {
 
             if (Limits.use_time_management ())
             {
-                Threadpool.easy_move = Threadpool.move_mgr.easy_move (root_pos.posi_key ());
+                Threadpool.easy_move = Threadpool.move_mgr.easy_move (root_pos.si->posi_key);
                 Threadpool.move_mgr.clear ();
                 Threadpool.easy_played = false;
                 Threadpool.failed_low  = false;

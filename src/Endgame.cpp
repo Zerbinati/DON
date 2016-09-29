@@ -65,7 +65,7 @@ namespace EndGame {
 #if !defined(NDEBUG)
         bool verify_material (const Position &pos, Color c, Value npm, i32 pawn_count)
         {
-            return pos.non_pawn_material (c) == npm
+            return pos.si->non_pawn_matl[c] == npm
                 && pos.count<PAWN> (c) == pawn_count;
         }
 #endif
@@ -97,8 +97,8 @@ namespace EndGame {
     void Endgames::add (const string &code)
     {
         StateInfo si;
-        map<T> ()[Position ().setup (code, si, WHITE).matl_key ()] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (WHITE));
-        map<T> ()[Position ().setup (code, si, BLACK).matl_key ()] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (BLACK));
+        map<T> ()[Position ().setup (code, si, WHITE).si->matl_key] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (WHITE));
+        map<T> ()[Position ().setup (code, si, BLACK).si->matl_key] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (BLACK));
     }
 
     // Mate with KX vs K. This function is used to evaluate positions with
@@ -108,7 +108,7 @@ namespace EndGame {
     template<> Value Endgame<KXK>::operator() (const Position &pos) const
     {
         assert(verify_material (pos, ~_strong_side, VALUE_ZERO, 0));
-        assert(pos.checkers () == 0); // Eval is never called when in check
+        assert(pos.si->checkers == 0); // Eval is never called when in check
 
         // Stalemate detection with lone weak king
         if (   pos.active () == ~_strong_side
@@ -122,7 +122,7 @@ namespace EndGame {
 
         auto value = std::min (
                      VALUE_EG_PAWN*pos.count<PAWN> (_strong_side)
-                   + pos.non_pawn_material (_strong_side)
+                   + pos.si->non_pawn_matl[_strong_side]
                    + PushToEdge[wk_sq]
                    + PushClose[dist (sk_sq, wk_sq)], +VALUE_KNOWN_WIN - 1);
 
@@ -548,7 +548,7 @@ namespace EndGame {
     // are on the same rook file and are blocked by the defending king, it's a draw.
     template<> Scale Endgame<KPsK>::operator() (const Position &pos) const
     {
-        assert(pos.non_pawn_material (_strong_side) == VALUE_ZERO);
+        assert(pos.si->non_pawn_matl[_strong_side] == VALUE_ZERO);
         assert(pos.count<PAWN> (_strong_side) >= 2);
         assert(verify_material (pos, ~_strong_side, VALUE_ZERO, 0));
 
@@ -804,7 +804,7 @@ namespace EndGame {
     // If not, the return value is SCALE_NONE, i.e. no scaling will be used.
     template<> Scale Endgame<KBPsKs>::operator() (const Position &pos) const
     {
-        assert(pos.non_pawn_material (_strong_side) == VALUE_MG_BSHP);
+        assert(pos.si->non_pawn_matl[_strong_side] == VALUE_MG_BSHP);
         assert(pos.count<BSHP> (_strong_side) == 1);
         assert(pos.count<PAWN> (_strong_side) != 0);
         // No assertions about the material of weak side, because we want draws to
@@ -840,7 +840,7 @@ namespace EndGame {
         if (   (   sp_f == F_B
                 || sp_f == F_G)
             && (pos.pieces (PAWN) & ~file_bb (sp_f)) == 0
-            && pos.non_pawn_material (~_strong_side) == VALUE_ZERO)
+            && pos.si->non_pawn_matl[~_strong_side] == VALUE_ZERO)
         {
             auto sk_sq = pos.square<KING> ( _strong_side);
             auto wk_sq = pos.square<KING> (~_strong_side);

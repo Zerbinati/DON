@@ -340,11 +340,11 @@ namespace UCI {
             {
                 sync_cout
                     << std::hex << std::uppercase << std::setfill ('0')
-                    << "FEN: "                        << root_pos.fen (true)  << '\n'
-                    << "Posi key: " << std::setw (16) << root_pos.posi_key () << '\n'
-                    << "Poly key: " << std::setw (16) << root_pos.poly_key () << '\n'
-                    << "Matl key: " << std::setw (16) << root_pos.matl_key () << '\n'
-                    << "Pawn key: " << std::setw (16) << root_pos.pawn_key ()
+                    << "FEN: "                        << root_pos.fen (true)   << '\n'
+                    << "Posi key: " << std::setw (16) << root_pos.si->posi_key << '\n'
+                    << "Poly key: " << std::setw (16) << root_pos.poly_key ()  << '\n'
+                    << "Matl key: " << std::setw (16) << root_pos.si->matl_key << '\n'
+                    << "Pawn key: " << std::setw (16) << root_pos.si->pawn_key
                     << std::setfill (' ') << std::nouppercase << std::dec
                     << sync_endl;
             }
@@ -353,7 +353,7 @@ namespace UCI {
             {
                 sync_cout;
                 i32 count;
-                if (root_pos.checkers () != 0)
+                if (root_pos.si->checkers != 0)
                 {
                     std::cout << "\nEvasion moves: ";
                     count = 0;

@@ -97,7 +97,6 @@ private:
     i16         _ply;
     u64         _nodes;
 
-    StateInfo   *_si; // Current state information pointer
     Thread      *_thread;
 
     void place_piece (Square s, Color c, PieceType pt);
@@ -116,6 +115,8 @@ private:
 public:
     static u08  DrawClockPly;
     static bool Chess960;
+
+    StateInfo   *si; // Current state information pointer
 
     Position () = default;
     Position (const Position&) = delete;
@@ -140,22 +141,8 @@ public:
     template<PieceType PT> const SquareVector& squares (Color c) const;
     template<PieceType PT> Square square (Color c, i08 index = 0) const;
 
-    CastleRight castle_rights () const;
-    Square en_passant_sq () const;
-
-    u08 clock_ply () const;
-    PieceType capture_type () const;
-    Bitboard checkers () const;
-
-    Key matl_key () const;
-    Key pawn_key () const;
-    Key posi_key () const;
     Key poly_key () const;
     Key move_posi_key (Move m) const;
-
-    Value non_pawn_material (Color c) const;
-
-    Score psq_score () const;
 
     CastleRight can_castle (Color c) const;
     CastleRight can_castle (CastleRight cr) const;
@@ -187,7 +174,6 @@ public:
     Bitboard slider_blockers (Square s, Bitboard defenders, Bitboard attackers, Bitboard &pinners) const;
     Bitboard abs_pinneds (Color c) const;
     Bitboard dsc_checkers (Color c) const;
-    Bitboard checks (PieceType pt) const;
 
     bool pseudo_legal   (Move m) const;
     bool legal          (Move m) const;
@@ -271,19 +257,6 @@ template<PieceType PT> inline Square Position::square (Color c, i08 index) const
     return _piece_sq[c][PT][index];
 }
 
-// Castling rights
-inline CastleRight Position::castle_rights () const { return _si->castle_rights; }
-// Target square in algebraic notation. If there's no en passant target square is "-"
-inline Square Position::en_passant_sq () const { return _si->en_passant_sq; }
-// Number of halfmoves clock since the last pawn advance or any capture.
-// used to determine if a draw can be claimed under the clock-move rule.
-inline u08 Position::clock_ply () const { return _si->clock_ply; }
-inline PieceType Position::capture_type () const { return _si->capture_type; }
-inline Bitboard Position::checkers () const { return _si->checkers; }
-
-inline Key Position::matl_key () const { return _si->matl_key; }
-inline Key Position::pawn_key () const { return _si->pawn_key; }
-inline Key Position::posi_key () const { return _si->posi_key; }
 inline Key Position::poly_key () const { return PolyZob.compute_posi_key (*this); }
 // Computes the new hash key after the given moven. Needed for speculative prefetch.
 // It doesn't recognize special moves like castling, en-passant and promotions.
@@ -298,7 +271,7 @@ inline Key Position::move_posi_key (Move m) const
 
     auto ppt = promotion (m) ? promote (m) : mpt;
     auto cpt = en_passant (m) ? PAWN : ptype (_board[dst]);
-    Key key = _si->posi_key
+    Key key = si->posi_key
         ^ Zob.color_key
         ^ Zob.piece_square_key[_active][ppt][dst]
         ^ Zob.piece_square_key[_active][mpt][org];
@@ -309,12 +282,8 @@ inline Key Position::move_posi_key (Move m) const
     return key;
 }
 
-inline Score  Position::psq_score () const { return _si->psq_score; }
-// Incremental piece-square evaluation
-inline Value  Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
-
-inline CastleRight Position::can_castle (Color c) const { return _si->castle_rights & mk_castle_right (c); }
-inline CastleRight Position::can_castle (CastleRight cr) const { return _si->castle_rights & cr; }
+inline CastleRight Position::can_castle (Color c) const { return si->castle_rights & mk_castle_right (c); }
+inline CastleRight Position::can_castle (CastleRight cr) const { return si->castle_rights & cr; }
 
 inline Square   Position::castle_rook (CastleRight cr) const { return _castle_rook[cr]; }
 inline Bitboard Position::castle_path (CastleRight cr) const { return _castle_path[cr]; }
@@ -334,7 +303,7 @@ inline u64  Position::nodes () const { return _nodes; }
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
 inline Phase Position::phase () const
 {
-    return Phase(i32(std::min (std::max (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK], VALUE_ENDGAME), VALUE_MIDGAME)
+    return Phase(i32(std::min (std::max (si->non_pawn_matl[WHITE] + si->non_pawn_matl[BLACK], VALUE_ENDGAME), VALUE_MIDGAME)
                         - VALUE_ENDGAME) * PHASE_MIDGAME / (VALUE_MIDGAME - VALUE_ENDGAME));
 }
 
@@ -373,16 +342,12 @@ inline Bitboard Position::attackers_to (Square s) const
 // Absolute pinneds are friend pieces, that save the friend king from enemy checkers.
 inline Bitboard Position::abs_pinneds (Color c) const
 {
-    return _si->check_blockers[ c] & pieces (c);
+    return si->check_blockers[ c] & pieces (c);
 }
 // Discovered checkers are friend pieces, that give the discover check to enemy king when moved.
 inline Bitboard Position::dsc_checkers (Color c) const
 {
-    return _si->check_blockers[~c] & pieces (c);
-}
-inline Bitboard Position::checks (PieceType pt) const
-{
-    return _si->checks[pt];
+    return si->check_blockers[~c] & pieces (c);
 }
 
 // Check if pawn passed at the given square
@@ -413,7 +378,7 @@ inline bool Position::en_passant (Move m) const
     return mtype (m) == ENPASSANT
         && _board[org_sq (m)] == (_active|PAWN)
         && empty (dst_sq (m))
-        && _si->en_passant_sq == dst_sq (m);
+        && si->en_passant_sq == dst_sq (m);
 }
 inline bool Position::capture (Move m) const
 {

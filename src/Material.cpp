@@ -84,7 +84,7 @@ namespace Material {
     // The pointer is also stored in a hash table.
     Entry* probe (const Position &pos)
     {
-        auto matl_key = pos.matl_key ();
+        auto matl_key = pos.si->matl_key;
         auto *e = pos.thread ()->matl_table[matl_key];
 
         if (   e->used
@@ -108,7 +108,7 @@ namespace Material {
         // Generic evaluation
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            if (   pos.non_pawn_material ( c) >= VALUE_MG_ROOK
+            if (   pos.si->non_pawn_matl[ c] >= VALUE_MG_ROOK
                 && pos.count<NONE> (~c) == 1)
             {
                 e->value_func = &EvaluateKXK[c];
@@ -133,17 +133,17 @@ namespace Material {
         // Note that these ones don't return after setting the function.
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            if (   pos.non_pawn_material ( c) == VALUE_MG_BSHP
+            if (   pos.si->non_pawn_matl[ c] == VALUE_MG_BSHP
                 && pos.count<BSHP> ( c) == 1
                 && pos.count<PAWN> ( c) != 0)
             {
                 e->scale_func[c] = &ScaleKBPsKs[c];
             }
             else
-            if (   pos.non_pawn_material ( c) == VALUE_MG_QUEN
+            if (   pos.si->non_pawn_matl[ c] == VALUE_MG_QUEN
                 && pos.count<QUEN> ( c) == 1
                 && pos.count<PAWN> ( c) == 0
-                && pos.non_pawn_material (~c) == VALUE_MG_ROOK
+                && pos.si->non_pawn_matl[~c] == VALUE_MG_ROOK
                 && pos.count<ROOK> (~c) == 1
                 && pos.count<PAWN> (~c) != 0)
             {
@@ -151,8 +151,8 @@ namespace Material {
             }
             else
             // Only pawns on the board
-            if (   pos.non_pawn_material ( c)
-                 + pos.non_pawn_material (~c) == VALUE_ZERO
+            if (   pos.si->non_pawn_matl[ c]
+                 + pos.si->non_pawn_matl[~c] == VALUE_ZERO
                 && pos.pieces (PAWN) != 0)
             {
                 switch (pos.count<PAWN> (~c))
@@ -173,16 +173,16 @@ namespace Material {
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
-            if (abs (  pos.non_pawn_material ( c)
-                     - pos.non_pawn_material (~c)) <= VALUE_MG_BSHP)
+            if (abs (  pos.si->non_pawn_matl[ c]
+                     - pos.si->non_pawn_matl[~c]) <= VALUE_MG_BSHP)
             {
                 switch (pos.count<PAWN> ( c))
                 {
                 case 0:
                     e->scale[c] =
-                        pos.non_pawn_material ( c) <  VALUE_MG_ROOK ?
+                        pos.si->non_pawn_matl[ c] <  VALUE_MG_ROOK ?
                             SCALE_DRAW :
-                            pos.non_pawn_material (~c) <= VALUE_MG_BSHP ?
+                            pos.si->non_pawn_matl[~c] <= VALUE_MG_BSHP ?
                                 Scale(4) : Scale(14);
                     break;
                 case 1:

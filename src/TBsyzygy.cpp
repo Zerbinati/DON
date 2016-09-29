@@ -1863,7 +1863,7 @@ namespace TBSyzygy {
         Value probe_wdl_table (Position &pos, i32 &success)
         {
             // Obtain the position's material signature key.
-            Key matl_key = pos.matl_key ();
+            Key matl_key = pos.si->matl_key;
 
             // Test for KvK.
             if (matl_key == (  Zob.piece_square_key[WHITE][KING][0]
@@ -1970,7 +1970,7 @@ namespace TBSyzygy {
         Value probe_dtz_table (Position &pos, i32 wdl, i32 &success)
         {
             // Obtain the position's material signature key.
-            Key matl_key = pos.matl_key ();
+            Key matl_key = pos.si->matl_key;
 
             if (   DTZ_Table[0].key1 != matl_key
                 && DTZ_Table[0].key2 != matl_key)
@@ -2127,7 +2127,7 @@ namespace TBSyzygy {
             vector<ValMove> moves;
                        
             // Generate all pseudo-legal captures including (under)promotions.
-            if (pos.checkers () == 0)
+            if (pos.si->checkers == 0)
             {
                 generate<CAPTURE> (moves, pos);
                 // Since underpromotion captures are not included, we need to add them.
@@ -2197,7 +2197,7 @@ namespace TBSyzygy {
             {
                 // Generate at least all legal non-capturing pawn moves
                 // including non-capturing promotions.
-                pos.checkers () == 0 ?
+                pos.si->checkers == 0 ?
                     generate<NATURAL> (moves, pos) :
                     generate<EVASION> (moves, pos);
 
@@ -2264,7 +2264,7 @@ namespace TBSyzygy {
             else
             {
                 Value best_value = Value(-1);
-                pos.checkers () == 0 ?
+                pos.si->checkers == 0 ?
                     generate<NATURAL> (moves, pos) :
                     generate<EVASION> (moves, pos);
                 filter_illegal (moves, pos);
@@ -2351,7 +2351,7 @@ namespace TBSyzygy {
         success = 1;
         Value v = probe_dtz_no_ep (pos, success);
         // If en-passant is not possible, we are done.
-        if (pos.en_passant_sq () == SQ_NO)
+        if (pos.si->en_passant_sq == SQ_NO)
         {
             return v;
         }
@@ -2363,7 +2363,7 @@ namespace TBSyzygy {
 
         vector<ValMove> moves;
         // Generate all pseudo-legal captures.
-        pos.checkers () == 0 ?
+        pos.si->checkers == 0 ?
             generate<CAPTURE> (moves, pos) :
             generate<EVASION> (moves, pos);
 
@@ -2440,7 +2440,7 @@ namespace TBSyzygy {
                     ++i;
                 }
                 if (   i == i32(moves.size ())
-                    && pos.checkers () == 0)
+                    && pos.si->checkers == 0)
                 {
                     generate<QUIET> (moves, pos);
                     i = 0;
@@ -2476,7 +2476,7 @@ namespace TBSyzygy {
         success = 1;
         Value v = probe_ab (pos, Value(-2), Value(+2), success);
         // If en-passant is not possible, we are done.
-        if (pos.en_passant_sq () == SQ_NO)
+        if (pos.si->en_passant_sq == SQ_NO)
         {
             return v;
         }
@@ -2488,7 +2488,7 @@ namespace TBSyzygy {
         
         vector<ValMove> moves;
         // Generate all pseudo-legal captures.
-        pos.checkers () == 0 ?
+        pos.si->checkers == 0 ?
             generate<CAPTURE> (moves, pos) :
             generate<EVASION> (moves, pos);
 
@@ -2532,7 +2532,7 @@ namespace TBSyzygy {
                     ++i;
                 }
                 if (   i == i32(moves.size ())
-                    && pos.checkers () == 0)
+                    && pos.si->checkers == 0)
                 {
                     generate<QUIET> (moves, pos);
                     i = 0;
@@ -2578,7 +2578,7 @@ namespace TBSyzygy {
             root_pos.do_move (move, si, root_pos.gives_check (move));
 
             Value value = VALUE_ZERO;
-            if (   root_pos.checkers () != 0
+            if (   root_pos.si->checkers != 0
                 && dtz > VALUE_ZERO)
             {
                 vector<ValMove> moves;
@@ -2609,7 +2609,7 @@ namespace TBSyzygy {
         }
 
         // Obtain 50-move counter for the root position.
-        i32 clock_ply = root_pos.clock_ply ();
+        i32 clock_ply = root_pos.si->clock_ply;
 
         // Use 50-move counter to determine whether the root position is
         // won, lost or drawn.

@@ -100,7 +100,7 @@ public:
             do {
                 pos.do_move (pv[ply], si[ply], pos.gives_check (pv[ply]));
             } while (++ply < PVSize-1);
-            _posi_key = pos.posi_key ();
+            _posi_key = pos.si->posi_key;
             while (ply != 0)
             {
                 pos.undo_move (pv[--ply]);

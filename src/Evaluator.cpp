@@ -307,7 +307,7 @@ namespace Evaluator {
         {
             static const auto Opp = Own == WHITE ? BLACK : WHITE;
 
-            if (pos.non_pawn_material (Own) >= VALUE_MG_QUEN)
+            if (pos.si->non_pawn_matl[Own] >= VALUE_MG_QUEN)
             {
                 auto ek_sq = pos.square<KING> (Opp);
                 Bitboard king_zone = PieceAttacks[KING][ek_sq];
@@ -981,8 +981,8 @@ namespace Evaluator {
                 {
                     return
                         // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
-                           pos.non_pawn_material (WHITE) == VALUE_MG_BSHP
-                        && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP ?
+                           pos.si->non_pawn_matl[WHITE] == VALUE_MG_BSHP
+                        && pos.si->non_pawn_matl[BLACK] == VALUE_MG_BSHP ?
                                pos.count<PAWN> () <= 1 ?
                                 Scale( 9) :
                                 Scale(31) :
@@ -1007,7 +1007,7 @@ namespace Evaluator {
     template<bool Trace>
     Value evaluate (const Position &pos)
     {
-        assert(pos.checkers () == 0);
+        assert(pos.si->checkers == 0);
 
         // Probe the material hash table
         auto *me = Material::probe (pos);
@@ -1048,7 +1048,7 @@ namespace Evaluator {
         // - the material imbalance.
         // - the pawn score
         auto score =
-              pos.psq_score ()
+              pos.si->psq_score
             + me->imbalance
             + pe->score;
 
@@ -1082,8 +1082,8 @@ namespace Evaluator {
             + evaluate_passed_pawns<WHITE, Trace> (pos, ei)
             - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
         // If in the opening phase
-        if (   pos.non_pawn_material (WHITE)
-             + pos.non_pawn_material (BLACK) >= VALUE_SPACE)
+        if (   pos.si->non_pawn_matl[WHITE]
+             + pos.si->non_pawn_matl[BLACK] >= VALUE_SPACE)
         {
             // Evaluate space activity
             score +=
@@ -1092,8 +1092,8 @@ namespace Evaluator {
         }
         else
         // If both sides have only pawns
-        if (   pos.non_pawn_material (WHITE) == VALUE_ZERO
-            && pos.non_pawn_material (BLACK) == VALUE_ZERO)
+        if (   pos.si->non_pawn_matl[WHITE] == VALUE_ZERO
+            && pos.si->non_pawn_matl[BLACK] == VALUE_ZERO)
         {
             // Evaluate potential unstoppable pawns
             score +=
@@ -1118,7 +1118,7 @@ namespace Evaluator {
         {
             // Write remaining evaluation terms
             write (PAWN     , pe->score);
-            write (MATERIAL , pos.psq_score ());
+            write (MATERIAL , pos.si->psq_score);
             write (IMBALANCE, me->imbalance);
             write (MOBILITY , mobility[WHITE], mobility[BLACK]);
             write (TOTAL    , score);
