@@ -395,28 +395,18 @@ namespace Evaluator {
                     // Bonus for minors outpost squares
                     if ((b & s) != 0)
                     {
-                        if (PT == NIHT)
-                        {
-                            score += KnightOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0];
-                        }
-                        else
-                        {
-                            score += BishopOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0];
-                        }
+                        score += PT == NIHT ?
+                            KnightOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0] :
+                            BishopOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0];
                     }
                     else
                     {
                         b &= pin_attacks & ~pos.pieces (Own);
                         if (b != 0)
                         {
-                            if (PT == NIHT)
-                            {
-                                score += KnightReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0];
-                            }
-                            else
-                            {
-                                score += BishopReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0];
-                            }
+                            score += PT == NIHT ?
+                                KnightReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0] :
+                                BishopReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0];
                         }
                     }
                     
@@ -656,7 +646,7 @@ namespace Evaluator {
                 // Compute the king danger score and subtract it from the evaluation
                 if (king_danger > 0)
                 {
-                    score -= mk_score (std::min (king_danger*king_danger / 4096, 2 * i32(VALUE_MG_BSHP)), 0);
+                    score -= mk_score (std::min (king_danger*king_danger / 4096, 2*i32(VALUE_MG_BSHP)), 0);
                 }
             }
 

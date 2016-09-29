@@ -1385,7 +1385,7 @@ namespace Searcher {
                         && tt_eval >= beta
                         //&& Limits.mate == 0
                         && (   depth > 12
-                            || ss->static_eval + 35*(depth - 6) >= beta)
+                            || ss->static_eval + 36*(depth - 6) >= beta)
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
                     {
                         assert(exclude_move == MOVE_NONE);
@@ -1637,18 +1637,18 @@ namespace Searcher {
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
                 // and just one fails high on (alfa, beta), then that move is singular and should be extended.
                 // To verify this do a reduced search on all the other moves but the tt_move,
-                // if result is lower than and equal to tt_value minus a margin then extend tt_move.
+                // if result is lower than tt_value minus a margin then extend tt_move.
                 if (   !extension
                     && singular_ext_node
                     && move == tt_move)
                 {
-                    auto alfa_margin = std::max (tt_value - 2*depth - 1, -VALUE_MATE);
+                    auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
                     ss->exclude_move = move;
                     ss->skip_pruning = true;
-                    value = depth_search<false, CutNode, InCheck> (pos, ss, alfa_margin, alfa_margin+1, depth/2);
+                    value = depth_search<false, CutNode, InCheck> (pos, ss, beta_margin-1, beta_margin, depth/2);
                     ss->skip_pruning = false;
                     ss->exclude_move = MOVE_NONE;
-                    if (value <= alfa_margin)
+                    if (value < beta_margin)
                     {
                         extension = true;
                     }
@@ -1688,7 +1688,7 @@ namespace Searcher {
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
                                 // Negative SEE based pruning
                             || (   lmr_depth < 9
-                                && pos.see_sign (move) < Value(-35*lmr_depth*lmr_depth)))
+                                && pos.see_sign (move) < Value(-36*lmr_depth*lmr_depth)))
                         {
                             continue;
                         }
@@ -1696,7 +1696,7 @@ namespace Searcher {
                     else
                     // Negative SEE based pruning
                     if (   depth < 7
-                        && pos.see_sign (move) < Value(-35*depth*depth))
+                        && pos.see_sign (move) < Value(-36*depth*depth))
                     {
                         continue;
                     }
@@ -2447,13 +2447,14 @@ namespace Threading {
                 if (   book_best_move != MOVE_NONE
                     && std::find (root_moves.begin (), root_moves.end (), book_best_move) != root_moves.end ())
                 {
-                    found = true;
-                    std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), book_best_move));
+                    auto &root_move = root_moves[0];
+                    std::swap (root_move, *std::find (root_moves.begin (), root_moves.end (), book_best_move));
                     StateInfo si;
                     root_pos.do_move (book_best_move, si, root_pos.gives_check (book_best_move));
                     auto book_ponder_move = book.probe_move (root_pos, BookMoveBest);
-                    root_moves[0] += book_ponder_move;
+                    root_move += book_ponder_move;
                     root_pos.undo_move (book_best_move);
+                    found = true;
                 }
                 book.close ();
                 if (found)
@@ -2580,10 +2581,10 @@ namespace Threading {
             auto total_nodes  = Threadpool.nodes ();
             auto elapsed_time = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
             OutputStream
-                << "Nodes (N)  : " << total_nodes                               << '\n'
-                << "Time (ms)  : " << elapsed_time                              << '\n'
-                << "Speed (N/s): " << total_nodes*MilliSec / elapsed_time       << '\n'
-                << "Hash-full  : " << TT.hash_full ()                           << '\n'
+                << "Nodes (N)  : " << total_nodes                           << '\n'
+                << "Time (ms)  : " << elapsed_time                          << '\n'
+                << "Speed (N/s): " << total_nodes*MilliSec / elapsed_time   << '\n'
+                << "Hash-full  : " << TT.hash_full ()                       << '\n'
                 << "Best Move  : " << move_to_san (root_move[0], root_pos)  << '\n';
             if (   root_move[0] != MOVE_NONE
                 && (   root_move.size () > 1

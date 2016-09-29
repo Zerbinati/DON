@@ -210,8 +210,7 @@ Value Position::see_sign (Move m) const
     assert(_ok (m));
     // If SEE cannot be negative because captured piece value is not less then capturing one.
     // Note that king moves always return here because king value is set to VALUE_ZERO.
-    return
-           PieceValues[MG][ptype (_board[org_sq (m)])]
+    return PieceValues[MG][ptype (_board[org_sq (m)])]
         <= PieceValues[MG][ptype (_board[dst_sq (m)])] ?
             VALUE_KNOWN_WIN :
             see (m);
@@ -481,11 +480,12 @@ bool Position::legal (Move m) const
             && dst == _si->en_passant_sq
             && _board[cap] == (~_active|PAWN));
 
+        Bitboard mocc = pieces () - org - cap + dst;
         // If any attacker then in check and not legal move
         return (   (pieces (~_active, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (_active)]) == 0
-                || (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), pieces () - org - cap + dst)) == 0)
+                || (pieces (~_active, BSHP, QUEN) & attacks_bb<BSHP> (square<KING> (_active), mocc)) == 0)
             && (   (pieces (~_active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (_active)]) == 0
-                || (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), pieces () - org - cap + dst)) == 0);
+                || (pieces (~_active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (_active), mocc)) == 0);
     }
         break;
     }
@@ -915,7 +915,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
 
         if (cpt != NONE)
         {
-            do_capture ();
+            do_capture();
             _si->clock_ply = 0;
         }
         else
@@ -975,7 +975,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
         assert(!empty (cap)
             && _board[cap] == (pasive|cpt));
 
-        do_capture ();
+        do_capture();
         _board[cap] = NO_PIECE; // Not done by remove_piece()
 
         assert(_si->clock_ply == 0); // As pawn is the last piece moved
@@ -998,7 +998,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
 
         if (cpt != NONE)
         {
-            do_capture ();
+            do_capture();
         }
         _si->clock_ply = 0;
 
