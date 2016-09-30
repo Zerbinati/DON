@@ -83,22 +83,25 @@ namespace PieceSquare
     // Computes the scores for the middle game and the endgame.
     // These functions are used to initialize the scores when a new position is set up,
     // and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
-    Score compute_psq_score (const Position &pos)
+    Score compute_psq (const Position &pos)
     {
-        auto psqscore = SCORE_ZERO;
-        auto occ = pos.pieces ();
-        while (occ != 0)
+        auto psq_score = SCORE_ZERO;
+        for (auto c = WHITE; c <= BLACK; ++c)
         {
-            auto s = pop_lsq (occ);
-            auto p = pos[s];
-            psqscore += PSQ[color (p)][ptype (p)][s];
+            for (auto pt = PAWN; pt <= KING; ++pt)
+            {
+                for (auto s : pos.squares[c][pt])
+                {
+                    psq_score += PSQ[c][pt][s];
+                }
+            }
         }
-        return psqscore;
+        return psq_score;
     }
 
     // Computes the non-pawn middle game material value for the given side.
     // Material values are updated incrementally during the search.
-    Value compute_non_pawn_material (const Position &pos, Color c)
+    Value compute_npm (const Position &pos, Color c)
     {
         auto npm_value = VALUE_ZERO;
         for (auto pt = NIHT; pt <= QUEN; ++pt)

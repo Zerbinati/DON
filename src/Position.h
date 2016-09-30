@@ -141,12 +141,12 @@ public:
     CastleRight can_castle (Color c) const;
     CastleRight can_castle (CastleRight cr) const;
 
-    bool  impeded_castle (CastleRight cr) const;
+    bool impeded_castle (CastleRight cr) const;
 
-    i16     move_num () const;
-    bool    draw     () const;
-    bool    repeated () const;
-    Phase   phase    ()  const;
+    i16  move_num () const;
+    bool draw     () const;
+    bool repeated () const;
+    Phase phase   () const;
 
     Value see (Move m) const;
     Value see_sign (Move m) const;
@@ -273,11 +273,10 @@ inline Key Position::move_posi_key (Move m) const
 inline CastleRight Position::can_castle (Color c) const { return si->castle_rights & mk_castle_right (c); }
 inline CastleRight Position::can_castle (CastleRight cr) const { return si->castle_rights & cr; }
 
-inline bool  Position::impeded_castle (CastleRight cr) const { return (castle_path[cr] & pieces ()) != 0; }
+inline bool Position::impeded_castle (CastleRight cr) const { return (castle_path[cr] & pieces ()) != 0; }
 
 // move_num starts at 1, and is incremented after BLACK's move.
-// move_num = max ((game_ply - (active == BLACK)) / 2, 0) + 1
-inline i16  Position::move_num () const { return i16(std::max ((ply - (active == BLACK ? 1 : 0)) / 2, 0) + 1); }
+inline i16  Position::move_num () const { return i16(std::max ((ply - (active == BLACK ? 1 : 0))/2, 0) + 1); }
 
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
 inline Phase Position::phase () const

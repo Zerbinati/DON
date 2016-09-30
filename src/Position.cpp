@@ -811,9 +811,9 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->matl_key = Zob.compute_matl_key (*this);
     si->pawn_key = Zob.compute_pawn_key (*this);
     si->posi_key = Zob.compute_posi_key (*this);
-    si->psq_score = compute_psq_score (*this);
-    si->non_pawn_matl[WHITE] = compute_non_pawn_material (*this, WHITE);
-    si->non_pawn_matl[BLACK] = compute_non_pawn_material (*this, BLACK);
+    si->psq_score = compute_psq (*this);
+    si->non_pawn_matl[WHITE] = compute_npm (*this, WHITE);
+    si->non_pawn_matl[BLACK] = compute_npm (*this, BLACK);
     si->clock_ply = u08(clk_ply);
     si->capture_type = NONE;
     si->checkers = attackers_to (square (active, KING), ~active);
@@ -1440,9 +1440,9 @@ bool Position::ok (i08 *failed_step) const
             if (   si->matl_key != Zob.compute_matl_key (*this)
                 || si->pawn_key != Zob.compute_pawn_key (*this)
                 || si->posi_key != Zob.compute_posi_key (*this)
-                || si->psq_score != compute_psq_score (*this)
-                || si->non_pawn_matl[WHITE] != compute_non_pawn_material (*this, WHITE)
-                || si->non_pawn_matl[BLACK] != compute_non_pawn_material (*this, BLACK))
+                || si->psq_score != compute_psq (*this)
+                || si->non_pawn_matl[WHITE] != compute_npm (*this, WHITE)
+                || si->non_pawn_matl[BLACK] != compute_npm (*this, BLACK))
             {
                 return false;
             }
