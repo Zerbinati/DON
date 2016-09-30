@@ -11,6 +11,8 @@ namespace PieceSquare {
 
     extern Score compute_psq_score (const Position &pos);
 
+    extern Value compute_non_pawn_material (const Position &pos, Color c);
+
     extern void initialize ();
 
 }

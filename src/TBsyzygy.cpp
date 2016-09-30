@@ -1919,7 +1919,7 @@ namespace TBSyzygy {
 
             Color side = tbe->symmetric ?
                             WHITE : matl_key == tbe->key ?
-                                pos.active () : ~pos.active ();
+                                pos.active : ~pos.active;
             u16 res;
             Square sq[TB_PieceLimit];
             std::memset (sq, SQ_NO, TB_PieceLimit);
@@ -1932,19 +1932,19 @@ namespace TBSyzygy {
                 Piece *pc;
                 
                 pc = tbep->file[0].pieces[0];
-                Bitboard bb = pos.pieces (side == pos.active () ? color (pc[0]) : ~color (pc[0]), tb_ptype (pc[0]));
+                Bitboard bb = pos.pieces (side == pos.active ? color (pc[0]) : ~color (pc[0]), tb_ptype (pc[0]));
                 u08 s = 0;
                 do {
-                    sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
+                    sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active ? pop_lsq (bb) : ~pop_lsq (bb);
                 } while (bb != 0);
 
                 File f = pawn_file (tbep, sq);
                 pc = tbep->file[f].pieces[side];
                 while (s < tbep->num)
                 {
-                    bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
+                    bb = pos.pieces (side == pos.active ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
                     do {
-                        sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
+                        sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active ? pop_lsq (bb) : ~pop_lsq (bb);
                     } while (bb != 0);
                 }
                 u64 idx = encode_pawn (tbep, tbep->file[f].norm[side], sq, tbep->file[f].factor[side]);
@@ -1956,7 +1956,7 @@ namespace TBSyzygy {
                 Piece *pc = tbep->pieces[side];
                 for (u08 s = 0; s < tbep->num;)
                 {
-                    Bitboard bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
+                    Bitboard bb = pos.pieces (side == pos.active ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
                     do {
                         sq[std::min (s++, u08(TB_PieceLimit-1))] = pop_lsq (bb);
                     } while (bb != 0);
@@ -2034,18 +2034,18 @@ namespace TBSyzygy {
 
             Color side = tbe->symmetric ?
                             WHITE : matl_key == tbe->key ?
-                                pos.active () : ~pos.active ();
+                                pos.active : ~pos.active;
             u16 res;
             Square sq[TB_PieceLimit];
             std::memset (sq, SQ_NO, TB_PieceLimit);
             if (tbe->has_pawns)
             {
                 auto *dtzep = reinterpret_cast<DTZEntry_pawn *> (tbe);
-                Piece p = side == pos.active () ? dtzep->file[0].pieces[0] : ~dtzep->file[0].pieces[0];
+                Piece p = side == pos.active ? dtzep->file[0].pieces[0] : ~dtzep->file[0].pieces[0];
                 Bitboard bb = pos.pieces (color (p), tb_ptype (p));
                 u08 s = 0;
                 do {
-                    sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
+                    sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active ? pop_lsq (bb) : ~pop_lsq (bb);
                 } while (bb != 0);
                 
                 File f = pawn_file (reinterpret_cast<TBEntry_pawn *> (dtzep), sq);
@@ -2057,9 +2057,9 @@ namespace TBSyzygy {
                 Piece *pc = dtzep->file[f].pieces;
                 while (s < dtzep->num)
                 {
-                    bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
+                    bb = pos.pieces (side == pos.active ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
                     do {
-                        sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active () ? pop_lsq (bb) : ~pop_lsq (bb);
+                        sq[std::min (s++, u08(TB_PieceLimit-1))] = side == pos.active ? pop_lsq (bb) : ~pop_lsq (bb);
                     } while (bb != 0);
                 }
                 u64 idx = encode_pawn (reinterpret_cast<TBEntry_pawn *> (dtzep), dtzep->file[f].norm, sq, dtzep->file[f].factor);
@@ -2085,7 +2085,7 @@ namespace TBSyzygy {
                 Piece *pc = dtzep->pieces;
                 for (u08 s = 0; s < dtzep->num;)
                 {
-                    Bitboard bb = pos.pieces (side == pos.active () ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
+                    Bitboard bb = pos.pieces (side == pos.active ? color (pc[s]) : ~color (pc[s]), tb_ptype (pc[s]));
                     do {
                         sq[std::min (s++, u08(TB_PieceLimit-1))] = pop_lsq (bb);
                     } while (bb != 0);
@@ -2113,7 +2113,7 @@ namespace TBSyzygy {
             {
                 auto move = itr->move;
                 if (   mtype (move) == PROMOTE
-                    && (pos.pieces (~pos.active ()) & dst_sq (move)) != 0)
+                    && (pos.pieces (~pos.active) & dst_sq (move)) != 0)
                 {
                     moves.push_back (ValMove(Move(move - (ROOK << 12))));
                     moves.push_back (ValMove(Move(move - (BSHP << 12))));

@@ -108,7 +108,7 @@ namespace Pawns {
             File f;
             Bitboard b, neighbours, supporters, stoppers;
             bool opposed, blocked, phalanxed, connected, levered, backward;
-            for (Square s : pos.squares<PAWN> (Own))
+            for (auto s : pos.squares[Own][PAWN])
             {
                 assert(pos[s] == (Own|PAWN));
 
@@ -246,7 +246,7 @@ namespace Pawns {
     Entry* probe (const Position &pos)
     {
         auto pawn_key = pos.si->pawn_key;
-        auto *e = pos.thread ()->pawn_table[pawn_key];
+        auto *e = pos.thread->pawn_table[pawn_key];
 
         if (   e->used
             && e->key == pawn_key)

@@ -34,8 +34,8 @@ namespace Notation {
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
 
-            Bitboard amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
-            Bitboard pcs = amb; // & ~pos.abs_pinneds (pos.active ()); // If pinned piece is considered as ambiguous
+            Bitboard amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active, ptype (pos[org]))) - org;
+            Bitboard pcs = amb; // & ~pos.abs_pinneds (pos.active); // If pinned piece is considered as ambiguous
             while (pcs != 0)
             {
                 auto sq = pop_lsq (pcs);
@@ -243,7 +243,7 @@ namespace Notation {
         auto &root_move = thread->root_moves[0];
         u64 total_nodes = Threadpool.nodes ();
         oss << std::setw ( 4) << thread->running_depth
-            << std::setw ( 8) << pretty_value (root_move.new_value, thread->root_pos.active ())
+            << std::setw ( 8) << pretty_value (root_move.new_value, thread->root_pos.active)
             << std::setw (12) << pretty_time (Threadpool.time_mgr.elapsed_time ());
         if (total_nodes < 1*M)
         {

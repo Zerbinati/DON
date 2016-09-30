@@ -96,6 +96,18 @@ namespace PieceSquare
         return psqscore;
     }
 
+    // Computes the non-pawn middle game material value for the given side.
+    // Material values are updated incrementally during the search.
+    Value compute_non_pawn_material (const Position &pos, Color c)
+    {
+        auto npm_value = VALUE_ZERO;
+        for (auto pt = NIHT; pt <= QUEN; ++pt)
+        {
+            npm_value += PieceValues[MG][pt] * pos.count (c, pt);
+        }
+        return npm_value;
+    }
+
     // Initialize lookup tables during startup
     void initialize ()
     {

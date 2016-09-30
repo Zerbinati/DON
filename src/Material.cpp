@@ -85,7 +85,7 @@ namespace Material {
     Entry* probe (const Position &pos)
     {
         auto matl_key = pos.si->matl_key;
-        auto *e = pos.thread ()->matl_table[matl_key];
+        auto *e = pos.thread->matl_table[matl_key];
 
         if (   e->used
             && e->key == matl_key)
@@ -124,7 +124,7 @@ namespace Material {
         EndgameBase<Scale> *scale_func;
         if ((scale_func = EndGames->probe<Scale> (matl_key)) != nullptr)
         {
-            e->scale_func[scale_func->strong_side ()] = scale_func;
+            e->scale_func[scale_func->strong_color] = scale_func;
             goto finish;
         }
 

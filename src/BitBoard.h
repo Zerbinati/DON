@@ -238,10 +238,8 @@ namespace BitBoard {
         return slide_attacks;
     }
 
-
     // magic_index(s, occ) computes index for sliding attack bitboards.
     template<PieceType PT> u16 magic_index (Square s, Bitboard occ);
-
     template<> inline u16 magic_index<BSHP> (Square s, Bitboard occ)
     {
 #   if defined(BM2)
@@ -268,7 +266,6 @@ namespace BitBoard {
     // attacks_bb(s, occ) takes a square and a bitboard of occupied squares,
     // and returns a bitboard representing all squares attacked by PT (Bishop or Rook) on the given square.
     template<PieceType PT> Bitboard attacks_bb (Square s, Bitboard occ);
-
     // Attacks of the Bishop with occupancy
     template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
     {

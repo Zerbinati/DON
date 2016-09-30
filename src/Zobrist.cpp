@@ -29,7 +29,7 @@ namespace Zobrists {
         Key pawn_key = 0;
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            for (Square s : pos.squares<PAWN> (c))
+            for (auto s : pos.squares[c][PAWN])
             {
                 pawn_key ^= piece_square_key[c][PAWN][s];
             }
@@ -44,7 +44,7 @@ namespace Zobrists {
         {
             for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (Square s : pos[c|pt])
+                for (auto s : pos.squares[c][pt])
                 {
                     posi_key ^= piece_square_key[c][pt][s];
                 }
@@ -59,7 +59,7 @@ namespace Zobrists {
         {
             posi_key ^= en_passant_key[_file (pos.si->en_passant_sq)];
         }
-        if (pos.active () == WHITE)
+        if (pos.active == WHITE)
         {
             posi_key ^= color_key;
         }

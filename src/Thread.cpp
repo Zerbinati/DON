@@ -209,7 +209,7 @@ namespace Threading {
         u64 nodes = 0;
         for (const auto *th : *this)
         {
-            nodes += th->root_pos.nodes ();
+            nodes += th->root_pos.nodes;
         }
         return nodes;
     }

@@ -51,17 +51,14 @@ namespace EndGame {
     template<class T>
     class EndgameBase
     {
-    protected:
-        Color _strong_side;
-
     public:
+        Color strong_color;
+
         explicit EndgameBase (Color c)
-            : _strong_side (c)
+            : strong_color (c)
         {}
         virtual ~EndgameBase () = default;
         EndgameBase& operator= (const EndgameBase&) = delete;
-
-        Color strong_side () const { return _strong_side; }
 
         virtual T operator() (const Position &pos) const = 0;
     };
@@ -89,8 +86,7 @@ namespace EndGame {
 
         std::pair<Map<Value>, Map<Scale>> _maps;
 
-        template<class T>
-        Map<T>& map ()
+        template<class T> Map<T>& map ()
         {
             return std::get<std::is_same<T, Scale>::value> (_maps);
         }
@@ -103,8 +99,7 @@ namespace EndGame {
         Endgames (const Endgames&) = delete;
         Endgames& operator= (const Endgames&) = delete;
 
-        template<class T>
-        EndgameBase<T>* probe (Key matl_key)
+        template<class T> EndgameBase<T>* probe (Key matl_key)
         {
             return map<T> ().find (matl_key) != map<T> ().end () ? map<T> ()[matl_key].get () : nullptr;
         }
@@ -113,7 +108,6 @@ namespace EndGame {
     extern void initialize ();
 
     extern void deinitialize ();
-
 }
 
 // Global Endgames

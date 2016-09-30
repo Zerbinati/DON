@@ -270,7 +270,7 @@ template<> void MovePicker::value<CAPTURE> ()
 
         vm.value =
               PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
-            - 200 * Value(rel_rank (_pos.active (), dst_sq (vm.move)))
+            - 200 * Value(rel_rank (_pos.active, dst_sq (vm.move)))
             - Value(ptype (_pos[org_sq (vm.move)]) + 1);
     }
 }
@@ -282,8 +282,8 @@ template<> void MovePicker::value<QUIET> ()
             && _pos.legal (vm.move));
 
         vm.value =
-              _pos.thread ()->piece_history(_pos[org_sq (vm.move)], vm.move)
-            + _pos.thread ()->color_history(_pos.active (), vm.move)
+              _pos.thread->piece_history(_pos[org_sq (vm.move)], vm.move)
+            + _pos.thread->color_history(_pos.active, vm.move)
             + ((_ss-1)->cm_history != nullptr ? (*(_ss-1)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
             + ((_ss-2)->cm_history != nullptr ? (*(_ss-2)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
             + ((_ss-4)->cm_history != nullptr ? (*(_ss-4)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO);
@@ -307,8 +307,8 @@ template<> void MovePicker::value<EVASION> ()
         else
         {
             vm.value =
-                  _pos.thread ()->piece_history(_pos[org_sq (vm.move)], vm.move)
-                + _pos.thread ()->color_history(_pos.active (), vm.move)
+                  _pos.thread->piece_history(_pos[org_sq (vm.move)], vm.move)
+                + _pos.thread->color_history(_pos.active, vm.move)
                 + ((_ss-1)->cm_history != nullptr ? (*(_ss-1)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
                 + ((_ss-2)->cm_history != nullptr ? (*(_ss-2)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO)
                 + ((_ss-4)->cm_history != nullptr ? (*(_ss-4)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO);
@@ -381,7 +381,7 @@ Move MovePicker::next_move ()
             MoveVector killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
             if ((_ss-1)->cm_history != nullptr)
             {
-                auto cm = _pos.thread ()->piece_cmove (_pos[fix_dst_sq ((_ss-1)->current_move)], (_ss-1)->current_move);
+                auto cm = _pos.thread->piece_cmove (_pos[fix_dst_sq ((_ss-1)->current_move)], (_ss-1)->current_move);
                 if (   cm != MOVE_NONE
                     && cm != _tt_move
                     && std::find (killer_moves.begin (), killer_moves.end (), cm) == killer_moves.end ())
@@ -650,6 +650,7 @@ namespace Searcher {
             , BaseContempt  [CLR_NO];
 
         ofstream OutputStream;
+        bool     WriteOutput = false;
 
         const u08 TimerResolution = 5;
         // check_limits() is used to print debug info and, more importantly,
@@ -713,19 +714,19 @@ namespace Searcher {
 
             if ((ss-1)->cm_history != nullptr)
             {
-                pos.thread ()->piece_cmove.update (pos[fix_dst_sq ((ss-1)->current_move)], (ss-1)->current_move, move);
+                pos.thread->piece_cmove.update (pos[fix_dst_sq ((ss-1)->current_move)], (ss-1)->current_move, move);
             }
 
-            pos.thread ()->piece_history.update (pos[org_sq (move)], move, value);
-            pos.thread ()->color_history.update (pos.active (), move, value);
+            pos.thread->piece_history.update (pos[org_sq (move)], move, value);
+            pos.thread->color_history.update (pos.active, move, value);
             update_cm_stats (ss, pos[org_sq (move)], move, value);
 
             // Decrease all the other played quiet moves
             assert(std::find (quiet_moves.begin (), quiet_moves.end (), move) == quiet_moves.end ());
             for (auto m : quiet_moves)
             {
-                pos.thread ()->piece_history.update (pos[org_sq (m)], m, -value);
-                pos.thread ()->color_history.update (pos.active (), m, -value);
+                pos.thread->piece_history.update (pos[org_sq (m)], m, -value);
+                pos.thread->color_history.update (pos.active, m, -value);
                 update_cm_stats (ss, pos[org_sq (m)], m, -value);
             }
         }
@@ -851,10 +852,10 @@ namespace Searcher {
                 return ss->ply >= MaxPlies
                     && !InCheck ?
                         evaluate (pos) :
-                        DrawValue[pos.active ()];
+                        DrawValue[pos.active];
             }
 
-            auto *th = pos.thread ();
+            auto *th = pos.thread;
 
             Move move;
             // Transposition table lookup
@@ -989,13 +990,7 @@ namespace Searcher {
                 assert(mpc != NO_PIECE
                     && mpt != NONE);
                 
-                bool gives_check =
-                       mtype (move) == NORMAL
-                    && (   (pos.si->check_blockers[~pos.active ()] & org) == 0
-                        || sqrs_aligned (org, dst, pos.square<KING> (~pos.active ()))) ?
-                        (pos.si->checks[mpt] & dst) != 0 :
-                        pos.gives_check (move);
-                assert(gives_check == pos.gives_check (move));
+                bool gives_check = pos.gives_check (move);
 
                 // Futility pruning
                 if (   !InCheck
@@ -1005,7 +1000,7 @@ namespace Searcher {
                     //&& Limits.mate == 0
                         // Advance pawn push
                     && !(   mpt == PAWN
-                         && rel_rank (pos.active (), dst) > R_5))
+                         && rel_rank (pos.active, dst) > R_5))
                 {
                     // Futility pruning parent node
                     auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst])];
@@ -1151,7 +1146,7 @@ namespace Searcher {
                 && ss->ply <= MaxPlies);
 
             // Step 1. Initialize node
-            auto *th = pos.thread ();
+            auto *th = pos.thread;
             // Check for the available remaining limit
             if (++th->count >= TimerResolution*MilliSec)
             {
@@ -1183,7 +1178,7 @@ namespace Searcher {
                     return ss->ply >= MaxPlies
                         && !InCheck ?
                             evaluate (pos) :
-                            DrawValue[pos.active ()];
+                            DrawValue[pos.active];
                 }
 
                 // Step 3. Mate distance pruning.
@@ -1353,7 +1348,7 @@ namespace Searcher {
                         && depth < 7
                         && tt_eval < +VALUE_KNOWN_WIN
                         //&& Limits.mate == 0
-                        && pos.si->non_pawn_matl[pos.active ()] > VALUE_ZERO)
+                        && pos.si->non_pawn_matl[pos.active] > VALUE_ZERO)
                     {
                         auto stand_pat = tt_eval - 150*depth;
                         if (stand_pat >= beta)
@@ -1389,7 +1384,7 @@ namespace Searcher {
                         //&& Limits.mate == 0
                         && (   depth > 12
                             || ss->static_eval + 36*(depth - 6) >= beta)
-                        && pos.si->non_pawn_matl[pos.active ()] > VALUE_ZERO)
+                        && pos.si->non_pawn_matl[pos.active] > VALUE_ZERO)
                     {
                         assert(exclude_move == MOVE_NONE);
                         assert(_ok ((ss-1)->current_move)
@@ -1473,17 +1468,11 @@ namespace Searcher {
                             auto mpt = ptype (mpc);
                             assert(mpc != NO_PIECE
                                 && mpt != NONE);
-                            
+
                             ss->current_move = move;
                             ss->cm_history = &th->cm_history(mpc, dst);
 
-                            bool gives_check =
-                                   mtype (move) == NORMAL
-                                && (   (pos.si->check_blockers[~pos.active ()] & org) == 0
-                                    || sqrs_aligned (org, dst, pos.square<KING> (~pos.active ()))) ?
-                                    (pos.si->checks[mpt] & dst) != 0 :
-                                    pos.gives_check (move);
-                            assert(gives_check == pos.gives_check (move));
+                            bool gives_check = pos.gives_check (move);
                             assert(pos.capture_or_promotion (move));
 
                             // Speculative prefetch as early as possible
@@ -1623,13 +1612,7 @@ namespace Searcher {
                     (ss+1)->pv.clear ();
                 }
 
-                bool gives_check =
-                       mtype (move) == NORMAL
-                    && (   (pos.si->check_blockers[~pos.active ()] & org) == 0
-                        || sqrs_aligned (org, dst, pos.square<KING> (~pos.active ()))) ?
-                        (pos.si->checks[mpt] & dst) != 0 :
-                        pos.gives_check (move);
-                assert(gives_check == pos.gives_check (move));
+                bool gives_check = pos.gives_check (move);
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 bool move_count_pruning =
@@ -1677,7 +1660,7 @@ namespace Searcher {
                         && !gives_check
                             // Advance pawn push
                         && !(   mpt == PAWN
-                             && rel_rank (pos.active (), dst) > R_5))
+                             && rel_rank (pos.active, dst) > R_5))
                     {
                         // Move count based pruning
                         if (move_count_pruning)
@@ -1697,7 +1680,7 @@ namespace Searcher {
                             || (   lmr_depth < 7
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
                                 // Negative SEE based pruning
-                            || (   lmr_depth < 9
+                            || (   lmr_depth < 8
                                 && pos.see_sign (move) < Value(-36*lmr_depth*lmr_depth)))
                         {
                             continue;
@@ -1766,7 +1749,7 @@ namespace Searcher {
                         // Decrease/Increase reduction for moves with +ve/-ve history
                         reduce_depth -=
                             i16(double(  th->piece_history(mpc, move)
-                                       + th->color_history(~pos.active (), move)
+                                       + th->color_history(~pos.active, move)
                                        + ((ss-1)->cm_history != nullptr ? (*(ss-1)->cm_history)(mpc, move) : VALUE_ZERO)
                                        + ((ss-2)->cm_history != nullptr ? (*(ss-2)->cm_history)(mpc, move) : VALUE_ZERO)
                                        + ((ss-4)->cm_history != nullptr ? (*(ss-4)->cm_history)(mpc, move) : VALUE_ZERO))/20000 - 0.4);
@@ -1957,7 +1940,7 @@ namespace Searcher {
                         alfa :
                         InCheck ?
                             mated_in (ss->ply) :
-                            DrawValue[pos.active ()];
+                            DrawValue[pos.active];
             }
             else
             // Quiet best move: update killers, history, countermoves and countermoves history
@@ -2179,7 +2162,7 @@ namespace Threading {
                 };
 
                 const auto &hdm = HalfDensityMap[(index - 1) % HalfDensityMapSize];
-                if (hdm[(u16(running_depth) + root_pos.ply ()) % hdm.size ()])
+                if (hdm[(running_depth + root_pos.ply) % hdm.size ()])
                 {
                     continue;
                 }
@@ -2306,8 +2289,8 @@ namespace Threading {
             //{
             //    assert(!root_moves.empty ());
             //    auto valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
-            //    DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] - valued_contempt;
-            //    DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] + valued_contempt;
+            //    DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] - valued_contempt;
+            //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
             //}
 
             if (Threadpool.main_thread () == this)
@@ -2321,7 +2304,7 @@ namespace Threading {
                     Threadpool.skill_mgr.pick_best_move (Threadpool.pv_limit);
                 }
 
-                if (OutputStream.is_open ())
+                if (WriteOutput)
                 {
                     OutputStream << pretty_pv_info (this) << std::endl;
                 }
@@ -2405,30 +2388,35 @@ namespace Threading {
             && OutputFile != Empty)
         {
             OutputStream.open (OutputFile, ios_base::out|ios_base::app);
-            OutputStream
-                << boolalpha
-                << "RootPos  : " << root_pos.fen (true)                   << '\n'
-                << "RootSize : " << root_moves.size ()                    << '\n'
-                << "Infinite : " << Limits.infinite                       << '\n'
-                << "Ponder   : " << Limits.ponder                         << '\n'
-                << "ClockTime: " << Limits.clock[root_pos.active ()].time << '\n'
-                << "Increment: " << Limits.clock[root_pos.active ()].inc  << '\n'
-                << "MoveTime : " << Limits.movetime                       << '\n'
-                << "MovesToGo: " << u16(Limits.movestogo)                 << '\n'
-                << " Depth Score    Time       Nodes  PV\n"
-                << "-----------------------------------------------------------"
-                << noboolalpha << std::endl;
+            WriteOutput = OutputStream.is_open ();
+            if (WriteOutput)
+            {
+                OutputStream
+                    << boolalpha
+                    << "RootPos  : " << root_pos.fen (true)                << '\n'
+                    << "RootSize : " << root_moves.size ()                 << '\n'
+                    << "Infinite : " << Limits.infinite                    << '\n'
+                    << "Ponder   : " << Limits.ponder                      << '\n'
+                    << "ClockTime: " << Limits.clock[root_pos.active].time << '\n'
+                    << "Increment: " << Limits.clock[root_pos.active].inc  << '\n'
+                    << "MoveTime : " << Limits.movetime                    << '\n'
+                    << "MovesToGo: " << u16(Limits.movestogo)              << '\n'
+                    << "Depth    : " << Limits.depth                       << '\n'
+                    << " Depth Score    Time       Nodes  PV\n"
+                    << "-----------------------------------------------------------"
+                    << noboolalpha << std::endl;
+            }
         }
 
         if (Limits.use_time_management ())
         {
             // Initialize the time manager before searching.
-            Threadpool.time_mgr.initialize (root_pos.active (), root_pos.ply ());
+            Threadpool.time_mgr.initialize (root_pos.active, root_pos.ply);
         }
 
-        TT.generation (root_pos.ply () + 1);
+        TT.generation (root_pos.ply + 1);
 
-        bool filtering = false;
+        bool voting = false;
 
         if (root_moves.empty ())
         {
@@ -2477,15 +2465,15 @@ namespace Threading {
             i64 diff_time;
             if (   Limits.use_time_management ()
                 && ContemptTime != 0
-                && (diff_time = i64(  Limits.clock[ root_pos.active ()].time
-                                    - Limits.clock[~root_pos.active ()].time)/MilliSec) != 0)
+                && (diff_time = i64(  Limits.clock[ root_pos.active].time
+                                    - Limits.clock[~root_pos.active].time)/MilliSec) != 0)
             {
                 timed_contempt = i16(diff_time/ContemptTime);
             }
 
             auto contempt = cp_to_value ((FixedContempt + timed_contempt) / 100.0);
-            DrawValue[ root_pos.active ()] = BaseContempt[ root_pos.active ()] = VALUE_DRAW - contempt;
-            DrawValue[~root_pos.active ()] = BaseContempt[~root_pos.active ()] = VALUE_DRAW + contempt;
+            DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] = VALUE_DRAW - contempt;
+            DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] = VALUE_DRAW + contempt;
 
             if (Limits.use_time_management ())
             {
@@ -2505,7 +2493,7 @@ namespace Threading {
             // that will use behind the scenes to get a set of possible moves.
             Threadpool.pv_limit = std::min (std::max (MultiPV, u16(Threadpool.skill_mgr.enabled () ? SkillManager::MinSkillPV : 0)), u16(root_moves.size ()));
 
-            filtering = true;
+            voting = true;
 
             for (auto *th : Threadpool)
             {
@@ -2536,7 +2524,7 @@ namespace Threading {
         if (Limits.use_time_management ())
         {
             // Update the time manager after searching.
-            Threadpool.time_mgr.update (root_pos.active ());
+            Threadpool.time_mgr.update (root_pos.active);
         }
         // When reach max depth arrive here even without Force Stop is raised,
         // but if are pondering or in infinite search, according to UCI protocol,
@@ -2551,7 +2539,7 @@ namespace Threading {
         }
 
         Thread *best_thread = this;
-        if (filtering)
+        if (voting)
         {
             // Stop the threads if not already stopped.
             ForceStop = true;
@@ -2586,7 +2574,7 @@ namespace Threading {
             Threadpool.last_value = root_move.new_value;
         }
 
-        if (OutputStream.is_open ())
+        if (WriteOutput)
         {
             auto total_nodes  = Threadpool.nodes ();
             auto elapsed_time = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
@@ -2607,6 +2595,7 @@ namespace Threading {
             }
             OutputStream << std::endl;
             OutputStream.close ();
+            WriteOutput = false;
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position.
