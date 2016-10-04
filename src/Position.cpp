@@ -289,16 +289,13 @@ bool Position::pseudo_legal (Move m) const
         {
             return false;
         }
-
         // Castle is always encoded as "King captures friendly Rook"
-        bool king_side = dst > org;
-        assert(dst == castle_rook[mk_castle_right (active, king_side ? CS_KING : CS_QUEN)]);
-        dst = rel_sq (active, king_side ? SQ_G1 : SQ_C1);
+        assert(dst == castle_rook[mk_castle_right (active, dst > org ? CS_KING : CS_QUEN)]);
+        Bitboard b = king_path[mk_castle_right (active, dst > org ? CS_KING : CS_QUEN)];
         // Check king's path for attackers
-        auto step = king_side ? DEL_E : DEL_W;
-        for (auto s = dst; s != org; s -= step)
+        while (b != 0)
         {
-            if (attackers_to (s, ~active) != 0)
+            if (attackers_to (pop_lsq (b), ~active) != 0)
             {
                 return false;
             }
@@ -805,15 +802,15 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         }
     }
 
-    // Convert from game-move starting from 1 to game-ply starting from 0,
+    // Convert from moves starting from 1 to ply starting from 0,
     ply = i16(2*(moves - 1) + (active == BLACK ? 1 : 0));
 
     si->matl_key = Zob.compute_matl_key (*this);
     si->pawn_key = Zob.compute_pawn_key (*this);
     si->posi_key = Zob.compute_posi_key (*this);
     si->psq_score = compute_psq (*this);
-    si->non_pawn_matl[WHITE] = compute_npm (*this, WHITE);
-    si->non_pawn_matl[BLACK] = compute_npm (*this, BLACK);
+    si->non_pawn_matl[WHITE] = compute_npm<WHITE> (*this);
+    si->non_pawn_matl[BLACK] = compute_npm<BLACK> (*this);
     si->clock_ply = u08(clk_ply);
     si->capture_type = NONE;
     si->checkers = attackers_to (square (active, KING), ~active);
@@ -914,7 +911,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             }
             else
             {
-                si->clock_ply++;
+                ++si->clock_ply;
             }
         }
 
@@ -946,7 +943,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
              PSQ[active][ROOK][rook_dst]
             -PSQ[active][ROOK][rook_org];
 
-        si->clock_ply++;
+        ++si->clock_ply;
     }
         break;
 
@@ -1164,7 +1161,7 @@ void Position::do_null_move (StateInfo &nsi)
     }
     active = ~active;
     si->posi_key ^= Zob.color_key;
-    si->clock_ply++;
+    ++si->clock_ply;
     si->null_ply = 0;
     // Set check info used for fast check detection
     si->set_check_info (*this);
@@ -1313,7 +1310,8 @@ Position::operator string () const
         << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
         << si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << '\n';
     oss << "Checkers: ";
-    for (Bitboard b = si->checkers; b != 0; )
+    Bitboard b = si->checkers;
+    while (b != 0)
     {
         oss << pop_lsq (b) << ' ';
     }
@@ -1323,7 +1321,7 @@ Position::operator string () const
 
 #if !defined(NDEBUG)
 // Performs some consistency checks for the position, helpful for debugging.
-bool Position::ok (i08 *failed_step) const
+bool Position::ok (u08 *failed_step) const
 {
     static const bool Fast = true;
 
@@ -1337,7 +1335,7 @@ bool Position::ok (i08 *failed_step) const
         CASTLING
     };
 
-    for (i08 step = BASIC; step <= (Fast ? BASIC : CASTLING); ++step)
+    for (u08 step = BASIC; step <= (Fast ? BASIC : CASTLING); ++step)
     {
         if (failed_step != nullptr)
         {
@@ -1441,8 +1439,8 @@ bool Position::ok (i08 *failed_step) const
                 || si->pawn_key != Zob.compute_pawn_key (*this)
                 || si->posi_key != Zob.compute_posi_key (*this)
                 || si->psq_score != compute_psq (*this)
-                || si->non_pawn_matl[WHITE] != compute_npm (*this, WHITE)
-                || si->non_pawn_matl[BLACK] != compute_npm (*this, BLACK))
+                || si->non_pawn_matl[WHITE] != compute_npm<WHITE> (*this)
+                || si->non_pawn_matl[BLACK] != compute_npm<BLACK> (*this))
             {
                 return false;
             }

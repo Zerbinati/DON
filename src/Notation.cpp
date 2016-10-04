@@ -118,7 +118,7 @@ namespace Notation {
         if (   can.length () == 5
             && isupper (can[4]))
         {
-            can[4] = char (tolower (can[4])); // Promotion piece in lowercase
+            can[4] = char(tolower (can[4])); // Promotion piece in lowercase
         }
         for (const auto &vm : MoveList<LEGAL> (pos))
         {

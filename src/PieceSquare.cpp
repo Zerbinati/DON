@@ -101,15 +101,17 @@ namespace PieceSquare
 
     // Computes the non-pawn middle game material value for the given side.
     // Material values are updated incrementally during the search.
-    Value compute_npm (const Position &pos, Color c)
+    template<Color Own> Value compute_npm (const Position &pos)
     {
         auto npm_value = VALUE_ZERO;
         for (auto pt = NIHT; pt <= QUEN; ++pt)
         {
-            npm_value += PieceValues[MG][pt] * pos.count (c, pt);
+            npm_value += PieceValues[MG][pt] * pos.count (Own, pt);
         }
         return npm_value;
     }
+    template Value compute_npm<WHITE> (const Position &);
+    template Value compute_npm<BLACK> (const Position &);
 
     // Initialize lookup tables during startup
     void initialize ()

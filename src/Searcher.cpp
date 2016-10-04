@@ -37,7 +37,7 @@ void RootMove::insert_pv_into_tt (Position &pos) const
     u08 ply = 0;
     for (auto m : *this)
     {
-        assert(_ok (m));
+        assert(m != MOVE_NONE);
         assert(MoveList<LEGAL> (pos).contains (m));
 
         bool tt_hit;
@@ -84,11 +84,11 @@ void RootMove::extract_pv_from_tt (Position &pos)
     while (   tt_hit
             && ply < MaxPlies 
             && expected_value == value_of_tt (tte->value (), ply+1)
-            && _ok (m = tte->move ()) // Local copy to be SMP safe
+            && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
             && pos.pseudo_legal (m)
             && pos.legal (m))
     {
-        //assert(_ok (m));
+        //assert(m != MOVE_NONE);
         assert(MoveList<LEGAL> (pos).contains (m));
         assert(!pos.draw ());
 
@@ -110,7 +110,7 @@ void RootMove::extract_pv_from_tt (Position &pos)
 bool RootMove::extract_ponder_move_from_tt (Position &pos)
 {
     assert(size () == 1);
-    assert(_ok (at (0)));
+    assert(at (0) != MOVE_NONE);
 
     StateInfo si;
     auto m = at (0);
@@ -119,11 +119,11 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     const auto *tte = TT.probe (pos.si->posi_key, tt_hit);
     Move ponder_move;
     if (   tt_hit
-        && _ok (ponder_move = tte->move ()) // Local copy to be SMP safe
+        && (ponder_move = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
         && pos.pseudo_legal (ponder_move)
         && pos.legal (ponder_move))
     {
-        //assert(_ok (ponder_move));
+        //assert(ponder_move != MOVE_NONE);
         assert(MoveList<LEGAL> (pos).contains (ponder_move));
         assert(!pos.draw ());
         *this += ponder_move;
@@ -137,7 +137,7 @@ RootMove::operator string () const
     ostringstream oss;
     for (auto m : *this)
     {
-        assert(_ok (m));
+        assert(m != MOVE_NONE);
         oss << ' ' << move_to_can (m);
     }
     return oss.str ();
@@ -864,14 +864,14 @@ namespace Searcher {
             auto *tte = TT.probe (posi_key, tt_hit);
             auto tt_move =
                    tt_hit
-                && _ok (move = tte->move ())
+                && (move = tte->move ()) != MOVE_NONE
                 && pos.pseudo_legal (move)
                 && pos.legal (move) ?
                     move :
                     MOVE_NONE;
-            assert(   tt_move == MOVE_NONE
-                   || (   pos.pseudo_legal (tt_move)
-                       && pos.legal (tt_move)));
+            assert(tt_move == MOVE_NONE
+                || (pos.pseudo_legal (tt_move)
+                 && pos.legal (tt_move)));
             auto tt_ext   = tt_hit
                          && tte->move () == tt_move;
             auto tt_value = tt_ext ?
@@ -1212,14 +1212,14 @@ namespace Searcher {
                 root_node ?
                     th->root_moves[th->pv_index][0] :
                        tt_hit
-                    && _ok (move = tte->move ())
+                    && (move = tte->move ()) != MOVE_NONE
                     && pos.pseudo_legal (move)
                     && pos.legal (move) ?
                         move :
                         MOVE_NONE;
-            assert(   tt_move == MOVE_NONE
-                   || (   pos.pseudo_legal (tt_move)
-                       && pos.legal (tt_move)));
+            assert(tt_move == MOVE_NONE
+                || (pos.pseudo_legal (tt_move)
+                 && pos.legal (tt_move)));
             auto tt_ext   = tt_hit
                          && (   tte->move () == tt_move
                              || (   root_node
@@ -1485,7 +1485,7 @@ namespace Searcher {
                             {
                                 prefetch (th->pawn_table[pos.si->pawn_key]);
                             }
-                            // NOTE:: All moves are capture or promotion
+                            // NOTE:: All moves are capture_or_promotion
                             prefetch (th->matl_table[pos.si->matl_key]);
 
                             auto value =
@@ -1516,7 +1516,7 @@ namespace Searcher {
                         if (tt_hit)
                         {
                             tt_move =
-                                   _ok (move = tte->move ())
+                                   (move = tte->move ()) != MOVE_NONE
                                 && pos.pseudo_legal (move)
                                 && pos.legal (move) ?
                                     move :
@@ -1589,7 +1589,6 @@ namespace Searcher {
                 auto mpt = ptype (mpc);
                 assert(mpc != NO_PIECE
                     && mpt != NONE);
-                
 
                 if (   root_node
                     && Threadpool.main_thread () == th)
@@ -1651,8 +1650,7 @@ namespace Searcher {
                 auto new_depth = i16(depth - (extension ? 0 : 1));
 
                 // Step 13. Pruning at shallow depth
-                if (   !InCheck
-                    && !root_node
+                if (   !root_node
                     //&& Limits.mate == 0
                     && best_value > -VALUE_MATE_IN_MAX_PLY)
                 {
@@ -2072,7 +2070,7 @@ namespace Threading {
 
     using namespace Searcher;
 
-    // Main iterative deepening loop function.
+    // Thread iterative deepening loop function.
     // It calls depth_search() repeatedly with increasing depth until
     // - the force stop requested.
     // - the allocated thinking time has been consumed.
@@ -2168,8 +2166,7 @@ namespace Threading {
                 }
             }
 
-            // Save the last iteration's scores before first PV line is searched and
-            // all the move scores but the (new) PV are set to -VALUE_INFINITE.
+            // Save the last iteration's values before first PV line is searched
             for (auto &rm : root_moves)
             {
                 rm.old_value = rm.new_value;
@@ -2382,7 +2379,7 @@ namespace Threading {
     void MainThread::search ()
     {
         static Book book; // Defined static to initialize the PRNG only once
-        assert(this == Threadpool.main_thread ());
+        assert(Threadpool.main_thread () == this);
 
         if (   !white_spaces (OutputFile)
             && OutputFile != Empty)

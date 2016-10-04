@@ -304,9 +304,9 @@ namespace EndGame {
 
         auto value = Value(PushClose[dist (sk_sq, wk_sq)]);
 
-        if (   rel_rank (~strong_color, wp_sq) != R_7
-            || dist (wk_sq, wp_sq) != 1
-            || ((FA_bb|FC_bb|FF_bb|FH_bb) & wp_sq) == 0)
+        if (   rel_rank (~strong_color, wp_sq) < R_7
+            || ((FA_bb|FC_bb|FF_bb|FH_bb) & wp_sq) == 0
+            || dist (wk_sq, wp_sq) != 1)
         {
             value += VALUE_EG_QUEN - VALUE_EG_PAWN;
         }
@@ -368,7 +368,6 @@ namespace EndGame {
         {
             return SCALE_DRAW;
         }
-
         // The defending side saves a draw by checking from behind in case the pawn
         // has advanced to the 6th rank with the king behind.
         if (   r == R_6
@@ -380,7 +379,7 @@ namespace EndGame {
         {
             return SCALE_DRAW;
         }
-
+        // 
         if (   r >= R_6
             && wk_sq == promote_sq
             && _rank (wr_sq) == R_1
@@ -402,7 +401,6 @@ namespace EndGame {
         {
             return SCALE_DRAW;
         }
-
         // If the defending king blocks the pawn and the attacking king is too far away, it's a draw.
         if (   r <= R_5
             && wk_sq == sp_sq+DEL_N
@@ -424,7 +422,6 @@ namespace EndGame {
             return Scale(SCALE_MAX
                             - 2 * dist (sk_sq, promote_sq));
         }
-
         // Similar to the above, but with the pawn further back
         if (   f != F_A
             && f == _file (sr_sq)
@@ -439,7 +436,6 @@ namespace EndGame {
                             - 8 * dist (sp_sq, promote_sq)
                             - 2 * dist (sk_sq, promote_sq));
         }
-
         // If the pawn is not far advanced, and the defending king is somewhere in
         // the pawn's path, it's probably a draw.
         if (r <= R_4 && wk_sq > sp_sq)
@@ -486,7 +482,6 @@ namespace EndGame {
                         || wk_sq != pos.square (strong_color, KING) + push*2) ?
                             Scale(24) : Scale(48);
             }
-
             // When the pawn has moved to the 6th rank can be fairly sure it's drawn
             // if the bishop attacks the square in front of the pawn from a reasonable distance
             // and the defending king is near the corner
@@ -641,7 +636,6 @@ namespace EndGame {
         {
             return SCALE_DRAW;
         }
-
         // Case 2: Opposite colored bishops
         if (opposite_colors (sb_sq, wb_sq))
         {
@@ -706,7 +700,6 @@ namespace EndGame {
             // Both pawns are on the same file. It's an easy draw if the defender firmly
             // controls some square in the frontmost pawn's path.
             case 0:
-            {
                 if (   _file (wk_sq) == _file (block1_sq)
                     && rel_rank (strong_color, wk_sq) >= rel_rank (strong_color, block1_sq)
                     && opposite_colors (wk_sq, sb_sq))
@@ -714,12 +707,10 @@ namespace EndGame {
                     return SCALE_DRAW;
                 }
                 break;
-            }
             // Pawns on adjacent files. It's a draw if the defender firmly controls the
             // square in front of the frontmost pawn's path, and the square diagonally
             // behind this square on the file of the other pawn.
             case 1:
-            {
                 if (opposite_colors (wk_sq, sb_sq))
                 {
                     if (   wk_sq == block1_sq
@@ -739,13 +730,10 @@ namespace EndGame {
                     }
                 }
                 break;
-            }
             // The pawns are not on the same file or adjacent files. No scaling.
-            default:
-                break;
             }
         }
-
+        
         return SCALE_NONE;
     }
 

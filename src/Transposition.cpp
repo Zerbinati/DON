@@ -19,7 +19,7 @@ namespace Transposition {
     static_assert (CacheLineSize % sizeof (Cluster) == 0, "Cluster size incorrect");
 
     // Alocate the aligned memory
-    void Table::_alloc_aligned_memory (size_t mem_size, u32 alignment)
+    void Table::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
         assert((alignment & (alignment-1)) == 0);
         assert((mem_size  & (alignment-1)) == 0);
@@ -48,7 +48,7 @@ namespace Transposition {
         // So storing address given by malloc just above pointer returning to user.
         // Thats why needed extra space to store that address.
         // Then checking for error returned by malloc, if it returns NULL then 
-        // _alloc_aligned_memory will fail and return NULL or exit().
+        // alloc_aligned_memory will fail and return NULL or exit().
 
         alignment = std::max (u32(sizeof (void *)), alignment);
 
@@ -66,7 +66,7 @@ namespace Transposition {
 
     }
     // Free the aligned memory
-    void Table::_free_aligned_memory ()
+    void Table::free_aligned_memory ()
     {
     #   if defined(LPAGES)
         Memory::free_memory (_blocks);
@@ -116,9 +116,9 @@ namespace Transposition {
         if (   force
             || cluster_count != _cluster_count)
         {
-            _free_aligned_memory ();
+            free_aligned_memory ();
 
-            _alloc_aligned_memory (mem_size, CacheLineSize);
+            alloc_aligned_memory (mem_size, CacheLineSize);
 
             if (_clusters == nullptr)
             {
@@ -140,7 +140,7 @@ namespace Transposition {
         {
             mem_size_mb = MaxHashSize;
         }
-        u32 msize_mb = mem_size_mb;
+        auto msize_mb = mem_size_mb;
         while (msize_mb >= MinHashSize)
         {
             if (resize (msize_mb, force) != 0)

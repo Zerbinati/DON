@@ -129,9 +129,9 @@ public:
     Bitboard pieces (PieceType p1, PieceType p2) const;
     Bitboard pieces (Color c, PieceType p1, PieceType p2) const;
 
-    template<PieceType PT> i32 count  () const;
-    template<PieceType PT> i32 count  (Color c) const;
-    i32 count  (Color c, PieceType pt) const;
+    template<PieceType PT> i32 count () const;
+    template<PieceType PT> i32 count (Color c) const;
+    i32 count (Color c, PieceType pt) const;
 
     Square square (Color c, PieceType pt, i08 index = 0) const;
 
@@ -189,7 +189,7 @@ public:
     explicit operator std::string () const;
 
 #if !defined(NDEBUG)
-    bool ok (i08 *failed_step = nullptr) const;
+    bool ok (u08 *failed_step = nullptr) const;
 #endif
 
 };
