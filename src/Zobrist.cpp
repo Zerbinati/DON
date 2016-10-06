@@ -17,7 +17,7 @@ namespace Zobrists {
             {
                 for (auto pc = 0; pc < pos.count (c, pt); ++pc)
                 {
-                    matl_key ^= piece_square_key[c][pt][pc];
+                    matl_key ^= piece_square_keys[c][pt][pc];
                 }
             }
         }
@@ -31,7 +31,7 @@ namespace Zobrists {
         {
             for (auto s : pos.squares[c][PAWN])
             {
-                pawn_key ^= piece_square_key[c][PAWN][s];
+                pawn_key ^= piece_square_keys[c][PAWN][s];
             }
         }
         return pawn_key;
@@ -46,18 +46,18 @@ namespace Zobrists {
             {
                 for (auto s : pos.squares[c][pt])
                 {
-                    posi_key ^= piece_square_key[c][pt][s];
+                    posi_key ^= piece_square_keys[c][pt][s];
                 }
             }
         }
         Bitboard b = pos.si->castle_rights;
         while (b != 0)
         {
-            posi_key ^= (*castle_right_key)[pop_lsq (b)];
+            posi_key ^= (*castle_right_keys)[pop_lsq (b)];
         }
         if (pos.si->en_passant_sq != SQ_NO)
         {
-            posi_key ^= en_passant_key[_file (pos.si->en_passant_sq)];
+            posi_key ^= en_passant_keys[_file (pos.si->en_passant_sq)];
         }
         if (pos.active == WHITE)
         {
@@ -96,7 +96,7 @@ namespace Zobrists {
     //            {
     //                kf[color (p)] = f;
     //            }
-    //            fen_key ^= piece_square_key[color (p)][ptype (p)][(f|r)];
+    //            fen_key ^= piece_square_keys[color (p)][ptype (p)][(f|r)];
     //            ++f;
     //        }
     //        else
@@ -124,18 +124,18 @@ namespace Zobrists {
     //        token = char(tolower (token));
     //        if (token == 'k')
     //        {
-    //            fen_key ^= castle_right_key[c][CS_KING];
+    //            fen_key ^= castle_right_keys[c][CS_KING];
     //        }
     //        else
     //        if (token == 'q')
     //        {
-    //            fen_key ^= castle_right_key[c][CS_QUEN];
+    //            fen_key ^= castle_right_keys[c][CS_QUEN];
     //        }
     //        else
     //        // Chess960
     //        if ('a' <= token && token <= 'h')
     //        {
-    //            fen_key ^= castle_right_key[c][kf[c] < to_file (token) ? CS_KING : CS_QUEN];
+    //            fen_key ^= castle_right_keys[c][kf[c] < to_file (token) ? CS_KING : CS_QUEN];
     //        }
     //        else
     //        {
@@ -148,7 +148,7 @@ namespace Zobrists {
     //    if (   (iss >> file && ('a' <= file && file <= 'h'))
     //        && (iss >> rank && ('3' == rank || rank == '6')))
     //    {
-    //        fen_key ^= en_passant_key[to_file (file)];
+    //        fen_key ^= en_passant_keys[to_file (file)];
     //    }
     //
     //    return fen_key;
@@ -167,19 +167,19 @@ namespace Zobrists {
             {
                 for (auto s = SQ_A1; s <= SQ_H8; ++s)
                 {
-                    Zob.piece_square_key[c][pt][s] = prng.rand<Key> ();
+                    Zob.piece_square_keys[c][pt][s] = prng.rand<Key> ();
                 }
             }
         }
         for (auto f = F_A; f <= F_H; ++f)
         {
-            Zob.en_passant_key[f] = prng.rand<Key> ();
+            Zob.en_passant_keys[f] = prng.rand<Key> ();
         }
         for (auto c = WHITE; c <= BLACK; ++c)
         {
             for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
             {
-                Zob.castle_right_key[c][cs] = prng.rand<Key> ();
+                Zob.castle_right_keys[c][cs] = prng.rand<Key> ();
             }
         }
         Zob.color_key = prng.rand<Key> ();

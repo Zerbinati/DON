@@ -261,11 +261,11 @@ inline Key Position::move_posi_key (Move m) const
     auto cpt = en_passant (m) ? PAWN : ptype (board[dst]);
     Key key = si->posi_key
         ^ Zob.color_key
-        ^ Zob.piece_square_key[active][ppt][dst]
-        ^ Zob.piece_square_key[active][mpt][org];
+        ^ Zob.piece_square_keys[active][ppt][dst]
+        ^ Zob.piece_square_keys[active][mpt][org];
     if (cpt != NONE)
     {
-        key ^= Zob.piece_square_key[~active][cpt][en_passant (m) ? dst - pawn_push (active) : dst];
+        key ^= Zob.piece_square_keys[~active][cpt][en_passant (m) ? dst - pawn_push (active) : dst];
     }
     return key;
 }

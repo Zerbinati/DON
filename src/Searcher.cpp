@@ -1399,7 +1399,7 @@ namespace Searcher {
                         // Speculative prefetch as early as possible
                         prefetch (TT.cluster_entry (  pos.si->posi_key
                                                     ^ Zob.color_key
-                                                    ^ (pos.si->en_passant_sq != SQ_NO ? Zob.en_passant_key[_file (pos.si->en_passant_sq)] : 0)));
+                                                    ^ (pos.si->en_passant_sq != SQ_NO ? Zob.en_passant_keys[_file (pos.si->en_passant_sq)] : 0)));
 
                         pos.do_null_move (si);
                         (ss+1)->skip_pruning = true;

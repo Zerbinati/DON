@@ -845,18 +845,18 @@ Position& Position::setup (const string &code, StateInfo &nsi, Color c)
 
 #undef do_capture
 
-#define do_capture()                                                       \
-    remove_piece (cap);                                                    \
-    if (cpt == PAWN)                                                       \
-    {                                                                      \
-        si->pawn_key ^= Zob.piece_square_key[pasive][cpt][cap];            \
-    }                                                                      \
-    else                                                                   \
-    {                                                                      \
-        si->non_pawn_matl[pasive] -= PieceValues[MG][cpt];                 \
-    }                                                                      \
-    si->matl_key ^= Zob.piece_square_key[pasive][cpt][count (pasive, cpt)];\
-    key ^= Zob.piece_square_key[pasive][cpt][cap];                         \
+#define do_capture()                                                        \
+    remove_piece (cap);                                                     \
+    if (cpt == PAWN)                                                        \
+    {                                                                       \
+        si->pawn_key ^= Zob.piece_square_keys[pasive][cpt][cap];            \
+    }                                                                       \
+    else                                                                    \
+    {                                                                       \
+        si->non_pawn_matl[pasive] -= PieceValues[MG][cpt];                  \
+    }                                                                       \
+    si->matl_key ^= Zob.piece_square_keys[pasive][cpt][count (pasive, cpt)];\
+    key ^= Zob.piece_square_keys[pasive][cpt][cap];                         \
     si->psq_score -= PSQ[pasive][cpt][cap];
 
 // Do the natural-move
@@ -920,8 +920,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         if (mpt == PAWN)
         {
             si->pawn_key ^=
-                 Zob.piece_square_key[active][mpt][dst]
-                ^Zob.piece_square_key[active][mpt][org];
+                 Zob.piece_square_keys[active][mpt][dst]
+                ^Zob.piece_square_keys[active][mpt][org];
         }
     }
         break;
@@ -936,8 +936,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         do_castling<true> (org, dst, rook_org, rook_dst);
 
         key ^=
-             Zob.piece_square_key[active][ROOK][rook_dst]
-            ^Zob.piece_square_key[active][ROOK][rook_org];
+             Zob.piece_square_keys[active][ROOK][rook_dst]
+            ^Zob.piece_square_keys[active][ROOK][rook_org];
 
         si->psq_score +=
              PSQ[active][ROOK][rook_dst]
@@ -968,8 +968,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         move_piece (org, dst);
 
         si->pawn_key ^=
-             Zob.piece_square_key[active][mpt][dst]
-            ^Zob.piece_square_key[active][mpt][org];
+             Zob.piece_square_keys[active][mpt][dst]
+            ^Zob.piece_square_keys[active][mpt][org];
     }
         break;
 
@@ -995,11 +995,11 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         place_piece (dst, active, ppt);
 
         si->matl_key ^=
-             Zob.piece_square_key[active][mpt][count (active, mpt)]
-            ^Zob.piece_square_key[active][ppt][count (active, ppt) - 1];
+             Zob.piece_square_keys[active][mpt][count (active, mpt)]
+            ^Zob.piece_square_keys[active][ppt][count (active, ppt) - 1];
 
         si->pawn_key ^=
-             Zob.piece_square_key[active][mpt][org];
+             Zob.piece_square_keys[active][mpt][org];
 
         si->non_pawn_matl[active] += PieceValues[MG][ppt];
     }
@@ -1007,8 +1007,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     }
 
     key ^=
-         Zob.piece_square_key[active][ppt][dst]
-        ^Zob.piece_square_key[active][mpt][org];
+         Zob.piece_square_keys[active][ppt][dst]
+        ^Zob.piece_square_keys[active][mpt][org];
 
     si->psq_score +=
          PSQ[active][ppt][dst]
@@ -1023,7 +1023,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         Bitboard b = si->castle_rights & cr;
         while (b != 0)
         {
-            key ^= (*Zob.castle_right_key)[pop_lsq (b)];
+            key ^= (*Zob.castle_right_keys)[pop_lsq (b)];
         }
         si->castle_rights &= ~cr;
     }
@@ -1039,7 +1039,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     // Reset en-passant square
     if (si->en_passant_sq != SQ_NO)
     {
-        key ^= Zob.en_passant_key[_file (si->en_passant_sq)];
+        key ^= Zob.en_passant_keys[_file (si->en_passant_sq)];
         si->en_passant_sq = SQ_NO;
     }
     // If the moving piece is a pawn check for en-passant square
@@ -1052,7 +1052,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             if (can_en_passant (ep_sq))
             {
                 si->en_passant_sq = ep_sq;
-                key ^= Zob.en_passant_key[_file (ep_sq)];
+                key ^= Zob.en_passant_keys[_file (ep_sq)];
             }
         }
     }
@@ -1156,7 +1156,7 @@ void Position::do_null_move (StateInfo &nsi)
 
     if (si->en_passant_sq != SQ_NO)
     {
-        si->posi_key ^= Zob.en_passant_key[_file (si->en_passant_sq)];
+        si->posi_key ^= Zob.en_passant_keys[_file (si->en_passant_sq)];
         si->en_passant_sq = SQ_NO;
     }
     active = ~active;
