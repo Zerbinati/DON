@@ -517,13 +517,30 @@ inline Delta pawn_push (Color c)
     return c == WHITE ? DEL_N : DEL_S;
 }
 
-inline CastleRight mk_castle_right (Color c)                { return CastleRight(CR_WHITE << ((c << 1))); }
-inline CastleRight mk_castle_right (Color c, CastleSide cs) { return CastleRight(CR_WKING << ((c << 1) + cs)); }
+inline CastleRight castle_right (Color c)
+{
+    //return CastleRight(CR_WHITE << ((c << 1)));
+    return
+        c == WHITE ?
+            CR_WHITE : CR_BLACK;
+}
+inline CastleRight castle_right (Color c, CastleSide cs)
+{
+    //return CastleRight(CR_WKING << ((c << 1) + cs));
+    return
+        c == WHITE ?
+            cs == CS_KING ? CR_WKING : CR_WQUEN :
+            cs == CS_KING ? CR_BKING : CR_BQUEN;
+}
 
 template<Color C, CastleSide CS>
 struct Castling
 {
-    static const CastleRight Right = CastleRight(CR_WKING << ((C << 1) + CS));
+    //static const CastleRight Right = CastleRight(CR_WKING << ((C << 1) + CS));
+    static const CastleRight Right =
+        C == WHITE ?
+            CS == CS_KING ? CR_WKING : CR_WQUEN :
+            CS == CS_KING ? CR_BKING : CR_BQUEN;
 };
 
 inline Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }

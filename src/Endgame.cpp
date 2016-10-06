@@ -733,7 +733,7 @@ namespace EndGame {
             // The pawns are not on the same file or adjacent files. No scaling.
             }
         }
-        
+
         return SCALE_NONE;
     }
 

@@ -236,7 +236,7 @@ namespace MoveGen {
 
             auto king_org = pos.square (Own, KING);
             auto rook_org = pos.castle_rook[CR];
-            assert(ptype (pos[rook_org]) == ROOK);
+            assert(pos[rook_org] == (Own|ROOK));
 
             Bitboard b = pos.king_path[CR];
             // Check king's path for attackers
@@ -421,52 +421,53 @@ namespace MoveGen {
     {
         assert(pos.si->checkers != 0);
         moves.clear ();
-        auto check_sq = SQ_NO;
+        auto checker_sq = SQ_NO;
         Bitboard checker_attacks = 0;
         Bitboard jumpers = pos.si->checkers & pos.pieces (NIHT);
         if (jumpers != 0)
         {
-            check_sq = scan_lsq (jumpers);
-            checker_attacks |= PieceAttacks[NIHT][check_sq];
+            checker_sq = scan_lsq (jumpers);
+            checker_attacks |= PieceAttacks[NIHT][checker_sq];
         }
+        auto fk_sq = pos.square (pos.active, KING);
+        Bitboard mocc = pos.pieces () - fk_sq;
         Bitboard sliders = pos.si->checkers & ~(pos.pieces (PAWN) | jumpers);
         // Squares attacked by slider checkers will remove them from the king evasions
         // so to skip known illegal moves avoiding useless legality check later.
         while (sliders != 0)
         {
-            check_sq = pop_lsq (sliders);
-            assert(color (pos[check_sq]) == ~pos.active);
-            Bitboard attacks = 0;
-            switch (ptype (pos[check_sq]))
+            checker_sq = pop_lsq (sliders);
+            assert(color (pos[checker_sq]) == ~pos.active);
+            switch (ptype (pos[checker_sq]))
             {
-            case BSHP: attacks = attacks_bb<BSHP> (check_sq, pos.pieces ()); break;
-            case ROOK: attacks = attacks_bb<ROOK> (check_sq, pos.pieces ()); break;
-            case QUEN: attacks = attacks_bb<QUEN> (check_sq, pos.pieces ()); break;
+            case BSHP: checker_attacks |= attacks_bb<BSHP> (checker_sq, mocc); break;
+            case ROOK: checker_attacks |= attacks_bb<ROOK> (checker_sq, mocc); break;
+            case QUEN: checker_attacks |= attacks_bb<QUEN> (checker_sq, mocc); break;
             default: assert(false); break;
             }
-            checker_attacks |= (attacks | strline_bb (check_sq, pos.square (pos.active, KING))) - check_sq;
         }
 
         // Generate evasions for king, capture and non capture moves
         Bitboard attacks =
-              PieceAttacks[KING][pos.square (pos.active, KING)]
+              PieceAttacks[KING][fk_sq]
             & ~(  checker_attacks
                 | pos.pieces (pos.active)
                 | PieceAttacks[KING][pos.square (~pos.active, KING)]);
-        while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (pos.square (pos.active, KING), pop_lsq (attacks)))); }
+        while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (fk_sq, pop_lsq (attacks)))); }
 
-        // If double-check, then only a king move can save the day, triple+ check not possible
+        // If double-check or only king, then only king move can save the day
         if (   more_than_one (pos.si->checkers)
             || pos.count<NONE> (pos.active) == 1)
         {
             return;
         }
-        if (check_sq == SQ_NO)
-        {
-            check_sq = scan_lsq (pos.si->checkers);
-        }
+
         // Generates blocking or captures of the checking piece
-        Bitboard targets = between_bb (check_sq, pos.square (pos.active, KING)) + check_sq;
+
+        Bitboard targets = 
+            checker_sq == SQ_NO ?
+                square_bb (scan_lsq (pos.si->checkers)) : // Pawn checker
+                between_bb (checker_sq, fk_sq) + checker_sq;
 
         pos.active == WHITE ?
             generate_moves<EVASION, WHITE> (moves, pos, targets) :

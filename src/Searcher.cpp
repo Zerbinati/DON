@@ -289,9 +289,7 @@ template<> void MovePicker::value<QUIET> ()
             + ((_ss-4)->cm_history != nullptr ? (*(_ss-4)->cm_history)(_pos[org_sq (vm.move)], vm.move) : VALUE_ZERO);
     }
 }
-// Good captures, ordered by SEE value, then
-// Quiet moves, ordered by history values, then
-// Bad captures, ordered by SEE value.
+// First captures ordered by MVV/LVA, then non-captures ordered by history value
 template<> void MovePicker::value<EVASION> ()
 {
     for (auto &vm : _moves)
@@ -301,8 +299,10 @@ template<> void MovePicker::value<EVASION> ()
         
         if (_pos.capture (vm.move))
         {
-            auto see_value = _pos.see_sign (vm.move);
-            vm.value = see_value + (see_value < VALUE_ZERO ? -1 : +1)*MaxValue;
+            vm.value =
+                  PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                - Value(ptype (_pos[org_sq (vm.move)]) + 1)
+                + MaxValue;
         }
         else
         {
@@ -1925,6 +1925,11 @@ namespace Searcher {
                     quiet_moves.push_back (move);
                 }
             }
+
+            assert(!InCheck
+                || move_count != 0
+                || exclude_move != MOVE_NONE
+                || MoveList<LEGAL> (pos).size () == 0);
 
             // Step 20. Check for checkmate and stalemate
             // If all possible moves have been searched and if there are no legal moves,

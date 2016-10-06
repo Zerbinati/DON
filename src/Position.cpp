@@ -284,14 +284,14 @@ bool Position::pseudo_legal (Move m) const
               && rel_rank (active, dst) == R_1
               && board[dst] == (active|ROOK)
               && si->checkers == 0
-              && (si->castle_rights & mk_castle_right (active, dst > org ? CS_KING : CS_QUEN)) != CR_NONE
-              && !impeded_castle (mk_castle_right (active, dst > org ? CS_KING : CS_QUEN))))
+              && (si->castle_rights & castle_right (active, dst > org ? CS_KING : CS_QUEN)) != CR_NONE
+              && !impeded_castle (castle_right (active, dst > org ? CS_KING : CS_QUEN))))
         {
             return false;
         }
         // Castle is always encoded as "King captures friendly Rook"
-        assert(dst == castle_rook[mk_castle_right (active, dst > org ? CS_KING : CS_QUEN)]);
-        Bitboard b = king_path[mk_castle_right (active, dst > org ? CS_KING : CS_QUEN)];
+        assert(dst == castle_rook[castle_right (active, dst > org ? CS_KING : CS_QUEN)]);
+        Bitboard b = king_path[castle_right (active, dst > org ? CS_KING : CS_QUEN)];
         // Check king's path for attackers
         while (b != 0)
         {
@@ -597,7 +597,7 @@ void Position::set_castle (Color c, Square rook_org)
     auto king_org = square (c, KING);
     assert(king_org != rook_org);
 
-    auto cr = mk_castle_right (c, rook_org > king_org ? CS_KING : CS_QUEN);
+    auto cr = castle_right (c, rook_org > king_org ? CS_KING : CS_QUEN);
     auto king_dst = rel_sq (c, rook_org > king_org ? SQ_G1 : SQ_C1);
     auto rook_dst = rel_sq (c, rook_org > king_org ? SQ_F1 : SQ_D1);
 
@@ -1473,7 +1473,7 @@ bool Position::ok (u08 *failed_step) const
             {
                 for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
                 {
-                    auto cr = mk_castle_right (c, cs);
+                    auto cr = castle_right (c, cs);
                     if (   can_castle (cr) != CR_NONE
                         && (   board[castle_rook[cr]] != (c|ROOK)
                             || castle_mask[castle_rook[cr]] != cr

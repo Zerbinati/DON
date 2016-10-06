@@ -67,10 +67,10 @@ namespace Pawns {
         const Score Isolated[2]     = { S(45,40), S(30,27) };
         // Backward pawn penalty indexed by [opposed]
         const Score Backward[2]     = { S(56,33), S(41,19) };
-        // Unsupported pawn penalty indexed by number of pawns it supports [0, 1, 2].
-        const Score Unsupported[3]  = { S(17, 8), S(18, 9), S(21,12) };
         // Levered pawn bonus indexed by [rank]
         const Score Levered[R_NO]   = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
+        // Unsupported pawn penalty
+        const Score Unsupported     = S(17,  8);
         // Blocked pawn penalty
         const Score Blocked         = S(18, 38);
         // Unstopped pawn bonus for pawns going to promote
@@ -158,8 +158,7 @@ namespace Pawns {
                 else
                 if (supporters == 0)
                 {
-                    b = neighbours & PawnAttacks[Own][s];
-                    score -= Unsupported[b != 0 ? more_than_one (b) ? 2 : 1 : 0];
+                    score -= Unsupported;
                 }
 
                 if (connected)
@@ -257,10 +256,12 @@ namespace Pawns {
         e->score =
             + evaluate<WHITE> (pos, e)
             - evaluate<BLACK> (pos, e);
-        e->asymmetry    = u08(pop_count (  e->semiopens[WHITE]
-                                         ^ e->semiopens[BLACK]));
-        e->open_count   = u08(pop_count (  e->semiopens[WHITE]
-                                         & e->semiopens[BLACK]));
+        e->asymmetry =
+            u08(pop_count (  e->semiopens[WHITE]
+                           ^ e->semiopens[BLACK]));
+        e->open_count =
+            u08(pop_count (  e->semiopens[WHITE]
+                           & e->semiopens[BLACK]));
         e->key = pawn_key;
         e->used = true;
         return e;

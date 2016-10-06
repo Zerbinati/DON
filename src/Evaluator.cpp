@@ -560,8 +560,8 @@ namespace Evaluator {
                     + 101 * (ei.king_zone_attacks_count[Opp])
                     + 235 * (pop_count (king_zone_undef))
                     + 134 * (pop_count (king_ring_undef))
-                    + 134 * ((  ei.abs_pinneds [Own]
-                              | ei.dsc_checkers[Opp]) != 0 ? 1 : 0)
+                    + 134 * (ei.abs_pinneds [Own] != 0 ? 1 : 0)
+                    //+ 134 * (ei.dsc_checkers[Opp] != 0 ? 1 : 0)
                     - 717 * (pos.count<QUEN>(Opp) == 0)
                     -   7 * i32(value) / 5
                     -   5;

@@ -270,7 +270,7 @@ inline Key Position::move_posi_key (Move m) const
     return key;
 }
 
-inline CastleRight Position::can_castle (Color c) const { return si->castle_rights & mk_castle_right (c); }
+inline CastleRight Position::can_castle (Color c) const { return si->castle_rights & castle_right (c); }
 inline CastleRight Position::can_castle (CastleRight cr) const { return si->castle_rights & cr; }
 
 inline bool Position::impeded_castle (CastleRight cr) const { return (castle_path[cr] & pieces ()) != 0; }
