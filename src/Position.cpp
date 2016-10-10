@@ -104,140 +104,140 @@ template<> PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitbo
 }
 
 // Static Exchange Evaluator (SEE): It tries to estimate the material gain or loss resulting from a move.
-Value Position::see (Move m) const
+bool Position::see_ge (Move m, Value v) const
 {
     assert(_ok (m));
     if (mtype (m) == CASTLE)
     {
-        // Castle moves are implemented as king capturing the rook so cannot be
-        // handled correctly. Simply return 0 that is always the correct value
-        // unless in the rare case the rook ends up under attack.
-        return VALUE_ZERO;
+        // Castle moves are implemented as king capturing the rook so cannot be handled correctly.
+        // Simply assume the SEE value is VALUE_ZERO that is always correct unless in the rare case the rook ends up under attack.
+        return VALUE_ZERO >= v;
     }
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     assert(!empty (org));
 
-    vector<Value> gain_values;
-    gain_values.reserve (8);
+    Value balance; // Values of the pieces taken by own's minus opp's
 
+    auto c = color (board[org]);
     Bitboard mocc;
-
     if (mtype (m) == ENPASSANT)
     {
-        assert(board[org] == (active|PAWN));
-        mocc = pieces () - org - (dst - pawn_push (active));
-        gain_values.push_back (PieceValues[MG][PAWN]);
+        assert(board[org] == (c|PAWN));
+        mocc = square_bb (dst - pawn_push (c));
+        balance = PieceValues[MG][PAWN];
     }
     else
     {
         assert(board[org] != NO_PIECE);
-        mocc = pieces () - org;
-        gain_values.push_back (PieceValues[MG][ptype (board[dst])]);
+        mocc = 0;
+        balance = PieceValues[MG][ptype (board[dst])];
     }
 
+    if (balance < v)
+    {
+        return false;
+    }
+
+    // The first victim
+    auto victim = ptype (board[org]);
+    if (victim == KING)
+    {
+        return true;
+    }
+
+    balance -= PieceValues[MG][victim];
+    if (balance >= v)
+    {
+        return true;
+    }
+
+    bool rel_profit = true; // True if the opponent is to move
+    mocc ^= pieces () ^ org ^ dst;
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, mocc) & mocc;
-    // For the case when captured piece is a pinner
-    mocc -= dst;
-    // The first victim
-    auto victim = ptype (board[org]);
-    auto c = ~color (board[org]);
-    Bitboard c_attackers = attackers & pieces (c);
-    // Don't allow pinned pieces to attack pieces except the king as long all pinners are on their original square.
-    if (   c_attackers != 0
-        && (si->pinners[c] & ~mocc) == 0)
+    Bitboard c_attackers;
+    while (attackers != 0)
     {
-        assert(victim != KING);
-        c_attackers &= ~abs_pinneds (c);
-    }
-
-    // The destination square is defended, which makes things rather more difficult to compute.
-    // Proceed by building up a "gain list" containing the material gain or loss at each stop in
-    // a sequence of captures to the destination square, where the sides alternately capture,
-    // and always capture with the least valuable piece.
-    // After each capture, look for new X-ray attacks from behind the capturing piece.
-    while (c_attackers != 0)
-    {
-        assert(gain_values.size () < 32);
-
-        // Add the new entry to the swap list
-        gain_values.push_back (PieceValues[MG][victim] - gain_values[gain_values.size () - 1]);
-        // Locate and remove the next least valuable attacker
-        victim = pick_least_val_att<PAWN> (dst, c_attackers, mocc, attackers);
         c = ~c;
         c_attackers = attackers & pieces (c);
 
-        if (victim != KING)
+        // Don't allow pinned pieces to attack pieces except the king
+        // as long all pinners are on their original square.
+        // for resolving Bxf2 on fen: r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1
+        if (   c_attackers != 0
+            && abs_checkers (~c) != 0
+            && (abs_checkers (~c) & ~mocc) == 0)
         {
-            // for resolving Bxf2 on fen: r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1
-            if (   c_attackers != 0
-                && (si->pinners[c] & ~mocc) == 0)
-            {
-                c_attackers &= ~abs_pinneds (c);
-            }
+            c_attackers &= ~si->king_blockers[c];
         }
-        else
-        {
-            if (c_attackers != 0)
-            {
-                // Stop before a king capture
-                gain_values.pop_back ();
-                break;
-            }
-        }
-    }
-    // Having built the gain list, negamax through it to find the best
-    // achievable score from the point of view of the side to move.
-    auto depth = i08(gain_values.size () - 1);
-    while (depth != 0)
-    {
-        // Find minimum gain
-        if (gain_values[depth - 1] > -gain_values[depth])
-        {
-            gain_values[depth - 1] = -gain_values[depth];
-        }
-        --depth;
-    }
+        //// If move is a discovered check, the only possible defensive capture on
+        //// the destination square is a capture by the king to evade the check.
+        //if (victim != PAWN // TODO:: pawn is should not be in discover check
+        //    && c_attackers != 0
+        //    && (si->king_blockers[c] & org) != 0)
+        //{
+        //    c_attackers &= pieces (KING);
+        //}
 
-    return gain_values[0];
+        if (c_attackers == 0)
+        {
+            return rel_profit;
+        }
+
+        // Locate and remove the next least valuable attacker
+        victim = pick_least_val_att<PAWN> (dst, c_attackers, mocc, attackers);
+        if (victim == KING)
+        {
+            return rel_profit == ((attackers & pieces (~c)) != 0);
+        }
+
+        balance +=
+            rel_profit ?
+                +PieceValues[MG][victim] :
+                -PieceValues[MG][victim];
+
+        rel_profit = !rel_profit;
+        if (rel_profit == (balance >= v))
+        {
+            return rel_profit;
+        }
+    }
+    return rel_profit;
 }
-// Sign of SSE
-Value Position::see_sign (Move m) const
-{
-    assert(_ok (m));
-    // If SEE cannot be negative because captured piece value is not less then capturing one.
-    // Note that king moves always return here because king value is set to VALUE_ZERO.
-    return PieceValues[MG][ptype (board[org_sq (m)])]
-        <= PieceValues[MG][ptype (board[dst_sq (m)])] ?
-            VALUE_KNOWN_WIN :
-            see (m);
-}
+
 // Returns a bitboard of all the pieces that are blocking attacks on the square 's' from sliders in 'attackers'.
 // A piece blocks a slider if removing that piece from the board would result in a position where square 's' is attacked by the sliders in 'attackers'.
-// For example, a king-attack blocking piece can be either a pinned or a discovered check piece,
-// according if its color is the opposite or the same of the color of the slider.
-Bitboard Position::slider_blockers (Square s, Bitboard defenders, Bitboard attackers, Bitboard &pinners) const
+// For example, a king-attack blocking piece can be either absolute or discovered blocked piece,
+// according if its color is the opposite or the same of the color of the sliders in 'attackers'.
+Bitboard Position::slider_blockers (Square s, Bitboard defenders, Bitboard attackers, Bitboard &pinners, Bitboard &discovers) const
 {
-    Bitboard blockers = pinners = 0;
+    Bitboard blockers = 0;
     // Snipers are attackers that are aligned on 's' in x-ray
     Bitboard snipers =
           attackers
         & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
            | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
+    Bitboard hurdle = (defenders | (attackers & ~snipers));
     while (snipers != 0)
     {
         auto sniper_sq = pop_lsq (snipers);
-        Bitboard b = pieces () & between_bb (s, sniper_sq);
+        Bitboard b = hurdle & between_bb (s, sniper_sq);
         if (   b != 0
             && !more_than_one (b))
         {
             blockers |= b;
+            
             if ((b & defenders) != 0)
             {
                 pinners += sniper_sq;
+            }
+            else
+            if ((b & attackers) != 0)
+            {
+                discovers += sniper_sq;
             }
         }
     }
@@ -451,7 +451,7 @@ bool Position::legal (Move m) const
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
-        return (abs_pinneds (active) & org) == 0
+        return (abs_blockers (active) & org) == 0
             || sqrs_aligned (org, dst, square (active, KING));
     }
         break;
@@ -498,7 +498,7 @@ bool Position::gives_check  (Move m) const
     if (    // Direct check ?
            (si->checks[ptype (board[org])] & dst) != 0
             // Discovered check ?
-        || (   (si->check_blockers[~active] & org) != 0
+        || (   (si->king_blockers[~active] & org) != 0
             && !sqrs_aligned (org, dst, square (~active, KING))))
     {
         return true;

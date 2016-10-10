@@ -35,7 +35,7 @@ namespace Notation {
             // note that for pawns is not needed because starting file is explicit.
 
             Bitboard amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active, ptype (pos[org]))) - org;
-            Bitboard pcs = amb; // & ~pos.abs_pinneds (pos.active); // If pinned piece is considered as ambiguous
+            Bitboard pcs = amb; // & ~pos.abs_blockers (pos.active); // If pinned piece is considered as ambiguous
             while (pcs != 0)
             {
                 auto sq = pop_lsq (pcs);

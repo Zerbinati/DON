@@ -84,8 +84,8 @@ namespace Evaluator {
 
                 auto fk_sq = pos.square (Own, KING);
 
-                abs_pinneds [Own] = pos.abs_pinneds (Own);
-                dsc_checkers[Own] = pos.dsc_checkers (Own);
+                abs_blockers[Own] = pos.abs_blockers (Own);
+                dsc_blockers[Own] = pos.dsc_blockers (Own);
 
                 for (auto pt = PAWN; pt <= NONE; ++pt)
                 {
@@ -95,7 +95,7 @@ namespace Evaluator {
 
                 ful_attacked_by[Own][NONE] |=
                 ful_attacked_by[Own][PAWN]  = pe->attacks[Own];
-                Bitboard pinned_pawns = abs_pinneds[Own] & pos.pieces (Own, PAWN);
+                Bitboard pinned_pawns = abs_blockers[Own] & pos.pieces (Own, PAWN);
                 if (pinned_pawns != 0)
                 {
                     Bitboard loosed_pawns = ~pinned_pawns & pos.pieces (Own, PAWN);
@@ -134,10 +134,10 @@ namespace Evaluator {
             Pawns   ::Entry *const &pe = nullptr;
             Material::Entry *const &me = nullptr;
 
-            // Contains the absolute pinneds pieces.
-            Bitboard abs_pinneds [CLR_NO];
-            // Contains the discovered checkers pieces.
-            Bitboard dsc_checkers[CLR_NO];
+            // Contains the absolute blockers pieces.
+            Bitboard abs_blockers [CLR_NO];
+            // Contains the discover blockers pieces.
+            Bitboard dsc_blockers[CLR_NO];
 
             // Contains all squares attacked by the given color and piece type.
             Bitboard ful_attacked_by[CLR_NO][MAX_PTYPE];
@@ -345,16 +345,16 @@ namespace Evaluator {
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 ful_attacks =
-                    PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.abs_pinneds[Own]) :
-                    PT == ROOK ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.abs_pinneds[Own]) :
-                    PT == QUEN ? attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, QUEN      )) | ei.abs_pinneds[Own]) :
+                    PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.abs_blockers[Own]) :
+                    PT == ROOK ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.abs_blockers[Own]) :
+                    PT == QUEN ? attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, QUEN      )) | ei.abs_blockers[Own]) :
                                  PieceAttacks[NIHT][s];
 
                 ei.ful_attacked_by[Own][NONE] |=
                 ei.ful_attacked_by[Own][PT]   |= ful_attacks;
 
                 pin_attacks = ful_attacks;
-                if ((ei.abs_pinneds[Own] & s) != 0)
+                if ((ei.abs_blockers[Own] & s) != 0)
                 {
                     pin_attacks &= strline_bb (pos.square (Own, KING), s);
                 }
@@ -478,8 +478,8 @@ namespace Evaluator {
                 if (PT == QUEN)
                 {
                     // Penalty for pin or discover attack on the queen
-                    Bitboard pinners;
-                    if (pos.slider_blockers (s, pos.pieces (Own), pos.pieces (Opp, BSHP, ROOK), pinners) != 0)
+                    Bitboard pinners = 0, discovers = 0;
+                    if (pos.slider_blockers (s, pos.pieces (Own), pos.pieces (Opp) & ~pos.pieces (Opp, QUEN), pinners, discovers) != 0)
                     {
                         score -= QueenWeaken;
                     }
@@ -560,8 +560,8 @@ namespace Evaluator {
                     + 101 * (ei.king_zone_attacks_count[Opp])
                     + 235 * (pop_count (king_zone_undef))
                     + 134 * (pop_count (king_ring_undef))
-                    + 134 * (ei.abs_pinneds [Own] != 0 ? 1 : 0)
-                    //+ 134 * (ei.dsc_checkers[Opp] != 0 ? 1 : 0)
+                    + 134 * (ei.abs_blockers [Own] != 0 ? 1 : 0)
+                    //+ 134 * (ei.dsc_blockers[Opp] != 0 ? 1 : 0)
                     - 717 * (pos.count<QUEN>(Opp) == 0)
                     -   7 * i32(value) / 5
                     -   5;
@@ -774,7 +774,7 @@ namespace Evaluator {
             // Bonus if some friend pawns safely push can attack an enemy piece
             b =   pos.pieces (Own, PAWN)
                 & ~Rank7BB
-                & ~ei.abs_pinneds[Own];
+                & ~ei.abs_blockers[Own];
             // Friend pawns push
             b =   shift<Push> (b | (  shift<Push> (b & Rank2BB)
                                     & ~pos.pieces ()))

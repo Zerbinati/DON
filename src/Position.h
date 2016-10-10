@@ -46,8 +46,8 @@ public:
     Bitboard    checkers;       // Checkers.
 
     // Check info
-    Bitboard check_blockers[CLR_NO];// Pins and Discover Checkers
-    Bitboard pinners[CLR_NO];    // x-ray Checkers
+    Bitboard king_blockers[CLR_NO];// Absolute and Discover Blockers
+    Bitboard king_checkers[CLR_NO];      // Absolute and Discover Checkers
     Bitboard checks[NONE];
 
     StateInfo   *ptr;           // Previous StateInfo.
@@ -148,16 +148,17 @@ public:
     bool repeated () const;
     Phase phase   () const;
 
-    Value see (Move m) const;
-    Value see_sign (Move m) const;
+    bool see_ge (Move m, Value v) const;
 
     Bitboard attackers_to (Square s, Color c, Bitboard occ) const;
     Bitboard attackers_to (Square s, Color c) const;
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
 
-    Bitboard slider_blockers (Square s, Bitboard defenders, Bitboard attackers, Bitboard &pinners) const;
-    Bitboard abs_pinneds (Color c) const;
+    Bitboard slider_blockers (Square s, Bitboard defenders, Bitboard attackers, Bitboard &pinners, Bitboard &discovers) const;
+    Bitboard abs_blockers (Color c) const;
+    Bitboard dsc_blockers (Color c) const;
+    Bitboard abs_checkers (Color c) const;
     Bitboard dsc_checkers (Color c) const;
 
     bool pseudo_legal   (Move m) const;
@@ -315,15 +316,25 @@ inline Bitboard Position::attackers_to (Square s) const
 {
     return attackers_to (s, pieces ());
 }
-// Absolute pinneds are friend pieces, that save the friend king from enemy checkers.
-inline Bitboard Position::abs_pinneds (Color c) const
+// Absolute blockers are friend pieces, that blocks the check to friend king.
+inline Bitboard Position::abs_blockers (Color c) const
 {
-    return si->check_blockers[ c] & pieces (c);
+    return si->king_blockers[ c] & pieces (c);
 }
-// Discovered checkers are friend pieces, that give the discover check to enemy king when moved.
+// Discovered blockers are friend pieces, that blocks the check to enemy king.
+inline Bitboard Position::dsc_blockers (Color c) const
+{
+    return si->king_blockers[~c] & pieces (c);
+}
+// Absolute checkers are friend pieces, that give the check when enemy piece is moved.
+inline Bitboard Position::abs_checkers (Color c) const
+{
+    return si->king_checkers[~c] & pieces (c);
+}
+// Discovered checkers are friend pieces, that give the check when own piece is moved.
 inline Bitboard Position::dsc_checkers (Color c) const
 {
-    return si->check_blockers[~c] & pieces (c);
+    return si->king_checkers[ c] & pieces (c);
 }
 
 // Check if pawn passed at the given square
@@ -461,8 +472,10 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
 
 inline void StateInfo::set_check_info (const Position &pos)
 {
-    check_blockers[WHITE] = pos.slider_blockers (pos.square (WHITE, KING), pos.pieces (WHITE), pos.pieces (BLACK), pinners[WHITE]);
-    check_blockers[BLACK] = pos.slider_blockers (pos.square (BLACK, KING), pos.pieces (BLACK), pos.pieces (WHITE), pinners[BLACK]);
+    king_checkers[WHITE] = 0;
+    king_checkers[BLACK] = 0;
+    king_blockers[WHITE] = pos.slider_blockers (pos.square (WHITE, KING), pos.pieces (WHITE), pos.pieces (BLACK), king_checkers[WHITE], king_checkers[BLACK]);
+    king_blockers[BLACK] = pos.slider_blockers (pos.square (BLACK, KING), pos.pieces (BLACK), pos.pieces (WHITE), king_checkers[BLACK], king_checkers[WHITE]);
 
     checks[PAWN] = PawnAttacks[~pos.active][pos.square (~pos.active, KING)];
     checks[NIHT] = PieceAttacks[NIHT][pos.square (~pos.active, KING)];

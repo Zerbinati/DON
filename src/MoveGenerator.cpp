@@ -22,7 +22,7 @@ namespace MoveGen {
                 if (   GT == CHECK
                     || GT == QUIET_CHECK)
                 {
-                    if ((pos.dsc_checkers (pos.active) & s) != 0)
+                    if ((pos.dsc_blockers (pos.active) & s) != 0)
                     {
                         continue;
                     }
@@ -145,7 +145,7 @@ namespace MoveGen {
                     // Add pawn pushes which give discovered check.
                     // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
                     // Note that a possible discovery check promotion has been already generated among captures.
-                    Bitboard dsc_pawns = Rx_pawns & pos.dsc_checkers (pos.active) & ~file_bb (pos.square (Opp, KING));
+                    Bitboard dsc_pawns = Rx_pawns & pos.dsc_blockers (pos.active) & ~file_bb (pos.square (Opp, KING));
                     if (dsc_pawns != 0)
                     {
                         Bitboard dc_push_1 = empties & shift<Push> (dsc_pawns);
@@ -171,7 +171,7 @@ namespace MoveGen {
                     r_attack &= pos.si->checks[PAWN];
                     // Pawns which give discovered check
                     // Add pawn captures which give discovered check.
-                    Bitboard dsc_pawns = Rx_pawns & pos.dsc_checkers (pos.active);
+                    Bitboard dsc_pawns = Rx_pawns & pos.dsc_blockers (pos.active);
                     if (dsc_pawns != 0)
                     {
                         l_attack |= enemies & shift<LCap> (dsc_pawns);
@@ -367,10 +367,10 @@ namespace MoveGen {
         moves.clear ();
         Bitboard targets = ~pos.pieces ();
         // Pawns is excluded, will be generated together with direct checks
-        Bitboard dsc_checkers = pos.dsc_checkers (pos.active) & ~pos.pieces (PAWN);
-        while (dsc_checkers != 0)
+        Bitboard dsc_blockers = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
+        while (dsc_blockers != 0)
         {
-            auto org = pop_lsq (dsc_checkers);
+            auto org = pop_lsq (dsc_blockers);
             Bitboard attacks = 0;
             switch (ptype (pos[org]))
             {
@@ -395,10 +395,10 @@ namespace MoveGen {
         moves.clear ();
         Bitboard targets = ~pos.pieces (pos.active);
         // Pawns is excluded, will be generated together with direct checks
-        Bitboard dsc_checkers = pos.dsc_checkers (pos.active) & ~pos.pieces (PAWN);
-        while (dsc_checkers != 0)
+        Bitboard dsc_blockers = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
+        while (dsc_blockers != 0)
         {
-            auto org = pop_lsq (dsc_checkers);
+            auto org = pop_lsq (dsc_blockers);
             Bitboard attacks = 0;
             switch (ptype (pos[org]))
             {
@@ -489,7 +489,7 @@ namespace MoveGen {
                                      [&pos] (const ValMove &vm)
                                      {
                                          return
-                                            (   pos.abs_pinneds (pos.active) != 0
+                                            (   pos.abs_blockers (pos.active) != 0
                                              || mtype (vm.move) == ENPASSANT
                                              || org_sq (vm.move) == pos.square (pos.active, KING))
                                          && !pos.legal (vm.move);

@@ -245,7 +245,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
     // In ProbCut we generate captures with SEE higher than the given threshold
     if (   _tt_move != MOVE_NONE
         && !(   pos.capture (_tt_move)
-             && pos.see (_tt_move) > _threshold))
+             && pos.see_ge (_tt_move, _threshold + 1)))
     {
         _tt_move = MOVE_NONE;
     }
@@ -357,13 +357,12 @@ Move MovePicker::next_move ()
         while (_index < _moves.size ())
         {
             auto move = pick_best_move (_index++).move;
-            auto see_value = _pos.see_sign (move);
-            if (see_value >= VALUE_ZERO)
+            if (_pos.see_ge (move, VALUE_ZERO))
             {
                 return move;
             }
             // Losing capture, add it to the bad capture moves
-            _capture_moves.push_back ({ move, see_value });
+            _capture_moves.push_back ({ move, VALUE_ZERO });
         }
         generate<QUIET> (_moves, _pos);
         filter_illegal (_moves, _pos);
@@ -463,7 +462,7 @@ Move MovePicker::next_move ()
         while (_index < _moves.size ())
         {
             auto move = pick_best_move (_index++).move;
-            if (_pos.see (move) > _threshold)
+            if (_pos.see_ge (move, _threshold + 1))
             {
                 return move;
             }
@@ -1013,7 +1012,7 @@ namespace Searcher {
                         continue;
                     }
                     // Prune moves with negative or zero SEE
-                    if (pos.see (move) <= VALUE_ZERO)
+                    if (!pos.see_ge (move, VALUE_ZERO + 1))
                     {
                         if (best_value < futility_base)
                         {
@@ -1030,7 +1029,7 @@ namespace Searcher {
                             && !pos.capture (move)))
                     && mtype (move) != PROMOTE
                     //&& Limits.mate == 0
-                    && pos.see_sign (move) < VALUE_ZERO)
+                    && !pos.see_ge (move, VALUE_ZERO))
                 {
                     continue;
                 }
@@ -1347,14 +1346,11 @@ namespace Searcher {
                     if (   !root_node
                         && depth < 7
                         && tt_eval < +VALUE_KNOWN_WIN
+                        && tt_eval - 150*depth >= beta
                         //&& Limits.mate == 0
                         && pos.si->non_pawn_matl[pos.active] > VALUE_ZERO)
                     {
-                        auto stand_pat = tt_eval - 150*depth;
-                        if (stand_pat >= beta)
-                        {
-                            return stand_pat;
-                        }
+                        return tt_eval;
                     }
 
                     // Step 7. Razoring sort of forward pruning where rather than
@@ -1622,7 +1618,7 @@ namespace Searcher {
                 bool extension =
                        gives_check
                     && !move_count_pruning
-                    && pos.see_sign (move) >= VALUE_ZERO;
+                    && pos.see_ge (move, VALUE_ZERO);
 
                 // Singular extensions (SE).
                 // We extend the TT move if its value is much better than its siblings.
@@ -1679,7 +1675,7 @@ namespace Searcher {
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
                                 // Negative SEE based pruning
                             || (   lmr_depth < 8
-                                && pos.see_sign (move) < Value(-36*lmr_depth*lmr_depth)))
+                                && !pos.see_ge (move, Value(-36*lmr_depth*lmr_depth))))
                         {
                             continue;
                         }
@@ -1687,7 +1683,7 @@ namespace Searcher {
                     else
                     // Negative SEE based pruning
                     if (   depth < 7
-                        && pos.see_sign (move) < Value(-36*depth*depth))
+                        && !pos.see_ge (move, Value(-36*depth*depth)))
                     {
                         continue;
                     }
@@ -1739,7 +1735,7 @@ namespace Searcher {
                         if (   mtype (move) == NORMAL
                             && (NIHT <= mpt && mpt <= QUEN)
                             // For reverse move use see() instead of see_sign(), because the destination square is empty for normal move.
-                            && pos.see (mk_move<NORMAL> (dst, org)) < VALUE_ZERO)
+                            && !pos.see_ge (mk_move<NORMAL> (dst, org), VALUE_ZERO))
                         {
                             reduce_depth -= 2;
                         }
