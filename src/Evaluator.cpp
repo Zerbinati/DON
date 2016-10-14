@@ -395,18 +395,20 @@ namespace Evaluator {
                     // Bonus for minors outpost squares
                     if ((b & s) != 0)
                     {
-                        score += PT == NIHT ?
-                            KnightOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0] :
-                            BishopOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0];
+                        score +=
+                            PT == NIHT ?
+                                KnightOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0] :
+                                BishopOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0];
                     }
                     else
                     {
                         b &= pin_attacks & ~pos.pieces (Own);
                         if (b != 0)
                         {
-                            score += PT == NIHT ?
-                                KnightReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0] :
-                                BishopReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0];
+                            score +=
+                                PT == NIHT ?
+                                    KnightReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0] :
+                                    BishopReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0];
                         }
                     }
                     
@@ -464,8 +466,9 @@ namespace Evaluator {
                         auto fk_sq = pos.square (Own, KING);
                         // Penalty for rook when trapped by the king, even more if the king can't castle
                         if (   mob <= 3
-                            && rel_rank (Own, s) < R_4
-                            && rel_rank (Own, fk_sq) < R_4
+                            && (   rel_rank (Own, fk_sq) == rel_rank (Own, s)
+                                || (   rel_rank (Own, fk_sq) == R_1
+                                    && rel_rank (Own, s) < R_4))
                             && (_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq))
                             && (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)) != 0
                             && !ei.pe->side_semiopen (Own, _file (s) < _file (fk_sq) ? _file (fk_sq) - 1 : _file (fk_sq) + 1, _file (s) < _file (fk_sq)))

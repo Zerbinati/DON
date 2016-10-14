@@ -50,7 +50,7 @@ template<bool CM>
 struct PieceValueStats
 {
 private:
-    Value _table[CLR_NO][NONE][SQ_NO][SQ_NO];
+    Value _table[CLR_NO][NONE][SQ_NO];
 
 public:
     void clear ()
@@ -59,30 +59,27 @@ public:
         {
             for (auto pt = PAWN; pt < NONE; ++pt)
             {
-                for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+                for (auto s = SQ_A1; s <= SQ_H8; ++s)
                 {
-                    for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-                    {
-                        _table[c][pt][s1][s2] = VALUE_ZERO;
-                    }
+                    _table[c][pt][s] = VALUE_ZERO;
                 }
             }
         }
     }
-
-    Value operator() (Piece pc, Move m) const
+    // Piece, Destiny
+    Value operator() (Piece pc, Square s) const
     {
         assert(pc != NO_PIECE);
-        return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
+        return _table[color (pc)][ptype (pc)][s];
     }
-
-    void update (Piece pc, Move m, Value v)
+    // Piece, Destiny, Value
+    void update (Piece pc, Square s, Value v)
     {
         assert(pc != NO_PIECE);
         i32 x = abs(i32(v));
         if (x < 324)
         {
-            auto &e = _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
+            auto &e = _table[color (pc)][ptype (pc)][s];
             e = e*(1.0 - double(x) / (CM ? 936 : 324)) + i32(v)*32;
         }
     }

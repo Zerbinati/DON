@@ -1,4 +1,4 @@
-# DON, UCI chess engine
+# DON, UCI chess playing engine
 # Ehsan Rashid Copyright (C) 2008+
 #
 # DON is housed in https://github.com/erashid/DON 
@@ -329,10 +329,10 @@ ifeq ($(comp), gcc)
 	endif
 endif
 
-ifeq ($(comp),mingw)
-	ifeq ($(UNAME),Linux)
-		ifeq ($(optimize),yes)
-			ifeq ($(debug),no)
+ifeq ($(comp), mingw)
+	ifeq ($(UNAME), Linux)
+		ifeq ($(optimize), yes)
+			ifeq ($(debug), no)
 				CXXFLAGS += -flto
 				LDFLAGS  += $(CXXFLAGS)
 			endif

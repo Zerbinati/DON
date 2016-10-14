@@ -643,6 +643,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include=".travis.yml" />
+    <None Include="appveyor.yml" />
     <None Include="ClassDiagram.cd" />
     <None Include="CodeMap.dgml">
       <SubType>Designer</SubType>
