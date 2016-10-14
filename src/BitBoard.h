@@ -134,13 +134,13 @@ namespace BitBoard {
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  Square_bb[s]; }
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
     inline Bitboard  operator^  (Bitboard  bb, Square s) { return bb ^  Square_bb[s]; }
-    inline Bitboard  operator+  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
-    inline Bitboard  operator-  (Bitboard  bb, Square s) { return bb &~ Square_bb[s]; }
-    inline Bitboard& operator&= (Bitboard &bb, Square s) { return bb &= Square_bb[s]; }
+    //inline Bitboard  operator+  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
+    //inline Bitboard  operator-  (Bitboard  bb, Square s) { return bb &~ Square_bb[s]; }
+    //inline Bitboard& operator&= (Bitboard &bb, Square s) { return bb &= Square_bb[s]; }
     inline Bitboard& operator|= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
     inline Bitboard& operator^= (Bitboard &bb, Square s) { return bb ^= Square_bb[s]; }
-    inline Bitboard& operator+= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
-    inline Bitboard& operator-= (Bitboard &bb, Square s) { return bb &=~Square_bb[s]; }
+    //inline Bitboard& operator+= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
+    //inline Bitboard& operator-= (Bitboard &bb, Square s) { return bb &=~Square_bb[s]; }
     /*
     inline Bitboard  operator&  (Bitboard  bb, File f) { return bb &  File_bb[f]; }
     inline Bitboard  operator|  (Bitboard  bb, File f) { return bb |  File_bb[f]; }
@@ -227,7 +227,7 @@ namespace BitBoard {
                  _ok (sq) && dist (sq, sq - *deltas) == 1;
                  sq += *deltas)
             {
-                slide_attacks += sq;
+                slide_attacks |= sq;
                 if ((occ & sq) != 0)
                 {
                     break;

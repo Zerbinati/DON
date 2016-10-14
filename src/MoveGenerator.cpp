@@ -63,50 +63,50 @@ namespace MoveGen {
             case QUIET:
                 if (GT != QUIET)
                 {
-                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, QUEN)));
+                    moves.push_back (ValMove(mk_move (dst - delta, dst, QUEN)));
                 }
                 if (GT != CAPTURE)
                 {
-                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, ROOK)));
-                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, BSHP)));
-                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, NIHT)));
+                    moves.push_back (ValMove(mk_move (dst - delta, dst, ROOK)));
+                    moves.push_back (ValMove(mk_move (dst - delta, dst, BSHP)));
+                    moves.push_back (ValMove(mk_move (dst - delta, dst, NIHT)));
                 }
                 break;
             case QUIET_CHECK:
                 if (   (PieceAttacks[ROOK][dst] & pos.square (~pos.active, KING)) != 0
-                    && (attacks_bb<ROOK> (dst, pos.pieces () - (dst - delta)) & pos.square (~pos.active, KING)) != 0)
+                    && (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - delta)) & pos.square (~pos.active, KING)) != 0)
                 {
-                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, ROOK)));
+                    moves.push_back (ValMove(mk_move (dst - delta, dst, ROOK)));
                 }
                 if (   (PieceAttacks[BSHP][dst] & pos.square (~pos.active, KING)) != 0
-                    && (attacks_bb<BSHP> (dst, pos.pieces () - (dst - delta)) & pos.square (~pos.active, KING)) != 0)
+                    && (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - delta)) & pos.square (~pos.active, KING)) != 0)
                 {
-                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, BSHP)));
+                    moves.push_back (ValMove(mk_move (dst - delta, dst, BSHP)));
                 }
                 if ((PieceAttacks[NIHT][dst] & pos.square (~pos.active, KING)) != 0)
                 {
-                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, NIHT)));
+                    moves.push_back (ValMove(mk_move (dst - delta, dst, NIHT)));
                 }
                 break;
             case CHECK:
                 if (   (PieceAttacks[QUEN][dst] & pos.square (~pos.active, KING)) != 0
-                    && (attacks_bb<QUEN> (dst, pos.pieces () - (dst - delta)) & pos.square (~pos.active, KING)) != 0)
+                    && (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - delta)) & pos.square (~pos.active, KING)) != 0)
                 {
-                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, QUEN)));
+                    moves.push_back (ValMove(mk_move (dst - delta, dst, QUEN)));
                 }
                 if (   (PieceAttacks[ROOK][dst] & pos.square (~pos.active, KING)) != 0
-                    && (attacks_bb<ROOK> (dst, pos.pieces () - (dst - delta)) & pos.square (~pos.active, KING)) != 0)
+                    && (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - delta)) & pos.square (~pos.active, KING)) != 0)
                 {
-                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, ROOK)));
+                    moves.push_back (ValMove(mk_move (dst - delta, dst, ROOK)));
                 }
                 if (   (PieceAttacks[BSHP][dst] & pos.square (~pos.active, KING)) != 0
-                    && (attacks_bb<BSHP> (dst, pos.pieces () - (dst - delta)) & pos.square (~pos.active, KING)) != 0)
+                    && (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - delta)) & pos.square (~pos.active, KING)) != 0)
                 {
-                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, BSHP)));
+                    moves.push_back (ValMove(mk_move (dst - delta, dst, BSHP)));
                 }
                 if ((PieceAttacks[NIHT][dst] & pos.square (~pos.active, KING)) != 0)
                 {
-                    moves.push_back (ValMove(mk_move<PROMOTE> (dst - delta, dst, NIHT)));
+                    moves.push_back (ValMove(mk_move (dst - delta, dst, NIHT)));
                 }
                 break;
             }
@@ -254,7 +254,7 @@ namespace MoveGen {
                 // when moving the castling rook do not discover some hidden checker.
                 // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
                 if (   (pos.pieces (Opp, ROOK, QUEN) & PieceAttacks[ROOK][king_dst]) != 0
-                    && (pos.pieces (Opp, ROOK, QUEN) & attacks_bb<ROOK> (king_dst, pos.pieces () - rook_org)) != 0)
+                    && (pos.pieces (Opp, ROOK, QUEN) & attacks_bb<ROOK> (king_dst, pos.pieces () ^ rook_org)) != 0)
                 {
                     return;
                 }
@@ -430,7 +430,7 @@ namespace MoveGen {
             checker_attacks |= PieceAttacks[NIHT][checker_sq];
         }
         auto fk_sq = pos.square (pos.active, KING);
-        Bitboard mocc = pos.pieces () - fk_sq;
+        Bitboard mocc = pos.pieces () ^ fk_sq;
         Bitboard sliders = pos.si->checkers & ~(pos.pieces (PAWN) | jumpers);
         // Squares attacked by slider checkers will remove them from the king evasions
         // so to skip known illegal moves avoiding useless legality check later.
@@ -467,7 +467,7 @@ namespace MoveGen {
         Bitboard targets = 
             checker_sq == SQ_NO ?
                 square_bb (scan_lsq (pos.si->checkers)) : // Pawn checker
-                between_bb (checker_sq, fk_sq) + checker_sq;
+                between_bb (checker_sq, fk_sq) | checker_sq;
 
         pos.active == WHITE ?
             generate_moves<EVASION, WHITE> (moves, pos, targets) :

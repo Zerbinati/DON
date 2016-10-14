@@ -154,7 +154,7 @@ bool Position::see_ge (Move m, Value v) const
     }
 
     bool rel_profit = true; // True if the opponent is to move
-    mocc ^= (pieces () ^ org) | dst;
+    mocc ^= pieces () ^ org ^ dst;
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, mocc) & mocc;
@@ -170,7 +170,7 @@ bool Position::see_ge (Move m, Value v) const
         if (   c_attackers != 0
             && (abs_checkers (~c) & mocc) != 0)
         {
-            c_attackers &= ~abs_blockers (c);
+            c_attackers &= ~si->king_blockers[c];
         }
         // If move is a discovered check, the only possible defensive capture on
         // the destination square is a capture by the king to evade the check.
@@ -178,7 +178,7 @@ bool Position::see_ge (Move m, Value v) const
             && (dsc_checkers (~c) & mocc) != 0
             && (dsc_blockers (~c) & mocc) == 0)
         {
-            c_attackers &= pieces (c, KING);
+            c_attackers &= pieces (KING);
         }
 
         if (c_attackers == 0)
@@ -231,11 +231,11 @@ Bitboard Position::slider_blockers (Square s, Bitboard defenders, Bitboard attac
             
             if ((b & defenders) != 0)
             {
-                pinners += sniper_sq;
+                pinners |= sniper_sq;
             }
             else
             {
-                discovers += sniper_sq;
+                discovers |= sniper_sq;
             }
         }
     }
@@ -439,8 +439,8 @@ bool Position::legal (Move m) const
     case PROMOTE:
     {
         assert(mtype (m) == NORMAL
-            || (   mtype (m) == PROMOTE
-                && ptype (board[org_sq (m)]) == PAWN));
+            || (mtype (m) == PROMOTE
+             && board[org_sq (m)] == (active|PAWN)));
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
@@ -452,7 +452,7 @@ bool Position::legal (Move m) const
     case CASTLE:
     {
         // Castling moves are checked for legality during move generation.
-        assert(ptype (board[org_sq (m)]) == KING
+        assert(board[org_sq (m)] == (active|KING)
             && board[dst_sq (m)] == (active|ROOK));
         return true;
     }
@@ -462,7 +462,7 @@ bool Position::legal (Move m) const
     {
         // En-passant captures are a tricky special case. Because they are rather uncommon,
         // do it simply by testing whether the king is attacked after the move is made.
-        assert(ptype (board[org_sq (m)]) == PAWN
+        assert(board[org_sq (m)] == (active|PAWN)
             && rel_rank (active, org_sq (m)) == R_5
             && rel_rank (active, dst_sq (m)) == R_6
             && empty (dst_sq (m))
@@ -605,8 +605,8 @@ void Position::set_castle (Color c, Square rook_org)
         if (   king_org != s
             && rook_org != s)
         {
-            castle_path[cr] += s;
-            king_path[cr] += s;
+            castle_path[cr] |= s;
+            king_path[cr] |= s;
         }
     }
     for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
@@ -614,7 +614,7 @@ void Position::set_castle (Color c, Square rook_org)
         if (   king_org != s
             && rook_org != s)
         {
-            castle_path[cr] += s;
+            castle_path[cr] |= s;
         }
     }
 }
@@ -629,7 +629,7 @@ bool Position::can_en_passant (Square ep_sq) const
     {
         return false;
     }
-    Bitboard mocc = pieces () + ep_sq - cap;
+    Bitboard mocc = (pieces () ^ cap) | ep_sq;
     // En-passant attackers
     Bitboard attackers = pieces (active, PAWN) & PawnAttacks[~active][ep_sq];
     assert(pop_count (attackers) <= 2);

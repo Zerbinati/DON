@@ -467,7 +467,7 @@ namespace Evaluator {
                         // Penalty for rook when trapped by the king, even more if the king can't castle
                         if (   mob <= 3
                             && (   rel_rank (Own, fk_sq) == rel_rank (Own, s)
-                                || (   rel_rank (Own, fk_sq) == R_1
+                                || (   rel_rank (Own, fk_sq) < R_4
                                     && rel_rank (Own, s) < R_4))
                             && (_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq))
                             && (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)) != 0
@@ -1042,8 +1042,8 @@ namespace Evaluator {
         // Do not include in mobility area squares protected by enemy pawns or occupied by friend blocked pawns or king
         const Bitboard mobility_area[CLR_NO] =
         {
-            ~((ei.pin_attacked_by[BLACK][PAWN] | blocked_pawns[WHITE]) + pos.square (WHITE, KING)),
-            ~((ei.pin_attacked_by[WHITE][PAWN] | blocked_pawns[BLACK]) + pos.square (BLACK, KING))
+            ~((ei.pin_attacked_by[BLACK][PAWN] | blocked_pawns[WHITE]) | pos.square (WHITE, KING)),
+            ~((ei.pin_attacked_by[WHITE][PAWN] | blocked_pawns[BLACK]) | pos.square (BLACK, KING))
         };
 
         // Score is computed internally from the white point of view, initialize by

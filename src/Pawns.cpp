@@ -143,7 +143,7 @@ namespace Pawns {
                 if (   stoppers == 0
                     && (own_pawns & front_sqrs_bb (Own, s)) == 0)
                 {
-                    e->passers[Own] += s;
+                    e->passers[Own] |= s;
                 }
 
                 if (neighbours == 0)

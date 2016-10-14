@@ -559,17 +559,18 @@ inline Square    dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
 inline bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
 inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
+inline void      promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= PROMOTE + ((pt - 1) << 12); }
 inline Square fix_dst_sq (Move m, bool chess960 = false)
 {
     return !chess960
         && mtype (m) == CASTLE ?
-            (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m)) :
-            dst_sq (m);
+        (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m)) :
+        dst_sq (m);
 }
-inline void promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= PROMOTE + ((pt - 1) << 12); }
 
 template<MoveType MT=NORMAL>
-inline Move mk_move (Square org, Square dst, PieceType pt=NIHT) { return Move(MT + (dst + ((org + ((pt - NIHT) << 6)) << 6))); }
+inline Move mk_move (Square org, Square dst) { return Move(MT + (dst + (org << 6))); }
+inline Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + (dst + ((org + ((pt - NIHT) << 6)) << 6))); }
 
 inline double value_to_cp (Value   v) { return double(v)/i32(VALUE_EG_PAWN); }
 inline Value  cp_to_value (double cp) { return Value(i32(std::round (cp*i32(VALUE_EG_PAWN)))); }
@@ -578,7 +579,7 @@ inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
 typedef std::vector<Square> SquareVector;
-typedef std::vector<Move> MoveVector;
+typedef std::vector<Move>   MoveVector;
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
 
