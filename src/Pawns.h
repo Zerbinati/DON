@@ -20,7 +20,7 @@ namespace Pawns {
         Bitboard attack_span[CLR_NO];
         Bitboard passers    [CLR_NO];
         u08      semiopens  [CLR_NO];
-        u08      color_count[CLR_NO][CLR_NO];
+        u08      color_count  [CLR_NO][CLR_NO];
         Value    castle_safety[CLR_NO][CS_NO];
 
         Square   king_square    [CLR_NO];

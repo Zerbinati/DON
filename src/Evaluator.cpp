@@ -81,6 +81,7 @@ namespace Evaluator {
             {
                 static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
                 static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+                static const auto PAtt = Own == WHITE ? PawnAttacks[WHITE] : PawnAttacks[BLACK];
 
                 auto fk_sq = pos.square (Own, KING);
 
@@ -104,7 +105,7 @@ namespace Evaluator {
                     while (pinned_pawns != 0)
                     {
                         auto s = pop_lsq (pinned_pawns);
-                        pawn_attacks |= PawnAttacks[Own][s] & strline_bb (fk_sq, s);
+                        pawn_attacks |= PAtt[s] & strline_bb (fk_sq, s);
                     }
                     pin_attacked_by[Own][NONE] |=
                     pin_attacked_by[Own][PAWN]  = pawn_attacks;
@@ -214,9 +215,9 @@ namespace Evaluator {
         const Score KnightReachableOutpost[2] = { S(21, 5), S(35, 8) };
         const Score BishopReachableOutpost[2] = { S( 8, 0), S(14, 4) };
 
-        // RookOnFile[semiopen-defended/semiopen-undefended/open] contains bonuses for rooks
+        // RookOnFile[semiopen/open] contains bonuses for rooks
         // when there is no friend pawn on the rook file.
-        const Score RookOnFile[3] = { S(15, 4), S(25,10), S(45,20) };
+        const Score RookOnFile[2] = { S(20, 7), S(45,20) };
 
         const Score MinorBehindPawn = S(16, 0); // Bonus for minor behind a pawn
 
@@ -270,7 +271,7 @@ namespace Evaluator {
     #undef V
 
         // King attack weights by piece type
-        const i32 KingAttackWeights [NONE] = { 1, 78, 56, 45, 11, 0 };
+        const i32 KingAttackWeights [NONE] = { 2, 78, 56, 45, 11, 0 };
         // Penalties for enemy's piece safe checks by piece type
         const i32 PieceSafeChecks[NONE] = { 0, 874, 538, 638, 695, 0 };
         // Penalty for enemy's queen contact checks
@@ -321,10 +322,9 @@ namespace Evaluator {
                     auto attackers_count = u08(pop_count (  pos.pieces (Own, PAWN)
                                                           & (  king_zone
                                                              | (  dist_rings_bb (ek_sq, 1)
-                                                                & (  rank_bb (ek_sq)
-                                                                   | front_rank_bb (Opp, ek_sq))))));
+                                                                & front_rank_bb (Opp, ek_sq)))));
                     ei.king_ring_attackers_count [Own] = attackers_count;
-                    ei.king_ring_attackers_weight[Own] = (attackers_count*KingAttackWeights[PAWN])/2;
+                    ei.king_ring_attackers_weight[Own] = attackers_count*KingAttackWeights[PAWN];
                 }
             }
         }
@@ -335,11 +335,13 @@ namespace Evaluator {
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
 
             assert(NIHT <= PT && PT <= QUEN);
 
             auto score = SCORE_ZERO;
-            Bitboard ful_attacks, pin_attacks;
+            Bitboard ful_attacks, pin_attacks, b;
             i32 mob;
             for (auto s : pos.squares[Own][PT])
             {
@@ -391,7 +393,7 @@ namespace Evaluator {
                         score += MinorBehindPawn;
                     }
 
-                    Bitboard b = OutpostMask[Own] & ~ei.pe->attack_span[Opp];
+                    b = OutpostMask[Own] & ~ei.pe->attack_span[Opp];
                     // Bonus for minors outpost squares
                     if ((b & s) != 0)
                     {
@@ -458,8 +460,7 @@ namespace Evaluator {
                     // Bonus for rook when on an open or semi-open (undefended/defended) file
                     if (ei.pe->file_semiopen (Own, _file (s)))
                     {
-                        score += RookOnFile[ei.pe->file_semiopen (Opp, _file (s)) ? 2 :
-                                                ((ei.pin_attacked_by[Opp][PAWN]) & scan_frntmost_sq (Opp, pos.pieces (Opp, PAWN) & file_bb (s))) == 0 ? 1 : 0];
+                        score += RookOnFile[ei.pe->file_semiopen (Opp, _file (s)) ? 1 : 0];
                     }
                     else
                     {
@@ -482,7 +483,9 @@ namespace Evaluator {
                 {
                     // Penalty for pin or discover attack on the queen
                     Bitboard pinners = 0, discovers = 0;
-                    if (pos.slider_blockers (s, pos.pieces (Own), pos.pieces (Opp) & ~pos.pieces (Opp, QUEN), pinners, discovers) != 0)
+                    if ((pos.slider_blockers<Own> (s, pos.pieces (Opp, QUEN), pinners, discovers) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
+                                                                                                                                                  | shift<RCap> (pos.pieces (Own))))
+                                                                                                      | ei.abs_blockers[Opp])) != 0)
                     {
                         score -= QueenWeaken;
                     }
@@ -503,6 +506,8 @@ namespace Evaluator {
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
 
             auto fk_sq = pos.square (Own, KING);
 
@@ -536,7 +541,6 @@ namespace Evaluator {
 
             Bitboard b;
             Bitboard non_opp = ~pos.pieces (Opp);
-
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[Opp] != 0)
             {
@@ -562,9 +566,11 @@ namespace Evaluator {
                       std::min (ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp], 807)
                     + 101 * (ei.king_zone_attacks_count[Opp])
                     + 235 * (pop_count (king_zone_undef))
-                    + 134 * (pop_count (king_ring_undef))
-                    + 134 * (ei.abs_blockers [Own] != 0 ? 1 : 0)
-                    //+ 134 * (ei.dsc_blockers[Opp] != 0 ? 1 : 0)
+                    + 134 * (  pop_count (king_ring_undef)
+                             + (ei.abs_blockers[Own] != 0 ? 1 : 0)
+                             + ((ei.dsc_blockers[Opp] & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
+                                                                                                          | shift<RCap> (pos.pieces (Own))))
+                                                          | ei.abs_blockers[Opp])) != 0 ? 1 : 0))
                     - 717 * (pos.count<QUEN>(Opp) == 0)
                     -   7 * i32(value) / 5
                     -   5;

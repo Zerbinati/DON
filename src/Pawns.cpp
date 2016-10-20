@@ -16,7 +16,7 @@ namespace Pawns {
         // indexed by [distance from edge][rank]
         const Value ShelterWeak[F_NO/2][R_NO] =
         {
-            { V(100), V(21), V(26), V(51), V(87), V( 89), V( 99), V(0) }, // => A and H file
+            { V(102), V(21), V(26), V(51), V(87), V( 89), V( 99), V(0) }, // => A and H file
             { V(120), V( 0), V(28), V(76), V(88), V(103), V(104), V(0) }, // => B and G file
             { V(102), V( 7), V(54), V(78), V(85), V( 92), V(101), V(0) }, // => C and F file
             { V(120), V(11), V(44), V(68), V(87), V( 90), V(119), V(0) }  // => D and E file
@@ -70,11 +70,11 @@ namespace Pawns {
         // Levered pawn bonus indexed by [rank]
         const Score Levered[R_NO]   = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
         // Unsupported pawn penalty
-        const Score Unsupported     = S(17,  8);
+        const Score Unsupported     = S(17, 8);
         // Blocked pawn penalty
-        const Score Blocked         = S(18, 38);
+        const Score Blocked         = S(18,38);
         // Unstopped pawn bonus for pawns going to promote
-        const Score Unstopped       = S( 0, 20);
+        const Score Unstopped       = S( 0,20);
 
     #undef S
 
@@ -88,6 +88,7 @@ namespace Pawns {
             static const auto Push = Own == WHITE ? DEL_N  : DEL_S;
             static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            static const auto PAtt = Own == WHITE ? PawnAttacks[WHITE] : PawnAttacks[BLACK];
 
             const Bitboard own_pawns = pos.pieces (Own, PAWN);
             const Bitboard opp_pawns = pos.pieces (Opp, PAWN);
@@ -117,14 +118,14 @@ namespace Pawns {
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
 
                 neighbours = own_pawns & adj_file_bb (f);
-                supporters = neighbours & PawnAttacks[Opp][s];
+                supporters = neighbours & rank_bb (s-Push);
                 stoppers   = opp_pawns & pawn_pass_span (Own, s);
 
                 opposed    = (opp_pawns & front_sqrs_bb (Own, s)) != 0;
                 blocked    = (own_pawns & (s+Push)) != 0;
                 phalanxed  = (neighbours & rank_bb (s)) != 0;
                 connected  = phalanxed || supporters != 0;
-                levered    = (opp_pawns & PawnAttacks[Own][s]) != 0;
+                levered    = (opp_pawns & PAtt[s]) != 0;
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
                 // The pawn is backward when it cannot safely progress to next rank:
                 // either there is a stoppers in the way on next rank
@@ -280,7 +281,7 @@ namespace Pawns {
                 {
                     for (auto r = R_2; r < R_8; ++r)
                     {
-                        auto v = i32((i32(Seeds[r] + (Seeds[r + 1] - Seeds[r])*0.5*phalanx) >> opposed) * (1.0 + 0.5*apex));
+                        auto v = i32((i32(Seeds[r] + (Seeds[r+1] - Seeds[r])*0.5*phalanx) >> opposed) * (1.0 + 0.5*apex));
                         Connected[opposed][phalanx][apex][r] = mk_score (v * 1 / 1, v * 5 / 8);
                     }
                 }

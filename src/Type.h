@@ -568,9 +568,9 @@ inline Square fix_dst_sq (Move m, bool chess960 = false)
         dst_sq (m);
 }
 
-template<MoveType MT=NORMAL>
-inline Move mk_move (Square org, Square dst) { return Move(MT + (dst + (org << 6))); }
-inline Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + (dst + ((org + ((pt - NIHT) << 6)) << 6))); }
+template<MoveType MT>
+inline Move mk_move (Square org, Square dst)               { return Move(MT + (org << 6) + dst); }
+inline Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst); }
 
 inline double value_to_cp (Value   v) { return double(v)/i32(VALUE_EG_PAWN); }
 inline Value  cp_to_value (double cp) { return Value(i32(std::round (cp*i32(VALUE_EG_PAWN)))); }

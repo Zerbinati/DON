@@ -88,7 +88,7 @@ public:
 typedef PieceValueStats<false>   FPieceValueStats;
 typedef PieceValueStats<true >   TPieceValueStats;
 
-struct CMValueStats
+struct PieceCMValueStats
 {
 private:
     TPieceValueStats _table[CLR_NO][NONE][SQ_NO];
@@ -118,26 +118,23 @@ public:
 struct ColorValueStats
 {
 private:
-    Value _table[CLR_NO][SQ_NO][SQ_NO];
+    Value _table[CLR_NO][SQ_NO*SQ_NO];
 
 public:
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+            for (auto m = 0; m < SQ_NO*SQ_NO; ++m)
             {
-                for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-                {
-                    _table[c][s1][s2] = VALUE_ZERO;
-                }
+                _table[c][m] = VALUE_ZERO;
             }
         }
     }
 
     Value operator() (Color c, Move m) const
     {
-        return _table[c][org_sq (m)][dst_sq (m)];
+        return _table[c][m & 0xFFF];
     }
 
     void update (Color c, Move m, Value v)
@@ -145,7 +142,7 @@ public:
         i32 x = abs(i32(v));
         if (x < 324)
         {
-            auto &e = _table[c][org_sq (m)][dst_sq (m)];
+            auto &e = _table[c][m & 0xFFF];
             e = e*(1.0 - double(x) / 324) + i32(v)*32;
         }
     }
@@ -154,7 +151,7 @@ public:
 struct PieceCMoveStats
 {
 private:
-    Move _table[CLR_NO][NONE][SQ_NO][SQ_NO];
+    Move _table[CLR_NO][NONE][SQ_NO];
 
 public:
     void clear ()
@@ -163,27 +160,24 @@ public:
         {
             for (auto pt = PAWN; pt < NONE; ++pt)
             {
-                for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+                for (auto s = SQ_A1; s <= SQ_H8; ++s)
                 {
-                    for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-                    {
-                        _table[c][pt][s1][s2] = MOVE_NONE;
-                    }
+                    _table[c][pt][s] = MOVE_NONE;
                 }
             }
         }
     }
 
-    Move operator() (Piece pc, Move m) const
+    Move operator() (Piece pc, Square s) const
     {
         assert(ptype (pc) != NONE);
-        return _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)];
+        return _table[color (pc)][ptype (pc)][s];
     }
 
-    void update (Piece pc, Move m, Move cm)
+    void update (Piece pc, Square s, Move cm)
     {
         assert(ptype (pc) != NONE);
-        _table[color (pc)][ptype (pc)][org_sq (m)][dst_sq (m)] = cm;
+        _table[color (pc)][ptype (pc)][s] = cm;
     }
 };
 
@@ -291,7 +285,7 @@ public:
     Value static_eval;
     u08   move_count;
     bool  skip_pruning;
-    TPieceValueStats *cm_history;
+    TPieceValueStats *piece_cm_history;
 
     MoveVector pv;
 };

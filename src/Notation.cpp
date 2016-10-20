@@ -30,11 +30,20 @@ namespace Notation {
 
             auto org = org_sq (m);
             auto dst = dst_sq (m);
-
+            auto mpt = ptype (pos[org]);
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
+            Bitboard attacks = 0;
+            switch (mpt)
+            {
+            case NIHT: attacks = PieceAttacks[NIHT][dst];               break;
+            case BSHP: attacks = attacks_bb<BSHP> (dst, pos.pieces ()); break;
+            case ROOK: attacks = attacks_bb<ROOK> (dst, pos.pieces ()); break;
+            case QUEN: attacks = attacks_bb<QUEN> (dst, pos.pieces ()); break;
+            default: assert (false); break;
+            }
 
-            Bitboard amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active, ptype (pos[org]))) ^ org;
+            Bitboard amb = (attacks & pos.pieces (pos.active, mpt)) ^ org;
             Bitboard pcs = amb; // & ~pos.abs_blockers (pos.active); // If pinned piece is considered as ambiguous
             while (pcs != 0)
             {

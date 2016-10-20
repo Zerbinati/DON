@@ -116,7 +116,6 @@ bool Position::see_ge (Move m, Value v) const
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-    assert(!empty (org));
 
     Value balance; // Values of the pieces taken by own's minus opp's
 
@@ -124,13 +123,13 @@ bool Position::see_ge (Move m, Value v) const
     Bitboard mocc;
     if (mtype (m) == ENPASSANT)
     {
-        assert(board[org] == (c|PAWN));
+        assert((pieces (c, PAWN) & org) != 0);
         mocc = square_bb (dst - pawn_push (c));
         balance = PieceValues[MG][PAWN];
     }
     else
     {
-        assert(board[org] != NO_PIECE);
+        assert((pieces (c) & org) != 0);
         mocc = 0;
         balance = PieceValues[MG][ptype (board[dst])];
     }
@@ -211,21 +210,37 @@ bool Position::see_ge (Move m, Value v) const
 // A piece blocks a slider if removing that piece from the board would result in a position where square 's' is attacked by the sliders in 'attackers'.
 // For example, a king-attack blocking piece can be either absolute or discovered blocked piece,
 // according if its color is the opposite or the same of the color of the sliders in 'attackers'.
-Bitboard Position::slider_blockers (Square s, Bitboard defenders, Bitboard attackers, Bitboard &pinners, Bitboard &discovers) const
+template<Color Own>
+Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const
 {
+    static const auto Opp  = Own == WHITE ? BLACK : WHITE;
+    //static const auto Push = Own == WHITE ? DEL_N : DEL_S;
+    //static const auto PAtt = Own == WHITE ? PawnAttacks[BLACK] : PawnAttacks[WHITE];
+
     Bitboard blockers = 0;
+    Bitboard defenders = pieces (Own);
+    Bitboard attackers = pieces (Opp) ^ ex_attackers;
     // Snipers are attackers that are aligned on 's' in x-ray
     Bitboard snipers =
           attackers
         & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
            | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
-    Bitboard hurdle = (defenders | (attackers & ~snipers));
+    Bitboard hurdle = (defenders | (attackers ^ snipers));
+    Bitboard b;
+    //Bitboard p;
+    //Bitboard x;
     while (snipers != 0)
     {
         auto sniper_sq = pop_lsq (snipers);
-        Bitboard b = hurdle & between_bb (s, sniper_sq);
+        b = hurdle & between_bb (s, sniper_sq);
         if (   b != 0
-            && !more_than_one (b))
+            && !more_than_one (b)
+            /*&& (   (p = b & attackers & pieces (PAWN)) == 0
+                || (   (   (x = p & file_bb (s)) != 0
+                        && (PAtt[scan_lsq (x)] & defenders) != 0)
+                    || (   (x = p & (rank_bb (s) | PieceAttacks[BSHP][s])) != 0
+                        && (   empty (scan_lsq (x)-Push)
+                            || (PAtt[scan_lsq (x)] & defenders) != 0))))*/)
         {
             blockers |= b;
             
@@ -241,6 +256,10 @@ Bitboard Position::slider_blockers (Square s, Bitboard defenders, Bitboard attac
     }
     return blockers;
 }
+// Explicit template instantiations
+template Bitboard Position::slider_blockers<WHITE> (Square, Bitboard, Bitboard&, Bitboard&) const;
+template Bitboard Position::slider_blockers<BLACK> (Square, Bitboard, Bitboard&, Bitboard&) const;
+
 // Tests whether a random move is pseudo-legal.
 // It is used to validate moves from TT that can be corrupted
 // due to SMP concurrent access or hash position key aliasing.
@@ -255,16 +274,11 @@ bool Position::pseudo_legal (Move m) const
     {
         return false;
     }
-    if (   ((pieces (active)|pieces (KING)) & dst) != 0
-        && mtype (m) != CASTLE)
-    {
-        return false;
-    }
-
+    
+    auto mt = mtype (m);
     auto mpt = ptype (board[org]);
     auto cap = dst;
-
-    switch (mtype (m))
+    switch (mt)
     {
     case NORMAL:
     {
@@ -281,7 +295,7 @@ bool Position::pseudo_legal (Move m) const
         if (!(   mpt == KING
               && rel_rank (active, org) == R_1
               && rel_rank (active, dst) == R_1
-              && board[dst] == (active|ROOK)
+              && (pieces (active, ROOK) & dst) != 0
               && si->checkers == 0
               && (si->castle_rights & cr) != CR_NONE
               && !impeded_castle (cr)))
@@ -314,7 +328,7 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
         cap -= pawn_push (active);
-        if (board[cap] != (~active|PAWN))
+        if ((pieces (~active, PAWN) & cap) == 0)
         {
             return false;
         }
@@ -333,8 +347,8 @@ bool Position::pseudo_legal (Move m) const
     }
         break;
     }
-    // The captured square cannot be occupied by a friendly piece or kings
-    if (((pieces (active)|pieces (KING)) & cap) != 0)
+    // The captured square cannot be occupied by a friendly piece (mt != CASTLE)
+    if ((pieces (active) & cap) != 0)
     {
         return false;
     }
@@ -343,28 +357,28 @@ bool Position::pseudo_legal (Move m) const
     if (mpt == PAWN)
     {
         // In case of non-promotional moves origin & destination cannot be on the 7th/2nd & 8th/1st rank.
-        if (   mtype (m) != PROMOTE
+        if (   mt != PROMOTE
             && (   rel_rank (active, org) == R_7
                 || rel_rank (active, dst) == R_8))
         {
             return false;
         }
         if (    // Not a single push
-               !(   (   mtype (m) == NORMAL
-                     || mtype (m) == PROMOTE)
+               !(   (   mt == NORMAL
+                     || mt == PROMOTE)
                  && empty (dst)
                  && (org + pawn_push (active) == dst))
                 // Not a normal capture
-            && !(   (   mtype (m) == NORMAL
-                     || mtype (m) == PROMOTE)
+            && !(   (   mt == NORMAL
+                     || mt == PROMOTE)
                  && ((pieces (~active) & PawnAttacks[active][org]) & dst) != 0)
                 // Not an enpassant capture
-            && !(   mtype (m) == ENPASSANT
+            && !(   mt == ENPASSANT
                  && si->en_passant_sq == dst
                  && ((~pieces () & PawnAttacks[active][org]) & dst) != 0
-                 && board[cap] == (~active|PAWN))
+                 && (pieces (~active, PAWN) & cap) != 0)
                 // Not a double push
-            && !(   mtype (m) == NORMAL
+            && !(   mt == NORMAL
                  && rel_rank (active, org) == R_2
                  && rel_rank (active, dst) == R_4
                  && empty (dst)
@@ -406,11 +420,11 @@ bool Position::pseudo_legal (Move m) const
         // Double check? In this case a king move is required
         if (!more_than_one (si->checkers))
         {
-            return en_passant (m) ?
-                // Move must be a capture of the checking en-passant pawn or a blocking evasion of the checking piece
-                (si->checkers & cap) != 0 || (between_bb (scan_lsq (si->checkers), square (active, KING)) & dst) != 0 :
+            return mt != ENPASSANT ?
                 // Move must be a capture of the checking piece or a blocking evasion of the checking piece
-                ((si->checkers | between_bb (scan_lsq (si->checkers), square (active, KING))) & dst) != 0;
+                ((si->checkers | between_bb (scan_lsq (si->checkers), square (active, KING))) & dst) != 0 :
+                // Move must be a capture of the checking en-passant pawn or a blocking evasion of the checking piece
+                (si->checkers & cap) != 0 || (between_bb (scan_lsq (si->checkers), square (active, KING)) & dst) != 0;
         }
         return false;
     }
@@ -430,7 +444,7 @@ bool Position::legal (Move m) const
         // In case of king moves under check have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        if (ptype (board[org_sq (m)]) == KING)
+        if ((pieces (KING) & org_sq (m)) != 0)
         {
             return attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m)) == 0;
         }
@@ -438,13 +452,10 @@ bool Position::legal (Move m) const
     // NOTE: no break
     case PROMOTE:
     {
-        assert(mtype (m) == NORMAL
-            || (mtype (m) == PROMOTE
-             && board[org_sq (m)] == (active|PAWN)));
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
-        return (abs_blockers (active) & org_sq (m)) == 0
+        return (si->king_blockers[active] & org_sq (m)) == 0
             || sqrs_aligned (org_sq (m), dst_sq (m), square (active, KING));
     }
         break;
@@ -452,8 +463,8 @@ bool Position::legal (Move m) const
     case CASTLE:
     {
         // Castling moves are checked for legality during move generation.
-        assert(board[org_sq (m)] == (active|KING)
-            && board[dst_sq (m)] == (active|ROOK));
+        assert((pieces (active, KING) & org_sq (m)) != 0
+            && (pieces (active, ROOK) & dst_sq (m)) != 0);
         return true;
     }
         break;
@@ -462,12 +473,12 @@ bool Position::legal (Move m) const
     {
         // En-passant captures are a tricky special case. Because they are rather uncommon,
         // do it simply by testing whether the king is attacked after the move is made.
-        assert(board[org_sq (m)] == (active|PAWN)
+        assert((pieces (active, PAWN) & org_sq (m)) != 0
             && rel_rank (active, org_sq (m)) == R_5
             && rel_rank (active, dst_sq (m)) == R_6
             && empty (dst_sq (m))
             && dst_sq (m) == si->en_passant_sq
-            && board[dst_sq (m) - pawn_push (active)] == (~active|PAWN));
+            && (pieces (~active, PAWN) & (dst_sq (m) - pawn_push (active))) != 0);
 
         Bitboard mocc = (pieces () ^ org_sq (m) ^ (dst_sq (m) - pawn_push (active))) | dst_sq (m);
         // If any attacker then in check and not legal move
@@ -481,7 +492,7 @@ bool Position::legal (Move m) const
     return false;
 }
 // Tests whether a pseudo-legal move gives a check
-bool Position::gives_check  (Move m) const
+bool Position::gives_check (Move m) const
 {
     auto org = org_sq (m);
     auto dst = dst_sq (m);
@@ -756,7 +767,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             continue;
         }
 
-        assert(board[r_sq] == (c|ROOK));
+        assert((pieces (c, ROOK) & r_sq) != 0);
         set_castle (c, r_sq);
     }
     
@@ -923,8 +934,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     case CASTLE:
     {
         assert(mpt == KING
-            && board[org] == (active|KING)
-            && board[dst] == (active|ROOK));
+            && (pieces (active, KING) & org) != 0
+            && (pieces (active, ROOK) & dst) != 0);
 
         Square rook_org, rook_dst;
         do_castling<true> (org, dst, rook_org, rook_dst);
@@ -952,7 +963,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         cap -= pawn_push (active);
         cpt = PAWN;
         assert(!empty (cap)
-            && board[cap] == (pasive|cpt));
+            && (pieces (pasive, cpt) & cap) != 0);
 
         do_capture();
         board[cap] = NO_PIECE; // Not done by remove_piece()
@@ -972,8 +983,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         cpt = ptype (board[cap]);
         assert(mpt == PAWN
             && rel_rank (active, org) == R_7
-            && rel_rank (active, dst) == R_8
-            && cpt != PAWN && cpt != KING);
+            && rel_rank (active, dst) == R_8);
 
         if (cpt != NONE)
         {
@@ -1099,7 +1109,7 @@ void Position::undo_move (Move m)
     case ENPASSANT:
     {
         cap -= pawn_push (active);
-        assert(board[dst] == (active|PAWN)
+        assert((pieces (active, PAWN) & dst) != 0
             && rel_rank (active, org) == R_5
             && rel_rank (active, dst) == R_6
             && si->ptr->en_passant_sq == dst
@@ -1114,8 +1124,7 @@ void Position::undo_move (Move m)
     {
         assert(promote (m) == ptype (board[dst])
             && rel_rank (active, org) == R_7
-            && rel_rank (active, dst) == R_8
-            && (NIHT <= promote (m) && promote (m) <= QUEN));
+            && rel_rank (active, dst) == R_8);
 
         remove_piece (dst);
         board[dst] = NO_PIECE; // Not done by remove_piece()

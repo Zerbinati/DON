@@ -155,7 +155,8 @@ public:
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
 
-    Bitboard slider_blockers (Square s, Bitboard defenders, Bitboard attackers, Bitboard &pinners, Bitboard &discovers) const;
+    template<Color Own>
+    Bitboard slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const;
     Bitboard abs_blockers (Color c) const;
     Bitboard dsc_blockers (Color c) const;
     Bitboard abs_checkers (Color c) const;
@@ -363,7 +364,7 @@ inline bool Position::opposite_bishops () const
 inline bool Position::en_passant (Move m) const
 {
     return mtype (m) == ENPASSANT
-        && board[org_sq (m)] == (active|PAWN)
+        && (pieces (active, PAWN) & org_sq (m)) != 0
         && empty (dst_sq (m))
         && si->en_passant_sq == dst_sq (m);
 }
@@ -378,7 +379,7 @@ inline bool Position::capture (Move m) const
 inline bool Position::promotion (Move m) const
 {
     return mtype (m) == PROMOTE
-        && board[org_sq (m)] == (active|PAWN)
+        && (pieces (active, PAWN) & org_sq (m)) != 0
         && rel_rank (active, dst_sq (m)) == R_8;
 }
 inline bool Position::capture_or_promotion (Move m) const
@@ -474,8 +475,8 @@ inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] = 0;
     king_checkers[BLACK] = 0;
-    king_blockers[WHITE] = pos.slider_blockers (pos.square (WHITE, KING), pos.pieces (WHITE), pos.pieces (BLACK), king_checkers[WHITE], king_checkers[BLACK]);
-    king_blockers[BLACK] = pos.slider_blockers (pos.square (BLACK, KING), pos.pieces (BLACK), pos.pieces (WHITE), king_checkers[BLACK], king_checkers[WHITE]);
+    king_blockers[WHITE] = pos.slider_blockers<WHITE> (pos.square (WHITE, KING), 0, king_checkers[WHITE], king_checkers[BLACK]);
+    king_blockers[BLACK] = pos.slider_blockers<BLACK> (pos.square (BLACK, KING), 0, king_checkers[BLACK], king_checkers[WHITE]);
 
     checks[PAWN] = PawnAttacks[~pos.active][pos.square (~pos.active, KING)];
     checks[NIHT] = PieceAttacks[NIHT][pos.square (~pos.active, KING)];

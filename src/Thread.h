@@ -180,10 +180,10 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        FPieceValueStats piece_history;
-        CMValueStats     cm_history;
-        ColorValueStats  color_history;
-        PieceCMoveStats  piece_cmove;
+        FPieceValueStats  piece_history;
+        PieceCMValueStats piece_cm_history;
+        ColorValueStats   color_history;
+        PieceCMoveStats   piece_cmove;
 
         Thread ();
         Thread (const Thread&) = delete;
@@ -196,7 +196,7 @@ namespace Threading {
             pawn_table.clear ();
             matl_table.clear ();
             piece_history.clear ();
-            cm_history.clear ();
+            piece_cm_history.clear ();
             color_history.clear ();
             piece_cmove.clear ();
         }
@@ -210,14 +210,12 @@ namespace Threading {
                 _searching = true;
             }
             _sleep_condition.notify_one ();
-            lk.unlock ();
         }
         // Waits on sleep condition until not searching
         void wait_while_searching ()
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return !_searching; });
-            lk.unlock ();
         }
 
         // Waits on sleep condition until 'condition' turns true
@@ -225,14 +223,12 @@ namespace Threading {
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return bool(condition); });
-            lk.unlock ();
         }
         // Waits on sleep condition until 'condition' turns false
         void wait_while (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return !bool(condition); });
-            lk.unlock ();
         }
 
         // Function where the thread is parked when it has no work to do
@@ -247,7 +243,7 @@ namespace Threading {
                 while (   _alive
                        && !_searching)
                 {
-                    _sleep_condition.notify_one (); // Wake up main thread if needed
+                    _sleep_condition.notify_one (); // Wake up any waiting thread
                     _sleep_condition.wait (lk);
                 }
 

@@ -168,17 +168,16 @@ namespace Threading {
 
     // Thread constructor launches the thread and then waits until it goes to sleep in idle_loop().
     Thread::Thread ()
-        : _alive (true)
-        , _searching (true)
-        , max_ply (0)
-        , count (0)
     {
+        _alive = true;
+        max_ply = 0;
+        count = 0;
         index = u16(Threadpool.size ());
         clear ();
         std::unique_lock<Mutex> lk (_mutex);
+        _searching = true;
         _native_thread = std::thread (&Thread::idle_loop, this);
         _sleep_condition.wait (lk, [&] { return !_searching; });
-        lk.unlock ();
     }
     // Thread destructor waits for thread termination before returning.
     Thread::~Thread ()

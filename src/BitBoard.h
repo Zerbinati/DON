@@ -284,7 +284,7 @@ namespace BitBoard {
         return B_Attacks_bb[s][magic_index<BSHP> (s, occ)]
              | R_Attacks_bb[s][magic_index<ROOK> (s, occ)];
     }
-
+    
     // Piece attacks from square
     inline Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
     {
@@ -299,7 +299,7 @@ namespace BitBoard {
         default:   assert(false); return 0;          break;
         }
     }
-
+    
 #if !defined(ABM) // PopCount Table
 
     inline i32 pop_count (Bitboard bb)
