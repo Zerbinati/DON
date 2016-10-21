@@ -16,10 +16,10 @@ namespace Pawns {
         // indexed by [distance from edge][rank]
         const Value ShelterWeak[F_NO/2][R_NO] =
         {
-            { V(102), V(21), V(26), V(51), V(87), V( 89), V( 99), V(0) }, // => A and H file
+            { V( 97), V(21), V(26), V(51), V(87), V( 89), V( 99), V(0) }, // => A and H file
             { V(120), V( 0), V(28), V(76), V(88), V(103), V(104), V(0) }, // => B and G file
-            { V(102), V( 7), V(54), V(78), V(85), V( 92), V(101), V(0) }, // => C and F file
-            { V(120), V(11), V(44), V(68), V(87), V( 90), V(119), V(0) }  // => D and E file
+            { V(101), V( 7), V(54), V(78), V(85), V( 92), V(101), V(0) }, // => C and F file
+            { V( 80), V(11), V(44), V(68), V(87), V( 90), V(119), V(0) }  // => D and E file
         };
 
         enum BlockType : u08

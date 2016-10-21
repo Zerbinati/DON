@@ -105,7 +105,6 @@ public:
 
     Color       active;
     i16         ply;
-    u64         nodes;
 
     CastleRight castle_mask[SQ_NO];
     Square      castle_rook[CR_NO];
@@ -394,14 +393,12 @@ inline void  Position::place_piece (Square s, Color c, PieceType pt)
 {
     //assert(empty (s)); // Not needed, in case of remove_piece()
     board[s] = (c|pt);
-
     Bitboard bb = square_bb (s);
     color_bb[c]    |= bb;
     types_bb[pt]   |= bb;
     types_bb[NONE] |= bb;
 
-    auto &v = squares[c][pt];
-    v.push_back (s);
+    squares[c][pt].push_back (s);
 }
 inline void  Position::place_piece (Square s, Piece p)
 {
@@ -414,11 +411,10 @@ inline void  Position::remove_piece (Square s)
     auto c  = color (board[s]);
     auto pt = ptype (board[s]);
     //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
-
-    Bitboard bb = ~square_bb (s);
-    color_bb[c]    &= bb;
-    types_bb[pt]   &= bb;
-    types_bb[NONE] &= bb;
+    Bitboard bb = square_bb (s);
+    color_bb[c]    ^= bb;
+    types_bb[pt]   ^= bb;
+    types_bb[NONE] ^= bb;
 
     auto &v = squares[c][pt];
     assert(!v.empty ());
@@ -433,10 +429,8 @@ inline void  Position::move_piece (Square s1, Square s2)
     assert(!empty (s1));
     auto c  = color (board[s1]);
     auto pt = ptype (board[s1]);
-
     board[s2] = board[s1];
     board[s1] = NO_PIECE;
-
     Bitboard bb = square_bb (s1) ^ square_bb (s2);
     color_bb[c]    ^= bb;
     types_bb[pt]   ^= bb;

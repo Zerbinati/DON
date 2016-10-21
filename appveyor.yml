@@ -34,7 +34,7 @@ before_build:
   - echo Main.cpp Material.cpp MoveGenerator.cpp Notation.cpp Pawns.cpp PieceSquare.cpp Polyglot.cpp Position.cpp >> CMakeLists.txt
   - echo Searcher.cpp TBsyzygy.cpp Thread.cpp Transposition.cpp UCI.cpp UCI.Option.cpp Zobrist.cpp MemoryHandler.cpp Debugger.cpp >> CMakeLists.txt
   - echo set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/src) >> CMakeLists.txt
-#   - echo target_compile_options(stockfish PUBLIC "/Ox") >> CMakeLists.txt
+#   - echo target_compile_options(DON PUBLIC "/Ox") >> CMakeLists.txt
 
 build_script:
   - cmake -G "Visual Studio 14 2015 Win64" .
@@ -42,4 +42,4 @@ build_script:
 
 before_test:
   - cd Debug
-  - stockfish.exe bench > null
+  - DON.exe bench > null

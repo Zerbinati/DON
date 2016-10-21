@@ -171,6 +171,8 @@ namespace Threading {
             , pv_index = 0
             , max_ply  = 0
             , count    = 0;
+        u64   nodes    = 0
+            , tb_hits  = 0;
 
         Position root_pos;
         RootMoveVector root_moves;
@@ -306,6 +308,7 @@ namespace Threading {
         Thread* best_thread () const;
         
         u64  nodes () const;
+        u64  tb_hits () const;
 
         void reset_count ();
         void clear ();

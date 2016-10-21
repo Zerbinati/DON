@@ -578,7 +578,6 @@ namespace Searcher {
     i16    TBDepthLimit = 1;
     i32    TBPieceLimit = 6;
     bool   TBUseRule50  = true;
-    u16    TBHits       = 0;
     bool   TBHasRoot    = false;
 
     string OutputFile   = Empty;
@@ -774,8 +773,9 @@ namespace Searcher {
             auto max_ply        = th->max_ply;
             auto running_depth  = th->running_depth;
             auto &root_moves    = th->root_moves;
-            auto total_nodes    = Threadpool.nodes ();
             auto elapsed_time   = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
+            auto total_nodes    = Threadpool.nodes ();
+            auto tb_hits        = Threadpool.tb_hits () + (TBHasRoot ? root_moves.size () : 0);
             assert(elapsed_time > 0);
 
             ostringstream oss;
@@ -807,7 +807,7 @@ namespace Searcher {
                     << " time "     << elapsed_time
                     << " nps "      << total_nodes * MilliSec / elapsed_time
                     << " hashfull " << (elapsed_time > MilliSec ? TT.hash_full () : 0)
-                    << " tbhits "   << TBHits
+                    << " tbhits "   << tb_hits
                     << " pv"        << root_moves[i]
                     << (i+1 < Threadpool.pv_limit ? '\n' : '\0');
             }
@@ -1250,7 +1250,7 @@ namespace Searcher {
 
                     if (found != 0)
                     {
-                        ++TBHits;
+                        ++th->tb_hits;
 
                         auto draw_v = TBUseRule50 ? 1 : 0;
 

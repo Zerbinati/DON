@@ -939,8 +939,8 @@ namespace Evaluator {
             Bitboard behind = pos.pieces (Own, PAWN);
             behind |= shift<SPull> (behind);
             behind |= shift<DPull> (behind);
-            i32 count  = std::min (pop_count (  (behind & safe_space)
-                                              | (Own == WHITE ? safe_space << 32 : safe_space >> 32)), 16);
+            i32 count = std::min (pop_count (  (behind & safe_space)
+                                             | (Own == WHITE ? safe_space << 32 : safe_space >> 32)), 16);
 
             i32 weight = pos.count<NONE> (Own) - 2 * ei.pe->open_count;
             auto score = mk_score (count * weight * weight / 18, 0);

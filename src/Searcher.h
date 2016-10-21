@@ -349,7 +349,6 @@ namespace Searcher {
     extern i16   TBDepthLimit;
     extern i32   TBPieceLimit;
     extern bool  TBUseRule50;
-    extern u16   TBHits;
     extern bool  TBHasRoot;
 
     extern std::string OutputFile;

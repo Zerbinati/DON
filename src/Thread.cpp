@@ -170,8 +170,6 @@ namespace Threading {
     Thread::Thread ()
     {
         _alive = true;
-        max_ply = 0;
-        count = 0;
         index = u16(Threadpool.size ());
         clear ();
         std::unique_lock<Mutex> lk (_mutex);
@@ -208,9 +206,19 @@ namespace Threading {
         u64 nodes = 0;
         for (const auto *th : *this)
         {
-            nodes += th->root_pos.nodes;
+            nodes += th->nodes;
         }
         return nodes;
+    }
+    // Returns the total TB hits
+    u64 ThreadPool::tb_hits () const
+    {
+        u64 tb_hits = 0;
+        for (const auto *th : *this)
+        {
+            tb_hits += th->tb_hits;
+        }
+        return tb_hits;
     }
 
     void ThreadPool::reset_count ()
@@ -270,7 +278,6 @@ namespace Threading {
         TBDepthLimit = i16(i32(Options["SyzygyDepthLimit"]));
         TBPieceLimit =     i32(Options["SyzygyPieceLimit"]);
         TBUseRule50  =    bool(Options["SyzygyUseRule50"]);
-        TBHits       = 0;
         TBHasRoot    = false;
         // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit
         if (TBPieceLimit > MaxPieceLimit)
@@ -305,16 +312,12 @@ namespace Threading {
                 }
             }
 
-            if (TBHasRoot)
+            if (   TBHasRoot
+                && !TBUseRule50)
             {
-                TBHits = u16(root_moves.size ());
-
-                if (!TBUseRule50)
-                {
-                    ProbeValue = ProbeValue > VALUE_DRAW ? +VALUE_MATE - i32(MaxPlies - 1) :
-                                 ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPlies + 1) :
-                                 VALUE_DRAW;
-                }
+                ProbeValue = ProbeValue > VALUE_DRAW ? +VALUE_MATE - i32(MaxPlies - 1) :
+                                ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPlies + 1) :
+                                VALUE_DRAW;
             }
         }
 

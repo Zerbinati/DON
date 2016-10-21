@@ -589,11 +589,6 @@ void Position::clear ()
         castle_path[r] = 0;
         king_path[r]   = 0;
     }
-
-    active = CLR_NO;
-    ply    = 0;
-    nodes  = 0;
-    thread = nullptr;
 }
 
 // Set the castling for the particular color & rook
@@ -821,7 +816,10 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->checkers = attackers_to (square (active, KING), ~active);
     si->set_check_info (*this);
     thread = th;
-
+    if (thread != nullptr)
+    {
+        thread->nodes = 0;
+    }
     return *this;
 }
 // Overload to initialize the position object with the given endgame code string like "KBPKN".
@@ -1067,7 +1065,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     // Set check info used for fast check detection
     si->set_check_info (*this);
     ++ply;
-    ++nodes;
+    ++thread->nodes;
 
     assert(ok ());
 }
