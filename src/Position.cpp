@@ -589,6 +589,8 @@ void Position::clear ()
         castle_path[r] = 0;
         king_path[r]   = 0;
     }
+
+    nodes = 0;
 }
 
 // Set the castling for the particular color & rook
@@ -816,10 +818,6 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->checkers = attackers_to (square (active, KING), ~active);
     si->set_check_info (*this);
     thread = th;
-    if (thread != nullptr)
-    {
-        thread->nodes = 0;
-    }
     return *this;
 }
 // Overload to initialize the position object with the given endgame code string like "KBPKN".
@@ -1065,7 +1063,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     // Set check info used for fast check detection
     si->set_check_info (*this);
     ++ply;
-    ++thread->nodes;
+    ++nodes;
 
     assert(ok ());
 }
@@ -1239,10 +1237,11 @@ string Position::fen (bool full) const
                 oss << board[f|r];
             }
         }
-        if (r > R_1)
+        if (r == R_1)
         {
-            oss << '/';
+            break;
         }
+        oss << '/';
     }
 
     oss << ' ' << active << ' ';
@@ -1311,8 +1310,7 @@ Position::operator string () const
         << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
         << si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << '\n';
     oss << "Checkers: ";
-    Bitboard b = si->checkers;
-    while (b != 0)
+    for (Bitboard b = si->checkers; b != 0;)
     {
         oss << pop_lsq (b) << ' ';
     }

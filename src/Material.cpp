@@ -183,7 +183,8 @@ namespace Material {
                         pos.si->non_pawn_matl[ c] <  VALUE_MG_ROOK ?
                             SCALE_DRAW :
                             pos.si->non_pawn_matl[~c] <= VALUE_MG_BSHP ?
-                                Scale(4) : Scale(14);
+                                Scale(4) :
+                                Scale(14);
                     break;
                 case 1:
                     e->scale[c] = SCALE_ONEPAWN;

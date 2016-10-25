@@ -1125,6 +1125,8 @@ namespace Searcher {
                 && ss->ply == (ss-1)->ply + 1
                 && ss->ply <= MaxPlies);
 
+            ss->history_val = VALUE_ZERO;
+
             // Step 1. Initialize node
             auto *th = pos.thread;
             // Check for the available remaining limit
@@ -1588,6 +1590,30 @@ namespace Searcher {
                     new_depth += 1;
                 }
 
+                // Singular extensions (SE).
+                // We extend the TT move if its value is much better than its siblings.
+                // If all moves but one fail low on a search of (alfa-s, beta-s),
+                // and just one fails high on (alfa, beta), then that move is singular and should be extended.
+                // To verify this do a reduced search on all the other moves but the tt_move,
+                // if result is lower than tt_value minus a margin then extend tt_move.
+                if (   singular_ext_node
+                    && new_depth < depth
+                    && move == tt_move)
+                {
+                    auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
+                    ss->exclude_move = move;
+                    ss->skip_pruning = true;
+                    value = depth_search<false, CutNode, InCheck> (pos, ss, beta_margin-1, beta_margin, depth/2);
+                    ss->skip_pruning = false;
+                    ss->exclude_move = MOVE_NONE;
+
+                    singular_ext_node = false;
+                    if (value < beta_margin)
+                    {
+                        new_depth += 1;
+                    }
+                }
+
                 // Step 13. Pruning at shallow depth
                 if (   !root_node
                     //&& Limits.mate == 0
@@ -1631,30 +1657,6 @@ namespace Searcher {
                         && !pos.see_ge (move, Value(-35*depth*depth)))
                     {
                         continue;
-                    }
-                }
-
-                // Singular extensions (SE).
-                // We extend the TT move if its value is much better than its siblings.
-                // If all moves but one fail low on a search of (alfa-s, beta-s),
-                // and just one fails high on (alfa, beta), then that move is singular and should be extended.
-                // To verify this do a reduced search on all the other moves but the tt_move,
-                // if result is lower than tt_value minus a margin then extend tt_move.
-                if (   singular_ext_node
-                    && new_depth < depth
-                    && move == tt_move)
-                {
-                    auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
-                    ss->exclude_move = move;
-                    ss->skip_pruning = true;
-                    value = depth_search<false, CutNode, InCheck> (pos, ss, beta_margin-1, beta_margin, depth/2);
-                    ss->skip_pruning = false;
-                    ss->exclude_move = MOVE_NONE;
-
-                    singular_ext_node = false;
-                    if (value < beta_margin)
-                    {
-                        new_depth += 1;
                     }
                 }
 
@@ -1709,19 +1711,36 @@ namespace Searcher {
                             reduce_depth -= 2;
                         }
 
+                        ss->history_val =
+                              th->piece_history (mpc, dst_sq (move))
+                            + th->color_history (~pos.active, move)
+                            + ((ss-1)->piece_cm_history != nullptr ? (*(ss-1)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO)
+                            + ((ss-2)->piece_cm_history != nullptr ? (*(ss-2)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO)
+                            + ((ss-4)->piece_cm_history != nullptr ? (*(ss-4)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO)
+                            - 8000; // Correction factor
+
+                        // Decrease/Increase reduction by comparing opponent's stat score
+                        if (   ss->history_val > VALUE_ZERO
+                            && (ss-1)->history_val < VALUE_ZERO)
+                        {
+                            reduce_depth -= 1;
+                        }
+                        else
+                        if (   ss->history_val < VALUE_ZERO
+                            && (ss-1)->history_val > VALUE_ZERO)
+                        {
+                            reduce_depth += 1;
+                        }
+
                         // Decrease/Increase reduction for moves with +ve/-ve history
-                        reduce_depth -=
-                            i16(double(  th->piece_history(mpc, dst_sq (move))
-                                       + th->color_history(~pos.active, move)
-                                       + ((ss-1)->piece_cm_history != nullptr ? (*(ss-1)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO)
-                                       + ((ss-2)->piece_cm_history != nullptr ? (*(ss-2)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO)
-                                       + ((ss-4)->piece_cm_history != nullptr ? (*(ss-4)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO))/20000 - 0.4);
+                        reduce_depth -= i16(i32(ss->history_val) / 20000);
                     }
 
                     if (reduce_depth < 0)
                     {
                         reduce_depth = 0;
                     }
+                    else
                     if (reduce_depth > new_depth - 1)
                     {
                         reduce_depth = new_depth - 1;
@@ -2037,6 +2056,7 @@ namespace Threading {
             s->exclude_move     = MOVE_NONE;
             std::fill_n (s->killer_moves, MaxKillers, MOVE_NONE);
             s->static_eval      = VALUE_ZERO;
+            s->history_val      = VALUE_ZERO;
             s->move_count       = 0;
             s->skip_pruning     = false;
             s->piece_cm_history = nullptr;
@@ -2044,6 +2064,7 @@ namespace Threading {
         }
 
         max_ply = 0;
+        tb_hits = 0;
         running_depth  = 0;
         finished_depth = 0;
 
@@ -2173,7 +2194,6 @@ namespace Threading {
                     }
 
                     // If failing low/high set new bounds, otherwise exit the loop.
-
                     if (best_value <= alfa)
                     {
                         beta = (alfa + beta) / 2;

@@ -227,10 +227,12 @@ namespace Evaluator {
         const Score RookOnPawns     = S( 8,24); // Bonus for rook on pawns
         const Score RookTrapped     = S(92, 0); // Penalty for rook trapped
         const Score QueenWeaken     = S(35, 0); // Penalty for queen weaken
-        const Score KingTropism     = S( 7, 0);
 
         const Score SafeChecked     = S(20,20);
         const Score ProbChecked     = S(10,10);
+        // King tropism
+        const Score EnemyInFlank    = S( 7, 0);
+        const Score PawnlessFlank   = S(20,80);
 
         const Score PieceHanged     = S(48,27); // Bonus for each hanged piece
         const Score PieceLoosed     = S( 0,25); // Bonus for each loosed piece
@@ -271,7 +273,7 @@ namespace Evaluator {
     #undef V
 
         // King attack weights by piece type
-        const i32 KingAttackWeights [NONE] = { 2, 78, 56, 45, 11, 0 };
+        const i32 KingAttackWeights [NONE] = { 0, 78, 56, 45, 11, 0 };
         // Penalties for enemy's piece safe checks by piece type
         const i32 PieceSafeChecks[NONE] = { 0, 874, 538, 638, 695, 0 };
         // Penalty for enemy's queen contact checks
@@ -289,15 +291,15 @@ namespace Evaluator {
         const Bitboard QueenSide  = FA_bb|FB_bb|FC_bb|FD_bb;
         const Bitboard CenterSide = FC_bb|FD_bb|FE_bb|FF_bb;
         const Bitboard KingSide   = FE_bb|FF_bb|FG_bb|FH_bb;
-        const Bitboard KingFlankMask[CLR_NO][F_NO] =
+        const Bitboard KingFlank[CLR_NO][F_NO] =
         {
             { WhiteCamp&QueenSide, WhiteCamp&QueenSide, WhiteCamp&QueenSide, WhiteCamp&CenterSide, WhiteCamp&CenterSide, WhiteCamp&KingSide, WhiteCamp&KingSide, WhiteCamp&KingSide },
             { BlackCamp&QueenSide, BlackCamp&QueenSide, BlackCamp&QueenSide, BlackCamp&CenterSide, BlackCamp&CenterSide, BlackCamp&KingSide, BlackCamp&KingSide, BlackCamp&KingSide }
         };
         
-        // SpaceMask contains the area of the board which is considered by the space evaluation.
+        // Space contains the area of the board which is considered by the space evaluation.
         // Bonus is given based on how many squares inside this area are safe.
-        const Bitboard SpaceMask[CLR_NO] =
+        const Bitboard Space[CLR_NO] =
         {
             (FC_bb|FD_bb|FE_bb|FF_bb)&(R2_bb|R3_bb|R4_bb),
             (FC_bb|FD_bb|FE_bb|FF_bb)&(R7_bb|R6_bb|R5_bb)
@@ -306,7 +308,7 @@ namespace Evaluator {
         template<Color Own>
         void init_king_ring (const Position &pos, EvalInfo &ei)
         {
-            static const auto Opp = Own == WHITE ? BLACK : WHITE;
+            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
 
             if (pos.si->non_pawn_matl[Own] >= VALUE_MG_QUEN)
             {
@@ -317,15 +319,9 @@ namespace Evaluator {
                                      & (rel_rank (Opp, ek_sq) < R_5 ? pawn_pass_span (Opp, ek_sq) :
                                         rel_rank (Opp, ek_sq) < R_7 ? pawn_pass_span (Opp, ek_sq)|pawn_pass_span (Own, ek_sq) :
                                                                       pawn_pass_span (Own, ek_sq)));
-                if ((king_zone & ei.pin_attacked_by[Own][PAWN]) != 0)
-                {
-                    auto attackers_count = u08(pop_count (  pos.pieces (Own, PAWN)
-                                                          & (  king_zone
-                                                             | (  dist_rings_bb (ek_sq, 1)
-                                                                & front_rank_bb (Opp, ek_sq)))));
-                    ei.king_ring_attackers_count [Own] = attackers_count;
-                    ei.king_ring_attackers_weight[Own] = attackers_count*KingAttackWeights[PAWN];
-                }
+                ei.king_ring_attackers_count[Own] = u08(pop_count (  (  king_zone
+                                                                      | (dist_rings_bb (ek_sq, 1) & pawn_pass_span (Opp, ek_sq)))
+                                                                   & ei.pin_attacked_by[Own][PAWN]));
             }
         }
 
@@ -563,7 +559,7 @@ namespace Evaluator {
                 // - the number of attacked and undefended squares around our king,
                 // - the quality of the pawn shelter ('mg score' value).
                 i32 king_danger =
-                      std::min (ei.king_ring_attackers_weight[Opp]*ei.king_ring_attackers_count[Opp], 807)
+                      std::min (ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp], 807)
                     + 101 * (ei.king_zone_attacks_count[Opp])
                     + 235 * (pop_count (king_zone_undef))
                     + 134 * (  pop_count (king_ring_undef)
@@ -660,7 +656,8 @@ namespace Evaluator {
             }
 
             // King tropism: Find squares that enemy attacks in the friend king flank
-            b =   KingFlankMask[Own][_file (fk_sq)]
+            auto kf = _file (fk_sq);
+            b =   KingFlank[Own][kf]
                 & ei.pin_attacked_by[Opp][NONE];
             assert(((Own == WHITE ? b << 4 : b >> 4) & b) == 0);
             assert(pop_count (Own == WHITE ? b << 4 : b >> 4) == pop_count (b));
@@ -669,7 +666,13 @@ namespace Evaluator {
                    &  ei.dbl_attacked[Opp]
                    & ~ei.pin_attacked_by[Own][PAWN])
                 | (Own == WHITE ? b << 4 : b >> 4);
-            score -= KingTropism * pop_count (b);
+            score -= EnemyInFlank * pop_count (b);
+
+            // Penalty when our king is on a pawnless flank
+            if (((KingFlank[WHITE][kf]|KingFlank[BLACK][kf]) & pos.pieces (PAWN)) == 0)
+            {
+                score -= PawnlessFlank;
+            }
 
             if (Trace)
             {
@@ -915,33 +918,32 @@ namespace Evaluator {
         template<Color Own, bool Trace>
         Score evaluate_space_activity (const Position &pos, const EvalInfo &ei)
         {
-            static const auto Opp   = Own == WHITE ? BLACK : WHITE;
-            static const auto SPull = Own == WHITE ? DEL_S : DEL_N;
-            static const auto DPull = Own == WHITE ? DEL_SS : DEL_NN;
+            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
+            static const auto Dull = Own == WHITE ? DEL_SS : DEL_NN;
 
-            // Find the safe squares for our pieces inside the area defined by SpaceMask.
+            // Find the safe squares for our pieces inside the area defined by Space.
             // A square is safe:
             // - it is not occupied by friend pawns
             // - it is not attacked by an enemy pawns
             // - it is defended or not attacked by an enemy pieces.
             Bitboard safe_space =
-                  SpaceMask[Own]
+                  Space[Own]
                 & ~pos.pieces (Own, PAWN)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 & (   ei.pin_attacked_by[Own][NONE]
                    | ~ei.pin_attacked_by[Opp][NONE]);
 
-            // Since SpaceMask[Own] is fully on our half of the board
+            // Since Space[Own] is fully on our half of the board
             assert((Own == WHITE ? safe_space & U64(0xFFFFFFFF00000000)
                                  : safe_space & U64(0x00000000FFFFFFFF)) == 0);
 
             // Find all squares which are at most three squares behind some friend pawn
             Bitboard behind = pos.pieces (Own, PAWN);
-            behind |= shift<SPull> (behind);
-            behind |= shift<DPull> (behind);
+            behind |= shift<Pull> (behind);
+            behind |= shift<Dull> (behind);
             i32 count = std::min (pop_count (  (behind & safe_space)
                                              | (Own == WHITE ? safe_space << 32 : safe_space >> 32)), 16);
-
             i32 weight = pos.count<NONE> (Own) - 2 * ei.pe->open_count;
             auto score = mk_score (count * weight * weight / 18, 0);
 

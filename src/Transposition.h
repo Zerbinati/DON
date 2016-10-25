@@ -38,8 +38,8 @@ namespace Transposition {
         Value value () const { return Value(_value); }
         Value eval  () const { return Value(_eval);  }
         i16   depth () const { return i16  (_depth); }
-        Bound bound () const { return Bound(_gen_bnd & u08( BOUND_EXACT)); }
-        u08   gen   () const { return u08  (_gen_bnd & u08(~BOUND_EXACT)); }
+        Bound bound () const { return Bound(_gen_bnd & 0x03); }
+        u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
 
         void save (u64   k,
                    Move  m,
@@ -49,20 +49,21 @@ namespace Transposition {
                    Bound b,
                    u08   g)
         {
+            const u16 key16 = u16(k >> 0x30);
             // Preserve any existing move for the position
             if (   m != MOVE_NONE
-                || (k >> 0x30) != _key16)
+                || key16 != _key16)
             {
                 _move       = u16(m);
             }
             // Preserve more valuable entries
             if (   d > _depth - 4
                 || b == BOUND_EXACT
-                || (k >> 0x30) != _key16)
+                || key16 != _key16)
             {
                 _depth      = i08(d);
                 _gen_bnd    = u08(g | b);
-                _key16      = u16(k >> 0x30);
+                _key16      = key16;
                 _value      = i16(v);
                 _eval       = i16(e);
             }

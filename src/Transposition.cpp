@@ -165,7 +165,7 @@ namespace Transposition {
             if (   ite->_key16 == 0
                 || ite->_key16 == key16)
             {
-                tt_hit = ite->_key16 == key16;
+                tt_hit = (ite->_key16 != 0);
                 if (   tt_hit
                     && ite->gen () != _generation)
                 {
@@ -175,20 +175,19 @@ namespace Transposition {
             }
         }
         // Find an entry to be replaced according to the replacement strategy
-        auto *rte = fte;
-        auto rem = rte->_depth - 2*(u08(0x100+BOUND_EXACT + _generation - rte->_gen_bnd)&u08(~BOUND_EXACT));
+        auto *rte = fte; // Default first
         for (auto *ite = fte+1; ite < fte+Cluster::EntryCount; ++ite)
         {
-            // Implementation of replacement strategy when a collision occurs
-            auto iem = ite->_depth - 2*(u08(0x100+BOUND_EXACT + _generation - ite->_gen_bnd)&u08(~BOUND_EXACT));
-            if (rem > iem)
+            // Due to packed storage format for generation and its cyclic nature
+            // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
+            // to calculate the entry age correctly even after generation8 overflows into the next cycle.
+            if (  rte->_depth - 2*((0x103 + _generation - rte->_gen_bnd) & 0xFC)
+                > ite->_depth - 2*((0x103 + _generation - ite->_gen_bnd) & 0xFC))
             {
-                rem = iem;
                 rte = ite;
             }
         }
-        tt_hit = false;
-        return rte;
+        return tt_hit = false, rte;
     }
 
     // Returns an approximation of the per-mille of the 

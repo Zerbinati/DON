@@ -171,8 +171,7 @@ namespace Threading {
             , pv_index = 0
             , max_ply  = 0
             , count    = 0;
-        u64   nodes    = 0
-            , tb_hits  = 0;
+        u64   tb_hits  = 0;
 
         Position root_pos;
         RootMoveVector root_moves;

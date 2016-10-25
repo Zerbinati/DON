@@ -105,6 +105,7 @@ public:
 
     Color       active;
     i16         ply;
+    u64         nodes;
 
     CastleRight castle_mask[SQ_NO];
     Square      castle_rook[CR_NO];
@@ -389,7 +390,7 @@ inline bool Position::capture_or_promotion (Move m) const
         || promotion (m);
 }
 
-inline void  Position::place_piece (Square s, Color c, PieceType pt)
+inline void Position::place_piece (Square s, Color c, PieceType pt)
 {
     //assert(empty (s)); // Not needed, in case of remove_piece()
     board[s] = (c|pt);
@@ -400,12 +401,12 @@ inline void  Position::place_piece (Square s, Color c, PieceType pt)
 
     squares[c][pt].push_back (s);
 }
-inline void  Position::place_piece (Square s, Piece p)
+inline void Position::place_piece (Square s, Piece p)
 {
     assert(_ok (p));
     place_piece (s, color (p), ptype (p));
 }
-inline void  Position::remove_piece (Square s)
+inline void Position::remove_piece (Square s)
 {
     assert(!empty (s));
     auto c  = color (board[s]);
@@ -424,7 +425,7 @@ inline void  Position::remove_piece (Square s)
     }
     v.pop_back ();
 }
-inline void  Position::move_piece (Square s1, Square s2)
+inline void Position::move_piece (Square s1, Square s2)
 {
     assert(!empty (s1));
     auto c  = color (board[s1]);
