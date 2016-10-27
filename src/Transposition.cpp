@@ -76,21 +76,19 @@ namespace Transposition {
         _blocks         = nullptr;
         _clusters       = nullptr;
         _cluster_count  = 0;
-        _generation     = 0;
+        generation      = 0;
     }
-
     // Reset the entire transposition table with zeroes.
     void Table::clear ()
     {
-        if (!retain_hash
+        if (   !retain_hash
             && _clusters != nullptr)
         {
             std::memset (_clusters, 0x00, _cluster_count * sizeof (Cluster));
-            _generation = 0;
+            generation = 0;
             sync_cout << "info string Hash cleared" << sync_endl;
         }
     }
-
     // resize(mb) sets the size of the table, measured in mega-bytes.
     // Transposition table consists of a power of 2 number of clusters and
     // each cluster consists of Cluster::EntryCount number of entry.
@@ -151,13 +149,13 @@ namespace Transposition {
         }
         Engine::stop (EXIT_FAILURE);
     }
-
     // probe() looks up the entry in the transposition table.
-    // Returns a pointer to the entry found or NULL if not found.
+    // If the position is found, it returns true and a pointer to the found entry.
+    // Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
     Entry* Table::probe (Key key, bool &tt_hit) const
     {
         assert(key != 0);
-        const u16 key16 = KeyUnion{ key }.key16 ();
+        const u16 key16 = KeySplit{ key }.key16 ();
         //assert(key16 != 0);
         auto *const fte = cluster_entry (key);
         assert(fte != nullptr);
@@ -171,9 +169,9 @@ namespace Transposition {
                       || ite->_move != MOVE_NONE;
                 auto &_gen_bnd = ite->_gen_bnd;
                 if (   tt_hit
-                    && (_gen_bnd & 0xFC) != _generation)
+                    && (_gen_bnd & 0xFC) != generation)
                 {
-                    _gen_bnd = u08(_generation | (_gen_bnd & 0x03)); // Refresh
+                    _gen_bnd = u08(generation | (_gen_bnd & 0x03)); // Refresh
                 }
                 return ite;
             }
@@ -183,18 +181,19 @@ namespace Transposition {
         auto *rte = fte; // Default first
         for (auto *ite = fte+1; ite < fte+Cluster::EntryCount; ++ite)
         {
+            // The replace value of an entry is calculated as its depth minus 8 times its relative age.
+            // Entry te1 is considered more valuable than Entry te2, if te1 replace > te2 replace.
             // Due to packed storage format for generation and its cyclic nature
             // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
-            // to calculate the entry age correctly even after _generation overflows into the next cycle.
-            if (  rte->_depth - 2*((0x103 + _generation - rte->_gen_bnd) & 0xFC)
-                > ite->_depth - 2*((0x103 + _generation - ite->_gen_bnd) & 0xFC))
+            // to calculate the entry age correctly even after generation overflows into the next cycle.
+            if (  rte->_depth - 2*((0x103 + generation - rte->_gen_bnd) & 0xFC)
+                > ite->_depth - 2*((0x103 + generation - ite->_gen_bnd) & 0xFC))
             {
                 rte = ite;
             }
         }
         return rte;
     }
-
     // Returns an approximation of the per-mille of the 
     // all transposition entries during a search which have received
     // at least one write during the current search.
@@ -209,7 +208,7 @@ namespace Transposition {
             const auto *fte = clt->entries;
             for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
             {
-                if ((ite->_gen_bnd & 0xFC) == _generation)
+                if ((ite->_gen_bnd & 0xFC) == generation)
                 {
                     ++full_count;
                 }

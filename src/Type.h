@@ -165,7 +165,6 @@ enum Color : i08
     BLACK,
     CLR_NO,
 };
-
 // Square needs 6-bits to be stored
 // bit 0-2: File
 // bit 3-5: Rank
@@ -222,7 +221,6 @@ enum CastleSide : i08
     CS_QUEN,    // Queen Side (Long  Castle)
     CS_NO,
 };
-
 // Castle Right defined as in Polyglot book hash key
 enum CastleRight : u08
 {
@@ -251,7 +249,6 @@ enum PieceType : i08
     NONE     , // 110
     MAX_PTYPE, // 111
 };
-
 // Piece needs 4-bits to be stored
 // bit 0-2: Type of piece
 // bit   3: Color of piece { White = 0..., Black = 1... }
@@ -283,7 +280,6 @@ enum MoveType : u16
     ENPASSANT = 0x8000, // 1000
     PROMOTE   = 0xC000, // 11xx
 };
-
 // Move needs 16-bits to be stored
 //
 // bit 00-05: Destiny square: (0...63)
@@ -320,10 +316,10 @@ enum Value : i32
     VALUE_SPACE   = 12222, // TODO::
     VALUE_MIDGAME = 15258, VALUE_ENDGAME = 3915,
 };
-
 // Score needs 32-bits to be stored
-// the lower 16-bits are used to store the endgame value
-// the upper 16-bits are used to store the midgame value
+// the lower 16-bits are used to store the midgame value
+// the upper 16-bits are used to store the endgame value
+// Take some care to avoid left-shifting a signed int to avoid undefined behavior.
 enum Score : u32
 {
     SCORE_ZERO = 0,
@@ -452,23 +448,18 @@ inline Value  operator/  (Value  v, i32    i) { return Value(i32(v) / i); }
 inline Value& operator/= (Value &v, i32    i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1)/i32(v2); }
 
-union ValueSplit
-{
-    u16 u;
-    i16 s;
-};
 inline Value mg_value (u32 s)
 {
-    return Value(ValueSplit{ u16((s + 0x0000) >> 0x00) }.s);
+    return Value(i16((s + 0x0000) >> 0x00));
 }
 inline Value eg_value (u32 s)
 {
-    return Value(ValueSplit{ u16((s + 0x8000) >> 0x10) }.s);
+    return Value(i16((s + 0x8000) >> 0x10));
 }
 
 inline Score mk_score (i32 mg, i32 eg)
 {
-    return Score((eg << 0x10) + mg);
+    return Score(i32(u32(eg) << 0x10) + mg);
 }
 
 ARTHMAT_OPERATORS(Score)

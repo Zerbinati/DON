@@ -53,8 +53,7 @@ void RootMove::insert_pv_into_tt (Position &pos) const
                         //    evaluate (pos) :
                             VALUE_NONE,
                         -6,
-                        BOUND_NONE,
-                        TT.generation ());
+                        BOUND_NONE);
         }
         pos.do_move (m, *si++, pos.gives_check (m));
         if (++ply >= MaxPlies)
@@ -589,11 +588,9 @@ namespace Searcher {
 // the CPU waiting for data to be loaded from memory,
 // which can be quite slow.
 #if defined(PREFETCH)
-
 #   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
 #       include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
-
         void prefetch (const void *addr)
         {
 #       if defined(__INTEL_COMPILER)
@@ -605,19 +602,14 @@ namespace Searcher {
         }
 
 #   else
-
         void prefetch (const void *addr)
         {
             __builtin_prefetch (addr);
         }
-
 #   endif
-
 #else
-
         void prefetch (const void *)
         {}
-
 #endif
 
         const i16 MaxRazorDepth = 4;
@@ -632,9 +624,9 @@ namespace Searcher {
         const u08 MaxReductionMoveCount = 64;
         // ReductionDepths[pv][improving][depth][move_count]
         i16 ReductionDepths[2][2][MaxReductionDepth][MaxReductionMoveCount];
-        i16 reduction_depth (bool PVNode, bool imp, i16 d, u08 mc)
+        i16 reduction_depth (bool pv, bool imp, i16 d, u08 mc)
         {
-            return ReductionDepths[PVNode ? 1 : 0]
+            return ReductionDepths[pv ? 1 : 0]
                                   [imp ? 1 : 0]
                                   [min (d, i16(MaxReductionDepth-1))]
                                   [min (mc, u08(MaxReductionMoveCount-1))];
@@ -666,9 +658,12 @@ namespace Searcher {
                 return;
             }
 
-            if (   (Limits.use_time_management () && elapsed_time > Threadpool.time_mgr.maximum_time - 2 * TimerResolution)
-                || (Limits.movetime != 0          && elapsed_time >= Limits.movetime)
-                || (Limits.nodes != 0             && Threadpool.nodes () >= Limits.nodes))
+            if (   (   Limits.use_time_management ()
+                    && elapsed_time > Threadpool.time_mgr.maximum_time - 2 * TimerResolution)
+                || (   Limits.movetime != 0
+                    && elapsed_time >= Limits.movetime)
+                || (   Limits.nodes != 0
+                    && Threadpool.nodes () >= Limits.nodes))
             {
                 ForceStop = true;
             }
@@ -925,8 +920,7 @@ namespace Searcher {
                                VALUE_NONE,
                                ss->static_eval,
                                -6,
-                               BOUND_NONE,
-                               TT.generation ());
+                               BOUND_NONE);
                 }
 
                 if (alfa < tt_eval)
@@ -941,8 +935,7 @@ namespace Searcher {
                                        value_to_tt (tt_eval, ss->ply),
                                        ss->static_eval,
                                        qs_depth,
-                                       BOUND_LOWER,
-                                       TT.generation ());
+                                       BOUND_LOWER);
                         }
 
                         assert(-VALUE_INFINITE < tt_eval && tt_eval < +VALUE_INFINITE);
@@ -1069,8 +1062,7 @@ namespace Searcher {
                                        value_to_tt (value, ss->ply),
                                        ss->static_eval,
                                        qs_depth,
-                                       BOUND_LOWER,
-                                       TT.generation ());
+                                       BOUND_LOWER);
 
                             assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
                             return value;
@@ -1103,8 +1095,7 @@ namespace Searcher {
                           PVNode
                        && pv_alfa < best_value ?
                            BOUND_EXACT :
-                           BOUND_UPPER,
-                       TT.generation ());
+                           BOUND_UPPER);
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -1268,8 +1259,7 @@ namespace Searcher {
                                    //    evaluate (pos) :
                                        VALUE_NONE,
                                    i16(std::min (depth + 6, MaxPlies - 1)),
-                                   BOUND_EXACT,
-                                   TT.generation ());
+                                   BOUND_EXACT);
 
                         return value;
                     }
@@ -1312,8 +1302,7 @@ namespace Searcher {
                                VALUE_NONE,
                                ss->static_eval,
                                -6,
-                               BOUND_NONE,
-                               TT.generation ());
+                               BOUND_NONE);
                 }
 
                 if (!ss->skip_pruning)
@@ -1712,8 +1701,8 @@ namespace Searcher {
                         }
 
                         ss->history_val =
-                              th->piece_history (mpc, dst_sq (move))
-                            + th->color_history (~pos.active, move)
+                              th->piece_history(mpc, dst_sq (move))
+                            + th->color_history(~pos.active, move)
                             + ((ss-1)->piece_cm_history != nullptr ? (*(ss-1)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO)
                             + ((ss-2)->piece_cm_history != nullptr ? (*(ss-2)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO)
                             + ((ss-4)->piece_cm_history != nullptr ? (*(ss-4)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO)
@@ -1945,8 +1934,7 @@ namespace Searcher {
                               PVNode
                            && best_move != MOVE_NONE ?
                                BOUND_EXACT :
-                               BOUND_UPPER,
-                       TT.generation ());
+                               BOUND_UPPER);
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -2183,16 +2171,17 @@ namespace Threading {
                         break;
                     }
 
-                    // When failing high/low give some update
-                    // (without cluttering the UI) before to re-search.
-                    if (   Threadpool.main_thread () == this
-                        && Threadpool.pv_limit == 1
-                        && (best_value <= alfa || beta <= best_value)
-                        && Threadpool.time_mgr.elapsed_time () > 3*MilliSec)
+                    if (Threadpool.main_thread () == this)
                     {
-                        sync_cout << multipv_info (this, alfa, beta) << sync_endl;
+                        // When failing high/low give some update
+                        // (without cluttering the UI) before to re-search.
+                        if (   Threadpool.pv_limit == 1
+                            && (best_value <= alfa || beta <= best_value)
+                            && Threadpool.time_mgr.elapsed_time () > 3*MilliSec)
+                        {
+                            sync_cout << multipv_info (this, alfa, beta) << sync_endl;
+                        }
                     }
-
                     // If failing low/high set new bounds, otherwise exit the loop.
                     if (best_value <= alfa)
                     {
@@ -2372,7 +2361,7 @@ namespace Threading {
             Threadpool.time_mgr.initialize (root_pos.active, root_pos.ply);
         }
 
-        TT.generation (root_pos.ply + 1);
+        TT.set_generation (root_pos.ply + 1);
 
         bool voting = false;
 
