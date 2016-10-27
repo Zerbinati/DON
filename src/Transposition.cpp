@@ -157,37 +157,42 @@ namespace Transposition {
     Entry* Table::probe (Key key, bool &tt_hit) const
     {
         assert(key != 0);
-        const u16 key16 = u16(key >> 0x30);
+        const u16 key16 = KeyUnion{ key }.key16 ();
+        //assert(key16 != 0);
         auto *const fte = cluster_entry (key);
         assert(fte != nullptr);
         for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
         {
-            if (   ite->_key16 == 0
-                || ite->_key16 == key16)
+            auto &_key16 = ite->_key16;
+            if (   _key16 == 0
+                || _key16 == key16)
             {
-                tt_hit = (ite->_key16 != 0);
+                tt_hit = _key16 != 0
+                      || ite->_move != MOVE_NONE;
+                auto &_gen_bnd = ite->_gen_bnd;
                 if (   tt_hit
-                    && ite->gen () != _generation)
+                    && (_gen_bnd & 0xFC) != _generation)
                 {
-                    ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
+                    _gen_bnd = u08(_generation | (_gen_bnd & 0x03)); // Refresh
                 }
                 return ite;
             }
         }
+        tt_hit = false;
         // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte; // Default first
         for (auto *ite = fte+1; ite < fte+Cluster::EntryCount; ++ite)
         {
             // Due to packed storage format for generation and its cyclic nature
             // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
-            // to calculate the entry age correctly even after generation8 overflows into the next cycle.
+            // to calculate the entry age correctly even after _generation overflows into the next cycle.
             if (  rte->_depth - 2*((0x103 + _generation - rte->_gen_bnd) & 0xFC)
                 > ite->_depth - 2*((0x103 + _generation - ite->_gen_bnd) & 0xFC))
             {
                 rte = ite;
             }
         }
-        return tt_hit = false, rte;
+        return rte;
     }
 
     // Returns an approximation of the per-mille of the 
@@ -198,19 +203,19 @@ namespace Transposition {
     // hash, are using <x>%. of the state of full.
     u32 Table::hash_full () const
     {
-        u32 full_entry_count = 0;
+        u32 full_count = 0;
         for (const auto *clt = _clusters; clt < _clusters + 1000/Cluster::EntryCount; ++clt)
         {
             const auto *fte = clt->entries;
             for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
             {
-                if (ite->gen () == _generation)
+                if ((ite->_gen_bnd & 0xFC) == _generation)
                 {
-                    ++full_entry_count;
+                    ++full_count;
                 }
             }
         }
-        return full_entry_count;
+        return full_count;
     }
 
     void Table::save (const string &hash_fn) const

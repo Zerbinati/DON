@@ -9,6 +9,14 @@
 
 namespace Transposition {
 
+    union KeyUnion
+    {
+        u64 k;
+        u16 u[4];
+
+        u16 key16 () const { return u[3] ^ u[2] /*^ u[1] ^ u[0]*/; }
+    };
+
     // Transposition::Entry needs 16 byte to be stored
     //
     //  Key--------- 16 bits
@@ -33,13 +41,13 @@ namespace Transposition {
         friend class Table;
 
     public:
-        u16   key16 () const { return u16  (_key16); }
+        //u16   key16 () const { return u16  (_key16); }
         Move  move  () const { return Move (_move);  }
         Value value () const { return Value(_value); }
         Value eval  () const { return Value(_eval);  }
         i16   depth () const { return i16  (_depth); }
         Bound bound () const { return Bound(_gen_bnd & 0x03); }
-        u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
+        //u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
 
         void save (u64   k,
                    Move  m,
@@ -49,23 +57,25 @@ namespace Transposition {
                    Bound b,
                    u08   g)
         {
-            const u16 key16 = u16(k >> 0x30);
+            const u16 key16 = KeyUnion{ k }.key16 ();
+            //assert(key16 != 0);
+            bool force = key16 != _key16;
             // Preserve any existing move for the position
-            if (   m != MOVE_NONE
-                || key16 != _key16)
+            if (   force
+                || m != MOVE_NONE)
             {
                 _move       = u16(m);
             }
             // Preserve more valuable entries
-            if (   d > _depth - 4
-                || b == BOUND_EXACT
-                || key16 != _key16)
+            if (   force
+                || d > _depth - 4
+                || b == BOUND_EXACT)
             {
-                _depth      = i08(d);
-                _gen_bnd    = u08(g | b);
                 _key16      = key16;
                 _value      = i16(v);
                 _eval       = i16(e);
+                _depth      = i08(d);
+                _gen_bnd    = u08(g | b);
             }
         }
     };

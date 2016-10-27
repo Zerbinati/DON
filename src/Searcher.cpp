@@ -1640,8 +1640,8 @@ namespace Searcher {
                                 && (  ((ss-1)->piece_cm_history != nullptr && (ss-2)->piece_cm_history != nullptr)
                                     || (ss-4)->piece_cm_history == nullptr || (*(ss-4)->piece_cm_history)(mpc, dst_sq (move)) < VALUE_ZERO))
                                 // Futility pruning: parent node
-                            || (   !InCheck
-                                && lmr_depth < 7
+                            || (   lmr_depth < 7
+                                && !InCheck
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
                                 // Negative SEE based pruning
                             || (   lmr_depth < 8
@@ -2229,19 +2229,8 @@ namespace Threading {
 
                 if (Threadpool.main_thread () == this)
                 {
-                    if (ForceStop)
-                    {
-                        auto total_nodes  = Threadpool.nodes ();
-                        auto elapsed_time = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
-                        sync_cout
-                            << "info"
-                            << " nodes " << total_nodes
-                            << " time "  << elapsed_time
-                            << " nps "   << total_nodes * MilliSec / elapsed_time
-                            << sync_endl;
-                    }
-                    else
-                    if (   Threadpool.pv_limit == pv_index + 1
+                    if (   ForceStop
+                        || Threadpool.pv_limit == pv_index + 1
                         || Threadpool.time_mgr.elapsed_time () > 3*MilliSec)
                     {
                         sync_cout << multipv_info (this, alfa, beta) << sync_endl;
