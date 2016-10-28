@@ -191,7 +191,7 @@ public:
     explicit operator std::string () const;
 
 #if !defined(NDEBUG)
-    bool ok (u08 *failed_step = nullptr) const;
+    bool ok (u08 *step = nullptr) const;
 #endif
 
 };
@@ -468,7 +468,7 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
 
 inline void StateInfo::set_check_info (const Position &pos)
 {
-    king_checkers[WHITE] = 0;
+    king_checkers[WHITE] =
     king_checkers[BLACK] = 0;
     king_blockers[WHITE] = pos.slider_blockers<WHITE> (pos.square (WHITE, KING), 0, king_checkers[WHITE], king_checkers[BLACK]);
     king_blockers[BLACK] = pos.slider_blockers<BLACK> (pos.square (BLACK, KING), 0, king_checkers[BLACK], king_checkers[WHITE]);

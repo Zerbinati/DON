@@ -169,7 +169,7 @@ namespace Threading {
     public:
         u16   index    = 0
             , pv_index = 0
-            , max_ply  = 0
+            , max_ply  = 0 // Used to send 'seldepth' info to GUI
             , count    = 0;
         u64   tb_hits  = 0;
 

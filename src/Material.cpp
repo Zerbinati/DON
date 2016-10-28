@@ -94,6 +94,8 @@ namespace Material {
         }
 
         std::memset (e, 0x00, sizeof (*e));
+        e->used = true;
+        e->key = matl_key;
         e->scale[WHITE] =
         e->scale[BLACK] = SCALE_NORMAL;
         e->phase = pos.phase ();
@@ -103,7 +105,7 @@ namespace Material {
         // configuration one, then a generic one if previous search failed.
         if ((e->value_func = EndGames->probe<Value> (matl_key)) != nullptr)
         {
-            goto finish;
+            return e;
         }
         // Generic evaluation
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -112,7 +114,7 @@ namespace Material {
                 && pos.count<NONE> (~c) == 1)
             {
                 e->value_func = &EvaluateKXK[c];
-                goto finish;
+                return e;
             }
         }
 
@@ -125,7 +127,7 @@ namespace Material {
         if ((scale_func = EndGames->probe<Scale> (matl_key)) != nullptr)
         {
             e->scale_func[scale_func->strong_color] = scale_func;
-            goto finish;
+            return e;
         }
 
         // Didn't find any specialized scaling function, so fall back on
@@ -211,9 +213,7 @@ namespace Material {
         auto value = Value((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
         e->imbalance = mk_score (value, value);
         }
-    finish:
-        e->key = matl_key;
-        e->used = true;
+       
         return e;
     }
 }

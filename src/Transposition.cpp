@@ -13,6 +13,8 @@ namespace Transposition {
 
     using namespace std;
 
+    u08 Entry::generation = 0;
+
     // Size of Transposition entry (10 bytes)
     static_assert (sizeof (Entry) == 10, "Entry size incorrect");
     // Size of Transposition cluster (32 bytes)
@@ -76,7 +78,7 @@ namespace Transposition {
         _blocks         = nullptr;
         _clusters       = nullptr;
         _cluster_count  = 0;
-        generation      = 0;
+        Entry::generation      = 0;
     }
     // Reset the entire transposition table with zeroes.
     void Table::clear ()
@@ -85,7 +87,7 @@ namespace Transposition {
             && _clusters != nullptr)
         {
             std::memset (_clusters, 0x00, _cluster_count * sizeof (Cluster));
-            generation = 0;
+            Entry::generation = 0;
             sync_cout << "info string Hash cleared" << sync_endl;
         }
     }
@@ -161,17 +163,15 @@ namespace Transposition {
         assert(fte != nullptr);
         for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
         {
-            auto &_key16 = ite->_key16;
-            if (   _key16 == 0
-                || _key16 == key16)
+            if (   ite->_key16 == 0
+                || ite->_key16 == key16)
             {
-                tt_hit = _key16 != 0
+                tt_hit = ite->_key16 != 0
                       || ite->_move != MOVE_NONE;
-                auto &_gen_bnd = ite->_gen_bnd;
                 if (   tt_hit
-                    && (_gen_bnd & 0xFC) != generation)
+                    && !ite->alive ())
                 {
-                    _gen_bnd = u08(generation | (_gen_bnd & 0x03)); // Refresh
+                    ite->refresh ();
                 }
                 return ite;
             }
@@ -186,8 +186,8 @@ namespace Transposition {
             // Due to packed storage format for generation and its cyclic nature
             // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
             // to calculate the entry age correctly even after generation overflows into the next cycle.
-            if (  rte->_depth - 2*((0x103 + generation - rte->_gen_bnd) & 0xFC)
-                > ite->_depth - 2*((0x103 + generation - ite->_gen_bnd) & 0xFC))
+            if (  rte->worth ()
+                > ite->worth ())
             {
                 rte = ite;
             }
@@ -208,7 +208,7 @@ namespace Transposition {
             const auto *fte = clt->entries;
             for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
             {
-                if ((ite->_gen_bnd & 0xFC) == generation)
+                if (ite->alive ())
                 {
                     ++full_count;
                 }

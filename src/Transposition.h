@@ -41,6 +41,9 @@ namespace Transposition {
         friend class Table;
 
     public:
+        // "Generation" variable distinguish transposition table entries from different searches.
+        static u08 generation;
+
         //u16   key16 () const { return u16  (_key16); }
         Move  move  () const { return Move (_move);  }
         Value value () const { return Value(_value); }
@@ -49,13 +52,41 @@ namespace Transposition {
         Bound bound () const { return Bound(_gen_bnd & 0x03); }
         //u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
 
+        bool alive () const { return (_gen_bnd & 0xFC) == generation; }
+        
+        u08 worth () const { return u08(_depth - 2*((0x103 + generation - _gen_bnd) & 0xFC)); }
+
+        void refresh () { _gen_bnd = u08(generation | (_gen_bnd & 0x03)); }
+
         void save (
             u64   k,
             Move  m,
             Value v,
             Value e,
             i16   d,
-            Bound b);
+            Bound b)
+        {
+            const u16 key16 = KeySplit{ k }.key16 ();
+            //assert(key16 != 0);
+            bool force = key16 != _key16;
+            // Preserve any existing move for the position
+            if (   force
+                || m != MOVE_NONE)
+            {
+                _move       = u16(m);
+            }
+            // Preserve more valuable entries
+            if (   force
+                || d > _depth - 4
+                || b == BOUND_EXACT)
+            {
+                _key16      = key16;
+                _value      = i16(v);
+                _eval       = i16(e);
+                _depth      = i08(d);
+                _gen_bnd    = u08(generation | b);
+            }
+        }
     };
 
     const u08 CacheLineSize = 64;
@@ -103,7 +134,6 @@ namespace Transposition {
 
         static const u32 BufferSize = 0x10000;
 
-        u08  generation  = 0;
         bool retain_hash = false;
 
         Table () = default;
@@ -126,12 +156,6 @@ namespace Transposition {
         }
 
         void clear ();
-
-        // "Generation" variable distinguish transposition table entries from different searches.
-        void set_generation (u16 ply)
-        {
-            generation = u08((ply << 2) & 0xFC);
-        }
 
         // Returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
@@ -162,7 +186,7 @@ namespace Transposition {
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-            os.write (reinterpret_cast<const CharT*> (&tt.generation), sizeof (tt.generation));
+            os.write (reinterpret_cast<const CharT*> (&Entry::generation), sizeof (Entry::generation));
             os.write (reinterpret_cast<const CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
             for (u32 i = 0; i < tt._cluster_count / BufferSize; ++i)
             {
@@ -185,7 +209,7 @@ namespace Transposition {
             is.read (reinterpret_cast<CharT*> (&generation), sizeof (generation));
             is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
             tt.resize (mem_size_mb);
-            tt.generation = generation;
+            Entry::generation = generation;
             for (u32 i = 0; i < tt._cluster_count / BufferSize; ++i)
             {
                 is.read (reinterpret_cast<CharT*> (tt._clusters+i*BufferSize), sizeof (Cluster)*BufferSize);
@@ -197,39 +221,5 @@ namespace Transposition {
 
 // Global Transposition Table
 extern Transposition::Table TT;
-
-namespace Transposition {
-
-    inline void Entry::save (
-        u64   k,
-        Move  m,
-        Value v,
-        Value e,
-        i16   d,
-        Bound b)
-    {
-        const u16 key16 = KeySplit{ k }.key16 ();
-        //assert(key16 != 0);
-        bool force = key16 != _key16;
-        // Preserve any existing move for the position
-        if (   force
-            || m != MOVE_NONE)
-        {
-            _move       = u16(m);
-        }
-        // Preserve more valuable entries
-        if (   force
-            || d > _depth - 4
-            || b == BOUND_EXACT)
-        {
-            _key16      = key16;
-            _value      = i16(v);
-            _eval       = i16(e);
-            _depth      = i08(d);
-            _gen_bnd    = u08(TT.generation | b);
-        }
-    }
-}
-
 
 #endif // _TRANSPOSITION_H_INC_

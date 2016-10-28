@@ -47,6 +47,7 @@ namespace Pawns {
         {
             if (king_square[Own] != k_sq)
             {
+                king_square[Own] = k_sq;
                 u08 kp_dist = 0;
                 Bitboard pawns = pos.pieces (Own, PAWN);
                 if (pawns != 0)
@@ -55,7 +56,6 @@ namespace Pawns {
                 }
                 king_pawn_dist[Own] = kp_dist;
                 king_safety[Own] = pawn_shelter_storm<Own> (pos, k_sq);
-                king_square[Own] = k_sq;
             }
         }
 

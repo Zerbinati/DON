@@ -638,7 +638,6 @@ namespace Searcher {
         ofstream OutputStream;
         bool     WriteOutput = false;
 
-        const u08 TimerResolution = 5;
         // check_limits() is used to print debug info and, more importantly,
         // to detect when out of available limits and thus stop the search.
         void check_limits ()
@@ -659,7 +658,7 @@ namespace Searcher {
             }
 
             if (   (   Limits.use_time_management ()
-                    && elapsed_time > Threadpool.time_mgr.maximum_time - 2 * TimerResolution)
+                    && elapsed_time > Threadpool.time_mgr.maximum_time - 10) // 2*TimerResolution
                 || (   Limits.movetime != 0
                     && elapsed_time >= Limits.movetime)
                 || (   Limits.nodes != 0
@@ -1121,7 +1120,7 @@ namespace Searcher {
             // Step 1. Initialize node
             auto *th = pos.thread;
             // Check for the available remaining limit
-            if (++th->count >= TimerResolution*MilliSec)
+            if (++th->count > 4096)
             {
                 Threadpool.reset_count ();
                 check_limits ();
@@ -1129,7 +1128,6 @@ namespace Searcher {
 
             if (PVNode)
             {
-                // Used to send 'seldepth' info to GUI
                 if (th->max_ply < ss->ply)
                 {
                     th->max_ply = ss->ply;
@@ -2361,7 +2359,7 @@ namespace Threading {
             Threadpool.time_mgr.initialize (root_pos.active, root_pos.ply);
         }
 
-        TT.set_generation (root_pos.ply + 1);
+        Transposition::Entry::generation = u08(((root_pos.ply + 1) << 2) & 0xFC);
 
         bool voting = false;
 

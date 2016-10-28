@@ -253,6 +253,8 @@ namespace Pawns {
         {
             return e;
         }
+        e->used = true;
+        e->key = pawn_key;
         
         e->score =
             + evaluate<WHITE> (pos, e)
@@ -263,8 +265,6 @@ namespace Pawns {
         e->open_count =
             u08(pop_count (  e->semiopens[WHITE]
                            & e->semiopens[BLACK]));
-        e->key = pawn_key;
-        e->used = true;
         return e;
     }
 
