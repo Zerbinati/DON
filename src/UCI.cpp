@@ -83,40 +83,6 @@ namespace UCI {
             {
                 sync_cout << "readyok" << sync_endl;
             }
-            else
-            // This function updates the UCI option ("name") to the given value ("value").
-            if (token == "setoption")
-            {
-                iss >> token; // Consume "name" token
-                if (token == "name")
-                {
-                    string name;
-                    // Read option-name (can contain spaces) also consume "value" token
-                    while (   iss >> token
-                           && !iss.fail ()
-                           && token != "value")
-                    {
-                        name += string (" ", !white_spaces (name) ? 1 : 0) + token;
-                    }
-
-                    string value;
-                    // Read option-value (can contain spaces)
-                    while (   iss >> token
-                           && !iss.fail ())
-                    {
-                        value += string (" ", !white_spaces (value) ? 1 : 0) + token;
-                    }
-
-                    if (Options.find (name) != Options.end ())
-                    {
-                        Options[name] = value;
-                    }
-                    else
-                    {
-                        sync_cout << "No such option: \'" << name << "\'" << sync_endl;
-                    }
-                }
-            }
             // This sets up the position:
             //  - starting position ("startpos")
             //  - fen-string position ("fen")
@@ -294,6 +260,40 @@ namespace UCI {
             {
                 Limits.ponder = false;
             }
+            else
+            // This function updates the UCI option ("name") to the given value ("value").
+            if (token == "setoption")
+            {
+                iss >> token; // Consume "name" token
+                if (token == "name")
+                {
+                    string name;
+                    // Read option-name (can contain spaces) also consume "value" token
+                    while (   iss >> token
+                           && !iss.fail ()
+                           && token != "value")
+                    {
+                        name += string (" ", !white_spaces (name) ? 1 : 0) + token;
+                    }
+
+                    string value;
+                    // Read option-value (can contain spaces)
+                    while (   iss >> token
+                           && !iss.fail ())
+                    {
+                        value += string (" ", !white_spaces (value) ? 1 : 0) + token;
+                    }
+
+                    if (Options.find (name) != Options.end ())
+                    {
+                        Options[name] = value;
+                    }
+                    else
+                    {
+                        sync_cout << "No such option: \'" << name << "\'" << sync_endl;
+                    }
+                }
+            }
             //// Register an engin, with following tokens:
             //// - later: the user doesn't want to register the engine now.
             //// - name <x> code <y>: the engine should be registered with the name <x> and code <y>
@@ -435,6 +435,11 @@ namespace UCI {
                 sync_cout << trace (root_pos) << sync_endl;
             }
             else
+            if (token == "bench")
+            {
+                benchmark (iss, root_pos);
+            }
+            else
             if (token == "perft")
             {
                 i32    depth;
@@ -446,11 +451,6 @@ namespace UCI {
                                + to_string (i32(Options["Threads"])) + ' '
                                + to_string (depth) + " perft " + fen_fn);
                 benchmark (ss, root_pos);
-            }
-            else
-            if (token == "bench")
-            {
-                benchmark (iss, root_pos);
             }
             else
             if (token == "flip")

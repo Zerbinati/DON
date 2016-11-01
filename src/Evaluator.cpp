@@ -651,11 +651,10 @@ namespace Evaluator {
             assert(((Own == WHITE ? b << 4 : b >> 4) & b) == 0);
             assert(pop_count (Own == WHITE ? b << 4 : b >> 4) == pop_count (b));
             // Add the squares which are attacked twice in that flank and are not protected by a friend pawn.
-            b =   (   b
-                   &  ei.dbl_attacked[Opp]
-                   & ~ei.pin_attacked_by[Own][PAWN])
-                | (Own == WHITE ? b << 4 : b >> 4);
-            score -= EnemyInFlank * pop_count (b);
+            score -= EnemyInFlank * pop_count (  (   b
+                                                  &  ei.dbl_attacked[Opp]
+                                                  & ~ei.pin_attacked_by[Own][PAWN])
+                                               | (Own == WHITE ? b << 4 : b >> 4));
 
             // Penalty when our king is on a pawnless flank
             if (((KingFlank[WHITE][kf]|KingFlank[BLACK][kf]) & pos.pieces (PAWN)) == 0)
