@@ -213,7 +213,8 @@ namespace Pawns {
             own_r = file_front_pawns != 0 ? rel_rank (Own, scan_backmost_sq (Own, file_front_pawns)) : R_1;
             file_front_pawns = opp_front_pawns & file_bb (f);
             opp_r = file_front_pawns != 0 ? rel_rank (Own, scan_frntmost_sq (Opp, file_front_pawns)) : R_1;
-            assert((own_r == R_1 && opp_r == R_1)
+            assert((   own_r == R_1
+                    && opp_r == R_1)
                 || (own_r != opp_r));
             value -= ShelterWeak[std::min (f, F_H - f)][own_r]
                    + StromDanger[   f == _file (k_sq)

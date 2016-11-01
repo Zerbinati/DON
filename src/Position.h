@@ -47,13 +47,17 @@ public:
 
     // Check info
     Bitboard king_blockers[CLR_NO];// Absolute and Discover Blockers
-    Bitboard king_checkers[CLR_NO];      // Absolute and Discover Checkers
+    Bitboard king_checkers[CLR_NO];// Absolute and Discover Checkers
     Bitboard checks[NONE];
 
     StateInfo   *ptr;           // Previous StateInfo.
 
-    void set_check_info (const Position &pos);
+    void clear ()
+    {
+        std::memset (this, 0x00, sizeof (*this));
+    }
 
+    void set_check_info (const Position &pos);
 };
 
 typedef std::deque<StateInfo> StateList;
@@ -185,6 +189,7 @@ public:
     void undo_null_move ();
 
     void flip ();
+    void mirror ();
 
     std::string fen (bool full = true) const;
 

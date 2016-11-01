@@ -430,11 +430,6 @@ namespace UCI {
                 std::cout << sync_endl;
             }
             else
-            if (token == "flip")
-            {
-                root_pos.flip ();
-            }
-            else
             if (token == "eval")
             {
                 sync_cout << trace (root_pos) << sync_endl;
@@ -456,6 +451,16 @@ namespace UCI {
             if (token == "bench")
             {
                 benchmark (iss, root_pos);
+            }
+            else
+            if (token == "flip")
+            {
+                root_pos.flip ();
+            }
+            else
+            if (token == "mirror")
+            {
+                root_pos.mirror ();
             }
             else
             {

@@ -688,9 +688,9 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     istringstream iss (ff);
     iss >> std::noskipws;
 
-    std::memset (&nsi, 0x00, sizeof (StateInfo));
     clear ();
     si = &nsi;
+    si->clear ();
 
     u08 token;
     // 1. Piece placement on Board
@@ -1148,7 +1148,7 @@ void Position::do_null_move (StateInfo &nsi)
     assert(si->checkers == 0);
 
     // Full copy here
-    std::memcpy (&nsi, si, sizeof (StateInfo));
+    std::memcpy (&nsi, si, sizeof (nsi));
     // Point state pointer to point to the new state.
     nsi.ptr = si;
     si = &nsi;
@@ -1187,9 +1187,9 @@ void Position::flip ()
     // 1. Piece placement
     for (auto r = R_8; r >= R_1; --r)
     {
-        std::getline (iss, token, r > R_1 ? '/' : ' ');
+        std::getline (iss, token, r != R_1 ? '/' : ' ');
         toggle (token);
-        ff.insert (0, token + (!white_spaces (ff) ? "/" : " "));
+        ff.insert (0, token + (r != R_8 ? "/" : " "));
     }
     // 2. Active color
     iss >> token;
@@ -1202,8 +1202,10 @@ void Position::flip ()
     ff += token + ' ';
     // 4. En-passant square
     iss >> token;
-    ff += (token[0] == '-' ? token : token.replace (1, 1, token[1] == '3' ? "6" :
-                                                          token[1] == '6' ? "3" : "-"));
+    ff += (token[0] == '-' ?
+           token :
+           token.replace (1, 1, token[1] == '3' ? "6" :
+                                token[1] == '6' ? "3" : "-"));
     // 5-6. Half and full moves
     std::getline (iss, token);
     ff += token;
@@ -1212,6 +1214,49 @@ void Position::flip ()
 
     assert(ok ());
 }
+void Position::mirror ()
+{
+    istringstream iss (fen (true));
+    string ff, token;
+    // 1. Piece placement
+    for (auto r = R_8; r >= R_1; --r)
+    {
+        std::getline (iss, token, r != R_1 ? '/' : ' ');
+        std::reverse (token.begin (), token.end ());
+        ff += token + (r != R_1 ? "/" : " ");
+    }
+    // 2. Active color
+    iss >> token;
+    ff += token;
+    ff += ' ';
+    // 3. Castling availability
+    iss >> token;
+    // todo:: swap castling
+    if (token[0] != '-')
+    {
+        for (auto &ch : token)
+        {
+            ch = Chess960 ?
+                    to_char (~to_file (ch)) :
+                    (tolower (ch) == 'k' ? (islower (ch) ? 'q' : 'Q') :
+                     tolower (ch) == 'q' ? (islower (ch) ? 'k' : 'K') : '-');
+        }
+    }
+    ff += token + ' ';
+    // 4. En-passant square
+    iss >> token;
+    ff += (token[0] == '-' ?
+           token :
+           token.replace (0, 1, string (1, to_char (~to_file (token[0])))));
+    // 5-6. Half and full moves
+    std::getline (iss, token);
+    ff += token;
+
+    setup (ff, *si, thread, true);
+
+    assert (ok ());
+}
+
 // Returns the fen of position
 string Position::fen (bool full) const
 {
@@ -1237,11 +1282,10 @@ string Position::fen (bool full) const
                 oss << board[f|r];
             }
         }
-        if (r == R_1)
+        if (r != R_1)
         {
-            break;
+            oss << '/';
         }
-        oss << '/';
     }
 
     oss << ' ' << active << ' ';
@@ -1323,28 +1367,27 @@ Position::operator string () const
 bool Position::ok (u08 *step) const
 {
     static const bool Fast = true;
-    enum Step : u08
-    {
-        BASIC,
-        PIECE,
-        BITBOARD,
-        LIST,
-        CASTLING,
-        STATE,
-    };
+    //enum Step : u08
+    //{
+    //    BASIC,
+    //    BITBOARD,
+    //    LIST,
+    //    CASTLING,
+    //    STATEINFO,
+    //};
 
-    u08 s = BASIC;
+    u08 s = 0;
 
     {
         if (   (   active != WHITE
                 && active != BLACK)
             || (count<KING> (WHITE) != 1 || !_ok (square (WHITE, KING)) || board[square (WHITE, KING)] != W_KING)
             || (count<KING> (BLACK) != 1 || !_ok (square (BLACK, KING)) || board[square (BLACK, KING)] != B_KING)
-            || (count<NONE> () > 32 || count<NONE> () != pop_count (pieces ()))
+            || (   count<NONE> () > 32
+                || count<NONE> () != pop_count (pieces ()))
             || (   si->en_passant_sq != SQ_NO
                 && (   rel_rank (active, si->en_passant_sq) != R_6
-                    || !can_en_passant (si->en_passant_sq)))
-            || si->clock_ply > DrawClockPly)
+                    || !can_en_passant (si->en_passant_sq))))
         {
             if (step != nullptr) *step = s;
             return false;
@@ -1358,15 +1401,12 @@ bool Position::ok (u08 *step) const
     {
         if (   std::count (board, board + SQ_NO, W_KING) != 1
             || std::count (board, board + SQ_NO, B_KING) != 1
-            || attackers_to (square (~active, KING), active) != 0
-            || pop_count (si->checkers) > 2)
+            || pop_count (attackers_to (square (~active, KING),  active)) != 0
+            || pop_count (attackers_to (square ( active, KING), ~active)) > 2)
         {
             if (step != nullptr) *step = s;
             return false;
         }
-    }
-    ++s;
-    {
         if (   (pieces (WHITE) & pieces (BLACK)) != 0
             || (pieces (WHITE) | pieces (BLACK)) != pieces ()
             || (pieces (WHITE) ^ pieces (BLACK)) != pieces ())
@@ -1374,7 +1414,6 @@ bool Position::ok (u08 *step) const
             if (step != nullptr) *step = s;
             return false;
         }
-
         for (auto pt1 = PAWN; pt1 <= KING; ++pt1)
         {
             for (auto pt2 = PAWN; pt2 <= KING; ++pt2)
@@ -1483,7 +1522,9 @@ bool Position::ok (u08 *step) const
     }
     ++s;
     {
-        if (   si->matl_key != Zob.compute_matl_key (*this)
+        if (   pop_count (si->checkers) > 2
+            || si->clock_ply > DrawClockPly
+            || si->matl_key != Zob.compute_matl_key (*this)
             || si->pawn_key != Zob.compute_pawn_key (*this)
             || si->posi_key != Zob.compute_posi_key (*this)
             || si->psq_score != compute_psq (*this)

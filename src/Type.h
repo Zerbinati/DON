@@ -448,18 +448,25 @@ inline Value  operator/  (Value  v, i32    i) { return Value(i32(v) / i); }
 inline Value& operator/= (Value &v, i32    i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1)/i32(v2); }
 
+// Helper function for correctly casting u16 to i16.
+// The compiler will optimize this to a no-operation.
+inline i16 u16_to_i16 (u16 v)
+{
+    return i16(v < 0x8000 ? v : v - 0x10000);
+}
+
 inline Value mg_value (u32 s)
 {
-    return Value(i16((s + 0x0000) >> 0x00));
+    return Value(u16_to_i16 (u16((s + 0x0000) >> 0x00)));
 }
 inline Value eg_value (u32 s)
 {
-    return Value(i16((s + 0x8000) >> 0x10));
+    return Value(u16_to_i16 (u16((s + 0x8000) >> 0x10)));
 }
 
 inline Score mk_score (i32 mg, i32 eg)
 {
-    return Score(i32(u32(eg) << 0x10) + mg);
+    return Score((u32(eg) << 0x10) + mg);
 }
 
 ARTHMAT_OPERATORS(Score)

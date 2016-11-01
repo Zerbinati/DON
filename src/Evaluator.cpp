@@ -247,6 +247,7 @@ namespace Evaluator {
 
         // PassPawnFile[file] contains a bonus for passed pawns according to distance from edge.
         const Score PassPawnFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
+        const Score PassPawnHinder  = S( 7, 0);
 
     #undef S
 
@@ -347,7 +348,8 @@ namespace Evaluator {
                     pin_attacks &= strline_bb (pos.square (Own, KING), s);
                 }
                 ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE] & pin_attacks;
-                ei.pin_attacked_by[Own][PT] |= pin_attacks;
+                ei.pin_attacked_by[Own][NONE] |=
+                ei.pin_attacked_by[Own][PT]   |= pin_attacks;
 
                 if ((ei.king_ring[Opp] & pin_attacks) != 0)
                 {
@@ -476,7 +478,6 @@ namespace Evaluator {
                     }
                 }
             }
-            ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PT];
 
             if (Trace)
             {
@@ -532,7 +533,6 @@ namespace Evaluator {
             {
                 // Find the attacked squares which are defended only by the king in the king zone...
                 Bitboard king_zone_undef =
-                    // King-zone
                        ei.pin_attacked_by[Own][KING]
                     &  ei.ful_attacked_by[Opp]
                     & ~ei.dbl_attacked[Own];
@@ -542,7 +542,6 @@ namespace Evaluator {
                     &  non_opp
                     &  ei.pin_attacked_by[Opp][NONE]
                     & ~ei.pin_attacked_by[Own][NONE];
-
                 // Initialize the king danger, which will be transformed later into a king danger score.
                 // The initial value is based on the
                 // - the number and types of the enemy's attacking pieces,
@@ -550,24 +549,24 @@ namespace Evaluator {
                 // - the quality of the pawn shelter ('mg score' value).
                 i32 king_danger =
                       std::min (ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp], 807)
-                    + 101 * (ei.king_zone_attacks_count[Opp])
-                    + 235 * (pop_count (king_zone_undef))
+                    + 101 * ei.king_zone_attacks_count[Opp]
+                    + 235 * pop_count (king_zone_undef)
                     + 134 * (  pop_count (king_ring_undef)
-                             + (ei.abs_blockers[Own] != 0 ? 1 : 0)
-                             + ((ei.dsc_blockers[Opp] & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
-                                                                                                          | shift<RCap> (pos.pieces (Own))))
-                                                          | ei.abs_blockers[Opp])) != 0 ? 1 : 0))
+                             + (ei.abs_blockers[Own] != 0 ? 1 : 0))
+                    + 134 * ((ei.dsc_blockers[Opp] & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
+                                                                                                       | shift<RCap> (pos.pieces (Own))))
+                                                       | ei.abs_blockers[Opp])) != 0 ? 1 : 0)
                     - 717 * (pos.count<QUEN>(Opp) == 0)
                     -   7 * i32(value) / 5
                     -   5;
 
                 // Analyze enemy's queen safe contact checks.
-                // Undefended squares around the king not occupied by enemy's and attacked by enemy queen and keep squares supported by another enemy piece.
-                b =    king_zone_undef
-                    &  non_opp
-                    &  ei.pin_attacked_by[Opp][QUEN]
-                    &  ei.dbl_attacked[Opp];
-                king_danger += QueenContactCheck * pop_count (b);
+                // Undefended squares around the king not occupied by enemy's and
+                // attacked by enemy queen and keep squares supported by another enemy piece.
+                king_danger += QueenContactCheck * pop_count (   king_zone_undef
+                                                              &  non_opp
+                                                              &  ei.pin_attacked_by[Opp][QUEN]
+                                                              &  ei.dbl_attacked[Opp]);
 
                 Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces ());
                 Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces ());
@@ -583,8 +582,8 @@ namespace Evaluator {
                     & ~ei.pin_attacked_by[Own][PAWN];
 
                 // Enemy queens safe checks
-                b =   (rook_attack | bshp_attack)
-                    & ei.pin_attacked_by[Opp][QUEN];
+                b =    (rook_attack | bshp_attack)
+                    &  ei.pin_attacked_by[Opp][QUEN];
                 if ((b & safe_area) != 0)
                 {
                     score -= SafeChecked;
@@ -647,8 +646,8 @@ namespace Evaluator {
 
             // King tropism: Find squares that enemy attacks in the friend king flank
             auto kf = _file (fk_sq);
-            b =   KingFlank[Own][kf]
-                & ei.pin_attacked_by[Opp][NONE];
+            b =    KingFlank[Own][kf]
+                &  ei.pin_attacked_by[Opp][NONE];
             assert(((Own == WHITE ? b << 4 : b >> 4) & b) == 0);
             assert(pop_count (Own == WHITE ? b << 4 : b >> 4) == pop_count (b));
             // Add the squares which are attacked twice in that flank and are not protected by a friend pawn.
@@ -819,6 +818,8 @@ namespace Evaluator {
                 // Base bonus depending on rank.
                 auto mg_value = PassPawnRank[MG][rank];
                 auto eg_value = PassPawnRank[EG][rank];
+
+                score -= PassPawnHinder * pop_count (front_sqrs_bb (Own, s) & (ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
 
                 auto r  = i08(rank) - i08(R_2);
                 auto rr = r*(r-1);
