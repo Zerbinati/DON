@@ -390,19 +390,19 @@ bool Position::pseudo_legal (Move m) const
     }
     else
     {
-        Bitboard attacks = 0;
         switch (mpt)
         {
-        case NIHT: attacks = PieceAttacks[NIHT][org];           break;
-        case BSHP: attacks = attacks_bb<BSHP> (org, pieces ()); break;
-        case ROOK: attacks = attacks_bb<ROOK> (org, pieces ()); break;
-        case QUEN: attacks = attacks_bb<QUEN> (org, pieces ()); break;
-        case KING: attacks = PieceAttacks[KING][org];           break;
+        case NIHT:
+            if ((PieceAttacks[NIHT][org]           & dst) == 0) { return false; } break;
+        case BSHP:
+            if ((attacks_bb<BSHP> (org, pieces ()) & dst) == 0) { return false; } break;
+        case ROOK:
+            if ((attacks_bb<ROOK> (org, pieces ()) & dst) == 0) { return false; } break;
+        case QUEN:
+            if ((attacks_bb<QUEN> (org, pieces ()) & dst) == 0) { return false; } break;
+        case KING:
+            if ((PieceAttacks[KING][org]           & dst) == 0) { return false; } break;
         default: assert(false); break;
-        }
-        if ((attacks & dst) == 0)
-        {
-            return false;
         }
     }
 
@@ -544,16 +544,14 @@ bool Position::gives_check (Move m) const
     case PROMOTE:
     {
         // Promotion with check ?
-        Bitboard attacks = 0;
         switch (promote (m))
         {
-        case NIHT: attacks = PieceAttacks[NIHT][dst];                 break;
-        case BSHP: attacks = attacks_bb<BSHP> (dst, pieces () ^ org); break;
-        case ROOK: attacks = attacks_bb<ROOK> (dst, pieces () ^ org); break;
-        case QUEN: attacks = attacks_bb<QUEN> (dst, pieces () ^ org); break;
+        case NIHT: return (PieceAttacks[NIHT][dst] & square (~active, KING)) != 0; break;
+        case BSHP: return (attacks_bb<BSHP> (dst, pieces () ^ org) & square (~active, KING)) != 0; break;
+        case ROOK: return (attacks_bb<ROOK> (dst, pieces () ^ org) & square (~active, KING)) != 0; break;
+        case QUEN: return (attacks_bb<QUEN> (dst, pieces () ^ org) & square (~active, KING)) != 0; break;
         default: assert(false); break;
         }
-        return (attacks & square (~active, KING)) != 0;
     }
         break;
     }
@@ -627,28 +625,30 @@ void Position::set_castle (Color c, Square rook_org)
     }
 }
 // Tests the en-passant square
-bool Position::can_en_passant (Square ep_sq) const
+bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
 {
     assert(ep_sq != SQ_NO);
-    assert(rel_rank (active, ep_sq) == R_6);
+    assert(rel_rank (c, ep_sq) == R_6);
 
-    auto cap = ep_sq - pawn_push (active);
-    if ((pieces (~active, PAWN) & cap) == 0)
+    if (   move_done 
+        && (pieces (~c, PAWN) & (ep_sq - pawn_push (c))) == 0)
     {
         return false;
     }
-    Bitboard mocc = (pieces () ^ cap) | ep_sq;
+    Bitboard mocc = (pieces () ^ (move_done ?
+                                  ep_sq - pawn_push (c) :
+                                  ep_sq + pawn_push (c))) | ep_sq;
     // En-passant attackers
-    Bitboard attackers = pieces (active, PAWN) & PawnAttacks[~active][ep_sq];
+    Bitboard attackers = pieces (c, PAWN) & PawnAttacks[~c][ep_sq];
     assert(pop_count (attackers) <= 2);
     while (attackers != 0)
     {
         auto org = pop_lsq (attackers);
         // Check en-passant is legal for the position
-        if (   (   (pieces (~active, BSHP, QUEN) & PieceAttacks[BSHP][square (active, KING)]) == 0
-                || (pieces (~active, BSHP, QUEN) & attacks_bb<BSHP> (square (active, KING), mocc ^ org)) == 0)
-            && (   (pieces (~active, ROOK, QUEN) & PieceAttacks[ROOK][square (active, KING)]) == 0
-                || (pieces (~active, ROOK, QUEN) & attacks_bb<ROOK> (square (active, KING), mocc ^ org)) == 0))
+        if (   (   (pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][square (c, KING)]) == 0
+                || (pieces (~c, BSHP, QUEN) & attacks_bb<BSHP> (square (c, KING), mocc ^ org)) == 0)
+            && (   (pieces (~c, ROOK, QUEN) & PieceAttacks[ROOK][square (c, KING)]) == 0
+                || (pieces (~c, ROOK, QUEN) & attacks_bb<ROOK> (square (c, KING), mocc ^ org)) == 0))
         {
             return true;
         }
@@ -689,8 +689,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     iss >> std::noskipws;
 
     clear ();
+    nsi.clear ();
     si = &nsi;
-    si->clear ();
 
     u08 token;
     // 1. Piece placement on Board
@@ -774,7 +774,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     if (   (iss >> file && ('a' <= file && file <= 'h'))
         && (iss >> rank && ('3' == rank || rank == '6')))
     {
-        if (can_en_passant (to_square (file, rank)))
+        if (can_en_passant (active, to_square (file, rank)))
         {
             ep_sq = to_square (file, rank);
         }
@@ -1042,18 +1042,16 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         key ^= Zob.en_passant_keys[_file (si->en_passant_sq)];
         si->en_passant_sq = SQ_NO;
     }
-    // If the moving piece is a pawn check for en-passant square
-    if (mpt == PAWN)
+    // If the moving piece is a pawn with double push
+    if (   mpt == PAWN
+        && (u08(dst) ^ u08(org)) == 16)
     {
         // Set en-passant square if the moved pawn can be captured
-        if ((u08(dst) ^ u08(org)) == 16)
+        auto ep_sq = org + (dst - org) / 2;
+        if (can_en_passant (active, ep_sq))
         {
-            auto ep_sq = org + (dst - org) / 2;
-            if (can_en_passant (ep_sq))
-            {
-                si->en_passant_sq = ep_sq;
-                key ^= Zob.en_passant_keys[_file (ep_sq)];
-            }
+            si->en_passant_sq = ep_sq;
+            key ^= Zob.en_passant_keys[_file (ep_sq)];
         }
     }
     // Update state information
@@ -1387,7 +1385,7 @@ bool Position::ok (u08 *step) const
                 || count<NONE> () != pop_count (pieces ()))
             || (   si->en_passant_sq != SQ_NO
                 && (   rel_rank (active, si->en_passant_sq) != R_6
-                    || !can_en_passant (si->en_passant_sq))))
+                    || !can_en_passant (active, si->en_passant_sq))))
         {
             if (step != nullptr) *step = s;
             return false;

@@ -92,7 +92,7 @@ private:
 
     void set_castle (Color c, Square rook_org);
 
-    bool can_en_passant (Square ep_sq) const;
+    bool can_en_passant (Color c, Square ep_sq, bool move_done = true) const;
 
     template<bool Do> void do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst);
 
@@ -265,14 +265,50 @@ inline Key Position::move_posi_key (Move m) const
         && mpt != NONE);
 
     auto ppt = promotion (m) ? promote (m) : mpt;
-    auto cpt = en_passant (m) ? PAWN : ptype (board[dst]);
-    Key key = si->posi_key
-        ^ Zob.color_key
+    Key key = si->posi_key;
+    if (mtype (m) == CASTLE)
+    {
+        key ^=
+             Zob.piece_square_keys[active][ROOK][dst]
+            ^Zob.piece_square_keys[active][ROOK][rel_sq (active, dst > org ? SQ_F1 : SQ_D1)];
+        dst = rel_sq (active, dst > org ? SQ_G1 : SQ_C1);
+    }
+    else
+    {
+        auto cpt = en_passant (m) ? PAWN : ptype (board[dst]);
+        if (cpt != NONE)
+        {
+            key ^= Zob.piece_square_keys[~active][cpt][en_passant (m) ? dst - pawn_push (active) : dst];
+        }
+    }
+    key ^=
+          Zob.color_key
         ^ Zob.piece_square_keys[active][ppt][dst]
         ^ Zob.piece_square_keys[active][mpt][org];
-    if (cpt != NONE)
+    
+    i32 cr;
+    if (   si->castle_rights != CR_NONE
+        && (cr = (  castle_mask[org]
+                  | castle_mask[dst])) != 0)
     {
-        key ^= Zob.piece_square_keys[~active][cpt][en_passant (m) ? dst - pawn_push (active) : dst];
+        Bitboard b = si->castle_rights & cr;
+        while (b != 0)
+        {
+            key ^= (*Zob.castle_right_keys)[pop_lsq (b)];
+        }
+    }
+    if (si->en_passant_sq != SQ_NO)
+    {
+        key ^= Zob.en_passant_keys[_file (si->en_passant_sq)];
+    }
+    if (   mpt == PAWN
+        && (u08(dst) ^ u08(org)) == 16)
+    {
+        auto ep_sq = org + (dst - org) / 2;
+        if (can_en_passant (~active, ep_sq, false))
+        {
+            key ^= Zob.en_passant_keys[_file (ep_sq)];
+        }
     }
     return key;
 }
@@ -281,17 +317,14 @@ inline CastleRight Position::can_castle (Color c) const { return si->castle_righ
 inline CastleRight Position::can_castle (CastleRight cr) const { return si->castle_rights & cr; }
 
 inline bool Position::impeded_castle (CastleRight cr) const { return (castle_path[cr] & pieces ()) != 0; }
-
 // move_num starts at 1, and is incremented after BLACK's move.
 inline i16  Position::move_num () const { return i16(std::max ((ply - (active == BLACK ? 1 : 0))/2, 0) + 1); }
-
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
 inline Phase Position::phase () const
 {
     return Phase(i32(std::min (std::max (si->non_pawn_matl[WHITE] + si->non_pawn_matl[BLACK], VALUE_ENDGAME), VALUE_MIDGAME)
                         - VALUE_ENDGAME) * PHASE_MIDGAME / (VALUE_MIDGAME - VALUE_ENDGAME));
 }
-
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
@@ -306,7 +339,6 @@ inline Bitboard Position::attackers_to (Square s, Color c) const
 {
     return attackers_to (s, c, pieces ());
 }
-
 // Attackers to the square 's' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
@@ -370,8 +402,8 @@ inline bool Position::en_passant (Move m) const
 {
     return mtype (m) == ENPASSANT
         && (pieces (active, PAWN) & org_sq (m)) != 0
-        && empty (dst_sq (m))
-        && si->en_passant_sq == dst_sq (m);
+        && si->en_passant_sq == dst_sq (m)
+        && empty (si->en_passant_sq);
 }
 inline bool Position::capture (Move m) const
 {
@@ -385,7 +417,7 @@ inline bool Position::promotion (Move m) const
 {
     return mtype (m) == PROMOTE
         && (pieces (active, PAWN) & org_sq (m)) != 0
-        && rel_rank (active, dst_sq (m)) == R_8;
+        && rel_rank (active, org_sq (m)) == R_7;
 }
 inline bool Position::capture_or_promotion (Move m) const
 {
@@ -450,10 +482,11 @@ inline void Position::move_piece (Square s1, Square s2)
 // This is a bit tricky, especially in Chess960.
 template<bool Do> inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
+    bool king_side = king_dst > king_org;
     // Move the piece. The tricky Chess960 castle is handled earlier
     rook_org = king_dst; // castle is always encoded as "King captures friendly Rook"
-    king_dst = rel_sq (active, king_dst > king_org ? SQ_G1 : SQ_C1);
-    rook_dst = rel_sq (active, king_dst > king_org ? SQ_F1 : SQ_D1);
+    king_dst = rel_sq (active, king_side ? SQ_G1 : SQ_C1);
+    rook_dst = rel_sq (active, king_side ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
     remove_piece (Do ? king_org : king_dst);
     remove_piece (Do ? rook_org : rook_dst);

@@ -19,6 +19,7 @@ namespace MoveGen {
 
             for (auto s : pos.squares[Own][PT])
             {
+                Bitboard attacks = PieceAttacks[PT][s] & targets;
                 if (   GT == CHECK
                     || GT == QUIET_CHECK)
                 {
@@ -26,18 +27,17 @@ namespace MoveGen {
                     {
                         continue;
                     }
-                    targets &= pos.si->checks[PT];
+                    attacks &= pos.si->checks[PT];
                 }
-
-                if ((PieceAttacks[PT][s] & targets) != 0)
+                if (attacks != 0)
                 {
-                    Bitboard attacks = targets;
                     switch (PT)
                     {
-                    case NIHT: attacks &= PieceAttacks[NIHT][s]; break;
+                    //case NIHT: attacks &= PieceAttacks[NIHT][s]; break;
                     case BSHP: attacks &= attacks_bb<BSHP> (s, pos.pieces ()); break;
                     case ROOK: attacks &= attacks_bb<ROOK> (s, pos.pieces ()); break;
                     case QUEN: attacks &= attacks_bb<QUEN> (s, pos.pieces ()); break;
+                    default: break;
                     }
                     while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (s, pop_lsq (attacks)))); }
                 }

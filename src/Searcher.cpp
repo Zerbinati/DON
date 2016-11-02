@@ -1692,7 +1692,7 @@ namespace Searcher {
                         else
                         // Decrease reduction for moves that escape a capture in no-cut nodes.
                         if (   mtype (move) == NORMAL
-                            && ptype (pos[dst_sq (move)]) != PAWN
+                            && ptype (mpc) != PAWN
                             && !pos.see_ge (mk_move<NORMAL> (dst_sq (move), org_sq (move)), VALUE_ZERO))
                         {
                             reduce_depth -= 2;
