@@ -834,12 +834,9 @@ Position& Position::setup (const string &code, StateInfo &nsi, Color c)
         code.substr (   code.find ('K', 1)), // Weak
         code.substr (0, code.find ('K', 1))  // Strong
     };
-
     to_lower (sides[c]);
-
     string fen = sides[0] + char(8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
                + sides[1] + char(8 - sides[1].length () + '0') + " w - - 0 1";
-
     setup (fen, nsi, nullptr, false);
     return *this;
 }
@@ -1245,7 +1242,7 @@ void Position::mirror ()
     iss >> token;
     ff += (token[0] == '-' ?
            token :
-           token.replace (0, 1, string (1, to_char (~to_file (token[0])))));
+           token.replace (0, 1, string(1, to_char (~to_file (token[0])))));
     // 5-6. Half and full moves
     std::getline (iss, token);
     ff += token;
@@ -1290,27 +1287,21 @@ string Position::fen (bool full) const
 
     if (can_castle (CR_ANY) != CR_NONE)
     {
-        if (can_castle (CR_WHITE) != CR_NONE)
+        if (can_castle (CR_WKING) != CR_NONE)
         {
-            if (can_castle (CR_WKING) != CR_NONE)
-            {
-                oss << (Chess960 ? to_char (_file (castle_rook[Castling<WHITE, CS_KING>::Right]), false) : 'K');
-            }
-            if (can_castle (CR_WQUEN) != CR_NONE)
-            {
-                oss << (Chess960 ? to_char (_file (castle_rook[Castling<WHITE, CS_QUEN>::Right]), false) : 'Q');
-            }
+            oss << (Chess960 ? to_char (_file (castle_rook[Castling<WHITE, CS_KING>::Right]), false) : 'K');
         }
-        if (can_castle (CR_BLACK) != CR_NONE)
+        if (can_castle (CR_WQUEN) != CR_NONE)
         {
-            if (can_castle (CR_BKING) != CR_NONE)
-            {
-                oss << (Chess960 ? to_char (_file (castle_rook[Castling<BLACK, CS_KING>::Right]),  true) : 'k');
-            }
-            if (can_castle (CR_BQUEN) != CR_NONE)
-            {
-                oss << (Chess960 ? to_char (_file (castle_rook[Castling<BLACK, CS_QUEN>::Right]),  true) : 'q');
-            }
+            oss << (Chess960 ? to_char (_file (castle_rook[Castling<WHITE, CS_QUEN>::Right]), false) : 'Q');
+        }
+        if (can_castle (CR_BKING) != CR_NONE)
+        {
+            oss << (Chess960 ? to_char (_file (castle_rook[Castling<BLACK, CS_KING>::Right]),  true) : 'k');
+        }
+        if (can_castle (CR_BQUEN) != CR_NONE)
+        {
+            oss << (Chess960 ? to_char (_file (castle_rook[Castling<BLACK, CS_QUEN>::Right]),  true) : 'q');
         }
     }
     else

@@ -281,11 +281,6 @@ inline Key Position::move_posi_key (Move m) const
             key ^= Zob.piece_square_keys[~active][cpt][en_passant (m) ? dst - pawn_push (active) : dst];
         }
     }
-    key ^=
-          Zob.color_key
-        ^ Zob.piece_square_keys[active][ppt][dst]
-        ^ Zob.piece_square_keys[active][mpt][org];
-    
     i32 cr;
     if (   si->castle_rights != CR_NONE
         && (cr = (  castle_mask[org]
@@ -310,7 +305,10 @@ inline Key Position::move_posi_key (Move m) const
             key ^= Zob.en_passant_keys[_file (ep_sq)];
         }
     }
-    return key;
+    return key
+        ^ Zob.color_key
+        ^ Zob.piece_square_keys[active][ppt][dst]
+        ^ Zob.piece_square_keys[active][mpt][org];
 }
 
 inline CastleRight Position::can_castle (Color c) const { return si->castle_rights & castle_right (c); }

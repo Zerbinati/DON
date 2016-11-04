@@ -304,10 +304,10 @@ template<> void MovePicker::value<EVASION> ()
         {
             vm.value =
                   _pos.thread->piece_history(_pos[org_sq (vm.move)], dst_sq (vm.move))
-                + _pos.thread->color_history(_pos.active, vm.move)
-                + ((_ss-1)->piece_cm_history != nullptr ? (*(_ss-1)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-                + ((_ss-2)->piece_cm_history != nullptr ? (*(_ss-2)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-                + ((_ss-4)->piece_cm_history != nullptr ? (*(_ss-4)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO);
+                + _pos.thread->color_history(_pos.active, vm.move);
+                //+ ((_ss-1)->piece_cm_history != nullptr ? (*(_ss-1)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
+                //+ ((_ss-2)->piece_cm_history != nullptr ? (*(_ss-2)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
+                //+ ((_ss-4)->piece_cm_history != nullptr ? (*(_ss-4)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO);
         }
     }
 }

@@ -576,10 +576,10 @@ namespace Evaluator {
                        non_opp
                     & ~ei.pin_attacked_by[Own][NONE];
                 // ... and probable potential checks, only requiring the square to be 
-                // not being occupied by a blocked pawn and safe from pawn-attacks.
+                //  safe from pawn-attacks and not being occupied by a pawn blocked pawns.
                 Bitboard prob_area =
-                      ~(pos.pieces (Opp, PAWN) & shift<Push> (pos.pieces (PAWN)))
-                    & ~ei.pin_attacked_by[Own][PAWN];
+                      ~(  ei.pin_attacked_by[Own][PAWN]
+                        | (pos.pieces (Opp, PAWN) & shift<Push> (pos.pieces (PAWN))));
 
                 // Enemy queens safe checks
                 b =    (rook_attack | bshp_attack)
