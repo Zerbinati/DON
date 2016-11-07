@@ -170,7 +170,7 @@ namespace Threading {
         u16   index    = 0
             , pv_index = 0
             , max_ply  = 0 // Used to send 'seldepth' info to GUI
-            , count    = 0;
+            , check_count = 0;
         u64   tb_hits  = 0;
 
         Position root_pos;
@@ -194,6 +194,7 @@ namespace Threading {
 
         void clear ()
         {
+            check_count = 0;
             pawn_table.clear ();
             matl_table.clear ();
             piece_history.clear ();
@@ -329,7 +330,7 @@ enum OutputState : u08
 };
 
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<< (std::ostream &os, OutputState state)
+inline std::ostream& operator<< (std::ostream &os, const OutputState state)
 {
     static Mutex mutex;
 

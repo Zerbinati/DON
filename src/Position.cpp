@@ -1,9 +1,10 @@
 #include "Position.h"
 
-#include "Transposition.h"
 #include "PieceSquare.h"
+#include "Transposition.h"
 #include "MoveGenerator.h"
 #include "Thread.h"
+#include "TBsyzygy.h"
 #include "Notation.h"
 
 using namespace std;
@@ -12,6 +13,7 @@ using namespace PieceSquare;
 using namespace Transposition;
 using namespace MoveGen;
 using namespace Threading;
+using namespace TBSyzygy;
 using namespace Notation;
 
 u08  Position::DrawClockPly = 100;
@@ -40,28 +42,6 @@ bool Position::draw () const
         if (psi->posi_key == si->posi_key)
         {
             return true;
-        }
-    }
-    return false;
-}
-// Check whether there has been at least one repetition of position since the last capture or pawn move.
-bool Position::repeated () const
-{
-    for (const auto *bsi = si;
-            bsi != nullptr;
-            bsi = bsi->ptr)
-    {
-        const auto *psi = bsi;
-        for (auto p = std::min (psi->clock_ply, psi->null_ply);
-                  p >= 2;
-                  p -= 2)
-        {
-            psi = psi->ptr->ptr;
-            // Check first repetition
-            if (psi->posi_key == bsi->posi_key)
-            {
-                return true;
-            }
         }
     }
     return false;
@@ -1320,7 +1300,7 @@ string Position::fen (bool full) const
 }
 // Returns an ASCII representation of the position to be
 // printed to the standard output
-Position::operator string () const
+Position::operator string ()
 {
     ostringstream oss;
     oss << " +---+---+---+---+---+---+---+---+\n";
@@ -1346,6 +1326,14 @@ Position::operator string () const
     for (Bitboard b = si->checkers; b != 0;)
     {
         oss << pop_lsq (b) << ' ';
+    }
+    if (   MaxPieceLimit >= count<NONE> ()
+        && can_castle (CR_ANY) == CR_NONE)
+    {
+        ProbeState wdl_state; WDLScore wdl = probe_wdl (*this, wdl_state);
+        ProbeState dtz_state; i32      dtz = probe_dtz (*this, dtz_state);
+        oss << "\nTablebases WDL: " << std::setw (4) << wdl << " (" << wdl_state << ")"
+            << "\nTablebases DTZ: " << std::setw (4) << dtz << " (" << dtz_state << ")";
     }
     oss << '\n';
     return oss.str ();

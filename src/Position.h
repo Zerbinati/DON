@@ -149,7 +149,6 @@ public:
 
     i16  move_num () const;
     bool draw     () const;
-    bool repeated () const;
     Phase phase   () const;
 
     bool see_ge (Move m, Value v) const;
@@ -193,7 +192,7 @@ public:
 
     std::string fen (bool full = true) const;
 
-    explicit operator std::string () const;
+    explicit operator std::string ();
 
 #if !defined(NDEBUG)
     bool ok (u08 *step = nullptr) const;
@@ -496,7 +495,7 @@ template<bool Do> inline void Position::do_castling (Square king_org, Square &ki
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
-operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
+operator<< (std::basic_ostream<CharT, Traits> &os, Position &pos)
 {
     os << std::string(pos);
     return os;

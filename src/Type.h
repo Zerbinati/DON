@@ -640,8 +640,8 @@ public:
     }
 };
 
-template<class T>
-i32 sign (T val)
+// Return the sign of a number (-1, 0, 1)
+template<class T> i32 sign (T val)
 {
     return (T(0) < val) - (val < T(0));
 }

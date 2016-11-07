@@ -7,6 +7,7 @@
 #include "Evaluator.h"
 #include "MoveGenerator.h"
 #include "Thread.h"
+#include "TBsyzygy.h"
 #include "Notation.h"
 #include "Benchmark.h"
 
@@ -17,6 +18,8 @@ namespace UCI {
     using namespace Searcher;
     using namespace Evaluator;
     using namespace MoveGen;
+    using namespace Threading;
+    using namespace TBSyzygy;
     using namespace Notation;
 
     // Waits for a command from stdin, parses it and calls the appropriate function.
@@ -77,6 +80,7 @@ namespace UCI {
                 Threadpool.wait_while_thinking ();
                 clear ();
                 Threadpool.time_mgr.available_nodes = 0;
+                TBSyzygy::initialize ();
             }
             else
             if (token == "isready")

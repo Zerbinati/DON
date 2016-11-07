@@ -578,6 +578,7 @@ namespace Searcher {
     i32    TBPieceLimit = 6;
     bool   TBUseRule50  = true;
     bool   TBHasRoot    = false;
+    Value  TBValue      = VALUE_ZERO;
 
     string OutputFile   = Empty;
 
@@ -793,7 +794,7 @@ namespace Searcher {
                     << " multipv "  << std::setw (2) << i + 1
                     << " depth "    << d
                     << " seldepth " << max_ply
-                    << " score "    << to_string (tb ? ProbeValue : v)
+                    << " score "    << to_string (tb ? TBValue : v)
                     << (!tb && i == pv_index ?
                             beta <= v ? " lowerbound" :
                                 v <= alfa ? " upperbound" : "" : "")
@@ -1120,7 +1121,7 @@ namespace Searcher {
             // Step 1. Initialize node
             auto *th = pos.thread;
             // Check for the available remaining limit
-            if (++th->count > 4096)
+            if (++th->check_count > 4096)
             {
                 Threadpool.reset_count ();
                 check_limits ();
@@ -1236,19 +1237,17 @@ namespace Searcher {
                     && pos.si->clock_ply == 0
                     && pos.can_castle (CR_ANY) == CR_NONE)
                 {
-                    i32 found;
-                    auto v = probe_wdl (pos, found);
+                    ProbeState state;
+                    WDLScore v = probe_wdl (pos, state);
 
-                    if (found != 0)
+                    if (state != FAIL)
                     {
                         ++th->tb_hits;
 
                         auto draw_v = TBUseRule50 ? 1 : 0;
 
-                        auto value =
-                            v < -draw_v ? -VALUE_MATE + i32(MaxPlies + ss->ply) :
-                            v > +draw_v ? +VALUE_MATE - i32(MaxPlies + ss->ply) :
-                            VALUE_ZERO + 2 * draw_v * v;
+                        auto value = v < -draw_v ? -VALUE_MATE + i32(MaxPlies + ss->ply) :
+                                     v > +draw_v ? +VALUE_MATE - i32(MaxPlies + ss->ply) : VALUE_ZERO + 2 * draw_v * v;
 
                         tte->save (posi_key,
                                    MOVE_NONE,
@@ -2001,15 +2000,12 @@ namespace Searcher {
                 for (u08 mc = 1; mc < MaxReductionMoveCount; ++mc)
                 {
                     auto r = log (d) * log (mc) / 2;
-                    if (r >= 0.80)
+                    ReductionDepths[0][imp][d][mc] = i16(std::round (r));
+                    ReductionDepths[1][imp][d][mc] = i16(std::max (ReductionDepths[0][imp][d][mc] - 1, 0));
+                    if (   imp == 0
+                        && ReductionDepths[0][imp][d][mc] >= 2)
                     {
-                        ReductionDepths[0][imp][d][mc] = i16(std::round (r));
-                        ReductionDepths[1][imp][d][mc] = i16(std::max (ReductionDepths[0][imp][d][mc] - 1, 0));
-                        if (   imp == 0
-                            && ReductionDepths[0][imp][d][mc] >= 2)
-                        {
-                            ReductionDepths[0][imp][d][mc] += 1;
-                        }
+                        ReductionDepths[0][imp][d][mc] += 1;
                     }
                 }
             }

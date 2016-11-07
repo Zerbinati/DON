@@ -225,7 +225,7 @@ namespace Threading {
     {
         for (auto *th : *this)
         {
-            th->count = 0;
+            th->check_count = 0;
         }
     }
     void ThreadPool::clear ()
@@ -292,7 +292,7 @@ namespace Threading {
         {
             // If the current root position is in the tablebases,
             // then RootMoves contains only moves that preserve the draw or the win.
-            TBHasRoot = root_probe_dtz (root_pos, root_moves);
+            TBHasRoot = root_probe_dtz (root_pos, root_moves, TBValue);
 
             if (TBHasRoot)
             {
@@ -303,10 +303,10 @@ namespace Threading {
             else
             {
                 // Filter out moves that do not preserve the draw or the win
-                TBHasRoot = root_probe_wdl (root_pos, root_moves);
+                TBHasRoot = root_probe_wdl (root_pos, root_moves, TBValue);
                 // Only probe during search if winning
                 if (   TBHasRoot
-                    && ProbeValue <= VALUE_DRAW)
+                    && TBValue <= VALUE_DRAW)
                 {
                     TBPieceLimit = 0;
                 }
@@ -315,9 +315,8 @@ namespace Threading {
             if (   TBHasRoot
                 && !TBUseRule50)
             {
-                ProbeValue = ProbeValue > VALUE_DRAW ? +VALUE_MATE - i32(MaxPlies - 1) :
-                                ProbeValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPlies + 1) :
-                                VALUE_DRAW;
+                TBValue = TBValue > VALUE_DRAW ? +VALUE_MATE - i32(MaxPlies - 1) :
+                          TBValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPlies + 1) : VALUE_DRAW;
             }
         }
 
