@@ -40,7 +40,7 @@ namespace Notation {
             case BSHP: attacks = attacks_bb<BSHP> (dst, pos.pieces ()); break;
             case ROOK: attacks = attacks_bb<ROOK> (dst, pos.pieces ()); break;
             case QUEN: attacks = attacks_bb<QUEN> (dst, pos.pieces ()); break;
-            default: assert (false); break;
+            default: assert(false); break;
             }
 
             Bitboard amb = (attacks & pos.pieces (pos.active, mpt)) ^ org;

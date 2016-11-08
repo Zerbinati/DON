@@ -46,7 +46,7 @@ bool Position::draw () const
     }
     return false;
 }
-// Helper function used by see() to locate the least valuable attacker for the side to move,
+// Helper function used by see_ge() to locate the least valuable attacker for the side to move,
 // remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
 template<PieceType PT> PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
@@ -132,7 +132,7 @@ bool Position::see_ge (Move m, Value v) const
         return true;
     }
 
-    bool rel_profit = true; // True if the opponent is to move
+    bool profit = true; // True if the opponent is to move
     mocc ^= pieces () ^ org ^ dst;
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
@@ -162,28 +162,28 @@ bool Position::see_ge (Move m, Value v) const
 
         if (c_attackers == 0)
         {
-            return rel_profit;
+            return profit;
         }
 
         // Locate and remove the next least valuable attacker
         victim = pick_least_val_att<PAWN> (dst, c_attackers, mocc, attackers);
         if (victim == KING)
         {
-            return rel_profit == ((attackers & pieces (~c)) != 0);
+            return profit == ((attackers & pieces (~c)) != 0);
         }
 
         balance +=
-            rel_profit ?
+            profit ?
                 +PieceValues[MG][victim] :
                 -PieceValues[MG][victim];
 
-        rel_profit = !rel_profit;
-        if (rel_profit == (balance >= v))
+        profit = !profit;
+        if (profit == (balance >= v))
         {
-            return rel_profit;
+            return profit;
         }
     }
-    return rel_profit;
+    return profit;
 }
 
 // Returns a bitboard of all the pieces that are blocking attacks on the square 's' from sliders in 'attackers'.
@@ -1229,7 +1229,7 @@ void Position::mirror ()
 
     setup (ff, *si, thread, true);
 
-    assert (ok ());
+    assert(ok ());
 }
 
 // Returns the fen of position
@@ -1327,7 +1327,7 @@ Position::operator string ()
     {
         oss << pop_lsq (b) << ' ';
     }
-    if (   MaxPieceLimit >= count<NONE> ()
+    if (   MaxLimitPiece >= count<NONE> ()
         && can_castle (CR_ANY) == CR_NONE)
     {
         ProbeState wdl_state; WDLScore wdl = probe_wdl (*this, wdl_state);

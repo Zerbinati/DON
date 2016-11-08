@@ -137,13 +137,11 @@ void benchmark (istringstream &is, const Position &cur_pos)
     else
     {
         ifstream ifs (fen_fn);
-
         if (!ifs.is_open ())
         {
             std::cerr << "ERROR: unable to open file ... \'" << fen_fn << "\'" << std::endl;
             return;
         }
-
         string fen;
         while (std::getline (ifs, fen))
         {
@@ -152,11 +150,9 @@ void benchmark (istringstream &is, const Position &cur_pos)
                 fens.push_back (fen);
             }
         }
-
         ifs.close ();
+        fens.shrink_to_fit ();
     }
-
-    fens.shrink_to_fit ();
 
     if (mode != "perft")
     {

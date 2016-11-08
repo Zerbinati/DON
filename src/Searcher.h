@@ -32,7 +32,7 @@ public:
     bool      infinite  = false;    // Search until the "stop" command
     bool      ponder    = false;    // Search on ponder move until the "stop" command
     MoveVector search_moves;        // Restrict search to these root moves only
-
+    u16       check_count = 0;
     TimePoint start_time = 0;
     TimePoint elapsed_time = 0;
 
@@ -347,8 +347,8 @@ namespace Searcher {
     extern bool  BookMoveBest;
     extern i16   BookUptoMove;
 
-    extern i16   TBDepthLimit;
-    extern i32   TBPieceLimit;
+    extern i16   TBProbeDepth;
+    extern i32   TBLimitPiece;
     extern bool  TBUseRule50;
     extern bool  TBHasRoot;
     extern Value TBValue;

@@ -5,7 +5,6 @@
 #include <cstdlib>
 #include "UCI.h"
 #include "Thread.h"
-#include "Engine.h"
 
 #if defined(_WIN32)
 

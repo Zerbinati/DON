@@ -574,8 +574,8 @@ namespace Searcher {
     bool   BookMoveBest = true;
     i16    BookUptoMove = 20;
 
-    i16    TBDepthLimit = 1;
-    i32    TBPieceLimit = 6;
+    i16    TBProbeDepth = 1;
+    i32    TBLimitPiece = 6;
     bool   TBUseRule50  = true;
     bool   TBHasRoot    = false;
     Value  TBValue      = VALUE_ZERO;
@@ -1121,7 +1121,7 @@ namespace Searcher {
             // Step 1. Initialize node
             auto *th = pos.thread;
             // Check for the available remaining limit
-            if (++th->check_count > 4096)
+            if (++th->check_count > Limits.check_count)
             {
                 Threadpool.reset_count ();
                 check_limits ();
@@ -1227,13 +1227,13 @@ namespace Searcher {
 
             // Step 4A. Tablebase probe
             if (   !root_node
-                && TBPieceLimit != 0)
+                && TBLimitPiece != 0)
             {
                 auto piece_count = pos.count<NONE> ();
 
-                if (   (   piece_count < TBPieceLimit
-                        || (   piece_count == TBPieceLimit
-                            && depth >= TBDepthLimit))
+                if (   (   piece_count < TBLimitPiece
+                        || (   piece_count == TBLimitPiece
+                            && depth >= TBProbeDepth))
                     && pos.si->clock_ply == 0
                     && pos.can_castle (CR_ANY) == CR_NONE)
                 {
@@ -1690,6 +1690,7 @@ namespace Searcher {
                         }
                         else
                         // Decrease reduction for moves that escape a capture in no-cut nodes.
+                        // Filter out castling moves, because they are coded as "king captures rook" and hence break mk_move().
                         if (   mtype (move) == NORMAL
                             && ptype (mpc) != PAWN
                             && !pos.see_ge (mk_move<NORMAL> (dst_sq (move), org_sq (move)), VALUE_ZERO))
@@ -1737,8 +1738,7 @@ namespace Searcher {
                             -depth_search<false, true, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth) :
                             -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth);
 
-                    full_depth_search = alfa < value
-                                     && reduce_depth > 0;
+                    full_depth_search = alfa < value;
                 }
                 else
                 {

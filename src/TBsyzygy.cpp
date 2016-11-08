@@ -2,6 +2,8 @@
 
 #include <fstream>
 #include <iostream>
+#include <cstdint>
+#include <cstring>   // For std::memset
 #include <vector>
 #include <deque>
 
@@ -9,6 +11,7 @@
 #include "Position.h"
 #include "MoveGenerator.h"
 #include "Thread.h"
+#include "Engine.h"
 
 #if !defined(_WIN32)
 #include <fcntl.h>
@@ -34,7 +37,7 @@ namespace TBSyzygy {
     using namespace Searcher;
 
     string  PathString      = Empty;
-    i32     MaxPieceLimit   = 0;
+    i32     MaxLimitPiece   = 0;
 
     namespace {
 
@@ -223,7 +226,7 @@ namespace TBSyzygy {
         }
         i32 off_A1H8 (Square sq)
         {
-            return i32 (_rank (sq)) - _file (sq);
+            return i32(_rank (sq)) - i32(_file (sq));
         }
 
         const Value WDL_To_Value[] =
@@ -241,7 +244,11 @@ namespace TBSyzygy {
         i32 LeadPawnIdx[5][SQ_NO]; // [lead_pawn_count][SQ_NO]
         i32 LeadPawnsSize[5][4];   // [lead_pawn_count][F_A..F_D]
 
-        enum { BigEndian, LittleEndian };
+        enum
+        { 
+            BigEndian,
+            LittleEndian
+        };
 
         template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
         inline void swap_byte (T& x)
@@ -307,7 +314,7 @@ namespace TBSyzygy {
                     }
                 }
                 std::cerr << "HSHMAX too low!" << std::endl;
-                exit (1);
+                Engine::stop (EXIT_FAILURE);
             }
 
         public:
@@ -341,12 +348,11 @@ namespace TBSyzygy {
         class TBFile
             : public ifstream
         {
-        private:
-            string filename;
-
         public:
             // Look for and open the file among the Paths directories where the .rtbw and .rtbz files can be found.
             static vector<string> Paths;
+
+            string filename;
 
             TBFile (const string &code, const string &ext)
             {
@@ -356,10 +362,11 @@ namespace TBSyzygy {
                 for (const auto &path : Paths)
                 {
                     auto file_path = append_path (path, file);
-                    ifstream::open (file_path);
+                    open (file_path);
                     if (is_open ())
                     {
                         filename = file_path;
+                        close ();
                         break;
                     }
                 }
@@ -369,9 +376,7 @@ namespace TBSyzygy {
             // closed after mapping.
             u08* map (void **base_address, u64 *mapping, const u08 *TB_MAGIC)
             {
-                assert(is_open ());
-
-                close (); // Need to re-open to get native file descriptor
+                assert(!white_spaces (filename));
 
 #ifndef _WIN32
                 struct stat statbuf;
@@ -384,7 +389,7 @@ namespace TBSyzygy {
                 if (*base_address == MAP_FAILED)
                 {
                     std::cerr << "Could not mmap() " << filename << std::endl;
-                    exit (1);
+                    return nullptr;
                 }
 #else
                 HANDLE fd = CreateFile (filename.c_str (), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -393,10 +398,10 @@ namespace TBSyzygy {
                 HANDLE mmap = CreateFileMapping (fd, nullptr, PAGE_READONLY, size_high, size_low, nullptr);
                 CloseHandle (fd);
 
-                if (!mmap)
+                if (mmap == 0)
                 {
-                    std::cerr << "CreateFileMapping() failed" << std::endl;
-                    exit (1);
+                    std::cerr << "CreateFileMapping() failed, name = " << filename << ", error = " << GetLastError () << std::endl;
+                    return nullptr;
                 }
 
                 *mapping = u64(mmap);
@@ -405,7 +410,7 @@ namespace TBSyzygy {
                 if (*base_address == nullptr)
                 {
                     std::cerr << "MapViewOfFile() failed, name = " << filename << ", error = " << GetLastError () << std::endl;
-                    exit (1);
+                    return nullptr;
                 }
 #endif
                 u08 *data = (u08*) *base_address;
@@ -444,7 +449,8 @@ namespace TBSyzygy {
             StateInfo si;
             Position pos;
             key1 = pos.setup (code, si, WHITE).si->matl_key;
-            piece_count = pop_count (pos.pieces ());
+            key2 = pos.setup (code, si, BLACK).si->matl_key;
+            piece_count = pos.count<NONE> ();
             has_pawns = pos.count<PAWN> () != 0;
             for (Color c = WHITE; c <= BLACK; ++c)
             {    
@@ -469,8 +475,6 @@ namespace TBSyzygy {
                 pawn_table.pawn_count[0] = u08(pos.count<PAWN> ( lead_color));
                 pawn_table.pawn_count[1] = u08(pos.count<PAWN> (~lead_color));
             }
-
-            key2 = pos.setup (code, si, BLACK).si->matl_key;
         }
 
         WDLEntry::~WDLEntry ()
@@ -540,13 +544,11 @@ namespace TBSyzygy {
                 code += PieceToChar[pt];
             }
             TBFile file (code, ".rtbw");
-            if (file.is_open ())
+            if (!file.filename.empty ())
             {
-                file.close ();
-
-                if (MaxPieceLimit < i32(pieces.size ()))
+                if (MaxLimitPiece < i32(pieces.size ()))
                 {
-                    MaxPieceLimit = i32(pieces.size ());
+                    MaxLimitPiece = i32(pieces.size ());
                 }
 
                 wdl_table.push_back (WDLEntry (code));
@@ -629,7 +631,8 @@ namespace TBSyzygy {
             // Read the first 64 bits in our block, this is a (truncated) sequence of
             // unknown number of symbols of unknown length but we know the first one
             // is at the beginning of this 64 bits sequence.
-            u64 buf64 = number<u64, BigEndian> (ptr); ptr += 2;
+            u64 buf64 = number<u64, BigEndian> (ptr);
+            ptr += 2;
             i32 buf64Size = 64;
             Sym sym;
 
@@ -669,7 +672,7 @@ namespace TBSyzygy {
                 if (buf64Size <= 32)
                 { // Refill the buffer
                     buf64Size += 32;
-                    buf64 |= (u64) number<u32, BigEndian> (ptr++) << (64 - buf64Size);
+                    buf64 |= u64(number<u32, BigEndian> (ptr++)) << (64 - buf64Size);
                 }
             }
 
@@ -677,7 +680,7 @@ namespace TBSyzygy {
             // We binary-search for our value recursively expanding into the left and
             // right child symbols until we reach a leaf node where sym_len[sym] + 1 == 1
             // that will store the value we need.
-            while (d->sym_len[sym])
+            while (d->sym_len[sym] != 0)
             {
                 Sym left = d->btree[sym].get<LR::Left> ();
 
@@ -798,7 +801,7 @@ namespace TBSyzygy {
                 assert(ptype (pc) == PAWN);
 
                 lead_pawns = b = pos.pieces (color (pc), PAWN);
-                while (b)
+                while (b != 0)
                 {
                     squares[size++] = flip ? ~pop_lsq (b) : pop_lsq (b);
                 }
@@ -830,7 +833,7 @@ namespace TBSyzygy {
             // Now we are ready to get all the position pieces (but the lead pawns) and
             // directly map them to the correct color and square.
             b = pos.pieces () ^ lead_pawns;
-            while (b)
+            while (b != 0)
             {
                 auto s = pop_lsq (b);
                 squares[size] = flip ? ~s : s;
@@ -978,7 +981,7 @@ namespace TBSyzygy {
             // Encode remainig pawns then pieces according to square, in ascending order
             bool pawn_remain = entry->has_pawns && entry->pawn_table.pawn_count[1];
 
-            while (d->group_len[++next])
+            while (d->group_len[++next] != 0)
             {
                 std::sort (group_sq, group_sq + d->group_len[next]);
                 u64 n = 0;
@@ -1185,7 +1188,7 @@ namespace TBSyzygy {
                 {
                     for (i32 i = 0; i < 4; ++i)
                     { // Sequence like 3,x,x,x,1,x,0,2,x,x
-                        item (p, 0, f).map_idx[i] = (u16) (data - p.map + 1);
+                        item (p, 0, f).map_idx[i] = u16(data - p.map + 1);
                         data += *data + 1;
                     }
                 }
@@ -1286,7 +1289,7 @@ namespace TBSyzygy {
         }
 
         template<typename Entry>
-        void* init (Entry& e, const Position &pos)
+        void* init (Entry &e, const Position &pos)
         {
             const bool IsWDL = is_same<Entry, WDLEntry>::value;
 
@@ -1310,8 +1313,8 @@ namespace TBSyzygy {
             string w, b;
             for (auto pt = KING; pt >= PAWN; --pt)
             {
-                w += string(pop_count (pos.pieces (WHITE, pt)), PieceToChar[pt]);
-                b += string(pop_count (pos.pieces (BLACK, pt)), PieceToChar[pt]);
+                w += string(pos.count (WHITE, pt), PieceToChar[pt]);
+                b += string(pos.count (BLACK, pt), PieceToChar[pt]);
             }
 
             const u08 TB_MAGIC[][4] =
@@ -1321,7 +1324,7 @@ namespace TBSyzygy {
             };
 
             u08 *data = TBFile ((e.key1 == pos.si->matl_key ? w + b : b + w), IsWDL ? ".rtbw" : ".rtbz").map (&e.base_address, &e.mapping, TB_MAGIC[IsWDL]);
-            if (data)
+            if (data != nullptr)
             {
                 e.has_pawns ?
                     do_init (e, e.pawn_table, data) :
@@ -1340,9 +1343,10 @@ namespace TBSyzygy {
                 return T(WDLDraw); // KvK
             }
 
-            E* entry = EntryTable.get<E> (pos.si->matl_key);
+            E *entry = EntryTable.get<E> (pos.si->matl_key);
 
-            if (!entry || !init (*entry, pos))
+            if (   entry == nullptr
+                || init (*entry, pos) == nullptr)
             {
                 return state = FAIL, T();
             }
@@ -1759,7 +1763,7 @@ namespace TBSyzygy {
                 }
             }
         }
-        root_moves.resize (size, RootMove(MOVE_NONE));
+        root_moves.resize (size, RootMove (MOVE_NONE));
 
         return true;
     }
@@ -1815,7 +1819,7 @@ namespace TBSyzygy {
                 root_moves[size++] = root_moves[i];
             }
         }
-        root_moves.resize (size, RootMove(MOVE_NONE));
+        root_moves.resize (size, RootMove (MOVE_NONE));
 
         return true;
     }
@@ -1953,7 +1957,7 @@ namespace TBSyzygy {
         }
 
         EntryTable.clear ();
-        MaxPieceLimit = 0;
+        MaxLimitPiece = 0;
 
         if (   white_spaces (PathString)
             || PathString == Empty)
@@ -1974,14 +1978,16 @@ namespace TBSyzygy {
 #       endif
 
         //TBFile::Paths = split (PathString, SepChar, false, true);
-        
         TBFile::Paths.clear ();
         stringstream ss (PathString);
         string path;
         while (std::getline (ss, path, SepChar))
         {
-            convert_path(path);
-            TBFile::Paths.push_back (path);
+            if (!white_spaces (path))
+            {
+                convert_path (path);
+                TBFile::Paths.push_back (path);
+            }
         }
 
         for (auto wp1 = PAWN; wp1 < KING; ++wp1)

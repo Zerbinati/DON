@@ -75,6 +75,8 @@ void TimeManager::initialize (Color c, i16 ply)
         Limits.clock[c].time = available_nodes;
         Limits.clock[c].inc *= NodesTime;
     }
+    // At low node count increase the checking rate otherwise use a default value
+    Limits.check_count = u16(Limits.nodes != 0 ? std::min (i32(Limits.nodes / 0x1000), 0x1000) : 0x1000);
 
     optimum_time =
     maximum_time =
@@ -275,19 +277,20 @@ namespace Threading {
         RootMoveVector root_moves;
         root_moves.initialize (root_pos, limits.search_moves);
 
-        TBDepthLimit = i16(i32(Options["SyzygyDepthLimit"]));
-        TBPieceLimit =     i32(Options["SyzygyPieceLimit"]);
+        TBProbeDepth = i16(i32(Options["SyzygyProbeDepth"]));
+        TBLimitPiece =     i32(Options["SyzygyLimitPiece"]);
         TBUseRule50  =    bool(Options["SyzygyUseRule50"]);
         TBHasRoot    = false;
-        // Skip TB probing when no TB found: !MaxPieceLimit -> !TB::PieceLimit
-        if (TBPieceLimit > MaxPieceLimit)
+        // Skip TB probing when no TB found: !MaxLimitPiece -> !TBLimitPiece
+        if (TBLimitPiece > MaxLimitPiece)
         {
-            TBPieceLimit = MaxPieceLimit;
-            TBDepthLimit = 0;
+            TBLimitPiece = MaxLimitPiece;
+            TBProbeDepth = 0;
         }
         // Filter root moves
         if (   !root_moves.empty ()
-            && TBPieceLimit >= root_pos.count<NONE> ()
+            && TBLimitPiece != 0
+            && TBLimitPiece >= root_pos.count<NONE> ()
             && root_pos.can_castle (CR_ANY) == CR_NONE)
         {
             // If the current root position is in the tablebases,
@@ -297,7 +300,7 @@ namespace Threading {
             if (TBHasRoot)
             {
                 // Do not probe tablebases during the search
-                TBPieceLimit = 0;
+                TBLimitPiece = 0;
             }
             // If DTZ tables are missing, use WDL tables as a fallback
             else
@@ -308,7 +311,7 @@ namespace Threading {
                 if (   TBHasRoot
                     && TBValue <= VALUE_DRAW)
                 {
-                    TBPieceLimit = 0;
+                    TBLimitPiece = 0;
                 }
             }
 

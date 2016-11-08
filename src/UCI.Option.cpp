@@ -368,8 +368,8 @@ namespace UCI {
         Options["Ponder"]                       << Option (Ponder, on_time_opt);
 
         Options["SyzygyPath"]                   << Option (PathString, on_syzygy_path);
-        Options["SyzygyDepthLimit"]             << Option (TBDepthLimit, 1, 100);
-        Options["SyzygyPieceLimit"]             << Option (TBPieceLimit, 0, 6);
+        Options["SyzygyProbeDepth"]             << Option (TBProbeDepth, 1, 100);
+        Options["SyzygyLimitPiece"]             << Option (TBLimitPiece, 0, 6);
         Options["SyzygyUseRule50"]              << Option (TBUseRule50);
 
         Options["Debug File"]                   << Option (Empty, on_debug_file);
