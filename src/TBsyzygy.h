@@ -39,22 +39,22 @@ namespace TBSyzygy {
 
     extern void initialize ();
 
-    inline std::ostream& operator<<(std::ostream& os, const WDLScore v)
+    inline std::ostream& operator<< (std::ostream &os, const WDLScore wdl)
     {
-        os << (v == WDLLoss       ? "Loss" :
-               v == WDLCursedLoss ? "Cursed loss" :
-               v == WDLDraw       ? "Draw" :
-               v == WDLCursedWin  ? "Cursed win" :
-               v == WDLWin        ? "Win" : "None");
+        os << (wdl == WDLLoss       ? "Loss" :
+               wdl == WDLCursedLoss ? "Cursed loss" :
+               wdl == WDLDraw       ? "Draw" :
+               wdl == WDLCursedWin  ? "Cursed win" :
+               wdl == WDLWin        ? "Win" : "None");
         return os;
     }
 
-    inline std::ostream& operator<<(std::ostream& os, const ProbeState v)
+    inline std::ostream& operator<< (std::ostream &os, const ProbeState ps)
     {
-        os << (v == FAIL              ? "Failed" :
-               v == OK                ? "Success" :
-               v == CHANGE_STM        ? "Probed opponent side" :
-               v == ZEROING_BEST_MOVE ? "Best move zeroes DTZ" : "None");
+        os << (ps == FAIL              ? "Failed" :
+               ps == OK                ? "Success" :
+               ps == CHANGE_STM        ? "Probed opponent side" :
+               ps == ZEROING_BEST_MOVE ? "Best move zeroes DTZ" : "None");
         return os;
     }
 }

@@ -762,8 +762,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->en_passant_sq = ep_sq;
 
     // 5-6. Clock ply and Game move count
-    i16 clk_ply = 0
-      , moves  = 1;
+    i16   clk_ply = 0
+        , moves   = 1;
     if (full)
     {
         iss >> std::skipws
