@@ -449,7 +449,6 @@ namespace TBSyzygy {
             StateInfo si;
             Position pos;
             key1 = pos.setup (code, si, WHITE).si->matl_key;
-            key2 = pos.setup (code, si, BLACK).si->matl_key;
             piece_count = pos.count<NONE> ();
             has_pawns = pos.count<PAWN> () != 0;
             for (Color c = WHITE; c <= BLACK; ++c)
@@ -475,6 +474,7 @@ namespace TBSyzygy {
                 pawn_table.pawn_count[0] = u08(pos.count<PAWN> ( lead_color));
                 pawn_table.pawn_count[1] = u08(pos.count<PAWN> (~lead_color));
             }
+            key2 = pos.setup (code, si, BLACK).si->matl_key;
         }
 
         WDLEntry::~WDLEntry ()
