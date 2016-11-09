@@ -1,7 +1,5 @@
 #include "Polyglot.h"
 
-#include <iomanip>
-
 #include "PRNG.h"
 #include "Zobrist.h"
 #include "MoveGenerator.h"
@@ -16,7 +14,6 @@ namespace Polyglot {
 
     #define OFFSET(x)  (Book::HeaderSize + (x)*sizeof (Entry))
 
-    // -------------------------
     // Size of Book entry (16 bytes)
     static_assert (sizeof (Entry) == 16, "Entry size incorrect");
 
@@ -29,8 +26,11 @@ namespace Polyglot {
         auto m = Move(move);
         // Set new type for promotion piece
         auto pt = PieceType((m >> 12) & MAX_PTYPE);
-        if (pt != PAWN) promote (m, pt);
-        // TODO::Add special move flags and verify it is legal
+        if (pt != PAWN)
+        {
+            promote (m, pt);
+        }
+        // TODO:: Add special move flags and verify it is legal
         oss << " key: "    << std::setw (16) << std::setfill ('0') << std::hex << std::uppercase << key << std::nouppercase
             << " move: "   << std::setw ( 5) << std::setfill (' ') << std::left << move_to_can (m) << std::right
             << " weight: " << std::setw ( 4) << std::setfill ('0') << std::dec << weight
@@ -39,8 +39,6 @@ namespace Polyglot {
 
         return oss.str ();
     }
-
-    // -------------------------
 
     const u08 Book::HeaderSize = 96;
     static_assert (Book::HeaderSize == 96, "Book header size incorrect");
@@ -60,10 +58,7 @@ namespace Polyglot {
         close ();
     }
 
-    // open() tries to open a book file with the given name after closing any existing one.
-    // Mode:
-    // Read -> ios_base::in
-    // Write-> ios_base::out
+    // Tries to open a book file with the given name after closing any existing one.
     bool Book::open (const string &book_fn, openmode mode)
     {
         _book_fn = book_fn;
@@ -81,8 +76,7 @@ namespace Polyglot {
         }
     }
 
-    template<class T>
-    Book& Book::operator>> (      T &t)
+    template<class T> Book& Book::operator>> (      T &t)
     {
         t = T ();
         for (u08 i = 0; i < sizeof (t) && good (); ++i)
@@ -92,8 +86,7 @@ namespace Polyglot {
         }
         return *this;
     }
-    template<class T>
-    Book& Book::operator<< (const T &t)
+    template<class T> Book& Book::operator<< (const T &t)
     {
         for (u08 i = 0; i < sizeof (t) && good (); ++i)
         {
@@ -103,8 +96,7 @@ namespace Polyglot {
         return *this;
     }
 
-    template<>
-    Book& Book::operator>> (      Entry &pe)
+    template<> Book& Book::operator>> (      Entry &pe)
     {
         *this
             >> pe.key
@@ -113,8 +105,7 @@ namespace Polyglot {
             >> pe.learn;
         return *this;
     }
-    template<>
-    Book& Book::operator<< (const Entry &pe)
+    template<> Book& Book::operator<< (const Entry &pe)
     {
         *this
             << pe.key
@@ -124,11 +115,13 @@ namespace Polyglot {
         return *this;
     }
 
-    // find_index() takes a hash-key as input, and search through the book file for the given key.
     // Returns the index of the 1st book entry with the same key as the input.
     size_t Book::find_index (const Key key)
     {
-        if (!is_open ()) return streampos(-1);
+        if (!is_open ())
+        {
+            return size_t(-1);
+        }
 
         auto beg_index = size_t(0);
         auto end_index = size_t((size () - HeaderSize) / sizeof (Entry) - 1);
@@ -161,13 +154,11 @@ namespace Polyglot {
     }
     size_t Book::find_index (const string &fen, bool c960)
     {
-        Position pos;
         StateInfo si;
-        pos.setup (fen, si, nullptr, c960);
-        return find_index (pos.poly_key ());
+        return find_index (Position ().setup (fen, si, nullptr, c960).poly_key ());
     }
 
-    // probe_move() tries to find a book move for the given position.
+    // Tries to find a book move for the given position.
     // If no move is found returns MOVE_NONE.
     // If pick_best is true returns always the highest rated move,
     // otherwise randomly chooses one, based on the move score.
@@ -296,8 +287,10 @@ namespace Polyglot {
             // Polyglot use 3 bits while engine use 2 bits.
             auto pt = PieceType((move >> 12) & MAX_PTYPE);
             // Set new type for promotion piece
-            if (pt != PAWN) promote (move, pt);
-
+            if (pt != PAWN)
+            {
+                promote (move, pt);
+            }
             // Add special move flags and verify it is legal
             for (const auto &vm : MoveList<LEGAL> (pos))
             {
@@ -352,5 +345,4 @@ namespace Polyglot {
         }
         return oss.str ();
     }
-
 }

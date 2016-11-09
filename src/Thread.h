@@ -3,15 +3,15 @@
 
 #include <bitset>
 #include <thread>
-#include <iostream>
+#include <atomic>
 
 #include "thread_win32.h"
-#include "UCI.h"
+#include "Type.h"
 #include "PRNG.h"
 #include "Position.h"
 #include "Pawns.h"
 #include "Material.h"
-#include "MovePicker.h"
+#include "Searcher.h"
 
 extern double MoveSlowness;
 extern u32    NodesTime;
@@ -31,7 +31,7 @@ public:
     TimePoint optimum_time = 0;
     TimePoint maximum_time = 0;
 
-    u64 available_nodes = 0; // When in 'Nodes as Time' mode
+    u64 available_nodes = 0; // 'Nodes as Time' mode
 
     TimeManager () = default;
     TimeManager (const TimeManager&) = delete;
@@ -44,18 +44,19 @@ public:
     void update (Color c);
 };
 
-const u08 MoveManagerSize = 3;
-
 // MoveManager class is used to detect a so called 'easy move'.
 // When PV is stable across multiple search iterations engine can fast return the best move.
 class MoveManager
 {
+public:
+    static const u08 PVSize = 3;
 private:
     Key  _posi_key = 0;
-    Move _pv[MoveManagerSize];
+    Move _pv[PVSize];
 
 public:
-    u08 stable_count = 0; // Keep track of how many times in a row the 3rd ply remains stable
+    // Keep track of how many times in a row the 3rd ply remains stable
+    u08  stable_count   = 0;
 
     MoveManager ()
     {
@@ -64,23 +65,24 @@ public:
     MoveManager (const MoveManager&) = delete;
     MoveManager& operator= (const MoveManager&) = delete;
 
+    Move easy_move (Key posi_key) const
+    {
+        return posi_key == _posi_key ?
+            _pv[PVSize-1] :
+            MOVE_NONE;
+    }
+
     void clear ()
     {
+        _posi_key    = 0;
         stable_count = 0;
-        _posi_key = 0;
-        std::fill (_pv, _pv + MoveManagerSize, MOVE_NONE);
+        std::fill_n (_pv, PVSize, MOVE_NONE);
     }
-
-    Move easy_move (const Key posi_key) const
-    {
-        return posi_key == _posi_key ? _pv[MoveManagerSize-1] : MOVE_NONE;
-    }
-
     void update (Position &pos, const MoveVector &pv)
     {
-        assert(pv.size () >= MoveManagerSize);
+        assert(pv.size () >= PVSize);
 
-        if (pv[MoveManagerSize-1] == _pv[MoveManagerSize-1])
+        if (pv[PVSize-1] == _pv[PVSize-1])
         {
             ++stable_count;
         }
@@ -89,37 +91,37 @@ public:
             stable_count = 0;
         }
 
-        if (!std::equal (pv.begin (), pv.begin () + MoveManagerSize, _pv))
+        if (!std::equal (pv.begin (), pv.begin () + PVSize, _pv))
         {
-            std::copy (pv.begin (), pv.begin () + MoveManagerSize, _pv);
+            std::copy (pv.begin (), pv.begin () + PVSize, _pv);
 
-            StateInfo si[MoveManagerSize-1];
-            for (u08 i = 0; i < MoveManagerSize-1; ++i)
+            u08 ply = 0;
+            StateInfo si[PVSize-1];
+            do {
+                pos.do_move (pv[ply], si[ply], pos.gives_check (pv[ply]));
+            } while (++ply < PVSize-1);
+            _posi_key = pos.si->posi_key;
+            while (ply != 0)
             {
-                pos.do_move (_pv[i], si[i], pos.gives_check (_pv[i], CheckInfo (pos)));
-            }
-            _posi_key = pos.posi_key ();
-            for (u08 i = 0; i < MoveManagerSize-1; ++i)
-            {
-                pos.undo_move ();
+                pos.undo_move (pv[--ply]);
             }
         }
     }
 };
 
+// Skill Manager class is used to implement strength limit
 class SkillManager
 {
+public:
+    // MaxSkillLevel should be <= MaxPlies/4
+    static const u08 MaxSkillLevel = 32;
+    static const u16 MinSkillPV    = 4;
 
 private:
     u08  _skill_level = MaxSkillLevel;
     Move _best_move   = MOVE_NONE;
 
 public:
-    // MaxSkillLevel should be <= MaxPlies/4
-    // Skill Manager class is used to implement strength limit
-    static const u08 MaxSkillLevel = 32;
-    static const u16 MinMultiPV    = 4;
-
     explicit SkillManager (u08 skill_level = MaxSkillLevel)
         : _skill_level (skill_level)
         , _best_move (MOVE_NONE)
@@ -127,24 +129,22 @@ public:
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;
 
-    void change_skill_level (u08 skill_level)
-    {
-        _skill_level = skill_level;
-    }
-
-    void clear ()
-    {
-        _best_move = MOVE_NONE;
-    }
-
     bool enabled () const
     {
         return _skill_level < MaxSkillLevel;
     }
-
-    bool can_pick (Depth depth) const
+    bool can_pick (i16 depth) const
     {
-        return depth/DEPTH_ONE == (_skill_level + 1);
+        return depth == _skill_level + 1;
+    }
+
+    void change_skill_level (u08 skill_level)
+    {
+        _skill_level = skill_level;
+    }
+    void clear ()
+    {
+        _best_move = MOVE_NONE;
     }
 
     Move pick_best_move (u16 pv_limit);
@@ -167,22 +167,24 @@ namespace Threading {
             , _searching = false;
 
     public:
+        u16   index    = 0
+            , pv_index = 0
+            , max_ply  = 0 // Used to send 'seldepth' info to GUI
+            , check_count = 0;
+        u64   tb_hits  = 0;
+
+        Position root_pos;
+        RootMoveVector root_moves;
+        i16   running_depth  = 0
+            , finished_depth = 0;
+
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        u16  index    = 0
-           , pv_index = 0
-           , max_ply  = 0
-           , count    = 0;
-
-        Position                    root_pos;
-        Searcher::RootMoveVector    root_moves;
-        Depth                       root_depth = DEPTH_ZERO
-            ,                       leaf_depth = DEPTH_ZERO;
-        HValueStats                 history_values;
-        MoveStats                   counter_moves;
-
-        std::atomic_bool            reset_count { false };
+        FPieceValueStats  piece_history;
+        PieceCMValueStats piece_cm_history;
+        ColorValueStats   color_history;
+        PieceCMoveStats   piece_cmove;
 
         Thread ();
         Thread (const Thread&) = delete;
@@ -190,7 +192,18 @@ namespace Threading {
 
         virtual ~Thread ();
 
-        // Thread::start_searching() wakes up the thread that will start the search
+        void clear ()
+        {
+            check_count = 0;
+            pawn_table.clear ();
+            matl_table.clear ();
+            piece_history.clear ();
+            piece_cm_history.clear ();
+            color_history.clear ();
+            piece_cmove.clear ();
+        }
+
+        // Wakes up the thread that will start the search
         void start_searching (bool resume = false)
         {
             std::unique_lock<Mutex> lk (_mutex);
@@ -199,32 +212,28 @@ namespace Threading {
                 _searching = true;
             }
             _sleep_condition.notify_one ();
-            lk.unlock ();
         }
-        // Thread::wait_while_searching() waits on sleep condition until not searching
+        // Waits on sleep condition until not searching
         void wait_while_searching ()
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return !_searching; });
-            lk.unlock ();
         }
 
-        // Thread::wait_until() waits on sleep condition until 'condition' turns true
+        // Waits on sleep condition until 'condition' turns true
         void wait_until (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return bool(condition); });
-            lk.unlock ();
         }
-        // Thread::wait_while() waits on sleep condition until 'condition' turns false
+        // Waits on sleep condition until 'condition' turns false
         void wait_while (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return !bool(condition); });
-            lk.unlock ();
         }
 
-        // Thread::idle_loop() is where the thread is parked when it has no work to do
+        // Function where the thread is parked when it has no work to do
         void idle_loop ()
         {
             while (_alive)
@@ -236,7 +245,7 @@ namespace Threading {
                 while (   _alive
                        && !_searching)
                 {
-                    _sleep_condition.notify_one (); // Wake up main thread if needed
+                    _sleep_condition.notify_one (); // Wake up any waiting thread
                     _sleep_condition.wait (lk);
                 }
 
@@ -257,16 +266,7 @@ namespace Threading {
         : public Thread
     {
     public:
-        bool   easy_played      = false;
-        bool   failed_low       = false;
-        double best_move_change = 0.0;
-        Value  previous_value   = VALUE_NONE;
-
-        TimeManager  time_mgr;
-        MoveManager  move_mgr;
-        SkillManager skill_mgr;
-
-        MainThread ();
+        MainThread () = default;
         MainThread (const MainThread&) = delete;
         MainThread& operator= (const MainThread&) = delete;
 
@@ -282,31 +282,43 @@ namespace Threading {
     class ThreadPool
         : public std::vector<Thread*>
     {
-    private:
-        StateListPtr setup_states;
-
     public:
+        u16    pv_limit    = 1;
+
+        bool   easy_played = false;
+        bool   failed_low  = false;
+        double best_move_change = 0.0;
+        Move   easy_move   = MOVE_NONE;
+        Value  last_value  = VALUE_NONE;
+
+        TimeManager  time_mgr;
+        MoveManager  move_mgr;
+        SkillManager skill_mgr;
+
         ThreadPool () = default;
         ThreadPool (const ThreadPool&) = delete;
         ThreadPool& operator= (const ThreadPool&) = delete;
 
-        MainThread* main () const
+        MainThread* main_thread () const
         {
-            static auto *main_thread = static_cast<MainThread*> (at (0));
-            return main_thread;
+            static auto *main_th = static_cast<MainThread*> (at (0));
+            return main_th;
         }
+        
+        Thread* best_thread () const;
+        
+        u64  nodes () const;
+        u64  tb_hits () const;
 
-        u64  game_nodes () const;
+        void reset_count ();
+        void clear ();
+        void configure (u32 threads);
 
-        void configure (size_t threads);
+        void start_thinking (Position &root_pos, StateList &states, const Limit &limits);
+        void wait_while_thinking ();
 
-        // No constructor and destructor, threadpool rely on globals
-        // that should be initialized and valid during the whole thread lifetime.
         void initialize ();
         void deinitialize ();
-
-        void start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits);
-        void wait_while_thinking ();
     };
 
 }
@@ -318,7 +330,7 @@ enum OutputState : u08
 };
 
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<< (std::ostream &os, OutputState state)
+inline std::ostream& operator<< (std::ostream &os, const OutputState state)
 {
     static Mutex mutex;
 

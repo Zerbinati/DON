@@ -1,9 +1,5 @@
 #include "Notation.h"
 
-#include <sstream>
-#include <iomanip>
-
-#include "UCI.h"
 #include "Position.h"
 #include "MoveGenerator.h"
 
@@ -11,7 +7,6 @@ using namespace std;
 
 namespace Notation {
 
-    using namespace UCI;
     using namespace BitBoard;
     using namespace MoveGen;
     using namespace Threading;
@@ -19,7 +14,7 @@ namespace Notation {
     namespace {
 
         // Type of the Ambiguity
-        enum Ambiguity : u08
+        enum AmbiguityType : u08
         {
             AMB_NONE,
             AMB_RANK,
@@ -29,26 +24,33 @@ namespace Notation {
 
         // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
         // NOTE: for pawns it is not needed because 'org' file is explicit.
-        Ambiguity ambiguity (Move m, const Position &pos)
+        AmbiguityType ambiguity (Move m, const Position &pos)
         {
             assert(pos.legal (m));
 
             auto org = org_sq (m);
             auto dst = dst_sq (m);
-
+            auto mpt = ptype (pos[org]);
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
+            Bitboard attacks = 0;
+            switch (mpt)
+            {
+            case NIHT: attacks = PieceAttacks[NIHT][dst];               break;
+            case BSHP: attacks = attacks_bb<BSHP> (dst, pos.pieces ()); break;
+            case ROOK: attacks = attacks_bb<ROOK> (dst, pos.pieces ()); break;
+            case QUEN: attacks = attacks_bb<QUEN> (dst, pos.pieces ()); break;
+            default: assert(false); break;
+            }
 
-            auto pinneds = pos.pinneds (pos.active ());
-
-            auto amb = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
-            auto pcs = amb; // & ~pinneds; // If pinned piece is considered as ambiguous
+            Bitboard amb = (attacks & pos.pieces (pos.active, mpt)) ^ org;
+            Bitboard pcs = amb; // & ~pos.abs_blockers (pos.active); // If pinned piece is considered as ambiguous
             while (pcs != 0)
             {
                 auto sq = pop_lsq (pcs);
-                if (!pos.legal (mk_move<NORMAL> (sq, dst), pinneds))
+                if (!pos.legal (mk_move<NORMAL> (sq, dst)))
                 {
-                    amb -= sq;
+                    amb ^= sq;
                 }
             }
             if (amb != 0)
@@ -60,22 +62,24 @@ namespace Notation {
             return AMB_NONE;
         }
 
-        // value to string
-        string pretty_value (Value v, const Position &pos)
+        // Value to string
+        string pretty_value (Value v, Color c)
         {
             ostringstream oss;
             if (abs (v) < +VALUE_MATE - i32(MaxPlies))
             {
-                oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (pos.active () == WHITE ? +v : -v);
+                oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (c == WHITE ? +v : -v);
             }
             else
             {
-                oss << "#" << std::showpos << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
+                oss << "#" << std::showpos << i32(v > VALUE_ZERO ?
+                                                    +(VALUE_MATE - v + 1) :
+                                                    -(VALUE_MATE + v + 0)) / 2;
             }
             return oss.str ();
         }
 
-        // time to string
+        // Time to string
         string pretty_time (TimePoint time)
         {
             u32 hours  = u32(time / HourMilliSec);
@@ -98,30 +102,44 @@ namespace Notation {
 
     }
 
-    // move_to_can() converts a move to a string in coordinate algebraic notation representation.
+    // Converts a move to a string in coordinate algebraic notation representation.
     // The only special case is castling moves,
     //  - e1g1 notation in normal chess mode,
     //  - e1h1 notation in chess960 mode.
     // Internally castle moves are always coded as "king captures rook".
-    string move_to_can (Move m, bool c960)
+    string move_to_can (Move m)
     {
         if (m == MOVE_NONE) return "(none)";
         if (m == MOVE_NULL) return "(null)";
 
-        auto org = org_sq (m);
-        auto dst = dst_sq (m);
-        if (mtype (m) == CASTLE && !c960)
-        {
-            dst = (dst > org ? F_G : F_C) | _rank (org);
-        }
-        auto can = to_string (org) + to_string (dst);
+        auto can = to_string (org_sq (m))
+                 + to_string (fix_dst_sq (m, Position::Chess960));
         if (mtype (m) == PROMOTE)
         {
-            can += PieceChar[BLACK|promote (m)]; // Lowercase (Black)
+            can += char(tolower (char(PieceChar[promote (m)])));
         }
         return can;
     }
-    // move_to_san() converts a move to a string in short algebraic notation representation.
+    // Converts a string representing a move in coordinate algebraic notation
+    // to the corresponding legal move, if any.
+    Move move_from_can (string &can, const Position &pos)
+    {
+        if (   can.length () == 5
+            && isupper (can[4]))
+        {
+            can[4] = char(tolower (can[4])); // Promotion piece in lowercase
+        }
+        for (const auto &vm : MoveList<LEGAL> (pos))
+        {
+            if (can == move_to_can (vm.move))
+            {
+                return vm.move;
+            }
+        }
+        return MOVE_NONE;
+    }
+
+    // Converts a move to a string in short algebraic notation representation.
     string move_to_san (Move m, Position &pos)
     {
         if (m == MOVE_NONE) return "(none)";
@@ -169,7 +187,7 @@ namespace Notation {
                 && mtype (m) == PROMOTE)
             {
                 san += "=";
-                san += PieceChar[WHITE|promote (m)]; // Uppercase (White)
+                san += PieceChar[promote (m)];
             }
         }
         else
@@ -178,44 +196,19 @@ namespace Notation {
         }
 
         // Move marker for check & checkmate
-        if (pos.gives_check (m, CheckInfo (pos)))
+        if (pos.gives_check (m))
         {
             StateInfo si;
             pos.do_move (m, si, true);
             san += (MoveList<LEGAL> (pos).size () != 0 ? "+" : "#");
-            pos.undo_move ();
+            pos.undo_move (m);
         }
 
         return san;
     }
-    //// move_to_lan() converts a move to a string in long algebraic notation representation.
-    //string move_to_lan (Move m, Position &pos)
-    //{
-    //    string lan;
-    //    return lan;
-    //}
-
-    // move_from_can() converts a string representing a move in coordinate algebraic notation
+    // Converts a string representing a move in short algebraic notation
     // to the corresponding legal move, if any.
-    Move move_from_can (const string &can, const Position &pos)
-    {
-        auto ccan = can;
-        if (ccan.length () == 5 && isupper (ccan[4]))
-        {
-            ccan[4] = char(tolower (ccan[4])); // Promotion piece in lowercase
-        }
-        for (const auto &vm : MoveList<LEGAL> (pos))
-        {
-            if (ccan == move_to_can (vm.move, Chess960))
-            {
-                return vm.move;
-            }
-        }
-        return MOVE_NONE;
-    }
-    // move_from_san() converts a string representing a move in short algebraic notation
-    // to the corresponding legal move, if any.
-    Move move_from_san (const string &san,       Position &pos)
+    Move move_from_san (const string &san, Position &pos)
     {
         for (const auto &vm : MoveList<LEGAL> (pos))
         {
@@ -226,9 +219,16 @@ namespace Notation {
         }
         return MOVE_NONE;
     }
-    //// move_from_lan() converts a string representing a move in long algebraic notation
+
+    //// Converts a move to a string in long algebraic notation representation.
+    //string move_to_lan (Move m, Position &pos)
+    //{
+    //    string lan;
+    //    return lan;
+    //}
+    //// Converts a string representing a move in long algebraic notation
     //// to the corresponding legal move, if any.
-    //Move move_from_lan (const string &lan,       Position &pos)
+    //Move move_from_lan (const string &lan, Position &pos)
     //{
     //    for (const auto &vm : MoveList<LEGAL> (pos))
     //    {
@@ -240,57 +240,51 @@ namespace Notation {
     //    return MOVE_NONE;
     //}
 
-    // pretty_pv_info() returns formated human-readable search information,
+    // Returns formated human-readable search information,
     // typically to be appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv_info ()
+    string pretty_pv_info (Thread *const &thread)
     {
-        static auto *main_thread = Threadpool.main ();
-
-        const u16 K = 1000;
-        const u32 M = K*K;
+        static const u16 K = 1000;
+        static const u32 M = K*K;
 
         ostringstream oss;
-
-        auto &root_pos = main_thread->root_pos;
-
-        oss << std::setw ( 4) << main_thread->root_depth
-            << std::setw ( 8) << pretty_value (main_thread->root_moves[0].new_value, root_pos)
-            << std::setw (12) << pretty_time (main_thread->time_mgr.elapsed_time ());
-
-        u64 game_nodes = Threadpool.game_nodes ();
-        if (game_nodes < 1*M)
+        auto &root_move = thread->root_moves[0];
+        u64 total_nodes = Threadpool.nodes ();
+        oss << std::setw ( 4) << thread->running_depth
+            << std::setw ( 8) << pretty_value (root_move.new_value, thread->root_pos.active)
+            << std::setw (12) << pretty_time (Threadpool.time_mgr.elapsed_time ());
+        if (total_nodes < 1*M)
         {
-            oss << std::setw (8) << game_nodes / 1 << "  ";
+            oss << std::setw (8) << total_nodes / 1;
         }
         else
-        if (game_nodes < K*M)
+        if (total_nodes < K*M)
         {
-            oss << std::setw (7) << game_nodes / K << "K  ";
+            oss << std::setw (7) << total_nodes / K << 'K';
         }
         else
         {
-            oss << std::setw (7) << game_nodes / M << "M  ";
+            oss << std::setw (7) << total_nodes / M << 'M';
         }
+        oss << ' ';
 
         StateList states;
         u08 ply = 0;
-        for (const auto m : main_thread->root_moves[0])
+        for (auto m : root_move)
         {
-            oss << move_to_san (m, root_pos) << " ";
+            oss <<
+                //move_to_can (m)
+                move_to_san (m, thread->root_pos) << ' ';
             states.push_back (StateInfo ());
-            root_pos.do_move (m, states.back (), root_pos.gives_check (m, CheckInfo (root_pos)));
+            thread->root_pos.do_move (m, states.back (), thread->root_pos.gives_check (m));
             ++ply;
-            ////---------------------------------
-            //oss << move_to_can (m, Chess960) << " ";
         }
-        for (; ply != 0; --ply)
+        while (ply != 0)
         {
-            root_pos.undo_move ();
+            thread->root_pos.undo_move (root_move[--ply]);
             states.pop_back ();
         }
-        ////---------------------------------
-        //
 
         return oss.str ();
     }

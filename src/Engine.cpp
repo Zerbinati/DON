@@ -1,14 +1,11 @@
 #include "Engine.h"
 
-#include <sstream>
-#include <iomanip>
-
 #include "UCI.h"
 #include "PieceSquare.h"
 #include "BitBases.h"
+#include "Zobrist.h"
 #include "Pawns.h"
 #include "Material.h"
-#include "Evaluator.h"
 #include "Endgame.h"
 #include "Thread.h"
 #include "Searcher.h"
@@ -45,11 +42,7 @@ namespace Engine {
     {
         ostringstream oss;
 
-        if (uci)
-        {
-            oss << "id name ";
-        }
-        oss << "DON ";
+        oss << (uci ? "id name " : "") << "DON ";
 
         oss << std::setfill ('0');
     #if defined(VER)
@@ -106,16 +99,15 @@ namespace Engine {
         UCI      ::initialize ();
         BitBoard ::initialize ();
         PieceSquare::initialize ();
-        Position ::initialize ();
+        Zobrists ::initialize ();
         BitBases ::initialize ();
         Pawns    ::initialize ();
-        Evaluator::initialize ();
         EndGame  ::initialize ();
         Threadpool.initialize ();
         Searcher ::initialize ();
         TBSyzygy ::initialize ();
 
-        TT.auto_size (i32(Options["Hash"]), true);
+        TT.auto_resize (i32(Options["Hash"]), true);
 
         UCI::loop (argc, argv);
     }

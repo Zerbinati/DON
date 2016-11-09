@@ -7,6 +7,7 @@
 #include "Evaluator.h"
 #include "MoveGenerator.h"
 #include "Thread.h"
+#include "TBsyzygy.h"
 #include "Notation.h"
 #include "Benchmark.h"
 
@@ -17,43 +18,40 @@ namespace UCI {
     using namespace Searcher;
     using namespace Evaluator;
     using namespace MoveGen;
+    using namespace Threading;
+    using namespace TBSyzygy;
     using namespace Notation;
 
-    namespace {
-
-        // Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
-        // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-        const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-
-        // Stack to keep track of the position states along the setup moves
-        // (from the start position to the position just before the search starts).
-        // Needed by 'draw by repetition' detection.
-        StateListPtr SetupStates (new StateList (1));
-
-    }
-
-    bool Chess960 = false;
-
-    // loop() waits for a command from stdin, parses it and calls the appropriate function.
+    // Waits for a command from stdin, parses it and calls the appropriate function.
     // Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     // When called with some command line arguments, e.g. to run 'bench',
     // once the command is executed the function returns immediately.
     // In addition to the UCI ones, also some additional debug commands are supported.
     void loop (i32 argc, const char *const *argv)
     {
+        // Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
+        // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
+        static const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
+        // Stack to keep track of the position states along the setup moves
+        // (from the start position to the position just before the search starts).
+        // Needed by 'draw by repetition' detection.
+        StateList states (1);
+
         Position root_pos;
-        root_pos.setup (StartFEN, SetupStates->back(), Threadpool.main (), Chess960);
+        root_pos.setup (StartFEN, states.back (), Threadpool.main_thread (), true);
         // Join arguments
         string cmd;
         for (i32 i = 1; i < argc; ++i)
         {
-            cmd += string (argv[i]) + " ";
+            cmd += string (" ", !white_spaces (cmd) ? 1 : 0) + string (argv[i]);
         }
 
         string token;
         do {
             // Block here waiting for input or EOF
-            if (argc == 1 && !std::getline (cin, cmd, '\n'))
+            if (   argc == 1
+                && !std::getline (cin, cmd, '\n'))
             {
                 cmd = "quit";
             }
@@ -66,15 +64,11 @@ namespace UCI {
             {
                 continue;
             }
-            else
-            {
-                to_lower (token);
-            }
 
             if (token == "uci")
             {
                 sync_cout
-                    << info (true) << "\n"
+                    << info (true) << '\n'
                     << Options
                     << "uciok"
                     << sync_endl;
@@ -82,13 +76,193 @@ namespace UCI {
             else
             if (token == "ucinewgame")
             {
+                ForceStop = true;
+                Threadpool.wait_while_thinking ();
                 clear ();
-                Threadpool.main ()->time_mgr.available_nodes = 0;
+                Threadpool.time_mgr.available_nodes = 0;
+                TBSyzygy::initialize ();
             }
             else
             if (token == "isready")
             {
                 sync_cout << "readyok" << sync_endl;
+            }
+            // This sets up the position:
+            //  - starting position ("startpos")
+            //  - fen-string position ("fen")
+            // and then makes the moves given in the following move list ("moves")
+            // also saving the moves on stack.
+            else
+            if (token == "position")
+            {
+                string fen;
+
+                iss >> token;  // Consume "startpos" or "fen" token
+                if (token == "startpos")
+                {
+                    fen = StartFEN;
+                    iss >> token;          // Consume "moves" token if any
+                }
+                else
+                if (token == "fen")
+                {
+                    while (   iss >> token
+                           && !iss.fail ()
+                           && token != "moves") // Consume "moves" token if any
+                    {
+                        fen += string (" ", !white_spaces (fen) ? 1 : 0) + token;
+                    }
+                    assert(_ok (fen, true));
+                }
+                else
+                {
+                    assert(false);
+                    continue;
+                }
+
+                states.resize (1);
+                root_pos.setup (fen, states.back (), Threadpool.main_thread (), true);
+
+                if (token == "moves")
+                {
+                    // Parse and validate moves (if any)
+                    while (   iss >> token
+                           && !iss.fail ())
+                    {
+                        auto m = move_from_can (token, root_pos);
+                        if (m == MOVE_NONE)
+                        {
+                            std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
+                            break;
+                        }
+                        states.push_back (StateInfo ());
+                        root_pos.do_move (m, states.back (), root_pos.gives_check (m));
+                    }
+                }
+            }
+            // This sets the following parameters:
+            //  - wtime and btime
+            //  - winc and binc
+            //  - movestogo
+            //  - movetime
+            //  - depth
+            //  - nodes
+            //  - mate
+            //  - infinite
+            //  - ponder
+            // Then starts the search.
+            else
+            if (token == "go")
+            {
+                Limit limits;
+                limits.start_time = now ();
+                limits.elapsed_time = 0;
+                i64 value;
+                while (   iss >> token
+                       && !iss.fail ())
+                {
+                    if (token == "wtime")
+                    {
+                        iss >> value;
+                        limits.clock[WHITE].time = u64(abs (value));
+                    }
+                    else
+                    if (token == "btime")
+                    {
+                        iss >> value;
+                        limits.clock[BLACK].time = u64(abs (value));
+                    }
+                    else
+                    if (token == "winc")
+                    {
+                        iss >> value;
+                        limits.clock[WHITE].inc  = u64(abs (value));
+                    }
+                    else
+                    if (token == "binc")
+                    {
+                        iss >> value;
+                        limits.clock[BLACK].inc  = u64(abs (value));
+                    }
+                    else
+                    if (token == "movetime")
+                    {
+                        iss >> value;
+                        limits.movetime  = u64(abs (value));
+                    }
+                    else
+                    if (token == "movestogo")
+                    {
+                        iss >> value;
+                        limits.movestogo = u08(abs (value));
+                    }
+                    else
+                    if (token == "depth")
+                    {
+                        iss >> value;
+                        limits.depth     = i16(abs (value));
+                    }
+                    else
+                    if (token == "nodes")
+                    {
+                        iss >> value;
+                        limits.nodes     = u64(abs (value));
+                    }
+                    else
+                    if (token == "mate")
+                    {
+                        iss >> value;
+                        limits.mate      = u08(abs (value));
+                    }
+                    else
+                    if (token == "infinite")
+                    {
+                        limits.infinite  = true;
+                    }
+                    else
+                    if (token == "ponder")
+                    {
+                        limits.ponder    = true;
+                    }
+                    else
+                    // Parse and Validate search-moves (if any)
+                    if (token == "searchmoves")
+                    {
+                        while (   iss >> token
+                               && !iss.fail ())
+                        {
+                            auto m = move_from_can (token, root_pos);
+                            if (m == MOVE_NONE)
+                            {
+                                std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
+                                continue;
+                            }
+                            limits.search_moves.push_back (m);
+                        }
+                        limits.search_moves.shrink_to_fit ();
+                    }
+                }
+                ForceStop = true;
+                Threadpool.wait_while_thinking ();
+                Threadpool.start_thinking (root_pos, states, limits);
+            }
+            // GUI sends 'ponderhit' to tell us to ponder on the same move the
+            // opponent has played. In case Ponderhit Stop stream set are
+            // waiting for 'ponderhit' to stop the search (for instance because
+            // already ran out of time), otherwise should continue searching but
+            // switching from pondering to normal search.
+            else
+            if (   token == "quit"
+               ||  token == "stop"
+               || (token == "ponderhit" && PonderhitStop))
+            {
+                ForceStop = true;
+                Threadpool.main_thread ()->start_searching (true); // Could be sleeping
+            }
+            else
+            if (token == "ponderhit")
+            {
+                Limits.ponder = false;
             }
             else
             // This function updates the UCI option ("name") to the given value ("value").
@@ -124,138 +298,6 @@ namespace UCI {
                     }
                 }
             }
-            // This sets up the position:
-            //  - starting position ("startpos")
-            //  - fen-string position ("fen")
-            // and then makes the moves given in the following move list ("moves")
-            // also saving the moves on stack.
-            else
-            if (token == "position")
-            {
-                string fen;
-
-                iss >> token;  // Consume "startpos" or "fen" token
-                if (token == "startpos")
-                {
-                    fen = StartFEN;
-                    iss >> token;          // Consume "moves" token if any
-                }
-                else
-                if (token == "fen")
-                {
-                    while (   iss >> token
-                           && !iss.fail ()
-                           && token != "moves") // Consume "moves" token if any
-                    {
-                        fen += token + " ";
-                    }
-                    //assert(_ok (fen, Chess960, true));
-                }
-                else
-                {
-                    continue;
-                }
-
-                SetupStates = StateListPtr (new StateList (1));
-                root_pos.setup (fen, SetupStates->back(), Threadpool.main (), Chess960);
-
-                if (token == "moves")
-                {
-                    while (   iss >> token
-                           && !iss.fail ())   // Parse and validate game moves (if any)
-                    {
-                        auto m = move_from_can (token, root_pos);
-                        if (m == MOVE_NONE)
-                        {
-                            std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
-                            break;
-                        }
-
-                        SetupStates->push_back (StateInfo ());
-                        root_pos.do_move (m, SetupStates->back (), root_pos.gives_check (m, CheckInfo (root_pos)));
-                    }
-                }
-            }
-            // This sets the following parameters:
-            //  - wtime and btime
-            //  - winc and binc
-            //  - movestogo
-            //  - movetime
-            //  - depth
-            //  - nodes
-            //  - mate
-            //  - infinite
-            //  - ponder
-            // Then starts the search.
-            else
-            if (token == "go")
-            {
-                Limit limits;
-                limits.start_time = now (); // As early as possible!
-                i64 value;
-                while (   iss >> token
-                       && !iss.fail ())
-                {
-                    if (token == "wtime")      { iss >> value; limits.clock[WHITE].time = u64(abs (value)); }
-                    else
-                    if (token == "btime")      { iss >> value; limits.clock[BLACK].time = u64(abs (value)); }
-                    else
-                    if (token == "winc")       { iss >> value; limits.clock[WHITE].inc  = u64(abs (value)); }
-                    else
-                    if (token == "binc")       { iss >> value; limits.clock[BLACK].inc  = u64(abs (value)); }
-                    else
-                    if (token == "movetime")   { iss >> value; limits.movetime  = u64(abs (value)); }
-                    else
-                    if (token == "movestogo")  { iss >> value; limits.movestogo = u08(abs (value)); }
-                    else
-                    if (token == "depth")      { iss >> value; limits.depth     = u08(abs (value)); }
-                    else
-                    if (token == "nodes")      { iss >> value; limits.nodes     = u64(abs (value)); }
-                    else
-                    if (token == "mate")       { iss >> value; limits.mate      = u08(abs (value)); }
-                    else
-                    if (token == "infinite")   { limits.infinite  = true; }
-                    else
-                    if (token == "ponder")     { limits.ponder    = true; }
-                    else
-                    // Parse and Validate search-moves (if any)
-                    if (token == "searchmoves")
-                    {
-                        while (   iss >> token
-                               && !iss.fail ())
-                        {
-                            auto m = move_from_can (token, root_pos);
-                            if (m == MOVE_NONE)
-                            {
-                                std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
-                                continue;
-                            }
-                            limits.search_moves.push_back (m);
-                        }
-                        limits.search_moves.shrink_to_fit ();
-                    }
-                }
-                ForceStop = true;
-                Threadpool.start_thinking (root_pos, SetupStates, limits);
-            }
-            // GUI sends 'ponderhit' to tell us to ponder on the same move the
-            // opponent has played. In case Ponderhit Stop stream set are
-            // waiting for 'ponderhit' to stop the search (for instance because
-            // already ran out of time), otherwise should continue searching but
-            // switching from pondering to normal search.
-            else
-            if (   token == "quit"
-               ||  token == "stop"
-               || (token == "ponderhit" && PonderhitStop))
-            {
-                ForceStop = true;
-                Threadpool.main ()->start_searching (true); // Could be sleeping
-            }
-            else
-            if (token == "ponderhit")
-            {
-                Limits.ponder = false;
-            }
             //// Register an engin, with following tokens:
             //// - later: the user doesn't want to register the engine now.
             //// - name <x> code <y>: the engine should be registered with the name <x> and code <y>
@@ -269,8 +311,7 @@ namespace UCI {
             //    if (token == "name")
             //    {
             //        string name;
-            //        // Read name (can contain spaces)
-            //        // consume "value" token
+            //        // Read "name" (can contain spaces), consume "code" token
             //        while (   iss >> token
             //               && !iss.fail ()
             //               && token != "code")
@@ -278,13 +319,13 @@ namespace UCI {
             //            name += string (" ", !white_spaces (name) ? 1 : 0) + token;
             //        }
             //        string code;
-            //        // Read code (can contain spaces)
+            //        // Read "code" (can contain spaces)
             //        while (   iss >> token
             //               && !iss.fail ())
             //        {
             //            code += string (" ", !white_spaces (code) ? 1 : 0) + token;
             //        }
-            //        //std::cout << name << "\n" << code << std::endl;
+            //        //std::cout << name << '\n' << code << std::endl;
             //    }
             //    else
             //    if (token == "later")
@@ -303,11 +344,11 @@ namespace UCI {
             {
                 sync_cout
                     << std::hex << std::uppercase << std::setfill ('0')
-                    << "FEN: "                        << root_pos.fen ()      << "\n"
-                    << "Posi key: " << std::setw (16) << root_pos.posi_key () << "\n"
-                    << "Poly key: " << std::setw (16) << root_pos.poly_key () << "\n"
-                    << "Matl key: " << std::setw (16) << root_pos.matl_key () << "\n"
-                    << "Pawn key: " << std::setw (16) << root_pos.pawn_key ()
+                    << "FEN: "                        << root_pos.fen (true)   << '\n'
+                    << "Posi key: " << std::setw (16) << root_pos.si->posi_key << '\n'
+                    << "Poly key: " << std::setw (16) << root_pos.poly_key ()  << '\n'
+                    << "Matl key: " << std::setw (16) << root_pos.si->matl_key << '\n'
+                    << "Pawn key: " << std::setw (16) << root_pos.si->pawn_key
                     << std::setfill (' ') << std::nouppercase << std::dec
                     << sync_endl;
             }
@@ -315,70 +356,82 @@ namespace UCI {
             if (token == "moves")
             {
                 sync_cout;
-
-                auto pinneds = root_pos.pinneds (root_pos.active ());
-                if (root_pos.checkers () != 0)
+                i32 count;
+                if (root_pos.si->checkers != 0)
                 {
                     std::cout << "\nEvasion moves: ";
+                    count = 0;
                     for (const auto &vm : MoveList<EVASION> (root_pos))
                     {
-                        if (root_pos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move))
                         {
-                            std::cout << move_to_san (vm.move, root_pos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << ' ';
+                            ++count;
                         }
                     }
+                    std::cout << "(" << count << ")";
                 }
                 else
                 {
                     std::cout << "\nQuiet moves: ";
+                    count = 0;
                     for (const auto &vm : MoveList<QUIET> (root_pos))
                     {
-                        if (root_pos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move))
                         {
-                            std::cout << move_to_san (vm.move, root_pos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << ' ';
+                            ++count;
                         }
                     }
+                    std::cout << "(" << count << ")";
 
                     std::cout << "\nCheck moves: ";
+                    count = 0;
                     for (const auto &vm : MoveList<CHECK> (root_pos))
                     {
-                        if (root_pos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move))
                         {
-                            std::cout << move_to_san (vm.move, root_pos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << ' ';
+                            ++count;
                         }
                     }
+                    std::cout << "(" << count << ")";
 
                     std::cout << "\nQuiet Check moves: ";
+                    count = 0;
                     for (const auto &vm : MoveList<QUIET_CHECK> (root_pos))
                     {
-                        if (root_pos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move))
                         {
-                            std::cout << move_to_san (vm.move, root_pos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << ' ';
+                            ++count;
                         }
                     }
+                    std::cout << "(" << count << ")";
 
                     std::cout << "\nCapture moves: ";
+                    count = 0;
                     for (const auto &vm : MoveList<CAPTURE> (root_pos))
                     {
-                        if (root_pos.legal (vm.move, pinneds))
+                        if (root_pos.legal (vm.move))
                         {
-                            std::cout << move_to_san (vm.move, root_pos) << " ";
+                            std::cout << move_to_san (vm.move, root_pos) << ' ';
+                            ++count;
                         }
                     }
+                    std::cout << "(" << count << ")";
                 }
 
                 std::cout << "\nLegal moves: ";
+                count = 0;
                 for (const auto &vm : MoveList<LEGAL> (root_pos))
                 {
-                    std::cout << move_to_san (vm.move, root_pos) << " ";
+                    std::cout << move_to_san (vm.move, root_pos) << ' ';
+                    ++count;
                 }
+                std::cout << "(" << count << ")";
 
                 std::cout << sync_endl;
-            }
-            else
-            if (token == "flip")
-            {
-                root_pos.flip ();
             }
             else
             if (token == "eval")
@@ -386,31 +439,40 @@ namespace UCI {
                 sync_cout << trace (root_pos) << sync_endl;
             }
             else
+            if (token == "bench")
+            {
+                benchmark (iss, root_pos);
+            }
+            else
             if (token == "perft")
             {
                 i32    depth;
                 string fen_fn;
-                depth  = (iss >> depth) && !iss.fail ()  ? depth : 1;
+                depth  = (iss >> depth)  && !iss.fail () ? depth  : 1;
                 fen_fn = (iss >> fen_fn) && !iss.fail () ? fen_fn : "";
 
-                stringstream ss;
-                ss  << i32(Options["Hash"])    << " "
-                    << i32(Options["Threads"]) << " "
-                    << depth << " perft " << fen_fn;
-
+                istringstream ss(to_string (i32(Options["Hash"]))    + ' '
+                               + to_string (i32(Options["Threads"])) + ' '
+                               + to_string (depth) + " perft " + fen_fn);
                 benchmark (ss, root_pos);
             }
             else
-            if (token == "bench")
+            if (token == "flip")
             {
-                benchmark (iss, root_pos);
+                root_pos.flip ();
+            }
+            else
+            if (token == "mirror")
+            {
+                root_pos.mirror ();
             }
             else
             {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
             }
             
-        } while (argc == 1 && cmd != "quit");
+        } while (   argc == 1
+                 && cmd != "quit");
 
         Threadpool.wait_while_thinking ();
     }

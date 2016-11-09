@@ -9,7 +9,10 @@ namespace PieceSquare {
 
     extern Score PSQ[CLR_NO][NONE][SQ_NO];
 
-    extern Score compute_psq_score (const Position &pos);
+    extern Score compute_psq (const Position &pos);
+
+    template<Color Own>
+    extern Value compute_npm (const Position &pos);
 
     extern void initialize ();
 

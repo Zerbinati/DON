@@ -77,27 +77,43 @@ namespace {
 
 namespace PieceSquare
 {
-    // PSQ[color][piece-type][square] contains [color][piece-type][square] scores.
+    // PSQ[color][piece-type][square] scores.
     Score PSQ[CLR_NO][NONE][SQ_NO];
 
-    // compute_psq_score() computes the incremental scores for the middle
-    // game and the endgame. These functions are used to initialize the incremental
-    // scores when a new position is set up, and to verify that the scores are correctly
-    // updated by do_move and undo_move when the program is running in debug mode.
-    Score compute_psq_score (const Position &pos)
+    // Computes the scores for the middle game and the endgame.
+    // These functions are used to initialize the scores when a new position is set up,
+    // and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
+    Score compute_psq (const Position &pos)
     {
-        auto psqscore = SCORE_ZERO;
-        auto occ = pos.pieces ();
-        while (occ != 0)
+        auto psq_score = SCORE_ZERO;
+        for (auto c = WHITE; c <= BLACK; ++c)
         {
-            auto s = pop_lsq (occ);
-            auto p = pos[s];
-            psqscore += PSQ[color (p)][ptype (p)][s];
+            for (auto pt = PAWN; pt <= KING; ++pt)
+            {
+                for (auto s : pos.squares[c][pt])
+                {
+                    psq_score += PSQ[c][pt][s];
+                }
+            }
         }
-        return psqscore;
+        return psq_score;
     }
 
-    // Initialize PSQ table
+    // Computes the non-pawn middle game material value for the given side.
+    // Material values are updated incrementally during the search.
+    template<Color Own> Value compute_npm (const Position &pos)
+    {
+        auto npm_value = VALUE_ZERO;
+        for (auto pt = NIHT; pt <= QUEN; ++pt)
+        {
+            npm_value += PieceValues[MG][pt] * pos.count (Own, pt);
+        }
+        return npm_value;
+    }
+    template Value compute_npm<WHITE> (const Position &);
+    template Value compute_npm<BLACK> (const Position &);
+
+    // Initialize lookup tables during startup
     void initialize ()
     {
         for (auto pt = PAWN; pt <= KING; ++pt)
@@ -106,7 +122,7 @@ namespace PieceSquare
             for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
                 auto psq_bonus = score + HalfPSQ[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
-                PSQ[WHITE][pt][s] = +psq_bonus;
+                PSQ[WHITE][pt][ s] = +psq_bonus;
                 PSQ[BLACK][pt][~s] = -psq_bonus;
             }
         }

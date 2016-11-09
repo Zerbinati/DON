@@ -1,7 +1,6 @@
 #ifndef _NOTATION_H_INC_
 #define _NOTATION_H_INC_
 
-#include <cstring>
 #include <iostream>
 
 #include "Type.h"
@@ -14,17 +13,21 @@ const std::string ColorChar ("wb-");
 
 namespace Notation {
 
-    template<bool Lower = true>
-    inline char to_char (File f) { return char((Lower ? 'a' : 'A') + i08(f) - i08(F_A)); }
+    inline char to_char (File f, bool lower = true)
+    {
+        return char((lower ? 'a' : 'A') + i08(f) - i08(F_A));
+    }
 
-    inline char to_char (Rank r) { return char('1' + i08(r) - i08(R_1)); }
+    inline char to_char (Rank r)
+    {
+        return char('1' + i08(r) - i08(R_1));
+    }
 
     inline std::string to_string (Square s)
     {
         return std::string{ to_char (_file (s)), to_char (_rank (s)) };
     }
-    // to_string() converts a value to a string suitable
-    // for use with the UCI protocol specifications:
+    // Converts a value to a string suitable for use with the UCI protocol specifications:
     //
     // cp   <x>   The score x from the engine's point of view in centipawns.
     // mate <y>   Mate in y moves, not plies.
@@ -32,19 +35,22 @@ namespace Notation {
     inline std::string to_string (Value v)
     {
         return abs (v) < +VALUE_MATE - i32(MaxPlies) ?
-            "cp " + std::to_string (i32(value_to_cp (v)*100)) :
-            "mate " + std::to_string (i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v))/2);
+            "cp "   + std::to_string (i32(100 * value_to_cp (v))) :
+            "mate " + std::to_string (i32(v > VALUE_ZERO ?
+                                            +(VALUE_MATE - v + 1) :
+                                            -(VALUE_MATE + v + 0)) / 2);
     }
 
-    extern std::string move_to_can (Move m, bool c960 = false);
-    extern std::string move_to_san (Move m, Position &pos);
-    //extern std::string move_to_lan (Move m, Position &pos);
+    extern std::string move_to_can (Move m);
+    extern Move move_from_can (std::string &can, const Position &pos);
 
-    extern Move move_from_can (const std::string &can, const Position &pos);
-    extern Move move_from_san (const std::string &san,       Position &pos);
+    extern std::string move_to_san (Move m, Position &pos);
+    extern Move move_from_san (const std::string &san, Position &pos);
+
+    //extern std::string move_to_lan (Move m, Position &pos);
     //extern Move move_from_lan (const std::string &lan,       Position &pos);
 
-    extern std::string pretty_pv_info ();
+    extern std::string pretty_pv_info (Thread *const &thread);
 }
 
 template<class CharT, class Traits>

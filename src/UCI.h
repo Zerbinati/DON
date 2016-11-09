@@ -2,16 +2,11 @@
 #define _UCI_H_INC_
 
 #include <map>
-#include <deque>
-#include <memory>
 #include <iostream>
 
 #include "Type.h"
 #include "functor.h"
 #include "Position.h"
-
-typedef std::deque<StateInfo>       StateList;
-typedef std::unique_ptr<StateList>  StateListPtr;
 
 namespace UCI {
 
@@ -57,14 +52,10 @@ namespace UCI {
     // Options container is actually a std::map of Option
     typedef std::map<std::string, Option, std::no_case_less_comparer> OptionMap;
 
-    extern bool Chess960;
-
     extern void loop (i32 argc, const char *const *argv);
 
     extern void initialize ();
     extern void deinitialize ();
-
-    // ---------------------------------------------
 
     template<class CharT, class Traits>
     inline std::basic_ostream<CharT, Traits>&
@@ -94,7 +85,6 @@ namespace UCI {
         }
         return os;
     }
-
 }
 
 // Global string mapping of Options

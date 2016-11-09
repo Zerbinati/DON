@@ -1,4 +1,4 @@
-# DON, UCI chess engine
+# DON, UCI chess playing engine
 # Ehsan Rashid Copyright (C) 2008+
 #
 # DON is housed in https://github.com/erashid/DON 
@@ -8,7 +8,10 @@
 ### ==========================================================================
 
 ### Establish the operating system name
-UNAME = $(shell uname)
+KERNEL = $(shell uname -s)
+ifeq ($(KERNEL),Linux)
+	OS = $(shell uname -o)
+endif
 
 ### Executable name
 EXE = DON
@@ -18,12 +21,12 @@ PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
-PGOBENCH  = ./$(EXE) bench 16 1 1000 movetime default
+PGOBENCH  = ./$(EXE) bench 16 1 13 depth default
 
 ### Object files
 OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
-	MoveGenerator.o MovePicker.o Notation.o Pawns.o PieceSquare.o Polyglot.o Position.o \
-	Searcher.o TBsyzygy.o Thread.o Transposition.o UCI.o UCI.Option.o Zobrist.o MemoryHandler.o Debugger.o
+	MoveGenerator.o Notation.o Pawns.o PieceSquare.o Polyglot.o Position.o Searcher.o \
+	TBsyzygy.o Thread.o Transposition.o UCI.o UCI.Option.o Zobrist.o MemoryHandler.o Debugger.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration
@@ -33,6 +36,7 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # ----------------------------------------------------------------------------
 #
 # debug   = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode
+# sanitize= yes/no    --- (-fsanitize )    --- enable undefined behavior checks
 # optimize= yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
 # arch    = (name)    --- (-arch)          --- Target architecture
 # bits    = 64/32     --- -DBIT64          --- 64/32-bit operating system
@@ -48,6 +52,7 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 
 ### 2.1 General and architecture defaults
 debug   = no
+sanitize= no
 optimize= yes
 
 bits = 32
@@ -144,8 +149,15 @@ endif
 ifeq ($(COMP), gcc)
 	comp = gcc
 	CXX  = g++
-	CXXFLAGS += -pedantic -Wextra -Wshadow -m$(bits)
-	ifneq ($(UNAME), Darwin)
+	CXXFLAGS += -pedantic -Wextra -Wshadow
+	ifeq ($(ARCH), armv7)
+		ifeq ($(OS), Android)
+			CXXFLAGS += -m$(bits)
+		endif
+	else
+		CXXFLAGS += -m$(bits)
+	endif
+	ifneq ($(KERNEL), Darwin)
 		LDFLAGS  += -Wl,--no-as-needed
 	endif
 endif
@@ -153,7 +165,7 @@ endif
 ifeq ($(COMP), mingw)
 	comp = mingw
 
-	ifeq ($(UNAME), Linux)
+	ifeq ($(KERNEL), Linux)
 		ifeq ($(bits), 64)
 			ifeq ($(shell which x86_64-w64-mingw32-c++-posix), )
 				CXX = x86_64-w64-mingw32-c++
@@ -184,9 +196,18 @@ endif
 ifeq ($(COMP), clang)
 	comp = clang
 	CXX  = clang++
-	CXXFLAGS += -pedantic -Wextra -Wshadow -m$(bits)
+	CXXFLAGS += -pedantic -Wextra -Wshadow
+	ifeq ($(ARCH), armv7)
+		ifeq ($(OS), Android)
+			CXXFLAGS += -m$(bits)
+			LDFLAGS += -m$(bits)
+		endif
+	else
+		CXXFLAGS += -m$(bits)
+		LDFLAGS += -m$(bits)
+	endif
 	LDFLAGS  += -m$(bits)
-	ifeq ($(UNAME), Darwin)
+	ifeq ($(KERNEL), Darwin)
 		CXXFLAGS    += -stdlib=libc++
 		DEPENDFLAGS += -stdlib=libc++
 	endif
@@ -206,7 +227,7 @@ else
 	profile_clean   = gcc-profile-clean
 endif
 
-ifeq ($(UNAME), Darwin)
+ifeq ($(KERNEL), Darwin)
 	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.9
 	LDFLAGS  += -arch $(arch) -mmacosx-version-min=10.9
 endif
@@ -224,19 +245,24 @@ endif
 ### On MinGW use Windows threads, otherwise POSIX
 ifneq ($(comp), mingw)
 	# On Android Bionic's C library comes with its own pthread implementation bundled in
-	ifneq ($(arch), armv7)
+	ifneq ($(OS), Android)
 		# Haiku has pthreads in its libroot, so only link it in on other platforms
-		ifneq ($(UNAME), Haiku)
+		ifneq ($(KERNEL), Haiku)
 			LDFLAGS += -lpthread
 		endif
 	endif
 endif
 
-### 3.2 Debugging
+### 3.2.1 Debugging
 ifeq ($(debug), no)
 	CXXFLAGS += -DNDEBUG
 else
 	CXXFLAGS += -g
+endif
+### 3.2.2 Debugging with undefined behavior sanitizers
+ifeq ($(sanitize), yes)
+	CXXFLAGS += -g3 -fsanitize=undefined
+	LDFLAGS += -fsanitize=undefined
 endif
 
 ### 3.3 Optimization
@@ -244,7 +270,7 @@ ifeq ($(optimize), yes)
 	CXXFLAGS += -O3
 
 	ifeq ($(comp), gcc)
-		ifeq ($(UNAME), Darwin)
+		ifeq ($(KERNEL), Darwin)
 			ifeq ($(arch), i386)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
@@ -253,19 +279,19 @@ ifeq ($(optimize), yes)
 			endif
 		endif
 
-		ifeq ($(arch), armv7)
+		ifeq ($(OS), Android)
 			CXXFLAGS += -fno-gcse -mthumb -march=armv7-a -mfloat-abi=softfp
 		endif
 	endif
 
 	ifeq ($(comp), icc)
-		ifeq ($(UNAME), Darwin)
+		ifeq ($(KERNEL), Darwin)
 			CXXFLAGS += -mdynamic-no-pic
 		endif
 	endif
 
 	ifeq ($(comp), clang)
-		ifeq ($(UNAME), Darwin)
+		ifeq ($(KERNEL), Darwin)
 			ifeq ($(bm2), no)
 				CXXFLAGS += -flto
 				LDFLAGS  += $(CXXFLAGS)
@@ -329,10 +355,10 @@ ifeq ($(comp), gcc)
 	endif
 endif
 
-ifeq ($(comp),mingw)
-	ifeq ($(UNAME),Linux)
-		ifeq ($(optimize),yes)
-			ifeq ($(debug),no)
+ifeq ($(comp), mingw)
+	ifeq ($(KERNEL), Linux)
+		ifeq ($(optimize), yes)
+			ifeq ($(debug), no)
 				CXXFLAGS += -flto
 				LDFLAGS  += $(CXXFLAGS)
 			endif
@@ -342,7 +368,7 @@ endif
 
 ### 3.10 Android 5 can only run position independent executables.
 ### Note that this breaks Android 4.0 and earlier.
-ifeq ($(arch), armv7)
+ifeq ($(OS), Android)
 	CXXFLAGS += -fPIE
 	LDFLAGS  += -fPIE -pie
 endif
@@ -455,9 +481,12 @@ config-sanity:
 	@echo "Config:"
 	@echo "---------"
 	@echo "debug   : '$(debug)'"
+	@echo "sanitize: '$(sanitize)'"
 	@echo "optimize: '$(optimize)'"
 	@echo "arch    : '$(arch)'"
 	@echo "bits    : '$(bits)'"
+	@echo "kernel  : '$(KERNEL)'"
+	@echo "os      : '$(OS)'"
 	@echo "pfch    : '$(pfch)'"
 	@echo "sse     : '$(sse)'"
 	@echo "abm     : '$(abm)'"
@@ -473,6 +502,7 @@ config-sanity:
 	@echo "Testing config sanity. If this fails, try 'make help' ..."
 	@echo ""
 	@test "$(debug)" = "yes" || test "$(debug)" = "no"
+	@test "$(sanitize)" = "yes" || test "$(sanitize)" = "no"
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
 	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
 	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc32" || test "$(arch)" = "armv7"

@@ -56,18 +56,25 @@ namespace {
         "8/8/3P3k/8/1p6/8/1P6/1K3n2 b - - 0 1",  // Nd2 - Draw
         // 7-men positions
         "8/R7/2q5/8/6k1/8/1P5p/K6R w - - 0 124", // Draw
+        // Mate and stalemate positions
+        "8/8/8/8/8/6k1/6p1/6K1 w - - 0 1",
+        "5k2/5P2/5K2/8/8/8/8/8 b - - 0 1",
+        "8/8/8/8/8/4k3/4p3/4K3 w - - 0 1",
+        "8/8/8/8/8/5K2/8/3Q1k2 b - - 0 1",
+        "7k/7P/6K1/8/3B4/8/8/8 b - - 0 1",
+
     };
 }
 
-// benchmark() runs a simple benchmark by letting engine analyze a set of positions for a given limit each.
+// Runs a simple benchmark by letting engine analyze a set of positions for a given limit.
 // There are five optional parameters:
 //  - Transposition table size (default is 16 MB)
-//  - Number of search threads that should be used (default is 1 Thread)
-//  - Limit value spent for each position (default is 13 Depth)
+//  - Threads count (default is 1 Thread)
+//  - Limit value spent for each position (default is 13)
 //  - Type of the Limit value:
 //     * 'depth' (default)
-//     * 'time' [millisecs]
-//     * 'movetime' [millisecs]
+//     * 'time'
+//     * 'movetime'
 //     * 'nodes'
 //     * 'mate'
 //  - FEN positions to be used:
@@ -75,30 +82,46 @@ namespace {
 //     * 'current' for current position
 //     * '<filename>' for file containing FEN positions
 // example: bench 32 1 10000 movetime default
-void benchmark (istream &is, const Position &cur_pos)
+void benchmark (istringstream &is, const Position &cur_pos)
 {
     u32    hash     = 16;
     u16    threads  =  1;
-    i64    limit_val= 13;
+    i64    value    = 13;
     string token;
-    string limit_type;
+    string mode;
     string fen_fn;
     // Assign default values to missing arguments
-    hash       = (is >> hash) && !is.fail ()             ? hash      : 16;
-    threads    = (is >> threads) && !is.fail ()          ? threads   :  1;
-    limit_val  = (is >> limit_val) && !is.fail ()        ? limit_val : 13;
-    limit_type = (is >> token) && !white_spaces (token)  ? token : "depth";
-    fen_fn     = (is >> token) && !white_spaces (token)  ? token : "default";
+    hash    = is >> hash    && !is.fail ()                          ? hash    : 16;
+    threads = is >> threads && !is.fail ()                          ? threads :  1;
+    value   = is >> value   && !is.fail ()                          ? value   : 13;
+    mode    = is >> token   && !is.fail () && !white_spaces (token) ? token   : "depth";
+    fen_fn  = is >> token   && !is.fail () && !white_spaces (token) ? token   : "default";
 
     Limit limits;
-    if (limit_type == "time")     limits.clock[WHITE].time = limits.clock[BLACK].time = u64(abs (limit_val));
+    if (mode == "time")
+    {
+        limits.clock[WHITE].time =
+        limits.clock[BLACK].time = u64(abs (value));
+    }
     else
-    if (limit_type == "movetime") limits.movetime = u64(abs (limit_val));
+    if (mode == "movetime")
+    {
+        limits.movetime = u64(abs (value));
+    }
     else
-    if (limit_type == "nodes")    limits.nodes    = u64(abs (limit_val));
+    if (mode == "nodes")
+    {
+        limits.nodes    = u64(abs (value));
+    }
     else
-    if (limit_type == "mate")     limits.mate     = u08(abs (limit_val));
-    else  /*limit_type=="depth"*/ limits.depth    = u08(i32(abs (limit_val))*DEPTH_ONE);
+    if (mode == "mate")
+    {
+        limits.mate     = u08(abs (value));
+    }
+    else //mode=="depth"
+    {
+        limits.depth    = i16(abs (value));
+    }
 
     vector<string> fens;
 
@@ -109,34 +132,29 @@ void benchmark (istream &is, const Position &cur_pos)
     else
     if (fen_fn == "current")
     {
-        fens.push_back (cur_pos.fen ());
+        fens.push_back (cur_pos.fen (true));
     }
     else
     {
         ifstream ifs (fen_fn);
-
         if (!ifs.is_open ())
         {
             std::cerr << "ERROR: unable to open file ... \'" << fen_fn << "\'" << std::endl;
             return;
         }
-
         string fen;
-        while (   !ifs.eof ()
-               && std::getline (ifs, fen))
+        while (std::getline (ifs, fen))
         {
             if (!white_spaces (fen))
             {
                 fens.push_back (fen);
             }
         }
-
         ifs.close ();
+        fens.shrink_to_fit ();
     }
 
-    fens.shrink_to_fit ();
-
-    if (limit_type != "perft")
+    if (mode != "perft")
     {
         Options["Hash"]        = to_string (hash);
         Options["Threads"]     = to_string (threads);
@@ -144,34 +162,37 @@ void benchmark (istream &is, const Position &cur_pos)
         clear ();
     }
 
-    u64  nodes = 0;
+    u64  total_nodes = 0;
     auto start_time = now ();
+    StateList states (1);
     Position pos;
-
     for (u16 i = 0; i < fens.size (); ++i)
     {
-        StateListPtr states (new StateList (1));
-        pos.setup (fens[i], states->back (), Threadpool.main (), Chess960);
+        states.resize (1);
+        pos.setup (fens[i], states.back (), Threadpool.main_thread (), true);
+        assert(pos.fen (true) == fens[i]);
 
         std::cerr
             << "\n---------------\n"
-            << "Position: " << std::setw (2) << (i + 1) << "/" << fens.size () << " "
-            << fens[i] << std::endl;
+            << "Position: " << std::right
+            << std::setw (2) << i+1 << "/" << fens.size () << " "
+            << std::left << fens[i] << std::endl;
 
-        if (limit_type == "perft")
+        if (mode == "perft")
         {
-            u64 leaf_nodes = perft (pos, i32(limits.depth)*DEPTH_ONE);
+            u64 leaf_nodes = perft (pos, limits.depth);
             std::cerr
                 << "\nLeaf nodes: " << leaf_nodes
                 << std::endl;
-            nodes += leaf_nodes;
+            total_nodes += leaf_nodes;
         }
         else
         {
             limits.start_time = now ();
+            limits.elapsed_time = 0;
             Threadpool.start_thinking (pos, states, limits);
             Threadpool.wait_while_thinking ();
-            nodes += Threadpool.game_nodes ();
+            total_nodes += Threadpool.nodes ();
         }
     }
 
@@ -180,9 +201,9 @@ void benchmark (istream &is, const Position &cur_pos)
     dbg_print (); // Just before exit
     std::cerr << std::right
         << "\n=================================\n"
-        << "Total time (ms) :" << std::setw (16) << elapsed_time << "\n"
-        << "Nodes searched  :" << std::setw (16) << nodes        << "\n"
-        << "Nodes/second    :" << std::setw (16) << nodes * MilliSec / elapsed_time
+        << "Total time (ms) :" << std::setw (16) << elapsed_time << '\n'
+        << "Nodes searched  :" << std::setw (16) << total_nodes  << '\n'
+        << "Nodes/second    :" << std::setw (16) << total_nodes * MilliSec / elapsed_time
         << "\n---------------------------------\n"    
         << std::left << std::endl;
 }

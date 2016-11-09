@@ -25,15 +25,8 @@ namespace EndGame {
         KRKN,  // KR vs KN
         KQKP,  // KQ vs KP
         KQKR,  // KQ vs KR
-        KBBKN, // KBB vs KN
 
-        // Scaling functions
-        SCALE_FUNS,
-
-        // Generic Scaling functions
-        KBPsKs,  // KBPs vs K+s
-        KQKRPs,  // KQ vs KR+Ps
-
+        // Scaling functions are used when any side have some pawns
         KRPKR,   // KRP vs KR
         KRPKB,   // KRP vs KB
         KRPPKRP, // KRPP vs KRP
@@ -43,31 +36,29 @@ namespace EndGame {
         KBPKB,   // KBP vs KB
         KBPPKB,  // KBPP vs KB
         KBPKN,   // KBP vs KN
-        KNPKB    // KNP vs KB
+        KNPKB,   // KNP vs KB
 
+        // Generic Scale functions
+        KBPsKs,  // KBPs vs K+s
+        KQKRPs,  // KQ vs KR+Ps
     };
 
-    // Endgame functions can be of two category depending on whether they return Value or ScaleFactor.
+    // Endgame functions can be of two category depending on whether they return Value or Scale.
     template<EndgameType ET>
-    using EndgameCategory = typename std::conditional<ET < SCALE_FUNS, Value, ScaleFactor>::type;
+    using EndgameCategory = typename std::conditional<ET < KRPKR, Value, Scale>::type;
 
     // Base and derived templates for endgame evaluation and scaling functions
     template<class T>
     class EndgameBase
     {
-    protected:
-        
-        Color _strong_side;
     public:
+        Color strong_color;
 
         explicit EndgameBase (Color c)
-            : _strong_side (c)
+            : strong_color (c)
         {}
-        //EndgameBase (const EndgameBase&) = delete;
-        EndgameBase& operator= (const EndgameBase&) = delete;
         virtual ~EndgameBase () = default;
-
-        Color strong_side () const { return _strong_side; }
+        EndgameBase& operator= (const EndgameBase&) = delete;
 
         virtual T operator() (const Position &pos) const = 0;
     };
@@ -76,15 +67,12 @@ namespace EndGame {
     class Endgame
         : public EndgameBase<T>
     {
-
     public:
-
         explicit Endgame (Color c)
             : EndgameBase<T> (c)
         {}
-        //Endgame (const Endgame&) = delete;
+        virtual ~Endgame () = default;
         Endgame& operator= (const Endgame&) = delete;
-        //virtual ~Endgame () = default;
 
         T operator() (const Position &pos) const override;
     };
@@ -93,30 +81,25 @@ namespace EndGame {
     // Uses polymorphism to invoke the actual endgame function by calling its virtual operator().
     class Endgames
     {
-
     private:
-        template<class T>
-        using Map = std::map<Key, std::unique_ptr<EndgameBase<T>>>;
+        template<class T> using Map = std::map<Key, std::unique_ptr<EndgameBase<T>>>;
 
-        std::pair<Map<Value>, Map<ScaleFactor>> maps;
+        std::pair<Map<Value>, Map<Scale>> _maps;
 
-        template<class T>
-        Map<T>& map ()
+        template<class T> Map<T>& map ()
         {
-            return std::get<std::is_same<T, ScaleFactor>::value> (maps);
+            return std::get<std::is_same<T, Scale>::value> (_maps);
         }
 
         template<EndgameType ET, class T = EndgameCategory<ET>>
         void add (const std::string &code);
 
     public:
-
         Endgames ();
         Endgames (const Endgames&) = delete;
         Endgames& operator= (const Endgames&) = delete;
 
-        template<class T>
-        EndgameBase<T>* probe (Key matl_key)
+        template<class T> EndgameBase<T>* probe (Key matl_key)
         {
             return map<T> ().find (matl_key) != map<T> ().end () ? map<T> ()[matl_key].get () : nullptr;
         }
@@ -125,7 +108,6 @@ namespace EndGame {
     extern void initialize ();
 
     extern void deinitialize ();
-
 }
 
 // Global Endgames

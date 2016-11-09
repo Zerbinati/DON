@@ -46,59 +46,29 @@ namespace EndGame {
         const i32 PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
         const i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
-#if !defined(NDEBUG)
-        bool verify_material (const Position &pos, Color c, Value npm, i32 num_pawns)
+        // Map the square as if 'c' is white and 'sq' only pawn is on the left half of the board.
+        Square normalize (const Position &pos, Color c, Square sq)
         {
-            return pos.non_pawn_material (c) == npm && pos.count<PAWN> (c) == num_pawns;
-        }
-#endif
+            assert(pos.count<PAWN> (c) == 1);
 
-        // Map the square as if strong_side is white and
-        // strong_side's only pawn is on the left half of the board.
-        Square normalize (const Position &pos, Color strong_side, Square sq)
-        {
-            assert(pos.count<PAWN> (strong_side) == 1);
-
-            if (_file (pos.square<PAWN> (strong_side)) >= F_E)
+            if (_file (pos.square (c, PAWN)) >= F_E)
             {
                 sq = !sq; // MIRROR- SQ_A1 -> SQ_H1
             }
-            if (strong_side == BLACK)
+            if (c == BLACK)
             {
                 sq = ~sq; // FLIP  - SQ_A1 -> SQ_A8
             }
-
             return sq;
         }
 
-        // Get the material key of a Position out of the given endgame key code
-        // like "KBPKN". The trick here is to first forge an ad-hoc FEN string
-        // and then let a Position object to do the work.
-        Key key (const string &code, Color c)
+#if !defined(NDEBUG)
+        bool verify_material (const Position &pos, Color c, Value npm, i32 pawn_count)
         {
-            assert(0 < code.length () && code.length () <= 8);
-            assert(code[0] == 'K');
-            assert(code.find ('K', 1) != string::npos);
-
-            string sides[CLR_NO] =
-            {
-                code.substr (   code.find ('K', 1)), // Weak
-                code.substr (0, code.find ('K', 1)), // Strong
-            };
-
-            to_lower (sides[c]);
-
-            string fen = sides[0] + char (8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
-                       + sides[1] + char (8 - sides[1].length () + '0') + " w - - 0 1";
-
-            Position pos;
-            StateInfo si;
-            pos.setup (fen, si, nullptr, false, false);
-            return pos.matl_key ();
+            return pos.si->non_pawn_matl[c] == npm
+                && pos.count<PAWN> (c) == pawn_count;
         }
-
-        template<class M>
-        void delete_endgame (const typename M::value_type &p) { delete p.second; }
+#endif
 
     }
 
@@ -112,7 +82,6 @@ namespace EndGame {
         add<KRKN>    ("KRKN");
         add<KQKP>    ("KQKP");
         add<KQKR>    ("KQKR");
-        add<KBBKN>   ("KBBKN");
 
         add<KNPK>    ("KNPK");
         add<KNPKB>   ("KNPKB");
@@ -127,82 +96,80 @@ namespace EndGame {
     template<EndgameType ET, class T>
     void Endgames::add (const string &code)
     {
-        map<T> ()[key (code, WHITE)] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (WHITE));
-        map<T> ()[key (code, BLACK)] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (BLACK));
+        StateInfo si;
+        map<T> ()[Position ().setup (code, si, WHITE).si->matl_key] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (WHITE));
+        map<T> ()[Position ().setup (code, si, BLACK).si->matl_key] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (BLACK));
     }
 
     // Mate with KX vs K. This function is used to evaluate positions with
     // King and plenty of material vs a lone king. It simply gives the
     // attacking side a bonus for driving the defending king towards the edge
     // of the board, and for keeping the distance between the two kings small.
-    template<>
-    Value Endgame<KXK>::operator() (const Position &pos) const
+    template<> Value Endgame<KXK>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos, ~_strong_side, VALUE_ZERO, 0));
-        assert(pos.checkers () == 0); // Eval is never called when in check
+        assert(verify_material (pos, ~strong_color, VALUE_ZERO, 0));
+        assert(pos.si->checkers == 0); // Eval is never called when in check
 
         // Stalemate detection with lone weak king
-        if (   pos.active () == ~_strong_side
+        if (   pos.active == ~strong_color
             && MoveList<LEGAL> (pos).size () == 0)
         {
             return VALUE_DRAW;
         }
 
-        auto sk_sq = pos.square<KING> ( _strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
+        auto sk_sq = pos.square ( strong_color, KING);
+        auto wk_sq = pos.square (~strong_color, KING);
 
-        Value value = std::min (
-                    + pos.count<PAWN> (_strong_side) * VALUE_EG_PAWN
-                    + pos.non_pawn_material (_strong_side)
-                    + PushToEdge[wk_sq]
-                    + PushClose[dist (sk_sq, wk_sq)], +VALUE_KNOWN_WIN - 1);
+        auto value = std::min (
+                     VALUE_EG_PAWN*pos.count<PAWN> (strong_color)
+                   + pos.si->non_pawn_matl[strong_color]
+                   + PushToEdge[wk_sq]
+                   + PushClose[dist (sk_sq, wk_sq)], +VALUE_KNOWN_WIN - 1);
 
-        if (    pos.count<QUEN> (_strong_side) != 0
-            ||  pos.count<ROOK> (_strong_side) != 0
-            ||  pos.bishops_pair (_strong_side)
-            || (   pos.count<BSHP> (_strong_side) != 0
-                && pos.count<NIHT> (_strong_side) != 0)
-            ||  pos.count<NIHT> (_strong_side) > 2)
+        if (   pos.count<QUEN> (strong_color) != 0
+            || pos.count<ROOK> (strong_color) != 0
+            || pos.paired_bishop (strong_color)
+            || (   pos.count<BSHP> (strong_color) != 0
+                && pos.count<NIHT> (strong_color) != 0)
+            || pos.count<NIHT> (strong_color) > 2)
         {
             value = std::min (value + VALUE_KNOWN_WIN, +VALUE_MATE_IN_MAX_PLY - 1);
         }
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active == strong_color ? +value : -value;
     }
 
     // KP vs K. This endgame is evaluated with the help of a bitbase.
-    template<>
-    Value Endgame<KPK>::operator() (const Position &pos) const
+    template<> Value Endgame<KPK>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_ZERO, 1));
-        assert(verify_material (pos, ~_strong_side, VALUE_ZERO, 0));
+        assert(verify_material (pos,  strong_color, VALUE_ZERO, 1));
+        assert(verify_material (pos, ~strong_color, VALUE_ZERO, 0));
 
-        // Assume _strong_side is white and the pawn is on files A-D
-        auto sk_sq = normalize (pos, _strong_side, pos.square<KING> ( _strong_side));
-        auto wk_sq = normalize (pos, _strong_side, pos.square<KING> (~_strong_side));
-        auto sp_sq = normalize (pos, _strong_side, pos.square<PAWN> ( _strong_side));
+        // Assume strong_color is white and the pawn is on files A-D
+        auto sk_sq = normalize (pos, strong_color, pos.square ( strong_color, KING));
+        auto wk_sq = normalize (pos, strong_color, pos.square (~strong_color, KING));
+        auto sp_sq = normalize (pos, strong_color, pos.square ( strong_color, PAWN));
 
-        if (!probe (pos.active () == _strong_side ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+        if (!probe (pos.active == strong_color ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
         {
             return VALUE_DRAW;
         }
 
-        Value value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value(_rank (sp_sq));
+        auto value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value(_rank (sp_sq));
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active == strong_color ? +value : -value;
     }
 
     // Mate with KBN vs K. This is similar to KX vs K, but have to drive the
     // defending king towards a corner square of the right color.
-    template<>
-    Value Endgame<KBNK>::operator() (const Position &pos) const
+    template<> Value Endgame<KBNK>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_NIHT + VALUE_MG_BSHP, 0));
-        assert(verify_material (pos, ~_strong_side, VALUE_ZERO, 0));
+        assert(verify_material (pos,  strong_color, VALUE_MG_NIHT + VALUE_MG_BSHP, 0));
+        assert(verify_material (pos, ~strong_color, VALUE_ZERO, 0));
 
-        auto sk_sq = pos.square<KING> ( _strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
-        auto sb_sq = pos.square<BSHP> ( _strong_side);
+        auto sk_sq = pos.square ( strong_color, KING);
+        auto wk_sq = pos.square (~strong_color, KING);
+        auto sb_sq = pos.square ( strong_color, BSHP);
 
         // kbnk mate table tries to drive toward corners A1 or H8,
         // if have a bishop that cannot reach the above squares
@@ -213,80 +180,79 @@ namespace EndGame {
             wk_sq = ~wk_sq;
         }
 
-        Value value = VALUE_KNOWN_WIN
-                    + PushClose[dist (sk_sq, wk_sq)]
-                    + PushToCorner[wk_sq];
+        auto value = VALUE_KNOWN_WIN
+                   + PushClose[dist (sk_sq, wk_sq)]
+                   + PushToCorner[wk_sq];
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active == strong_color ? +value : -value;
     }
 
-    template<>
-    Value Endgame<KNNK> ::operator() (const Position &) const
+    template<> Value Endgame<KNNK>::operator() (const Position &pos) const
     {
-        //assert(verify_material (pos, _strong_side, 2 * VALUE_MG_NIHT, 0));
+        assert(verify_material (pos, strong_color, VALUE_MG_NIHT*2, 0));
+        (void) pos;
         return VALUE_DRAW;
     }
 
     // KR vs KP. This is a somewhat tricky endgame to evaluate precisely without a bitbase.
     // The function below returns drawish scores when the pawn is far advanced
     // with support of the king, while the attacking king is far away.
-    template<>
-    Value Endgame<KRKP>::operator() (const Position &pos) const
+    template<> Value Endgame<KRKP>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_ROOK, 0));
-        assert(verify_material (pos, ~_strong_side, VALUE_ZERO   , 1));
+        assert(verify_material (pos,  strong_color, VALUE_MG_ROOK, 0));
+        assert(verify_material (pos, ~strong_color, VALUE_ZERO   , 1));
 
-        auto sk_sq = rel_sq (_strong_side, pos.square<KING> ( _strong_side));
-        auto wk_sq = rel_sq (_strong_side, pos.square<KING> (~_strong_side));
-        auto sr_sq = rel_sq (_strong_side, pos.square<ROOK> ( _strong_side));
-        auto wp_sq = rel_sq (_strong_side, pos.square<PAWN> (~_strong_side));
+        auto sk_sq = rel_sq (strong_color, pos.square ( strong_color, KING));
+        auto wk_sq = rel_sq (strong_color, pos.square (~strong_color, KING));
+        auto sr_sq = rel_sq (strong_color, pos.square ( strong_color, ROOK));
+        auto wp_sq = rel_sq (strong_color, pos.square (~strong_color, PAWN));
 
         auto promote_sq = _file (wp_sq)|R_1;
 
-        Value value;
+        auto value = VALUE_ZERO;
 
         // If the strong side's king is in front of the pawn, it's a win. or
         // If the weak side's king is too far from the pawn and the rook, it's a win.
-        if (   (sk_sq < wp_sq && _file (sk_sq) == _file (wp_sq))
-            || (   dist (wk_sq, wp_sq) >= 3 + (pos.active () == ~_strong_side ? 1 : 0)
+        if (   (   sk_sq < wp_sq
+                && _file (sk_sq) == _file (wp_sq))
+            || (   dist (wk_sq, wp_sq) >= 3 + (pos.active == ~strong_color ? 1 : 0)
                 && dist (wk_sq, sr_sq) >= 3))
         {
             value = VALUE_EG_ROOK - dist (sk_sq, wp_sq);
         }
-        // If the pawn is far advanced and supported by the defending king, it's a drawish.
         else
+        // If the pawn is far advanced and supported by the defending king, it's a drawish.
         if (   _rank (wk_sq) <= R_3
             && dist (wk_sq, wp_sq) == 1
             && _rank (sk_sq) >= R_4
-            && dist (sk_sq, wp_sq) > 2 + (pos.active () == _strong_side ? 1 : 0))
+            && dist (sk_sq, wp_sq) > 2 + (pos.active == strong_color ? 1 : 0))
         {
-            value = Value(80 - 8 * dist (sk_sq, wp_sq));
+            value = Value(- 8 * dist (sk_sq, wp_sq) + 80);
         }
         else
         {
-            value = Value(200 - 8 * (  dist (sk_sq, wp_sq+DEL_S)
-                                     - dist (wk_sq, wp_sq+DEL_S)
-                                     - dist (wp_sq, promote_sq)));
+            value = Value(- 8 * (  dist (sk_sq, wp_sq+DEL_S)
+                                 - dist (wk_sq, wp_sq+DEL_S)
+                                 - dist (wp_sq, promote_sq)) + 200);
         }
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active == strong_color ? +value : -value;
     }
 
     // KR vs KB. This is very simple, and always returns drawish scores.
     // The score is slightly bigger when the defending king is close to the edge.
-    template<>
-    Value Endgame<KRKB>::operator() (const Position &pos) const
+    template<> Value Endgame<KRKB>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_ROOK, 0));
-        assert(verify_material (pos, ~_strong_side, VALUE_MG_BSHP, 0));
+        assert(verify_material (pos,  strong_color, VALUE_MG_ROOK, 0));
+        assert(verify_material (pos, ~strong_color, VALUE_MG_BSHP, 0));
 
-        auto sk_sq = pos.square<KING> ( _strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
-        auto wb_sq = pos.square<BSHP> (~_strong_side);
+        auto sk_sq = pos.square ( strong_color, KING);
+        auto wk_sq = pos.square (~strong_color, KING);
+        auto wb_sq = pos.square (~strong_color, BSHP);
 
-        // To draw, the weak side should run towards the corner.
+        // To draw, the weak side's king should run towards the corner.
         // And not just any corner! Only a corner that's not the same color as the bishop will do.
-        if (   (Corner_bb & wk_sq) != 0
+        if (   (((FA_bb|FH_bb)&(R1_bb|R8_bb)) & wk_sq) != 0
             && opposite_colors (wk_sq, wb_sq)
             && dist (wk_sq, wb_sq) == 1
             && dist (sk_sq, wb_sq) > 1)
@@ -295,129 +261,79 @@ namespace EndGame {
         }
 
         // When the weak side ended up in the same corner as bishop.
-        Value value = Value(PushToEdge[wk_sq]);
+        auto value = Value(PushToEdge[wk_sq]);
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active == strong_color ? +value : -value;
     }
 
     // KR vs KN.  The attacking side has slightly better winning chances than
     // in KR vs KB, particularly if the king and the knight are far apart.
-    template<>
-    Value Endgame<KRKN>::operator() (const Position &pos) const
+    template<> Value Endgame<KRKN>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_ROOK, 0));
-        assert(verify_material (pos, ~_strong_side, VALUE_MG_NIHT, 0));
+        assert(verify_material (pos,  strong_color, VALUE_MG_ROOK, 0));
+        assert(verify_material (pos, ~strong_color, VALUE_MG_NIHT, 0));
 
-        auto sk_sq = pos.square<KING> ( _strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
-        auto wn_sq = pos.square<NIHT> (~_strong_side);
+        auto sk_sq = pos.square ( strong_color, KING);
+        auto wk_sq = pos.square (~strong_color, KING);
+        auto wn_sq = pos.square (~strong_color, NIHT);
 
         // If weak king is near the knight, it's a draw.
-        if (   dist (wk_sq, wn_sq) + (pos.active () == _strong_side ? 1 : 0) <= 3
+        if (   dist (wk_sq, wn_sq) + (pos.active == strong_color ? 1 : 0) <= 3
             && dist (sk_sq, wn_sq) > 1)
         {
             return VALUE_DRAW;
         }
 
-        Value value = Value(PushAway[dist (wk_sq, wn_sq)] + PushToEdge[wk_sq]);
+        auto value = Value(PushAway[dist (wk_sq, wn_sq)] + PushToEdge[wk_sq]);
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active == strong_color ? +value : -value;
     }
 
     // KQ vs KP. In general, this is a win for the strong side, but there are a
     // few important exceptions. A pawn on 7th rank and on the A,C,F or H files
     // with a king positioned next to it can be a draw, so in that case, only
     // use the distance between the kings.
-    template<>
-    Value Endgame<KQKP>::operator() (const Position &pos) const
+    template<> Value Endgame<KQKP>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_QUEN, 0));
-        assert(verify_material (pos, ~_strong_side, VALUE_ZERO   , 1));
+        assert(verify_material (pos,  strong_color, VALUE_MG_QUEN, 0));
+        assert(verify_material (pos, ~strong_color, VALUE_ZERO   , 1));
 
-        auto sk_sq = pos.square<KING> ( _strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
-        auto wp_sq = pos.square<PAWN> (~_strong_side);
+        auto sk_sq = pos.square ( strong_color, KING);
+        auto wk_sq = pos.square (~strong_color, KING);
+        auto wp_sq = pos.square (~strong_color, PAWN);
 
-        Value value = Value(PushClose[dist (sk_sq, wk_sq)]);
+        auto value = Value(PushClose[dist (sk_sq, wk_sq)]);
 
-        if (   rel_rank (~_strong_side, wp_sq) != R_7
-            || dist (wk_sq, wp_sq) != 1
-            || ((FA_bb|FC_bb|FF_bb|FH_bb) & wp_sq) == 0)
+        if (   rel_rank (~strong_color, wp_sq) < R_7
+            || ((FA_bb|FC_bb|FF_bb|FH_bb) & wp_sq) == 0
+            || dist (wk_sq, wp_sq) != 1)
         {
             value += VALUE_EG_QUEN - VALUE_EG_PAWN;
         }
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active == strong_color ? +value : -value;
     }
 
     // KQ vs KR. This is almost identical to KX vs K: give the attacking
     // king a bonus for having the kings close together, and for forcing the
     // defending king towards the edge. If also take care to avoid null move for
     // the defending side in the search, this is usually sufficient to win KQ vs KR.
-    template<>
-    Value Endgame<KQKR>::operator() (const Position &pos) const
+    template<> Value Endgame<KQKR>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_QUEN, 0));
-        assert(verify_material (pos, ~_strong_side, VALUE_MG_ROOK, 0));
+        assert(verify_material (pos,  strong_color, VALUE_MG_QUEN, 0));
+        assert(verify_material (pos, ~strong_color, VALUE_MG_ROOK, 0));
 
-        auto sk_sq = pos.square<KING> ( _strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
+        auto sk_sq = pos.square ( strong_color, KING);
+        auto wk_sq = pos.square (~strong_color, KING);
 
-        Value value = VALUE_EG_QUEN - VALUE_EG_ROOK
-                    + PushClose[dist (sk_sq, wk_sq)]
-                    + PushToEdge[wk_sq];
+        auto value = VALUE_EG_QUEN - VALUE_EG_ROOK
+                   + PushClose[dist (sk_sq, wk_sq)]
+                   + PushToEdge[wk_sq];
 
-        return pos.active () == _strong_side ? +value : -value;
+        return pos.active == strong_color ? +value : -value;
     }
 
-    // KBB vs KN. This is almost always a win. Try to push enemy king to a corner
-    // and away from his knight. For a reference of this difficult endgame see:
-    // en.wikipedia.org/wiki/Chess_endgame#Effect_of_tablebases_on_endgame_theory
-    // But this endgame is not known, there are many position where it takes 50+ moves to win.
-    // Because exact rule is not possible better to retire and allow the search to workout the endgame.
-    template<>
-    Value Endgame<KBBKN>::operator() (const Position &pos) const
-    {
-        assert(verify_material (pos,  _strong_side, 2 * VALUE_MG_BSHP, 0));
-        assert(verify_material (pos, ~_strong_side,     VALUE_MG_NIHT, 0));
-
-        auto sk_sq = pos.square<KING> ( _strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
-        auto wn_sq = pos.square<NIHT> (~_strong_side);
-
-        Value value;
-
-        if (pos.bishops_pair (_strong_side))
-        {
-            if (  std::min (dist (wk_sq, SQ_A8), dist (wk_sq, SQ_H1))
-                < std::min (dist (wk_sq, SQ_A1), dist (wk_sq, SQ_H8)))
-            {
-                sk_sq = ~sk_sq;
-                wk_sq = ~wk_sq;
-                wn_sq = ~wn_sq;
-            }
-
-            value = VALUE_MG_BSHP
-                  + PushClose[dist (sk_sq, wk_sq)] // Bring attacking king close to defending king
-                  + PushAway [dist (wk_sq, wn_sq)] // Driving the defending king and knight apart
-                  + PushToEdge[wn_sq];             // Restricting the knight's mobility
-        }
-        else
-        {
-            value = Value(PushClose[dist (sk_sq, wk_sq)]);
-        }
-
-        return pos.active () == _strong_side ? +value : -value;
-    }
-
-
-    // ---------------------------------------------------------
-    // Scaling functions are used when any side have some pawns
-    // ---------------------------------------------------------
-
-    // ---------------------------------------------------------
     // Special Scaling functions
-    // ---------------------------------------------------------
 
     // KRP vs KR. This function knows a handful of the most important classes of
     // drawn positions, but is far from perfect. It would probably be a good idea
@@ -425,69 +341,73 @@ namespace EndGame {
     //
     // It would also be nice to rewrite the actual code for this function,
     // which is mostly copied from Glaurung 1.x, and isn't very pretty.
-    template<>
-    ScaleFactor Endgame<KRPKR>::operator() (const Position &pos) const
+    template<> Scale Endgame<KRPKR>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_ROOK, 1));
-        assert(verify_material (pos, ~_strong_side, VALUE_MG_ROOK, 0));
+        assert(verify_material (pos,  strong_color, VALUE_MG_ROOK, 1));
+        assert(verify_material (pos, ~strong_color, VALUE_MG_ROOK, 0));
 
-        // Assume _strong_side is white and the pawn is on files A-D
-        auto sk_sq = normalize (pos, _strong_side, pos.square<KING> ( _strong_side));
-        auto wk_sq = normalize (pos, _strong_side, pos.square<KING> (~_strong_side));
-        auto sr_sq = normalize (pos, _strong_side, pos.square<ROOK> ( _strong_side));
-        auto sp_sq = normalize (pos, _strong_side, pos.square<PAWN> ( _strong_side));
-        auto wr_sq = normalize (pos, _strong_side, pos.square<ROOK> (~_strong_side));
+        // Assume strong_color is white and the pawn is on files A-D
+        auto sk_sq = normalize (pos, strong_color, pos.square ( strong_color, KING));
+        auto wk_sq = normalize (pos, strong_color, pos.square (~strong_color, KING));
+        auto sr_sq = normalize (pos, strong_color, pos.square ( strong_color, ROOK));
+        auto sp_sq = normalize (pos, strong_color, pos.square ( strong_color, PAWN));
+        auto wr_sq = normalize (pos, strong_color, pos.square (~strong_color, ROOK));
 
         auto f = _file (sp_sq);
         auto r = _rank (sp_sq);
         auto promote_sq = f|R_8;
-        i32 tempo = pos.active () == _strong_side ? 1 : 0;
+        i32 tempo = pos.active == strong_color ? 1 : 0;
 
         // If the pawn is not too far advanced and the defending king defends the
         // queening square, use the third-rank defence.
         if (   r <= R_5
             && sk_sq <= SQ_H5
             && dist (wk_sq, promote_sq) <= 1
-            && (_rank (wr_sq) == R_6 || (r <= R_3 && _rank (sr_sq) != R_6)))
+            && (   _rank (wr_sq) == R_6
+                || (r <= R_3 && _rank (sr_sq) != R_6)))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
-
         // The defending side saves a draw by checking from behind in case the pawn
         // has advanced to the 6th rank with the king behind.
         if (   r == R_6
             && dist (wk_sq, promote_sq) <= 1
             && _rank (sk_sq) + tempo <= R_6
-            && (_rank (wr_sq) == R_1 || (!tempo && dist<File> (wr_sq, sp_sq) >= 3)))
+            && (   _rank (wr_sq) == R_1
+                || (   tempo == 0
+                    && dist<File> (wr_sq, sp_sq) >= 3)))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
-
+        // 
         if (   r >= R_6
             && wk_sq == promote_sq
             && _rank (wr_sq) == R_1
-            && (!tempo || dist (sk_sq, sp_sq) >= 2))
+            && (   tempo == 0
+                || dist (sk_sq, sp_sq) >= 2))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
         // White pawn on a7 and rook on a8 is a draw if black's king is on g7 or h7
         // and the black rook is behind the pawn.
         if (   sp_sq == SQ_A7
             && sr_sq == SQ_A8
-            && (wk_sq == SQ_H7 || wk_sq == SQ_G7)
+            && (   wk_sq == SQ_H7
+                || wk_sq == SQ_G7)
             && _file (wr_sq) == F_A
-            && (_rank (wr_sq) <= R_3 || _file (sk_sq) >= F_D || _rank (sk_sq) <= R_5))
+            && (   _rank (wr_sq) <= R_3
+                || _file (sk_sq) >= F_D
+                || _rank (sk_sq) <= R_5))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
-
         // If the defending king blocks the pawn and the attacking king is too far away, it's a draw.
         if (   r <= R_5
             && wk_sq == sp_sq+DEL_N
             && dist (sk_sq, sp_sq) - tempo >= 2
             && dist (sk_sq, wr_sq) - tempo >= 2)
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
         // Pawn on the 7th rank supported by the rook from behind usually wins if the
         // attacking king is closer to the queening square than the defending king,
@@ -499,9 +419,9 @@ namespace EndGame {
             && dist (sk_sq, promote_sq) < dist (wk_sq, promote_sq) - 2 + tempo
             && dist (sk_sq, promote_sq) < dist (wk_sq, sr_sq) + tempo)
         {
-            return ScaleFactor(SCALE_FACTOR_MAX - 2 * dist (sk_sq, promote_sq));
+            return Scale(SCALE_MAX
+                            - 2 * dist (sk_sq, promote_sq));
         }
-
         // Similar to the above, but with the pawn further back
         if (   f != F_A
             && f == _file (sr_sq)
@@ -512,136 +432,135 @@ namespace EndGame {
                 || (   dist (sk_sq, promote_sq) < dist (wk_sq, sr_sq) + tempo
                     && dist (sk_sq, sp_sq+DEL_N) < dist (wk_sq, sr_sq) + tempo)))
         {
-            return ScaleFactor(  SCALE_FACTOR_MAX
-                               - 8 * dist (sp_sq, promote_sq)
-                               - 2 * dist (sk_sq, promote_sq));
+            return Scale(SCALE_MAX
+                            - 8 * dist (sp_sq, promote_sq)
+                            - 2 * dist (sk_sq, promote_sq));
         }
-
         // If the pawn is not far advanced, and the defending king is somewhere in
         // the pawn's path, it's probably a draw.
         if (r <= R_4 && wk_sq > sp_sq)
         {
             if (_file (wk_sq) == _file (sp_sq))
             {
-                return ScaleFactor(10);
+                return Scale(10);
             }
-            if (dist<File> (wk_sq, sp_sq) == 1 && dist (sk_sq, wk_sq) > 2)
+            if (   dist<File> (wk_sq, sp_sq) == 1
+                && dist (sk_sq, wk_sq) > 2)
             {
-                return ScaleFactor(24 - 2 * dist (sk_sq, wk_sq));
+                return Scale(24 - 2 * dist (sk_sq, wk_sq));
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KRP vs KB.
-    template<>
-    ScaleFactor Endgame<KRPKB>::operator() (const Position &pos) const
+    template<> Scale Endgame<KRPKB>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_ROOK, 1));
-        assert(verify_material (pos, ~_strong_side, VALUE_MG_BSHP, 0));
+        assert(verify_material (pos,  strong_color, VALUE_MG_ROOK, 1));
+        assert(verify_material (pos, ~strong_color, VALUE_MG_BSHP, 0));
 
-        // Test for a rook pawn
+        // If rook pawns
         if ((pos.pieces (PAWN) & (FA_bb|FH_bb)) != 0)
         {
-            auto wk_sq = pos.square<KING> (~_strong_side);
-            auto wb_sq = pos.square<BSHP> (~_strong_side);
-            auto sp_sq = pos.square<PAWN> ( _strong_side);
-            auto r     = rel_rank (_strong_side, sp_sq);
-            auto push  = pawn_push (_strong_side);
+            auto wk_sq = pos.square (~strong_color, KING);
+            auto wb_sq = pos.square (~strong_color, BSHP);
+            auto sp_sq = pos.square ( strong_color, PAWN);
+            auto r     = rel_rank (strong_color, sp_sq);
+            auto push  = pawn_push (strong_color);
 
             // If the pawn is on the 5th rank and the pawn (currently) is on the 
             // same color square as the bishop then there is a chance of a fortress.
             // Depending on the king position give a moderate reduction or a strong one
             // if the defending king is near the corner but not trapped there.
-            if (r == R_5 && !opposite_colors (wb_sq, sp_sq))
+            if (   r == R_5
+                && !opposite_colors (wb_sq, sp_sq))
             {
-                i32 d = dist (sp_sq + 3*push, wk_sq);
-                return d <= 2 && (d != 0 || wk_sq != pos.square<KING> (_strong_side) + 2*push) ?
-                            ScaleFactor(24) : ScaleFactor(48);
+                i32 d = dist (sp_sq + push*3, wk_sq);
+                return d <= 2
+                    && (   d != 0
+                        || wk_sq != pos.square (strong_color, KING) + push*2) ?
+                            Scale(24) : Scale(48);
             }
-
             // When the pawn has moved to the 6th rank can be fairly sure it's drawn
             // if the bishop attacks the square in front of the pawn from a reasonable distance
             // and the defending king is near the corner
             if (   r == R_6
-                && dist (sp_sq + 2*push, wk_sq) <= 1
+                && dist (sp_sq + push*2, wk_sq) <= 1
                 && (PieceAttacks[BSHP][wb_sq] & (sp_sq + push)) != 0
                 && dist<File> (wb_sq, sp_sq) >= 2)
             {
-                return ScaleFactor(8);
+                return Scale(8);
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
-    // KRPP vs KRP. There is just a single rule: if the strong side has no passed
-    // pawns and the defending king is actively placed, the position is drawish.
-    template<>
-    ScaleFactor Endgame<KRPPKRP>::operator() (const Position &pos) const
+    // KRPP vs KRP. If the defending king is actively placed, the position is drawish.
+    template<> Scale Endgame<KRPPKRP>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_ROOK, 2));
-        assert(verify_material (pos, ~_strong_side, VALUE_MG_ROOK, 1));
+        assert(verify_material (pos,  strong_color, VALUE_MG_ROOK, 2));
+        assert(verify_material (pos, ~strong_color, VALUE_MG_ROOK, 1));
 
-        // Pawn Rank based scaling factors used in KRPPKRP endgame
-        static const ScaleFactor KRPPKRPScaleFactors[R_NO] =
+        // Pawn Rank based scaling.
+        static const Scale Scales[R_NO] =
         {
-            ScaleFactor(0),
-            ScaleFactor(9),
-            ScaleFactor(10),
-            ScaleFactor(14),
-            ScaleFactor(21),
-            ScaleFactor(44),
-            ScaleFactor(0),
-            ScaleFactor(0)
+            Scale(0),
+            Scale(9),
+            Scale(10),
+            Scale(14),
+            Scale(21),
+            Scale(44),
+            Scale(0),
+            Scale(0)
         };
 
-        auto wk_sq  = pos.square<KING> (~_strong_side);
-        auto sp1_sq = pos.square<PAWN> ( _strong_side, 0);
-        auto sp2_sq = pos.square<PAWN> ( _strong_side, 1);
+        auto wk_sq  = pos.square (~strong_color, KING);
+        auto sp1_sq = pos.square ( strong_color, PAWN, 0);
+        auto sp2_sq = pos.square ( strong_color, PAWN, 1);
 
-        // Does the strong side have a passed pawn?
-        if (   !pos.passed_pawn (_strong_side, sp1_sq)
-            && !pos.passed_pawn (_strong_side, sp2_sq))
+        // Does the stronger side have a passed pawn?
+        if (   pos.pawn_passed_at (strong_color, sp1_sq)
+            || pos.pawn_passed_at (strong_color, sp2_sq))
         {
-            auto r = std::max (rel_rank (_strong_side, sp1_sq), rel_rank (_strong_side, sp2_sq));
-
-            if (   dist<File> (wk_sq, sp1_sq) <= 1
-                && dist<File> (wk_sq, sp2_sq) <= 1
-                && rel_rank (_strong_side, wk_sq) > r)
-            {
-                assert(R_1 < r && r < R_7);
-                return KRPPKRPScaleFactors[r];
-            }
+            return SCALE_NONE;
+        }
+        auto r = std::max (rel_rank (strong_color, sp1_sq),
+                           rel_rank (strong_color, sp2_sq));
+        if (   dist<File> (wk_sq, sp1_sq) <= 1
+            && dist<File> (wk_sq, sp2_sq) <= 1
+            && rel_rank (strong_color, wk_sq) > r)
+        {
+            assert(R_1 < r && r < R_7);
+            return Scales[r];
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // K and two or more pawns vs K. There is just a single rule here: If all pawns
     // are on the same rook file and are blocked by the defending king, it's a draw.
-    template<>
-    ScaleFactor Endgame<KPsK>::operator() (const Position &pos) const
+    template<> Scale Endgame<KPsK>::operator() (const Position &pos) const
     {
-        assert(pos.non_pawn_material (_strong_side) == VALUE_ZERO);
-        assert(pos.count<PAWN> (_strong_side) >= 2);
-        assert(verify_material (pos, ~_strong_side, VALUE_ZERO, 0));
+        assert(pos.si->non_pawn_matl[strong_color] == VALUE_ZERO);
+        assert(pos.count<PAWN> (strong_color) >= 2);
+        assert(verify_material (pos, ~strong_color, VALUE_ZERO, 0));
 
-        auto wk_sq  = pos.square<KING> (~_strong_side);
-        auto spawns = pos.pieces (_strong_side, PAWN);
-        auto sp_sq  = scan_frntmost_sq (_strong_side, spawns);
+        auto wk_sq  = pos.square (~strong_color, KING);
+        auto spawns = pos.pieces (strong_color, PAWN);
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
-        if (   (spawns & ~front_rank_bb (~_strong_side, wk_sq)) == 0
-            && ((spawns & ~FA_bb) == 0 || (spawns & ~FH_bb) == 0)
-            && dist<File> (wk_sq, sp_sq) <= 1)
+        if (   (spawns & ~front_rank_bb (~strong_color, wk_sq)) == 0
+            && (   (spawns & ~FA_bb) == 0
+                || (spawns & ~FH_bb) == 0)
+            && dist<File> (wk_sq, scan_frntmost_sq (strong_color, spawns)) <= 1)
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KP vs KP. This is done by removing the weakest side's pawn and probing the
@@ -649,16 +568,15 @@ namespace EndGame {
     // has at least a draw with the pawn as well. The exception is when the strong
     // side's pawn is far advanced and not on a rook file; in this case it is often
     // possible to win (e.g. 8/4k3/3p4/3P4/6K1/8/8/8 w - - 0 1).
-    template<>
-    ScaleFactor Endgame<KPKP>::operator() (const Position &pos) const
+    template<> Scale Endgame<KPKP>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_ZERO, 1));
-        assert(verify_material (pos, ~_strong_side, VALUE_ZERO, 1));
+        assert(verify_material (pos,  strong_color, VALUE_ZERO, 1));
+        assert(verify_material (pos, ~strong_color, VALUE_ZERO, 1));
 
-        // Assume _strong_side is white and the pawn is on files A-D
-        auto sk_sq = normalize (pos, _strong_side, pos.square<KING> ( _strong_side));
-        auto wk_sq = normalize (pos, _strong_side, pos.square<KING> (~_strong_side));
-        auto sp_sq = normalize (pos, _strong_side, pos.square<PAWN> ( _strong_side));
+        // Assume strong_color is white and the pawn is on files A-D
+        auto sk_sq = normalize (pos, strong_color, pos.square ( strong_color, KING));
+        auto wk_sq = normalize (pos, strong_color, pos.square (~strong_color, KING));
+        auto sp_sq = normalize (pos, strong_color, pos.square ( strong_color, PAWN));
 
         // If the pawn has advanced to the fifth rank or further, and is not a rook pawn,
         // then it's too dangerous to assume that it's at least a draw.
@@ -667,59 +585,57 @@ namespace EndGame {
         {
             // Probe the KPK bitbase with the weakest side's pawn removed.
             // If it's a draw, it's probably at least a draw even with the pawn.
-            if (!probe (pos.active () == _strong_side ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+            if (!probe (pos.active == strong_color ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
             {
-                return SCALE_FACTOR_DRAW;
+                return SCALE_DRAW;
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KNP vs K. There is a single rule: if the pawn is a rook pawn on the 7th rank
     // and the defending king prevents the pawn from advancing the position is drawn.
-    template<>
-    ScaleFactor Endgame<KNPK>::operator() (const Position &pos) const
+    template<> Scale Endgame<KNPK>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_NIHT, 1));
-        assert(verify_material (pos, ~_strong_side, VALUE_ZERO   , 0));
+        assert(verify_material (pos,  strong_color, VALUE_MG_NIHT, 1));
+        assert(verify_material (pos, ~strong_color, VALUE_ZERO   , 0));
 
-        // Assume _strong_side is white and the pawn is on files A-D
-        auto sp_sq = normalize (pos, _strong_side, pos.square<PAWN> ( _strong_side));
-        auto wk_sq = normalize (pos, _strong_side, pos.square<KING> (~_strong_side));
+        // Assume strong_color is white and the pawn is on files A-D
+        auto sp_sq = normalize (pos, strong_color, pos.square ( strong_color, PAWN));
+        auto wk_sq = normalize (pos, strong_color, pos.square (~strong_color, KING));
 
         if (   sp_sq == SQ_A7
             && dist (wk_sq, SQ_A8) <= 1)
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KBP vs KB. There are two rules: if the defending king is somewhere along the
     // path of the pawn, and the square of the king is not of the same color as the
     // strong side's bishop, it's a draw. If the two bishops have opposite color,
     // it's almost always a draw.
-    template<>
-    ScaleFactor Endgame<KBPKB>::operator() (const Position &pos) const
+    template<> Scale Endgame<KBPKB>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_BSHP, 1));
-        assert(verify_material (pos, ~_strong_side, VALUE_MG_BSHP, 0));
+        assert(verify_material (pos,  strong_color, VALUE_MG_BSHP, 1));
+        assert(verify_material (pos, ~strong_color, VALUE_MG_BSHP, 0));
 
-        auto sp_sq = pos.square<PAWN> ( _strong_side);
-        auto sb_sq = pos.square<BSHP> ( _strong_side);
-        auto wb_sq = pos.square<BSHP> (~_strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
+        auto sp_sq = pos.square ( strong_color, PAWN);
+        auto sb_sq = pos.square ( strong_color, BSHP);
+        auto wb_sq = pos.square (~strong_color, BSHP);
+        auto wk_sq = pos.square (~strong_color, KING);
 
         // Case 1: Defending king blocks the pawn, and cannot be driven away
         if (   _file (wk_sq) == _file (sp_sq)
-            && rel_rank (_strong_side, sp_sq) < rel_rank (_strong_side, wk_sq)
-            && (opposite_colors (wk_sq, sb_sq) || rel_rank (_strong_side, wk_sq) <= R_6))
+            && rel_rank (strong_color, sp_sq) < rel_rank (strong_color, wk_sq)
+            && (   opposite_colors (wk_sq, sb_sq)
+                || rel_rank (strong_color, wk_sq) <= R_6))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
-
         // Case 2: Opposite colored bishops
         if (opposite_colors (sb_sq, wb_sq))
         {
@@ -732,50 +648,50 @@ namespace EndGame {
             //
             // These rules are probably not perfect, but in practice they work reasonably well.
 
-            if (rel_rank (_strong_side, sp_sq) <= R_5)
+            if (rel_rank (strong_color, sp_sq) <= R_5)
             {
-                return SCALE_FACTOR_DRAW;
+                return SCALE_DRAW;
             }
 
-            auto path = front_sqrs_bb (_strong_side, sp_sq);
-            if (    (path & pos.pieces (~_strong_side, KING)) != 0
-                || ((path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) != 0 && dist (wb_sq, sp_sq) >= 3))
+            auto path = front_sqrs_bb (strong_color, sp_sq);
+            if (   (path & pos.pieces (~strong_color, KING)) != 0
+                || (   (path & PieceAttacks[BSHP][wb_sq]) != 0
+                    && (path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) != 0
+                    && dist (wb_sq, sp_sq) >= 3))
             {
-                return SCALE_FACTOR_DRAW;
+                return SCALE_DRAW;
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KBPP vs KB. It detects a few basic draws with opposite-colored bishops.
-    template<>
-    ScaleFactor Endgame<KBPPKB>::operator() (const Position &pos) const
+    template<> Scale Endgame<KBPPKB>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_BSHP, 2));
-        assert(verify_material (pos, ~_strong_side, VALUE_MG_BSHP, 0));
+        assert(verify_material (pos,  strong_color, VALUE_MG_BSHP, 2));
+        assert(verify_material (pos, ~strong_color, VALUE_MG_BSHP, 0));
 
-        auto sb_sq = pos.square<BSHP> ( _strong_side);
-        auto wb_sq = pos.square<BSHP> (~_strong_side);
+        auto sb_sq = pos.square ( strong_color, BSHP);
+        auto wb_sq = pos.square (~strong_color, BSHP);
 
         if (opposite_colors (sb_sq, wb_sq))
         {
-
-            auto wk_sq  = pos.square<KING> (~_strong_side);
-            auto sp1_sq = pos.square<PAWN> ( _strong_side, 0);
-            auto sp2_sq = pos.square<PAWN> ( _strong_side, 1);
+            auto wk_sq  = pos.square (~strong_color, KING);
+            auto sp1_sq = pos.square ( strong_color, PAWN, 0);
+            auto sp2_sq = pos.square ( strong_color, PAWN, 1);
 
             auto block1_sq = SQ_NO;
             auto block2_sq = SQ_NO;
 
-            if (rel_rank (_strong_side, sp1_sq) > rel_rank (_strong_side, sp2_sq))
+            if (rel_rank (strong_color, sp1_sq) > rel_rank (strong_color, sp2_sq))
             {
-                block1_sq = sp1_sq + pawn_push (_strong_side);
+                block1_sq = sp1_sq + pawn_push (strong_color);
                 block2_sq = _file (sp2_sq)|_rank (sp1_sq);
             }
             else
             {
-                block1_sq = sp2_sq + pawn_push (_strong_side);
+                block1_sq = sp2_sq + pawn_push (strong_color);
                 block2_sq = _file (sp1_sq)|_rank (sp2_sq);
             }
 
@@ -784,120 +700,116 @@ namespace EndGame {
             // Both pawns are on the same file. It's an easy draw if the defender firmly
             // controls some square in the frontmost pawn's path.
             case 0:
-            {
                 if (   _file (wk_sq) == _file (block1_sq)
-                    && rel_rank (_strong_side, wk_sq) >= rel_rank (_strong_side, block1_sq)
+                    && rel_rank (strong_color, wk_sq) >= rel_rank (strong_color, block1_sq)
                     && opposite_colors (wk_sq, sb_sq))
                 {
-                    return SCALE_FACTOR_DRAW;
+                    return SCALE_DRAW;
                 }
                 break;
-            }
             // Pawns on adjacent files. It's a draw if the defender firmly controls the
             // square in front of the frontmost pawn's path, and the square diagonally
             // behind this square on the file of the other pawn.
             case 1:
-            {
-                if (   wk_sq == block1_sq
-                    && opposite_colors (wk_sq, sb_sq)
-                    && (   wb_sq == block2_sq
-                        || (attacks_bb<BSHP> (block2_sq, pos.pieces ()) & pos.pieces (~_strong_side, BSHP)) != 0
-                        || dist<Rank> (sp1_sq, sp2_sq) >= 2))
+                if (opposite_colors (wk_sq, sb_sq))
                 {
-                    return SCALE_FACTOR_DRAW;
-                }
-                if (   wk_sq == block2_sq
-                    && opposite_colors (wk_sq, sb_sq)
-                    && (   wb_sq == block1_sq
-                        || (attacks_bb<BSHP> (block1_sq, pos.pieces ()) & pos.pieces (~_strong_side, BSHP)) != 0))
-                {
-                    return SCALE_FACTOR_DRAW;
+                    if (   wk_sq == block1_sq
+                        && (   wb_sq == block2_sq
+                            || (   (pos.pieces (~strong_color, BSHP) & PieceAttacks[BSHP][block2_sq]) != 0
+                                && (pos.pieces (~strong_color, BSHP) & attacks_bb<BSHP> (block2_sq, pos.pieces ())) != 0)
+                            || dist<Rank> (sp1_sq, sp2_sq) >= 2))
+                    {
+                        return SCALE_DRAW;
+                    }
+                    if (   wk_sq == block2_sq
+                        && (   wb_sq == block1_sq
+                            || (   (pos.pieces (~strong_color, BSHP) & PieceAttacks[BSHP][block1_sq]) != 0
+                                && (pos.pieces (~strong_color, BSHP) & attacks_bb<BSHP> (block1_sq, pos.pieces ())) != 0)))
+                    {
+                        return SCALE_DRAW;
+                    }
                 }
                 break;
-            }
             // The pawns are not on the same file or adjacent files. No scaling.
-            default:
-                break;
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KBP vs KN. There is a single rule: If the defending king is somewhere along
     // the path of the pawn, and the square of the king is not of the same color as
     // the strong side's bishop, it's a draw.
-    template<>
-    ScaleFactor Endgame<KBPKN>::operator() (const Position &pos) const
+    template<> Scale Endgame<KBPKN>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_BSHP, 1));
-        assert(verify_material (pos, ~_strong_side, VALUE_MG_NIHT, 0));
+        assert(verify_material (pos,  strong_color, VALUE_MG_BSHP, 1));
+        assert(verify_material (pos, ~strong_color, VALUE_MG_NIHT, 0));
 
-        auto sp_sq = pos.square<PAWN> ( _strong_side);
-        auto sb_sq = pos.square<BSHP> ( _strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
+        auto sp_sq = pos.square ( strong_color, PAWN);
+        auto sb_sq = pos.square ( strong_color, BSHP);
+        auto wk_sq = pos.square (~strong_color, KING);
 
         if (   _file (wk_sq) == _file (sp_sq)
-            && rel_rank (_strong_side, sp_sq) < rel_rank (_strong_side, wk_sq)
-            && (opposite_colors (wk_sq, sb_sq) || rel_rank (_strong_side, wk_sq) <= R_6))
+            && rel_rank (strong_color, sp_sq) < rel_rank (strong_color, wk_sq)
+            && (   opposite_colors (wk_sq, sb_sq)
+                || rel_rank (strong_color, wk_sq) <= R_6))
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KNP vs KB. If knight can block bishop from taking pawn, it's a win.
     // Otherwise the position is a draw.
-    template<>
-    ScaleFactor Endgame<KNPKB>::operator() (const Position &pos) const
+    template<> Scale Endgame<KNPKB>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos,  _strong_side, VALUE_MG_NIHT, 1));
-        assert(verify_material (pos, ~_strong_side, VALUE_MG_BSHP, 0));
+        assert(verify_material (pos,  strong_color, VALUE_MG_NIHT, 1));
+        assert(verify_material (pos, ~strong_color, VALUE_MG_BSHP, 0));
 
-        auto sp_sq = pos.square<PAWN> ( _strong_side);
-        auto sb_sq = pos.square<BSHP> (~_strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
+        auto sp_sq = pos.square ( strong_color, PAWN);
+        auto sb_sq = pos.square (~strong_color, BSHP);
+        auto wk_sq = pos.square (~strong_color, KING);
 
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        if ((front_sqrs_bb (_strong_side, sp_sq) & attacks_bb<BSHP> (sb_sq, pos.pieces ())) != 0)
+        Bitboard front_squares = front_sqrs_bb (strong_color, sp_sq);
+        if (   (front_squares & PieceAttacks[BSHP][sb_sq]) != 0
+            && (front_squares & attacks_bb<BSHP> (sb_sq, pos.pieces ())) != 0)
         {
-            return ScaleFactor(dist (wk_sq, sp_sq));
+            return Scale(dist (wk_sq, sp_sq));
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
-    // --------------------------------------------------------------
     // Generic Scaling functions
-    // --------------------------------------------------------------
 
     // KB and one or more pawns vs K and zero or more pawns.
     // It checks for draws with rook pawns and a bishop of the wrong color.
-    // If such a draw is detected, SCALE_FACTOR_DRAW is returned.
-    // If not, the return value is SCALE_FACTOR_NONE, i.e. no scaling will be used.
-    template<>
-    ScaleFactor Endgame<KBPsKs>::operator() (const Position &pos) const
+    // If such a draw is detected, SCALE_DRAW is returned.
+    // If not, the return value is SCALE_NONE, i.e. no scaling will be used.
+    template<> Scale Endgame<KBPsKs>::operator() (const Position &pos) const
     {
-        assert(pos.non_pawn_material (_strong_side) == VALUE_MG_BSHP);
-        assert(pos.count<BSHP> (_strong_side) == 1);
-        assert(pos.count<PAWN> (_strong_side) != 0);
+        assert(pos.si->non_pawn_matl[strong_color] == VALUE_MG_BSHP);
+        assert(pos.count<BSHP> (strong_color) == 1);
+        assert(pos.count<PAWN> (strong_color) != 0);
         // No assertions about the material of weak side, because we want draws to
         // be detected even when the weak side has some materials or pawns.
 
-        auto spawns = pos.pieces (_strong_side, PAWN);
-        auto sp_sq = scan_frntmost_sq (_strong_side, spawns);
+        auto spawns = pos.pieces (strong_color, PAWN);
+        auto sp_sq = scan_frntmost_sq (strong_color, spawns);
         auto sp_f  = _file (sp_sq);
 
         // All pawns on same A or H file? (rook file)
         // Then potential draw
-        if (   (sp_f == F_A || sp_f == F_H)
+        if (   (   sp_f == F_A
+                || sp_f == F_H)
             && (spawns & ~file_bb (sp_f)) == 0)
         {
-            auto sb_sq = pos.square<BSHP> (_strong_side);
-            auto promote_sq = rel_sq (_strong_side, sp_f|R_8);
-            auto wk_sq = pos.square<KING> (~_strong_side);
+            auto sb_sq = pos.square ( strong_color, BSHP);
+            auto promote_sq = rel_sq (strong_color, sp_f|R_8);
+            auto wk_sq = pos.square (~strong_color, KING);
 
             // The bishop has the wrong color.
             if (opposite_colors (promote_sq, sb_sq))
@@ -905,99 +817,99 @@ namespace EndGame {
                 // If the defending king defends the queening square.
                 if (dist (promote_sq, wk_sq) <= 1)
                 {
-                    return SCALE_FACTOR_DRAW;
+                    return SCALE_DRAW;
                 }
             }
         }
 
         // All pawns on same B or G file?
         // Then potential draw
-        if (   (sp_f == F_B || sp_f == F_G)
+        if (   (   sp_f == F_B
+                || sp_f == F_G)
             && (pos.pieces (PAWN) & ~file_bb (sp_f)) == 0
-            && pos.non_pawn_material (~_strong_side) == VALUE_ZERO)
+            && pos.si->non_pawn_matl[~strong_color] == VALUE_ZERO)
         {
-            auto sk_sq = pos.square<KING> ( _strong_side);
-            auto wk_sq = pos.square<KING> (~_strong_side);
-            auto sb_sq = pos.square<BSHP> ( _strong_side);
+            auto sk_sq = pos.square ( strong_color, KING);
+            auto wk_sq = pos.square (~strong_color, KING);
+            auto sb_sq = pos.square ( strong_color, BSHP);
 
-            if (pos.count<PAWN> (~_strong_side) != 0)
+            if (pos.count<PAWN> (~strong_color) != 0)
             {
                 // Get weak side pawn that is closest to home rank
-                auto wp_sq = scan_backmost_sq (~_strong_side, pos.pieces (~_strong_side, PAWN));
+                auto wp_sq = scan_backmost_sq (~strong_color, pos.pieces (~strong_color, PAWN));
 
                 //// It's a draw if weak pawn is on rank 7, bishop can't attack the pawn, and
                 //// weak king can stop opposing opponent's king from penetrating.
-                //if (   rel_rank (_strong_side, wp_sq) == R_7
+                //if (   rel_rank (strong_color, wp_sq) == R_7
                 //    && opposite_colors (sb_sq, wp_sq)
                 //    && dist (wp_sq, wk_sq) <= dist (wp_sq, sk_sq))
                 //{
-                //    return SCALE_FACTOR_DRAW;
+                //    return SCALE_DRAW;
                 //}
 
                 // There's potential for a draw if weak pawn is blocked on the 7th rank
                 // and the bishop cannot attack it or they only have one pawn left
-                if (   rel_rank (_strong_side, wp_sq) == R_7
-                    && (pos.pieces (_strong_side, PAWN) & (wp_sq + pawn_push (~_strong_side)))
-                    && (opposite_colors (sb_sq, wp_sq) || pos.count<PAWN> (_strong_side) == 1))
+                if (   rel_rank (strong_color, wp_sq) == R_7
+                    && (pos.pieces (strong_color, PAWN) & (wp_sq + pawn_push (~strong_color)))
+                    && (   opposite_colors (sb_sq, wp_sq)
+                        || pos.count<PAWN> (strong_color) == 1))
                 {
                     // It's a draw if the weak king is on its back two ranks, within 2
-                    // squares of the blocking pawn and the strong king is not
-                    // closer. (I think this rule only fails in practically
-                    // unreachable positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w
-                    // and positions where qsearch will immediately correct the
-                    // problem such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w)
-                    if (   rel_rank (_strong_side, wk_sq) >= R_7
+                    // squares of the blocking pawn and the strong king is not closer.
+                    // This rule only fails in practically unreachable
+                    // positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w and
+                    // where qsearch will immediately correct the problem
+                    // positions such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w
+                    if (   rel_rank (strong_color, wk_sq) >= R_7
                         && dist (wk_sq, wp_sq) <= 2
                         && dist (wk_sq, wp_sq) <= dist (sk_sq, wp_sq))
                     {
-                        return SCALE_FACTOR_DRAW;
+                        return SCALE_DRAW;
                     }
                 }
             }
 
-            auto promote_sq = rel_sq (_strong_side, sp_f|R_8);
+            auto promote_sq = rel_sq (strong_color, sp_f|R_8);
             // If the defending king defends the queening square.
             // and strong pawn block bishop and king can't be driven away
             if (   dist (promote_sq, wk_sq) <= 1
                 && dist (sp_sq, sk_sq) > 1
-                && rel_rank (_strong_side, sp_sq) == R_6
-                && rel_rank (_strong_side, sb_sq) == R_7
+                && rel_rank (strong_color, sp_sq) == R_6
+                && rel_rank (strong_color, sb_sq) == R_7
                 && (file_bb (sb_sq) & (FA_bb|FH_bb)) != 0
-                && (PawnAttacks[~_strong_side][sb_sq] & spawns) != 0)
+                && (PawnAttacks[~strong_color][sb_sq] & spawns) != 0)
             {
-                return SCALE_FACTOR_DRAW;
+                return SCALE_DRAW;
             }
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
 
     // KQ vs KR and one or more pawns.
     // It tests for fortress draws with a rook on the 3rd rank defended by a pawn.
-    template<>
-    ScaleFactor Endgame<KQKRPs>::operator() (const Position &pos) const
+    template<> Scale Endgame<KQKRPs>::operator() (const Position &pos) const
     {
-        assert(verify_material (pos, _strong_side, VALUE_MG_QUEN, 0));
-        assert(pos.count<ROOK> (~_strong_side) == 1);
-        assert(pos.count<PAWN> (~_strong_side) != 0);
+        assert(verify_material (pos, strong_color, VALUE_MG_QUEN, 0));
+        assert(pos.count<ROOK> (~strong_color) == 1);
+        assert(pos.count<PAWN> (~strong_color) != 0);
 
-        auto sk_sq = pos.square<KING> ( _strong_side);
-        auto wk_sq = pos.square<KING> (~_strong_side);
-        auto wr_sq = pos.square<ROOK> (~_strong_side);
+        auto sk_sq = pos.square ( strong_color, KING);
+        auto wk_sq = pos.square (~strong_color, KING);
+        auto wr_sq = pos.square (~strong_color, ROOK);
 
-        if (   rel_rank (~_strong_side, wk_sq) <= R_2
-            && rel_rank (~_strong_side, sk_sq) >= R_4
-            && rel_rank (~_strong_side, wr_sq) == R_3
-            && (  pos.pieces (~_strong_side, PAWN)
+        if (   rel_rank (~strong_color, wk_sq) <= R_2
+            && rel_rank (~strong_color, sk_sq) >= R_4
+            && rel_rank (~strong_color, wr_sq) == R_3
+            && (  pos.pieces (~strong_color, PAWN)
                 & PieceAttacks[KING][wk_sq]
-                & PawnAttacks[_strong_side][wr_sq]) != 0)
+                & PawnAttacks[strong_color][wr_sq]) != 0)
         {
-            return SCALE_FACTOR_DRAW;
+            return SCALE_DRAW;
         }
 
-        return SCALE_FACTOR_NONE;
+        return SCALE_NONE;
     }
-
 
     void initialize ()
     {
@@ -1016,5 +928,4 @@ namespace EndGame {
             EndGames = nullptr;
         }
     }
-
 }

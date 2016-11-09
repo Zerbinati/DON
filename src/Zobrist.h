@@ -5,37 +5,38 @@
 
 class Position;
 
-extern Key ExclusionKey;
+namespace Zobrists {
 
-// Zobrist class
-class Zobrist
-{
-public:
-    // 2*6*64 + 2*2 + 8 + 1
-    //=   768 +   4 + 8 + 1
-    //=                 781
-    Key piece_square[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
-    Key castle_right[CLR_NO][CS_NO];        // [color][castle-side]
-    Key en_passant  [F_NO];                 // [enpassant file]
-    Key act_side;                           // color
+    class Zobrist
+    {
+    public:
 
-    Zobrist () = default;
-    Zobrist (const Zobrist&) = delete;
-    Zobrist& operator= (const Zobrist&) = delete;
+        // 2*6*64 + 2*2 + 8 + 1
+        //=   768 +   4 + 8 + 1
+        //=                 781
+        Key piece_square_keys[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
+        Key castle_right_keys[CLR_NO][CS_NO];        // [color][castle-side]
+        Key en_passant_keys  [F_NO];                 // [enpassant file]
+        Key color_key;                              // color
 
-    // Hash key of the material situation.
-    Key compute_matl_key (const Position &pos) const;
-    // Hash key of the pawn structure.
-    Key compute_pawn_key (const Position &pos) const;
-    // Hash key of the complete position.
-    Key compute_posi_key (const Position &pos) const;
-    // Hash key of the FEN
-    Key compute_fen_key (const std::string &fen, bool c960 = false) const;
-};
+        Zobrist () = default;
+        Zobrist (const Zobrist&) = delete;
+        Zobrist& operator= (const Zobrist&) = delete;
 
-// Random Zobrist filled with randoms, used to compute position key
-extern Zobrist Zob;
-// Random Zobrist from Polyglot, used to compute polyglot book hash key
-extern Zobrist PolyZob;
+        // Hash key of the material situation.
+        Key compute_matl_key (const Position &pos) const;
+        // Hash key of the pawn structure.
+        Key compute_pawn_key (const Position &pos) const;
+        // Hash key of the complete position.
+        Key compute_posi_key (const Position &pos) const;
+        //// Hash key of the FEN
+        //Key compute_fen_key (const std::string &fen) const;
+    };
+
+    extern void initialize ();
+}
+
+extern Zobrists::Zobrist Zob;
+extern const Zobrists::Zobrist PolyZob;
 
 #endif // _ZOBRIST_H_INC_

@@ -20,11 +20,9 @@
 #       define NOMINMAX // Disable macros min() and max()
 #   endif
 #   if !defined(WIN32_LEAN_AND_MEAN)
-#   define WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN
 #   endif
 #   include <windows.h>
-#   undef WIN32_LEAN_AND_MEAN
-#   undef NOMINMAX
 
 // Mutex and ConditionVariable struct are wrappers of the low level locking
 // machinery and are modeled after the corresponding C++11 classes.

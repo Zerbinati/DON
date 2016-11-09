@@ -18,10 +18,10 @@ namespace Polyglot {
     {
         static const Entry NullEntry;
 
-        u64 key     = 0;
-        u16 move    = 0;
-        u16 weight  = 0;
-        u32 learn   = 0;
+        u64 key   ;
+        u16 move  ;
+        u16 weight;
+        u32 learn ;
 
         Entry () = default;
         Entry (u64 k, u16 m, u16 w, u32 l)
@@ -109,7 +109,6 @@ namespace Polyglot {
         : public std::fstream
     {
     private:
-
         std::string _book_fn = "";
         openmode    _mode    = openmode(0);
         size_t      _size    = 0U;
@@ -130,9 +129,9 @@ namespace Polyglot {
         {
             if (_size != 0U) return _size;
 
-            size_t cur_pos = tellg ();
+            auto cur_pos = tellg ();
             seekg (0L, ios_base::end);
-            _size = tellg ();
+            _size = size_t(tellg ());
             seekg (cur_pos, ios_base::beg);
             clear ();
             return _size;

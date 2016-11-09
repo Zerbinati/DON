@@ -30,7 +30,7 @@ inline std::string time_to_string (const std::chrono::system_clock::time_point &
 
 #   else
 
-    return "";
+    return Empty;
 
 #   endif
 
@@ -49,14 +49,12 @@ namespace Debugger {
     // Singleton I/O Logger class
     class Logger
     {
-
     private:
         std::ofstream _ofs;
         std::tie_buf  _inb; // Input
         std::tie_buf  _otb; // Output
 
     protected:
-
         // Constructor should be protected !!!
         Logger ()
             : _inb (std::cin.rdbuf (), _ofs.rdbuf ())
@@ -67,7 +65,7 @@ namespace Debugger {
         
         ~Logger ()
         {
-            log ("");
+            log (Empty);
         }
 
     public:
