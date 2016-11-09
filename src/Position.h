@@ -42,7 +42,7 @@ public:
 
     // ---Not copied when making a move---
     Key         posi_key;       // Hash key of position.
-    PieceType   capture_type;   // Piece type captured.
+    PieceType   capture;   // Piece type captured.
     Bitboard    checkers;       // Checkers.
 
     // Check info

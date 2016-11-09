@@ -812,16 +812,17 @@ namespace Searcher {
         // The quiescence search function,
         // which is called by the main depth limited search function
         // when the remaining depth is less than equal to 0.
-        template<bool PVNode, bool InCheck>
+        template<bool PVNode>
         Value quien_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth)
         {
-            assert(InCheck == (pos.si->checkers != 0));
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(depth <= 0);
             assert(ss->ply > 1
                 && ss->ply == (ss-1)->ply + 1
                 && ss->ply <= MaxPlies);
+
+            const bool in_check = pos.si->checkers != 0;
 
             Value pv_alfa;
 
@@ -837,7 +838,7 @@ namespace Searcher {
                 || ss->ply >= MaxPlies)
             {
                 return ss->ply >= MaxPlies
-                    && !InCheck ?
+                    && !in_check ?
                         evaluate (pos) :
                         DrawValue[pos.active];
             }
@@ -870,7 +871,7 @@ namespace Searcher {
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
             // Note that in quien_search use only 2 types of depth: (0) or (-1).
-            i16 qs_depth = InCheck || depth >= 0 ? 0 : -1;
+            i16 qs_depth = in_check || depth >= 0 ? 0 : -1;
 
             if (   !PVNode
                 && tt_ext
@@ -885,7 +886,7 @@ namespace Searcher {
                 , futility_base;
 
             // Evaluate the position statically
-            if (InCheck)
+            if (in_check)
             {
                 ss->static_eval = VALUE_NONE;
                 best_value =
@@ -968,7 +969,7 @@ namespace Searcher {
                 bool gives_check = pos.gives_check (move);
 
                 // Futility pruning
-                if (   !InCheck
+                if (   !in_check
                     && futility_base <= alfa
                     && futility_base > -VALUE_KNOWN_WIN
                     && !gives_check
@@ -999,7 +1000,7 @@ namespace Searcher {
                 }
 
                 // Don't search moves with negative SEE values
-                if (   (   !InCheck
+                if (   (   !in_check
                         // Evasion Prunable: Detect non-capture evasions that are candidate to be pruned
                         || (   best_value > -VALUE_MATE_IN_MAX_PLY
                             && !pos.capture (move)))
@@ -1021,7 +1022,7 @@ namespace Searcher {
                 pos.do_move (move, si, gives_check);
 
                 if (   ptype (pos[dst_sq (move)]) == PAWN
-                    || pos.si->capture_type == PAWN)
+                    || pos.si->capture == PAWN)
                 {
                     prefetch (th->pawn_table[pos.si->pawn_key]);
                 }
@@ -1030,10 +1031,7 @@ namespace Searcher {
                     prefetch (th->matl_table[pos.si->matl_key]);
                 }
 
-                auto value =
-                    gives_check ?
-                        -quien_search<PVNode, true > (pos, ss+1, -beta, -alfa, depth - 1) :
-                        -quien_search<PVNode, false> (pos, ss+1, -beta, -alfa, depth - 1);
+                auto value = -quien_search<PVNode> (pos, ss+1, -beta, -alfa, depth - 1);
 
                 // Undo the move
                 pos.undo_move (move);
@@ -1080,7 +1078,7 @@ namespace Searcher {
 
             // All legal moves have been searched.
             // A special case: If in check and no legal moves were found, it is checkmate.
-            if (   InCheck
+            if (   in_check
                 && best_value == -VALUE_INFINITE)
             {
                 // Plies to mate from the root
@@ -1101,13 +1099,12 @@ namespace Searcher {
             return best_value;
         }
         // The main depth limited search function.
-        template<bool PVNode, bool CutNode, bool InCheck>
-        Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth)
+        template<bool PVNode>
+        Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node)
         {
             const bool root_node = PVNode && ss->ply == 1;
 
-            assert(!(PVNode && CutNode));
-            assert(InCheck == (pos.si->checkers != 0));
+            assert(!(PVNode && cut_node));
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(depth > 0
@@ -1115,6 +1112,8 @@ namespace Searcher {
             assert(ss->ply >= 1
                 && ss->ply == (ss-1)->ply + 1
                 && ss->ply <= MaxPlies);
+
+            const bool in_check = pos.si->checkers != 0;
 
             ss->history_val = VALUE_ZERO;
 
@@ -1144,7 +1143,7 @@ namespace Searcher {
                     || ss->ply >= MaxPlies)
                 {
                     return ss->ply >= MaxPlies
-                        && !InCheck ?
+                        && !in_check ?
                             evaluate (pos) :
                             DrawValue[pos.active];
                 }
@@ -1217,7 +1216,7 @@ namespace Searcher {
                     }
                     // Penalty for a quiet TT move in previous ply when it gets refuted
                     if (   (ss-1)->move_count == 1
-                        && pos.si->capture_type == NONE)
+                        && pos.si->capture == NONE)
                     {
                         update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -Value((depth+2)*(depth+2)-3));
                     }
@@ -1266,7 +1265,7 @@ namespace Searcher {
             StateInfo si;
 
             // Step 5. Evaluate the position statically
-            if (InCheck)
+            if (in_check)
             {
                 ss->static_eval = VALUE_NONE;
             }
@@ -1314,11 +1313,11 @@ namespace Searcher {
                     {
                         if (depth <= 1)
                         {
-                            return quien_search<false, false> (pos, ss, alfa, beta, 0);
+                            return quien_search<false> (pos, ss, alfa, beta, 0);
                         }
                         auto alfa_margin = alfa - RazorMargins[depth];
                         assert(alfa_margin >= -VALUE_INFINITE);
-                        auto value = quien_search<false, false> (pos, ss, alfa_margin, alfa_margin+1, 0);
+                        auto value = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1, 0);
                         if (value <= alfa_margin)
                         {
                             return value;
@@ -1365,8 +1364,8 @@ namespace Searcher {
                         (ss+1)->skip_pruning = true;
                         auto null_value =
                             reduced_depth <= 0 ?
-                                -quien_search<false, false> (pos, ss+1, -beta, -(beta-1), 0) :
-                                -depth_search<false, !CutNode, false> (pos, ss+1, -beta, -(beta-1), reduced_depth);
+                                -quien_search<false> (pos, ss+1, -beta, -(beta-1), 0) :
+                                -depth_search<false> (pos, ss+1, -beta, -(beta-1), reduced_depth, !cut_node);
                         (ss+1)->skip_pruning = false;
                         pos.undo_null_move ();
 
@@ -1385,8 +1384,8 @@ namespace Searcher {
                             ss->skip_pruning = true;
                             auto value =
                                 reduced_depth <= 0 ?
-                                    quien_search<false, false> (pos, ss, beta-1, beta, 0) :
-                                    depth_search<false, false, false> (pos, ss, beta-1, beta, reduced_depth);
+                                    quien_search<false> (pos, ss, beta-1, beta, 0) :
+                                    depth_search<false> (pos, ss, beta-1, beta, reduced_depth, false);
                             ss->skip_pruning = false;
 
                             if (value >= beta)
@@ -1425,26 +1424,22 @@ namespace Searcher {
                             ss->current_move = move;
                             ss->piece_cm_history = &th->piece_cm_history(pos[org_sq (move)], dst_sq (move));
 
-                            bool gives_check = pos.gives_check (move);
                             assert(pos.capture_or_promotion (move));
 
                             // Speculative prefetch as early as possible
                             prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
-                            pos.do_move (move, si, gives_check);
+                            pos.do_move (move, si, pos.gives_check (move));
 
                             if (   ptype (pos[dst_sq (move)]) == PAWN
-                                || pos.si->capture_type == PAWN)
+                                || pos.si->capture == PAWN)
                             {
                                 prefetch (th->pawn_table[pos.si->pawn_key]);
                             }
                             // NOTE:: All moves are capture_or_promotion
                             prefetch (th->matl_table[pos.si->matl_key]);
 
-                            auto value =
-                                gives_check ?
-                                    -depth_search<false, !CutNode, true > (pos, ss+1, -beta_margin, -beta_margin+1, reduced_depth) :
-                                    -depth_search<false, !CutNode, false> (pos, ss+1, -beta_margin, -beta_margin+1, reduced_depth);
+                            auto value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, reduced_depth, !cut_node);
 
                             pos.undo_move (move);
 
@@ -1462,7 +1457,7 @@ namespace Searcher {
                             || ss->static_eval + 256 >= beta))
                     {
                         ss->skip_pruning = true;
-                        depth_search<PVNode, CutNode, false> (pos, ss, alfa, beta, (3*depth)/4 - 2);
+                        depth_search<PVNode> (pos, ss, alfa, beta, (3*depth)/4 - 2, cut_node);
                         ss->skip_pruning = false;
 
                         tte = TT.probe (posi_key, tt_hit);
@@ -1589,7 +1584,7 @@ namespace Searcher {
                     auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
                     ss->exclude_move = move;
                     ss->skip_pruning = true;
-                    value = depth_search<false, CutNode, InCheck> (pos, ss, beta_margin-1, beta_margin, depth/2);
+                    value = depth_search<false> (pos, ss, beta_margin-1, beta_margin, depth/2, cut_node);
                     ss->skip_pruning = false;
                     ss->exclude_move = MOVE_NONE;
 
@@ -1627,7 +1622,7 @@ namespace Searcher {
                                     || (ss-4)->piece_cm_history == nullptr || (*(ss-4)->piece_cm_history)(mpc, dst_sq (move)) < VALUE_ZERO))
                                 // Futility pruning: parent node
                             || (   lmr_depth < 7
-                                && !InCheck
+                                && !in_check
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
                                 // Negative SEE based pruning
                             || (   lmr_depth < 8
@@ -1657,7 +1652,7 @@ namespace Searcher {
                 pos.do_move (move, si, gives_check);
 
                 if (   ptype (pos[dst_sq (move)]) == PAWN
-                    || pos.si->capture_type == PAWN)
+                    || pos.si->capture == PAWN)
                 {
                     prefetch (th->pawn_table[pos.si->pawn_key]);
                 }
@@ -1684,7 +1679,7 @@ namespace Searcher {
                     {
                         assert(mtype (move) != PROMOTE);
                         // Increase reduction for cut nodes
-                        if (CutNode)
+                        if (cut_node)
                         {
                             reduce_depth += 2;
                         }
@@ -1733,10 +1728,7 @@ namespace Searcher {
                         reduce_depth = new_depth - 1;
                     }
 
-                    value =
-                        gives_check ?
-                            -depth_search<false, true, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth) :
-                            -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth);
+                    value = -depth_search<false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth, true);
 
                     full_depth_search = alfa < value
                                      && reduce_depth > 0;
@@ -1752,12 +1744,8 @@ namespace Searcher {
                 {
                     value =
                         new_depth <= 0 ?
-                            gives_check ?
-                                -quien_search<false, true > (pos, ss+1, -(alfa+1), -alfa, 0) :
-                                -quien_search<false, false> (pos, ss+1, -(alfa+1), -alfa, 0) :
-                            gives_check ?
-                                -depth_search<false, !CutNode, true > (pos, ss+1, -(alfa+1), -alfa, new_depth) :
-                                -depth_search<false, !CutNode, false> (pos, ss+1, -(alfa+1), -alfa, new_depth);
+                            -quien_search<false> (pos, ss+1, -(alfa+1), -alfa, 0) :
+                            -depth_search<false> (pos, ss+1, -(alfa+1), -alfa, new_depth, !cut_node);
                 }
 
                 // Do a full PV search on:
@@ -1774,12 +1762,8 @@ namespace Searcher {
 
                     value =
                         new_depth <= 0 ?
-                            gives_check ?
-                                -quien_search<true, true > (pos, ss+1, -beta, -alfa, 0) :
-                                -quien_search<true, false> (pos, ss+1, -beta, -alfa, 0) :
-                            gives_check ?
-                                -depth_search<true, false, true > (pos, ss+1, -beta, -alfa, new_depth) :
-                                -depth_search<true, false, false> (pos, ss+1, -beta, -alfa, new_depth);
+                            -quien_search<true> (pos, ss+1, -beta, -alfa, 0) :
+                            -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false);
                 }
 
                 // Step 17. Undo move
@@ -1879,7 +1863,7 @@ namespace Searcher {
                 }
             }
 
-            assert(!InCheck
+            assert(!in_check
                 || move_count != 0
                 || exclude_move != MOVE_NONE
                 || MoveList<LEGAL> (pos).size () == 0);
@@ -1894,7 +1878,7 @@ namespace Searcher {
                 best_value =
                     exclude_move != MOVE_NONE ?
                         alfa :
-                        InCheck ?
+                        in_check ?
                             mated_in (ss->ply) :
                             DrawValue[pos.active];
             }
@@ -1908,7 +1892,7 @@ namespace Searcher {
                 }
                 // Penalty for a quiet best move in previous ply when it gets refuted
                 if (   (ss-1)->move_count == 1
-                    && pos.si->capture_type == NONE)
+                    && pos.si->capture == NONE)
                 {
                     update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -Value((depth+2)*(depth+2)-3));
                 }
@@ -1917,7 +1901,7 @@ namespace Searcher {
             // Bonus for prior countermove that caused the fail low
             if (   depth > 2
                 && (ss-1)->piece_cm_history != nullptr
-                && pos.si->capture_type == NONE)
+                && pos.si->capture == NONE)
             {
                 update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), +Value((depth+1)*(depth+1)-3));
             }
@@ -2145,10 +2129,7 @@ namespace Threading {
                 // Start with a small aspiration window and, in case of fail high/low,
                 // research with bigger window until not failing high/low anymore.
                 do {
-                    best_value =
-                        root_pos.si->checkers != 0 ?
-                            depth_search<true, false, true > (root_pos, stacks+5, alfa, beta, running_depth) :
-                            depth_search<true, false, false> (root_pos, stacks+5, alfa, beta, running_depth);
+                    best_value = depth_search<true> (root_pos, stacks+5, alfa, beta, running_depth, false);
 
                     // Bring the best move to the front. It is critical that sorting is
                     // done with a stable algorithm because all the values but the first

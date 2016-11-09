@@ -794,7 +794,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->non_pawn_matl[WHITE] = compute_npm<WHITE> (*this);
     si->non_pawn_matl[BLACK] = compute_npm<BLACK> (*this);
     si->clock_ply = u08(clk_ply);
-    si->capture_type = NONE;
+    si->capture = NONE;
     si->checkers = attackers_to (square (active, KING), ~active);
     si->set_check_info (*this);
     thread = th;
@@ -1032,8 +1032,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         }
     }
     // Update state information
-    si->posi_key     = key;
-    si->capture_type = cpt;
+    si->posi_key = key;
+    si->capture  = cpt;
     ++si->null_ply;
     // Set check info used for fast check detection
     si->set_check_info (*this);
@@ -1055,7 +1055,7 @@ void Position::undo_move (Move m)
 
     assert(empty (org)
         || mtype (m) == CASTLE);
-    assert(si->capture_type != KING);
+    assert(si->capture != KING);
 
     auto cap = dst;
 
@@ -1070,7 +1070,7 @@ void Position::undo_move (Move m)
 
     case CASTLE:
     {
-        assert(si->capture_type == NONE);
+        assert(si->capture == NONE);
 
         Square rook_org, rook_dst;
         do_castling<false> (org, dst, rook_org, rook_dst);
@@ -1084,7 +1084,7 @@ void Position::undo_move (Move m)
             && rel_rank (active, org) == R_5
             && rel_rank (active, dst) == R_6
             && si->ptr->en_passant_sq == dst
-            && si->capture_type == PAWN
+            && si->capture == PAWN
             && empty (cap));
 
         move_piece (dst, org);
@@ -1104,10 +1104,10 @@ void Position::undo_move (Move m)
         break;
     }
     // Restore the captured piece
-    if (si->capture_type != NONE)
+    if (si->capture != NONE)
     {
         assert(empty (cap));
-        place_piece (cap, ~active, si->capture_type);
+        place_piece (cap, ~active, si->capture);
     }
 
     // Point state pointer back to the previous state
@@ -1354,7 +1354,6 @@ bool Position::ok (u08 *step) const
     //};
 
     u08 s = 0;
-
     {
         if (   (   active != WHITE
                 && active != BLACK)

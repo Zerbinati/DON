@@ -257,7 +257,7 @@
       <Field Name="en_passant_sq" />
       <Field Name="posi_key" />
       <Field Name="last_move" />
-      <Field Name="capture_type" />
+      <Field Name="capture" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="non_pawn_matl" />
