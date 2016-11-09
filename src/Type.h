@@ -515,12 +515,23 @@ inline Delta pawn_push (Color c)
     return c == WHITE ? DEL_N : DEL_S;
 }
 
+inline Color castle_color (CastleRight cr)
+{
+    return
+        cr == CR_WKING || cr == CR_WQUEN ? WHITE :
+        cr == CR_BKING || cr == CR_BQUEN ? BLACK : CLR_NO;
+}
+inline CastleSide castle_side (CastleRight cr)
+{
+    return
+        cr == CR_WKING || cr == CR_BKING ? CS_KING :
+        cr == CR_WQUEN || cr == CR_BQUEN ? CS_QUEN : CS_NO;
+}
 inline CastleRight castle_right (Color c)
 {
     //return CastleRight(CR_WHITE << ((c << 1)));
     return
-        c == WHITE ?
-            CR_WHITE : CR_BLACK;
+        c == WHITE ? CR_WHITE : CR_BLACK;
 }
 inline CastleRight castle_right (Color c, CastleSide cs)
 {

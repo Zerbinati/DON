@@ -571,13 +571,24 @@ void Position::clear ()
     nodes = 0;
 }
 
-// Set the castling for the particular color & rook
-void Position::set_castle (Color c, Square rook_org)
+// Set the castling right
+void Position::set_castle (CastleRight cr)
 {
+    auto c = castle_color (cr);
+    assert(c == WHITE || c == BLACK);
+    auto cs = castle_side (cr);
+    assert(cs == CS_KING || cs == CS_QUEN);
+    bool king_side = cs == CS_KING;
+
     auto king_org = square (c, KING);
-    assert(king_org != rook_org);
-    bool king_side = rook_org > king_org;
-    auto cr = castle_right (c, king_side ? CS_KING : CS_QUEN);
+    Square rook_org;
+    for (rook_org = king_side ? rel_sq (c, SQ_H1) : rel_sq (c, SQ_A1);
+         (king_side ? rook_org >= rel_sq (c, SQ_A1) : rook_org <= rel_sq (c, SQ_H1))
+      && board[rook_org] != (c|ROOK);
+         king_side ? --rook_org : ++rook_org)
+    {}
+    assert((pieces (c, ROOK) & rook_org) != 0);
+
     auto king_dst = rel_sq (c, king_side ? SQ_G1 : SQ_C1);
     auto rook_dst = rel_sq (c, king_side ? SQ_F1 : SQ_D1);
 
@@ -609,12 +620,6 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
 {
     assert(ep_sq != SQ_NO);
     assert(rel_rank (c, ep_sq) == R_6);
-
-    if (   move_done 
-        && (pieces (~c, PAWN) & (ep_sq - pawn_push (c))) == 0)
-    {
-        return false;
-    }
     Bitboard mocc = (pieces () ^ (move_done ?
                                   ep_sq - pawn_push (c) :
                                   ep_sq + pawn_push (c))) | ep_sq;
@@ -713,39 +718,28 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     while (   iss >> token
            && !isspace (token))
     {
-        Square r_sq;
-
         Color c = isupper (token) ? WHITE : BLACK;
         token = char(tolower (token));
         if (token == 'k')
         {
-            for (r_sq  = rel_sq (c, SQ_H1);
-                 r_sq >= rel_sq (c, SQ_A1)
-              && board[r_sq] != (c|ROOK);
-                 --r_sq) {}
+            set_castle (castle_right (c, CS_KING));
         }
         else
         if (token == 'q')
         {
-            for (r_sq  = rel_sq (c, SQ_A1);
-                 r_sq <= rel_sq (c, SQ_H1)
-              && board[r_sq] != (c|ROOK);
-                 ++r_sq) {}
+            set_castle (castle_right (c, CS_QUEN));
         }
         else
         // Chess960
         if ('a' <= token && token <= 'h')
         {
-            r_sq = to_file (token) | rel_rank (c, R_1);
+            set_castle (castle_right (c, (to_file (token) | rel_rank (c, R_1)) > square (c, KING) ? CS_KING : CS_QUEN));
         }
         else
         {
             assert(token == '-');
             continue;
         }
-
-        assert((pieces (c, ROOK) & r_sq) != 0);
-        set_castle (c, r_sq);
     }
     
     // 4. En-passant square. Ignore if no pawn capture is possible
@@ -1343,7 +1337,7 @@ Position::operator string ()
 // Performs some consistency checks for the position, helpful for debugging.
 bool Position::ok (u08 *step) const
 {
-    static const bool Fast = true;
+    static const bool Fast = false;
     //enum Step : u08
     //{
     //    BASIC,

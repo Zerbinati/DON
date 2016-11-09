@@ -90,7 +90,7 @@ private:
     void remove_piece (Square s);
     void move_piece (Square s1, Square s2);
 
-    void set_castle (Color c, Square rook_org);
+    void set_castle (CastleRight cr);
 
     bool can_en_passant (Color c, Square ep_sq, bool move_done = true) const;
 
