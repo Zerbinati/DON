@@ -134,35 +134,24 @@ namespace BitBoard {
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  Square_bb[s]; }
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
     inline Bitboard  operator^  (Bitboard  bb, Square s) { return bb ^  Square_bb[s]; }
-    //inline Bitboard  operator+  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
-    //inline Bitboard  operator-  (Bitboard  bb, Square s) { return bb &~ Square_bb[s]; }
+
     //inline Bitboard& operator&= (Bitboard &bb, Square s) { return bb &= Square_bb[s]; }
     inline Bitboard& operator|= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
     inline Bitboard& operator^= (Bitboard &bb, Square s) { return bb ^= Square_bb[s]; }
-    //inline Bitboard& operator+= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
-    //inline Bitboard& operator-= (Bitboard &bb, Square s) { return bb &=~Square_bb[s]; }
     /*
     inline Bitboard  operator&  (Bitboard  bb, File f) { return bb &  File_bb[f]; }
     inline Bitboard  operator|  (Bitboard  bb, File f) { return bb |  File_bb[f]; }
     inline Bitboard  operator^  (Bitboard  bb, File f) { return bb ^  File_bb[f]; }
-    inline Bitboard  operator+  (Bitboard  bb, File f) { return bb |  File_bb[f]; }
-    inline Bitboard  operator-  (Bitboard  bb, File f) { return bb & ~File_bb[f]; }
     inline Bitboard& operator&= (Bitboard &bb, File f) { return bb &= File_bb[f]; }
     inline Bitboard& operator|= (Bitboard &bb, File f) { return bb |= File_bb[f]; }
     inline Bitboard& operator^= (Bitboard &bb, File f) { return bb ^= File_bb[f]; }
-    inline Bitboard& operator+= (Bitboard &bb, File f) { return bb |= File_bb[f]; }
-    inline Bitboard& operator-= (Bitboard &bb, File f) { return bb &=~File_bb[f]; }
 
     inline Bitboard  operator&  (Bitboard  bb, Rank r) { return bb &  Rank_bb[r]; }
     inline Bitboard  operator|  (Bitboard  bb, Rank r) { return bb |  Rank_bb[r]; }
     inline Bitboard  operator^  (Bitboard  bb, Rank r) { return bb ^  Rank_bb[r]; }
-    inline Bitboard  operator+  (Bitboard  bb, Rank r) { return bb |  Rank_bb[r]; }
-    inline Bitboard  operator-  (Bitboard  bb, Rank r) { return bb & ~Rank_bb[r]; }
     inline Bitboard& operator&= (Bitboard &bb, Rank r) { return bb &= Rank_bb[r]; }
     inline Bitboard& operator|= (Bitboard &bb, Rank r) { return bb |= Rank_bb[r]; }
     inline Bitboard& operator^= (Bitboard &bb, Rank r) { return bb ^= Rank_bb[r]; }
-    inline Bitboard& operator+= (Bitboard &bb, Rank r) { return bb |= Rank_bb[r]; }
-    inline Bitboard& operator-= (Bitboard &bb, Rank r) { return bb &=~Rank_bb[r]; }
     */
 
     inline Bitboard square_bb (Square s) { return Square_bb[s]; }

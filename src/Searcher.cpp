@@ -1738,7 +1738,8 @@ namespace Searcher {
                             -depth_search<false, true, true > (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth) :
                             -depth_search<false, true, false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth);
 
-                    full_depth_search = alfa < value;
+                    full_depth_search = alfa < value
+                                     && reduce_depth > 0;
                 }
                 else
                 {

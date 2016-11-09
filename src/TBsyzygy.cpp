@@ -702,9 +702,9 @@ namespace TBSyzygy {
             return d->btree[sym].get<LR::Center> ();
         }
 
-        bool check_dtz_stm (WDLEntry*, i32, File) { return true; }
+        bool check_dtz_stm (WDLEntry *     , i32    , File  ) { return true; }
 
-        bool check_dtz_stm (DTZEntry* entry, i32 stm, File f)
+        bool check_dtz_stm (DTZEntry *entry, i32 stm, File f)
         {
             i32 flags = entry->has_pawns ?
                 entry->pawn_table.file[f].precomp->flags :
@@ -904,7 +904,7 @@ namespace TBSyzygy {
                 {
                     for (i32 j = i; j < size; ++j)
                     {
-                        squares[j] = Square (((squares[j] >> 3) | (squares[j] << 3)) & 63);
+                        squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 63);
                     }
                 }
                 break;
@@ -947,24 +947,37 @@ namespace TBSyzygy {
                 // (mapped to 0...61) for the third.
                 if (off_A1H8 (squares[0]))
                 {
-                    idx = (MapA1D1D4[squares[0]]  * 63 + (squares[1] - adjust1)) * 62 +  squares[2] - adjust2;
+                    idx = MapA1D1D4[squares[0]]  * 63 * 62
+                        + (squares[1] - adjust1) * 62
+                        +  squares[2] - adjust2;
                 }
                 // First piece is on a1-h8 diagonal, second below: map this occurence to
                 // 6 to differentiate from the above case, rank() maps a1-d4 diagonal
                 // to 0...3 and finally MapB1H1H7[] maps the b1-h1-h7 triangle to 0..27.
-                else if (off_A1H8 (squares[1]))
+                else
+                if (off_A1H8 (squares[1]))
                 {
-                    idx = (6 * 63 + _rank (squares[0]) * 28 + MapB1H1H7[squares[1]]) * 62 + squares[2] - adjust2;
+                    idx = 6 * 63 * 62
+                        + _rank (squares[0]) * 28 * 62
+                        + MapB1H1H7[squares[1]] * 62
+                        + squares[2] - adjust2;
                 }
                 // First two pieces are on a1-h8 diagonal, third below
-                else if (off_A1H8 (squares[2]))
+                else
+                if (off_A1H8 (squares[2]))
                 {
-                    idx =  6 * 63 * 62 + 4 * 28 * 62 +  _rank (squares[0]) * 7 * 28 + (_rank (squares[1]) - adjust1) * 28 +  MapB1H1H7[squares[2]];
+                    idx =  6 * 63 * 62 + 4 * 28 * 62
+                        +  _rank (squares[0]) * 7 * 28
+                        + (_rank (squares[1]) - adjust1) * 28
+                        +  MapB1H1H7[squares[2]];
                 }
                 // All 3 pieces on the diagonal a1-h8
                 else
                 {
-                    idx = 6 * 63 * 62 + 4 * 28 * 62 + 4 * 7 * 28 +  _rank (squares[0]) * 7 * 6 + (_rank (squares[1]) - adjust1) * 6 + (_rank (squares[2]) - adjust2);
+                    idx = 6 * 63 * 62 + 4 * 28 * 62 + 4 * 7 * 28
+                        +  _rank (squares[0]) * 7 * 6
+                        + (_rank (squares[1]) - adjust1) * 6
+                        + (_rank (squares[2]) - adjust2);
                 }
             }
             else
@@ -1035,17 +1048,17 @@ namespace TBSyzygy {
             }
             d->group_len[++n] = 0; // Zero-terminated
 
-                                  // The sequence in pieces[] defines the groups, but not the order in which
-                                  // they are encoded. If the pieces in a group g can be combined on the board
-                                  // in N(g) different ways, then the position encoding will be of the form:
-                                  //
-                                  //           g1 * N(g2) * N(g3) + g2 * N(g3) + g3
-                                  //
-                                  // This ensures unique encoding for the whole position. The order of the
-                                  // groups is a per-table parameter and could not follow the canonical leading
-                                  // pawns/pieces -> remainig pawns -> remaining pieces. In particular the
-                                  // first group is at order[0] position and the remaining pawns, when present,
-                                  // are at order[1] position.
+            // The sequence in pieces[] defines the groups, but not the order in which
+            // they are encoded. If the pieces in a group g can be combined on the board
+            // in N(g) different ways, then the position encoding will be of the form:
+            //
+            //           g1 * N(g2) * N(g3) + g2 * N(g3) + g3
+            //
+            // This ensures unique encoding for the whole position. The order of the
+            // groups is a per-table parameter and could not follow the canonical leading
+            // pawns/pieces -> remainig pawns -> remaining pieces. In particular the
+            // first group is at order[0] position and the remaining pawns, when present,
+            // are at order[1] position.
             bool pp = e.has_pawns && e.pawn_table.pawn_count[1]; // Pawns on both sides
             i32 next = pp ? 2 : 1;
             i32 free_squares = 64 - d->group_len[0] - (pp ? d->group_len[1] : 0);
@@ -1060,7 +1073,8 @@ namespace TBSyzygy {
                         LeadPawnsSize[d->group_len[0]][f] :
                         e.has_unique_pieces ? 31332 : 462;
                 }
-                else if (k == order[1]) // Remaining pawns
+                else
+                if (k == order[1]) // Remaining pawns
                 {
                     d->group_idx[1] = idx;
                     idx *= Binomial[d->group_len[1]][48 - d->group_len[0]];
@@ -1080,20 +1094,24 @@ namespace TBSyzygy {
         // symbol until reaching the leafs that represent the symbol value.
         u08 set_symlen (PairsData* d, Sym s, vector<bool>& visited)
         {
-
             visited[s] = true; // We can set it now because tree is acyclic
             Sym sr = d->btree[s].get<LR::Right> ();
 
             if (sr == 0xFFF)
+            {
                 return 0;
+            }
 
             Sym sl = d->btree[s].get<LR::Left> ();
 
             if (!visited[sl])
+            {
                 d->sym_len[sl] = set_symlen (d, sl, visited);
-
+            }
             if (!visited[sr])
+            {
                 d->sym_len[sr] = set_symlen (d, sr, visited);
+            }
 
             return d->sym_len[sl] + d->sym_len[sr] + 1;
         }

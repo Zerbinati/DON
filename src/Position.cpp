@@ -1361,10 +1361,7 @@ bool Position::ok (u08 *step) const
             || (count<KING> (WHITE) != 1 || !_ok (square (WHITE, KING)) || board[square (WHITE, KING)] != W_KING)
             || (count<KING> (BLACK) != 1 || !_ok (square (BLACK, KING)) || board[square (BLACK, KING)] != B_KING)
             || (   count<NONE> () > 32
-                || count<NONE> () != pop_count (pieces ()))
-            || (   si->en_passant_sq != SQ_NO
-                && (   rel_rank (active, si->en_passant_sq) != R_6
-                    || !can_en_passant (active, si->en_passant_sq))))
+                || count<NONE> () != pop_count (pieces ())))
         {
             if (step != nullptr) *step = s;
             return false;
@@ -1409,8 +1406,8 @@ bool Position::ok (u08 *step) const
             if (step != nullptr) *step = s;
             return false;
         }
-
-        if (((R1_bb|R8_bb) & pieces (PAWN)) != 0)
+        // Pawns on rank1 and rank8
+        if ((pieces (PAWN) & (R1_bb|R8_bb)) != 0)
         {
             if (step != nullptr) *step = s;
             return false;
@@ -1506,7 +1503,10 @@ bool Position::ok (u08 *step) const
             || si->posi_key != Zob.compute_posi_key (*this)
             || si->psq_score != compute_psq (*this)
             || si->non_pawn_matl[WHITE] != compute_npm<WHITE> (*this)
-            || si->non_pawn_matl[BLACK] != compute_npm<BLACK> (*this))
+            || si->non_pawn_matl[BLACK] != compute_npm<BLACK> (*this)
+            || (   si->en_passant_sq != SQ_NO
+                && (   rel_rank (active, si->en_passant_sq) != R_6
+                    || !can_en_passant (active, si->en_passant_sq))))
         {
             if (step != nullptr) *step = s;
             return false;
