@@ -512,34 +512,28 @@ inline bool opposite_colors (Square s1, Square s2)
 
 inline Delta pawn_push (Color c)
 {
-    return c == WHITE ? DEL_N : DEL_S;
+    return
+        c == WHITE ? DEL_N :
+        c == BLACK ? DEL_S : DEL_O;
 }
 
-inline Color castle_color (CastleRight cr)
-{
-    return
-        cr == CR_WKING || cr == CR_WQUEN ? WHITE :
-        cr == CR_BKING || cr == CR_BQUEN ? BLACK : CLR_NO;
-}
-inline CastleSide castle_side (CastleRight cr)
-{
-    return
-        cr == CR_WKING || cr == CR_BKING ? CS_KING :
-        cr == CR_WQUEN || cr == CR_BQUEN ? CS_QUEN : CS_NO;
-}
 inline CastleRight castle_right (Color c)
 {
     //return CastleRight(CR_WHITE << ((c << 1)));
     return
-        c == WHITE ? CR_WHITE : CR_BLACK;
+        c == WHITE ? CR_WHITE :
+        c == BLACK ? CR_BLACK : CR_NONE;
 }
 inline CastleRight castle_right (Color c, CastleSide cs)
 {
     //return CastleRight(CR_WKING << ((c << 1) + cs));
     return
         c == WHITE ?
-            cs == CS_KING ? CR_WKING : CR_WQUEN :
-            cs == CS_KING ? CR_BKING : CR_BQUEN;
+            cs == CS_KING ? CR_WKING :
+            cs == CS_QUEN ? CR_WQUEN : CR_NONE :
+        c == BLACK ?
+            cs == CS_KING ? CR_BKING :
+            cs == CS_QUEN ? CR_BQUEN : CR_NONE : CR_NONE;
 }
 
 template<Color C, CastleSide CS>

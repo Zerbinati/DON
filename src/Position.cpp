@@ -459,13 +459,13 @@ bool Position::legal (Move m) const
             && empty (dst_sq (m))
             && dst_sq (m) == si->en_passant_sq
             && (pieces (~active, PAWN) & (dst_sq (m) - pawn_push (active))) != 0);
-
+        auto k_sq = square (active, KING);
         Bitboard mocc = (pieces () ^ org_sq (m) ^ (dst_sq (m) - pawn_push (active))) | dst_sq (m);
         // If any attacker then in check and not legal move
-        return (   (pieces (~active, BSHP, QUEN) & PieceAttacks[BSHP][square (active, KING)]) == 0
-                || (pieces (~active, BSHP, QUEN) & attacks_bb<BSHP> (square (active, KING), mocc)) == 0)
-            && (   (pieces (~active, ROOK, QUEN) & PieceAttacks[ROOK][square (active, KING)]) == 0
-                || (pieces (~active, ROOK, QUEN) & attacks_bb<ROOK> (square (active, KING), mocc)) == 0);
+        return (   (pieces (~active, BSHP, QUEN) & PieceAttacks[BSHP][k_sq]) == 0
+                || (pieces (~active, BSHP, QUEN) & attacks_bb<BSHP> (k_sq, mocc)) == 0)
+            && (   (pieces (~active, ROOK, QUEN) & PieceAttacks[ROOK][k_sq]) == 0
+                || (pieces (~active, ROOK, QUEN) & attacks_bb<ROOK> (k_sq, mocc)) == 0);
     }
         break;
     }
@@ -572,26 +572,36 @@ void Position::clear ()
 }
 
 // Set the castling right
-void Position::set_castle (CastleRight cr)
+void Position::set_castle (Color c, CastleSide cs)
 {
-    auto c = castle_color (cr);
-    assert(c == WHITE || c == BLACK);
-    auto cs = castle_side (cr);
-    assert(cs == CS_KING || cs == CS_QUEN);
+    assert(c == WHITE
+        || c == BLACK);
+    assert(cs == CS_KING
+        || cs == CS_QUEN);
     bool king_side = cs == CS_KING;
 
     auto king_org = square (c, KING);
     Square rook_org;
+    bool rook_found = false;
     for (rook_org = king_side ? rel_sq (c, SQ_H1) : rel_sq (c, SQ_A1);
-         (king_side ? rook_org >= rel_sq (c, SQ_A1) : rook_org <= rel_sq (c, SQ_H1))
-      && board[rook_org] != (c|ROOK);
+         king_side ? rook_org >= rel_sq (c, SQ_A1) : rook_org <= rel_sq (c, SQ_H1);
          king_side ? --rook_org : ++rook_org)
-    {}
-    assert((pieces (c, ROOK) & rook_org) != 0);
+    {
+        assert((pieces (c, KING) & rook_org) == 0);
+        if ((pieces (c, ROOK) & rook_org) != 0)
+        {
+            rook_found = true;
+            break;
+        }
+    }
+    if (!rook_found)
+    {
+        return;
+    }
 
     auto king_dst = rel_sq (c, king_side ? SQ_G1 : SQ_C1);
     auto rook_dst = rel_sq (c, king_side ? SQ_F1 : SQ_D1);
-
+    auto cr = castle_right (c, cs);
     si->castle_rights     |= cr;
     castle_mask[king_org] |= cr;
     castle_mask[rook_org] |= cr;
@@ -599,8 +609,8 @@ void Position::set_castle (CastleRight cr)
 
     for (auto s = std::min (king_org, king_dst); s <= std::max (king_org, king_dst); ++s)
     {
-        if (   king_org != s
-            && rook_org != s)
+        if (   s != king_org
+            && s != rook_org)
         {
             castle_path[cr] |= s;
             king_path[cr] |= s;
@@ -608,8 +618,8 @@ void Position::set_castle (CastleRight cr)
     }
     for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
     {
-        if (   king_org != s
-            && rook_org != s)
+        if (   s != king_org
+            && s != rook_org)
         {
             castle_path[cr] |= s;
         }
@@ -620,20 +630,26 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
 {
     assert(ep_sq != SQ_NO);
     assert(rel_rank (c, ep_sq) == R_6);
-    Bitboard mocc = (pieces () ^ (move_done ?
-                                  ep_sq - pawn_push (c) :
-                                  ep_sq + pawn_push (c))) | ep_sq;
+    auto cap = move_done ?
+                ep_sq - pawn_push (c) :
+                ep_sq + pawn_push (c);
+    if ((pieces (~c, PAWN) & cap) == 0)//board[cap] != (~c|PAWN)
+    {
+        return false;
+    }
+    auto k_sq = square (c, KING);
+    Bitboard mocc = (pieces () ^ cap) | ep_sq;
     // En-passant attackers
-    Bitboard attackers = pieces (c, PAWN) & PawnAttacks[~c][ep_sq];
+    Bitboard attackers = PawnAttacks[~c][ep_sq] & pieces (c, PAWN);
     assert(pop_count (attackers) <= 2);
     while (attackers != 0)
     {
         auto org = pop_lsq (attackers);
         // Check en-passant is legal for the position
-        if (   (   (pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][square (c, KING)]) == 0
-                || (pieces (~c, BSHP, QUEN) & attacks_bb<BSHP> (square (c, KING), mocc ^ org)) == 0)
-            && (   (pieces (~c, ROOK, QUEN) & PieceAttacks[ROOK][square (c, KING)]) == 0
-                || (pieces (~c, ROOK, QUEN) & attacks_bb<ROOK> (square (c, KING), mocc ^ org)) == 0))
+        if (   (   (pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][k_sq]) == 0
+                || (pieces (~c, BSHP, QUEN) & attacks_bb<BSHP> (k_sq, mocc ^ org)) == 0)
+            && (   (pieces (~c, ROOK, QUEN) & PieceAttacks[ROOK][k_sq]) == 0
+                || (pieces (~c, ROOK, QUEN) & attacks_bb<ROOK> (k_sq, mocc ^ org)) == 0))
         {
             return true;
         }
@@ -722,18 +738,18 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         token = char(tolower (token));
         if (token == 'k')
         {
-            set_castle (castle_right (c, CS_KING));
+            set_castle (c, CS_KING);
         }
         else
         if (token == 'q')
         {
-            set_castle (castle_right (c, CS_QUEN));
+            set_castle (c, CS_QUEN);
         }
         else
         // Chess960
         if ('a' <= token && token <= 'h')
         {
-            set_castle (castle_right (c, (to_file (token) | rel_rank (c, R_1)) > square (c, KING) ? CS_KING : CS_QUEN));
+            set_castle (c, (to_file (token) | rel_rank (c, R_1)) > square (c, KING) ? CS_KING : CS_QUEN);
         }
         else
         {
@@ -748,9 +764,10 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     if (   (iss >> file && ('a' <= file && file <= 'h'))
         && (iss >> rank && ('3' == rank || rank == '6')))
     {
-        if (can_en_passant (active, to_square (file, rank)))
+        auto sq = to_square (file, rank);
+        if (can_en_passant (active, sq))
         {
-            ep_sq = to_square (file, rank);
+            ep_sq = sq;
         }
     }
     si->en_passant_sq = ep_sq;
@@ -987,9 +1004,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     i32 cr;
     // Update castling rights if needed
-    if (   si->castle_rights != CR_NONE
-        && (cr = (  castle_mask[org]
-                  | castle_mask[dst])) != 0)
+    if (   (cr = (  castle_mask[org]
+                  | castle_mask[dst])) != 0
+        && (si->castle_rights & cr) != CR_NONE)
     {
         Bitboard b = si->castle_rights & cr;
         while (b != 0)
@@ -1200,7 +1217,7 @@ void Position::mirror ()
     ff += ' ';
     // 3. Castling availability
     iss >> token;
-    // todo:: swap castling
+    // Swap castling
     if (token[0] != '-')
     {
         for (auto &ch : token)

@@ -233,7 +233,6 @@ namespace Evaluator {
         // according to which piece type is attacked by pawn which is protected or is not attacked.
         const Score SafePawnThreat[NONE] = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
 
-        enum PieceCategory : u08 { MINOR, MAJOR };
         // PieceThreat[attacker category][attacked type] contains bonuses
         // according to which piece type attacks which one.
         // Attacks on lesser pieces which are pawn-defended are not considered.
@@ -682,6 +681,8 @@ namespace Evaluator {
             static const Bitboard Rank2BB = Own == WHITE ? R2_bb : R7_bb;
             static const Bitboard Rank7BB = Own == WHITE ? R7_bb : R2_bb;
 
+            enum { MINOR, MAJOR };
+
             auto score = SCORE_ZERO;
 
             Bitboard b;
@@ -690,11 +691,11 @@ namespace Evaluator {
                   pos.pieces (Opp)
                 ^ pos.pieces (Opp, PAWN);
 
-            // Enemy attacked by any friend piece not defended by a pawn
+            // Enemy not defended by a pawn and attacked by any friend piece
             Bitboard weak_pieces =
-                  pos.pieces (Opp)
-                &  ei.pin_attacked_by[Own][NONE]
-                & ~ei.pin_attacked_by[Opp][PAWN];
+                   pos.pieces (Opp)
+                & ~ei.pin_attacked_by[Opp][PAWN]
+                &  ei.pin_attacked_by[Own][NONE];
 
             // Add a bonus according to the kind of attacking pieces
 
@@ -702,10 +703,9 @@ namespace Evaluator {
             b =   (  weak_pieces
                     // Rooks or Queens
                    | pos.pieces (Opp, ROOK, QUEN)
-                    // Enemy non-pawn defended by a pawn and attacked by any friend piece
+                    // Enemy non-pawn defended by a pawn
                    | (  nonpawns
-                      & ei.pin_attacked_by[Opp][PAWN]
-                      & ei.pin_attacked_by[Own][NONE]))
+                      & ei.pin_attacked_by[Opp][PAWN]))
                 & (  ei.pin_attacked_by[Own][NIHT]
                    | ei.pin_attacked_by[Own][BSHP]);
             while (b != 0)
@@ -722,14 +722,14 @@ namespace Evaluator {
                 score += PieceThreat[MAJOR][ptype (pos[pop_lsq (b)])];
             }
             // Enemies attacked by king
-            b =   weak_pieces
-                & ei.pin_attacked_by[Own][KING];
+            b =    weak_pieces
+                &  ei.pin_attacked_by[Own][KING];
             if (b != 0)
             {
                 score += KingThreat[more_than_one (b) ? 1 : 0];
             }
             // Enemies attacked by friend are hanging
-            b =   weak_pieces
+            b =    weak_pieces
                 & ~ei.pin_attacked_by[Opp][NONE];
             score += PieceHanged * pop_count (b);
 
@@ -749,19 +749,19 @@ namespace Evaluator {
 
             // Enemy non-pawns attacked by any friend pawn
             Bitboard weak_nonpawns =
-                  nonpawns
-                & ei.pin_attacked_by[Own][PAWN];
+                   nonpawns
+                &  ei.pin_attacked_by[Own][PAWN];
             if (weak_nonpawns != 0)
             {
                 // Safe friend pawns
                 b =   safe
                     & pos.pieces (Own, PAWN);
                 // Enemy non-pawns attacked by safe friend pawns
-                b =   weak_nonpawns
-                    & (  shift<LCap> (b)
-                       | shift<RCap> (b));
+                b =   (  shift<LCap> (b)
+                       | shift<RCap> (b))
+                    & weak_nonpawns;
                 // Enemy non-pawns attacked by unsafe friend pawns
-                if ((weak_nonpawns & ~b) != 0)
+                if ((weak_nonpawns ^ b) != 0)
                 {
                     score += HangPawnThreat;
                 }
@@ -772,7 +772,7 @@ namespace Evaluator {
             }
 
             // Bonus if some friend pawns safely push can attack an enemy piece
-            b =   pos.pieces (Own, PAWN)
+            b =    pos.pieces (Own, PAWN)
                 & ~Rank7BB
                 & ~ei.abs_blockers[Own];
             // Friend pawns push
@@ -780,13 +780,13 @@ namespace Evaluator {
                                     & ~pos.pieces ()))
                 & ~pos.pieces ();
             // Friend pawns safe push
-            b &=  safe
+            b &=   safe
                 & ~ei.pin_attacked_by[Opp][PAWN];
             // Friend pawns safe push attacks an enemy piece not already attacked by pawn
-            b =   pos.pieces (Opp)
-                & ~ei.pin_attacked_by[Own][PAWN]
-                & (  shift<LCap> (b)
-                   | shift<RCap> (b));
+            b =    (  shift<LCap> (b)
+                    | shift<RCap> (b))
+                &  pos.pieces (Opp)
+                & ~ei.pin_attacked_by[Own][PAWN];
             score += PawnPushThreat * pop_count (b);
 
             if (Trace)
@@ -917,7 +917,7 @@ namespace Evaluator {
             // - it is not attacked by an enemy pawns
             // - it is defended or not attacked by an enemy pieces.
             Bitboard safe_space =
-                  Space[Own]
+                   Space[Own]
                 & ~pos.pieces (Own, PAWN)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 & (   ei.pin_attacked_by[Own][NONE]
