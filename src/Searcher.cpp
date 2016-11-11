@@ -1045,8 +1045,6 @@ namespace Searcher {
 
                     if (alfa < value)
                     {
-                        best_move = move;
-
                         // Update pv even in fail-high case
                         if (PVNode)
                         {
@@ -1065,12 +1063,13 @@ namespace Searcher {
                             assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
                             return value;
                         }
-
                         assert(value < beta);
+
                         // Update alfa! Always alfa < beta
                         if (PVNode)
                         {
                             alfa = value;
+                            best_move = move;
                         }
                     }
                 }
@@ -1116,6 +1115,9 @@ namespace Searcher {
             const bool in_check = pos.si->checkers != 0;
 
             ss->history_val = VALUE_ZERO;
+            ss->move_count = 0;
+            ss->current_move = MOVE_NONE;
+            ss->piece_cm_history = nullptr;
 
             // Step 1. Initialize node
             auto *th = pos.thread;
@@ -1162,11 +1164,6 @@ namespace Searcher {
                 }
             }
             
-            assert(ss->ply >= 1
-                && ss->ply < MaxPlies);
-            ss->move_count = 0;
-            ss->current_move = MOVE_NONE;
-            ss->piece_cm_history = nullptr;
             assert((ss+1)->exclude_move == MOVE_NONE);
             assert(!(ss+1)->skip_pruning);
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
@@ -1846,8 +1843,8 @@ namespace Searcher {
                         {
                             break;
                         }
-
                         assert(value < beta);
+
                         // Update alfa! Always alfa < beta
                         if (PVNode)
                         {
@@ -2015,10 +2012,10 @@ namespace Threading {
     // - the maximum search depth is reached.
     void Thread::search ()
     {
-        Stack stacks[MaxPlies + 7]; // To allow referencing (ss-5) and (ss+2)
+        Stack stacks[MaxPlies + 7]; // To allow referencing (ss-4) and (ss+2)
         for (auto s = stacks; s < stacks + MaxPlies + 7; ++s)
         {
-            s->ply              = i16(s - stacks - 4);
+            s->ply              = i16(s - stacks - 3);
             s->current_move     = MOVE_NONE;
             s->exclude_move     = MOVE_NONE;
             std::fill_n (s->killer_moves, MaxKillers, MOVE_NONE);
@@ -2129,7 +2126,7 @@ namespace Threading {
                 // Start with a small aspiration window and, in case of fail high/low,
                 // research with bigger window until not failing high/low anymore.
                 do {
-                    best_value = depth_search<true> (root_pos, stacks+5, alfa, beta, running_depth, false);
+                    best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, running_depth, false);
 
                     // Bring the best move to the front. It is critical that sorting is
                     // done with a stable algorithm because all the values but the first
@@ -2149,8 +2146,7 @@ namespace Threading {
 
                     if (Threadpool.main_thread () == this)
                     {
-                        // When failing high/low give some update
-                        // (without cluttering the UI) before to re-search.
+                        // Give some update before to re-search.
                         if (   Threadpool.pv_limit == 1
                             && (best_value <= alfa || beta <= best_value)
                             && Threadpool.time_mgr.elapsed_time () > 3*MilliSec)

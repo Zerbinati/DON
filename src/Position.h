@@ -280,15 +280,16 @@ inline Key Position::move_posi_key (Move m) const
             key ^= Zob.piece_square_keys[~active][cpt][en_passant (m) ? dst - pawn_push (active) : dst];
         }
     }
-    i32 cr;
-    if (   si->castle_rights != CR_NONE
-        && (cr = (  castle_mask[org]
-                  | castle_mask[dst])) != 0)
+    u08 b;
+    if ((b = (si->castle_rights & (  castle_mask[org]
+                                   | castle_mask[dst]))) != 0)
     {
-        Bitboard b = si->castle_rights & cr;
-        while (b != 0)
+        for (i08 i = 0; i < 4; ++i)
         {
-            key ^= (*Zob.castle_right_keys)[pop_lsq (b)];
+            if ((b & (1 << i)) != 0)
+            {
+                key ^= (*Zob.castle_right_keys)[i];
+            }
         }
     }
     if (si->en_passant_sq != SQ_NO)

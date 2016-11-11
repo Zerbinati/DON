@@ -645,6 +645,7 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
     while (attackers != 0)
     {
         auto org = pop_lsq (attackers);
+        assert((mocc & org) != 0);
         // Check en-passant is legal for the position
         if (   (   (pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][k_sq]) == 0
                 || (pieces (~c, BSHP, QUEN) & attacks_bb<BSHP> (k_sq, mocc ^ org)) == 0)
@@ -679,7 +680,8 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
 // 4) En passant target square (in algebraic notation).
 //    If there's no en passant target square, this is "-".
 //    If a pawn has just made a 2-square move, this is the position "behind" the pawn.
-//    This is recorded regardless of whether there is a pawn in position to make an en passant capture.
+//    This is recorded only if there really is a pawn that might have advanced two squares
+//    and if there is a pawn in position to make an en passant capture legally!!!. 
 // 5) Halfmove clock. This is the number of halfmoves since the last pawn advance or capture.
 //    This is used to determine if a draw can be claimed under the fifty-move rule.
 // 6) Fullmove number. The number of the full move.
@@ -1001,19 +1003,20 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     si->psq_score +=
          PSQ[active][ppt][dst]
         -PSQ[active][mpt][org];
-
-    i32 cr;
+    
     // Update castling rights if needed
-    if (   (cr = (  castle_mask[org]
-                  | castle_mask[dst])) != 0
-        && (si->castle_rights & cr) != CR_NONE)
+    i08 b;
+    if ((b = (si->castle_rights & (  castle_mask[org]
+                                   | castle_mask[dst]))) != 0)
     {
-        Bitboard b = si->castle_rights & cr;
-        while (b != 0)
+        for (i08 i = 0; i < 4; ++i)
         {
-            key ^= (*Zob.castle_right_keys)[pop_lsq (b)];
+            if ((b & (1 << i)) != 0)
+            {
+                key ^= (*Zob.castle_right_keys)[i];
+            }
         }
-        si->castle_rights &= ~cr;
+        si->castle_rights &= ~b;
     }
 
     assert(attackers_to (square (active, KING), pasive) == 0);

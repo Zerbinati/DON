@@ -1030,17 +1030,14 @@ namespace Evaluator {
             SCORE_ZERO,
             SCORE_ZERO
         };
-        // Pawns blocked or on ranks 2-3 will be excluded from the mobility area
-        const Bitboard blocked_pawns[CLR_NO] =
-        {
-            pos.pieces (WHITE, PAWN) & (shift<DEL_S> (pos.pieces ()) | R2_bb | R3_bb),
-            pos.pieces (BLACK, PAWN) & (shift<DEL_N> (pos.pieces ()) | R7_bb | R6_bb)
-        };
-        // Do not include in mobility area squares protected by enemy pawns or occupied by friend blocked pawns or king
+        // Do not include in mobility area
+        // - squares protected by enemy pawns or
+        // - squares occupied by block pawns (Pawns blocked or on ranks 2-3) or
+        // - squares occupied by friend blocked pawns or king
         const Bitboard mobility_area[CLR_NO] =
         {
-            ~((ei.pin_attacked_by[BLACK][PAWN] | blocked_pawns[WHITE]) | pos.square (WHITE, KING)),
-            ~((ei.pin_attacked_by[WHITE][PAWN] | blocked_pawns[BLACK]) | pos.square (BLACK, KING))
+            ~((ei.pin_attacked_by[BLACK][PAWN] | (pos.pieces (WHITE, PAWN) & (shift<DEL_S> (pos.pieces ()) | R2_bb | R3_bb))) | pos.square (WHITE, KING)),
+            ~((ei.pin_attacked_by[WHITE][PAWN] | (pos.pieces (BLACK, PAWN) & (shift<DEL_N> (pos.pieces ()) | R7_bb | R6_bb))) | pos.square (BLACK, KING))
         };
 
         // Score is computed internally from the white point of view, initialize by
