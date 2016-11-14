@@ -228,7 +228,6 @@ namespace Memory {
                 std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
             }
 #   endif
-            PagesUsed = false;
             return;
         }
 
