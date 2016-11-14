@@ -264,35 +264,9 @@ namespace Evaluator {
         // King attack weights by piece type
         const i32 KingAttackWeights [NONE] = { 0, 78, 56, 45, 11, 0 };
         // Penalties for enemy's piece safe checks by piece type
-        const i32 PieceSafeChecks[NONE] = { 0, 874, 538, 638, 695, 0 };
+        const i32 PieceSafeChecks   [NONE] = { 0, 874, 538, 638, 695, 0 };
         // Penalty for enemy's queen contact checks
         const i32 QueenContactCheck = 997;
-
-        // Mask of allowed outpost squares
-        const Bitboard OutpostMask[CLR_NO] =
-        {
-            R4_bb|R5_bb|R6_bb,
-            R5_bb|R4_bb|R3_bb
-        };
-
-        const Bitboard WhiteCamp  = R5_bb|R4_bb|R3_bb|R2_bb|R1_bb;
-        const Bitboard BlackCamp  = R4_bb|R5_bb|R6_bb|R7_bb|R8_bb;
-        const Bitboard QueenSide  = FA_bb|FB_bb|FC_bb|FD_bb;
-        const Bitboard CenterSide = FC_bb|FD_bb|FE_bb|FF_bb;
-        const Bitboard KingSide   = FE_bb|FF_bb|FG_bb|FH_bb;
-        const Bitboard KingFlank[CLR_NO][F_NO] =
-        {
-            { WhiteCamp&QueenSide, WhiteCamp&QueenSide, WhiteCamp&QueenSide, WhiteCamp&CenterSide, WhiteCamp&CenterSide, WhiteCamp&KingSide, WhiteCamp&KingSide, WhiteCamp&KingSide },
-            { BlackCamp&QueenSide, BlackCamp&QueenSide, BlackCamp&QueenSide, BlackCamp&CenterSide, BlackCamp&CenterSide, BlackCamp&KingSide, BlackCamp&KingSide, BlackCamp&KingSide }
-        };
-        
-        // Space contains the area of the board which is considered by the space evaluation.
-        // Bonus is given based on how many squares inside this area are safe.
-        const Bitboard Space[CLR_NO] =
-        {
-            (FC_bb|FD_bb|FE_bb|FF_bb)&(R2_bb|R3_bb|R4_bb),
-            (FC_bb|FD_bb|FE_bb|FF_bb)&(R7_bb|R6_bb|R5_bb)
-        };
 
         template<Color Own>
         void init_king_ring (const Position &pos, EvalInfo &ei)
@@ -379,7 +353,7 @@ namespace Evaluator {
                         score += MinorBehindPawn;
                     }
 
-                    b = OutpostMask[Own] & ~ei.pe->attack_span[Opp];
+                    b = OutpostRank[Own] & ~ei.pe->attack_span[Opp];
                     // Bonus for minors outpost squares
                     if ((b & s) != 0)
                     {
@@ -911,19 +885,19 @@ namespace Evaluator {
             static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
             static const auto Dull = Own == WHITE ? DEL_SS : DEL_NN;
 
-            // Find the safe squares for our pieces inside the area defined by Space.
+            // Find the safe squares for our pieces inside the area defined by SpaceArea.
             // A square is safe:
             // - it is not occupied by friend pawns
             // - it is not attacked by an enemy pawns
             // - it is defended or not attacked by an enemy pieces.
             Bitboard safe_space =
-                   Space[Own]
+                   SpaceArea[Own]
                 & ~pos.pieces (Own, PAWN)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 & (   ei.pin_attacked_by[Own][NONE]
                    | ~ei.pin_attacked_by[Opp][NONE]);
 
-            // Since Space[Own] is fully on our half of the board
+            // Since SpaceArea[Own] is fully on our half of the board
             assert((Own == WHITE ? safe_space & U64(0xFFFFFFFF00000000)
                                  : safe_space & U64(0x00000000FFFFFFFF)) == 0);
 
@@ -1036,8 +1010,8 @@ namespace Evaluator {
         // - squares occupied by friend blocked pawns or king
         const Bitboard mobility_area[CLR_NO] =
         {
-            ~((ei.pin_attacked_by[BLACK][PAWN] | (pos.pieces (WHITE, PAWN) & (shift<DEL_S> (pos.pieces ()) | R2_bb | R3_bb))) | pos.square (WHITE, KING)),
-            ~((ei.pin_attacked_by[WHITE][PAWN] | (pos.pieces (BLACK, PAWN) & (shift<DEL_N> (pos.pieces ()) | R7_bb | R6_bb))) | pos.square (BLACK, KING))
+            ~((ei.pin_attacked_by[BLACK][PAWN] | (pos.pieces (WHITE, PAWN) & (shift<DEL_S> (pos.pieces ()) | PawnFlank[WHITE]))) | pos.square (WHITE, KING)),
+            ~((ei.pin_attacked_by[WHITE][PAWN] | (pos.pieces (BLACK, PAWN) & (shift<DEL_N> (pos.pieces ()) | PawnFlank[BLACK]))) | pos.square (BLACK, KING))
         };
 
         // Score is computed internally from the white point of view, initialize by

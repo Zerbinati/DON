@@ -91,6 +91,39 @@ namespace BitBoard {
         }
     };
 
+    // Mask of allowed outpost squares
+    const Bitboard OutpostRank[CLR_NO] =
+    {
+        R4_bb|R5_bb|R6_bb,
+        R5_bb|R4_bb|R3_bb
+    };
+
+    const Bitboard ExCenter = FA_bb|FB_bb|FC_bb|FF_bb|FG_bb|FH_bb;
+    const Bitboard PawnFlank[CLR_NO] =
+    {
+        (R2_bb|R3_bb)&ExCenter,
+        (R7_bb|R6_bb)&ExCenter
+    };
+
+    const Bitboard WhiteCamp  = R5_bb|R4_bb|R3_bb|R2_bb|R1_bb;
+    const Bitboard BlackCamp  = R4_bb|R5_bb|R6_bb|R7_bb|R8_bb;
+    const Bitboard QueenSide  = FA_bb|FB_bb|FC_bb|FD_bb;
+    const Bitboard CenterSide = FC_bb|FD_bb|FE_bb|FF_bb;
+    const Bitboard KingSide   = FE_bb|FF_bb|FG_bb|FH_bb;
+    const Bitboard KingFlank[CLR_NO][F_NO] =
+    {
+        { WhiteCamp&QueenSide, WhiteCamp&QueenSide, WhiteCamp&QueenSide, WhiteCamp&CenterSide, WhiteCamp&CenterSide, WhiteCamp&KingSide, WhiteCamp&KingSide, WhiteCamp&KingSide },
+        { BlackCamp&QueenSide, BlackCamp&QueenSide, BlackCamp&QueenSide, BlackCamp&CenterSide, BlackCamp&CenterSide, BlackCamp&KingSide, BlackCamp&KingSide, BlackCamp&KingSide }
+    };
+
+    // SpaceArea contains the area of the board which is considered by the space evaluation.
+    // Bonus is given based on how many squares inside this area are safe.
+    const Bitboard SpaceArea[CLR_NO] =
+    {
+        (FC_bb|FD_bb|FE_bb|FF_bb)&(R2_bb|R3_bb|R4_bb),
+        (FC_bb|FD_bb|FE_bb|FF_bb)&(R7_bb|R6_bb|R5_bb)
+    };
+
     extern u08      SquareDist[SQ_NO][SQ_NO];
 
     extern Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
