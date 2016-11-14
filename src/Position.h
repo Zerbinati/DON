@@ -183,6 +183,7 @@ public:
     Position& setup (const std::string &code, StateInfo &si, Color c);
 
     void do_move (Move m, StateInfo &si, bool gives_check);
+    void do_move (Move m, StateInfo &si);
     void undo_move (Move m);
     void do_null_move (StateInfo &si);
     void undo_null_move ();
@@ -396,6 +397,12 @@ inline bool Position::opposite_bishops () const
         && count<BSHP> (BLACK) == 1
         && opposite_colors (square (WHITE, BSHP), square (BLACK, BSHP));
 }
+
+inline void Position::do_move (Move m, StateInfo &nsi)
+{
+    do_move (m, nsi, gives_check (m));
+}
+
 inline bool Position::en_passant (Move m) const
 {
     return mtype (m) == ENPASSANT

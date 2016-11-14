@@ -132,7 +132,6 @@ namespace Memory {
                  mem_size,                              // Size of allocation
                  MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,// Type of Allocation
                  PAGE_READWRITE);                       // Protection of Allocation
-
             if (mem_ref != nullptr)
             {
                 PagesUsed = true;
@@ -140,13 +139,11 @@ namespace Memory {
                 sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                 return;
             }
-
             mem_ref = VirtualAlloc
                 (nullptr,              // System selects address
                 mem_size,              // Size of allocation
                 MEM_COMMIT|MEM_RESERVE,// Type of Allocation
                 PAGE_READWRITE);       // Protection of Allocation
-
             if (mem_ref != nullptr)
             {
                 PagesUsed = true;
@@ -164,7 +161,7 @@ namespace Memory {
                 mem_ref = shmat (SHM, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
-                    LargePages = true;
+                    PagesUsed = true;
                     std::memset (mem_ref, 0x00, mem_size);
                     sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
@@ -182,7 +179,7 @@ namespace Memory {
                 mem_ref = shmat (SHM, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
-                    LargePages = true;
+                    PagesUsed = true;
                     std::memset (mem_ref, 0x00, mem_size);
                     sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;

@@ -55,7 +55,7 @@ void RootMove::insert_pv_into_tt (Position &pos) const
                         -6,
                         BOUND_NONE);
         }
-        pos.do_move (m, *si++, pos.gives_check (m));
+        pos.do_move (m, *si++);
         if (++ply >= MaxPlies)
         {
             break;
@@ -74,7 +74,7 @@ void RootMove::extract_pv_from_tt (Position &pos)
     resize (1);
     u08 ply = 0;
     auto m = at (ply);
-    pos.do_move (m, *si++, pos.gives_check (m));
+    pos.do_move (m, *si++);
     ++ply;
         
     auto expected_value = -new_value;
@@ -92,7 +92,7 @@ void RootMove::extract_pv_from_tt (Position &pos)
         assert(!pos.draw ());
 
         *this += m;
-        pos.do_move (m, *si++, pos.gives_check (m));
+        pos.do_move (m, *si++);
         ++ply;
 
         expected_value = -expected_value;
@@ -113,7 +113,7 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
 
     StateInfo si;
     auto m = at (0);
-    pos.do_move (m, si, pos.gives_check (m));
+    pos.do_move (m, si);
     bool tt_hit;
     const auto *tte = TT.probe (pos.si->posi_key, tt_hit);
     Move ponder_move;
@@ -1426,7 +1426,7 @@ namespace Searcher {
                             // Speculative prefetch as early as possible
                             prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
-                            pos.do_move (move, si, pos.gives_check (move));
+                            pos.do_move (move, si);
 
                             if (   ptype (pos[dst_sq (move)]) == PAWN
                                 || pos.si->capture == PAWN)
@@ -1937,7 +1937,7 @@ namespace Searcher {
             else
             {
                 StateInfo si;
-                pos.do_move (vm.move, si, pos.gives_check (vm.move));
+                pos.do_move (vm.move, si);
                 nodes =
                     depth > 2 ?
                         perft<false> (pos, depth - 1) :
@@ -2367,7 +2367,7 @@ namespace Threading {
                     auto &root_move = root_moves[0];
                     std::swap (root_move, *std::find (root_moves.begin (), root_moves.end (), book_best_move));
                     StateInfo si;
-                    root_pos.do_move (book_best_move, si, root_pos.gives_check (book_best_move));
+                    root_pos.do_move (book_best_move, si);
                     auto book_ponder_move = book.probe_move (root_pos, BookMoveBest);
                     root_move += book_ponder_move;
                     root_pos.undo_move (book_best_move);
@@ -2508,7 +2508,7 @@ namespace Threading {
                     || root_move.extract_ponder_move_from_tt (root_pos)))
             {
                 StateInfo si;
-                root_pos.do_move (root_move[0], si, root_pos.gives_check (root_move[0]));
+                root_pos.do_move (root_move[0], si);
                 OutputStream << "Ponder Move: " << move_to_san (root_move[1], root_pos) << '\n';
                 root_pos.undo_move (root_move[0]);
             }

@@ -190,19 +190,19 @@ namespace Pawns {
 
     // Calculates shelter and storm penalties.
     template<Color Own>
-    Value Entry::pawn_shelter_storm (const Position &pos, Square k_sq) const
+    Value Entry::pawn_shelter_storm (const Position &pos, Square fk_sq) const
     {
         static const auto Opp = Own == WHITE ? BLACK : WHITE;
         // Max bonus for king safety by pawns.
         auto value = Value(258);
         Bitboard front_pawns =
               pos.pieces (PAWN)
-            & (  rank_bb (k_sq)
-               | front_rank_bb (Own, k_sq));
+            & (  rank_bb (fk_sq)
+               | front_rank_bb (Own, fk_sq));
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        auto kf = std::min (std::max (_file (k_sq), F_B), F_G);
+        auto kf = std::min (std::max (_file (fk_sq), F_B), F_G);
         Bitboard file_front_pawns;
         Rank own_r, opp_r;
         for (auto f = kf - 1; f <= kf + 1; ++f)
@@ -217,11 +217,11 @@ namespace Pawns {
                     && opp_r == R_1)
                 || (own_r != opp_r));
             value -= ShelterWeak[std::min (f, F_H - f)][own_r]
-                   + StromDanger[   f == _file (k_sq)
-                                 && opp_r == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING :
-                                    own_r == R_1                      ? BLOCKED_NO      :
-                                    opp_r == own_r + 1                ? BLOCKED_BY_PAWN :
-                                                                        BLOCKED_BY_NONE]
+                   + StromDanger[   f == _file (fk_sq)
+                                 && opp_r == rel_rank (Own, fk_sq) + 1 ? BLOCKED_BY_KING :
+                                    own_r == R_1                       ? BLOCKED_NO      :
+                                    opp_r == own_r + 1                 ? BLOCKED_BY_PAWN :
+                                                                         BLOCKED_BY_NONE]
                                 [std::min (f, F_H - f)][opp_r];
         }
         return value;

@@ -53,8 +53,11 @@ namespace Transposition {
         //u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
 
         bool alive () const { return (_gen_bnd & 0xFC) == generation; }
-        
-        u08 worth () const { return u08(_depth - 2*((0x103 + generation - _gen_bnd) & 0xFC)); }
+        // The worth of an entry is calculated as its depth minus 8 times its relative age.
+        // Due to packed storage format for generation and its cyclic nature
+        // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
+        // to calculate the entry age correctly even after generation overflows into the next cycle.
+        u08  worth () const { return u08(_depth - 2*((0x103 + generation - _gen_bnd) & 0xFC)); }
 
         void refresh () { _gen_bnd = u08(generation | (_gen_bnd & 0x03)); }
 
@@ -164,10 +167,10 @@ namespace Transposition {
             return _clusters[size_t(key) & (_cluster_count-1)].entries;
         }
 
-        u32 resize (u32 mem_size_mb, bool force = false);
+        u32 resize (u32 mem_size, bool force = false);
         u32 resize ();
 
-        void auto_resize (u32 mem_size_mb, bool force = false);
+        void auto_resize (u32 mem_size, bool force = false);
 
         Entry* probe (Key key, bool &tt_hit) const;
 
@@ -180,9 +183,9 @@ namespace Transposition {
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const Table &tt)
         {
-            u32 mem_size_mb = tt.size ();
+            u32 mem_size = tt.size ();
             u08 dummy = 0;
-            os.write (reinterpret_cast<const CharT*> (&mem_size_mb), sizeof (mem_size_mb));
+            os.write (reinterpret_cast<const CharT*> (&mem_size), sizeof (mem_size));
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
@@ -199,16 +202,16 @@ namespace Transposition {
         friend std::basic_istream<CharT, Traits>&
             operator>> (std::basic_istream<CharT, Traits> &is,       Table &tt)
         {
-            u32 mem_size_mb;
+            u32 mem_size;
             u08 generation;
             u08 dummy;
-            is.read (reinterpret_cast<CharT*> (&mem_size_mb), sizeof (mem_size_mb));
+            is.read (reinterpret_cast<CharT*> (&mem_size), sizeof (mem_size));
             is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
             is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
             is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
             is.read (reinterpret_cast<CharT*> (&generation), sizeof (generation));
             is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
-            tt.resize (mem_size_mb);
+            tt.resize (mem_size);
             Entry::generation = generation;
             for (u32 i = 0; i < tt._cluster_count / BufferSize; ++i)
             {

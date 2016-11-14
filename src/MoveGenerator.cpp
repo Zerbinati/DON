@@ -73,41 +73,47 @@ namespace MoveGen {
                 }
                 break;
             case QUIET_CHECK:
-                if (   (PieceAttacks[ROOK][dst] & pos.square (~pos.active, KING)) != 0
-                    && (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - delta)) & pos.square (~pos.active, KING)) != 0)
+            {
+                auto ek_sq = pos.square (~pos.active, KING);
+                if (   (PieceAttacks[ROOK][dst] & ek_sq) != 0
+                    && (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - delta)) & ek_sq) != 0)
                 {
                     moves.push_back (ValMove(mk_move (dst - delta, dst, ROOK)));
                 }
-                if (   (PieceAttacks[BSHP][dst] & pos.square (~pos.active, KING)) != 0
-                    && (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - delta)) & pos.square (~pos.active, KING)) != 0)
+                if (   (PieceAttacks[BSHP][dst] & ek_sq) != 0
+                    && (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - delta)) & ek_sq) != 0)
                 {
                     moves.push_back (ValMove(mk_move (dst - delta, dst, BSHP)));
                 }
-                if ((PieceAttacks[NIHT][dst] & pos.square (~pos.active, KING)) != 0)
+                if ((PieceAttacks[NIHT][dst] & ek_sq) != 0)
                 {
                     moves.push_back (ValMove(mk_move (dst - delta, dst, NIHT)));
                 }
+            }
                 break;
             case CHECK:
-                if (   (PieceAttacks[QUEN][dst] & pos.square (~pos.active, KING)) != 0
-                    && (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - delta)) & pos.square (~pos.active, KING)) != 0)
+            {
+                auto ek_sq = pos.square (~pos.active, KING);
+                if (   (PieceAttacks[QUEN][dst] & ek_sq) != 0
+                    && (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - delta)) & ek_sq) != 0)
                 {
                     moves.push_back (ValMove(mk_move (dst - delta, dst, QUEN)));
                 }
-                if (   (PieceAttacks[ROOK][dst] & pos.square (~pos.active, KING)) != 0
-                    && (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - delta)) & pos.square (~pos.active, KING)) != 0)
+                if (   (PieceAttacks[ROOK][dst] & ek_sq) != 0
+                    && (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - delta)) & ek_sq) != 0)
                 {
                     moves.push_back (ValMove(mk_move (dst - delta, dst, ROOK)));
                 }
-                if (   (PieceAttacks[BSHP][dst] & pos.square (~pos.active, KING)) != 0
-                    && (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - delta)) & pos.square (~pos.active, KING)) != 0)
+                if (   (PieceAttacks[BSHP][dst] & ek_sq) != 0
+                    && (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - delta)) & ek_sq) != 0)
                 {
                     moves.push_back (ValMove(mk_move (dst - delta, dst, BSHP)));
                 }
-                if ((PieceAttacks[NIHT][dst] & pos.square (~pos.active, KING)) != 0)
+                if ((PieceAttacks[NIHT][dst] & ek_sq) != 0)
                 {
                     moves.push_back (ValMove(mk_move (dst - delta, dst, NIHT)));
                 }
+            }
                 break;
             }
         }

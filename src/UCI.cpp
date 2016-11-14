@@ -136,7 +136,7 @@ namespace UCI {
                             break;
                         }
                         states.push_back (StateInfo ());
-                        root_pos.do_move (m, states.back (), root_pos.gives_check (m));
+                        root_pos.do_move (m, states.back ());
                     }
                 }
             }

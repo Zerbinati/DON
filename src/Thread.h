@@ -98,7 +98,7 @@ public:
             u08 ply = 0;
             StateInfo si[PVSize-1];
             do {
-                pos.do_move (pv[ply], si[ply], pos.gives_check (pv[ply]));
+                pos.do_move (pv[ply], si[ply]);
             } while (++ply < PVSize-1);
             _posi_key = pos.si->posi_key;
             while (ply != 0)

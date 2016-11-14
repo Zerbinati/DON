@@ -459,13 +459,13 @@ bool Position::legal (Move m) const
             && empty (dst_sq (m))
             && dst_sq (m) == si->en_passant_sq
             && (pieces (~active, PAWN) & (dst_sq (m) - pawn_push (active))) != 0);
-        auto k_sq = square (active, KING);
+        auto fk_sq = square (active, KING);
         Bitboard mocc = (pieces () ^ org_sq (m) ^ (dst_sq (m) - pawn_push (active))) | dst_sq (m);
         // If any attacker then in check and not legal move
-        return (   (pieces (~active, BSHP, QUEN) & PieceAttacks[BSHP][k_sq]) == 0
-                || (pieces (~active, BSHP, QUEN) & attacks_bb<BSHP> (k_sq, mocc)) == 0)
-            && (   (pieces (~active, ROOK, QUEN) & PieceAttacks[ROOK][k_sq]) == 0
-                || (pieces (~active, ROOK, QUEN) & attacks_bb<ROOK> (k_sq, mocc)) == 0);
+        return (   (pieces (~active, BSHP, QUEN) & PieceAttacks[BSHP][fk_sq]) == 0
+                || (pieces (~active, BSHP, QUEN) & attacks_bb<BSHP> (fk_sq, mocc)) == 0)
+            && (   (pieces (~active, ROOK, QUEN) & PieceAttacks[ROOK][fk_sq]) == 0
+                || (pieces (~active, ROOK, QUEN) & attacks_bb<ROOK> (fk_sq, mocc)) == 0);
     }
         break;
     }
@@ -513,11 +513,12 @@ bool Position::gives_check (Move m) const
         // En-passant capture with check ?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
+        auto ek_sq = square (~active, KING);
         Bitboard mocc = (pieces () ^ org ^ (_file (dst)|_rank (org))) | dst;
-        return (   (pieces (active, BSHP, QUEN) & PieceAttacks[BSHP][square (~active, KING)]) != 0
-                && (pieces (active, BSHP, QUEN) & attacks_bb<BSHP> (square (~active, KING), mocc)) != 0)
-            || (   (pieces (active, ROOK, QUEN) & PieceAttacks[ROOK][square (~active, KING)]) != 0
-                && (pieces (active, ROOK, QUEN) & attacks_bb<ROOK> (square (~active, KING), mocc)) != 0);
+        return (   (pieces (active, BSHP, QUEN) & PieceAttacks[BSHP][ek_sq]) != 0
+                && (pieces (active, BSHP, QUEN) & attacks_bb<BSHP> (ek_sq, mocc)) != 0)
+            || (   (pieces (active, ROOK, QUEN) & PieceAttacks[ROOK][ek_sq]) != 0
+                && (pieces (active, ROOK, QUEN) & attacks_bb<ROOK> (ek_sq, mocc)) != 0);
     }
         break;
 
@@ -637,7 +638,7 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
     {
         return false;
     }
-    auto k_sq = square (c, KING);
+    auto fk_sq = square (c, KING);
     Bitboard mocc = (pieces () ^ cap) | ep_sq;
     // En-passant attackers
     Bitboard attackers = PawnAttacks[~c][ep_sq] & pieces (c, PAWN);
@@ -647,10 +648,10 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
         auto org = pop_lsq (attackers);
         assert((mocc & org) != 0);
         // Check en-passant is legal for the position
-        if (   (   (pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][k_sq]) == 0
-                || (pieces (~c, BSHP, QUEN) & attacks_bb<BSHP> (k_sq, mocc ^ org)) == 0)
-            && (   (pieces (~c, ROOK, QUEN) & PieceAttacks[ROOK][k_sq]) == 0
-                || (pieces (~c, ROOK, QUEN) & attacks_bb<ROOK> (k_sq, mocc ^ org)) == 0))
+        if (   (   (pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][fk_sq]) == 0
+                || (pieces (~c, BSHP, QUEN) & attacks_bb<BSHP> (fk_sq, mocc ^ org)) == 0)
+            && (   (pieces (~c, ROOK, QUEN) & PieceAttacks[ROOK][fk_sq]) == 0
+                || (pieces (~c, ROOK, QUEN) & attacks_bb<ROOK> (fk_sq, mocc ^ org)) == 0))
         {
             return true;
         }
@@ -1325,7 +1326,7 @@ Position::operator string ()
         {
             oss << board[f|r] << " | ";
         }
-        oss << '\n' << " +---+---+---+---+---+---+---+---+\n";
+        oss << "\n +---+---+---+---+---+---+---+---+\n";
     }
     for (auto f = F_A; f <= F_H; ++f)
     {

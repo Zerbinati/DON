@@ -1405,7 +1405,7 @@ namespace TBSyzygy {
 
                 move_count++;
 
-                pos.do_move (move, si, pos.gives_check (move));
+                pos.do_move (move, si);
                 value = -search (pos, state);
                 pos.undo_move (move);
 
@@ -1553,7 +1553,7 @@ namespace TBSyzygy {
         {
             bool zeroing = pos.capture (move) || ptype (pos[org_sq (move)]) == PAWN;
 
-            pos.do_move (move, si, pos.gives_check (move));
+            pos.do_move (move, si);
 
             // For zeroing moves we want the dtz of the move _before_ doing it,
             // otherwise we will get the dtz of the next move sequence. Search the
@@ -1626,7 +1626,7 @@ namespace TBSyzygy {
         for (size_t i = 0; i < root_moves.size (); ++i)
         {
             Move move = root_moves[i][0];
-            root_pos.do_move (move, si, root_pos.gives_check (move));
+            root_pos.do_move (move, si);
             i32 v = 0;
 
             if (   root_pos.si->checkers != 0
@@ -1812,7 +1812,7 @@ namespace TBSyzygy {
         for (size_t i = 0; i < root_moves.size (); ++i)
         {
             Move move = root_moves[i][0];
-            root_pos.do_move (move, si, root_pos.gives_check (move));
+            root_pos.do_move (move, si);
             WDLScore v = -probe_wdl (root_pos, state);
             root_pos.undo_move (move);
 

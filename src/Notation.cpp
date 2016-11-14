@@ -116,7 +116,7 @@ namespace Notation {
                  + to_string (fix_dst_sq (m, Position::Chess960));
         if (mtype (m) == PROMOTE)
         {
-            can += char(tolower (char(PieceChar[promote (m)])));
+            can += char(tolower (PieceChar[promote (m)]));
         }
         return can;
     }
@@ -277,7 +277,7 @@ namespace Notation {
                 //move_to_can (m)
                 move_to_san (m, thread->root_pos) << ' ';
             states.push_back (StateInfo ());
-            thread->root_pos.do_move (m, states.back (), thread->root_pos.gives_check (m));
+            thread->root_pos.do_move (m, states.back ());
             ++ply;
         }
         while (ply != 0)

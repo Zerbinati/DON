@@ -29,12 +29,12 @@ namespace Transposition {
     #if defined(LPAGES)
 
         Memory::alloc_memory (_blocks, mem_size, alignment);
-        if (_blocks != nullptr)
+        if (_blocks == nullptr)
         {
-            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_blocks) + alignment-1) & ~uintptr_t(alignment-1));
-            assert((uintptr_t(_clusters) & (alignment-1)) == 0);
             return;
         }
+        _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_blocks) + alignment-1) & ~uintptr_t(alignment-1));
+        assert((uintptr_t(_clusters) & (alignment-1)) == 0);
 
     #else
 
@@ -55,14 +55,14 @@ namespace Transposition {
         alignment = std::max (u32(sizeof (void *)), alignment);
 
         _blocks = calloc (mem_size + alignment-1, 1);
-        if (_blocks != nullptr)
+        if (_blocks == nullptr)
         {
-            sync_cout << "info string Hash " << (mem_size >> 20) << " MB" << sync_endl;
-            _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_blocks) + alignment-1) & ~uintptr_t(alignment-1));
-            assert((uintptr_t(_clusters) & (alignment-1)) == 0);
+            std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << std::endl;
             return;
         }
-        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << std::endl;
+        sync_cout << "info string Hash " << (mem_size >> 20) << " MB" << sync_endl;
+        _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_blocks) + alignment-1) & ~uintptr_t(alignment-1));
+        assert((uintptr_t(_clusters) & (alignment-1)) == 0);
 
     #endif
 
@@ -94,32 +94,28 @@ namespace Transposition {
     // resize(mb) sets the size of the table, measured in mega-bytes.
     // Transposition table consists of a power of 2 number of clusters and
     // each cluster consists of Cluster::EntryCount number of entry.
-    u32 Table::resize (u32 mem_size_mb, bool force)
+    u32 Table::resize (u32 mem_size, bool force)
     {
-        if (mem_size_mb < MinHashSize)
+        if (mem_size < MinHashSize)
         {
-            mem_size_mb = MinHashSize;
+            mem_size = MinHashSize;
         }
-        if (mem_size_mb > MaxHashSize)
+        if (mem_size > MaxHashSize)
         {
-            mem_size_mb = MaxHashSize;
+            mem_size = MaxHashSize;
         }
-
-        size_t mem_size = size_t(mem_size_mb) << 20;
-        u08 hash_bit = BitBoard::scan_msq (mem_size / sizeof (Cluster));
+        size_t msize = size_t(mem_size) << 20;
+        u08 hash_bit = BitBoard::scan_msq (msize / sizeof (Cluster));
         assert(hash_bit <= MaxHashBit);
 
         size_t cluster_count = size_t(1) << hash_bit;
 
-        mem_size = cluster_count * sizeof (Cluster);
-
+        msize = cluster_count * sizeof (Cluster);
         if (   force
             || cluster_count != _cluster_count)
         {
             free_aligned_memory ();
-
-            alloc_aligned_memory (mem_size, CacheLineSize);
-
+            alloc_aligned_memory (msize, CacheLineSize);
             if (_clusters == nullptr)
             {
                 return 0;
@@ -127,27 +123,27 @@ namespace Transposition {
             _cluster_count = cluster_count;
         }
 
-        return u32(mem_size >> 20);
+        return u32(msize >> 20);
     }
     u32 Table::resize ()
     {
         return resize (size (), true);
     }
 
-    void Table::auto_resize (u32 mem_size_mb, bool force)
+    void Table::auto_resize (u32 mem_size, bool force)
     {
-        if (mem_size_mb == 0)
+        if (mem_size == 0)
         {
-            mem_size_mb = MaxHashSize;
+            mem_size = MaxHashSize;
         }
-        auto msize_mb = mem_size_mb;
-        while (msize_mb >= MinHashSize)
+        auto msize = mem_size;
+        while (msize >= MinHashSize)
         {
-            if (resize (msize_mb, force) != 0)
+            if (resize (msize, force) != 0)
             {
                 return;
             }
-            msize_mb >>= 1;
+            msize >>= 1;
         }
         Engine::stop (EXIT_FAILURE);
     }
@@ -181,11 +177,7 @@ namespace Transposition {
         auto *rte = fte; // Default first
         for (auto *ite = fte+1; ite < fte+Cluster::EntryCount; ++ite)
         {
-            // The replace value of an entry is calculated as its depth minus 8 times its relative age.
-            // Entry te1 is considered more valuable than Entry te2, if te1 replace > te2 replace.
-            // Due to packed storage format for generation and its cyclic nature
-            // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
-            // to calculate the entry age correctly even after generation overflows into the next cycle.
+            // Entry te1 is considered more valuable than Entry te2, if te1.worth() > te2.worth().
             if (  rte->worth ()
                 > ite->worth ())
             {

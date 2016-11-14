@@ -40,22 +40,22 @@ namespace Pawns {
         Score evaluate_unstoppable_pawns () const;
 
         template<Color Own>
-        Value pawn_shelter_storm (const Position &pos, Square k_sq) const;
+        Value pawn_shelter_storm (const Position &pos, Square fk_sq) const;
 
         template<Color Own>
-        void do_king_safety (const Position &pos, Square k_sq)
+        void do_king_safety (const Position &pos, Square fk_sq)
         {
-            if (king_square[Own] != k_sq)
+            if (king_square[Own] != fk_sq)
             {
-                king_square[Own] = k_sq;
+                king_square[Own] = fk_sq;
                 u08 kp_dist = 0;
                 Bitboard pawns = pos.pieces (Own, PAWN);
                 if (pawns != 0)
                 {
-                    while ((pawns & dist_rings_bb (k_sq, kp_dist++)) == 0) {}
+                    while ((pawns & dist_rings_bb (fk_sq, kp_dist++)) == 0) {}
                 }
                 king_pawn_dist[Own] = kp_dist;
-                king_safety[Own] = pawn_shelter_storm<Own> (pos, k_sq);
+                king_safety[Own] = pawn_shelter_storm<Own> (pos, fk_sq);
             }
         }
 
