@@ -28,6 +28,7 @@ struct StateInfo
 {
 public:
     // ---Copied when making a move---
+    Key         posi_key;       // Hash key of position.
     Key         matl_key;       // Hash key of materials.
     Key         pawn_key;       // Hash key of pawns.
 
@@ -41,8 +42,7 @@ public:
     u08         null_ply;   
 
     // ---Not copied when making a move---
-    Key         posi_key;       // Hash key of position.
-    PieceType   capture;   // Piece type captured.
+    PieceType   capture;        // Piece type captured.
     Bitboard    checkers;       // Checkers.
 
     // Check info
@@ -263,19 +263,29 @@ inline Key Position::move_posi_key (Move m) const
     assert(!empty (org)
         && color (board[org]) == active
         && mpt != NONE);
-
-    auto ppt = promotion (m) ? promote (m) : mpt;
-    Key key = si->posi_key;
-    if (mtype (m) == CASTLE)
+    
+    Key key = si->posi_key ^ Zob.color_key;
+    auto mt = mtype (m);
+    auto ppt = mt == PROMOTE ? promote (m) : mpt;
+    if (mt == CASTLE)
     {
         key ^=
              Zob.piece_square_keys[active][ROOK][dst]
             ^Zob.piece_square_keys[active][ROOK][rel_sq (active, dst > org ? SQ_F1 : SQ_D1)];
-        dst = rel_sq (active, dst > org ? SQ_G1 : SQ_C1);
     }
     else
     {
-        auto cpt = en_passant (m) ? PAWN : ptype (board[dst]);
+        if (   mt == NORMAL
+            && mpt == PAWN
+            && (u08 (dst) ^ u08 (org)) == 16)
+        {
+            auto ep_sq = org + (dst - org) / 2;
+            if (can_en_passant (~active, ep_sq, false))
+            {
+                key ^= Zob.en_passant_keys[_file (ep_sq)];
+            }
+        }
+        auto cpt = mt == ENPASSANT ? PAWN : ptype (board[dst]);
         if (cpt != NONE)
         {
             key ^= Zob.piece_square_keys[~active][cpt][en_passant (m) ? dst - pawn_push (active) : dst];
@@ -297,18 +307,8 @@ inline Key Position::move_posi_key (Move m) const
     {
         key ^= Zob.en_passant_keys[_file (si->en_passant_sq)];
     }
-    if (   mpt == PAWN
-        && (u08(dst) ^ u08(org)) == 16)
-    {
-        auto ep_sq = org + (dst - org) / 2;
-        if (can_en_passant (~active, ep_sq, false))
-        {
-            key ^= Zob.en_passant_keys[_file (ep_sq)];
-        }
-    }
     return key
-        ^ Zob.color_key
-        ^ Zob.piece_square_keys[active][ppt][dst]
+        ^ Zob.piece_square_keys[active][ppt][mtype (m) != CASTLE ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
         ^ Zob.piece_square_keys[active][mpt][org];
 }
 

@@ -98,11 +98,10 @@ namespace BitBoard {
         R5_bb|R4_bb|R3_bb
     };
 
-    const Bitboard ExCenter = FA_bb|FB_bb|FC_bb|FF_bb|FG_bb|FH_bb;
     const Bitboard PawnFlank[CLR_NO] =
     {
-        (R2_bb|R3_bb)&ExCenter,
-        (R7_bb|R6_bb)&ExCenter
+        (R2_bb|R3_bb)&(FA_bb|FB_bb|FC_bb|FF_bb|FG_bb|FH_bb),
+        (R7_bb|R6_bb)&(FA_bb|FB_bb|FC_bb|FF_bb|FG_bb|FH_bb)
     };
 
     const Bitboard WhiteCamp  = R5_bb|R4_bb|R3_bb|R2_bb|R1_bb;
@@ -120,8 +119,8 @@ namespace BitBoard {
     // Bonus is given based on how many squares inside this area are safe.
     const Bitboard SpaceArea[CLR_NO] =
     {
-        (FC_bb|FD_bb|FE_bb|FF_bb)&(R2_bb|R3_bb|R4_bb),
-        (FC_bb|FD_bb|FE_bb|FF_bb)&(R7_bb|R6_bb|R5_bb)
+        (R2_bb|R3_bb|R4_bb)&(FC_bb|FD_bb|FE_bb|FF_bb),
+        (R7_bb|R6_bb|R5_bb)&(FC_bb|FD_bb|FE_bb|FF_bb)
     };
 
     extern u08      SquareDist[SQ_NO][SQ_NO];

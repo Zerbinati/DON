@@ -209,7 +209,10 @@ namespace Memory {
 
     void  free_memory (void *mem)
     {
-        if (mem == nullptr) return;
+        if (mem == nullptr)
+        {
+            return;
+        }
 
         if (PagesUsed)
         {

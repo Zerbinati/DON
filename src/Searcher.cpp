@@ -1114,8 +1114,8 @@ namespace Searcher {
 
             const bool in_check = pos.si->checkers != 0;
 
-            ss->history_val = VALUE_ZERO;
             ss->move_count = 0;
+            ss->history_val = VALUE_ZERO;
             ss->current_move = MOVE_NONE;
             ss->piece_cm_history = nullptr;
 
