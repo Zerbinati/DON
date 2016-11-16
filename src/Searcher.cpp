@@ -35,19 +35,19 @@ void RootMove::insert_pv_into_tt (Position &pos) const
     StateInfo states[MaxPlies], *si = states;
 
     u08 ply = 0;
-    for (auto m : *this)
+    for (auto move : *this)
     {
-        assert(m != MOVE_NONE);
-        assert(MoveList<LEGAL> (pos).contains (m));
+        assert(move != MOVE_NONE);
+        assert(MoveList<LEGAL> (pos).contains (move));
 
         bool tt_hit;
         auto *tte = TT.probe (pos.si->posi_key, tt_hit);
         // Don't overwrite correct entries
         if (   !tt_hit
-            || m != tte->move ())
+            || move != tte->move ())
         {
             tte->save (pos.si->posi_key,
-                        m,
+                        move,
                         VALUE_NONE,
                         //pos.si->checkers == 0 ?
                         //    evaluate (pos) :
@@ -55,7 +55,7 @@ void RootMove::insert_pv_into_tt (Position &pos) const
                         -6,
                         BOUND_NONE);
         }
-        pos.do_move (m, *si++);
+        pos.do_move (move, *si++);
         if (++ply >= MaxPlies)
         {
             break;
@@ -73,8 +73,8 @@ void RootMove::extract_pv_from_tt (Position &pos)
 
     resize (1);
     u08 ply = 0;
-    auto m = at (ply);
-    pos.do_move (m, *si++);
+    auto move = at (ply);
+    pos.do_move (move, *si++);
     ++ply;
         
     auto expected_value = -new_value;
@@ -83,16 +83,16 @@ void RootMove::extract_pv_from_tt (Position &pos)
     while (   tt_hit
             && ply < MaxPlies 
             && expected_value == value_of_tt (tte->value (), ply+1)
-            && (m = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
-            && pos.pseudo_legal (m)
-            && pos.legal (m))
+            && (move = tte->move ()) != MOVE_NONE // Local copy to be SMP safe
+            && pos.pseudo_legal (move)
+            && pos.legal (move))
     {
-        //assert(m != MOVE_NONE);
-        assert(MoveList<LEGAL> (pos).contains (m));
+        //assert(move != MOVE_NONE);
+        assert(MoveList<LEGAL> (pos).contains (move));
         assert(!pos.draw ());
 
-        *this += m;
-        pos.do_move (m, *si++);
+        *this += move;
+        pos.do_move (move, *si++);
         ++ply;
 
         expected_value = -expected_value;
@@ -111,9 +111,9 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     assert(size () == 1);
     assert(at (0) != MOVE_NONE);
 
+    auto move = at (0);
     StateInfo si;
-    auto m = at (0);
-    pos.do_move (m, si);
+    pos.do_move (move, si);
     bool tt_hit;
     const auto *tte = TT.probe (pos.si->posi_key, tt_hit);
     Move ponder_move;
@@ -127,17 +127,17 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
         assert(!pos.draw ());
         *this += ponder_move;
     }
-    pos.undo_move (m);
+    pos.undo_move (move);
     return size () > 1;
 }
 
 RootMove::operator string () const
 {
     ostringstream oss;
-    for (auto m : *this)
+    for (auto move : *this)
     {
-        assert(m != MOVE_NONE);
-        oss << ' ' << move_to_can (m);
+        assert(move != MOVE_NONE);
+        oss << ' ' << move_to_can (move);
     }
     return oss.str ();
 }

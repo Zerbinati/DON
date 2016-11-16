@@ -87,13 +87,6 @@ template<> PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitbo
 bool Position::see_ge (Move m, Value v) const
 {
     assert(_ok (m));
-    if (mtype (m) == CASTLE)
-    {
-        // Castle moves are implemented as king capturing the rook so cannot be handled correctly.
-        // Simply assume the SEE value is VALUE_ZERO that is always correct unless in the rare case the rook ends up under attack.
-        return VALUE_ZERO >= v;
-    }
-
     auto org = org_sq (m);
     auto dst = dst_sq (m);
 
@@ -101,14 +94,17 @@ bool Position::see_ge (Move m, Value v) const
 
     auto c = color (board[org]);
     Bitboard mocc;
-    if (mtype (m) == ENPASSANT)
+    switch (mtype (m))
     {
+    case CASTLE:
+        // Castle moves are implemented as king capturing the rook so cannot be handled correctly.
+        // Simply assume the SEE value is VALUE_ZERO that is always correct unless in the rare case the rook ends up under attack.
+        return VALUE_ZERO >= v;
+    case ENPASSANT:
         assert((pieces (c, PAWN) & org) != 0);
         mocc = square_bb (dst - pawn_push (c));
         balance = PieceValues[MG][PAWN];
-    }
-    else
-    {
+    default:
         assert((pieces (c) & org) != 0);
         mocc = 0;
         balance = PieceValues[MG][ptype (board[dst])];
@@ -587,6 +583,7 @@ void Position::set_castle (Color c, CastleSide cs)
     }
     if (!rook_found)
     {
+        assert(false);
         return;
     }
 
@@ -840,24 +837,29 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-
+    auto mt  = mtype (m);
     assert((pieces (active) & org) != 0);
     assert((pieces (active) & dst) == 0
-        || mtype (m) == CASTLE);
+        || mt == CASTLE);
 
     auto mpt = ptype (board[org]);
     assert(mpt != NONE);
     auto ppt = mpt;
-    auto cap = mtype (m) == ENPASSANT ? dst - pawn_push (active) : dst;
+    auto cap = mt != ENPASSANT ? dst : dst - pawn_push (active);
     ++si->clock_ply;
-    si->capture = mtype (m) != CASTLE ? ptype (board[cap]) : NONE;
+    si->capture = mt != CASTLE ? ptype (board[cap]) : NONE;
     if (si->capture != NONE)
     {
+        assert(capture (m));
         remove_piece (cap);
         if (si->capture == PAWN)
-        {   si->pawn_key ^= Zob.piece_square_keys[pasive][si->capture][cap]; }
+        {
+            si->pawn_key ^= Zob.piece_square_keys[pasive][PAWN][cap];
+        }
         else
-        {   si->non_pawn_matl[pasive] -= PieceValues[MG][si->capture]; }
+        {
+            si->non_pawn_matl[pasive] -= PieceValues[MG][si->capture];
+        }
         si->matl_key ^= Zob.piece_square_keys[pasive][si->capture][count (pasive, si->capture)];
         si->posi_key ^= Zob.piece_square_keys[pasive][si->capture][cap];
         si->psq_score -= PSQ[pasive][si->capture][cap];
@@ -866,23 +868,24 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     // Reset en-passant square
     if (si->en_passant_sq != SQ_NO)
     {
+        assert(si->clock_ply <= 1);
         si->posi_key ^= Zob.en_passant_keys[_file (si->en_passant_sq)];
         si->en_passant_sq = SQ_NO;
     }
-    switch (mtype (m))
+    switch (mt)
     {
     case NORMAL:
     {
         assert(promote (m) - NIHT == PAWN
             && si->capture != KING);
-       
+
         move_piece (org, dst);
 
         if (mpt == PAWN)
         {
             si->pawn_key ^=
-                  Zob.piece_square_keys[active][mpt][dst]
-                ^ Zob.piece_square_keys[active][mpt][org];
+                  Zob.piece_square_keys[active][PAWN][dst]
+                ^ Zob.piece_square_keys[active][PAWN][org];
             // If pawn with double push
             if ((u08 (dst) ^ u08 (org)) == 16)
             {
@@ -906,11 +909,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
         Square rook_org, rook_dst;
         do_castling<true> (org, dst, rook_org, rook_dst);
-
         si->posi_key ^=
               Zob.piece_square_keys[active][ROOK][rook_dst]
             ^ Zob.piece_square_keys[active][ROOK][rook_org];
-
         si->psq_score +=
               PSQ[active][ROOK][rook_dst]
             - PSQ[active][ROOK][rook_org];
@@ -921,6 +922,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         assert(mpt == PAWN
             //&& dst == si->en_passant_sq // Already reset si->en_passant_sq
             && empty (dst)
+            && !empty (cap)
             && rel_rank (active, org) == R_5
             && rel_rank (active, dst) == R_6);
 
@@ -928,12 +930,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
         assert(si->clock_ply <= 1);
         si->clock_ply = 0;
-
         move_piece (org, dst);
-
         si->pawn_key ^=
-              Zob.piece_square_keys[active][mpt][dst]
-            ^ Zob.piece_square_keys[active][mpt][org];
+              Zob.piece_square_keys[active][PAWN][dst]
+            ^ Zob.piece_square_keys[active][PAWN][org];
     }
         break;
     case PROMOTE:
@@ -950,14 +950,11 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         remove_piece (org);
         board[org] = NO_PIECE; // Not done by remove_piece()
         place_piece (dst, active, ppt);
-
         si->matl_key ^=
-              Zob.piece_square_keys[active][mpt][count (active, mpt)]
+              Zob.piece_square_keys[active][PAWN][count (active, mpt)]
             ^ Zob.piece_square_keys[active][ppt][count (active, ppt) - 1];
-
         si->pawn_key ^=
-              Zob.piece_square_keys[active][mpt][org];
-
+              Zob.piece_square_keys[active][PAWN][org];
         si->non_pawn_matl[active] += PieceValues[MG][ppt];
     }
         break;
@@ -966,24 +963,17 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     si->posi_key ^=
           Zob.piece_square_keys[active][ppt][dst]
         ^ Zob.piece_square_keys[active][mpt][org];
-
     si->psq_score +=
           PSQ[active][ppt][dst]
         - PSQ[active][mpt][org];
-    
-    // Update castling rights if needed
-    i08 b;
-    if ((b = (si->castle_rights & (  castle_mask[org]
-                                   | castle_mask[dst]))) != 0)
+
+    // Update castling rights
+    u64 b = si->castle_rights & (  castle_mask[org]
+                                 | castle_mask[dst]);
+    si->castle_rights &= ~i32(b);
+    while (b != 0)
     {
-        for (i08 i = 0; i < 4; ++i)
-        {
-            if ((b & (1 << i)) != 0)
-            {
-                si->posi_key ^= (*Zob.castle_right_keys)[i];
-            }
-        }
-        si->castle_rights &= ~b;
+        si->posi_key ^= (*Zob.castle_right_keys)[pop_lsq (b)];
     }
 
     assert(attackers_to (square (active, KING), pasive) == 0);
@@ -996,9 +986,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     active = pasive;
     si->posi_key ^= Zob.color_key;
 
-    // Update state information
     ++si->null_ply;
-    // Set check info used for fast check detection
     si->set_check_info (*this);
     ++ply;
     ++nodes;
@@ -1014,15 +1002,13 @@ void Position::undo_move (Move m)
     auto dst = dst_sq (m);
 
     active = ~active;
-
+    auto mt = mtype (m);
     assert(empty (org)
-        || mtype (m) == CASTLE);
+        || mt == CASTLE);
     assert(si->capture != KING);
 
-    auto cap = mtype (m) == ENPASSANT ? dst - pawn_push (active) : dst;
-
-    // Undo move according to move type
-    switch (mtype (m))
+    auto cap = mt != ENPASSANT ? dst : dst - pawn_push (active);
+    switch (mt)
     {
     case NORMAL:
     {
@@ -1097,7 +1083,6 @@ void Position::do_null_move (StateInfo &nsi)
     si->capture = NONE;
     si->null_ply = 0;
     assert(si->checkers == 0);
-    // Set check info used for fast check detection
     si->set_check_info (*this);
 
     assert(ok ());
@@ -1304,7 +1289,7 @@ Position::operator string ()
 // Performs some consistency checks for the position, helpful for debugging.
 bool Position::ok (u08 *step) const
 {
-    static const bool Fast = true;
+    static const bool Fast = false;
     //enum Step : u08
     //{
     //    BASIC,
@@ -1456,18 +1441,19 @@ bool Position::ok (u08 *step) const
     }
     ++s;
     {
-        if (   si->clock_ply > DrawClockPly
-            || si->checkers != attackers_to (square (active, KING), ~active)
-            || si->matl_key != Zob.compute_matl_key (*this)
+        if (   si->matl_key != Zob.compute_matl_key (*this)
             || si->pawn_key != Zob.compute_pawn_key (*this)
             || si->posi_key != Zob.compute_posi_key (*this)
             || si->psq_score != compute_psq (*this)
             || si->non_pawn_matl[WHITE] != compute_npm<WHITE> (*this)
             || si->non_pawn_matl[BLACK] != compute_npm<BLACK> (*this)
+            || si->checkers != attackers_to (square (active, KING), ~active)
+            || (   si->clock_ply > DrawClockPly
+                || (   si->capture != NONE
+                    && si->clock_ply != 0))
             || (   si->en_passant_sq != SQ_NO
                 && (   rel_rank (active, si->en_passant_sq) != R_6
-                    || !can_en_passant (active, si->en_passant_sq)))
-            || (si->capture != NONE && si->clock_ply != 0))
+                    || !can_en_passant (active, si->en_passant_sq))))
         {
             if (step != nullptr) *step = s;
             return false;

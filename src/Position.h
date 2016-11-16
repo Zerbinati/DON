@@ -291,25 +291,18 @@ inline Key Position::move_posi_key (Move m) const
             key ^= Zob.piece_square_keys[~active][cpt][en_passant (m) ? dst - pawn_push (active) : dst];
         }
     }
-    u08 b;
-    if ((b = (si->castle_rights & (  castle_mask[org]
-                                   | castle_mask[dst]))) != 0)
+
+    u64 b = si->castle_rights & (  castle_mask[org]
+                                 | castle_mask[dst]);
+    while (b != 0)
     {
-        for (i08 i = 0; i < 4; ++i)
-        {
-            if ((b & (1 << i)) != 0)
-            {
-                key ^= (*Zob.castle_right_keys)[i];
-            }
-        }
+        key ^= (*Zob.castle_right_keys)[pop_lsq (b)];
     }
-    if (si->en_passant_sq != SQ_NO)
-    {
-        key ^= Zob.en_passant_keys[_file (si->en_passant_sq)];
-    }
+
     return key
-        ^ Zob.piece_square_keys[active][ppt][mtype (m) != CASTLE ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
-        ^ Zob.piece_square_keys[active][mpt][org];
+        ^ Zob.piece_square_keys[active][ppt][mt != CASTLE ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
+        ^ Zob.piece_square_keys[active][mpt][org]
+        ^ (si->en_passant_sq != SQ_NO ? Zob.en_passant_keys[_file (si->en_passant_sq)] : 0);
 }
 
 inline CastleRight Position::can_castle (Color c) const { return si->castle_rights & castle_right (c); }
@@ -508,7 +501,7 @@ operator<< (std::basic_ostream<CharT, Traits> &os, Position &pos)
     os << std::string(pos);
     return os;
 }
-
+// Set check info used for fast check detection
 inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] =
