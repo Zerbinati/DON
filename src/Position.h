@@ -52,10 +52,10 @@ public:
 
     StateInfo   *ptr;           // Previous StateInfo.
 
-    void clear ()
-    {
-        std::memset (this, 0x00, sizeof (*this));
-    }
+    //void clear ()
+    //{
+    //    std::memset (this, 0x00, sizeof (*this));
+    //}
 
     void set_check_info (const Position &pos);
 };

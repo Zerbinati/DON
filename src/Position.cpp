@@ -680,7 +680,6 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     iss >> std::noskipws;
 
     clear ();
-    nsi.clear ();
     si = &nsi;
 
     u08 token;
@@ -719,6 +718,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     iss >> token;
     active = Color(ColorChar.find (token));
 
+    si->castle_rights = CR_NONE;
     // 3. Castling availability
     iss >> token;
     while (   iss >> token
@@ -749,18 +749,17 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     }
     
     // 4. En-passant square. Ignore if no pawn capture is possible
-    auto ep_sq = SQ_NO;
+    si->en_passant_sq = SQ_NO;
     u08 file, rank;
     if (   (iss >> file && ('a' <= file && file <= 'h'))
         && (iss >> rank && ('3' == rank || rank == '6')))
     {
-        auto sq = to_square (file, rank);
-        if (can_en_passant (active, sq))
+        auto ep_sq = to_square (file, rank);
+        if (can_en_passant (active, ep_sq))
         {
-            ep_sq = sq;
+            si->en_passant_sq = ep_sq;
         }
     }
-    si->en_passant_sq = ep_sq;
 
     // 5-6. Clock ply and Game move count
     i16   clk_ply = 0
@@ -788,13 +787,14 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     // Convert from moves starting from 1 to ply starting from 0,
     ply = i16(2*(moves - 1) + (active == BLACK ? 1 : 0));
 
+    si->posi_key = Zob.compute_posi_key (*this);
     si->matl_key = Zob.compute_matl_key (*this);
     si->pawn_key = Zob.compute_pawn_key (*this);
-    si->posi_key = Zob.compute_posi_key (*this);
     si->psq_score = compute_psq (*this);
     si->non_pawn_matl[WHITE] = compute_npm<WHITE> (*this);
     si->non_pawn_matl[BLACK] = compute_npm<BLACK> (*this);
     si->clock_ply = u08(clk_ply);
+    si->null_ply = 0;
     si->capture = NONE;
     si->checkers = attackers_to (square (active, KING), ~active);
     si->set_check_info (*this);
@@ -970,10 +970,13 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     // Update castling rights
     u64 b = si->castle_rights & (  castle_mask[org]
                                  | castle_mask[dst]);
-    si->castle_rights &= ~i32(b);
-    while (b != 0)
+    if (b != 0)
     {
-        si->posi_key ^= (*Zob.castle_right_keys)[pop_lsq (b)];
+        si->castle_rights &= ~i32(b);
+        while (b != 0)
+        {
+            si->posi_key ^= (*Zob.castle_right_keys)[pop_lsq (b)];
+        }
     }
 
     assert(attackers_to (square (active, KING), pasive) == 0);
