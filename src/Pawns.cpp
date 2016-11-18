@@ -100,9 +100,10 @@ namespace Pawns {
             e->semiopens  [Own] = u08(0xFF);
             e->color_count[Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
             e->color_count[Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
-            e->castle_safety[Own][CS_KING] = e->pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1));
-            e->castle_safety[Own][CS_QUEN] = e->pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1));
-            e->king_square[Own] = SQ_NO;
+            e->index[Own] = 0;
+            std::fill_n (e->king_square[Own], MaxEntry, SQ_NO);
+            e->do_king_safety<Own> (pos, rel_sq (Own, SQ_G1));
+            e->do_king_safety<Own> (pos, rel_sq (Own, SQ_C1));
 
             auto score = SCORE_ZERO;
 

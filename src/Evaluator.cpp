@@ -472,32 +472,34 @@ namespace Evaluator {
             auto fk_sq = pos.square (Own, KING);
 
             // King Safety: friend pawns shelter and enemy pawns storm
-            ei.pe->do_king_safety<Own> (pos, fk_sq);
-            auto value = ei.pe->king_safety[Own];
+            auto index = ei.pe->do_king_safety<Own> (pos, fk_sq);
+            auto value = ei.pe->king_safety[Own][index];
             if (   rel_rank (Own, fk_sq) == R_1
                 && pos.can_castle (Own) != CR_NONE)
             {
-                if (   pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE
+                if (   index != 0
+                    && pos.can_castle (Castling<Own, CS_KING>::Right) != CR_NONE
                     && (pos.king_path[Castling<Own, CS_KING>::Right] & ei.ful_attacked_by[Opp]) == 0
                     && (pos.castle_path[Castling<Own, CS_KING>::Right] & pos.pieces ()) == 0)
                 {
-                    if (value < ei.pe->castle_safety[Own][CS_KING])
+                    if (value < ei.pe->king_safety[Own][0])
                     {
-                        value = ei.pe->castle_safety[Own][CS_KING];
+                        value = ei.pe->king_safety[Own][0];
                     }
                 }
-                if (   pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE
+                if (   index != 1
+                    && pos.can_castle (Castling<Own, CS_QUEN>::Right) != CR_NONE
                     && (pos.king_path[Castling<Own, CS_QUEN>::Right] & ei.ful_attacked_by[Opp]) == 0
                     && (pos.castle_path[Castling<Own, CS_QUEN>::Right] & pos.pieces ()) == 0)
                 {
-                    if (value < ei.pe->castle_safety[Own][CS_QUEN])
+                    if (value < ei.pe->king_safety[Own][1])
                     {
-                        value = ei.pe->castle_safety[Own][CS_QUEN];
+                        value = ei.pe->king_safety[Own][1];
                     }
                 }
             }
 
-            auto score = mk_score (value, -16 * ei.pe->king_pawn_dist[Own]);
+            auto score = mk_score (value, -16 * ei.pe->king_pawn_dist[Own][index]);
 
             Bitboard b;
             Bitboard non_opp = ~pos.pieces (Opp);

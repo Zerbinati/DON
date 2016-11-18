@@ -6,6 +6,7 @@
 
 namespace Pawns {
 
+    const i08 MaxEntry = 4;
     // Pawns::Entry contains various information about a pawn structure.
     struct Entry
     {
@@ -21,11 +22,11 @@ namespace Pawns {
         Bitboard passers    [CLR_NO];
         u08      semiopens  [CLR_NO];
         u08      color_count  [CLR_NO][CLR_NO];
-        Value    castle_safety[CLR_NO][CS_NO];
 
-        Square   king_square    [CLR_NO];
-        Value    king_safety    [CLR_NO];
-        u08      king_pawn_dist [CLR_NO];
+        u08      index          [CLR_NO];
+        Square   king_square    [CLR_NO][MaxEntry];
+        Value    king_safety    [CLR_NO][MaxEntry];
+        u08      king_pawn_dist [CLR_NO][MaxEntry];
 
         bool file_semiopen (Color c, File f) const
         {
@@ -33,7 +34,9 @@ namespace Pawns {
         }
         bool side_semiopen (Color c, File f, bool left) const
         {
-            return (semiopens[c] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1))) != 0;
+            return (semiopens[c] & (left ?
+                                     ((1 << (f+0)) - 1) :
+                                    ~((1 << (f+1)) - 1))) != 0;
         }
 
         template<Color Own>
@@ -43,20 +46,23 @@ namespace Pawns {
         Value pawn_shelter_storm (const Position &pos, Square fk_sq) const;
 
         template<Color Own>
-        void do_king_safety (const Position &pos, Square fk_sq)
+        u08 do_king_safety (const Position &pos, Square fk_sq)
         {
-            if (king_square[Own] != fk_sq)
+            auto p = std::find (king_square[Own], king_square[Own] + index[Own] + 1, fk_sq);
+            if (p != king_square[Own] + index[Own] + 1)
             {
-                king_square[Own] = fk_sq;
-                u08 kp_dist = 0;
-                Bitboard pawns = pos.pieces (Own, PAWN);
-                if (pawns != 0)
-                {
-                    while ((pawns & dist_rings_bb (fk_sq, kp_dist++)) == 0) {}
-                }
-                king_pawn_dist[Own] = kp_dist;
-                king_safety[Own] = pawn_shelter_storm<Own> (pos, fk_sq);
+                return u08(p - king_square[Own]);
             }
+            king_square[Own][index[Own]] = fk_sq;
+            u08 kp_dist = 0;
+            Bitboard pawns = pos.pieces (Own, PAWN);
+            if (pawns != 0)
+            {
+                while ((pawns & dist_rings_bb (fk_sq, kp_dist++)) == 0) {}
+            }
+            king_pawn_dist[Own][index[Own]] = kp_dist;
+            king_safety   [Own][index[Own]] = pawn_shelter_storm<Own> (pos, fk_sq);
+            return index[Own] < MaxEntry - 1 ? index[Own]++ : index[Own];
         }
 
     };
