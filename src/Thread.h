@@ -171,6 +171,8 @@ namespace Threading {
             , pv_index = 0
             , max_ply  = 0 // Used to send 'seldepth' info to GUI
             , check_count = 0;
+        std::atomic_bool count_reset = { true };
+
         u64   tb_hits  = 0;
 
         Position root_pos;
@@ -194,7 +196,7 @@ namespace Threading {
 
         void clear ()
         {
-            check_count = 0;
+            count_reset = true;
             pawn_table.clear ();
             matl_table.clear ();
             piece_history.clear ();
@@ -310,7 +312,7 @@ namespace Threading {
         u64  nodes () const;
         u64  tb_hits () const;
 
-        void reset_count ();
+        void count_reset ();
         void clear ();
         void configure (u32 threads);
 

@@ -75,8 +75,6 @@ void TimeManager::initialize (Color c, i16 ply)
         Limits.clock[c].time = available_nodes;
         Limits.clock[c].inc *= NodesTime;
     }
-    // At low node count increase the checking rate otherwise use a default value
-    Limits.check_count = u16(Limits.nodes != 0 ? std::min (i32(Limits.nodes / 0x1000), 0x1000) : 0x1000);
 
     optimum_time =
     maximum_time =
@@ -172,6 +170,7 @@ namespace Threading {
     Thread::Thread ()
     {
         _alive = true;
+        count_reset = true;
         index = u16(Threadpool.size ());
         clear ();
         std::unique_lock<Mutex> lk (_mutex);
@@ -223,11 +222,11 @@ namespace Threading {
         return tb_hits;
     }
 
-    void ThreadPool::reset_count ()
+    void ThreadPool::count_reset ()
     {
         for (auto *th : *this)
         {
-            th->check_count = 0;
+            th->count_reset = true;
         }
     }
     void ThreadPool::clear ()

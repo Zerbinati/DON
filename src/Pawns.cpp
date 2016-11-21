@@ -101,7 +101,7 @@ namespace Pawns {
             e->color_count[Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
             e->color_count[Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
             e->index[Own] = 0;
-            std::fill_n (e->king_square[Own], MaxEntry, SQ_NO);
+            std::fill_n (e->king_square[Own], MaxCache, SQ_NO);
             e->do_king_safety<Own> (pos, rel_sq (Own, SQ_G1));
             e->do_king_safety<Own> (pos, rel_sq (Own, SQ_C1));
 

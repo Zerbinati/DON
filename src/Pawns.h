@@ -6,7 +6,7 @@
 
 namespace Pawns {
 
-    const i08 MaxEntry = 4;
+    const i08 MaxCache = 4;
     // Pawns::Entry contains various information about a pawn structure.
     struct Entry
     {
@@ -24,9 +24,9 @@ namespace Pawns {
         u08      color_count  [CLR_NO][CLR_NO];
 
         u08      index          [CLR_NO];
-        Square   king_square    [CLR_NO][MaxEntry];
-        Value    king_safety    [CLR_NO][MaxEntry];
-        u08      king_pawn_dist [CLR_NO][MaxEntry];
+        Square   king_square    [CLR_NO][MaxCache];
+        Value    king_safety    [CLR_NO][MaxCache];
+        u08      king_pawn_dist [CLR_NO][MaxCache];
 
         bool file_semiopen (Color c, File f) const
         {
@@ -62,7 +62,7 @@ namespace Pawns {
             }
             king_pawn_dist[Own][index[Own]] = kp_dist;
             king_safety   [Own][index[Own]] = pawn_shelter_storm<Own> (pos, fk_sq);
-            return index[Own] < MaxEntry - 1 ? index[Own]++ : index[Own];
+            return index[Own] < MaxCache - 1 ? index[Own]++ : index[Own];
         }
 
     };

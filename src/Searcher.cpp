@@ -1121,10 +1121,18 @@ namespace Searcher {
 
             // Step 1. Initialize node
             auto *th = pos.thread;
-            // Check for the available remaining limit
-            if (++th->check_count > Limits.check_count)
+
+            // Check count reset
+            if (th->count_reset.load (memory_order_relaxed))
             {
-                Threadpool.reset_count ();
+                th->count_reset = false;
+                // At low node count increase the checking rate otherwise use a default value
+                th->check_count = u16(Limits.nodes != 0 ? std::min (std::max (i32(Limits.nodes / 0x1000), 1), 0x1000) : 0x1000);
+            }
+            // Check for the available remaining limit
+            if (--th->check_count == 0)
+            {
+                Threadpool.count_reset ();
                 check_limits ();
             }
 
@@ -1621,7 +1629,7 @@ namespace Searcher {
                             || (   lmr_depth < 7
                                 && !in_check
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
-                                // Negative SEE based pruning
+                                // LMR depth based SEE pruning
                             || (   lmr_depth < 8
                                 && !pos.see_ge (move, Value(-35*lmr_depth*lmr_depth))))
                         {
@@ -1629,10 +1637,10 @@ namespace Searcher {
                         }
                     }
                     else
-                    // Negative SEE based pruning
+                    // Depth based SEE based pruning
                     if (   depth < 7
                         && new_depth < depth
-                        && !pos.see_ge (move, Value(-35*depth*depth)))
+                        && !pos.see_ge (move, Value(-35*depth*depth) + (ss->static_eval != VALUE_NONE ? ss->static_eval - alfa - 200 : VALUE_ZERO)))
                     {
                         continue;
                     }
