@@ -32,20 +32,17 @@ bool Position::draw () const
         return true;
     }
     // Draw by Repetition?
-    auto p = std::min (si->clock_ply, si->null_ply);
-    if (p >= 4)
+    const auto *psi = si->ptr->ptr;
+    for (i08 p = std::min (si->clock_ply, si->null_ply) - 2;
+             p >= 2;
+             p -= 2)
     {
-        const auto *psi = si->ptr->ptr;
-        do
+        psi = psi->ptr->ptr;
+        // Check first repetition
+        if (psi->posi_key == si->posi_key)
         {
-            psi = psi->ptr->ptr;
-            // Check first repetition
-            if (psi->posi_key == si->posi_key)
-            {
-                return true;
-            }
-            p -= 2;
-        } while (p >= 4);
+            return true;
+        }
     }
     return false;
 }
@@ -193,8 +190,6 @@ template<Color Own>
 Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const
 {
     static const auto Opp  = Own == WHITE ? BLACK : WHITE;
-    //static const auto Push = Own == WHITE ? DEL_N : DEL_S;
-    //static const auto PAtt = Own == WHITE ? PawnAttacks[BLACK] : PawnAttacks[WHITE];
 
     Bitboard blockers = 0;
     Bitboard defenders = pieces (Own);
@@ -206,20 +201,12 @@ Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &p
            | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     Bitboard hurdle = (defenders | (attackers ^ snipers));
     Bitboard b;
-    //Bitboard p;
-    //Bitboard x;
     while (snipers != 0)
     {
         auto sniper_sq = pop_lsq (snipers);
         b = hurdle & between_bb (s, sniper_sq);
         if (   b != 0
-            && !more_than_one (b)
-            /*&& (   (p = b & attackers & pieces (PAWN)) == 0
-                || (   (   (x = p & file_bb (s)) != 0
-                        && (PAtt[scan_lsq (x)] & defenders) != 0)
-                    || (   (x = p & (rank_bb (s) | PieceAttacks[BSHP][s])) != 0
-                        && (   empty (scan_lsq (x)-Push)
-                            || (PAtt[scan_lsq (x)] & defenders) != 0))))*/)
+            && !more_than_one (b))
         {
             blockers |= b;
             
@@ -1295,7 +1282,7 @@ Position::operator string ()
 // Performs some consistency checks for the position, helpful for debugging.
 bool Position::ok (u08 *step) const
 {
-    static const bool Fast = false;
+    static const bool Fast = true;
     //enum Step : u08
     //{
     //    BASIC,

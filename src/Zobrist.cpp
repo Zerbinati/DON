@@ -7,13 +7,16 @@ using namespace std;
 using namespace BitBoard;
 
 namespace Zobrists {
+    
+    Key Zobrist::no_matl_key;
+    Key Zobrist::no_pawn_key;
 
     Key Zobrist::compute_matl_key (const Position &pos) const
     {
-        Key matl_key = 0;
+        Key matl_key = Zobrist::no_matl_key;
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            for (auto pt = PAWN; pt <= KING; ++pt)
+            for (auto pt = PAWN; pt <= QUEN; ++pt)
             {
                 for (auto pc = 0; pc < pos.count (c, pt); ++pc)
                 {
@@ -26,7 +29,7 @@ namespace Zobrists {
 
     Key Zobrist::compute_pawn_key (const Position &pos) const
     {
-        Key pawn_key = 0;
+        Key pawn_key = Zobrist::no_pawn_key;
         for (auto c = WHITE; c <= BLACK; ++c)
         {
             for (auto s : pos.squares[c][PAWN])
@@ -183,6 +186,9 @@ namespace Zobrists {
             }
         }
         Zob.color_key = prng.rand<Key> ();
+
+        Zobrist::no_matl_key = prng.rand<Key> ();
+        Zobrist::no_pawn_key = prng.rand<Key> ();
     }
 
 }

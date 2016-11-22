@@ -11,7 +11,6 @@ namespace Pawns {
     struct Entry
     {
     public:
-        bool    used;
         Key     key;
         Score   score;
         u08     asymmetry;

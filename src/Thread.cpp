@@ -222,7 +222,7 @@ namespace Threading {
         return tb_hits;
     }
 
-    void ThreadPool::count_reset ()
+    void ThreadPool::reset ()
     {
         for (auto *th : *this)
         {

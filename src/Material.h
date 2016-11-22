@@ -12,7 +12,6 @@ namespace Material {
     struct Entry
     {
     public:
-        bool    used;
         Key     key;
         Score   imbalance;
         Phase   phase;

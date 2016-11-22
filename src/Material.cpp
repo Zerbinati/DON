@@ -87,14 +87,12 @@ namespace Material {
         auto matl_key = pos.si->matl_key;
         auto *e = pos.thread->matl_table[matl_key];
 
-        if (   e->used
-            && e->key == matl_key)
+        if (e->key == matl_key)
         {
             return e;
         }
 
         std::memset (e, 0x00, sizeof (*e));
-        e->used = true;
         e->key = matl_key;
         e->scale[WHITE] =
         e->scale[BLACK] = SCALE_NORMAL;

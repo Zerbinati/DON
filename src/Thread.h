@@ -312,7 +312,7 @@ namespace Threading {
         u64  nodes () const;
         u64  tb_hits () const;
 
-        void count_reset ();
+        void reset ();
         void clear ();
         void configure (u32 threads);
 

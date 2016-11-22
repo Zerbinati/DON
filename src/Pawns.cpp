@@ -250,14 +250,12 @@ namespace Pawns {
         auto pawn_key = pos.si->pawn_key;
         auto *e = pos.thread->pawn_table[pawn_key];
 
-        if (   e->used
-            && e->key == pawn_key)
+        if (e->key == pawn_key)
         {
             return e;
         }
-        e->used = true;
+
         e->key = pawn_key;
-        
         e->score =
             + evaluate<WHITE> (pos, e)
             - evaluate<BLACK> (pos, e);
