@@ -32,17 +32,20 @@ bool Position::draw () const
         return true;
     }
     // Draw by Repetition?
-    const auto *psi = si;
-    for (auto p = std::min (psi->clock_ply, psi->null_ply);
-              p >= 2;
-              p -= 2)
+    auto p = std::min (si->clock_ply, si->null_ply);
+    if (p >= 4)
     {
-        psi = psi->ptr->ptr;
-        // Check first repetition
-        if (psi->posi_key == si->posi_key)
+        const auto *psi = si->ptr->ptr;
+        do
         {
-            return true;
-        }
+            psi = psi->ptr->ptr;
+            // Check first repetition
+            if (psi->posi_key == si->posi_key)
+            {
+                return true;
+            }
+            p -= 2;
+        } while (p >= 4);
     }
     return false;
 }

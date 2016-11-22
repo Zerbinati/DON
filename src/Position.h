@@ -285,10 +285,10 @@ inline Key Position::move_posi_key (Move m) const
                 key ^= Zob.en_passant_keys[_file (ep_sq)];
             }
         }
-        auto cpt = mt == ENPASSANT ? PAWN : ptype (board[dst]);
+        auto cpt = mt != ENPASSANT ? ptype (board[dst]) : PAWN;
         if (cpt != NONE)
         {
-            key ^= Zob.piece_square_keys[~active][cpt][en_passant (m) ? dst - pawn_push (active) : dst];
+            key ^= Zob.piece_square_keys[~active][cpt][mt != ENPASSANT ? dst : dst - pawn_push (active)];
         }
     }
 

@@ -124,8 +124,8 @@ namespace TBSyzygy {
             i32 group_len[TBPIECES+1];      // Number of pieces in a given group: KRKN -> (3, 1)
         };
 
-        // Helper struct to avoid to manually define entry copy c'tor as we should
-        // because default one is not compatible with atomic_bool.
+        // Helper struct to avoid to manually define entry copy constructor,
+        // because default one is not compatible with std::atomic_bool.
         struct Atomic
         {
         public:
@@ -134,13 +134,41 @@ namespace TBSyzygy {
             atomic_bool ready;
         };
 
-        struct WDLEntry
-            : public Atomic
+        // We define types for the different parts of the WLDEntry and DTZEntry with
+        // corresponding specializations for pieces or pawns.
+
+        struct WLDEntryPiece
         {
         public:
-            WDLEntry (const string &code);
-            ~WDLEntry ();
+            PairsData* precomp;
+        };
 
+        struct WDLEntryPawn
+        {
+        public:
+            u08 pawn_count[2];        // [Lead color / other color]
+            WLDEntryPiece file[2][4]; // [wtm / btm][FILE_A..FILE_D]
+        };
+
+        struct DTZEntryPiece
+        {
+        public:
+            PairsData* precomp;
+            u16 map_idx[4]; // WDLWin, WDLLoss, WDLCursedWin, WDLCursedLoss
+            u08 *map;
+        };
+
+        struct DTZEntryPawn
+        {
+        public:
+            u08 pawn_count[2];
+            DTZEntryPiece file[4];
+            u08 *map;
+        };
+
+        struct TBEntry : public Atomic
+        {
+        public:
             void* base_address;
             u64 mapping;
             Key key1;
@@ -148,56 +176,30 @@ namespace TBSyzygy {
             i32 piece_count;
             bool has_pawns;
             bool has_unique_pieces;
+        };
+
+        // Now the main types: WDLEntry and DTZEntry
+        struct WDLEntry : public TBEntry
+        {
+        public:
+            WDLEntry (const std::string &code);
+            ~WDLEntry ();
             union
             {
-                struct
-                {
-                    PairsData* precomp;
-                } piece_table[2]; // [wtm / btm]
-
-                struct
-                {
-                    u08 pawn_count[2]; // [Lead color / other color]
-                    struct
-                    {
-                        PairsData* precomp;
-                    } file[2][4]; // [wtm / btm][F_A..F_D]
-                } pawn_table;
+                WLDEntryPiece piece_table[2]; // [wtm / btm]
+                WDLEntryPawn  pawn_table;
             };
         };
 
-        struct DTZEntry
-            : public Atomic
+        struct DTZEntry : public TBEntry
         {
-            DTZEntry (const WDLEntry& wdl);
+        public:
+            DTZEntry (const WDLEntry &wdl);
             ~DTZEntry ();
-
-            void* base_address;
-            u64 mapping;
-            Key key1;
-            Key key2;
-            i32 piece_count;
-            bool has_pawns;
-            bool has_unique_pieces;
             union
             {
-                struct
-                {
-                    PairsData* precomp;
-                    u16 map_idx[4]; // WDLWin, WDLLoss, WDLCursedWin, WDLCursedLoss
-                    u08 *map;
-                } piece_table;
-
-                struct
-                {
-                    u08 pawn_count[2];
-                    struct
-                    {
-                        PairsData* precomp;
-                        u16 map_idx[4];
-                    } file[4];
-                    u08 *map;
-                } pawn_table;
+                DTZEntryPiece piece_table;
+                DTZEntryPawn  pawn_table;
             };
         };
 
@@ -251,19 +253,17 @@ namespace TBSyzygy {
         };
 
         template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
-        inline void swap_byte (T& x)
+        inline void swap_byte (T &x)
         {
-            if (Half) // Fix a MSVC 2015 warning
+            char *c = (char*) &x;
+            for (i32 i = 0; i < Half; ++i)
             {
-                char *c = (char*) &x;
-                for (i32 i = 0; i < Half; ++i)
-                {
-                    char tmp = c[i];
-                    c[i] = c[End - i];
-                    c[End - i] = tmp;
-                }
+                char tmp = c[i];
+                c[i] = c[End - i];
+                c[End - i] = tmp;
             }
         }
+        template<> inline void swap_byte<u08, 0, 0> (u08 &) {}
 
         template<typename T, i32 LE> T number (void* addr)
         {

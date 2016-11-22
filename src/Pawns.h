@@ -6,7 +6,7 @@
 
 namespace Pawns {
 
-    const i08 MaxCache = 4;
+    const i08 MaxCache = 6;
     // Pawns::Entry contains various information about a pawn structure.
     struct Entry
     {

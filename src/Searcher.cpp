@@ -1127,8 +1127,9 @@ namespace Searcher {
             {
                 th->count_reset = false;
                 // At low node count increase the checking rate otherwise use a default value
-                th->check_count = u16(Limits.nodes != 0 ? std::min (std::max (i32(Limits.nodes / 0x1000), 1), 0x1000) : 0x1000);
+                th->check_count = u16(Limits.nodes != 0 ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
             }
+            assert(th->check_count != 0);
             // Check for the available remaining limit
             if (--th->check_count == 0)
             {
