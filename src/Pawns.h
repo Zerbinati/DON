@@ -34,7 +34,7 @@ namespace Pawns {
         bool side_semiopen (Color c, File f, bool left) const
         {
             return (semiopens[c] & (left ?
-                                     ((1 << (f+0)) - 1) :
+                                     ((1 << (f  )) - 1) :
                                     ~((1 << (f+1)) - 1))) != 0;
         }
 

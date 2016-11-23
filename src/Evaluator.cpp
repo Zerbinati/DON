@@ -125,7 +125,7 @@ namespace Evaluator {
             Material::Entry *const &me = nullptr;
 
             // Contains the absolute blockers pieces.
-            Bitboard abs_blockers [CLR_NO];
+            Bitboard abs_blockers[CLR_NO];
             // Contains the discover blockers pieces.
             Bitboard dsc_blockers[CLR_NO];
 
@@ -168,7 +168,7 @@ namespace Evaluator {
 
         // PieceMobility[piece-type][attacks] contains bonuses for mobility,
         // indexed by piece type and number of attacked squares in the mobility area.
-        const Score PieceMobility[NONE][28] =
+        const Score PieceMobility[][28] =
         {
             {},
             { // Knight
@@ -191,8 +191,7 @@ namespace Evaluator {
                 S( 60,111), S( 70,116), S( 72,118), S( 73,122), S( 75,128), S( 77,130),
                 S( 85,133), S( 94,136), S( 99,140), S(108,157), S(112,158), S(113,161),
                 S(118,174), S(119,177), S(123,191), S(128,199)
-            },
-            {}
+            }
         };
 
         // Outpost[supported by pawn] contains bonuses for knights and bishops outposts.
@@ -427,14 +426,13 @@ namespace Evaluator {
                         auto fk_sq = pos.square (Own, KING);
                         // Penalty for rook when trapped by the king, even more if the king can't castle
                         if (   mob <= 3
-                            && (   rel_rank (Own, fk_sq) == rel_rank (Own, s)
-                                || (   rel_rank (Own, fk_sq) < R_4
-                                    && rel_rank (Own, s) < R_4))
                             && (_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq))
                             && (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)) != 0
-                            && !ei.pe->side_semiopen (Own, _file (s) < _file (fk_sq) ? _file (fk_sq) - 1 : _file (fk_sq) + 1, _file (s) < _file (fk_sq)))
+                            && !ei.pe->side_semiopen (Own, _file (fk_sq), _file (s) < _file (fk_sq)))
                         {
-                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (rel_rank (Own, fk_sq) != R_1 || pos.can_castle (Own) ? 1 : 2);
+                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (   rel_rank (Own, fk_sq) != rel_rank (Own, s)
+                                                                               || rel_rank (Own, fk_sq) != R_1
+                                                                               || pos.can_castle (Own) ? 1 : 2);
                         }
                     }
                 }

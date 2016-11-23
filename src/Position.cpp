@@ -33,9 +33,9 @@ bool Position::draw () const
     }
     // Draw by Repetition?
     const auto *psi = si->ptr->ptr;
-    for (i08 p = std::min (si->clock_ply, si->null_ply) - 2;
-             p >= 2;
-             p -= 2)
+    for (auto p = std::min (si->clock_ply, si->null_ply);
+              p >= 4;
+              p -= 2)
     {
         psi = psi->ptr->ptr;
         // Check first repetition
