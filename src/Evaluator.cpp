@@ -85,10 +85,7 @@ namespace Evaluator {
 
                 auto fk_sq = pos.square (Own, KING);
 
-                abs_blockers[Own] = pos.abs_blockers (Own);
-                dsc_blockers[Own] = pos.dsc_blockers (Own);
-
-                Bitboard pinned_pawns = abs_blockers[Own] & pos.pieces (Own, PAWN);
+                Bitboard pinned_pawns = pos.abs_blockers (Own) & pos.pieces (Own, PAWN);
                 if (pinned_pawns != 0)
                 {
                     Bitboard loosed_pawns = ~pinned_pawns & pos.pieces (Own, PAWN);
@@ -123,11 +120,6 @@ namespace Evaluator {
             // Pointers to pawn and material hash table entries
             Pawns   ::Entry *const &pe = nullptr;
             Material::Entry *const &me = nullptr;
-
-            // Contains the absolute blockers pieces.
-            Bitboard abs_blockers[CLR_NO];
-            // Contains the discover blockers pieces.
-            Bitboard dsc_blockers[CLR_NO];
 
             // Contains all squares attacked by the given color and piece type.
             Bitboard ful_attacked_by[CLR_NO];
@@ -261,7 +253,7 @@ namespace Evaluator {
     #undef V
 
         // King attack weights by piece type
-        const i32 KingAttackWeights [NONE] = { 0, 78, 56, 45, 11, 0 };
+        const i32 KingAttackWeights [NONE] = { 0,  78,  56,  45,  11, 0 };
         // Penalties for enemy's piece safe checks by piece type
         const i32 PieceSafeChecks   [NONE] = { 0, 874, 538, 638, 695, 0 };
         // Penalty for enemy's queen contact checks
@@ -299,46 +291,46 @@ namespace Evaluator {
             assert(NIHT <= PT && PT <= QUEN);
 
             auto score = SCORE_ZERO;
-            Bitboard ful_attacks, pin_attacks, b;
-            i32 mob;
 
             ei.pin_attacked_by[Own][PT] = 0;
             for (auto s : pos.squares[Own][PT])
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
-                ful_attacks =
-                    PT == BSHP ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.abs_blockers[Own]) :
-                    PT == ROOK ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.abs_blockers[Own]) :
-                    PT == QUEN ? attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, QUEN      )) | ei.abs_blockers[Own]) :
-                                 PieceAttacks[NIHT][s];
-
-                ei.ful_attacked_by[Own] |= ful_attacks;
-
-                pin_attacks = ful_attacks;
-                if ((ei.abs_blockers[Own] & s) != 0)
+                Bitboard attacks = 0;
+                switch (PT)
                 {
-                    pin_attacks &= strline_bb (pos.square (Own, KING), s);
+                case NIHT: attacks = PieceAttacks[NIHT][s];                                                                       break;
+                case BSHP: attacks = attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, PT, QUEN)) | pos.abs_blockers (Own)); break;
+                case ROOK: attacks = attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, PT, QUEN)) | pos.abs_blockers (Own)); break;
+                case QUEN: attacks = attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, PT      )) | pos.abs_blockers (Own)); break;
                 }
-                ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE] & pin_attacks;
-                ei.pin_attacked_by[Own][NONE] |=
-                ei.pin_attacked_by[Own][PT]   |= pin_attacks;
 
-                if ((ei.king_ring[Opp] & pin_attacks) != 0)
+                ei.ful_attacked_by[Own] |= attacks;
+
+                if ((pos.abs_blockers (Own) & s) != 0)
+                {
+                    attacks &= strline_bb (pos.square (Own, KING), s);
+                }
+                ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE] & attacks;
+                ei.pin_attacked_by[Own][NONE] |=
+                ei.pin_attacked_by[Own][PT]   |= attacks;
+
+                if ((ei.king_ring[Opp] & attacks) != 0)
                 {
                     ei.king_ring_attackers_count [Own]++;
                     ei.king_ring_attackers_weight[Own] += KingAttackWeights[PT];
-                    ei.king_zone_attacks_count[Own] += u08(pop_count (ei.pin_attacked_by[Opp][KING] & pin_attacks));
+                    ei.king_zone_attacks_count[Own] += u08(pop_count (ei.pin_attacked_by[Opp][KING] & attacks));
                 }
 
                 if (PT == QUEN)
                 {
-                    pin_attacks &=
+                    attacks &=
                         ~(  ei.pin_attacked_by[Opp][NIHT]
                           | ei.pin_attacked_by[Opp][BSHP]
                           | ei.pin_attacked_by[Opp][ROOK]);
                 }
 
-                mob = pop_count (mobility_area & pin_attacks);
+                auto mob = pop_count (mobility_area & attacks);
                 mobility += PieceMobility[PT][mob];
 
                 // Special extra evaluation for pieces
@@ -352,7 +344,7 @@ namespace Evaluator {
                         score += MinorBehindPawn;
                     }
 
-                    b = OutpostRank[Own] & ~ei.pe->attack_span[Opp];
+                    Bitboard b = OutpostRank[Own] & ~ei.pe->attack_span[Opp];
                     // Bonus for minors outpost squares
                     if ((b & s) != 0)
                     {
@@ -363,7 +355,7 @@ namespace Evaluator {
                     }
                     else
                     {
-                        b &= pin_attacks & ~pos.pieces (Own);
+                        b &= attacks & ~pos.pieces (Own);
                         if (b != 0)
                         {
                             score +=
@@ -426,13 +418,11 @@ namespace Evaluator {
                         auto fk_sq = pos.square (Own, KING);
                         // Penalty for rook when trapped by the king, even more if the king can't castle
                         if (   mob <= 3
-                            && (_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq))
+                            && ((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
                             && (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)) != 0
-                            && !ei.pe->side_semiopen (Own, _file (fk_sq), _file (s) < _file (fk_sq)))
+                            && !ei.pe->side_semiopen (Own, _file (fk_sq), _file (fk_sq) < F_E))
                         {
-                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (   rel_rank (Own, fk_sq) != rel_rank (Own, s)
-                                                                               || rel_rank (Own, fk_sq) != R_1
-                                                                               || pos.can_castle (Own) ? 1 : 2);
+                            score -= (RookTrapped - mk_score (22 * mob, 0)) * ((rel_rank (Own, fk_sq) != R_1 || pos.can_castle (Own)) ? 1 : 2);
                         }
                     }
                 }
@@ -443,7 +433,7 @@ namespace Evaluator {
                     Bitboard pinners = 0, discovers = 0;
                     if ((pos.slider_blockers<Own> (s, pos.pieces (Opp, QUEN), pinners, discovers) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
                                                                                                                                                   | shift<RCap> (pos.pieces (Own))))
-                                                                                                      | ei.abs_blockers[Opp])) != 0)
+                                                                                                      | pos.abs_blockers (Opp))) != 0)
                     {
                         score -= QueenWeaken;
                     }
@@ -500,15 +490,15 @@ namespace Evaluator {
             auto score = mk_score (value, -16 * ei.pe->king_pawn_dist[Own][index]);
 
             Bitboard b;
-            Bitboard non_opp = ~pos.pieces (Opp);
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[Opp] != 0)
             {
                 // Find the attacked squares which are defended only by the king in the king zone...
                 Bitboard king_zone_undef =
                        ei.pin_attacked_by[Own][KING]
-                    &  ei.ful_attacked_by[Opp]
+                    &  ei.pin_attacked_by[Opp][NONE]
                     & ~ei.dbl_attacked[Own];
+                Bitboard non_opp = ~pos.pieces (Opp);
                 // ... and those which are not defended at all in the king ring.
                 Bitboard king_ring_undef =
                        ei.king_ring[Own]
@@ -525,10 +515,10 @@ namespace Evaluator {
                     + 101 * ei.king_zone_attacks_count[Opp]
                     + 235 * pop_count (king_zone_undef)
                     + 134 * (  pop_count (king_ring_undef)
-                             + (ei.abs_blockers[Own] != 0 ? 1 : 0))
-                    + 134 * ((ei.dsc_blockers[Opp] & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
-                                                                                                       | shift<RCap> (pos.pieces (Own))))
-                                                       | ei.abs_blockers[Opp])) != 0 ? 1 : 0)
+                             + (pos.abs_blockers (Own) != 0 ? 1 : 0))
+                    + 134 * ((pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
+                                                                                                         | shift<RCap> (pos.pieces (Own))))
+                                                         | pos.abs_blockers (Opp))) != 0 ? 1 : 0)
                     - 717 * (pos.count<QUEN>(Opp) == 0)
                     -   7 * i32(value) / 5
                     -   5;
@@ -748,7 +738,7 @@ namespace Evaluator {
             // Bonus if some friend pawns safely push can attack an enemy piece
             b =    pos.pieces (Own, PAWN)
                 & ~Rank7BB
-                & ~ei.abs_blockers[Own];
+                & ~pos.abs_blockers (Own);
             // Friend pawns push
             b =   shift<Push> (b | (  shift<Push> (b & Rank2BB)
                                     & ~pos.pieces ()))

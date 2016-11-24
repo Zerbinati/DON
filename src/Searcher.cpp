@@ -2257,15 +2257,16 @@ namespace Threading {
                         // -If all of the available time has been used
                         // -If matched an easy move from the previous search and just did a fast verification.
                         if (   root_moves.size () == 1
-                            || (Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time *
-                                                                                    // Unstable factor
-                                                                                    (1.0 + Threadpool.best_move_change) *
-                                                                                    // Improving factor
-                                                                                    std::min (1.1385,
-                                                                                        std::max (0.3646,
-                                                                                                  0.5685
-                                                                                                + 0.1895 * (Threadpool.failed_low ? 1 : 0)
-                                                                                                - 0.0096 * (Threadpool.last_value != VALUE_NONE ? i32(best_value - Threadpool.last_value) : 0))))))
+                            || (  Threadpool.time_mgr.elapsed_time ()
+                                > TimePoint(std::round (Threadpool.time_mgr.optimum_time
+                                        // Unstable factor
+                                        * (1.0 + Threadpool.best_move_change)
+                                        // Improving factor
+                                        * std::min (1.1385,
+                                            std::max (0.3646,
+                                                      0.5685
+                                                    + 0.1895 * (Threadpool.failed_low ? 1 : 0)
+                                                    - 0.0096 * (Threadpool.last_value != VALUE_NONE ? i32(best_value - Threadpool.last_value) : 0))))))
                             || (Threadpool.easy_played =
                                     (   Threadpool.best_move_change < 0.030
                                      && Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time * 0.1190))

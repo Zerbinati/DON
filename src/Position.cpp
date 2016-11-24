@@ -369,9 +369,8 @@ bool Position::pseudo_legal (Move m) const
         }
     }
 
-    // Evasions generator already takes care to avoid some kind of illegal moves
-    // and legal() relies on this. So have to take care that the
-    // same kind of moves are filtered out here.
+    // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
+    // So have to take care that the same kind of moves are filtered out here.
     if (si->checkers != 0)
     {
         // In case of king moves under check, remove king so to catch
