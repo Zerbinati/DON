@@ -641,7 +641,7 @@ public:
 
     void clear ()
     {
-        std::memset (&_table, 0x00, sizeof (_table));
+        std::fill_n (_table, Size, Entry());
     }
 };
 
