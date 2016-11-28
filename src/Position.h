@@ -509,10 +509,11 @@ inline void StateInfo::set_check_info (const Position &pos)
     king_blockers[WHITE] = pos.slider_blockers<WHITE> (pos.square (WHITE, KING), 0, king_checkers[WHITE], king_checkers[BLACK]);
     king_blockers[BLACK] = pos.slider_blockers<BLACK> (pos.square (BLACK, KING), 0, king_checkers[BLACK], king_checkers[WHITE]);
 
-    checks[PAWN] = PawnAttacks[~pos.active][pos.square (~pos.active, KING)];
-    checks[NIHT] = PieceAttacks[NIHT][pos.square (~pos.active, KING)];
-    checks[BSHP] = attacks_bb<BSHP> (pos.square (~pos.active, KING), pos.pieces ());
-    checks[ROOK] = attacks_bb<ROOK> (pos.square (~pos.active, KING), pos.pieces ());
+    auto ek_sq = pos.square (~pos.active, KING);
+    checks[PAWN] = PawnAttacks[~pos.active][ek_sq];
+    checks[NIHT] = PieceAttacks[NIHT][ek_sq];
+    checks[BSHP] = attacks_bb<BSHP> (ek_sq, pos.pieces ());
+    checks[ROOK] = attacks_bb<ROOK> (ek_sq, pos.pieces ());
     checks[QUEN] = checks[BSHP] | checks[ROOK];
     checks[KING] = 0;
 }

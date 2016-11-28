@@ -677,8 +677,10 @@ namespace Evaluator {
             while (b != 0)
             {
                 auto s = pop_lsq (b);
-                score += PieceThreat[MINOR][ptype (pos[s])];
-                if (ptype (pos[s]) != PAWN)
+                auto pt = ptype (pos[s]);
+                assert(pt != NONE);
+                score += PieceThreat[MINOR][pt];
+                if (pt != PAWN)
                 {
                     score += PieceThreatRank * rel_rank (Opp, s);
                 }
@@ -691,8 +693,10 @@ namespace Evaluator {
             while (b != 0)
             {
                 auto s = pop_lsq (b);
-                score += PieceThreat[MAJOR][ptype (pos[s])];
-                if (ptype (pos[s]) != PAWN)
+                auto pt = ptype (pos[s]);
+                assert(pt != NONE);
+                score += PieceThreat[MAJOR][pt];
+                if (pt != PAWN)
                 {
                     score += PieceThreatRank * rel_rank (Opp, s);
                 }

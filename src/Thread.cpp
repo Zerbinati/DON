@@ -5,21 +5,25 @@
 #include "Searcher.h"
 #include "TBsyzygy.h"
 
-// WinProcGroup
+// Win Processors Group
+
+// bind_thread() set the group affinity for the thread index.
+void bind_thread (size_t index);
+
 #if defined(_WIN32)
 // get_group() retrieves logical processor information using Windows specific
 // API and returns the best group id for the thread index.
-int get_group (size_t index)
+i32 get_group (size_t index)
 {
-    int threads = 0;
-    int nodes = 0;
-    int cores = 0;
+    i32 threads = 0;
+    i32 nodes = 0;
+    i32 cores = 0;
     DWORD length = 0;
     DWORD byte_offset = 0;
 
     // Early exit if the needed API is not available at runtime
     HMODULE k32 = GetModuleHandle ("Kernel32.dll");
-    auto fun1 = (fun1_t) GetProcAddress (k32, "GetLogicalProcessorInformationEx");
+    auto fun1 = (fun1_t)GetProcAddress (k32, "GetLogicalProcessorInformationEx");
     if (fun1 == nullptr)
     {
         return -1;
@@ -33,7 +37,7 @@ int get_group (size_t index)
 
     // Once we know length, allocate the buffer
     SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *buffer, *ptr;
-    ptr = buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) malloc (length);
+    ptr = buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)malloc (length);
 
     // Second call, now we expect to succeed
     if (fun1 (RelationAll, buffer, &length) == 0)
@@ -57,18 +61,17 @@ int get_group (size_t index)
         }
 
         byte_offset += ptr->Size;
-        ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) (((char*) ptr) + ptr->Size);
+        ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) (((char*)ptr) + ptr->Size);
     }
-
     free (buffer);
 
-    std::vector<int> groups;
+    std::vector<i32> groups;
 
     // Run as many threads as possible on the same node until core limit is
     // reached, then move on filling the next node.
-    for (int n = 0; n < nodes; ++n)
+    for (i32 n = 0; n < nodes; ++n)
     {
-        for (int i = 0; i < cores / nodes; ++i)
+        for (i32 i = 0; i < cores / nodes; ++i)
         {
             groups.push_back (n);
         }
@@ -76,7 +79,7 @@ int get_group (size_t index)
     // In case a core has more than one logical processor (we assume 2) and we
     // have still threads to allocate, then spread them evenly across available
     // nodes.
-    for (int t = 0; t < threads - cores; ++t)
+    for (i32 t = 0; t < threads - cores; ++t)
     {
         groups.push_back (t % nodes);
     }
@@ -85,16 +88,13 @@ int get_group (size_t index)
     // then return -1 and let the OS to decide what to do.
     return index < groups.size () ? groups[index] : -1;
 }
-
-
-// bind_thread() set the group affinity of the current thread
 void bind_thread (size_t index)
 {
     // If OS already scheduled us on a different group than 0 then don't overwrite
     // the choice, eventually we are one of many one-threaded processes running on
-    // some Windows NUMA hardware, for instance in fishtest. To make it simple,
-    // just check if running threads are below a threshold, in this case all this
-    // NUMA machinery is not needed.
+    // some Windows NUMA hardware, for instance in fishtest.
+    // To make it simple, just check if running threads are below a threshold,
+    // in this case all this NUMA machinery is not needed.
     if (Threadpool.size () < 8)
     {
         return;
@@ -110,7 +110,6 @@ void bind_thread (size_t index)
     HMODULE k32 = GetModuleHandle ("Kernel32.dll");
     auto fun2 = (fun2_t) GetProcAddress (k32, "GetNumaNodeProcessorMaskEx");
     auto fun3 = (fun3_t) GetProcAddress (k32, "SetThreadGroupAffinity");
-
     if (   fun2 == nullptr
         || fun3 == nullptr)
     {
@@ -123,7 +122,9 @@ void bind_thread (size_t index)
         fun3 (GetCurrentThread (), &affinity, nullptr);
     }
 }
-
+#else
+void bind_thread (size_t index)
+{}
 #endif
 
 double MoveSlowness = 0.90; // Move Slowness, in %age.
@@ -311,9 +312,8 @@ namespace Threading {
     // Function where the thread is parked when it has no work to do
     void Thread::idle_loop ()
     {
-#   if defined(_WIN32)
         bind_thread (index);
-#   endif
+
         while (_alive)
         {
             std::unique_lock<Mutex> lk (_mutex);
