@@ -1238,7 +1238,7 @@ string Position::fen (bool full) const
 }
 // Returns an ASCII representation of the position to be
 // printed to the standard output
-Position::operator string ()
+Position::operator string () const
 {
     ostringstream oss;
     oss << " +---+---+---+---+---+---+---+---+\n";
@@ -1268,8 +1268,11 @@ Position::operator string ()
     if (   MaxLimitPiece >= count<NONE> ()
         && can_castle (CR_ANY) == CR_NONE)
     {
-        ProbeState wdl_state; WDLScore wdl = probe_wdl (*this, wdl_state);
-        ProbeState dtz_state; i32      dtz = probe_dtz (*this, dtz_state);
+        StateInfo st;
+        Position pos;
+        pos.setup (fen (), st, thread);
+        ProbeState wdl_state; WDLScore wdl = probe_wdl (pos, wdl_state);
+        ProbeState dtz_state; i32      dtz = probe_dtz (pos, dtz_state);
         oss << "\nTablebases WDL: " << std::setw (4) << wdl << " (" << wdl_state << ")"
             << "\nTablebases DTZ: " << std::setw (4) << dtz << " (" << dtz_state << ")";
     }

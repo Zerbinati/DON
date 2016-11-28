@@ -214,8 +214,13 @@ ifeq ($(comp), icc)
 	profile_make    = icc-profile-make
 	profile_use     = icc-profile-use
 else
-	profile_make    = gcc-profile-make
-	profile_use     = gcc-profile-use
+ifeq ($(comp), clang)
+	profile_make = clang-profile-make
+	profile_use = clang-profile-use
+else
+	profile_make = gcc-profile-make
+	profile_use = gcc-profile-use
+endif
 endif
 
 ifeq ($(KERNEL), Darwin)
@@ -417,8 +422,10 @@ help:
 	@echo "make profile-build ARCH=x86-64-modern COMP=gcc COMPCXX=g++-4.8"
 	@echo ""
 
-.PHONY: help build profile-build strip install clean objclean profileclean help \
-        config-sanity icc-profile-use icc-profile-make gcc-profile-use gcc-profile-make
+.PHONY: help build profile-build strip install clean objclean profileclean config-sanity \
+        icc-profile-use icc-profile-make \
+        clang-profile-use clang-profile-make \
+        gcc-profile-use gcc-profile-make
 
 build: config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
@@ -458,6 +465,7 @@ objclean:
 profileclean:
 	@rm -rf profdir
 	@rm -f bench.txt *.gcda *.gcno
+	@rm -f DON.profdata *.profraw
 
 default:
 	help
@@ -534,6 +542,19 @@ icc-profile-make:
 icc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-prof_use -prof_dir ./profdir' \
+	all
+
+clang-profile-make:
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
+	EXTRACXXFLAGS='-fprofile-instr-generate ' \
+	EXTRALDFLAGS=' -fprofile-instr-generate' \
+	all
+
+clang-profile-use:
+	llvm-profdata merge -output=DON.profdata *.profraw
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
+	EXTRACXXFLAGS='-fprofile-instr-use=DON.profdata' \
+	EXTRALDFLAGS='-fprofile-use ' \
 	all
 
 .depend:

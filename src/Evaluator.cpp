@@ -232,7 +232,7 @@ namespace Evaluator {
             { S( 0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S( 0, 0) }, // Minor attackers
             { S( 0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S( 0, 0) }  // Major attackers
         };
-        const Score ThreatByRank    = S(16, 3);
+        const Score PieceThreatRank = S(16, 3);
 
         // KingThreat[one/more] contains bonuses for king attacks on pawns or pieces which are not pawn-defended.
         const Score KingThreat[2] = { S( 3, 62), S( 9,138) };
@@ -417,14 +417,14 @@ namespace Evaluator {
                     }
                     else
                     {
-                        auto fk_sq = pos.square (Own, KING);
+                        auto kf = _file (pos.square (Own, KING));
                         // Penalty for rook when trapped by the king, even more if the king can't castle
                         if (   mob <= 3
-                            && ((_file (fk_sq) < F_E) == (_file (s) < _file (fk_sq)))
+                            && ((kf < F_E) == (_file (s) < kf))
                             && (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)) != 0
-                            && !ei.pe->side_semiopen (Own, _file (fk_sq), _file (fk_sq) < F_E))
+                            && !ei.pe->side_semiopen (Own, kf, kf < F_E))
                         {
-                            score -= (RookTrapped - mk_score (22 * mob, 0)) * ((rel_rank (Own, fk_sq) != R_1 || pos.can_castle (Own)) ? 1 : 2);
+                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
                         }
                     }
                 }
@@ -680,7 +680,7 @@ namespace Evaluator {
                 score += PieceThreat[MINOR][ptype (pos[s])];
                 if (ptype (pos[s]) != PAWN)
                 {
-                    score += ThreatByRank * rel_rank (Opp, s);
+                    score += PieceThreatRank * rel_rank (Opp, s);
                 }
             }
             // Enemies attacked by rooks
@@ -694,7 +694,7 @@ namespace Evaluator {
                 score += PieceThreat[MAJOR][ptype (pos[s])];
                 if (ptype (pos[s]) != PAWN)
                 {
-                    score += ThreatByRank * rel_rank (Opp, s);
+                    score += PieceThreatRank * rel_rank (Opp, s);
                 }
             }
             // Enemies attacked by king

@@ -193,7 +193,7 @@ public:
 
     std::string fen (bool full = true) const;
 
-    explicit operator std::string ();
+    explicit operator std::string () const;
 
 #if !defined(NDEBUG)
     bool ok (u08 *step = nullptr) const;
@@ -496,7 +496,7 @@ template<bool Do> inline void Position::do_castling (Square king_org, Square &ki
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
-operator<< (std::basic_ostream<CharT, Traits> &os, Position &pos)
+operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
 {
     os << std::string(pos);
     return os;
