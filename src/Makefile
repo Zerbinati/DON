@@ -197,6 +197,7 @@ ifeq ($(COMP), clang)
 	comp = clang
 	CXX  = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
+
 	ifeq ($(ARCH), armv7)
 		ifeq ($(OS), Android)
 			CXXFLAGS += -m$(bits)
@@ -206,14 +207,8 @@ ifeq ($(COMP), clang)
 		CXXFLAGS += -m$(bits)
 		LDFLAGS += -m$(bits)
 	endif
-	LDFLAGS  += -m$(bits)
-	ifeq ($(KERNEL), Darwin)
-		CXXFLAGS    += -stdlib=libc++
-		DEPENDFLAGS += -stdlib=libc++
-	endif
-endif
 
-# ---
+endif
 
 ifeq ($(comp), icc)
 	profile_make    = icc-profile-make
@@ -288,10 +283,8 @@ ifeq ($(optimize), yes)
 
 	ifeq ($(comp), clang)
 		ifeq ($(KERNEL), Darwin)
-			ifeq ($(bm2), no)
-				CXXFLAGS += -flto
-				LDFLAGS  += $(CXXFLAGS)
-			endif
+			CXXFLAGS += -flto
+			LDFLAGS  += $(CXXFLAGS)
 			ifeq ($(arch), i386)
 				CXXFLAGS += -mdynamic-no-pic
 			endif

@@ -235,30 +235,7 @@ namespace Threading {
             _sleep_condition.wait (lk, [&] { return !bool(condition); });
         }
 
-        // Function where the thread is parked when it has no work to do
-        void idle_loop ()
-        {
-            while (_alive)
-            {
-                std::unique_lock<Mutex> lk (_mutex);
-
-                _searching = false;
-
-                while (   _alive
-                       && !_searching)
-                {
-                    _sleep_condition.notify_one (); // Wake up any waiting thread
-                    _sleep_condition.wait (lk);
-                }
-
-                lk.unlock ();
-
-                if (_alive)
-                {
-                    search ();
-                }
-            }
-        }
+        void idle_loop ();
 
         virtual void search ();
     };
