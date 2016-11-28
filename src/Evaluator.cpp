@@ -232,6 +232,8 @@ namespace Evaluator {
             { S( 0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S( 0, 0) }, // Minor attackers
             { S( 0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S( 0, 0) }  // Major attackers
         };
+        const Score ThreatByRank    = S(16, 3);
+
         // KingThreat[one/more] contains bonuses for king attacks on pawns or pieces which are not pawn-defended.
         const Score KingThreat[2] = { S( 3, 62), S( 9,138) };
 
@@ -674,7 +676,12 @@ namespace Evaluator {
                    | ei.pin_attacked_by[Own][BSHP]);
             while (b != 0)
             {
-                score += PieceThreat[MINOR][ptype (pos[pop_lsq (b)])];
+                auto s = pop_lsq (b);
+                score += PieceThreat[MINOR][ptype (pos[s])];
+                if (ptype (pos[s]) != PAWN)
+                {
+                    score += ThreatByRank * rel_rank (Opp, s);
+                }
             }
             // Enemies attacked by rooks
             b =   (  weak_pieces
@@ -683,7 +690,12 @@ namespace Evaluator {
                 & (ei.pin_attacked_by[Own][ROOK]);
             while (b != 0)
             {
-                score += PieceThreat[MAJOR][ptype (pos[pop_lsq (b)])];
+                auto s = pop_lsq (b);
+                score += PieceThreat[MAJOR][ptype (pos[s])];
+                if (ptype (pos[s]) != PAWN)
+                {
+                    score += ThreatByRank * rel_rank (Opp, s);
+                }
             }
             // Enemies attacked by king
             b =    weak_pieces
