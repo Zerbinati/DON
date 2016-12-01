@@ -129,7 +129,9 @@ namespace Transposition {
     private:
         void    *_blocks        = nullptr;
         Cluster *_clusters      = nullptr;
+        Cluster *_hashfull      = nullptr;
         size_t   _cluster_count = 0;
+        size_t   _cluster_mask  = 0;
 
         void alloc_aligned_memory (size_t mem_size, u32 alignment);
         void free_aligned_memory ();
@@ -186,7 +188,7 @@ namespace Transposition {
         // The lower order bits of the key are used to get the index of the cluster inside the table.
         Entry* cluster_entry (Key key) const
         {
-            return _clusters[key & (_cluster_count-1)].entries;
+            return _clusters[key & _cluster_mask].entries;
         }
 
         u32 resize (u32 mem_size, bool force = false);

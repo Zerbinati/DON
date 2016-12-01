@@ -292,13 +292,15 @@ inline Key Position::move_posi_key (Move m) const
         }
     }
 
-    u64 b = si->castle_rights & (  castle_mask[org]
-                                 | castle_mask[dst]);
-    while (b != 0)
+    auto b = si->castle_rights & (  castle_mask[org]
+                                  | castle_mask[dst]);
+    if (b != CR_NONE)
     {
-        key ^= (*Zob.castle_right_keys)[pop_lsq (b)];
+        if ((b & CR_WKING) != CR_NONE) key ^= Zob.castle_right_keys[WHITE][CS_KING];
+        if ((b & CR_WQUEN) != CR_NONE) key ^= Zob.castle_right_keys[WHITE][CS_QUEN];
+        if ((b & CR_BKING) != CR_NONE) key ^= Zob.castle_right_keys[BLACK][CS_KING];
+        if ((b & CR_BQUEN) != CR_NONE) key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
     }
-
     return key
         ^ Zob.piece_square_keys[active][ppt][mt != CASTLE ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
         ^ Zob.piece_square_keys[active][mpt][org]

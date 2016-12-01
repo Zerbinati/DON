@@ -77,6 +77,7 @@ namespace Transposition {
         _blocks = nullptr;
         _clusters = nullptr;
         _cluster_count = 0;
+        _cluster_mask  = 0;
         Entry::Generation = 0;
     }
 
@@ -107,9 +108,14 @@ namespace Transposition {
             alloc_aligned_memory (msize, CacheLineSize);
             if (_clusters == nullptr)
             {
+                _cluster_count = 0;
+                _cluster_mask  = 0;
+                _hashfull = nullptr;
                 return 0;
             }
             _cluster_count = cluster_count;
+            _cluster_mask  = cluster_count - 1;
+            _hashfull = _clusters + std::min (size_t(1000/Cluster::EntryCount), _cluster_count);
         }
 
         return u32(msize >> 20);
@@ -145,8 +151,9 @@ namespace Transposition {
         const u16 key16 = KeySplit{ key }.key16 ();
         assert(key16 != 0);
         auto *const fte = cluster_entry (key);
+        auto *const lte = fte+Cluster::EntryCount;
         assert(fte != nullptr);
-        for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
+        for (auto *ite = fte+0; ite < lte; ++ite)
         {
             if (   ite->_key16 == 0
                 || ite->_key16 == key16)
@@ -163,11 +170,10 @@ namespace Transposition {
         tt_hit = false;
         // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte; // Default first
-        for (auto *ite = fte+1; ite < fte+Cluster::EntryCount; ++ite)
+        for (auto *ite = fte+1; ite < lte; ++ite)
         {
             // Entry te1 is considered more valuable than Entry te2, if te1.worth() > te2.worth().
-            if (  rte->worth ()
-                > ite->worth ())
+            if (rte->worth () > ite->worth ())
             {
                 rte = ite;
             }
@@ -183,10 +189,11 @@ namespace Transposition {
     u32 Table::hash_full () const
     {
         u32 full_count = 0;
-        for (const auto *clt = _clusters; clt < _clusters + 1000/Cluster::EntryCount; ++clt)
+        for (const auto *clt = _clusters; clt < _hashfull; ++clt)
         {
             const auto *fte = clt->entries;
-            for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
+            const auto *lte = fte+Cluster::EntryCount;
+            for (const auto *ite = fte; ite < lte; ++ite)
             {
                 if (ite->alive ())
                 {

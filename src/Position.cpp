@@ -957,15 +957,15 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         - PSQ[active][mpt][org];
 
     // Update castling rights
-    u64 b = si->castle_rights & (  castle_mask[org]
-                                 | castle_mask[dst]);
-    if (b != 0)
+    auto b = si->castle_rights & (  castle_mask[org]
+                                  | castle_mask[dst]);
+    if (b != CR_NONE)
     {
-        si->castle_rights &= ~i32(b);
-        while (b != 0)
-        {
-            si->posi_key ^= (*Zob.castle_right_keys)[pop_lsq (b)];
-        }
+        si->castle_rights &= ~b;
+        if ((b & CR_WKING) != CR_NONE) si->posi_key ^= Zob.castle_right_keys[WHITE][CS_KING];
+        if ((b & CR_WQUEN) != CR_NONE) si->posi_key ^= Zob.castle_right_keys[WHITE][CS_QUEN];
+        if ((b & CR_BKING) != CR_NONE) si->posi_key ^= Zob.castle_right_keys[BLACK][CS_KING];
+        if ((b & CR_BQUEN) != CR_NONE) si->posi_key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
     }
 
     assert(attackers_to (square (active, KING), pasive) == 0);
