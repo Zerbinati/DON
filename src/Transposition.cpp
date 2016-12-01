@@ -2,7 +2,6 @@
 
 #include <string>
 #include <fstream>
-#include <iostream>
 
 #include "BitBoard.h"
 #include "Engine.h"
@@ -13,7 +12,7 @@ namespace Transposition {
 
     using namespace std;
 
-    u08 Entry::generation = 0;
+    u08 Entry::Generation = 0;
 
     // Size of Transposition entry (10 bytes)
     static_assert (sizeof (Entry) == 10, "Entry size incorrect");
@@ -75,22 +74,12 @@ namespace Transposition {
     #   else
         free (_blocks);
     #   endif
-        _blocks         = nullptr;
-        _clusters       = nullptr;
-        _cluster_count  = 0;
-        Entry::generation      = 0;
+        _blocks = nullptr;
+        _clusters = nullptr;
+        _cluster_count = 0;
+        Entry::Generation = 0;
     }
-    // Reset the entire transposition table with zeroes.
-    void Table::clear ()
-    {
-        if (   !retain_hash
-            && _clusters != nullptr)
-        {
-            std::memset (_clusters, 0x00, _cluster_count * sizeof (Cluster));
-            Entry::generation = 0;
-            sync_cout << "info string Hash cleared" << sync_endl;
-        }
-    }
+
     // resize(mb) sets the size of the table, measured in mega-bytes.
     // Transposition table consists of a power of 2 number of clusters and
     // each cluster consists of Cluster::EntryCount number of entry.
@@ -154,7 +143,7 @@ namespace Transposition {
     {
         assert(key != 0);
         const u16 key16 = KeySplit{ key }.key16 ();
-        //assert(key16 != 0);
+        assert(key16 != 0);
         auto *const fte = cluster_entry (key);
         assert(fte != nullptr);
         for (auto *ite = fte+0; ite < fte+Cluster::EntryCount; ++ite)
@@ -162,8 +151,7 @@ namespace Transposition {
             if (   ite->_key16 == 0
                 || ite->_key16 == key16)
             {
-                tt_hit = ite->_key16 != 0
-                      || ite->_move != MOVE_NONE;
+                tt_hit = ite->_key16 != 0;
                 if (   tt_hit
                     && !ite->alive ())
                 {

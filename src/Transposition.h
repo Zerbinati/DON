@@ -2,8 +2,10 @@
 #define _TRANSPOSITION_H_INC_
 
 #include <cstdlib>
+#include <iostream>
 
 #include "Type.h"
+#include "Zobrist.h"
 #include "MemoryHandler.h"
 #include "Thread.h"
 
@@ -14,7 +16,18 @@ namespace Transposition {
         u64 k;
         u16 u[4];
 
-        u16 key16 () const { return u[3] ^ u[2] /*^ u[1] ^ u[0]*/; }
+        u16 key16 () const
+        {
+            return
+                (u[3] ^ u[2]) != 0 ? u[3] ^ u[2] :
+                (u[3] ^ u[1]) != 0 ? u[3] ^ u[1] :
+                (u[3] ^ u[0]) != 0 ? u[3] ^ u[0] :
+                // No Need
+                //(u[2] ^ u[1]) != 0 ? u[2] ^ u[1] :
+                //(u[2] ^ u[0]) != 0 ? u[2] ^ u[0] :
+                //(u[1] ^ u[0]) != 0 ? u[1] ^ u[0] :
+                Zobrists::Zobrist::no_tt_key;
+        }
     };
 
     // Transposition::Entry needs 16 byte to be stored
@@ -42,7 +55,7 @@ namespace Transposition {
 
     public:
         // "Generation" variable distinguish transposition table entries from different searches.
-        static u08 generation;
+        static u08 Generation;
 
         //u16   key16 () const { return u16  (_key16); }
         Move  move  () const { return Move (_move);  }
@@ -52,14 +65,14 @@ namespace Transposition {
         Bound bound () const { return Bound(_gen_bnd & 0x03); }
         //u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
 
-        bool alive () const { return (_gen_bnd & 0xFC) == generation; }
+        bool alive () const { return (_gen_bnd & 0xFC) == Generation; }
         // The worth of an entry is calculated as its depth minus 8 times its relative age.
         // Due to packed storage format for generation and its cyclic nature
         // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
         // to calculate the entry age correctly even after generation overflows into the next cycle.
-        u08  worth () const { return u08(_depth - 2*((0x103 + generation - _gen_bnd) & 0xFC)); }
+        u08  worth () const { return u08(_depth - 2*((0x103 + Generation - _gen_bnd) & 0xFC)); }
 
-        void refresh () { _gen_bnd = u08(generation | (_gen_bnd & 0x03)); }
+        void refresh () { _gen_bnd = u08(Generation | (_gen_bnd & 0x03)); }
 
         void save (
             u64   k,
@@ -70,16 +83,15 @@ namespace Transposition {
             Bound b)
         {
             const u16 key16 = KeySplit{ k }.key16 ();
-            //assert(key16 != 0);
-            bool force = key16 != _key16;
+            assert(key16 != 0);
             // Preserve any existing move for the position
-            if (   force
+            if (   key16 != _key16
                 || m != MOVE_NONE)
             {
                 _move       = u16(m);
             }
             // Preserve more valuable entries
-            if (   force
+            if (   key16 != _key16
                 || d > _depth - 4
                 || b == BOUND_EXACT)
             {
@@ -87,7 +99,7 @@ namespace Transposition {
                 _value      = i16(v);
                 _eval       = i16(e);
                 _depth      = i08(d);
-                _gen_bnd    = u08(generation | b);
+                _gen_bnd    = u08(Generation | b);
             }
         }
     };
@@ -158,13 +170,23 @@ namespace Transposition {
             return u32((_cluster_count * sizeof (Cluster)) >> 20);
         }
 
-        void clear ();
+        // Reset the entire transposition table with zeroes.
+        void clear ()
+        {
+            if (   !retain_hash
+                && _clusters != nullptr)
+            {
+                std::memset (_clusters, 0x00, _cluster_count * sizeof (Cluster));
+                Entry::Generation = 0;
+                sync_cout << "info string Hash cleared" << sync_endl;
+            }
+        }
 
         // Returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
-        Entry* cluster_entry (const Key key) const
+        Entry* cluster_entry (Key key) const
         {
-            return _clusters[size_t(key) & (_cluster_count-1)].entries;
+            return _clusters[key & (_cluster_count-1)].entries;
         }
 
         u32 resize (u32 mem_size, bool force = false);
@@ -189,7 +211,7 @@ namespace Transposition {
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-            os.write (reinterpret_cast<const CharT*> (&Entry::generation), sizeof (Entry::generation));
+            os.write (reinterpret_cast<const CharT*> (&Entry::Generation), sizeof (Entry::Generation));
             os.write (reinterpret_cast<const CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
             for (u32 i = 0; i < tt._cluster_count / BufferSize; ++i)
             {
@@ -212,7 +234,7 @@ namespace Transposition {
             is.read (reinterpret_cast<CharT*> (&generation), sizeof (generation));
             is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
             tt.resize (mem_size);
-            Entry::generation = generation;
+            Entry::Generation = generation;
             for (u32 i = 0; i < tt._cluster_count / BufferSize; ++i)
             {
                 is.read (reinterpret_cast<CharT*> (tt._clusters+i*BufferSize), sizeof (Cluster)*BufferSize);

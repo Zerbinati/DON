@@ -10,6 +10,7 @@ namespace Zobrists {
     
     Key Zobrist::no_matl_key;
     Key Zobrist::no_pawn_key;
+    u16 Zobrist::no_tt_key;
 
     Key Zobrist::compute_matl_key (const Position &pos) const
     {
@@ -189,6 +190,7 @@ namespace Zobrists {
 
         Zobrist::no_matl_key = prng.rand<Key> ();
         Zobrist::no_pawn_key = prng.rand<Key> ();
+        Zobrist::no_tt_key   = prng.rand<u16> ();
     }
 
 }

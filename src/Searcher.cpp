@@ -2347,7 +2347,7 @@ namespace Threading {
             Threadpool.time_mgr.initialize (root_pos.active, root_pos.ply);
         }
 
-        Transposition::Entry::generation = u08(((root_pos.ply + 1) << 2) & 0xFC);
+        Transposition::Entry::Generation = u08(((root_pos.ply + 1) << 2) & 0xFC);
 
         bool voting = false;
 

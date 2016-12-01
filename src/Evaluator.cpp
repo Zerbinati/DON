@@ -206,7 +206,7 @@ namespace Evaluator {
 
         const Score RookOnPawns     = S( 8,24); // Bonus for rook on pawns
         const Score RookTrapped     = S(92, 0); // Penalty for rook trapped
-        const Score QueenWeaken     = S(35, 0); // Penalty for queen weaken
+        const Score QueenWeaken     = S(50,10); // Penalty for queen weaken
 
         const Score SafeChecked     = S(20,20);
         const Score ProbChecked     = S(10,10);
@@ -495,12 +495,12 @@ namespace Evaluator {
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[Opp] != 0)
             {
+                Bitboard non_opp = ~pos.pieces (Opp);
                 // Find the attacked squares which are defended only by the king in the king zone...
                 Bitboard king_zone_undef =
                        ei.pin_attacked_by[Own][KING]
                     &  ei.pin_attacked_by[Opp][NONE]
                     & ~ei.dbl_attacked[Own];
-                Bitboard non_opp = ~pos.pieces (Opp);
                 // ... and those which are not defended at all in the king ring.
                 Bitboard king_ring_undef =
                        ei.king_ring[Own]
@@ -678,7 +678,6 @@ namespace Evaluator {
             {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
-                assert(pt != NONE);
                 score += PieceThreat[MINOR][pt];
                 if (pt != PAWN)
                 {
@@ -694,7 +693,6 @@ namespace Evaluator {
             {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
-                assert(pt != NONE);
                 score += PieceThreat[MAJOR][pt];
                 if (pt != PAWN)
                 {
@@ -753,8 +751,8 @@ namespace Evaluator {
 
             // Bonus if some friend pawns safely push can attack an enemy piece
             b =    pos.pieces (Own, PAWN)
-                & ~Rank7BB
-                & ~pos.abs_blockers (Own);
+                & ~(  Rank7BB
+                    | pos.abs_blockers (Own));
             // Friend pawns push
             b =   shift<Push> (b | (  shift<Push> (b & Rank2BB)
                                     & ~pos.pieces ()))
@@ -845,8 +843,7 @@ namespace Evaluator {
 
                         // Give a big bonus if the path to the queen is not attacked,
                         // a smaller bonus if the block square is not attacked.
-                        i32 k =
-                            unsafe_front_squares != 0 ?
+                        i32 k = unsafe_front_squares != 0 ?
                                 (unsafe_front_squares & push_sq) != 0 ?
                                     0 : 8 : 18;
                         // Give a big bonus if the path to the queen is fully defended,
@@ -867,8 +864,7 @@ namespace Evaluator {
                     }
                 }
 
-                score += mk_score (mg_value, eg_value)
-                       + PassPawnFile[std::min (_file (s), F_H - _file (s))];
+                score += mk_score (mg_value, eg_value) + PassPawnFile[std::min (_file (s), F_H - _file (s))];
             }
 
             if (Trace)
