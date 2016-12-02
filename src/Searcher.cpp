@@ -1636,7 +1636,7 @@ namespace Searcher {
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
                                 // LMR depth based SEE pruning
                             || (   lmr_depth < 8
-                                && !pos.see_ge (move, Value(-35*lmr_depth*lmr_depth))))
+                                && !pos.see_ge (move, VALUE_ZERO - 35*lmr_depth*lmr_depth)))
                         {
                             continue;
                         }
@@ -1645,7 +1645,7 @@ namespace Searcher {
                     // Depth based SEE based pruning
                     if (   depth < 7
                         && new_depth < depth
-                        && !pos.see_ge (move, Value(-35*depth*depth) + (ss->static_eval != VALUE_NONE ? ss->static_eval - alfa - 200 : VALUE_ZERO)))
+                        && !pos.see_ge (move, beta - alfa - 35*depth*depth - 400))
                     {
                         continue;
                     }

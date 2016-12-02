@@ -156,6 +156,7 @@ namespace Transposition {
         tt_hit = false;
         // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte; // Default first
+        auto rworth = rte->worth ();
         for (auto *ite = fte+0; ite < lte; ++ite)
         {
             if (   ite->_key16 == 0
@@ -170,9 +171,10 @@ namespace Transposition {
                 return ite;
             }
             // Entry te1 is considered more valuable than Entry te2, if te1.worth() > te2.worth().
-            if (   rte != ite
-                && rte->worth () > ite->worth ())
+            auto iworth = ite->worth ();
+            if (rworth > iworth)
             {
+                rworth = iworth;
                 rte = ite;
             }
         }
