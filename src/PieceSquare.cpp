@@ -110,8 +110,8 @@ namespace PieceSquare
         }
         return npm_value;
     }
-    template Value compute_npm<WHITE> (const Position &);
-    template Value compute_npm<BLACK> (const Position &);
+    template Value compute_npm<WHITE> (const Position&);
+    template Value compute_npm<BLACK> (const Position&);
 
     // Initialize lookup tables during startup
     void initialize ()

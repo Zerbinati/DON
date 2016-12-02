@@ -1116,8 +1116,6 @@ namespace Searcher {
 
             ss->move_count = 0;
             ss->history_val = VALUE_ZERO;
-            ss->current_move = MOVE_NONE;
-            ss->piece_cm_history = nullptr;
 
             // Step 1. Initialize node
             auto *th = pos.thread;
@@ -1175,6 +1173,8 @@ namespace Searcher {
             
             assert((ss+1)->exclude_move == MOVE_NONE);
             assert(!(ss+1)->skip_pruning);
+            ss->current_move = MOVE_NONE;
+            ss->piece_cm_history = nullptr;
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
 
             Move move;

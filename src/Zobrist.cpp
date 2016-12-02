@@ -61,7 +61,6 @@ namespace Zobrists {
             if ((pos.si->castle_rights & CR_BKING) != CR_NONE) posi_key ^= Zob.castle_right_keys[BLACK][CS_KING];
             if ((pos.si->castle_rights & CR_BQUEN) != CR_NONE) posi_key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
         }
-
         if (pos.si->en_passant_sq != SQ_NO)
         {
             posi_key ^= en_passant_keys[_file (pos.si->en_passant_sq)];

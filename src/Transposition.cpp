@@ -153,6 +153,9 @@ namespace Transposition {
         auto *const fte = cluster_entry (key);
         auto *const lte = fte+Cluster::EntryCount;
         assert(fte != nullptr);
+        tt_hit = false;
+        // Find an entry to be replaced according to the replacement strategy
+        auto *rte = fte; // Default first
         for (auto *ite = fte+0; ite < lte; ++ite)
         {
             if (   ite->_key16 == 0
@@ -166,14 +169,9 @@ namespace Transposition {
                 }
                 return ite;
             }
-        }
-        tt_hit = false;
-        // Find an entry to be replaced according to the replacement strategy
-        auto *rte = fte; // Default first
-        for (auto *ite = fte+1; ite < lte; ++ite)
-        {
             // Entry te1 is considered more valuable than Entry te2, if te1.worth() > te2.worth().
-            if (rte->worth () > ite->worth ())
+            if (   rte != ite
+                && rte->worth () > ite->worth ())
             {
                 rte = ite;
             }
