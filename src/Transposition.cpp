@@ -151,13 +151,12 @@ namespace Transposition {
         const u16 key16 = KeySplit{ key }.key16 ();
         assert(key16 != 0);
         auto *const fte = cluster_entry (key);
-        auto *const lte = fte+Cluster::EntryCount;
         assert(fte != nullptr);
         tt_hit = false;
         // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte; // Default first
         auto rworth = rte->worth ();
-        for (auto *ite = fte+0; ite < lte; ++ite)
+        for (auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
         {
             if (   ite->_key16 == 0
                 || ite->_key16 == key16)
@@ -171,10 +170,9 @@ namespace Transposition {
                 return ite;
             }
             // Entry te1 is considered more valuable than Entry te2, if te1.worth() > te2.worth().
-            auto iworth = ite->worth ();
-            if (rworth > iworth)
+            if (rworth > ite->worth ())
             {
-                rworth = iworth;
+                rworth = ite->worth ();
                 rte = ite;
             }
         }
@@ -192,8 +190,7 @@ namespace Transposition {
         for (const auto *clt = _clusters; clt < _hashfull; ++clt)
         {
             const auto *fte = clt->entries;
-            const auto *lte = fte+Cluster::EntryCount;
-            for (const auto *ite = fte; ite < lte; ++ite)
+            for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
             {
                 if (ite->alive ())
                 {

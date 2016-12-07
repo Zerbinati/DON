@@ -300,10 +300,10 @@ bool Position::pseudo_legal (Move m) const
         break;
     case PROMOTE:
     {
+        assert(NIHT <= promote (m) && promote (m) <= QUEN);
         if (!(   mpt == PAWN
               && rel_rank (active, org) == R_7
-              && rel_rank (active, dst) == R_8
-              && (NIHT <= promote (m) && promote (m) <= QUEN)))
+              && rel_rank (active, dst) == R_8))
         {
             return false;
         }
@@ -550,15 +550,12 @@ void Position::clear ()
 // Set the castling right
 void Position::set_castle (Color c, CastleSide cs)
 {
-    assert(c == WHITE
-        || c == BLACK);
     assert(cs == CS_KING
         || cs == CS_QUEN);
     bool king_side = cs == CS_KING;
 
     auto king_org = square (c, KING);
     Square rook_org;
-    bool rook_found = false;
     for (rook_org = king_side ? rel_sq (c, SQ_H1) : rel_sq (c, SQ_A1);
          king_side ? rook_org >= rel_sq (c, SQ_A1) : rook_org <= rel_sq (c, SQ_H1);
          king_side ? --rook_org : ++rook_org)
@@ -566,15 +563,10 @@ void Position::set_castle (Color c, CastleSide cs)
         assert((pieces (c, KING) & rook_org) == 0);
         if ((pieces (c, ROOK) & rook_org) != 0)
         {
-            rook_found = true;
             break;
         }
     }
-    if (!rook_found)
-    {
-        assert(false);
-        return;
-    }
+    assert((pieces (c, ROOK) & rook_org) != 0);
 
     auto king_dst = rel_sq (c, king_side ? SQ_G1 : SQ_C1);
     auto rook_dst = rel_sq (c, king_side ? SQ_F1 : SQ_D1);

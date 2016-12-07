@@ -81,7 +81,7 @@ namespace Evaluator {
             {
                 static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
                 static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-                static const auto PAtt = Own == WHITE ? PawnAttacks[WHITE] : PawnAttacks[BLACK];
+                static const auto PAtt = PawnAttacks[Own];
 
                 auto fk_sq = pos.square (Own, KING);
 
@@ -433,15 +433,9 @@ namespace Evaluator {
                 {
                     // Penalty for pin or discover attack on the queen
                     Bitboard pinners = 0, discovers = 0;
-                    if (   (pos.slider_blockers<Own> (s, pos.pieces (Opp, QUEN), pinners, discovers) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
-                                                                                                                                                     | shift<RCap> (pos.pieces (Own))))
-                                                                                                         | pos.abs_blockers (Opp))) != 0
-                        && (   (pinners) != 0
-                            || (discovers & (  ei.pin_attacked_by[Opp][PAWN]
-                                             | ei.pin_attacked_by[Opp][NIHT]
-                                             | ei.pin_attacked_by[Opp][BSHP]
-                                             | ei.pin_attacked_by[Opp][ROOK]
-                                             | ei.pin_attacked_by[Opp][KING])) != 0))
+                    if ((pos.slider_blockers<Own> (s, pos.pieces (Opp, QUEN), pinners, discovers) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
+                                                                                                                                                  | shift<RCap> (pos.pieces (Own))))
+                                                                                                      | pos.abs_blockers (Opp))) != 0)
                     {
                         score -= QueenWeaken;
                     }

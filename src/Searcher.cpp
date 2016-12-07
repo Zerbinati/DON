@@ -357,8 +357,8 @@ Move MovePicker::next_move ()
             {
                 return move;
             }
-            // Losing capture, add it to the bad capture moves
-            _capture_moves.push_back ({ move, VALUE_ZERO });
+            // Losing capture, add it to the capture moves
+            _capture_moves.push_back (move);
         }
         ++_stage;
         generate<QUIET> (_moves, _pos);
@@ -415,7 +415,7 @@ Move MovePicker::next_move ()
     case S_BAD_CAPTURE:
         while (_index < _capture_moves.size ())
         {
-            return _capture_moves[_index++].move;
+            return _capture_moves[_index++];
         }
         break; // BREAK
 
@@ -669,6 +669,9 @@ namespace Searcher {
             }
         }
 
+        Value bonus   (i16 depth) { return +Value((depth+1)*(depth+1) - 3); }
+        Value penalty (i16 depth) { return -Value((depth+2)*(depth+2) - 3); }
+
         // Updates countermoves and followupmoves history stats
         void update_cm_stats (Stack *const &ss, Piece pc, Square s, Value value)
         {
@@ -688,7 +691,6 @@ namespace Searcher {
                 (ss-4)->piece_cm_history->update (pc, s, value);
             }
         }
-
         // Updates killers, history, countermoves and followupmoves history stats
         void update_stats (Stack *const &ss, const Position &pos, Move move, Value value, const MoveVector &quiet_moves)
         {
@@ -700,8 +702,7 @@ namespace Searcher {
                 ss->killer_moves[1] = ss->killer_moves[0];
                 ss->killer_moves[0] = move;
             }
-
-            if ((ss-1)->piece_cm_history != nullptr)
+            if (_ok ((ss-1)->current_move))
             {
                 pos.thread->piece_cmove.update (pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), move);
             }
@@ -860,11 +861,13 @@ namespace Searcher {
             assert(tt_move == MOVE_NONE
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
-            auto tt_ext   = tt_hit
-                         && tte->move () == tt_move;
-            auto tt_value = tt_ext ?
-                                value_of_tt (tte->value (), ss->ply) :
-                                VALUE_NONE;
+            auto tt_ext =
+                   tt_hit
+                && tte->move () == tt_move;
+            auto tt_value =
+                tt_ext ?
+                    value_of_tt (tte->value (), ss->ply) :
+                    VALUE_NONE;
 
             ss->current_move = MOVE_NONE;
 
@@ -1171,10 +1174,10 @@ namespace Searcher {
                 }
             }
             
-            assert((ss+1)->exclude_move == MOVE_NONE);
-            assert(!(ss+1)->skip_pruning);
             ss->current_move = MOVE_NONE;
             ss->piece_cm_history = nullptr;
+            (ss+1)->exclude_move = MOVE_NONE;
+            (ss+1)->skip_pruning = false;
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
 
             Move move;
@@ -1197,13 +1200,15 @@ namespace Searcher {
             assert(tt_move == MOVE_NONE
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
-            auto tt_ext   = tt_hit
-                         && (   tte->move () == tt_move
-                             || (   root_node
-                                 && tte->move () == MOVE_NONE));
-            auto tt_value = tt_ext ?
-                                value_of_tt (tte->value (), ss->ply) :
-                                VALUE_NONE;
+            auto tt_ext =
+                   tt_hit
+                && (   tte->move () == tt_move
+                    || (   root_node
+                        && tte->move () == MOVE_NONE));
+            auto tt_value =
+                tt_ext ?
+                    value_of_tt (tte->value (), ss->ply) :
+                    VALUE_NONE;
 
             // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
@@ -1218,13 +1223,13 @@ namespace Searcher {
                 {
                     if (!pos.capture_or_promotion (tt_move))
                     {
-                        update_stats (ss, pos, tt_move, +Value((depth+1)*(depth+1)-3));
+                        update_stats (ss, pos, tt_move, bonus (depth));
                     }
                     // Penalty for a quiet TT move in previous ply when it gets refuted
                     if (   (ss-1)->move_count == 1
                         && pos.si->capture == NONE)
                     {
-                        update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -Value((depth+2)*(depth+2)-3));
+                        update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), penalty (depth));
                     }
                 }
                 return tt_value;
@@ -1352,8 +1357,6 @@ namespace Searcher {
                         && pos.si->non_pawn_matl[pos.active] > VALUE_ZERO)
                     {
                         assert(exclude_move == MOVE_NONE);
-                        assert(_ok ((ss-1)->current_move)
-                            && (ss-1)->piece_cm_history != nullptr);
 
                         ss->current_move = MOVE_NULL;
                         ss->piece_cm_history = nullptr;
@@ -1697,7 +1700,6 @@ namespace Searcher {
                         // Decrease reduction for moves that escape a capture in no-cut nodes.
                         // Filter out castling moves, because they are coded as "king captures rook" and hence break mk_move().
                         if (   mtype (move) == NORMAL
-                            && ptype (mpc) != PAWN
                             && !pos.see_ge (mk_move<NORMAL> (dst_sq (move), org_sq (move)), VALUE_ZERO))
                         {
                             reduce_depth -= 2;
@@ -1712,20 +1714,20 @@ namespace Searcher {
                             - 8000; // Correction factor
 
                         // Decrease/Increase reduction by comparing opponent's stat score
-                        if (   ss->history_val > VALUE_ZERO
+                        if (   (ss)->history_val > VALUE_ZERO
                             && (ss-1)->history_val < VALUE_ZERO)
                         {
                             reduce_depth -= 1;
                         }
                         else
-                        if (   ss->history_val < VALUE_ZERO
+                        if (   (ss)->history_val < VALUE_ZERO
                             && (ss-1)->history_val > VALUE_ZERO)
                         {
                             reduce_depth += 1;
                         }
 
                         // Decrease/Increase reduction for moves with +ve/-ve history
-                        reduce_depth -= i16(i32(ss->history_val) / 20000);
+                        reduce_depth -= i16(i32((ss)->history_val) / 20000);
                     }
 
                     if (reduce_depth < 0)
@@ -1884,7 +1886,6 @@ namespace Searcher {
             // Otherwise it must be a checkmate or a stalemate, so return value accordingly.
             if (move_count == 0)
             {
-                assert(ss->current_move == MOVE_NONE);
                 best_value =
                     exclude_move != MOVE_NONE ?
                         alfa :
@@ -1898,13 +1899,13 @@ namespace Searcher {
             {
                 if (!pos.capture_or_promotion (best_move))
                 {
-                    update_stats (ss, pos, best_move, +Value((depth+1)*(depth+1)-3), quiet_moves);
+                    update_stats (ss, pos, best_move, bonus (depth), quiet_moves);
                 }
                 // Penalty for a quiet best move in previous ply when it gets refuted
                 if (   (ss-1)->move_count == 1
                     && pos.si->capture == NONE)
                 {
-                    update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -Value((depth+2)*(depth+2)-3));
+                    update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), penalty (depth));
                 }
             }
             else
@@ -1913,7 +1914,7 @@ namespace Searcher {
                 && (ss-1)->piece_cm_history != nullptr
                 && pos.si->capture == NONE)
             {
-                update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), +Value((depth+1)*(depth+1)-3));
+                update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), bonus (depth));
             }
 
             tte->save (posi_key,

@@ -299,7 +299,7 @@ private:
     const Stack *const _ss = nullptr;
 
     std::vector<ValMove> _moves;
-    std::vector<ValMove> _capture_moves;
+    std::vector<Move>    _capture_moves;
 
     u08     _index      = 0;
     u08     _stage      = 0;

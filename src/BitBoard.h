@@ -438,9 +438,9 @@ namespace BitBoard {
         assert(bb != 0);
 
 #   if defined(BIT64)
-        return Square(i08(SQ_H8) - __builtin_clzll (bb));
+        return Square(i08(SQ_H8) ^ __builtin_clzll (bb));
 #   else
-        return Square(i08(SQ_H8) - (u32(bb >> 32) != 0 ?
+        return Square(i08(SQ_H8) ^ (u32(bb >> 32) != 0 ?
                                     __builtin_clz (bb >> 32) :
                                     __builtin_clz (bb >> 0) + 32));
 #   endif

@@ -88,7 +88,7 @@ namespace Pawns {
             static const auto Push = Own == WHITE ? DEL_N  : DEL_S;
             static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-            static const auto PAtt = Own == WHITE ? PawnAttacks[WHITE] : PawnAttacks[BLACK];
+            static const auto PAtt = PawnAttacks[Own];
 
             const Bitboard own_pawns = pos.pieces (Own, PAWN);
             const Bitboard opp_pawns = pos.pieces (Opp, PAWN);
@@ -280,7 +280,7 @@ namespace Pawns {
                     for (auto r = R_2; r < R_8; ++r)
                     {
                         auto v = i32((i32(Seeds[r] + (Seeds[r+1] - Seeds[r])*0.5*phalanx) >> opposed) * (1.0 + 0.5*apex));
-                        Connected[opposed][phalanx][apex][r] = mk_score (v * 1 / 1, v * 5 / 8);
+                        Connected[opposed][phalanx][apex][r] = mk_score (v, v * i32(r-R_3) / 4);
                     }
                 }
             }
