@@ -692,7 +692,7 @@ namespace Searcher {
             }
         }
         // Updates killers, history, countermoves and followupmoves history stats
-        void update_stats (Stack *const &ss, const Position &pos, Move move, Value value, const MoveVector &quiet_moves)
+        void update_stats (Stack *const &ss, const Position &pos, Move move, Value value)
         {
             assert(!pos.empty (org_sq (move)));
             assert(value > VALUE_ZERO);
@@ -710,20 +710,6 @@ namespace Searcher {
             pos.thread->piece_history.update (pos[org_sq (move)], dst_sq (move), value);
             pos.thread->color_history.update (pos.active, move, value);
             update_cm_stats (ss, pos[org_sq (move)], dst_sq (move), value);
-
-            // Decrease all the other played quiet moves
-            assert(std::find (quiet_moves.begin (), quiet_moves.end (), move) == quiet_moves.end ());
-            for (auto m : quiet_moves)
-            {
-                pos.thread->piece_history.update (pos[org_sq (m)], dst_sq (m), -value);
-                pos.thread->color_history.update (pos.active, m, -value);
-                update_cm_stats (ss, pos[org_sq (m)], dst_sq (m), -value);
-            }
-        }
-        void update_stats (Stack *const &ss, const Position &pos, Move move, Value value)
-        {
-            static const MoveVector quiet_moves (0);
-            update_stats (ss, pos, move, value, quiet_moves);
         }
 
         // Appends the move and child pv[]
@@ -1899,7 +1885,16 @@ namespace Searcher {
             {
                 if (!pos.capture_or_promotion (best_move))
                 {
-                    update_stats (ss, pos, best_move, bonus (depth), quiet_moves);
+                    auto v = bonus (depth);
+                    update_stats (ss, pos, best_move, v);
+                    // Decrease all the other played quiet moves
+                    assert(std::find (quiet_moves.begin (), quiet_moves.end (), best_move) == quiet_moves.end ());
+                    for (auto m : quiet_moves)
+                    {
+                        pos.thread->piece_history.update (pos[org_sq (m)], dst_sq (m), -v);
+                        pos.thread->color_history.update (pos.active, m, -v);
+                        update_cm_stats (ss, pos[org_sq (m)], dst_sq (m), -v);
+                    }
                 }
                 // Penalty for a quiet best move in previous ply when it gets refuted
                 if (   (ss-1)->move_count == 1
