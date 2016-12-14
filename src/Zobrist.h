@@ -12,7 +12,6 @@ namespace Zobrists {
     public:
         static Key no_matl_key;
         static Key no_pawn_key;
-        static u16 no_tt_key;
 
         // 2*6*64 + 2*2 + 8 + 1
         //=   768 +   4 + 8 + 1

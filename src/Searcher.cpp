@@ -1569,7 +1569,6 @@ namespace Searcher {
                 {
                     auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
                     value = depth_search<false> (pos, ss, beta_margin-1, beta_margin, depth/2, cut_node, false, move);
-
                     singular_ext_node = false;
                     if (value < beta_margin)
                     {
@@ -1769,11 +1768,9 @@ namespace Searcher {
                         || alfa < value)
                     {
                         root_move.resize (1);
-                        auto &pv = (ss+1)->pv;
-                        if (!pv.empty ())
+                        for (auto m : (ss+1)->pv)
                         {
-                            root_move.reserve (pv.size () + 1);
-                            std::copy (pv.begin (), pv.end (), std::back_inserter (root_move));
+                            root_move.push_back (m);
                         }
                         root_move.new_value = value;
 

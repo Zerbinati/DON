@@ -45,10 +45,10 @@ namespace TBSyzygy {
         enum TBFlag : u08
         {
             STM = 1,
-            Mapped = 2,
-            WinPlies = 4,
-            LossPlies = 8,
-            SingleValue = 128
+            MAPPED = 2,
+            WIN_PLIES = 4,
+            LOSS_PLIES = 8,
+            SINGLE_VALUE = 128
         };
 
         Piece tb_piece (i32 pc) { return pc != 0 ? Piece(pc - 1) : NO_PIECE; }
@@ -577,7 +577,7 @@ namespace TBSyzygy {
         i32 decompress_pairs (PairsData* d, u64 idx)
         {
             // Special case where all table positions store the same value
-            if (d->flags & SingleValue)
+            if (d->flags & SINGLE_VALUE)
             {
                 return d->min_sym_len;
             }
@@ -657,7 +657,6 @@ namespace TBSyzygy {
                 sym += number<Sym, LittleEndian> (&d->lowest_sym[len]);
 
                 // If our offset is within the number of values represented by symbol sym
-                // we are done...
                 if (offset < d->sym_len[sym] + 1)
                 {
                     break;
@@ -665,12 +664,13 @@ namespace TBSyzygy {
 
                 // ...otherwise update the offset and continue to iterate
                 offset -= d->sym_len[sym] + 1;
-                len += d->min_sym_len; // Get the real length
-                buf64 <<= len;       // Consume the just processed symbol
+                len += d->min_sym_len;  // Get the real length
+                buf64 <<= len;          // Consume the just processed symbol
                 buf64Size -= len;
 
                 if (buf64Size <= 32)
-                { // Refill the buffer
+                { 
+                    // Refill the buffer
                     buf64Size += 32;
                     buf64 |= u64(number<u32, BigEndian> (ptr++)) << (64 - buf64Size);
                 }
@@ -718,7 +718,7 @@ namespace TBSyzygy {
         // values 0, 1, 2, ... in order of decreasing frequency. This is done for each
         // of the four WDLScore values. The mapping information necessary to reconstruct
         // the original values is stored in the TB file and read during map[] init.
-        WDLScore map_score (WDLEntry*, File, i32 value, WDLScore) { return WDLScore (value - 2); }
+        WDLScore map_score (WDLEntry*, File, i32 value, WDLScore) { return WDLScore(value - 2); }
 
         i32 map_score (DTZEntry* entry, File f, i32 value, WDLScore wdl)
         {
@@ -735,15 +735,15 @@ namespace TBSyzygy {
             u16* idx = entry->has_pawns ?
                 entry->pawn_table.file[f].map_idx :
                 entry->piece_table.map_idx;
-            if (flags & Mapped)
+            if (flags & MAPPED)
             {
                 value = map[idx[WDLMap[wdl + 2]] + value];
             }
 
             // DTZ tables store distance to zero in number of moves or plies. We
             // want to return plies, so we have convert to plies when needed.
-            if (   (wdl == WDLWin  && !(flags & WinPlies))
-                || (wdl == WDLLoss && !(flags & LossPlies))
+            if (   (wdl == WDLWin  && !(flags & WIN_PLIES))
+                || (wdl == WDLLoss && !(flags & LOSS_PLIES))
                 ||  wdl == WDLCursedWin
                 ||  wdl == WDLCursedLoss)
             {
@@ -1120,7 +1120,7 @@ namespace TBSyzygy {
         {
             d->flags = *data++;
 
-            if (d->flags & SingleValue)
+            if (d->flags & SINGLE_VALUE)
             {
                 d->num_blocks = 0;
                 d->span = 0;
@@ -1202,7 +1202,7 @@ namespace TBSyzygy {
             p.map = data;
             for (auto f = F_A; f <= maxFile; ++f)
             {
-                if (item (p, 0, f).precomp->flags & Mapped)
+                if (item (p, 0, f).precomp->flags & MAPPED)
                 {
                     for (i32 i = 0; i < 4; ++i)
                     { // Sequence like 3,x,x,x,1,x,0,2,x,x
@@ -1464,7 +1464,7 @@ namespace TBSyzygy {
         {
             while (si != nullptr)
             {
-                auto p = std::min (si->clock_ply, si->null_ply);
+                auto p = si->draw_ply;
                 if (p < 4)
                 {
                     break;

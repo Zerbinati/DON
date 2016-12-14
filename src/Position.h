@@ -39,11 +39,12 @@ public:
     Square      en_passant_sq;  // En-passant -> "In passing"
     u08         clock_ply;      // Number of halfmoves clock since the last pawn advance or any capture.
                                 // Used to determine if a draw can be claimed under the clock-move rule.
-    u08         null_ply;   
-
+    u08         draw_ply;
+    
     // ---Not copied when making a move---
     PieceType   capture;        // Piece type captured.
     Bitboard    checkers;       // Checkers.
+    bool        draw;
 
     // Check info
     Bitboard king_blockers[CLR_NO];// Absolute and Discover Blockers
@@ -183,6 +184,8 @@ public:
 
     Position& setup (const std::string &ff, StateInfo &si, Thread *const th = nullptr, bool full = true);
     Position& setup (const std::string &code, StateInfo &si, Color c);
+    
+    void set_draw ();
 
     void do_move (Move m, StateInfo &si, bool gives_check);
     void do_move (Move m, StateInfo &si);

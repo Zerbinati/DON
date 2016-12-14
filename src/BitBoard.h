@@ -164,10 +164,10 @@ namespace BitBoard {
     template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  Square_bb[s]; }
+
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
     inline Bitboard  operator^  (Bitboard  bb, Square s) { return bb ^  Square_bb[s]; }
 
-    //inline Bitboard& operator&= (Bitboard &bb, Square s) { return bb &= Square_bb[s]; }
     inline Bitboard& operator|= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
     inline Bitboard& operator^= (Bitboard &bb, Square s) { return bb ^= Square_bb[s]; }
     /*

@@ -19,14 +19,8 @@ namespace Transposition {
         u16 key16 () const
         {
             return
-                (u[3] ^ u[2]) != 0 ? u[3] ^ u[2] :
-                (u[3] ^ u[1]) != 0 ? u[3] ^ u[1] :
-                (u[3] ^ u[0]) != 0 ? u[3] ^ u[0] :
-                // No Need
-                //(u[2] ^ u[1]) != 0 ? u[2] ^ u[1] :
-                //(u[2] ^ u[0]) != 0 ? u[2] ^ u[0] :
-                //(u[1] ^ u[0]) != 0 ? u[1] ^ u[0] :
-                Zobrists::Zobrist::no_tt_key;
+                (u[3]^u[2]) != 0 ? u[3]^u[2] :
+                (u[3]^u[1]) != 0 ? u[3]^u[1] : u[3]^u[0];
         }
     };
 

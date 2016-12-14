@@ -198,15 +198,19 @@ namespace Evaluator {
         // RookOnFile[semiopen/open] contains bonuses for rooks
         // when there is no friend pawn on the rook file.
         const Score RookOnFile[2] = { S(20, 7), S(45,20) };
+        // Bonus for minor behind a pawn
+        const Score MinorBehindPawn = S(16, 0);
+        // Penalty for bishop with pawns on same color
+        const Score BishopPawns     = S( 8,12);
+        // Penalty for bishop trapped with pawns (Chess960)
+        const Score BishopTrapped   = S(50,50);
 
-        const Score MinorBehindPawn = S(16, 0); // Bonus for minor behind a pawn
-
-        const Score BishopPawns     = S( 8,12); // Penalty for bishop with pawns on same color
-        const Score BishopTrapped   = S(50,50); // Penalty for bishop trapped with pawns (Chess960)
-
-        const Score RookOnPawns     = S( 8,24); // Bonus for rook on pawns
-        const Score RookTrapped     = S(92, 0); // Penalty for rook trapped
-        const Score QueenWeaken     = S(50,10); // Penalty for queen weaken
+        // Bonus for rook on pawns
+        const Score RookOnPawns     = S( 8,24);
+        // Penalty for rook trapped
+        const Score RookTrapped     = S(92, 0);
+        // Penalty for queen weaken
+        const Score QueenWeaken     = S(50,10);
 
         const Score SafeChecked     = S(20,20);
         const Score ProbChecked     = S(10,10);
@@ -214,10 +218,10 @@ namespace Evaluator {
         const Score EnemyInFlank    = S( 7, 0);
         const Score PawnlessFlank   = S(20,80);
 
-        const Score PieceHanged     = S(48,27); // Bonus for each hanged piece
-        const Score PieceLoosed     = S( 0,25); // Bonus for each loosed piece
-
-        const Score PawnUnstopped   = S( 0,45); // Unstopped pawn bonus for pawns going to promote
+        // Bonus for each hanged piece
+        const Score PieceHanged     = S(48,27);
+        // Bonus for each loosed piece
+        const Score PieceLoosed     = S( 0,25);
 
         const Score PawnPushThreat  = S(38,22);
 
@@ -239,16 +243,18 @@ namespace Evaluator {
         // KingThreat[one/more] contains bonuses for king attacks on pawns or pieces which are not pawn-defended.
         const Score KingThreat[2] = { S( 3, 62), S( 9,138) };
 
-        // PassPawnFile[file] contains a bonus for passed pawns according to distance from edge.
-        const Score PassPawnFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
-        const Score PassPawnHinder  = S( 7, 0);
+        const Score PawnUnstopped   = S( 0,45); // Unstopped pawn bonus for pawns going to promote
+
+        // PawnPassFile[file] contains a bonus for passed pawns according to distance from edge.
+        const Score PawnPassFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
+        const Score PawnPassHinder  = S( 7, 0);
 
     #undef S
 
     #define V(v) Value(v)
 
-        // PassPawnRank[phase][rank] contains bonuses for passed pawns according to the rank of the pawn.
-        const Value PassPawnRank[PH_NO][R_NO] =
+        // PawnPassRank[phase][rank] contains bonuses for passed pawns according to the rank of the pawn.
+        const Value PawnPassRank[PH_NO][R_NO] =
         {
             { V(0), V(5), V( 5), V(31), V(73), V(166), V(252), V(0) },
             { V(0), V(7), V(14), V(38), V(73), V(166), V(252), V(0) }
@@ -787,6 +793,12 @@ namespace Evaluator {
             auto score = SCORE_ZERO;
 
             Bitboard passers = ei.pe->passers[Own];
+            if (   passers != 0
+                && pos.si->non_pawn_matl[WHITE] == VALUE_ZERO
+                && pos.si->non_pawn_matl[BLACK] == VALUE_ZERO)
+            {
+                score += PawnUnstopped;
+            }
             while (passers != 0)
             {
                 auto s = pop_lsq (passers);
@@ -795,10 +807,10 @@ namespace Evaluator {
 
                 auto rank = rel_rank (Own, s);
                 // Base bonus depending on rank.
-                auto mg_value = PassPawnRank[MG][rank];
-                auto eg_value = PassPawnRank[EG][rank];
+                auto mg_value = PawnPassRank[MG][rank];
+                auto eg_value = PawnPassRank[EG][rank];
 
-                score -= PassPawnHinder * pop_count (front_sqrs_bb (Own, s) & (ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
+                score -= PawnPassHinder * pop_count (front_sqrs_bb (Own, s) & (ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
 
                 auto r  = i08(rank) - i08(R_2);
                 auto rr = r*(r-1);
@@ -866,7 +878,7 @@ namespace Evaluator {
                     }
                 }
 
-                score += mk_score (mg_value, eg_value) + PassPawnFile[std::min (_file (s), F_H - _file (s))];
+                score += mk_score (mg_value, eg_value) + PawnPassFile[std::min (_file (s), F_H - _file (s))];
             }
 
             if (Trace)
@@ -1056,6 +1068,7 @@ namespace Evaluator {
         score +=
             + evaluate_passed_pawns<WHITE, Trace> (pos, ei)
             - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
+
         // If in the opening phase
         if (   pos.si->non_pawn_matl[WHITE]
              + pos.si->non_pawn_matl[BLACK] >= VALUE_SPACE)
@@ -1064,14 +1077,6 @@ namespace Evaluator {
             score +=
                 + evaluate_space_activity<WHITE, Trace> (pos, ei)
                 - evaluate_space_activity<BLACK, Trace> (pos, ei);
-        }
-        else
-        // If both sides have only pawns
-        if (   pos.si->non_pawn_matl[WHITE] == VALUE_ZERO
-            && pos.si->non_pawn_matl[BLACK] == VALUE_ZERO)
-        {
-            // Evaluate potential unstoppable pawns
-            score += PawnUnstopped * (pop_count (ei.pe->passers[WHITE]) - pop_count (ei.pe->passers[BLACK]));
         }
 
         // Evaluate potential for the position

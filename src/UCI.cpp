@@ -97,11 +97,11 @@ namespace UCI {
             {
                 string fen;
 
-                iss >> token;  // Consume "startpos" or "fen" token
+                iss >> token; // Consume "startpos" or "fen" token
                 if (token == "startpos")
                 {
                     fen = StartFEN;
-                    iss >> token;          // Consume "moves" token if any
+                    iss >> token; // Consume "moves" token if any
                 }
                 else
                 if (token == "fen")
@@ -137,6 +137,7 @@ namespace UCI {
                         }
                         states.push_back (StateInfo ());
                         root_pos.do_move (m, states.back ());
+                        root_pos.set_draw ();
                     }
                 }
             }
