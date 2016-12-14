@@ -217,6 +217,8 @@ namespace Evaluator {
         const Score PieceHanged     = S(48,27); // Bonus for each hanged piece
         const Score PieceLoosed     = S( 0,25); // Bonus for each loosed piece
 
+        const Score PawnUnstopped   = S( 0,45); // Unstopped pawn bonus for pawns going to promote
+
         const Score PawnPushThreat  = S(38,22);
 
         const Score HangPawnThreat  = S(71,61);
@@ -942,7 +944,7 @@ namespace Evaluator {
             auto strong_color = eg >= VALUE_ZERO ? WHITE : BLACK;
             Scale scale;
             if (   ei.me->scale_func[strong_color] == nullptr
-                || (scale = (*ei.me->scale_func[strong_color]) (pos)) == SCALE_NONE)
+                || (scale = (*ei.me->scale_func[strong_color])(pos)) == SCALE_NONE)
             {
                 scale = ei.me->scale[strong_color];
             }
@@ -1069,18 +1071,16 @@ namespace Evaluator {
             && pos.si->non_pawn_matl[BLACK] == VALUE_ZERO)
         {
             // Evaluate potential unstoppable pawns
-            score +=
-                + ei.pe->evaluate_unstoppable_pawns<WHITE> ()
-                - ei.pe->evaluate_unstoppable_pawns<BLACK> ();
+            score += PawnUnstopped * (pop_count (ei.pe->passers[WHITE]) - pop_count (ei.pe->passers[BLACK]));
         }
 
-        // Evaluate position potential for the position
+        // Evaluate potential for the position
         score += evaluate_initiative (pos, ei.pe->asymmetry, eg_value (score));
 
         assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
 
-        // Interpolates between a middle game and a endgame score scaled, based on game phase.
+        // Interpolates between a midgame and a endgame score, scaled based on game phase.
         auto value = Value((  mg_value (score) * i32(ei.me->phase)
                             + eg_value (score) * i32(PHASE_MIDGAME - ei.me->phase)
                                                 // Evaluate scale for the position

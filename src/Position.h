@@ -173,6 +173,8 @@ public:
     bool capture_or_promotion (Move m) const;
     bool gives_check    (Move m) const;
 
+    PieceType cap_type  (Move m) const;
+
     bool pawn_passed_at (Color c, Square s) const;
     bool paired_bishop  (Color c) const;
     bool opposite_bishops ()    const;
@@ -392,12 +394,6 @@ inline bool Position::opposite_bishops () const
         && count<BSHP> (BLACK) == 1
         && opposite_colors (square (WHITE, BSHP), square (BLACK, BSHP));
 }
-
-inline void Position::do_move (Move m, StateInfo &nsi)
-{
-    do_move (m, nsi, gives_check (m));
-}
-
 inline bool Position::en_passant (Move m) const
 {
     return mtype (m) == ENPASSANT
@@ -425,6 +421,17 @@ inline bool Position::capture_or_promotion (Move m) const
             && (pieces (~active) & dst_sq (m)) != 0)
         || en_passant (m)
         || promotion (m);
+}
+inline PieceType Position::cap_type (Move m) const
+{
+    return mtype (m) != ENPASSANT ?
+        ptype (board[dst_sq (m)]) :
+        PAWN;
+}
+
+inline void Position::do_move (Move m, StateInfo &nsi)
+{
+    do_move (m, nsi, gives_check (m));
 }
 
 inline void Position::place_piece (Square s, Color c, PieceType pt)

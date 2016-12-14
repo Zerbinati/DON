@@ -435,9 +435,9 @@ namespace Threading {
             TBProbeDepth = 0;
         }
         // Filter root moves
-        if (   !root_moves.empty ()
-            && TBLimitPiece != 0
+        if (   TBLimitPiece != 0
             && TBLimitPiece >= root_pos.count<NONE> ()
+            && !root_moves.empty ()
             && root_pos.can_castle (CR_ANY) == CR_NONE)
         {
             // If the current root position is in the tablebases,

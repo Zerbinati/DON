@@ -73,8 +73,6 @@ namespace Pawns {
         const Score Unsupported     = S(17, 8);
         // Blocked pawn penalty
         const Score Blocked         = S(18,38);
-        // Unstopped pawn bonus for pawns going to promote
-        const Score Unstopped       = S( 0,20);
 
     #undef S
 
@@ -228,18 +226,6 @@ namespace Pawns {
     // Explicit template instantiations
     template Value Entry::pawn_shelter_storm<WHITE> (const Position&, Square) const;
     template Value Entry::pawn_shelter_storm<BLACK> (const Position&, Square) const;
-
-    // Scores the most advanced passed pawns.
-    template<Color Own>
-    Score Entry::evaluate_unstoppable_pawns () const
-    {
-        return passers[Own] != 0 ?
-                Unstopped * i32(rel_rank (Own, scan_frntmost_sq (Own, passers[Own]))) :
-                SCORE_ZERO;
-    }
-    // Explicit template instantiations
-    template Score Entry::evaluate_unstoppable_pawns<WHITE> () const;
-    template Score Entry::evaluate_unstoppable_pawns<BLACK> () const;
 
     // Looks up a PawnEntry object, and returns a pointer to it.
     // The pointer is also stored in a hash table.

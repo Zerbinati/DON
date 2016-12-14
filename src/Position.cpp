@@ -1094,23 +1094,25 @@ void Position::flip ()
     {
         std::getline (iss, token, r != R_1 ? '/' : ' ');
         toggle (token);
-        ff.insert (0, token + (r != R_8 ? "/" : " "));
+        token += r != R_8 ? '/' : ' ';
+        ff.insert (0, token);
     }
     // 2. Active color
     iss >> token;
-    ff += (token[0] == 'w' ? 'b' :
-           token[0] == 'b' ? 'w' : '-');
+    ff += token[0] == 'w' ? 'b' :
+          token[0] == 'b' ? 'w' : '-';
     ff += ' ';
     // 3. Castling availability
     iss >> token;
     toggle (token);
-    ff += token + ' ';
+    ff += token;
+    ff += ' ';
     // 4. En-passant square
     iss >> token;
-    ff += (token[0] == '-' ?
-           token :
-           token.replace (1, 1, token[1] == '3' ? "6" :
-                                token[1] == '6' ? "3" : "-"));
+    ff += token[0] == '-' ?
+          token :
+          token.replace (1, 1, token[1] == '3' ? "6" :
+                               token[1] == '6' ? "3" : "-");
     // 5-6. Half and full moves
     std::getline (iss, token);
     ff += token;
@@ -1128,7 +1130,8 @@ void Position::mirror ()
     {
         std::getline (iss, token, r != R_1 ? '/' : ' ');
         std::reverse (token.begin (), token.end ());
-        ff += token + (r != R_1 ? "/" : " ");
+        token += r != R_1 ? '/' : ' ';
+        ff += token;
     }
     // 2. Active color
     iss >> token;
@@ -1143,16 +1146,17 @@ void Position::mirror ()
         {
             ch = Chess960 ?
                     to_char (~to_file (char(tolower (ch))), islower (ch)) :
-                    (tolower (ch) == 'k' ? (islower (ch) ? 'q' : 'Q') :
-                     tolower (ch) == 'q' ? (islower (ch) ? 'k' : 'K') : '-');
+                    tolower (ch) == 'k' ? (islower (ch) ? 'q' : 'Q') :
+                    tolower (ch) == 'q' ? (islower (ch) ? 'k' : 'K') : '-';
         }
     }
-    ff += token + ' ';
+    ff += token;
+    ff += ' ';
     // 4. En-passant square
     iss >> token;
-    ff += (token[0] == '-' ?
-           token :
-           token.replace (0, 1, string(1, to_char (~to_file (token[0])))));
+    ff += token[0] == '-' ?
+          token :
+          token.replace (0, 1, string(1, to_char (~to_file (token[0]))));
     // 5-6. Half and full moves
     std::getline (iss, token);
     ff += token;

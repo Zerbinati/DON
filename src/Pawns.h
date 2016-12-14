@@ -39,9 +39,6 @@ namespace Pawns {
         }
 
         template<Color Own>
-        Score evaluate_unstoppable_pawns () const;
-
-        template<Color Own>
         Value pawn_shelter_storm (const Position &pos, Square fk_sq) const;
 
         template<Color Own>

@@ -278,17 +278,14 @@ struct Stack
 {
 public:
     i16   ply;
-    Move  current_move
-        , exclude_move;
+    Move  current_move;
     Move  killer_moves[MaxKillers];
 
     Value static_eval
         , history_val;
     u08   move_count;
-    bool  skip_pruning;
-    TPieceValueStats *piece_cm_history;
-
     MoveVector pv;
+    TPieceValueStats *piece_cm_history;
 };
 
 // MovePicker class is used to pick one legal moves from the current position.

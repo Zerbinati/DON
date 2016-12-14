@@ -265,7 +265,7 @@ template<> void MovePicker::value<CAPTURE> ()
             && _pos.legal (vm.move));
 
         vm.value =
-              PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+              PieceValues[MG][_pos.cap_type (vm.move)]
             - 200 * Value(rel_rank (_pos.active, dst_sq (vm.move)))
             - Value(ptype (_pos[org_sq (vm.move)]) + 1);
     }
@@ -296,7 +296,7 @@ template<> void MovePicker::value<EVASION> ()
         if (_pos.capture (vm.move))
         {
             vm.value =
-                  PieceValues[MG][_pos.en_passant (vm.move) ? PAWN : ptype (_pos[dst_sq (vm.move)])]
+                  PieceValues[MG][_pos.cap_type (vm.move)]
                 - Value(ptype (_pos[org_sq (vm.move)]) + 1)
                 + MaxValue;
         }
@@ -1088,7 +1088,7 @@ namespace Searcher {
         }
         // The main depth limited search function.
         template<bool PVNode>
-        Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node)
+        Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node, bool prun_node, Move exclude_move = MOVE_NONE)
         {
             const bool root_node = PVNode && ss->ply == 1;
 
@@ -1159,18 +1159,15 @@ namespace Searcher {
                     return alfa;
                 }
             }
-            
+
             ss->current_move = MOVE_NONE;
             ss->piece_cm_history = nullptr;
-            (ss+1)->exclude_move = MOVE_NONE;
-            (ss+1)->skip_pruning = false;
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
 
             Move move;
             // Step 4. Transposition table lookup
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
-            auto exclude_move = ss->exclude_move;
             auto posi_key = pos.si->posi_key ^ Key(exclude_move);
             bool tt_hit;
             auto *tte = TT.probe (posi_key, tt_hit);
@@ -1298,7 +1295,7 @@ namespace Searcher {
                                BOUND_NONE);
                 }
 
-                if (!ss->skip_pruning)
+                if (prun_node)
                 {
                     // Step 6. Razoring sort of forward pruning where rather than
                     // skipping an entire subtree, search it to a reduced depth.
@@ -1356,12 +1353,10 @@ namespace Searcher {
                                                     ^ (pos.si->en_passant_sq != SQ_NO ? Zob.en_passant_keys[_file (pos.si->en_passant_sq)] : 0)));
 
                         pos.do_null_move (si);
-                        (ss+1)->skip_pruning = true;
                         auto null_value =
                             reduced_depth <= 0 ?
                                 -quien_search<false> (pos, ss+1, -beta, -(beta-1), 0) :
-                                -depth_search<false> (pos, ss+1, -beta, -(beta-1), reduced_depth, !cut_node);
-                        (ss+1)->skip_pruning = false;
+                                -depth_search<false> (pos, ss+1, -beta, -(beta-1), reduced_depth, !cut_node, false);
                         pos.undo_null_move ();
 
                         if (null_value >= beta)
@@ -1376,12 +1371,10 @@ namespace Searcher {
                             }
 
                             // Do verification search at high depths
-                            ss->skip_pruning = true;
                             auto value =
                                 reduced_depth <= 0 ?
                                     quien_search<false> (pos, ss, beta-1, beta, 0) :
-                                    depth_search<false> (pos, ss, beta-1, beta, reduced_depth, false);
-                            ss->skip_pruning = false;
+                                    depth_search<false> (pos, ss, beta-1, beta, reduced_depth, false, false);
 
                             if (value >= beta)
                             {
@@ -1434,7 +1427,7 @@ namespace Searcher {
                             // NOTE:: All moves are capture_or_promotion
                             prefetch (th->matl_table[pos.si->matl_key]);
 
-                            auto value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, reduced_depth, !cut_node);
+                            auto value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, reduced_depth, !cut_node, true);
 
                             pos.undo_move (move);
 
@@ -1451,9 +1444,7 @@ namespace Searcher {
                         && (   PVNode
                             || ss->static_eval + 256 >= beta))
                     {
-                        ss->skip_pruning = true;
-                        depth_search<PVNode> (pos, ss, alfa, beta, (3*depth)/4 - 2, cut_node);
-                        ss->skip_pruning = false;
+                        depth_search<PVNode> (pos, ss, alfa, beta, (3*depth)/4 - 2, cut_node, false);
 
                         tte = TT.probe (posi_key, tt_hit);
                         if (tt_hit)
@@ -1577,11 +1568,7 @@ namespace Searcher {
                     && move == tt_move)
                 {
                     auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
-                    ss->exclude_move = move;
-                    ss->skip_pruning = true;
-                    value = depth_search<false> (pos, ss, beta_margin-1, beta_margin, depth/2, cut_node);
-                    ss->skip_pruning = false;
-                    ss->exclude_move = MOVE_NONE;
+                    value = depth_search<false> (pos, ss, beta_margin-1, beta_margin, depth/2, cut_node, false, move);
 
                     singular_ext_node = false;
                     if (value < beta_margin)
@@ -1608,11 +1595,7 @@ namespace Searcher {
                         }
 
                         // Reduced depth of the next LMR search
-                        auto lmr_depth = i16(new_depth - reduction_depth (PVNode, improving, depth, move_count));
-                        if (lmr_depth < 0)
-                        {
-                            lmr_depth = 0;
-                        }
+                        auto lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Counter moves value based pruning
                                (   lmr_depth < 3
                                 && ((ss-1)->piece_cm_history == nullptr || (*(ss-1)->piece_cm_history)(mpc, dst_sq (move)) < VALUE_ZERO)
@@ -1634,7 +1617,7 @@ namespace Searcher {
                     // Depth based SEE based pruning
                     if (   depth < 7
                         && new_depth < depth
-                        && !pos.see_ge (move, beta - alfa - 35*depth*depth - 400))
+                        && !pos.see_ge (move, -Value(35*depth*depth + (PVNode ? 300 : 400))))
                     {
                         continue;
                     }
@@ -1726,7 +1709,7 @@ namespace Searcher {
                         reduce_depth = new_depth - 1;
                     }
 
-                    value = -depth_search<false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth, true);
+                    value = -depth_search<false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth, true, true);
 
                     full_depth_search = alfa < value
                                      && reduce_depth > 0;
@@ -1743,7 +1726,7 @@ namespace Searcher {
                     value =
                         new_depth <= 0 ?
                             -quien_search<false> (pos, ss+1, -(alfa+1), -alfa, 0) :
-                            -depth_search<false> (pos, ss+1, -(alfa+1), -alfa, new_depth, !cut_node);
+                            -depth_search<false> (pos, ss+1, -(alfa+1), -alfa, new_depth, !cut_node, true);
                 }
 
                 // Do a full PV search on:
@@ -1761,7 +1744,7 @@ namespace Searcher {
                     value =
                         new_depth <= 0 ?
                             -quien_search<true> (pos, ss+1, -beta, -alfa, 0) :
-                            -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false);
+                            -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false, true);
                 }
 
                 // Step 17. Undo move
@@ -2026,12 +2009,10 @@ namespace Threading {
         {
             s->ply              = i16(s - stacks - 3);
             s->current_move     = MOVE_NONE;
-            s->exclude_move     = MOVE_NONE;
             std::fill_n (s->killer_moves, MaxKillers, MOVE_NONE);
             s->static_eval      = VALUE_ZERO;
             s->history_val      = VALUE_ZERO;
             s->move_count       = 0;
-            s->skip_pruning     = false;
             s->piece_cm_history = nullptr;
             assert(s->pv.empty ());
         }
@@ -2135,7 +2116,7 @@ namespace Threading {
                 // Start with a small aspiration window and, in case of fail high/low,
                 // research with bigger window until not failing high/low anymore.
                 do {
-                    best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, running_depth, false);
+                    best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, running_depth, false, true);
 
                     // Bring the best move to the front. It is critical that sorting is
                     // done with a stable algorithm because all the values but the first
@@ -2259,10 +2240,10 @@ namespace Threading {
                                         * (1.0 + Threadpool.best_move_change)
                                         // Improving factor
                                         * std::min (1.1385,
-                                            std::max (0.3646,
-                                                      0.5685
-                                                    + 0.1895 * (Threadpool.failed_low ? 1 : 0)
-                                                    - 0.0096 * (Threadpool.last_value != VALUE_NONE ? i32(best_value - Threadpool.last_value) : 0))))))
+                                          std::max (0.3646,
+                                                    0.5685
+                                                  + 0.1895 * (Threadpool.failed_low ? 1 : 0)
+                                                  - 0.0096 * (Threadpool.last_value != VALUE_NONE ? i32(best_value - Threadpool.last_value) : 0))))))
                             || (Threadpool.easy_played =
                                     (   Threadpool.best_move_change < 0.030
                                      && Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time * 0.1190))
