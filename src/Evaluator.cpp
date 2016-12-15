@@ -245,21 +245,16 @@ namespace Evaluator {
 
         const Score PawnUnstopped   = S( 0,45); // Unstopped pawn bonus for pawns going to promote
 
+        const Score PawnPassHinder  = S( 7, 0);
+
         // PawnPassFile[file] contains a bonus for passed pawns according to distance from edge.
         const Score PawnPassFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
-        const Score PawnPassHinder  = S( 7, 0);
 
     #undef S
 
     #define V(v) Value(v)
-
-        // PawnPassRank[phase][rank] contains bonuses for passed pawns according to the rank of the pawn.
-        const Value PawnPassRank[PH_NO][R_NO] =
-        {
-            { V(0), V(5), V( 5), V(31), V(73), V(166), V(252), V(0) },
-            { V(0), V(7), V(14), V(38), V(73), V(166), V(252), V(0) }
-        };
-
+        // PawnPassRank[rank] contains bonuses for passed pawns according to the rank of the pawn.
+        const Value PawnPassRank[R_NO] = { V(0), V(5), V(5), V(35), V(75), V(165), V(255), V(0) };
     #undef V
 
         // King attack weights by piece type
@@ -807,8 +802,8 @@ namespace Evaluator {
 
                 auto rank = rel_rank (Own, s);
                 // Base bonus depending on rank.
-                auto mg_value = PawnPassRank[MG][rank];
-                auto eg_value = PawnPassRank[EG][rank];
+                auto mg_value = PawnPassRank[rank];
+                auto eg_value = PawnPassRank[rank];
 
                 score -= PawnPassHinder * pop_count (front_sqrs_bb (Own, s) & (ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
 
