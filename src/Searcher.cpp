@@ -1,7 +1,5 @@
 ﻿#include "Searcher.h"
 
-#include <iterator>
-
 #include "UCI.h"
 #include "PRNG.h"
 #include "Transposition.h"
@@ -715,13 +713,11 @@ namespace Searcher {
         // Appends the move and child pv[]
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
-            assert(_ok (move));
             pv.clear ();
             pv.push_back (move);
-            if (!child_pv.empty ())
+            for (auto m : child_pv)
             {
-                pv.reserve (child_pv.size () + 1);
-                std::copy (child_pv.begin (), child_pv.end (), std::back_inserter (pv));
+                pv.push_back (m);
             }
         }
 

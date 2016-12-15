@@ -312,7 +312,7 @@ namespace Evaluator {
 
                 ei.ful_attacked_by[Own] |= attacks;
 
-                if ((pos.abs_blockers (Own) & s) != 0)
+                if (contains (pos.abs_blockers (Own), s))
                 {
                     attacks &= strline_bb (pos.square (Own, KING), s);
                 }
@@ -344,19 +344,19 @@ namespace Evaluator {
                 {
                     // Bonus for minors when behind a pawn
                     if (   rel_rank (Own, s) < R_5
-                        && (pos.pieces (PAWN) & (s+Push)) != 0)
+                        && contains (pos.pieces (PAWN), (s+Push)))
                     {
                         score += MinorBehindPawn;
                     }
 
                     Bitboard b = OutpostRank[Own] & ~ei.pe->attack_span[Opp];
                     // Bonus for minors outpost squares
-                    if ((b & s) != 0)
+                    if (contains (b, s))
                     {
                         score +=
                             PT == NIHT ?
-                                KnightOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0] :
-                                BishopOutpost[(ei.pin_attacked_by[Own][PAWN] & s) != 0 ? 1 : 0];
+                                KnightOutpost[contains (ei.pin_attacked_by[Own][PAWN], s) ? 1 : 0] :
+                                BishopOutpost[contains (ei.pin_attacked_by[Own][PAWN], s) ? 1 : 0];
                     }
                     else
                     {
@@ -376,7 +376,7 @@ namespace Evaluator {
                         score -= BishopPawns * i32(ei.pe->color_count[Own][color (s)]);
                         
                         if (   mob <= 2
-                            && ((FA_bb|FH_bb) & s) != 0
+                            && contains (FA_bb|FH_bb,  s)
                             && rel_rank (Own, s) >= R_4)
                         {
                             auto del = (F_A == _file (s) ? DEL_E : DEL_W)-Push;
@@ -391,7 +391,7 @@ namespace Evaluator {
                             // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
                             // It is a very serious problem, especially when that pawn is also blocked.
                             // Bishop on a1/h1 or a8/h8 (white or black) which is trapped by own pawn on b2/g2 or b7/g7 (white or black).
-                            if (   ((FA_bb|FH_bb) & s) != 0
+                            if (   contains (FA_bb|FH_bb, s)
                                 && rel_rank (Own, s) == R_1)
                             {
                                 auto del = (F_A == _file (s) ? DEL_E : DEL_W)+Push;
@@ -853,12 +853,12 @@ namespace Evaluator {
                         // Give a big bonus if the path to the queen is not attacked,
                         // a smaller bonus if the block square is not attacked.
                         i32 k = unsafe_front_squares != 0 ?
-                                (unsafe_front_squares & push_sq) != 0 ?
+                                contains (unsafe_front_squares, push_sq) ?
                                     0 : 8 : 18;
                         // Give a big bonus if the path to the queen is fully defended,
                         // a smaller bonus if the block square is defended.
                         k += safe_front_squares != front_squares ?
-                                (safe_front_squares & push_sq) == 0 ?
+                                !contains (safe_front_squares, push_sq) ?
                                     0 : 4 : 6;
 
                         mg_value += k*rr;
@@ -866,7 +866,7 @@ namespace Evaluator {
                     }
                     else
                     // If the pawn is blocked by own pieces.
-                    if ((pos.pieces (Own) & push_sq) != 0)
+                    if (contains (pos.pieces (Own), push_sq))
                     {
                         mg_value += 1*rr + 2*r;
                         eg_value += 1*rr + 2*r;

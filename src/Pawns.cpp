@@ -121,7 +121,7 @@ namespace Pawns {
                 stoppers   = opp_pawns & pawn_pass_span (Own, s);
 
                 opposed    = (opp_pawns & front_sqrs_bb (Own, s)) != 0;
-                blocked    = (own_pawns & (s+Push)) != 0;
+                blocked    = contains (own_pawns, (s+Push));
                 phalanxed  = (neighbours & rank_bb (s)) != 0;
                 connected  = phalanxed || supporters != 0;
                 levered    = (opp_pawns & PAtt[s]) != 0;

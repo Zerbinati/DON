@@ -252,7 +252,7 @@ namespace EndGame {
 
         // To draw, the weak side's king should run towards the corner.
         // And not just any corner! Only a corner that's not the same color as the bishop will do.
-        if (   (((FA_bb|FH_bb)&(R1_bb|R8_bb)) & wk_sq) != 0
+        if (   contains ((FA_bb|FH_bb)&(R1_bb|R8_bb), wk_sq)
             && opposite_colors (wk_sq, wb_sq)
             && dist (wk_sq, wb_sq) == 1
             && dist (sk_sq, wb_sq) > 1)
@@ -305,7 +305,7 @@ namespace EndGame {
         auto value = Value(PushClose[dist (sk_sq, wk_sq)]);
 
         if (   rel_rank (~strong_color, wp_sq) < R_7
-            || ((FA_bb|FC_bb|FF_bb|FH_bb) & wp_sq) == 0
+            || !contains (FA_bb|FC_bb|FF_bb|FH_bb, wp_sq)
             || dist (wk_sq, wp_sq) != 1)
         {
             value += VALUE_EG_QUEN - VALUE_EG_PAWN;
@@ -461,7 +461,7 @@ namespace EndGame {
         assert(verify_material (pos, ~strong_color, VALUE_MG_BSHP, 0));
 
         // If rook pawns
-        if ((pos.pieces (PAWN) & (FA_bb|FH_bb)) != 0)
+        if (((FA_bb|FH_bb) & pos.pieces (PAWN)) != 0)
         {
             auto wk_sq = pos.square (~strong_color, KING);
             auto wb_sq = pos.square (~strong_color, BSHP);
@@ -487,7 +487,7 @@ namespace EndGame {
             // and the defending king is near the corner
             if (   r == R_6
                 && dist (sp_sq + push*2, wk_sq) <= 1
-                && (PieceAttacks[BSHP][wb_sq] & (sp_sq + push)) != 0
+                && contains (PieceAttacks[BSHP][wb_sq], (sp_sq + push))
                 && dist<File> (wb_sq, sp_sq) >= 2)
             {
                 return Scale(8);
@@ -850,7 +850,7 @@ namespace EndGame {
                 // There's potential for a draw if weak pawn is blocked on the 7th rank
                 // and the bishop cannot attack it or they only have one pawn left
                 if (   rel_rank (strong_color, wp_sq) == R_7
-                    && (pos.pieces (strong_color, PAWN) & (wp_sq + pawn_push (~strong_color)))
+                    && contains (pos.pieces (strong_color, PAWN), wp_sq + pawn_push (~strong_color))
                     && (   opposite_colors (sb_sq, wp_sq)
                         || pos.count<PAWN> (strong_color) == 1))
                 {
@@ -876,7 +876,7 @@ namespace EndGame {
                 && dist (sp_sq, sk_sq) > 1
                 && rel_rank (strong_color, sp_sq) == R_6
                 && rel_rank (strong_color, sb_sq) == R_7
-                && (file_bb (sb_sq) & (FA_bb|FH_bb)) != 0
+                && ((FA_bb|FH_bb) & file_bb (sb_sq)) != 0
                 && (PawnAttacks[~strong_color][sb_sq] & spawns) != 0)
             {
                 return SCALE_DRAW;

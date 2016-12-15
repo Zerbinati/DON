@@ -400,7 +400,7 @@ inline bool Position::opposite_bishops () const
 inline bool Position::en_passant (Move m) const
 {
     return mtype (m) == ENPASSANT
-        && (pieces (active, PAWN) & org_sq (m)) != 0
+        && contains (pieces (active, PAWN), org_sq (m))
         && si->en_passant_sq == dst_sq (m)
         && empty (si->en_passant_sq);
 }
@@ -409,19 +409,19 @@ inline bool Position::capture (Move m) const
     // Castling is encoded as "king captures the rook"
     return (   (   mtype (m) == NORMAL
                 || promotion (m))
-            && (pieces (~active) & dst_sq (m)) != 0)
+            && contains (pieces (~active), dst_sq (m)))
         || en_passant (m);
 }
 inline bool Position::promotion (Move m) const
 {
     return mtype (m) == PROMOTE
-        && (pieces (active, PAWN) & org_sq (m)) != 0
+        && contains (pieces (active, PAWN), org_sq (m))
         && rel_rank (active, org_sq (m)) == R_7;
 }
 inline bool Position::capture_or_promotion (Move m) const
 {
     return (   mtype (m) == NORMAL
-            && (pieces (~active) & dst_sq (m)) != 0)
+            && contains (pieces (~active), dst_sq (m)))
         || en_passant (m)
         || promotion (m);
 }

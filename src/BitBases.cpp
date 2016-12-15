@@ -116,7 +116,8 @@ namespace BitBases {
                 if (   dist (_k_sq[WHITE], _k_sq[BLACK]) <= 1
                     || _k_sq[WHITE] == _p_sq
                     || _k_sq[BLACK] == _p_sq
-                    || (_active == WHITE && (PawnAttacks[WHITE][_p_sq] & _k_sq[BLACK]) != 0))
+                    || (   _active == WHITE
+                        && contains (PawnAttacks[WHITE][_p_sq], _k_sq[BLACK])))
                 {
                     result = INVALID;
                 }
@@ -126,7 +127,7 @@ namespace BitBases {
                     && _rank (_p_sq) == R_7
                     && _k_sq[WHITE] != (_p_sq + DEL_N)
                     && (   dist (_k_sq[BLACK], _p_sq + DEL_N) > 1
-                        || (PieceAttacks[KING][_k_sq[WHITE]] & (_p_sq + DEL_N)) != 0))
+                        || contains (PieceAttacks[KING][_k_sq[WHITE]], _p_sq + DEL_N)))
                 {
                     result = WIN;
                 }
@@ -134,7 +135,7 @@ namespace BitBases {
                 // Immediate draw if is a stalemate or king captures undefended pawn
                 if (   _active == BLACK
                     && (   (PieceAttacks[KING][_k_sq[BLACK]] & ~(PieceAttacks[KING][_k_sq[WHITE]] | PawnAttacks[WHITE][_p_sq])) == 0
-                        || ((PieceAttacks[KING][_k_sq[BLACK]] & ~PieceAttacks[KING][_k_sq[WHITE]]) & _p_sq) != 0))
+                        || contains (PieceAttacks[KING][_k_sq[BLACK]] & ~PieceAttacks[KING][_k_sq[WHITE]], _p_sq)))
                 {
                     result = DRAW;
                 }

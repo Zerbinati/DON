@@ -106,13 +106,13 @@ namespace BitBoard {
 
     const Bitboard WhiteCamp  = R5_bb|R4_bb|R3_bb|R2_bb|R1_bb;
     const Bitboard BlackCamp  = R4_bb|R5_bb|R6_bb|R7_bb|R8_bb;
-    const Bitboard QueenSide  = FA_bb|FB_bb|FC_bb|FD_bb;
-    const Bitboard CenterSide = FC_bb|FD_bb|FE_bb|FF_bb;
-    const Bitboard KingSide   = FE_bb|FF_bb|FG_bb|FH_bb;
+    const Bitboard QueenFile  = FA_bb|FB_bb|FC_bb|FD_bb;
+    const Bitboard CenterFile = FC_bb|FD_bb|FE_bb|FF_bb;
+    const Bitboard KingFile   = FE_bb|FF_bb|FG_bb|FH_bb;
     const Bitboard KingFlank[CLR_NO][F_NO] =
     {
-        { WhiteCamp&QueenSide, WhiteCamp&QueenSide, WhiteCamp&QueenSide, WhiteCamp&CenterSide, WhiteCamp&CenterSide, WhiteCamp&KingSide, WhiteCamp&KingSide, WhiteCamp&KingSide },
-        { BlackCamp&QueenSide, BlackCamp&QueenSide, BlackCamp&QueenSide, BlackCamp&CenterSide, BlackCamp&CenterSide, BlackCamp&KingSide, BlackCamp&KingSide, BlackCamp&KingSide }
+        { WhiteCamp&QueenFile, WhiteCamp&QueenFile, WhiteCamp&QueenFile, WhiteCamp&CenterFile, WhiteCamp&CenterFile, WhiteCamp&KingFile, WhiteCamp&KingFile, WhiteCamp&KingFile },
+        { BlackCamp&QueenFile, BlackCamp&QueenFile, BlackCamp&QueenFile, BlackCamp&CenterFile, BlackCamp&CenterFile, BlackCamp&KingFile, BlackCamp&KingFile, BlackCamp&KingFile }
     };
 
     // SpaceArea contains the area of the board which is considered by the space evaluation.
@@ -163,28 +163,13 @@ namespace BitBoard {
     template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
     template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
-    inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  Square_bb[s]; }
+    inline bool contains (Bitboard bb, Square s) { return (bb & Square_bb[s]) != 0; }
 
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
     inline Bitboard  operator^  (Bitboard  bb, Square s) { return bb ^  Square_bb[s]; }
 
     inline Bitboard& operator|= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
     inline Bitboard& operator^= (Bitboard &bb, Square s) { return bb ^= Square_bb[s]; }
-    /*
-    inline Bitboard  operator&  (Bitboard  bb, File f) { return bb &  File_bb[f]; }
-    inline Bitboard  operator|  (Bitboard  bb, File f) { return bb |  File_bb[f]; }
-    inline Bitboard  operator^  (Bitboard  bb, File f) { return bb ^  File_bb[f]; }
-    inline Bitboard& operator&= (Bitboard &bb, File f) { return bb &= File_bb[f]; }
-    inline Bitboard& operator|= (Bitboard &bb, File f) { return bb |= File_bb[f]; }
-    inline Bitboard& operator^= (Bitboard &bb, File f) { return bb ^= File_bb[f]; }
-
-    inline Bitboard  operator&  (Bitboard  bb, Rank r) { return bb &  Rank_bb[r]; }
-    inline Bitboard  operator|  (Bitboard  bb, Rank r) { return bb |  Rank_bb[r]; }
-    inline Bitboard  operator^  (Bitboard  bb, Rank r) { return bb ^  Rank_bb[r]; }
-    inline Bitboard& operator&= (Bitboard &bb, Rank r) { return bb &= Rank_bb[r]; }
-    inline Bitboard& operator|= (Bitboard &bb, Rank r) { return bb |= Rank_bb[r]; }
-    inline Bitboard& operator^= (Bitboard &bb, Rank r) { return bb ^= Rank_bb[r]; }
-    */
 
     inline Bitboard square_bb (Square s) { return Square_bb[s]; }
 
@@ -209,7 +194,7 @@ namespace BitBoard {
     inline Bitboard pawn_pass_span (Color c, Square s) { return PawnPassSpan[c][s]; }
 
     // Check the squares s1, s2 and s3 are aligned on a straight line.
-    inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return (StrLine_bb[s1][s2] & s3) != 0; }
+    inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return contains (StrLine_bb[s1][s2], s3); }
 
     inline bool more_than_one (Bitboard bb)
     {
@@ -249,7 +234,7 @@ namespace BitBoard {
                  sq += *deltas)
             {
                 slide_attacks |= sq;
-                if ((occ & sq) != 0)
+                if (contains (occ, sq))
                 {
                     break;
                 }

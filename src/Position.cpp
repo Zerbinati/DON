@@ -100,11 +100,11 @@ bool Position::see_ge (Move m, Value v) const
         // Simply assume the SEE value is VALUE_ZERO that is always correct unless in the rare case the rook ends up under attack.
         return VALUE_ZERO >= v;
     case ENPASSANT:
-        assert((pieces (c, PAWN) & org) != 0);
+        assert(contains (pieces (c, PAWN), org));
         mocc = square_bb (dst - pawn_push (c));
         balance = PieceValues[MG][PAWN];
     default:
-        assert((pieces (c) & org) != 0);
+        assert(contains (pieces (c), org));
         mocc = 0;
         balance = PieceValues[MG][ptype (board[dst])];
     }
@@ -235,7 +235,7 @@ bool Position::pseudo_legal (Move m) const
     auto dst = dst_sq (m);
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
-    if ((pieces (active) & org) == 0)
+    if (!contains (pieces (active), org))
     {
         return false;
     }
@@ -259,7 +259,7 @@ bool Position::pseudo_legal (Move m) const
         if (!(   mpt == KING
               && rel_rank (active, org) == R_1
               && rel_rank (active, dst) == R_1
-              && (pieces (active, ROOK) & dst) != 0
+              && contains (pieces (active, ROOK), dst)
               && si->checkers == 0
               && (si->castle_rights & cr) != CR_NONE
               && !impeded_castle (cr)))
@@ -291,7 +291,7 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
         cap -= pawn_push (active);
-        if ((pieces (~active, PAWN) & cap) == 0)
+        if (!contains (pieces (~active, PAWN), cap))
         {
             return false;
         }
@@ -310,7 +310,7 @@ bool Position::pseudo_legal (Move m) const
         break;
     }
     // The captured square cannot be occupied by a friendly piece (mt != CASTLE)
-    if ((pieces (active) & cap) != 0)
+    if (contains (pieces (active), cap))
     {
         return false;
     }
@@ -333,12 +333,12 @@ bool Position::pseudo_legal (Move m) const
                 // Not a normal capture
             && !(   (   mt == NORMAL
                      || mt == PROMOTE)
-                 && ((pieces (~active) & PawnAttacks[active][org]) & dst) != 0)
+                 && contains (pieces (~active) & PawnAttacks[active][org], dst))
                 // Not an enpassant capture
             && !(   mt == ENPASSANT
                  && si->en_passant_sq == dst
-                 && ((~pieces () & PawnAttacks[active][org]) & dst) != 0
-                 && (pieces (~active, PAWN) & cap) != 0)
+                 && contains (~pieces () & PawnAttacks[active][org], dst)
+                 && contains (pieces (~active, PAWN), cap))
                 // Not a double push
             && !(   mt == NORMAL
                  && rel_rank (active, org) == R_2
@@ -355,15 +355,15 @@ bool Position::pseudo_legal (Move m) const
         switch (mpt)
         {
         case NIHT:
-            if ((PieceAttacks[NIHT][org]           & dst) == 0) { return false; } break;
+            if (!contains (PieceAttacks[NIHT][org]          , dst)) { return false; } break;
         case BSHP:
-            if ((attacks_bb<BSHP> (org, pieces ()) & dst) == 0) { return false; } break;
+            if (!contains (attacks_bb<BSHP> (org, pieces ()), dst)) { return false; } break;
         case ROOK:
-            if ((attacks_bb<ROOK> (org, pieces ()) & dst) == 0) { return false; } break;
+            if (!contains (attacks_bb<ROOK> (org, pieces ()), dst)) { return false; } break;
         case QUEN:
-            if ((attacks_bb<QUEN> (org, pieces ()) & dst) == 0) { return false; } break;
+            if (!contains (attacks_bb<QUEN> (org, pieces ()), dst)) { return false; } break;
         case KING:
-            if ((PieceAttacks[KING][org]           & dst) == 0) { return false; } break;
+            if (!contains (PieceAttacks[KING][org]          , dst)) { return false; } break;
         default: assert(false); break;
         }
     }
@@ -383,9 +383,10 @@ bool Position::pseudo_legal (Move m) const
         {
             return mt != ENPASSANT ?
                 // Move must be a capture of the checking piece or a blocking evasion of the checking piece
-                ((si->checkers | between_bb (scan_lsq (si->checkers), square (active, KING))) & dst) != 0 :
+                contains (si->checkers | between_bb (scan_lsq (si->checkers), square (active, KING)), dst) :
                 // Move must be a capture of the checking en-passant pawn or a blocking evasion of the checking piece
-                (si->checkers & cap) != 0 || (between_bb (scan_lsq (si->checkers), square (active, KING)) & dst) != 0;
+                   contains (si->checkers, cap)
+                || contains (between_bb (scan_lsq (si->checkers), square (active, KING)), dst);
         }
         return false;
     }
@@ -395,7 +396,7 @@ bool Position::pseudo_legal (Move m) const
 bool Position::legal (Move m) const
 {
     assert(_ok (m));
-    assert((pieces (active) & org_sq (m)) != 0);
+    assert(contains (pieces (active), org_sq (m)));
 
     switch (mtype (m))
     {
@@ -405,7 +406,7 @@ bool Position::legal (Move m) const
         // In case of king moves under check have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        if ((pieces (KING) & org_sq (m)) != 0)
+        if (contains (pieces (KING), org_sq (m)))
         {
             return attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m)) == 0;
         }
@@ -416,15 +417,15 @@ bool Position::legal (Move m) const
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
-        return (si->king_blockers[active] & org_sq (m)) == 0
+        return !contains (si->king_blockers[active], org_sq (m))
             || sqrs_aligned (org_sq (m), dst_sq (m), square (active, KING));
     }
         break;
     case CASTLE:
     {
         // Castling moves are checked for legality during move generation.
-        assert((pieces (active, KING) & org_sq (m)) != 0
-            && (pieces (active, ROOK) & dst_sq (m)) != 0);
+        assert(contains (pieces (active, KING), org_sq (m))
+            && contains (pieces (active, ROOK), dst_sq (m)));
         return true;
     }
         break;
@@ -432,12 +433,12 @@ bool Position::legal (Move m) const
     {
         // En-passant captures are a tricky special case. Because they are rather uncommon,
         // do it simply by testing whether the king is attacked after the move is made.
-        assert((pieces (active, PAWN) & org_sq (m)) != 0
+        assert(contains (pieces (active, PAWN), org_sq (m))
             && rel_rank (active, org_sq (m)) == R_5
             && rel_rank (active, dst_sq (m)) == R_6
             && empty (dst_sq (m))
             && dst_sq (m) == si->en_passant_sq
-            && (pieces (~active, PAWN) & (dst_sq (m) - pawn_push (active))) != 0);
+            && contains (pieces (~active, PAWN), dst_sq (m) - pawn_push (active)));
         auto fk_sq = square (active, KING);
         Bitboard mocc = (pieces () ^ org_sq (m) ^ (dst_sq (m) - pawn_push (active))) | dst_sq (m);
         // If any attacker then in check and not legal move
@@ -455,12 +456,12 @@ bool Position::gives_check (Move m) const
 {
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-    assert((pieces (active) & org) != 0);
+    assert(contains (pieces (active), org));
     
     if (    // Direct check ?
-           (si->checks[ptype (board[org])] & dst) != 0
+           contains (si->checks[ptype (board[org])], dst)
             // Discovered check ?
-        || (   (si->king_blockers[~active] & org) != 0
+        || (   contains (si->king_blockers[~active], org)
             && !sqrs_aligned (org, dst, square (~active, KING))))
     {
         return true;
@@ -481,8 +482,8 @@ bool Position::gives_check (Move m) const
         dst           = rel_sq (active, king_side ? SQ_G1 : SQ_C1);
         auto rook_dst = rel_sq (active, king_side ? SQ_F1 : SQ_D1);
         // First x-ray check then full check
-        return (PieceAttacks[ROOK][rook_dst] & square (~active, KING)) != 0
-            && (attacks_bb<ROOK> (rook_dst, (pieces () ^ org ^ rook_org) | dst | rook_dst) & square (~active, KING)) != 0;
+        return contains (PieceAttacks[ROOK][rook_dst], square (~active, KING))
+            && contains (attacks_bb<ROOK> (rook_dst, (pieces () ^ org ^ rook_org) | dst | rook_dst), square (~active, KING));
     }
         break;
     case ENPASSANT:
@@ -503,10 +504,10 @@ bool Position::gives_check (Move m) const
         // Promotion with check ?
         switch (promote (m))
         {
-        case NIHT: return (PieceAttacks[NIHT][dst] & square (~active, KING)) != 0; break;
-        case BSHP: return (attacks_bb<BSHP> (dst, pieces () ^ org) & square (~active, KING)) != 0; break;
-        case ROOK: return (attacks_bb<ROOK> (dst, pieces () ^ org) & square (~active, KING)) != 0; break;
-        case QUEN: return (attacks_bb<QUEN> (dst, pieces () ^ org) & square (~active, KING)) != 0; break;
+        case NIHT: return contains (PieceAttacks[NIHT][dst], square (~active, KING)); break;
+        case BSHP: return contains (attacks_bb<BSHP> (dst, pieces () ^ org), square (~active, KING)); break;
+        case ROOK: return contains (attacks_bb<ROOK> (dst, pieces () ^ org), square (~active, KING)); break;
+        case QUEN: return contains (attacks_bb<QUEN> (dst, pieces () ^ org), square (~active, KING)); break;
         default: assert(false); break;
         }
     }
@@ -559,13 +560,13 @@ void Position::set_castle (Color c, CastleSide cs)
          king_side ? rook_org >= rel_sq (c, SQ_A1) : rook_org <= rel_sq (c, SQ_H1);
          king_side ? --rook_org : ++rook_org)
     {
-        assert((pieces (c, KING) & rook_org) == 0);
-        if ((pieces (c, ROOK) & rook_org) != 0)
+        assert(!contains (pieces (c, KING), rook_org));
+        if (contains (pieces (c, ROOK), rook_org))
         {
             break;
         }
     }
-    assert((pieces (c, ROOK) & rook_org) != 0);
+    assert(contains (pieces (c, ROOK), rook_org));
 
     auto king_dst = rel_sq (c, king_side ? SQ_G1 : SQ_C1);
     auto rook_dst = rel_sq (c, king_side ? SQ_F1 : SQ_D1);
@@ -601,7 +602,7 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
     auto cap = move_done ?
                 ep_sq - pawn_push (c) :
                 ep_sq + pawn_push (c);
-    if ((pieces (~c, PAWN) & cap) == 0)//board[cap] != (~c|PAWN)
+    if (!contains (pieces (~c, PAWN), cap))
     {
         return false;
     }
@@ -613,7 +614,7 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
     while (attackers != 0)
     {
         auto org = pop_lsq (attackers);
-        assert((mocc & org) != 0);
+        assert(contains (mocc, org));
         // Check en-passant is legal for the position
         if (   (   (pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][fk_sq]) == 0
                 || (pieces (~c, BSHP, QUEN) & attacks_bb<BSHP> (fk_sq, mocc ^ org)) == 0)
@@ -839,9 +840,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     auto mt  = mtype (m);
-    assert((pieces (active) & org) != 0);
-    assert((pieces (active) & dst) == 0
-        || mt == CASTLE);
+    assert(contains (pieces (active), org)
+      && (!contains (pieces (active), dst)
+       || mt == CASTLE));
 
     auto mpt = ptype (board[org]);
     assert(mpt != NONE);
@@ -908,8 +909,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     case CASTLE:
     {
         assert(mpt == KING
-            && (pieces (active, KING) & org) != 0
-            && (pieces (active, ROOK) & dst) != 0);
+            && contains (pieces (active, KING), org)
+            && contains (pieces (active, ROOK), dst));
 
         Square rook_org, rook_dst;
         do_castling<true> (org, dst, rook_org, rook_dst);
@@ -1034,7 +1035,7 @@ void Position::undo_move (Move m)
         break;
     case ENPASSANT:
     {
-        assert((pieces (active, PAWN) & dst) != 0
+        assert(contains (pieces (active, PAWN), dst)
             && rel_rank (active, org) == R_5
             && rel_rank (active, dst) == R_6
             && si->ptr->en_passant_sq == dst

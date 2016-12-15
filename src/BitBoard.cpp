@@ -325,7 +325,7 @@ namespace BitBoard {
             {
                 for (auto pt = BSHP; pt <= ROOK; ++pt)
                 {
-                    if ((PieceAttacks[pt][s1] & s2) != 0)
+                    if (contains (PieceAttacks[pt][s1], s2))
                     {
                         Between_bb[s1][s2] = (attacks_bb (Piece(pt), s1, Square_bb[s2]) & attacks_bb (Piece(pt), s2, Square_bb[s1]));
                         StrLine_bb[s1][s2] = (attacks_bb (Piece(pt), s1,             0) & attacks_bb (Piece(pt), s2,             0)) | s1 | s2;
@@ -349,7 +349,7 @@ namespace BitBoard {
             s += "|";
             for (auto f = F_A; f <= F_H; ++f)
             {
-                s += (bb & (f|r) ? '+' : '-');
+                s += contains (bb, (f|r)) ? '+' : '-';
                 if (f < F_H)
                 {
                     s += " ";

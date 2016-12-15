@@ -1889,7 +1889,7 @@ namespace TBSyzygy {
                     {
                         for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                         {
-                            if ((PieceAttacks[KING][s1] | s1) & s2)
+                            if (contains (PieceAttacks[KING][s1] | s1, s2))
                             {
                                 continue; // Illegal position
                             }
