@@ -272,7 +272,7 @@ inline std::basic_ostream<CharT, Traits>&
 }
 
 
-const u08 MaxKillers = 2;
+const u08 MaxKillers = 3;
 // Stack keeps the information of the nodes in the tree during the search.
 struct Stack
 {

@@ -695,12 +695,22 @@ namespace Searcher {
             assert(!pos.empty (org_sq (move)));
             assert(value > VALUE_ZERO);
 
-            if (ss->killer_moves[0] != move)
+            auto mm = move;
+            for (u08 i = 0; i < MaxKillers; ++i)
             {
-                ss->killer_moves[1] = ss->killer_moves[0];
-                ss->killer_moves[0] = move;
+                auto m = ss->killer_moves[i];
+                ss->killer_moves[i] = mm;
+
+                if (   m == MOVE_NONE
+                    || m == move)
+                {
+                    break;
+                }
+                mm = m;
             }
-            if (_ok ((ss-1)->current_move))
+            assert(std::count (ss->killer_moves, ss->killer_moves + MaxKillers, move) == 1);
+
+            if ((ss-1)->piece_cm_history != nullptr)
             {
                 pos.thread->piece_cmove.update (pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), move);
             }
@@ -796,7 +806,7 @@ namespace Searcher {
         // which is called by the main depth limited search function
         // when the remaining depth is less than equal to 0.
         template<bool PVNode>
-        Value quien_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth)
+        Value quien_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth = 0)
         {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
@@ -974,7 +984,7 @@ namespace Searcher {
                         continue;
                     }
                     // Prune moves with negative or zero SEE
-                    if (!pos.see_ge (move, VALUE_ZERO + 1))
+                    if (!pos.see_ge (move, VALUE_ONE))
                     {
                         if (best_value < futility_base)
                         {
@@ -1303,11 +1313,11 @@ namespace Searcher {
                     {
                         if (depth <= 1)
                         {
-                            return quien_search<false> (pos, ss, alfa, beta, 0);
+                            return quien_search<false> (pos, ss, alfa, beta);
                         }
                         auto alfa_margin = alfa - RazorMargins[depth];
                         assert(alfa_margin >= -VALUE_INFINITE);
-                        auto value = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1, 0);
+                        auto value = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
                         if (value <= alfa_margin)
                         {
                             return value;
@@ -1351,7 +1361,7 @@ namespace Searcher {
                         pos.do_null_move (si);
                         auto null_value =
                             reduced_depth <= 0 ?
-                                -quien_search<false> (pos, ss+1, -beta, -(beta-1), 0) :
+                                -quien_search<false> (pos, ss+1, -beta, -(beta-1)) :
                                 -depth_search<false> (pos, ss+1, -beta, -(beta-1), reduced_depth, !cut_node, false);
                         pos.undo_null_move ();
 
@@ -1369,7 +1379,7 @@ namespace Searcher {
                             // Do verification search at high depths
                             auto value =
                                 reduced_depth <= 0 ?
-                                    quien_search<false> (pos, ss, beta-1, beta, 0) :
+                                    quien_search<false> (pos, ss, beta-1, beta) :
                                     depth_search<false> (pos, ss, beta-1, beta, reduced_depth, false, false);
 
                             if (value >= beta)
@@ -1603,7 +1613,7 @@ namespace Searcher {
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
                                 // LMR depth based SEE pruning
                             || (   lmr_depth < 8
-                                && !pos.see_ge (move, VALUE_ZERO - 35*lmr_depth*lmr_depth)))
+                                && !pos.see_ge (move, -Value(35*lmr_depth*lmr_depth))))
                         {
                             continue;
                         }
@@ -1612,7 +1622,7 @@ namespace Searcher {
                     // Depth based SEE based pruning
                     if (   depth < 7
                         && new_depth < depth
-                        && !pos.see_ge (move, -Value(35*depth*depth + (PVNode ? 300 : 400))))
+                        && !pos.see_ge (move, -VALUE_EG_PAWN * i32(depth)))
                     {
                         continue;
                     }
@@ -1720,7 +1730,7 @@ namespace Searcher {
                 {
                     value =
                         new_depth <= 0 ?
-                            -quien_search<false> (pos, ss+1, -(alfa+1), -alfa, 0) :
+                            -quien_search<false> (pos, ss+1, -(alfa+1), -alfa) :
                             -depth_search<false> (pos, ss+1, -(alfa+1), -alfa, new_depth, !cut_node, true);
                 }
 
@@ -1738,7 +1748,7 @@ namespace Searcher {
 
                     value =
                         new_depth <= 0 ?
-                            -quien_search<true> (pos, ss+1, -beta, -alfa, 0) :
+                            -quien_search<true> (pos, ss+1, -beta, -alfa) :
                             -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false, true);
                 }
 
@@ -2007,7 +2017,6 @@ namespace Threading {
             s->history_val      = VALUE_ZERO;
             s->move_count       = 0;
             s->piece_cm_history = nullptr;
-            assert(s->pv.empty ());
         }
 
         max_ply = 0;
@@ -2189,7 +2198,6 @@ namespace Threading {
 
             //if (ContemptValue != 0)
             //{
-            //    assert(!root_moves.empty ());
             //    auto valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
             //    DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] - valued_contempt;
             //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
@@ -2201,7 +2209,6 @@ namespace Threading {
                 if (   Threadpool.skill_mgr.enabled ()
                     && Threadpool.skill_mgr.can_pick (running_depth))
                 {
-                    assert(!root_moves.empty ());
                     Threadpool.skill_mgr.clear ();
                     Threadpool.skill_mgr.pick_best_move (Threadpool.pv_limit);
                 }
@@ -2220,7 +2227,6 @@ namespace Threading {
                     // Have time for the next iteration? Can stop searching now?
                     if (Limits.use_time_management ())
                     {
-                        assert(!root_moves.empty ());
                         auto &root_move = root_moves[0];
                         // Stop the search
                         // -If there is only one legal move available
@@ -2238,10 +2244,9 @@ namespace Threading {
                                                   + 0.1895 * (Threadpool.failed_low ? 1 : 0)
                                                   - 0.0096 * (Threadpool.last_value != VALUE_NONE ? i32(best_value - Threadpool.last_value) : 0))))))
                             || (Threadpool.easy_played =
-                                    (   Threadpool.best_move_change < 0.030
-                                     && Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time * 0.1190))
-                                     && !root_move.empty ()
-                                     &&  root_move == Threadpool.easy_move), Threadpool.easy_played))
+                                    (   root_move == Threadpool.easy_move
+                                     && Threadpool.best_move_change < 0.030
+                                     && Threadpool.time_mgr.elapsed_time () > TimePoint(std::round (Threadpool.time_mgr.optimum_time * 0.1190))), Threadpool.easy_played))
                         {
                             stop = true;
                         }

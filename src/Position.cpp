@@ -54,22 +54,20 @@ template<PieceType PT> PieceType Position::pick_least_val_att (Square dst, Bitbo
     {
         mocc ^= b & ~(b - 1);
 
-        if (   PT == PAWN
-            || PT == BSHP)
+        if (   (   PT == PAWN
+                || PT == BSHP
+                || PT == QUEN)
+            && (b = pieces (BSHP, QUEN) & mocc & PieceAttacks[BSHP][dst]) != 0)
         {
-            attackers |= pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc);
+            attackers |= b & attacks_bb<BSHP> (dst, mocc);
         }
-        else
-        if (PT == ROOK)
+        if (   (   PT == ROOK
+                || PT == QUEN)
+            && (b = pieces (ROOK, QUEN) & mocc & PieceAttacks[ROOK][dst]) != 0)
         {
-            attackers |= pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc);
+            attackers |= b & attacks_bb<ROOK> (dst, mocc);
         }
-        else
-        if (PT == QUEN)
-        {
-            attackers |= (pieces (BSHP, QUEN) & attacks_bb<BSHP> (dst, mocc))
-                      |  (pieces (ROOK, QUEN) & attacks_bb<ROOK> (dst, mocc));
-        }
+
         // Remove already processed pieces in X-ray
         attackers &= mocc;
         return PT;
@@ -355,15 +353,18 @@ bool Position::pseudo_legal (Move m) const
         switch (mpt)
         {
         case NIHT:
-            if (!contains (PieceAttacks[NIHT][org]          , dst)) { return false; } break;
+            if (    !contains (PieceAttacks[NIHT][org]          , dst)) { return false; } break;
         case BSHP:
-            if (!contains (attacks_bb<BSHP> (org, pieces ()), dst)) { return false; } break;
+            if (!(   contains (PieceAttacks[BSHP][org]          , dst)
+                 &&  contains (attacks_bb<BSHP> (org, pieces ()), dst))) { return false; } break;
         case ROOK:
-            if (!contains (attacks_bb<ROOK> (org, pieces ()), dst)) { return false; } break;
+            if (!(   contains (PieceAttacks[ROOK][org]          , dst)
+                  && contains (attacks_bb<ROOK> (org, pieces ()), dst))) { return false; } break;
         case QUEN:
-            if (!contains (attacks_bb<QUEN> (org, pieces ()), dst)) { return false; } break;
+            if (!(   contains (PieceAttacks[QUEN][org]          , dst)
+                  && contains (attacks_bb<QUEN> (org, pieces ()), dst))) { return false; } break;
         case KING:
-            if (!contains (PieceAttacks[KING][org]          , dst)) { return false; } break;
+            if (    !contains (PieceAttacks[KING][org]          , dst)) { return false; } break;
         default: assert(false); break;
         }
     }
@@ -383,9 +384,9 @@ bool Position::pseudo_legal (Move m) const
         {
             return mt != ENPASSANT ?
                 // Move must be a capture of the checking piece or a blocking evasion of the checking piece
-                contains (si->checkers | between_bb (scan_lsq (si->checkers), square (active, KING)), dst) :
+                   contains (si->checkers | between_bb (scan_lsq (si->checkers), square (active, KING)), dst) :
                 // Move must be a capture of the checking en-passant pawn or a blocking evasion of the checking piece
-                   contains (si->checkers, cap)
+                   ((si->checkers & pieces (~active, PAWN)) != 0 && contains (si->checkers, cap))
                 || contains (between_bb (scan_lsq (si->checkers), square (active, KING)), dst);
         }
         return false;
@@ -441,11 +442,12 @@ bool Position::legal (Move m) const
             && contains (pieces (~active, PAWN), dst_sq (m) - pawn_push (active)));
         auto fk_sq = square (active, KING);
         Bitboard mocc = (pieces () ^ org_sq (m) ^ (dst_sq (m) - pawn_push (active))) | dst_sq (m);
+        Bitboard b;
         // If any attacker then in check and not legal move
-        return (   (pieces (~active, BSHP, QUEN) & PieceAttacks[BSHP][fk_sq]) == 0
-                || (pieces (~active, BSHP, QUEN) & attacks_bb<BSHP> (fk_sq, mocc)) == 0)
-            && (   (pieces (~active, ROOK, QUEN) & PieceAttacks[ROOK][fk_sq]) == 0
-                || (pieces (~active, ROOK, QUEN) & attacks_bb<ROOK> (fk_sq, mocc)) == 0);
+        return (   (b = pieces (~active, BSHP, QUEN) & PieceAttacks[BSHP][fk_sq]) == 0
+                || (b & attacks_bb<BSHP> (fk_sq, mocc)) == 0)
+            && (   (b = pieces (~active, ROOK, QUEN) & PieceAttacks[ROOK][fk_sq]) == 0
+                || (b & attacks_bb<ROOK> (fk_sq, mocc)) == 0);
     }
         break;
     }
@@ -482,7 +484,7 @@ bool Position::gives_check (Move m) const
         dst           = rel_sq (active, king_side ? SQ_G1 : SQ_C1);
         auto rook_dst = rel_sq (active, king_side ? SQ_F1 : SQ_D1);
         // First x-ray check then full check
-        return contains (PieceAttacks[ROOK][rook_dst], square (~active, KING))
+        return contains (PieceAttacks[ROOK][rook_dst]                                              , square (~active, KING))
             && contains (attacks_bb<ROOK> (rook_dst, (pieces () ^ org ^ rook_org) | dst | rook_dst), square (~active, KING));
     }
         break;
@@ -493,10 +495,11 @@ bool Position::gives_check (Move m) const
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
         auto ek_sq = square (~active, KING);
         Bitboard mocc = (pieces () ^ org ^ (_file (dst)|_rank (org))) | dst;
-        return (   (pieces (active, BSHP, QUEN) & PieceAttacks[BSHP][ek_sq]) != 0
-                && (pieces (active, BSHP, QUEN) & attacks_bb<BSHP> (ek_sq, mocc)) != 0)
-            || (   (pieces (active, ROOK, QUEN) & PieceAttacks[ROOK][ek_sq]) != 0
-                && (pieces (active, ROOK, QUEN) & attacks_bb<ROOK> (ek_sq, mocc)) != 0);
+        Bitboard b;
+        return (   (b = pieces (active, BSHP, QUEN) & PieceAttacks[BSHP][ek_sq]) != 0
+                && (b & attacks_bb<BSHP> (ek_sq, mocc)) != 0)
+            || (   (b = pieces (active, ROOK, QUEN) & PieceAttacks[ROOK][ek_sq]) != 0
+                && (b & attacks_bb<ROOK> (ek_sq, mocc)) != 0);
     }
         break;
     case PROMOTE:
@@ -504,10 +507,13 @@ bool Position::gives_check (Move m) const
         // Promotion with check ?
         switch (promote (m))
         {
-        case NIHT: return contains (PieceAttacks[NIHT][dst], square (~active, KING)); break;
-        case BSHP: return contains (attacks_bb<BSHP> (dst, pieces () ^ org), square (~active, KING)); break;
-        case ROOK: return contains (attacks_bb<ROOK> (dst, pieces () ^ org), square (~active, KING)); break;
-        case QUEN: return contains (attacks_bb<QUEN> (dst, pieces () ^ org), square (~active, KING)); break;
+        case NIHT: return contains (PieceAttacks[NIHT][dst]                , square (~active, KING)); break;
+        case BSHP: return contains (PieceAttacks[BSHP][dst]                , square (~active, KING))
+                       && contains (attacks_bb<BSHP> (dst, pieces () ^ org), square (~active, KING)); break;
+        case ROOK: return contains (PieceAttacks[ROOK][dst]                , square (~active, KING))
+                       && contains (attacks_bb<ROOK> (dst, pieces () ^ org), square (~active, KING)); break;
+        case QUEN: return contains (PieceAttacks[QUEN][dst]                , square (~active, KING))
+                       && contains (attacks_bb<QUEN> (dst, pieces () ^ org), square (~active, KING)); break;
         default: assert(false); break;
         }
     }
@@ -606,20 +612,29 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
     {
         return false;
     }
+
     auto fk_sq = square (c, KING);
     Bitboard mocc = (pieces () ^ cap) | ep_sq;
     // En-passant attackers
     Bitboard attackers = PawnAttacks[~c][ep_sq] & pieces (c, PAWN);
     assert(pop_count (attackers) <= 2);
+
+    Bitboard bq = pieces (~c, BSHP, QUEN);
+    Bitboard rq = pieces (~c, ROOK, QUEN);
+    if (   attackers != 0
+        && (bq|rq) == 0)
+    {
+        return true;
+    }
     while (attackers != 0)
     {
         auto org = pop_lsq (attackers);
         assert(contains (mocc, org));
         // Check en-passant is legal for the position
-        if (   (   (pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][fk_sq]) == 0
-                || (pieces (~c, BSHP, QUEN) & attacks_bb<BSHP> (fk_sq, mocc ^ org)) == 0)
-            && (   (pieces (~c, ROOK, QUEN) & PieceAttacks[ROOK][fk_sq]) == 0
-                || (pieces (~c, ROOK, QUEN) & attacks_bb<ROOK> (fk_sq, mocc ^ org)) == 0))
+        if (   (   (bq & PieceAttacks[BSHP][fk_sq]) == 0
+                || (bq & attacks_bb<BSHP> (fk_sq, mocc ^ org)) == 0)
+            && (   (rq & PieceAttacks[ROOK][fk_sq]) == 0
+                || (rq & attacks_bb<ROOK> (fk_sq, mocc ^ org)) == 0))
         {
             return true;
         }
@@ -691,7 +706,6 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             --r;
         }
     }
-
     assert(square (WHITE, KING) != SQ_NO
         && square (BLACK, KING) != SQ_NO);
 
@@ -1229,22 +1243,10 @@ string Position::fen (bool full) const
 
     if (can_castle (CR_ANY) != CR_NONE)
     {
-        if (can_castle (CR_WKING) != CR_NONE)
-        {
-            oss << (Chess960 ? to_char (_file (castle_rook[Castling<WHITE, CS_KING>::Right]), false) : 'K');
-        }
-        if (can_castle (CR_WQUEN) != CR_NONE)
-        {
-            oss << (Chess960 ? to_char (_file (castle_rook[Castling<WHITE, CS_QUEN>::Right]), false) : 'Q');
-        }
-        if (can_castle (CR_BKING) != CR_NONE)
-        {
-            oss << (Chess960 ? to_char (_file (castle_rook[Castling<BLACK, CS_KING>::Right]),  true) : 'k');
-        }
-        if (can_castle (CR_BQUEN) != CR_NONE)
-        {
-            oss << (Chess960 ? to_char (_file (castle_rook[Castling<BLACK, CS_QUEN>::Right]),  true) : 'q');
-        }
+        if (can_castle (CR_WKING) != CR_NONE) oss << (Chess960 ? to_char (_file (castle_rook[Castling<WHITE, CS_KING>::Right]), false) : 'K');
+        if (can_castle (CR_WQUEN) != CR_NONE) oss << (Chess960 ? to_char (_file (castle_rook[Castling<WHITE, CS_QUEN>::Right]), false) : 'Q');
+        if (can_castle (CR_BKING) != CR_NONE) oss << (Chess960 ? to_char (_file (castle_rook[Castling<BLACK, CS_KING>::Right]),  true) : 'k');
+        if (can_castle (CR_BQUEN) != CR_NONE) oss << (Chess960 ? to_char (_file (castle_rook[Castling<BLACK, CS_QUEN>::Right]),  true) : 'q');
     }
     else
     {

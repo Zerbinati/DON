@@ -235,8 +235,8 @@ namespace Evaluator {
         // Attacks on lesser pieces which are pawn-defended are not considered.
         const Score PieceThreat[2][NONE] =
         {
-            { S( 0, 33), S(45, 43), S(46, 47), S(72,107), S(48,118), S( 0, 0) }, // Minor attackers
-            { S( 0, 25), S(40, 62), S(40, 59), S( 0, 34), S(35, 48), S( 0, 0) }  // Major attackers
+            { S( 0,33), S(45,43), S(46,47), S(72,107), S(48,118), S( 0, 0) }, // Minor attackers
+            { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) }  // Major attackers
         };
         const Score PieceThreatRank = S(16, 3);
 
@@ -531,10 +531,11 @@ namespace Evaluator {
                 // Analyze enemy's queen safe contact checks.
                 // Undefended squares around the king not occupied by enemy's and
                 // attacked by enemy queen and keep squares supported by another enemy piece.
-                king_danger += QueenContactCheck * pop_count (   king_zone_undef
-                                                              &  non_opp
-                                                              &  ei.pin_attacked_by[Opp][QUEN]
-                                                              &  ei.dbl_attacked[Opp]);
+                b =    king_zone_undef
+                    &  non_opp
+                    &  ei.pin_attacked_by[Opp][QUEN]
+                    &  ei.dbl_attacked[Opp];
+                king_danger += QueenContactCheck * pop_count (b);
 
                 Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces ());
                 Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces ());
@@ -544,7 +545,7 @@ namespace Evaluator {
                        non_opp
                     & ~ei.pin_attacked_by[Own][NONE];
                 // ... and probable potential checks, only requiring the square to be 
-                //  safe from pawn-attacks and not being occupied by a pawn blocked pawns.
+                //  safe from pawn-attacks and not being occupied by a blocked pawns.
                 Bitboard prob_area =
                       ~(  ei.pin_attacked_by[Own][PAWN]
                         | (pos.pieces (Opp, PAWN) & shift<Push> (pos.pieces (PAWN))));
@@ -619,10 +620,11 @@ namespace Evaluator {
             assert(((Own == WHITE ? b << 4 : b >> 4) & b) == 0);
             assert(pop_count (Own == WHITE ? b << 4 : b >> 4) == pop_count (b));
             // Add the squares which are attacked twice in that flank and are not protected by a friend pawn.
-            score -= EnemyInFlank * pop_count (  (   b
-                                                  &  ei.dbl_attacked[Opp]
-                                                  & ~ei.pin_attacked_by[Own][PAWN])
-                                               | (Own == WHITE ? b << 4 : b >> 4));
+            b =   (Own == WHITE ? b << 4 : b >> 4)
+                | (   b
+                   &  ei.dbl_attacked[Opp]
+                   & ~ei.pin_attacked_by[Own][PAWN]);
+            score -= EnemyInFlank * pop_count (b);
 
             // Penalty when our king is on a pawnless flank
             if (((KingFlank[WHITE][kf]|KingFlank[BLACK][kf]) & pos.pieces (PAWN)) == 0)
@@ -834,7 +836,7 @@ namespace Evaluator {
                             ,  unsafe_front_squares = front_squares;
                         // If there is a rook or queen attacking/defending the pawn from behind, consider front squares.
                         // Otherwise consider only the squares in the pawn's path attacked or occupied by the enemy.
-                        Bitboard behind_majors = front_sqrs_bb (Opp, s) & pos.pieces (ROOK, QUEN);
+                        Bitboard behind_majors = pos.pieces (ROOK, QUEN) & front_sqrs_bb (Opp, s);
                         if (behind_majors != 0)
                         {
                             behind_majors &= attacks_bb<ROOK> (s, pos.pieces ());

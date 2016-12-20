@@ -713,18 +713,19 @@ namespace EndGame {
             case 1:
                 if (opposite_colors (wk_sq, sb_sq))
                 {
+                    Bitboard b;
                     if (   wk_sq == block1_sq
                         && (   wb_sq == block2_sq
-                            || (   (pos.pieces (~strong_color, BSHP) & PieceAttacks[BSHP][block2_sq]) != 0
-                                && (pos.pieces (~strong_color, BSHP) & attacks_bb<BSHP> (block2_sq, pos.pieces ())) != 0)
+                            || (   (b = pos.pieces (~strong_color, BSHP) & PieceAttacks[BSHP][block2_sq]) != 0
+                                && (b & attacks_bb<BSHP> (block2_sq, pos.pieces ())) != 0)
                             || dist<Rank> (sp1_sq, sp2_sq) >= 2))
                     {
                         return SCALE_DRAW;
                     }
                     if (   wk_sq == block2_sq
                         && (   wb_sq == block1_sq
-                            || (   (pos.pieces (~strong_color, BSHP) & PieceAttacks[BSHP][block1_sq]) != 0
-                                && (pos.pieces (~strong_color, BSHP) & attacks_bb<BSHP> (block1_sq, pos.pieces ())) != 0)))
+                            || (   (b = pos.pieces (~strong_color, BSHP) & PieceAttacks[BSHP][block1_sq]) != 0
+                                && (b & attacks_bb<BSHP> (block1_sq, pos.pieces ())) != 0)))
                     {
                         return SCALE_DRAW;
                     }

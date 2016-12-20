@@ -19,7 +19,7 @@ namespace MoveGen {
 
             for (auto s : pos.squares[Own][PT])
             {
-                Bitboard attacks = PieceAttacks[PT][s] & targets;
+                Bitboard attacks = targets & PieceAttacks[PT][s];
                 if (   GT == CHECK
                     || GT == QUIET_CHECK)
                 {
@@ -45,15 +45,15 @@ namespace MoveGen {
         }
 
         // Generates PAWN promotion move
-        template<GenType GT>
-        void generate_promotion_moves (vector<ValMove> &moves, const Position &pos, Square dst, Delta delta)
+        template<GenType GT, Delta Del>
+        void generate_promotion_moves (vector<ValMove> &moves, const Position &pos, Square dst)
         {
-            assert(delta == DEL_N
-                || delta == DEL_NE
-                || delta == DEL_NW
-                || delta == DEL_S
-                || delta == DEL_SE
-                || delta == DEL_SW);
+            assert(Del == DEL_N
+                || Del == DEL_NE
+                || Del == DEL_NW
+                || Del == DEL_S
+                || Del == DEL_SE
+                || Del == DEL_SW);
 
             switch (GT)
             {
@@ -63,55 +63,55 @@ namespace MoveGen {
             case QUIET:
                 if (GT != QUIET)
                 {
-                    moves.push_back (ValMove(mk_move (dst - delta, dst, QUEN)));
+                    moves.push_back (ValMove(mk_move (dst - Del, dst, QUEN)));
                 }
                 if (GT != CAPTURE)
                 {
-                    moves.push_back (ValMove(mk_move (dst - delta, dst, ROOK)));
-                    moves.push_back (ValMove(mk_move (dst - delta, dst, BSHP)));
-                    moves.push_back (ValMove(mk_move (dst - delta, dst, NIHT)));
+                    moves.push_back (ValMove(mk_move (dst - Del, dst, ROOK)));
+                    moves.push_back (ValMove(mk_move (dst - Del, dst, BSHP)));
+                    moves.push_back (ValMove(mk_move (dst - Del, dst, NIHT)));
                 }
                 break;
             case QUIET_CHECK:
             {
                 auto ek_sq = pos.square (~pos.active, KING);
-                if (   contains (PieceAttacks[ROOK][dst], ek_sq)
-                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - delta)), ek_sq))
+                if (   contains (PieceAttacks[ROOK][dst]                            , ek_sq)
+                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - Del)), ek_sq))
                 {
-                    moves.push_back (ValMove(mk_move (dst - delta, dst, ROOK)));
+                    moves.push_back (ValMove(mk_move (dst - Del, dst, ROOK)));
                 }
-                if (   contains (PieceAttacks[BSHP][dst], ek_sq)
-                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - delta)), ek_sq))
+                if (   contains (PieceAttacks[BSHP][dst]                            , ek_sq)
+                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - Del)), ek_sq))
                 {
-                    moves.push_back (ValMove(mk_move (dst - delta, dst, BSHP)));
+                    moves.push_back (ValMove(mk_move (dst - Del, dst, BSHP)));
                 }
-                if (contains (PieceAttacks[NIHT][dst], ek_sq))
+                if (   contains (PieceAttacks[NIHT][dst]                            , ek_sq))
                 {
-                    moves.push_back (ValMove(mk_move (dst - delta, dst, NIHT)));
+                    moves.push_back (ValMove(mk_move (dst - Del, dst, NIHT)));
                 }
             }
                 break;
             case CHECK:
             {
                 auto ek_sq = pos.square (~pos.active, KING);
-                if (   contains (PieceAttacks[QUEN][dst], ek_sq)
-                    && contains (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - delta)), ek_sq))
+                if (   contains (PieceAttacks[QUEN][dst]                            , ek_sq)
+                    && contains (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - Del)), ek_sq))
                 {
-                    moves.push_back (ValMove(mk_move (dst - delta, dst, QUEN)));
+                    moves.push_back (ValMove(mk_move (dst - Del, dst, QUEN)));
                 }
-                if (   contains (PieceAttacks[ROOK][dst], ek_sq)
-                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - delta)), ek_sq))
+                if (   contains (PieceAttacks[ROOK][dst]                            , ek_sq)
+                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - Del)), ek_sq))
                 {
-                    moves.push_back (ValMove(mk_move (dst - delta, dst, ROOK)));
+                    moves.push_back (ValMove(mk_move (dst - Del, dst, ROOK)));
                 }
-                if (   contains (PieceAttacks[BSHP][dst], ek_sq)
-                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - delta)), ek_sq))
+                if (   contains (PieceAttacks[BSHP][dst]                            , ek_sq)
+                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - Del)), ek_sq))
                 {
-                    moves.push_back (ValMove(mk_move (dst - delta, dst, BSHP)));
+                    moves.push_back (ValMove(mk_move (dst - Del, dst, BSHP)));
                 }
-                if (contains (PieceAttacks[NIHT][dst], ek_sq))
+                if (   contains (PieceAttacks[NIHT][dst]                            , ek_sq))
                 {
-                    moves.push_back (ValMove(mk_move (dst - delta, dst, NIHT)));
+                    moves.push_back (ValMove(mk_move (dst - Del, dst, NIHT)));
                 }
             }
                 break;
@@ -187,10 +187,9 @@ namespace MoveGen {
                 while (l_attack != 0) { auto dst = pop_lsq (l_attack); moves.push_back (ValMove(mk_move<NORMAL> (dst - LCap, dst))); }
                 while (r_attack != 0) { auto dst = pop_lsq (r_attack); moves.push_back (ValMove(mk_move<NORMAL> (dst - RCap, dst))); }
 
-                auto ep_sq = pos.si->en_passant_sq;
-                if (ep_sq != SQ_NO)
+                if (pos.si->en_passant_sq != SQ_NO)
                 {
-                    assert(rel_rank (Own, ep_sq) == R_6);
+                    assert(rel_rank (Own, pos.si->en_passant_sq) == R_6);
                     Bitboard ep_captures = Rx_pawns & Rank5BB;
                     if (ep_captures != 0)
                     {
@@ -201,10 +200,10 @@ namespace MoveGen {
                             ep_captures &= (  shift<DEL_E> (targets)
                                             | shift<DEL_W> (targets));
                         }
-                        ep_captures &= PawnAttacks[Opp][ep_sq];
+                        ep_captures &= PawnAttacks[Opp][pos.si->en_passant_sq];
                         assert(ep_captures != 0);
                         assert(pop_count (ep_captures) <= 2);
-                        while (ep_captures != 0) { moves.push_back (ValMove(mk_move<ENPASSANT> (pop_lsq (ep_captures), ep_sq))); }
+                        while (ep_captures != 0) { moves.push_back (ValMove(mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->en_passant_sq))); }
                     }
                 }
             }
@@ -219,11 +218,11 @@ namespace MoveGen {
                 // Promoting pawns
                 Bitboard proms;
                 proms = empties & shift<Push> (R7_pawns);
-                while (proms != 0) generate_promotion_moves<GT> (moves, pos, pop_lsq (proms), Push);
+                while (proms != 0) generate_promotion_moves<GT, Push> (moves, pos, pop_lsq (proms));
                 proms = enemies & shift<LCap> (R7_pawns);
-                while (proms != 0) generate_promotion_moves<GT> (moves, pos, pop_lsq (proms), LCap);
+                while (proms != 0) generate_promotion_moves<GT, LCap> (moves, pos, pop_lsq (proms));
                 proms = enemies & shift<RCap> (R7_pawns);
-                while (proms != 0) generate_promotion_moves<GT> (moves, pos, pop_lsq (proms), RCap);
+                while (proms != 0) generate_promotion_moves<GT, RCap> (moves, pos, pop_lsq (proms));
             }
         }
 
@@ -259,8 +258,8 @@ namespace MoveGen {
                 // Because generate only legal castling moves needed to verify that
                 // when moving the castling rook do not discover some hidden checker.
                 // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-                if (   (pos.pieces (Opp, ROOK, QUEN) & PieceAttacks[ROOK][king_dst]) != 0
-                    && (pos.pieces (Opp, ROOK, QUEN) & attacks_bb<ROOK> (king_dst, pos.pieces () ^ rook_org)) != 0)
+                if (   (b = pos.pieces (Opp, ROOK, QUEN) & PieceAttacks[ROOK][king_dst]) != 0
+                    && (b & attacks_bb<ROOK> (king_dst, pos.pieces () ^ rook_org)) != 0)
                 {
                     return;
                 }

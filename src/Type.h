@@ -298,6 +298,7 @@ enum Value : i32
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
+    VALUE_ONE       = 1,
 
     VALUE_NONE      = (1 << 15) - 1,
     VALUE_INFINITE  = +i16(VALUE_NONE) - 1,
