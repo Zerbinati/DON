@@ -493,11 +493,14 @@ namespace MoveGen {
                                      moves.end (),
                                      [&pos] (const ValMove &vm)
                                      {
+                                         //bool b =
                                          return
                                             (   pos.abs_blockers (pos.active) != 0
                                              || mtype (vm.move) == ENPASSANT
                                              || org_sq (vm.move) == pos.square (pos.active, KING))
                                          && !pos.legal (vm.move);
+                                         //if (!b) { assert(pos.pseudo_legal (vm.move)); }
+                                         //return b;
                                      }),
                      moves.end ());
     }

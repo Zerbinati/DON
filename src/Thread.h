@@ -113,8 +113,8 @@ public:
 class SkillManager
 {
 public:
-    // MaxSkillLevel should be <= MaxPlies/4
-    static const u08 MaxSkillLevel = 32;
+    // MaxSkillLevel should be <= MaxPlies/8
+    static const u08 MaxSkillLevel = 12;
     static const u16 MinSkillPV    = 4;
 
 private:

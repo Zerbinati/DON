@@ -252,7 +252,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
 // Winning and equal captures in the main search are ordered by MVV/LVA, preferring captures near our home rank.
 // Surprisingly, this appears to perform slightly better than SEE-based move ordering,
 // exchanging big pieces before capturing a hanging piece probably helps to reduce the subtree size.
-// In the main search push captures with negative SEE values to the bad captures[],
+// In the main search push captures with negative SEE values to the bad captures vector,
 // but instead of doing it now we delay until the move has been picked up,
 // saving some SEE calls in case of a cutoff.
 template<> void MovePicker::value<CAPTURE> ()
@@ -695,19 +695,23 @@ namespace Searcher {
             assert(!pos.empty (org_sq (move)));
             assert(value > VALUE_ZERO);
 
-            auto mm = move;
-            for (u08 i = 0; i < MaxKillers; ++i)
+            if (ss->killer_moves[0] != move)
             {
-                auto m = ss->killer_moves[i];
-                ss->killer_moves[i] = mm;
-
-                if (   m == MOVE_NONE
-                    || m == move)
-                {
-                    break;
-                }
-                mm = m;
+                ss->killer_moves[1] = ss->killer_moves[0];
+                ss->killer_moves[0] = move;
             }
+            //auto mm = move;
+            //for (u08 i = 0; i < MaxKillers; ++i)
+            //{
+            //    auto m = ss->killer_moves[i];
+            //    ss->killer_moves[i] = mm;
+            //    if (   m == MOVE_NONE
+            //        || m == move)
+            //    {
+            //        break;
+            //    }
+            //    mm = m;
+            //}
             assert(std::count (ss->killer_moves, ss->killer_moves + MaxKillers, move) == 1);
 
             if ((ss-1)->piece_cm_history != nullptr)
@@ -720,7 +724,7 @@ namespace Searcher {
             update_cm_stats (ss, pos[org_sq (move)], dst_sq (move), value);
         }
 
-        // Appends the move and child pv[]
+        // Appends the move and child pv vector
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
             pv.clear ();

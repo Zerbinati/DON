@@ -302,16 +302,14 @@ namespace UCI {
             // ELO values corresponded to every Skill Levels
             static const i32 LevelELO[SkillManager::MaxSkillLevel + 1] =
             {
-                1250, 1320, 1390, 1460, 1530, 1600, 1670, 1740, 1810, 1880, 1950,
-                2020, 2090, 2160, 2230, 2300, 2370, 2440, 2510, 2580, 2650, 2720,
-                2790, 2860, 2930, 3000, 3070, 3140, 3210, 3280, 3350, 3420, 3490
+                1250, 1436, 1622, 1808, 1994, 2180, 2366, 2552, 2738, 2924, 3110, 3296, 3482
             };
 
             u08 skill_level = SkillManager::MaxSkillLevel;
             if (bool(Options["UCI_LimitStrength"]))
             {
                 i32 elo = i32(Options["UCI_ELO"]);
-                for (u08 level = 0; level < 32; ++level)
+                for (u08 level = 0; level < SkillManager::MaxSkillLevel; ++level)
                 {
                     if (elo < LevelELO[level + 1])
                     {

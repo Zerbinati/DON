@@ -263,7 +263,7 @@ Move SkillManager::pick_best_move (u16 pv_limit)
     {
         // RootMoves are already sorted by value in descending order
         auto max_value  = root_moves[0].new_value;
-        i32  weakness   = MaxPlies - 4 * _skill_level;
+        i32  weakness   = MaxPlies - 8 * _skill_level;
         i32  diversity  = std::min (max_value - root_moves[pv_limit - 1].new_value, VALUE_MG_PAWN);
         // Choose best move. For each move score add two terms, both dependent on weakness.
         // One is deterministic with weakness, and one is random with diversity.
@@ -274,7 +274,7 @@ Move SkillManager::pick_best_move (u16 pv_limit)
             auto value = root_moves[i].new_value
                         // This is magic formula for push
                        + (  weakness  * i32(max_value - root_moves[i].new_value)
-                          + diversity * i32(prng.rand<u32> () % weakness)) / 128;
+                          + diversity * i32(prng.rand<u32> () % weakness)) / MaxPlies;
 
             if (best_value < value)
             {
