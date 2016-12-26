@@ -243,8 +243,6 @@ namespace Evaluator {
         // KingThreat[one/more] contains bonuses for king attacks on pawns or pieces which are not pawn-defended.
         const Score KingThreat[2] = { S( 3, 62), S( 9,138) };
 
-        const Score PawnUnstopped   = S( 0,45); // Unstopped pawn bonus for pawns going to promote
-
         const Score PawnPassHinder  = S( 7, 0);
 
         // PawnPassFile[file] contains a bonus for passed pawns according to distance from edge.
@@ -790,12 +788,6 @@ namespace Evaluator {
             auto score = SCORE_ZERO;
 
             Bitboard passers = ei.pe->passers[Own];
-            if (   passers != 0
-                && pos.si->non_pawn_matl[WHITE] == VALUE_ZERO
-                && pos.si->non_pawn_matl[BLACK] == VALUE_ZERO)
-            {
-                score += PawnUnstopped;
-            }
             while (passers != 0)
             {
                 auto s = pop_lsq (passers);
@@ -809,7 +801,7 @@ namespace Evaluator {
 
                 score -= PawnPassHinder * pop_count (front_sqrs_bb (Own, s) & (ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
 
-                auto r  = i08(rank) - i08(R_2);
+                auto r  = dist (rank, R_2);
                 auto rr = r*(r-1);
 
                 if (rr != 0)
@@ -873,6 +865,13 @@ namespace Evaluator {
                         mg_value += 1*rr + 2*r;
                         eg_value += 1*rr + 2*r;
                     }
+                }
+
+                // Assign a small bonus when no pieces left (unstoppable)
+                if (   pos.si->non_pawn_matl[WHITE] == VALUE_ZERO
+                    && pos.si->non_pawn_matl[BLACK] == VALUE_ZERO)
+                {
+                    eg_value += 20;
                 }
 
                 score += mk_score (mg_value, eg_value) + PawnPassFile[std::min (_file (s), F_H - _file (s))];

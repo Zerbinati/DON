@@ -1314,7 +1314,7 @@ namespace Searcher {
                     {
                         if (depth <= 1)
                         {
-                            return quien_search<false> (pos, ss, alfa, beta);
+                            return quien_search<false> (pos, ss, alfa, alfa+1);
                         }
                         auto alfa_margin = alfa - RazorMargins[depth];
                         assert(alfa_margin >= -VALUE_INFINITE);
@@ -1362,8 +1362,8 @@ namespace Searcher {
                         pos.do_null_move (si);
                         auto null_value =
                             reduced_depth <= 0 ?
-                                -quien_search<false> (pos, ss+1, -beta, -(beta-1)) :
-                                -depth_search<false> (pos, ss+1, -beta, -(beta-1), reduced_depth, !cut_node, false);
+                                -quien_search<false> (pos, ss+1, -beta, -beta+1) :
+                                -depth_search<false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node, false);
                         pos.undo_null_move ();
 
                         if (null_value >= beta)
@@ -1623,7 +1623,7 @@ namespace Searcher {
                     // SEE based pruning
                     if (   depth < 7
                         && new_depth < depth
-                        && !pos.see_ge (move, -VALUE_EG_PAWN * i32(depth)))
+                        && !pos.see_ge (move, -VALUE_EG_PAWN*(depth+0)))
                     {
                         continue;
                     }
@@ -2031,8 +2031,8 @@ namespace Threading {
            , beta       = +VALUE_INFINITE;
 
         // Iterative deepening loop until requested to stop or the target depth is reached.
-        while (   !ForceStop
-               && ++running_depth < MaxPlies
+        while (   ++running_depth < MaxPlies
+               && !ForceStop
                && (   Limits.depth == 0
                    || Threadpool.main_thread ()->running_depth <= Limits.depth))
         {
