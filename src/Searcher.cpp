@@ -854,13 +854,6 @@ namespace Searcher {
             assert(tt_move == MOVE_NONE
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
-            auto tt_ext =
-                   tt_hit
-                && tte->move () == tt_move;
-            auto tt_value =
-                tt_ext ?
-                    value_of_tt (tte->value (), ss->ply) :
-                    VALUE_NONE;
 
             ss->current_move = MOVE_NONE;
 
@@ -868,9 +861,11 @@ namespace Searcher {
             // Fixes also the type of TT entry depth that are going to use.
             // Note that in quien_search use only 2 types of depth: (0) or (-1).
             i16 qs_depth = in_check || depth >= 0 ? 0 : -1;
+            auto tt_value = value_of_tt (tte->value (), ss->ply);
 
             if (   !PVNode
-                && tt_ext
+                && tt_hit
+                && tte->move () == tt_move
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && tte->depth () >= qs_depth
                 && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
@@ -891,7 +886,8 @@ namespace Searcher {
             else
             {
                 Value tt_eval;
-                if (tt_ext)
+                if (   tt_hit
+                    && tte->move () == tt_move)
                 {
                     // Never assume anything on values stored in TT
                     ss->static_eval = tt_eval =
@@ -925,7 +921,8 @@ namespace Searcher {
                     // Stand pat. Return immediately if static value is at least beta
                     if (tt_eval >= beta)
                     {
-                        if (!tt_ext)
+                        if (   !tt_hit
+                            || tte->move () != tt_move)
                         {
                             tte->save (posi_key,
                                        MOVE_NONE,
@@ -1190,19 +1187,13 @@ namespace Searcher {
             assert(tt_move == MOVE_NONE
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
-            auto tt_ext =
-                   tt_hit
-                && (   tte->move () == tt_move
-                    || (   root_node
-                        && tte->move () == MOVE_NONE));
-            auto tt_value =
-                tt_ext ?
-                    value_of_tt (tte->value (), ss->ply) :
-                    VALUE_NONE;
+
+            auto tt_value = value_of_tt (tte->value (), ss->ply);
 
             // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
-                && tt_ext
+                && tt_hit
+                && tte->move () == tt_move
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && tte->depth () >= depth
                 && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
@@ -1273,7 +1264,8 @@ namespace Searcher {
             else
             {
                 Value tt_eval;
-                if (tt_ext)
+                if (   tt_hit
+                    && tte->move () == tt_move)
                 {
                     // Never assume anything on values stored in TT
                     ss->static_eval = tt_eval =
@@ -1454,23 +1446,13 @@ namespace Searcher {
                         depth_search<PVNode> (pos, ss, alfa, beta, (3*depth)/4 - 2, cut_node, false);
 
                         tte = TT.probe (posi_key, tt_hit);
-                        if (tt_hit)
-                        {
-                            tt_move =
-                                   (move = tte->move ()) != MOVE_NONE
-                                && pos.pseudo_legal (move)
-                                && pos.legal (move) ?
-                                    move :
-                                    MOVE_NONE;
-                            assert(   tt_move == MOVE_NONE
-                                   || (   pos.pseudo_legal (tt_move)
-                                       && pos.legal (tt_move)));
-                            tt_ext = tte->move () == tt_move;
-                            if (tt_ext)
-                            {
-                                tt_value = value_of_tt (tte->value (), ss->ply);
-                            }
-                        }
+                        tt_move =
+                               tt_hit
+                            && (move = tte->move ()) != MOVE_NONE
+                            && pos.pseudo_legal (move)
+                            && pos.legal (move) ?
+                                move :
+                                MOVE_NONE;
                     }
                 }
             }
@@ -1481,11 +1463,14 @@ namespace Searcher {
 
             auto best_move  = MOVE_NONE;
 
+            tt_value = value_of_tt (tte->value (), ss->ply);
+
             bool singular_ext_node =
                    !root_node
-                && tt_ext
-                && exclude_move == MOVE_NONE // Recursive singular search is not allowed
+                && tt_hit
                 && tt_move != MOVE_NONE
+                && tte->move () == tt_move
+                && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                 && depth > 7
                 && depth < tte->depth () + 4
                 && tt_value != VALUE_NONE
