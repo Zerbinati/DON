@@ -504,16 +504,17 @@ bool Position::gives_check (Move m) const
         break;
     case PROMOTE:
     {
+        auto ek_sq = square (~active, KING);
         // Promotion with check ?
         switch (promote (m))
         {
-        case NIHT: return contains (PieceAttacks[NIHT][dst]                , square (~active, KING)); break;
-        case BSHP: return contains (PieceAttacks[BSHP][dst]                , square (~active, KING))
-                       && contains (attacks_bb<BSHP> (dst, pieces () ^ org), square (~active, KING)); break;
-        case ROOK: return contains (PieceAttacks[ROOK][dst]                , square (~active, KING))
-                       && contains (attacks_bb<ROOK> (dst, pieces () ^ org), square (~active, KING)); break;
-        case QUEN: return contains (PieceAttacks[QUEN][dst]                , square (~active, KING))
-                       && contains (attacks_bb<QUEN> (dst, pieces () ^ org), square (~active, KING)); break;
+        case NIHT: return contains (PieceAttacks[NIHT][dst]                , ek_sq); break;
+        case BSHP: return contains (PieceAttacks[BSHP][dst]                , ek_sq)
+                       && contains (attacks_bb<BSHP> (dst, pieces () ^ org), ek_sq); break;
+        case ROOK: return contains (PieceAttacks[ROOK][dst]                , ek_sq)
+                       && contains (attacks_bb<ROOK> (dst, pieces () ^ org), ek_sq); break;
+        case QUEN: return contains (PieceAttacks[QUEN][dst]                , ek_sq)
+                       && contains (attacks_bb<QUEN> (dst, pieces () ^ org), ek_sq); break;
         default: assert(false); break;
         }
     }

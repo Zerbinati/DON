@@ -78,18 +78,19 @@ namespace Transposition {
         {
             const u16 key16 = KeySplit{ k }.key16 ();
             assert(key16 != 0);
-            // Preserve any existing move for the position
-            if (   key16 != _key16
-                || m != MOVE_NONE)
-            {
-                _move       = u16(m);
-            }
+            bool new_entry =  key16 != _key16
+                           || (   m != MOVE_NONE
+                               && m != _move);
             // Preserve more valuable entries
-            if (   key16 != _key16
+            if (   new_entry
                 || d > _depth - 4
                 || b == BOUND_EXACT)
             {
-                _key16      = key16;
+                if (new_entry)
+                {
+                    _key16      = key16;
+                    _move       = u16(m);
+                }
                 _value      = i16(v);
                 _eval       = i16(e);
                 _depth      = i08(d);

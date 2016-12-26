@@ -347,7 +347,7 @@ namespace UCI {
 
         Options["Skill Level"]                  << Option (SkillManager::MaxSkillLevel,  0, SkillManager::MaxSkillLevel, on_skill_level);
 
-        Options["MultiPV"]                      << Option (MultiPV  ,   1,  64, on_multipv);
+        Options["MultiPV"]                      << Option (MultiPV, 1, 64, on_multipv);
         //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, 1000, on_multipv);
 
         Options["Fixed Contempt"]               << Option (FixedContempt, -100, 100, on_contempt_opt);
@@ -356,7 +356,7 @@ namespace UCI {
 
         Options["Draw Move Dist"]               << Option (Position::DrawClockPly/2, 5, 50, on_draw_move_dist);
 
-        //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, on_time_opt);
+        //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon, 0, 100, on_time_opt);
         //Options["Ready Move Horizon"]           << Option (ReadyMoveHorizon, 0, 100, on_time_opt);
         //Options["Overhead Clock Time"]          << Option (i32(OverheadClockTime), 0, 30000, on_time_opt);
         //Options["Overhead Move Time"]           << Option (i32(OverheadMoveTime), 0, 5000, on_time_opt);

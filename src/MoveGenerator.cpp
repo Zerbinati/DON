@@ -31,14 +31,11 @@ namespace MoveGen {
                 }
                 if (attacks != 0)
                 {
-                    switch (PT)
+                    if (PT != NIHT)
                     {
-                    //case NIHT: attacks &= PieceAttacks[NIHT][s]; break;
-                    case BSHP: attacks &= attacks_bb<BSHP> (s, pos.pieces ()); break;
-                    case ROOK: attacks &= attacks_bb<ROOK> (s, pos.pieces ()); break;
-                    case QUEN: attacks &= attacks_bb<QUEN> (s, pos.pieces ()); break;
-                    default: break;
+                        attacks &= attacks_bb<PT> (s, pos.pieces ());
                     }
+                    
                     while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (s, pop_lsq (attacks)))); }
                 }
             }
@@ -285,9 +282,10 @@ namespace MoveGen {
                 && GT != QUIET_CHECK)
             {
                 auto king_sq = pos.square (Own, KING);
-                Bitboard attacks =  PieceAttacks[KING][king_sq]
-                                 & ~PieceAttacks[KING][pos.square (Opp, KING)]
-                                 & targets;
+                Bitboard attacks = targets
+                                 &  PieceAttacks[KING][king_sq]
+                                 & ~PieceAttacks[KING][pos.square (Opp, KING)];
+
                 while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (king_sq, pop_lsq (attacks)))); }
             }
 
@@ -379,11 +377,16 @@ namespace MoveGen {
             Bitboard attacks = 0;
             switch (ptype (pos[org]))
             {
-            case NIHT: attacks = targets & PieceAttacks[NIHT][org];               break;
-            case BSHP: attacks = targets & attacks_bb<BSHP> (org, pos.pieces ()); break;
-            case ROOK: attacks = targets & attacks_bb<ROOK> (org, pos.pieces ()); break;
-            case QUEN: attacks = targets & attacks_bb<QUEN> (org, pos.pieces ()); break;
-            case KING: attacks = targets & PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square (~pos.active, KING)]; break;
+            case NIHT: attacks = targets & PieceAttacks[NIHT][org];                   break;
+            case BSHP: attacks = targets & PieceAttacks[BSHP][org];
+                if (attacks != 0) attacks &= attacks_bb<BSHP> (org, pos.pieces ());   break;
+            case ROOK: attacks = targets & PieceAttacks[ROOK][org];
+                if (attacks != 0) attacks &= attacks_bb<ROOK> (org, pos.pieces ());   break;
+            case QUEN: attacks = targets & PieceAttacks[QUEN][org];
+                if (attacks != 0) attacks &= attacks_bb<QUEN> (org, pos.pieces ());   break;
+            case KING: attacks = targets
+                               &  PieceAttacks[KING][org]
+                               & ~PieceAttacks[QUEN][pos.square (~pos.active, KING)]; break;
             default: assert(false); break;
             }
             while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (org, pop_lsq (attacks)))); }
@@ -407,11 +410,16 @@ namespace MoveGen {
             Bitboard attacks = 0;
             switch (ptype (pos[org]))
             {
-            case NIHT: attacks = targets & PieceAttacks[NIHT][org];               break;
-            case BSHP: attacks = targets & attacks_bb<BSHP> (org, pos.pieces ()); break;
-            case ROOK: attacks = targets & attacks_bb<ROOK> (org, pos.pieces ()); break;
-            case QUEN: attacks = targets & attacks_bb<QUEN> (org, pos.pieces ()); break;
-            case KING: attacks = targets & PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square (~pos.active, KING)]; break;
+            case NIHT: attacks = targets & PieceAttacks[NIHT][org];                   break;
+            case BSHP: attacks = targets & PieceAttacks[BSHP][org];
+                if (attacks != 0) attacks &= attacks_bb<BSHP> (org, pos.pieces ());   break;
+            case ROOK: attacks = targets & PieceAttacks[ROOK][org];
+                if (attacks != 0) attacks &= attacks_bb<ROOK> (org, pos.pieces ());   break;
+            case QUEN: attacks = targets & PieceAttacks[QUEN][org];
+                if (attacks != 0) attacks &= attacks_bb<QUEN> (org, pos.pieces ());   break;
+            case KING: attacks = targets
+                               &  PieceAttacks[KING][org]
+                               & ~PieceAttacks[QUEN][pos.square (~pos.active, KING)]; break;
             default: assert(false); break;
             }
             while (attacks != 0) { moves.push_back (ValMove(mk_move<NORMAL> (org, pop_lsq (attacks)))); }

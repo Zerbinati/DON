@@ -183,7 +183,10 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
         pos.si->checkers == 0 ?
             S_NATURAL_TT :
             S_EVASION_TT;
-    _stage += _tt_move == MOVE_NONE ? 1 : 0;
+    if (_tt_move == MOVE_NONE)
+    {
+        ++_stage;
+    }
 }
 MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i16 d, Move lm)
     : _pos (pos)
@@ -222,7 +225,10 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
             _tt_move = MOVE_NONE;
         }
     }
-    _stage += _tt_move == MOVE_NONE ? 1 : 0;
+    if (_tt_move == MOVE_NONE)
+    {
+        ++_stage;
+    }
 }
 MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
     : _pos (pos)
@@ -236,14 +242,17 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
 
     _stage = S_PROBCUT_CAPTURE_TT;
 
-    // In ProbCut we generate captures with SEE higher than the given threshold
+    // In ProbCut we generate captures with SEE greater than or equal to the given threshold
     if (   _tt_move != MOVE_NONE
         && !(   pos.capture (_tt_move)
-             && pos.see_ge (_tt_move, _threshold + 1)))
+             && pos.see_ge (_tt_move, _threshold)))
     {
         _tt_move = MOVE_NONE;
     }
-    _stage += _tt_move == MOVE_NONE ? 1 : 0;
+    if (_tt_move == MOVE_NONE)
+    {
+        ++_stage;
+    }
 }
 
 // Assigns a numerical move ordering score to each move in a move list.
@@ -455,7 +464,7 @@ Move MovePicker::next_move ()
         while (_index < _moves.size ())
         {
             auto move = pick_best_move (_index++).move;
-            if (_pos.see_ge (move, _threshold + 1))
+            if (_pos.see_ge (move, _threshold))
             {
                 return move;
             }
@@ -700,18 +709,6 @@ namespace Searcher {
                 ss->killer_moves[1] = ss->killer_moves[0];
                 ss->killer_moves[0] = move;
             }
-            //auto mm = move;
-            //for (u08 i = 0; i < MaxKillers; ++i)
-            //{
-            //    auto m = ss->killer_moves[i];
-            //    ss->killer_moves[i] = mm;
-            //    if (   m == MOVE_NONE
-            //        || m == move)
-            //    {
-            //        break;
-            //    }
-            //    mm = m;
-            //}
             assert(std::count (ss->killer_moves, ss->killer_moves + MaxKillers, move) == 1);
 
             if ((ss-1)->piece_cm_history != nullptr)
@@ -1615,7 +1612,7 @@ namespace Searcher {
                             || (   lmr_depth < 7
                                 && !in_check
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
-                                // LMR depth based SEE pruning
+                                // SEE based pruning
                             || (   lmr_depth < 8
                                 && !pos.see_ge (move, -Value(35*lmr_depth*lmr_depth))))
                         {
@@ -1623,7 +1620,7 @@ namespace Searcher {
                         }
                     }
                     else
-                    // Depth based SEE based pruning
+                    // SEE based pruning
                     if (   depth < 7
                         && new_depth < depth
                         && !pos.see_ge (move, -VALUE_EG_PAWN * i32(depth)))
