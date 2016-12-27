@@ -449,25 +449,20 @@ inline Value  operator/  (Value  v, i32    i) { return Value(i32(v) / i); }
 inline Value& operator/= (Value &v, i32    i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1)/i32(v2); }
 
-// Helper function for correctly casting u16 to i16.
-// The compiler will optimize this to a no-operation.
-inline i16 u16_to_i16 (u16 v)
+inline Score mk_score (i32 mg, i32 eg)
 {
-    return i16(v < 0x8000 ? v : v - 0x10000);
+    return Score(i32((u32(eg) << 0x10)) + mg);
 }
 
 inline Value mg_value (u32 s)
 {
-    return Value(u16_to_i16 (u16((s + 0x0000) >> 0x00)));
+    union { u16 u; i16 s; } mg = { u16(u32(s + 0x0000) >> 0x00) };
+    return Value(mg.s);
 }
 inline Value eg_value (u32 s)
 {
-    return Value(u16_to_i16 (u16((s + 0x8000) >> 0x10)));
-}
-
-inline Score mk_score (i32 mg, i32 eg)
-{
-    return Score((u32(eg) << 0x10) + mg);
+    union { u16 u; i16 s; } eg = { u16(u32(s + 0x8000) >> 0x10) };
+    return Value(eg.s);
 }
 
 ARTHMAT_OPERATORS(Score)
@@ -564,13 +559,6 @@ inline bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
 inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
 inline void      promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= PROMOTE + ((pt - 1) << 12); }
-inline Square fix_dst_sq (Move m, bool chess960 = false)
-{
-    return !chess960
-        && mtype (m) == CASTLE ?
-        (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m)) :
-        dst_sq (m);
-}
 
 template<MoveType MT>
 inline Move mk_move (Square org, Square dst)               { return Move(MT + (org << 6) + dst); }

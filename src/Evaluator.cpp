@@ -25,8 +25,8 @@ namespace Evaluator {
                 IMBALANCE,
                 MOBILITY,
                 THREAT,
-                PASSED_PAWN,
-                SPACE_ACTIVITY,
+                PASSER,
+                SPACE,
                 TOTAL,
                 TERM_NO
             };
@@ -299,7 +299,7 @@ namespace Evaluator {
             for (auto s : pos.squares[Own][PT])
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
-                Bitboard attacks = 0;
+                Bitboard attacks;
                 switch (PT)
                 {
                 case NIHT: attacks = PieceAttacks[NIHT][s];                                                                       break;
@@ -780,7 +780,7 @@ namespace Evaluator {
 
         // Evaluates the passed pawns of the given color.
         template<Color Own, bool Trace>
-        Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
+        Score evaluate_passers (const Position &pos, const EvalInfo &ei)
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
@@ -799,8 +799,6 @@ namespace Evaluator {
                 auto mg_value = PawnPassRank[rank];
                 auto eg_value = PawnPassRank[rank];
 
-                score -= PawnPassHinder * pop_count (front_sqrs_bb (Own, s) & (ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
-
                 auto r  = dist (rank, R_2);
                 auto rr = r*(r-1);
 
@@ -810,7 +808,7 @@ namespace Evaluator {
 
                     // Adjust bonus based on kings proximity.
                     eg_value +=
-                          5*rr*dist (pos.square (Opp, KING), push_sq)
+                        + 5*rr*dist (pos.square (Opp, KING), push_sq)
                         - 2*rr*dist (pos.square (Own, KING), push_sq);
                     // If block square is not the queening square then consider also a second push.
                     if (rel_rank (Own, push_sq) != R_8)
@@ -847,7 +845,7 @@ namespace Evaluator {
                         // Give a big bonus if the path to the queen is not attacked,
                         // a smaller bonus if the block square is not attacked.
                         i32 k = unsafe_front_squares != 0 ?
-                                contains (unsafe_front_squares, push_sq) ?
+                                 contains (unsafe_front_squares, push_sq) ?
                                     0 : 8 : 18;
                         // Give a big bonus if the path to the queen is fully defended,
                         // a smaller bonus if the block square is defended.
@@ -867,19 +865,20 @@ namespace Evaluator {
                     }
                 }
 
-                // Assign a small bonus when no pieces left (unstoppable)
-                if (   pos.si->non_pawn_matl[WHITE] == VALUE_ZERO
-                    && pos.si->non_pawn_matl[BLACK] == VALUE_ZERO)
+                // Give a small bonus when opps have no pieces left (unstoppable).
+                if (pos.si->non_pawn_matl[Opp] == VALUE_ZERO)
                 {
                     eg_value += 20;
                 }
 
-                score += mk_score (mg_value, eg_value) + PawnPassFile[std::min (_file (s), F_H - _file (s))];
+                score += mk_score (mg_value, eg_value)
+                       + PawnPassFile[std::min (_file (s), F_H - _file (s))]
+                       - PawnPassHinder * pop_count (front_sqrs_bb (Own, s) & (ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
             }
 
             if (Trace)
             {
-                write (PASSED_PAWN, Own, score);
+                write (PASSER, Own, score);
             }
 
             return score;
@@ -891,7 +890,7 @@ namespace Evaluator {
         // Safe squares one, two or three squares behind a friend pawn are counted twice.
         // The aim is to improve play on game opening.
         template<Color Own, bool Trace>
-        Score evaluate_space_activity (const Position &pos, const EvalInfo &ei)
+        Score evaluate_space (const Position &pos, const EvalInfo &ei)
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
@@ -924,7 +923,7 @@ namespace Evaluator {
 
             if (Trace)
             {
-                write (SPACE_ACTIVITY, Own, score);
+                write (SPACE, Own, score);
             }
 
             return score;
@@ -1052,27 +1051,26 @@ namespace Evaluator {
         score +=
             + mobility[WHITE]
             - mobility[BLACK];
-        // Evaluate kings, needed full attack information including king
+        // Evaluate kings, full attack information needed including king
         score +=
             + evaluate_king<WHITE, Trace> (pos, ei)
             - evaluate_king<BLACK, Trace> (pos, ei);
-        // Evaluate tactical threats, needed full attack information including king
+        // Evaluate threats, full attack information needed including king
         score +=
             + evaluate_threats<WHITE, Trace> (pos, ei)
             - evaluate_threats<BLACK, Trace> (pos, ei);
-        // Evaluate passed pawns, needed full attack information including king
+        // Evaluate passers, full attack information needed including king
         score +=
-            + evaluate_passed_pawns<WHITE, Trace> (pos, ei)
-            - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
+            + evaluate_passers<WHITE, Trace> (pos, ei)
+            - evaluate_passers<BLACK, Trace> (pos, ei);
 
-        // If in the opening phase
+        // Evaluate space, if in the opening phase
         if (   pos.si->non_pawn_matl[WHITE]
              + pos.si->non_pawn_matl[BLACK] >= VALUE_SPACE)
         {
-            // Evaluate space activity
             score +=
-                + evaluate_space_activity<WHITE, Trace> (pos, ei)
-                - evaluate_space_activity<BLACK, Trace> (pos, ei);
+                + evaluate_space<WHITE, Trace> (pos, ei)
+                - evaluate_space<BLACK, Trace> (pos, ei);
         }
 
         // Evaluate potential for the position
@@ -1125,8 +1123,8 @@ namespace Evaluator {
             << "       Mobility" << Term(MOBILITY)
             << "    King Safety" << Term(KING)
             << "         Threat" << Term(THREAT)
-            << "    Passed Pawn" << Term(PASSED_PAWN)
-            << " Space Activity" << Term(SPACE_ACTIVITY)
+            << "    Pawn Passer" << Term(PASSER)
+            << "          Space" << Term(SPACE)
             << "----------------+-------------+-------------+--------------\n"
             << "          Total" << Term(TOTAL)
             << "\nEvaluation: " << value_to_cp (value) << " (white side)\n"

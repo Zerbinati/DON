@@ -113,7 +113,7 @@ namespace Notation {
         if (m == MOVE_NULL) return "(null)";
 
         auto can = to_string (org_sq (m))
-                 + to_string (fix_dst_sq (m, Position::Chess960));
+                 + to_string (fix_dst_sq (m));
         if (mtype (m) == PROMOTE)
         {
             can += char(tolower (PieceChar[promote (m)]));

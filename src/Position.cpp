@@ -479,13 +479,14 @@ bool Position::gives_check (Move m) const
     case CASTLE:
     {
         // Castling with check ?
+        auto ek_sq = square (~active, KING);
         bool king_side = dst > org;
         auto rook_org = dst; // 'King captures the rook' notation
         dst           = rel_sq (active, king_side ? SQ_G1 : SQ_C1);
         auto rook_dst = rel_sq (active, king_side ? SQ_F1 : SQ_D1);
         // First x-ray check then full check
-        return contains (PieceAttacks[ROOK][rook_dst]                                              , square (~active, KING))
-            && contains (attacks_bb<ROOK> (rook_dst, (pieces () ^ org ^ rook_org) | dst | rook_dst), square (~active, KING));
+        return contains (PieceAttacks[ROOK][rook_dst]                                              , ek_sq)
+            && contains (attacks_bb<ROOK> (rook_dst, (pieces () ^ org ^ rook_org) | dst | rook_dst), ek_sq);
     }
         break;
     case ENPASSANT:
@@ -622,11 +623,6 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
 
     Bitboard bq = pieces (~c, BSHP, QUEN);
     Bitboard rq = pieces (~c, ROOK, QUEN);
-    if (   attackers != 0
-        && (bq|rq) == 0)
-    {
-        return true;
-    }
     while (attackers != 0)
     {
         auto org = pop_lsq (attackers);

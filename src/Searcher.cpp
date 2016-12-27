@@ -42,7 +42,7 @@ void RootMove::insert_pv_into_tt (Position &pos) const
         auto *tte = TT.probe (pos.si->posi_key, tt_hit);
         // Don't overwrite correct entries
         if (   !tt_hit
-            || move != tte->move ())
+            || tte->move () != move)
         {
             tte->save (pos.si->posi_key,
                         move,
@@ -1443,7 +1443,7 @@ namespace Searcher {
                         && (   PVNode
                             || ss->static_eval + 256 >= beta))
                     {
-                        depth_search<PVNode> (pos, ss, alfa, beta, (3*depth)/4 - 2, cut_node, false);
+                        depth_search<PVNode> (pos, ss, alfa, beta, 3*depth/4 - 2, cut_node, false);
 
                         tte = TT.probe (posi_key, tt_hit);
                         tt_move =
@@ -1792,17 +1792,6 @@ namespace Searcher {
 
                     if (alfa < value)
                     {
-                        // If there is an unstable easy move for this position, clear it.
-                        if (   PVNode
-                            && Limits.use_time_management ()
-                            && Threadpool.main_thread () == th
-                            && Threadpool.move_mgr.easy_move (pos.si->posi_key) != MOVE_NONE
-                            && (   move_count > 1
-                                || Threadpool.move_mgr.easy_move (pos.si->posi_key) != move))
-                        {
-                            Threadpool.move_mgr.clear ();
-                        }
-
                         best_move = move;
 
                         // Update pv even in fail-high case

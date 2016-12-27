@@ -152,7 +152,6 @@ namespace Transposition {
         assert(key16 != 0);
         auto *const fte = cluster_entry (key);
         assert(fte != nullptr);
-        tt_hit = false;
         // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte; // Default first
         auto rworth = rte->worth ();
@@ -176,6 +175,7 @@ namespace Transposition {
                 rte = ite;
             }
         }
+        tt_hit = false;
         return rte;
     }
     // Returns an approximation of the per-mille of the 
