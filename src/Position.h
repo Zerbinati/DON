@@ -51,11 +51,6 @@ public:
 
     StateInfo   *ptr;           // Previous StateInfo.
 
-    //void clear ()
-    //{
-    //    std::memset (this, 0x00, sizeof (*this));
-    //}
-
     void set_check_info (const Position &pos);
 };
 
@@ -325,11 +320,13 @@ inline Phase Position::phase () const
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
-    return (  (PawnAttacks[~c][s]        & pieces (PAWN))
-            | (PieceAttacks[NIHT][s]     & pieces (NIHT))
-            | (attacks_bb<BSHP> (s, occ) & pieces (BSHP, QUEN))
-            | (attacks_bb<ROOK> (s, occ) & pieces (ROOK, QUEN))
-            | (PieceAttacks[KING][s]     & pieces (KING))) & pieces (c);
+    Bitboard bq = pieces (c, BSHP, QUEN) & PieceAttacks[BSHP][s];
+    Bitboard rq = pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][s];
+    return (pieces (c, PAWN)     & PawnAttacks[~c][s])
+         | (pieces (c, NIHT)     & PieceAttacks[NIHT][s])
+         | (bq != 0 ? bq & attacks_bb<BSHP> (s, occ) : 0)
+         | (rq != 0 ? rq & attacks_bb<ROOK> (s, occ) : 0)
+         | (pieces (c, KING)     & PieceAttacks[KING][s]);
 }
 // Attackers to the square 's' by color 'c'
 inline Bitboard Position::attackers_to (Square s, Color c) const
@@ -339,12 +336,15 @@ inline Bitboard Position::attackers_to (Square s, Color c) const
 // Attackers to the square 's' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
-    return (  (PawnAttacks[WHITE][s]     & pieces (BLACK, PAWN))
-            | (PawnAttacks[BLACK][s]     & pieces (WHITE, PAWN))
-            | (PieceAttacks[NIHT][s]     & pieces (NIHT))
-            | (attacks_bb<BSHP> (s, occ) & pieces (BSHP, QUEN))
-            | (attacks_bb<ROOK> (s, occ) & pieces (ROOK, QUEN))
-            | (PieceAttacks[KING][s]     & pieces (KING)));
+    Bitboard bq = pieces (BSHP, QUEN) & PieceAttacks[BSHP][s];
+    Bitboard rq = pieces (ROOK, QUEN) & PieceAttacks[ROOK][s];
+    return (pieces (BLACK, PAWN) & PawnAttacks[WHITE][s])
+         | (pieces (WHITE, PAWN) & PawnAttacks[BLACK][s])
+         | (pieces (NIHT)        & PieceAttacks[NIHT][s])
+         | (bq != 0 ? bq & attacks_bb<BSHP> (s, occ) : 0)
+         | (rq != 0 ? rq & attacks_bb<ROOK> (s, occ) : 0)
+         | (pieces (KING)        & PieceAttacks[KING][s]);
+
 }
 // Attackers to the square 's'
 inline Bitboard Position::attackers_to (Square s) const

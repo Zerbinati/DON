@@ -94,25 +94,26 @@ bool Position::see_ge (Move m, Value v) const
     assert(_ok (m));
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-
-    Value balance; // Values of the pieces taken by own's minus opp's
-
     auto c = color (board[org]);
     Bitboard mocc;
+    Value balance; // Values of the pieces taken by own's minus opp's
     switch (mtype (m))
     {
     case CASTLE:
         // Castle moves are implemented as king capturing the rook so cannot be handled correctly.
         // Simply assume the SEE value is VALUE_ZERO that is always correct unless in the rare case the rook ends up under attack.
-        return VALUE_ZERO >= v;
+        return v <= VALUE_ZERO;
+        break;
     case ENPASSANT:
         assert(contains (pieces (c, PAWN), org));
         mocc = square_bb (dst - pawn_push (c));
         balance = PieceValues[MG][PAWN];
+        break;
     default:
         assert(contains (pieces (c), org));
         mocc = 0;
         balance = PieceValues[MG][ptype (board[dst])];
+        break;
     }
 
     if (balance < v)
@@ -493,8 +494,8 @@ bool Position::gives_check (Move m) const
         dst           = rel_sq (active, king_side ? SQ_G1 : SQ_C1);
         auto rook_dst = rel_sq (active, king_side ? SQ_F1 : SQ_D1);
         // First x-ray check then full check
-        return contains (PieceAttacks[ROOK][rook_dst]                                              , ek_sq)
-            && contains (attacks_bb<ROOK> (rook_dst, (pieces () ^ org ^ rook_org) | dst | rook_dst), ek_sq);
+        return contains (PieceAttacks[ROOK][rook_dst]                                   , ek_sq)
+            && contains (attacks_bb<ROOK> (rook_dst, (pieces () ^ org ^ rook_org) | dst), ek_sq);
     }
         break;
     case ENPASSANT:
@@ -629,17 +630,15 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
     Bitboard attackers = PawnAttacks[~c][ep_sq] & pieces (c, PAWN);
     assert(pop_count (attackers) <= 2);
 
-    Bitboard bq = pieces (~c, BSHP, QUEN);
-    Bitboard rq = pieces (~c, ROOK, QUEN);
+    Bitboard bq = pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][fk_sq];
+    Bitboard rq = pieces (~c, ROOK, QUEN) & PieceAttacks[ROOK][fk_sq];
     while (attackers != 0)
     {
         auto org = pop_lsq (attackers);
         assert(contains (mocc, org));
         // Check en-passant is legal for the position
-        if (   (   (bq & PieceAttacks[BSHP][fk_sq]) == 0
-                || (bq & attacks_bb<BSHP> (fk_sq, mocc ^ org)) == 0)
-            && (   (rq & PieceAttacks[ROOK][fk_sq]) == 0
-                || (rq & attacks_bb<ROOK> (fk_sq, mocc ^ org)) == 0))
+        if (   (bq == 0 || (bq & attacks_bb<BSHP> (fk_sq, mocc ^ org)) == 0)
+            && (rq == 0 || (rq & attacks_bb<ROOK> (fk_sq, mocc ^ org)) == 0))
         {
             return true;
         }
