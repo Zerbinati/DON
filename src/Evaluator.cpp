@@ -226,19 +226,16 @@ namespace Evaluator {
         const Score PawnPushThreat  = S(38,22);
 
         const Score HangPawnThreat  = S(71,61);
-        // SafePawnThreat[piece-type] contains bonuses
-        // according to which piece type is attacked by pawn which is protected or is not attacked.
-        const Score SafePawnThreat[NONE] = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
+        
+        // SafePawnThreat[piece-type] contains bonuses according to piece type
+        const Score SafePawnThreat[NONE]    = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
 
-        // PieceThreat[attacker category][attacked type] contains bonuses
-        // according to which piece type attacks which one.
-        // Attacks on lesser pieces which are pawn-defended are not considered.
-        const Score PieceThreat[2][NONE] =
-        {
-            { S( 0,33), S(45,43), S(46,47), S(72,107), S(48,118), S( 0, 0) }, // Minor attackers
-            { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) }  // Major attackers
-        };
-        const Score PieceThreatRank = S(16, 3);
+        // PieceMinorThreat[piece-type] contains bonuses according to piece type
+        const Score PieceMinorThreat[NONE]  = { S( 0,33), S(45,43), S(46,47), S(72,107), S(48,118), S( 0, 0) };
+        // PieceRookThreat[piece-type] contains bonuses according to piece type
+        const Score PieceRookThreat[NONE]   = { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) };
+
+        const Score PieceRankThreat = S(16, 3);
 
         // KingThreat[one/more] contains bonuses for king attacks on pawns or pieces which are not pawn-defended.
         const Score KingThreat[2] = { S( 3, 62), S( 9,138) };
@@ -246,7 +243,7 @@ namespace Evaluator {
         const Score PawnPassHinder  = S( 7, 0);
 
         // PawnPassFile[file] contains a bonus for passed pawns according to distance from edge.
-        const Score PawnPassFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
+        const Score PawnPassFile[F_NO/2]    = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
 
     #undef S
 
@@ -650,8 +647,6 @@ namespace Evaluator {
             static const Bitboard Rank2BB = Own == WHITE ? R2_bb : R7_bb;
             static const Bitboard Rank7BB = Own == WHITE ? R7_bb : R2_bb;
 
-            enum { MINOR, MAJOR };
-
             auto score = SCORE_ZERO;
 
             Bitboard b;
@@ -681,10 +676,10 @@ namespace Evaluator {
             {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
-                score += PieceThreat[MINOR][pt];
+                score += PieceMinorThreat[pt];
                 if (pt != PAWN)
                 {
-                    score += PieceThreatRank * rel_rank (Opp, s);
+                    score += PieceRankThreat * rel_rank (Opp, s);
                 }
             }
             // Enemies attacked by rooks
@@ -696,10 +691,10 @@ namespace Evaluator {
             {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
-                score += PieceThreat[MAJOR][pt];
+                score += PieceRookThreat[pt];
                 if (pt != PAWN)
                 {
-                    score += PieceThreatRank * rel_rank (Opp, s);
+                    score += PieceRankThreat * rel_rank (Opp, s);
                 }
             }
             // Enemies attacked by king
@@ -807,16 +802,17 @@ namespace Evaluator {
                     auto push_sq = s+Push;
 
                     // Adjust bonus based on kings proximity.
-                    eg_value +=
-                        + 5*rr*dist (pos.square (Opp, KING), push_sq)
-                        - 2*rr*dist (pos.square (Own, KING), push_sq);
+                    if (!contains (pawn_pass_span (Own, s), pos.square (Opp, KING)))
+                    {
+                        eg_value += 5*rr*dist (pos.square (Opp, KING), push_sq);
+                    }
+                    eg_value -= 2*rr*dist (pos.square (Own, KING), push_sq);
                     // If block square is not the queening square then consider also a second push.
                     if (rel_rank (Own, push_sq) != R_8)
                     {
-                        eg_value +=
-                            - 1*rr*dist (pos.square (Own, KING), push_sq+Push);
+                        eg_value -= 1*rr*dist (pos.square (Own, KING), push_sq+Push);
                     }
-
+                    
                     // If the pawn is free to advance.
                     if (pos.empty (push_sq))
                     {

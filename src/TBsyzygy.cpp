@@ -1464,7 +1464,7 @@ namespace TBSyzygy {
         {
             while (si != nullptr)
             {
-                auto p = si->draw_ply;
+                auto p = std::min (si->clock_ply, si->null_ply);
                 if (p < 4)
                 {
                     break;

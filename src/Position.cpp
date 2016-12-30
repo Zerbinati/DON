@@ -21,7 +21,7 @@ bool Position::Chess960     = false;
 
 // Checks whether position is drawn by: Clock Ply Rule, Repetition.
 // It does not detect Insufficient materials and Stalemate.
-bool Position::draw () const
+bool Position::draw (i16 pp) const
 {
     // Draw by Clock Ply Rule?
     // Not in check or in check have legal moves 
@@ -31,16 +31,25 @@ bool Position::draw () const
     {
         return true;
     }
+
     // Draw by Repetition?
     const auto *psi = si->ptr->ptr;
-    for (auto p = si->draw_ply;
-              p >= 4;
-              p -= 2)
+    bool repeated = false;
+    for (u08 p = 4; p <= std::min (si->clock_ply, si->null_ply); p += 2)
     {
         psi = psi->ptr->ptr;
+        // For Root ply is 1, so return a draw score
+        // If repeats once earlier but strictly after the root, or
+        // If repeats twice strictly before the root [(pp - i) > 1].
         if (psi->posi_key == si->posi_key)
         {
-            return psi->draw;
+            // Draw at first repetition
+            if (   repeated
+                || pp > p + 1)
+            {
+                return true;
+            }
+            repeated = true;
         }
     }
     return false;
@@ -67,7 +76,6 @@ template<PieceType PT> PieceType Position::pick_least_val_att (Square dst, Bitbo
         {
             attackers |= b & attacks_bb<ROOK> (dst, mocc);
         }
-
         // Remove already processed pieces in X-ray
         attackers &= mocc;
         return PT;
@@ -786,8 +794,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->non_pawn_matl[WHITE] = compute_npm<WHITE> (*this);
     si->non_pawn_matl[BLACK] = compute_npm<BLACK> (*this);
     si->clock_ply = u08(clk_ply);
-    si->draw_ply = 0;
-    si->draw = false;
+    si->null_ply = 0;
     si->capture = NONE;
     si->checkers = attackers_to (square (active, KING), ~active);
     si->set_check_info (*this);
@@ -815,26 +822,6 @@ Position& Position::setup (const string &code, StateInfo &nsi, Color c)
     return *this;
 }
 
-// set_draw() set the value of si->draw - the boolean meaning the position occurred before in the game.
-// This function is called for positions up to the root, so recursion into some of them becomes possible during search.
-void Position::set_draw ()
-{
-    StateInfo* psi = si;
-    bool draw = false;
-    for (auto p = si->draw_ply;
-              p >= 2;
-              p -=2)
-    {
-        psi = psi->ptr->ptr;
-        if (psi->posi_key == si->posi_key)
-        {
-            draw = true;
-            break;
-        }
-    }
-    si->draw = draw;
-}
-
 // Do the natural-move
 void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 {
@@ -860,7 +847,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     auto ppt = mpt;
     auto cap = mt != ENPASSANT ? dst : dst - pawn_push (active);
     ++si->clock_ply;
-    ++si->draw_ply;
+    ++si->null_ply;;
     si->capture = mt != CASTLE ? ptype (board[cap]) : NONE;
     if (si->capture != NONE)
     {
@@ -878,7 +865,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->posi_key ^= Zob.piece_square_keys[pasive][si->capture][cap];
         si->psq_score -= PSQ[pasive][si->capture][cap];
         si->clock_ply = 0;
-        si->draw_ply = 0;
     }
     // Reset en-passant square
     if (si->en_passant_sq != SQ_NO)
@@ -913,7 +899,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
                 }
             }
             si->clock_ply = 0;
-            si->draw_ply = 0;
         }
     }
         break;
@@ -946,7 +931,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
         assert(si->clock_ply <= 1);
         si->clock_ply = 0;
-        si->draw_ply = 0;
         move_piece (org, dst);
         si->pawn_key ^=
               Zob.piece_square_keys[active][PAWN][dst]
@@ -960,7 +944,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             && rel_rank (active, dst) == R_8);
 
         si->clock_ply = 0;
-        si->draw_ply = 0;
         ppt = promote (m);
         assert(NIHT <= ppt && ppt <= QUEN);
         // Replace the pawn with the promoted piece
@@ -1006,8 +989,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     active = pasive;
     si->posi_key ^= Zob.color_key;
 
-    // Draw at first repetition
-    si->draw = true;
     si->set_check_info (*this);
     ++ply;
     ++nodes;
@@ -1097,14 +1078,12 @@ void Position::do_null_move (StateInfo &nsi)
         si->en_passant_sq = SQ_NO;
     }
     ++si->clock_ply;
+    si->null_ply = 0;
 
     active = ~active;
     si->posi_key ^= Zob.color_key;
 
     si->capture = NONE;
-    si->draw_ply = 0;
-    // Draw at first repetition
-    si->draw = true;
     assert(si->checkers == 0);
     si->set_check_info (*this);
 

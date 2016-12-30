@@ -137,7 +137,6 @@ namespace UCI {
                         }
                         states.push_back (StateInfo ());
                         root_pos.do_move (m, states.back ());
-                        root_pos.set_draw ();
                     }
                 }
             }

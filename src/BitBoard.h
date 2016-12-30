@@ -291,25 +291,10 @@ namespace BitBoard {
     // Attacks of the Queen with occupancy
     template<> inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
-        //assert((B_Attacks_bb[s][magic_index<BSHP> (s, occ)]
-        //      & R_Attacks_bb[s][magic_index<ROOK> (s, occ)]) == 0);
+        assert((B_Attacks_bb[s][magic_index<BSHP> (s, occ)]
+              & R_Attacks_bb[s][magic_index<ROOK> (s, occ)]) == 0);
         return B_Attacks_bb[s][magic_index<BSHP> (s, occ)]
              | R_Attacks_bb[s][magic_index<ROOK> (s, occ)];
-    }
-    
-    // Piece attacks from square
-    inline Bitboard attacks_bb (Piece p, Square s, Bitboard occ)
-    {
-        switch (ptype (p))
-        {
-        case PAWN: return PawnAttacks[color (p)][s]; break;
-        case NIHT: return PieceAttacks[NIHT][s];     break;
-        case BSHP: return attacks_bb<BSHP> (s, occ); break;
-        case ROOK: return attacks_bb<ROOK> (s, occ); break;
-        case QUEN: return attacks_bb<QUEN> (s, occ); break;
-        case KING: return PieceAttacks[KING][s];     break;
-        default:   assert(false); return 0;          break;
-        }
     }
     
 #if !defined(ABM) // PopCount Table

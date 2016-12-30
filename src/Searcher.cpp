@@ -87,8 +87,6 @@ void RootMove::extract_pv_from_tt (Position &pos)
     {
         //assert(move != MOVE_NONE);
         assert(MoveList<LEGAL> (pos).contains (move));
-        assert(!pos.draw ());
-
         *this += move;
         pos.do_move (move, *si++);
         ++ply;
@@ -122,7 +120,6 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     {
         //assert(ponder_move != MOVE_NONE);
         assert(MoveList<LEGAL> (pos).contains (ponder_move));
-        assert(!pos.draw ());
         *this += ponder_move;
     }
     pos.undo_move (move);
@@ -828,8 +825,8 @@ namespace Searcher {
             }
 
             // Check for an immediate draw or maximum ply reached
-            if (   pos.draw ()
-                || ss->ply >= MaxPlies)
+            if (   ss->ply >= MaxPlies
+                || pos.draw (ss->ply))
             {
                 return ss->ply >= MaxPlies
                     && !in_check ?
@@ -1141,8 +1138,8 @@ namespace Searcher {
                 // Step 2. Check end condition
                 // Check for aborted search, immediate draw or maximum ply reached
                 if (   ForceStop.load (memory_order_relaxed)
-                    || pos.draw ()
-                    || ss->ply >= MaxPlies)
+                    || ss->ply >= MaxPlies
+                    || pos.draw (ss->ply))
                 {
                     return ss->ply >= MaxPlies
                         && !in_check ?
