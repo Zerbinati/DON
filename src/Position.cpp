@@ -40,12 +40,12 @@ bool Position::draw (i16 pp) const
         psi = psi->ptr->ptr;
         // For Root ply is 1, so return a draw score
         // If repeats once earlier but strictly after the root, or
-        // If repeats twice strictly before the root [(pp - i) > 1].
+        // If repeats twice strictly before the root.
         if (psi->posi_key == si->posi_key)
         {
             // Draw at first repetition
             if (   repeated
-                || pp > p + 1)
+                || pp > p)
             {
                 return true;
             }

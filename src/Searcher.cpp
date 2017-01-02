@@ -271,7 +271,7 @@ template<> void MovePicker::value<CAPTURE> ()
         vm.value =
               PieceValues[MG][_pos.cap_type (vm.move)]
             - 200 * Value(rel_rank (_pos.active, dst_sq (vm.move)))
-            - Value(ptype (_pos[org_sq (vm.move)]) + 1);
+            - Value(ptype (_pos[org_sq (vm.move)]));
     }
 }
 template<> void MovePicker::value<QUIET> ()
@@ -301,7 +301,7 @@ template<> void MovePicker::value<EVASION> ()
         {
             vm.value =
                   PieceValues[MG][_pos.cap_type (vm.move)]
-                - Value(ptype (_pos[org_sq (vm.move)]) + 1)
+                - Value(ptype (_pos[org_sq (vm.move)]))
                 + MaxValue;
         }
         else

@@ -341,8 +341,10 @@ namespace Threading {
         auto *best_th = at (0);
         for (auto *th : *this)
         {
-            if (   best_th->finished_depth < th->finished_depth
-                && best_th->root_moves[0].new_value < th->root_moves[0].new_value)
+            auto depth_diff = th->finished_depth - best_th->finished_depth;
+            auto score_diff = i32(th->root_moves[0].new_value) - i32(best_th->root_moves[0].new_value);
+            if (   (depth_diff > 0 && score_diff >= 0)
+                || (score_diff > 0 && depth_diff >= 0))
             {
                 best_th = th;
             }

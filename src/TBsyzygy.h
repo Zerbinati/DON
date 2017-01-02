@@ -9,13 +9,12 @@ namespace TBSyzygy {
     // WDL Score
     enum WDLScore
     {
-        WDLLoss       = -2, // Loss
-        WDLCursedLoss = -1, // Loss, but draw under 50-move rule
-        WDLDraw       =  0, // Draw
-        WDLCursedWin  =  1, // Win, but draw under 50-move rule
-        WDLWin        =  2, // Win
-
-        WDLScoreNone  = -1000
+        WDL_LOSS         = -2, // Loss
+        WDL_BLESSED_LOSS = -1, // Loss, but draw under 50-move rule
+        WDL_DRAW         =  0, // Draw
+        WDL_CURSED_WIN   =  1, // Win, but draw under 50-move rule
+        WDL_WIN          =  2, // Win
+        WDL_NONE         = -1000
     };
     inline WDLScore operator-(WDLScore d) { return WDLScore(-i32(d)); }
 
@@ -41,11 +40,11 @@ namespace TBSyzygy {
 
     inline std::ostream& operator<< (std::ostream &os, const WDLScore wdl)
     {
-        os << (wdl == WDLLoss       ? "Loss" :
-               wdl == WDLCursedLoss ? "Cursed loss" :
-               wdl == WDLDraw       ? "Draw" :
-               wdl == WDLCursedWin  ? "Cursed win" :
-               wdl == WDLWin        ? "Win" : "None");
+        os << (wdl == WDL_LOSS         ? "Loss" :
+               wdl == WDL_BLESSED_LOSS ? "Blessed Loss" :
+               wdl == WDL_DRAW         ? "Draw" :
+               wdl == WDL_CURSED_WIN   ? "Cursed win" :
+               wdl == WDL_WIN          ? "Win" : "None");
         return os;
     }
 

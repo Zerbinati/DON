@@ -107,8 +107,7 @@ namespace Evaluator {
 
                 ful_attacked_by[Own]       = pe->attacks[Own] | pin_attacked_by[Own][KING];
                 pin_attacked_by[Own][NONE] = pin_attacked_by[Own][PAWN] | pin_attacked_by[Own][KING];
-
-                dbl_attacked[Own] = pin_attacked_by[Own][PAWN] & pin_attacked_by[Own][KING];
+                dbl_attacked[Own]          = pin_attacked_by[Own][PAWN] & pin_attacked_by[Own][KING];
 
                 king_ring                 [Own] = 0;
                 king_ring_attackers_count [Own] = 0;
@@ -212,7 +211,6 @@ namespace Evaluator {
         // Penalty for queen weaken
         const Score QueenWeaken     = S(50,10);
 
-        const Score SafeChecked     = S(20,20);
         const Score ProbChecked     = S(10,10);
         // King tropism
         const Score EnemyInFlank    = S( 7, 0);
@@ -255,7 +253,7 @@ namespace Evaluator {
         // King attack weights by piece type
         const i32 KingAttackWeights [NONE] = { 0,  78,  56,  45,  11, 0 };
         // Penalties for enemy's piece safe checks by piece type
-        const i32 PieceSafeChecks   [NONE] = { 0, 874, 538, 638, 695, 0 };
+        const i32 PieceSafeChecks   [NONE] = { 0, 924, 588, 688, 745, 0 };
         // Penalty for enemy's queen contact checks
         const i32 QueenContactCheck = 997;
 
@@ -287,6 +285,8 @@ namespace Evaluator {
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
             static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            // Mask of allowed outpost squares
+            static const Bitboard OutpostRank = Own == WHITE ? R4_bb|R5_bb|R6_bb : R5_bb|R4_bb|R3_bb;
 
             assert(NIHT <= PT && PT <= QUEN);
 
@@ -344,7 +344,7 @@ namespace Evaluator {
                         score += MinorBehindPawn;
                     }
 
-                    Bitboard b = OutpostRank[Own] & ~ei.pe->attack_span[Opp];
+                    Bitboard b = OutpostRank & ~ei.pe->attack_span[Opp];
                     // Bonus for minors outpost squares
                     if (contains (b, s))
                     {
@@ -456,6 +456,7 @@ namespace Evaluator {
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
             static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            static const Bitboard Camp = Own == WHITE ? R1_bb|R2_bb|R3_bb|R4_bb|R5_bb : R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
 
             auto fk_sq = pos.square (Own, KING);
 
@@ -550,7 +551,6 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][QUEN];
                 if ((b & safe_area) != 0)
                 {
-                    score -= SafeChecked;
                     king_danger += PieceSafeChecks[QUEN];
                 }
 
@@ -566,7 +566,6 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][ROOK];
                 if ((b & safe_area) != 0)
                 {
-                    score -= SafeChecked;
                     king_danger += PieceSafeChecks[ROOK];
                 }
                 else
@@ -579,7 +578,6 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][BSHP];
                 if ((b & safe_area) != 0)
                 {
-                    score -= SafeChecked;
                     king_danger += PieceSafeChecks[BSHP];
                 }
                 else
@@ -592,7 +590,6 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][NIHT];
                 if ((b & safe_area) != 0)
                 {
-                    score -= SafeChecked;
                     king_danger += PieceSafeChecks[NIHT];
                 }
                 else
@@ -610,7 +607,7 @@ namespace Evaluator {
 
             // King tropism: Find squares that enemy attacks in the friend king flank
             auto kf = _file (fk_sq);
-            b =    KingFlank[Own][kf]
+            b =    KingFlank[kf] & Camp
                 &  ei.pin_attacked_by[Opp][NONE];
             assert(((Own == WHITE ? b << 4 : b >> 4) & b) == 0);
             assert(pop_count (Own == WHITE ? b << 4 : b >> 4) == pop_count (b));
@@ -622,7 +619,7 @@ namespace Evaluator {
             score -= EnemyInFlank * pop_count (b);
 
             // Penalty when our king is on a pawnless flank
-            if (((KingFlank[WHITE][kf]|KingFlank[BLACK][kf]) & pos.pieces (PAWN)) == 0)
+            if ((KingFlank[kf] & pos.pieces (PAWN)) == 0)
             {
                 score -= PawnlessFlank;
             }
@@ -891,14 +888,17 @@ namespace Evaluator {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
             static const auto Dull = Own == WHITE ? DEL_SS : DEL_NN;
+            // SpaceArea contains the area of the board which is considered by the space evaluation.
+            // Bonus is given based on how many squares inside this area are safe.
+            static const Bitboard SpaceArea = CenterFiles & (Own == WHITE ? R2_bb|R3_bb|R4_bb : R7_bb|R6_bb|R5_bb);
 
             // Find the safe squares for our pieces inside the area defined by SpaceArea.
             // A square is safe:
-            // - it is not occupied by friend pawns
-            // - it is not attacked by an enemy pawns
-            // - it is defended or not attacked by an enemy pieces.
+            // - if not occupied by friend pawns
+            // - if not attacked by an enemy pawns
+            // - if defended or not attacked by an enemy pieces.
             Bitboard safe_space =
-                   SpaceArea[Own]
+                   SpaceArea
                 & ~pos.pieces (Own, PAWN)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 & (   ei.pin_attacked_by[Own][NONE]
@@ -1013,12 +1013,12 @@ namespace Evaluator {
         };
         // Do not include in mobility area
         // - squares protected by enemy pawns or
-        // - squares occupied by block pawns (Pawns blocked or on ranks 2-3) or
-        // - squares occupied by friend blocked pawns or king
+        // - squares occupied by block pawns (pawns blocked or on ranks 2-3) or
+        // - square occupied by friend king
         const Bitboard mobility_area[CLR_NO] =
         {
-            ~((ei.pin_attacked_by[BLACK][PAWN] | (pos.pieces (WHITE, PAWN) & (shift<DEL_S> (pos.pieces ()) | PawnFlank[WHITE]))) | pos.square (WHITE, KING)),
-            ~((ei.pin_attacked_by[WHITE][PAWN] | (pos.pieces (BLACK, PAWN) & (shift<DEL_N> (pos.pieces ()) | PawnFlank[BLACK]))) | pos.square (BLACK, KING))
+            ~((ei.pin_attacked_by[BLACK][PAWN] | (pos.pieces (WHITE, PAWN) & (shift<DEL_S> (pos.pieces ()) | R2_bb | R3_bb))) | pos.square (WHITE, KING)),
+            ~((ei.pin_attacked_by[WHITE][PAWN] | (pos.pieces (BLACK, PAWN) & (shift<DEL_N> (pos.pieces ()) | R7_bb | R6_bb))) | pos.square (BLACK, KING))
         };
 
         // Score is computed internally from the white point of view, initialize by
@@ -1098,7 +1098,7 @@ namespace Evaluator {
     template Value evaluate<false> (const Position&);
     template Value evaluate<true > (const Position&);
 
-    // Returns a string (suitable to be print on stdout) that contains the detailed descriptions.
+    // Returns a string that contains the detailed descriptions.
     string trace (const Position &pos)
     {
         std::memset (cp, 0x00, sizeof (cp));

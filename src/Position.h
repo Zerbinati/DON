@@ -322,11 +322,11 @@ inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
     Bitboard bq = pieces (c, BSHP, QUEN) & PieceAttacks[BSHP][s];
     Bitboard rq = pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][s];
-    return (pieces (c, PAWN)     & PawnAttacks[~c][s])
-         | (pieces (c, NIHT)     & PieceAttacks[NIHT][s])
+    return((pieces (PAWN) & PawnAttacks[~c][s])
+         | (pieces (NIHT) & PieceAttacks[NIHT][s])
          | (bq != 0 ? bq & attacks_bb<BSHP> (s, occ) : 0)
          | (rq != 0 ? rq & attacks_bb<ROOK> (s, occ) : 0)
-         | (pieces (c, KING)     & PieceAttacks[KING][s]);
+         | (pieces (KING) & PieceAttacks[KING][s])) & pieces (c);
 }
 // Attackers to the square 's' by color 'c'
 inline Bitboard Position::attackers_to (Square s, Color c) const
