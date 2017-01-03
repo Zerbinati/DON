@@ -1893,19 +1893,20 @@ namespace Searcher {
     u64 perft (Position &pos, i16 depth)
     {
         u64 leaf_nodes = 0;
+        i16 moves = 0;
         for (const auto &vm : MoveList<LEGAL> (pos))
         {
-            u64 nodes;
+            u64 cum_nodes;
             if (   RootNode
                 && depth <= 1)
             {
-                nodes = 1;
+                cum_nodes = 1;
             }
             else
             {
                 StateInfo si;
                 pos.do_move (vm.move, si);
-                nodes =
+                cum_nodes =
                     depth > 2 ?
                         perft<false> (pos, depth - 1) :
                         MoveList<LEGAL> (pos).size ();
@@ -1915,18 +1916,26 @@ namespace Searcher {
             if (RootNode)
             {
                 sync_cout
+                    << std::right
+                    << std::setfill ('0')
+                    << std::setw (2)
+                    << ++moves << ' '
                     << std::left
-                    << std::setw ( 7)
+                    << std::setfill (' ')
+                    << std::setw (7)
                     << 
                         //move_to_can (vm.move)
                         move_to_san (vm.move, pos)
-                    << std::right << std::setfill ('.')
-                    << std::setw (16) << nodes
-                    << std::setfill (' ') << std::left
+                    << std::right
+                    << std::setfill ('.')
+                    << std::setw (16)
+                    << cum_nodes
+                    << std::setfill (' ')
+                    << std::left
                     << sync_endl;
             }
 
-            leaf_nodes += nodes;
+            leaf_nodes += cum_nodes;
         }
         return leaf_nodes;
     }

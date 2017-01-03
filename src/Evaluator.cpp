@@ -226,12 +226,11 @@ namespace Evaluator {
         const Score HangPawnThreat  = S(71,61);
         
         // SafePawnThreat[piece-type] contains bonuses according to piece type
-        const Score SafePawnThreat[NONE]    = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
-
+        const Score SafePawnThreat  [NONE]  = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
         // PieceMinorThreat[piece-type] contains bonuses according to piece type
         const Score PieceMinorThreat[NONE]  = { S( 0,33), S(45,43), S(46,47), S(72,107), S(48,118), S( 0, 0) };
         // PieceRookThreat[piece-type] contains bonuses according to piece type
-        const Score PieceRookThreat[NONE]   = { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) };
+        const Score PieceRookThreat [NONE]  = { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) };
 
         const Score PieceRankThreat = S(16, 3);
 
@@ -286,7 +285,9 @@ namespace Evaluator {
             static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
             // Mask of allowed outpost squares
-            static const Bitboard OutpostRank = Own == WHITE ? R4_bb|R5_bb|R6_bb : R5_bb|R4_bb|R3_bb;
+            static const Bitboard OutpostRank = Own == WHITE ?
+                                                    R4_bb|R5_bb|R6_bb :
+                                                    R5_bb|R4_bb|R3_bb;
 
             assert(NIHT <= PT && PT <= QUEN);
 
@@ -456,7 +457,9 @@ namespace Evaluator {
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
             static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-            static const Bitboard Camp = Own == WHITE ? R1_bb|R2_bb|R3_bb|R4_bb|R5_bb : R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
+            static const Bitboard Camp = Own == WHITE ?
+                                            R1_bb|R2_bb|R3_bb|R4_bb|R5_bb :
+                                            R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
 
             auto fk_sq = pos.square (Own, KING);
 
@@ -536,15 +539,15 @@ namespace Evaluator {
                 Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces ());
                 Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces ());
 
-                // Analyse the safe enemy's checks which are possible on safe area ...
+                // For safe enemy's checks on the safe square which are possible on next move ...
                 Bitboard safe_area =
                        non_opp
                     & ~ei.pin_attacked_by[Own][NONE];
-                // ... and probable potential checks, only requiring the square to be 
-                //  safe from pawn-attacks and not being occupied by a blocked pawns.
+                // ... and for some other probable potential checks, 
+                // the square to be safe from pawn-attacks and not being occupied by a blocked pawns.
                 Bitboard prob_area =
-                      ~(  ei.pin_attacked_by[Own][PAWN]
-                        | (pos.pieces (Opp, PAWN) & shift<Push> (pos.pieces (PAWN))));
+                    ~(  ei.pin_attacked_by[Own][PAWN]
+                      | (pos.pieces (Opp, PAWN) & shift<Push> (pos.pieces (PAWN))));
 
                 // Enemy queens safe checks
                 b =    (rook_attack | bshp_attack)
@@ -554,7 +557,7 @@ namespace Evaluator {
                     king_danger += PieceSafeChecks[QUEN];
                 }
 
-                // Attacked twice and only defended by a queen.
+                // For other pieces, the safe square also if attacked twice and only defended by a queen.
                 safe_area |=
                        non_opp
                     & ~ei.dbl_attacked[Own]
@@ -640,7 +643,6 @@ namespace Evaluator {
             static const auto Push = Own == WHITE ? DEL_N  : DEL_S;
             static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-
             static const Bitboard Rank2BB = Own == WHITE ? R2_bb : R7_bb;
             static const Bitboard Rank7BB = Own == WHITE ? R7_bb : R2_bb;
 
@@ -890,8 +892,9 @@ namespace Evaluator {
             static const auto Dull = Own == WHITE ? DEL_SS : DEL_NN;
             // SpaceArea contains the area of the board which is considered by the space evaluation.
             // Bonus is given based on how many squares inside this area are safe.
-            static const Bitboard SpaceArea = CenterFiles & (Own == WHITE ? R2_bb|R3_bb|R4_bb : R7_bb|R6_bb|R5_bb);
-
+            static const Bitboard SpaceArea = CenterFiles & (Own == WHITE ?
+                                                                R2_bb|R3_bb|R4_bb :
+                                                                R7_bb|R6_bb|R5_bb);
             // Find the safe squares for our pieces inside the area defined by SpaceArea.
             // A square is safe:
             // - if not occupied by friend pawns

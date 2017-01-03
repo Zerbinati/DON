@@ -140,7 +140,7 @@ namespace TBSyzygy {
         struct WLDEntryPiece
         {
         public:
-            PairsData* precomp;
+            PairsData *precomp;
         };
 
         struct WDLEntryPawn
@@ -153,7 +153,7 @@ namespace TBSyzygy {
         struct DTZEntryPiece
         {
         public:
-            PairsData* precomp;
+            PairsData *precomp;
             u16 map_idx[4]; // WDL_WIN, WDL_LOSS, WDL_CURSED_WIN, WDL_BLESSED_LOSS
             u08 *map;
         };
@@ -574,10 +574,10 @@ namespace TBSyzygy {
         // Huffman codes is the same for all blocks in the table. A non-symmetric pawnless TB file
         // will have one table for wtm and one for btm, a TB file with pawns will have tables per
         // file a,b,c,d also in this case one set for wtm and one for btm.
-        i32 decompress_pairs (PairsData* d, u64 idx)
+        i32 decompress_pairs (PairsData *d, u64 idx)
         {
             // Special case where all table positions store the same value
-            if (d->flags & SINGLE_VALUE)
+            if ((d->flags & SINGLE_VALUE) != 0)
             {
                 return d->min_sym_len;
             }
@@ -735,15 +735,15 @@ namespace TBSyzygy {
             u16* idx = entry->has_pawns ?
                 entry->pawn_table.file[f].map_idx :
                 entry->piece_table.map_idx;
-            if (flags & MAPPED)
+            if ((flags & MAPPED) != 0)
             {
                 value = map[idx[WDLMap[wdl + 2]] + value];
             }
 
             // DTZ tables store distance to zero in number of moves or plies. We
             // want to return plies, so we have convert to plies when needed.
-            if (   (wdl == WDL_WIN  && !(flags & WIN_PLIES))
-                || (wdl == WDL_LOSS && !(flags & LOSS_PLIES))
+            if (   (wdl == WDL_WIN  && (flags & WIN_PLIES) == 0)
+                || (wdl == WDL_LOSS && (flags & LOSS_PLIES) == 0)
                 ||  wdl == WDL_CURSED_WIN
                 ||  wdl == WDL_BLESSED_LOSS)
             {
@@ -768,7 +768,7 @@ namespace TBSyzygy {
             Piece pieces[TBPIECES];
             u64 idx;
             i32 next = 0, size = 0, lead_pawn_count = 0;
-            PairsData* d;
+            PairsData *d;
             Bitboard b, lead_pawns = 0;
             File tbFile = F_A;
 
@@ -1028,7 +1028,7 @@ namespace TBSyzygy {
         // The actual grouping depends on the TB generator and can be inferred from the
         // sequence of pieces in piece[] array.
         template<typename T>
-        void set_groups (T& e, PairsData* d, i32 order[], File f)
+        void set_groups (T &e, PairsData *d, i32 order[], File f)
         {
             i32 n = 0, firstLen = e.has_pawns ? 0 : e.has_unique_pieces ? 3 : 2;
             d->group_len[n] = 1;
@@ -1092,7 +1092,7 @@ namespace TBSyzygy {
         // In Recursive Pairing each symbol represents a pair of childern symbols. So
         // read d->btree[] symbols data and expand each one in his left and right child
         // symbol until reaching the leafs that represent the symbol value.
-        u08 set_symlen (PairsData* d, Sym s, vector<bool>& visited)
+        u08 set_symlen (PairsData *d, Sym s, vector<bool>& visited)
         {
             visited[s] = true; // We can set it now because tree is acyclic
             Sym sr = d->btree[s].get<LR::Right> ();
@@ -1116,11 +1116,11 @@ namespace TBSyzygy {
             return d->sym_len[sl] + d->sym_len[sr] + 1;
         }
 
-        u08* set_sizes (PairsData* d, u08 *data)
+        u08* set_sizes (PairsData *d, u08 *data)
         {
             d->flags = *data++;
 
-            if (d->flags & SINGLE_VALUE)
+            if ((d->flags & SINGLE_VALUE) != 0)
             {
                 d->num_blocks = 0;
                 d->span = 0;
@@ -1202,7 +1202,7 @@ namespace TBSyzygy {
             p.map = data;
             for (auto f = F_A; f <= maxFile; ++f)
             {
-                if (item (p, 0, f).precomp->flags & MAPPED)
+                if ((item (p, 0, f).precomp->flags & MAPPED) != 0)
                 {
                     for (i32 i = 0; i < 4; ++i)
                     { // Sequence like 3,x,x,x,1,x,0,2,x,x

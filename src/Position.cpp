@@ -336,23 +336,23 @@ bool Position::pseudo_legal (Move m) const
                !(   (   mt == NORMAL
                      || mt == PROMOTE)
                  && empty (dst)
-                 && (org + pawn_push (active) == dst))
+                 && org + pawn_push (active) == dst)
                 // Not a normal capture
             && !(   (   mt == NORMAL
                      || mt == PROMOTE)
                  && contains (pieces (~active) & PawnAttacks[active][org], dst))
                 // Not an enpassant capture
             && !(   mt == ENPASSANT
-                 && si->en_passant_sq == dst
-                 && contains (~pieces () & PawnAttacks[active][org], dst)
+                 && dst == si->en_passant_sq
+                 && empty (dst)
                  && contains (pieces (~active, PAWN), cap))
                 // Not a double push
             && !(   mt == NORMAL
                  && rel_rank (active, org) == R_2
                  && rel_rank (active, dst) == R_4
-                 && empty (dst)
                  && empty (dst - pawn_push (active))
-                 && (org + pawn_push (active)*2 == dst)))
+                 && empty (dst)
+                 && org + pawn_push (active)*2 == dst))
         {
             return false;
         }
@@ -362,7 +362,7 @@ bool Position::pseudo_legal (Move m) const
         switch (mpt)
         {
         case NIHT:
-            if (    !contains (PieceAttacks[NIHT][org]          , dst)) { return false; } break;
+            if (    !contains (PieceAttacks[NIHT][org]          , dst))  { return false; } break;
         case BSHP:
             if (!(   contains (PieceAttacks[BSHP][org]          , dst)
                  &&  contains (attacks_bb<BSHP> (org, pieces ()), dst))) { return false; } break;
@@ -373,7 +373,7 @@ bool Position::pseudo_legal (Move m) const
             if (!(   contains (PieceAttacks[QUEN][org]          , dst)
                   && contains (attacks_bb<QUEN> (org, pieces ()), dst))) { return false; } break;
         case KING:
-            if (    !contains (PieceAttacks[KING][org]          , dst)) { return false; } break;
+            if (    !contains (PieceAttacks[KING][org]          , dst))  { return false; } break;
         default: assert(false); break;
         }
     }
@@ -1262,7 +1262,7 @@ Position::operator string () const
         << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
         << si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << '\n';
     oss << "Checkers: ";
-    for (Bitboard b = si->checkers; b != 0;)
+    for (Bitboard b = si->checkers; b != 0; )
     {
         oss << pop_lsq (b) << ' ';
     }
@@ -1272,8 +1272,8 @@ Position::operator string () const
         StateInfo st;
         Position pos;
         pos.setup (fen (), st, thread);
-        ProbeState wdl_state; WDLScore wdl = probe_wdl (pos, wdl_state);
-        ProbeState dtz_state; i32      dtz = probe_dtz (pos, dtz_state);
+        ProbeState wdl_state; auto wdl = probe_wdl (pos, wdl_state);
+        ProbeState dtz_state; auto dtz = probe_dtz (pos, dtz_state);
         oss << "\nTablebases WDL: " << std::setw (4) << wdl << " (" << wdl_state << ")"
             << "\nTablebases DTZ: " << std::setw (4) << dtz << " (" << dtz_state << ")";
     }
