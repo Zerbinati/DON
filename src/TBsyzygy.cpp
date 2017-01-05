@@ -801,7 +801,7 @@ namespace TBSyzygy {
                 assert(ptype (pc) == PAWN);
 
                 lead_pawns = b = pos.pieces (color (pc), PAWN);
-                while (b != 0)
+                while (0 != b)
                 {
                     squares[size++] = flip ? ~pop_lsq (b) : pop_lsq (b);
                 }
@@ -833,7 +833,7 @@ namespace TBSyzygy {
             // Now we are ready to get all the position pieces (but the lead pawns) and
             // directly map them to the correct color and square.
             b = pos.pieces () ^ lead_pawns;
-            while (b != 0)
+            while (0 != b)
             {
                 auto s = pop_lsq (b);
                 squares[size] = flip ? ~s : s;

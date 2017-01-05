@@ -53,18 +53,18 @@ namespace Zobrists {
                 }
             }
         }
-        if (pos.si->castle_rights != CR_NONE)
+        if (CR_NONE != pos.si->castle_rights)
         {
-            if ((pos.si->castle_rights & CR_WKING) != CR_NONE) posi_key ^= Zob.castle_right_keys[WHITE][CS_KING];
-            if ((pos.si->castle_rights & CR_WQUEN) != CR_NONE) posi_key ^= Zob.castle_right_keys[WHITE][CS_QUEN];
-            if ((pos.si->castle_rights & CR_BKING) != CR_NONE) posi_key ^= Zob.castle_right_keys[BLACK][CS_KING];
-            if ((pos.si->castle_rights & CR_BQUEN) != CR_NONE) posi_key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
+            if (CR_NONE != (pos.si->castle_rights & CR_WKING)) posi_key ^= Zob.castle_right_keys[WHITE][CS_KING];
+            if (CR_NONE != (pos.si->castle_rights & CR_WQUEN)) posi_key ^= Zob.castle_right_keys[WHITE][CS_QUEN];
+            if (CR_NONE != (pos.si->castle_rights & CR_BKING)) posi_key ^= Zob.castle_right_keys[BLACK][CS_KING];
+            if (CR_NONE != (pos.si->castle_rights & CR_BQUEN)) posi_key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
         }
-        if (pos.si->en_passant_sq != SQ_NO)
+        if (SQ_NO != pos.si->en_passant_sq)
         {
             posi_key ^= en_passant_keys[_file (pos.si->en_passant_sq)];
         }
-        if (pos.active == WHITE)
+        if (WHITE == pos.active)
         {
             posi_key ^= color_key;
         }
@@ -97,7 +97,7 @@ namespace Zobrists {
     //            && (idx = PieceChar.find (token)) != string::npos)
     //        {
     //            auto p = Piece(idx);
-    //            if (ptype (p) == KING)
+    //            if (KING == ptype (p))
     //            {
     //                kf[color (p)] = f;
     //            }

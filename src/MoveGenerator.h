@@ -31,7 +31,7 @@ namespace MoveGen {
         explicit MoveList (const Position &pos)
         {
             generate<GT> (*this, pos);
-            if (PT != NONE)
+            if (NONE != PT)
             {
                 erase (std::remove_if (begin (),
                                        end (),

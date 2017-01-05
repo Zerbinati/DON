@@ -107,12 +107,11 @@ namespace EndGame {
     // of the board, and for keeping the distance between the two kings small.
     template<> Value Endgame<KXK>::operator() (const Position &pos) const
     {
+        assert(0 == pos.si->checkers); // Eval is never called when in check
         assert(verify_material (pos, ~strong_color, VALUE_ZERO, 0));
-        assert(pos.si->checkers == 0); // Eval is never called when in check
-
         // Stalemate detection with lone weak king
-        if (   pos.active == ~strong_color
-            && MoveList<LEGAL> (pos).size () == 0)
+        if (   ~strong_color == pos.active
+            && 0 == MoveList<LEGAL> (pos).size ())
         {
             return VALUE_DRAW;
         }
@@ -136,7 +135,7 @@ namespace EndGame {
             value = std::min (value + VALUE_KNOWN_WIN, +VALUE_MATE_IN_MAX_PLY - 1);
         }
 
-        return pos.active == strong_color ? +value : -value;
+        return strong_color == pos.active ? +value : -value;
     }
 
     // KP vs K. This endgame is evaluated with the help of a bitbase.
@@ -150,14 +149,14 @@ namespace EndGame {
         auto wk_sq = normalize (pos, strong_color, pos.square (~strong_color, KING));
         auto sp_sq = normalize (pos, strong_color, pos.square ( strong_color, PAWN));
 
-        if (!probe (pos.active == strong_color ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+        if (!probe (strong_color == pos.active ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
         {
             return VALUE_DRAW;
         }
 
         auto value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value(_rank (sp_sq));
 
-        return pos.active == strong_color ? +value : -value;
+        return strong_color == pos.active ? +value : -value;
     }
 
     // Mate with KBN vs K. This is similar to KX vs K, but have to drive the
@@ -184,7 +183,7 @@ namespace EndGame {
                    + PushClose[dist (sk_sq, wk_sq)]
                    + PushToCorner[wk_sq];
 
-        return pos.active == strong_color ? +value : -value;
+        return strong_color == pos.active ? +value : -value;
     }
 
     template<> Value Endgame<KNNK>::operator() (const Position &pos) const
@@ -215,7 +214,7 @@ namespace EndGame {
         // If the weak side's king is too far from the pawn and the rook, it's a win.
         if (   (   sk_sq < wp_sq
                 && _file (sk_sq) == _file (wp_sq))
-            || (   dist (wk_sq, wp_sq) >= 3 + (pos.active == ~strong_color ? 1 : 0)
+            || (   dist (wk_sq, wp_sq) >= 3 + (~strong_color == pos.active ? 1 : 0)
                 && dist (wk_sq, sr_sq) >= 3))
         {
             value = VALUE_EG_ROOK - dist (sk_sq, wp_sq);
@@ -225,7 +224,7 @@ namespace EndGame {
         if (   _rank (wk_sq) <= R_3
             && dist (wk_sq, wp_sq) == 1
             && _rank (sk_sq) >= R_4
-            && dist (sk_sq, wp_sq) > 2 + (pos.active == strong_color ? 1 : 0))
+            && dist (sk_sq, wp_sq) > 2 + (strong_color == pos.active ? 1 : 0))
         {
             value = Value(- 8 * dist (sk_sq, wp_sq) + 80);
         }
@@ -236,7 +235,7 @@ namespace EndGame {
                                  - dist (wp_sq, promote_sq)) + 200);
         }
 
-        return pos.active == strong_color ? +value : -value;
+        return strong_color == pos.active ? +value : -value;
     }
 
     // KR vs KB. This is very simple, and always returns drawish scores.
@@ -263,7 +262,7 @@ namespace EndGame {
         // When the weak side ended up in the same corner as bishop.
         auto value = Value(PushToEdge[wk_sq]);
 
-        return pos.active == strong_color ? +value : -value;
+        return strong_color == pos.active ? +value : -value;
     }
 
     // KR vs KN.  The attacking side has slightly better winning chances than
@@ -278,7 +277,7 @@ namespace EndGame {
         auto wn_sq = pos.square (~strong_color, NIHT);
 
         // If weak king is near the knight, it's a draw.
-        if (   dist (wk_sq, wn_sq) + (pos.active == strong_color ? 1 : 0) <= 3
+        if (   dist (wk_sq, wn_sq) + (strong_color == pos.active ? 1 : 0) <= 3
             && dist (sk_sq, wn_sq) > 1)
         {
             return VALUE_DRAW;
@@ -286,7 +285,7 @@ namespace EndGame {
 
         auto value = Value(PushAway[dist (wk_sq, wn_sq)] + PushToEdge[wk_sq]);
 
-        return pos.active == strong_color ? +value : -value;
+        return strong_color == pos.active ? +value : -value;
     }
 
     // KQ vs KP. In general, this is a win for the strong side, but there are a
@@ -311,7 +310,7 @@ namespace EndGame {
             value += VALUE_EG_QUEN - VALUE_EG_PAWN;
         }
 
-        return pos.active == strong_color ? +value : -value;
+        return strong_color == pos.active ? +value : -value;
     }
 
     // KQ vs KR. This is almost identical to KX vs K: give the attacking
@@ -330,7 +329,7 @@ namespace EndGame {
                    + PushClose[dist (sk_sq, wk_sq)]
                    + PushToEdge[wk_sq];
 
-        return pos.active == strong_color ? +value : -value;
+        return strong_color == pos.active ? +value : -value;
     }
 
     // Special Scaling functions
@@ -356,7 +355,7 @@ namespace EndGame {
         auto f = _file (sp_sq);
         auto r = _rank (sp_sq);
         auto promote_sq = f|R_8;
-        i32 tempo = pos.active == strong_color ? 1 : 0;
+        i32 tempo = strong_color == pos.active ? 1 : 0;
 
         // If the pawn is not too far advanced and the defending king defends the
         // queening square, use the third-rank defence.
@@ -374,7 +373,7 @@ namespace EndGame {
             && dist (wk_sq, promote_sq) <= 1
             && _rank (sk_sq) + tempo <= R_6
             && (   _rank (wr_sq) == R_1
-                || (   tempo == 0
+                || (   0 == tempo
                     && dist<File> (wr_sq, sp_sq) >= 3)))
         {
             return SCALE_DRAW;
@@ -383,7 +382,7 @@ namespace EndGame {
         if (   r >= R_6
             && wk_sq == promote_sq
             && _rank (wr_sq) == R_1
-            && (   tempo == 0
+            && (   0 == tempo
                 || dist (sk_sq, sp_sq) >= 2))
         {
             return SCALE_DRAW;
@@ -552,9 +551,9 @@ namespace EndGame {
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
-        if (   (spawns & ~front_rank_bb (~strong_color, wk_sq)) == 0
-            && (   (spawns & ~FA_bb) == 0
-                || (spawns & ~FH_bb) == 0)
+        if (   0 == (spawns & ~front_rank_bb (~strong_color, wk_sq))
+            && (   0 == (spawns & ~FA_bb)
+                || 0 == (spawns & ~FH_bb))
             && dist<File> (wk_sq, scan_frntmost_sq (strong_color, spawns)) <= 1)
         {
             return SCALE_DRAW;
@@ -585,7 +584,7 @@ namespace EndGame {
         {
             // Probe the KPK bitbase with the weakest side's pawn removed.
             // If it's a draw, it's probably at least a draw even with the pawn.
-            if (!probe (pos.active == strong_color ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+            if (!probe (strong_color == pos.active ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
             {
                 return SCALE_DRAW;
             }
@@ -806,7 +805,7 @@ namespace EndGame {
         // Then potential draw
         if (   (   sp_f == F_A
                 || sp_f == F_H)
-            && (spawns & ~file_bb (sp_f)) == 0)
+            && 0 == (spawns & ~file_bb (sp_f)))
         {
             auto sb_sq = pos.square ( strong_color, BSHP);
             auto promote_sq = rel_sq (strong_color, sp_f|R_8);
@@ -827,7 +826,7 @@ namespace EndGame {
         // Then potential draw
         if (   (   sp_f == F_B
                 || sp_f == F_G)
-            && (pos.pieces (PAWN) & ~file_bb (sp_f)) == 0
+            && 0 == (pos.pieces (PAWN) & ~file_bb (sp_f))
             && pos.si->non_pawn_matl[~strong_color] == VALUE_ZERO)
         {
             auto sk_sq = pos.square ( strong_color, KING);

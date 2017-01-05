@@ -39,10 +39,10 @@ public:
     bool use_time_management () const
     {
         return !infinite
-            && movetime == 0
-            && depth    == 0
-            && nodes    == 0
-            && mate     == 0;
+            && 0 == movetime
+            && 0 == depth
+            && 0 == nodes
+            && 0 == mate;
     }
 };
 
@@ -170,13 +170,13 @@ public:
 
     Move operator() (Piece pc, Square s) const
     {
-        assert(ptype (pc) != NONE);
+        assert(NONE != ptype (pc));
         return _table[color (pc)][ptype (pc)][s];
     }
 
     void update (Piece pc, Square s, Move cm)
     {
-        assert(ptype (pc) != NONE);
+        assert(NONE != ptype (pc));
         _table[color (pc)][ptype (pc)][s] = cm;
     }
 };

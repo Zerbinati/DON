@@ -130,23 +130,23 @@ namespace Pawns {
                 // either there is a stoppers in the way on next rank
                 // or there is a stoppers on adjacent file which controls the way to next rank.
                 backward   = !levered
-                          && stoppers != 0
-                          && neighbours != 0
+                          && 0 != stoppers
+                          && 0 != neighbours
                           && rel_rank (Own, s) < R_6
                             // Find the backmost rank with neighbours or stoppers
-                          && (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers))) != 0
+                          && 0 != (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers)))
                             // If have an enemy pawn in the same or next rank, the pawn is
                             // backward because it cannot advance without being captured.
-                          && (stoppers & (b | shift<Push> (b & adj_file_bb (f)))) != 0;
+                          && 0 != (stoppers & (b | shift<Push> (b & adj_file_bb (f))));
 
                 // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
-                if (   stoppers == 0
-                    && (own_pawns & front_sqrs_bb (Own, s)) == 0)
+                if (   0 == stoppers
+                    && 0 == (own_pawns & front_sqrs_bb (Own, s)))
                 {
                     e->passers[Own] |= s;
                 }
 
-                if (neighbours == 0)
+                if (0 == neighbours)
                 {
                     score -= Isolated[opposed ? 1 : 0];
                 }
@@ -156,7 +156,7 @@ namespace Pawns {
                     score -= Backward[opposed ? 1 : 0];
                 }
                 else
-                if (supporters == 0)
+                if (0 == supporters)
                 {
                     score -= Unsupported;
                 }

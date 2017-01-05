@@ -181,9 +181,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
         if (mode == "perft")
         {
             u64 leaf_nodes = perft (pos, limits.depth);
-            std::cerr
-                << "\nLeaf nodes: " << leaf_nodes
-                << std::endl;
+            std::cerr << "\nLeaf nodes: " << leaf_nodes << std::endl;
             total_nodes += leaf_nodes;
         }
         else

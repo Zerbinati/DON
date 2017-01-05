@@ -67,7 +67,7 @@ namespace BitBases {
 
                 Result r = INVALID;
                 Bitboard b = PieceAttacks[KING][_k_sq[Own]];
-                while (b != 0)
+                while (0 != b)
                 {
                     r |= Own == WHITE ?
                             kpk_db[index (Opp, pop_lsq (b), _k_sq[Opp], _p_sq)].result :
@@ -134,7 +134,7 @@ namespace BitBases {
                 else
                 // Immediate draw if is a stalemate or king captures undefended pawn
                 if (   _active == BLACK
-                    && (   (PieceAttacks[KING][_k_sq[BLACK]] & ~(PieceAttacks[KING][_k_sq[WHITE]] | PawnAttacks[WHITE][_p_sq])) == 0
+                    && (   0 == (PieceAttacks[KING][_k_sq[BLACK]] & ~(PieceAttacks[KING][_k_sq[WHITE]] | PawnAttacks[WHITE][_p_sq]))
                         || contains (PieceAttacks[KING][_k_sq[BLACK]] & ~PieceAttacks[KING][_k_sq[WHITE]], _p_sq)))
                 {
                     result = DRAW;

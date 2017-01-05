@@ -45,9 +45,9 @@ public:
     PieceType   capture;        // Piece type captured.
     Bitboard    checkers;       // Checkers.
     // Check info
-    Bitboard king_blockers[CLR_NO];// Absolute and Discover Blockers
-    Bitboard king_checkers[CLR_NO];// Absolute and Discover Checkers
-    Bitboard checks[NONE];
+    Bitboard    king_blockers[CLR_NO];// Absolute and Discover Blockers
+    Bitboard    king_checkers[CLR_NO];// Absolute and Discover Checkers
+    Bitboard    checks[NONE];
 
     StateInfo   *ptr;           // Previous StateInfo.
 
@@ -93,8 +93,8 @@ private:
     template<PieceType PT> PieceType pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const;
 
 public:
-    static u08  DrawClockPly;
     static bool Chess960;
+    static u08  DrawClockPly;
     
     Piece       board[SQ_NO];
     Bitboard    color_bb[CLR_NO];
@@ -260,12 +260,12 @@ inline Key Position::move_posi_key (Move m) const
     auto mpt = ptype (board[org]);
     assert(!empty (org)
         && color (board[org]) == active
-        && mpt != NONE);
+        && NONE != mpt);
     
     Key key = si->posi_key ^ Zob.color_key;
     auto mt = mtype (m);
-    auto ppt = mt == PROMOTE ? promote (m) : mpt;
-    if (mt == CASTLE)
+    auto ppt = PROMOTE != mt ? mpt : promote (m);
+    if (CASTLE == mt)
     {
         key ^=
              Zob.piece_square_keys[active][ROOK][dst]
@@ -273,9 +273,9 @@ inline Key Position::move_posi_key (Move m) const
     }
     else
     {
-        if (   mt == NORMAL
-            && mpt == PAWN
-            && (u08 (dst) ^ u08 (org)) == 16)
+        if (   NORMAL == mt
+            && PAWN == mpt
+            && (u08(dst) ^ u08(org)) == 16)
         {
             auto ep_sq = org + (dst - org) / 2;
             if (can_en_passant (~active, ep_sq, false))
@@ -283,26 +283,27 @@ inline Key Position::move_posi_key (Move m) const
                 key ^= Zob.en_passant_keys[_file (ep_sq)];
             }
         }
-        auto cpt = mt != ENPASSANT ? ptype (board[dst]) : PAWN;
-        if (cpt != NONE)
+        auto cpt = ENPASSANT != mt ? ptype (board[dst]) : PAWN;
+        if (NONE != cpt)
         {
-            key ^= Zob.piece_square_keys[~active][cpt][mt != ENPASSANT ? dst : dst - pawn_push (active)];
+            key ^= Zob.piece_square_keys[~active][cpt][ENPASSANT != mt ? dst : dst - pawn_push (active)];
         }
     }
-
-    auto b = si->castle_rights & (  castle_mask[org]
-                                  | castle_mask[dst]);
-    if (b != CR_NONE)
+    auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
+    if (CR_NONE != b)
     {
-        if ((b & CR_WKING) != CR_NONE) key ^= Zob.castle_right_keys[WHITE][CS_KING];
-        if ((b & CR_WQUEN) != CR_NONE) key ^= Zob.castle_right_keys[WHITE][CS_QUEN];
-        if ((b & CR_BKING) != CR_NONE) key ^= Zob.castle_right_keys[BLACK][CS_KING];
-        if ((b & CR_BQUEN) != CR_NONE) key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
+        if (CR_NONE != (b & CR_WKING)) key ^= Zob.castle_right_keys[WHITE][CS_KING];
+        if (CR_NONE != (b & CR_WQUEN)) key ^= Zob.castle_right_keys[WHITE][CS_QUEN];
+        if (CR_NONE != (b & CR_BKING)) key ^= Zob.castle_right_keys[BLACK][CS_KING];
+        if (CR_NONE != (b & CR_BQUEN)) key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
+    }
+    if (SQ_NO != si->en_passant_sq)
+    {
+        key ^= Zob.en_passant_keys[_file (si->en_passant_sq)];
     }
     return key
         ^ Zob.piece_square_keys[active][ppt][mt != CASTLE ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
-        ^ Zob.piece_square_keys[active][mpt][org]
-        ^ (si->en_passant_sq != SQ_NO ? Zob.en_passant_keys[_file (si->en_passant_sq)] : 0);
+        ^ Zob.piece_square_keys[active][mpt][org];
 }
 
 inline CastleRight Position::can_castle (Color c) const { return si->castle_rights & castle_right (c); }
@@ -310,7 +311,7 @@ inline CastleRight Position::can_castle (CastleRight cr) const { return si->cast
 
 inline bool Position::impeded_castle (CastleRight cr) const { return (castle_path[cr] & pieces ()) != 0; }
 // move_num starts at 1, and is incremented after BLACK's move.
-inline i16  Position::move_num () const { return i16(std::max ((ply - (active == BLACK ? 1 : 0))/2, 0) + 1); }
+inline i16  Position::move_num () const { return i16(std::max ((ply - (BLACK == active ? 1 : 0))/2, 0) + 1); }
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
 inline Phase Position::phase () const
 {
@@ -375,7 +376,7 @@ inline Bitboard Position::dsc_checkers (Color c) const
 // Check if pawn passed at the given square
 inline bool Position::pawn_passed_at (Color c, Square s) const
 {
-    return (pawn_pass_span (c, s) & pieces (~c, PAWN)) == 0;
+    return 0 == (pawn_pass_span (c, s) & pieces (~c, PAWN));
 }
 // Check the side has pair of opposite color bishops
 inline bool Position::paired_bishop (Color c) const
@@ -397,7 +398,7 @@ inline bool Position::opposite_bishops () const
 }
 inline bool Position::en_passant (Move m) const
 {
-    return mtype (m) == ENPASSANT
+    return ENPASSANT == mtype (m)
         && contains (pieces (active, PAWN), org_sq (m))
         && si->en_passant_sq == dst_sq (m)
         && empty (si->en_passant_sq);
@@ -405,27 +406,27 @@ inline bool Position::en_passant (Move m) const
 inline bool Position::capture (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return (   (   mtype (m) == NORMAL
+    return (   (   NORMAL == mtype (m)
                 || promotion (m))
             && contains (pieces (~active), dst_sq (m)))
         || en_passant (m);
 }
 inline bool Position::promotion (Move m) const
 {
-    return mtype (m) == PROMOTE
+    return PROMOTE == mtype (m)
         && contains (pieces (active, PAWN), org_sq (m))
         && rel_rank (active, org_sq (m)) == R_7;
 }
 inline bool Position::capture_or_promotion (Move m) const
 {
-    return (   mtype (m) == NORMAL
+    return (   NORMAL == mtype (m)
             && contains (pieces (~active), dst_sq (m)))
         || en_passant (m)
         || promotion (m);
 }
 inline PieceType Position::cap_type (Move m) const
 {
-    return mtype (m) != ENPASSANT ?
+    return ENPASSANT != mtype (m) ?
         ptype (board[dst_sq (m)]) :
         PAWN;
 }

@@ -112,7 +112,7 @@ namespace UCI {
                     {
                         fen += string (" ", !white_spaces (fen) ? 1 : 0) + token;
                     }
-                    assert(_ok (fen, true));
+                    //assert(_ok (fen, true));
                 }
                 else
                 {
@@ -357,7 +357,7 @@ namespace UCI {
             {
                 sync_cout;
                 i32 count;
-                if (root_pos.si->checkers != 0)
+                if (0 != root_pos.si->checkers)
                 {
                     std::cout << "\nEvasion moves: ";
                     count = 0;

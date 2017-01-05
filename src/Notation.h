@@ -112,20 +112,20 @@ inline std::basic_ostream<CharT, Traits>&
 //inline std::string to_string (CastleRight cr)
 //{
 //    std::string scr;
-//    if ((cr & CR_ANY) != CR_NONE)
+//    if (CR_NONE != (cr & CR_ANY))
 //    {
-//        if ((cr & CR_WHITE) != CR_NONE)
+//        if (CR_NONE != (cr & CR_WHITE))
 //        {
 //            scr += "W:";
-//            if ((cr & CR_WKING) != CR_NONE) scr += " OO";
-//            if ((cr & CR_WQUEN) != CR_NONE) scr += " OOO";
+//            if (CR_NONE != (cr & CR_WKING)) scr += " OO";
+//            if (CR_NONE != (cr & CR_WQUEN)) scr += " OOO";
 //            scr += " - ";
 //        }
-//        if ((cr & CR_BLACK) != CR_NONE)
+//        if (CR_NONE != (cr & CR_BLACK))
 //        {
 //            scr += "B:";
-//            if ((cr & CR_BKING) != CR_NONE) scr += " OO";
-//            if ((cr & CR_BQUEN) != CR_NONE) scr += " OOO";
+//            if (CR_NONE != (cr & CR_BKING)) scr += " OO";
+//            if (CR_NONE != (cr & CR_BQUEN)) scr += " OOO";
 //        }
 //    }
 //    else
