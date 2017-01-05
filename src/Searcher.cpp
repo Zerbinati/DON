@@ -2029,7 +2029,7 @@ namespace Threading {
             {
                 static const size_t HalfDensityMapSize = 30;
                 // Rotating symmetric patterns with increasing skipsize.
-                // Set of rows with half bits set to 1 and half to 0.
+                // Set of rows with half bits set to true and half to false.
                 // It is used to allocate the search depths across the threads.
                 static const vector<bool> HalfDensityMap[HalfDensityMapSize] =
                 {

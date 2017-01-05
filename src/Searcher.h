@@ -53,6 +53,11 @@ private:
     Value _table[CLR_NO][NONE][SQ_NO];
 
 public:
+    PieceValueStats ()
+    {
+        clear ();
+    }
+
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -94,6 +99,11 @@ private:
     TPieceValueStats _table[CLR_NO][NONE][SQ_NO];
 
 public:
+    PieceCMValueStats ()
+    {
+        clear ();
+    }
+
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -121,6 +131,11 @@ private:
     Value _table[CLR_NO][SQ_NO*SQ_NO];
 
 public:
+    ColorValueStats ()
+    {
+        clear ();
+    }
+
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -154,6 +169,11 @@ private:
     Move _table[CLR_NO][NONE][SQ_NO];
 
 public:
+    PieceCMoveStats ()
+    {
+        clear ();
+    }
+
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)

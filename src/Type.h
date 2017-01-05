@@ -623,14 +623,19 @@ struct HashTable
 private:
     Entry _table[Size];
 public:
-    Entry* operator[] (Key k)
+    HashTable ()
     {
-        return &_table[u32(k) & (Size - 1)];
+        clear ();
     }
 
     void clear ()
     {
-        std::fill_n (_table, Size, Entry());
+        std::fill_n (_table, Size, Entry ());
+    }
+
+    Entry* operator[] (Key k)
+    {
+        return &_table[u32(k) & (Size - 1)];
     }
 };
 

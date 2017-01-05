@@ -294,7 +294,6 @@ namespace Threading {
         _alive = true;
         count_reset = true;
         index = u16(Threadpool.size ());
-        clear ();
         std::unique_lock<Mutex> lk (_mutex);
         _searching = true;
         _native_thread = std::thread (&Thread::idle_loop, this);
