@@ -35,7 +35,6 @@ namespace MoveGen {
                     {
                         attacks &= attacks_bb<PT> (s, pos.pieces ());
                     }
-                    
                     while (0 != attacks) { moves.push_back (ValMove(mk_move<NORMAL> (s, pop_lsq (attacks)))); }
                 }
             }
@@ -45,12 +44,12 @@ namespace MoveGen {
         template<GenType GT, Delta Del>
         void generate_promotion_moves (vector<ValMove> &moves, const Position &pos, Square dst)
         {
-            assert(Del == DEL_N
-                || Del == DEL_NE
-                || Del == DEL_NW
-                || Del == DEL_S
-                || Del == DEL_SE
-                || Del == DEL_SW);
+            assert(DEL_N == Del
+                || DEL_NE == Del
+                || DEL_NW == Del
+                || DEL_S == Del
+                || DEL_SE == Del
+                || DEL_SW == Del);
 
             switch (GT)
             {
@@ -238,7 +237,7 @@ namespace MoveGen {
 
             auto king_org = pos.square (Own, KING);
             auto rook_org = pos.castle_rook[CR];
-            assert(pos[rook_org] == (Own|ROOK));
+            assert(contains (pos.pieces (Own, ROOK), rook_org));
 
             Bitboard b = pos.king_path[CR];
             // Check king's path for attackers
@@ -282,7 +281,6 @@ namespace MoveGen {
                 Bitboard attacks = targets
                                  &  PieceAttacks[KING][king_sq]
                                  & ~PieceAttacks[KING][pos.square (Opp, KING)];
-
                 while (0 != attacks) { moves.push_back (ValMove(mk_move<NORMAL> (king_sq, pop_lsq (attacks)))); }
             }
 
@@ -374,7 +372,7 @@ namespace MoveGen {
             Bitboard attacks = targets;
             switch (ptype (pos[org]))
             {
-            case NIHT: attacks &= PieceAttacks[NIHT][org];                   break;
+            case NIHT: attacks &= PieceAttacks[NIHT][org];                            break;
             case BSHP: attacks &= PieceAttacks[BSHP][org];
                 if (0 != attacks) attacks &= attacks_bb<BSHP> (org, pos.pieces ());   break;
             case ROOK: attacks &= PieceAttacks[ROOK][org];
@@ -406,7 +404,7 @@ namespace MoveGen {
             Bitboard attacks = targets;
             switch (ptype (pos[org]))
             {
-            case NIHT: attacks &= PieceAttacks[NIHT][org];                   break;
+            case NIHT: attacks &= PieceAttacks[NIHT][org];                            break;
             case BSHP: attacks &= PieceAttacks[BSHP][org];
                 if (0 != attacks) attacks &= attacks_bb<BSHP> (org, pos.pieces ());   break;
             case ROOK: attacks &= PieceAttacks[ROOK][org];
@@ -465,15 +463,14 @@ namespace MoveGen {
 
         // If double-check or only king, then only king move can save the day
         if (   more_than_one (pos.si->checkers)
-            || pos.count<NONE> (pos.active) == 1)
+            || 1 == pos.count<NONE> (pos.active))
         {
             return;
         }
 
         // Generates blocking or captures of the checking piece
-
         Bitboard targets = 
-            checker_sq == SQ_NO ?
+            SQ_NO == checker_sq ?
                 square_bb (scan_lsq (pos.si->checkers)) : // Pawn checker
                 between_bb (checker_sq, fk_sq) | checker_sq;
 
@@ -499,8 +496,8 @@ namespace MoveGen {
                                          //bool b =
                                          return
                                             (   0 != pos.abs_blockers (pos.active)
-                                             || mtype (vm.move) == ENPASSANT
-                                             || org_sq (vm.move) == pos.square (pos.active, KING))
+                                             || ENPASSANT == mtype (vm.move)
+                                             || pos.square (pos.active, KING) == org_sq (vm.move))
                                          && !pos.legal (vm.move);
                                          //if (!b) { assert(pos.pseudo_legal (vm.move)); }
                                          //return b;

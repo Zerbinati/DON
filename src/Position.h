@@ -178,8 +178,6 @@ public:
     Position& setup (const std::string &ff, StateInfo &si, Thread *const th = nullptr, bool full = true);
     Position& setup (const std::string &code, StateInfo &si, Color c);
     
-    void set_draw ();
-
     void do_move (Move m, StateInfo &si, bool gives_check);
     void do_move (Move m, StateInfo &si);
     void undo_move (Move m);
@@ -275,7 +273,7 @@ inline Key Position::move_posi_key (Move m) const
     {
         if (   NORMAL == mt
             && PAWN == mpt
-            && (u08(dst) ^ u08(org)) == 16)
+            && 16 == (u08(dst) ^ u08(org)))
         {
             auto ep_sq = org + (dst - org) / 2;
             if (can_en_passant (~active, ep_sq, false))
@@ -309,7 +307,7 @@ inline Key Position::move_posi_key (Move m) const
 inline CastleRight Position::can_castle (Color c) const { return si->castle_rights & castle_right (c); }
 inline CastleRight Position::can_castle (CastleRight cr) const { return si->castle_rights & cr; }
 
-inline bool Position::impeded_castle (CastleRight cr) const { return (castle_path[cr] & pieces ()) != 0; }
+inline bool Position::impeded_castle (CastleRight cr) const { return 0 != (castle_path[cr] & pieces ()); }
 // move_num starts at 1, and is incremented after BLACK's move.
 inline i16  Position::move_num () const { return i16(std::max ((ply - (BLACK == active ? 1 : 0))/2, 0) + 1); }
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
@@ -325,8 +323,8 @@ inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
     Bitboard rq = pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][s];
     return((pieces (PAWN) & PawnAttacks[~c][s])
          | (pieces (NIHT) & PieceAttacks[NIHT][s])
-         | (bq != 0 ? bq & attacks_bb<BSHP> (s, occ) : 0)
-         | (rq != 0 ? rq & attacks_bb<ROOK> (s, occ) : 0)
+         | (0 != bq ? bq & attacks_bb<BSHP> (s, occ) : 0)
+         | (0 != rq ? rq & attacks_bb<ROOK> (s, occ) : 0)
          | (pieces (KING) & PieceAttacks[KING][s])) & pieces (c);
 }
 // Attackers to the square 's' by color 'c'
@@ -342,8 +340,8 @@ inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
     return (pieces (BLACK, PAWN) & PawnAttacks[WHITE][s])
          | (pieces (WHITE, PAWN) & PawnAttacks[BLACK][s])
          | (pieces (NIHT)        & PieceAttacks[NIHT][s])
-         | (bq != 0 ? bq & attacks_bb<BSHP> (s, occ) : 0)
-         | (rq != 0 ? rq & attacks_bb<ROOK> (s, occ) : 0)
+         | (0 != bq ? bq & attacks_bb<BSHP> (s, occ) : 0)
+         | (0 != rq ? rq & attacks_bb<ROOK> (s, occ) : 0)
          | (pieces (KING)        & PieceAttacks[KING][s]);
 
 }
@@ -489,11 +487,11 @@ inline void Position::move_piece (Square s1, Square s2)
 }
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.
-template<bool Do> inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
+template<bool Do>
+inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
     bool king_side = king_dst > king_org;
-    // Move the piece. The tricky Chess960 castle is handled earlier
-    rook_org = king_dst; // castle is always encoded as "King captures friendly Rook"
+    rook_org = king_dst; // Castling is always encoded as "King captures friendly Rook"
     king_dst = rel_sq (active, king_side ? SQ_G1 : SQ_C1);
     rook_dst = rel_sq (active, king_side ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
