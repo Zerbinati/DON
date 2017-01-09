@@ -389,7 +389,7 @@ bool Position::pseudo_legal (Move m) const
 
     // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
     // So have to take care that the same kind of moves are filtered out here.
-    if (si->checkers != 0)
+    if (0 != si->checkers)
     {
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
@@ -577,6 +577,8 @@ void Position::clear ()
 void Position::set_castle (Color c, CastleSide cs)
 {
     auto king_org = square (c, KING);
+    assert(rel_rank (c, king_org) == R_1);
+
     bool king_side = cs == CS_KING;
     Square rook_org;
     for (rook_org = king_side ? rel_sq (c, SQ_H1) : rel_sq (c, SQ_A1);

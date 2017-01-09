@@ -53,11 +53,6 @@ private:
     Value _table[CLR_NO][NONE][SQ_NO];
 
 public:
-    PieceValueStats ()
-    {
-        clear ();
-    }
-
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -99,11 +94,6 @@ private:
     TPieceValueStats _table[CLR_NO][NONE][SQ_NO];
 
 public:
-    PieceCMValueStats ()
-    {
-        clear ();
-    }
-
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -131,11 +121,6 @@ private:
     Value _table[CLR_NO][SQ_NO*SQ_NO];
 
 public:
-    ColorValueStats ()
-    {
-        clear ();
-    }
-
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -169,11 +154,6 @@ private:
     Move _table[CLR_NO][NONE][SQ_NO];
 
 public:
-    PieceCMoveStats ()
-    {
-        clear ();
-    }
-
     void clear ()
     {
         for (auto c = WHITE; c <= BLACK; ++c)
@@ -240,10 +220,6 @@ public:
     void operator+= (Move m) { push_back (m); }
     void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
-    /*
-    void insert_pv_into_tt (Position &pos) const;
-    void extract_pv_from_tt (Position &pos);
-    */
     bool extract_ponder_move_from_tt (Position &pos);
 
     explicit operator std::string () const;
