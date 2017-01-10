@@ -32,6 +32,7 @@ namespace UCI {
         // Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
         // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
         static const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        Position::Chess960 = false;
 
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
@@ -78,7 +79,7 @@ namespace UCI {
             {
                 ForceStop = true;
                 Threadpool.wait_while_thinking ();
-                clear ();
+                Searcher::clear ();
                 Threadpool.time_mgr.available_nodes = 0;
                 TBSyzygy::initialize ();
             }

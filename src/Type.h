@@ -612,12 +612,8 @@ struct HashTable
 {
 private:
     Entry _table[Size];
-public:
-    HashTable ()
-    {
-        clear ();
-    }
 
+public:
     void clear ()
     {
         std::fill_n (_table, Size, Entry ());

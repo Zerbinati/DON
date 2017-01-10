@@ -576,22 +576,12 @@ void Position::clear ()
 // Set the castling right
 void Position::set_castle (Color c, CastleSide cs)
 {
+    bool king_side = cs == CS_KING;
     auto king_org = square (c, KING);
     assert(rel_rank (c, king_org) == R_1);
-
-    bool king_side = cs == CS_KING;
-    Square rook_org;
-    for (rook_org = king_side ? rel_sq (c, SQ_H1) : rel_sq (c, SQ_A1);
-         king_side ? rook_org >= rel_sq (c, SQ_A1) : rook_org <= rel_sq (c, SQ_H1);
-         king_side ? --rook_org : ++rook_org)
-    {
-        assert(!contains (pieces (c, KING), rook_org));
-        if (contains (pieces (c, ROOK), rook_org))
-        {
-            break;
-        }
-    }
-    assert(contains (pieces (c, ROOK), rook_org));
+    Square rook_org = castle_rook[c][cs];
+    assert(contains (pieces (c, ROOK), rook_org)
+        && rel_rank (c, rook_org) == R_1);
 
     auto king_dst = rel_sq (c, king_side ? SQ_G1 : SQ_C1);
     auto rook_dst = rel_sq (c, king_side ? SQ_F1 : SQ_D1);
@@ -600,7 +590,6 @@ void Position::set_castle (Color c, CastleSide cs)
     castle_mask[king_org] |= cr;
     castle_mask[rook_org] |= cr;
 
-    castle_rook[c][cs] = rook_org;
     for (auto s = std::min (king_org, king_dst); s <= std::max (king_org, king_dst); ++s)
     {
         if (s != king_org)
@@ -734,22 +723,48 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     while (   iss >> token
            && !isspace (token))
     {
+        Square rook_org;
         Color c = isupper (token) ? WHITE : BLACK;
         token = char(tolower (token));
-        if (token == 'k')
+        if ('k' == token)
         {
+            for (rook_org = rel_sq (c, SQ_H1); rook_org >= rel_sq (c, SQ_A1); --rook_org)
+            {
+                assert(!contains (pieces (c, KING), rook_org));
+                if (contains (pieces (c, ROOK), rook_org))
+                {
+                    break;
+                }
+            }
+            assert(contains (pieces (c, ROOK), rook_org)
+                && rook_org > square (c, KING));
+            castle_rook[c][CS_KING] = rook_org;
             set_castle (c, CS_KING);
         }
         else
-        if (token == 'q')
+        if ('q' == token)
         {
+            for (rook_org = rel_sq (c, SQ_A1); rook_org <= rel_sq (c, SQ_H1); ++rook_org)
+            {
+                assert(!contains (pieces (c, KING), rook_org));
+                if (contains (pieces (c, ROOK), rook_org))
+                {
+                    break;
+                }
+            }
+            assert(contains (pieces (c, ROOK), rook_org)
+                && rook_org < square (c, KING));
+            castle_rook[c][CS_QUEN] = rook_org;
             set_castle (c, CS_QUEN);
         }
         else
         // Chess960
         if ('a' <= token && token <= 'h')
         {
-            set_castle (c, (to_file (token)|rel_rank (c, R_1)) > square (c, KING) ? CS_KING : CS_QUEN);
+            rook_org = to_file (token)|rel_rank (c, R_1);
+            auto cs = rook_org > square (c, KING) ? CS_KING : CS_QUEN;
+            castle_rook[c][cs] = rook_org;
+            set_castle (c, cs);
         }
         else
         {
@@ -1293,7 +1308,7 @@ Position::operator string () const
 // Performs some consistency checks for the position, helpful for debugging.
 bool Position::ok (u08 *step) const
 {
-    static const bool Fast = true;
+    static const bool Fast = false;
     //enum Step : u08
     //{
     //    BASIC,

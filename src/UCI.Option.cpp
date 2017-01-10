@@ -167,7 +167,7 @@ namespace UCI {
         {
             ForceStop = true;
             Threadpool.wait_while_thinking ();
-            clear ();
+            Searcher::clear ();
         }
 
         void on_retain_hash ()

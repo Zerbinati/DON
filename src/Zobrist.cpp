@@ -53,12 +53,12 @@ namespace Zobrists {
                 }
             }
         }
-        if (CR_NONE != pos.si->castle_rights)
+        if (pos.has_castleright (CR_ANY))
         {
-            if (CR_NONE != (pos.si->castle_rights & CR_WKING)) posi_key ^= Zob.castle_right_keys[WHITE][CS_KING];
-            if (CR_NONE != (pos.si->castle_rights & CR_WQUEN)) posi_key ^= Zob.castle_right_keys[WHITE][CS_QUEN];
-            if (CR_NONE != (pos.si->castle_rights & CR_BKING)) posi_key ^= Zob.castle_right_keys[BLACK][CS_KING];
-            if (CR_NONE != (pos.si->castle_rights & CR_BQUEN)) posi_key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
+            if (pos.can_castle (WHITE, CS_KING)) posi_key ^= Zob.castle_right_keys[WHITE][CS_KING];
+            if (pos.can_castle (WHITE, CS_QUEN)) posi_key ^= Zob.castle_right_keys[WHITE][CS_QUEN];
+            if (pos.can_castle (BLACK, CS_KING)) posi_key ^= Zob.castle_right_keys[BLACK][CS_KING];
+            if (pos.can_castle (BLACK, CS_QUEN)) posi_key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
         }
         if (SQ_NO != pos.si->en_passant_sq)
         {
