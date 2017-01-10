@@ -284,7 +284,7 @@ bool Position::pseudo_legal (Move m) const
                 return false;
             }
         }
-        auto king_dst = rel_sq (active, dst > org ? SQ_G1 : SQ_C1);
+        auto king_dst = rel_sq (active, cs == CS_KING ? SQ_G1 : SQ_C1);
         // Chess960
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
         if (   0 != (b = pieces (~active, ROOK, QUEN) & FA_bb & rank_bb (king_dst))
@@ -1308,7 +1308,7 @@ Position::operator string () const
 // Performs some consistency checks for the position, helpful for debugging.
 bool Position::ok (u08 *step) const
 {
-    static const bool Fast = false;
+    static const bool Fast = true;
     //enum Step : u08
     //{
     //    BASIC,
@@ -1336,7 +1336,7 @@ bool Position::ok (u08 *step) const
         if (   1 != std::count (board, board + SQ_NO, W_KING)
             || 1 != std::count (board, board + SQ_NO, B_KING)
             || 0 != pop_count (attackers_to (square (~active, KING),  active))
-            || 2 < pop_count (attackers_to (square ( active, KING), ~active)))
+            || 2 <  pop_count (attackers_to (square ( active, KING), ~active)))
         {
             if (step != nullptr) *step = s;
             return false;

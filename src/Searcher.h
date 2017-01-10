@@ -46,7 +46,6 @@ public:
     }
 };
 
-template<bool CM>
 struct PieceValueStats
 {
 private:
@@ -80,18 +79,15 @@ public:
         if (x < 324)
         {
             auto &e = _table[color (pc)][ptype (pc)][s];
-            e = e*(1.0 - double(x) / (CM ? 936 : 324)) + i32(v)*32;
+            e = e*(1.0 - double(x) / 936) + i32(v)*32;
         }
     }
 };
 
-typedef PieceValueStats<false>   FPieceValueStats;
-typedef PieceValueStats<true >   TPieceValueStats;
-
 struct PieceCMValueStats
 {
 private:
-    TPieceValueStats _table[CLR_NO][NONE][SQ_NO];
+    PieceValueStats _table[CLR_NO][NONE][SQ_NO];
 
 public:
     void clear ()
@@ -108,7 +104,7 @@ public:
         }
     }
 
-    TPieceValueStats& operator() (Piece pc, Square s)
+    PieceValueStats& operator() (Piece pc, Square s)
     {
         assert(pc != NO_PIECE);
         return _table[color (pc)][ptype (pc)][s];
@@ -281,7 +277,8 @@ public:
         , history_val;
     u08   move_count;
     MoveVector pv;
-    TPieceValueStats *piece_cm_history;
+
+    PieceValueStats *piece_history;
 };
 
 // MovePicker class is used to pick one legal moves from the current position.

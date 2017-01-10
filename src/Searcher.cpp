@@ -205,14 +205,13 @@ template<> void MovePicker::value<QUIET> ()
             && _pos.legal (vm.move));
 
         vm.value =
-              _pos.thread->piece_history(_pos[org_sq (vm.move)], dst_sq (vm.move))
-            + _pos.thread->color_history(_pos.active, vm.move)
-            + ((_ss-1)->piece_cm_history != nullptr ? (*(_ss-1)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-            + ((_ss-2)->piece_cm_history != nullptr ? (*(_ss-2)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-            + ((_ss-4)->piece_cm_history != nullptr ? (*(_ss-4)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO);
+              _pos.thread->color_history(_pos.active, vm.move)
+            + ((_ss-1)->piece_history != nullptr ? (*(_ss-1)->piece_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
+            + ((_ss-2)->piece_history != nullptr ? (*(_ss-2)->piece_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
+            + ((_ss-4)->piece_history != nullptr ? (*(_ss-4)->piece_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO);
     }
 }
-// First captures ordered by MVV/LVA, then non-captures ordered by history value
+// First captures ordered by MVV/LVA, then non-captures ordered by stats heuristics
 template<> void MovePicker::value<EVASION> ()
 {
     for (auto &vm : _moves)
@@ -230,8 +229,7 @@ template<> void MovePicker::value<EVASION> ()
         else
         {
             vm.value =
-                  _pos.thread->piece_history(_pos[org_sq (vm.move)], dst_sq (vm.move))
-                + _pos.thread->color_history(_pos.active, vm.move);
+                  _pos.thread->color_history(_pos.active, vm.move);
                 //+ ((_ss-1)->piece_cm_history != nullptr ? (*(_ss-1)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
                 //+ ((_ss-2)->piece_cm_history != nullptr ? (*(_ss-2)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
                 //+ ((_ss-4)->piece_cm_history != nullptr ? (*(_ss-4)->piece_cm_history)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO);
@@ -302,7 +300,7 @@ Move MovePicker::next_move ()
         // Killers to top of quiet move
         {
             MoveVector killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
-            if ((_ss-1)->piece_cm_history != nullptr)
+            if ((_ss-1)->piece_history != nullptr)
             {
                 auto cm = _pos.thread->piece_cmove(_pos[fix_dst_sq ((_ss-1)->current_move)], dst_sq ((_ss-1)->current_move));
                 if (   MOVE_NONE != cm
@@ -605,20 +603,20 @@ namespace Searcher {
             assert(pc != NO_PIECE);
             assert(_ok (s));
 
-            if ((ss-1)->piece_cm_history != nullptr)
+            if ((ss-1)->piece_history != nullptr)
             {
-                (ss-1)->piece_cm_history->update (pc, s, value);
+                (ss-1)->piece_history->update (pc, s, value);
             }
-            if ((ss-2)->piece_cm_history != nullptr)
+            if ((ss-2)->piece_history != nullptr)
             {
-                (ss-2)->piece_cm_history->update (pc, s, value);
+                (ss-2)->piece_history->update (pc, s, value);
             }
-            if ((ss-4)->piece_cm_history != nullptr)
+            if ((ss-4)->piece_history != nullptr)
             {
-                (ss-4)->piece_cm_history->update (pc, s, value);
+                (ss-4)->piece_history->update (pc, s, value);
             }
         }
-        // Updates killers, history, countermoves and followupmoves history stats
+        // Updates move sorting heuristics
         void update_stats (Stack *const &ss, const Position &pos, Move move, Value value)
         {
             assert(!pos.empty (org_sq (move)));
@@ -631,12 +629,11 @@ namespace Searcher {
             }
             assert(1 == std::count (ss->killer_moves, ss->killer_moves + MaxKillers, move));
 
-            if ((ss-1)->piece_cm_history != nullptr)
+            if ((ss-1)->piece_history != nullptr)
             {
                 pos.thread->piece_cmove.update (pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), move);
             }
 
-            pos.thread->piece_history.update (pos[org_sq (move)], dst_sq (move), value);
             pos.thread->color_history.update (pos.active, move, value);
             update_cm_stats (ss, pos[org_sq (move)], dst_sq (move), value);
         }
@@ -1084,7 +1081,7 @@ namespace Searcher {
             }
 
             ss->current_move = MOVE_NONE;
-            ss->piece_cm_history = nullptr;
+            ss->piece_history = nullptr;
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
 
             Move move;
@@ -1117,7 +1114,7 @@ namespace Searcher {
                 && tte->depth () >= depth
                 && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
             {
-                // If tt_move is quiet, update killers, history, countermove and countermoves history on TT hit
+                // Update move sorting heuristics on quiet TT move
                 if (   MOVE_NONE != tt_move
                     && tt_value >= beta)
                 {
@@ -1260,7 +1257,7 @@ namespace Searcher {
                         assert(exclude_move == MOVE_NONE);
 
                         ss->current_move = MOVE_NULL;
-                        ss->piece_cm_history = nullptr;
+                        ss->piece_history = nullptr;
 
                         // Null move dynamic reduction based on depth and static evaluation
                         auto reduced_depth = i16(depth - (67*depth + 823) / 256 + std::min (i16(tt_eval - beta)/VALUE_MG_PAWN, 3));
@@ -1317,7 +1314,7 @@ namespace Searcher {
                         assert(beta_margin <= +VALUE_INFINITE);
 
                         assert(_ok ((ss-1)->current_move)
-                            && (ss-1)->piece_cm_history != nullptr);
+                            && (ss-1)->piece_history != nullptr);
 
                         // Initialize move picker (3) for the current position.
                         MovePicker mp (pos, tt_move, beta_margin - ss->static_eval);
@@ -1328,7 +1325,7 @@ namespace Searcher {
                                 && pos.legal (move));
 
                             ss->current_move = move;
-                            ss->piece_cm_history = &th->piece_cm_history(pos[org_sq (move)], dst_sq (move));
+                            ss->piece_history = &th->piece_cm_history(pos[org_sq (move)], dst_sq (move));
 
                             assert(pos.capture_or_promotion (move));
 
@@ -1508,10 +1505,10 @@ namespace Searcher {
                         auto lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Counter moves value based pruning
                                (   3 > lmr_depth
-                                && ((ss-1)->piece_cm_history == nullptr || (*(ss-1)->piece_cm_history)(mpc, dst_sq (move)) < VALUE_ZERO)
-                                && ((ss-2)->piece_cm_history == nullptr || (*(ss-2)->piece_cm_history)(mpc, dst_sq (move)) < VALUE_ZERO)
-                                && (  ((ss-1)->piece_cm_history != nullptr && (ss-2)->piece_cm_history != nullptr)
-                                    || (ss-4)->piece_cm_history == nullptr || (*(ss-4)->piece_cm_history)(mpc, dst_sq (move)) < VALUE_ZERO))
+                                && ((ss-1)->piece_history == nullptr || (*(ss-1)->piece_history)(mpc, dst_sq (move)) < VALUE_ZERO)
+                                && ((ss-2)->piece_history == nullptr || (*(ss-2)->piece_history)(mpc, dst_sq (move)) < VALUE_ZERO)
+                                && (  ((ss-1)->piece_history != nullptr && (ss-2)->piece_history != nullptr)
+                                    || (ss-4)->piece_history == nullptr || (*(ss-4)->piece_history)(mpc, dst_sq (move)) < VALUE_ZERO))
                                 // Futility pruning: parent node
                             || (   7 > lmr_depth
                                 && !in_check
@@ -1535,7 +1532,7 @@ namespace Searcher {
 
                 // Update the current move
                 ss->current_move = move;
-                ss->piece_cm_history = &th->piece_cm_history(mpc, dst_sq (move));
+                ss->piece_history = &th->piece_cm_history(mpc, dst_sq (move));
 
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
@@ -1585,11 +1582,10 @@ namespace Searcher {
                         }
 
                         ss->history_val =
-                              th->piece_history(mpc, dst_sq (move))
-                            + th->color_history(~pos.active, move)
-                            + ((ss-1)->piece_cm_history != nullptr ? (*(ss-1)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO)
-                            + ((ss-2)->piece_cm_history != nullptr ? (*(ss-2)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO)
-                            + ((ss-4)->piece_cm_history != nullptr ? (*(ss-4)->piece_cm_history)(mpc, dst_sq (move)) : VALUE_ZERO)
+                              th->color_history(~pos.active, move)
+                            + ((ss-1)->piece_history != nullptr ? (*(ss-1)->piece_history)(mpc, dst_sq (move)) : VALUE_ZERO)
+                            + ((ss-2)->piece_history != nullptr ? (*(ss-2)->piece_history)(mpc, dst_sq (move)) : VALUE_ZERO)
+                            + ((ss-4)->piece_history != nullptr ? (*(ss-4)->piece_history)(mpc, dst_sq (move)) : VALUE_ZERO)
                             - 8000; // Correction factor
 
                         // Decrease/Increase reduction by comparing opponent's stat score
@@ -1760,7 +1756,7 @@ namespace Searcher {
                             DrawValue[pos.active];
             }
             else
-            // Quiet best move: update killers, history, countermoves and countermoves history
+            // Quiet best move: update move sorting heuristics
             if (MOVE_NONE != best_move)
             {
                 if (!pos.capture_or_promotion (best_move))
@@ -1771,7 +1767,6 @@ namespace Searcher {
                     assert(std::find (quiet_moves.begin (), quiet_moves.end (), best_move) == quiet_moves.end ());
                     for (auto m : quiet_moves)
                     {
-                        pos.thread->piece_history.update (pos[org_sq (m)], dst_sq (m), -v);
                         pos.thread->color_history.update (pos.active, m, -v);
                         update_cm_stats (ss, pos[org_sq (m)], dst_sq (m), -v);
                     }
@@ -1786,7 +1781,7 @@ namespace Searcher {
             else
             // Bonus for prior countermove that caused the fail low
             if (   2 < depth
-                && nullptr != (ss-1)->piece_cm_history
+                && nullptr != (ss-1)->piece_history
                 && NONE == pos.si->capture)
             {
                 update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), bonus (depth));
@@ -1919,7 +1914,7 @@ namespace Threading {
             s->static_eval      = VALUE_ZERO;
             s->history_val      = VALUE_ZERO;
             s->move_count       = 0;
-            s->piece_cm_history = nullptr;
+            s->piece_history    = nullptr;
         }
 
         max_ply = 0;

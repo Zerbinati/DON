@@ -183,7 +183,6 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        FPieceValueStats  piece_history;
         PieceCMValueStats piece_cm_history;
         ColorValueStats   color_history;
         PieceCMoveStats   piece_cmove;
@@ -199,7 +198,6 @@ namespace Threading {
             count_reset = true;
             pawn_table.clear ();
             matl_table.clear ();
-            piece_history.clear ();
             piece_cm_history.clear ();
             color_history.clear ();
             piece_cmove.clear ();
