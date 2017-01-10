@@ -1145,7 +1145,7 @@ namespace Searcher {
                         || (   piece_count == TBLimitPiece
                             && depth >= TBProbeDepth))
                     && 0 == pos.si->clock_ply
-                    && pos.can_castle (CR_ANY) == CR_NONE)
+                    && !pos.has_castleright (CR_ANY))
                 {
                     ProbeState state;
                     WDLScore v = probe_wdl (pos, state);

@@ -437,7 +437,7 @@ namespace Threading {
         if (   TBLimitPiece != 0
             && TBLimitPiece >= root_pos.count<NONE> ()
             && !root_moves.empty ()
-            && root_pos.can_castle (CR_ANY) == CR_NONE)
+            && !root_pos.has_castleright (CR_ANY))
         {
             // If the current root position is in the tablebases,
             // then RootMoves contains only moves that preserve the draw or the win.

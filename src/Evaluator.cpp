@@ -467,12 +467,12 @@ namespace Evaluator {
             auto index = ei.pe->do_king_safety<Own> (pos, fk_sq);
             auto value = ei.pe->king_safety[Own][index];
             if (   rel_rank (Own, fk_sq) == R_1
-                && CR_NONE != pos.can_castle (Own))
+                && pos.can_castle (Own))
             {
                 if (   0 != index
-                    && CR_NONE != pos.can_castle (Castling<Own, CS_KING>::Right)
-                    && 0 == (pos.king_path[Castling<Own, CS_KING>::Right] & ei.ful_attacked_by[Opp])
-                    && 0 == (pos.castle_path[Castling<Own, CS_KING>::Right] & pos.pieces ()))
+                    && pos.can_castle (Own, CS_KING)
+                    && !pos.impeded_castle (Own, CS_KING)
+                    && 0 == (pos.king_path[Own][CS_KING] & ei.ful_attacked_by[Opp]))
                 {
                     if (value < ei.pe->king_safety[Own][0])
                     {
@@ -480,9 +480,9 @@ namespace Evaluator {
                     }
                 }
                 if (   1 != index
-                    && CR_NONE != pos.can_castle (Castling<Own, CS_QUEN>::Right)
-                    && 0 == (pos.king_path[Castling<Own, CS_QUEN>::Right] & ei.ful_attacked_by[Opp])
-                    && 0 == (pos.castle_path[Castling<Own, CS_QUEN>::Right] & pos.pieces ()))
+                    && pos.can_castle (Own, CS_QUEN)
+                    && !pos.impeded_castle (Own, CS_QUEN)
+                    && 0 == (pos.king_path[Own][CS_QUEN] & ei.ful_attacked_by[Opp]))
                 {
                     if (value < ei.pe->king_safety[Own][1])
                     {

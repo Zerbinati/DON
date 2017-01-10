@@ -96,19 +96,20 @@ public:
     static bool Chess960;
     static u08  DrawClockPly;
     
-    Piece       board[SQ_NO];
+    Piece       board   [SQ_NO];
     Bitboard    color_bb[CLR_NO];
     Bitboard    types_bb[MAX_PTYPE];
     SquareVector squares[CLR_NO][NONE];
 
+    CastleRight castle_mask[SQ_NO];
+
+    Square      castle_rook[CLR_NO][CS_NO];
+    Bitboard    castle_path[CLR_NO][CS_NO];
+    Bitboard    king_path  [CLR_NO][CS_NO];
+
     Color       active;
     i16         ply;
     u64         nodes;
-
-    CastleRight castle_mask[SQ_NO];
-    Square      castle_rook[CR_NO];
-    Bitboard    castle_path[CR_NO];
-    Bitboard    king_path[CR_NO];
 
     Thread      *thread;
     StateInfo   *si; // Current state information pointer
@@ -136,10 +137,11 @@ public:
     Key poly_key () const;
     Key move_posi_key (Move m) const;
 
-    CastleRight can_castle (Color c) const;
-    CastleRight can_castle (CastleRight cr) const;
+    bool can_castle (Color c) const;
+    bool can_castle (Color c, CastleSide cs) const;
+    bool has_castleright (CastleRight cr) const;
 
-    bool impeded_castle (CastleRight cr) const;
+    bool impeded_castle (Color c, CastleSide cs) const;
 
     i16  move_num () const;
     Phase phase   () const;
@@ -304,10 +306,11 @@ inline Key Position::move_posi_key (Move m) const
         ^ Zob.piece_square_keys[active][mpt][org];
 }
 
-inline CastleRight Position::can_castle (Color c) const { return si->castle_rights & castle_right (c); }
-inline CastleRight Position::can_castle (CastleRight cr) const { return si->castle_rights & cr; }
+inline bool Position::can_castle (Color c) const { return (si->castle_rights & castle_right (c)) != CR_NONE; }
+inline bool Position::can_castle (Color c, CastleSide cs) const { return (si->castle_rights & castle_right (c, cs)) != CR_NONE; }
+inline bool Position::has_castleright (CastleRight cr) const { return (si->castle_rights & cr) != CR_NONE; }
 
-inline bool Position::impeded_castle (CastleRight cr) const { return 0 != (castle_path[cr] & pieces ()); }
+inline bool Position::impeded_castle (Color c, CastleSide cs) const { return 0 != (castle_path[c][cs] & pieces ()); }
 // move_num starts at 1, and is incremented after BLACK's move.
 inline i16  Position::move_num () const { return i16(std::max ((ply - (BLACK == active ? 1 : 0))/2, 0) + 1); }
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.

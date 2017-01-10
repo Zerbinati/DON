@@ -314,7 +314,7 @@ enum Value : i32
     VALUE_MG_ROOK = 1285,  VALUE_EG_ROOK = 1371,
     VALUE_MG_QUEN = 2513,  VALUE_EG_QUEN = 2650,
 
-    VALUE_SPACE   = 12222, // TODO::
+    VALUE_SPACE   = 12222, // TODO:: revalue
     VALUE_MIDGAME = 15258, VALUE_ENDGAME = 3915,
 };
 // Score needs 32-bits to be stored
@@ -531,16 +531,6 @@ inline CastleRight castle_right (Color c, CastleSide cs)
             cs == CS_KING ? CR_BKING :
             cs == CS_QUEN ? CR_BQUEN : CR_NONE : CR_NONE;
 }
-
-template<Color C, CastleSide CS>
-struct Castling
-{
-    //static const CastleRight Right = CastleRight(CR_WKING << ((C << 1) + CS));
-    static const CastleRight Right =
-        C == WHITE ?
-            CS == CS_KING ? CR_WKING : CR_WQUEN :
-            CS == CS_KING ? CR_BKING : CR_BQUEN;
-};
 
 inline Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
 

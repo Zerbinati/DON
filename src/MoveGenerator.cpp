@@ -223,23 +223,21 @@ namespace MoveGen {
         }
 
         // Generates KING castling move
-        template<GenType GT, Color Own, CastleRight CR>
+        template<GenType GT, Color Own, CastleSide CS>
         void generate_castling_moves (vector<ValMove> &moves, const Position &pos)
         {
             static const auto Opp = Own == WHITE ? BLACK : WHITE;
-            static const bool KingSide = CR_NONE != (CR & CR_KING);
-            static const auto king_dst = rel_sq (Own, KingSide ? SQ_G1 : SQ_C1);
 
-            assert(EVASION != GT);
-            assert(!pos.impeded_castle (CR)
-                 && CR_NONE != pos.can_castle (CR)
-                 && 0 == pos.si->checkers);
+            assert(EVASION != GT
+                && 0 == pos.si->checkers
+                && pos.can_castle (Own, CS)
+                && !pos.impeded_castle (Own, CS));
 
             auto king_org = pos.square (Own, KING);
-            auto rook_org = pos.castle_rook[CR];
+            auto rook_org = pos.castle_rook[Own][CS];
             assert(contains (pos.pieces (Own, ROOK), rook_org));
-
-            Bitboard b = pos.king_path[CR];
+            
+            Bitboard b = pos.king_path[Own][CS];
             // Check king's path for attackers
             while (0 != b)
             {
@@ -248,6 +246,7 @@ namespace MoveGen {
                     return;
                 }
             }
+            auto king_dst = rel_sq (Own, CS == CS_KING ? SQ_G1 : SQ_C1);
             // Chess960
             // Because generate only legal castling moves needed to verify that
             // when moving the castling rook do not discover some hidden checker.
@@ -288,17 +287,17 @@ namespace MoveGen {
             if (CAPTURE != GT)
             {
                 if (   0 == pos.si->checkers
-                    && CR_NONE != pos.can_castle (Own))
+                    && pos.can_castle (Own))
                 {
-                    if (   CR_NONE != pos.can_castle (Castling<Own, CS_KING>::Right)
-                        && !pos.impeded_castle (Castling<Own, CS_KING>::Right))
+                    if (   pos.can_castle (Own, CS_KING)
+                        && !pos.impeded_castle (Own, CS_KING))
                     {
-                        generate_castling_moves<GT, Own, Castling<Own, CS_KING>::Right> (moves, pos);
+                        generate_castling_moves<GT, Own, CS_KING> (moves, pos);
                     }
-                    if (   CR_NONE != pos.can_castle (Castling<Own, CS_QUEN>::Right)
-                        && !pos.impeded_castle (Castling<Own, CS_QUEN>::Right))
+                    if (   pos.can_castle (Own, CS_QUEN)
+                        && !pos.impeded_castle (Own, CS_QUEN))
                     {
-                        generate_castling_moves<GT, Own, Castling<Own, CS_QUEN>::Right> (moves, pos);
+                        generate_castling_moves<GT, Own, CS_QUEN> (moves, pos);
                     }
                 }
             }
