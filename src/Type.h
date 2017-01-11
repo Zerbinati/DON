@@ -301,12 +301,11 @@ enum Value : i32
     VALUE_ONE       = 1,
 
     VALUE_NONE      = (1 << 15) - 1,
-    VALUE_INFINITE  = +i16(VALUE_NONE) - 1,
+    VALUE_INFINITE  = VALUE_NONE - 1,
+    VALUE_MATE      = VALUE_NONE - 2,
+    VALUE_KNOWN_WIN = 10000,
 
-    VALUE_MATE      = +i16(VALUE_INFINITE) - 1,
-    VALUE_KNOWN_WIN = +i16(VALUE_MATE) / 3,
-
-    VALUE_MATE_IN_MAX_PLY = +i16(VALUE_MATE) - 2 * MaxPlies,
+    VALUE_MATE_IN_MAX_PLY = VALUE_MATE - 2 * MaxPlies,
 
     VALUE_MG_PAWN =  188,  VALUE_EG_PAWN =  248,
     VALUE_MG_NIHT =  753,  VALUE_EG_NIHT =  832,
@@ -314,7 +313,7 @@ enum Value : i32
     VALUE_MG_ROOK = 1285,  VALUE_EG_ROOK = 1371,
     VALUE_MG_QUEN = 2513,  VALUE_EG_QUEN = 2650,
 
-    VALUE_SPACE   = 12222, // TODO:: revalue
+    VALUE_SPACE   = 12222, // TODO:: re-value
     VALUE_MIDGAME = 15258, VALUE_ENDGAME = 3915,
 };
 // Score needs 32-bits to be stored
@@ -607,19 +606,19 @@ const Value PieceValues[PH_NO][MAX_PTYPE] =
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
 };
 
-template<class Entry, u32 Size>
+template<class T, u32 Size>
 struct HashTable
 {
 private:
-    Entry _table[Size];
+    T _table[Size];
 
 public:
     void clear ()
     {
-        std::fill_n (_table, Size, Entry ());
+        std::fill_n (_table, Size, T ());
     }
 
-    Entry* operator[] (Key k)
+    T* operator[] (Key k)
     {
         return &_table[u32(k) & (Size - 1)];
     }

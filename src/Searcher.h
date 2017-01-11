@@ -21,17 +21,17 @@ public:
     // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds
     struct Clock
     {
-        TimePoint time  = 0;        // Remaining Time          [milli-seconds]
-        TimePoint inc   = 0;        // Increment Time per move [milli-seconds]
-    }         clock[CLR_NO];        // Search with Clock
-    TimePoint movetime  = 0;        // Search <x> exact time in milli-seconds
-    u08       movestogo = 0;        // Search <x> moves to the next time control
-    i16       depth     = 0;        // Search <x> depth (plies) only
-    u64       nodes     = 0;        // Search <x> nodes only
-    u08       mate      = 0;        // Search mate in <x> moves
-    bool      infinite  = false;    // Search until the "stop" command
-    bool      ponder    = false;    // Search on ponder move until the "stop" command
-    MoveVector search_moves;        // Restrict search to these root moves only
+        TimePoint time  = 0;     // Remaining Time [milli-seconds]
+        TimePoint inc   = 0;     // Increment Time [milli-seconds]
+    }         clock[CLR_NO];     // Search with Clock
+    TimePoint movetime  = 0;     // Search <x> exact time in milli-seconds
+    u08       movestogo = 0;     // Search <x> moves to the next time control
+    i16       depth     = 0;     // Search <x> depth (plies) only
+    u64       nodes     = 0;     // Search <x> nodes only
+    u08       mate      = 0;     // Search mate in <x> moves
+    bool      infinite  = false; // Search until the "stop" command
+    bool      ponder    = false; // Search on ponder move until the "stop" command
+    MoveVector search_moves;     // Restrict search to these root moves only
 
     TimePoint start_time = 0;
     TimePoint elapsed_time = 0;
@@ -46,7 +46,77 @@ public:
     }
 };
 
-struct PieceValueStats
+// HistoryStats records how often quiet moves have been successful or unsuccessful
+// during the current search, and is used for reduction and move ordering decisions.
+struct HistoryStats
+{
+private:
+    Value _table[CLR_NO][SQ_NO*SQ_NO];
+
+public:
+    void clear ()
+    {
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            for (auto m = 0; m < SQ_NO*SQ_NO; ++m)
+            {
+                _table[c][m] = VALUE_ZERO;
+            }
+        }
+    }
+
+    Value operator() (Color c, Move m) const
+    {
+        return _table[c][m & 0xFFF];
+    }
+
+    void update (Color c, Move m, Value v)
+    {
+        i32 x = abs(i32(v));
+        if (x < 324)
+        {
+            auto &e = _table[c][m & 0xFFF];
+            e = e*(1.0 - double(x) / 324) + i32(v)*32;
+        }
+    }
+};
+
+// MoveStats store the move that refute a previous one.
+struct MoveStats
+{
+private:
+    Move _table[CLR_NO][NONE][SQ_NO];
+
+public:
+    void clear ()
+    {
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            for (auto pt = PAWN; pt < NONE; ++pt)
+            {
+                for (auto s = SQ_A1; s <= SQ_H8; ++s)
+                {
+                    _table[c][pt][s] = MOVE_NONE;
+                }
+            }
+        }
+    }
+
+    Move operator() (Piece pc, Square s) const
+    {
+        assert(NONE != ptype (pc));
+        return _table[color (pc)][ptype (pc)][s];
+    }
+
+    void update (Piece pc, Square s, Move cm)
+    {
+        assert(NONE != ptype (pc));
+        _table[color (pc)][ptype (pc)][s] = cm;
+    }
+};
+
+// MoveHistoryStats
+struct MoveHistoryStats
 {
 private:
     Value _table[CLR_NO][NONE][SQ_NO];
@@ -83,11 +153,11 @@ public:
         }
     }
 };
-
-struct PieceCMValueStats
+// CounterMoveHistoryStats is like HistoryStats, but with two consecutive moves.
+struct CMoveHistoryStats
 {
 private:
-    PieceValueStats _table[CLR_NO][NONE][SQ_NO];
+    MoveHistoryStats _table[CLR_NO][NONE][SQ_NO];
 
 public:
     void clear ()
@@ -104,76 +174,10 @@ public:
         }
     }
 
-    PieceValueStats& operator() (Piece pc, Square s)
+    MoveHistoryStats& operator() (Piece pc, Square s)
     {
         assert(pc != NO_PIECE);
         return _table[color (pc)][ptype (pc)][s];
-    }
-};
-
-struct ColorValueStats
-{
-private:
-    Value _table[CLR_NO][SQ_NO*SQ_NO];
-
-public:
-    void clear ()
-    {
-        for (auto c = WHITE; c <= BLACK; ++c)
-        {
-            for (auto m = 0; m < SQ_NO*SQ_NO; ++m)
-            {
-                _table[c][m] = VALUE_ZERO;
-            }
-        }
-    }
-
-    Value operator() (Color c, Move m) const
-    {
-        return _table[c][m & 0xFFF];
-    }
-
-    void update (Color c, Move m, Value v)
-    {
-        i32 x = abs(i32(v));
-        if (x < 324)
-        {
-            auto &e = _table[c][m & 0xFFF];
-            e = e*(1.0 - double(x) / 324) + i32(v)*32;
-        }
-    }
-};
-
-struct PieceCMoveStats
-{
-private:
-    Move _table[CLR_NO][NONE][SQ_NO];
-
-public:
-    void clear ()
-    {
-        for (auto c = WHITE; c <= BLACK; ++c)
-        {
-            for (auto pt = PAWN; pt < NONE; ++pt)
-            {
-                for (auto s = SQ_A1; s <= SQ_H8; ++s)
-                {
-                    _table[c][pt][s] = MOVE_NONE;
-                }
-            }
-        }
-    }
-
-    Move operator() (Piece pc, Square s) const
-    {
-        assert(NONE != ptype (pc));
-        return _table[color (pc)][ptype (pc)][s];
-    }
-
-    void update (Piece pc, Square s, Move cm)
-    {
-        assert(NONE != ptype (pc));
-        _table[color (pc)][ptype (pc)][s] = cm;
     }
 };
 
@@ -278,7 +282,7 @@ public:
     u08   move_count;
     MoveVector pv;
 
-    PieceValueStats *piece_history;
+    MoveHistoryStats *m_history;
 };
 
 // MovePicker class is used to pick one legal moves from the current position.
@@ -288,15 +292,15 @@ private:
     const Position &_pos;
     const Stack *const _ss = nullptr;
 
+    Move    _tt_move    = MOVE_NONE;
+    Square  _recap_sq   = SQ_NO;
+    Value   _threshold  = VALUE_ZERO;
+
     std::vector<ValMove> _moves;
     std::vector<Move>    _capture_moves;
 
     u08     _index      = 0;
     u08     _stage      = 0;
-
-    Move    _tt_move    = MOVE_NONE;
-    Square  _recap_sq   = SQ_NO;
-    Value   _threshold  = VALUE_ZERO;
 
     template<GenType GT>
     void value ();

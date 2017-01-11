@@ -12,8 +12,8 @@ namespace Pawns {
 
     #define V(v) Value(v)
 
-        // Weakness of friend pawn shelter in front of the friend king,
-        // indexed by [distance from edge][rank]
+        // Weakness of friend pawn shelter in front of the friend king, indexed by [distance from edge][rank]
+        // RANK_1 = 0 is used for files where we have no pawns, or where our pawn is behind our king.
         const Value ShelterWeak[F_NO/2][R_NO] =
         {
             { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98), V(0) }, // => A and H file
@@ -22,42 +22,38 @@ namespace Pawns {
             { V( 75), V(12), V(43), V(59), V(90), V( 94), V(112), V(0) }  // => D and E file
         };
 
-        enum BlockType : u08
-        {
-            BLOCKED_NO,
-            BLOCKED_BY_NONE,
-            BLOCKED_BY_PAWN,
-            BLOCKED_BY_KING,
-        };
-        // Dangerousness of enemy pawns moving toward the friend king,
-        // indexed by [block-type][distance from edge][rank]
+        // Dangerness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
         const Value StromDanger[4][F_NO/2][R_NO] =
         {
-            {
+            {// BlockedByKing
+                { V( 0), V(-290), V(-274), V(57), V(41), V(0), V(0), V(0) },
+                { V( 0), V(  60), V( 144), V(39), V(13), V(0), V(0), V(0) },
+                { V( 0), V(  65), V( 141), V(41), V(34), V(0), V(0), V(0) },
+                { V( 0), V(  53), V( 127), V(56), V(14), V(0), V(0), V(0) }
+            },
+            {// Unopposed
                 { V( 4), V(  73), V(132), V(46), V(31), V(0), V(0), V(0) },
                 { V( 1), V(  64), V(143), V(26), V(13), V(0), V(0), V(0) },
                 { V( 1), V(  47), V(110), V(44), V(24), V(0), V(0), V(0) },
                 { V( 0), V(  72), V(127), V(50), V(31), V(0), V(0), V(0) }
             },
-            {
-                { V(22), V(  45), V(104), V(62), V( 6), V(0), V(0), V(0) },
-                { V(31), V(  30), V( 99), V(39), V(19), V(0), V(0), V(0) },
-                { V(23), V(  29), V( 96), V(41), V(15), V(0), V(0), V(0) },
-                { V(21), V(  23), V(116), V(41), V(15), V(0), V(0), V(0) }
-            },
-            {
+            {// BlockedByPawn
                 { V( 0), V(   0), V( 79), V(23), V( 1), V(0), V(0), V(0) },
                 { V( 0), V(   0), V(148), V(27), V( 2), V(0), V(0), V(0) },
                 { V( 0), V(   0), V(161), V(16), V( 1), V(0), V(0), V(0) },
                 { V( 0), V(   0), V(171), V(22), V(15), V(0), V(0), V(0) }
             },
-            {
-                { V( 0), V(-290), V(-274), V(57), V(41), V(0), V(0), V(0) },
-                { V( 0), V(  60), V( 144), V(39), V(13), V(0), V(0), V(0) },
-                { V( 0), V(  65), V( 141), V(41), V(34), V(0), V(0), V(0) },
-                { V( 0), V(  53), V( 127), V(56), V(14), V(0), V(0), V(0) }
+            {// Unblocked
+                { V(22), V(  45), V(104), V(62), V( 6), V(0), V(0), V(0) },
+                { V(31), V(  30), V( 99), V(39), V(19), V(0), V(0), V(0) },
+                { V(23), V(  29), V( 96), V(41), V(15), V(0), V(0), V(0) },
+                { V(21), V(  23), V(116), V(41), V(15), V(0), V(0), V(0) }
             }
         };
+
+        // Max bonus for king safety. Corresponds to start position with all the pawns
+        // in front of the king and no enemy pawn on the horizon.
+        const Value MaxSafety = V(258);
 
     #undef V
 
@@ -188,12 +184,12 @@ namespace Pawns {
     }
 
     // Calculates shelter and storm penalties.
+    // For the king file, as well as the two closest files.
     template<Color Own>
     Value Entry::pawn_shelter_storm (const Position &pos, Square fk_sq) const
     {
         static const auto Opp = Own == WHITE ? BLACK : WHITE;
-        // Max bonus for king safety by pawns.
-        auto value = Value(258);
+        auto value = MaxSafety;
         Bitboard front_pawns =
               pos.pieces (PAWN)
             & (  rank_bb (fk_sq)
@@ -215,10 +211,10 @@ namespace Pawns {
                 || (own_r != opp_r));
             value -= ShelterWeak[std::min (f, F_H - f)][own_r]
                    + StromDanger[   f == _file (fk_sq)
-                                 && opp_r == rel_rank (Own, fk_sq) + 1 ? BLOCKED_BY_KING :
-                                    own_r == R_1                       ? BLOCKED_NO      :
-                                    opp_r == own_r + 1                 ? BLOCKED_BY_PAWN :
-                                                                         BLOCKED_BY_NONE]
+                                 && opp_r == rel_rank (Own, fk_sq) + 1 ? 0 : // BlockedByKing
+                                    own_r == R_1                       ? 1 : // Unopposed
+                                    opp_r == own_r + 1                 ? 2 : // BlockedByPawn
+                                                                         3]  // Unblocked
                                 [std::min (f, F_H - f)][opp_r];
         }
         return value;

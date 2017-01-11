@@ -55,10 +55,10 @@ namespace Zobrists {
         }
         if (pos.has_castleright (CR_ANY))
         {
-            if (pos.can_castle (WHITE, CS_KING)) posi_key ^= Zob.castle_right_keys[WHITE][CS_KING];
-            if (pos.can_castle (WHITE, CS_QUEN)) posi_key ^= Zob.castle_right_keys[WHITE][CS_QUEN];
-            if (pos.can_castle (BLACK, CS_KING)) posi_key ^= Zob.castle_right_keys[BLACK][CS_KING];
-            if (pos.can_castle (BLACK, CS_QUEN)) posi_key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
+            if (pos.can_castle (WHITE, CS_KING)) posi_key ^= castle_right_keys[WHITE][CS_KING];
+            if (pos.can_castle (WHITE, CS_QUEN)) posi_key ^= castle_right_keys[WHITE][CS_QUEN];
+            if (pos.can_castle (BLACK, CS_KING)) posi_key ^= castle_right_keys[BLACK][CS_KING];
+            if (pos.can_castle (BLACK, CS_QUEN)) posi_key ^= castle_right_keys[BLACK][CS_QUEN];
         }
         if (SQ_NO != pos.si->en_passant_sq)
         {
@@ -116,7 +116,7 @@ namespace Zobrists {
     //    assert(kf[BLACK] != F_NO);
     //
     //    iss >> token;
-    //    if (token == 'w')
+    //    if ('w' == token)
     //    {
     //        fen_key ^= color_key;
     //    }
@@ -127,12 +127,12 @@ namespace Zobrists {
     //    {
     //        auto c = isupper (token) ? WHITE : BLACK;
     //        token = char(tolower (token));
-    //        if (token == 'k')
+    //        if ('k' == token)
     //        {
     //            fen_key ^= castle_right_keys[c][CS_KING];
     //        }
     //        else
-    //        if (token == 'q')
+    //        if ('q' == token)
     //        {
     //            fen_key ^= castle_right_keys[c][CS_QUEN];
     //        }
@@ -191,6 +191,9 @@ namespace Zobrists {
 
         Zobrist::no_matl_key = prng.rand<Key> ();
         Zobrist::no_pawn_key = prng.rand<Key> ();
+
+        assert(Zobrist::no_matl_key != 0);
+        assert(Zobrist::no_pawn_key != 0);
     }
 
 }

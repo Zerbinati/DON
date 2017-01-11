@@ -180,12 +180,12 @@ namespace Threading {
         i16   running_depth  = 0
             , finished_depth = 0;
 
-        Pawns   ::Table pawn_table;
-        Material::Table matl_table;
+        Pawns   ::Table   pawn_table;
+        Material::Table   matl_table;
 
-        PieceCMValueStats piece_cm_history;
-        ColorValueStats   color_history;
-        PieceCMoveStats   piece_cmove;
+        MoveStats         counter_moves;
+        HistoryStats      history;
+        CMoveHistoryStats cm_history;
 
         Thread ();
         Thread (const Thread&) = delete;
@@ -198,9 +198,9 @@ namespace Threading {
             count_reset = true;
             pawn_table.clear ();
             matl_table.clear ();
-            piece_cm_history.clear ();
-            color_history.clear ();
-            piece_cmove.clear ();
+            counter_moves.clear ();
+            history.clear ();
+            cm_history.clear ();
         }
 
         // Wakes up the thread that will start the search

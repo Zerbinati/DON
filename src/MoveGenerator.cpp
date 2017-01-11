@@ -246,12 +246,12 @@ namespace MoveGen {
                     return;
                 }
             }
-            auto king_dst = rel_sq (Own, CS == CS_KING ? SQ_G1 : SQ_C1);
+            auto king_dst = rel_sq (Own, rook_org > king_org ? SQ_G1 : SQ_C1);
             // Chess960
             // Because generate only legal castling moves needed to verify that
             // when moving the castling rook do not discover some hidden checker.
             // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-            if (   0 != (b = pos.pieces (Opp, ROOK, QUEN) & FA_bb & rank_bb (king_dst))
+            if (   0 != (b = pos.pieces (Opp, ROOK, QUEN) & rank_bb (king_dst))
                 && 0 != (b & PieceAttacks[ROOK][king_dst])
                 && 0 != (b & attacks_bb<ROOK> (king_dst, pos.pieces () ^ rook_org)))
             {
@@ -277,28 +277,27 @@ namespace MoveGen {
             if (   CHECK != GT
                 && QUIET_CHECK != GT)
             {
-                auto king_sq = pos.square (Own, KING);
-                Bitboard attacks = targets
-                                 &  PieceAttacks[KING][king_sq]
-                                 & ~PieceAttacks[KING][pos.square (Opp, KING)];
-                while (0 != attacks) { moves.push_back (ValMove(mk_move<NORMAL> (king_sq, pop_lsq (attacks)))); }
+                auto fk_sq = pos.square (Own, KING);
+                Bitboard attacks =
+                       targets
+                    &  PieceAttacks[KING][fk_sq]
+                    & ~PieceAttacks[KING][pos.square (Opp, KING)];
+                while (0 != attacks) { moves.push_back (ValMove(mk_move<NORMAL> (fk_sq, pop_lsq (attacks)))); }
             }
 
-            if (CAPTURE != GT)
+            if (   CAPTURE != GT
+                && 0 == pos.si->checkers
+                && pos.can_castle (Own))
             {
-                if (   0 == pos.si->checkers
-                    && pos.can_castle (Own))
+                if (   pos.can_castle (Own, CS_KING)
+                    && !pos.impeded_castle (Own, CS_KING))
                 {
-                    if (   pos.can_castle (Own, CS_KING)
-                        && !pos.impeded_castle (Own, CS_KING))
-                    {
-                        generate_castling_moves<GT, Own, CS_KING> (moves, pos);
-                    }
-                    if (   pos.can_castle (Own, CS_QUEN)
-                        && !pos.impeded_castle (Own, CS_QUEN))
-                    {
-                        generate_castling_moves<GT, Own, CS_QUEN> (moves, pos);
-                    }
+                    generate_castling_moves<GT, Own, CS_KING> (moves, pos);
+                }
+                if (   pos.can_castle (Own, CS_QUEN)
+                    && !pos.impeded_castle (Own, CS_QUEN))
+                {
+                    generate_castling_moves<GT, Own, CS_QUEN> (moves, pos);
                 }
             }
         }

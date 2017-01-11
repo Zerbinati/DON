@@ -284,10 +284,10 @@ bool Position::pseudo_legal (Move m) const
                 return false;
             }
         }
-        auto king_dst = rel_sq (active, cs == CS_KING ? SQ_G1 : SQ_C1);
+        auto king_dst = rel_sq (active, dst > org ? SQ_G1 : SQ_C1);
         // Chess960
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        if (   0 != (b = pieces (~active, ROOK, QUEN) & FA_bb & rank_bb (king_dst))
+        if (   0 != (b = pieces (~active, ROOK, QUEN) & rank_bb (king_dst))
             && 0 != (b & PieceAttacks[ROOK][king_dst])
             && 0 != (b & attacks_bb<ROOK> (king_dst, pieces () ^ dst)))
         {
@@ -498,10 +498,10 @@ bool Position::gives_check (Move m) const
     {
         // Castling with check ?
         auto ek_sq = square (~active, KING);
-        bool king_side = dst > org;
+        auto king_org = org;
         auto rook_org = dst; // 'King captures the rook' notation
-        dst           = rel_sq (active, king_side ? SQ_G1 : SQ_C1);
-        auto rook_dst = rel_sq (active, king_side ? SQ_F1 : SQ_D1);
+        dst           = rel_sq (active, rook_org > king_org ? SQ_G1 : SQ_C1);
+        auto rook_dst = rel_sq (active, rook_org > king_org ? SQ_F1 : SQ_D1);
         // First x-ray check then full check
         return contains (PieceAttacks[ROOK][rook_dst]                                   , ek_sq)
             && contains (attacks_bb<ROOK> (rook_dst, (pieces () ^ org ^ rook_org) | dst), ek_sq);
@@ -549,16 +549,13 @@ void Position::clear ()
         board[s] = NO_PIECE;
         castle_mask[s] = CR_NONE;
     }
-    for (auto c = WHITE; c <= BLACK; ++c)
-    {
-        color_bb[c] = 0;
-    }
     for (auto pt = PAWN; pt <= NONE; ++pt)
     {
         types_bb[pt] = 0;
     }
     for (auto c = WHITE; c <= BLACK; ++c)
     {
+        color_bb[c] = 0;
         for (auto pt = PAWN; pt <= KING; ++pt)
         {
             squares[c][pt].clear ();
@@ -576,15 +573,14 @@ void Position::clear ()
 // Set the castling right
 void Position::set_castle (Color c, CastleSide cs)
 {
-    bool king_side = cs == CS_KING;
     auto king_org = square (c, KING);
     assert(rel_rank (c, king_org) == R_1);
     Square rook_org = castle_rook[c][cs];
     assert(contains (pieces (c, ROOK), rook_org)
         && rel_rank (c, rook_org) == R_1);
 
-    auto king_dst = rel_sq (c, king_side ? SQ_G1 : SQ_C1);
-    auto rook_dst = rel_sq (c, king_side ? SQ_F1 : SQ_D1);
+    auto king_dst = rel_sq (c, rook_org > king_org ? SQ_G1 : SQ_C1);
+    auto rook_dst = rel_sq (c, rook_org > king_org ? SQ_F1 : SQ_D1);
     auto cr = castle_right (c, cs);
     si->castle_rights     |= cr;
     castle_mask[king_org] |= cr;
@@ -611,7 +607,7 @@ void Position::set_castle (Color c, CastleSide cs)
         }
     }
 }
-// Tests the en-passant square
+// Can the en-passant possible
 bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
 {
     assert(ep_sq != SQ_NO);
@@ -912,7 +908,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             si->pawn_key ^=
                   Zob.piece_square_keys[active][PAWN][dst]
                 ^ Zob.piece_square_keys[active][PAWN][org];
-            // If pawn with double push
+            // Double push pawn
             if (16 == (u08(dst) ^ u08(org)))
             {
                 // Set en-passant square if the moved pawn can be captured
@@ -947,7 +943,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     {
         assert(PAWN == mpt
             //&& si->en_passant_sq == dst // Already reset si->en_passant_sq
-            && empty (dst)
+            &&  empty (dst)
             && !empty (cap)
             && rel_rank (active, org) == R_5
             && rel_rank (active, dst) == R_6);

@@ -401,8 +401,8 @@ inline bool Position::en_passant (Move m) const
 {
     return ENPASSANT == mtype (m)
         && contains (pieces (active, PAWN), org_sq (m))
-        && si->en_passant_sq == dst_sq (m)
-        && empty (si->en_passant_sq);
+        && empty (dst_sq (m))
+        && si->en_passant_sq == dst_sq (m);
 }
 inline bool Position::capture (Move m) const
 {
@@ -493,10 +493,9 @@ inline void Position::move_piece (Square s1, Square s2)
 template<bool Do>
 inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
-    bool king_side = king_dst > king_org;
     rook_org = king_dst; // Castling is always encoded as "King captures friendly Rook"
-    king_dst = rel_sq (active, king_side ? SQ_G1 : SQ_C1);
-    rook_dst = rel_sq (active, king_side ? SQ_F1 : SQ_D1);
+    king_dst = rel_sq (active, rook_org > king_org ? SQ_G1 : SQ_C1);
+    rook_dst = rel_sq (active, rook_org > king_org ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
     remove_piece (Do ? king_org : king_dst);
     remove_piece (Do ? rook_org : rook_dst);
