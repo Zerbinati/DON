@@ -112,7 +112,7 @@
   <Class Name="Threading::Thread">
     <Position X="6.5" Y="4" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>BEAAECCgCQIAAAAigEQCCABIBAAAAASAACBgAAABCwA=</HashCode>
+      <HashCode>AEAAECCgCQIAAAAigEQCCABIBAAAAASAACBgAAABiwA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>

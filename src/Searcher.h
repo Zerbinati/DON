@@ -76,7 +76,7 @@ public:
         if (x < 324)
         {
             auto &e = _table[c][m & 0xFFF];
-            e = e*(1.0 - double(x) / 324) + i32(v)*32;
+            e = e - e*x/324 + i32(v)*32;
         }
     }
 };
@@ -149,7 +149,7 @@ public:
         if (x < 324)
         {
             auto &e = _table[color (pc)][ptype (pc)][s];
-            e = e*(1.0 - double(x) / 936) + i32(v)*32;
+            e = e - e*x/936 + i32(v)*32;
         }
     }
 };

@@ -298,16 +298,13 @@ bool Position::pseudo_legal (Move m) const
         break;
     case ENPASSANT:
     {
-        if (!(   PAWN == mpt
-              && empty (dst)
-              && si->en_passant_sq == dst
-              && rel_rank (active, org) == R_5
-              && rel_rank (active, dst) == R_6))
-        {
-            return false;
-        }
         cap -= pawn_push (active);
-        if (!contains (pieces (~active, PAWN), cap))
+        if (!(   PAWN == mpt
+              && rel_rank (active, org) == R_5
+              && rel_rank (active, dst) == R_6
+              && si->en_passant_sq == dst
+              && empty (dst)
+              && contains (pieces (~active, PAWN), cap)))
         {
             return false;
         }
@@ -575,7 +572,7 @@ void Position::set_castle (Color c, CastleSide cs)
 {
     auto king_org = square (c, KING);
     assert(rel_rank (c, king_org) == R_1);
-    Square rook_org = castle_rook[c][cs];
+    auto rook_org = castle_rook[c][cs];
     assert(contains (pieces (c, ROOK), rook_org)
         && rel_rank (c, rook_org) == R_1);
 
@@ -690,7 +687,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     {
         if (isdigit (token))
         {
-            f += (token - '0');
+            f += File(token - '0');
         }
         else
         if (   isalpha (token)
@@ -860,8 +857,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     auto dst = dst_sq (m);
     auto mt  = mtype (m);
     assert(contains (pieces (active), org)
-      && (!contains (pieces (active), dst)
-       || CASTLE == mt));
+        && (!contains (pieces (active), dst)
+         || CASTLE == mt));
 
     auto mpt = ptype (board[org]);
     assert(NONE != mpt);
@@ -941,14 +938,13 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         break;
     case ENPASSANT:
     {
-        assert(PAWN == mpt
-            //&& si->en_passant_sq == dst // Already reset si->en_passant_sq
-            &&  empty (dst)
-            && !empty (cap)
-            && rel_rank (active, org) == R_5
-            && rel_rank (active, dst) == R_6);
-
         board[cap] = NO_PIECE; // Not done by remove_piece()
+
+        // NOTE:: some condition already set so may not work
+        assert(PAWN == mpt
+            && rel_rank (active, org) == R_5
+            && rel_rank (active, dst) == R_6
+            && empty (dst));
 
         assert(si->clock_ply <= 1);
         si->clock_ply = 0;
@@ -1003,7 +999,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     // Calculate checkers bitboard (if move is check)
     si->checkers = is_check ? attackers_to (square (pasive, KING), active) : 0;
-    assert(!is_check || 0 != si->checkers);
+    assert(!is_check
+        || 0 != si->checkers);
 
     // Switch sides
     active = pasive;
@@ -1047,21 +1044,21 @@ void Position::undo_move (Move m)
         break;
     case ENPASSANT:
     {
-        assert(contains (pieces (active, PAWN), dst)
-            && rel_rank (active, org) == R_5
+        assert(rel_rank (active, org) == R_5
             && rel_rank (active, dst) == R_6
             && si->ptr->en_passant_sq == dst
             && PAWN == si->capture
-            && empty (cap));
+            && empty (cap)
+            && contains (pieces (active, PAWN), dst));
 
         move_piece (dst, org);
     }
         break;
     case PROMOTE:
     {
-        assert(contains (pieces (active, promote (m)), dst)
-            && rel_rank (active, org) == R_7
-            && rel_rank (active, dst) == R_8);
+        assert(rel_rank (active, org) == R_7
+            && rel_rank (active, dst) == R_8
+            && contains (pieces (active, promote (m)), dst));
 
         remove_piece (dst);
         board[dst] = NO_PIECE; // Not done by remove_piece()

@@ -13,7 +13,7 @@ namespace Pawns {
     #define V(v) Value(v)
 
         // Weakness of friend pawn shelter in front of the friend king, indexed by [distance from edge][rank]
-        // RANK_1 = 0 is used for files where we have no pawns, or where our pawn is behind our king.
+        // R_1 = 0 is used for files where we have no pawns, or where our pawn is behind our king.
         const Value ShelterWeak[F_NO/2][R_NO] =
         {
             { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98), V(0) }, // => A and H file
@@ -23,6 +23,7 @@ namespace Pawns {
         };
 
         // Dangerness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
+        // For the unopposed and unblocked cases, R_1 = 0 is used when opponent has no pawn on the given file, or his pawn his behind our king.
         const Value StromDanger[4][F_NO/2][R_NO] =
         {
             {// BlockedByKing
@@ -198,7 +199,7 @@ namespace Pawns {
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
         auto kf = std::min (std::max (_file (fk_sq), F_B), F_G);
-        for (auto f = kf - 1; f <= kf + 1; ++f)
+        for (auto f = kf - File(1); f <= kf + File(1); ++f)
         {
             assert(F_A <= f && f <= F_H);
             Bitboard file_front_pawns;
