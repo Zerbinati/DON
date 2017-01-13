@@ -302,7 +302,7 @@ Move MovePicker::next_move ()
             MoveVector killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
             if ((_ss-1)->m_history != nullptr)
             {
-                auto cm = _pos.thread->counter_moves(_pos[fix_dst_sq ((_ss-1)->current_move)], dst_sq ((_ss-1)->current_move));
+                auto cm = _pos.thread->counter_moves(_pos[fix_dst_sq ((_ss-1)->current_move)], (_ss-1)->current_move);
                 if (   MOVE_NONE != cm
                     && _tt_move != cm
                     && std::find (killer_moves.begin (), killer_moves.end (), cm) == killer_moves.end ())
@@ -631,7 +631,7 @@ namespace Searcher {
 
             if ((ss-1)->m_history != nullptr)
             {
-                pos.thread->counter_moves.update (pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), move);
+                pos.thread->counter_moves.update (pos[fix_dst_sq ((ss-1)->current_move)], (ss-1)->current_move, move);
             }
 
             pos.thread->history.update (pos.active, move, value);

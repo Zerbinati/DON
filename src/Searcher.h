@@ -67,16 +67,16 @@ public:
 
     Value operator() (Color c, Move m) const
     {
-        return _table[c][m & 0xFFF];
+        return _table[c][move_pp (m)];
     }
 
     void update (Color c, Move m, Value v)
     {
-        i32 x = abs(i32(v));
+        i32 x = abs (v);
         if (x < 324)
         {
-            auto &e = _table[c][m & 0xFFF];
-            e = e - e*x/324 + i32(v)*32;
+            auto &e = _table[c][move_pp (m)];
+            e += -(i32(e)*x)/324 + i32(v)*32;
         }
     }
 };
@@ -85,7 +85,7 @@ public:
 struct MoveStats
 {
 private:
-    Move _table[CLR_NO][NONE][SQ_NO];
+    Move _table[CLR_NO][NONE][SQ_NO*SQ_NO];
 
 public:
     void clear ()
@@ -94,24 +94,24 @@ public:
         {
             for (auto pt = PAWN; pt < NONE; ++pt)
             {
-                for (auto s = SQ_A1; s <= SQ_H8; ++s)
+                for (auto m = 0; m < SQ_NO*SQ_NO; ++m)
                 {
-                    _table[c][pt][s] = MOVE_NONE;
+                    _table[c][pt][m] = MOVE_NONE;
                 }
             }
         }
     }
 
-    Move operator() (Piece pc, Square s) const
+    Move operator() (Piece pc, Move m) const
     {
         assert(NONE != ptype (pc));
-        return _table[color (pc)][ptype (pc)][s];
+        return _table[color (pc)][ptype (pc)][move_pp (m)];
     }
 
-    void update (Piece pc, Square s, Move cm)
+    void update (Piece pc, Move m, Move cm)
     {
         assert(NONE != ptype (pc));
-        _table[color (pc)][ptype (pc)][s] = cm;
+        _table[color (pc)][ptype (pc)][move_pp (m)] = cm;
     }
 };
 
@@ -145,11 +145,11 @@ public:
     void update (Piece pc, Square s, Value v)
     {
         assert(pc != NO_PIECE);
-        i32 x = abs(i32(v));
+        i32 x = abs (v);
         if (x < 324)
         {
             auto &e = _table[color (pc)][ptype (pc)][s];
-            e = e - e*x/936 + i32(v)*32;
+            e += - (i32(e)*x)/936 + i32(v)*32;
         }
     }
 };

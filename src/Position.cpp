@@ -288,7 +288,7 @@ bool Position::pseudo_legal (Move m) const
         // Chess960
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
         if (   0 != (b = pieces (~active, ROOK, QUEN) & rank_bb (king_dst))
-            && 0 != (b & PieceAttacks[ROOK][king_dst])
+            //&& 0 != (b & PieceAttacks[ROOK][king_dst])
             && 0 != (b & attacks_bb<ROOK> (king_dst, pieces () ^ dst)))
         {
             return false;

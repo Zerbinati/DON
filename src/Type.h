@@ -545,6 +545,7 @@ inline bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
 inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
 inline void      promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= PROMOTE + ((pt - 1) << 12); }
+inline i16       move_pp (Move m) { return m & 0xFFF; }
 
 template<MoveType MT>
 inline Move mk_move (Square org, Square dst)               { return Move(MT + (org << 6) + dst); }

@@ -8,7 +8,7 @@ namespace MoveGen {
 
     namespace {
 
-        // Generates piece common move
+        // Generates piece normal move
         template<GenType GT, Color Own, PieceType PT>
         void generate_piece_moves (vector<ValMove> &moves, const Position &pos, Bitboard targets)
         {
@@ -40,14 +40,14 @@ namespace MoveGen {
             }
         }
 
-        // Generates PAWN promotion move
+        // Generates pawn promotion move
         template<GenType GT, Delta Del>
         void generate_promotion_moves (vector<ValMove> &moves, const Position &pos, Square dst)
         {
-            assert(DEL_N == Del
+            assert(DEL_N  == Del
                 || DEL_NE == Del
                 || DEL_NW == Del
-                || DEL_S == Del
+                || DEL_S  == Del
                 || DEL_SE == Del
                 || DEL_SW == Del);
 
@@ -113,7 +113,7 @@ namespace MoveGen {
                 break;
             }
         }
-        // Generates PAWN common move
+        // Generates pawn normal move
         template<GenType GT, Color Own>
         void generate_pawn_moves (vector<ValMove> &moves, const Position &pos, Bitboard targets)
         {
@@ -222,7 +222,7 @@ namespace MoveGen {
             }
         }
 
-        // Generates KING castling move
+        // Generates king castling move
         template<GenType GT, Color Own, CastleSide CS>
         void generate_castling_moves (vector<ValMove> &moves, const Position &pos)
         {
@@ -252,7 +252,7 @@ namespace MoveGen {
             // when moving the castling rook do not discover some hidden checker.
             // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
             if (   0 != (b = pos.pieces (Opp, ROOK, QUEN) & rank_bb (king_dst))
-                && 0 != (b & PieceAttacks[ROOK][king_dst])
+                //&& 0 != (b & PieceAttacks[ROOK][king_dst])
                 && 0 != (b & attacks_bb<ROOK> (king_dst, pos.pieces () ^ rook_org)))
             {
                 return;
@@ -266,7 +266,7 @@ namespace MoveGen {
                 moves.push_back (ValMove(m));
             }
         }
-        // Generates KING common move
+        // Generates king normal move
         template<GenType GT, Color Own>
         void generate_king_moves (vector<ValMove> &moves, const Position &pos, Bitboard targets)
         {
@@ -307,7 +307,7 @@ namespace MoveGen {
         template<GenType GT, Color Own>
         void generate_moves (vector<ValMove> &moves, const Position &pos, Bitboard targets)
         {
-            generate_pawn_moves<GT, Own> (moves, pos, targets);
+            generate_pawn_moves <GT, Own> (moves, pos, targets);
             generate_piece_moves<GT, Own, NIHT> (moves, pos, targets);
             generate_piece_moves<GT, Own, BSHP> (moves, pos, targets);
             generate_piece_moves<GT, Own, ROOK> (moves, pos, targets);
@@ -348,8 +348,9 @@ namespace MoveGen {
             generate_moves<GT, WHITE> (moves, pos, targets) :
             generate_moves<GT, BLACK> (moves, pos, targets);
     }
+    
     // Explicit template instantiations
-
+    // --------------------------------
     // generate<NATURAL> generates all pseudo-legal captures and non-captures.
     template void generate<NATURAL> (vector<ValMove>&, const Position&);
     // generate<CAPTURES> generates all pseudo-legal captures and queen promotions.
