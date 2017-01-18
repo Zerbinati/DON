@@ -1475,7 +1475,8 @@ namespace Searcher {
                     && FutilityMoveCounts[improving][depth] <= move_count;
 
                 i16 new_depth = depth - 1;
-                // Step 12. Extend the move which seems dangerous like ...checks etc.
+                // Step 12. Extensions
+                // Extend the move which gives check.
                 if (   gives_check
                     && !move_count_pruning
                     && pos.see_ge (move, VALUE_ZERO))
@@ -1548,7 +1549,7 @@ namespace Searcher {
                     }
                 }
 
-                // Update the current move
+                // Update the current move (this must be done after singular extension search)
                 ss->current_move = move;
                 ss->m_history = &th->cm_history(mpc, dst_sq (move));
 

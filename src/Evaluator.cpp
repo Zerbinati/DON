@@ -247,6 +247,10 @@ namespace Evaluator {
     #define V(v) Value(v)
         // PawnPassRank[rank] contains bonuses for passed pawns according to the rank of the pawn.
         const Value PawnPassRank[R_NO] = { V(0), V(5), V(5), V(35), V(75), V(165), V(255), V(0) };
+
+        // Threshold for lazy evaluation
+        const Value LazyThreshold = V(1500);
+
     #undef V
 
         // King attack weights by piece type
@@ -985,6 +989,25 @@ namespace Evaluator {
             }
             return scale;
         }
+
+        Value lazy_eval (Score score)
+        {
+            Value mg = mg_value (score)
+                , eg = eg_value (score);
+            if (   mg > +LazyThreshold
+                && eg > +LazyThreshold)
+            {
+                return +LazyThreshold + ((mg + eg) / 2 - LazyThreshold) / 4;
+            }
+            else
+            if (   mg < -LazyThreshold
+                && eg < -LazyThreshold)
+            {
+                return -LazyThreshold + ((mg + eg) / 2 + LazyThreshold) / 4;
+            }
+            return VALUE_ZERO;
+        }
+
     }
 
     // Returns a static evaluation of the position from the point of view of the side to move.
@@ -1005,6 +1028,23 @@ namespace Evaluator {
 
         EvalInfo ei (pos, pe, me);
 
+        // Score is computed internally from the white point of view, initialize by
+        // - the incrementally updated scores (material + piece square tables).
+        // - the material imbalance.
+        // - the pawn score
+        auto score =
+              pos.si->psq_score
+            + me->imbalance
+            + pe->score;
+
+        // We have taken into account all cheap evaluation terms.
+        // If score exceeds a threshold return a lazy evaluation.
+        Value lazy = lazy_eval (score);
+        if (lazy != VALUE_ZERO)
+        {
+            return WHITE == pos.active ? +lazy : -lazy;
+        }
+
         init_king_ring<WHITE> (pos, ei);
         init_king_ring<BLACK> (pos, ei);
 
@@ -1023,15 +1063,6 @@ namespace Evaluator {
             ~((ei.pin_attacked_by[BLACK][PAWN] | (pos.pieces (WHITE, PAWN) & (shift<DEL_S> (pos.pieces ()) | R2_bb | R3_bb))) | pos.square (WHITE, KING)),
             ~((ei.pin_attacked_by[WHITE][PAWN] | (pos.pieces (BLACK, PAWN) & (shift<DEL_N> (pos.pieces ()) | R7_bb | R6_bb))) | pos.square (BLACK, KING))
         };
-
-        // Score is computed internally from the white point of view, initialize by
-        // - the incrementally updated scores (material + piece square tables).
-        // - the material imbalance.
-        // - the pawn score
-        auto score =
-              pos.si->psq_score
-            + me->imbalance
-            + pe->score;
 
         // Evaluate all pieces except pawns and king
         score +=
