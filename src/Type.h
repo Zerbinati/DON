@@ -14,9 +14,6 @@
 #include <chrono>
 #include <iomanip>
 #include <sstream>
-//#include <iterator>
-//#include <locale>
-//#include <utility>
 
 // Compiling:
 // With Makefile (e.g. for Linux and OSX), configuration is done automatically, to get started type 'make help'.
@@ -82,17 +79,6 @@
 #   pragma warning (disable: 4127) // Conditional expression is constant
 #   pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
 #   pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
-
-// MSVC does not support <inttypes.h>
-//#   include <stdint.h>
-//typedef         int8_t     i08;
-//typedef        uint8_t     u08;
-//typedef         int16_t    i16;
-//typedef        uint16_t    u16;
-//typedef         int32_t    i32;
-//typedef        uint32_t    u32;
-//typedef         int64_t    i64;
-//typedef        uint64_t    u64;
 
 typedef   signed __int8     i08;
 typedef unsigned __int8     u08;
@@ -654,104 +640,24 @@ inline std::string& trim_beg (std::string &str)
 {
     str.erase (str.begin (), 
                 std::find_if (str.begin (), str.end (), 
-                    //[](char c) { return !std::isspace (c, std::locale ()); }
                     std::not1 (std::ptr_fun<i32, i32> (std::isspace))));
     return str;
 }
 inline std::string& trim_end (std::string &str)
 {
     str.erase (std::find_if (str.rbegin (), str.rend (), 
-                //[](char c) { return !std::isspace (c, std::locale ()); }).base (), 
                 std::not1 (std::ptr_fun<i32, i32> (std::isspace))).base (),
                     str.end ());
     return str;
 }
 inline std::string& trim (std::string &str)
 {
-    /*
-    size_t beg = str.find_first_not_of (" \t\n");
-    size_t end = str.find_last_not_of (" \t\n");
-    beg  = beg == std::string::npos ?  0 : beg;
-    end  = end == std::string::npos ? beg : end - beg + 1;
-    str = str.substr (beg, end);
-    return str;
-    */
     return trim_beg (trim_end (str));
 }
 
 inline std::vector<std::string> split (const std::string str, char delimiter = ' ', bool keep_empty = true, bool do_trim = false)
 {
     std::vector<std::string> tokens;
-    
-    /*
-    size_t beg = 0;
-    do
-    {
-        // Find next non-delimiter.
-        size_t end = str.find_first_of (delimiter, beg);
-        std::string token = str.substr (beg, end != std::string::npos ? end - beg : std::string::npos);
-        if (do_trim)
-        {
-            token = trim (token);
-        }
-        if (!token.empty () || keep_empty)
-        {
-            tokens.push_back (token);
-        }
-        // Skip delimiter.
-        beg = str.find_first_not_of (delimiter, end);
-    }
-    while (beg != std::string::npos);
-    */
-    /*
-    size_t beg = 0;
-    do
-    {
-        size_t end = str.find (delimiter, beg);
-        std::string token = str.substr (beg, end != std::string::npos ? end - beg : std::string::npos);
-        if (do_trim)
-        {
-            token = trim (token);
-        }
-        if (!token.empty () || keep_empty)
-        {
-            tokens.push_back (token);
-        }
-        if (end == std::string::npos)
-        {
-            break;
-        }
-        beg = end + 1;
-    }
-    while (true);
-    */
-    /*
-    size_t end = 0;
-    while (end <= str.length ())
-    {
-        size_t beg = keep_empty ? end : str.find_first_not_of (delimiter, end);
-        if (beg == std::string::npos)
-        {
-            break;
-        }
-        end = str.find_first_of (delimiter, beg);
-        auto token = str.substr (beg, end != std::string::npos ? end - beg : std::string::npos);
-        if (do_trim)
-        {
-            token = trim (token);
-        }
-        if (!token.empty () || keep_empty)
-        {
-            tokens.emplace_back (token);
-        }
-        if (std::string::npos == end)
-        {
-            break;
-        }
-        ++end;
-    }
-    */
-
     std::istringstream iss (str);
     do
     {
@@ -807,22 +713,5 @@ inline void convert_path (std::string &path)
 {
     std::replace (path.begin (), path.end (), '\\', '/'); // Replace all '\' to '/'
 }
-
-//#include <unordered_set>
-//inline std::string remove_dup (const std::string &str)
-//{
-//    // unique char set
-//    std::unordered_set<char> chars_set (str.begin (), str.end ());
-//    std::string unique_str (chars_set.begin (), chars_set.end ());
-//    return unique_str;
-//}
-
-//template<class Iterator>
-//inline auto slide (Iterator beg, Iterator end, Iterator pos) -> std::pair<Iterator, Iterator>
-//{
-//    if (pos < beg) return { pos, std::rotate (pos, beg, end) };
-//    if (end < pos) return { std::rotate (beg, end, pos), pos };
-//    return { beg, end };
-//}
 
 #endif // _TYPE_H_INC_
