@@ -120,6 +120,8 @@ namespace Evaluator {
             Pawns   ::Entry *const &pe = nullptr;
             Material::Entry *const &me = nullptr;
 
+            Bitboard mobility_area[CLR_NO];
+
             // Contains all squares attacked by the given color and piece type.
             Bitboard ful_attacked_by[CLR_NO];
             // Contains all squares attacked by the given color and piece type with pinned removed.
@@ -185,14 +187,11 @@ namespace Evaluator {
             }
         };
 
-        // Outpost[supported by pawn] contains bonuses for knights and bishops outposts.
-        const Score KnightOutpost[2] = { S(43,11), S(65,20) };
-        const Score BishopOutpost[2] = { S(20, 3), S(29, 8) };
-
-        // ReachableOutpost[supported by pawn] contains bonuses for knights and bishops
-        // which can reach a outpost square in one move.
-        const Score KnightReachableOutpost[2] = { S(21, 5), S(35, 8) };
-        const Score BishopReachableOutpost[2] = { S( 8, 0), S(14, 4) };
+        // Outpost[supported by pawn] contains bonuses for minors outposts.
+        // If they can reach an outpost square, bigger if that square is supported by a pawn.
+        // If the minor piece occupies an outpost square then score is doubled.
+        const Score KnightOutpost[2] = { S(22, 6), S(33, 9) };
+        const Score BishopOutpost[2] = { S( 9, 2), S(14, 4) };
 
         // RookOnFile[semiopen/open] contains bonuses for rooks
         // when there is no friend pawn on the rook file.
@@ -261,28 +260,36 @@ namespace Evaluator {
         const i32 QueenContactCheck = 997;
 
         template<Color Own>
-        void init_king_ring (const Position &pos, EvalInfo &ei)
+        void init_eval (const Position &pos, EvalInfo &ei)
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
+            static const Bitboard LowRanks = Own == WHITE ? R2_bb | R3_bb :
+                                                            R7_bb | R6_bb;
+            // Do not include in mobility area
+            // - squares protected by enemy pawns or
+            // - squares occupied by block pawns (pawns blocked or on ranks 2-3) or
+            // - square occupied by friend king
+            ei.mobility_area[Own] = ~((ei.pin_attacked_by[Opp][PAWN] | (pos.pieces (Own, PAWN) & (shift<Pull> (pos.pieces ()) | LowRanks))) | pos.square (Own, KING));
 
-            if (pos.si->non_pawn_matl[Own] >= VALUE_MG_QUEN)
+            if (pos.si->non_pawn_matl[Opp] >= VALUE_MG_QUEN)
             {
-                auto ek_sq = pos.square (Opp, KING);
-                Bitboard king_zone = PieceAttacks[KING][ek_sq];
-                ei.king_ring[Opp] = king_zone
-                                  | (  dist_rings_bb (ek_sq, 1)
-                                     & (rel_rank (Opp, ek_sq) < R_5 ? pawn_pass_span (Opp, ek_sq) :
-                                        rel_rank (Opp, ek_sq) < R_7 ? pawn_pass_span (Opp, ek_sq)|pawn_pass_span (Own, ek_sq) :
-                                                                      pawn_pass_span (Own, ek_sq)));
-                ei.king_ring_attackers_count[Own] = u08(pop_count (  (  king_zone
-                                                                      | (dist_rings_bb (ek_sq, 1) & pawn_pass_span (Opp, ek_sq)))
-                                                                   & ei.pin_attacked_by[Own][PAWN]));
+                auto fk_sq = pos.square (Own, KING);
+                Bitboard king_zone = PieceAttacks[KING][fk_sq];
+                ei.king_ring[Own] = king_zone
+                                  | (  dist_rings_bb (fk_sq, 1)
+                                     & (rel_rank (Own, fk_sq) < R_5 ? pawn_pass_span (Own, fk_sq) :
+                                        rel_rank (Own, fk_sq) < R_7 ? pawn_pass_span (Own, fk_sq)|pawn_pass_span (Opp, fk_sq) :
+                                                                      pawn_pass_span (Opp, fk_sq)));
+                ei.king_ring_attackers_count[Opp] = u08(pop_count (  (  king_zone
+                                                                      | (dist_rings_bb (fk_sq, 1) & pawn_pass_span (Own, fk_sq)))
+                                                                   & ei.pin_attacked_by[Opp][PAWN]));
             }
         }
 
         // Evaluates bonuses and penalties of the pieces of the given color and type
         template<Color Own, PieceType PT, bool Trace>
-        Score evaluate_pieces (const Position &pos, EvalInfo &ei, const Bitboard mobility_area, Score &mobility)
+        Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score &mobility)
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
@@ -335,7 +342,7 @@ namespace Evaluator {
                           | ei.pin_attacked_by[Opp][ROOK]);
                 }
 
-                auto mob = pop_count (mobility_area & attacks);
+                auto mob = pop_count (ei.mobility_area[Own] & attacks);
                 mobility += PieceMobility[PT][mob];
 
                 // Special extra evaluation for pieces
@@ -354,9 +361,9 @@ namespace Evaluator {
                     if (contains (b, s))
                     {
                         score +=
-                            NIHT == PT ?
+                            (NIHT == PT ?
                                 KnightOutpost[contains (ei.pin_attacked_by[Own][PAWN], s) ? 1 : 0] :
-                                BishopOutpost[contains (ei.pin_attacked_by[Own][PAWN], s) ? 1 : 0];
+                                BishopOutpost[contains (ei.pin_attacked_by[Own][PAWN], s) ? 1 : 0]) * 2;
                     }
                     else
                     {
@@ -364,9 +371,9 @@ namespace Evaluator {
                         if (0 != b)
                         {
                             score +=
-                                NIHT == PT ?
-                                    KnightReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0] :
-                                    BishopReachableOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0];
+                                (NIHT == PT ?
+                                    KnightOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0] :
+                                    BishopOutpost[(ei.pin_attacked_by[Own][PAWN] & b) != 0 ? 1 : 0]) * 1;
                         }
                     }
                     
@@ -474,8 +481,8 @@ namespace Evaluator {
                 && pos.can_castle (Own))
             {
                 if (   0 != index
-                    && pos.can_castle (Own, CS_KING)
                     && !pos.impeded_castle (Own, CS_KING)
+                    && pos.can_castle (Own, CS_KING)
                     && 0 == (pos.king_path[Own][CS_KING] & ei.ful_attacked_by[Opp]))
                 {
                     if (value < ei.pe->king_safety[Own][0])
@@ -484,8 +491,8 @@ namespace Evaluator {
                     }
                 }
                 if (   1 != index
-                    && pos.can_castle (Own, CS_QUEN)
                     && !pos.impeded_castle (Own, CS_QUEN)
+                    && pos.can_castle (Own, CS_QUEN)
                     && 0 == (pos.king_path[Own][CS_QUEN] & ei.ful_attacked_by[Opp]))
                 {
                     if (value < ei.pe->king_safety[Own][1])
@@ -532,7 +539,7 @@ namespace Evaluator {
                     -   5;
 
                 // Analyze enemy's queen safe contact checks.
-                // Undefended squares around the king not occupied by enemy's and
+                // Undefended squares around our king not occupied by enemy's and
                 // attacked by enemy queen and keep squares supported by another enemy piece.
                 b =    king_zone_undef
                     &  non_opp
@@ -605,7 +612,7 @@ namespace Evaluator {
                     score -= ProbChecked;
                 }
 
-                // Compute the king danger score and subtract it from the evaluation
+                // Transform the king units into a score, and substract it from the evaluation
                 if (king_danger > 0)
                 {
                     score -= mk_score (std::min (king_danger*king_danger / 0x1000, 2*i32(VALUE_MG_BSHP)), 0);
@@ -989,25 +996,6 @@ namespace Evaluator {
             }
             return scale;
         }
-
-        Value lazy_eval (Score score)
-        {
-            Value mg = mg_value (score)
-                , eg = eg_value (score);
-            if (   mg > +LazyThreshold
-                && eg > +LazyThreshold)
-            {
-                return +LazyThreshold + ((mg + eg) / 2 - LazyThreshold) / 4;
-            }
-            else
-            if (   mg < -LazyThreshold
-                && eg < -LazyThreshold)
-            {
-                return -LazyThreshold + ((mg + eg) / 2 + LazyThreshold) / 4;
-            }
-            return VALUE_ZERO;
-        }
-
     }
 
     // Returns a static evaluation of the position from the point of view of the side to move.
@@ -1037,16 +1025,15 @@ namespace Evaluator {
             + me->imbalance
             + pe->score;
 
-        // We have taken into account all cheap evaluation terms.
-        // If score exceeds a threshold return a lazy evaluation.
-        Value lazy = lazy_eval (score);
-        if (lazy != VALUE_ZERO)
+        // Early exit if score is high
+        auto v = (mg_value (score) + eg_value (score)) / 2;
+        if (abs (v) > LazyThreshold)
         {
-            return WHITE == pos.active ? +lazy : -lazy;
+            return WHITE == pos.active ? +v : -v;
         }
 
-        init_king_ring<WHITE> (pos, ei);
-        init_king_ring<BLACK> (pos, ei);
+        init_eval<WHITE> (pos, ei);
+        init_eval<BLACK> (pos, ei);
 
         // Evaluate pieces and mobility
         Score mobility[CLR_NO] =
@@ -1054,29 +1041,20 @@ namespace Evaluator {
             SCORE_ZERO,
             SCORE_ZERO
         };
-        // Do not include in mobility area
-        // - squares protected by enemy pawns or
-        // - squares occupied by block pawns (pawns blocked or on ranks 2-3) or
-        // - square occupied by friend king
-        const Bitboard mobility_area[CLR_NO] =
-        {
-            ~((ei.pin_attacked_by[BLACK][PAWN] | (pos.pieces (WHITE, PAWN) & (shift<DEL_S> (pos.pieces ()) | R2_bb | R3_bb))) | pos.square (WHITE, KING)),
-            ~((ei.pin_attacked_by[WHITE][PAWN] | (pos.pieces (BLACK, PAWN) & (shift<DEL_N> (pos.pieces ()) | R7_bb | R6_bb))) | pos.square (BLACK, KING))
-        };
 
         // Evaluate all pieces except pawns and king
         score +=
-            + evaluate_pieces<WHITE, NIHT, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-            - evaluate_pieces<BLACK, NIHT, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            + evaluate_pieces<WHITE, NIHT, Trace> (pos, ei, mobility[WHITE])
+            - evaluate_pieces<BLACK, NIHT, Trace> (pos, ei, mobility[BLACK]);
         score +=
-            + evaluate_pieces<WHITE, BSHP, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-            - evaluate_pieces<BLACK, BSHP, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            + evaluate_pieces<WHITE, BSHP, Trace> (pos, ei, mobility[WHITE])
+            - evaluate_pieces<BLACK, BSHP, Trace> (pos, ei, mobility[BLACK]);
         score +=
-            + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-            - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility[WHITE])
+            - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility[BLACK]);
         score +=
-            + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-            - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+            + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility[WHITE])
+            - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility[BLACK]);
         // Evaluate piece mobility
         score +=
             + mobility[WHITE]
