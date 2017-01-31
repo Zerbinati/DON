@@ -612,8 +612,11 @@ namespace Searcher {
             }
         }
 
-        Value bonus   (i16 depth) { return +Value((depth+1)*(depth+1) - 3); }
-        Value penalty (i16 depth) { return -Value((depth+2)*(depth+2) - 3); }
+        // History and stats update bonus, based on depth
+        Value stat_bonus (i16 depth)
+        {
+            return Value (depth*(depth + 2) - 2);
+        }
 
         // Updates countermoves and followupmoves history stats
         void update_cm_stats (Stack *const &ss, Piece pc, Square s, Value value)
@@ -1132,19 +1135,30 @@ namespace Searcher {
                 && tte->depth () >= depth
                 && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
             {
-                // Update move sorting heuristics on quiet TT move
-                if (   MOVE_NONE != tt_move
-                    && tt_value >= beta)
+                // Update move sorting heuristics on tt_move
+                if (MOVE_NONE != tt_move)
                 {
+                    if (tt_value >= beta)
+                    {
+                        // Bonus for a quiet tt_move
+                        if (!pos.capture_or_promotion (tt_move))
+                        {
+                            update_stats (ss, pos, tt_move, stat_bonus (depth));
+                        }
+                        // Extra penalty for a quiet tt_move in previous ply when it gets refuted
+                        if (   1 == (ss-1)->move_count
+                            && NONE == pos.si->capture)
+                        {
+                            update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -stat_bonus (depth + 1));
+                        }
+                    }
+                    else
+                    // Penalty for a quiet tt_move that fails low
                     if (!pos.capture_or_promotion (tt_move))
                     {
-                        update_stats (ss, pos, tt_move, bonus (depth));
-                    }
-                    // Penalty for a quiet TT move in previous ply when it gets refuted
-                    if (   1 == (ss-1)->move_count
-                        && NONE == pos.si->capture)
-                    {
-                        update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), penalty (depth));
+                        auto penalty = -stat_bonus (depth + 1);
+                        th->history.update (pos.active, tt_move, penalty);
+                        update_cm_stats (ss, pos[org_sq (tt_move)], dst_sq (tt_move), penalty);
                     }
                 }
                 return tt_value;
@@ -1474,6 +1488,7 @@ namespace Searcher {
                        MaxFutilityDepth > depth
                     && FutilityMoveCounts[improving][depth] <= move_count;
 
+                // Calculate new depth for this move
                 i16 new_depth = depth - 1;
                 // Step 12. Extensions
                 // Extend the move which gives check.
@@ -1605,7 +1620,7 @@ namespace Searcher {
                             + ((ss-1)->m_history != nullptr ? (*(ss-1)->m_history)(mpc, dst_sq (move)) : VALUE_ZERO)
                             + ((ss-2)->m_history != nullptr ? (*(ss-2)->m_history)(mpc, dst_sq (move)) : VALUE_ZERO)
                             + ((ss-4)->m_history != nullptr ? (*(ss-4)->m_history)(mpc, dst_sq (move)) : VALUE_ZERO)
-                            - 8000; // Correction factor
+                            - 4000; // Correction factor
 
                         // Decrease/Increase reduction by comparing opponent's stat score
                         if (   (ss)->history_val > VALUE_ZERO
@@ -1780,21 +1795,21 @@ namespace Searcher {
             {
                 if (!pos.capture_or_promotion (best_move))
                 {
-                    auto v = bonus (depth);
-                    update_stats (ss, pos, best_move, v);
+                    auto bonus = stat_bonus (depth);
+                    update_stats (ss, pos, best_move, bonus);
                     // Decrease all the other played quiet moves
                     assert(std::find (quiet_moves.begin (), quiet_moves.end (), best_move) == quiet_moves.end ());
                     for (auto m : quiet_moves)
                     {
-                        pos.thread->history.update (pos.active, m, -v);
-                        update_cm_stats (ss, pos[org_sq (m)], dst_sq (m), -v);
+                        pos.thread->history.update (pos.active, m, -bonus);
+                        update_cm_stats (ss, pos[org_sq (m)], dst_sq (m), -bonus);
                     }
                 }
                 // Penalty for a quiet best move in previous ply when it gets refuted
                 if (   1 == (ss-1)->move_count
                     && NONE == pos.si->capture)
                 {
-                    update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), penalty (depth));
+                    update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -stat_bonus (depth + 1));
                 }
             }
             else
@@ -1803,7 +1818,7 @@ namespace Searcher {
                 && nullptr != (ss-1)->m_history
                 && NONE == pos.si->capture)
             {
-                update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), bonus (depth));
+                update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), stat_bonus (depth));
             }
 
             tte->save (posi_key,

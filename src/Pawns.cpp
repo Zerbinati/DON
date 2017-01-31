@@ -103,8 +103,8 @@ namespace Pawns {
             auto score = SCORE_ZERO;
 
             File f;
-            Bitboard b, neighbours, supporters, stoppers;
-            bool opposed, blocked, phalanxed, connected, levered, backward;
+            Bitboard b, neighbours, supporters, stoppers, phalanxes, levers, escapes;
+            bool opposed, blocked, connected, backward;
             for (auto s : pos.squares[Own][PAWN])
             {
                 assert(pos[s] == (Own|PAWN));
@@ -116,17 +116,19 @@ namespace Pawns {
                 neighbours = own_pawns & adj_file_bb (f);
                 supporters = neighbours & rank_bb (s-Push);
                 stoppers   = opp_pawns & pawn_pass_span (Own, s);
+                phalanxes  = neighbours & rank_bb (s);
+                levers     = opp_pawns & PAtt[s];
+                escapes    = opp_pawns & PAtt[s + Push];
 
                 opposed    = (opp_pawns & front_sqrs_bb (Own, s)) != 0;
                 blocked    = contains (own_pawns, (s+Push));
-                phalanxed  = (neighbours & rank_bb (s)) != 0;
-                connected  = phalanxed || supporters != 0;
-                levered    = (opp_pawns & PAtt[s]) != 0;
+                connected  = supporters != 0 || phalanxes != 0;
+                
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
                 // The pawn is backward when it cannot safely progress to next rank:
                 // either there is a stoppers in the way on next rank
                 // or there is a stoppers on adjacent file which controls the way to next rank.
-                backward   = !levered
+                backward   = levers == 0
                           && 0 != stoppers
                           && 0 != neighbours
                           && rel_rank (Own, s) < R_6
@@ -136,9 +138,13 @@ namespace Pawns {
                             // backward because it cannot advance without being captured.
                           && 0 != (stoppers & (b | shift<Push> (b & adj_file_bb (f))));
 
+                // Include also not passed pawns which could become passed after one or two pawn pushes
+                // when are not attacked more times than defended.
                 // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
-                if (   0 == stoppers
-                    && 0 == (own_pawns & front_sqrs_bb (Own, s)))
+                if (   (stoppers ^ levers ^ escapes) == 0
+                    && (own_pawns & front_sqrs_bb (Own, s)) == 0
+                    && pop_count (supporters) >= pop_count (levers)
+                    && pop_count (phalanxes)  >= pop_count (escapes))
                 {
                     e->passers[Own] |= s;
                 }
@@ -161,12 +167,12 @@ namespace Pawns {
                 if (connected)
                 {
                     score += Connected[opposed ? 1 : 0]
-                                      [phalanxed ? 1 : 0]
+                                      [phalanxes != 0 ? 1 : 0]
                                       [more_than_one (supporters) ? 1 : 0]
                                       [rel_rank (Own, s)];
                 }
 
-                if (levered)
+                if (levers != 0)
                 {
                     score += Levered[rel_rank (Own, s)];
                 }

@@ -466,8 +466,8 @@ namespace Evaluator {
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
-            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            //static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            //static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
             static const Bitboard Camp = Own == WHITE ?
                                             R1_bb|R2_bb|R3_bb|R4_bb|R5_bb :
                                             R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
@@ -531,9 +531,9 @@ namespace Evaluator {
                     + 235 * pop_count (king_zone_undef)
                     + 134 * (  pop_count (king_ring_undef)
                              + (pos.abs_blockers (Own) != 0 ? 1 : 0))
-                    + 134 * ((pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
-                                                                                                         | shift<RCap> (pos.pieces (Own))))
-                                                         | pos.abs_blockers (Opp))) != 0 ? 1 : 0)
+                    //+ 134 * ((pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
+                    //                                                                                     | shift<RCap> (pos.pieces (Own))))
+                    //                                     | pos.abs_blockers (Opp))) != 0 ? 1 : 0)
                     - 717 * (pos.count<QUEN>(Opp) == 0)
                     -   7 * i32(value) / 5
                     -   5;
@@ -660,6 +660,17 @@ namespace Evaluator {
             auto score = SCORE_ZERO;
 
             Bitboard b;
+            
+            // Loose enemies (except Queen and King)
+            b =    (  pos.pieces (Opp)
+                    ^ pos.pieces (Opp, QUEN, KING))
+                & ~(  ei.pin_attacked_by[Own][NONE]
+                    | ei.pin_attacked_by[Opp][NONE]);
+            if (0 != b)
+            {
+                score += PieceLoosed;
+            }
+
             // Enemy non-pawns
             Bitboard nonpawns =
                   pos.pieces (Opp)
@@ -718,16 +729,6 @@ namespace Evaluator {
             b =    weak_pieces
                 & ~ei.pin_attacked_by[Opp][NONE];
             score += PieceHanged * pop_count (b);
-
-            // Loose enemies (except Queen and King)
-            b =    (  pos.pieces (Opp)
-                    ^ pos.pieces (Opp, QUEN, KING))
-                & ~(  ei.pin_attacked_by[Own][NONE]
-                    | ei.pin_attacked_by[Opp][NONE]);
-            if (0 != b)
-            {
-                score += PieceLoosed;
-            }
 
             Bitboard safe =
                   ~ei.pin_attacked_by[Opp][NONE]
@@ -796,7 +797,6 @@ namespace Evaluator {
             while (passers != 0)
             {
                 auto s = pop_lsq (passers);
-                assert(pos.pawn_passed_at (Own, s));
                 assert(0 == (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)));
 
                 auto rank = rel_rank (Own, s);
@@ -875,6 +875,13 @@ namespace Evaluator {
                 if (pos.si->non_pawn_matl[Opp] == VALUE_ZERO)
                 {
                     eg_value += 20;
+                }
+
+                // Scale down bonus for candidate passers which need more than one pawn push to become passed.
+                if (!pos.pawn_passed_at (Own, s+Push))
+                {
+                    mg_value /= 2;
+                    eg_value /= 2;
                 }
 
                 score += mk_score (mg_value, eg_value)
