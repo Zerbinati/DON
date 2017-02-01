@@ -24,9 +24,8 @@ namespace UCI {
 
     // Waits for a command from stdin, parses it and calls the appropriate function.
     // Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
-    // When called with some command line arguments, e.g. to run 'bench',
-    // once the command is executed the function returns immediately.
-    // In addition to the UCI ones, also some additional debug commands are supported.
+    // Single command line arguments is executed once and returns immediately, e.g. 'bench'.
+    // In addition to the UCI ones, also some additional commands are supported.
     void loop (i32 argc, const char *const *argv)
     {
         // Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.

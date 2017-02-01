@@ -256,8 +256,6 @@ namespace Evaluator {
         const i32 KingAttackWeights [NONE] = { 0,  78,  56,  45,  11, 0 };
         // Penalties for enemy's piece safe checks by piece type
         const i32 PieceSafeChecks   [NONE] = { 0, 924, 588, 688, 745, 0 };
-        // Penalty for enemy's queen contact checks
-        const i32 QueenContactCheck = 997;
 
         template<Color Own>
         void init_eval (const Position &pos, EvalInfo &ei)
@@ -508,7 +506,6 @@ namespace Evaluator {
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[Opp] != 0)
             {
-                Bitboard non_opp = ~pos.pieces (Opp);
                 // Find the attacked squares which are defended only by the king in the king zone...
                 Bitboard king_zone_undef =
                        ei.pin_attacked_by[Own][KING]
@@ -517,7 +514,7 @@ namespace Evaluator {
                 // ... and those which are not defended at all in the king ring.
                 Bitboard king_ring_undef =
                        ei.king_ring[Own]
-                    &  non_opp
+                    &  ~pos.pieces (Opp)
                     &  ei.pin_attacked_by[Opp][NONE]
                     & ~ei.pin_attacked_by[Own][NONE];
                 // Initialize the king danger, which will be transformed later into a king danger score.
@@ -538,27 +535,21 @@ namespace Evaluator {
                     -   7 * i32(value) / 5
                     -   5;
 
-                // Analyze enemy's queen safe contact checks.
-                // Undefended squares around our king not occupied by enemy's and
-                // attacked by enemy queen and keep squares supported by another enemy piece.
-                b =    king_zone_undef
-                    &  non_opp
-                    &  ei.pin_attacked_by[Opp][QUEN]
-                    &  ei.dbl_attacked[Opp];
-                king_danger += QueenContactCheck * pop_count (b);
-
                 Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces ());
                 Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces ());
+                assert((rook_attack & pos.pieces (Opp, ROOK, QUEN)) == 0);
+                assert((bshp_attack & pos.pieces (Opp, BSHP, QUEN)) == 0);
 
                 // For safe enemy's checks on the safe square which are possible on next move ...
                 Bitboard safe_area =
-                       non_opp
-                    & ~ei.pin_attacked_by[Own][NONE];
+                      ~pos.pieces (Opp)
+                    & (  ~ei.pin_attacked_by[Own][NONE]
+                       | (king_zone_undef & ei.dbl_attacked[Opp]));
                 // ... and for some other probable potential checks, 
                 // the square to be safe from pawn-attacks and not being occupied by a blocked pawns.
                 Bitboard prob_area =
-                    ~(  ei.pin_attacked_by[Own][PAWN]
-                      | (pos.pieces (Opp, PAWN) & shift<Push> (pos.pieces (PAWN))));
+                      ~ei.pin_attacked_by[Own][PAWN]
+                    & ~(pos.pieces (Opp, PAWN) & shift<Push> (pos.pieces ()));
 
                 // Enemy queens safe checks
                 b =    (rook_attack | bshp_attack)
@@ -570,9 +561,8 @@ namespace Evaluator {
 
                 // For other pieces, the safe square also if attacked twice and only defended by a queen.
                 safe_area |=
-                       non_opp
-                    & ~ei.dbl_attacked[Own]
-                    &  ei.dbl_attacked[Opp]
+                       ei.dbl_attacked[Opp]
+                    & ~(ei.dbl_attacked[Own] | pos.pieces (Opp))
                     &  ei.pin_attacked_by[Own][QUEN];
 
                 // Enemy rooks safe and other checks
