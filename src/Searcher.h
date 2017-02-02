@@ -85,19 +85,16 @@ public:
 struct MoveStats
 {
 private:
-    Move _table[CLR_NO][NONE][SQ_NO*SQ_NO];
+    Move _table[MAX_PIECE][SQ_NO*SQ_NO];
 
 public:
     void clear ()
     {
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (auto pc = 0; pc < MAX_PIECE; ++pc)
         {
-            for (auto pt = PAWN; pt < NONE; ++pt)
+            for (auto m = 0; m < SQ_NO*SQ_NO; ++m)
             {
-                for (auto m = 0; m < SQ_NO*SQ_NO; ++m)
-                {
-                    _table[c][pt][m] = MOVE_NONE;
-                }
+                _table[pc][m] = MOVE_NONE;
             }
         }
     }
@@ -105,13 +102,13 @@ public:
     Move operator() (Piece pc, Move m) const
     {
         assert(NONE != ptype (pc));
-        return _table[color (pc)][ptype (pc)][move_pp (m)];
+        return _table[pc][move_pp (m)];
     }
 
     void update (Piece pc, Move m, Move cm)
     {
         assert(NONE != ptype (pc));
-        _table[color (pc)][ptype (pc)][move_pp (m)] = cm;
+        _table[pc][move_pp (m)] = cm;
     }
 };
 
@@ -119,36 +116,33 @@ public:
 struct MoveHistoryStats
 {
 private:
-    Value _table[CLR_NO][NONE][SQ_NO];
+    Value _table[MAX_PIECE][SQ_NO];
 
 public:
     void clear ()
     {
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (auto pc = 0; pc < MAX_PIECE; ++pc)
         {
-            for (auto pt = PAWN; pt < NONE; ++pt)
+            for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
-                for (auto s = SQ_A1; s <= SQ_H8; ++s)
-                {
-                    _table[c][pt][s] = VALUE_ZERO;
-                }
+                _table[pc][s] = VALUE_ZERO;
             }
         }
     }
     // Piece, Destiny
     Value operator() (Piece pc, Square s) const
     {
-        assert(pc != NO_PIECE);
-        return _table[color (pc)][ptype (pc)][s];
+        assert(NONE != ptype (pc));
+        return _table[pc][s];
     }
     // Piece, Destiny, Value
     void update (Piece pc, Square s, Value v)
     {
-        assert(pc != NO_PIECE);
+        assert(NONE != ptype (pc));
         i32 x = abs (v);
         if (x < 324)
         {
-            auto &e = _table[color (pc)][ptype (pc)][s];
+            auto &e = _table[pc][s];
             e += - (i32(e)*x)/936 + i32(v)*32;
         }
     }
@@ -157,27 +151,24 @@ public:
 struct CMoveHistoryStats
 {
 private:
-    MoveHistoryStats _table[CLR_NO][NONE][SQ_NO];
+    MoveHistoryStats _table[MAX_PIECE][SQ_NO];
 
 public:
     void clear ()
     {
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (auto pc = 0; pc < MAX_PIECE; ++pc)
         {
-            for (auto pt = PAWN; pt < NONE; ++pt)
+            for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
-                for (auto s = SQ_A1; s <= SQ_H8; ++s)
-                {
-                    _table[c][pt][s].clear ();
-                }
+                _table[pc][s].clear ();
             }
         }
     }
 
     MoveHistoryStats& operator() (Piece pc, Square s)
     {
-        assert(pc != NO_PIECE);
-        return _table[color (pc)][ptype (pc)][s];
+        assert(NONE != ptype (pc));
+        return _table[pc][s];
     }
 };
 

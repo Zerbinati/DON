@@ -17,8 +17,8 @@ namespace Pawns {
         const Value ShelterWeak[F_NO/2][R_NO] =
         {
             { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98), V(0) }, // => A and H file
-            { V(116), V( 4), V(28), V(87), V(94), V(108), V(110), V(0) }, // => B and G file
-            { V(109), V( 1), V(59), V(87), V(62), V( 91), V(116), V(0) }, // => C and F file
+            { V(116), V( 4), V(28), V(87), V(94), V(108), V(108), V(0) }, // => B and G file
+            { V(109), V( 1), V(59), V(87), V(88), V( 91), V(116), V(0) }, // => C and F file
             { V( 75), V(12), V(43), V(59), V(90), V( 94), V(112), V(0) }  // => D and E file
         };
 
