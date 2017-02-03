@@ -128,7 +128,7 @@ namespace Pawns {
                 // The pawn is backward when it cannot safely progress to next rank:
                 // either there is a stoppers in the way on next rank
                 // or there is a stoppers on adjacent file which controls the way to next rank.
-                backward   = levers == 0
+                backward   = 0 == levers
                           && 0 != stoppers
                           && 0 != neighbours
                           && rel_rank (Own, s) < R_6
@@ -141,8 +141,8 @@ namespace Pawns {
                 // Include also not passed pawns which could become passed after one or two pawn pushes
                 // when are not attacked more times than defended.
                 // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
-                if (   (stoppers ^ levers ^ escapes) == 0
-                    && (own_pawns & front_sqrs_bb (Own, s)) == 0
+                if (   0 == (stoppers ^ levers ^ escapes)
+                    && 0 == (own_pawns & front_sqrs_bb (Own, s))
                     && pop_count (supporters) >= pop_count (levers)
                     && pop_count (phalanxes)  >= pop_count (escapes))
                 {
@@ -172,7 +172,7 @@ namespace Pawns {
                                       [rel_rank (Own, s)];
                 }
 
-                if (levers != 0)
+                if (0 != levers)
                 {
                     score += Levered[rel_rank (Own, s)];
                 }

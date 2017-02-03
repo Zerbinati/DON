@@ -303,23 +303,24 @@ Move MovePicker::next_move ()
             if ((_ss-1)->m_history != nullptr)
             {
                 auto move = (_ss-1)->current_move;
-                auto org  = org_sq (move);
-                auto dst  = dst_sq (move);
-                auto pc   = _pos[fix_dst_sq (move)];
-                auto pt   = ptype (pc);
-                Bitboard attacks = pt != PAWN ?
-                        PieceAttacks[pt][dst] ^ org : 0;
+                auto pc = _pos[fix_dst_sq (move)];
 
-                auto cm = _pos.thread->counter_moves (pc, move);
+                auto cm = _pos.thread->counter_moves(pc, move);
                 if (   MOVE_NONE != cm
                     && _tt_move != cm
                     && std::find (killer_moves.begin (), killer_moves.end (), cm) == killer_moves.end ())
                 {
                     killer_moves.push_back (cm);
                 }
+
+                auto dst = dst_sq (move);
+                auto pt  = ptype (pc);
+                Bitboard attacks = pt != PAWN ?
+                    PieceAttacks[pt][dst] ^ org_sq (move) : 0;
                 while (0 != attacks)
                 {
-                    cm = _pos.thread->counter_moves(pc, mk_move<NORMAL> (pop_lsq (attacks), dst));
+                    auto org = pop_lsq (attacks);
+                    cm = _pos.thread->counter_moves(pc, mk_move<NORMAL> (org, dst));
                     if (   MOVE_NONE != cm
                         && _tt_move != cm
                         && std::find (killer_moves.begin (), killer_moves.end (), cm) == killer_moves.end ())
