@@ -957,27 +957,25 @@ namespace Evaluator {
             assert(scale != SCALE_NONE);
 
             // If don't already have an unusual scale, check for certain types of endgames.
-            if (   ei.me->phase < PHASE_MIDGAME
-                && (   scale == SCALE_NORMAL
-                    || scale == SCALE_ONEPAWN))
+            if (   SCALE_NORMAL == scale
+                || SCALE_ONEPAWN == scale)
             {
                 if (pos.opposite_bishops ())
                 {
                     return
                         // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
-                           pos.si->non_pawn_matl[WHITE] == VALUE_MG_BSHP
-                        && pos.si->non_pawn_matl[BLACK] == VALUE_MG_BSHP ?
-                               pos.count<PAWN> () <= 1 ?
-                                Scale( 9) :
-                                Scale(31) :
+                           VALUE_MG_BSHP == pos.si->non_pawn_matl[WHITE] && 1 == pos.count<BSHP> (WHITE)
+                        && VALUE_MG_BSHP == pos.si->non_pawn_matl[BLACK] && 1 == pos.count<BSHP> (BLACK) ?
+                                1 >= pos.count<PAWN> () ?
+                                    Scale( 9) :
+                                    Scale(31) :
                         // Endgame with opposite-colored bishops but also other pieces
                         // is still a bit drawish, but not as drawish as with only the two bishops. 
-                            Scale(46);
+                                Scale(46);
                 }
-                else
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
-                if (   abs (eg) <= VALUE_EG_BSHP
-                    && pos.count<PAWN> (strong_color) <= 2
+                if (   VALUE_EG_BSHP >= abs (eg)
+                    && 2 >= pos.count<PAWN> (strong_color)
                     && !pos.pawn_passed_at (~strong_color, pos.square (~strong_color, KING)))
                 {
                     return Scale(37 + 7 * pos.count<PAWN> (strong_color));
