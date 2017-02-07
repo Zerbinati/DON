@@ -346,7 +346,6 @@ inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
          | (0 != bq ? bq & attacks_bb<BSHP> (s, occ) : 0)
          | (0 != rq ? rq & attacks_bb<ROOK> (s, occ) : 0)
          | (pieces (KING)        & PieceAttacks[KING][s]);
-
 }
 // Attackers to the square 's'
 inline Bitboard Position::attackers_to (Square s) const
@@ -393,8 +392,8 @@ inline bool Position::paired_bishop (Color c) const
 }
 inline bool Position::opposite_bishops () const
 {
-    return count<BSHP> (WHITE) == 1
-        && count<BSHP> (BLACK) == 1
+    return 1 == count<BSHP> (WHITE)
+        && 1 == count<BSHP> (BLACK)
         && opposite_colors (square (WHITE, BSHP), square (BLACK, BSHP));
 }
 inline bool Position::en_passant (Move m) const

@@ -697,38 +697,34 @@ namespace Searcher {
         // and so refer to the previous search score.
         string multipv_info (Thread *const &th, Value alfa, Value beta)
         {
-            auto pv_index       = th->pv_index;
-            auto max_ply        = th->max_ply;
-            auto running_depth  = th->running_depth;
-            auto &root_moves    = th->root_moves;
             auto elapsed_time   = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
             auto total_nodes    = Threadpool.nodes ();
-            auto tb_hits        = Threadpool.tb_hits () + (TBHasRoot ? root_moves.size () : 0);
+            auto tb_hits        = Threadpool.tb_hits () + (TBHasRoot ? th->root_moves.size () : 0);
             assert(elapsed_time > 0);
 
             ostringstream oss;
             for (u16 i = 0; i < Threadpool.pv_limit; ++i)
             {
-                auto d = i <= pv_index ?
-                    running_depth :
-                    running_depth - 1;
+                auto d = i <= th->pv_index ?
+                    th->running_depth :
+                    th->running_depth - 1;
                 if (d <= 0)
                 {
                     continue;
                 }
-                auto v = i <= pv_index ?
-                    root_moves[i].new_value :
-                    root_moves[i].old_value;
+                auto v = i <= th->pv_index ?
+                    th->root_moves[i].new_value :
+                    th->root_moves[i].old_value;
                 bool tb =
                        TBHasRoot
                     && abs (v) < +VALUE_MATE - i32(MaxPlies);
 
                 oss << "info"
-                    << " multipv "  << std::setw (2) << i + 1
+                    << " multipv "  << i + 1
                     << " depth "    << d
-                    << " seldepth " << max_ply
+                    << " seldepth " << th->max_ply
                     << " score "    << to_string (tb ? TBValue : v)
-                    << (!tb && i == pv_index ?
+                    << (!tb && i == th->pv_index ?
                             beta <= v ? " lowerbound" :
                                 v <= alfa ? " upperbound" : "" : "")
                     << " nodes "    << total_nodes
@@ -736,7 +732,7 @@ namespace Searcher {
                     << " nps "      << total_nodes * MilliSec / elapsed_time
                     << " hashfull " << (elapsed_time > MilliSec ? TT.hash_full () : 0)
                     << " tbhits "   << tb_hits
-                    << " pv"        << root_moves[i]
+                    << " pv"        << th->root_moves[i]
                     << (i+1 < Threadpool.pv_limit ? '\n' : '\0');
             }
             return oss.str ();
@@ -1470,7 +1466,7 @@ namespace Searcher {
                         sync_cout
                             << "info"
                             << " depth "          << depth
-                            << " currmovenumber " << std::setw (2) << th->pv_index + move_count
+                            << " currmovenumber " << th->pv_index + move_count
                             << " currmove "       << move_to_can (move)
                             << " time "           << elapsed_time
                             << sync_endl;

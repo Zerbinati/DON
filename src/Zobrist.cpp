@@ -8,15 +8,12 @@ using namespace BitBoard;
 
 namespace Zobrists {
     
-    Key Zobrist::no_matl_key;
-    Key Zobrist::no_pawn_key;
-
     Key Zobrist::compute_matl_key (const Position &pos) const
     {
-        Key matl_key = Zobrist::no_matl_key;
+        Key matl_key = 0;
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            for (auto pt = PAWN; pt <= QUEN; ++pt)
+            for (auto pt = PAWN; pt <= KING; ++pt)
             {
                 for (auto pc = 0; pc < pos.count (c, pt); ++pc)
                 {
@@ -29,7 +26,7 @@ namespace Zobrists {
 
     Key Zobrist::compute_pawn_key (const Position &pos) const
     {
-        Key pawn_key = Zobrist::no_pawn_key;
+        Key pawn_key = no_pawn_key;
         for (auto c = WHITE; c <= BLACK; ++c)
         {
             for (auto s : pos.squares[c][PAWN])
@@ -189,11 +186,7 @@ namespace Zobrists {
         }
         Zob.color_key = prng.rand<Key> ();
 
-        Zobrist::no_matl_key = prng.rand<Key> ();
-        Zobrist::no_pawn_key = prng.rand<Key> ();
-
-        assert(Zobrist::no_matl_key != 0);
-        assert(Zobrist::no_pawn_key != 0);
+        Zob.no_pawn_key = prng.rand<Key> ();
     }
 
 }
@@ -457,5 +450,6 @@ const Zobrists::Zobrist PolyZob =
     U64(0xCF3145DE0ADD4289), U64(0xD0E4427A5514FB72), U64(0x77C621CC9FB3A483), U64(0x67A34DAC4356550B),
     },
     // ActiveSide
-    U64(0xF8D626AAAF278509)
+    U64(0xF8D626AAAF278509),
+    U64(0x0000000000000000)
 };
