@@ -853,12 +853,6 @@ namespace Evaluator {
                     }
                 }
 
-                // Give a small bonus when opps have no pieces left (unstoppable).
-                if (pos.si->non_pawn_matl[Opp] == VALUE_ZERO)
-                {
-                    eg_value += 20;
-                }
-
                 // Scale down bonus for candidate passers which need more than one pawn push to become passed.
                 if (!pos.pawn_passed_at (Own, s+Push))
                 {
