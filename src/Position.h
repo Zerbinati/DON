@@ -262,14 +262,14 @@ inline Key Position::move_posi_key (Move m) const
         && color (board[org]) == active
         && NONE != mpt);
     
-    Key key = si->posi_key ^ Zob.color_key;
+    Key key = si->posi_key ^ RandZob.color_key;
     auto mt = mtype (m);
     auto ppt = PROMOTE != mt ? mpt : promote (m);
     if (CASTLE == mt)
     {
         key ^=
-             Zob.piece_square_keys[active][ROOK][dst]
-            ^Zob.piece_square_keys[active][ROOK][rel_sq (active, dst > org ? SQ_F1 : SQ_D1)];
+              RandZob.piece_square_keys[active][ROOK][dst]
+            ^ RandZob.piece_square_keys[active][ROOK][rel_sq (active, dst > org ? SQ_F1 : SQ_D1)];
     }
     else
     {
@@ -280,30 +280,30 @@ inline Key Position::move_posi_key (Move m) const
             auto ep_sq = org + (dst - org) / 2;
             if (can_en_passant (~active, ep_sq, false))
             {
-                key ^= Zob.en_passant_keys[_file (ep_sq)];
+                key ^= RandZob.en_passant_keys[_file (ep_sq)];
             }
         }
         auto cpt = ENPASSANT != mt ? ptype (board[dst]) : PAWN;
         if (NONE != cpt)
         {
-            key ^= Zob.piece_square_keys[~active][cpt][ENPASSANT != mt ? dst : dst - pawn_push (active)];
+            key ^= RandZob.piece_square_keys[~active][cpt][ENPASSANT != mt ? dst : dst - pawn_push (active)];
         }
     }
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
     if (CR_NONE != b)
     {
-        if (CR_NONE != (b & CR_WKING)) key ^= Zob.castle_right_keys[WHITE][CS_KING];
-        if (CR_NONE != (b & CR_WQUEN)) key ^= Zob.castle_right_keys[WHITE][CS_QUEN];
-        if (CR_NONE != (b & CR_BKING)) key ^= Zob.castle_right_keys[BLACK][CS_KING];
-        if (CR_NONE != (b & CR_BQUEN)) key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
+        if (CR_NONE != (b & CR_WKING)) key ^= RandZob.castle_right_keys[WHITE][CS_KING];
+        if (CR_NONE != (b & CR_WQUEN)) key ^= RandZob.castle_right_keys[WHITE][CS_QUEN];
+        if (CR_NONE != (b & CR_BKING)) key ^= RandZob.castle_right_keys[BLACK][CS_KING];
+        if (CR_NONE != (b & CR_BQUEN)) key ^= RandZob.castle_right_keys[BLACK][CS_QUEN];
     }
     if (SQ_NO != si->en_passant_sq)
     {
-        key ^= Zob.en_passant_keys[_file (si->en_passant_sq)];
+        key ^= RandZob.en_passant_keys[_file (si->en_passant_sq)];
     }
     return key
-        ^ Zob.piece_square_keys[active][ppt][mt != CASTLE ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
-        ^ Zob.piece_square_keys[active][mpt][org];
+        ^ RandZob.piece_square_keys[active][ppt][mt != CASTLE ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
+        ^ RandZob.piece_square_keys[active][mpt][org];
 }
 
 inline bool Position::can_castle (Color c) const { return (si->castle_rights & castle_right (c)) != CR_NONE; }

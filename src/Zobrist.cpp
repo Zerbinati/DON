@@ -87,7 +87,7 @@ namespace Zobrists {
     //    {
     //        if (isdigit (token))
     //        {
-    //            f += Delta(token - '0'); // Advance the given number of files
+    //            f += File(token - '0'); // Advance the given number of files
     //        }
     //        else
     //        if (   isalpha (token)
@@ -109,11 +109,11 @@ namespace Zobrists {
     //        }
     //    }
     //
-    //    assert(kf[WHITE] != F_NO);
-    //    assert(kf[BLACK] != F_NO);
+    //    assert(kf[WHITE] != F_NO
+    //        && kf[BLACK] != F_NO);
     //
     //    iss >> token;
-    //    if ('w' == token)
+    //    if (WHITE == Color(ColorChar.find (token)))
     //    {
     //        fen_key ^= color_key;
     //    }
@@ -169,30 +169,30 @@ namespace Zobrists {
             {
                 for (auto s = SQ_A1; s <= SQ_H8; ++s)
                 {
-                    Zob.piece_square_keys[c][pt][s] = prng.rand<Key> ();
+                    RandZob.piece_square_keys[c][pt][s] = prng.rand<Key> ();
                 }
             }
-        }
-        for (auto f = F_A; f <= F_H; ++f)
-        {
-            Zob.en_passant_keys[f] = prng.rand<Key> ();
         }
         for (auto c = WHITE; c <= BLACK; ++c)
         {
             for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
             {
-                Zob.castle_right_keys[c][cs] = prng.rand<Key> ();
+                RandZob.castle_right_keys[c][cs] = prng.rand<Key> ();
             }
         }
-        Zob.color_key = prng.rand<Key> ();
+        for (auto f = F_A; f <= F_H; ++f)
+        {
+            RandZob.en_passant_keys[f] = prng.rand<Key> ();
+        }
+        RandZob.color_key = prng.rand<Key> ();
 
-        Zob.no_pawn_key = prng.rand<Key> ();
+        RandZob.no_pawn_key = prng.rand<Key> ();
     }
 
 }
 
-// Random numbers, used to compute position key
-Zobrists::Zobrist Zob;
+// Random numbers from PRNG, used to compute position key
+      Zobrists::Zobrist RandZob;
 // Constant numbers from Polyglot, used to compute polyglot book hash key
 const Zobrists::Zobrist PolyZob =
 {

@@ -30,14 +30,14 @@ namespace Zobrists {
         Key compute_pawn_key (const Position &pos) const;
         // Hash key of the complete position.
         Key compute_posi_key (const Position &pos) const;
-        //// Hash key of the FEN
+        // Hash key of the FEN
         //Key compute_fen_key (const std::string &fen) const;
     };
 
     extern void initialize ();
 }
 
-extern Zobrists::Zobrist Zob;
+extern       Zobrists::Zobrist RandZob;
 extern const Zobrists::Zobrist PolyZob;
 
 #endif // _ZOBRIST_H_INC_

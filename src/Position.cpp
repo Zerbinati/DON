@@ -805,9 +805,9 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     // Convert from moves starting from 1 to ply starting from 0,
     ply = i16(2*(moves - 1) + (BLACK == active ? 1 : 0));
 
-    si->posi_key = Zob.compute_posi_key (*this);
-    si->matl_key = Zob.compute_matl_key (*this);
-    si->pawn_key = Zob.compute_pawn_key (*this);
+    si->posi_key = RandZob.compute_posi_key (*this);
+    si->matl_key = RandZob.compute_matl_key (*this);
+    si->pawn_key = RandZob.compute_pawn_key (*this);
     si->psq_score = compute_psq (*this);
     si->non_pawn_matl[WHITE] = compute_npm<WHITE> (*this);
     si->non_pawn_matl[BLACK] = compute_npm<BLACK> (*this);
@@ -873,14 +873,14 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         remove_piece (cap);
         if (PAWN == si->capture)
         {
-            si->pawn_key ^= Zob.piece_square_keys[pasive][PAWN][cap];
+            si->pawn_key ^= RandZob.piece_square_keys[pasive][PAWN][cap];
         }
         else
         {
             si->non_pawn_matl[pasive] -= PieceValues[MG][si->capture];
         }
-        si->matl_key ^= Zob.piece_square_keys[pasive][si->capture][count (pasive, si->capture)];
-        si->posi_key ^= Zob.piece_square_keys[pasive][si->capture][cap];
+        si->matl_key ^= RandZob.piece_square_keys[pasive][si->capture][count (pasive, si->capture)];
+        si->posi_key ^= RandZob.piece_square_keys[pasive][si->capture][cap];
         si->psq_score -= PSQ[pasive][si->capture][cap];
         si->clock_ply = 0;
     }
@@ -888,7 +888,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     if (SQ_NO != si->en_passant_sq)
     {
         assert(si->clock_ply <= 1);
-        si->posi_key ^= Zob.en_passant_keys[_file (si->en_passant_sq)];
+        si->posi_key ^= RandZob.en_passant_keys[_file (si->en_passant_sq)];
         si->en_passant_sq = SQ_NO;
     }
     switch (mt)
@@ -903,8 +903,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         if (PAWN == mpt)
         {
             si->pawn_key ^=
-                  Zob.piece_square_keys[active][PAWN][dst]
-                ^ Zob.piece_square_keys[active][PAWN][org];
+                  RandZob.piece_square_keys[active][PAWN][dst]
+                ^ RandZob.piece_square_keys[active][PAWN][org];
             // Double push pawn
             if (16 == (u08(dst) ^ u08(org)))
             {
@@ -912,7 +912,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
                 auto ep_sq = org + (dst - org) / 2;
                 if (can_en_passant (pasive, ep_sq))
                 {
-                    si->posi_key ^= Zob.en_passant_keys[_file (ep_sq)];
+                    si->posi_key ^= RandZob.en_passant_keys[_file (ep_sq)];
                     si->en_passant_sq = ep_sq;
                 }
             }
@@ -929,8 +929,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         Square rook_org, rook_dst;
         do_castling<true> (org, dst, rook_org, rook_dst);
         si->posi_key ^=
-              Zob.piece_square_keys[active][ROOK][rook_dst]
-            ^ Zob.piece_square_keys[active][ROOK][rook_org];
+              RandZob.piece_square_keys[active][ROOK][rook_dst]
+            ^ RandZob.piece_square_keys[active][ROOK][rook_org];
         si->psq_score +=
               PSQ[active][ROOK][rook_dst]
             - PSQ[active][ROOK][rook_org];
@@ -950,8 +950,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->clock_ply = 0;
         move_piece (org, dst);
         si->pawn_key ^=
-              Zob.piece_square_keys[active][PAWN][dst]
-            ^ Zob.piece_square_keys[active][PAWN][org];
+              RandZob.piece_square_keys[active][PAWN][dst]
+            ^ RandZob.piece_square_keys[active][PAWN][org];
     }
         break;
     case PROMOTE:
@@ -968,18 +968,18 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         board[org] = NO_PIECE; // Not done by remove_piece()
         place_piece (dst, active, ppt);
         si->matl_key ^=
-              Zob.piece_square_keys[active][PAWN][count (active, mpt)]
-            ^ Zob.piece_square_keys[active][ppt][count (active, ppt) - 1];
+              RandZob.piece_square_keys[active][PAWN][count (active, mpt)]
+            ^ RandZob.piece_square_keys[active][ppt][count (active, ppt) - 1];
         si->pawn_key ^=
-              Zob.piece_square_keys[active][PAWN][org];
+              RandZob.piece_square_keys[active][PAWN][org];
         si->non_pawn_matl[active] += PieceValues[MG][ppt];
     }
         break;
     }
 
     si->posi_key ^=
-          Zob.piece_square_keys[active][ppt][dst]
-        ^ Zob.piece_square_keys[active][mpt][org];
+          RandZob.piece_square_keys[active][ppt][dst]
+        ^ RandZob.piece_square_keys[active][mpt][org];
     si->psq_score +=
           PSQ[active][ppt][dst]
         - PSQ[active][mpt][org];
@@ -989,10 +989,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     if (CR_NONE != b)
     {
         si->castle_rights &= ~b;
-        if (CR_NONE != (b & CR_WKING)) si->posi_key ^= Zob.castle_right_keys[WHITE][CS_KING];
-        if (CR_NONE != (b & CR_WQUEN)) si->posi_key ^= Zob.castle_right_keys[WHITE][CS_QUEN];
-        if (CR_NONE != (b & CR_BKING)) si->posi_key ^= Zob.castle_right_keys[BLACK][CS_KING];
-        if (CR_NONE != (b & CR_BQUEN)) si->posi_key ^= Zob.castle_right_keys[BLACK][CS_QUEN];
+        if (CR_NONE != (b & CR_WKING)) si->posi_key ^= RandZob.castle_right_keys[WHITE][CS_KING];
+        if (CR_NONE != (b & CR_WQUEN)) si->posi_key ^= RandZob.castle_right_keys[WHITE][CS_QUEN];
+        if (CR_NONE != (b & CR_BKING)) si->posi_key ^= RandZob.castle_right_keys[BLACK][CS_KING];
+        if (CR_NONE != (b & CR_BQUEN)) si->posi_key ^= RandZob.castle_right_keys[BLACK][CS_QUEN];
     }
 
     assert(0 == attackers_to (square (active, KING), pasive));
@@ -1004,7 +1004,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     // Switch sides
     active = pasive;
-    si->posi_key ^= Zob.color_key;
+    si->posi_key ^= RandZob.color_key;
 
     si->set_check_info (*this);
     ++ply;
@@ -1091,14 +1091,14 @@ void Position::do_null_move (StateInfo &nsi)
     // Reset en-passant square
     if (SQ_NO != si->en_passant_sq)
     {
-        si->posi_key ^= Zob.en_passant_keys[_file (si->en_passant_sq)];
+        si->posi_key ^= RandZob.en_passant_keys[_file (si->en_passant_sq)];
         si->en_passant_sq = SQ_NO;
     }
     ++si->clock_ply;
     si->null_ply = 0;
 
     active = ~active;
-    si->posi_key ^= Zob.color_key;
+    si->posi_key ^= RandZob.color_key;
 
     si->capture = NONE;
     assert(0 == si->checkers);
@@ -1453,9 +1453,9 @@ bool Position::ok (u08 *step) const
     }
     ++s;
     {
-        if (   si->matl_key != Zob.compute_matl_key (*this)
-            || si->pawn_key != Zob.compute_pawn_key (*this)
-            || si->posi_key != Zob.compute_posi_key (*this)
+        if (   si->matl_key != RandZob.compute_matl_key (*this)
+            || si->pawn_key != RandZob.compute_pawn_key (*this)
+            || si->posi_key != RandZob.compute_posi_key (*this)
             || si->psq_score != compute_psq (*this)
             || si->non_pawn_matl[WHITE] != compute_npm<WHITE> (*this)
             || si->non_pawn_matl[BLACK] != compute_npm<BLACK> (*this)

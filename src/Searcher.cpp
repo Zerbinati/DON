@@ -134,7 +134,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
     }
     else
     {
-        assert(_ok (lm));
+        assert(MOVE_NONE != lm);
 
         _stage = S_Q_RECAPTURE_TT;
         _recap_sq = dst_sq (lm);
@@ -1293,8 +1293,8 @@ namespace Searcher {
 
                         // Speculative prefetch as early as possible
                         prefetch (TT.cluster_entry (  pos.si->posi_key
-                                                    ^ Zob.color_key
-                                                    ^ (pos.si->en_passant_sq != SQ_NO ? Zob.en_passant_keys[_file (pos.si->en_passant_sq)] : 0)));
+                                                    ^ RandZob.color_key
+                                                    ^ (pos.si->en_passant_sq != SQ_NO ? RandZob.en_passant_keys[_file (pos.si->en_passant_sq)] : 0)));
 
                         pos.do_null_move (si);
                         auto null_value =
@@ -1342,7 +1342,8 @@ namespace Searcher {
                         auto beta_margin = beta + 200;
                         assert(beta_margin <= +VALUE_INFINITE);
 
-                        assert(_ok ((ss-1)->current_move)
+                        assert(MOVE_NONE != (ss-1)->current_move
+                            && MOVE_NULL != (ss-1)->current_move
                             && (ss-1)->m_history != nullptr);
 
                         // Initialize move picker (3) for the current position.
