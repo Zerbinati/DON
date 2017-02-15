@@ -52,63 +52,31 @@ namespace Memory {
 
 #   if defined(_WIN32)
 
-        //void show_error (const char *api_name, DWORD error_code)
-        //{
-        //    LPSTR msg_buffer_lp = nullptr;
-        //
-        //    FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
-        //                     FORMAT_MESSAGE_FROM_SYSTEM |
-        //                     FORMAT_MESSAGE_IGNORE_INSERTS,
-        //                     nullptr, error_code,
-        //                     MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-        //                     msg_buffer_lp, 0, nullptr);
-        //
-        //    //... now display this string
-        //    _tprintf (TEXT("ERROR: API        = %s.\n") , api_name);
-        //    _tprintf (TEXT("       Error code = %lu.\n"), error_code);
-        //    _tprintf (TEXT("       Message    = %s.\n") , msg_buffer_lp);
-        //
-        //    // Free the buffer allocated by the system
-        //    LocalFree (msg_buffer_lp);
-        //
-        //    error_code = GetLastError ();
-        //}
-
-        void setup_privilege (const char *privilege_name, bool enable)
+        bool setup_privilege (const char *privilege_name, bool enable)
         {
+            bool ret = false;
             HANDLE token_handle;
-            // Open process token
-            if (!OpenProcessToken (GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &token_handle))
+            if (OpenProcessToken (GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &token_handle))
             {
-                //show_error (TEXT("OpenProcessToken"), GetLastError ());
+                TOKEN_PRIVILEGES token_priv;
+                if (LookupPrivilegeValue (nullptr, privilege_name, &token_priv.Privileges[0].Luid))
+                {
+                    token_priv.PrivilegeCount = 1;
+                    token_priv.Privileges[0].Attributes = enable ?
+                                            SE_PRIVILEGE_ENABLED :
+                                            SE_PRIVILEGE_DISABLED;
+                    
+                    if (AdjustTokenPrivileges (token_handle, false, &token_priv, 0, nullptr, 0))
+                    {
+                        if (GetLastError () != ERROR_NOT_ALL_ASSIGNED)
+                        {
+                            ret = true;
+                        }
+                    }
+                    CloseHandle (token_handle);
+                }
             }
-
-            TOKEN_PRIVILEGES token_priv;
-            // Get the luid
-            if (!LookupPrivilegeValue (nullptr, privilege_name, &token_priv.Privileges[0].Luid))
-            {
-                //show_error (TEXT("LookupPrivilegeValue"), GetLastError ());
-            }
-
-            token_priv.PrivilegeCount = 1;
-            // Enable or Disable privilege
-            token_priv.Privileges[0].Attributes = (enable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
-            //bool status = 
-            AdjustTokenPrivileges (token_handle, false, &token_priv, 0, nullptr, 0);
-
-            // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
-            // So always check for the last error_code value.
-            //DWORD error_code = GetLastError ();
-            //if (!status || error_code != ERROR_SUCCESS)
-            //{
-            //    show_error (TEXT("AdjustTokenPrivileges"), GetLastError ());
-            //}
-
-            // Close the handle
-            if (!CloseHandle (token_handle))
-            {
-                //show_error (TEXT("CloseHandle"), GetLastError ());
-            }
+            return ret;
         }
 
 #   else
@@ -240,16 +208,20 @@ namespace Memory {
     void initialize   ()
     {
 #   if defined(_WIN32)
-
         setup_privilege (SE_LOCK_MEMORY_NAME, true);
-
 #   else
 
 #   endif
     }
 
     void deinitialize ()
-    {}
+    {
+#   if defined(_WIN32)
+        
+#   else
+
+#   endif
+    }
 
 }
 
