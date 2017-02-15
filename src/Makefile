@@ -21,7 +21,7 @@ PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
-PGOBENCH  = ./$(EXE) bench 16 1 13 depth default
+PGOBENCH = ./$(EXE) bench
 
 ### Object files
 OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
@@ -137,9 +137,9 @@ endif
 
 ### 3.1 Compiler Selection (Default = gcc)
 
-CXXFLAGS    += -std=c++11 -Wall -Wcast-qual -fno-exceptions -fno-rtti -Wno-type-limits $(EXTRACXXFLAGS)
+CXXFLAGS += -std=c++11 -Wall -Wcast-qual -fno-exceptions -fno-rtti -Wno-type-limits $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
-LDFLAGS     += $(EXTRALDFLAGS)
+LDFLAGS += $(EXTRALDFLAGS)
 
 # Default (gcc)
 ifeq ($(COMP), )
@@ -153,12 +153,14 @@ ifeq ($(COMP), gcc)
 	ifeq ($(ARCH), armv7)
 		ifeq ($(OS), Android)
 			CXXFLAGS += -m$(bits)
+			LDFLAGS += -m$(bits)
 		endif
 	else
 		CXXFLAGS += -m$(bits)
+		LDFLAGS += -m$(bits)
 	endif
 	ifneq ($(KERNEL), Darwin)
-		LDFLAGS  += -Wl,--no-as-needed
+		LDFLAGS += -Wl,--no-as-needed
 	endif
 endif
 
@@ -207,12 +209,11 @@ ifeq ($(COMP), clang)
 		CXXFLAGS += -m$(bits)
 		LDFLAGS += -m$(bits)
 	endif
-
 endif
 
 ifeq ($(comp), icc)
-	profile_make    = icc-profile-make
-	profile_use     = icc-profile-use
+	profile_make = icc-profile-make
+	profile_use = icc-profile-use
 else
 ifeq ($(comp), clang)
 	profile_make = clang-profile-make
@@ -328,7 +329,7 @@ endif
 ifeq ($(bm2), yes)
 	CXXFLAGS += -DBM2
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
-		CXXFLAGS += -mbmi -mbmi2 #-mavx2
+		CXXFLAGS += -mbmi -mbmi2
 	endif
 endif
 

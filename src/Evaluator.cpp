@@ -217,8 +217,6 @@ namespace Evaluator {
 
         // Bonus for each hanged piece
         const Score PieceHanged     = S(48,27);
-        // Bonus for each loosed piece
-        const Score PieceLoosed     = S( 0,25);
 
         const Score PawnPushThreat  = S(38,22);
 
@@ -643,16 +641,6 @@ namespace Evaluator {
 
             Bitboard b;
             
-            // Loose enemies (except Queen and King)
-            b =    (  pos.pieces (Opp)
-                    ^ pos.pieces (Opp, QUEN, KING))
-                & ~(  ei.pin_attacked_by[Own][NONE]
-                    | ei.pin_attacked_by[Opp][NONE]);
-            if (0 != b)
-            {
-                score += PieceLoosed;
-            }
-
             // Enemy non-pawns
             Bitboard nonpawns =
                   pos.pieces (Opp)
