@@ -25,7 +25,17 @@ namespace BitBoard {
 
     const Bitboard CenterFiles = FC_bb|FD_bb|FE_bb|FF_bb;
 
-    const Bitboard Color_bb[CLR_NO] = { U64(0x55AA55AA55AA55AA), U64(0xAA55AA55AA55AA55) };
+    const Bitboard Side_bb[3] =
+    {
+        FE_bb|FF_bb|FG_bb|FH_bb,
+        FA_bb|FB_bb|FC_bb|FD_bb,
+        FC_bb|FD_bb|FE_bb|FF_bb
+    };
+    const Bitboard Color_bb[CLR_NO] =
+    {
+        U64(0x55AA55AA55AA55AA),
+        U64(0xAA55AA55AA55AA55)
+    };
 
     const Bitboard Square_bb[SQ_NO] =
     {
@@ -95,8 +105,7 @@ namespace BitBoard {
 
     const Bitboard KingFlank[F_NO] =
     {
-        CenterFiles >> 2, CenterFiles >> 2, CenterFiles >> 2, CenterFiles,
-        CenterFiles, CenterFiles << 2, CenterFiles << 2, CenterFiles << 2
+        Side_bb[CS_QUEN], Side_bb[CS_QUEN], Side_bb[CS_QUEN], Side_bb[CS_NO], Side_bb[CS_NO], Side_bb[CS_KING], Side_bb[CS_KING], Side_bb[CS_KING]
     };
 
     extern u08      SquareDist[SQ_NO][SQ_NO];

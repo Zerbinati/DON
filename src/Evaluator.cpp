@@ -601,7 +601,8 @@ namespace Evaluator {
 
             // King tropism: Find squares that enemy attacks in the friend king flank
             auto kf = _file (fk_sq);
-            b =    KingFlank[kf] & Camp
+            b =    Camp
+                &  KingFlank[kf]
                 &  ei.pin_attacked_by[Opp][NONE];
             assert(0 == ((Own == WHITE ? b << 4 : b >> 4) & b));
             assert(pop_count (Own == WHITE ? b << 4 : b >> 4) == pop_count (b));
@@ -916,12 +917,17 @@ namespace Evaluator {
         {
             i32 king_dist = dist<File> (pos.square (WHITE, KING), pos.square (BLACK, KING))
                           - dist<Rank> (pos.square (WHITE, KING), pos.square (BLACK, KING));
+
             // Compute the initiative bonus for the attacking side
-            i32 initiative = 8 * (king_dist + asymmetry) + 12 * pos.count<PAWN> () - 120;
+            i32 initiative = 8 * (king_dist + asymmetry - 17)
+                           + 12 * pos.count<PAWN> ()
+                             // Pawn on both flanks
+                           + 16 * (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
+                                   && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]) ? 1 : 0);
             // Now apply the bonus: note that we find the attacking side by extracting
             // the sign of the endgame value, and that we carefully cap the bonus so
-            // that the endgame score will never be divided by more than two.
-            return mk_score (0, sign (eg) * std::max (initiative, -abs (eg / 2)));
+            // that the endgame score will never change sign after the bonus.
+            return mk_score (0, sign (eg) * std::max (initiative, -abs (eg)));
         }
 
         // Computes the scale for the position
