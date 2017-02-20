@@ -322,12 +322,10 @@ inline Phase Position::phase () const
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
-    Bitboard bq = pieces (c, BSHP, QUEN) & PieceAttacks[BSHP][s];
-    Bitboard rq = pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][s];
     return((pieces (PAWN) & PawnAttacks[~c][s])
          | (pieces (NIHT) & PieceAttacks[NIHT][s])
-         | (0 != bq ? bq & attacks_bb<BSHP> (s, occ) : 0)
-         | (0 != rq ? rq & attacks_bb<ROOK> (s, occ) : 0)
+         | (0 != (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s]) ? pieces (BSHP, QUEN) & attacks_bb<BSHP> (s, occ) : 0)
+         | (0 != (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
          | (pieces (KING) & PieceAttacks[KING][s])) & pieces (c);
 }
 // Attackers to the square 's' by color 'c'
@@ -338,13 +336,11 @@ inline Bitboard Position::attackers_to (Square s, Color c) const
 // Attackers to the square 's' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
-    Bitboard bq = pieces (BSHP, QUEN) & PieceAttacks[BSHP][s];
-    Bitboard rq = pieces (ROOK, QUEN) & PieceAttacks[ROOK][s];
     return (pieces (BLACK, PAWN) & PawnAttacks[WHITE][s])
          | (pieces (WHITE, PAWN) & PawnAttacks[BLACK][s])
          | (pieces (NIHT)        & PieceAttacks[NIHT][s])
-         | (0 != bq ? bq & attacks_bb<BSHP> (s, occ) : 0)
-         | (0 != rq ? rq & attacks_bb<ROOK> (s, occ) : 0)
+         | (0 != (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s]) ? pieces (BSHP, QUEN) & attacks_bb<BSHP> (s, occ) : 0)
+         | (0 != (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
          | (pieces (KING)        & PieceAttacks[KING][s]);
 }
 // Attackers to the square 's'

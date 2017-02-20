@@ -41,7 +41,6 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
         && pos.pseudo_legal (ponder_move)
         && pos.legal (ponder_move))
     {
-        //assert(MOVE_NONE != ponder_move);
         assert(MoveList<LEGAL> (pos).contains (ponder_move));
         *this += ponder_move;
     }
@@ -732,8 +731,11 @@ namespace Searcher {
                     << " nps "      << total_nodes * MilliSec / elapsed_time
                     << " hashfull " << (elapsed_time > MilliSec ? TT.hash_full () : 0)
                     << " tbhits "   << tb_hits
-                    << " pv"        << th->root_moves[i]
-                    << (i+1 < Threadpool.pv_limit ? '\n' : '\0');
+                    << " pv"        << th->root_moves[i];
+                if (i+1 < Threadpool.pv_limit)
+                {
+                    oss << '\n';
+                }
             }
             return oss.str ();
         }
@@ -1244,7 +1246,6 @@ namespace Searcher {
                     // Step 6. Razoring sort of forward pruning where rather than
                     // skipping an entire subtree, search it to a reduced depth.
                     if (   !PVNode
-                        && tt_move == MOVE_NONE
                         && MaxRazorDepth > depth
                         //&& 0 == Limits.mate
                         && tt_eval + RazorMargins[depth] <= alfa)
@@ -2222,8 +2223,7 @@ namespace Threading {
         static Book book; // Defined static to initialize the PRNG only once
         assert(Threadpool.main_thread () == this);
 
-        if (   !white_spaces (OutputFile)
-            && OutputFile != Empty)
+        if (!white_spaces (OutputFile))
         {
             OutputStream.open (OutputFile, ios_base::out|ios_base::app);
             WriteOutput = OutputStream.is_open ();
@@ -2271,7 +2271,7 @@ namespace Threading {
         {
             // Check if can play with own book.
             if (   OwnBook
-                && !BookFile.empty ()
+                && !white_spaces (BookFile)
                 && (   0 == BookUptoMove
                     || root_pos.move_num () <= BookUptoMove)
                 && 0 == Limits.mate

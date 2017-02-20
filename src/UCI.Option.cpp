@@ -179,7 +179,7 @@ namespace UCI {
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
-            if (!hash_fn.empty ())
+            if (!white_spaces (hash_fn))
             {
                 convert_path (hash_fn);
                 TT.save (hash_fn);
@@ -190,7 +190,7 @@ namespace UCI {
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
-            if (!hash_fn.empty ())
+            if (!white_spaces (hash_fn))
             {
                 convert_path (hash_fn);
                 TT.load (hash_fn);
@@ -209,11 +209,12 @@ namespace UCI {
 
         void on_hash_file ()
         {
-            HashFile = string(Options["Hash File"]);
-            trim (HashFile);
-            if (!HashFile.empty ())
+            auto filename = string(Options["Hash File"]);
+            trim (filename);
+            if (!white_spaces (filename))
             {
-                convert_path (HashFile);
+                convert_path (filename);
+                HashFile = filename;
             }
         }
 
@@ -233,14 +234,15 @@ namespace UCI {
         void on_book_opt ()
         {
             OwnBook = bool(Options["OwnBook"]);
-            BookFile = string(Options["Book File"]);
+            auto filename = string(Options["Book File"]);
             BookMoveBest = bool(Options["Book Move Best"]);
             BookUptoMove = i16(i32(Options["Book Upto Move"]));
 
-            trim (BookFile);
-            if (!BookFile.empty ())
+            trim (filename);
+            if (!white_spaces (filename))
             {
-                convert_path (BookFile);
+                convert_path (filename);
+                OutputFile = filename;
             }
         }
 
@@ -263,9 +265,9 @@ namespace UCI {
 
         void on_debug_file ()
         {
-            string filename = string(Options["Debug File"]);
+            auto filename = string(Options["Debug File"]);
             trim (filename);
-            if (!filename.empty ())
+            if (!white_spaces (filename))
             {
                 convert_path (filename);
                 Logger::log (filename);
@@ -274,20 +276,22 @@ namespace UCI {
 
         void on_output_file ()
         {
-            OutputFile = string(Options["Output File"]);
-            trim (OutputFile);
-            if (!OutputFile.empty ())
+            auto filename = string(Options["Output File"]);
+            trim (filename);
+            if (!white_spaces (filename))
             {
-                convert_path (OutputFile);
+                convert_path (filename);
+                OutputFile = filename;
             }
         }
 
         void on_syzygy_path ()
         {
-            PathString = string(Options["SyzygyPath"]);
-            trim (PathString);
-            if (!PathString.empty ())
+            auto filename = string(Options["SyzygyPath"]);
+            trim (filename);
+            if (!white_spaces (filename))
             {
+                PathString = filename;
                 TBSyzygy::initialize ();
             }
         }

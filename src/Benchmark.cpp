@@ -164,12 +164,12 @@ void benchmark (istringstream &is, const Position &cur_pos)
 
     u64  total_nodes = 0;
     auto start_time = now ();
-    StateList states (1);
+
+    StateInfo si;
     Position pos;
     for (u16 i = 0; i < fens.size (); ++i)
     {
-        states.resize (1);
-        pos.setup (fens[i], states.back (), Threadpool.main_thread (), true);
+        pos.setup (fens[i], si, Threadpool.main_thread (), true);
         assert(pos.fen (true) == fens[i]);
 
         std::cerr
@@ -188,6 +188,8 @@ void benchmark (istringstream &is, const Position &cur_pos)
         {
             limits.start_time = now ();
             limits.elapsed_time = 0;
+            StateList states;
+            states.push_back (si);
             Threadpool.start_thinking (pos, states, limits);
             Threadpool.wait_while_thinking ();
             total_nodes += Threadpool.nodes ();

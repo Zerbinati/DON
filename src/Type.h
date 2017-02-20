@@ -295,9 +295,9 @@ enum Value : i32
 
     VALUE_MG_PAWN =  188,  VALUE_EG_PAWN =  248,
     VALUE_MG_NIHT =  753,  VALUE_EG_NIHT =  832,
-    VALUE_MG_BSHP =  826,  VALUE_EG_BSHP =  897,
+    VALUE_MG_BSHP =  814,  VALUE_EG_BSHP =  890,
     VALUE_MG_ROOK = 1285,  VALUE_EG_ROOK = 1371,
-    VALUE_MG_QUEN = 2513,  VALUE_EG_QUEN = 2650,
+    VALUE_MG_QUEN = 2513,  VALUE_EG_QUEN = 2648,
 
     VALUE_SPACE   = 12222, // TODO:: re-value
     VALUE_MIDGAME = 15258, VALUE_ENDGAME = 3915,
@@ -619,7 +619,8 @@ const std::string Empty = "<empty>";
 inline bool white_spaces (const std::string &str)
 {
     return str.empty ()
-        || str.find_first_not_of (" \t\n") == std::string::npos;
+        || str.find_first_not_of (" \t\n") == std::string::npos
+        || str == Empty;
 }
 
 inline void to_lower (std::string &str)

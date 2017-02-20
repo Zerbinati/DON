@@ -1983,8 +1983,7 @@ namespace TBSyzygy {
         EntryTable.clear ();
         MaxLimitPiece = 0;
 
-        if (   white_spaces (PathString)
-            || PathString == Empty)
+        if (white_spaces (PathString))
         {
             return;
         }
