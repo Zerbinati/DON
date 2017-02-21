@@ -23,8 +23,6 @@ namespace BitBoard {
     const Bitboard R7_bb = R1_bb << (8 * 6);
     const Bitboard R8_bb = R1_bb << (8 * 7);
 
-    const Bitboard CenterFiles = FC_bb|FD_bb|FE_bb|FF_bb;
-
     const Bitboard Side_bb[3] =
     {
         FE_bb|FF_bb|FG_bb|FH_bb,
@@ -148,7 +146,7 @@ namespace BitBoard {
     template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
     template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
-    inline bool contains (Bitboard bb, Square s) { return (bb & Square_bb[s]) != 0; }
+    inline bool contains (Bitboard bb, Square s) { return 0 != (bb & Square_bb[s]); }
 
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
     inline Bitboard  operator^  (Bitboard  bb, Square s) { return bb ^  Square_bb[s]; }

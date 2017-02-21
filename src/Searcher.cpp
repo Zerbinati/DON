@@ -802,7 +802,6 @@ namespace Searcher {
 
             if (   !PVNode
                 && tt_hit
-                && tte->move () == tt_move
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && tte->depth () >= qs_depth
                 && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
@@ -823,8 +822,7 @@ namespace Searcher {
             else
             {
                 Value tt_eval;
-                if (   tt_hit
-                    && tte->move () == tt_move)
+                if (tt_hit)
                 {
                     // Never assume anything on values stored in TT
                     ss->static_eval = tt_eval =
@@ -845,12 +843,12 @@ namespace Searcher {
                             evaluate (pos) :
                             -(ss-1)->static_eval + 2*Tempo;
 
-                    tte->save (posi_key,
-                               MOVE_NONE,
-                               VALUE_NONE,
-                               ss->static_eval,
-                               -6,
-                               BOUND_NONE);
+                    //tte->save (posi_key,
+                    //           MOVE_NONE,
+                    //           VALUE_NONE,
+                    //           ss->static_eval,
+                    //           -6,
+                    //           BOUND_NONE);
                 }
 
                 if (alfa < tt_eval)
@@ -858,14 +856,13 @@ namespace Searcher {
                     // Stand pat. Return immediately if static value is at least beta
                     if (tt_eval >= beta)
                     {
-                        if (   !tt_hit
-                            || tte->move () != tt_move)
+                        if (!tt_hit)
                         {
                             tte->save (posi_key,
                                        MOVE_NONE,
                                        value_to_tt (tt_eval, ss->ply),
                                        ss->static_eval,
-                                       qs_depth,
+                                       -6,
                                        BOUND_LOWER);
                         }
 
@@ -1129,7 +1126,6 @@ namespace Searcher {
             // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
                 && tt_hit
-                && tte->move () == tt_move
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && tte->depth () >= depth
                 && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
@@ -1211,8 +1207,7 @@ namespace Searcher {
             else
             {
                 Value tt_eval;
-                if (   tt_hit
-                    && tte->move () == tt_move)
+                if (tt_hit)
                 {
                     // Never assume anything on values stored in TT
                     ss->static_eval = tt_eval =
@@ -1410,13 +1405,9 @@ namespace Searcher {
 
             auto best_move  = MOVE_NONE;
 
-            tt_value = value_of_tt (tte->value (), ss->ply);
-
             bool singular_ext_node =
                    !root_node
-                && tt_hit
                 && MOVE_NONE != tt_move
-                && tte->move () == tt_move
                 && MOVE_NONE == exclude_move // Recursive singular search is not allowed
                 && 7 < depth
                 && tte->depth () + 4 > depth
@@ -1505,12 +1496,12 @@ namespace Searcher {
                 // To verify this do a reduced search on all the other moves but the tt_move,
                 // if result is lower than tt_value minus a margin then extend tt_move.
                 if (   singular_ext_node
-                    && new_depth < depth
-                    && move == tt_move)
+                    && move == tt_move
+                    && new_depth < depth)
                 {
                     auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
                     value = depth_search<false> (pos, ss, beta_margin-1, beta_margin, depth/2, cut_node, false, move);
-                    singular_ext_node = false;
+
                     if (value < beta_margin)
                     {
                         new_depth += 1;

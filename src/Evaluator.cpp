@@ -161,9 +161,8 @@ namespace Evaluator {
 
         // PieceMobility[piece-type][attacks] contains bonuses for mobility,
         // indexed by piece type and number of attacked squares in the mobility area.
-        const Score PieceMobility[][28] =
+        const Score PieceMobility[4][28] =
         {
-            {},
             { // Knight
                 S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12),
                 S( 22, 26), S( 29, 29), S( 36, 29)
@@ -186,6 +185,12 @@ namespace Evaluator {
                 S(106,184), S(109,191), S(113,206), S(116,212)
             }
         };
+        Score piece_mobility (PieceType pt, i32 mob)
+        {
+            assert(NIHT <= pt && pt <= QUEN);
+            assert(0 <= mob && mob <= 27);
+            return PieceMobility[pt-1][mob];
+        }
 
         // Outpost[supported by pawn] contains bonuses for minors outposts.
         // If they can reach an outpost square, bigger if that square is supported by a pawn.
@@ -331,7 +336,7 @@ namespace Evaluator {
                 }
 
                 auto mob = pop_count (ei.mobility_area[Own] & attacks);
-                mobility += PieceMobility[PT][mob];
+                mobility += piece_mobility (PT, mob);
 
                 // Special extra evaluation for pieces
                 if (   NIHT == PT
@@ -415,14 +420,23 @@ namespace Evaluator {
                     }
                     else
                     {
-                        auto kf = _file (pos.square (Own, KING));
-                        // Penalty for rook when trapped by the king, even more if the king can't castle
-                        if (   mob <= 3
-                            && ((kf < F_E) == (_file (s) < kf))
-                            && 0 != (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN))
-                            && !ei.pe->side_semiopen (Own, kf, kf < F_E))
+                        if (0 != (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)))
                         {
-                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
+                            auto kf = _file (pos.square (Own, KING));
+                            // Penalty for rook when trapped by the king, even more if the king can't castle
+                            if (   mob <= 3
+                                && ((kf < F_E) == (_file (s) < kf))
+                                && !ei.pe->side_semiopen (Own, kf, kf < F_E))
+                            {
+                                score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
+                            }
+                        }
+                        else
+                        {
+                            if (mob <= 2)
+                            {
+                                score -= (RookTrapped - mk_score (22 * mob, 0));
+                            }
                         }
                     }
                 }
@@ -875,9 +889,9 @@ namespace Evaluator {
             static const auto Dull = Own == WHITE ? DEL_SS : DEL_NN;
             // SpaceArea contains the area of the board which is considered by the space evaluation.
             // Bonus is given based on how many squares inside this area are safe.
-            static const Bitboard SpaceArea = CenterFiles & (Own == WHITE ?
-                                                                R2_bb|R3_bb|R4_bb :
-                                                                R7_bb|R6_bb|R5_bb);
+            static const Bitboard SpaceArea = Side_bb[CS_NO] & (Own == WHITE ?
+                                                                    R2_bb|R3_bb|R4_bb :
+                                                                    R7_bb|R6_bb|R5_bb);
             // Find the safe squares for our pieces inside the area defined by SpaceArea.
             // A square is safe:
             // - if not occupied by friend pawns
@@ -891,15 +905,18 @@ namespace Evaluator {
                    | ~ei.pin_attacked_by[Opp][NONE]);
 
             // Since SpaceArea[Own] is fully on our half of the board
-            assert((Own == WHITE ? safe_space & U64(0xFFFFFFFF00000000)
-                                 : safe_space & U64(0x00000000FFFFFFFF)) == 0);
+            assert((Own == WHITE ?
+                        safe_space & U64(0xFFFFFFFF00000000) :
+                        safe_space & U64(0x00000000FFFFFFFF)) == 0);
 
             // Find all squares which are at most three squares behind some friend pawn
             Bitboard behind = pos.pieces (Own, PAWN);
             behind |= shift<Pull> (behind);
             behind |= shift<Dull> (behind);
             i32 count = std::min (pop_count (  (behind & safe_space)
-                                             | (Own == WHITE ? safe_space << 32 : safe_space >> 32)), 16);
+                                             | (Own == WHITE ?
+                                                    safe_space << 32 :
+                                                    safe_space >> 32)), 16);
             i32 weight = pos.count<NONE> (Own) - 2 * ei.pe->open_count;
             auto score = mk_score (count * weight * weight / 18, 0);
 
