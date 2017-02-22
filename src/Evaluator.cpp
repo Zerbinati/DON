@@ -420,23 +420,14 @@ namespace Evaluator {
                     }
                     else
                     {
-                        if (0 != (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)))
+                        auto kf = _file (pos.square (Own, KING));
+                        // Penalty for rook when trapped by the king, even more if the king can't castle
+                        if (   mob <= 3
+                            && ((kf < F_E) == (_file (s) < kf))
+                            && 0 != (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN))
+                            && !ei.pe->side_semiopen (Own, kf, kf < F_E))
                         {
-                            auto kf = _file (pos.square (Own, KING));
-                            // Penalty for rook when trapped by the king, even more if the king can't castle
-                            if (   mob <= 3
-                                && ((kf < F_E) == (_file (s) < kf))
-                                && !ei.pe->side_semiopen (Own, kf, kf < F_E))
-                            {
-                                score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
-                            }
-                        }
-                        else
-                        {
-                            if (mob <= 2)
-                            {
-                                score -= (RookTrapped - mk_score (22 * mob, 0));
-                            }
+                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
                         }
                     }
                 }

@@ -791,6 +791,11 @@ namespace Searcher {
             assert(tt_move == MOVE_NONE
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
+            auto tt_value =
+                   tt_hit
+                && tte->move () == tt_move ?
+                    value_of_tt (tte->value (), ss->ply) :
+                    VALUE_NONE;
 
             ss->current_move = MOVE_NONE;
 
@@ -798,10 +803,8 @@ namespace Searcher {
             // Fixes also the type of TT entry depth that are going to use.
             // Note that in quien_search use only 2 types of depth: (0) or (-1).
             i16 qs_depth = in_check || 0 <= depth ? 0 : -1;
-            auto tt_value = value_of_tt (tte->value (), ss->ply);
 
             if (   !PVNode
-                && tt_hit
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && tte->depth () >= qs_depth
                 && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
@@ -822,7 +825,8 @@ namespace Searcher {
             else
             {
                 Value tt_eval;
-                if (tt_hit)
+                if (   tt_hit
+                    && tte->move () == tt_move)
                 {
                     // Never assume anything on values stored in TT
                     ss->static_eval = tt_eval =
@@ -856,7 +860,8 @@ namespace Searcher {
                     // Stand pat. Return immediately if static value is at least beta
                     if (tt_eval >= beta)
                     {
-                        if (!tt_hit)
+                        if (   !tt_hit
+                            || tte->move () != tt_move)
                         {
                             tte->save (posi_key,
                                        MOVE_NONE,
@@ -1121,11 +1126,14 @@ namespace Searcher {
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
 
-            auto tt_value = value_of_tt (tte->value (), ss->ply);
+            auto tt_value =
+                   tt_hit
+                && tte->move () == tt_move ?
+                    value_of_tt (tte->value (), ss->ply) :
+                    VALUE_NONE;
 
             // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
-                && tt_hit
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && tte->depth () >= depth
                 && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
@@ -1186,10 +1194,8 @@ namespace Searcher {
                         tte->save (posi_key,
                                    MOVE_NONE,
                                    value_to_tt (value, ss->ply),
-                                   //0 == pos.si->checkers ?
-                                   //    evaluate (pos) :
-                                       VALUE_NONE,
-                                   i16(std::min (depth + 6, MaxPlies - 1)),
+                                   VALUE_NONE,
+                                   std::min<i16> (depth + 6, MaxPlies - 1),
                                    BOUND_EXACT);
 
                         return value;
@@ -1207,7 +1213,8 @@ namespace Searcher {
             else
             {
                 Value tt_eval;
-                if (tt_hit)
+                if (   tt_hit
+                    && tte->move () == tt_move)
                 {
                     // Never assume anything on values stored in TT
                     ss->static_eval = tt_eval =
@@ -1395,11 +1402,15 @@ namespace Searcher {
                             && pos.legal (move) ?
                                 move :
                                 MOVE_NONE;
+                        tt_value =
+                               tt_hit
+                            && tte->move () == tt_move ?
+                                value_of_tt (tte->value (), ss->ply) :
+                                VALUE_NONE;
                     }
                 }
             }
 
-            // When in check search starts from here
             auto value      = -VALUE_INFINITE
                , best_value = -VALUE_INFINITE;
 
@@ -1408,10 +1419,10 @@ namespace Searcher {
             bool singular_ext_node =
                    !root_node
                 && MOVE_NONE != tt_move
+                && VALUE_NONE != tt_value
                 && MOVE_NONE == exclude_move // Recursive singular search is not allowed
                 && 7 < depth
                 && tte->depth () + 4 > depth
-                && tt_value != VALUE_NONE
                 && (tte->bound () & BOUND_LOWER) != BOUND_NONE;
 
             bool improving =

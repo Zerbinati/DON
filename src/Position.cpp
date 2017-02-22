@@ -1085,7 +1085,7 @@ void Position::do_null_move (StateInfo &nsi)
     assert(&nsi != si);
     assert(0 == si->checkers);
 
-    std::memcpy (&nsi, si, sizeof (nsi));
+    std::memcpy (&nsi, si, sizeof (StateInfo));
     nsi.ptr = si;
     si = &nsi;
     // Reset en-passant square
