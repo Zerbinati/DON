@@ -192,20 +192,20 @@ namespace Evaluator {
             return PieceMobility[pt-1][mob];
         }
 
-        // Protector[PieceType][distance] contains a protecting bonus for our king, 
-        // indexed by piece type and distance between the piece and the king.
-        const Score KingProtector[][8] =
+        // KingCloseness[piece-type][distance] contains a bonus for king closeness,
+        // indexed by piece type and distance from the king.
+        const Score KingCloseness[][8] =
         {
-            { S(0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S(-10,-4), S( -1,-4), S( -7,-3), S(-16,-10) }, // Knight
-            { S(0, 0), S(11, 8), S(-7,-1), S(-1,-2), S( -1,-7), S(-11,-3), S( -9,-1), S(-16, -1) }, // Bishop
-            { S(0, 0), S(10, 0), S(-2, 2), S(-5, 4), S( -6, 2), S(-14,-3), S( -2,-9), S(-12, -7) }, // Rook
-            { S(0, 0), S( 3,-5), S( 2,-5), S(-4, 0), S( -9,-6), S( -4, 7), S(-13,-7), S(-10, -7) }  // Queen
+            { S(0, 0), S( 7, 9), S( 7, 5), S( 1, 1), S(-1,-3), S( -7,-4), S(-10,-5), S(-16,-10) }, // Knight
+            { S(0, 0), S(11, 8), S(-1,-1), S(-1,-2), S(-1,-3), S( -9,-3), S(-11,-7), S(-16, -7) }, // Bishop
+            { S(0, 0), S(10, 4), S(-2, 0), S(-4,-2), S(-6,-3), S( -8,-3), S(-12,-7), S(-14, -7) }, // Rook
+            { S(0, 0), S( 3, 0), S( 2,-5), S(-4,-5), S(-9,-6), S(-10,-7), S(-11,-7), S(-13, -9) }  // Queen
         };
-        Score king_protector (PieceType pt, i32 dist)
+        Score king_closeness (PieceType pt, i32 dist)
         {
             assert(NIHT <= pt && pt <= QUEN);
-            assert(0 <= dist && dist <= 7);
-            return KingProtector[pt-1][dist];
+            assert(1 <= dist && dist <= 7);
+            return KingCloseness[pt-1][dist];
         }
 
         // Outpost[supported by pawn] contains bonuses for minors outposts.
@@ -355,8 +355,9 @@ namespace Evaluator {
                 auto mob = pop_count (ei.mobility_area[Own] & attacks);
                 mobility += piece_mobility (PT, mob);
 
-                // Bonus for king protector
-                score += king_protector (PT, dist (s, k_sq));
+                // Bonus for king closeness
+                score += king_closeness (PT, dist (s, k_sq));
+                score += king_closeness (PT, dist (s, pos.square (Opp, KING)));
 
                 // Special extra evaluation for pieces
                 if (   NIHT == PT
