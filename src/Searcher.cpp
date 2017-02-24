@@ -302,6 +302,7 @@ Move MovePicker::next_move ()
             if ((_ss-1)->m_history != nullptr)
             {
                 auto move = (_ss-1)->current_move;
+                assert(_ok (move));
                 auto pc = _pos[fix_dst_sq (move)];
 
                 auto cm = _pos.thread->counter_moves(pc, move);
@@ -310,22 +311,6 @@ Move MovePicker::next_move ()
                     && std::find (killer_moves.begin (), killer_moves.end (), cm) == killer_moves.end ())
                 {
                     killer_moves.push_back (cm);
-                }
-
-                auto dst = dst_sq (move);
-                auto pt  = ptype (pc);
-                Bitboard attacks = pt != PAWN ?
-                    PieceAttacks[pt][dst] ^ org_sq (move) : 0;
-                while (0 != attacks)
-                {
-                    auto org = pop_lsq (attacks);
-                    cm = _pos.thread->counter_moves(pc, mk_move<NORMAL> (org, dst));
-                    if (   MOVE_NONE != cm
-                        && _tt_move != cm
-                        && std::find (killer_moves.begin (), killer_moves.end (), cm) == killer_moves.end ())
-                    {
-                        killer_moves.push_back (cm);
-                    }
                 }
             }
             killer_moves.erase (std::remove_if (killer_moves.begin (),
@@ -2346,10 +2331,11 @@ namespace Threading {
 
             Thread::search (); // Let's start searching !
 
-            // Clear any candidate easy move that wasn't stable for the last search iterations;
-            // the second condition prevents consecutive fast moves.
+            // Clear any candidate easy move
             if (   Limits.use_time_management ()
-                && (   Threadpool.easy_played
+                && (// Prevents consecutive fast moves
+                       Threadpool.easy_played
+                    // Unstable for the last search iterations
                     || Threadpool.move_mgr.stable_count < 6))
             {
                 Threadpool.move_mgr.clear ();
