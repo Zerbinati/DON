@@ -192,6 +192,22 @@ namespace Evaluator {
             return PieceMobility[pt-1][mob];
         }
 
+        // Protector[PieceType][distance] contains a protecting bonus for our king, 
+        // indexed by piece type and distance between the piece and the king.
+        const Score KingProtector[][8] =
+        {
+            { S(0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S(-10,-4), S( -1,-4), S( -7,-3), S(-16,-10) }, // Knight
+            { S(0, 0), S(11, 8), S(-7,-1), S(-1,-2), S( -1,-7), S(-11,-3), S( -9,-1), S(-16, -1) }, // Bishop
+            { S(0, 0), S(10, 0), S(-2, 2), S(-5, 4), S( -6, 2), S(-14,-3), S( -2,-9), S(-12, -7) }, // Rook
+            { S(0, 0), S( 3,-5), S( 2,-5), S(-4, 0), S( -9,-6), S( -4, 7), S(-13,-7), S(-10, -7) }  // Queen
+        };
+        Score king_protector (PieceType pt, i32 dist)
+        {
+            assert(NIHT <= pt && pt <= QUEN);
+            assert(0 <= dist && dist <= 7);
+            return KingProtector[pt-1][dist];
+        }
+
         // Outpost[supported by pawn] contains bonuses for minors outposts.
         // If they can reach an outpost square, bigger if that square is supported by a pawn.
         // If the minor piece occupies an outpost square then score is doubled.
@@ -304,8 +320,9 @@ namespace Evaluator {
             assert(NIHT <= PT && PT <= QUEN);
 
             auto score = SCORE_ZERO;
-
             ei.pin_attacked_by[Own][PT] = 0;
+
+            auto k_sq = pos.square (Own, KING);
             for (auto s : pos.squares[Own][PT])
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
@@ -322,7 +339,7 @@ namespace Evaluator {
 
                 if (contains (pos.abs_blockers (Own), s))
                 {
-                    attacks &= strline_bb (pos.square (Own, KING), s);
+                    attacks &= strline_bb (k_sq, s);
                 }
                 ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE] & attacks;
                 ei.pin_attacked_by[Own][NONE] |=
@@ -337,6 +354,9 @@ namespace Evaluator {
 
                 auto mob = pop_count (ei.mobility_area[Own] & attacks);
                 mobility += piece_mobility (PT, mob);
+
+                // Bonus for king protector
+                score += king_protector (PT, dist (s, k_sq));
 
                 // Special extra evaluation for pieces
                 if (   NIHT == PT
@@ -420,7 +440,7 @@ namespace Evaluator {
                     }
                     else
                     {
-                        auto kf = _file (pos.square (Own, KING));
+                        auto kf = _file (k_sq);
                         // Penalty for rook when trapped by the king, even more if the king can't castle
                         if (   mob <= 3
                             && ((kf < F_E) == (_file (s) < kf))

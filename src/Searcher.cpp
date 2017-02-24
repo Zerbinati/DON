@@ -1128,7 +1128,8 @@ namespace Searcher {
 
             auto tt_value =
                    tt_hit
-                && tte->move () == tt_move ?
+                && (   root_node
+                    || tte->move () == tt_move) ?
                     value_of_tt (tte->value (), ss->ply) :
                     VALUE_NONE;
 
