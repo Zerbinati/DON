@@ -1919,6 +1919,21 @@ namespace Threading {
 
     using namespace Searcher;
 
+    // skip half of the plies in blocks depending on the helper thread idx.
+    bool skip_ply (int idx, int ply)
+    {
+        assert(idx != 0);
+        idx = (idx - 1) % 20 + 1; // cycle after 20 threads.
+
+        // Number of successive plies to skip, depending on idx.
+        int ones = 1;
+        while (ones * (ones + 1) < idx)
+        {
+            ++ones;
+        }
+        return ((ply + idx - 1) / ones - ones) % 2 == 0;
+    }
+
     // Thread iterative deepening loop function.
     // It calls depth_search() repeatedly with increasing depth until
     // - the force stop requested.
@@ -1965,50 +1980,8 @@ namespace Threading {
             }
             else
             {
-                static const size_t HalfDensityMapSize = 30;
-                // Rotating symmetric patterns with increasing skipsize.
-                // Set of rows with half bits set to true and half to false.
-                // It is used to allocate the search depths across the threads.
-                static const vector<bool> HalfDensityMap[HalfDensityMapSize] =
-                {
-                    { false, true },
-                    { true, false },
-
-                    { false, false, true, true },
-                    { false, true, true, false },
-                    { true, true, false, false },
-                    { true, false, false, true },
-
-                    { false, false, false, true, true, true },
-                    { false, false, true, true, true, false },
-                    { false, true, true, true, false, false },
-                    { true, true, true, false, false, false },
-                    { true, true, false, false, false, true },
-                    { true, false, false, false, true, true },
-
-                    { false, false, false, false, true, true, true, true },
-                    { false, false, false, true, true, true, true, false },
-                    { false, false, true, true, true, true, false, false },
-                    { false, true, true, true, true, false, false, false },
-                    { true, true, true, true, false, false, false, false },
-                    { true, true, true, false, false, false, false, true },
-                    { true, true, false, false, false, false, true, true },
-                    { true, false, false, false, false, true, true, true },
-
-                    { false, false, false, false, false, true, true, true, true, true },
-                    { false, false, false, false, true, true, true, true, true, false },
-                    { false, false, false, true, true, true, true, true, false, false },
-                    { false, false, true, true, true, true, true, false, false, false },
-                    { false, true, true, true, true, true, false, false, false, false },
-                    { true, true, true, true, true, false, false, false, false, false },
-                    { true, true, true, true, false, false, false, false, false, true },
-                    { true, true, true, false, false, false, false, false, true, true },
-                    { true, true, false, false, false, false, false, true, true, true },
-                    { true, false, false, false, false, false, true, true, true, true },
-                };
-
-                const auto &hdm = HalfDensityMap[(index - 1) % HalfDensityMapSize];
-                if (hdm[(running_depth + root_pos.ply) % hdm.size ()])
+                // skip plies for helper threads
+                if (skip_ply (index, running_depth + root_pos.ply))
                 {
                     continue;
                 }

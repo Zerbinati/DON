@@ -673,10 +673,18 @@ namespace Evaluator {
                   pos.pieces (Opp)
                 ^ pos.pieces (Opp, PAWN);
 
-            // Enemy not defended by a pawn and attacked by any friend piece
+            // Squares defended by the opponent,
+            // - attack the square with a pawn
+            // - attack the square twice and not defended twice.
+            Bitboard defended =
+                   ei.pin_attacked_by[Opp][PAWN]
+                | (   ei.dbl_attacked[Opp]
+                   & ~ei.dbl_attacked[Own]);
+
+            // Enemy not defended and attacked by any friend piece
             Bitboard weak_pieces =
                    pos.pieces (Opp)
-                & ~ei.pin_attacked_by[Opp][PAWN]
+                & ~defended
                 &  ei.pin_attacked_by[Own][NONE];
 
             // Add a bonus according to the kind of attacking pieces
@@ -685,9 +693,9 @@ namespace Evaluator {
             b =   (  weak_pieces
                     // Rooks or Queens
                    | pos.pieces (Opp, ROOK, QUEN)
-                    // Enemy non-pawn defended by a pawn
+                    // Enemy defended non-pawns
                    | (  nonpawns
-                      & ei.pin_attacked_by[Opp][PAWN]))
+                      & defended))
                 & (  ei.pin_attacked_by[Own][NIHT]
                    | ei.pin_attacked_by[Own][BSHP]);
             while (0 != b)
