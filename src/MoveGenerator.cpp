@@ -369,14 +369,15 @@ namespace MoveGen {
         while (0 != dsc_blockers)
         {
             auto org = pop_lsq (dsc_blockers);
-            Bitboard attacks = targets;
+            Bitboard attacks = 0;
             switch (ptype (pos[org]))
             {
-            case NIHT: attacks &= PieceAttacks[NIHT][org]; break;
-            case BSHP: attacks = 0 != (attacks & PieceAttacks[BSHP][org]) ? attacks & attacks_bb<BSHP> (org, pos.pieces ()) : 0; break;
-            case ROOK: attacks = 0 != (attacks & PieceAttacks[ROOK][org]) ? attacks & attacks_bb<ROOK> (org, pos.pieces ()) : 0; break;
-            case QUEN: attacks = 0 != (attacks & PieceAttacks[QUEN][org]) ? attacks & attacks_bb<QUEN> (org, pos.pieces ()) : 0; break;
-            case KING: attacks &= PieceAttacks[KING][org]
+            case NIHT: attacks = targets & PieceAttacks[NIHT][org]; break;
+            case BSHP: attacks = 0 != (targets & PieceAttacks[BSHP][org]) ? targets & attacks_bb<BSHP> (org, pos.pieces ()) : 0; break;
+            case ROOK: attacks = 0 != (targets & PieceAttacks[ROOK][org]) ? targets & attacks_bb<ROOK> (org, pos.pieces ()) : 0; break;
+            case QUEN: attacks = 0 != (targets & PieceAttacks[QUEN][org]) ? targets & attacks_bb<QUEN> (org, pos.pieces ()) : 0; break;
+            case KING: attacks = targets
+                               & PieceAttacks[KING][org]
                                & ~PieceAttacks[QUEN][pos.square (~pos.active, KING)]; break;
             default: assert(false); break;
             }
@@ -398,14 +399,15 @@ namespace MoveGen {
         while (0 != dsc_blockers)
         {
             auto org = pop_lsq (dsc_blockers);
-            Bitboard attacks = targets;
+            Bitboard attacks = 0;
             switch (ptype (pos[org]))
             {
-            case NIHT: attacks &= PieceAttacks[NIHT][org]; break;
-            case BSHP: attacks = 0 != (attacks & PieceAttacks[BSHP][org]) ? attacks & attacks_bb<BSHP> (org, pos.pieces ()) : 0; break;
-            case ROOK: attacks = 0 != (attacks & PieceAttacks[ROOK][org]) ? attacks & attacks_bb<ROOK> (org, pos.pieces ()) : 0; break;
-            case QUEN: attacks = 0 != (attacks & PieceAttacks[QUEN][org]) ? attacks & attacks_bb<QUEN> (org, pos.pieces ()) : 0; break;
-            case KING: attacks &= PieceAttacks[KING][org]
+            case NIHT: attacks = targets & PieceAttacks[NIHT][org]; break;
+            case BSHP: attacks = 0 != (targets & PieceAttacks[BSHP][org]) ? targets & attacks_bb<BSHP> (org, pos.pieces ()) : 0; break;
+            case ROOK: attacks = 0 != (targets & PieceAttacks[ROOK][org]) ? targets & attacks_bb<ROOK> (org, pos.pieces ()) : 0; break;
+            case QUEN: attacks = 0 != (targets & PieceAttacks[QUEN][org]) ? targets & attacks_bb<QUEN> (org, pos.pieces ()) : 0; break;
+            case KING: attacks = targets
+                               & PieceAttacks[KING][org]
                                & ~PieceAttacks[QUEN][pos.square (~pos.active, KING)]; break;
             default: assert(false); break;
             }

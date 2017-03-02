@@ -606,9 +606,6 @@ namespace Searcher {
         // Updates countermoves and followupmoves history stats
         void update_cm_stats (Stack *const &ss, Piece pc, Square s, Value value)
         {
-            assert(pc != NO_PIECE);
-            assert(_ok (s));
-
             if ((ss-1)->m_history != nullptr)
             {
                 (ss-1)->m_history->update (pc, s, value);
@@ -625,9 +622,6 @@ namespace Searcher {
         // Updates move sorting heuristics
         void update_stats (Stack *const &ss, const Position &pos, Move move, Value value)
         {
-            assert(!pos.empty (org_sq (move)));
-            assert(value > VALUE_ZERO);
-
             if (ss->killer_moves[0] != move)
             {
                 ss->killer_moves[1] = ss->killer_moves[0];
@@ -648,9 +642,11 @@ namespace Searcher {
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
             pv.clear ();
+            assert(move != MOVE_NONE);
             pv.push_back (move);
             for (auto m : child_pv)
             {
+                assert(m != MOVE_NONE);
                 pv.push_back (m);
             }
         }
@@ -713,9 +709,12 @@ namespace Searcher {
                                 v <= alfa ? " upperbound" : "" : "")
                     << " nodes "    << total_nodes
                     << " time "     << elapsed_time
-                    << " nps "      << total_nodes * MilliSec / elapsed_time
-                    << " hashfull " << (elapsed_time > MilliSec ? TT.hash_full () : 0)
-                    << " tbhits "   << tb_hits
+                    << " nps "      << total_nodes * MilliSec / elapsed_time;
+                if (elapsed_time > MilliSec)
+                {
+                    oss << " hashfull " << TT.hash_full ();
+                }
+                oss << " tbhits "   << tb_hits
                     << " pv"        << th->root_moves[i];
                 if (i+1 < Threadpool.pv_limit)
                 {
@@ -1331,8 +1330,7 @@ namespace Searcher {
                         auto beta_margin = beta + 200;
                         assert(beta_margin <= +VALUE_INFINITE);
 
-                        assert(MOVE_NONE != (ss-1)->current_move
-                            && MOVE_NULL != (ss-1)->current_move
+                        assert(_ok ((ss-1)->current_move)
                             && (ss-1)->m_history != nullptr);
 
                         // Initialize move picker (3) for the current position.
@@ -1513,7 +1511,10 @@ namespace Searcher {
                     if (   !capture_or_promotion
                         && !gives_check
                             // Advance pawn push
-                        && !(   PAWN == ptype (pos[org_sq (move)])
+                        && !(   move_count > 1
+                             && pos.si->non_pawn_matl[WHITE]
+                              + pos.si->non_pawn_matl[BLACK] < 2*VALUE_MG_QUEN
+                             && PAWN == ptype (pos[org_sq (move)])
                              && rel_rank (pos.active, org_sq (move)) > R_4))
                     {
                         // Move count based pruning
@@ -1862,8 +1863,8 @@ namespace Searcher {
                     << std::setfill (' ')
                     << std::setw (7)
                     << 
-                        //move_to_can (vm.move)
-                        move_to_san (vm.move, pos)
+                       //move_to_can (vm.move)
+                       move_to_san (vm.move, pos)
                     << std::right
                     << std::setfill ('.')
                     << std::setw (16)
@@ -2124,9 +2125,9 @@ namespace Threading {
                         // -If there is only one legal move available
                         // -If all of the available time has been used
                         // -If matched an easy move from the previous search and just did a fast verification.
-                        if (   root_moves.size () == 1
-                            || (  Threadpool.time_mgr.elapsed_time ()
-                                > Threadpool.time_mgr.optimum_time
+                        if (   1 == root_moves.size ()
+                            || (  Threadpool.time_mgr.elapsed_time () >
+                                  Threadpool.time_mgr.optimum_time
                                         // Unstable factor
                                         * (1.0 + Threadpool.best_move_change)
                                         // Improving factor
@@ -2134,11 +2135,12 @@ namespace Threading {
                                           std::max (0.3646,
                                                     0.5685
                                                   + 0.1895 * (Threadpool.failed_low ? 1 : 0)
-                                                  - 0.0096 * (Threadpool.last_value != VALUE_NONE ? i32(best_value - Threadpool.last_value) : 0))))
+                                                  - 0.0096 * (Threadpool.last_value != VALUE_NONE ? best_value - Threadpool.last_value : 0))))
                             || (Threadpool.easy_played =
                                     (   root_move == Threadpool.easy_move
                                      && Threadpool.best_move_change < 0.030
-                                     && Threadpool.time_mgr.elapsed_time () > Threadpool.time_mgr.optimum_time * 0.1136), Threadpool.easy_played))
+                                     && Threadpool.time_mgr.elapsed_time () >
+                                        Threadpool.time_mgr.optimum_time * 0.1136), Threadpool.easy_played))
                         {
                             stop = true;
                         }

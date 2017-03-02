@@ -78,23 +78,25 @@ namespace Transposition {
         {
             const u16 key16 = KeySplit{ k }.key16 ();
             assert(key16 != 0);
-            bool new_entry =  key16 != _key16
-                           || (   m != MOVE_NONE
-                               && m != _move);
+            if (   key16 != _key16
+                || m != MOVE_NONE)
+            {
+                _move       = u16(m);
+            }
             // Preserve more valuable entries
-            if (   new_entry
+            if (   key16 != _key16
                 || d > _depth - 4
+                //|| Generation != (_gen_bnd & 0xFC) // Matching non-zero keys are already refreshed by probe()
                 || b == BOUND_EXACT)
             {
-                if (new_entry)
-                {
-                    _key16      = key16;
-                    _move       = u16(m);
-                }
                 _value      = i16(v);
                 _eval       = i16(e);
                 _depth      = i08(d);
                 _gen_bnd    = u08(Generation | b);
+            }
+            if (key16 != _key16)
+            {
+                _key16      = key16;
             }
         }
     };

@@ -185,28 +185,16 @@ namespace Evaluator {
                 S(106,184), S(109,191), S(113,206), S(116,212)
             }
         };
-        Score piece_mobility (PieceType pt, i32 mob)
-        {
-            assert(NIHT <= pt && pt <= QUEN);
-            assert(0 <= mob && mob <= 27);
-            return PieceMobility[pt-1][mob];
-        }
 
-        // KingCloseness[piece-type][distance] contains a bonus for king closeness,
-        // indexed by piece type and distance from the king.
-        const Score KingCloseness[][8] =
+        // PieceCloseness[piece-type][distance] contains a bonus for piece closeness,
+        // indexed by piece type and distance from the sqaure.
+        const Score PieceCloseness[4][8] =
         {
-            { S(0, 0), S( 7, 9), S( 7, 5), S( 1, 1), S(-1,-3), S( -7,-4), S(-10,-5), S(-16,-10) }, // Knight
-            { S(0, 0), S(11, 8), S(-1,-1), S(-1,-2), S(-1,-3), S( -9,-3), S(-11,-7), S(-16, -7) }, // Bishop
-            { S(0, 0), S(10, 4), S(-2, 0), S(-4,-2), S(-6,-3), S( -8,-3), S(-12,-7), S(-14, -7) }, // Rook
-            { S(0, 0), S( 3, 0), S( 2,-5), S(-4,-5), S(-9,-6), S(-10,-7), S(-11,-7), S(-13, -9) }  // Queen
+            { S(0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S(-10,-4), S( -1,-4), S( -7,-3), S(-16,-10) }, // Knight
+            { S(0, 0), S(11, 8), S(-7,-1), S(-1,-2), S( -1,-7), S(-11,-3), S( -9,-1), S(-16, -1) }, // Bishop
+            { S(0, 0), S(10, 0), S(-2, 2), S(-5, 4), S( -6, 2), S(-14,-3), S( -2,-9), S(-12, -7) }, // Rook
+            { S(0, 0), S( 3,-5), S( 2,-5), S(-4, 0), S( -9,-6), S( -4, 7), S(-13,-7), S(-10, -7) }  // Queen
         };
-        Score king_closeness (PieceType pt, i32 dist)
-        {
-            assert(NIHT <= pt && pt <= QUEN);
-            assert(1 <= dist && dist <= 7);
-            return KingCloseness[pt-1][dist];
-        }
 
         // Outpost[supported by pawn] contains bonuses for minors outposts.
         // If they can reach an outpost square, bigger if that square is supported by a pawn.
@@ -353,11 +341,13 @@ namespace Evaluator {
                 }
 
                 auto mob = pop_count (ei.mobility_area[Own] & attacks);
-                mobility += piece_mobility (PT, mob);
+                assert(0 <= mob && mob <= 27);
+                // Bonus for piece mobility
+                mobility += PieceMobility[PT-1][mob];
 
-                // Bonus for king closeness
-                score += king_closeness (PT, dist (s, k_sq));
-                score += king_closeness (PT, dist (s, pos.square (Opp, KING)));
+                // Bonus for piece closeness to King
+                score += PieceCloseness[PT-1][dist (s, k_sq)];
+                score += PieceCloseness[PT-1][dist (s, pos.square (Opp, KING))];
 
                 // Special extra evaluation for pieces
                 if (   NIHT == PT

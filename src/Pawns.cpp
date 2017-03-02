@@ -216,13 +216,15 @@ namespace Pawns {
             assert((   own_r == R_1
                     && opp_r == R_1)
                 || (own_r != opp_r));
-            value -= ShelterWeak[std::min (f, F_H - f)][own_r]
+
+            auto ff = std::min (f, F_H - f);
+            value -= ShelterWeak[ff][own_r]
                    + StromDanger[   f == _file (fk_sq)
                                  && opp_r == rel_rank (Own, fk_sq) + 1 ? 0 : // BlockedByKing
                                     own_r == R_1                       ? 1 : // Unopposed
                                     opp_r == own_r + 1                 ? 2 : // BlockedByPawn
                                                                          3]  // Unblocked
-                                [std::min (f, F_H - f)][opp_r];
+                                [ff][opp_r];
         }
         return value;
     }

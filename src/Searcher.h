@@ -8,13 +8,13 @@
 #include "MoveGenerator.h"
 
 // Limit stores information sent by GUI about available time to search the current move.
-//  - Maximum time and increment.
-//  - Maximum depth.
-//  - Maximum nodes.
-//  - Maximum mate.
-//  - Search moves.
-//  - Infinite analysis mode.
-//  - Ponder (think while is opponent's side to move) mode.
+//  - Maximum time and increment
+//  - Maximum depth
+//  - Maximum nodes
+//  - Maximum mate
+//  - Search moves
+//  - Infinite analysis mode
+//  - Ponder (think while is opponent's side to move) mode
 struct Limit
 {
 public:
@@ -76,7 +76,7 @@ public:
         if (x < 324)
         {
             auto &e = _table[c][move_pp (m)];
-            e += -(i32(e)*x)/324 + i32(v)*32;
+            e += -(e*x)/324 + v*32;
         }
     }
 };
@@ -101,13 +101,11 @@ public:
 
     Move operator() (Piece pc, Move m) const
     {
-        assert(NONE != ptype (pc));
         return _table[pc][move_pp (m)];
     }
 
     void update (Piece pc, Move m, Move cm)
     {
-        assert(NONE != ptype (pc));
         _table[pc][move_pp (m)] = cm;
     }
 };
@@ -132,18 +130,16 @@ public:
     // Piece, Destiny
     Value operator() (Piece pc, Square s) const
     {
-        assert(NONE != ptype (pc));
         return _table[pc][s];
     }
     // Piece, Destiny, Value
     void update (Piece pc, Square s, Value v)
     {
-        assert(NONE != ptype (pc));
         i32 x = abs (v);
         if (x < 324)
         {
             auto &e = _table[pc][s];
-            e += - (i32(e)*x)/936 + i32(v)*32;
+            e += -(e*x)/936 + v*32;
         }
     }
 };
@@ -167,7 +163,6 @@ public:
 
     MoveHistoryStats& operator() (Piece pc, Square s)
     {
-        assert(NONE != ptype (pc));
         return _table[pc][s];
     }
 };
