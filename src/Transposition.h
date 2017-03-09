@@ -66,37 +66,31 @@ namespace Transposition {
         // to calculate the entry age correctly even after generation overflows into the next cycle.
         u08  worth () const { return u08(_depth - 2*((0x103 + Generation - _gen_bnd) & 0xFC)); }
 
-        void refresh () { _gen_bnd = u08(Generation | (_gen_bnd & 0x03)); }
+        void refresh () { _gen_bnd = u08(Generation + (_gen_bnd & 0x03)); }
 
-        void save (
-            u64   k,
-            Move  m,
-            Value v,
-            Value e,
-            i16   d,
-            Bound b)
+        void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
         {
             const u16 key16 = KeySplit{ k }.key16 ();
             assert(key16 != 0);
-            if (   key16 != _key16
-                || m != MOVE_NONE)
-            {
-                _move       = u16(m);
-            }
+
             // Preserve more valuable entries
             if (   key16 != _key16
                 || d > _depth - 4
                 //|| Generation != (_gen_bnd & 0xFC) // Matching non-zero keys are already refreshed by probe()
-                || b == BOUND_EXACT)
+                || (   b != BOUND_NONE
+                    && (   b == BOUND_EXACT
+                        || (_gen_bnd & 0x03) == BOUND_NONE)))
             {
                 _value      = i16(v);
                 _eval       = i16(e);
                 _depth      = i08(d);
-                _gen_bnd    = u08(Generation | b);
+                _gen_bnd    = u08(Generation + b);
             }
-            if (key16 != _key16)
+            if (   key16 != _key16
+                || m != MOVE_NONE)
             {
                 _key16      = key16;
+                _move       = u16(m);
             }
         }
     };
@@ -153,7 +147,7 @@ namespace Transposition {
         Table () = default;
         Table (const Table&) = delete;
         Table& operator= (const Table&) = delete;
-        ~Table ()
+       ~Table ()
         {
             free_aligned_memory ();
         }

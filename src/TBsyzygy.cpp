@@ -183,7 +183,7 @@ namespace TBSyzygy {
         {
         public:
             WDLEntry (const std::string &code);
-            ~WDLEntry ();
+           ~WDLEntry ();
             union
             {
                 WLDEntryPiece piece_table[2]; // [wtm / btm]
@@ -195,7 +195,7 @@ namespace TBSyzygy {
         {
         public:
             DTZEntry (const WDLEntry &wdl);
-            ~DTZEntry ();
+           ~DTZEntry ();
             union
             {
                 DTZEntryPiece piece_table;
