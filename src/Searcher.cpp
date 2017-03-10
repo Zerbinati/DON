@@ -841,13 +841,6 @@ namespace Searcher {
                         (ss-1)->current_move != MOVE_NULL ?
                             evaluate (pos) :
                             -(ss-1)->static_eval + 2*Tempo;
-
-                    //tte->save (posi_key,
-                    //           MOVE_NONE,
-                    //           VALUE_NONE,
-                    //           ss->static_eval,
-                    //           -6,
-                    //           BOUND_NONE);
                 }
 
                 if (alfa < tt_eval)
@@ -1144,7 +1137,8 @@ namespace Searcher {
                             update_stats (ss, pos, tt_move, stat_bonus (depth));
                         }
                         // Extra penalty for a quiet tt_move in previous ply when it gets refuted
-                        if (   1 == (ss-1)->move_count
+                        if (   _ok ((ss-1)->current_move)
+                            && 1 == (ss-1)->move_count
                             && NONE == pos.si->capture)
                         {
                             update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -stat_bonus (depth + 1));
@@ -1714,7 +1708,7 @@ namespace Searcher {
                         root_move.resize (1);
                         for (auto m : (ss+1)->pv)
                         {
-                            root_move.push_back (m);
+                            root_move += m;
                         }
                         root_move.new_value = value;
 
@@ -1809,7 +1803,8 @@ namespace Searcher {
                     }
                 }
                 // Penalty for a quiet best move in previous ply when it gets refuted
-                if (   1 == (ss-1)->move_count
+                if (   sm1_ok
+                    && 1 == (ss-1)->move_count
                     && NONE == pos.si->capture)
                 {
                     update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -stat_bonus (depth + 1));
@@ -1817,8 +1812,8 @@ namespace Searcher {
             }
             else
             // Bonus for prior countermove that caused the fail low
-            if (   2 < depth
-                && sm1_ok
+            if (   sm1_ok
+                && 2 < depth
                 && NONE == pos.si->capture)
             {
                 update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), stat_bonus (depth));
@@ -1873,7 +1868,8 @@ namespace Searcher {
                     << std::right
                     << std::setfill ('0')
                     << std::setw (2)
-                    << ++move_count << ' '
+                    << ++move_count
+                    << ' '
                     << std::left
                     << std::setfill (' ')
                     << std::setw (7)

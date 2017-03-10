@@ -229,8 +229,8 @@ namespace MoveGen {
             static const auto Opp = Own == WHITE ? BLACK : WHITE;
 
             assert(EVASION != GT
-                && !pos.impeded_castle (Own, CS)
                 && pos.can_castle (Own, CS)
+                && pos.expeded_castle (Own, CS)
                 && 0 == pos.si->checkers);
 
             auto king_org = pos.square (Own, KING);
@@ -289,12 +289,12 @@ namespace MoveGen {
                 && 0 == pos.si->checkers
                 && pos.can_castle (Own))
             {
-                if (  !pos.impeded_castle (Own, CS_KING)
+                if (   pos.expeded_castle (Own, CS_KING)
                     && pos.can_castle (Own, CS_KING))
                 {
                     generate_castling_moves<GT, Own, CS_KING> (moves, pos);
                 }
-                if (  !pos.impeded_castle (Own, CS_QUEN)
+                if (   pos.expeded_castle (Own, CS_QUEN)
                     && pos.can_castle (Own, CS_QUEN))
                 {
                     generate_castling_moves<GT, Own, CS_QUEN> (moves, pos);

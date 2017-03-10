@@ -77,9 +77,8 @@ namespace Transposition {
             if (   key16 != _key16
                 || d > _depth - 4
                 //|| Generation != (_gen_bnd & 0xFC) // Matching non-zero keys are already refreshed by probe()
-                || (   b != BOUND_NONE
-                    && (   b == BOUND_EXACT
-                        || (_gen_bnd & 0x03) == BOUND_NONE)))
+                || b == BOUND_EXACT
+                || (_gen_bnd & 0x03) == BOUND_NONE)
             {
                 _value      = i16(v);
                 _eval       = i16(e);

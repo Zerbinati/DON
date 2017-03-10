@@ -141,7 +141,7 @@ public:
     bool can_castle (Color c, CastleSide cs) const;
     bool has_castleright (CastleRight cr) const;
 
-    bool impeded_castle (Color c, CastleSide cs) const;
+    bool expeded_castle (Color c, CastleSide cs) const;
 
     i16  move_num () const;
     Phase phase   () const;
@@ -310,7 +310,7 @@ inline bool Position::can_castle (Color c) const { return (si->castle_rights & c
 inline bool Position::can_castle (Color c, CastleSide cs) const { return (si->castle_rights & castle_right (c, cs)) != CR_NONE; }
 inline bool Position::has_castleright (CastleRight cr) const { return (si->castle_rights & cr) != CR_NONE; }
 
-inline bool Position::impeded_castle (Color c, CastleSide cs) const { return 0 != (castle_path[c][cs] & pieces ()); }
+inline bool Position::expeded_castle (Color c, CastleSide cs) const { return 0 == (castle_path[c][cs] & pieces ()); }
 // move_num starts at 1, and is incremented after BLACK's move.
 inline i16  Position::move_num () const { return i16(std::max ((ply - (BLACK == active ? 1 : 0))/2, 0) + 1); }
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
@@ -322,11 +322,11 @@ inline Phase Position::phase () const
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
-    return((pieces (PAWN) & PawnAttacks[~c][s])
-         | (pieces (NIHT) & PieceAttacks[NIHT][s])
-         | (0 != (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s]) ? pieces (BSHP, QUEN) & attacks_bb<BSHP> (s, occ) : 0)
-         | (0 != (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
-         | (pieces (KING) & PieceAttacks[KING][s])) & pieces (c);
+    return (pieces (c, PAWN) & PawnAttacks[~c][s])
+         | (pieces (c, NIHT) & PieceAttacks[NIHT][s])
+         | (0 != (pieces (c, BSHP, QUEN) & PieceAttacks[BSHP][s]) ? pieces (c, BSHP, QUEN) & attacks_bb<BSHP> (s, occ) : 0)
+         | (0 != (pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (c, ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
+         | (pieces (c, KING) & PieceAttacks[KING][s]);
 }
 // Attackers to the square 's' by color 'c'
 inline Bitboard Position::attackers_to (Square s, Color c) const

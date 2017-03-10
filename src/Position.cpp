@@ -267,8 +267,8 @@ bool Position::pseudo_legal (Move m) const
               && rel_rank (active, org) == R_1
               && rel_rank (active, dst) == R_1
               && contains (pieces (active, ROOK), dst)
-              && !impeded_castle (active, cs)
               && can_castle (active, cs)
+              && expeded_castle (active, cs)
               && 0 == si->checkers))
         {
             return false;

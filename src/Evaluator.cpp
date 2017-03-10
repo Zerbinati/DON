@@ -137,7 +137,7 @@ namespace Evaluator {
             // Number of pieces of the given color, which attack a square in the king_ring of the enemy king.
             u08      king_ring_attackers_count [CLR_NO];
             // Sum of the "weight" of the pieces of the given color which attack a square in the king_ring of the enemy king.
-            // The weights of the individual piece types are given by the KingAttackWeights[piece-type]
+            // The weights of the individual piece types are given by the PieceKingAttacks[piece-type]
             i32      king_ring_attackers_weight[CLR_NO];
             // Number of attacks by the given color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
@@ -161,8 +161,9 @@ namespace Evaluator {
 
         // PieceMobility[piece-type][attacks] contains bonuses for mobility,
         // indexed by piece type and number of attacked squares in the mobility area.
-        const Score PieceMobility[4][28] =
+        const Score PieceMobility[][28] =
         {
+            {},
             { // Knight
                 S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12),
                 S( 22, 26), S( 29, 29), S( 36, 29)
@@ -188,19 +189,24 @@ namespace Evaluator {
 
         // PieceCloseness[piece-type][distance] contains a bonus for piece closeness,
         // indexed by piece type and distance from the sqaure.
-        const Score PieceCloseness[4][8] =
+        const Score PieceCloseness[][8] =
         {
+            {},
             { S(0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S(-10,-4), S( -1,-4), S( -7,-3), S(-16,-10) }, // Knight
             { S(0, 0), S(11, 8), S(-7,-1), S(-1,-2), S( -1,-7), S(-11,-3), S( -9,-1), S(-16, -1) }, // Bishop
             { S(0, 0), S(10, 0), S(-2, 2), S(-5, 4), S( -6, 2), S(-14,-3), S( -2,-9), S(-12, -7) }, // Rook
             { S(0, 0), S( 3,-5), S( 2,-5), S(-4, 0), S( -9,-6), S( -4, 7), S(-13,-7), S(-10, -7) }  // Queen
         };
 
-        // Outpost[supported by pawn] contains bonuses for minors outposts.
+        // PieceOutpost[supported by pawn] contains bonuses for piece outposts.
         // If they can reach an outpost square, bigger if that square is supported by a pawn.
         // If the minor piece occupies an outpost square then score is doubled.
-        const Score KnightOutpost[2] = { S(22, 6), S(33, 9) };
-        const Score BishopOutpost[2] = { S( 9, 2), S(14, 4) };
+        const Score PieceOutpost[][2] =
+        {
+            {},
+            { S(22, 6), S(33, 9) },
+            { S( 9, 2), S(14, 4) }
+        };
 
         // RookOnFile[semiopen/open] contains bonuses for rooks
         // when there is no friend pawn on the rook file.
@@ -259,10 +265,10 @@ namespace Evaluator {
 
     #undef V
 
-        // King attack weights by piece type
-        const i32 KingAttackWeights [NONE] = { 0,  78,  56,  45,  11, 0 };
+        // Bonuses for king attack weights by piece type
+        const i32 PieceKingAttacks [NONE] = { 0,  78,  56,  45,  11, 0 };
         // Penalties for enemy's piece safe checks by piece type
-        const i32 PieceSafeChecks   [NONE] = { 0, 924, 588, 688, 745, 0 };
+        const i32 PieceSafeChecks  [NONE] = { 0, 924, 588, 688, 745, 0 };
 
         template<Color Own>
         void init_eval (const Position &pos, EvalInfo &ei)
@@ -336,18 +342,18 @@ namespace Evaluator {
                 if (0 != (ei.king_ring[Opp] & attacks))
                 {
                     ei.king_ring_attackers_count [Own]++;
-                    ei.king_ring_attackers_weight[Own] += KingAttackWeights[PT];
+                    ei.king_ring_attackers_weight[Own] += PieceKingAttacks[PT];
                     ei.king_zone_attacks_count[Own] += u08(pop_count (ei.pin_attacked_by[Opp][KING] & attacks));
                 }
 
                 auto mob = pop_count (ei.mobility_area[Own] & attacks);
                 assert(0 <= mob && mob <= 27);
                 // Bonus for piece mobility
-                mobility += PieceMobility[PT-1][mob];
+                mobility += PieceMobility[PT][mob];
 
                 // Bonus for piece closeness to King
-                score += PieceCloseness[PT-1][dist (s, k_sq)];
-                score += PieceCloseness[PT-1][dist (s, pos.square (Opp, KING))];
+                score += PieceCloseness[PT][dist (s, k_sq)];
+                //score += PieceCloseness[PT][dist (s, pos.square (Opp, KING))];
 
                 // Special extra evaluation for pieces
                 if (   NIHT == PT
@@ -364,20 +370,14 @@ namespace Evaluator {
                     // Bonus for minors outpost squares
                     if (contains (b, s))
                     {
-                        score +=
-                            (NIHT == PT ?
-                                KnightOutpost[contains (ei.pin_attacked_by[Own][PAWN], s) ? 1 : 0] :
-                                BishopOutpost[contains (ei.pin_attacked_by[Own][PAWN], s) ? 1 : 0]) * 2;
+                        score += PieceOutpost[PT][contains (ei.pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
                     }
                     else
                     {
                         b &= attacks & ~pos.pieces (Own);
                         if (0 != b)
                         {
-                            score +=
-                                (NIHT == PT ?
-                                    KnightOutpost[0 != (ei.pin_attacked_by[Own][PAWN] & b) ? 1 : 0] :
-                                    BishopOutpost[0 != (ei.pin_attacked_by[Own][PAWN] & b) ? 1 : 0]) * 1;
+                            score += PieceOutpost[PT][contains (ei.pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 1;
                         }
                     }
                     
@@ -424,15 +424,15 @@ namespace Evaluator {
                     {
                         score += RookOnPawns * pop_count (pos.pieces (Opp, PAWN) & PieceAttacks[ROOK][s]);
                     }
-                    // Bonus for rook when on an open or semi-open (undefended/defended) file
+                    // Bonus for rook when on an open or semi-open file
                     if (ei.pe->file_semiopen (Own, _file (s)))
                     {
                         score += RookOnFile[ei.pe->file_semiopen (Opp, _file (s)) ? 1 : 0];
                     }
                     else
                     {
-                        auto kf = _file (k_sq);
                         // Penalty for rook when trapped by the king, even more if the king can't castle
+                        auto kf = _file (k_sq);
                         if (   mob <= 3
                             && ((kf < F_E) == (_file (s) < kf))
                             && 0 != (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN))
@@ -485,8 +485,8 @@ namespace Evaluator {
                 && pos.can_castle (Own))
             {
                 if (   0 != index
-                    && !pos.impeded_castle (Own, CS_KING)
                     && pos.can_castle (Own, CS_KING)
+                    && pos.expeded_castle (Own, CS_KING)
                     && 0 == (pos.king_path[Own][CS_KING] & ei.ful_attacked_by[Opp]))
                 {
                     if (value < ei.pe->king_safety[Own][0])
@@ -495,8 +495,8 @@ namespace Evaluator {
                     }
                 }
                 if (   1 != index
-                    && !pos.impeded_castle (Own, CS_QUEN)
                     && pos.can_castle (Own, CS_QUEN)
+                    && pos.expeded_castle (Own, CS_QUEN)
                     && 0 == (pos.king_path[Own][CS_QUEN] & ei.ful_attacked_by[Opp]))
                 {
                     if (value < ei.pe->king_safety[Own][1])
