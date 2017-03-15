@@ -49,9 +49,13 @@ public:
     Bitboard    king_checkers[CLR_NO];// Absolute and Discover Checkers
     Bitboard    checks[NONE];
 
-    StateInfo   *ptr;           // Previous StateInfo.
+    StateInfo  *ptr;            // Previous StateInfo.
 
     void set_check_info (const Position &pos);
+
+    Value non_pawn_material () const;
+    Value non_pawn_material (Color c) const;
+    
 };
 
 typedef std::deque<StateInfo> StateList;
@@ -116,7 +120,7 @@ public:
 
     Position () = default;
     Position (const Position&) = delete;
-    Position& operator= (const Position &pos) = delete;
+    Position& operator= (const Position&) = delete;
 
     Piece operator[] (Square s) const;
     bool empty  (Square s)  const;
@@ -316,7 +320,7 @@ inline i16  Position::move_num () const { return i16(std::max ((ply - (BLACK == 
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
 inline Phase Position::phase () const
 {
-    return Phase(i32(std::min (std::max (si->non_pawn_matl[WHITE] + si->non_pawn_matl[BLACK], VALUE_ENDGAME), VALUE_MIDGAME)
+    return Phase(i32(std::min (std::max (si->non_pawn_material (), VALUE_ENDGAME), VALUE_MIDGAME)
                         - VALUE_ENDGAME) * PHASE_MIDGAME / (VALUE_MIDGAME - VALUE_ENDGAME));
 }
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
@@ -522,6 +526,17 @@ inline void StateInfo::set_check_info (const Position &pos)
     checks[ROOK] = attacks_bb<ROOK> (ek_sq, pos.pieces ());
     checks[QUEN] = checks[BSHP] | checks[ROOK];
     checks[KING] = 0;
+}
+
+inline Value StateInfo::non_pawn_material () const
+{
+    return non_pawn_matl[WHITE]
+         + non_pawn_matl[BLACK];
+}
+
+inline Value StateInfo::non_pawn_material (Color c) const
+{
+    return non_pawn_matl[c];
 }
 
 #if !defined(NDEBUG)

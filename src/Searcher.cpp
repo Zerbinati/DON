@@ -198,9 +198,9 @@ template<> void MovePicker::value<CAPTURE> ()
 }
 template<> void MovePicker::value<QUIET> ()
 {
-    const auto* smh1 = (_ss-1)->m_history;
-    const auto* smh2 = (_ss-2)->m_history;
-    const auto* smh4 = (_ss-4)->m_history;
+    const auto& smh1 = *(_ss-1)->m_history;
+    const auto& smh2 = *(_ss-2)->m_history;
+    const auto& smh4 = *(_ss-4)->m_history;
 
     const bool sm1_ok = _ok ((_ss-1)->current_move);
     const bool sm2_ok = _ok ((_ss-2)->current_move);
@@ -213,17 +213,17 @@ template<> void MovePicker::value<QUIET> ()
 
         vm.value =
               _pos.thread->history(_pos.active, vm.move)
-            + (sm1_ok ? (*smh1)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-            + (sm2_ok ? (*smh2)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-            + (sm4_ok ? (*smh4)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO);
+            + (sm1_ok ? smh1(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
+            + (sm2_ok ? smh2(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
+            + (sm4_ok ? smh4(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO);
     }
 }
 // First captures ordered by MVV/LVA, then non-captures ordered by stats heuristics
 template<> void MovePicker::value<EVASION> ()
 {
-    //const auto* smh1 = (_ss-1)->m_history;
-    //const auto* smh2 = (_ss-2)->m_history;
-    //const auto* smh4 = (_ss-4)->m_history;
+    //const auto& smh1 = *(_ss-1)->m_history;
+    //const auto& smh2 = *(_ss-2)->m_history;
+    //const auto& smh4 = *(_ss-4)->m_history;
 
     //const bool sm1_ok = _ok ((_ss-1)->current_move);
     //const bool sm2_ok = _ok ((_ss-2)->current_move);
@@ -245,9 +245,9 @@ template<> void MovePicker::value<EVASION> ()
         {
             vm.value =
                   _pos.thread->history(_pos.active, vm.move);
-                //+ (sm1_ok ? (*smh1)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-                //+ (sm2_ok ? (*smh2)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-                //+ (sm4_ok ? (*smh4)(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO);
+                //+ (sm1_ok ? smh1(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
+                //+ (sm2_ok ? smh2(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
+                //+ (sm4_ok ? smh4(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO);
         }
     }
 }
@@ -555,6 +555,12 @@ namespace Searcher {
         void prefetch (const void *)
         {}
 #endif
+
+        void prefetch_off (const void *addr)
+        {
+            prefetch (addr);
+            prefetch ((uint8_t*) addr + 64);
+        }
 
         const i16 MaxRazorDepth = 4;
         // RazorMargins[depth]
@@ -943,7 +949,7 @@ namespace Searcher {
                 if (   PAWN == ptype (pos[dst_sq (move)])
                     || PAWN == pos.si->capture)
                 {
-                    prefetch (th->pawn_table[pos.si->pawn_key]);
+                    prefetch_off (th->pawn_table[pos.si->pawn_key]);
                 }
                 if (capture_or_promotion)
                 {
@@ -1063,8 +1069,7 @@ namespace Searcher {
 
             if (!root_node)
             {
-                // Step 2. Check end condition
-                // Check for aborted search, immediate draw or maximum ply reached
+                // Step 2. Check for aborted search, immediate draw or maximum ply reached
                 if (   ForceStop.load (memory_order_relaxed)
                     || ss->ply >= MaxPlies
                     || pos.draw (ss->ply))
@@ -1261,7 +1266,7 @@ namespace Searcher {
                         && tt_eval < +VALUE_KNOWN_WIN
                         && tt_eval - 150*depth >= beta
                         //&& 0 == Limits.mate
-                        && pos.si->non_pawn_matl[pos.active] > VALUE_ZERO)
+                        && pos.si->non_pawn_material (pos.active) > VALUE_ZERO)
                     {
                         return tt_eval;
                     }
@@ -1272,7 +1277,7 @@ namespace Searcher {
                         //&& 0 == Limits.mate
                         && (   12 < depth
                             || ss->static_eval >= beta - 35*(depth - 6))
-                        && pos.si->non_pawn_matl[pos.active] > VALUE_ZERO)
+                        && pos.si->non_pawn_material (pos.active) > VALUE_ZERO)
                     {
                         assert(exclude_move == MOVE_NONE);
 
@@ -1357,7 +1362,7 @@ namespace Searcher {
                             if (   PAWN == ptype (pos[dst_sq (move)])
                                 || PAWN == pos.si->capture)
                             {
-                                prefetch (th->pawn_table[pos.si->pawn_key]);
+                                prefetch_off (th->pawn_table[pos.si->pawn_key]);
                             }
                             // NOTE:: All moves are capture_or_promotion
                             prefetch (th->matl_table[pos.si->matl_key]);
@@ -1416,9 +1421,9 @@ namespace Searcher {
                    (ss-2)->static_eval <= (ss-0)->static_eval
                 || (ss-2)->static_eval == VALUE_NONE;
 
-            const auto* smh1 = (ss-1)->m_history;
-            const auto* smh2 = (ss-2)->m_history;
-            const auto* smh4 = (ss-4)->m_history;
+            const auto& smh1 = *(ss-1)->m_history;
+            const auto& smh2 = *(ss-2)->m_history;
+            const auto& smh4 = *(ss-4)->m_history;
 
             const bool sm1_ok = _ok ((ss-1)->current_move);
             const bool sm2_ok = _ok ((ss-2)->current_move);
@@ -1438,9 +1443,9 @@ namespace Searcher {
                 assert(pos.pseudo_legal (move)
                     && pos.legal (move));
 
-                if (    // Skip exclusion move
-                        move == exclude_move
-                        // At root obey the "searchmoves" option and skip moves not listed in
+                if (   // Skip exclusion move
+                       move == exclude_move
+                       // At root obey the "searchmoves" option and skip moves not listed in
                        // RootMove list, as a consequence any illegal move is also skipped.
                        // In MultiPV mode also skip PV moves which have been already searched.
                     || (   root_node
@@ -1524,8 +1529,7 @@ namespace Searcher {
                             // Advance pawn push
                         && !(   PAWN == ptype (pos[org_sq (move)])
                              && rel_rank (pos.active, org_sq (move)) > R_4
-                             && (  pos.si->non_pawn_matl[WHITE]
-                                 + pos.si->non_pawn_matl[BLACK]) < 2*VALUE_MG_QUEN))
+                             && pos.si->non_pawn_material () < 2*VALUE_MG_QUEN))
                     {
                         // Move count based pruning
                         if (move_count_pruning)
@@ -1537,9 +1541,9 @@ namespace Searcher {
                         auto lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Counter moves value based pruning
                                (   3 > lmr_depth
-                                && (!sm1_ok || (*smh1)(mpc, dst_sq (move)) < VALUE_ZERO)
-                                && (!sm2_ok || (*smh2)(mpc, dst_sq (move)) < VALUE_ZERO)
-                                && ((sm1_ok && sm2_ok) || !sm4_ok || (*smh4)(mpc, dst_sq (move)) < VALUE_ZERO))
+                                && (!sm1_ok || smh1(mpc, dst_sq (move)) < VALUE_ZERO)
+                                && (!sm2_ok || smh2(mpc, dst_sq (move)) < VALUE_ZERO)
+                                && ((sm1_ok && sm2_ok) || !sm4_ok || smh4(mpc, dst_sq (move)) < VALUE_ZERO))
                                 // Futility pruning: parent node
                             || (   7 > lmr_depth
                                 && !in_check
@@ -1574,7 +1578,7 @@ namespace Searcher {
                 if (   PAWN == ptype (pos[dst_sq (move)])
                     || PAWN == pos.si->capture)
                 {
-                    prefetch (th->pawn_table[pos.si->pawn_key]);
+                    prefetch_off (th->pawn_table[pos.si->pawn_key]);
                 }
                 if (capture_or_promotion)
                 {
@@ -1614,9 +1618,9 @@ namespace Searcher {
 
                         ss->history_val =
                               th->history(~pos.active, move)
-                            + (sm1_ok ? (*smh1)(mpc, dst_sq (move)) : VALUE_ZERO)
-                            + (sm2_ok ? (*smh2)(mpc, dst_sq (move)) : VALUE_ZERO)
-                            + (sm4_ok ? (*smh4)(mpc, dst_sq (move)) : VALUE_ZERO)
+                            + (sm1_ok ? smh1(mpc, dst_sq (move)) : VALUE_ZERO)
+                            + (sm2_ok ? smh2(mpc, dst_sq (move)) : VALUE_ZERO)
+                            + (sm4_ok ? smh4(mpc, dst_sq (move)) : VALUE_ZERO)
                             - 4000; // Correction factor
 
                         // Decrease/Increase reduction by comparing opponent's stat score
@@ -1931,6 +1935,9 @@ namespace Threading {
 
     using namespace Searcher;
 
+    const u08 SkipSize[]  = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
+    const u08 SkipPhase[] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
+
     // skip half of the plies in blocks depending on the helper thread idx.
     bool skip_ply (int idx, int ply)
     {
@@ -1981,6 +1988,16 @@ namespace Threading {
                && (   0 == Limits.depth
                    || Threadpool.main_thread ()->running_depth <= Limits.depth))
         {
+            // Distribute search depths across the threads
+            if (index != 0)
+            {
+                int i = (index - 1) % 20;
+                if ((((running_depth + root_pos.ply + SkipPhase[i]) / SkipSize[i]) % 2) != 0)
+                {
+                    continue;
+                }
+            }
+
             if (Threadpool.main_thread () == this)
             {
                 if (Limits.use_time_management ())
@@ -1988,14 +2005,6 @@ namespace Threading {
                     Threadpool.failed_low = false;
                     // Age out PV variability metric
                     Threadpool.best_move_change *= 0.505;
-                }
-            }
-            else
-            {
-                // skip plies for helper threads
-                if (skip_ply (index, running_depth + root_pos.ply))
-                {
-                    continue;
                 }
             }
 

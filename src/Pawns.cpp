@@ -122,7 +122,7 @@ namespace Pawns {
 
                 opposed    = (opp_pawns & front_sqrs_bb (Own, s)) != 0;
                 blocked    = contains (own_pawns, (s+Push));
-                connected  = supporters != 0 || phalanxes != 0;
+                connected  = 0 != supporters || 0 != phalanxes;
                 
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
                 // The pawn is backward when it cannot safely progress to next rank:
@@ -271,7 +271,7 @@ namespace Pawns {
                     for (auto r = R_2; r < R_8; ++r)
                     {
                         auto v = i32((i32(Seeds[r] + (Seeds[r+1] - Seeds[r])*0.5*phalanx) >> opposed) * (1.0 + 0.5*apex));
-                        Connected[opposed][phalanx][apex][r] = mk_score (v, v * i32(r-R_3) / 4);
+                        Connected[opposed][phalanx][apex][r] = mk_score (v, v * (r-2) / 4);
                     }
                 }
             }

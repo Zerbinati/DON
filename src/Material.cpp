@@ -15,11 +15,11 @@ namespace Material {
         {
             //          Own Pieces
             //  P     N     B     R     Q    BP
-            { +  2,    0,    0,    0,    0, +  40 }, // P
-            { +255, -  3,    0,    0,    0, +  32 }, // N
-            { +104, +  4,    0,    0,    0,     0 }, // B     Own Pieces
-            { -  2, + 47, +105, -149,    0, -  26 }, // R
-            { + 24, +122, +137, -134,    0, - 185 }, // Q
+            {   +2,    0,    0,    0,    0,   +40 }, // P
+            { +255,   -3,    0,    0,    0,   +32 }, // N
+            { +104,   +4,    0,    0,    0,     0 }, // B     Own Pieces
+            {   -2,  +47, +105, -149,    0,   -26 }, // R
+            {  +24, +122, +137, -134,    0,  -185 }, // Q
             {    0,    0,    0,    0,    0, +1667 }  // BP
         };
 
@@ -27,11 +27,11 @@ namespace Material {
         {
             //          Opp Pieces
             //  P     N     B     R     Q    BP
-            {    0,    0,    0,    0,    0, + 36 }, // P
-            { + 63,    0,    0,    0,    0, +  9 }, // N
-            { + 65, + 42,    0,    0,    0, + 59 }, // B     Own Pieces
-            { + 39, + 24, - 24,    0,    0, + 46 }, // R
-            { +100, - 37, +141, +268,    0, +101 }, // Q
+            {    0,    0,    0,    0,    0,  +36 }, // P
+            {  +63,    0,    0,    0,    0,   +9 }, // N
+            {  +65,  +42,    0,    0,    0,  +59 }, // B     Own Pieces
+            {  +39,  +24,  -24,    0,    0,  +46 }, // R
+            { +100,  -37, +141, +268,    0, +101 }, // Q
             {    0,    0,    0,    0,    0,    0 }  // BP
         };
 
@@ -54,7 +54,7 @@ namespace Material {
             i32 value = 0;
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
-            for (auto pt1 = PAWN; pt1 < KING; ++pt1)
+            for (auto pt1 = PAWN; pt1 <= QUEN; ++pt1)
             {
                 if (count[Own][pt1] != 0)
                 {
@@ -73,8 +73,8 @@ namespace Material {
             }
             if (count[Own][KING] != 0)
             {
-                value += count[Own][KING] * OwnQuadratic[KING][KING];
-                       //+ count[Opp][KING] * OppQuadratic[KING][KING];
+                value += count[Own][KING] * OwnQuadratic[KING][KING]
+                       + count[Opp][KING] * OppQuadratic[KING][KING];
             }
             return Value(value);
         }
@@ -96,7 +96,6 @@ namespace Material {
         e->key = matl_key;
         e->scale[WHITE] =
         e->scale[BLACK] = SCALE_NORMAL;
-        e->phase = pos.phase ();
 
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
@@ -108,7 +107,7 @@ namespace Material {
         // Generic evaluation
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            if (   pos.si->non_pawn_matl[ c] >= VALUE_MG_ROOK
+            if (   pos.si->non_pawn_material ( c) >= VALUE_MG_ROOK
                 && pos.count<NONE> (~c) == 1)
             {
                 e->value_func = &EvaluateKXK[c];
@@ -133,17 +132,17 @@ namespace Material {
         // Note that these ones don't return after setting the function.
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            if (   pos.si->non_pawn_matl[ c] == VALUE_MG_BSHP
+            if (   pos.si->non_pawn_material ( c) == VALUE_MG_BSHP
                 && pos.count<BSHP> ( c) == 1
                 && pos.count<PAWN> ( c) != 0)
             {
                 e->scale_func[c] = &ScaleKBPsKs[c];
             }
             else
-            if (   pos.si->non_pawn_matl[ c] == VALUE_MG_QUEN
+            if (   pos.si->non_pawn_material ( c) == VALUE_MG_QUEN
                 && pos.count<QUEN> ( c) == 1
                 && pos.count<PAWN> ( c) == 0
-                && pos.si->non_pawn_matl[~c] == VALUE_MG_ROOK
+                && pos.si->non_pawn_material (~c) == VALUE_MG_ROOK
                 && pos.count<ROOK> (~c) == 1
                 && pos.count<PAWN> (~c) != 0)
             {
@@ -151,8 +150,7 @@ namespace Material {
             }
             else
             // Only pawns on the board
-            if (   pos.si->non_pawn_matl[ c]
-                 + pos.si->non_pawn_matl[~c] == VALUE_ZERO
+            if (   pos.si->non_pawn_material () == VALUE_ZERO
                 && pos.pieces (PAWN) != 0)
             {
                 switch (pos.count<PAWN> (~c))
@@ -173,16 +171,16 @@ namespace Material {
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
-            if (abs (  pos.si->non_pawn_matl[ c]
-                     - pos.si->non_pawn_matl[~c]) <= VALUE_MG_BSHP)
+            if (abs (  pos.si->non_pawn_material ( c)
+                     - pos.si->non_pawn_material (~c)) <= VALUE_MG_BSHP)
             {
                 switch (pos.count<PAWN> ( c))
                 {
                 case 0:
                     e->scale[c] =
-                        pos.si->non_pawn_matl[ c] <  VALUE_MG_ROOK ?
+                        pos.si->non_pawn_material ( c) <  VALUE_MG_ROOK ?
                             SCALE_DRAW :
-                            pos.si->non_pawn_matl[~c] <= VALUE_MG_BSHP ?
+                            pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ?
                                 Scale(4) :
                                 Scale(14);
                     break;

@@ -265,9 +265,9 @@ namespace Evaluator {
 
     #undef V
 
-        // Bonuses for king attack weights by piece type
+        // Bonuses for king attack by piece type
         const i32 PieceKingAttacks [NONE] = { 0,  78,  56,  45,  11, 0 };
-        // Penalties for enemy's piece safe checks by piece type
+        // Bonuses for safe checks by piece type
         const i32 PieceSafeChecks  [NONE] = { 0, 924, 588, 688, 745, 0 };
 
         template<Color Own>
@@ -275,15 +275,16 @@ namespace Evaluator {
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
-            static const Bitboard LowRanks = Own == WHITE ? R2_bb | R3_bb :
-                                                            R7_bb | R6_bb;
+            static const Bitboard LowRanks = Own == WHITE ?
+                                                 R2_bb | R3_bb :
+                                                 R7_bb | R6_bb;
             // Do not include in mobility area
             // - squares protected by enemy pawns or
             // - squares occupied by block pawns (pawns blocked or on ranks 2-3) or
             // - square occupied by friend king
             ei.mobility_area[Own] = ~((ei.pin_attacked_by[Opp][PAWN] | (pos.pieces (Own, PAWN) & (shift<Pull> (pos.pieces ()) | LowRanks))) | pos.square (Own, KING));
 
-            if (pos.si->non_pawn_matl[Opp] >= VALUE_MG_QUEN)
+            if (pos.si->non_pawn_material (Opp) >= VALUE_MG_QUEN)
             {
                 auto fk_sq = pos.square (Own, KING);
                 Bitboard king_zone = PieceAttacks[KING][fk_sq];
@@ -447,9 +448,9 @@ namespace Evaluator {
                 {
                     // Penalty for pin or discover attack on the queen
                     Bitboard pinners = 0, discovers = 0;
-                    if ((pos.slider_blockers<Own> (s, pos.pieces (Opp, QUEN), pinners, discovers) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
-                                                                                                                                                  | shift<RCap> (pos.pieces (Own))))
-                                                                                                      | pos.abs_blockers (Opp))) != 0)
+                    if (0 != (pos.slider_blockers<Own> (s, pos.pieces (Opp, QUEN), pinners, discovers) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
+                                                                                                                                                       | shift<RCap> (pos.pieces (Own))))
+                                                                                                           | pos.abs_blockers (Opp))))
                     {
                         score -= QueenWeaken;
                     }
@@ -473,8 +474,8 @@ namespace Evaluator {
             //static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             //static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
             static const Bitboard Camp = Own == WHITE ?
-                                            R1_bb|R2_bb|R3_bb|R4_bb|R5_bb :
-                                            R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
+                                             R1_bb|R2_bb|R3_bb|R4_bb|R5_bb :
+                                             R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
 
             auto fk_sq = pos.square (Own, KING);
 
@@ -520,7 +521,7 @@ namespace Evaluator {
                 // ... and those which are not defended at all in the king ring.
                 Bitboard king_ring_undef =
                        ei.king_ring[Own]
-                    &  ~pos.pieces (Opp)
+                    & ~pos.pieces (Opp)
                     &  ei.pin_attacked_by[Opp][NONE]
                     & ~ei.pin_attacked_by[Own][NONE];
                 // Initialize the king danger, which will be transformed later into a king danger score.
@@ -534,9 +535,9 @@ namespace Evaluator {
                     + 235 * pop_count (king_zone_undef)
                     + 134 * (  pop_count (king_ring_undef)
                              + (0 != pos.abs_blockers (Own) ? 1 : 0))
-                    //+ 134 * ((pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
-                    //                                                                                     | shift<RCap> (pos.pieces (Own))))
-                    //                                     | pos.abs_blockers (Opp))) != 0 ? 1 : 0)
+                    //+ 134 * (0 != (pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
+                    //                                                                                          | shift<RCap> (pos.pieces (Own))))
+                    //                                          | pos.abs_blockers (Opp))) ? 1 : 0)
                     - 717 * (0 == pos.count<QUEN>(Opp))
                     -   7 * i32(value) / 5
                     -   5;
@@ -550,12 +551,14 @@ namespace Evaluator {
                 Bitboard safe_area =
                       ~pos.pieces (Opp)
                     & (  ~ei.pin_attacked_by[Own][NONE]
-                       | (king_zone_undef & ei.dbl_attacked[Opp]));
+                       | (  king_zone_undef
+                          & ei.dbl_attacked[Opp]));
                 // ... and for some other probable potential checks, 
                 // the square to be safe from pawn-attacks and not being occupied by a blocked pawns.
                 Bitboard prob_area =
                       ~ei.pin_attacked_by[Own][PAWN]
-                    & ~(pos.pieces (Opp, PAWN) & shift<Push> (pos.pieces ()));
+                    & ~(  pos.pieces (Opp, PAWN)
+                        & shift<Push> (pos.pieces ()));
 
                 // Enemy queens safe checks
                 b =    (rook_attack | bshp_attack)
@@ -568,7 +571,8 @@ namespace Evaluator {
                 // For other pieces, the safe square also if attacked twice and only defended by a queen.
                 safe_area |=
                        ei.dbl_attacked[Opp]
-                    & ~(ei.dbl_attacked[Own] | pos.pieces (Opp))
+                    & ~(  ei.dbl_attacked[Own]
+                        | pos.pieces (Opp))
                     &  ei.pin_attacked_by[Own][QUEN];
 
                 // Enemy rooks safe and other checks
@@ -702,7 +706,7 @@ namespace Evaluator {
             b =   (  weak_pieces
                     // Queens
                    | pos.pieces (Opp, QUEN))
-                & (ei.pin_attacked_by[Own][ROOK]);
+                & ei.pin_attacked_by[Own][ROOK];
             while (0 != b)
             {
                 auto s = pop_lsq (b);
@@ -946,7 +950,7 @@ namespace Evaluator {
                           - dist<Rank> (pos.square (WHITE, KING), pos.square (BLACK, KING));
 
             // Compute the initiative bonus for the attacking side
-            i32 initiative = 8 * (king_dist + asymmetry - 17)
+            i32 initiative =  8 * (king_dist + asymmetry - 17)
                            + 12 * pos.count<PAWN> ()
                              // Pawn on both flanks
                            + 16 * (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
@@ -960,7 +964,7 @@ namespace Evaluator {
         // Computes the scale for the position
         Scale evaluate_scale (const Position &pos, const EvalInfo &ei, Value eg)
         {
-            assert(PHASE_ENDGAME <= ei.me->phase && ei.me->phase <= PHASE_MIDGAME);
+            assert(PHASE_ENDGAME <= pos.phase () && pos.phase () <= PHASE_MIDGAME);
 
             auto strong_color = eg >= VALUE_ZERO ? WHITE : BLACK;
             Scale scale;
@@ -979,8 +983,8 @@ namespace Evaluator {
                 {
                     return
                         // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
-                           VALUE_MG_BSHP == pos.si->non_pawn_matl[WHITE] && 1 == pos.count<BSHP> (WHITE)
-                        && VALUE_MG_BSHP == pos.si->non_pawn_matl[BLACK] && 1 == pos.count<BSHP> (BLACK) ?
+                           VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE) && 1 == pos.count<BSHP> (WHITE)
+                        && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) && 1 == pos.count<BSHP> (BLACK) ?
                                 1 >= pos.count<PAWN> () ?
                                     Scale( 9) :
                                     Scale(31) :
@@ -1075,8 +1079,7 @@ namespace Evaluator {
             - evaluate_passers<BLACK, Trace> (pos, ei);
 
         // Evaluate space, if in the opening phase
-        if (   pos.si->non_pawn_matl[WHITE]
-             + pos.si->non_pawn_matl[BLACK] >= VALUE_SPACE)
+        if (pos.si->non_pawn_material () >= 12222)
         {
             score +=
                 + evaluate_space<WHITE, Trace> (pos, ei)
@@ -1089,9 +1092,10 @@ namespace Evaluator {
         assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
 
+        auto phase = pos.phase ();
         // Interpolates between a midgame and a endgame score, scaled based on game phase.
-        auto value = Value((  mg_value (score) * i32(ei.me->phase)
-                            + eg_value (score) * i32(PHASE_MIDGAME - ei.me->phase)
+        auto value = Value((  mg_value (score) * i32(phase)
+                            + eg_value (score) * i32(PHASE_MIDGAME - phase)
                                                 // Evaluate scale for the position
                                                * i32(evaluate_scale (pos, ei, eg_value (score)))/SCALE_NORMAL)
                             / PHASE_MIDGAME);

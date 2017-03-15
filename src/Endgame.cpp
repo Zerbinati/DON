@@ -65,7 +65,7 @@ namespace EndGame {
 #if !defined(NDEBUG)
         bool verify_material (const Position &pos, Color c, Value npm, i32 pawn_count)
         {
-            return pos.si->non_pawn_matl[c] == npm
+            return pos.si->non_pawn_material (c) == npm
                 && pos.count<PAWN> (c) == pawn_count;
         }
 #endif
@@ -121,7 +121,7 @@ namespace EndGame {
 
         auto value = std::min (
                      VALUE_EG_PAWN*pos.count<PAWN> (strong_color)
-                   + pos.si->non_pawn_matl[strong_color]
+                   + pos.si->non_pawn_material (strong_color)
                    + PushToEdge[wk_sq]
                    + PushClose[dist (sk_sq, wk_sq)], +VALUE_KNOWN_WIN - 1);
 
@@ -542,7 +542,7 @@ namespace EndGame {
     // are on the same rook file and are blocked by the defending king, it's a draw.
     template<> Scale Endgame<KPsK>::operator() (const Position &pos) const
     {
-        assert(pos.si->non_pawn_matl[strong_color] == VALUE_ZERO);
+        assert(pos.si->non_pawn_material (strong_color) == VALUE_ZERO);
         assert(pos.count<PAWN> (strong_color) >= 2);
         assert(verify_material (pos, ~strong_color, VALUE_ZERO, 0));
 
@@ -791,7 +791,7 @@ namespace EndGame {
     // If not, the return value is SCALE_NONE, i.e. no scaling will be used.
     template<> Scale Endgame<KBPsKs>::operator() (const Position &pos) const
     {
-        assert(pos.si->non_pawn_matl[strong_color] == VALUE_MG_BSHP);
+        assert(pos.si->non_pawn_material (strong_color) == VALUE_MG_BSHP);
         assert(pos.count<BSHP> (strong_color) == 1);
         assert(pos.count<PAWN> (strong_color) != 0);
         // No assertions about the material of weak side, because we want draws to
@@ -827,7 +827,7 @@ namespace EndGame {
         if (   (   sp_f == F_B
                 || sp_f == F_G)
             && 0 == (pos.pieces (PAWN) & ~file_bb (sp_f))
-            && pos.si->non_pawn_matl[~strong_color] == VALUE_ZERO)
+            && pos.si->non_pawn_material (~strong_color) == VALUE_ZERO)
         {
             auto sk_sq = pos.square ( strong_color, KING);
             auto wk_sq = pos.square (~strong_color, KING);

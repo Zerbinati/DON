@@ -299,7 +299,6 @@ enum Value : i32
     VALUE_MG_ROOK = 1285,  VALUE_EG_ROOK = 1371,
     VALUE_MG_QUEN = 2513,  VALUE_EG_QUEN = 2648,
 
-    VALUE_SPACE   = 12222, // TODO:: re-value
     VALUE_MIDGAME = 15258, VALUE_ENDGAME = 3915,
 };
 // Score needs 32-bits to be stored

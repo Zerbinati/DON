@@ -27,12 +27,12 @@ namespace Transposition {
 
     #if defined(LPAGES)
 
-        Memory::alloc_memory (_blocks, mem_size, alignment);
-        if (_blocks == nullptr)
+        Memory::alloc_memory (_mem, mem_size, alignment);
+        if (_mem == nullptr)
         {
             return;
         }
-        _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_blocks) + alignment-1) & ~uintptr_t(alignment-1));
+        _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_mem) + alignment-1) & ~uintptr_t(alignment-1));
         assert((uintptr_t(_clusters) & (alignment-1)) == 0);
 
     #else
@@ -53,14 +53,14 @@ namespace Transposition {
 
         alignment = std::max (u32(sizeof (void *)), alignment);
 
-        _blocks = calloc (mem_size + alignment-1, 1);
-        if (_blocks == nullptr)
+        _mem = calloc (mem_size + alignment-1, 1);
+        if (_mem == nullptr)
         {
             std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << std::endl;
             return;
         }
         sync_cout << "info string Hash " << (mem_size >> 20) << " MB" << sync_endl;
-        _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_blocks) + alignment-1) & ~uintptr_t(alignment-1));
+        _clusters = reinterpret_cast<Cluster*> ((uintptr_t(_mem) + alignment-1) & ~uintptr_t(alignment-1));
         assert((uintptr_t(_clusters) & (alignment-1)) == 0);
 
     #endif
@@ -70,11 +70,11 @@ namespace Transposition {
     void Table::free_aligned_memory ()
     {
     #   if defined(LPAGES)
-        Memory::free_memory (_blocks);
+        Memory::free_memory (_mem);
     #   else
-        free (_blocks);
+        free (_mem);
     #   endif
-        _blocks = nullptr;
+        _mem = nullptr;
         _clusters = nullptr;
         _cluster_count = 0;
         _cluster_mask  = 0;
@@ -106,19 +106,22 @@ namespace Transposition {
         {
             free_aligned_memory ();
             alloc_aligned_memory (msize, CacheLineSize);
-            if (_clusters == nullptr)
-            {
-                _cluster_count = 0;
-                _cluster_mask  = 0;
-                _hashfull = nullptr;
-                return 0;
-            }
-            _cluster_count = cluster_count;
-            _cluster_mask  = cluster_count - 1;
-            _hashfull = _clusters + std::min (size_t(1000/Cluster::EntryCount), _cluster_count);
         }
 
-        return u32(msize >> 20);
+        u32 rsize;
+        if (_clusters == nullptr)
+        {
+            _cluster_count = 0;
+            _cluster_mask  = 0;
+            rsize = 0;
+        }
+        else
+        {
+            _cluster_count = cluster_count;
+            _cluster_mask  = cluster_count - 1;
+            rsize = u32(msize >> 20);
+        }
+        return rsize;
     }
     u32 Table::resize ()
     {
@@ -187,7 +190,7 @@ namespace Transposition {
     u32 Table::hash_full () const
     {
         u32 full_count = 0;
-        for (const auto *clt = _clusters; clt < _hashfull; ++clt)
+        for (const auto *clt = _clusters; clt < _clusters + std::min (size_t (1000/Cluster::EntryCount), _cluster_count); ++clt)
         {
             const auto *fte = clt->entries;
             for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)

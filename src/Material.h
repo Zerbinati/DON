@@ -14,7 +14,6 @@ namespace Material {
     public:
         Key     key;
         Score   imbalance;
-        Phase   phase;
         Scale   scale[CLR_NO];
 
         EndGame::EndgameBase<Value> *value_func;
