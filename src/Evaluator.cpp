@@ -122,11 +122,11 @@ namespace Evaluator {
 
             Bitboard mobility_area[CLR_NO];
 
-            // Contains all squares attacked by the given color and piece type.
+            // Contains all squares attacked by the color and piece type.
             Bitboard ful_attacked_by[CLR_NO];
-            // Contains all squares attacked by the given color and piece type with pinned removed.
+            // Contains all squares attacked by the color and piece type with pinned removed.
             Bitboard pin_attacked_by[CLR_NO][MAX_PTYPE];
-            // Squares attacked by more than one pieces of a given color, possibly via x-ray or by one pawn and one piece.
+            // Squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
             // Diagonal x-ray through pawn or squares attacked by 2 pawns are not explicitly added.
             Bitboard dbl_attacked   [CLR_NO];
 
@@ -134,12 +134,12 @@ namespace Evaluator {
             // This consists of the squares directly adjacent to the king, and the three (or two, for a king on an edge file) squares two ranks in front of the king.
             // For instance, if black's king is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8, f7, g7, h7, f6, g6 and h6.
             Bitboard king_ring                 [CLR_NO];
-            // Number of pieces of the given color, which attack a square in the king_ring of the enemy king.
+            // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
             u08      king_ring_attackers_count [CLR_NO];
-            // Sum of the "weight" of the pieces of the given color which attack a square in the king_ring of the enemy king.
+            // Sum of the "weight" of the pieces of the color which attack a square in the king_ring of the enemy king.
             // The weights of the individual piece types are given by the PieceKingAttacks[piece-type]
             i32      king_ring_attackers_weight[CLR_NO];
-            // Number of attacks by the given color to squares directly adjacent to the enemy king.
+            // Number of attacks by the color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
             u08      king_zone_attacks_count   [CLR_NO];
 
@@ -239,10 +239,15 @@ namespace Evaluator {
         
         // SafePawnThreat[piece-type] contains bonuses according to piece type
         const Score SafePawnThreat  [NONE]  = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
-        // PieceMinorThreat[piece-type] contains bonuses according to piece type
-        const Score PieceMinorThreat[NONE]  = { S( 0,33), S(45,43), S(46,47), S(72,107), S(48,118), S( 0, 0) };
-        // PieceRookThreat[piece-type] contains bonuses according to piece type
-        const Score PieceRookThreat [NONE]  = { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) };
+        
+        // PieceThreat[piece-type] contains bonuses according to piece type
+        const Score PieceThreat[][NONE] =
+        {
+            {},
+            { S( 0,33), S( 0,43), S(46,47), S(72,107), S(48,118), S( 0, 0) },
+            { S( 0,33), S(45,43), S( 0,47), S(72,107), S(48,118), S( 0, 0) },
+            { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) }
+        };
 
         const Score PieceRankThreat = S(16, 3);
 
@@ -299,7 +304,7 @@ namespace Evaluator {
             }
         }
 
-        // Evaluates bonuses and penalties of the pieces of the given color and type
+        // Evaluates bonuses and penalties of the pieces of the color and type
         template<Color Own, PieceType PT, bool Trace>
         Score evaluate_pieces (const Position &pos, EvalInfo &ei, Score &mobility)
         {
@@ -324,10 +329,11 @@ namespace Evaluator {
                 Bitboard attacks;
                 switch (PT)
                 {
-                case NIHT: attacks = PieceAttacks[NIHT][s];                                                                       break;
-                case BSHP: attacks = attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, PT, QUEN)) | pos.abs_blockers (Own)); break;
-                case ROOK: attacks = attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, PT, QUEN)) | pos.abs_blockers (Own)); break;
-                case QUEN: attacks = attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own, PT      )) | pos.abs_blockers (Own)); break;
+                case NIHT: attacks = PieceAttacks[NIHT][s];                                                                         break;
+                case BSHP: attacks = attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, BSHP, QUEN)) | pos.abs_blockers (Own)); break;
+                case ROOK: attacks = attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, ROOK, QUEN)) | pos.abs_blockers (Own)); break;
+                case QUEN: attacks = attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, BSHP, QUEN)) | pos.abs_blockers (Own))
+                                   | attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, ROOK, QUEN)) | pos.abs_blockers (Own)); break;
                 }
 
                 ei.ful_attacked_by[Own] |= attacks;
@@ -357,8 +363,10 @@ namespace Evaluator {
                 //score += PieceCloseness[PT][dist (s, pos.square (Opp, KING))];
 
                 // Special extra evaluation for pieces
-                if (   NIHT == PT
-                    || BSHP == PT)
+                switch (PT)
+                {
+                case NIHT:
+                case BSHP:
                 {
                     // Bonus for minors when behind a pawn
                     if (   rel_rank (Own, s) < R_5
@@ -417,8 +425,9 @@ namespace Evaluator {
                         }
                     }
                 }
-                else
-                if (ROOK == PT)
+                    break;
+                
+                case ROOK:
                 {
                     // Bonus for rook aligning with enemy pawns on the same rank/file
                     if (rel_rank (Own, s) > R_4)
@@ -443,8 +452,9 @@ namespace Evaluator {
                         }
                     }
                 }
-                else
-                if (QUEN == PT)
+                    break;
+
+                case QUEN:
                 {
                     // Penalty for pin or discover attack on the queen
                     Bitboard pinners = 0, discovers = 0;
@@ -454,6 +464,8 @@ namespace Evaluator {
                     {
                         score -= QueenWeaken;
                     }
+                }
+                    break;
                 }
             }
 
@@ -465,7 +477,7 @@ namespace Evaluator {
             return score;
         }
 
-        // Evaluates bonuses and penalties of the king of the given color.
+        // Evaluates bonuses and penalties of the king of the color.
         template<Color Own, bool Trace>
         Score evaluate_king (const Position &pos, const EvalInfo &ei)
         {
@@ -647,7 +659,7 @@ namespace Evaluator {
             return score;
         }
 
-        // Evaluates the threats of the given color.
+        // Evaluates the threats of the color.
         template<Color Own, bool Trace>
         Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
@@ -681,22 +693,39 @@ namespace Evaluator {
                 & ~defended
                 &  ei.pin_attacked_by[Own][NONE];
 
-            // Add a bonus according to the kind of attacking pieces
+            // Add a bonus according to the type of attacking pieces
 
-            // Enemies attacked by minor pieces
+            // Enemies attacked by knights
             b =   (  weak_pieces
                     // Rooks or Queens
                    | pos.pieces (Opp, ROOK, QUEN)
                     // Enemy defended non-pawns
                    | (  nonpawns
                       & defended))
-                & (  ei.pin_attacked_by[Own][NIHT]
-                   | ei.pin_attacked_by[Own][BSHP]);
+                & ei.pin_attacked_by[Own][NIHT];
             while (0 != b)
             {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
-                score += PieceMinorThreat[pt];
+                score += PieceThreat[NIHT][pt];
+                if (pt != PAWN)
+                {
+                    score += PieceRankThreat * rel_rank (Opp, s);
+                }
+            }
+            // Enemies attacked by bishops
+            b =   (  weak_pieces
+                    // Rooks or Queens
+                   | pos.pieces (Opp, ROOK, QUEN)
+                    // Enemy defended non-pawns
+                   | (  nonpawns
+                      & defended))
+                & ei.pin_attacked_by[Own][BSHP];
+            while (0 != b)
+            {
+                auto s = pop_lsq (b);
+                auto pt = ptype (pos[s]);
+                score += PieceThreat[BSHP][pt];
                 if (pt != PAWN)
                 {
                     score += PieceRankThreat * rel_rank (Opp, s);
@@ -711,7 +740,7 @@ namespace Evaluator {
             {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
-                score += PieceRookThreat[pt];
+                score += PieceThreat[ROOK][pt];
                 if (pt != PAWN)
                 {
                     score += PieceRankThreat * rel_rank (Opp, s);
@@ -783,7 +812,7 @@ namespace Evaluator {
             return score;
         }
 
-        // Evaluates the passed pawns of the given color.
+        // Evaluates the passed pawns of the color.
         template<Color Own, bool Trace>
         Score evaluate_passers (const Position &pos, const EvalInfo &ei)
         {
@@ -877,9 +906,16 @@ namespace Evaluator {
                     eg_value /= 2;
                 }
 
+                Bitboard path_attackers = 0;
+                Bitboard b = front_sqrs_bb (Own, s);
+                while (0 != b)
+                {
+                    path_attackers |= (pos.xattackers_to (pop_lsq (b), Opp) & ~pos.abs_blockers (Opp));
+                }
+
                 score += mk_score (mg_value, eg_value)
                        + PawnPassFile[std::min (_file (s), F_H - _file (s))]
-                       - PawnPassHinder * pop_count (front_sqrs_bb (Own, s) & (ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
+                       - PawnPassHinder * pop_count (path_attackers | (front_sqrs_bb (Own, s) & pos.pieces (Opp)));
             }
 
             if (Trace)
@@ -890,7 +926,7 @@ namespace Evaluator {
             return score;
         }
 
-        // Computes the space evaluation of the given color.
+        // Computes the space evaluation of the color.
         // The space evaluation is a simple bonus based on the number of safe squares
         // available for minor pieces on the central four files on ranks 2--4.
         // Safe squares one, two or three squares behind a friend pawn are counted twice.
@@ -902,7 +938,7 @@ namespace Evaluator {
             static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
             static const auto Dull = Own == WHITE ? DEL_SS : DEL_NN;
             // SpaceArea contains the area of the board which is considered by the space evaluation.
-            // Bonus is given based on how many squares inside this area are safe.
+            // Bonus based on how many squares inside this area are safe.
             static const Bitboard SpaceArea = Side_bb[CS_NO] & (Own == WHITE ?
                                                                     R2_bb|R3_bb|R4_bb :
                                                                     R7_bb|R6_bb|R5_bb);
@@ -1135,7 +1171,7 @@ namespace Evaluator {
             << "           Rook" << Term(ROOK)
             << "          Queen" << Term(QUEN)
             << "       Mobility" << Term(MOBILITY)
-            << "    King Safety" << Term(KING)
+            << "           King" << Term(KING)
             << "         Threat" << Term(THREAT)
             << "    Pawn Passer" << Term(PASSER)
             << "          Space" << Term(SPACE)

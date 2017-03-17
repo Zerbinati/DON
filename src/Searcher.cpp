@@ -559,7 +559,7 @@ namespace Searcher {
         void prefetch_off (const void *addr)
         {
             prefetch (addr);
-            prefetch ((uint8_t*) addr + 64);
+            prefetch ((const uint8_t*) addr + 64);
         }
 
         const i16 MaxRazorDepth = 4;
@@ -1938,21 +1938,6 @@ namespace Threading {
     const u08 SkipSize[]  = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
     const u08 SkipPhase[] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
-    // skip half of the plies in blocks depending on the helper thread idx.
-    bool skip_ply (int idx, int ply)
-    {
-        assert(idx != 0);
-        idx = (idx - 1) % 20 + 1; // cycle after 20 threads.
-
-        // Number of successive plies to skip, depending on idx.
-        int ones = 1;
-        while (ones * (ones + 1) < idx)
-        {
-            ++ones;
-        }
-        return ((ply + idx - 1) / ones - ones) % 2 == 0;
-    }
-
     // Thread iterative deepening loop function.
     // It calls depth_search() repeatedly with increasing depth until
     // - the force stop requested.
@@ -1989,7 +1974,7 @@ namespace Threading {
                    || Threadpool.main_thread ()->running_depth <= Limits.depth))
         {
             // Distribute search depths across the threads
-            if (index != 0)
+            if (index > 0)
             {
                 int i = (index - 1) % 20;
                 if ((((running_depth + root_pos.ply + SkipPhase[i]) / SkipSize[i]) % 2) != 0)
