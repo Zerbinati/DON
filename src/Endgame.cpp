@@ -46,7 +46,7 @@ namespace EndGame {
         const i32 PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
         const i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
-        // Map the square as if 'c' is white and 'sq' only pawn is on the left half of the board.
+        // Map the square as if color is white and sqaure only pawn is on the left half of the board.
         Square normalize (const Position &pos, Color c, Square sq)
         {
             assert(pos.count<PAWN> (c) == 1);

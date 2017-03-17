@@ -281,8 +281,8 @@ namespace Evaluator {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
             static const Bitboard LowRanks = Own == WHITE ?
-                                                 R2_bb | R3_bb :
-                                                 R7_bb | R6_bb;
+                                                 R2_bb|R3_bb :
+                                                 R7_bb|R6_bb;
             // Do not include in mobility area
             // - squares protected by enemy pawns or
             // - squares occupied by block pawns (pawns blocked or on ranks 2-3) or
@@ -322,7 +322,6 @@ namespace Evaluator {
             auto score = SCORE_ZERO;
             ei.pin_attacked_by[Own][PT] = 0;
 
-            auto k_sq = pos.square (Own, KING);
             for (auto s : pos.squares[Own][PT])
             {
                 // Find attacked squares, including x-ray attacks for bishops and rooks
@@ -340,7 +339,7 @@ namespace Evaluator {
 
                 if (contains (pos.abs_blockers (Own), s))
                 {
-                    attacks &= strline_bb (k_sq, s);
+                    attacks &= strline_bb (pos.square (Own, KING), s);
                 }
                 ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE] & attacks;
                 ei.pin_attacked_by[Own][NONE] |=
@@ -359,7 +358,7 @@ namespace Evaluator {
                 mobility += PieceMobility[PT][mob];
 
                 // Bonus for piece closeness to King
-                score += PieceCloseness[PT][dist (s, k_sq)];
+                score += PieceCloseness[PT][dist (s, pos.square (Own, KING))];
                 //score += PieceCloseness[PT][dist (s, pos.square (Opp, KING))];
 
                 // Special extra evaluation for pieces
@@ -442,7 +441,7 @@ namespace Evaluator {
                     else
                     {
                         // Penalty for rook when trapped by the king, even more if the king can't castle
-                        auto kf = _file (k_sq);
+                        auto kf = _file (pos.square (Own, KING));
                         if (   mob <= 3
                             && ((kf < F_E) == (_file (s) < kf))
                             && 0 != (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN))

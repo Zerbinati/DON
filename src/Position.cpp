@@ -188,8 +188,8 @@ bool Position::see_ge (Move m, Value v) const
     return profit;
 }
 
-// Returns a bitboard of all the pieces that are blocking attacks on the square 's' from sliders in 'attackers'.
-// A piece blocks a slider if removing that piece from the board would result in a position where square 's' is attacked by the sliders in 'attackers'.
+// Returns a bitboard of all the pieces that are blocking attacks on the square.
+// A piece blocks a slider if removing that piece from the board would result in a position where square is attacked by the sliders in 'attackers'.
 // For example, a king-attack blocking piece can be either absolute or discovered blocked piece,
 // according if its color is the opposite or the same of the color of the sliders in 'attackers'.
 template<Color Own>
@@ -200,7 +200,7 @@ Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &p
     Bitboard blockers = 0;
     Bitboard defenders = pieces (Own);
     Bitboard attackers = pieces (Opp) ^ ex_attackers;
-    // Snipers are attackers that are aligned on 's' in x-ray
+    // Snipers are attackers that are aligned on square in x-ray
     Bitboard snipers =
           attackers
         & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
@@ -288,7 +288,6 @@ bool Position::pseudo_legal (Move m) const
         // Chess960
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
         if (   0 != (b = pieces (~active, ROOK, QUEN) & rank_bb (king_dst))
-            //&& 0 != (b & PieceAttacks[ROOK][king_dst])
             && 0 != (b & attacks_bb<ROOK> (king_dst, pieces () ^ dst)))
         {
             return false;
@@ -1302,14 +1301,12 @@ Position::operator string () const
 bool Position::ok (u08 *step) const
 {
     static const bool Fast = true;
-    //enum Step : u08
-    //{
-    //    BASIC,
-    //    BITBOARD,
-    //    LIST,
-    //    CASTLING,
-    //    STATEINFO,
-    //};
+    
+    //    BASIC     =0
+    //    BITBOARD  =1
+    //    SQUARELIST=2
+    //    CASTLING  =3
+    //    STATEINFO =4
 
     u08 s = 0;
     {

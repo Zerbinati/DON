@@ -252,7 +252,6 @@ namespace MoveGen {
             // when moving the castling rook do not discover some hidden checker.
             // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
             if (   0 != (b = pos.pieces (Opp, ROOK, QUEN) & rank_bb (king_dst))
-                //&& 0 != (b & PieceAttacks[ROOK][king_dst])
                 && 0 != (b & attacks_bb<ROOK> (king_dst, pos.pieces () ^ rook_org)))
             {
                 return;

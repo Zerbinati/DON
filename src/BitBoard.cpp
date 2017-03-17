@@ -136,10 +136,10 @@ namespace BitBoard {
             u32 offset = 0;
             for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
-                // attacks_bb[s] is a pointer to the beginning of the attacks table for square 's'
+                // attacks_bb[s] is a pointer to the beginning of the attacks table for square
                 attacks_bb[s] = &tables_bb[offset];
 
-                // Given a square 's', the mask is the bitboard of sliding attacks from 's'
+                // Given a square, the mask is the bitboard of sliding attacks from
                 // computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence deduce the size of the shift to
@@ -179,7 +179,7 @@ namespace BitBoard {
                 u32 i;
                 PRNG rng (Seeds[_rank (s)]);
                 
-                // Find a magic for square 's' picking up an (almost) random number
+                // Find a magic for square picking up an (almost) random number
                 // until found the one that passes the verification test.
                 do {
                     do {
@@ -188,7 +188,7 @@ namespace BitBoard {
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
-                    // Note that build up the database for square 's' as a side
+                    // Note that build up the database for square as a side
                     // effect of verifying the magic.
                     bool used[MaxIndex] = {false};
                     for (i = 0; i < size; ++i)

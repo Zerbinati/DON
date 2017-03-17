@@ -1939,7 +1939,7 @@ namespace TBSyzygy {
             }
 
             // MapPawns[s] encodes squares a2-h7 to 0..47. This is the number of possible
-            // available squares when the leading one is in 's'. Moreover the pawn with
+            // available squares when the leading one is in square. Moreover the pawn with
             // highest MapPawns[] is the leading pawn, the one nearest the edge and,
             // among pawns with same file, the one with lowest rank.
             i32 availableSquares = 47; // Available squares when lead pawn is in a2
