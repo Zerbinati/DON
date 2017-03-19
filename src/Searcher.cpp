@@ -82,6 +82,21 @@ namespace {
         S_Q_NO_CHECK_TT, S_Q_NO_CHECK, S_Q_NO_CHECK_CAPTURE,
         S_Q_RECAPTURE_TT, S_Q_RECAPTURE, S_Q_ALL_RECAPTURE,
     };
+
+    // Our insertion sort, which is guaranteed to be stable, as it should be
+    void insertion_sort (vector<ValMove> &moves)
+    {
+        for (size_t i = 1; i < moves.size (); ++i)
+        {
+            ValMove m = moves[i];
+            size_t j;
+            for (j = i; j > 0 && moves[j-1] < m; --j)
+            {
+                moves[j] = moves[j-1];
+            }
+            moves[j] = m;
+        }
+    }
 }
 
 // Constructors of the MovePicker class. As arguments pass information to help
@@ -262,7 +277,7 @@ ValMove& MovePicker::pick_best_move (u08 i)
 }
 // Returns a new legal move every time it is called, until there are no more moves left.
 // It picks the move with the biggest value from a list of generated moves.
-Move MovePicker::next_move ()
+Move MovePicker::next_move (bool skip_quiets)
 {
     switch (_stage)
     {
@@ -347,11 +362,15 @@ Move MovePicker::next_move ()
                     itr->value = MaxValue - k++;
                 }
             }
+
+            insertion_sort (_moves);
         }
     case S_QUIET:
-        while (_index < _moves.size ())
+        while (   _index < _moves.size ()
+               && (   !skip_quiets
+                   || _moves[_index].value >= VALUE_ZERO))
         {
-            return pick_best_move (_index++).move;
+            return _moves[_index++].move;
         }
         ++_stage;
         _index = 0;
@@ -621,7 +640,7 @@ namespace Searcher {
         // History and stats update bonus, based on depth
         Value stat_bonus (i16 depth)
         {
-            return Value (depth*(depth + 2) - 2);
+            return depth <= 17 ? Value(depth*(depth + 2) - 2) : VALUE_ZERO;
         }
 
         // Updates countermoves and followupmoves history stats
@@ -1434,11 +1453,12 @@ namespace Searcher {
             MoveVector quiet_moves;
             quiet_moves.reserve (16);
 
+            bool skip_quiets = false;
             // Initialize move picker (1) for the current position.
             MovePicker mp (pos, tt_move, ss);
             // Step 11. Loop through moves
             // Loop through all legal moves until no moves remain or a beta cutoff occurs.
-            while (MOVE_NONE != (move = mp.next_move ()))
+            while (MOVE_NONE != (move = mp.next_move (skip_quiets)))
             {
                 assert(pos.pseudo_legal (move)
                     && pos.legal (move));
@@ -1534,6 +1554,7 @@ namespace Searcher {
                         // Move count based pruning
                         if (move_count_pruning)
                         {
+                            skip_quiets = true;
                             continue;
                         }
 
@@ -1911,7 +1932,7 @@ namespace Searcher {
             {
                 for (u08 mc = 1; mc < MaxReductionMoveCount; ++mc)
                 {
-                    auto r = log (d) * log (mc) / 2;
+                    auto r = log (d) * log (mc) / 1.95;
                     ReductionDepths[0][imp][d][mc] = i16(std::round (r));
                     ReductionDepths[1][imp][d][mc] = i16(std::max (ReductionDepths[0][imp][d][mc] - 1, 0));
                     if (   0 == imp

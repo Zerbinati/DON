@@ -35,6 +35,12 @@ namespace Material {
             {    0,    0,    0,    0,    0,    0 }  // BP
         };
 
+        // PawnsSet[count] contains a bonus/malus indexed by number of pawns
+        const int PawnsSet[9] =
+        {
+            24, -32, 107, -51, 117, -9, -126, -21, 31
+        };
+
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
         Endgame<KXK>    EvaluateKXK [CLR_NO] = { Endgame<KXK>    (WHITE), Endgame<KXK>    (BLACK) };
@@ -51,7 +57,7 @@ namespace Material {
         {
             static const auto Opp = Own == WHITE ? BLACK : WHITE;
 
-            i32 value = 0;
+            i32 value = PawnsSet[count[Own][PAWN]];
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
             for (auto pt1 = PAWN; pt1 <= QUEN; ++pt1)

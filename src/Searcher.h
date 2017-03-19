@@ -72,12 +72,8 @@ public:
 
     void update (Color c, Move m, Value v)
     {
-        i32 x = abs (v);
-        if (x < 324)
-        {
-            auto &e = _table[c][move_pp (m)];
-            e += -(e*x)/324 + v*32;
-        }
+        auto &e = _table[c][move_pp (m)];
+        e += -(e*abs (v))/324 + v*32;
     }
 };
 
@@ -135,12 +131,8 @@ public:
     // Piece, Destiny, Value
     void update (Piece pc, Square s, Value v)
     {
-        i32 x = abs (v);
-        if (x < 324)
-        {
-            auto &e = _table[pc][s];
-            e += -(e*x)/936 + v*32;
-        }
+        auto &e = _table[pc][s];
+        e += -(e*abs (v))/936 + v*32;
     }
 };
 // CounterMoveHistoryStats is like HistoryStats, but with two consecutive moves.
@@ -302,7 +294,7 @@ public:
     MovePicker (const Position&, Move, const Stack *const&, i16, Move);
     MovePicker (const Position&, Move, Value);
 
-    Move next_move ();
+    Move next_move (bool skip_quiets = false);
 };
 
 namespace Searcher {
