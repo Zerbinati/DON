@@ -101,9 +101,9 @@ namespace Evaluator {
 
                 pin_attacked_by[Own][KING] = PieceAttacks[KING][fk_sq];
 
-                ful_attacked_by[Own]       = pe->attacks[Own] | pin_attacked_by[Own][KING];
-                pin_attacked_by[Own][NONE] = pin_attacked_by[Own][PAWN] | pin_attacked_by[Own][KING];
-                dbl_attacked[Own]          = pin_attacked_by[Own][PAWN] & pin_attacked_by[Own][KING];
+                ful_attacked_by[Own]       = pin_attacked_by[Own][KING] | pe->attacks[Own];
+                pin_attacked_by[Own][NONE] = pin_attacked_by[Own][KING] | pin_attacked_by[Own][PAWN];
+                dbl_attacked[Own]          = pin_attacked_by[Own][KING] & pin_attacked_by[Own][PAWN];
 
                 king_ring[Own] = 0;
                 king_ring_attackers_count[Own] = 0;
@@ -232,10 +232,10 @@ namespace Evaluator {
         const Score PawnPushThreat  = S(38,22);
 
         const Score HangPawnThreat  = S(71,61);
-        
+
         // SafePawnThreat[piece-type] contains bonuses according to piece type
         const Score SafePawnThreat[NONE] = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
-        
+
         // PieceThreat[piece-type] contains bonuses according to piece type
         const Score PieceThreat[][NONE] =
         {
@@ -280,10 +280,13 @@ namespace Evaluator {
                                                  R2_bb|R3_bb :
                                                  R7_bb|R6_bb;
             // Do not include in mobility area
-            // - squares protected by enemy pawns or
-            // - squares occupied by block pawns (pawns blocked or on ranks 2-3) or
+            // - squares protected by enemy pawns
+            // - squares occupied by block pawns (pawns blocked or on ranks 2-3)
             // - square occupied by friend king
-            ei.mobility_area[Own] = ~((ei.pin_attacked_by[Opp][PAWN] | (pos.pieces (Own, PAWN) & (shift<Pull> (pos.pieces ()) | LowRanks))) | pos.square (Own, KING));
+            ei.mobility_area[Own] = ~(  ei.pin_attacked_by[Opp][PAWN]
+                                      | (  pos.pieces (Own, PAWN)
+                                         & (shift<Pull> (pos.pieces ()) | LowRanks))
+                                      | pos.square (Own, KING));
 
             if (pos.si->non_pawn_material (Opp) >= VALUE_MG_QUEN)
             {
@@ -294,9 +297,7 @@ namespace Evaluator {
                                      & (rel_rank (Own, fk_sq) < R_5 ? pawn_pass_span (Own, fk_sq) :
                                         rel_rank (Own, fk_sq) < R_7 ? pawn_pass_span (Own, fk_sq)|pawn_pass_span (Opp, fk_sq) :
                                                                       pawn_pass_span (Opp, fk_sq)));
-                ei.king_ring_attackers_count[Opp] = u08(pop_count (  (  king_zone
-                                                                      | (dist_rings_bb (fk_sq, 1) & pawn_pass_span (Own, fk_sq)))
-                                                                   & ei.pin_attacked_by[Opp][PAWN]));
+                ei.king_ring_attackers_count[Opp] = u08(pop_count (king_zone & ei.pin_attacked_by[Opp][PAWN]));
             }
         }
 
@@ -320,6 +321,7 @@ namespace Evaluator {
 
             for (auto s : pos.squares[Own][PT])
             {
+                assert(pos[s] == (Own|PT));
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks;
                 switch (PT)
@@ -386,15 +388,15 @@ namespace Evaluator {
                         b &= attacks & ~pos.pieces (Own);
                         if (0 != b)
                         {
-                            score += PieceOutpost[PT][contains (ei.pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 1;
+                            score += PieceOutpost[PT][0 != (ei.pin_attacked_by[Own][PAWN] & b)] * 1;
                         }
                     }
-                    
+
                     if (BSHP == PT)
                     {
                         // Penalty for pawns on the same color square as the bishop
                         score -= BishopPawns * i32(ei.pe->color_count[Own][color (s)]);
-                        
+
                         if (   mob <= 2
                             && contains (FA_bb|FH_bb,  s)
                             && rel_rank (Own, s) >= R_4)
@@ -426,7 +428,7 @@ namespace Evaluator {
                     }
                 }
                     break;
-                
+
                 case ROOK:
                 {
                     // Bonus for rook aligning with enemy pawns on the same rank/file

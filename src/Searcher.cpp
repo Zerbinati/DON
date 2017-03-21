@@ -127,7 +127,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
         ++_stage;
     }
 }
-MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i16 d, Square dst)
+MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i16 d)
     : _pos (pos)
     , _ss (ss)
     , _tt_move (ttm)
@@ -154,7 +154,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
     else
     {
         _stage = S_Q_RECAPTURE_TT;
-        _recap_sq = dst;
+        _recap_sq = dst_sq ((ss-1)->current_move);
         if (   MOVE_NONE != _tt_move
             && !(   pos.capture (_tt_move)
                  && dst_sq (_tt_move) == _recap_sq))
@@ -906,7 +906,7 @@ namespace Searcher {
             auto best_move = MOVE_NONE;
 
             // Initialize move picker (2) for the current position.
-            MovePicker mp (pos, tt_move, ss, depth, dst_sq ((ss-1)->current_move));
+            MovePicker mp (pos, tt_move, ss, depth);
             StateInfo si;
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = mp.next_move ()))
@@ -1619,7 +1619,7 @@ namespace Searcher {
                         || !capture_or_promotion))
                 {
                     auto reduce_depth = reduction_depth (PVNode, improving, depth, move_count);
-                    
+
                     if (capture_or_promotion)
                     {
                         reduce_depth -= 1;

@@ -59,7 +59,7 @@ namespace Pawns {
     #undef V
 
     #define S(mg, eg) mk_score(mg, eg)
-        
+
         // Isolated pawn penalty indexed by [opposed]
         const Score Isolated[2]     = { S(45,40), S(30,27) };
         // Backward pawn penalty indexed by [opposed]
@@ -90,8 +90,8 @@ namespace Pawns {
 
             e->attacks    [Own] = shift<LCap> (own_pawns)
                                 | shift<RCap> (own_pawns);
-            e->passers    [Own] = 0;
             e->attack_span[Own] = 0;
+            e->passers    [Own] = 0;
             e->semiopens  [Own] = u08(0xFF);
             e->color_count[Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
             e->color_count[Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
@@ -110,7 +110,7 @@ namespace Pawns {
                 assert(pos[s] == (Own|PAWN));
 
                 f = _file (s);
-                e->semiopens[Own] &= u08(~(0x01 << f));
+                e->semiopens  [Own] &= u08(~(1 << f));
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
 
                 neighbours = own_pawns & adj_file_bb (f);
@@ -123,7 +123,7 @@ namespace Pawns {
                 opposed    = (opp_pawns & front_sqrs_bb (Own, s)) != 0;
                 blocked    = contains (own_pawns, (s+Push));
                 connected  = 0 != supporters || 0 != phalanxes;
-                
+
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
                 // The pawn is backward when it cannot safely progress to next rank:
                 // either there is a stoppers in the way on next rank
@@ -213,8 +213,8 @@ namespace Pawns {
             auto own_r = file_front_pawns != 0 ? rel_rank (Own, scan_backmost_sq (Own, file_front_pawns)) : R_1;
             file_front_pawns = opp_front_pawns & file_bb (f);
             auto opp_r = file_front_pawns != 0 ? rel_rank (Own, scan_frntmost_sq (Opp, file_front_pawns)) : R_1;
-            assert((   own_r == R_1
-                    && opp_r == R_1)
+            assert((own_r == R_1
+                 && opp_r == R_1)
                 || (own_r != opp_r));
 
             auto ff = std::min (f, F_H - f);
