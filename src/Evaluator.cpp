@@ -81,22 +81,18 @@ namespace Evaluator {
             {
                 static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
                 static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-                static const auto PAtt = PawnAttacks[Own];
 
                 auto fk_sq = pos.square (Own, KING);
 
                 Bitboard pinned_pawns = pos.abs_blockers (Own) & pos.pieces (Own, PAWN);
                 if (0 != pinned_pawns)
                 {
-                    Bitboard loosed_pawns = ~pinned_pawns & pos.pieces (Own, PAWN);
-                    Bitboard pawn_attacks = shift<LCap> (loosed_pawns)
-                                          | shift<RCap> (loosed_pawns);
-                    while (0 != pinned_pawns)
-                    {
-                        auto s = pop_lsq (pinned_pawns);
-                        pawn_attacks |= PAtt[s] & strline_bb (fk_sq, s);
-                    }
-                    pin_attacked_by[Own][PAWN] = pawn_attacks;
+                    Bitboard loosed_pawns = pos.pieces (Own, PAWN) & ~pinned_pawns;
+                    pin_attacked_by[Own][PAWN] = (  shift<LCap> (loosed_pawns)
+                                                  | shift<RCap> (loosed_pawns))
+                                               | (  (  shift<LCap> (pinned_pawns)
+                                                     | shift<RCap> (pinned_pawns))
+                                                  & PieceAttacks[BSHP][fk_sq]);
                 }
                 else
                 {
@@ -109,10 +105,10 @@ namespace Evaluator {
                 pin_attacked_by[Own][NONE] = pin_attacked_by[Own][PAWN] | pin_attacked_by[Own][KING];
                 dbl_attacked[Own]          = pin_attacked_by[Own][PAWN] & pin_attacked_by[Own][KING];
 
-                king_ring                 [Own] = 0;
-                king_ring_attackers_count [Own] = 0;
+                king_ring[Own] = 0;
+                king_ring_attackers_count[Own] = 0;
                 king_ring_attackers_weight[Own] = 0;
-                king_zone_attacks_count   [Own] = 0;
+                king_zone_attacks_count[Own] = 0;
             }
 
         public:
@@ -128,20 +124,20 @@ namespace Evaluator {
             Bitboard pin_attacked_by[CLR_NO][MAX_PTYPE];
             // Squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
             // Diagonal x-ray through pawn or squares attacked by 2 pawns are not explicitly added.
-            Bitboard dbl_attacked   [CLR_NO];
+            Bitboard dbl_attacked[CLR_NO];
 
             // Zone around the king which is considered by the king safety evaluation.
             // This consists of the squares directly adjacent to the king, and the three (or two, for a king on an edge file) squares two ranks in front of the king.
             // For instance, if black's king is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8, f7, g7, h7, f6, g6 and h6.
-            Bitboard king_ring                 [CLR_NO];
+            Bitboard king_ring[CLR_NO];
             // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
-            u08      king_ring_attackers_count [CLR_NO];
+            u08      king_ring_attackers_count[CLR_NO];
             // Sum of the "weight" of the pieces of the color which attack a square in the king_ring of the enemy king.
             // The weights of the individual piece types are given by the PieceKingAttacks[piece-type]
             i32      king_ring_attackers_weight[CLR_NO];
             // Number of attacks by the color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
-            u08      king_zone_attacks_count   [CLR_NO];
+            u08      king_zone_attacks_count[CLR_NO];
 
             EvalInfo () = delete;
             EvalInfo (const EvalInfo&) = delete;
@@ -238,7 +234,7 @@ namespace Evaluator {
         const Score HangPawnThreat  = S(71,61);
         
         // SafePawnThreat[piece-type] contains bonuses according to piece type
-        const Score SafePawnThreat  [NONE]  = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
+        const Score SafePawnThreat[NONE] = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
         
         // PieceThreat[piece-type] contains bonuses according to piece type
         const Score PieceThreat[][NONE] =
@@ -257,7 +253,7 @@ namespace Evaluator {
         const Score PawnPassHinder  = S( 7, 0);
 
         // PawnPassFile[file] contains a bonus for passed pawns according to distance from edge.
-        const Score PawnPassFile[F_NO/2]    = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
+        const Score PawnPassFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
 
     #undef S
 
@@ -271,9 +267,9 @@ namespace Evaluator {
     #undef V
 
         // Bonuses for king attack by piece type
-        const i32 PieceKingAttacks [NONE] = { 0,  78,  56,  45,  11, 0 };
+        const i32 PieceKingAttacks[NONE] = { 0,  78,  56,  45,  11, 0 };
         // Bonuses for safe checks by piece type
-        const i32 PieceSafeChecks  [NONE] = { 0, 924, 588, 688, 745, 0 };
+        const i32 PieceSafeChecks[NONE] = { 0, 924, 588, 688, 745, 0 };
 
         template<Color Own>
         void init_eval (const Position &pos, EvalInfo &ei)
@@ -331,8 +327,7 @@ namespace Evaluator {
                 case NIHT: attacks = PieceAttacks[NIHT][s];                                                                         break;
                 case BSHP: attacks = attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, BSHP, QUEN)) | pos.abs_blockers (Own)); break;
                 case ROOK: attacks = attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, ROOK, QUEN)) | pos.abs_blockers (Own)); break;
-                case QUEN: attacks = attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, BSHP, QUEN)) | pos.abs_blockers (Own))
-                                   | attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, ROOK, QUEN)) | pos.abs_blockers (Own)); break;
+                case QUEN: attacks = attacks_bb<QUEN> (s, (pos.pieces () ^ pos.pieces (Own,       QUEN)) | pos.abs_blockers (Own)); break;
                 }
 
                 ei.ful_attacked_by[Own] |= attacks;
@@ -341,13 +336,19 @@ namespace Evaluator {
                 {
                     attacks &= strline_bb (pos.square (Own, KING), s);
                 }
-                ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE] & attacks;
+
+                ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE]
+                                      & (   QUEN == PT
+                                         && 0 != (attacks & pos.pieces (Own, BSHP, ROOK)) ?
+                                                attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, BSHP, QUEN)) | pos.abs_blockers (Own))
+                                              | attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, ROOK, QUEN)) | pos.abs_blockers (Own)) :
+                                                attacks);
                 ei.pin_attacked_by[Own][NONE] |=
                 ei.pin_attacked_by[Own][PT]   |= attacks;
 
                 if (0 != (ei.king_ring[Opp] & attacks))
                 {
-                    ei.king_ring_attackers_count [Own]++;
+                    ei.king_ring_attackers_count[Own]++;
                     ei.king_ring_attackers_weight[Own] += PieceKingAttacks[PT];
                     ei.king_zone_attacks_count[Own] += u08(pop_count (ei.pin_attacked_by[Opp][KING] & attacks));
                 }

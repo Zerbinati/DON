@@ -72,8 +72,9 @@ public:
 
     void update (Color c, Move m, Value v)
     {
+        assert(abs (v) <= 324); // Needed for stability.
         auto &e = _table[c][move_pp (m)];
-        e += -(e*abs (v))/324 + v*32;
+        e += v*32 - (e*abs (v))/324;
     }
 };
 
@@ -131,8 +132,9 @@ public:
     // Piece, Destiny, Value
     void update (Piece pc, Square s, Value v)
     {
+        assert(abs (v) <= 936); // Needed for stability.
         auto &e = _table[pc][s];
-        e += -(e*abs (v))/936 + v*32;
+        e += v*32 - (e*abs (v))/936;
     }
 };
 // CounterMoveHistoryStats is like HistoryStats, but with two consecutive moves.
@@ -291,7 +293,7 @@ public:
     MovePicker& operator= (const MovePicker&) = delete;
 
     MovePicker (const Position&, Move, const Stack *const&);
-    MovePicker (const Position&, Move, const Stack *const&, i16, Move);
+    MovePicker (const Position&, Move, const Stack *const&, i16, Square);
     MovePicker (const Position&, Move, Value);
 
     Move next_move (bool skip_quiets = false);

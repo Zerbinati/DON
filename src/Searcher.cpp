@@ -83,20 +83,25 @@ namespace {
         S_Q_RECAPTURE_TT, S_Q_RECAPTURE, S_Q_ALL_RECAPTURE,
     };
 
-    // Our insertion sort, which is guaranteed to be stable, as it should be
-    void insertion_sort (vector<ValMove> &moves)
-    {
-        for (size_t i = 1; i < moves.size (); ++i)
-        {
-            ValMove m = moves[i];
-            size_t j;
-            for (j = i; j > 0 && moves[j-1] < m; --j)
-            {
-                moves[j] = moves[j-1];
-            }
-            moves[j] = m;
-        }
-    }
+    //// Insertion sort
+    //void insertion_sort (vector<ValMove> &moves)
+    //{
+    //    for (size_t i = 1; i < moves.size (); ++i)
+    //    {
+    //        size_t j = i;
+    //        auto m = moves[j];
+    //        while (   j > 0
+    //               && moves[j-1] < m)
+    //        {
+    //            moves[j] = moves[j-1];
+    //            --j;
+    //        }
+    //        if (i != j)
+    //        {
+    //            moves[j] = m;
+    //        }
+    //    }
+    //}
 }
 
 // Constructors of the MovePicker class. As arguments pass information to help
@@ -122,7 +127,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
         ++_stage;
     }
 }
-MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i16 d, Move lm)
+MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i16 d, Square dst)
     : _pos (pos)
     , _ss (ss)
     , _tt_move (ttm)
@@ -148,10 +153,8 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
     }
     else
     {
-        assert(MOVE_NONE != lm);
-
         _stage = S_Q_RECAPTURE_TT;
-        _recap_sq = dst_sq (lm);
+        _recap_sq = dst;
         if (   MOVE_NONE != _tt_move
             && !(   pos.capture (_tt_move)
                  && dst_sq (_tt_move) == _recap_sq))
@@ -362,15 +365,16 @@ Move MovePicker::next_move (bool skip_quiets)
                     itr->value = MaxValue - k++;
                 }
             }
-
-            insertion_sort (_moves);
         }
     case S_QUIET:
-        while (   _index < _moves.size ()
-               && (   !skip_quiets
-                   || _moves[_index].value >= VALUE_ZERO))
+        while (_index < _moves.size ())
         {
-            return _moves[_index++].move;
+            auto &vm = pick_best_move (_index++);
+            if (   !skip_quiets
+                || vm.value >= VALUE_ZERO)
+            {
+                return vm.move;
+            }
         }
         ++_stage;
         _index = 0;
@@ -865,7 +869,7 @@ namespace Searcher {
                     ss->static_eval = tt_eval =
                         (ss-1)->current_move != MOVE_NULL ?
                             evaluate (pos) :
-                            -(ss-1)->static_eval + 2*Tempo;
+                            -(ss-1)->static_eval + Tempo*2;
                 }
 
                 if (alfa < tt_eval)
@@ -902,7 +906,7 @@ namespace Searcher {
             auto best_move = MOVE_NONE;
 
             // Initialize move picker (2) for the current position.
-            MovePicker mp (pos, tt_move, ss, depth, (ss-1)->current_move);
+            MovePicker mp (pos, tt_move, ss, depth, dst_sq ((ss-1)->current_move));
             StateInfo si;
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = mp.next_move ()))
@@ -1245,7 +1249,7 @@ namespace Searcher {
                     ss->static_eval = tt_eval =
                         (ss-1)->current_move != MOVE_NULL ?
                             evaluate (pos) :
-                            -(ss-1)->static_eval + 2*Tempo;
+                            -(ss-1)->static_eval + Tempo*2;
 
                     tte->save (posi_key,
                                MOVE_NONE,
@@ -1549,7 +1553,7 @@ namespace Searcher {
                             // Advance pawn push
                         && !(   PAWN == ptype (pos[org_sq (move)])
                              && rel_rank (pos.active, org_sq (move)) > R_4
-                             && pos.si->non_pawn_material () < 2*VALUE_MG_QUEN))
+                             && pos.si->non_pawn_material () < VALUE_MG_QUEN*2))
                     {
                         // Move count based pruning
                         if (move_count_pruning)
@@ -1956,8 +1960,9 @@ namespace Threading {
 
     using namespace Searcher;
 
-    const u08 SkipSize[]  = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
-    const u08 SkipPhase[] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
+    const u08 MaxIndex = 20;
+    const u08 SkipSize [MaxIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
+    const u08 SkipPhase[MaxIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
     // Thread iterative deepening loop function.
     // It calls depth_search() repeatedly with increasing depth until
@@ -1994,23 +1999,24 @@ namespace Threading {
                && (   0 == Limits.depth
                    || Threadpool.main_thread ()->running_depth <= Limits.depth))
         {
-            // Distribute search depths across the threads
-            if (index > 0)
-            {
-                int i = (index - 1) % 20;
-                if ((((running_depth + root_pos.ply + SkipPhase[i]) / SkipSize[i]) % 2) != 0)
-                {
-                    continue;
-                }
-            }
-
-            if (Threadpool.main_thread () == this)
+            if (index == 0)
             {
                 if (Limits.use_time_management ())
                 {
                     Threadpool.failed_low = false;
                     // Age out PV variability metric
                     Threadpool.best_move_change *= 0.505;
+                }
+            }
+            else
+            {
+                // Distribute search depths across the threads
+                assert(index > 0);
+
+                int i = (index - 1) % MaxIndex;
+                if (((running_depth + root_pos.ply + SkipPhase[i]) / SkipSize[i]) % 2 != 0)
+                {
+                    continue;
                 }
             }
 
@@ -2055,7 +2061,7 @@ namespace Threading {
                         break;
                     }
 
-                    if (Threadpool.main_thread () == this)
+                    if (index == 0)
                     {
                         // Give some update before to re-search.
                         if (   Threadpool.pv_limit == 1
@@ -2099,7 +2105,7 @@ namespace Threading {
                 // Sort the PV lines searched so far and update the GUI
                 std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
 
-                if (Threadpool.main_thread () == this)
+                if (index == 0)
                 {
                     if (   ForceStop
                         || Threadpool.pv_limit == pv_index + 1
@@ -2122,7 +2128,7 @@ namespace Threading {
             //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
             //}
 
-            if (Threadpool.main_thread () == this)
+            if (index == 0)
             {
                 // If skill level is enabled and can pick move, pick a sub-optimal best move
                 if (   Threadpool.skill_mgr.enabled ()
@@ -2210,7 +2216,7 @@ namespace Threading {
     void MainThread::search ()
     {
         static Book book; // Defined static to initialize the PRNG only once
-        assert(Threadpool.main_thread () == this);
+        assert(index == 0);
 
         if (!white_spaces (OutputFile))
         {
@@ -2386,7 +2392,7 @@ namespace Threading {
                 && !Threadpool.skill_mgr.enabled ())
             {
                 // If best thread is not main thread send new PV.
-                if ((best_thread = Threadpool.best_thread ()) != this)
+                if ((best_thread = Threadpool.best_thread ())->index != 0)
                 {
                     sync_cout << multipv_info (best_thread, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
                 }
