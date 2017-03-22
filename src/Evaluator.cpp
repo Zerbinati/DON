@@ -71,8 +71,7 @@ namespace Evaluator {
 
         using namespace Tracer;
 
-        // Struct EvalInfo contains various information computed and collected
-        // by the evaluation functions.
+        // Struct EvalInfo contains various information computed by the evaluation functions
         struct EvalInfo
         {
         private:
@@ -156,7 +155,7 @@ namespace Evaluator {
     #define S(mg, eg) mk_score (mg, eg)
 
         // PieceMobility[piece-type][attacks] contains bonuses for mobility,
-        // indexed by piece type and number of attacked squares in the mobility area.
+        // indexed by piece type and number of attacked squares in the mobility area
         const Score PieceMobility[][28] =
         {
             {},
@@ -184,7 +183,7 @@ namespace Evaluator {
         };
 
         // PieceCloseness[piece-type][distance] contains a bonus for piece closeness,
-        // indexed by piece type and distance from the sqaure.
+        // indexed by piece type and distance from the sqaure
         const Score PieceCloseness[][8] =
         {
             {},
@@ -194,9 +193,9 @@ namespace Evaluator {
             { S(0, 0), S( 3,-5), S( 2,-5), S(-4, 0), S( -9,-6), S( -4, 7), S(-13,-7), S(-10, -7) }  // Queen
         };
 
-        // PieceOutpost[supported by pawn] contains bonuses for piece outposts.
-        // If they can reach an outpost square, bigger if that square is supported by a pawn.
-        // If the minor piece occupies an outpost square then score is doubled.
+        // PieceOutpost[supported by pawn] contains bonuses for piece outposts
+        // If they can reach an outpost square, bigger if that square is supported by a pawn
+        // If the minor piece occupies an outpost square then score is doubled
         const Score PieceOutpost[][2] =
         {
             {},
@@ -205,7 +204,7 @@ namespace Evaluator {
         };
 
         // RookOnFile[semiopen/open] contains bonuses for rooks
-        // when there is no friend pawn on the rook file.
+        // when there is no friend pawn on the rook file
         const Score RookOnFile[2] = { S(20, 7), S(45,20) };
         // Bonus for minor behind a pawn
         const Score MinorBehindPawn = S(16, 0);
@@ -240,25 +239,26 @@ namespace Evaluator {
         const Score PieceThreat[][NONE] =
         {
             {},
-            { S( 0,33), S( 0,43), S(46,47), S(72,107), S(48,118), S( 0, 0) },
-            { S( 0,33), S(45,43), S( 0,47), S(72,107), S(48,118), S( 0, 0) },
-            { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) }
+            { S( 0,33), S(45,43), S(46,47), S(47,107), S(48,118), S( 0, 0) },
+            { S( 0,33), S(45,43), S(46,47), S(47,107), S(48,118), S( 0, 0) },
+            { S( 0,25), S(40,62), S(40,59), S(37, 56), S(35, 48), S( 0, 0) }
         };
 
         const Score PieceRankThreat = S(16, 3);
 
-        // KingThreat[one/more] contains bonuses for king attacks on pawns or pieces which are not pawn-defended.
+        // KingThreat[one/more] contains bonuses for king attacks on pawns or pieces which are not pawn-defended
         const Score KingThreat[2] = { S( 3, 62), S( 9,138) };
 
         const Score PawnPassHinder  = S( 7, 0);
 
-        // PawnPassFile[file] contains a bonus for passed pawns according to distance from edge.
+        // PawnPassFile[file] contains a bonus for passed pawns according to distance from edge
         const Score PawnPassFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
 
     #undef S
 
     #define V(v) Value(v)
-        // PawnPassRank[rank] contains bonuses for passed pawns according to the rank of the pawn.
+
+        // PawnPassRank[rank] contains bonuses for passed pawns according to the rank of the pawn
         const Value PawnPassRank[R_NO] = { V(0), V(5), V(5), V(35), V(75), V(165), V(255), V(0) };
 
         // Threshold for lazy evaluation
@@ -275,6 +275,7 @@ namespace Evaluator {
         void init_eval (const Position &pos, EvalInfo &ei)
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            static const auto Push = Own == WHITE ? DEL_N : DEL_S;
             static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
             static const Bitboard LowRanks = Own == WHITE ?
                                                  R2_bb|R3_bb :
@@ -290,13 +291,8 @@ namespace Evaluator {
 
             if (pos.si->non_pawn_material (Opp) >= VALUE_MG_QUEN)
             {
-                auto fk_sq = pos.square (Own, KING);
-                Bitboard king_zone = PieceAttacks[KING][fk_sq];
-                ei.king_ring[Own] = king_zone
-                                  | (  dist_rings_bb (fk_sq, 1)
-                                     & (rel_rank (Own, fk_sq) < R_5 ? pawn_pass_span (Own, fk_sq) :
-                                        rel_rank (Own, fk_sq) < R_7 ? pawn_pass_span (Own, fk_sq)|pawn_pass_span (Opp, fk_sq) :
-                                                                      pawn_pass_span (Opp, fk_sq)));
+                Bitboard king_zone = PieceAttacks[KING][pos.square (Own, KING)];
+                ei.king_ring[Own] = king_zone | shift<Push> (king_zone);
                 ei.king_ring_attackers_count[Opp] = u08(pop_count (king_zone & ei.pin_attacked_by[Opp][PAWN]));
             }
         }
@@ -339,12 +335,25 @@ namespace Evaluator {
                     attacks &= strline_bb (pos.square (Own, KING), s);
                 }
 
-                ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE]
-                                      & (   QUEN == PT
-                                         && 0 != (attacks & pos.pieces (Own, BSHP, ROOK)) ?
-                                                attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, BSHP, QUEN)) | pos.abs_blockers (Own))
-                                              | attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, ROOK, QUEN)) | pos.abs_blockers (Own)) :
-                                                attacks);
+                if (QUEN == PT)
+                {
+                    Bitboard att = attacks;
+                    Bitboard b;
+                    if (0 != (b = pos.pieces (Own, BSHP) & PieceAttacks[BSHP][s] & attacks))
+                    {
+                        att |= attacks_bb<BSHP> (s, (pos.pieces () ^ b) | pos.abs_blockers (Own));
+                    }
+                    if (0 != (b = pos.pieces (Own, ROOK) & PieceAttacks[ROOK][s] & attacks))
+                    {
+                        att |= attacks_bb<ROOK> (s, (pos.pieces () ^ b) | pos.abs_blockers (Own));
+                    }
+                    ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE] & att;
+                }
+                else
+                {
+                    ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE] & attacks;
+                }
+                
                 ei.pin_attacked_by[Own][NONE] |=
                 ei.pin_attacked_by[Own][PT]   |= attacks;
 
@@ -377,7 +386,8 @@ namespace Evaluator {
                         score += MinorBehindPawn;
                     }
 
-                    Bitboard b = OutpostRank & ~ei.pe->attack_span[Opp];
+                    Bitboard b = OutpostRank
+                               & ~ei.pe->attack_span[Opp];
                     // Bonus for minors outpost squares
                     if (contains (b, s))
                     {
@@ -385,7 +395,8 @@ namespace Evaluator {
                     }
                     else
                     {
-                        b &= attacks & ~pos.pieces (Own);
+                        b &= attacks
+                           & ~pos.pieces (Own);
                         if (0 != b)
                         {
                             score += PieceOutpost[PT][0 != (ei.pin_attacked_by[Own][PAWN] & b)] * 1;
@@ -412,7 +423,7 @@ namespace Evaluator {
                         {
                             // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
                             // It is a very serious problem, especially when that pawn is also blocked.
-                            // Bishop on a1/h1 or a8/h8 (white or black) which is trapped by own pawn on b2/g2 or b7/g7 (white or black).
+                            // Bishop (white or black) on a1/h1 or a8/h8 which is trapped by own pawn on b2/g2 or b7/g7.
                             if (   contains (FA_bb|FH_bb, s)
                                 && rel_rank (Own, s) == R_1)
                             {
@@ -436,6 +447,7 @@ namespace Evaluator {
                     {
                         score += RookOnPawns * pop_count (pos.pieces (Opp, PAWN) & PieceAttacks[ROOK][s]);
                     }
+
                     // Bonus for rook when on an open or semi-open file
                     if (ei.pe->file_semiopen (Own, _file (s)))
                     {
@@ -479,7 +491,7 @@ namespace Evaluator {
             return score;
         }
 
-        // Evaluates bonuses and penalties of the king of the color.
+        // Evaluates bonuses and penalties of the king of the color
         template<Color Own, bool Trace>
         Score evaluate_king (const Position &pos, const EvalInfo &ei)
         {
@@ -661,7 +673,7 @@ namespace Evaluator {
             return score;
         }
 
-        // Evaluates the threats of the color.
+        // Evaluates the threats of the color
         template<Color Own, bool Trace>
         Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
@@ -814,7 +826,7 @@ namespace Evaluator {
             return score;
         }
 
-        // Evaluates the passed pawns of the color.
+        // Evaluates the passed pawns of the color
         template<Color Own, bool Trace>
         Score evaluate_passers (const Position &pos, const EvalInfo &ei)
         {
@@ -928,11 +940,11 @@ namespace Evaluator {
             return score;
         }
 
-        // Computes the space evaluation of the color.
+        // Evaluates the space of the color
         // The space evaluation is a simple bonus based on the number of safe squares
-        // available for minor pieces on the central four files on ranks 2--4.
-        // Safe squares one, two or three squares behind a friend pawn are counted twice.
-        // The aim is to improve play on game opening.
+        // available for minor pieces on the central four files on ranks 2-4
+        // Safe squares one, two or three squares behind a friend pawn are counted twice
+        // The aim is to improve play on opening
         template<Color Own, bool Trace>
         Score evaluate_space (const Position &pos, const EvalInfo &ei)
         {
@@ -980,8 +992,8 @@ namespace Evaluator {
             return score;
         }
 
-        // Computes the initiative correction value for the position
-        // i.e. second order bonus/malus based on the known attacking/defending status of the players.
+        // Evaluates the initiative correction value for the position
+        // i.e. second order bonus/malus based on the known attacking/defending status of the players
         Score evaluate_initiative (const Position &pos, u08 asymmetry, Value eg)
         {
             i32 king_dist = dist<File> (pos.square (WHITE, KING), pos.square (BLACK, KING))
@@ -999,7 +1011,7 @@ namespace Evaluator {
             return mk_score (0, sign (eg) * std::max (initiative, -abs (eg)));
         }
 
-        // Computes the scale for the position
+        // Evaluates the scale for the position
         Scale evaluate_scale (const Position &pos, const EvalInfo &ei, Value eg)
         {
             assert(PHASE_ENDGAME <= pos.phase () && pos.phase () <= PHASE_MIDGAME);
@@ -1042,7 +1054,7 @@ namespace Evaluator {
         }
     }
 
-    // Returns a static evaluation of the position from the point of view of the side to move.
+    // Returns a static evaluation of the position from the point of view of the side to move
     template<bool Trace>
     Value evaluate (const Position &pos)
     {
@@ -1154,7 +1166,7 @@ namespace Evaluator {
     template Value evaluate<false> (const Position&);
     template Value evaluate<true > (const Position&);
 
-    // Returns a string that contains the detailed descriptions.
+    // Returns a string that contains the detailed descriptions
     string trace (const Position &pos)
     {
         std::memset (cp, 0x00, sizeof (cp));

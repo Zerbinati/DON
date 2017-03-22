@@ -119,10 +119,10 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
          && pos.legal (ttm)));
 
     _stage =
-        0 == pos.si->checkers ?
+        0 == _pos.si->checkers ?
             S_NATURAL_TT :
             S_EVASION_TT;
-    if (_tt_move == MOVE_NONE)
+    if (MOVE_NONE == _tt_move)
     {
         ++_stage;
     }
@@ -137,7 +137,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
         || (pos.pseudo_legal (ttm)
          && pos.legal (ttm)));
 
-    if (0 != pos.si->checkers)
+    if (0 != _pos.si->checkers)
     {
         _stage = S_EVASION_TT;
     }
@@ -154,15 +154,15 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
     else
     {
         _stage = S_Q_RECAPTURE_TT;
-        _recap_sq = dst_sq ((ss-1)->current_move);
+        _recap_sq = dst_sq ((_ss-1)->current_move);
         if (   MOVE_NONE != _tt_move
-            && !(   pos.capture (_tt_move)
+            && !(   _pos.capture (_tt_move)
                  && dst_sq (_tt_move) == _recap_sq))
         {
             _tt_move = MOVE_NONE;
         }
     }
-    if (_tt_move == MOVE_NONE)
+    if (MOVE_NONE == _tt_move)
     {
         ++_stage;
     }
@@ -181,12 +181,12 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
 
     // In ProbCut we generate captures with SEE greater than or equal to the given threshold
     if (   MOVE_NONE != _tt_move
-        && !(   pos.capture (_tt_move)
-             && pos.see_ge (_tt_move, _threshold)))
+        && !(   _pos.capture (_tt_move)
+             && _pos.see_ge (_tt_move, _threshold)))
     {
         _tt_move = MOVE_NONE;
     }
-    if (_tt_move == MOVE_NONE)
+    if (MOVE_NONE == _tt_move)
     {
         ++_stage;
     }
