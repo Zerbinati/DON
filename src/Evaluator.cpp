@@ -95,14 +95,15 @@ namespace Evaluator {
                 }
                 else
                 {
-                    pin_attacked_by[Own][PAWN] = pe->attacks[Own];
+                    pin_attacked_by[Own][PAWN] = pe->any_attacks[Own];
                 }
 
                 pin_attacked_by[Own][KING] = PieceAttacks[KING][fk_sq];
 
-                ful_attacked_by[Own]       = pin_attacked_by[Own][KING] | pe->attacks[Own];
+                ful_attacked_by[Own]       = pin_attacked_by[Own][KING] | pe->any_attacks[Own];
                 pin_attacked_by[Own][NONE] = pin_attacked_by[Own][KING] | pin_attacked_by[Own][PAWN];
-                dbl_attacked[Own]          = pin_attacked_by[Own][KING] & pin_attacked_by[Own][PAWN];
+                dbl_attacked[Own]          = pe->dbl_attacks[Own]
+                                           | (pin_attacked_by[Own][KING] & pin_attacked_by[Own][PAWN]);
 
                 king_ring[Own] = 0;
                 king_ring_attackers_count[Own] = 0;
@@ -230,10 +231,8 @@ namespace Evaluator {
 
         const Score PawnPushThreat  = S(38,22);
 
-        const Score HangPawnThreat  = S(71,61);
-
-        // SafePawnThreat[piece-type] contains bonuses according to piece type
-        const Score SafePawnThreat[NONE] = { S( 0, 0), S(176,139), S(131,127), S(217,218), S(203,215), S( 0, 0) };
+        const Score HangPawnThreat  = S( 71,  61);
+        const Score SafePawnThreat  = S(182, 175);
 
         // PieceThreat[piece-type] contains bonuses according to piece type
         const Score PieceThreat[][NONE] =
@@ -337,17 +336,12 @@ namespace Evaluator {
 
                 if (QUEN == PT)
                 {
-                    Bitboard att = attacks;
-                    Bitboard b;
-                    if (0 != (b = pos.pieces (Own, BSHP) & PieceAttacks[BSHP][s] & attacks))
-                    {
-                        att |= attacks_bb<BSHP> (s, (pos.pieces () ^ b) | pos.abs_blockers (Own));
-                    }
-                    if (0 != (b = pos.pieces (Own, ROOK) & PieceAttacks[ROOK][s] & attacks))
-                    {
-                        att |= attacks_bb<ROOK> (s, (pos.pieces () ^ b) | pos.abs_blockers (Own));
-                    }
-                    ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE] & att;
+                    Bitboard bb = pos.pieces (Own, BSHP) & PieceAttacks[BSHP][s] & attacks;
+                    Bitboard rr = pos.pieces (Own, ROOK) & PieceAttacks[ROOK][s] & attacks;
+                    ei.dbl_attacked[Own] |= ei.pin_attacked_by[Own][NONE]
+                                          & (  attacks
+                                             | (0 != bb ? attacks_bb<BSHP> (s, (pos.pieces () ^ bb) | pos.abs_blockers (Own)) : 0)
+                                             | (0 != rr ? attacks_bb<ROOK> (s, (pos.pieces () ^ rr) | pos.abs_blockers (Own)) : 0));
                 }
                 else
                 {
@@ -373,6 +367,7 @@ namespace Evaluator {
                 score += PieceCloseness[PT][dist (s, pos.square (Own, KING))];
                 //score += PieceCloseness[PT][dist (s, pos.square (Opp, KING))];
 
+                Bitboard b;
                 // Special extra evaluation for pieces
                 switch (PT)
                 {
@@ -386,8 +381,8 @@ namespace Evaluator {
                         score += MinorBehindPawn;
                     }
 
-                    Bitboard b = OutpostRank
-                               & ~ei.pe->attack_span[Opp];
+                    b = OutpostRank
+                      & ~ei.pe->attack_span[Opp];
                     // Bonus for minors outpost squares
                     if (contains (b, s))
                     {
@@ -794,10 +789,8 @@ namespace Evaluator {
                 {
                     score += HangPawnThreat;
                 }
-                while (0 != b)
-                {
-                    score += SafePawnThreat[ptype (pos[pop_lsq (b)])];
-                }
+
+                score += SafePawnThreat * pop_count (b);
             }
 
             // Bonus if some friend pawns safely push can attack an enemy piece

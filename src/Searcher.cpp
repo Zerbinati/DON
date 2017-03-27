@@ -370,11 +370,12 @@ Move MovePicker::next_move (bool skip_quiets)
         while (_index < _moves.size ())
         {
             auto &vm = pick_best_move (_index++);
-            if (   !skip_quiets
-                || vm.value >= VALUE_ZERO)
+            if (   skip_quiets
+                && vm.value < VALUE_ZERO)
             {
-                return vm.move;
+                continue;
             }
+            return vm.move;
         }
         ++_stage;
         _index = 0;
@@ -1515,32 +1516,35 @@ namespace Searcher {
 
                 // Calculate new depth for this move
                 i16 new_depth = depth - 1;
-                // Step 12. Extensions
-                // Extend the move which gives check.
-                if (   gives_check
-                    && !move_count_pruning
-                    && pos.see_ge (move, VALUE_ZERO))
-                {
-                    new_depth += 1;
-                }
 
-                // Singular extensions (SE).
+                // Step 12. Extensions
+
+                // Singular extension (SE)
                 // We extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
                 // and just one fails high on (alfa, beta), then that move is singular and should be extended.
                 // To verify this do a reduced search on all the other moves but the tt_move,
                 // if result is lower than tt_value minus a margin then extend tt_move.
-                if (   singular_ext_node
-                    && move == tt_move
-                    && new_depth < depth)
+                if (singular_ext_node)
                 {
-                    auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
-                    value = depth_search<false> (pos, ss, beta_margin-1, beta_margin, depth/2, cut_node, false, move);
-
-                    if (value < beta_margin)
+                    if (move == tt_move)
                     {
-                        new_depth += 1;
+                        auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
+                        value = depth_search<false> (pos, ss, beta_margin-1, beta_margin, depth/2, cut_node, false, move);
+
+                        if (value < beta_margin)
+                        {
+                            new_depth += 1;
+                        }
                     }
+                }
+                else
+                // Check extension (CE)
+                if (   gives_check
+                    && !move_count_pruning
+                    && pos.see_ge (move, VALUE_ZERO))
+                {
+                    new_depth += 1;
                 }
 
                 // Step 13. Pruning at shallow depth
@@ -1566,9 +1570,13 @@ namespace Searcher {
                         auto lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Counter moves value based pruning
                                (   3 > lmr_depth
-                                && (!sm1_ok || smh1(mpc, dst_sq (move)) < VALUE_ZERO)
-                                && (!sm2_ok || smh2(mpc, dst_sq (move)) < VALUE_ZERO)
-                                && ((sm1_ok && sm2_ok) || !sm4_ok || smh4(mpc, dst_sq (move)) < VALUE_ZERO))
+                                && (   !sm1_ok
+                                    || smh1(mpc, dst_sq (move)) < VALUE_ZERO)
+                                && (   !sm2_ok
+                                    || smh2(mpc, dst_sq (move)) < VALUE_ZERO)
+                                && (   (sm1_ok && sm2_ok)
+                                    || !sm4_ok
+                                    || smh4(mpc, dst_sq (move)) < VALUE_ZERO))
                                 // Futility pruning: parent node
                             || (   7 > lmr_depth
                                 && !in_check

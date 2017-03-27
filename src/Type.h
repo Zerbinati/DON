@@ -437,7 +437,7 @@ inline Score mk_score (i32 mg, i32 eg)
 
 inline Value mg_value (u32 s)
 {
-    union { u16 u; i16 s; } mg = { u16(u32(s + 0x0000) >> 0x00) };
+    union { u16 u; i16 s; } mg = { u16(u32(s         )        ) };
     return Value(mg.s);
 }
 inline Value eg_value (u32 s)

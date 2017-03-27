@@ -7,7 +7,7 @@
 #include "Position.h"
 #include "MoveGenerator.h"
 
-// Limit stores information sent by GUI about available time to search the current move.
+// Limit stores information sent by GUI about available time to search the current move
 //  - Maximum time and increment
 //  - Maximum depth
 //  - Maximum nodes
@@ -72,13 +72,13 @@ public:
 
     void update (Color c, Move m, Value v)
     {
-        assert(abs (v) <= 324); // Needed for stability.
+        assert(abs (v) <= 324); // Needed for stability
         auto &e = _table[c][move_pp (m)];
         e += v*32 - (e*abs (v))/324;
     }
 };
 
-// MoveStats store the move that refute a previous one.
+// MoveStats store the move that refute a previous one
 struct MoveStats
 {
 private:
@@ -132,12 +132,12 @@ public:
     // Piece, Destiny, Value
     void update (Piece pc, Square s, Value v)
     {
-        assert(abs (v) <= 936); // Needed for stability.
+        assert(abs (v) <= 936); // Needed for stability
         auto &e = _table[pc][s];
         e += v*32 - (e*abs (v))/936;
     }
 };
-// CounterMoveHistoryStats is like HistoryStats, but with two consecutive moves.
+// CounterMoveHistoryStats is like HistoryStats, but with two consecutive moves
 struct CMoveHistoryStats
 {
 private:
@@ -161,20 +161,20 @@ public:
     }
 };
 
-// The root of the tree is a PV node.
-// At a PV node all the children have to be investigated.
+// The root of the tree is a PV node
+// At a PV node all the children have to be investigated
 // The best move found at a PV node leads to a successor PV node,
 // while all the other investigated children are CUT nodes
-// At a CUT node the child causing a beta cut-off is an ALL node.
-// In a perfectly ordered tree only one child of a CUT node has to be explored.
-// At an ALL node all the children have to be explored. The successors of an ALL node are CUT nodes.
+// At a CUT node the child causing a beta cut-off is an ALL node
+// In a perfectly ordered tree only one child of a CUT node has to be explored
+// At an ALL node all the children have to be explored. The successors of an ALL node are CUT nodes
 // NonPV nodes = CUT nodes + ALL nodes
 //
-// RootMove is used for moves at the root of the tree.
-// Root move stores:
-//  - New/Old values.
-//  - PV (really a refutation table in the case of moves which fail low).
-// Value is normally set at -VALUE_INFINITE for all non-pv moves.
+// RootMove is used for moves at the root of the tree
+// RootMove stores:
+//  - New/Old values
+//  - PV (really a refutation table in the case of moves which fail low)
+// Value is normally set at -VALUE_INFINITE for all non-pv moves
 class RootMove
     : public MoveVector
 {
@@ -249,7 +249,7 @@ inline std::basic_ostream<CharT, Traits>&
 
 
 const u08 MaxKillers = 2;
-// Stack keeps the information of the nodes in the tree during the search.
+// Stack keeps the information of the nodes in the tree during the search
 struct Stack
 {
 public:
@@ -265,7 +265,7 @@ public:
     MoveHistoryStats *m_history;
 };
 
-// MovePicker class is used to pick one legal moves from the current position.
+// MovePicker class is used to pick one legal moves from the current position
 class MovePicker
 {
 private:

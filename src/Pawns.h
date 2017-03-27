@@ -16,7 +16,8 @@ namespace Pawns {
         u08     asymmetry;
         u08     open_count;
 
-        Bitboard attacks    [CLR_NO];
+        Bitboard any_attacks[CLR_NO];
+        Bitboard dbl_attacks[CLR_NO];
         Bitboard attack_span[CLR_NO];
         Bitboard passers    [CLR_NO];
         u08      semiopens  [CLR_NO];

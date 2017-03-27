@@ -347,7 +347,7 @@ namespace UCI {
         Options["Book Move Best"]               << Option (BookMoveBest, on_book_opt);
         Options["Book Upto Move"]               << Option (BookUptoMove, 0, 50, on_book_opt);
 
-        Options["Threads"]                      << Option ( 1, 0, 256, on_thread_count);
+        Options["Threads"]                      << Option ( 1, 0, 512, on_thread_count);
 
         Options["Skill Level"]                  << Option (SkillManager::MaxSkillLevel,  0, SkillManager::MaxSkillLevel, on_skill_level);
 

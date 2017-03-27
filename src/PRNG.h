@@ -18,7 +18,6 @@
 //
 // For further analysis see
 //   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
-
 class PRNG
 {
 private:

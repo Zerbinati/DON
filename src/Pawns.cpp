@@ -88,8 +88,10 @@ namespace Pawns {
             const Bitboard own_pawns = pos.pieces (Own, PAWN);
             const Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            e->attacks    [Own] = shift<LCap> (own_pawns)
+            e->any_attacks[Own] = shift<LCap> (own_pawns)
                                 | shift<RCap> (own_pawns);
+            e->dbl_attacks[Own] = shift<LCap> (own_pawns)
+                                & shift<RCap> (own_pawns);
             e->attack_span[Own] = 0;
             e->passers    [Own] = 0;
             e->semiopens  [Own] = u08(0xFF);
