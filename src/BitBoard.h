@@ -37,10 +37,6 @@ namespace BitBoard {
 
     const Bitboard Square_bb[SQ_NO] =
     {
-#undef S_16
-#undef S_08
-#undef S_04
-#undef S_02
 #define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
 #define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
 #define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
@@ -306,9 +302,9 @@ namespace BitBoard {
         //return i32(__popcnt64 (bb));
         return i32(_mm_popcnt_u64 (bb));
 #   else
-        //return i32(__popcnt (u32(bb >> 0))
+        //return i32(__popcnt (u32(bb >>  0))
         //         + __popcnt (u32(bb >> 32)));
-        return i32(_mm_popcnt_u32 (bb >> 0)
+        return i32(_mm_popcnt_u32 (bb >>  0)
                  + _mm_popcnt_u32 (bb >> 32));
 #   endif
     }
@@ -323,7 +319,7 @@ namespace BitBoard {
 #   if defined(BIT64)
         return i32(__builtin_popcountll (bb));
 #   else
-        return i32(__builtin_popcountl (bb >> 0)
+        return i32(__builtin_popcountl (bb >>  0)
                  + __builtin_popcountl (bb >> 32));
 #   endif
     }
@@ -346,7 +342,7 @@ namespace BitBoard {
 #   else
         if (u32(bb >> 0) != 0)
         {
-            _BitScanForward (&index, u32(bb >> 0));
+            _BitScanForward (&index, u32(bb >>  0));
         }
         else
         {
@@ -372,7 +368,7 @@ namespace BitBoard {
         }
         else
         {
-            _BitScanReverse (&index, u32(bb >> 0));
+            _BitScanReverse (&index, u32(bb >>  0));
         }
 #   endif
         return Square(index);

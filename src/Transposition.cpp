@@ -130,18 +130,12 @@ namespace Transposition {
 
     void Table::auto_resize (u32 mem_size, bool force)
     {
-        if (mem_size == 0)
+        for (auto msize = 0 != mem_size ? mem_size : MaxHashSize; msize >= MinHashSize; msize >>= 1)
         {
-            mem_size = MaxHashSize;
-        }
-        auto msize = mem_size;
-        while (msize >= MinHashSize)
-        {
-            if (resize (msize, force) != 0)
+            if (0 != resize (msize, force))
             {
                 return;
             }
-            msize >>= 1;
         }
         Engine::stop (EXIT_FAILURE);
     }
@@ -171,7 +165,7 @@ namespace Transposition {
                 }
                 return ite;
             }
-            // Entry te1 is considered more valuable than Entry te2, if te1.worth() > te2.worth().
+            // Entry1 is considered more valuable than Entry2, if Entry1.worth() > Entry2.worth().
             if (rworth > ite->worth ())
             {
                 rworth = ite->worth ();
@@ -189,19 +183,20 @@ namespace Transposition {
     // hash, are using <x>%. of the state of full.
     u32 Table::hash_full () const
     {
-        u32 full_count = 0;
-        for (const auto *clt = _clusters; clt < _clusters + std::min (size_t (1000/Cluster::EntryCount), _cluster_count); ++clt)
+        u64 entry_count = 0;
+        auto cluster_count = std::min (size_t(1000/Cluster::EntryCount), _cluster_count);
+        for (const auto *clt = _clusters; clt < _clusters + cluster_count; ++clt)
         {
             const auto *fte = clt->entries;
             for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
             {
                 if (ite->alive ())
                 {
-                    ++full_count;
+                    ++entry_count;
                 }
             }
         }
-        return full_count;
+        return u32(entry_count * cluster_count * Cluster::EntryCount / 1000);
     }
 
     void Table::save (const string &hash_fn) const

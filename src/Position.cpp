@@ -862,7 +862,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     auto mpt = ptype (board[org]);
     assert(NONE != mpt);
     auto ppt = mpt;
-    auto cap = ENPASSANT != mt ? dst : dst - pawn_push (active);
+    auto cap = ENPASSANT != mt ?
+                dst :
+                dst - pawn_push (active);
     ++si->clock_ply;
     ++si->null_ply;;
     si->capture = CASTLE != mt ? ptype (board[cap]) : NONE;
@@ -987,11 +989,11 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
     if (CR_NONE != b)
     {
-        si->castle_rights &= ~b;
         if (CR_NONE != (b & CR_WKING)) si->posi_key ^= RandZob.castle_right_keys[WHITE][CS_KING];
         if (CR_NONE != (b & CR_WQUEN)) si->posi_key ^= RandZob.castle_right_keys[WHITE][CS_QUEN];
         if (CR_NONE != (b & CR_BKING)) si->posi_key ^= RandZob.castle_right_keys[BLACK][CS_KING];
         if (CR_NONE != (b & CR_BQUEN)) si->posi_key ^= RandZob.castle_right_keys[BLACK][CS_QUEN];
+        si->castle_rights &= ~b;
     }
 
     assert(0 == attackers_to (square (active, KING), pasive));
@@ -1025,7 +1027,9 @@ void Position::undo_move (Move m)
         || CASTLE == mt);
     assert(KING != si->capture);
 
-    auto cap = ENPASSANT != mt ? dst : dst - pawn_push (active);
+    auto cap = ENPASSANT != mt ?
+                dst :
+                dst - pawn_push (active);
     switch (mt)
     {
     case NORMAL:

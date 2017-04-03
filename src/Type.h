@@ -69,11 +69,6 @@
 #   endif
 #endif
 
-#undef S32
-#undef U32
-#undef S64
-#undef U64
-
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
 #   pragma warning (disable: 4127) // Conditional expression is constant
@@ -365,10 +360,6 @@ enum Scale : u08
     SCALE_MAX     = 128,
     SCALE_NONE    = 255,
 };
-
-#undef BASIC_OPERATORS
-#undef ARTHMAT_OPERATORS
-#undef INC_DEC_OPERATORS
 
 #define BASIC_OPERATORS(T)                                                       \
     inline T  operator+  (T  t       ) { return T(+i32(t)); }                    \

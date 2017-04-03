@@ -77,9 +77,7 @@ namespace Transposition {
             if (   key16 != _key16
                 || d > _depth - 4
                 //|| Generation != (_gen_bnd & 0xFC) // Matching non-zero keys are already refreshed by probe()
-                || b == BOUND_EXACT
-                || (   b != BOUND_NONE
-                    && (_gen_bnd & 0x03) == BOUND_NONE))
+                || b == BOUND_EXACT)
             {
                 _value      = i16(v);
                 _eval       = i16(e);
@@ -135,7 +133,7 @@ namespace Transposition {
         // Maximum size of Transposition::Table (1048576 MB = 1048 GB = 1 TB)
         static const u32 MaxHashSize =
 #       if defined(BIT64)
-            (u64(1) << (MaxHashBit - 20)) * sizeof (Cluster);
+            (U64(1) << (MaxHashBit - 20)) * sizeof (Cluster);
 #       else
             2048;
 #       endif

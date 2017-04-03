@@ -340,6 +340,8 @@ namespace BitBoard {
                             s2s1_attacks = attacks_bb<ROOK> (s2, Square_bb[s1]);
                             break;
                         default:
+                            s1s2_attacks = 0;
+                            s2s1_attacks = 0;
                             break;
                         }
 

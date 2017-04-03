@@ -158,7 +158,6 @@ public:
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
     Bitboard xattackers_to (Square s, Color c, Bitboard occ) const;
-    Bitboard xattackers_to (Square s, Color c) const;
 
     template<Color Own>
     Bitboard slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const;
@@ -268,7 +267,7 @@ inline Key Position::move_posi_key (Move m) const
         && color (board[org]) == active
         && NONE != mpt);
     
-    Key key = si->posi_key ^ RandZob.color_key;
+    Key key = si->posi_key;
     auto mt = mtype (m);
     auto ppt = PROMOTE != mt ? mpt : promote (m);
     if (CASTLE == mt)
@@ -303,13 +302,11 @@ inline Key Position::move_posi_key (Move m) const
         if (CR_NONE != (b & CR_BKING)) key ^= RandZob.castle_right_keys[BLACK][CS_KING];
         if (CR_NONE != (b & CR_BQUEN)) key ^= RandZob.castle_right_keys[BLACK][CS_QUEN];
     }
-    if (SQ_NO != si->en_passant_sq)
-    {
-        key ^= RandZob.en_passant_keys[_file (si->en_passant_sq)];
-    }
     return key
-        ^ RandZob.piece_square_keys[active][ppt][mt != CASTLE ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
-        ^ RandZob.piece_square_keys[active][mpt][org];
+         ^ RandZob.color_key
+         ^ RandZob.piece_square_keys[active][ppt][mt != CASTLE ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
+         ^ RandZob.piece_square_keys[active][mpt][org]
+         ^ (SQ_NO != si->en_passant_sq ? RandZob.en_passant_keys[_file (si->en_passant_sq)] : 0);
 }
 
 inline bool Position::can_castle (Color c) const { return (si->castle_rights & castle_right (c)) != CR_NONE; }
@@ -362,11 +359,6 @@ inline Bitboard Position::xattackers_to (Square s, Color c, Bitboard occ) const
          | (0 != (pieces (c, BSHP, QUEN) & PieceAttacks[BSHP][s]) ? pieces (c, BSHP, QUEN) & attacks_bb<BSHP> (s, (occ ^ pieces (c, BSHP, QUEN)) | abs_blockers (c)) : 0)
          | (0 != (pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (c, ROOK, QUEN) & attacks_bb<ROOK> (s, (occ ^ pieces (c, ROOK, QUEN)) | abs_blockers (c)) : 0)
          | (pieces (c, KING) & PieceAttacks[KING][s]);
-}
-// Attackers to the squareby color
-inline Bitboard Position::xattackers_to (Square s, Color c) const
-{
-    return xattackers_to (s, c, pieces ());
 }
 
 // Absolute blockers are friend pieces, that blocks the check to friend king.
