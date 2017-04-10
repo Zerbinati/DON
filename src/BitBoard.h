@@ -178,9 +178,9 @@ namespace BitBoard {
     inline bool more_than_one (Bitboard bb)
     {
 #   if defined(BM2)
-        return BLSR(bb) != 0;
+        return 0 != BLSR(bb);
 #   else
-        return (bb & (bb - 1)) != 0;
+        return 0 != (bb & (bb - 1));
 #   endif
     }
 

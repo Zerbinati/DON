@@ -1182,7 +1182,7 @@ namespace Searcher {
                     // Penalty for a quiet tt_move that fails low
                     if (!pos.capture_or_promotion (tt_move))
                     {
-                        auto penalty = -stat_bonus (depth + 1);
+                        auto penalty = -stat_bonus (depth);
                         th->history.update (pos.active, tt_move, penalty);
                         update_cm_stats (ss, pos[org_sq (tt_move)], dst_sq (tt_move), penalty);
                     }
@@ -1192,7 +1192,8 @@ namespace Searcher {
 
             // Step 4A. Tablebase probe
             if (   !root_node
-                && 0 != TBLimitPiece)
+                && 0 != TBLimitPiece
+                && !exclusion)
             {
                 auto piece_count = pos.count<NONE> ();
 
@@ -1559,7 +1560,8 @@ namespace Searcher {
                 // Step 13. Pruning at shallow depth
                 if (   !root_node
                     //&& 0 == Limits.mate
-                    && best_value > -VALUE_MATE_IN_MAX_PLY)
+                    && best_value > -VALUE_MATE_IN_MAX_PLY
+                    && pos.si->non_pawn_material (pos.active) > VALUE_ZERO)
                 {
                     if (   !capture_or_promotion
                         && !gives_check
@@ -1665,20 +1667,20 @@ namespace Searcher {
                             + (sm4_ok ? smh4(mpc, dst_sq (move)) : VALUE_ZERO)
                             - 4000; // Correction factor
 
-                        // Decrease/Increase reduction by comparing opponent's stat score
-                        if (   (ss)->history_val > VALUE_ZERO
+                        // Decrease/Increase reduction by comparing opponent's stat value
+                        if (   (ss  )->history_val > VALUE_ZERO
                             && (ss-1)->history_val < VALUE_ZERO)
                         {
                             reduce_depth -= 1;
                         }
                         else
-                        if (   (ss)->history_val < VALUE_ZERO
+                        if (   (ss  )->history_val < VALUE_ZERO
                             && (ss-1)->history_val > VALUE_ZERO)
                         {
                             reduce_depth += 1;
                         }
 
-                        // Decrease/Increase reduction for moves with +ve/-ve history
+                        // Decrease/Increase reduction for moves with +/-ve history value
                         reduce_depth -= i16((ss)->history_val / 20000);
                     }
 
@@ -1692,7 +1694,7 @@ namespace Searcher {
                         reduce_depth = new_depth - 1;
                     }
 
-                    value = -depth_search<false> (pos, ss+1, -(alfa+1), -alfa, new_depth - reduce_depth, true, true);
+                    value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true, true);
 
                     full_depth_search = alfa < value
                                      && reduce_depth > 0;
@@ -1708,8 +1710,8 @@ namespace Searcher {
                 {
                     value =
                         new_depth <= 0 ?
-                            -quien_search<false> (pos, ss+1, -(alfa+1), -alfa) :
-                            -depth_search<false> (pos, ss+1, -(alfa+1), -alfa, new_depth, !cut_node, true);
+                            -quien_search<false> (pos, ss+1, -alfa-1, -alfa) :
+                            -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node, true);
                 }
 
                 // Do a full PV search on:

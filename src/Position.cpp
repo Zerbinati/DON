@@ -145,21 +145,32 @@ bool Position::see_ge (Move m, Value v) const
         c = ~c;
         c_attackers = attackers & pieces (c);
 
+        Bitboard b;
         // Don't allow pinned pieces to attack pieces except the king
         // as long all pinners are on their original square.
         // for resolving Bxf2 on fen: r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1
         if (   0 != c_attackers
-            && 0 != (abs_checkers (~c) & mocc))
+            && 0 != (b = abs_checkers (~c) & mocc))
         {
-            c_attackers &= ~si->king_blockers[c];
+            while (0 != b)
+            {
+                c_attackers &= ~between_bb (pop_lsq (b), square (c, KING));
+            }
         }
+        
         // If move is a discovered check, the only possible defensive capture on
         // the destination square is a capture by the king to evade the check.
         if (   0 != c_attackers
-            && 0 != (dsc_checkers (~c) & mocc)
-            && 0 == (dsc_blockers (~c) & mocc))
+            && 0 != (b = dsc_checkers (~c) & mocc))
         {
-            c_attackers &= pieces (KING);
+            while (0 != b)
+            {
+                if (0 == (between_bb (pop_lsq (b), square (c, KING)) & mocc))
+                {
+                    c_attackers &= pieces (c, KING);
+                    break;
+                }
+            }
         }
 
         if (0 == c_attackers)
@@ -615,16 +626,15 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
     {
         return false;
     }
-
-    auto fk_sq = square (c, KING);
-    Bitboard mocc = (pieces () ^ cap) | ep_sq;
+    
     // En-passant attackers
     Bitboard attackers = PawnAttacks[~c][ep_sq] & pieces (c, PAWN);
     assert(pop_count (attackers) <= 2);
-
+    Bitboard mocc = (pieces () ^ cap) | ep_sq;
+    auto fk_sq = square (c, KING);
     Bitboard bq = pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][fk_sq];
     Bitboard rq = pieces (~c, ROOK, QUEN) & PieceAttacks[ROOK][fk_sq];
-    while (attackers != 0)
+    while (0 != attackers)
     {
         auto org = pop_lsq (attackers);
         assert(contains (mocc, org));

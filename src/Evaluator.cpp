@@ -451,6 +451,7 @@ namespace Evaluator {
                     }
                     else
                     if (   mob <= 3
+                        && rel_rank (Own, s) < R_5
                         && 0 != (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN))
                         && 0 == (front_sqrs_bb (Opp, s) & pos.pieces (Own, PAWN)))
                     {
@@ -637,7 +638,7 @@ namespace Evaluator {
                 // Transform the king units into a score, and substract it from the evaluation
                 if (king_danger > 0)
                 {
-                    score -= mk_score (std::min (king_danger*king_danger / 0x1000, 2*i32(VALUE_MG_BSHP)), 0);
+                    score -= mk_score (king_danger*king_danger / 0x1000, 0);
                 }
             }
 
