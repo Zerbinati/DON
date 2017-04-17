@@ -376,7 +376,7 @@ namespace MoveGen {
             case ROOK: attacks = 0 != (targets & PieceAttacks[ROOK][org]) ? targets & attacks_bb<ROOK> (org, pos.pieces ()) : 0; break;
             case QUEN: attacks = 0 != (targets & PieceAttacks[QUEN][org]) ? targets & attacks_bb<QUEN> (org, pos.pieces ()) : 0; break;
             case KING: attacks = targets
-                               & PieceAttacks[KING][org]
+                               &  PieceAttacks[KING][org]
                                & ~PieceAttacks[QUEN][pos.square (~pos.active, KING)]; break;
             default: assert(false); break;
             }
@@ -406,7 +406,7 @@ namespace MoveGen {
             case ROOK: attacks = 0 != (targets & PieceAttacks[ROOK][org]) ? targets & attacks_bb<ROOK> (org, pos.pieces ()) : 0; break;
             case QUEN: attacks = 0 != (targets & PieceAttacks[QUEN][org]) ? targets & attacks_bb<QUEN> (org, pos.pieces ()) : 0; break;
             case KING: attacks = targets
-                               & PieceAttacks[KING][org]
+                               &  PieceAttacks[KING][org]
                                & ~PieceAttacks[QUEN][pos.square (~pos.active, KING)]; break;
             default: assert(false); break;
             }

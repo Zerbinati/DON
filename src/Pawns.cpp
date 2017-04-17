@@ -123,7 +123,7 @@ namespace Pawns {
                 escapes    = opp_pawns & PAtt[s + Push];
 
                 opposed    = (opp_pawns & front_sqrs_bb (Own, s)) != 0;
-                blocked    = contains (own_pawns, (s+Push));
+                blocked    = contains (own_pawns, s-Push);
                 connected  = 0 != supporters || 0 != phalanxes;
 
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
@@ -179,7 +179,8 @@ namespace Pawns {
                     score += Levered[rel_rank (Own, s)];
                 }
 
-                if (blocked)
+                if (   blocked
+                    && 0 == supporters)
                 {
                     score -= Blocked;
                 }

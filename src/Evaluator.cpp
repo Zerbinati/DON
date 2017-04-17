@@ -188,10 +188,10 @@ namespace Evaluator {
         const Score PieceCloseness[][8] =
         {
             {},
-            { S(0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S(-10,-4), S( -1,-4), S( -7,-3), S(-16,-10) }, // Knight
-            { S(0, 0), S(11, 8), S(-7,-1), S(-1,-2), S( -1,-7), S(-11,-3), S( -9,-1), S(-16, -1) }, // Bishop
-            { S(0, 0), S(10, 0), S(-2, 2), S(-5, 4), S( -6, 2), S(-14,-3), S( -2,-9), S(-12, -7) }, // Rook
-            { S(0, 0), S( 3,-5), S( 2,-5), S(-4, 0), S( -9,-6), S( -4, 7), S(-13,-7), S(-10, -7) }  // Queen
+            { S( 0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S(-10,-4), S( -1,-4), S( -7,-3), S(-16,-10) }, // Knight
+            { S( 0, 0), S(11, 8), S(-7,-1), S(-1,-2), S( -1,-7), S(-11,-3), S( -9,-1), S(-16, -1) }, // Bishop
+            { S( 0, 0), S(10, 0), S(-2, 2), S(-5, 4), S( -6, 2), S(-14,-3), S( -2,-9), S(-12, -7) }, // Rook
+            { S( 0, 0), S( 3,-5), S( 2,-5), S(-4, 0), S( -9,-6), S( -4, 7), S(-13,-7), S(-10, -7) }  // Queen
         };
 
         // PieceOutpost[supported by pawn] contains bonuses for piece outposts
@@ -258,7 +258,7 @@ namespace Evaluator {
     #define V(v) Value(v)
 
         // PawnPassRank[rank] contains bonuses for passed pawns according to the rank of the pawn
-        const Value PawnPassRank[R_NO] = { V(0), V(5), V(5), V(35), V(75), V(165), V(255), V(0) };
+        const Value PawnPassRank[R_NO] = { V(  0), V(  5), V(  5), V( 35), V( 75), V(165), V(255), V(  0) };
 
         // Threshold for lazy evaluation
         const Value LazyThreshold = V(1500);
@@ -469,10 +469,9 @@ namespace Evaluator {
                 case QUEN:
                 {
                     // Penalty for pin or discover attack on the queen
-                    Bitboard pinners = 0, discovers = 0;
-                    if (0 != (pos.slider_blockers<Own> (s, pos.pieces (Opp, QUEN), pinners, discovers) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
-                                                                                                                                                       | shift<RCap> (pos.pieces (Own))))
-                                                                                                           | pos.abs_blockers (Opp))))
+                    if (0 != (pos.slider_blockers<Own> (s, pos.pieces (Opp, QUEN), b, b) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
+                                                                                                                                         | shift<RCap> (pos.pieces (Own))))
+                                                                                             | pos.abs_blockers (Opp))))
                     {
                         score -= QueenWeaken;
                     }
@@ -509,25 +508,19 @@ namespace Evaluator {
             if (   rel_rank (Own, fk_sq) == R_1
                 && pos.can_castle (Own))
             {
-                if (   0 != index
+                if (   value < ei.pe->king_safety[Own][0]
                     && pos.can_castle (Own, CS_KING)
                     && pos.expeded_castle (Own, CS_KING)
                     && 0 == (pos.king_path[Own][CS_KING] & ei.ful_attacked_by[Opp]))
                 {
-                    if (value < ei.pe->king_safety[Own][0])
-                    {
-                        value = ei.pe->king_safety[Own][0];
-                    }
+                    value = ei.pe->king_safety[Own][0];
                 }
-                if (   1 != index
+                if (   value < ei.pe->king_safety[Own][1]
                     && pos.can_castle (Own, CS_QUEN)
                     && pos.expeded_castle (Own, CS_QUEN)
                     && 0 == (pos.king_path[Own][CS_QUEN] & ei.ful_attacked_by[Opp]))
                 {
-                    if (value < ei.pe->king_safety[Own][1])
-                    {
-                        value = ei.pe->king_safety[Own][1];
-                    }
+                    value = ei.pe->king_safety[Own][1];
                 }
             }
 

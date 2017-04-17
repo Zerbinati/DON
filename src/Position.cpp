@@ -140,7 +140,7 @@ bool Position::see_ge (Move m, Value v) const
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, mocc) & mocc;
     Bitboard c_attackers;
-    while (attackers != 0)
+    while (0 != attackers)
     {
         c = ~c;
         c_attackers = attackers & pieces (c);
@@ -218,7 +218,7 @@ Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &p
            | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     Bitboard hurdle = (defenders | (attackers ^ snipers));
     Bitboard b;
-    while (snipers != 0)
+    while (0 != snipers)
     {
         auto sniper_sq = pop_lsq (snipers);
         b = hurdle & between_bb (s, sniper_sq);
@@ -227,7 +227,7 @@ Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &p
         {
             blockers |= b;
             
-            if ((b & defenders) != 0)
+            if (0 != (b & defenders))
             {
                 pinners |= sniper_sq;
             }
@@ -348,21 +348,21 @@ bool Position::pseudo_legal (Move m) const
         {
             return false;
         }
-        if (    // Not a single push
+        if (    // Single push
                !(   (   NORMAL == mt
                      || PROMOTE == mt)
                  && empty (dst)
                  && org + pawn_push (active) == dst)
-                // Not a normal capture
+                // Normal capture
             && !(   (   NORMAL == mt
                      || PROMOTE == mt)
                  && contains (pieces (~active) & PawnAttacks[active][org], dst))
-                // Not an enpassant capture
+                // Enpassant capture
             && !(   ENPASSANT == mt
                  && si->en_passant_sq == dst
                  && empty (dst)
                  && contains (pieces (~active, PAWN), cap))
-                // Not a double push
+                // Double push
             && !(   NORMAL == mt
                  && rel_rank (active, org) == R_2
                  && rel_rank (active, dst) == R_4
@@ -411,7 +411,7 @@ bool Position::pseudo_legal (Move m) const
                 // Move must be a capture of the checking piece or a blocking evasion of the checking piece
                    contains (si->checkers | between_bb (scan_lsq (si->checkers), square (active, KING)), dst) :
                 // Move must be a capture of the checking en-passant pawn or a blocking evasion of the checking piece
-                   ((si->checkers & pieces (~active, PAWN)) != 0 && contains (si->checkers, cap))
+                   (0 != (si->checkers & pieces (~active, PAWN)) && contains (si->checkers, cap))
                 || contains (between_bb (scan_lsq (si->checkers), square (active, KING)), dst);
         }
         return false;
@@ -488,7 +488,7 @@ bool Position::gives_check (Move m) const
     if (    // Direct check ?
            contains (si->checks[ptype (board[org])], dst)
             // Discovered check ?
-        || (   contains (si->king_blockers[~active], org)
+        || (   contains (dsc_blockers (active), org)
             && !sqrs_aligned (org, dst, square (~active, KING))))
     {
         return true;
@@ -1228,7 +1228,7 @@ string Position::fen (bool full) const
             {
                 ++empty_count;
             }
-            if (empty_count != 0)
+            if (0 != empty_count)
             {
                 oss << empty_count;
             }

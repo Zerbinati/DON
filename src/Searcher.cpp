@@ -685,11 +685,9 @@ namespace Searcher {
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
             pv.clear ();
-            assert(_ok (move));
             pv.push_back (move);
             for (auto m : child_pv)
             {
-                assert(_ok (m));
                 pv.push_back (m);
             }
         }
@@ -1192,8 +1190,8 @@ namespace Searcher {
 
             // Step 4A. Tablebase probe
             if (   !root_node
-                && 0 != TBLimitPiece
-                && !exclusion)
+                && !exclusion
+                && 0 != TBLimitPiece)
             {
                 auto piece_count = pos.count<NONE> ();
 
@@ -1215,15 +1213,13 @@ namespace Searcher {
                         auto value = v < -draw_v ? -VALUE_MATE + i32(MaxPlies + ss->ply) :
                                      v > +draw_v ? +VALUE_MATE - i32(MaxPlies + ss->ply) : VALUE_ZERO + 2 * draw_v * v;
 
-                        if (!exclusion)
-                        {
-                            tte->save (posi_key,
-                                       MOVE_NONE,
-                                       value_to_tt (value, ss->ply),
-                                       VALUE_NONE,
-                                       std::min<i16> (depth + 6, MaxPlies - 1),
-                                       BOUND_EXACT);
-                        }
+                        tte->save (posi_key,
+                                   MOVE_NONE,
+                                   value_to_tt (value, ss->ply),
+                                   VALUE_NONE,
+                                   std::min<i16> (depth + 6, MaxPlies - 1),
+                                   BOUND_EXACT);
+
                         return value;
                     }
                 }
@@ -1450,7 +1446,7 @@ namespace Searcher {
                 && !exclusion // Recursive singular search is not allowed
                 && 7 < depth
                 && tte->depth () + 4 > depth
-                && (tte->bound () & BOUND_LOWER) != BOUND_NONE;
+                && BOUND_NONE != (tte->bound () & BOUND_LOWER);
 
             bool improving =
                    (ss-2)->static_eval <= (ss-0)->static_eval
@@ -1809,8 +1805,8 @@ namespace Searcher {
                     }
                 }
 
-                if (   move != best_move
-                    && !capture_or_promotion)
+                if (   !capture_or_promotion
+                    && move != best_move)
                 {
                     quiet_moves.push_back (move);
                 }
@@ -1835,38 +1831,38 @@ namespace Searcher {
                             DrawValue[pos.active];
             }
             else
-            // Quiet best move: update move sorting heuristics
-            if (MOVE_NONE != best_move)
             {
-                if (!pos.capture_or_promotion (best_move))
+                // Quiet best move: update move sorting heuristics
+                if (MOVE_NONE != best_move)
                 {
-                    auto bonus = stat_bonus (depth);
-                    update_stats (ss, pos, best_move, bonus);
-                    // Decrease all the other played quiet moves
-                    assert(std::find (quiet_moves.begin (), quiet_moves.end (), best_move) == quiet_moves.end ());
-                    for (auto m : quiet_moves)
+                    if (!pos.capture_or_promotion (best_move))
                     {
-                        pos.thread->history.update (pos.active, m, -bonus);
-                        update_cm_stats (ss, pos[org_sq (m)], dst_sq (m), -bonus);
+                        auto bonus = stat_bonus (depth);
+                        update_stats (ss, pos, best_move, bonus);
+                        // Decrease all the other played quiet moves
+                        for (auto m : quiet_moves)
+                        {
+                            pos.thread->history.update (pos.active, m, -bonus);
+                            update_cm_stats (ss, pos[org_sq (m)], dst_sq (m), -bonus);
+                        }
+                    }
+                    // Penalty for a quiet best move in previous ply when it gets refuted
+                    if (   1 == (ss-1)->move_count
+                        && sm1_ok
+                        && NONE == pos.si->capture)
+                    {
+                        update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -stat_bonus (depth + 1));
                     }
                 }
-                // Penalty for a quiet best move in previous ply when it gets refuted
-                if (   1 == (ss-1)->move_count
+                else
+                // Bonus for prior countermove that caused the fail low
+                if (   2 < depth
                     && sm1_ok
                     && NONE == pos.si->capture)
                 {
-                    update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -stat_bonus (depth + 1));
+                    update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), stat_bonus (depth));
                 }
             }
-            else
-            // Bonus for prior countermove that caused the fail low
-            if (   2 < depth
-                && sm1_ok
-                && NONE == pos.si->capture)
-            {
-                update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), stat_bonus (depth));
-            }
-
             if (!exclusion)
             {
                 tte->save (posi_key,
@@ -1981,9 +1977,9 @@ namespace Threading {
 
     using namespace Searcher;
 
-    const u08 MaxIndex = 20;
-    const u08 SkipSize [MaxIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
-    const u08 SkipPhase[MaxIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
+    const u08 SkipIndex = 20;
+    const u08 SkipSize [SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
+    const u08 SkipPhase[SkipIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
     // Thread iterative deepening loop function.
     // It calls depth_search() repeatedly with increasing depth until
@@ -2034,8 +2030,8 @@ namespace Threading {
             {
                 // Distribute search depths across the threads
                 assert(Threadpool.main_thread () != this);
-                int i = (index - 1) % MaxIndex;
-                if (((running_depth + root_pos.ply + SkipPhase[i]) / SkipSize[i]) % 2 != 0)
+                int i = (index - 1) % SkipIndex;
+                if (0 != ((running_depth + root_pos.ply + SkipPhase[i]) / SkipSize[i]) % 2)
                 {
                     continue;
                 }
@@ -2319,8 +2315,8 @@ namespace Threading {
             i64 diff_time;
             if (   Limits.use_time_management ()
                 && 0 != ContemptTime
-                && (diff_time = i64(  Limits.clock[ root_pos.active].time
-                                    - Limits.clock[~root_pos.active].time)/MilliSec) != 0)
+                && 0 != (diff_time = i64(  Limits.clock[ root_pos.active].time
+                                    - Limits.clock[~root_pos.active].time)/MilliSec))
             {
                 timed_contempt = i16(diff_time/ContemptTime);
             }
