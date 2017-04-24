@@ -278,7 +278,7 @@ private:
 
     std::vector<ValMove> _moves;
     std::vector<Move>    _capture_moves;
-
+    i16     _depth      = 0;
     u08     _index      = 0;
     u08     _stage      = 0;
 

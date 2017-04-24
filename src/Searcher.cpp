@@ -131,6 +131,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
     : _pos (pos)
     , _ss (ss)
     , _tt_move (ttm)
+    , _depth (d)
 {
     assert(d <= 0);
     assert(ttm == MOVE_NONE
@@ -142,12 +143,12 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
         _stage = S_EVASION_TT;
     }
     else
-    if (d >= 0)
+    if (_depth >= 0)
     {
         _stage = S_Q_CHECK_TT;
     }
     else
-    if (d > -5)
+    if (_depth > -5)
     {
         _stage = S_Q_NO_CHECK_TT;
     }
@@ -206,12 +207,13 @@ template<> void MovePicker::value<CAPTURE> ()
     for (auto &vm : _moves)
     {
         assert(_pos.pseudo_legal (vm.move)
-            && _pos.legal (vm.move));
+            && _pos.legal (vm.move)
+            && _pos.capture_or_promotion (vm.move));
 
         vm.value =
               PieceValues[MG][_pos.cap_type (vm.move)]
-            - 200 * Value(rel_rank (_pos.active, dst_sq (vm.move)))
-            - Value(ptype (_pos[org_sq (vm.move)]));
+            - Value(ptype (_pos[org_sq (vm.move)]))
+            - Value(200 * rel_rank (_pos.active, dst_sq (vm.move)));
     }
 }
 template<> void MovePicker::value<QUIET> ()
@@ -241,13 +243,6 @@ template<> void MovePicker::value<QUIET> ()
 template<> void MovePicker::value<EVASION> ()
 {
     const auto &history = _pos.thread->history;
-    //const auto &smh1 = *(_ss-1)->m_history;
-    //const auto &smh2 = *(_ss-2)->m_history;
-    //const auto &smh4 = *(_ss-4)->m_history;
-
-    //const bool sm1_ok = _ok ((_ss-1)->current_move);
-    //const bool sm2_ok = _ok ((_ss-2)->current_move);
-    //const bool sm4_ok = _ok ((_ss-4)->current_move);
 
     for (auto &vm : _moves)
     {
@@ -265,9 +260,6 @@ template<> void MovePicker::value<EVASION> ()
         {
             vm.value =
                   history(_pos.active, vm.move);
-                //+ (sm1_ok ? smh1(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-                //+ (sm2_ok ? smh2(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO)
-                //+ (sm4_ok ? smh4(_pos[org_sq (vm.move)], dst_sq (vm.move)) : VALUE_ZERO);
         }
     }
 }
@@ -375,7 +367,7 @@ Move MovePicker::next_move (bool skip_quiets)
             if (   skip_quiets
                 && vm.value < VALUE_ZERO)
             {
-                continue;
+                break;
             }
             return vm.move;
         }
@@ -1577,13 +1569,10 @@ namespace Searcher {
                         auto lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Counter moves value based pruning
                                (   3 > lmr_depth
-                                && (   !sm1_ok
+                                && (  !sm1_ok
                                     || smh1(mpc, dst_sq (move)) < VALUE_ZERO)
-                                && (   !sm2_ok
-                                    || smh2(mpc, dst_sq (move)) < VALUE_ZERO)
-                                && (   (sm1_ok && sm2_ok)
-                                    || !sm4_ok
-                                    || smh4(mpc, dst_sq (move)) < VALUE_ZERO))
+                                && (  !sm2_ok
+                                    || smh2(mpc, dst_sq (move)) < VALUE_ZERO))
                                 // Futility pruning: parent node
                             || (   7 > lmr_depth
                                 && !in_check
@@ -1944,8 +1933,8 @@ namespace Searcher {
     {
         for (i16 d = 0; d < MaxFutilityDepth; ++d)
         {
-            FutilityMoveCounts[0][d] = u08(0.773 * std::pow (d + 0.00, 1.8) + 2.40);
-            FutilityMoveCounts[1][d] = u08(1.045 * std::pow (d + 0.49, 1.8) + 2.90);
+            FutilityMoveCounts[0][d] = u08(0.74 * std::pow (d, 1.78) + 2.4);
+            FutilityMoveCounts[1][d] = u08(1.00 * std::pow (d, 2.00) + 5.0);
         }
         for (u08 imp = 0; imp < 2; ++imp)
         {

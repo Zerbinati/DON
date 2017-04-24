@@ -12,7 +12,7 @@ of your choice for information about how to use engine with it.
 
 DON uses bitboard representations, and is an alfa-beta searcher.
 
-DON supports up to 128 cores. The engine defaults to one search thread,
+DON supports up to 512 cores. The engine defaults to one search thread,
 so it is therefore recommended to inspect the value of the 'Threads'
 UCI parameter, to make sure it equals the # of CPU cores on your computer.
 
