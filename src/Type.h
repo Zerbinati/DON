@@ -551,14 +551,14 @@ inline TimePoint now ()
 struct ValMove
 {
 public:
-    Move  move  = MOVE_NONE;
-    Value value = VALUE_ZERO;
+    Move move  = MOVE_NONE;
+    i32  value = 0;
     
     ValMove () = default;
     explicit ValMove (Move m)
         : move (m)
     {}
-    ValMove (Move m, Value v)
+    ValMove (Move m, i32 v)
         : move (m)
         , value (v)
     {}

@@ -71,7 +71,7 @@ RootMoveVector::operator std::string () const
 
 namespace {
 
-    const Value MaxValue = Value(1 << 28);
+    const i32 MaxValue = 1 << 28;
 
     enum Stage : u08
     {
@@ -212,8 +212,8 @@ template<> void MovePicker::value<CAPTURE> ()
 
         vm.value =
               PieceValues[MG][_pos.cap_type (vm.move)]
-            - Value(ptype (_pos[org_sq (vm.move)]))
-            - Value(200 * rel_rank (_pos.active, dst_sq (vm.move)));
+            - ptype (_pos[org_sq (vm.move)])
+            - 200 * rel_rank (_pos.active, dst_sq (vm.move));
     }
 }
 template<> void MovePicker::value<QUIET> ()
@@ -253,7 +253,7 @@ template<> void MovePicker::value<EVASION> ()
         {
             vm.value =
                   PieceValues[MG][_pos.cap_type (vm.move)]
-                - Value(ptype (_pos[org_sq (vm.move)]))
+                - ptype (_pos[org_sq (vm.move)])
                 + MaxValue;
         }
         else
@@ -638,13 +638,13 @@ namespace Searcher {
         }
 
         // History and stats update bonus, based on depth
-        Value stat_bonus (i16 depth)
+        i32 stat_bonus (i16 depth)
         {
-            return depth <= 17 ? Value(depth*(depth + 2) - 2) : VALUE_ZERO;
+            return depth <= 17 ? depth*(depth + 2) - 2 : 0;
         }
 
         // Updates countermoves and followupmoves history stats
-        void update_cm_stats (Stack *const &ss, Piece pc, Square s, Value value)
+        void update_cm_stats (Stack *const &ss, Piece pc, Square s, i32 value)
         {
             for (auto i : {1, 2, 4})
             {
@@ -655,7 +655,7 @@ namespace Searcher {
             }
         }
         // Updates move sorting heuristics
-        void update_stats (Stack *const &ss, const Position &pos, Move move, Value value)
+        void update_stats (Stack *const &ss, const Position &pos, Move move, i32 value)
         {
             if (ss->killer_moves[0] != move)
             {
@@ -1053,7 +1053,7 @@ namespace Searcher {
             const bool in_check = 0 != pos.si->checkers;
 
             ss->move_count = 0;
-            ss->history_val = VALUE_ZERO;
+            ss->history_val = 0;
 
             // Step 1. Initialize node
             auto *th = pos.thread;
@@ -1647,20 +1647,20 @@ namespace Searcher {
 
                         ss->history_val =
                               th->history(~pos.active, move)
-                            + (sm1_ok ? smh1(mpc, dst_sq (move)) : VALUE_ZERO)
-                            + (sm2_ok ? smh2(mpc, dst_sq (move)) : VALUE_ZERO)
-                            + (sm4_ok ? smh4(mpc, dst_sq (move)) : VALUE_ZERO)
+                            + (sm1_ok ? smh1(mpc, dst_sq (move)) : 0)
+                            + (sm2_ok ? smh2(mpc, dst_sq (move)) : 0)
+                            + (sm4_ok ? smh4(mpc, dst_sq (move)) : 0)
                             - 4000; // Correction factor
 
                         // Decrease/Increase reduction by comparing opponent's stat value
-                        if (   (ss  )->history_val > VALUE_ZERO
-                            && (ss-1)->history_val < VALUE_ZERO)
+                        if (   (ss  )->history_val > 0
+                            && (ss-1)->history_val < 0)
                         {
                             reduce_depth -= 1;
                         }
                         else
-                        if (   (ss  )->history_val < VALUE_ZERO
-                            && (ss-1)->history_val > VALUE_ZERO)
+                        if (   (ss  )->history_val < 0
+                            && (ss-1)->history_val > 0)
                         {
                             reduce_depth += 1;
                         }
@@ -1984,7 +1984,7 @@ namespace Threading {
             s->current_move = MOVE_NONE;
             std::fill_n (s->killer_moves, MaxKillers, MOVE_NONE);
             s->static_eval  = VALUE_ZERO;
-            s->history_val  = VALUE_ZERO;
+            s->history_val  = 0;
             s->move_count   = 0;
             s->m_history    = nullptr;
         }

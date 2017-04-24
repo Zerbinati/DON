@@ -51,7 +51,7 @@ public:
 struct HistoryStats
 {
 private:
-    Value _table[CLR_NO][SQ_NO*SQ_NO];
+    i32 _table[CLR_NO][SQ_NO*SQ_NO];
 
 public:
     void clear ()
@@ -65,12 +65,12 @@ public:
         }
     }
 
-    Value operator() (Color c, Move m) const
+    i32 operator() (Color c, Move m) const
     {
         return _table[c][move_pp (m)];
     }
 
-    void update (Color c, Move m, Value v)
+    void update (Color c, Move m, i32 v)
     {
         assert(abs (v) <= 324); // Needed for stability
         auto &e = _table[c][move_pp (m)];
@@ -111,7 +111,7 @@ public:
 struct MoveHistoryStats
 {
 private:
-    Value _table[MAX_PIECE][SQ_NO];
+    i32 _table[MAX_PIECE][SQ_NO];
 
 public:
     void clear ()
@@ -125,12 +125,12 @@ public:
         }
     }
     // Piece, Destiny
-    Value operator() (Piece pc, Square s) const
+    i32 operator() (Piece pc, Square s) const
     {
         return _table[pc][s];
     }
     // Piece, Destiny, Value
-    void update (Piece pc, Square s, Value v)
+    void update (Piece pc, Square s, i32 v)
     {
         assert(abs (v) <= 936); // Needed for stability
         auto &e = _table[pc][s];
@@ -257,8 +257,8 @@ public:
     Move  current_move;
     Move  killer_moves[MaxKillers];
 
-    Value static_eval
-        , history_val;
+    Value static_eval;
+    i32   history_val;
     u08   move_count;
     MoveVector pv;
 
