@@ -1444,9 +1444,9 @@ namespace Searcher {
                    (ss-2)->static_eval <= (ss-0)->static_eval
                 || (ss-2)->static_eval == VALUE_NONE;
 
-            const auto& smh1 = *(ss-1)->m_history;
-            const auto& smh2 = *(ss-2)->m_history;
-            const auto& smh4 = *(ss-4)->m_history;
+            const auto &smh1 = *(ss-1)->m_history;
+            const auto &smh2 = *(ss-2)->m_history;
+            const auto &smh4 = *(ss-4)->m_history;
 
             const bool sm1_ok = _ok ((ss-1)->current_move);
             const bool sm2_ok = _ok ((ss-2)->current_move);

@@ -206,7 +206,7 @@ namespace Evaluator {
 
         // RookOnFile[semiopen/open] contains bonuses for rooks
         // when there is no friend pawn on the rook file
-        const Score RookOnFile[2] = { S(20, 7), S(45,20) };
+        const Score RookOnFile[] = { S(20, 7), S(45,20) };
         // Bonus for minor behind a pawn
         const Score MinorBehindPawn = S(16, 0);
         // Penalty for bishop with pawns on same color
@@ -246,7 +246,7 @@ namespace Evaluator {
         const Score PieceRankThreat = S(16, 3);
 
         // KingThreat[one/more] contains bonuses for king attacks on pawns or pieces which are not pawn-defended
-        const Score KingThreat[2] = { S( 3, 62), S( 9,138) };
+        const Score KingThreat[] = { S( 3, 62), S( 9,138) };
 
         const Score PawnPassHinder  = S( 7, 0);
 
@@ -262,6 +262,7 @@ namespace Evaluator {
 
         // Threshold for lazy evaluation
         const Value LazyThreshold = V(1500);
+        const Value SpaceThreshold = V(12222);
 
     #undef V
 
@@ -494,8 +495,8 @@ namespace Evaluator {
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
-            //static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            //static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
             static const Bitboard Camp = Own == WHITE ?
                                              R1_bb|R2_bb|R3_bb|R4_bb|R5_bb :
                                              R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
@@ -547,15 +548,15 @@ namespace Evaluator {
                 // - the number of attacked and undefended squares around our king,
                 // - the quality of the pawn shelter ('mg score' value).
                 i32 king_danger =
-                      std::min (ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp], 807)
-                    + 101 * ei.king_zone_attacks_count[Opp]
-                    + 235 * pop_count (king_zone_undef)
-                    + 134 * pop_count (king_ring_undef | pos.abs_blockers (Own))
-                    //+ 134 * (0 != (pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
-                    //                                                                                          | shift<RCap> (pos.pieces (Own))))
-                    //                                          | pos.abs_blockers (Opp))) ? 1 : 0)
-                    - 717 * (0 == pos.count<QUEN>(Opp))
-                    -   7 * i32(value) / 5
+                      std::min (820, ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp])
+                    + 103 * ei.king_zone_attacks_count[Opp]
+                    + 190 * pop_count (king_zone_undef)
+                    + 142 * pop_count (king_ring_undef | pos.abs_blockers (Own))
+                    + 142 * pop_count (pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
+                                                                                                                  | shift<RCap> (pos.pieces (Own))))
+                                                                  | pos.abs_blockers (Opp)))
+                    - 810 * (0 == pos.count<QUEN>(Opp))
+                    -   6 * i32(value) / 5
                     -   5;
 
                 Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces ());
@@ -581,7 +582,7 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][QUEN];
                 if (0 != (b & safe_area))
                 {
-                    king_danger += 745;
+                    king_danger += 810;
                 }
 
                 // For other pieces, the safe square also if attacked twice and only defended by a queen.
@@ -596,7 +597,7 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][ROOK];
                 if (0 != (b & safe_area))
                 {
-                    king_danger += 688;
+                    king_danger += 888;
                 }
                 else
                 if (0 != (b & prob_area))
@@ -608,7 +609,7 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][BSHP];
                 if (0 != (b & safe_area))
                 {
-                    king_danger += 588;
+                    king_danger += 400;
                 }
                 else
                 if (0 != (b & prob_area))
@@ -620,7 +621,7 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][NIHT];
                 if (0 != (b & safe_area))
                 {
-                    king_danger += 924;
+                    king_danger += 790;
                 }
                 else
                 if (0 != (b & prob_area))
@@ -775,17 +776,16 @@ namespace Evaluator {
                 // Safe friend pawns
                 b =   safe
                     & pos.pieces (Own, PAWN);
-                // Enemy non-pawns attacked by safe friend pawns
                 b =   (  shift<LCap> (b)
                        | shift<RCap> (b))
                     & weak_nonpawns;
-                // Enemy non-pawns attacked by unsafe friend pawns
+
+                score += SafePawnThreat * pop_count (b);
+                
                 if (0 != (weak_nonpawns ^ b))
                 {
                     score += HangPawnThreat;
                 }
-
-                score += SafePawnThreat * pop_count (b);
             }
 
             // Bonus if some friend pawns safely push can attack an enemy piece
@@ -1117,7 +1117,7 @@ namespace Evaluator {
             - evaluate_passers<BLACK, Trace> (pos, ei);
 
         // Evaluate space, if in the opening phase
-        if (pos.si->non_pawn_material () >= 12222)
+        if (pos.si->non_pawn_material () >= SpaceThreshold)
         {
             score +=
                 + evaluate_space<WHITE, Trace> (pos, ei)

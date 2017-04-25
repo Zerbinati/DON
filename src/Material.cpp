@@ -11,7 +11,7 @@ namespace Material {
 
         // Polynomial material imbalance parameters
 
-        const i32 OwnQuadratic[NONE][NONE] =
+        const i32 OwnQuadratic[][NONE] =
         {
             //          Own Pieces
             //  P     N     B     R     Q    BP
@@ -23,7 +23,7 @@ namespace Material {
             {    0,    0,    0,    0,    0, +1667 }  // BP
         };
 
-        const i32 OppQuadratic[NONE][NONE] =
+        const i32 OppQuadratic[][NONE] =
         {
             //          Opp Pieces
             //  P     N     B     R     Q    BP
@@ -36,10 +36,7 @@ namespace Material {
         };
 
         // PawnsSet[count] contains a bonus/malus indexed by number of pawns
-        const int PawnsSet[9] =
-        {
-            24, -32, 107, -51, 117, -9, -126, -21, 31
-        };
+        const int PawnsSet[] = { 24, -32, 107, -51, 117, -9, -126, -21, 31 };
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
@@ -53,7 +50,7 @@ namespace Material {
         // Calculates the imbalance by comparing the piece count of each piece type for both colors.
         // NOTE:: King == Bishop Pair
         template<Color Own>
-        Value imbalance (const i32 (*count)[NONE])
+        Value imbalance (const i32 count[][NONE])
         {
             static const auto Opp = Own == WHITE ? BLACK : WHITE;
 
