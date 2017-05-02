@@ -106,9 +106,9 @@ namespace BitBases {
             KPK_Position () = default;
             explicit KPK_Position (u32 idx)
             {
-                _k_sq[WHITE] = Square(         (idx >>  0) & 0x3F);
-                _k_sq[BLACK] = Square(         (idx >>  6) & 0x3F);
-                _active      = Color (         (idx >> 12) & 0x01);
+                _k_sq[WHITE] = Square(         (idx >>  0) & SQ_H8);
+                _k_sq[BLACK] = Square(         (idx >>  6) & SQ_H8);
+                _active      = Color (         (idx >> 12) & BLACK);
                 _p_sq        = File  (         (idx >> 13) & 0x03)
                              | Rank  (R_7-Rank((idx >> 15) & 0x07));
 
@@ -174,8 +174,8 @@ namespace BitBases {
             repeat = false;
             for (u32 idx = 0; idx < MaxIndex; ++idx)
             {
-                repeat |= kpk_db[idx].result == Result::UNKNOWN
-                       && kpk_db[idx].classify (kpk_db) != Result::UNKNOWN;
+                repeat |= (   kpk_db[idx].result == Result::UNKNOWN
+                           && kpk_db[idx].classify (kpk_db) != Result::UNKNOWN) ? 1 : 0;
             }
         } while (repeat);
 

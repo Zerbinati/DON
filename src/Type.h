@@ -341,9 +341,8 @@ enum Bound : u08
 
 enum PhaseType : u08
 {
-    MG      = 0,
-    EG      = 1,
-    PH_NO   = 2,
+    MG  = 0,
+    EG  = 1,
 };
 
 enum Phase : u08
@@ -413,6 +412,9 @@ inline CastleRight& operator&= (CastleRight &cr, i32 i) { cr = CastleRight(i32(c
 inline CastleRight& operator^= (CastleRight &cr, i32 i) { cr = CastleRight(i32(cr) ^ i); return cr; }
 
 INC_DEC_OPERATORS(PieceType)
+
+inline Move operator| (Move m, i32 i) { return Move(i32(m) | i); }
+inline Move operator& (Move m, i32 i) { return Move(i32(m) & i); }
 
 inline Move& operator|= (Move &m, i32 i) { m = Move(i32(m) | i); return m; }
 inline Move& operator&= (Move &m, i32 i) { m = Move(i32(m) & i); return m; }
@@ -521,7 +523,7 @@ inline bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
 inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
 inline void      promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= PROMOTE + ((pt - 1) << 12); }
-inline i16       move_pp (Move m) { return m & 0xFFF; }
+inline i16       move_pp (Move m) { return i16(m & 0xFFF); }
 
 template<MoveType MT>
 inline Move mk_move (Square org, Square dst)               { return Move(MT + (org << 6) + dst); }
@@ -574,7 +576,7 @@ public:
     bool operator!= (const ValMove &vm) const { return value != vm.value; }
 };
 
-const Value PieceValues[PH_NO][MAX_PTYPE] =
+const Value PieceValues[][MAX_PTYPE] =
 {
     { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }

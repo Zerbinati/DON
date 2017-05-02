@@ -1,5 +1,5 @@
-#ifndef SEARCHER_H_INC_
-#define SEARCHER_H_INC_
+#ifndef _SEARCHER_H_INC_
+#define _SEARCHER_H_INC_
 
 #include <atomic>
 
@@ -60,7 +60,7 @@ public:
         {
             for (auto m = 0; m < SQ_NO*SQ_NO; ++m)
             {
-                _table[c][m] = VALUE_ZERO;
+                _table[c][m] = 0;
             }
         }
     }
@@ -72,9 +72,10 @@ public:
 
     void update (Color c, Move m, i32 v)
     {
-        assert(abs (v) <= 324); // Needed for stability
+        static const i32 D = 324;
+        assert(abs (v) <= D); // Consistency check
         auto &e = _table[c][move_pp (m)];
-        e += v*32 - (e*abs (v))/324;
+        e += v*32 - (e*abs (v))/D;
     }
 };
 
@@ -120,7 +121,7 @@ public:
         {
             for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
-                _table[pc][s] = VALUE_ZERO;
+                _table[pc][s] = 0;
             }
         }
     }
@@ -132,9 +133,10 @@ public:
     // Piece, Destiny, Value
     void update (Piece pc, Square s, i32 v)
     {
-        assert(abs (v) <= 936); // Needed for stability
+        static const i32 D = 936;
+        assert(abs (v) <= D); // Consistency check
         auto &e = _table[pc][s];
-        e += v*32 - (e*abs (v))/936;
+        e += v*32 - (e*abs (v))/D;
     }
 };
 // CounterMoveHistoryStats is like HistoryStats, but with two consecutive moves
@@ -272,6 +274,8 @@ private:
     const Position &_pos;
     const Stack *const _ss = nullptr;
 
+    MoveVector _killer_moves;
+
     Move    _tt_move    = MOVE_NONE;
     Square  _recap_sq   = SQ_NO;
     Value   _threshold  = VALUE_ZERO;
@@ -327,7 +331,7 @@ namespace Searcher {
     extern bool  TBHasRoot;
     extern Value TBValue;
 
-    extern std::string OutputFile;
+    extern std::string  OutputFile;
 
     template<bool RootNode = true>
     extern u64 perft (Position &pos, i16 depth);
@@ -337,4 +341,4 @@ namespace Searcher {
     extern void clear ();
 }
 
-#endif // SEARCHER_H_INC_
+#endif // _SEARCHER_H_INC_

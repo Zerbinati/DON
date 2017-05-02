@@ -1331,7 +1331,7 @@ bool Position::ok (u08 *step) const
             || (   32 < count<NONE> ()
                 || pop_count (pieces ()) != count<NONE> ()))
         {
-            if (step != nullptr) *step = s;
+            if (nullptr != step) *step = s;
             return false;
         }
     }
@@ -1342,14 +1342,14 @@ bool Position::ok (u08 *step) const
             || 0 != pop_count (attackers_to (square (~active, KING),  active))
             || 2 <  pop_count (attackers_to (square ( active, KING), ~active)))
         {
-            if (step != nullptr) *step = s;
+            if (nullptr != step) *step = s;
             return false;
         }
         if (   (pieces (WHITE) & pieces (BLACK)) != 0
             || (pieces (WHITE) | pieces (BLACK)) != pieces ()
             || (pieces (WHITE) ^ pieces (BLACK)) != pieces ())
         {
-            if (step != nullptr) *step = s;
+            if (nullptr != step) *step = s;
             return false;
         }
         for (auto pt1 = PAWN; pt1 <= KING; ++pt1)
@@ -1359,7 +1359,7 @@ bool Position::ok (u08 *step) const
                 if (   pt1 != pt2
                     && 0 != (pieces (pt1) & pieces (pt2)))
                 {
-                    if (step != nullptr) *step = s;
+                    if (nullptr != step) *step = s;
                     return false;
                 }
             }
@@ -1367,13 +1367,13 @@ bool Position::ok (u08 *step) const
         if (   (pieces (PAWN)|pieces (NIHT)|pieces (BSHP)|pieces (ROOK)|pieces (QUEN)|pieces (KING))
             != (pieces (PAWN)^pieces (NIHT)^pieces (BSHP)^pieces (ROOK)^pieces (QUEN)^pieces (KING)))
         {
-            if (step != nullptr) *step = s;
+            if (nullptr != step) *step = s;
             return false;
         }
         // Pawns on rank1 and rank8
         if (0 != (pieces (PAWN) & (R1_bb|R8_bb)))
         {
-            if (step != nullptr) *step = s;
+            if (nullptr != step) *step = s;
             return false;
         }
 
@@ -1383,7 +1383,7 @@ bool Position::ok (u08 *step) const
             if (   16 < count<NONE> (c)
                 || pop_count (pieces (c)) != count<NONE> (c))
             {
-                if (step != nullptr) *step = s;
+                if (nullptr != step) *step = s;
                 return false;
             }
             // check if the number of Pawns plus the number of
@@ -1395,7 +1395,7 @@ bool Position::ok (u08 *step) const
                 + std::max (count (c, ROOK)-2, 0)
                 + std::max (count (c, QUEN)-1, 0)) > 8)
             {
-                if (step != nullptr) *step = s;
+                if (nullptr != step) *step = s;
                 return false;
             }
 
@@ -1403,7 +1403,7 @@ bool Position::ok (u08 *step) const
                 + std::max (pop_count (pieces (c, BSHP) & Color_bb[WHITE])-1, 0)
                 + std::max (pop_count (pieces (c, BSHP) & Color_bb[BLACK])-1, 0)) > 8)
             {
-                if (step != nullptr) *step = s;
+                if (nullptr != step) *step = s;
                 return false;
             }
 
@@ -1411,7 +1411,7 @@ bool Position::ok (u08 *step) const
             if (   0 == pieces (c, KING)
                 || more_than_one (pieces (c, KING)))
             {
-                if (step != nullptr) *step = s;
+                if (nullptr != step) *step = s;
                 return false;
             }
         }
@@ -1428,7 +1428,7 @@ bool Position::ok (u08 *step) const
             {
                 if (count (c, pt) != pop_count (pieces (c, pt)))
                 {
-                    if (step != nullptr) *step = s;
+                    if (nullptr != step) *step = s;
                     return false;
                 }
 
@@ -1437,7 +1437,7 @@ bool Position::ok (u08 *step) const
                     if (   !_ok  (squares[c][pt][i])
                         || board[squares[c][pt][i]] != (c|pt))
                     {
-                        if (step != nullptr) *step = s;
+                        if (nullptr != step) *step = s;
                         return false;
                     }
                 }
@@ -1456,7 +1456,7 @@ bool Position::ok (u08 *step) const
                         || castle_mask[castle_rook[c][cs]] != cr
                         || (castle_mask[square (c, KING)] & cr) != cr))
                 {
-                    if (step != nullptr) *step = s;
+                    if (nullptr != step) *step = s;
                     return false;
                 }
             }
@@ -1478,7 +1478,7 @@ bool Position::ok (u08 *step) const
                 && (   rel_rank (active, si->en_passant_sq) != R_6
                     || !can_en_passant (active, si->en_passant_sq))))
         {
-            if (step != nullptr) *step = s;
+            if (nullptr != step) *step = s;
             return false;
         }
     }

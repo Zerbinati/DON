@@ -118,10 +118,17 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
         || (pos.pseudo_legal (ttm)
          && pos.legal (ttm)));
 
-    _stage =
-        0 == _pos.si->checkers ?
-            S_NATURAL_TT :
-            S_EVASION_TT;
+    if (0 == _pos.si->checkers)
+    {
+        _stage = S_NATURAL_TT;
+
+        _killer_moves.assign (_ss->killer_moves, _ss->killer_moves + MaxKillers);
+    }
+    else
+    {
+        _stage = S_EVASION_TT;
+    }
+    
     if (MOVE_NONE == _tt_move)
     {
         ++_stage;
@@ -219,13 +226,14 @@ template<> void MovePicker::value<CAPTURE> ()
 template<> void MovePicker::value<QUIET> ()
 {
     const auto &history = _pos.thread->history;
+
+    const bool sm1_ok = nullptr != (_ss-1)->m_history;
+    const bool sm2_ok = nullptr != (_ss-2)->m_history;
+    const bool sm4_ok = nullptr != (_ss-4)->m_history;
+
     const auto &smh1 = *(_ss-1)->m_history;
     const auto &smh2 = *(_ss-2)->m_history;
     const auto &smh4 = *(_ss-4)->m_history;
-
-    const bool sm1_ok = _ok ((_ss-1)->current_move);
-    const bool sm2_ok = _ok ((_ss-2)->current_move);
-    const bool sm4_ok = _ok ((_ss-4)->current_move);
 
     for (auto &vm : _moves)
     {
@@ -287,6 +295,7 @@ Move MovePicker::next_move (bool skip_quiets)
     case S_Q_RECAPTURE_TT:
         ++_stage;
         return _tt_move;
+        break;
 
     case S_NATURAL:
         ++_stage;
@@ -301,16 +310,17 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             value<CAPTURE> ();
         }
+        /* fallthrough */
     case S_GOOD_CAPTURE:
         while (_index < _moves.size ())
         {
-            auto move = pick_best_move (_index++).move;
-            if (_pos.see_ge (move, VALUE_ZERO))
+            auto &vm = pick_best_move (_index++);
+            if (_pos.see_ge (vm.move, VALUE_ZERO))
             {
-                return move;
+                return vm.move;
             }
             // Losing capture, add it to the capture moves
-            _capture_moves.push_back (move);
+            _capture_moves.push_back (vm.move);
         }
         ++_stage;
         generate<QUIET> (_moves, _pos);
@@ -326,30 +336,28 @@ Move MovePicker::next_move (bool skip_quiets)
         }
         // Killers to top of quiet move
         {
-            MoveVector killer_moves (_ss->killer_moves, _ss->killer_moves + MaxKillers);
-            if (_ok ((_ss-1)->current_move))
+            auto move = (_ss-1)->current_move;
+            if (_ok (move))
             {
-                auto move = (_ss-1)->current_move;
-                auto pc = _pos[fix_dst_sq (move)];
-
-                auto cm = _pos.thread->counter_moves(pc, move);
+                auto cm = Threadpool.counter_moves(_pos[fix_dst_sq (move)], move);
                 if (   MOVE_NONE != cm
                     && _tt_move != cm
-                    && std::find (killer_moves.begin (), killer_moves.end (), cm) == killer_moves.end ())
+                    && std::find (_killer_moves.begin (), _killer_moves.end (), cm) == _killer_moves.end ())
                 {
-                    killer_moves.push_back (cm);
+                    _killer_moves.push_back (cm);
                 }
             }
-            killer_moves.erase (std::remove_if (killer_moves.begin (),
-                                                killer_moves.end (),
-                                                [&](Move m)
-                                                {
-                                                    return m == MOVE_NONE
-                                                        || m == _tt_move;
-                                                }),
-                                killer_moves.end ());
+            _killer_moves.erase (std::remove_if (_killer_moves.begin (),
+                                                 _killer_moves.end (),
+                                                 [&](Move m)
+                                                 {
+                                                     return m == MOVE_NONE
+                                                         || m == _tt_move;
+                                                 }),
+                                 _killer_moves.end ());
+
             i32 k = 0;
-            for (auto km : killer_moves)
+            for (auto km : _killer_moves)
             {
                 auto itr = std::find (_moves.begin (), _moves.end (), km);
                 if (itr != _moves.end ())
@@ -360,6 +368,7 @@ Move MovePicker::next_move (bool skip_quiets)
                 }
             }
         }
+        /* fallthrough */
     case S_QUIET:
         while (_index < _moves.size ())
         {
@@ -373,12 +382,13 @@ Move MovePicker::next_move (bool skip_quiets)
         }
         ++_stage;
         _index = 0;
+        /* fallthrough */
     case S_BAD_CAPTURE:
         while (_index < _capture_moves.size ())
         {
             return _capture_moves[_index++];
         }
-        break; // BREAK
+        break;
 
     case S_EVASION:
         assert(0 != _pos.si->checkers);
@@ -394,12 +404,13 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             value<EVASION> ();
         }
+        /* fallthrough */
     case S_ALL_EVASION:
         while (_index < _moves.size ())
         {
             return pick_best_move (_index++).move;
         }
-        break; // BREAK
+        break;
 
     case S_PROBCUT_CAPTURE:
         ++_stage;
@@ -414,16 +425,17 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             value<CAPTURE> ();
         }
+        /* fallthrough */
     case S_ALL_PROBCUT_CAPTURE:
         while (_index < _moves.size ())
         {
-            auto move = pick_best_move (_index++).move;
-            if (_pos.see_ge (move, _threshold))
+            auto &vm = pick_best_move (_index++);
+            if (_pos.see_ge (vm.move, _threshold))
             {
-                return move;
+                return vm.move;
             }
         }
-        break; // BREAK
+        break;
 
     case S_Q_CHECK:
         ++_stage;
@@ -438,6 +450,7 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             value<CAPTURE> ();
         }
+        /* fallthrough */
     case S_Q_CHECK_CAPTURE:
         while (_index < _moves.size ())
         {
@@ -455,12 +468,13 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             value<QUIET> ();
         }
+        /* fallthrough */
     case S_Q_CHECK_QUIET:
         while (_index < _moves.size ())
         {
             return pick_best_move (_index++).move;
         }
-        break; // BREAK
+        break;
 
     case S_Q_NO_CHECK:
         ++_stage;
@@ -475,12 +489,13 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             value<CAPTURE> ();
         }
+        /* fallthrough */
     case S_Q_NO_CHECK_CAPTURE:
         while (_index < _moves.size ())
         {
             return pick_best_move (_index++).move;
         }
-        break; // BREAK
+        break;
 
     case S_Q_RECAPTURE:
         ++_stage;
@@ -495,17 +510,18 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             value<CAPTURE> ();
         }
+        /* fallthrough */
     case S_Q_ALL_RECAPTURE:
         assert(SQ_NO != _recap_sq);
         while (_index < _moves.size ())
         {
-            auto move = pick_best_move (_index++).move;
-            if (dst_sq (move) == _recap_sq)
+            auto &vm = pick_best_move (_index++);
+            if (dst_sq (vm.move) == _recap_sq)
             {
-                return move;
+                return vm.move;
             }
         }
-        break; // BREAK
+        break;
 
     default:
         assert(false);
@@ -648,7 +664,7 @@ namespace Searcher {
         {
             for (auto i : {1, 2, 4})
             {
-                if (_ok ((ss-i)->current_move))
+                if (nullptr != (ss-i)->m_history)
                 {
                     (ss-i)->m_history->update (pc, s, value);
                 }
@@ -664,9 +680,10 @@ namespace Searcher {
             }
             assert(1 == std::count (ss->killer_moves, ss->killer_moves + MaxKillers, move));
 
-            if (_ok ((ss-1)->current_move))
+            auto m = (ss-1)->current_move;
+            if (_ok (m))
             {
-                pos.thread->counter_moves.update (pos[fix_dst_sq ((ss-1)->current_move)], (ss-1)->current_move, move);
+                Threadpool.counter_moves.update (pos[fix_dst_sq (m)], m, move);
             }
 
             pos.thread->history.update (pos.active, move, value);
@@ -771,12 +788,8 @@ namespace Searcher {
 
             const bool in_check = 0 != pos.si->checkers;
 
-            Value pv_alfa;
-
             if (PVNode)
             {
-                pv_alfa = alfa; // To flag BOUND_EXACT when eval above alfa and no available moves
-
                 ss->pv.clear ();
             }
 
@@ -941,7 +954,8 @@ namespace Searcher {
                 // Don't search moves with negative SEE values
                 if (   (   !in_check
                         // Evasion Prunable: Detect non-capture evasions that are candidate to be pruned
-                        || (   best_value > -VALUE_MATE_IN_MAX_PLY
+                        || (   depth != 0
+                            && best_value > -VALUE_MATE_IN_MAX_PLY
                             && !pos.capture (move)))
                     && PROMOTE != mtype (move)
                     //&& 0 == Limits.mate
@@ -1029,7 +1043,7 @@ namespace Searcher {
                        ss->static_eval,
                        qs_depth,
                           PVNode
-                       && pv_alfa < best_value ?
+                       && MOVE_NONE != best_move ?
                            BOUND_EXACT :
                            BOUND_UPPER);
 
@@ -1161,11 +1175,12 @@ namespace Searcher {
                             update_stats (ss, pos, tt_move, stat_bonus (depth));
                         }
                         // Extra penalty for a quiet tt_move in previous ply when it gets refuted
+                        auto m = (ss-1)->current_move;
                         if (   1 == (ss-1)->move_count
-                            && _ok ((ss-1)->current_move)
+                            && _ok (m)
                             && NONE == pos.si->capture)
                         {
-                            update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -stat_bonus (depth + 1));
+                            update_cm_stats (ss-1, pos[fix_dst_sq (m)], dst_sq (m), -stat_bonus (depth + 1));
                         }
                     }
                     else
@@ -1311,7 +1326,7 @@ namespace Searcher {
                         auto reduced_depth = i16(depth - (67*depth + 823) / 256 + std::min (i16(tt_eval - beta)/VALUE_MG_PAWN, 3));
 
                         // Speculative prefetch as early as possible
-                        prefetch (TT.cluster_entry (  pos.si->posi_key
+                        prefetch (TT.cluster_entry (  posi_key
                                                     ^ RandZob.color_key
                                                     ^ (SQ_NO != pos.si->en_passant_sq ? RandZob.en_passant_keys[_file (pos.si->en_passant_sq)] : 0)));
 
@@ -1324,13 +1339,15 @@ namespace Searcher {
 
                         if (null_value >= beta)
                         {
+                            bool unproven = null_value >= +VALUE_MATE_IN_MAX_PLY;
+
                             // Don't do verification search at low depths
                             if (   12 > depth
                                 && abs (beta) < +VALUE_KNOWN_WIN)
                             {
                                 // Don't return unproven mates
-                                return null_value < +VALUE_MATE_IN_MAX_PLY ?
-                                        null_value : beta;
+                                return unproven ?
+                                        beta : null_value;
                             }
 
                             // Do verification search at high depths
@@ -1342,8 +1359,8 @@ namespace Searcher {
                             if (value >= beta)
                             {
                                 // Don't return unproven mates
-                                return null_value < +VALUE_MATE_IN_MAX_PLY ?
-                                        null_value : beta;
+                                return unproven ?
+                                        beta : null_value;
                             }
                         }
                     }
@@ -1362,7 +1379,7 @@ namespace Searcher {
                         assert(beta_margin <= +VALUE_INFINITE);
 
                         assert(_ok ((ss-1)->current_move)
-                            && (ss-1)->m_history != nullptr);
+                            && nullptr != (ss-1)->m_history);
 
                         // Initialize move picker (3) for the current position.
                         MovePicker mp (pos, tt_move, beta_margin - ss->static_eval);
@@ -1444,13 +1461,13 @@ namespace Searcher {
                    (ss-2)->static_eval <= (ss-0)->static_eval
                 || (ss-2)->static_eval == VALUE_NONE;
 
+            const bool sm1_ok = nullptr != (ss-1)->m_history;
+            const bool sm2_ok = nullptr != (ss-2)->m_history;
+            const bool sm4_ok = nullptr != (ss-4)->m_history;
+
             const auto &smh1 = *(ss-1)->m_history;
             const auto &smh2 = *(ss-2)->m_history;
             const auto &smh4 = *(ss-4)->m_history;
-
-            const bool sm1_ok = _ok ((ss-1)->current_move);
-            const bool sm2_ok = _ok ((ss-2)->current_move);
-            const bool sm4_ok = _ok ((ss-4)->current_move);
 
             u08 move_count = 0;
 
@@ -1821,6 +1838,7 @@ namespace Searcher {
             }
             else
             {
+                auto m = (ss-1)->current_move;
                 // Quiet best move: update move sorting heuristics
                 if (MOVE_NONE != best_move)
                 {
@@ -1829,27 +1847,27 @@ namespace Searcher {
                         auto bonus = stat_bonus (depth);
                         update_stats (ss, pos, best_move, bonus);
                         // Decrease all the other played quiet moves
-                        for (auto m : quiet_moves)
+                        for (auto qm : quiet_moves)
                         {
-                            pos.thread->history.update (pos.active, m, -bonus);
-                            update_cm_stats (ss, pos[org_sq (m)], dst_sq (m), -bonus);
+                            pos.thread->history.update (pos.active, qm, -bonus);
+                            update_cm_stats (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                         }
                     }
                     // Penalty for a quiet best move in previous ply when it gets refuted
                     if (   1 == (ss-1)->move_count
-                        && sm1_ok
+                        && _ok (m)
                         && NONE == pos.si->capture)
                     {
-                        update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), -stat_bonus (depth + 1));
+                        update_cm_stats (ss-1, pos[fix_dst_sq (m)], dst_sq (m), -stat_bonus (depth + 1));
                     }
                 }
                 else
                 // Bonus for prior countermove that caused the fail low
                 if (   2 < depth
-                    && sm1_ok
+                    && _ok (m)
                     && NONE == pos.si->capture)
                 {
-                    update_cm_stats (ss-1, pos[fix_dst_sq ((ss-1)->current_move)], dst_sq ((ss-1)->current_move), stat_bonus (depth));
+                    update_cm_stats (ss-1, pos[fix_dst_sq (m)], dst_sq (m), stat_bonus (depth));
                 }
             }
             if (!exclusion)

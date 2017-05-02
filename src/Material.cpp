@@ -209,10 +209,11 @@ namespace Material {
             }
         };
 
-        auto value = Value((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
+        auto value = (  imbalance<WHITE> (piece_count)
+                      - imbalance<BLACK> (piece_count)) / 16;
         e->imbalance = mk_score (value, value);
         }
-       
+
         return e;
     }
 }

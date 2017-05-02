@@ -382,6 +382,7 @@ namespace Threading {
         {
             th->clear ();
         }
+        counter_moves.clear ();
         if (Limits.use_time_management ())
         {
             move_mgr.clear ();

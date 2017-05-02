@@ -34,6 +34,8 @@ namespace Notation {
     //            If the engine is getting mated use negative values for y.
     inline std::string to_string (Value v)
     {
+        assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
+
         return abs (v) < +VALUE_MATE - i32(MaxPlies) ?
             "cp "   + std::to_string (i32(100 * value_to_cp (v))) :
             "mate " + std::to_string (i32(v > VALUE_ZERO ?

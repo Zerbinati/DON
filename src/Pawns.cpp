@@ -14,7 +14,7 @@ namespace Pawns {
 
         // Weakness of friend pawn shelter in front of the friend king, indexed by [distance from edge][rank]
         // R_1 = 0 is used for files where we have no pawns or pawn is behind our king.
-        const Value ShelterWeak[F_NO/2][R_NO] =
+        const Value ShelterWeak[][R_NO] =
         {
             { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98), V(0) }, // => A and H file
             { V(116), V( 4), V(28), V(87), V(94), V(108), V(108), V(0) }, // => B and G file
@@ -24,7 +24,7 @@ namespace Pawns {
 
         // Dangerness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
         // For the unopposed and unblocked cases, R_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
-        const Value StromDanger[4][F_NO/2][R_NO] =
+        const Value StromDanger[][F_NO/2][R_NO] =
         {
             {// BlockedByKing
                 { V( 0), V(-290), V(-274), V(57), V(41), V(0), V(0), V(0) },
@@ -61,15 +61,15 @@ namespace Pawns {
     #define S(mg, eg) mk_score(mg, eg)
 
         // Isolated pawn penalty indexed by [opposed]
-        const Score Isolated[2]     = { S(45,40), S(30,27) };
+        const Score Isolated[]  = { S(45,40), S(30,27) };
         // Backward pawn penalty indexed by [opposed]
-        const Score Backward[2]     = { S(56,33), S(41,19) };
+        const Score Backward[]  = { S(56,33), S(41,19) };
         // Levered pawn bonus indexed by [rank]
-        const Score Levered[R_NO]   = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
+        const Score Levered[]   = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
         // Unsupported pawn penalty
-        const Score Unsupported     = S(17, 8);
+        const Score Unsupported = S(17, 8);
         // Blocked pawn penalty
-        const Score Blocked         = S(18,38);
+        const Score Blocked     = S(18,38);
 
     #undef S
 

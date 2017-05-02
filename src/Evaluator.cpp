@@ -31,7 +31,7 @@ namespace Evaluator {
                 TERM_NO
             };
 
-            double cp[TERM_NO][CLR_NO][PH_NO];
+            double cp[TERM_NO][CLR_NO][2];
 
             void write (u08 term, Color c, Score score)
             {
@@ -194,7 +194,7 @@ namespace Evaluator {
             { S( 0, 0), S( 3,-5), S( 2,-5), S(-4, 0), S( -9,-6), S( -4, 7), S(-13,-7), S(-10, -7) }  // Queen
         };
 
-        // PieceOutpost[supported by pawn] contains bonuses for piece outposts
+        // PieceOutpost[piece-type][supported by pawn] contains bonuses for piece outposts
         // If they can reach an outpost square, bigger if that square is supported by a pawn
         // If the minor piece occupies an outpost square then score is doubled
         const Score PieceOutpost[][2] =
@@ -251,18 +251,18 @@ namespace Evaluator {
         const Score PawnPassHinder  = S( 7, 0);
 
         // PawnPassFile[file] contains a bonus for passed pawns according to distance from edge
-        const Score PawnPassFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
+        const Score PawnPassFile[] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
 
     #undef S
 
     #define V(v) Value(v)
 
         // PawnPassRank[rank] contains bonuses for passed pawns according to the rank of the pawn
-        const Value PawnPassRank[R_NO] = { V(  0), V(  5), V(  5), V( 35), V( 75), V(165), V(255), V(  0) };
+        const Value PawnPassRank[] = { V(  0), V(  5), V(  5), V( 35), V( 75), V(165), V(255), V(  0) };
 
         // Threshold for lazy evaluation
-        const Value LazyThreshold = V(1500);
-        const Value SpaceThreshold = V(12222);
+        const Value LazyThreshold   = V(1500);
+        const Value SpaceThreshold  = V(12222);
 
     #undef V
 
@@ -495,6 +495,7 @@ namespace Evaluator {
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
             static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
             static const Bitboard Camp = Own == WHITE ?
@@ -548,12 +549,13 @@ namespace Evaluator {
                 // - the number of attacked and undefended squares around our king,
                 // - the quality of the pawn shelter ('mg score' value).
                 i32 king_danger =
-                      std::min (820, ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp])
+                      ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp]
                     + 103 * ei.king_zone_attacks_count[Opp]
                     + 190 * pop_count (king_zone_undef)
                     + 142 * pop_count (king_ring_undef | pos.abs_blockers (Own))
-                    + 142 * pop_count (pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
-                                                                                                                  | shift<RCap> (pos.pieces (Own))))
+                    + 142 * pop_count (pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & (  (file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
+                                                                                                                      | shift<RCap> (pos.pieces (Own))))
+                                                                                               | shift<Pull> (pos.pieces ())))
                                                                   | pos.abs_blockers (Opp)))
                     - 810 * (0 == pos.count<QUEN>(Opp))
                     -   6 * i32(value) / 5
@@ -1148,7 +1150,7 @@ namespace Evaluator {
             write (TOTAL    , score);
         }
 
-        return (WHITE == pos.active ? +value : -value) + Tempo;
+        return (WHITE == pos.active ? +value : -value) + Tempo; // Side to move point of view
     }
     // Explicit template instantiations
     template Value evaluate<false> (const Position&);

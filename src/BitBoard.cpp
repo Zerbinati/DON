@@ -323,7 +323,7 @@ namespace BitBoard {
         {
             for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
-                for (auto pt = BSHP; pt <= ROOK; ++pt)
+                for (auto pt : { BSHP, ROOK })
                 {
                     if (contains (PieceAttacks[pt][s1], s2))
                     {
@@ -340,8 +340,6 @@ namespace BitBoard {
                             s2s1_attacks = attacks_bb<ROOK> (s2, Square_bb[s1]);
                             break;
                         default:
-                            s1s2_attacks = 0;
-                            s2s1_attacks = 0;
                             break;
                         }
 

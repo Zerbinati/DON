@@ -183,7 +183,6 @@ namespace Threading {
         Pawns   ::Table   pawn_table;
         Material::Table   matl_table;
 
-        MoveStats         counter_moves;
         HistoryStats      history;
         CMoveHistoryStats cm_history;
 
@@ -198,7 +197,6 @@ namespace Threading {
             count_reset = true;
             pawn_table.clear ();
             matl_table.clear ();
-            counter_moves.clear ();
             history.clear ();
             cm_history.clear ();
         }
@@ -271,6 +269,7 @@ namespace Threading {
         TimeManager  time_mgr;
         MoveManager  move_mgr;
         SkillManager skill_mgr;
+        MoveStats    counter_moves;
 
         ThreadPool () = default;
         ThreadPool (const ThreadPool&) = delete;

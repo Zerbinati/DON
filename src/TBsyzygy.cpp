@@ -51,7 +51,7 @@ namespace TBSyzygy {
             SINGLE_VALUE = 128
         };
 
-        Piece tb_piece (i32 pc) { return pc != 0 ? Piece(pc - 1) : NO_PIECE; }
+        Piece tb_piece (i32 pc) { return 0 != pc ? Piece(pc - 1) : NO_PIECE; }
 
         // DTZ tables don't store valid scores for moves that reset the rule50 counter
         // like captures and pawn moves but we can easily recover the correct dtz of the
@@ -450,7 +450,7 @@ namespace TBSyzygy {
             Position pos;
             key1 = pos.setup (code, si, WHITE).si->matl_key;
             piece_count = pos.count<NONE> ();
-            has_pawns = pos.count<PAWN> () != 0;
+            has_pawns = 0 != pos.count<PAWN> ();
             for (Color c = WHITE; c <= BLACK; ++c)
             {    
                 for (PieceType pt = PAWN; pt < KING; ++pt)
@@ -577,7 +577,7 @@ namespace TBSyzygy {
         i32 decompress_pairs (PairsData *d, u64 idx)
         {
             // Special case where all table positions store the same value
-            if ((d->flags & SINGLE_VALUE) != 0)
+            if (0 != (d->flags & SINGLE_VALUE))
             {
                 return d->min_sym_len;
             }
@@ -680,7 +680,7 @@ namespace TBSyzygy {
             // We binary-search for our value recursively expanding into the left and
             // right child symbols until we reach a leaf node where sym_len[sym] + 1 == 1
             // that will store the value we need.
-            while (d->sym_len[sym] != 0)
+            while (0 != d->sym_len[sym])
             {
                 Sym left = d->btree[sym].get<LR::Left> ();
 
@@ -735,7 +735,7 @@ namespace TBSyzygy {
             u16* idx = entry->has_pawns ?
                 entry->pawn_table.file[f].map_idx :
                 entry->piece_table.map_idx;
-            if ((flags & MAPPED) != 0)
+            if (0 != (flags & MAPPED))
             {
                 value = map[idx[WDLMap[wdl + 2]] + value];
             }
@@ -994,7 +994,7 @@ namespace TBSyzygy {
             // Encode remainig pawns then pieces according to square, in ascending order
             bool pawn_remain = entry->has_pawns && entry->pawn_table.pawn_count[1];
 
-            while (d->group_len[++next] != 0)
+            while (0 != d->group_len[++next])
             {
                 std::sort (group_sq, group_sq + d->group_len[next]);
                 u64 n = 0;
@@ -1120,23 +1120,23 @@ namespace TBSyzygy {
         {
             d->flags = *data++;
 
-            if ((d->flags & SINGLE_VALUE) != 0)
+            if (0 != (d->flags & SINGLE_VALUE))
             {
                 d->num_blocks = 0;
                 d->span = 0;
                 d->block_length_size = 0;
-                d->sparse_index_size = 0; // Broken MSVC zero-init
+                d->sparse_index_size = 0;
                 d->min_sym_len = *data++; // Here we store the single value
                 return data;
             }
 
             // group_len[] is a zero-terminated list of group lengths, the last group_idx[]
             // element stores the biggest index that is the tb size.
-            u64 tbSize = d->group_idx[std::find (d->group_len, d->group_len + 7, 0) - d->group_len];
+            u64 tb_size = d->group_idx[std::find (d->group_len, d->group_len + 7, 0) - d->group_len];
 
             d->block_size = 1ULL << *data++;
             d->span = 1ULL << *data++;
-            d->sparse_index_size = (tbSize + d->span - 1) / d->span; // Round up
+            d->sparse_index_size = (tb_size + d->span - 1) / d->span; // Round up
             i32 padding = number<u08, LittleEndian> (data++);
             d->num_blocks = number<u32, LittleEndian> (data); data += sizeof (u32);
             d->block_length_size = d->num_blocks + padding; // Padded to ensure SparseIndex[]
@@ -1202,7 +1202,7 @@ namespace TBSyzygy {
             p.map = data;
             for (auto f = F_A; f <= maxFile; ++f)
             {
-                if ((item (p, 0, f).precomp->flags & MAPPED) != 0)
+                if (0 != (item (p, 0, f).precomp->flags & MAPPED))
                 {
                     for (i32 i = 0; i < 4; ++i)
                     { // Sequence like 3,x,x,x,1,x,0,2,x,x
@@ -1432,7 +1432,7 @@ namespace TBSyzygy {
             // the state of probe_wdl_table is wrong. Also in case of only capture
             // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, we have to
             // return with ZEROING_BEST_MOVE set.
-            bool no_more_moves = (move_count != 0 && move_count == total_count);
+            bool no_more_moves = (0 != move_count && move_count == total_count);
 
             if (no_more_moves)
             {
@@ -1629,7 +1629,7 @@ namespace TBSyzygy {
             root_pos.do_move (move, si);
             i32 v = 0;
 
-            if (   root_pos.si->checkers != 0
+            if (   0 != root_pos.si->checkers
                 && dtz > 0)
             {
                 vector<ValMove> moves;
@@ -1642,7 +1642,7 @@ namespace TBSyzygy {
 
             if (v == 0)
             {
-                if (si.clock_ply != 0)
+                if (0 != si.clock_ply)
                 {
                     v = -probe_dtz (root_pos, state);
 
