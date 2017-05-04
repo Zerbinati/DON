@@ -52,10 +52,6 @@ namespace Pawns {
             }
         };
 
-        // Max bonus for king safety. Corresponds to start position with all the pawns
-        // in front of the king and no enemy pawn on the horizon.
-        const Value MaxSafety = V(258);
-
     #undef V
 
     #define S(mg, eg) mk_score(mg, eg)
@@ -199,7 +195,8 @@ namespace Pawns {
     Value Entry::pawn_shelter_storm (const Position &pos, Square fk_sq) const
     {
         static const auto Opp = Own == WHITE ? BLACK : WHITE;
-        auto value = MaxSafety;
+        // Max Safety corresponds to start position with all the pawns in front of the king and no enemy pawn on the horizon.
+        auto value = Value(258);
         Bitboard front_pawns =
               pos.pieces (PAWN)
             & (  rank_bb (fk_sq)

@@ -914,7 +914,7 @@ namespace Evaluator {
                 Bitboard b = front_sqrs_bb (Own, s);
                 while (0 != b)
                 {
-                    path_attackers |= pos.xattackers_to (pop_lsq (b), Opp, pos.pieces () ^ s) & ~pos.abs_blockers (Opp);
+                    path_attackers |= (pos.xattackers_to (pop_lsq (b), Opp, pos.pieces () ^ s) & ~pos.abs_blockers (Opp));
                 }
 
                 score += mk_score (mg_value, eg_value)

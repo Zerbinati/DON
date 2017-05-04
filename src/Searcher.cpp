@@ -336,10 +336,10 @@ Move MovePicker::next_move (bool skip_quiets)
         }
         // Killers to top of quiet move
         {
-            auto move = (_ss-1)->current_move;
-            if (_ok (move))
+            auto m = (_ss-1)->current_move;
+            if (_ok (m))
             {
-                auto cm = Threadpool.counter_moves(_pos[fix_dst_sq (move)], move);
+                auto cm = Threadpool.counter_moves(_pos[fix_dst_sq (m)], m);
                 if (   MOVE_NONE != cm
                     && _tt_move != cm
                     && std::find (_killer_moves.begin (), _killer_moves.end (), cm) == _killer_moves.end ())
@@ -349,10 +349,10 @@ Move MovePicker::next_move (bool skip_quiets)
             }
             _killer_moves.erase (std::remove_if (_killer_moves.begin (),
                                                  _killer_moves.end (),
-                                                 [&](Move m)
+                                                 [&](Move mm)
                                                  {
-                                                     return m == MOVE_NONE
-                                                         || m == _tt_move;
+                                                     return mm == MOVE_NONE
+                                                         || mm == _tt_move;
                                                  }),
                                  _killer_moves.end ());
 
@@ -726,16 +726,19 @@ namespace Searcher {
         // UCI requires that all (if any) unsearched PV lines are sent using a previous search score.
         string multipv_info (Thread *const &th, Value alfa, Value beta)
         {
-            auto elapsed_time   = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
-            auto total_nodes    = Threadpool.nodes ();
-            auto tb_hits        = Threadpool.tb_hits () + (TBHasRoot ? th->root_moves.size () : 0);
-            assert(elapsed_time > 0);
+            auto elapsed_time = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
+            auto total_nodes  = Threadpool.nodes ();
+            auto tb_hits      = Threadpool.tb_hits () + (TBHasRoot ? th->root_moves.size () : 0);
 
             ostringstream oss;
             for (u16 i = 0; i < Threadpool.pv_limit; ++i)
             {
+                bool updated = 
+                       i <= th->pv_index
+                    && -VALUE_INFINITE != th->root_moves[i].new_value;
+
                 auto d =
-                    i <= th->pv_index ?
+                    updated ?
                         th->running_depth :
                         th->running_depth - 1;
                 if (d <= 0)
@@ -743,7 +746,7 @@ namespace Searcher {
                     continue;
                 }
                 auto v =
-                    i <= th->pv_index ?
+                    updated ?
                         th->root_moves[i].new_value :
                         th->root_moves[i].old_value;
                 bool tb =
@@ -760,17 +763,17 @@ namespace Searcher {
                                 v <= alfa ? " upperbound" : "" : "")
                     << " nodes "    << total_nodes
                     << " time "     << elapsed_time
-                    << " nps "      << total_nodes * MilliSec / elapsed_time;
+                    << " nps "      << total_nodes * MilliSec / elapsed_time
+                    << " tbhits "   << tb_hits;
                 if (elapsed_time > MilliSec)
                 {
                     oss << " hashfull " << TT.hash_full ();
                 }
-                oss << " tbhits "   << tb_hits
-                    << " pv"        << th->root_moves[i];
-                if (i+1 < Threadpool.pv_limit)
-                {
-                    oss << '\n';
-                }
+                oss << " pv"        << th->root_moves[i] << '\n';
+                //if (i+1 < Threadpool.pv_limit)
+                //{
+                //    oss << '\n';
+                //}
             }
             return oss.str ();
         }
@@ -787,9 +790,11 @@ namespace Searcher {
                 && ss->ply <= MaxPlies);
 
             const bool in_check = 0 != pos.si->checkers;
+            Value old_alfa;
 
             if (PVNode)
             {
+                old_alfa = alfa; // To flag BOUND_EXACT when eval above alpha and no available moves
                 ss->pv.clear ();
             }
 
@@ -848,8 +853,9 @@ namespace Searcher {
             if (in_check)
             {
                 ss->static_eval = VALUE_NONE;
+                // Starting from the worst case which is checkmate
                 best_value =
-                futility_base = -VALUE_INFINITE;
+                futility_base = mated_in (ss->ply);
             }
             else
             {
@@ -1028,22 +1034,13 @@ namespace Searcher {
                 }
             }
 
-            // All legal moves have been searched.
-            // A special case: If in check and no legal moves were found, it is checkmate.
-            if (   in_check
-                && best_value == -VALUE_INFINITE)
-            {
-                // Plies to mate from the root
-                return mated_in (ss->ply);
-            }
-
             tte->save (posi_key,
                        best_move,
                        value_to_tt (best_value, ss->ply),
                        ss->static_eval,
                        qs_depth,
                           PVNode
-                       && MOVE_NONE != best_move ?
+                       && best_value > old_alfa ?
                            BOUND_EXACT :
                            BOUND_UPPER);
 
@@ -1879,7 +1876,7 @@ namespace Searcher {
                            depth,
                            best_value >= beta ?
                                BOUND_LOWER :
-                                   PVNode
+                                  PVNode
                                && MOVE_NONE != best_move ?
                                    BOUND_EXACT :
                                    BOUND_UPPER);

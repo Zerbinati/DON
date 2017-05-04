@@ -189,8 +189,8 @@ public:
     {}
     RootMove& operator= (const RootMove&) = default;
 
-    bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
-    bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
+    bool operator<  (const RootMove &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value > rm.old_value; }
+    bool operator>  (const RootMove &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value < rm.old_value; }
     bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
     bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
     bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
