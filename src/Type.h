@@ -289,10 +289,10 @@ enum Value : i32
     VALUE_MATE_IN_MAX_PLY = VALUE_MATE - 2 * MaxPlies,
 
     VALUE_MG_PAWN =  188,  VALUE_EG_PAWN =  248,
-    VALUE_MG_NIHT =  753,  VALUE_EG_NIHT =  832,
-    VALUE_MG_BSHP =  814,  VALUE_EG_BSHP =  890,
-    VALUE_MG_ROOK = 1285,  VALUE_EG_ROOK = 1371,
-    VALUE_MG_QUEN = 2513,  VALUE_EG_QUEN = 2648,
+    VALUE_MG_NIHT =  764,  VALUE_EG_NIHT =  848,
+    VALUE_MG_BSHP =  826,  VALUE_EG_BSHP =  891,
+    VALUE_MG_ROOK = 1282,  VALUE_EG_ROOK = 1373,
+    VALUE_MG_QUEN = 2526,  VALUE_EG_QUEN = 2646,
 
     VALUE_MIDGAME = 15258, VALUE_ENDGAME = 3915,
 };
@@ -574,12 +574,6 @@ public:
     bool operator>= (const ValMove &vm) const { return value >= vm.value; }
     bool operator== (const ValMove &vm) const { return value == vm.value; }
     bool operator!= (const ValMove &vm) const { return value != vm.value; }
-};
-
-const Value PieceValues[][MAX_PTYPE] =
-{
-    { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
-    { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
 };
 
 template<class T, u32 Size>

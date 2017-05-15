@@ -170,9 +170,9 @@ namespace Evaluator {
                 S( 91, 88), S( 98, 97)
             },
             { // Rook
-                S(-60,-77), S(-26,-20), S(-11, 27), S( -6, 57), S( -3, 69), S( -1, 82),
-                S( 10,109), S( 16,121), S( 24,131), S( 25,143), S( 32,155), S( 32,163),
-                S( 43,167), S( 48,171), S( 56,173)
+                S(-58,-76), S(-27,-18), S(-15, 28), S(-10, 55), S( -5, 69), S( -2, 82),
+                S(  9,112), S( 16,118), S( 30,132), S( 29,142), S( 32,155), S( 38,165),
+                S( 46,166), S( 48,169), S( 58,171)
             },
             { // Queen
                 S(-39,-36), S(-21,-15), S(  3,  8), S(  3, 18), S( 14, 34), S( 22, 54),
@@ -183,15 +183,10 @@ namespace Evaluator {
             }
         };
 
-        // PieceCloseness[piece-type][distance] contains a bonus for piece closeness,
-        // indexed by piece type and distance from the sqaure
-        const Score PieceCloseness[][8] =
+        // PieceCloseness[piece-type] * "distance to own king" determines a bonus for each piece.
+        const Score PieceCloseness[] =
         {
-            {},
-            { S( 0, 0), S( 7, 9), S( 7, 1), S( 1, 5), S(-10,-4), S( -1,-4), S( -7,-3), S(-16,-10) }, // Knight
-            { S( 0, 0), S(11, 8), S(-7,-1), S(-1,-2), S( -1,-7), S(-11,-3), S( -9,-1), S(-16, -1) }, // Bishop
-            { S( 0, 0), S(10, 0), S(-2, 2), S(-5, 4), S( -6, 2), S(-14,-3), S( -2,-9), S(-12, -7) }, // Rook
-            { S( 0, 0), S( 3,-5), S( 2,-5), S(-4, 0), S( -9,-6), S( -4, 7), S(-13,-7), S(-10, -7) }  // Queen
+            S( 0, 0), S(-3, -5), S(-4, -3), S(-3, 0), S(-1, 1)
         };
 
         // PieceOutpost[piece-type][supported by pawn] contains bonuses for piece outposts
@@ -366,8 +361,8 @@ namespace Evaluator {
                 mobility += PieceMobility[PT][mob];
 
                 // Bonus for piece closeness to King
-                score += PieceCloseness[PT][dist (s, pos.square (Own, KING))];
-                //score += PieceCloseness[PT][dist (s, pos.square (Opp, KING))];
+                score += PieceCloseness[PT] * dist (s, pos.square (Own, KING));
+                //score += PieceCloseness[PT] * dist (s, pos.square (Opp, KING));
 
                 Bitboard b;
                 // Special extra evaluation for pieces
@@ -550,15 +545,15 @@ namespace Evaluator {
                 // - the quality of the pawn shelter ('mg score' value).
                 i32 king_danger =
                       ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp]
-                    + 103 * ei.king_zone_attacks_count[Opp]
-                    + 190 * pop_count (king_zone_undef)
-                    + 142 * pop_count (king_ring_undef | pos.abs_blockers (Own))
-                    + 142 * pop_count (pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & (  (file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
+                    + 102 * ei.king_zone_attacks_count[Opp]
+                    + 201 * pop_count (king_zone_undef)
+                    + 143 * pop_count (king_ring_undef | pos.abs_blockers (Own))
+                    + 143 * pop_count (pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & (  (file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
                                                                                                                       | shift<RCap> (pos.pieces (Own))))
                                                                                                | shift<Pull> (pos.pieces ())))
                                                                   | pos.abs_blockers (Opp)))
-                    - 810 * (0 == pos.count<QUEN>(Opp))
-                    -   6 * i32(value) / 5
+                    - 848 * (0 == pos.count<QUEN>(Opp))
+                    -  28 * i32(value) / 25
                     -   5;
 
                 Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces ());
@@ -584,7 +579,7 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][QUEN];
                 if (0 != (b & safe_area))
                 {
-                    king_danger += 810;
+                    king_danger += 780;
                 }
 
                 // For other pieces, the safe square also if attacked twice and only defended by a queen.
@@ -599,7 +594,7 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][ROOK];
                 if (0 != (b & safe_area))
                 {
-                    king_danger += 888;
+                    king_danger += 880;
                 }
                 else
                 if (0 != (b & prob_area))
@@ -611,7 +606,7 @@ namespace Evaluator {
                     &  ei.pin_attacked_by[Opp][BSHP];
                 if (0 != (b & safe_area))
                 {
-                    king_danger += 400;
+                    king_danger += 435;
                 }
                 else
                 if (0 != (b & prob_area))
@@ -829,7 +824,7 @@ namespace Evaluator {
             while (0 != passers)
             {
                 auto s = pop_lsq (passers);
-                assert(0 == (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN)));
+                assert(0 == (pos.pieces (Opp, PAWN) & front_sqrs_bb (Own, s + Push)));
 
                 auto rank = rel_rank (Own, s);
                 // Base bonus depending on rank.
@@ -903,8 +898,10 @@ namespace Evaluator {
                     }
                 }
 
-                // Scale down bonus for candidate passers which need more than one pawn push to become passed.
-                if (!pos.pawn_passed_at (Own, s+Push))
+                // Scale down bonus for candidate passers which need more than one 
+                // pawn push to become passed or have a pawn in front of them.
+                if (   !pos.pawn_passed_at (Own, s + Push)
+                    || 0 != (pos.pieces (PAWN) & front_sqrs_bb (Own, s)))
                 {
                     mg_value /= 2;
                     eg_value /= 2;

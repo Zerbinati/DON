@@ -1,7 +1,6 @@
 #ifndef _THREAD_H_INC_
 #define _THREAD_H_INC_
 
-#include <bitset>
 #include <thread>
 #include <atomic>
 

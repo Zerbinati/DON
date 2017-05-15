@@ -9,6 +9,12 @@
 class Position;
 using namespace BitBoard;
 
+const Value PieceValues[][MAX_PTYPE] =
+{
+    { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
+    { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
+};
+
 // StateInfo stores information needed to restore a Position object to its previous state
 // when we retract a move. Whenever a move is made on the board (by calling do_move),
 // a StateInfo object must be passed as a parameter.
@@ -151,7 +157,7 @@ public:
     Phase phase   () const;
     bool draw (i16 pp) const;
 
-    bool see_ge (Move m, Value v) const;
+    bool see_ge (Move m, Value v = VALUE_ZERO) const;
 
     Bitboard attackers_to (Square s, Color c, Bitboard occ) const;
     Bitboard attackers_to (Square s, Color c) const;

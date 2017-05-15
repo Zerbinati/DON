@@ -146,6 +146,18 @@ namespace Pawns {
                 {
                     e->passers[Own] |= s;
                 }
+                else if (   stoppers == square_bb (s + Push)
+                         && rel_rank (Own, s) >= R_5)
+                {
+                    b = shift<Push> (supporters) & ~opp_pawns;
+                    while (0 != b)
+                    {
+                        if (!more_than_one (opp_pawns & PawnAttacks[Own][pop_lsq (b)]))
+                        {
+                            e->passers[Own] |= s;
+                        }
+                    }
+                }
 
                 if (0 == neighbours)
                 {

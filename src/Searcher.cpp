@@ -315,7 +315,7 @@ Move MovePicker::next_move (bool skip_quiets)
         while (_index < _moves.size ())
         {
             auto &vm = pick_best_move (_index++);
-            if (_pos.see_ge (vm.move, VALUE_ZERO))
+            if (_pos.see_ge (vm.move))
             {
                 return vm.move;
             }
@@ -965,7 +965,7 @@ namespace Searcher {
                             && !pos.capture (move)))
                     && PROMOTE != mtype (move)
                     //&& 0 == Limits.mate
-                    && !pos.see_ge (move, VALUE_ZERO))
+                    && !pos.see_ge (move))
                 {
                     continue;
                 }
@@ -1554,7 +1554,7 @@ namespace Searcher {
                 // Check extension (CE)
                 if (   gives_check
                     && !move_count_pruning
-                    && pos.see_ge (move, VALUE_ZERO))
+                    && pos.see_ge (move))
                 {
                     new_depth += 1;
                 }
@@ -1654,7 +1654,7 @@ namespace Searcher {
                         // Decrease reduction for moves that escape a capture in no-cut nodes.
                         // Filter out castling moves, because they are coded as "king captures rook" and hence break mk_move().
                         if (   NORMAL == mtype (move)
-                            && !pos.see_ge (mk_move<NORMAL> (dst_sq (move), org_sq (move)), VALUE_ZERO))
+                            && !pos.see_ge (mk_move<NORMAL> (dst_sq (move), org_sq (move))))
                         {
                             reduce_depth -= 2;
                         }
