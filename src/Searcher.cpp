@@ -960,7 +960,7 @@ namespace Searcher {
                 // Don't search moves with negative SEE values
                 if (   (   !in_check
                         // Evasion Prunable: Detect non-capture evasions that are candidate to be pruned
-                        || (   depth != 0
+                        || (   0 != depth
                             && best_value > -VALUE_MATE_IN_MAX_PLY
                             && !pos.capture (move)))
                     && PROMOTE != mtype (move)
@@ -1969,7 +1969,7 @@ namespace Searcher {
             }
         }
     }
-    // Resets search state, to obtain reproducible results
+    // Resets search state to its initial value, to obtain reproducible results
     void clear ()
     {
         TT.clear ();
@@ -2247,7 +2247,7 @@ namespace Threading {
             {
                 OutputStream
                     << std::boolalpha
-                    << "RootPos  : " << root_pos.fen (true)                << '\n'
+                    << "RootPos  : " << root_pos.fen ()                    << '\n'
                     << "RootSize : " << root_moves.size ()                 << '\n'
                     << "Infinite : " << Limits.infinite                    << '\n'
                     << "Ponder   : " << Limits.ponder                      << '\n'
@@ -2320,7 +2320,7 @@ namespace Threading {
             if (   Limits.use_time_management ()
                 && 0 != ContemptTime
                 && 0 != (diff_time = i64(  Limits.clock[ root_pos.active].time
-                                    - Limits.clock[~root_pos.active].time)/MilliSec))
+                                         - Limits.clock[~root_pos.active].time)/MilliSec))
             {
                 timed_contempt = i16(diff_time/ContemptTime);
             }

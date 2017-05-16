@@ -471,10 +471,10 @@ namespace Threading {
         }
 
         const auto back_si = states.back ();
-        const auto fen = root_pos.fen (true);
+        const auto fen = root_pos.fen ();
         for (auto *th : *this)
         {
-            th->root_pos.setup (fen, states.back (), th, true);
+            th->root_pos.setup (fen, states.back (), th);
             th->root_moves = root_moves;
         }
         // Restore si->ptr, cleared by Position::setup()

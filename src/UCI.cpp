@@ -7,6 +7,7 @@
 #include "Evaluator.h"
 #include "MoveGenerator.h"
 #include "Thread.h"
+#include "Transposition.h"
 #include "TBsyzygy.h"
 #include "Notation.h"
 #include "Benchmark.h"
@@ -22,6 +23,19 @@ namespace UCI {
     using namespace TBSyzygy;
     using namespace Notation;
 
+    namespace {
+        // On ucinewgame following steps are needed to reset the state
+        void newgame ()
+        {
+            ForceStop = true;
+            Threadpool.wait_while_thinking ();
+            Searcher::clear ();
+            TT.auto_resize (i32(Options["Hash"]), true);
+            Threadpool.time_mgr.available_nodes = 0;
+            TBSyzygy::initialize ();
+        }
+
+    }
     // Waits for a command from stdin, parses it and calls the appropriate function.
     // Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     // Single command line arguments is executed once and returns immediately, e.g. 'bench'.
@@ -33,13 +47,15 @@ namespace UCI {
         static const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         Position::Chess960 = false;
 
+        newgame (); // Implied ucinewgame before the first position command
+
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
         StateList states (1);
 
         Position root_pos;
-        root_pos.setup (StartFEN, states.back (), Threadpool.main_thread (), true);
+        root_pos.setup (StartFEN, states.back (), Threadpool.main_thread ());
         // Join arguments
         string cmd;
         for (i32 i = 1; i < argc; ++i)
@@ -76,11 +92,7 @@ namespace UCI {
             else
             if (token == "ucinewgame")
             {
-                ForceStop = true;
-                Threadpool.wait_while_thinking ();
-                Searcher::clear ();
-                Threadpool.time_mgr.available_nodes = 0;
-                TBSyzygy::initialize ();
+                newgame ();
             }
             else
             if (token == "isready")
@@ -112,7 +124,7 @@ namespace UCI {
                     {
                         fen += string (" ", !white_spaces (fen) ? 1 : 0) + token;
                     }
-                    //assert(_ok (fen, true));
+                    //assert(_ok (fen));
                 }
                 else
                 {
@@ -121,7 +133,7 @@ namespace UCI {
                 }
 
                 states.resize (1);
-                root_pos.setup (fen, states.back (), Threadpool.main_thread (), true);
+                root_pos.setup (fen, states.back (), Threadpool.main_thread ());
 
                 if (token == "moves")
                 {
@@ -344,7 +356,7 @@ namespace UCI {
             {
                 sync_cout
                     << std::hex << std::uppercase << std::setfill ('0')
-                    << "FEN: "                        << root_pos.fen (true)   << '\n'
+                    << "FEN: "                        << root_pos.fen ()       << '\n'
                     << "Posi key: " << std::setw (16) << root_pos.si->posi_key << '\n'
                     << "Poly key: " << std::setw (16) << root_pos.poly_key ()  << '\n'
                     << "Matl key: " << std::setw (16) << root_pos.si->matl_key << '\n'

@@ -8,9 +8,9 @@
 #include "Material.h"
 #include "Endgame.h"
 #include "Thread.h"
+#include "MemoryHandler.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
-#include "Transposition.h"
 
 namespace Engine {
 
@@ -105,9 +105,6 @@ namespace Engine {
         EndGame  ::initialize ();
         Threadpool.initialize ();
         Searcher ::initialize ();
-        TBSyzygy ::initialize ();
-
-        TT.auto_resize (i32(Options["Hash"]), true);
 
         UCI::loop (argc, argv);
     }

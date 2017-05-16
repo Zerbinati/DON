@@ -132,7 +132,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
     else
     if (fen_fn == "current")
     {
-        fens.push_back (cur_pos.fen (true));
+        fens.push_back (cur_pos.fen ());
     }
     else
     {
@@ -169,8 +169,8 @@ void benchmark (istringstream &is, const Position &cur_pos)
     Position pos;
     for (u16 i = 0; i < fens.size (); ++i)
     {
-        pos.setup (fens[i], si, Threadpool.main_thread (), true);
-        assert(pos.fen (true) == fens[i]);
+        pos.setup (fens[i], si, Threadpool.main_thread ());
+        assert(pos.fen () == fens[i]);
 
         std::cerr
             << "\n---------------\n"

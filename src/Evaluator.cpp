@@ -229,7 +229,7 @@ namespace Evaluator {
         const Score HangPawnThreat  = S( 71,  61);
         const Score SafePawnThreat  = S(182, 175);
 
-        // PieceThreat[piece-type][piece-type] contains bonuses according to piece type
+        // PieceThreat[piece-type][piece-type] contains bonus according to piece type
         const Score PieceThreat[][NONE] =
         {
             {},
@@ -240,19 +240,19 @@ namespace Evaluator {
 
         const Score PieceRankThreat = S(16, 3);
 
-        // KingThreat[one/more] contains bonuses for king attacks on pawns or pieces which are not pawn-defended
+        // KingThreat[one/more] contains bonus for king attacks on pawns or pieces which are not pawn-defended
         const Score KingThreat[] = { S( 3, 62), S( 9,138) };
 
         const Score PawnPassHinder  = S( 7, 0);
 
-        // PawnPassFile[file] contains a bonus for passed pawns according to distance from edge
+        // PawnPassFile[file] contains bonus for passed pawns according to distance from edge
         const Score PawnPassFile[] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
 
     #undef S
 
     #define V(v) Value(v)
 
-        // PawnPassRank[rank] contains bonuses for passed pawns according to the rank of the pawn
+        // PawnPassRank[rank] contains bonus for passed pawns according to the rank of the pawn
         const Value PawnPassRank[] = { V(  0), V(  5), V(  5), V( 35), V( 75), V(165), V(255), V(  0) };
 
         // Threshold for lazy evaluation
@@ -261,7 +261,7 @@ namespace Evaluator {
 
     #undef V
 
-        // Bonuses for king attack by piece type
+        // Bonus for king attack by piece type
         const i32 PieceKingAttacks[NONE] = {  0, 78, 56, 45, 11,  0 };
 
         template<Color Own>
@@ -285,7 +285,18 @@ namespace Evaluator {
             if (pos.si->non_pawn_material (Opp) >= VALUE_MG_QUEN)
             {
                 Bitboard king_zone = PieceAttacks[KING][pos.square (Own, KING)];
-                ei.king_ring[Own] = king_zone | shift<Push> (king_zone);
+                ei.king_ring[Own] = king_zone;
+                switch (rel_rank (Own, pos.square (Own, KING)))
+                {
+                case R_1:
+                    ei.king_ring[Own] |= shift<Push> (king_zone);
+                    break;
+                case R_8:
+                    ei.king_ring[Own] |= shift<Pull> (king_zone);
+                    break;
+                default:
+                    break;
+                }
                 ei.king_ring_attackers_count[Opp] = u08(pop_count (king_zone & ei.pin_attacked_by[Opp][PAWN]));
             }
         }
@@ -299,9 +310,9 @@ namespace Evaluator {
             static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
             // Mask of allowed outpost squares
-            static const Bitboard OutpostRank = Own == WHITE ?
-                                                    R4_bb|R5_bb|R6_bb :
-                                                    R5_bb|R4_bb|R3_bb;
+            static const Bitboard Outposts = Own == WHITE ?
+                                                R4_bb|R5_bb|R6_bb :
+                                                R5_bb|R4_bb|R3_bb;
 
             assert(NIHT <= PT && PT <= QUEN);
 
@@ -378,7 +389,7 @@ namespace Evaluator {
                         score += MinorBehindPawn;
                     }
 
-                    b = OutpostRank
+                    b = Outposts
                       & ~ei.pe->attack_span[Opp];
                     // Bonus for minors outpost squares
                     if (contains (b, s))
@@ -629,7 +640,7 @@ namespace Evaluator {
                 // Transform the king units into a score, and substract it from the evaluation
                 if (king_danger > 0)
                 {
-                    score -= mk_score (king_danger*king_danger / 0x1000, 0);
+                    score -= mk_score (king_danger*king_danger / 0x1000, king_danger / 0x10);
                 }
             }
 
@@ -669,8 +680,8 @@ namespace Evaluator {
             static const auto Push = Own == WHITE ? DEL_N  : DEL_S;
             static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-            static const Bitboard Rank2BB = Own == WHITE ? R2_bb : R7_bb;
-            static const Bitboard Rank7BB = Own == WHITE ? R7_bb : R2_bb;
+            static const Bitboard R2BB = Own == WHITE ? R2_bb : R7_bb;
+            static const Bitboard R7BB = Own == WHITE ? R7_bb : R2_bb;
 
             Score score = SCORE_ZERO;
 
@@ -787,10 +798,10 @@ namespace Evaluator {
 
             // Bonus if some friend pawns safely push can attack an enemy piece
             b =    pos.pieces (Own, PAWN)
-                & ~(  Rank7BB
+                & ~(  R7BB
                     | pos.abs_blockers (Own));
             // Friend pawns push
-            b =   shift<Push> (b | (  shift<Push> (b & Rank2BB)
+            b =   shift<Push> (b | (  shift<Push> (b & R2BB)
                                     & ~pos.pieces ()))
                 & ~pos.pieces ();
             // Friend pawns safe push
@@ -1005,7 +1016,7 @@ namespace Evaluator {
 
             auto strong_color = eg >= VALUE_ZERO ? WHITE : BLACK;
             Scale scale;
-            if (   ei.me->scale_func[strong_color] == nullptr
+            if (   nullptr == ei.me->scale_func[strong_color]
                 || (scale = (*ei.me->scale_func[strong_color])(pos)) == SCALE_NONE)
             {
                 scale = ei.me->scale[strong_color];
@@ -1050,7 +1061,7 @@ namespace Evaluator {
         // Probe the material hash table
         auto *me = Material::probe (pos);
         // If have a specialized evaluation function for the material configuration
-        if (me->value_func != nullptr)
+        if (nullptr != me->value_func)
         {
             return (*me->value_func) (pos);
         }

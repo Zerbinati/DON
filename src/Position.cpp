@@ -206,7 +206,7 @@ bool Position::see_ge (Move m, Value v) const
 template<Color Own>
 Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const
 {
-    static const auto Opp  = Own == WHITE ? BLACK : WHITE;
+    static const auto Opp = Own == WHITE ? BLACK : WHITE;
 
     Bitboard blockers = 0;
     Bitboard defenders = pieces (Own);
