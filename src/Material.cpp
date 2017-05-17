@@ -103,7 +103,7 @@ namespace Material {
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
         // configuration one, then a generic one if previous search failed.
-        if ((e->value_func = EndGames->probe<Value> (matl_key)) != nullptr)
+        if (nullptr != (e->value_func = EndGames->probe<Value> (matl_key)))
         {
             return e;
         }
@@ -124,7 +124,7 @@ namespace Material {
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
         EndgameBase<Scale> *scale_func;
-        if ((scale_func = EndGames->probe<Scale> (matl_key)) != nullptr)
+        if (nullptr != (scale_func = EndGames->probe<Scale> (matl_key)))
         {
             e->scale_func[scale_func->strong_color] = scale_func;
             return e;

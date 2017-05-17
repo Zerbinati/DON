@@ -835,7 +835,7 @@ namespace Evaluator {
             while (0 != passers)
             {
                 auto s = pop_lsq (passers);
-                assert(0 == (pos.pieces (Opp, PAWN) & front_sqrs_bb (Own, s + Push)));
+                assert(0 == (pos.pieces (Opp, PAWN) & front_sqrs_bb (Own, s+Push)));
 
                 auto rank = rel_rank (Own, s);
                 // Base bonus depending on rank.
@@ -911,7 +911,7 @@ namespace Evaluator {
 
                 // Scale down bonus for candidate passers which need more than one 
                 // pawn push to become passed or have a pawn in front of them.
-                if (   !pos.pawn_passed_at (Own, s + Push)
+                if (   !pos.pawn_passed_at (Own, s+Push)
                     || 0 != (pos.pieces (PAWN) & front_sqrs_bb (Own, s)))
                 {
                     mg_value /= 2;
@@ -951,16 +951,17 @@ namespace Evaluator {
             static const auto Dull = Own == WHITE ? DEL_SS : DEL_NN;
             // SpaceArea contains the area of the board which is considered by the space evaluation.
             // Bonus based on how many squares inside this area are safe.
-            static const Bitboard SpaceArea = Side_bb[CS_NO] & (Own == WHITE ?
-                                                                    R2_bb|R3_bb|R4_bb :
-                                                                    R7_bb|R6_bb|R5_bb);
+            static const Bitboard SpaceArea = Own == WHITE ?
+                                                R2_bb|R3_bb|R4_bb :
+                                                R7_bb|R6_bb|R5_bb;
             // Find the safe squares for our pieces inside the area defined by SpaceArea.
             // A square is safe:
             // - if not occupied by friend pawns
             // - if not attacked by an enemy pawns
             // - if defended or not attacked by an enemy pieces.
             Bitboard safe_space =
-                   SpaceArea
+                   Side_bb[CS_NO]
+                &  SpaceArea
                 & ~pos.pieces (Own, PAWN)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 & (   ei.pin_attacked_by[Own][NONE]

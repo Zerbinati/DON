@@ -102,7 +102,7 @@ namespace Pawns {
 
             File f;
             Bitboard b, neighbours, supporters, stoppers, phalanxes, levers, escapes;
-            bool opposed, blocked, connected, backward;
+            bool opposed, backward;
             for (auto s : pos.squares[Own][PAWN])
             {
                 assert(pos[s] == (Own|PAWN));
@@ -118,9 +118,7 @@ namespace Pawns {
                 levers     = opp_pawns & PAtt[s];
                 escapes    = opp_pawns & PAtt[s + Push];
 
-                opposed    = (opp_pawns & front_sqrs_bb (Own, s)) != 0;
-                blocked    = contains (own_pawns, s-Push);
-                connected  = 0 != supporters || 0 != phalanxes;
+                opposed    = 0 != (opp_pawns & front_sqrs_bb (Own, s));
 
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
                 // The pawn is backward when it cannot safely progress to next rank:
@@ -146,13 +144,14 @@ namespace Pawns {
                 {
                     e->passers[Own] |= s;
                 }
-                else if (   stoppers == square_bb (s + Push)
-                         && rel_rank (Own, s) >= R_5)
+                else
+                if (   stoppers == square_bb (s + Push)
+                    && rel_rank (Own, s) >= R_5)
                 {
                     b = shift<Push> (supporters) & ~opp_pawns;
                     while (0 != b)
                     {
-                        if (!more_than_one (opp_pawns & PawnAttacks[Own][pop_lsq (b)]))
+                        if (!more_than_one (opp_pawns & PAtt[pop_lsq (b)]))
                         {
                             e->passers[Own] |= s;
                         }
@@ -174,7 +173,8 @@ namespace Pawns {
                     score -= Unsupported;
                 }
 
-                if (connected)
+                if (   0 != supporters
+                    || 0 != phalanxes)
                 {
                     score += Connected[opposed ? 1 : 0]
                                       [phalanxes != 0 ? 1 : 0]
@@ -187,7 +187,7 @@ namespace Pawns {
                     score += Levered[rel_rank (Own, s)];
                 }
 
-                if (   blocked
+                if (   contains (own_pawns, s-Push)
                     && 0 == supporters)
                 {
                     score -= Blocked;

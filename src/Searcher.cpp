@@ -621,7 +621,7 @@ namespace Searcher {
             , BaseContempt  [CLR_NO];
 
         ofstream OutputStream;
-        bool     WriteOutput = false;
+        bool     WriteOutput;
 
         // check_limits() is used to print debug info and, more importantly,
         // to detect when out of available limits and thus stop the search.
@@ -690,7 +690,7 @@ namespace Searcher {
             update_cm_stats (ss, pos[org_sq (move)], dst_sq (move), value);
         }
 
-        // Appends the move and child pv vector
+        // Appends the move and child pv
         void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
         {
             pv.clear ();
@@ -915,6 +915,8 @@ namespace Searcher {
 
             auto best_move = MOVE_NONE;
 
+            u08 move_count = 0;
+
             // Initialize move picker (2) for the current position.
             MovePicker mp (pos, tt_move, ss, depth);
             StateInfo si;
@@ -923,6 +925,8 @@ namespace Searcher {
             {
                 assert(pos.pseudo_legal (move)
                     && pos.legal (move));
+
+                ++move_count;
 
                 bool gives_check = pos.gives_check (move);
 
@@ -960,7 +964,8 @@ namespace Searcher {
                 // Don't search moves with negative SEE values
                 if (   (   !in_check
                         // Evasion Prunable: Detect non-capture evasions that are candidate to be pruned
-                        || (   0 != depth
+                        || (   (   0 != depth
+                                || 2 < move_count)
                             && best_value > -VALUE_MATE_IN_MAX_PLY
                             && !pos.capture (move)))
                     && PROMOTE != mtype (move)
@@ -1602,7 +1607,7 @@ namespace Searcher {
                     // SEE based pruning
                     if (   7 > depth
                         && new_depth < depth
-                        && !pos.see_ge (move, -VALUE_EG_PAWN*(depth+0)))
+                        && !pos.see_ge (move, -Value(i32(VALUE_EG_PAWN)*depth)))
                     {
                         continue;
                     }
@@ -2296,17 +2301,20 @@ namespace Threading {
                 book.open (BookFile, ios_base::in);
                 bool found = false;
                 auto book_best_move = book.probe_move (root_pos, BookMoveBest);
-                if (   MOVE_NONE != book_best_move
-                    && std::find (root_moves.begin (), root_moves.end (), book_best_move) != root_moves.end ())
+                if (MOVE_NONE != book_best_move)
                 {
-                    auto &root_move = root_moves[0];
-                    std::swap (root_move, *std::find (root_moves.begin (), root_moves.end (), book_best_move));
-                    StateInfo si;
-                    root_pos.do_move (book_best_move, si);
-                    auto book_ponder_move = book.probe_move (root_pos, BookMoveBest);
-                    root_move += book_ponder_move;
-                    root_pos.undo_move (book_best_move);
-                    found = true;
+                    auto itr = std::find (root_moves.begin (), root_moves.end (), book_best_move);
+                    if (itr != root_moves.end ())
+                    {
+                        auto &root_move = root_moves[0];
+                        std::swap (root_move, *itr);
+                        StateInfo si;
+                        root_pos.do_move (book_best_move, si);
+                        auto book_ponder_move = book.probe_move (root_pos, BookMoveBest);
+                        root_move += book_ponder_move;
+                        root_pos.undo_move (book_best_move);
+                        found = true;
+                    }
                 }
                 book.close ();
                 if (found)
@@ -2429,37 +2437,39 @@ namespace Threading {
             Threadpool.last_value = root_move.new_value;
         }
 
+        auto best_move = root_move[0];
+        auto ponder_move =  MOVE_NONE != best_move
+                         && (   root_move.size () > 1
+                             || root_move.extract_ponder_move_from_tt (root_pos)) ?
+                            root_move[1] : MOVE_NONE;
+
         if (WriteOutput)
         {
             auto total_nodes  = Threadpool.nodes ();
             auto elapsed_time = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
             OutputStream
-                << "Nodes (N)  : " << total_nodes                           << '\n'
-                << "Time (ms)  : " << elapsed_time                          << '\n'
-                << "Speed (N/s): " << total_nodes*MilliSec / elapsed_time   << '\n'
-                << "Hash-full  : " << TT.hash_full ()                       << '\n'
-                << "Best Move  : " << move_to_san (root_move[0], root_pos)  << '\n';
-            if (   MOVE_NONE != root_move[0]
-                && (   root_move.size () > 1
-                    || root_move.extract_ponder_move_from_tt (root_pos)))
+                << "Nodes (N)  : " << total_nodes                         << '\n'
+                << "Time (ms)  : " << elapsed_time                        << '\n'
+                << "Speed (N/s): " << total_nodes*MilliSec / elapsed_time << '\n'
+                << "Hash-full  : " << TT.hash_full ()                     << '\n'
+                << "Best Move  : " << move_to_san (best_move, root_pos)   << '\n';
+            if (MOVE_NONE != best_move)
             {
                 StateInfo si;
-                root_pos.do_move (root_move[0], si);
-                OutputStream << "Ponder Move: " << move_to_san (root_move[1], root_pos) << '\n';
-                root_pos.undo_move (root_move[0]);
+                root_pos.do_move (best_move, si);
+                OutputStream
+                    << "Ponder Move: " << move_to_san (ponder_move, root_pos) << '\n';
+                root_pos.undo_move (best_move);
             }
             OutputStream << std::endl;
             OutputStream.close ();
-            WriteOutput = false;
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position.
-        sync_cout << "bestmove " << move_to_can (root_move[0]);
-        if (   MOVE_NONE != root_move[0]
-            && (   root_move.size () > 1
-                || root_move.extract_ponder_move_from_tt (root_pos)))
+        sync_cout << "bestmove " << move_to_can (best_move);
+        if (MOVE_NONE != best_move)
         {
-            std::cout << " ponder " << move_to_can (root_move[1]);
+            std::cout << " ponder " << move_to_can (ponder_move);
         }
         std::cout << sync_endl;
     }
