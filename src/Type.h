@@ -114,6 +114,41 @@ typedef u64 Bitboard;
 
 const u16 MaxPlies   = 128; // Maximum Plies
 
+// Preloads the given address in L1/L2 cache.
+// This is a non-blocking function that doesn't stall
+// the CPU waiting for data to be loaded from memory,
+// which can be quite slow.
+#if defined(PREFETCH)
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
+#       include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+        inline void prefetch (const void *addr)
+        {
+#       if defined(__INTEL_COMPILER)
+            // This hack prevents prefetches from being optimized away by
+            // Intel compiler. Both MSVC and gcc seem not be affected by this.
+            __asm__ ("");
+#       endif
+            _mm_prefetch (reinterpret_cast<const char*> (addr), _MM_HINT_T0);
+        }
+
+#   else
+        inline void prefetch (const void *addr)
+        {
+            __builtin_prefetch (addr);
+        }
+#   endif
+#else
+        inline void prefetch (const void *)
+        {}
+#endif
+
+        inline void prefetch_off (const void *addr)
+        {
+            prefetch (addr);
+            prefetch ((const uint8_t*) addr + 64);
+        }
+
 enum File : i08
 {
     F_A,
@@ -523,7 +558,7 @@ inline bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
 inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
 inline void      promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= PROMOTE + ((pt - 1) << 12); }
-inline i16       move_pp (Move m) { return i16(m & 0xFFF); }
+inline i16       move_pp (Move m) { return i16(m & 0x0FFF); }
 
 template<MoveType MT>
 inline Move mk_move (Square org, Square dst)               { return Move(MT + (org << 6) + dst); }
@@ -691,9 +726,10 @@ inline void remove_extension (std::string &filename)
 inline std::string append_path (const std::string &base_path, const std::string &file_path)
 {
     static const char Separator = '/';
-    return base_path[base_path.length ()] != Separator ?
-        base_path + Separator + file_path :
-        base_path + file_path;
+    return
+        base_path[base_path.length ()] != Separator ?
+            base_path + Separator + file_path :
+            base_path + file_path;
 }
 
 inline void convert_path (std::string &path)

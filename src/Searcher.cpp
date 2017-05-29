@@ -306,7 +306,7 @@ Move MovePicker::next_move (bool skip_quiets)
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        if (_moves.size () > 1)
+        if (1 < _moves.size ())
         {
             value<CAPTURE> ();
         }
@@ -330,7 +330,7 @@ Move MovePicker::next_move (bool skip_quiets)
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        if (_moves.size () > 1)
+        if (1 < _moves.size ())
         {
             value<QUIET> ();
         }
@@ -400,7 +400,7 @@ Move MovePicker::next_move (bool skip_quiets)
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        if (_moves.size () > 1)
+        if (1 < _moves.size ())
         {
             value<EVASION> ();
         }
@@ -421,7 +421,7 @@ Move MovePicker::next_move (bool skip_quiets)
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        if (_moves.size () > 1)
+        if (1 < _moves.size ())
         {
             value<CAPTURE> ();
         }
@@ -446,7 +446,7 @@ Move MovePicker::next_move (bool skip_quiets)
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        if (_moves.size () > 1)
+        if (1 < _moves.size ())
         {
             value<CAPTURE> ();
         }
@@ -464,7 +464,7 @@ Move MovePicker::next_move (bool skip_quiets)
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        if (_moves.size () > 1)
+        if (1 < _moves.size ())
         {
             value<QUIET> ();
         }
@@ -485,7 +485,7 @@ Move MovePicker::next_move (bool skip_quiets)
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        if (_moves.size () > 1)
+        if (1 < _moves.size ())
         {
             value<CAPTURE> ();
         }
@@ -506,7 +506,7 @@ Move MovePicker::next_move (bool skip_quiets)
             _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
         }
         _index = 0;
-        if (_moves.size () > 1)
+        if (1 < _moves.size ())
         {
             value<CAPTURE> ();
         }
@@ -562,41 +562,6 @@ namespace Searcher {
 
     namespace {
 
-// Preloads the given address in L1/L2 cache.
-// This is a non-blocking function that doesn't stall
-// the CPU waiting for data to be loaded from memory,
-// which can be quite slow.
-#if defined(PREFETCH)
-#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
-#       include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
-        void prefetch (const void *addr)
-        {
-#       if defined(__INTEL_COMPILER)
-            // This hack prevents prefetches from being optimized away by
-            // Intel compiler. Both MSVC and gcc seem not be affected by this.
-            __asm__ ("");
-#       endif
-            _mm_prefetch (reinterpret_cast<const char*> (addr), _MM_HINT_T0);
-        }
-
-#   else
-        void prefetch (const void *addr)
-        {
-            __builtin_prefetch (addr);
-        }
-#   endif
-#else
-        void prefetch (const void *)
-        {}
-#endif
-
-        void prefetch_off (const void *addr)
-        {
-            prefetch (addr);
-            prefetch ((const uint8_t*) addr + 64);
-        }
-
         const i16 MaxRazorDepth = 4;
         // RazorMargins[depth]
         Value RazorMargins[MaxRazorDepth] = { Value(0), Value(570), Value(602), Value(554) };
@@ -621,7 +586,6 @@ namespace Searcher {
             , BaseContempt  [CLR_NO];
 
         ofstream OutputStream;
-        bool     WriteOutput;
 
         // check_limits() is used to print debug info and, more importantly,
         // to detect when out of available limits and thus stop the search.
@@ -758,7 +722,8 @@ namespace Searcher {
                     << " depth "    << d
                     << " seldepth " << th->max_ply
                     << " score "    << to_string (tb ? TBValue : v)
-                    << (!tb && i == th->pv_index ?
+                    << (   !tb
+                        && i == th->pv_index ?
                             beta <= v ? " lowerbound" :
                                 v <= alfa ? " upperbound" : "" : "")
                     << " nodes "    << total_nodes
@@ -808,7 +773,7 @@ namespace Searcher {
                         DrawValue[pos.active];
             }
 
-            auto *th = pos.thread;
+            //auto *th = pos.thread;
 
             Move move;
             // Transposition table lookup
@@ -977,23 +942,11 @@ namespace Searcher {
 
                 ss->current_move = move;
 
-                bool capture_or_promotion = pos.capture_or_promotion (move);
-
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                 // Make the move
                 pos.do_move (move, si, gives_check);
-
-                if (   PAWN == ptype (pos[dst_sq (move)])
-                    || PAWN == pos.si->capture)
-                {
-                    prefetch_off (th->pawn_table[pos.si->pawn_key]);
-                }
-                if (capture_or_promotion)
-                {
-                    prefetch (th->matl_table[pos.si->matl_key]);
-                }
 
                 auto value = -quien_search<PVNode> (pos, ss+1, -beta, -alfa, depth - 1);
 
@@ -1401,14 +1354,6 @@ namespace Searcher {
 
                             pos.do_move (move, si);
 
-                            if (   PAWN == ptype (pos[dst_sq (move)])
-                                || PAWN == pos.si->capture)
-                            {
-                                prefetch_off (th->pawn_table[pos.si->pawn_key]);
-                            }
-                            // NOTE:: All moves are capture_or_promotion
-                            prefetch (th->matl_table[pos.si->matl_key]);
-
                             auto value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, reduced_depth, !cut_node, true);
 
                             pos.undo_move (move);
@@ -1623,16 +1568,6 @@ namespace Searcher {
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check);
 
-                if (   PAWN == ptype (pos[dst_sq (move)])
-                    || PAWN == pos.si->capture)
-                {
-                    prefetch_off (th->pawn_table[pos.si->pawn_key]);
-                }
-                if (capture_or_promotion)
-                {
-                    prefetch (th->matl_table[pos.si->matl_key]);
-                }
-
                 bool full_depth_search;
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
@@ -1701,7 +1636,7 @@ namespace Searcher {
                     value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true, true);
 
                     full_depth_search = alfa < value
-                                     && reduce_depth > 0;
+                                     && reduce_depth != 0;
                 }
                 else
                 {
@@ -2164,7 +2099,7 @@ namespace Threading {
                     Threadpool.skill_mgr.pick_best_move (Threadpool.pv_limit);
                 }
 
-                if (WriteOutput)
+                if (OutputStream.is_open ())
                 {
                     OutputStream << pretty_pv_info (this) << std::endl;
                 }
@@ -2247,8 +2182,7 @@ namespace Threading {
         if (!white_spaces (OutputFile))
         {
             OutputStream.open (OutputFile, ios_base::out|ios_base::app);
-            WriteOutput = OutputStream.is_open ();
-            if (WriteOutput)
+            if (OutputStream.is_open ())
             {
                 OutputStream
                     << std::boolalpha
@@ -2438,12 +2372,12 @@ namespace Threading {
         }
 
         auto best_move = root_move[0];
-        auto ponder_move =  MOVE_NONE != best_move
-                         && (   root_move.size () > 1
-                             || root_move.extract_ponder_move_from_tt (root_pos)) ?
-                            root_move[1] : MOVE_NONE;
+        auto ponder_move = MOVE_NONE != best_move
+                        && (   root_move.size () > 1
+                            || root_move.extract_ponder_move_from_tt (root_pos)) ?
+                           root_move[1] : MOVE_NONE;
 
-        if (WriteOutput)
+        if (OutputStream.is_open ())
         {
             auto total_nodes  = Threadpool.nodes ();
             auto elapsed_time = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));

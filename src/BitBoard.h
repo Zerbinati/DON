@@ -23,19 +23,19 @@ namespace BitBoard {
     const Bitboard R7_bb = R1_bb << (8 * 6);
     const Bitboard R8_bb = R1_bb << (8 * 7);
 
-    const Bitboard Side_bb[3] =
+    const Bitboard Side_bb[] =
     {
         FE_bb|FF_bb|FG_bb|FH_bb,
         FA_bb|FB_bb|FC_bb|FD_bb,
         FC_bb|FD_bb|FE_bb|FF_bb
     };
-    const Bitboard Color_bb[CLR_NO] =
+    const Bitboard Color_bb[] =
     {
         U64(0x55AA55AA55AA55AA),
         U64(0xAA55AA55AA55AA55)
     };
 
-    const Bitboard Square_bb[SQ_NO] =
+    const Bitboard Square_bb[] =
     {
 #define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
 #define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
@@ -48,10 +48,10 @@ namespace BitBoard {
 #undef S_02
     };
 
-    const Bitboard File_bb[F_NO] = { FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb };
-    const Bitboard Rank_bb[R_NO] = { R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb };
+    const Bitboard File_bb[] = { FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb };
+    const Bitboard Rank_bb[] = { R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb };
 
-    const Bitboard AdjFile_bb  [F_NO] =
+    const Bitboard AdjFile_bb[] =
     {
         FB_bb,
         FA_bb|FC_bb,
@@ -62,7 +62,7 @@ namespace BitBoard {
         FF_bb|FH_bb,
         FG_bb
     };
-    const Bitboard AdjRank_bb  [R_NO] =
+    const Bitboard AdjRank_bb[] =
     {
         R2_bb,
         R1_bb|R3_bb,
@@ -73,7 +73,7 @@ namespace BitBoard {
         R6_bb|R8_bb,
         R7_bb
     };
-    const Bitboard FrontRank_bb[CLR_NO][R_NO] =
+    const Bitboard FrontRank_bb[][R_NO] =
     {
         {
             R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
@@ -97,7 +97,7 @@ namespace BitBoard {
         }
     };
 
-    const Bitboard KingFlank[F_NO] =
+    const Bitboard KingFlank[] =
     {
         Side_bb[CS_QUEN], Side_bb[CS_QUEN], Side_bb[CS_QUEN], Side_bb[CS_NO], Side_bb[CS_NO], Side_bb[CS_KING], Side_bb[CS_KING], Side_bb[CS_KING]
     };

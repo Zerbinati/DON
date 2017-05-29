@@ -189,10 +189,10 @@ public:
     {}
     RootMove& operator= (const RootMove&) = default;
 
-    bool operator<  (const RootMove &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value > rm.old_value; }
-    bool operator>  (const RootMove &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value < rm.old_value; }
-    bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
-    bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
+    bool operator<  (const RootMove &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value >  rm.old_value; }
+    bool operator>  (const RootMove &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value <  rm.old_value; }
+    bool operator<= (const RootMove &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value >= rm.old_value; }
+    bool operator>= (const RootMove &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value <= rm.old_value; }
     bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
     bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
 
@@ -331,7 +331,7 @@ namespace Searcher {
     extern bool  TBHasRoot;
     extern Value TBValue;
 
-    extern std::string  OutputFile;
+    extern std::string OutputFile;
 
     template<bool RootNode = true>
     extern u64 perft (Position &pos, i16 depth);

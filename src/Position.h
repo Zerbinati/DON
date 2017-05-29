@@ -273,7 +273,7 @@ inline Key Position::move_posi_key (Move m) const
         && color (board[org]) == active
         && NONE != mpt);
     
-    Key key = si->posi_key;
+    auto key = si->posi_key;
     auto mt = mtype (m);
     auto ppt = PROMOTE != mt ? mpt : promote (m);
     if (CASTLE == mt)
@@ -297,7 +297,9 @@ inline Key Position::move_posi_key (Move m) const
         auto cpt = ENPASSANT != mt ? ptype (board[dst]) : PAWN;
         if (NONE != cpt)
         {
-            key ^= RandZob.piece_square_keys[~active][cpt][ENPASSANT != mt ? dst : dst - pawn_push (active)];
+            key ^= RandZob.piece_square_keys[~active][cpt][ENPASSANT != mt ?
+                                                                dst :
+                                                                dst - pawn_push (active)];
         }
     }
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);

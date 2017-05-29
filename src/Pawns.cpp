@@ -84,10 +84,11 @@ namespace Pawns {
             const Bitboard own_pawns = pos.pieces (Own, PAWN);
             const Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            e->any_attacks[Own] = shift<LCap> (own_pawns)
-                                | shift<RCap> (own_pawns);
-            e->dbl_attacks[Own] = shift<LCap> (own_pawns)
-                                & shift<RCap> (own_pawns);
+            const Bitboard l_cap = shift<LCap> (own_pawns);
+            const Bitboard r_cap = shift<RCap> (own_pawns);
+
+            e->any_attacks[Own] = l_cap | r_cap;
+            e->dbl_attacks[Own] = l_cap & r_cap;
             e->attack_span[Own] = 0;
             e->passers    [Own] = 0;
             e->semiopens  [Own] = u08(0xFF);
@@ -95,10 +96,13 @@ namespace Pawns {
             e->color_count[Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
             e->index      [Own] = 0;
             std::fill_n (e->king_square[Own], MaxCache, SQ_NO);
+            std::fill_n (e->king_safety[Own], MaxCache, VALUE_ZERO);
+            std::fill_n (e->king_pawn_dist[Own], MaxCache, 0);
+
             e->do_king_safety<Own> (pos, rel_sq (Own, SQ_G1));
             e->do_king_safety<Own> (pos, rel_sq (Own, SQ_C1));
 
-            Score score = SCORE_ZERO;
+            auto score = SCORE_ZERO;
 
             File f;
             Bitboard b, neighbours, supporters, stoppers, phalanxes, levers, escapes;
@@ -116,7 +120,7 @@ namespace Pawns {
                 stoppers   = opp_pawns & pawn_pass_span (Own, s);
                 phalanxes  = neighbours & rank_bb (s);
                 levers     = opp_pawns & PAtt[s];
-                escapes    = opp_pawns & PAtt[s + Push];
+                escapes    = opp_pawns & PAtt[s+Push];
 
                 opposed    = 0 != (opp_pawns & front_sqrs_bb (Own, s));
 
@@ -145,7 +149,7 @@ namespace Pawns {
                     e->passers[Own] |= s;
                 }
                 else
-                if (   stoppers == square_bb (s + Push)
+                if (   stoppers == square_bb (s+Push)
                     && rel_rank (Own, s) >= R_5)
                 {
                     b = shift<Push> (supporters) & ~opp_pawns;

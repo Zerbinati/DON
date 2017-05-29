@@ -243,7 +243,7 @@ namespace Evaluator {
         // KingThreat[one/more] contains bonus for king attacks on pawns or pieces which are not pawn-defended
         const Score KingThreat[] = { S( 3, 62), S( 9,138) };
 
-        const Score PawnPassHinder  = S( 7, 0);
+        const Score PawnPassHinder = S( 7, 0);
 
         // PawnPassFile[file] contains bonus for passed pawns according to distance from edge
         const Score PawnPassFile[] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
@@ -262,7 +262,7 @@ namespace Evaluator {
     #undef V
 
         // Bonus for king attack by piece type
-        const i32 PieceKingAttacks[NONE] = {  0, 78, 56, 45, 11,  0 };
+        const i32 PieceKingAttacks[] = {  0, 78, 56, 45, 11,  0 };
 
         template<Color Own>
         void init_eval (const Position &pos, EvalInfo &ei)
@@ -282,7 +282,7 @@ namespace Evaluator {
                           & (shift<Pull> (pos.pieces ()) | LowRanks));
             ei.mobility_area[Own] = ~(b | pos.square (Own, KING));
             
-            if (pos.si->non_pawn_material (Opp) >= VALUE_MG_QUEN)
+            if (pos.si->non_pawn_material (Opp) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
             {
                 Bitboard king_zone = PieceAttacks[KING][pos.square (Own, KING)];
                 ei.king_ring[Own] = king_zone;
@@ -316,7 +316,7 @@ namespace Evaluator {
 
             assert(NIHT <= PT && PT <= QUEN);
 
-            Score score = SCORE_ZERO;
+            auto score = SCORE_ZERO;
             ei.pin_attacked_by[Own][PT] = 0;
 
             for (auto s : pos.squares[Own][PT])
@@ -501,9 +501,9 @@ namespace Evaluator {
         {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
-            static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
-            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            //static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
+            //static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            //static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
             static const Bitboard Camp = Own == WHITE ?
                                              R1_bb|R2_bb|R3_bb|R4_bb|R5_bb :
                                              R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
@@ -532,11 +532,11 @@ namespace Evaluator {
                 }
             }
 
-            Score score = mk_score (value, -16 * ei.pe->king_pawn_dist[Own][index]);
+            auto score = mk_score (value, -16 * ei.pe->king_pawn_dist[Own][index]);
 
             Bitboard b;
             // Main king safety evaluation
-            if (0 != ei.king_ring_attackers_count[Opp])
+            if (ei.king_ring_attackers_count[Opp] + pos.count<QUEN> (Opp) > 1)
             {
                 // Find the attacked squares which are defended only by the king in the king zone...
                 Bitboard king_zone_undef =
@@ -559,13 +559,13 @@ namespace Evaluator {
                     + 102 * ei.king_zone_attacks_count[Opp]
                     + 201 * pop_count (king_zone_undef)
                     + 143 * pop_count (king_ring_undef | pos.abs_blockers (Own))
-                    + 143 * pop_count (pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & (  (file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
-                                                                                                                      | shift<RCap> (pos.pieces (Own))))
-                                                                                               | shift<Pull> (pos.pieces ())))
-                                                                  | pos.abs_blockers (Opp)))
+                    //+ 143 * pop_count (pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & (  (file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
+                    //                                                                                                  | shift<RCap> (pos.pieces (Own))))
+                    //                                                                           | shift<Pull> (pos.pieces ())))
+                    //                                              | pos.abs_blockers (Opp)))
                     - 848 * (0 == pos.count<QUEN>(Opp))
-                    -  28 * i32(value) / 25
-                    -   5;
+                    -   9 * i32(value) / 8
+                    +  40;
 
                 Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces ());
                 Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces ());
@@ -683,7 +683,7 @@ namespace Evaluator {
             static const Bitboard R2BB = Own == WHITE ? R2_bb : R7_bb;
             static const Bitboard R7BB = Own == WHITE ? R7_bb : R2_bb;
 
-            Score score = SCORE_ZERO;
+            auto score = SCORE_ZERO;
 
             Bitboard b;
             
@@ -829,7 +829,7 @@ namespace Evaluator {
             static const auto Opp  = Own == WHITE ? BLACK : WHITE;
             static const auto Push = Own == WHITE ? DEL_N : DEL_S;
 
-            Score score = SCORE_ZERO;
+            auto score = SCORE_ZERO;
 
             Bitboard passers = ei.pe->passers[Own];
             while (0 != passers)
@@ -960,14 +960,14 @@ namespace Evaluator {
             // - if not attacked by an enemy pawns
             // - if defended or not attacked by an enemy pieces.
             Bitboard safe_space =
-                   Side_bb[CS_NO]
-                &  SpaceArea
+                   SpaceArea
+                &  Side_bb[CS_NO]
                 & ~pos.pieces (Own, PAWN)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 & (   ei.pin_attacked_by[Own][NONE]
                    | ~ei.pin_attacked_by[Opp][NONE]);
 
-            // Since SpaceArea[Own] is fully on our half of the board
+            // Since SpaceArea is fully on our half of the board
             assert((Own == WHITE ?
                         safe_space & U64(0xFFFFFFFF00000000) :
                         safe_space & U64(0x00000000FFFFFFFF)) == 0);
@@ -981,7 +981,7 @@ namespace Evaluator {
                                        safe_space << 32 :
                                        safe_space >> 32));
             i32 weight = pos.count<NONE> (Own) - 2 * ei.pe->open_count;
-            Score score = mk_score (count * weight * weight / 16, 0);
+            auto score = mk_score (count * weight * weight / 16, 0);
 
             if (Trace)
             {
@@ -1075,7 +1075,7 @@ namespace Evaluator {
         // - the incrementally updated scores (material + piece square tables).
         // - the material imbalance.
         // - the pawn score
-        Score score =
+        auto score =
               pos.si->psq_score
             + me->imbalance
             + pe->score;
