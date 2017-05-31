@@ -182,8 +182,10 @@ namespace Threading {
         Pawns   ::Table   pawn_table;
         Material::Table   matl_table;
 
-        HistoryStats      history;
-        CMoveHistoryStats cm_history;
+        HistoryStats            history;
+        MoveHistoryStatsBoard   cm_history;
+
+        MoveStatsBoard          counter_moves;
 
         Thread ();
         Thread (const Thread&) = delete;
@@ -196,8 +198,17 @@ namespace Threading {
             count_reset = true;
             pawn_table.clear ();
             matl_table.clear ();
-            history.clear ();
-            cm_history.clear ();
+
+            history.fill (0);
+            for (auto &pc : cm_history)
+            {
+                for (auto &dst : pc)
+                {
+                    dst.fill (0);
+                }
+            }
+            cm_history[NO_PIECE][0].fill (-1);
+            counter_moves.fill (MOVE_NONE);
         }
 
         // Wakes up the thread that will start the search
@@ -265,10 +276,9 @@ namespace Threading {
         Move   easy_move   = MOVE_NONE;
         Value  last_value  = VALUE_NONE;
 
-        TimeManager  time_mgr;
-        MoveManager  move_mgr;
-        SkillManager skill_mgr;
-        MoveStats    counter_moves;
+        TimeManager     time_mgr;
+        MoveManager     move_mgr;
+        SkillManager    skill_mgr;
 
         ThreadPool () = default;
         ThreadPool (const ThreadPool&) = delete;

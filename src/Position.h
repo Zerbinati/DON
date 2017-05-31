@@ -528,6 +528,7 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
     os << std::string(pos);
     return os;
 }
+
 // Set check info used for fast check detection
 inline void StateInfo::set_check_info (const Position &pos)
 {
@@ -550,7 +551,6 @@ inline Value StateInfo::non_pawn_material () const
     return non_pawn_matl[WHITE]
          + non_pawn_matl[BLACK];
 }
-
 inline Value StateInfo::non_pawn_material (Color c) const
 {
     return non_pawn_matl[c];

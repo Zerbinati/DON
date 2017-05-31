@@ -1,6 +1,7 @@
 #ifndef _SEARCHER_H_INC_
 #define _SEARCHER_H_INC_
 
+#include <array>
 #include <atomic>
 
 #include "Type.h"
@@ -46,122 +47,58 @@ public:
     }
 };
 
+// StatBoards is a Generic 2-dimensional array used to store various statistics
+template<i32 Size1, i32 Size2, typename T = i32>
+struct StatsBoard
+    : public std::array<std::array<T, Size2>, Size1>
+{
+    void fill (const T &v)
+    {
+        T *p = &(*this)[0][0];
+        std::fill (p, p + sizeof (*this) / sizeof (*p), v);
+    }
+};
+
+// HistoryStats indexed by [color][move's org and dst squares]
+typedef StatsBoard<CLR_NO, SQ_NO*SQ_NO> HistoryStatsBoard;
 // HistoryStats records how often quiet moves have been successful or unsuccessful
 // during the current search, and is used for reduction and move ordering decisions.
 struct HistoryStats
+    : public HistoryStatsBoard
 {
-private:
-    i32 _table[CLR_NO][SQ_NO*SQ_NO];
-
-public:
-    void clear ()
-    {
-        for (auto c = WHITE; c <= BLACK; ++c)
-        {
-            for (auto m = 0; m < SQ_NO*SQ_NO; ++m)
-            {
-                _table[c][m] = 0;
-            }
-        }
-    }
-
-    i32 operator() (Color c, Move m) const
-    {
-        return _table[c][move_pp (m)];
-    }
-
+    // Color, Move, Value
     void update (Color c, Move m, i32 v)
     {
         static const i32 D = 324;
-        assert(abs (v) <= D); // Consistency check
-        auto &e = _table[c][move_pp (m)];
-        e += v*32 - (e*abs (v))/D;
+        assert (abs (v) <= D); // Consistency check
+        auto &e = (*this)[c][move_pp (m)];
+        e += v*32 - e*abs (v)/D;
+        assert(abs (e) <= 32 * D);
     }
 };
 
-// MoveStats store the move that refute a previous one
-struct MoveStats
+// PieceToBoards are addressed by a move's [piece][destiny] information
+typedef StatsBoard<MAX_PIECE, SQ_NO> PieceDestinyHistoryStatsBoard;
+// PieceToHistory is like HistoryStats, but is based on PieceDestinyHistoryStatsBoard
+struct PieceDestinyHistoryStats
+    : public PieceDestinyHistoryStatsBoard
 {
-private:
-    Move _table[MAX_PIECE][SQ_NO*SQ_NO];
-
-public:
-    void clear ()
-    {
-        for (auto pc = 0; pc < MAX_PIECE; ++pc)
-        {
-            for (auto m = 0; m < SQ_NO*SQ_NO; ++m)
-            {
-                _table[pc][m] = MOVE_NONE;
-            }
-        }
-    }
-
-    Move operator() (Piece pc, Move m) const
-    {
-        return _table[pc][move_pp (m)];
-    }
-
-    void update (Piece pc, Move m, Move cm)
-    {
-        _table[pc][move_pp (m)] = cm;
-    }
-};
-
-// MoveHistoryStats
-struct MoveHistoryStats
-{
-private:
-    i32 _table[MAX_PIECE][SQ_NO];
-
-public:
-    void clear ()
-    {
-        for (auto pc = 0; pc < MAX_PIECE; ++pc)
-        {
-            for (auto s = SQ_A1; s <= SQ_H8; ++s)
-            {
-                _table[pc][s] = 0;
-            }
-        }
-    }
-    // Piece, Destiny
-    i32 operator() (Piece pc, Square s) const
-    {
-        return _table[pc][s];
-    }
     // Piece, Destiny, Value
     void update (Piece pc, Square s, i32 v)
     {
         static const i32 D = 936;
-        assert(abs (v) <= D); // Consistency check
-        auto &e = _table[pc][s];
-        e += v*32 - (e*abs (v))/D;
+        assert (abs (v) <= D); // Consistency check
+        auto &e = (*this)[pc][s];
+        e += v*32 - e*abs (v)/D;
+        assert(abs (e) <= 32 * D);
     }
 };
-// CounterMoveHistoryStats is like HistoryStats, but with two consecutive moves
-struct CMoveHistoryStats
-{
-private:
-    MoveHistoryStats _table[MAX_PIECE][SQ_NO];
 
-public:
-    void clear ()
-    {
-        for (auto pc = 0; pc < MAX_PIECE; ++pc)
-        {
-            for (auto s = SQ_A1; s <= SQ_H8; ++s)
-            {
-                _table[pc][s].clear ();
-            }
-        }
-    }
+// MoveHistoryStatsBoard
+typedef StatsBoard<MAX_PIECE, SQ_NO, PieceDestinyHistoryStats> MoveHistoryStatsBoard;
 
-    MoveHistoryStats& operator() (Piece pc, Square s)
-    {
-        return _table[pc][s];
-    }
-};
+// MoveStatsBoard stores counter moves indexed by [piece][destiny]
+typedef StatsBoard<MAX_PIECE, SQ_NO, Move> MoveStatsBoard;
 
 // The root of the tree is a PV node
 // At a PV node all the children have to be investigated
@@ -260,11 +197,11 @@ public:
     Move  killer_moves[MaxKillers];
 
     Value static_eval;
-    i32   history_val;
+    i32   stats_val;
     u08   move_count;
     MoveVector pv;
 
-    MoveHistoryStats *m_history;
+    PieceDestinyHistoryStats *m_history;
 };
 
 // MovePicker class is used to pick one legal moves from the current position

@@ -1025,9 +1025,10 @@ namespace Evaluator {
             assert(scale != SCALE_NONE);
 
             // If don't already have an unusual scale, check for certain types of endgames.
-            if (   SCALE_NORMAL == scale
-                || SCALE_ONEPAWN == scale)
+            switch (scale)
             {
+            case SCALE_NORMAL:
+            case SCALE_ONEPAWN:
                 if (pos.opposite_bishops ())
                 {
                     return
