@@ -49,7 +49,7 @@ public:
 
 // StatBoards is a Generic 2-dimensional array used to store various statistics
 template<i32 Size1, i32 Size2, typename T = i32>
-struct StatsBoard
+struct BoardStats
     : public std::array<std::array<T, Size2>, Size1>
 {
     void fill (const T &v)
@@ -60,11 +60,11 @@ struct StatsBoard
 };
 
 // HistoryStats indexed by [color][move's org and dst squares]
-typedef StatsBoard<CLR_NO, SQ_NO*SQ_NO> HistoryStatsBoard;
+typedef BoardStats<CLR_NO, SQ_NO*SQ_NO> HistoryBoardStats;
 // HistoryStats records how often quiet moves have been successful or unsuccessful
 // during the current search, and is used for reduction and move ordering decisions.
 struct HistoryStats
-    : public HistoryStatsBoard
+    : public HistoryBoardStats
 {
     // Color, Move, Value
     void update (Color c, Move m, i32 v)
@@ -78,10 +78,10 @@ struct HistoryStats
 };
 
 // PieceToBoards are addressed by a move's [piece][destiny] information
-typedef StatsBoard<MAX_PIECE, SQ_NO> PieceDestinyHistoryStatsBoard;
-// PieceToHistory is like HistoryStats, but is based on PieceDestinyHistoryStatsBoard
-struct PieceDestinyHistoryStats
-    : public PieceDestinyHistoryStatsBoard
+typedef BoardStats<MAX_PIECE, SQ_NO> SquareHistoryBoardStats;
+// PieceToHistory is like HistoryStats, but is based on SquareHistoryBoardStats
+struct SquareHistoryStats
+    : public SquareHistoryBoardStats
 {
     // Piece, Destiny, Value
     void update (Piece pc, Square s, i32 v)
@@ -94,11 +94,11 @@ struct PieceDestinyHistoryStats
     }
 };
 
-// MoveHistoryStatsBoard
-typedef StatsBoard<MAX_PIECE, SQ_NO, PieceDestinyHistoryStats> MoveHistoryStatsBoard;
+// MoveHistoryBoardStats
+typedef BoardStats<MAX_PIECE, SQ_NO, SquareHistoryStats> MoveHistoryBoardStats;
 
-// MoveStatsBoard stores counter moves indexed by [piece][destiny]
-typedef StatsBoard<MAX_PIECE, SQ_NO, Move> MoveStatsBoard;
+// MoveBoardStats stores counter moves indexed by [piece][destiny]
+typedef BoardStats<MAX_PIECE, SQ_NO, Move> MoveBoardStats;
 
 // The root of the tree is a PV node
 // At a PV node all the children have to be investigated
@@ -201,7 +201,7 @@ public:
     u08   move_count;
     MoveVector pv;
 
-    PieceDestinyHistoryStats *m_history;
+    SquareHistoryStats *m_history;
 };
 
 // MovePicker class is used to pick one legal moves from the current position

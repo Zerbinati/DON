@@ -692,7 +692,7 @@ namespace Searcher {
             auto tb_hits      = Threadpool.tb_hits () + (TBHasRoot ? th->root_moves.size () : 0);
 
             ostringstream oss;
-            for (u16 i = 0; i < Threadpool.pv_limit; ++i)
+            for (u16 i = 0; true; ++i)
             {
                 bool updated = 
                        i <= th->pv_index
@@ -704,6 +704,10 @@ namespace Searcher {
                         th->running_depth - 1;
                 if (d <= 0)
                 {
+                    if (i == Threadpool.pv_limit - 1)
+                    {
+                        break;
+                    }
                     continue;
                 }
                 auto v =
@@ -731,11 +735,12 @@ namespace Searcher {
                 {
                     oss << " hashfull " << TT.hash_full ();
                 }
-                oss << " pv"        << th->root_moves[i] << '\n';
-                //if (i+1 < Threadpool.pv_limit)
-                //{
-                //    oss << '\n';
-                //}
+                oss << " pv"        << th->root_moves[i];
+                if (i == Threadpool.pv_limit - 1)
+                {
+                    break;
+                }
+                oss << '\n';
             }
             return oss.str ();
         }

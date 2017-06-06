@@ -183,9 +183,9 @@ namespace Threading {
         Material::Table   matl_table;
 
         HistoryStats            history;
-        MoveHistoryStatsBoard   cm_history;
+        MoveHistoryBoardStats   cm_history;
 
-        MoveStatsBoard          counter_moves;
+        MoveBoardStats          counter_moves;
 
         Thread ();
         Thread (const Thread&) = delete;

@@ -555,7 +555,7 @@ namespace Evaluator {
                 // - the number of attacked and undefended squares around our king,
                 // - the quality of the pawn shelter ('mg score' value).
                 i32 king_danger =
-                      ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp]
+                        1 * ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp]
                     + 102 * ei.king_zone_attacks_count[Opp]
                     + 201 * pop_count (king_zone_undef)
                     + 143 * pop_count (king_ring_undef | pos.abs_blockers (Own))
@@ -564,7 +564,7 @@ namespace Evaluator {
                     //                                                                           | shift<Pull> (pos.pieces ())))
                     //                                              | pos.abs_blockers (Opp)))
                     - 848 * (0 == pos.count<QUEN>(Opp))
-                    -   9 * i32(value) / 8
+                    -   9 * value / 8
                     +  40;
 
                 Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces ());
@@ -1049,6 +1049,9 @@ namespace Evaluator {
                 {
                     return Scale(37 + 7 * pos.count<PAWN> (strong_color));
                 }
+                break;
+            default:
+                break;
             }
             return scale;
         }
@@ -1170,7 +1173,10 @@ namespace Evaluator {
     string trace (const Position &pos)
     {
         std::memset (cp, 0x00, sizeof (cp));
-        auto value = evaluate<true> (pos)*(WHITE == pos.active ? +1 : -1); // White's point of view
+        // White's point of view
+        auto value = WHITE == pos.active ?
+                        +evaluate<true> (pos) :
+                        -evaluate<true> (pos);
 
         ostringstream oss;
         oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed

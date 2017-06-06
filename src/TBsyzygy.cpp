@@ -1432,7 +1432,8 @@ namespace TBSyzygy {
             // the state of probe_wdl_table is wrong. Also in case of only capture
             // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, we have to
             // return with ZEROING_BEST_MOVE set.
-            bool no_more_moves = (0 != move_count && move_count == total_count);
+            bool no_more_moves = (   0 != total_count
+                                  && move_count == total_count);
 
             if (no_more_moves)
             {

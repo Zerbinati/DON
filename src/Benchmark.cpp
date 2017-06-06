@@ -159,7 +159,6 @@ void benchmark (istringstream &is, const Position &cur_pos)
         Options["Hash"]        = to_string (hash);
         Options["Threads"]     = to_string (threads);
         Options["Retain Hash"] = "false";
-        clear ();
     }
 
     u64  total_nodes = 0;
@@ -186,6 +185,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
         }
         else
         {
+            clear ();
             limits.start_time = now ();
             limits.elapsed_time = 0;
             StateList states;
