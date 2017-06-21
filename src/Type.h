@@ -200,10 +200,10 @@ enum Square : i08
 
 enum Delta : i08
 {
-    DEL_O =  0,
+    DEL_O =  000,
 
-    DEL_E =  1,
-    DEL_N =  8,
+    DEL_E =  001,
+    DEL_N =  010,
     
     DEL_W = -i08(DEL_E),
     DEL_S = -i08(DEL_N),
@@ -571,8 +571,6 @@ inline Value  cp_to_value (double cp) { return Value(i32(std::round (cp*i32(VALU
 inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
-typedef std::vector<Square> SquareVector;
-typedef std::vector<Move>   MoveVector;
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
 
@@ -611,6 +609,10 @@ public:
     bool operator== (const ValMove &vm) const { return value == vm.value; }
     bool operator!= (const ValMove &vm) const { return value != vm.value; }
 };
+
+typedef std::vector<Square>  Squares;
+typedef std::vector<Move>    Moves;
+typedef std::vector<ValMove> ValMoves;
 
 template<typename T, u32 Size>
 struct HashTable

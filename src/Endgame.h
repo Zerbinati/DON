@@ -43,12 +43,39 @@ namespace EndGame {
         KQKRPs,  // KQ vs KRPs
     };
 
+    const std::string EndgameStrings[] =
+    {
+        "",
+        "KXK",
+        "KPK",
+        "KBNK",
+        "KNNK",
+        "KRKP",
+        "KRKB",
+        "KRKN",
+        "KQKP",
+        "KQKR",
+
+        "",
+        "KRPKR",
+        "KRPKB",
+        "KRPPKRP",
+        "KPsK",
+        "KPKP",
+        "KNPK",
+        "KBPKB",
+        "KBPPKB",
+        "KBPKN",
+        "KNPKB",
+
+    };
+
     // Endgame functions can be of two category depending on whether they return Value or Scale.
     template<EndgameCode EC>
     using EndgameType = typename std::conditional<EC < SCALING_FUNCTIONS, Value, Scale>::type;
 
     // Base and derived functors for endgame evaluation and scaling functions
-    template<typename T>
+    template<typename ET>
     class EndgameBase
     {
     public:
@@ -62,7 +89,7 @@ namespace EndGame {
         virtual ~EndgameBase () = default;
         EndgameBase& operator= (const EndgameBase&) = delete;
 
-        virtual T operator() (const Position &pos) const = 0;
+        virtual ET operator() (const Position &pos) const = 0;
     };
 
     template<EndgameCode EC, typename ET = EndgameType<EC>>
@@ -95,11 +122,11 @@ namespace EndGame {
         }
 
         template<EndgameCode EC, typename ET = EndgameType<EC>, typename EP = Ptr<ET>>
-        void add (const std::string &code)
+        void add ()
         {
             StateInfo si;
-            map<ET> ()[Position ().setup (code, si, WHITE).si->matl_key] = EP (new Endgame<EC> (WHITE));
-            map<ET> ()[Position ().setup (code, si, BLACK).si->matl_key] = EP (new Endgame<EC> (BLACK));
+            map<ET> ()[Position ().setup (EndgameStrings[EC], si, WHITE).si->matl_key] = EP (new Endgame<EC> (WHITE));
+            map<ET> ()[Position ().setup (EndgameStrings[EC], si, BLACK).si->matl_key] = EP (new Endgame<EC> (BLACK));
         }
 
     public:
@@ -107,9 +134,11 @@ namespace EndGame {
         Endgames (const Endgames&) = delete;
         Endgames& operator= (const Endgames&) = delete;
 
-        template<typename T> EndgameBase<T>* probe (Key key)
+        template<typename T> EndgameBase<T>* probe (Key matl_key)
         {
-            return map<T> ().find (key) != map<T> ().end () ? map<T> ()[key].get () : nullptr;
+            return map<T> ().find (matl_key) != map<T> ().end () ?
+                        map<T> ()[matl_key].get () :
+                        nullptr;
         }
     };
 

@@ -1633,7 +1633,7 @@ namespace TBSyzygy {
             if (   0 != root_pos.si->checkers
                 && dtz > 0)
             {
-                vector<ValMove> moves;
+                ValMoves moves;
                 generate<LEGAL> (moves, root_pos);
                 if (moves.size () == 0)
                 {
@@ -1865,7 +1865,7 @@ namespace TBSyzygy {
                 }
             }
             // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
-            vector<Square> diagonal;
+            Squares diagonal;
             code = 0;
             for (auto s = SQ_A1; s <= SQ_D4; ++s)
             {

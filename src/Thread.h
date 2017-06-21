@@ -77,7 +77,7 @@ public:
         stable_count = 0;
         std::fill_n (_pv, PVSize, MOVE_NONE);
     }
-    void update (Position &pos, const MoveVector &pv)
+    void update (Position &pos, const Moves &pv)
     {
         assert(pv.size () >= PVSize);
 

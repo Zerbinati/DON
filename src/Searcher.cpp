@@ -84,7 +84,7 @@ namespace {
     };
 
     //// Insertion sort
-    //void insertion_sort (vector<ValMove> &moves)
+    //void insertion_sort (ValMoves &moves)
     //{
     //    for (size_t i = 1; i < moves.size (); ++i)
     //    {
@@ -574,8 +574,8 @@ namespace Searcher {
         {
             return ReductionDepths[pv ? 1 : 0]
                                   [imp ? 1 : 0]
-                                  [min (d, i16(MaxReductionDepth-1))]
-                                  [min (mc, u08(MaxReductionMoveCount-1))];
+                                  [std::min (d, i16(MaxReductionDepth-1))]
+                                  [std::min (mc, u08(MaxReductionMoveCount-1))];
         }
 
         Value DrawValue     [CLR_NO]
@@ -613,7 +613,7 @@ namespace Searcher {
             }
         }
 
-        // History and stats update bonus, based on depth
+        // Stats bonus, based on depth
         i32 stat_bonus (i16 depth)
         {
             return depth <= 17 ? depth*(depth + 2) - 2 : 0;
@@ -652,7 +652,7 @@ namespace Searcher {
         }
 
         // Appends the move and child pv
-        void update_pv (MoveVector &pv, Move move, const MoveVector &child_pv)
+        void update_pv (Moves &pv, Move move, const Moves &child_pv)
         {
             pv.clear ();
             pv.push_back (move);
@@ -1348,7 +1348,7 @@ namespace Searcher {
 
                             pos.do_move (move, si);
 
-                            auto value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, depth - 4, !cut_node, true);
+                            auto value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, i16(depth - 4), !cut_node, true);
 
                             pos.undo_move (move);
 
@@ -1408,7 +1408,7 @@ namespace Searcher {
 
             u08 move_count = 0;
 
-            MoveVector quiet_moves;
+            Moves quiet_moves;
             quiet_moves.reserve (16);
 
             bool skip_quiets = false;

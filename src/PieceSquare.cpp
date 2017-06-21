@@ -118,10 +118,10 @@ namespace PieceSquare
     {
         for (auto pt = PAWN; pt <= KING; ++pt)
         {
-            Score p_score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
+            auto p_score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
             for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
-                Score psq_score = p_score + HalfPSQ[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
+                auto psq_score = p_score + HalfPSQ[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
                 PSQ[WHITE][pt][ s] = +psq_score;
                 PSQ[BLACK][pt][~s] = -psq_score;
             }

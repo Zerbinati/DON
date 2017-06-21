@@ -147,7 +147,7 @@ inline std::basic_ostream<CharT, Traits>&
 
 //template<typename CharT, typename Traits>
 //inline std::basic_ostream<CharT, Traits>&
-//    operator<< (std::basic_ostream<CharT, Traits> &os, const SquareVector &squares)
+//    operator<< (std::basic_ostream<CharT, Traits> &os, const Squares &squares)
 //{
 //    std::for_each (squares.begin (), squares.end (), [&os] (Square s) { os << s << std::endl; });
 //    return os;
@@ -155,7 +155,7 @@ inline std::basic_ostream<CharT, Traits>&
 
 //template<typename CharT, typename Traits>
 //inline std::basic_ostream<CharT, Traits>&
-//operator<< (std::basic_ostream<CharT, Traits> &os, const MoveVector &moves)
+//operator<< (std::basic_ostream<CharT, Traits> &os, const Moves &moves)
 //{
 //    std::for_each (moves.begin (), moves.end (), [&os](Move m) { os << m << std::endl; });
 //    return os;

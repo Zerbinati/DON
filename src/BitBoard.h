@@ -188,16 +188,16 @@ namespace BitBoard {
     // Shift the bitboard using delta
     template<Delta DEL> inline Bitboard shift (Bitboard bb);
 
-    template<> inline Bitboard shift<DEL_N > (Bitboard bb) { return (bb) << 8; }
-    template<> inline Bitboard shift<DEL_S > (Bitboard bb) { return (bb) >> 8; }
-    template<> inline Bitboard shift<DEL_NN> (Bitboard bb) { return (bb) << 16; }
-    template<> inline Bitboard shift<DEL_SS> (Bitboard bb) { return (bb) >> 16; }
-    template<> inline Bitboard shift<DEL_E > (Bitboard bb) { return (bb & ~FH_bb) << 1; }
-    template<> inline Bitboard shift<DEL_W > (Bitboard bb) { return (bb & ~FA_bb) >> 1; }
-    template<> inline Bitboard shift<DEL_NE> (Bitboard bb) { return (bb & ~FH_bb) << 9; }
-    template<> inline Bitboard shift<DEL_SE> (Bitboard bb) { return (bb & ~FH_bb) >> 7; }
-    template<> inline Bitboard shift<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) << 7; }
-    template<> inline Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> 9; }
+    template<> inline Bitboard shift<DEL_N > (Bitboard bb) { return (bb         ) << 010; }
+    template<> inline Bitboard shift<DEL_S > (Bitboard bb) { return (bb         ) >> 010; }
+    template<> inline Bitboard shift<DEL_NN> (Bitboard bb) { return (bb         ) << 020; }
+    template<> inline Bitboard shift<DEL_SS> (Bitboard bb) { return (bb         ) >> 020; }
+    template<> inline Bitboard shift<DEL_E > (Bitboard bb) { return (bb & ~FH_bb) << 001; }
+    template<> inline Bitboard shift<DEL_W > (Bitboard bb) { return (bb & ~FA_bb) >> 001; }
+    template<> inline Bitboard shift<DEL_NE> (Bitboard bb) { return (bb & ~FH_bb) << 011; }
+    template<> inline Bitboard shift<DEL_SE> (Bitboard bb) { return (bb & ~FH_bb) >> 007; }
+    template<> inline Bitboard shift<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) << 007; }
+    template<> inline Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> 011; }
 
     //// Rotate Right (toward LSB)
     //inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08(SQ_NO) - k)); }

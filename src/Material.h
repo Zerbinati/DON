@@ -12,9 +12,9 @@ namespace Material {
     struct Entry
     {
     public:
-        Key     key;
-        Score   imbalance;
-        Scale   scale[CLR_NO];
+        Key   key;
+        Score imbalance;
+        Scale scale[CLR_NO];
 
         EndGame::EndgameBase<Value> *value_func;
         EndGame::EndgameBase<Scale> *scale_func[CLR_NO];

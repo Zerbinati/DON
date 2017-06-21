@@ -153,7 +153,7 @@ bool Position::see_ge (Move m, Value v) const
         {
             while (0 != b)
             {
-                c_attackers &= ~between_bb (pop_lsq (b), square (c, KING));
+                c_attackers &= ~between_bb (pop_lsq (b), square<KING> (c));
             }
         }
         
@@ -164,7 +164,7 @@ bool Position::see_ge (Move m, Value v) const
         {
             while (0 != b)
             {
-                if (0 == (between_bb (pop_lsq (b), square (c, KING)) & mocc))
+                if (0 == (between_bb (pop_lsq (b), square<KING> (c)) & mocc))
                 {
                     c_attackers &= pieces (c, KING);
                     break;
@@ -408,10 +408,10 @@ bool Position::pseudo_legal (Move m) const
         {
             return ENPASSANT != mt ?
                 // Move must be a capture of the checking piece or a blocking evasion of the checking piece
-                   contains (si->checkers | between_bb (scan_lsq (si->checkers), square (active, KING)), dst) :
+                   contains (si->checkers | between_bb (scan_lsq (si->checkers), square<KING> (active)), dst) :
                 // Move must be a capture of the checking en-passant pawn or a blocking evasion of the checking piece
                    (0 != (si->checkers & pieces (~active, PAWN)) && contains (si->checkers, cap))
-                || contains (between_bb (scan_lsq (si->checkers), square (active, KING)), dst);
+                || contains (between_bb (scan_lsq (si->checkers), square<KING> (active)), dst);
         }
         return false;
     }
@@ -443,7 +443,7 @@ bool Position::legal (Move m) const
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
         return !contains (si->king_blockers[active], org_sq (m))
-            || sqrs_aligned (org_sq (m), dst_sq (m), square (active, KING));
+            || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
     }
         break;
     case CASTLE:
@@ -464,7 +464,7 @@ bool Position::legal (Move m) const
             && empty (dst_sq (m))
             && si->en_passant_sq == dst_sq (m)
             && contains (pieces (~active, PAWN), dst_sq (m) - pawn_push (active)));
-        auto fk_sq = square (active, KING);
+        auto fk_sq = square<KING> (active);
         Bitboard mocc = (pieces () ^ org_sq (m) ^ (dst_sq (m) - pawn_push (active))) | dst_sq (m);
         Bitboard b;
         // If any attacker then in check and not legal move
@@ -488,7 +488,7 @@ bool Position::gives_check (Move m) const
            contains (si->checks[ptype (board[org])], dst)
             // Discovered check ?
         || (   contains (dsc_blockers (active), org)
-            && !sqrs_aligned (org, dst, square (~active, KING))))
+            && !sqrs_aligned (org, dst, square<KING> (~active))))
     {
         return true;
     }
@@ -503,7 +503,7 @@ bool Position::gives_check (Move m) const
     case CASTLE:
     {
         // Castling with check ?
-        auto ek_sq = square (~active, KING);
+        auto ek_sq = square<KING> (~active);
         auto king_org = org;
         auto rook_org = dst; // 'King captures the rook' notation
         dst           = rel_sq (active, rook_org > king_org ? SQ_G1 : SQ_C1);
@@ -518,7 +518,7 @@ bool Position::gives_check (Move m) const
         // En-passant capture with check ?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
-        auto ek_sq = square (~active, KING);
+        auto ek_sq = square<KING> (~active);
         Bitboard mocc = (pieces () ^ org ^ (_file (dst)|_rank (org))) | dst;
         Bitboard b;
         return (   0 != (b = pieces (active, BSHP, QUEN) & PieceAttacks[BSHP][ek_sq])
@@ -530,7 +530,7 @@ bool Position::gives_check (Move m) const
     case PROMOTE:
     {
         // Promotion with check ?
-        auto ek_sq = square (~active, KING);
+        auto ek_sq = square<KING> (~active);
         switch (promote (m))
         {
         case NIHT: return contains (PieceAttacks[NIHT][dst]                , ek_sq); break;
@@ -579,7 +579,7 @@ void Position::clear ()
 // Set the castling right
 void Position::set_castle (Color c, CastleSide cs)
 {
-    auto king_org = square (c, KING);
+    auto king_org = square<KING> (c);
     assert(rel_rank (c, king_org) == R_1);
     auto rook_org = castle_rook[c][cs];
     assert(contains (pieces (c, ROOK), rook_org)
@@ -630,7 +630,7 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
     Bitboard attackers = PawnAttacks[~c][ep_sq] & pieces (c, PAWN);
     assert(pop_count (attackers) <= 2);
     Bitboard mocc = (pieces () ^ cap) | ep_sq;
-    auto fk_sq = square (c, KING);
+    auto fk_sq = square<KING> (c);
     Bitboard bq = pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][fk_sq];
     Bitboard rq = pieces (~c, ROOK, QUEN) & PieceAttacks[ROOK][fk_sq];
     while (0 != attackers)
@@ -711,8 +711,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             --r;
         }
     }
-    assert(square (WHITE, KING) != SQ_NO
-        && square (BLACK, KING) != SQ_NO);
+    assert(square<KING> (WHITE) != SQ_NO
+        && square<KING> (BLACK) != SQ_NO);
 
     // 2. Active color
     iss >> token;
@@ -738,7 +738,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
                 }
             }
             assert(contains (pieces (c, ROOK), rook_org)
-                && rook_org > square (c, KING));
+                && rook_org > square<KING> (c));
             castle_rook[c][CS_KING] = rook_org;
             set_castle (c, CS_KING);
         }
@@ -754,7 +754,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
                 }
             }
             assert(contains (pieces (c, ROOK), rook_org)
-                && rook_org < square (c, KING));
+                && rook_org < square<KING> (c));
             castle_rook[c][CS_QUEN] = rook_org;
             set_castle (c, CS_QUEN);
         }
@@ -763,7 +763,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         if ('a' <= token && token <= 'h')
         {
             rook_org = to_file (token)|rel_rank (c, R_1);
-            auto cs = rook_org > square (c, KING) ? CS_KING : CS_QUEN;
+            auto cs = rook_org > square<KING> (c) ? CS_KING : CS_QUEN;
             castle_rook[c][cs] = rook_org;
             set_castle (c, cs);
         }
@@ -822,7 +822,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->clock_ply = u08(clk_ply);
     si->null_ply = 0;
     si->capture = NONE;
-    si->checkers = attackers_to (square (active, KING), ~active);
+    si->checkers = attackers_to (square<KING> (active), ~active);
     si->set_check_info (*this);
     thread = th;
     return *this;
@@ -1013,10 +1013,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->castle_rights &= ~b;
     }
 
-    assert(0 == attackers_to (square (active, KING), pasive));
+    assert(0 == attackers_to (square<KING> (active), pasive));
 
     // Calculate checkers bitboard (if move is check)
-    si->checkers = is_check ? attackers_to (square (pasive, KING), active) : 0;
+    si->checkers = is_check ? attackers_to (square<KING> (pasive), active) : 0;
     assert(!is_check
         || 0 != si->checkers);
 
@@ -1333,8 +1333,8 @@ bool Position::ok (u08 *step) const
     {
         if (   (   active != WHITE
                 && active != BLACK)
-            || (1 != count<KING> (WHITE) || !_ok (square (WHITE, KING)) || W_KING != board[square (WHITE, KING)])
-            || (1 != count<KING> (BLACK) || !_ok (square (BLACK, KING)) || B_KING != board[square (BLACK, KING)])
+            || (1 != count<KING> (WHITE) || !_ok (square<KING> (WHITE)) || W_KING != board[square<KING> (WHITE)])
+            || (1 != count<KING> (BLACK) || !_ok (square<KING> (BLACK)) || B_KING != board[square<KING> (BLACK)])
             || (   32 < count<NONE> ()
                 || pop_count (pieces ()) != count<NONE> ()))
         {
@@ -1346,8 +1346,8 @@ bool Position::ok (u08 *step) const
     {
         if (   1 != std::count (board, board + SQ_NO, W_KING)
             || 1 != std::count (board, board + SQ_NO, B_KING)
-            || 0 != pop_count (attackers_to (square (~active, KING),  active))
-            || 2 <  pop_count (attackers_to (square ( active, KING), ~active)))
+            || 0 != pop_count (attackers_to (square<KING> (~active),  active))
+            || 2 <  pop_count (attackers_to (square<KING> ( active), ~active)))
         {
             if (nullptr != step) *step = s;
             return false;
@@ -1396,17 +1396,17 @@ bool Position::ok (u08 *step) const
             // check if the number of Pawns plus the number of
             // extra Queens, Rooks, Bishops, Knights exceeds 8
             // (which can result only by promotion)
-            if (           (count (c, PAWN)
-                + std::max (count (c, NIHT)-2, 0)
-                + std::max (count (c, BSHP)-2, 0)
-                + std::max (count (c, ROOK)-2, 0)
-                + std::max (count (c, QUEN)-1, 0)) > 8)
+            if (           (count<PAWN> (c)
+                + std::max (count<NIHT> (c)-2, 0)
+                + std::max (count<BSHP> (c)-2, 0)
+                + std::max (count<ROOK> (c)-2, 0)
+                + std::max (count<QUEN> (c)-1, 0)) > 8)
             {
                 if (nullptr != step) *step = s;
                 return false;
             }
 
-            if (           (count (c, PAWN)
+            if (           (count<PAWN> (c)
                 + std::max (pop_count (pieces (c, BSHP) & Color_bb[WHITE])-1, 0)
                 + std::max (pop_count (pieces (c, BSHP) & Color_bb[BLACK])-1, 0)) > 8)
             {
@@ -1461,7 +1461,7 @@ bool Position::ok (u08 *step) const
                 if (   can_castle (c, cs)
                     && (   board[castle_rook[c][cs]] != (c|ROOK)
                         || castle_mask[castle_rook[c][cs]] != cr
-                        || (castle_mask[square (c, KING)] & cr) != cr))
+                        || (castle_mask[square<KING> (c)] & cr) != cr))
                 {
                     if (nullptr != step) *step = s;
                     return false;
@@ -1477,7 +1477,7 @@ bool Position::ok (u08 *step) const
             || si->psq_score != compute_psq (*this)
             || si->non_pawn_matl[WHITE] != compute_npm<WHITE> (*this)
             || si->non_pawn_matl[BLACK] != compute_npm<BLACK> (*this)
-            || si->checkers != attackers_to (square (active, KING), ~active)
+            || si->checkers != attackers_to (square<KING> (active), ~active)
             || (   si->clock_ply > DrawClockPly
                 || (   NONE != si->capture
                     && 0 != si->clock_ply))

@@ -106,23 +106,24 @@ public:
     static bool Chess960;
     static u08  DrawClockPly;
     
-    Piece       board   [SQ_NO];
-    Bitboard    color_bb[CLR_NO];
-    Bitboard    types_bb[MAX_PTYPE];
-    SquareVector squares[CLR_NO][NONE];
+    Piece    board   [SQ_NO];
+    Bitboard color_bb[CLR_NO];
+    Bitboard types_bb[MAX_PTYPE];
+    Squares  squares[CLR_NO][NONE];
 
     CastleRight castle_mask[SQ_NO];
 
-    Square      castle_rook[CLR_NO][CS_NO];
-    Bitboard    castle_path[CLR_NO][CS_NO];
-    Bitboard    king_path  [CLR_NO][CS_NO];
+    Square   castle_rook[CLR_NO][CS_NO];
+    Bitboard castle_path[CLR_NO][CS_NO];
+    Bitboard king_path  [CLR_NO][CS_NO];
 
-    Color       active;
-    i16         ply;
-    u64         nodes;
+    Color active;
+    i16   ply;
+    u64   nodes;
 
-    Thread      *thread;
-    StateInfo   *si; // Current state information pointer
+    Thread *thread;
+
+    StateInfo *si; // Current state information pointer
 
     Position () = default;
     Position (const Position&) = delete;
@@ -142,7 +143,7 @@ public:
     template<PieceType PT> i32 count (Color c) const;
     i32 count (Color c, PieceType pt) const;
 
-    Square square (Color c, PieceType pt, i08 index = 0) const;
+    template<PieceType PT> Square square (Color c, i08 index = 0) const;
 
     Key poly_key () const;
     Key move_posi_key (Move m) const;
@@ -229,7 +230,12 @@ inline Bitboard Position::pieces (PieceType pt1, PieceType pt2) const { return t
 inline Bitboard Position::pieces (Color c, PieceType pt1, PieceType pt2) const { return color_bb[c]&(types_bb[pt1]|types_bb[pt2]); }
 
 // Count specific piece
-template<PieceType PT> inline i32 Position::count () const { return i32(squares[WHITE][PT].size () + squares[BLACK][PT].size ()); }
+template<PieceType PT> inline i32 Position::count () const
+{
+    assert(PT < NONE);
+    return i32(squares[WHITE][PT].size ()
+             + squares[BLACK][PT].size ());
+}
 // Count total pieces
 template<> inline i32 Position::count<NONE> () const
 {
@@ -241,7 +247,11 @@ template<> inline i32 Position::count<NONE> () const
              + squares[WHITE][KING].size () + squares[BLACK][KING].size ());
 }
 // Count specific piece of color
-template<PieceType PT> inline i32 Position::count (Color c) const { return i32(squares[c][PT].size ()); }
+template<PieceType PT> inline i32 Position::count (Color c) const
+{
+    assert(PT < NONE);
+    return i32(squares[c][PT].size ());
+}
 // Count total pieces of color
 template<> inline i32 Position::count<NONE> (Color c) const
 {
@@ -253,12 +263,17 @@ template<> inline i32 Position::count<NONE> (Color c) const
              + squares[c][KING].size ());
 }
 
-inline i32 Position::count (Color c, PieceType pt) const { return i32(squares[c][pt].size ()); }
-
-inline Square Position::square (Color c, PieceType pt, i08 index) const
+inline i32 Position::count (Color c, PieceType pt) const
 {
-    assert(i08(squares[c][pt].size ()) > index);
-    return squares[c][pt][index];
+    assert(pt < NONE);
+    return i32(squares[c][pt].size ());
+}
+
+template<PieceType PT> inline Square Position::square (Color c, i08 index) const
+{
+    assert(PT < NONE);
+    assert(squares[c][PT].size () > index);
+    return squares[c][PT][index];
 }
 
 inline Key Position::poly_key () const { return PolyZob.compute_posi_key (*this); }
@@ -398,9 +413,9 @@ inline bool Position::pawn_passed_at (Color c, Square s) const
 // Check the side has pair of opposite color bishops
 inline bool Position::paired_bishop (Color c) const
 {
-    for (i08 pc = 1; pc < i08(count<BSHP> (c)); ++pc)
+    for (i08 pc = 1; pc < count<BSHP> (c); ++pc)
     {
-        if (opposite_colors (square (c, BSHP, pc-1), square (c, BSHP, pc)))
+        if (opposite_colors (square<BSHP> (c, pc-1), square<BSHP> (c, pc)))
         {
             return true;
         }
@@ -411,7 +426,7 @@ inline bool Position::opposite_bishops () const
 {
     return 1 == count<BSHP> (WHITE)
         && 1 == count<BSHP> (BLACK)
-        && opposite_colors (square (WHITE, BSHP), square (BLACK, BSHP));
+        && opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
 }
 inline bool Position::en_passant (Move m) const
 {
@@ -534,10 +549,10 @@ inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] =
     king_checkers[BLACK] = 0;
-    king_blockers[WHITE] = pos.slider_blockers<WHITE> (pos.square (WHITE, KING), 0, king_checkers[WHITE], king_checkers[BLACK]);
-    king_blockers[BLACK] = pos.slider_blockers<BLACK> (pos.square (BLACK, KING), 0, king_checkers[BLACK], king_checkers[WHITE]);
+    king_blockers[WHITE] = pos.slider_blockers<WHITE> (pos.square<KING> (WHITE), 0, king_checkers[WHITE], king_checkers[BLACK]);
+    king_blockers[BLACK] = pos.slider_blockers<BLACK> (pos.square<KING> (BLACK), 0, king_checkers[BLACK], king_checkers[WHITE]);
 
-    auto ek_sq = pos.square (~pos.active, KING);
+    auto ek_sq = pos.square<KING> (~pos.active);
     checks[PAWN] = PawnAttacks[~pos.active][ek_sq];
     checks[NIHT] = PieceAttacks[NIHT][ek_sq];
     checks[BSHP] = attacks_bb<BSHP> (ek_sq, pos.pieces ());

@@ -81,7 +81,7 @@ namespace Evaluator {
                 static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
                 static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
 
-                auto fk_sq = pos.square (Own, KING);
+                auto fk_sq = pos.square<KING> (Own);
 
                 Bitboard pinned_pawns = pos.abs_blockers (Own) & pos.pieces (Own, PAWN);
                 if (0 != pinned_pawns)
@@ -280,13 +280,13 @@ namespace Evaluator {
             Bitboard b = ei.pin_attacked_by[Opp][PAWN]
                        | (  pos.pieces (Own, PAWN)
                           & (shift<Pull> (pos.pieces ()) | LowRanks));
-            ei.mobility_area[Own] = ~(b | pos.square (Own, KING));
+            ei.mobility_area[Own] = ~(b | pos.square<KING> (Own));
             
             if (pos.si->non_pawn_material (Opp) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
             {
-                Bitboard king_zone = PieceAttacks[KING][pos.square (Own, KING)];
+                Bitboard king_zone = PieceAttacks[KING][pos.square<KING> (Own)];
                 ei.king_ring[Own] = king_zone;
-                switch (rel_rank (Own, pos.square (Own, KING)))
+                switch (rel_rank (Own, pos.square<KING> (Own)))
                 {
                 case R_1:
                     ei.king_ring[Own] |= shift<Push> (king_zone);
@@ -338,7 +338,7 @@ namespace Evaluator {
 
                 if (contains (pos.abs_blockers (Own), s))
                 {
-                    attacks &= strline_bb (pos.square (Own, KING), s);
+                    attacks &= strline_bb (pos.square<KING> (Own), s);
                 }
 
                 if (QUEN == PT)
@@ -372,8 +372,8 @@ namespace Evaluator {
                 mobility += PieceMobility[PT][mob];
 
                 // Bonus for piece closeness to King
-                score += PieceCloseness[PT] * dist (s, pos.square (Own, KING));
-                //score += PieceCloseness[PT] * dist (s, pos.square (Opp, KING));
+                score += PieceCloseness[PT] * dist (s, pos.square<KING> (Own));
+                //score += PieceCloseness[PT] * dist (s, pos.square<KING> (Opp));
 
                 Bitboard b;
                 // Special extra evaluation for pieces
@@ -463,7 +463,7 @@ namespace Evaluator {
                         && 0 == (front_sqrs_bb (Opp, s) & pos.pieces (Own, PAWN)))
                     {
                         // Penalty for rook when trapped by the king, even more if the king can't castle
-                        auto kf = _file (pos.square (Own, KING));
+                        auto kf = _file (pos.square<KING> (Own));
                         if (   ((kf < F_E) == (_file (s) < kf))
                             && !ei.pe->side_semiopen (Own, kf, kf < F_E))
                         {
@@ -508,7 +508,7 @@ namespace Evaluator {
                                              R1_bb|R2_bb|R3_bb|R4_bb|R5_bb :
                                              R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
 
-            auto fk_sq = pos.square (Own, KING);
+            auto fk_sq = pos.square<KING> (Own);
 
             // King Safety: friend pawns shelter and enemy pawns storm
             auto index = ei.pe->do_king_safety<Own> (pos, fk_sq);
@@ -850,15 +850,15 @@ namespace Evaluator {
                     auto push_sq = s+Push;
 
                     // Adjust bonus based on kings proximity.
-                    if (!contains (pawn_pass_span (Own, s), pos.square (Opp, KING)))
+                    if (!contains (pawn_pass_span (Own, s), pos.square<KING> (Opp)))
                     {
-                        eg_value += 5*rr*dist (pos.square (Opp, KING), push_sq);
+                        eg_value += 5*rr*dist (pos.square<KING> (Opp), push_sq);
                     }
-                    eg_value -= 2*rr*dist (pos.square (Own, KING), push_sq);
+                    eg_value -= 2*rr*dist (pos.square<KING> (Own), push_sq);
                     // If block square is not the queening square then consider also a second push.
                     if (rel_rank (Own, push_sq) != R_8)
                     {
-                        eg_value -= 1*rr*dist (pos.square (Own, KING), push_sq+Push);
+                        eg_value -= 1*rr*dist (pos.square<KING> (Own), push_sq+Push);
                     }
                     
                     // If the pawn is free to advance.
@@ -988,8 +988,8 @@ namespace Evaluator {
         // i.e. second order bonus/malus based on the known attacking/defending status of the players
         Score evaluate_initiative (const Position &pos, u08 asymmetry, Value eg)
         {
-            i32 king_dist = dist<File> (pos.square (WHITE, KING), pos.square (BLACK, KING))
-                          - dist<Rank> (pos.square (WHITE, KING), pos.square (BLACK, KING));
+            i32 king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
+                          - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
 
             // Compute the initiative bonus for the attacking side
             i32 initiative =  8 * (king_dist + asymmetry - 17)
@@ -1038,7 +1038,7 @@ namespace Evaluator {
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 if (   VALUE_EG_BSHP >= abs (eg)
                     && 2 >= pos.count<PAWN> (strong_color)
-                    && !pos.pawn_passed_at (~strong_color, pos.square (~strong_color, KING)))
+                    && !pos.pawn_passed_at (~strong_color, pos.square<KING> (~strong_color)))
                 {
                     return Scale(37 + 7 * pos.count<PAWN> (strong_color));
                 }

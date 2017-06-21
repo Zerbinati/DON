@@ -21,17 +21,17 @@ public:
     // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds
     struct Clock
     {
-        TimePoint time  = 0;     // Remaining Time [milli-seconds]
-        TimePoint inc   = 0;     // Increment Time [milli-seconds]
-    }         clock[CLR_NO];     // Search with Clock
-    TimePoint movetime  = 0;     // Search <x> exact time in milli-seconds
-    u08       movestogo = 0;     // Search <x> moves to the next time control
-    i16       depth     = 0;     // Search <x> depth (plies) only
-    u64       nodes     = 0;     // Search <x> nodes only
-    u08       mate      = 0;     // Search mate in <x> moves
-    bool      infinite  = false; // Search until the "stop" command
-    bool      ponder    = false; // Search on ponder move until the "stop" command
-    MoveVector search_moves;     // Restrict search to these root moves only
+        TimePoint time  = 0; // Remaining Time [milli-seconds]
+        TimePoint inc   = 0; // Increment Time [milli-seconds]
+    }         clock[CLR_NO]; // Search with Clock
+    TimePoint movetime  = 0; // Search <x> exact time in milli-seconds
+    u08   movestogo = 0;     // Search <x> moves to the next time control
+    i16   depth     = 0;     // Search <x> depth (plies) only
+    u64   nodes     = 0;     // Search <x> nodes only
+    u08   mate      = 0;     // Search mate in <x> moves
+    bool  infinite  = false; // Search until the "stop" command
+    bool  ponder    = false; // Search on ponder move until the "stop" command
+    Moves search_moves;     // Restrict search to these root moves only
 
     TimePoint start_time = 0;
     TimePoint elapsed_time = 0;
@@ -114,14 +114,14 @@ typedef BoardStats<MAX_PIECE, SQ_NO, Move> SquareMoveBoardStats;
 //  - PV (really a refutation table in the case of moves which fail low)
 // Value is normally set at -VALUE_INFINITE for all non-pv moves
 class RootMove
-    : public MoveVector
+    : public Moves
 {
 public:
     Value old_value = -VALUE_INFINITE
         , new_value = -VALUE_INFINITE;
 
     explicit RootMove (Move m = MOVE_NONE)
-        : MoveVector (1, m)
+        : Moves (1, m)
     {}
     RootMove& operator= (const RootMove&) = default;
 
@@ -160,7 +160,7 @@ public:
     void operator+= (const RootMove &rm) { push_back (rm); }
     void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
 
-    void initialize (const Position &pos, const MoveVector &moves)
+    void initialize (const Position &pos, const Moves &moves)
     {
         clear ();
         for (const auto &vm : MoveGen::MoveList<LEGAL> (pos))
@@ -198,7 +198,7 @@ public:
     Value static_eval;
     i32   stats_val;
     u08   move_count;
-    MoveVector pv;
+    Moves pv;
 
     SquareHistoryStats *m_history;
 };
@@ -210,17 +210,18 @@ private:
     const Position &_pos;
     const Stack *const _ss = nullptr;
 
-    MoveVector _killer_moves;
+    Move   _tt_move   = MOVE_NONE;
+    Square _recap_sq  = SQ_NO;
+    Value  _threshold = VALUE_ZERO;
 
-    Move    _tt_move    = MOVE_NONE;
-    Square  _recap_sq   = SQ_NO;
-    Value   _threshold  = VALUE_ZERO;
+    i16   _depth = 0;
+    u08   _index = 0;
+    u08   _stage = 0;
 
-    std::vector<ValMove> _moves;
-    std::vector<Move>    _capture_moves;
-    i16     _depth      = 0;
-    u08     _index      = 0;
-    u08     _stage      = 0;
+    ValMoves _moves;
+
+    Moves _killer_moves
+        , _capture_moves;
 
     template<GenType GT>
     void value ();

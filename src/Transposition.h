@@ -150,6 +150,11 @@ namespace Transposition {
             free_aligned_memory ();
         }
 
+        size_t cluster_count () const
+        {
+            return _cluster_count;
+        }
+
         size_t entry_count () const
         {
             return _cluster_count * Cluster::EntryCount;

@@ -18,13 +18,13 @@ enum GenType : u08
 namespace MoveGen {
 
     template<GenType GT>
-    extern void generate (std::vector<ValMove> &moves, const Position &pos);
+    extern void generate (ValMoves &moves, const Position &pos);
 
-    extern void filter_illegal (std::vector<ValMove> &moves, const Position &pos);
+    extern void filter_illegal (ValMoves &moves, const Position &pos);
 
     template<GenType GT, PieceType PT = NONE>
     class MoveList
-        : public std::vector<ValMove>
+        : public ValMoves
     {
     public:
         MoveList () = delete;

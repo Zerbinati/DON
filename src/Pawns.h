@@ -11,10 +11,10 @@ namespace Pawns {
     struct Entry
     {
     public:
-        Key     key;
-        Score   score;
-        u08     asymmetry;
-        u08     open_count;
+        Key   key;
+        Score score;
+        u08   asymmetry;
+        u08   open_count;
 
         Bitboard any_attacks[CLR_NO];
         Bitboard dbl_attacks[CLR_NO];
@@ -23,10 +23,10 @@ namespace Pawns {
         u08      semiopens  [CLR_NO];
         u08      color_count[CLR_NO][CLR_NO];
 
-        u08      index          [CLR_NO];
-        Square   king_square    [CLR_NO][MaxCache];
-        Value    king_safety    [CLR_NO][MaxCache];
-        u08      king_pawn_dist [CLR_NO][MaxCache];
+        u08    index         [CLR_NO];
+        Square king_square   [CLR_NO][MaxCache];
+        Value  king_safety   [CLR_NO][MaxCache];
+        u08    king_pawn_dist[CLR_NO][MaxCache];
 
         bool file_semiopen (Color c, File f) const
         {
