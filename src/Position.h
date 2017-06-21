@@ -163,7 +163,7 @@ public:
     Bitboard attackers_to (Square s, Color c) const;
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
-    Bitboard xattackers_to (Square s, Color c, Bitboard occ) const;
+    //Bitboard xattackers_to (Square s, Color c, Bitboard occ) const;
 
     template<Color Own>
     Bitboard slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const;
@@ -359,15 +359,15 @@ inline Bitboard Position::attackers_to (Square s) const
 {
     return attackers_to (s, pieces ());
 }
-// Attackers to the square by color on occupancy
-inline Bitboard Position::xattackers_to (Square s, Color c, Bitboard occ) const
-{
-    return (pieces (c, PAWN) & PawnAttacks[~c][s])
-         | (pieces (c, NIHT) & PieceAttacks[NIHT][s])
-         | (0 != (pieces (c, BSHP, QUEN) & PieceAttacks[BSHP][s]) ? pieces (c, BSHP, QUEN) & attacks_bb<BSHP> (s, (occ ^ pieces (c, BSHP, QUEN)) | abs_blockers (c)) : 0)
-         | (0 != (pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (c, ROOK, QUEN) & attacks_bb<ROOK> (s, (occ ^ pieces (c, ROOK, QUEN)) | abs_blockers (c)) : 0)
-         | (pieces (c, KING) & PieceAttacks[KING][s]);
-}
+//// Attackers to the square by color on occupancy
+//inline Bitboard Position::xattackers_to (Square s, Color c, Bitboard occ) const
+//{
+//    return (pieces (c, PAWN) & PawnAttacks[~c][s])
+//         | (pieces (c, NIHT) & PieceAttacks[NIHT][s])
+//         | (0 != (pieces (c, BSHP, QUEN) & PieceAttacks[BSHP][s]) ? pieces (c, BSHP, QUEN) & attacks_bb<BSHP> (s, (occ ^ pieces (c, BSHP, QUEN)) | abs_blockers (c)) : 0)
+//         | (0 != (pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (c, ROOK, QUEN) & attacks_bb<ROOK> (s, (occ ^ pieces (c, ROOK, QUEN)) | abs_blockers (c)) : 0)
+//         | (pieces (c, KING) & PieceAttacks[KING][s]);
+//}
 
 // Absolute blockers are friend pieces, that blocks the check to friend king.
 inline Bitboard Position::abs_blockers (Color c) const

@@ -117,19 +117,20 @@ namespace BitBoard {
     extern Bitboard PawnAttacks[CLR_NO][SQ_NO];
     extern Bitboard PieceAttacks[NONE][SQ_NO];
 
-    extern Bitboard *B_Attacks_bb[SQ_NO];
-    extern Bitboard *R_Attacks_bb[SQ_NO];
+    // Magic holds all magic relevant data for a single square
+    struct Magic
+    {
+        Bitboard  mask;
 
-    extern Bitboard B_Masks_bb[SQ_NO];
-    extern Bitboard R_Masks_bb[SQ_NO];
+    #if !defined(BM2)
+        Bitboard  multiply;
+        u08       shift;
+    #endif
 
-#if !defined(BM2)
-    extern Bitboard B_Magics_bb[SQ_NO];
-    extern Bitboard R_Magics_bb[SQ_NO];
+        Bitboard *attacks;
+    };
 
-    extern u08      B_Shifts[SQ_NO];
-    extern u08      R_Shifts[SQ_NO];
-#endif
+    extern Magic Magics[2][SQ_NO];
 
 #if !defined(ABM)
     extern u08 PopCount16[1 << 16];
@@ -227,24 +228,26 @@ namespace BitBoard {
     template<PieceType PT> u16 magic_index (Square s, Bitboard occ);
     template<> inline u16 magic_index<BSHP> (Square s, Bitboard occ)
     {
+        const auto &magic = Magics[0][s];
 #   if defined(BM2)
-        return u16(PEXT(occ, B_Masks_bb[s]));
+        return u16(PEXT(occ, magic.mask));
 #   elif defined(BIT64)
-        return u16(((occ & B_Masks_bb[s]) * B_Magics_bb[s]) >> B_Shifts[s]);
+        return u16(((occ & magic.mask) * magic.multiply) >> magic.shift);
 #   else
-        return u16((u32((u32(occ >> 0x00) & u32(B_Masks_bb[s] >> 0x00)) * u32(B_Magics_bb[s] >> 0x00))
-                  ^ u32((u32(occ >> 0x20) & u32(B_Masks_bb[s] >> 0x20)) * u32(B_Magics_bb[s] >> 0x20))) >> B_Shifts[s]);
+        return u16((u32((u32(occ >> 0x00) & u32(magic.mask >> 0x00)) * u32(magic.multiply >> 0x00))
+                  ^ u32((u32(occ >> 0x20) & u32(magic.mask >> 0x20)) * u32(magic.multiply >> 0x20))) >> magic.shift);
 #   endif
     }
     template<> inline u16 magic_index<ROOK> (Square s, Bitboard occ)
     {
+        const auto &magic = Magics[1][s];
 #   if defined(BM2)
-        return u16(PEXT(occ, R_Masks_bb[s]));
+        return u16(PEXT(occ, magic.mask));
 #   elif defined(BIT64)
-        return u16(((occ & R_Masks_bb[s]) * R_Magics_bb[s]) >> R_Shifts[s]);
+        return u16(((occ &  magic.mask) *  magic.multiply) >> magic.shift);
 #   else
-        return u16((u32((u32(occ >> 0x00) & u32(R_Masks_bb[s] >> 0x00)) * u32(R_Magics_bb[s] >> 0x00))
-                  ^ u32((u32(occ >> 0x20) & u32(R_Masks_bb[s] >> 0x20)) * u32(R_Magics_bb[s] >> 0x20))) >> R_Shifts[s]);
+        return u16((u32((u32(occ >> 0x00) & u32(magic.mask >> 0x00)) * u32(magic.multiply >> 0x00))
+                  ^ u32((u32(occ >> 0x20) & u32(magic.mask >> 0x20)) * u32(magic.multiply >> 0x20))) >> magic.shift);
 #   endif
     }
 
@@ -260,20 +263,20 @@ namespace BitBoard {
     // Attacks of the Bishop with occupancy
     template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
     {
-        return B_Attacks_bb[s][magic_index<BSHP> (s, occ)];
+        return Magics[0][s].attacks[magic_index<BSHP> (s, occ)];
     }
     // Attacks of the Rook with occupancy
     template<> inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
     {
-        return R_Attacks_bb[s][magic_index<ROOK> (s, occ)];
+        return Magics[1][s].attacks[magic_index<ROOK> (s, occ)];
     }
     // Attacks of the Queen with occupancy
     template<> inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
-        assert((B_Attacks_bb[s][magic_index<BSHP> (s, occ)]
-              & R_Attacks_bb[s][magic_index<ROOK> (s, occ)]) == 0);
-        return B_Attacks_bb[s][magic_index<BSHP> (s, occ)]
-             | R_Attacks_bb[s][magic_index<ROOK> (s, occ)];
+        assert((Magics[0][s].attacks[magic_index<BSHP> (s, occ)]
+              & Magics[1][s].attacks[magic_index<ROOK> (s, occ)]) == 0);
+        return Magics[0][s].attacks[magic_index<BSHP> (s, occ)]
+             | Magics[1][s].attacks[magic_index<ROOK> (s, occ)];
     }
     
 #if !defined(ABM) // PopCount Table

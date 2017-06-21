@@ -45,10 +45,10 @@ namespace Notation {
 
     inline Square fix_dst_sq (Move m)
     {
-        return !Position::Chess960
-            && mtype (m) == CASTLE ?
-            (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m)) :
-            dst_sq (m);
+        return mtype (m) != CASTLE
+            || Position::Chess960 ?
+             dst_sq (m) :
+            (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m));
     }
 
     extern std::string move_to_can (Move m);

@@ -7,6 +7,7 @@
 #include <string>
 #include <cstring>
 #include <vector>
+#include <array>
 #include <algorithm>
 #include <functional>
 #include <cassert>
@@ -615,12 +616,12 @@ template<class T, u32 Size>
 struct HashTable
 {
 private:
-    T _table[Size];
+    std::array<T, Size> _table;
 
 public:
     void clear ()
     {
-        std::fill_n (_table, Size, T ());
+        std::fill (_table.begin (), _table.end (), T());
     }
 
     T* operator[] (Key k)

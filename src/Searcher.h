@@ -1,7 +1,6 @@
 #ifndef _SEARCHER_H_INC_
 #define _SEARCHER_H_INC_
 
-#include <array>
 #include <atomic>
 
 #include "Type.h"
@@ -97,8 +96,8 @@ struct SquareHistoryStats
 // MoveHistoryBoardStats
 typedef BoardStats<MAX_PIECE, SQ_NO, SquareHistoryStats> MoveHistoryBoardStats;
 
-// MoveBoardStats stores counter moves indexed by [piece][destiny]
-typedef BoardStats<MAX_PIECE, SQ_NO, Move> MoveBoardStats;
+// SquareMoveBoardStats stores counter moves indexed by [piece][destiny]
+typedef BoardStats<MAX_PIECE, SQ_NO, Move> SquareMoveBoardStats;
 
 // The root of the tree is a PV node
 // At a PV node all the children have to be investigated

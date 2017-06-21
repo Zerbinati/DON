@@ -918,16 +918,9 @@ namespace Evaluator {
                     eg_value /= 2;
                 }
 
-                Bitboard path_attackers = 0;
-                Bitboard b = front_sqrs_bb (Own, s);
-                while (0 != b)
-                {
-                    path_attackers |= (pos.xattackers_to (pop_lsq (b), Opp, pos.pieces () ^ s) & ~pos.abs_blockers (Opp));
-                }
-
                 score += mk_score (mg_value, eg_value)
                        + PawnPassFile[std::min (_file (s), F_H - _file (s))]
-                       - PawnPassHinder * pop_count (path_attackers | (front_sqrs_bb (Own, s) & pos.pieces (Opp)));
+                       - PawnPassHinder * pop_count (front_sqrs_bb (Own, s) & (ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
             }
 
             if (Trace)
@@ -1007,7 +1000,7 @@ namespace Evaluator {
             // Now apply the bonus: note that we find the attacking side by extracting
             // the sign of the endgame value, and that we carefully cap the bonus so
             // that the endgame score will never change sign after the bonus.
-            return mk_score (0, sign (eg) * std::max (initiative, -abs (eg)));
+            return mk_score (0, sign (eg) * initiative);
         }
 
         // Evaluates the scale for the position

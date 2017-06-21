@@ -38,14 +38,13 @@ bool Position::draw (i16 pp) const
     for (u08 p = 4; p <= std::min (si->clock_ply, si->null_ply); p += 2)
     {
         psi = psi->ptr->ptr;
-        // For Root ply is 1, so return a draw score
-        // If repeats once earlier but strictly after the root, or
-        // If repeats twice strictly before the root.
         if (psi->posi_key == si->posi_key)
         {
-            // Draw at first repetition
+            // Root ply is 1, so return a draw score
+            // If repeats once earlier but strictly after the root, or
+            // If repeats twice before or at the root.
             if (   repeated
-                || pp > p)
+                || pp > p + 1)
             {
                 return true;
             }

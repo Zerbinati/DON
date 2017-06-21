@@ -93,12 +93,12 @@ namespace EndGame {
         add<KRPPKRP> ("KRPPKRP");
     }
 
-    template<EndgameType ET, class T>
+    template<EndgameCode EC, class T>
     void Endgames::add (const string &code)
     {
         StateInfo si;
-        map<T> ()[Position ().setup (code, si, WHITE).si->matl_key] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (WHITE));
-        map<T> ()[Position ().setup (code, si, BLACK).si->matl_key] = unique_ptr<EndgameBase<T>> (new Endgame<ET> (BLACK));
+        map<T> ()[Position ().setup (code, si, WHITE).si->matl_key] = unique_ptr<EndgameBase<T>> (new Endgame<EC> (WHITE));
+        map<T> ()[Position ().setup (code, si, BLACK).si->matl_key] = unique_ptr<EndgameBase<T>> (new Endgame<EC> (BLACK));
     }
 
     // Mate with KX vs K. This function is used to evaluate positions with
@@ -123,7 +123,8 @@ namespace EndGame {
                      VALUE_EG_PAWN*pos.count<PAWN> (strong_color)
                    + pos.si->non_pawn_material (strong_color)
                    + PushToEdge[wk_sq]
-                   + PushClose[dist (sk_sq, wk_sq)], +VALUE_KNOWN_WIN - 1);
+                   + PushClose[dist (sk_sq, wk_sq)]
+                   , +VALUE_KNOWN_WIN - 1);
 
         if (   pos.count<QUEN> (strong_color) != 0
             || pos.count<ROOK> (strong_color) != 0

@@ -185,7 +185,7 @@ namespace Threading {
         HistoryStats            history;
         MoveHistoryBoardStats   cm_history;
 
-        MoveBoardStats          counter_moves;
+        SquareMoveBoardStats    counter_moves;
 
         Thread ();
         Thread (const Thread&) = delete;

@@ -667,20 +667,16 @@ namespace Searcher {
         // The function is called before storing a value to the transposition table.
         Value value_to_tt (Value v, i32 ply)
         {
-            assert(v != VALUE_NONE);
-            return v >= +VALUE_MATE_IN_MAX_PLY ? v + ply :
-                   v <= -VALUE_MATE_IN_MAX_PLY ? v - ply :
-                   v;
+            assert(VALUE_NONE != v);
+            return v + ((v >= +VALUE_MATE_IN_MAX_PLY) - (v <= -VALUE_MATE_IN_MAX_PLY)) * ply;
         }
         // It adjusts a mate score from "plies to mate from the current position" to "plies to mate from the root".
         // Non-mate scores are unchanged.
         // The function is called after retrieving a value of the transposition table.
         Value value_of_tt (Value v, i32 ply)
         {
-            return v == VALUE_NONE             ? VALUE_NONE :
-                   v >= +VALUE_MATE_IN_MAX_PLY ? v - ply :
-                   v <= -VALUE_MATE_IN_MAX_PLY ? v + ply :
-                   v;
+            return v - (VALUE_NONE != v ?
+                       ((v >= +VALUE_MATE_IN_MAX_PLY) - (v <= -VALUE_MATE_IN_MAX_PLY)) * ply : 0);
         }
 
         // Formats PV information according to UCI protocol.
@@ -893,6 +889,9 @@ namespace Searcher {
                 assert(pos.pseudo_legal (move)
                     && pos.legal (move));
 
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
+
                 ++move_count;
 
                 bool gives_check = pos.gives_check (move);
@@ -943,9 +942,6 @@ namespace Searcher {
                 }
 
                 ss->current_move = move;
-
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                 // Make the move
                 pos.do_move (move, si, gives_check);
@@ -1330,11 +1326,8 @@ namespace Searcher {
                         //&& 0 == Limits.mate
                         && abs (beta) < +VALUE_MATE_IN_MAX_PLY)
                     {
-                        auto reduced_depth = i16(depth - 4);
-                        assert(reduced_depth > 0);
-                        auto beta_margin = beta + 200;
-                        assert(beta_margin <= +VALUE_INFINITE);
-
+                        auto beta_margin = std::min (beta + 200, +VALUE_INFINITE);
+                        
                         assert(_ok ((ss-1)->current_move));
 
                         // Initialize move picker (3) for the current position.
@@ -1355,7 +1348,7 @@ namespace Searcher {
 
                             pos.do_move (move, si);
 
-                            auto value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, reduced_depth, !cut_node, true);
+                            auto value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, depth - 4, !cut_node, true);
 
                             pos.undo_move (move);
 
@@ -1506,6 +1499,9 @@ namespace Searcher {
                     new_depth += 1;
                 }
 
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
+
                 // Step 13. Pruning at shallow depth
                 if (   !root_node
                     //&& 0 == Limits.mate
@@ -1556,9 +1552,6 @@ namespace Searcher {
                 // Update the current move (this must be done after singular extension search)
                 ss->current_move = move;
                 ss->m_history = &th->cm_history[mpc][dst_sq (move)];
-
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check);
@@ -2133,7 +2126,7 @@ namespace Threading {
                             stop = true;
                         }
 
-                        if (root_move.size () >= MoveManager::PVSize)
+                        if (MoveManager::PVSize <= root_move.size ())
                         {
                             Threadpool.move_mgr.update (root_pos, root_move);
                         }

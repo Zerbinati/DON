@@ -22,19 +22,7 @@ namespace BitBoard {
     Bitboard PawnAttacks[CLR_NO][SQ_NO];
     Bitboard PieceAttacks[NONE][SQ_NO];
 
-    Bitboard *B_Attacks_bb[SQ_NO];
-    Bitboard *R_Attacks_bb[SQ_NO];
-
-    Bitboard B_Masks_bb[SQ_NO];
-    Bitboard R_Masks_bb[SQ_NO];
-
-#if !defined(BM2)
-    Bitboard B_Magics_bb[SQ_NO];
-    Bitboard R_Magics_bb[SQ_NO];
-
-    u08      B_Shifts[SQ_NO];
-    u08      R_Shifts[SQ_NO];
-#endif
+    Magic Magics[2][SQ_NO];
 
 #if !defined(ABM)
     u08 PopCount16[1 << 16];
@@ -98,7 +86,7 @@ namespace BitBoard {
         //    2048 +     256 +     1536 +     1408 =     0x800 +    0x100 +     0x600 +     0x580
         //                                    5248 =                                       0x1480
         const u32 MaxBTSize = U32(0x1480);
-        Bitboard B_Tables_bb[MaxBTSize];
+        Bitboard BTable[MaxBTSize];
 
         // Max Rook Table Size
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
@@ -106,16 +94,16 @@ namespace BitBoard {
         //    16384 +     49152 +     36864 =     0x4000 +     0xC000 +     0x9000
         //                           102400 =                              0x19000
         const u32 MaxRTSize = U32(0x19000);
-        Bitboard R_Tables_bb[MaxRTSize];
+        Bitboard RTable[MaxRTSize];
 
         // Initialize all bishop and rook attacks at startup.
         // Magic bitboards are used to look up attacks of sliding pieces.
         // As a reference see chessprogramming.wikispaces.com/Magic+Bitboards.
         // In particular, here we use the so called "fancy" approach.
 #   if defined(BM2)
-        void initialize_table (Bitboard *const tables_bb, Bitboard **const attacks_bb, Bitboard *const masks_bb, const Delta *const deltas)
+        void initialize_table (Bitboard *const table, Magic *const magics, const Delta *const deltas)
 #   else
-        void initialize_table (Bitboard *const tables_bb, Bitboard **const attacks_bb, Bitboard *const masks_bb, const Delta *const deltas, Bitboard *const magics_bb, u08 *const shifts, u16 (*indexer)(Square s, Bitboard occ))
+        void initialize_table (Bitboard *const table, Magic *const magics, const Delta *const deltas, u16 (*indexer)(Square s, Bitboard occ))
 #   endif
         {
 
@@ -136,43 +124,45 @@ namespace BitBoard {
             u32 offset = 0;
             for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
+                auto &magic = magics[s];
+
                 // attacks_bb[s] is a pointer to the beginning of the attacks table for square
-                attacks_bb[s] = &tables_bb[offset];
+                magic.attacks = &table[offset];
 
                 // Given a square, the mask is the bitboard of sliding attacks from
                 // computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                masks_bb[s] = sliding_attacks (deltas, s)
+                magic.mask = sliding_attacks (deltas, s)
                             // Board edges are not considered in the relevant occupancies
                             & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
 
 #           if !defined(BM2)
-                shifts[s] =
+                magic.shift =
 #               if defined(BIT64)
                     64
 #               else
                     32
 #               endif
-                    - u08(pop_count (masks_bb[s]));
+                    - u08(pop_count (magic.mask));
 #           endif
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
-                // Have individual table_bb sizes for each square with "Fancy Magic Bitboards".
+                // Have individual table sizes for each square with "Fancy Magic Bitboards".
                 u32 size = 0;
                 Bitboard occ = 0;
                 do {
 #               if defined(BM2)
-                    attacks_bb[s][PEXT(occ, masks_bb[s])] = sliding_attacks (deltas, s, occ);
+                    magic.attacks[PEXT(occ, magic.mask)] = sliding_attacks (deltas, s, occ);
 #               else
                     occupancy[size] = occ;
                     reference[size] = sliding_attacks (deltas, s, occ);
 #               endif
 
                     ++size;
-                    occ = (occ - masks_bb[s]) & masks_bb[s];
+                    occ = (occ - magic.mask) & magic.mask;
                 } while (occ != 0);
 
 #           if !defined(BM2)
@@ -183,8 +173,8 @@ namespace BitBoard {
                 // until found the one that passes the verification test.
                 do {
                     do {
-                        magics_bb[s] = rng.sparse_rand<Bitboard> ();
-                    } while (pop_count ((masks_bb[s] * magics_bb[s]) >> 0x38) < 6);
+                        magic.multiply = rng.sparse_rand<Bitboard> ();
+                    } while (pop_count ((magic.mask * magic.multiply) >> 0x38) < 6);
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
@@ -197,18 +187,18 @@ namespace BitBoard {
                         assert(idx < size);
                         if (used[idx])
                         {
-                            if (attacks_bb[s][idx] != reference[i])
+                            if (magic.attacks[idx] != reference[i])
                             {
                                 break;
                             }
                             continue;
                         }
                         used[idx] = true;
-                        attacks_bb[s][idx] = reference[i];
+                        magic.attacks[idx] = reference[i];
                     }
                 } while (i < size);
 #           endif
-                // Set the offset of the table_bb for the next square.
+                // Set the offset of the table for the next square.
                 offset += size;
             }
         }
@@ -267,7 +257,7 @@ namespace BitBoard {
             for (auto c = WHITE; c <= BLACK; ++c)
             {
                 k = 0;
-                while ((del = PawnDeltas[c][k++]) != DEL_O)
+                while (DEL_O != (del = PawnDeltas[c][k++]))
                 {
                     auto sq = s + del;
                     if (   _ok (sq)
@@ -282,7 +272,7 @@ namespace BitBoard {
 
             pt = NIHT;
             k = 0;
-            while ((del = PieceDeltas[pt][k++]) != DEL_O)
+            while (DEL_O != (del = PieceDeltas[pt][k++]))
             {
                 auto sq = s + del;
                 if (   _ok (sq)
@@ -294,7 +284,7 @@ namespace BitBoard {
 
             pt = KING;
             k = 0;
-            while ((del = PieceDeltas[pt][k++]) != DEL_O)
+            while (DEL_O != (del = PieceDeltas[pt][k++]))
             {
                 auto sq = s + del;
                 if (   _ok (sq)
@@ -311,11 +301,11 @@ namespace BitBoard {
 
         // Initialize Sliding
 #       if defined(BM2)
-            initialize_table (B_Tables_bb, B_Attacks_bb, B_Masks_bb, PieceDeltas[BSHP]);
-            initialize_table (R_Tables_bb, R_Attacks_bb, R_Masks_bb, PieceDeltas[ROOK]);
+            initialize_table (BTable, Magics[0], PieceDeltas[BSHP]);
+            initialize_table (RTable, Magics[1], PieceDeltas[ROOK]);
 #       else
-            initialize_table (B_Tables_bb, B_Attacks_bb, B_Masks_bb, PieceDeltas[BSHP], B_Magics_bb, B_Shifts, magic_index<BSHP>);
-            initialize_table (R_Tables_bb, R_Attacks_bb, R_Masks_bb, PieceDeltas[ROOK], R_Magics_bb, R_Shifts, magic_index<ROOK>);
+            initialize_table (BTable, Magics[0], PieceDeltas[BSHP], magic_index<BSHP>);
+            initialize_table (RTable, Magics[1], PieceDeltas[ROOK], magic_index<ROOK>);
 #       endif
 
         // NOTE:: must be after Initialize Sliding

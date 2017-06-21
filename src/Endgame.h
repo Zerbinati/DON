@@ -12,8 +12,8 @@
 
 namespace EndGame {
 
-    // Endgame Type lists all supported endgames
-    enum EndgameType : u08
+    // EndgameCode lists all supported endgame functions by corresponding codes
+    enum EndgameCode : u08
     {
         // Evaluation functions
         KXK,   // Generic "mate lone king" eval
@@ -44,10 +44,10 @@ namespace EndGame {
     };
 
     // Endgame functions can be of two category depending on whether they return Value or Scale.
-    template<EndgameType ET>
-    using EndgameCategory = typename std::conditional<ET < KRPKR, Value, Scale>::type;
+    template<EndgameCode EC>
+    using EndgameCategory = typename std::conditional<EC < KRPKR, Value, Scale>::type;
 
-    // Base and derived templates for endgame evaluation and scaling functions
+    // Base and derived functors for endgame evaluation and scaling functions
     template<class T>
     class EndgameBase
     {
@@ -63,7 +63,7 @@ namespace EndGame {
         virtual T operator() (const Position &pos) const = 0;
     };
 
-    template<EndgameType ET, class T = EndgameCategory<ET>>
+    template<EndgameCode EC, class T = EndgameCategory<EC>>
     class Endgame
         : public EndgameBase<T>
     {
@@ -91,7 +91,7 @@ namespace EndGame {
             return std::get<std::is_same<T, Scale>::value> (_maps);
         }
 
-        template<EndgameType ET, class T = EndgameCategory<ET>>
+        template<EndgameCode EC, class T = EndgameCategory<EC>>
         void add (const std::string &code);
 
     public:
