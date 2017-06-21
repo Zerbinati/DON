@@ -20,7 +20,7 @@
 namespace std {
 
     // Generic null stream buffer class
-    template<class CharT, class Traits = char_traits<CharT> >
+    template<typename CharT, typename Traits = char_traits<CharT> >
     class basic_null_buffer
         : public basic_streambuf<CharT, Traits>
     {
@@ -43,7 +43,7 @@ namespace std {
     };
 
     // generic null output stream class
-    template<class CharT, class Traits = char_traits<CharT> >
+    template<typename CharT, typename Traits = char_traits<CharT> >
     class basic_null_stream
         : private basic_null_buffer<CharT, Traits>
         , public basic_ostream<CharT, Traits>
@@ -59,13 +59,13 @@ namespace std {
 
     };
 
-    template<class CharT, class Traits, class T>
+    template<typename CharT, typename Traits, typename T>
     inline basic_null_stream<CharT, Traits>& operator<< (basic_null_stream<CharT, Traits> &nstream, T const &)
     {
         return nstream;
     }
 
-    template<class CharT, class Traits>
+    template<typename CharT, typename Traits>
     inline basic_null_stream<CharT, Traits>& operator<< (basic_null_stream<CharT, Traits> &nstream, basic_ostream<CharT, Traits> &(basic_ostream<CharT, Traits> &))
     {
         return nstream;

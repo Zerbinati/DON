@@ -63,7 +63,7 @@ namespace Notation {
     extern std::string pretty_pv_info (Thread *const &thread);
 }
 
-template<class CharT, class Traits>
+template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
 {
@@ -71,7 +71,7 @@ inline std::basic_ostream<CharT, Traits>&
     return os;
 }
 
-template<class CharT, class Traits>
+template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, Color c)
 {
@@ -79,7 +79,7 @@ inline std::basic_ostream<CharT, Traits>&
     return os;
 }
 
-template<class CharT, class Traits>
+template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, File f)
 {
@@ -87,7 +87,7 @@ inline std::basic_ostream<CharT, Traits>&
     return os;
 }
 
-template<class CharT, class Traits>
+template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, Rank r)
 {
@@ -95,7 +95,7 @@ inline std::basic_ostream<CharT, Traits>&
     return os;
 }
 
-template<class CharT, class Traits>
+template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, Square s)
 {
@@ -103,7 +103,7 @@ inline std::basic_ostream<CharT, Traits>&
     return os;
 }
 
-template<class CharT, class Traits>
+template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, Piece p)
 {
@@ -137,7 +137,7 @@ inline std::basic_ostream<CharT, Traits>&
 //    return scr;
 //}
 //
-//template<class CharT, class Traits>
+//template<typename CharT, typename Traits>
 //inline std::basic_ostream<CharT, Traits>&
 //operator<< (std::basic_ostream<CharT, Traits> &os, CastleRight cr)
 //{
@@ -145,7 +145,7 @@ inline std::basic_ostream<CharT, Traits>&
 //    return os;
 //}
 
-//template<class CharT, class Traits>
+//template<typename CharT, typename Traits>
 //inline std::basic_ostream<CharT, Traits>&
 //    operator<< (std::basic_ostream<CharT, Traits> &os, const SquareVector &squares)
 //{
@@ -153,7 +153,7 @@ inline std::basic_ostream<CharT, Traits>&
 //    return os;
 //}
 
-//template<class CharT, class Traits>
+//template<typename CharT, typename Traits>
 //inline std::basic_ostream<CharT, Traits>&
 //operator<< (std::basic_ostream<CharT, Traits> &os, const MoveVector &moves)
 //{

@@ -57,7 +57,7 @@ namespace UCI {
     extern void initialize ();
     extern void deinitialize ();
 
-    template<class CharT, class Traits>
+    template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
         operator<< (std::basic_ostream<CharT, Traits> &os, const Option &opt)
     {
@@ -67,7 +67,7 @@ namespace UCI {
 
     // operator<<() is used to print all the options default values in chronological
     // insertion order (the idx field) and in the format defined by the UCI protocol.
-    template<class CharT, class Traits>
+    template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
         operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap)
     {

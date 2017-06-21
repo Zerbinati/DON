@@ -12,7 +12,7 @@ namespace std {
     // usual I/O functionality, all without changing a single line of code!
     // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 
-    template<class Elem, class Traits>
+    template<typename Elem, typename Traits>
     class basic_tie_buf
         : public basic_streambuf<Elem, Traits>
     {

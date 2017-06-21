@@ -143,7 +143,7 @@ public:
     explicit operator std::string () const;
 };
 
-template<class CharT, class Traits>
+template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
 {
@@ -177,7 +177,7 @@ public:
     explicit operator std::string () const;
 };
 
-template<class CharT, class Traits>
+template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &root_moves)
 {

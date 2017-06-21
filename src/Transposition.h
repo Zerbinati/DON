@@ -192,7 +192,7 @@ namespace Transposition {
         void save (const std::string &hash_fn) const;
         void load (const std::string &hash_fn);
 
-        template<class CharT, class Traits>
+        template<typename CharT, typename Traits>
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const Table &tt)
         {
@@ -211,7 +211,7 @@ namespace Transposition {
             return os;
         }
 
-        template<class CharT, class Traits>
+        template<typename CharT, typename Traits>
         friend std::basic_istream<CharT, Traits>&
             operator>> (std::basic_istream<CharT, Traits> &is,       Table &tt)
         {

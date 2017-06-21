@@ -521,7 +521,7 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     place_piece (Do ? rook_dst : rook_org, active, ROOK);
 }
 
-template<class CharT, class Traits>
+template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
 operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
 {

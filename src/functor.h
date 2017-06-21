@@ -9,14 +9,14 @@ namespace std {
     // nullfunctor is a functor that does nothing, allows usage of shared_ptr with stack allocated or static objects. 
     // Taken from boost/serialization/shared_ptr.hpp
 
-    template<class T>
+    template<typename T>
     struct unary_nullfunctor
         : public unary_function<T*, void>
     {
         void operator() (const T *) const {}
     };
 
-    template<class T>
+    template<typename T>
     struct binary_nullfunctor
         : public binary_function<T*, T*, void>
     {

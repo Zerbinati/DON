@@ -136,10 +136,10 @@ namespace BitBoard {
     extern u08 PopCount16[1 << 16];
 #endif
 
-    template<class T> inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
+    template<typename T> inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
     template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
 
-    template<class T1, class T2> inline i32 dist (T2, T2) { return i32 (); }
+    template<typename T1, typename T2> inline i32 dist (T2, T2) { return i32 (); }
     template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
     template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
@@ -225,10 +225,9 @@ namespace BitBoard {
     }
 
     // magic_index(s, occ) computes index for sliding attack bitboards.
-    template<PieceType PT> u16 magic_index (Square s, Bitboard occ);
-    template<> inline u16 magic_index<BSHP> (Square s, Bitboard occ)
+    template<PieceType PT> u16 magic_index (const Magic &magic, Bitboard occ);
+    template<> inline u16 magic_index<BSHP> (const Magic &magic, Bitboard occ)
     {
-        const auto &magic = Magics[0][s];
 #   if defined(BM2)
         return u16(PEXT(occ, magic.mask));
 #   elif defined(BIT64)
@@ -238,9 +237,8 @@ namespace BitBoard {
                   ^ u32((u32(occ >> 0x20) & u32(magic.mask >> 0x20)) * u32(magic.multiply >> 0x20))) >> magic.shift);
 #   endif
     }
-    template<> inline u16 magic_index<ROOK> (Square s, Bitboard occ)
+    template<> inline u16 magic_index<ROOK> (const Magic &magic, Bitboard occ)
     {
-        const auto &magic = Magics[1][s];
 #   if defined(BM2)
         return u16(PEXT(occ, magic.mask));
 #   elif defined(BIT64)
@@ -263,20 +261,20 @@ namespace BitBoard {
     // Attacks of the Bishop with occupancy
     template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
     {
-        return Magics[0][s].attacks[magic_index<BSHP> (s, occ)];
+        return Magics[0][s].attacks[magic_index<BSHP> (Magics[0][s], occ)];
     }
     // Attacks of the Rook with occupancy
     template<> inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
     {
-        return Magics[1][s].attacks[magic_index<ROOK> (s, occ)];
+        return Magics[1][s].attacks[magic_index<ROOK> (Magics[1][s], occ)];
     }
     // Attacks of the Queen with occupancy
     template<> inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
     {
-        assert((Magics[0][s].attacks[magic_index<BSHP> (s, occ)]
-              & Magics[1][s].attacks[magic_index<ROOK> (s, occ)]) == 0);
-        return Magics[0][s].attacks[magic_index<BSHP> (s, occ)]
-             | Magics[1][s].attacks[magic_index<ROOK> (s, occ)];
+        assert((Magics[0][s].attacks[magic_index<BSHP> (Magics[0][s], occ)]
+              & Magics[1][s].attacks[magic_index<ROOK> (Magics[1][s], occ)]) == 0);
+        return Magics[0][s].attacks[magic_index<BSHP> (Magics[0][s], occ)]
+             | Magics[1][s].attacks[magic_index<ROOK> (Magics[1][s], occ)];
     }
     
 #if !defined(ABM) // PopCount Table

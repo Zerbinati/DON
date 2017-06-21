@@ -19,7 +19,7 @@ namespace std {
             , _prec (prec)
         {}
 
-        template<class CharT, class Traits>
+        template<typename CharT, typename Traits>
         basic_ostream<CharT, Traits>& operator() (basic_ostream<CharT, Traits> &os) const
         {
             os.setf (ios_base::fixed, ios_base::floatfield);
@@ -30,7 +30,7 @@ namespace std {
 
     };
 
-    template<class CharT, class Traits>
+    template<typename CharT, typename Traits>
     inline basic_ostream<CharT, Traits>&
         operator<< (basic_ostream<CharT, Traits> &os, const width_prec &wp)
     {
@@ -44,7 +44,7 @@ namespace std {
     // from your main manipulator function.
     // The function pointer should be a helper function that does the actual work.
     // See examples below.
-    template<class T, class C>
+    template<typename T, typename C>
     class manip_infra
     {
 
@@ -68,7 +68,7 @@ namespace std {
 
     };
 
-    template<class T, class C>
+    template<typename T, typename C>
     inline basic_ostream<C>& operator<< (basic_ostream<C> &os, const manip_infra<T, C> &manip)
     {
         manip (os);

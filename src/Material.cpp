@@ -42,10 +42,10 @@ namespace Material {
         // the function maps because they correspond to more than one material hash key.
         Endgame<KXK>    EvaluateKXK [CLR_NO] = { Endgame<KXK>    (WHITE), Endgame<KXK>    (BLACK) };
 
-        Endgame<KBPsKs> ScaleKBPsKs [CLR_NO] = { Endgame<KBPsKs> (WHITE), Endgame<KBPsKs> (BLACK) };
-        Endgame<KQKRPs> ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs> (WHITE), Endgame<KQKRPs> (BLACK) };
-        Endgame<KPsK>   ScaleKPsK   [CLR_NO] = { Endgame<KPsK>   (WHITE), Endgame<KPsK>   (BLACK) };
-        Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
+        Endgame<KBPsKPs> ScaleKBPsKPs[CLR_NO] = { Endgame<KBPsKPs> (WHITE), Endgame<KBPsKPs> (BLACK) };
+        Endgame<KQKRPs>  ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs>  (WHITE), Endgame<KQKRPs> (BLACK) };
+        Endgame<KPsK>    ScaleKPsK   [CLR_NO] = { Endgame<KPsK>    (WHITE), Endgame<KPsK>   (BLACK) };
+        Endgame<KPKP>    ScaleKPKP   [CLR_NO] = { Endgame<KPKP>    (WHITE), Endgame<KPKP>   (BLACK) };
 
         // Calculates the imbalance by comparing the piece count of each piece type for both colors.
         // NOTE:: King == Bishop Pair
@@ -139,7 +139,7 @@ namespace Material {
                 && pos.count<BSHP> ( c) == 1
                 && pos.count<PAWN> ( c) != 0)
             {
-                e->scale_func[c] = &ScaleKBPsKs[c];
+                e->scale_func[c] = &ScaleKBPsKPs[c];
             }
             else
             if (   pos.si->non_pawn_material ( c) == VALUE_MG_QUEN

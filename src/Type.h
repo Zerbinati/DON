@@ -612,7 +612,7 @@ public:
     bool operator!= (const ValMove &vm) const { return value != vm.value; }
 };
 
-template<class T, u32 Size>
+template<typename T, u32 Size>
 struct HashTable
 {
 private:
@@ -631,7 +631,7 @@ public:
 };
 
 // Return the sign of a number (-1, 0, 1)
-template<class T> i32 sign (T val)
+template<typename T> i32 sign (T val)
 {
     return (T(0) < val) - (val < T(0));
 }

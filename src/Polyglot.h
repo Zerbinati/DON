@@ -92,7 +92,7 @@ namespace Polyglot {
 
     };
 
-    template<class CharT, class Traits>
+    template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
         operator<< (std::basic_ostream<CharT, Traits> &os, const Entry &pe)
     {
@@ -140,9 +140,9 @@ namespace Polyglot {
         bool open (const std::string &book_fn, openmode mode);
         void close ();
 
-        template<class T>
+        template<typename T>
         Book& operator>> (      T &t);
-        template<class T>
+        template<typename T>
         Book& operator<< (const T &t);
 
         size_t find_index (const Key key);

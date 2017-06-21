@@ -36,7 +36,7 @@ inline std::string time_to_string (const std::chrono::system_clock::time_point &
 
 }
 
-template<class CharT, class Traits>
+template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, const std::chrono::system_clock::time_point &tp)
 {

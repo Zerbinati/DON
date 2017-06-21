@@ -17,10 +17,10 @@ namespace std {
     
     private:  // emphasize the following members are private
         
-        template<class T>
+        template<typename T>
         noncopyable (const T&) = delete;
         
-        template<class T>
+        template<typename T>
         T& operator= (const T&) = delete;
         
     };

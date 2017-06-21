@@ -103,7 +103,7 @@ namespace BitBoard {
 #   if defined(BM2)
         void initialize_table (Bitboard *const table, Magic *const magics, const Delta *const deltas)
 #   else
-        void initialize_table (Bitboard *const table, Magic *const magics, const Delta *const deltas, u16 (*indexer)(Square s, Bitboard occ))
+        void initialize_table (Bitboard *const table, Magic *const magics, const Delta *const deltas, u16 (*indexer)(const Magic&, Bitboard))
 #   endif
         {
 
@@ -166,15 +166,19 @@ namespace BitBoard {
                 } while (occ != 0);
 
 #           if !defined(BM2)
-                u32 i;
+                
                 PRNG rng (Seeds[_rank (s)]);
                 
+                u32 i = 0;
                 // Find a magic for square picking up an (almost) random number
                 // until found the one that passes the verification test.
-                do {
-                    do {
+                while (i < size)
+                {
+                    magic.multiply = 0;
+                    while (pop_count ((magic.mask * magic.multiply) >> 0x38) < 6)
+                    {
                         magic.multiply = rng.sparse_rand<Bitboard> ();
-                    } while (pop_count ((magic.mask * magic.multiply) >> 0x38) < 6);
+                    }
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
@@ -183,7 +187,7 @@ namespace BitBoard {
                     bool used[MaxIndex] = {false};
                     for (i = 0; i < size; ++i)
                     {
-                        u16 idx = indexer (s, occupancy[i]);
+                        u16 idx = indexer (magic, occupancy[i]);
                         assert(idx < size);
                         if (used[idx])
                         {
@@ -196,7 +200,7 @@ namespace BitBoard {
                         used[idx] = true;
                         magic.attacks[idx] = reference[i];
                     }
-                } while (i < size);
+                }
 #           endif
                 // Set the offset of the table for the next square.
                 offset += size;
