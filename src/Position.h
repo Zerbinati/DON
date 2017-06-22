@@ -119,7 +119,9 @@ public:
 
     Color active;
     i16   ply;
-    u64   nodes;
+    
+    u64   nodes
+        , tb_hits;
 
     Thread *thread;
 
@@ -222,12 +224,30 @@ inline bool Position::empty  (Square s)  const
     return board[s] == NO_PIECE;
 }
 
-inline Bitboard Position::pieces () const { return types_bb[NONE]; }
-inline Bitboard Position::pieces (Color c) const { return color_bb[c]; }
-inline Bitboard Position::pieces (PieceType pt) const { return types_bb[pt]; }
-inline Bitboard Position::pieces (Color c, PieceType pt) const { return color_bb[c]&types_bb[pt]; }
-inline Bitboard Position::pieces (PieceType pt1, PieceType pt2) const { return types_bb[pt1]|types_bb[pt2]; }
-inline Bitboard Position::pieces (Color c, PieceType pt1, PieceType pt2) const { return color_bb[c]&(types_bb[pt1]|types_bb[pt2]); }
+inline Bitboard Position::pieces () const
+{
+    return types_bb[NONE];
+}
+inline Bitboard Position::pieces (Color c) const
+{
+    return color_bb[c];
+}
+inline Bitboard Position::pieces (PieceType pt) const
+{
+    return types_bb[pt];
+}
+inline Bitboard Position::pieces (Color c, PieceType pt) const
+{
+    return color_bb[c]&types_bb[pt];
+}
+inline Bitboard Position::pieces (PieceType pt1, PieceType pt2) const
+{
+    return types_bb[pt1]|types_bb[pt2];
+}
+inline Bitboard Position::pieces (Color c, PieceType pt1, PieceType pt2) const
+{
+    return color_bb[c]&(types_bb[pt1]|types_bb[pt2]);
+}
 
 // Count specific piece
 template<PieceType PT> inline i32 Position::count () const
@@ -276,7 +296,10 @@ template<PieceType PT> inline Square Position::square (Color c, i08 index) const
     return squares[c][PT][index];
 }
 
-inline Key Position::poly_key () const { return PolyZob.compute_posi_key (*this); }
+inline Key Position::poly_key () const
+{
+    return PolyZob.compute_posi_key (*this);
+}
 // Computes the new hash key after the given moven. Needed for speculative prefetch.
 // It doesn't recognize special moves like castling, en-passant and promotions.
 inline Key Position::move_posi_key (Move m) const
@@ -332,13 +355,28 @@ inline Key Position::move_posi_key (Move m) const
          ^ (SQ_NO != si->en_passant_sq ? RandZob.en_passant_keys[_file (si->en_passant_sq)] : 0);
 }
 
-inline bool Position::can_castle (Color c) const { return (si->castle_rights & castle_right (c)) != CR_NONE; }
-inline bool Position::can_castle (Color c, CastleSide cs) const { return (si->castle_rights & castle_right (c, cs)) != CR_NONE; }
-inline bool Position::has_castleright (CastleRight cr) const { return (si->castle_rights & cr) != CR_NONE; }
+inline bool Position::can_castle (Color c) const
+{
+    return CR_NONE != (si->castle_rights & castle_right (c));
+}
+inline bool Position::can_castle (Color c, CastleSide cs) const
+{
+    return CR_NONE != (si->castle_rights & castle_right (c, cs));
+}
+inline bool Position::has_castleright (CastleRight cr) const
+{
+    return CR_NONE != (si->castle_rights & cr);
+}
 
-inline bool Position::expeded_castle (Color c, CastleSide cs) const { return 0 == (castle_path[c][cs] & pieces ()); }
+inline bool Position::expeded_castle (Color c, CastleSide cs) const
+{
+    return 0 == (castle_path[c][cs] & pieces ());
+}
 // move_num starts at 1, and is incremented after BLACK's move.
-inline i16  Position::move_num () const { return i16(std::max ((ply - (BLACK == active ? 1 : 0))/2, 0) + 1); }
+inline i16  Position::move_num () const
+{
+    return i16(std::max ((ply - (BLACK == active ? 1 : 0))/2, 0) + 1);
+}
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
 inline Phase Position::phase () const
 {

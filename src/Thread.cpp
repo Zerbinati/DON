@@ -292,7 +292,15 @@ namespace Threading {
     Thread::Thread ()
     {
         _alive = true;
+        count_reset = true;
+        
         index = u16(Threadpool.size ());
+        max_ply = 0;
+        running_depth = 0;
+
+        nodes = 0;
+        tb_hits = 0;
+        
         clear ();
         std::unique_lock<Mutex> lk (_mutex);
         _searching = true;
@@ -354,7 +362,7 @@ namespace Threading {
         u64 nodes = 0;
         for (const auto *th : *this)
         {
-            nodes += th->root_pos.nodes;
+            nodes += th->nodes;
         }
         return nodes;
     }
@@ -473,6 +481,12 @@ namespace Threading {
         const auto fen = root_pos.fen ();
         for (auto *th : *this)
         {
+            th->max_ply = 0;
+            th->running_depth = 0;
+
+            th->nodes = 0;
+            th->tb_hits = 0;
+
             th->root_pos.setup (fen, states.back (), th);
             th->root_moves = root_moves;
         }

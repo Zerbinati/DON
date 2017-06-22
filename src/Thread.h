@@ -170,14 +170,16 @@ namespace Threading {
             , pv_index = 0
             , max_ply  = 0 // Used to send 'seldepth' info to GUI
             , check_count = 0;
-        std::atomic_bool count_reset = { true };
 
-        u64   tb_hits  = 0;
+        std::atomic_bool count_reset = { true };
+        std::atomic_short running_depth = { 0 };
+        std::atomic_ullong nodes = { 0 }
+            ,              tb_hits = { 0 };
+
+        i16 finished_depth = 0;
 
         Position root_pos;
         RootMoveVector root_moves;
-        i16   running_depth  = 0
-            , finished_depth = 0;
 
         Pawns   ::Table   pawn_table;
         Material::Table   matl_table;

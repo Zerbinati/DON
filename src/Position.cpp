@@ -575,6 +575,7 @@ void Position::clear ()
     }
 
     nodes = 0;
+    tb_hits = 0;
 }
 // Set the castling right
 void Position::set_castle (Color c, CastleSide cs)
@@ -884,7 +885,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         if (PAWN == si->capture)
         {
             si->pawn_key ^= RandZob.piece_square_keys[pasive][PAWN][cap];
-            prefetch_off (thread->pawn_table[si->pawn_key]);
+            prefetch2 (thread->pawn_table[si->pawn_key]);
         }
         else
         {
@@ -918,7 +919,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             si->pawn_key ^=
                   RandZob.piece_square_keys[active][PAWN][dst]
                 ^ RandZob.piece_square_keys[active][PAWN][org];
-            prefetch_off (thread->pawn_table[si->pawn_key]);
+            prefetch2 (thread->pawn_table[si->pawn_key]);
             // Double push pawn
             if (16 == (u08(dst) ^ u08(org)))
             {
@@ -966,7 +967,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->pawn_key ^=
               RandZob.piece_square_keys[active][PAWN][dst]
             ^ RandZob.piece_square_keys[active][PAWN][org];
-        prefetch_off (thread->pawn_table[si->pawn_key]);
+        prefetch2 (thread->pawn_table[si->pawn_key]);
     }
         break;
     case PROMOTE:
@@ -989,7 +990,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
         si->pawn_key ^=
               RandZob.piece_square_keys[active][PAWN][org];
-        prefetch_off (thread->pawn_table[si->pawn_key]);
+        prefetch2 (thread->pawn_table[si->pawn_key]);
         si->non_pawn_matl[active] += PieceValues[MG][ppt];
     }
         break;

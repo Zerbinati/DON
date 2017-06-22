@@ -681,23 +681,24 @@ namespace Searcher {
 
         // Formats PV information according to UCI protocol.
         // UCI requires that all (if any) unsearched PV lines are sent using a previous search score.
-        string multipv_info (Thread *const &th, Value alfa, Value beta)
+        string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
         {
             auto elapsed_time = std::max (Threadpool.time_mgr.elapsed_time (), TimePoint(1));
+            
+            const auto &root_moves = th->root_moves;
+
             auto total_nodes  = Threadpool.nodes ();
-            auto tb_hits      = Threadpool.tb_hits () + (TBHasRoot ? th->root_moves.size () : 0);
+            auto tb_hits      = Threadpool.tb_hits () + (TBHasRoot ? root_moves.size () : 0);
 
             ostringstream oss;
             for (u16 i = 0; true; ++i)
             {
                 bool updated = 
                        i <= th->pv_index
-                    && -VALUE_INFINITE != th->root_moves[i].new_value;
+                    && -VALUE_INFINITE != root_moves[i].new_value;
 
-                auto d =
-                    updated ?
-                        th->running_depth :
-                        th->running_depth - 1;
+                auto d = updated ? depth : i16(depth - 1);
+
                 if (d <= 0)
                 {
                     if (i == Threadpool.pv_limit - 1)
@@ -706,10 +707,11 @@ namespace Searcher {
                     }
                     continue;
                 }
+
                 auto v =
                     updated ?
-                        th->root_moves[i].new_value :
-                        th->root_moves[i].old_value;
+                        root_moves[i].new_value :
+                        root_moves[i].old_value;
                 bool tb =
                        TBHasRoot
                     && abs (v) < +VALUE_MATE - i32(MaxPlies);
@@ -731,7 +733,7 @@ namespace Searcher {
                 {
                     oss << " hashfull " << TT.hash_full ();
                 }
-                oss << " pv"        << th->root_moves[i];
+                oss << " pv"        << root_moves[i];
                 if (i == Threadpool.pv_limit - 1)
                 {
                     break;
@@ -889,9 +891,6 @@ namespace Searcher {
                 assert(pos.pseudo_legal (move)
                     && pos.legal (move));
 
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
-
                 ++move_count;
 
                 bool gives_check = pos.gives_check (move);
@@ -942,6 +941,9 @@ namespace Searcher {
                 }
 
                 ss->current_move = move;
+
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                 // Make the move
                 pos.do_move (move, si, gives_check);
@@ -1029,6 +1031,9 @@ namespace Searcher {
             if (th->count_reset.load (memory_order_relaxed))
             {
                 th->count_reset = false;
+                th->nodes = pos.nodes;
+                th->tb_hits = pos.tb_hits;
+
                 // At low node count increase the checking rate otherwise use a default value
                 th->check_count = u16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
             }
@@ -1166,7 +1171,7 @@ namespace Searcher {
 
                     if (state != FAIL)
                     {
-                        ++th->tb_hits;
+                        ++pos.tb_hits;
 
                         auto draw_v = TBUseRule50 ? 1 : 0;
 
@@ -1411,7 +1416,9 @@ namespace Searcher {
             Moves quiet_moves;
             quiet_moves.reserve (16);
 
-            bool skip_quiets = false;
+            bool  skip_quiets = false
+                , ttm_capture = false;
+
             // Initialize move picker (1) for the current position.
             MovePicker mp (pos, tt_move, ss);
             // Step 11. Loop through moves
@@ -1499,9 +1506,6 @@ namespace Searcher {
                     new_depth += 1;
                 }
 
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
-
                 // Step 13. Pruning at shallow depth
                 if (   !root_node
                     //&& 0 == Limits.mate
@@ -1549,9 +1553,18 @@ namespace Searcher {
                     }
                 }
 
+                if (   move == tt_move
+                    && capture_or_promotion)
+                {
+                    ttm_capture = true;
+                }
+
                 // Update the current move (this must be done after singular extension search)
                 ss->current_move = move;
                 ss->m_history = &th->cm_history[mpc][dst_sq (move)];
+
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check);
@@ -1573,6 +1586,13 @@ namespace Searcher {
                     else
                     {
                         assert(PROMOTE != mtype (move));
+
+                        // Increase reduction if ttMove is a capture
+                        if (ttm_capture)
+                        {
+                            reduce_depth += 1;
+                        }
+
                         // Increase reduction for cut nodes
                         if (cut_node)
                         {
@@ -1991,8 +2011,12 @@ namespace Threading {
 
                 // Start with a small aspiration window and, in case of fail high/low,
                 // research with bigger window until not failing high/low anymore.
-                do {
+                while (true)
+                {
                     best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, running_depth, false, true);
+
+                    nodes = root_pos.nodes;
+                    tb_hits = root_pos.tb_hits;
 
                     // Bring the best move to the front. It is critical that sorting is
                     // done with a stable algorithm because all the values but the first
@@ -2017,7 +2041,7 @@ namespace Threading {
                             && (best_value <= alfa || beta <= best_value)
                             && Threadpool.time_mgr.elapsed_time () > 3*MilliSec)
                         {
-                            sync_cout << multipv_info (this, alfa, beta) << sync_endl;
+                            sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
                         }
                     }
                     // If failing low/high set new bounds, otherwise exit the loop.
@@ -2049,7 +2073,7 @@ namespace Threading {
                     window += window / 4 + 5;
 
                     assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
-                } while (true);
+                }
 
                 // Sort the PV lines searched so far and update the GUI
                 std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
@@ -2060,7 +2084,7 @@ namespace Threading {
                         || Threadpool.pv_limit == pv_index + 1
                         || Threadpool.time_mgr.elapsed_time () > 3*MilliSec)
                     {
-                        sync_cout << multipv_info (this, alfa, beta) << sync_endl;
+                        sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
                     }
                 }
             }
@@ -2345,7 +2369,7 @@ namespace Threading {
                 // If best thread is not main thread send new PV.
                 if (0 != (best_thread = Threadpool.best_thread ())->index)
                 {
-                    sync_cout << multipv_info (best_thread, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
+                    sync_cout << multipv_info (best_thread, best_thread->finished_depth, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
                 }
             }
         }

@@ -144,7 +144,7 @@ const u16 MaxPlies   = 128; // Maximum Plies
         {}
 #endif
 
-        inline void prefetch_off (const void *addr)
+        inline void prefetch2 (const void *addr)
         {
             prefetch (addr);
             prefetch ((const uint8_t*) addr + 64);
