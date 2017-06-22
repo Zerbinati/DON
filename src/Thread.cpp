@@ -428,7 +428,7 @@ namespace Threading {
     {
         Limits = limits;
 
-        RootMoveVector root_moves;
+        RootMoves root_moves;
         root_moves.initialize (root_pos, limits.search_moves);
 
         TBProbeDepth = i16(i32(Options["SyzygyProbeDepth"]));

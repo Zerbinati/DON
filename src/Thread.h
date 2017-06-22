@@ -179,7 +179,7 @@ namespace Threading {
         i16 finished_depth = 0;
 
         Position root_pos;
-        RootMoveVector root_moves;
+        RootMoves root_moves;
 
         Pawns   ::Table   pawn_table;
         Material::Table   matl_table;

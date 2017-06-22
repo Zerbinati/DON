@@ -59,7 +59,7 @@ RootMove::operator string () const
     return oss.str ();
 }
 
-RootMoveVector::operator std::string () const
+RootMoves::operator std::string () const
 {
     std::ostringstream oss;
     for (const auto &rm : *this)

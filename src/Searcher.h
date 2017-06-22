@@ -151,11 +151,13 @@ inline std::basic_ostream<CharT, Traits>&
     return os;
 }
 
-class RootMoveVector
+class RootMoves
     : public std::vector<RootMove>
 {
 public:
-    RootMoveVector& operator= (const RootMoveVector&) = default;
+    RootMoves () = default;
+    RootMoves (const RootMoves&) = default;
+    RootMoves& operator= (const RootMoves&) = default;
 
     void operator+= (const RootMove &rm) { push_back (rm); }
     void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
@@ -179,7 +181,7 @@ public:
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &root_moves)
+    operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoves &root_moves)
 {
     os << std::string(root_moves);
     return os;

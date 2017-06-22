@@ -10,7 +10,6 @@ namespace Evaluator {
     // Tempo bonus
     const Value Tempo = Value(20);
 
-    template<bool Trace = false>
     extern Value evaluate (const Position &pos);
     
     extern std::string trace (const Position &pos);

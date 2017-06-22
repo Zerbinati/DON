@@ -1612,7 +1612,7 @@ namespace TBSyzygy {
     //
     // A return value false indicates that not all probes were successful and that
     // no moves were filtered out.
-    bool root_probe_dtz (Position &root_pos, RootMoveVector &root_moves, Value &value)
+    bool root_probe_dtz (Position &root_pos, RootMoves &root_moves, Value &value)
     {
         ProbeState state;
         i32 dtz = probe_dtz (root_pos, state);
@@ -1798,7 +1798,7 @@ namespace TBSyzygy {
     //
     // A return value false indicates that not all probes were successful and that
     // no moves were filtered out.
-    bool root_probe_wdl (Position &root_pos, RootMoveVector &root_moves, Value &value)
+    bool root_probe_wdl (Position &root_pos, RootMoves &root_moves, Value &value)
     {
         ProbeState state;
 

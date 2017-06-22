@@ -33,8 +33,8 @@ namespace TBSyzygy {
     extern i32      probe_dtz (Position &pos, ProbeState &state);
     extern WDLScore probe_wdl (Position &pos, ProbeState &state);
 
-    extern bool root_probe_dtz (Position &root_pos, RootMoveVector &root_moves, Value &value);
-    extern bool root_probe_wdl (Position &root_pos, RootMoveVector &root_moves, Value &value);
+    extern bool root_probe_dtz (Position &root_pos, RootMoves &root_moves, Value &value);
+    extern bool root_probe_wdl (Position &root_pos, RootMoves &root_moves, Value &value);
 
     extern void initialize ();
 
