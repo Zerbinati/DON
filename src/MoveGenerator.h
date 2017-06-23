@@ -1,8 +1,8 @@
 #ifndef _MOVE_GENERATOR_H_INC_
 #define _MOVE_GENERATOR_H_INC_
 
-#include "Type.h"
 #include "Position.h"
+#include "Type.h"
 
 enum GenType : u08
 {

@@ -1,7 +1,7 @@
 #include "Notation.h"
 
-#include "Position.h"
 #include "MoveGenerator.h"
+#include "Position.h"
 
 using namespace std;
 
@@ -78,7 +78,6 @@ namespace Notation {
             }
             return oss.str ();
         }
-
         // Time to string
         string pretty_time (TimePoint time)
         {
@@ -99,7 +98,6 @@ namespace Notation {
                 << std::setfill (' ');
             return oss.str ();
         }
-
     }
 
     // Converts a move to a string in coordinate algebraic notation representation.
@@ -109,8 +107,8 @@ namespace Notation {
     // Internally castle moves are always coded as "king captures rook".
     string move_to_can (Move m)
     {
-        if (m == MOVE_NONE) return "(none)";
-        if (m == MOVE_NULL) return "(null)";
+        if (MOVE_NONE == m) return "(none)";
+        if (MOVE_NULL == m) return "(null)";
 
         auto can = to_string (org_sq (m))
                  + to_string (fix_dst_sq (m));
@@ -142,8 +140,8 @@ namespace Notation {
     // Converts a move to a string in short algebraic notation representation.
     string move_to_san (Move m, Position &pos)
     {
-        if (m == MOVE_NONE) return "(none)";
-        if (m == MOVE_NULL) return "(null)";
+        if (MOVE_NONE == m) return "(none)";
+        if (MOVE_NULL == m) return "(null)";
         assert(MoveList<LEGAL> (pos).contains (m));
 
         string san;
@@ -243,16 +241,16 @@ namespace Notation {
     // Returns formated human-readable search information,
     // typically to be appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv_info (Thread *const &thread)
+    string pretty_pv_info (Thread *const &th)
     {
         static const u16 K = 1000;
         static const u32 M = K*K;
 
         ostringstream oss;
-        auto &root_move = thread->root_moves[0];
+        const auto &root_move = th->root_moves[0];
         u64 total_nodes = Threadpool.nodes ();
-        oss << std::setw ( 4) << thread->running_depth
-            << std::setw ( 8) << pretty_value (root_move.new_value, thread->root_pos.active)
+        oss << std::setw ( 4) << th->finished_depth
+            << std::setw ( 8) << pretty_value (root_move.new_value, th->root_pos.active)
             << std::setw (12) << pretty_time (Threadpool.time_mgr.elapsed_time ());
         if (total_nodes < 1*M)
         {
@@ -275,14 +273,14 @@ namespace Notation {
         {
             oss <<
                 //move_to_can (m)
-                move_to_san (m, thread->root_pos) << ' ';
+                move_to_san (m, th->root_pos) << ' ';
             states.push_back (StateInfo ());
-            thread->root_pos.do_move (m, states.back ());
+            th->root_pos.do_move (m, states.back ());
             ++ply;
         }
         while (ply != 0)
         {
-            thread->root_pos.undo_move (root_move[--ply]);
+            th->root_pos.undo_move (root_move[--ply]);
             states.pop_back ();
         }
 

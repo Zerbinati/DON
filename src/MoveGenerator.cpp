@@ -1,4 +1,5 @@
 #include "MoveGenerator.h"
+
 #include "BitBoard.h"
 
 namespace MoveGen {

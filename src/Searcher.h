@@ -1,11 +1,13 @@
 #ifndef _SEARCHER_H_INC_
 #define _SEARCHER_H_INC_
 
+#include <array>
 #include <atomic>
+#include <vector>
 
-#include "Type.h"
-#include "Position.h"
 #include "MoveGenerator.h"
+#include "Position.h"
+#include "Type.h"
 
 // Limit stores information sent by GUI about available time to search the current move
 //  - Maximum time and increment
@@ -246,7 +248,7 @@ namespace Searcher {
 
     extern Limit Limits;
 
-    extern std::atomic_bool
+    extern std::atomic<bool>
                  ForceStop
         ,        PonderhitStop; 
 

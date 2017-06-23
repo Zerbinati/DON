@@ -3,13 +3,14 @@
 #include "MemoryHandler.h"
 
 #include <cstdlib>
-#include "UCI.h"
+
 #include "Thread.h"
+#include "UCI.h"
 
 #if defined(_WIN32)
 
-#   include <tchar.h>
 #   include <cstdio>
+#   include <tchar.h>
 
 #   if !defined(NOMINMAX)
 #       define NOMINMAX // Disable macros min() and max()
@@ -27,8 +28,8 @@
 #else
 
 #   include <sys/ipc.h>
-#   include <sys/shm.h>
 #   include <sys/mman.h>
+#   include <sys/shm.h>
 
 #   ifndef SHM_HUGETLB
 #       define SHM_HUGETLB     04000

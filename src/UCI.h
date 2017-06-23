@@ -1,12 +1,12 @@
 #ifndef _UCI_H_INC_
 #define _UCI_H_INC_
 
-#include <map>
 #include <iostream>
+#include <map>
 
-#include "Type.h"
 #include "functor.h"
 #include "Position.h"
+#include "Type.h"
 
 namespace UCI {
 

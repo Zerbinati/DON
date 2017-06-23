@@ -127,7 +127,7 @@ namespace EndGame {
                 && pos.count<NIHT> (strong_color) != 0)
             || pos.count<NIHT> (strong_color) > 2)
         {
-            value = std::min (value + VALUE_KNOWN_WIN, +VALUE_MATE_IN_MAX_PLY - 1);
+            value = std::min (value + VALUE_KNOWN_WIN, +VALUE_MATE_MAX_PLY - 1);
         }
 
         return strong_color == pos.active ? +value : -value;

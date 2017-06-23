@@ -2,26 +2,26 @@
 
 #include <cstdarg>
 
+#include "Benchmark.h"
 #include "Engine.h"
-#include "Searcher.h"
 #include "Evaluator.h"
 #include "MoveGenerator.h"
+#include "Notation.h"
+#include "Searcher.h"
+#include "TBsyzygy.h"
 #include "Thread.h"
 #include "Transposition.h"
-#include "TBsyzygy.h"
-#include "Notation.h"
-#include "Benchmark.h"
 
 namespace UCI {
 
     using namespace std;
     using namespace Engine;
-    using namespace Searcher;
     using namespace Evaluator;
     using namespace MoveGen;
-    using namespace Threading;
-    using namespace TBSyzygy;
     using namespace Notation;
+    using namespace Searcher;
+    using namespace TBSyzygy;
+    using namespace Threading;
 
     namespace {
         // On ucinewgame following steps are needed to reset the state
@@ -142,7 +142,7 @@ namespace UCI {
                            && !iss.fail ())
                     {
                         auto m = move_from_can (token, root_pos);
-                        if (m == MOVE_NONE)
+                        if (MOVE_NONE == m)
                         {
                             std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
                             break;
@@ -244,7 +244,7 @@ namespace UCI {
                                && !iss.fail ())
                         {
                             auto m = move_from_can (token, root_pos);
-                            if (m == MOVE_NONE)
+                            if (MOVE_NONE == m)
                             {
                                 std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
                                 continue;

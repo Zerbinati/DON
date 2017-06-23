@@ -1,28 +1,28 @@
 ﻿#include "Searcher.h"
 
-#include "UCI.h"
-#include "PRNG.h"
-#include "Transposition.h"
-#include "Evaluator.h"
-#include "Thread.h"
-#include "Zobrist.h"
-#include "TBsyzygy.h"
-#include "Polyglot.h"
-#include "Notation.h"
 #include "Debugger.h"
+#include "Evaluator.h"
+#include "Notation.h"
+#include "Polyglot.h"
+#include "PRNG.h"
+#include "TBsyzygy.h"
+#include "Thread.h"
+#include "Transposition.h"
+#include "UCI.h"
+#include "Zobrist.h"
 
 using namespace std;
-using namespace UCI;
 using namespace BitBoard;
-using namespace MoveGen;
-using namespace Transposition;
-using namespace Evaluator;
-using namespace Threading;
-using namespace Zobrists;
-using namespace TBSyzygy;
-using namespace Polyglot;
-using namespace Notation;
 using namespace Debugger;
+using namespace Evaluator;
+using namespace MoveGen;
+using namespace Notation;
+using namespace Polyglot;
+using namespace TBSyzygy;
+using namespace Threading;
+using namespace Transposition;
+using namespace UCI;
+using namespace Zobrists;
 
 // Extract ponder move from TT is called in case have no ponder move before exiting the search,
 bool RootMove::extract_ponder_move_from_tt (Position &pos)
@@ -114,7 +114,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
     , _ss (ss)
     , _tt_move (ttm)
 {
-    assert(ttm == MOVE_NONE
+    assert(MOVE_NONE == ttm
         || (pos.pseudo_legal (ttm)
          && pos.legal (ttm)));
 
@@ -141,7 +141,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
     , _depth (d)
 {
     assert(d <= 0);
-    assert(ttm == MOVE_NONE
+    assert(MOVE_NONE == ttm
         || (pos.pseudo_legal (ttm)
          && pos.legal (ttm)));
 
@@ -181,7 +181,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
     , _threshold (thr)
 {
     assert(0 == pos.si->checkers);
-    assert(ttm == MOVE_NONE
+    assert(MOVE_NONE == ttm
         || (pos.pseudo_legal (ttm)
          && pos.legal (ttm)));
 
@@ -530,7 +530,7 @@ namespace Searcher {
 
     Limit  Limits;
 
-    atomic_bool
+    atomic<bool>
            ForceStop     { false }  // Stop search on request
         ,  PonderhitStop { false }; // Stop search on ponder-hit
 
@@ -668,7 +668,7 @@ namespace Searcher {
         Value value_to_tt (Value v, i32 ply)
         {
             assert(VALUE_NONE != v);
-            return v + ((v >= +VALUE_MATE_IN_MAX_PLY) - (v <= -VALUE_MATE_IN_MAX_PLY)) * ply;
+            return v + ((v >= +VALUE_MATE_MAX_PLY) - (v <= -VALUE_MATE_MAX_PLY)) * ply;
         }
         // It adjusts a mate score from "plies to mate from the current position" to "plies to mate from the root".
         // Non-mate scores are unchanged.
@@ -676,7 +676,7 @@ namespace Searcher {
         Value value_of_tt (Value v, i32 ply)
         {
             return v - (VALUE_NONE != v ?
-                       ((v >= +VALUE_MATE_IN_MAX_PLY) - (v <= -VALUE_MATE_IN_MAX_PLY)) * ply : 0);
+                       ((v >= +VALUE_MATE_MAX_PLY) - (v <= -VALUE_MATE_MAX_PLY)) * ply : 0);
         }
 
         // Formats PV information according to UCI protocol.
@@ -787,7 +787,7 @@ namespace Searcher {
                 && pos.legal (move) ?
                     move :
                     MOVE_NONE;
-            assert(tt_move == MOVE_NONE
+            assert(MOVE_NONE == tt_move
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
             auto tt_value =
@@ -931,7 +931,7 @@ namespace Searcher {
                         // Evasion Prunable: Detect non-capture evasions that are candidate to be pruned
                         || (   (   0 != depth
                                 || 2 < move_count)
-                            && best_value > -VALUE_MATE_IN_MAX_PLY
+                            && best_value > -VALUE_MATE_MAX_PLY
                             && !pos.capture (move)))
                     && PROMOTE != mtype (move)
                     //&& 0 == Limits.mate
@@ -1105,7 +1105,7 @@ namespace Searcher {
                     && pos.legal (move) ?
                         move :
                         MOVE_NONE;
-            assert(tt_move == MOVE_NONE
+            assert(MOVE_NONE == tt_move
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
 
@@ -1169,7 +1169,7 @@ namespace Searcher {
                     ProbeState state;
                     WDLScore v = probe_wdl (pos, state);
 
-                    if (state != FAIL)
+                    if (PB_FAILURE != state)
                     {
                         ++pos.tb_hits;
 
@@ -1297,7 +1297,7 @@ namespace Searcher {
 
                         if (null_value >= beta)
                         {
-                            bool unproven = null_value >= +VALUE_MATE_IN_MAX_PLY;
+                            bool unproven = null_value >= +VALUE_MATE_MAX_PLY;
 
                             // Don't do verification search at low depths
                             if (   12 > depth
@@ -1329,7 +1329,7 @@ namespace Searcher {
                     if (   !PVNode
                         && 4 < depth
                         //&& 0 == Limits.mate
-                        && abs (beta) < +VALUE_MATE_IN_MAX_PLY)
+                        && abs (beta) < +VALUE_MATE_MAX_PLY)
                     {
                         auto beta_margin = std::min (beta + 200, +VALUE_INFINITE);
                         
@@ -1509,7 +1509,7 @@ namespace Searcher {
                 // Step 13. Pruning at shallow depth
                 if (   !root_node
                     //&& 0 == Limits.mate
-                    && best_value > -VALUE_MATE_IN_MAX_PLY
+                    && best_value > -VALUE_MATE_MAX_PLY
                     && pos.si->non_pawn_material (pos.active) > VALUE_ZERO)
                 {
                     if (   !capture_or_promotion
@@ -2364,6 +2364,7 @@ namespace Threading {
             if (   1 == Threadpool.pv_limit
                 && !Threadpool.easy_played
                 //&& 0 == Limits.depth // Depth limit search don't use deeper thread
+                && MOVE_NONE != root_moves[0][0]
                 && !Threadpool.skill_mgr.enabled ())
             {
                 // If best thread is not main thread send new PV.
@@ -2376,6 +2377,7 @@ namespace Threading {
 
         assert(!best_thread->root_moves.empty ()
             && !best_thread->root_moves[0].empty ());
+
         auto &root_move = best_thread->root_moves[0];
 
         if (Limits.use_time_management ())

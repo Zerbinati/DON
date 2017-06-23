@@ -22,7 +22,8 @@ namespace BitBoard {
     Bitboard PawnAttacks[CLR_NO][SQ_NO];
     Bitboard PieceAttacks[NONE][SQ_NO];
 
-    Magic Magics[2][SQ_NO];
+    Magic BMagics[SQ_NO]
+        , RMagics[SQ_NO];
 
 #if !defined(ABM)
     u08 PopCount16[1 << 16];
@@ -100,11 +101,7 @@ namespace BitBoard {
         // Magic bitboards are used to look up attacks of sliding pieces.
         // As a reference see chessprogramming.wikispaces.com/Magic+Bitboards.
         // In particular, here we use the so called "fancy" approach.
-#   if defined(BM2)
         void initialize_table (Bitboard *const table, Magic *const magics, const Delta *const deltas)
-#   else
-        void initialize_table (Bitboard *const table, Magic *const magics, const Delta *const deltas, u16 (*indexer)(const Magic&, Bitboard))
-#   endif
         {
 
 #       if !defined(BM2)
@@ -187,7 +184,7 @@ namespace BitBoard {
                     bool used[MaxIndex] = {false};
                     for (i = 0; i < size; ++i)
                     {
-                        u16 idx = indexer (magic, occupancy[i]);
+                        u16 idx = magic.index (occupancy[i]);
                         assert(idx < size);
                         if (used[idx])
                         {
@@ -304,13 +301,8 @@ namespace BitBoard {
         }
 
         // Initialize Sliding
-#       if defined(BM2)
-            initialize_table (BTable, Magics[0], PieceDeltas[BSHP]);
-            initialize_table (RTable, Magics[1], PieceDeltas[ROOK]);
-#       else
-            initialize_table (BTable, Magics[0], PieceDeltas[BSHP], magic_index<BSHP>);
-            initialize_table (RTable, Magics[1], PieceDeltas[ROOK], magic_index<ROOK>);
-#       endif
+        initialize_table (BTable, BMagics, PieceDeltas[BSHP]);
+        initialize_table (RTable, RMagics, PieceDeltas[ROOK]);
 
         // NOTE:: must be after Initialize Sliding
         for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)

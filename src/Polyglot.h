@@ -3,9 +3,8 @@
 
 #include <fstream>
 
-#include "Type.h"
-
 #include "Position.h"
+#include "Type.h"
 
 namespace Polyglot {
 

@@ -1,20 +1,20 @@
 #ifndef _TYPE_H_INC_
 #define _TYPE_H_INC_
 
+#include <algorithm>
+#include <array>
+#include <cassert>
 #include <cctype>
+#include <chrono>
 #include <climits>
 #include <cmath>
-#include <string>
 #include <cstring>
-#include <vector>
-#include <array>
-#include <algorithm>
 #include <functional>
-#include <cassert>
-#include <iosfwd>
-#include <chrono>
 #include <iomanip>
+#include <iosfwd>
 #include <sstream>
+#include <string>
+#include <vector>
 
 // Compiling:
 // With Makefile (e.g. for Linux and OSX), configuration is done automatically, to get started type 'make help'.
@@ -317,12 +317,13 @@ enum Value : i32
     VALUE_DRAW      = 0,
     VALUE_ONE       = 1,
 
-    VALUE_NONE      = (1 << 15) - 1,
-    VALUE_INFINITE  = VALUE_NONE - 1,
-    VALUE_MATE      = VALUE_NONE - 2,
+    VALUE_NONE      = SHRT_MAX,
+    VALUE_INFINITE  = i32(VALUE_NONE) - 1,
+    VALUE_MATE      = i32(VALUE_INFINITE) - 1,
+    
+    VALUE_MATE_MAX_PLY = i32(VALUE_MATE) - 2*MaxPlies,
+    
     VALUE_KNOWN_WIN = 10000,
-
-    VALUE_MATE_IN_MAX_PLY = VALUE_MATE - 2 * MaxPlies,
 
     VALUE_MG_PAWN =  188,  VALUE_EG_PAWN =  248,
     VALUE_MG_NIHT =  764,  VALUE_EG_NIHT =  848,

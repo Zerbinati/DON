@@ -1,10 +1,14 @@
 #ifndef _POSITION_H_INC_
 #define _POSITION_H_INC_
 
+#include <cassert>
 #include <deque>
+#include <memory> // For std::unique_ptr
+#include <string>
 
 #include "BitBoard.h"
 #include "Zobrist.h"
+#include "Type.h"
 
 class Position;
 using namespace BitBoard;

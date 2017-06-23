@@ -1,10 +1,10 @@
 #include "Polyglot.h"
 
+#include "manipulator.h"
+#include "MoveGenerator.h"
+#include "Notation.h"
 #include "PRNG.h"
 #include "Zobrist.h"
-#include "MoveGenerator.h"
-#include "manipulator.h"
-#include "Notation.h"
 
 namespace Polyglot {
 
@@ -230,7 +230,7 @@ namespace Polyglot {
 
             while (*this >> pe, pe.key == poly_key && good ())
             {
-                if (pe.move == MOVE_NONE) continue; // Skip MOVE_NONE
+                if (MOVE_NONE == pe.move) continue; // Skip MOVE_NONE
 
                 if (max_weight < pe.weight)
                 {
@@ -259,13 +259,13 @@ namespace Polyglot {
                 }
                 // Note that first entry is always chosen if not pick best and sum of weight = 0
                 else
-                if (move == MOVE_NONE)
+                if (MOVE_NONE == move)
                 {
                     move = Move(pe.move);
                 }
             }
 
-            if (move == MOVE_NONE)
+            if (MOVE_NONE == move)
             {
                 return MOVE_NONE;
             }
@@ -319,7 +319,10 @@ namespace Polyglot {
             u32 weight_sum = 0;
             while (*this >> pe, pe.key == poly_key && good ())
             {
-                if (pe.move == MOVE_NONE) continue; // Skip MOVE_NONE
+                if (MOVE_NONE == pe.move)
+                {
+                    continue; // Skip MOVE_NONE
+                }
 
                 pes.push_back (pe);
                 weight_sum += pe.weight;

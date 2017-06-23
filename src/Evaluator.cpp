@@ -2,9 +2,9 @@
 
 #include <ostream>
 
-#include "Pawns.h"
 #include "Material.h"
 #include "MoveGenerator.h"
+#include "Pawns.h"
 #include "Thread.h"
 
 namespace Evaluator {
@@ -95,15 +95,15 @@ namespace Evaluator {
             // Zone around the king which is considered by the king safety evaluation.
             // This consists of the squares directly adjacent to the king, and the three (or two, for a king on an edge file) squares two ranks in front of the king.
             // For instance, if black's king is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8, f7, g7, h7, f6, g6 and h6.
-            Bitboard king_ring  [CLR_NO];
+            Bitboard king_ring[CLR_NO];
             // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
-            u08      king_ring_attackers_count  [CLR_NO];
+            u08      king_ring_attackers_count[CLR_NO];
             // Sum of the "weight" of the pieces of the color which attack a square in the king_ring of the enemy king.
             // The weights of the individual piece types are given by the PieceKingAttacks[piece-type]
-            i32      king_ring_attackers_weight [CLR_NO];
+            i32      king_ring_attackers_weight[CLR_NO];
             // Number of attacks by the color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
-            u08      king_zone_attacks_count    [CLR_NO];
+            u08      king_zone_attacks_count[CLR_NO];
 
             // Evaluation helpers
             template<Color Own> void initialize ();
@@ -346,7 +346,7 @@ namespace Evaluator {
                 Bitboard attacks;
                 switch (PT)
                 {
-                case NIHT: attacks = PieceAttacks[NIHT][s];                                                                         break;
+                case NIHT: attacks = PieceAttacks[NIHT][s];                                                                             break;
                 case BSHP: attacks = attacks_bb<BSHP> (s, _pos.pieces () ^ (_pos.pieces (Own, BSHP, QUEN) & ~_pos.abs_blockers (Own))); break;
                 case ROOK: attacks = attacks_bb<ROOK> (s, _pos.pieces () ^ (_pos.pieces (Own, ROOK, QUEN) & ~_pos.abs_blockers (Own))); break;
                 case QUEN: attacks = attacks_bb<QUEN> (s, _pos.pieces () ^ (_pos.pieces (Own,       QUEN) & ~_pos.abs_blockers (Own))); break;

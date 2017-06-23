@@ -1,8 +1,8 @@
 #ifndef _FUNCTOR_H_INC_
 #define _FUNCTOR_H_INC_
 
-#include <functional>
 #include <cctype>
+#include <functional>
 
 namespace std {
 

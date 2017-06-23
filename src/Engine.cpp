@@ -1,16 +1,16 @@
 #include "Engine.h"
 
-#include "UCI.h"
-#include "PieceSquare.h"
 #include "BitBases.h"
-#include "Zobrist.h"
-#include "Pawns.h"
-#include "Material.h"
 #include "Endgame.h"
-#include "Thread.h"
+#include "Material.h"
 #include "MemoryHandler.h"
+#include "Pawns.h"
+#include "PieceSquare.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
+#include "Thread.h"
+#include "UCI.h"
+#include "Zobrist.h"
 
 namespace Engine {
 

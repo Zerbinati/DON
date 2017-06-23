@@ -34,8 +34,11 @@ namespace {
 
         // Early exit if the needed API is not available at runtime
         HMODULE k32 = GetModuleHandle ("Kernel32.dll");
+        if (nullptr == k32)
+        {
+        }
         auto fun1 = (fun1_t)GetProcAddress (k32, "GetLogicalProcessorInformationEx");
-        if (fun1 == nullptr)
+        if (nullptr == fun1)
         {
             return -1;
         }
@@ -51,7 +54,7 @@ namespace {
         ptr = buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)malloc (length);
 
         // Second call, now we expect to succeed
-        if (fun1 (RelationAll, buffer, &length) == 0)
+        if (0 == fun1 (RelationAll, buffer, &length))
         {
             free (buffer);
             return -1;
@@ -113,7 +116,7 @@ namespace {
 
         // Use only local variables to be thread-safe
         auto group = get_group (index);
-        if (group == -1)
+        if (-1 == group)
         {
             return;
         }
@@ -121,14 +124,14 @@ namespace {
         HMODULE k32 = GetModuleHandle ("Kernel32.dll");
         auto fun2 = (fun2_t) GetProcAddress (k32, "GetNumaNodeProcessorMaskEx");
         auto fun3 = (fun3_t) GetProcAddress (k32, "SetThreadGroupAffinity");
-        if (   fun2 == nullptr
-            || fun3 == nullptr)
+        if (   nullptr == fun2
+            || nullptr == fun3)
         {
             return;
         }
 
         GROUP_AFFINITY affinity;
-        if (fun2 (USHORT(group), &affinity) != 0)
+        if (0 != fun2 (USHORT(group), &affinity))
         {
             fun3 (GetCurrentThread (), &affinity, nullptr);
         }
@@ -186,10 +189,10 @@ void TimeManager::initialize (Color c, i16 ply)
     // to nodes, and use resulting values in time management formulas.
     // WARNING: Given npms (nodes per millisecond) must be much lower then
     // the real engine speed to avoid time losses.
-    if (NodesTime != 0)
+    if (0 != NodesTime)
     {
         // Only once at game start
-        if (available_nodes == 0)
+        if (0 == available_nodes)
         {
             available_nodes = NodesTime * Limits.clock[c].time; // Time is in msec
         }
@@ -203,7 +206,7 @@ void TimeManager::initialize (Color c, i16 ply)
         std::max (Limits.clock[c].time, MinimumMoveTime);
 
     const auto MaxMovesToGo =
-        Limits.movestogo != 0 ?
+        0 != Limits.movestogo ?
             std::min (Limits.movestogo, MaximumMoveHorizon) :
             MaximumMoveHorizon;
     // Calculate optimum time usage for different hypothetic "moves to go" and choose the
@@ -259,7 +262,7 @@ Move SkillManager::pick_best_move (u16 pv_limit)
     assert(!root_moves.empty ());
     static PRNG prng (now ()); // PRNG sequence should be non-deterministic
 
-    if (_best_move == MOVE_NONE)
+    if (MOVE_NONE == _best_move)
     {
         // RootMoves are already sorted by value in descending order
         auto max_value  = root_moves[0].new_value;

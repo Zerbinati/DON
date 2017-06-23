@@ -1,4 +1,5 @@
 #include "Material.h"
+
 #include "Thread.h"
 
 namespace Material {

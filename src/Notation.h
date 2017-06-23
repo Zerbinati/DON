@@ -3,8 +3,8 @@
 
 #include <iostream>
 
-#include "Type.h"
 #include "Thread.h"
+#include "Type.h"
 
 class Position;
 
@@ -58,9 +58,9 @@ namespace Notation {
     extern Move move_from_san (const std::string &san, Position &pos);
 
     //extern std::string move_to_lan (Move m, Position &pos);
-    //extern Move move_from_lan (const std::string &lan,       Position &pos);
+    //extern Move move_from_lan (const std::string &lan, Position &pos);
 
-    extern std::string pretty_pv_info (Thread *const &thread);
+    extern std::string pretty_pv_info (Thread *const &th);
 }
 
 template<typename CharT, typename Traits>

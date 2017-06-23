@@ -1,20 +1,20 @@
 #include "Position.h"
 
-#include "PieceSquare.h"
-#include "Transposition.h"
 #include "MoveGenerator.h"
-#include "Thread.h"
-#include "TBsyzygy.h"
 #include "Notation.h"
+#include "PieceSquare.h"
+#include "TBsyzygy.h"
+#include "Thread.h"
+#include "Transposition.h"
 
 using namespace std;
 using namespace BitBoard;
-using namespace PieceSquare;
-using namespace Transposition;
 using namespace MoveGen;
-using namespace Threading;
-using namespace TBSyzygy;
 using namespace Notation;
+using namespace PieceSquare;
+using namespace TBSyzygy;
+using namespace Threading;
+using namespace Transposition;
 
 bool Position::Chess960     = false;
 u08  Position::DrawClockPly = 100;

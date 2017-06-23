@@ -4,13 +4,13 @@
 #include <thread>
 #include <atomic>
 
+#include "Material.h"
+#include "Pawns.h"
+#include "Position.h"
+#include "PRNG.h"
+#include "Searcher.h"
 #include "thread_win32.h"
 #include "Type.h"
-#include "PRNG.h"
-#include "Position.h"
-#include "Pawns.h"
-#include "Material.h"
-#include "Searcher.h"
 
 extern double MoveSlowness;
 extern u32    NodesTime;
@@ -100,7 +100,7 @@ public:
                 pos.do_move (pv[ply], si[ply]);
             } while (++ply < PVSize-1);
             _posi_key = pos.si->posi_key;
-            while (ply != 0)
+            while (0 != ply)
             {
                 pos.undo_move (pv[--ply]);
             }
@@ -171,10 +171,10 @@ namespace Threading {
             , max_ply  = 0 // Used to send 'seldepth' info to GUI
             , check_count = 0;
 
-        std::atomic_bool count_reset = { true };
-        std::atomic_short running_depth = { 0 };
-        std::atomic_ullong nodes = { 0 }
-            ,              tb_hits = { 0 };
+        std::atomic<bool> count_reset = { true };
+        std::atomic<i16> running_depth = { 0 };
+        std::atomic<u64> nodes = { 0 }
+            ,            tb_hits = { 0 };
 
         i16 finished_depth = 0;
 
@@ -231,13 +231,13 @@ namespace Threading {
         }
 
         // Waits on sleep condition until 'condition' turns true
-        void wait_until (const std::atomic_bool &condition)
+        void wait_until (const std::atomic<bool> &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return bool(condition); });
         }
         // Waits on sleep condition until 'condition' turns false
-        void wait_while (const std::atomic_bool &condition)
+        void wait_while (const std::atomic<bool> &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return !bool(condition); });

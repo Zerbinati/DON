@@ -14,17 +14,16 @@ namespace TBSyzygy {
         WDL_DRAW         =  0, // Draw
         WDL_CURSED_WIN   =  1, // Win, but draw under 50-move rule
         WDL_WIN          =  2, // Win
-        WDL_NONE         = -1000
     };
     inline WDLScore operator-(WDLScore d) { return WDLScore(-i32(d)); }
 
     // Possible states after a probing operation
     enum ProbeState
     {
-        FAIL              =  0, // Probe failed (missing file table)
-        OK                =  1, // Probe succesful
-        CHANGE_STM        = -1, // DTZ should check the other side
-        ZEROING_BEST_MOVE =  2  // Best move zeroes DTZ (capture or pawn move)
+        PB_CHANGE_STM        = -1, // DTZ should check the other side
+        PB_FAILURE           =  0, // Probe failure (missing file table)
+        PB_SUCCESS           =  1, // Probe success
+        PB_ZEROING_BEST_MOVE =  2  // Best move zeroes DTZ (capture or pawn move)
     };
 
     extern std::string  PathString;
@@ -38,22 +37,56 @@ namespace TBSyzygy {
 
     extern void initialize ();
 
-    inline std::ostream& operator<< (std::ostream &os, const WDLScore wdl)
+    template<typename CharT, typename Traits>
+    inline std::basic_ostream<CharT, Traits>&
+        operator<< (std::basic_ostream<CharT, Traits> &os, WDLScore wdl)
     {
-        os << (wdl == WDL_LOSS         ? "Loss" :
-               wdl == WDL_BLESSED_LOSS ? "Blessed Loss" :
-               wdl == WDL_DRAW         ? "Draw" :
-               wdl == WDL_CURSED_WIN   ? "Cursed win" :
-               wdl == WDL_WIN          ? "Win" : "None");
+        switch (wdl)
+        {
+        case WDL_LOSS:
+            os << "Loss";
+            break;
+        case WDL_BLESSED_LOSS:
+            os << "Blessed Loss";
+            break;
+        case WDL_DRAW:
+            os << "Draw";
+            break;
+        case WDL_CURSED_WIN:
+            os << "Cursed win";
+            break;
+        case WDL_WIN:
+            os << "Win";
+            break;
+        default:
+            os << "None";
+            break;
+        }
         return os;
     }
 
-    inline std::ostream& operator<< (std::ostream &os, const ProbeState ps)
+    template<typename CharT, typename Traits>
+    inline std::basic_ostream<CharT, Traits>&
+        operator<< (std::basic_ostream<CharT, Traits> &os, ProbeState ps)
     {
-        os << (ps == FAIL              ? "Failed" :
-               ps == OK                ? "Success" :
-               ps == CHANGE_STM        ? "Probed opponent side" :
-               ps == ZEROING_BEST_MOVE ? "Best move zeroes DTZ" : "None");
+        switch (ps)
+        {
+        case PB_CHANGE_STM:
+            os << "Probed opponent side";
+            break;
+        case PB_FAILURE:
+            os << "Failure";
+            break;
+        case PB_SUCCESS:
+            os << "Success";
+            break;
+        case PB_ZEROING_BEST_MOVE:
+            os << "Best move zeroes DTZ";
+            break;
+        default:
+            os << "None";
+            break;
+        }
         return os;
     }
 }
