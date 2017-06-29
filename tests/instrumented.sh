@@ -32,16 +32,15 @@ case $1 in
     threads="2"
 
 cat << EOF > tsan.supp
-race:TTEntry::move
-race:TTEntry::depth
-race:TTEntry::bound
-race:TTEntry::save
-race:TTEntry::value
-race:TTEntry::eval
+race:Transposition::Entry::move
+race:Transposition::Entry::depth
+race:Transposition::Entry::bound
+race:Transposition::Entry::save
+race:Transposition::Entry::value
+race:Transposition::Entry::eval
 
-race:TranspositionTable::probe
-race:TranspositionTable::generation
-race:TranspositionTable::hashfull
+race:Transposition::Table::probe
+race:Transposition::Table::hash_full
 
 EOF
 

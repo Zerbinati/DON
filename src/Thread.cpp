@@ -159,8 +159,8 @@ namespace {
     template<bool Maximum>
     TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
     {
-        static const auto  StepRatio = Maximum ? 7.09 : 1.00; // When in trouble, can step over reserved time with this ratio
-        static const auto StealRatio = Maximum ? 0.35 : 0.00; // However must not steal time from remaining moves over this ratio
+        const auto  StepRatio = Maximum ? 7.09 : 1.00; // When in trouble, can step over reserved time with this ratio
+        const auto StealRatio = Maximum ? 0.35 : 0.00; // However must not steal time from remaining moves over this ratio
 
         auto move_imp1 = move_importance (ply) * MoveSlowness;
         auto move_imp2 = 0.0;
@@ -295,14 +295,8 @@ namespace Threading {
     Thread::Thread ()
     {
         _alive = true;
-        count_reset = true;
         
         index = u16(Threadpool.size ());
-        max_ply = 0;
-        running_depth = 0;
-
-        nodes = 0;
-        tb_hits = 0;
         
         clear ();
         std::unique_lock<Mutex> lk (_mutex);
@@ -365,7 +359,7 @@ namespace Threading {
         u64 nodes = 0;
         for (const auto *th : *this)
         {
-            nodes += th->nodes;
+            nodes += th->nodes.load (std::memory_order_relaxed);
         }
         return nodes;
     }
@@ -375,28 +369,24 @@ namespace Threading {
         u64 tb_hits = 0;
         for (const auto *th : *this)
         {
-            tb_hits += th->tb_hits;
+            tb_hits += th->tb_hits.load (std::memory_order_relaxed);
         }
         return tb_hits;
     }
 
-    void ThreadPool::reset ()
-    {
-        for (auto *th : *this)
-        {
-            th->count_reset = true;
-        }
-    }
     void ThreadPool::clear ()
     {
         for (auto *th : *this)
         {
             th->clear ();
         }
+
+        Threadpool.main_thread ()->check_count = 0;
+
         if (Limits.use_time_management ())
         {
-            move_mgr.clear ();
-            last_value = VALUE_NONE;
+            Threadpool.main_thread ()->move_mgr.clear ();
+            Threadpool.main_thread ()->last_value = VALUE_NONE;
         }
     }
 
@@ -485,11 +475,10 @@ namespace Threading {
         for (auto *th : *this)
         {
             th->max_ply = 0;
-            th->running_depth = 0;
-
             th->nodes = 0;
             th->tb_hits = 0;
 
+            th->running_depth = 0;
             th->root_pos.setup (fen, states.back (), th);
             th->root_moves = root_moves;
         }

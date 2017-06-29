@@ -53,7 +53,7 @@ namespace Material {
         template<Color Own>
         Value imbalance (const i32 count[][NONE])
         {
-            static const auto Opp = Own == WHITE ? BLACK : WHITE;
+            const auto Opp = Own == WHITE ? BLACK : WHITE;
 
             i32 value = PawnsSet[count[Own][PAWN]];
             // "The Evaluation of Material Imbalances in Chess"

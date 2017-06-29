@@ -120,12 +120,12 @@ namespace EndGame {
                    + PushClose[dist (sk_sq, wk_sq)]
                    , +VALUE_KNOWN_WIN - 1);
 
-        if (   pos.count<QUEN> (strong_color) != 0
-            || pos.count<ROOK> (strong_color) != 0
+        if (   0 != pos.count<QUEN> (strong_color)
+            || 0 != pos.count<ROOK> (strong_color)
             || pos.paired_bishop (strong_color)
-            || (   pos.count<BSHP> (strong_color) != 0
-                && pos.count<NIHT> (strong_color) != 0)
-            || pos.count<NIHT> (strong_color) > 2)
+            || (   0 != pos.count<BSHP> (strong_color)
+                && 0 != pos.count<NIHT> (strong_color))
+            || 2 < pos.count<NIHT> (strong_color))
         {
             value = std::min (value + VALUE_KNOWN_WIN, +VALUE_MATE_MAX_PLY - 1);
         }
@@ -455,7 +455,7 @@ namespace EndGame {
         assert(verify_material (pos,   weak_color, VALUE_MG_BSHP, 0));
 
         // If rook pawns
-        if (((FA_bb|FH_bb) & pos.pieces (PAWN)) != 0)
+        if (0 != ((FA_bb|FH_bb) & pos.pieces (PAWN)))
         {
             auto wk_sq = pos.square<KING> (  weak_color);
             auto wb_sq = pos.square<BSHP> (  weak_color);
@@ -472,7 +472,7 @@ namespace EndGame {
             {
                 i32 d = dist (sp_sq + push*3, wk_sq);
                 return d <= 2
-                    && (   d != 0
+                    && (   0 != d
                         || wk_sq != pos.square<KING> (strong_color) + push*2) ?
                             Scale(24) : Scale(48);
             }
@@ -498,7 +498,7 @@ namespace EndGame {
         assert(verify_material (pos,   weak_color, VALUE_MG_ROOK, 1));
 
         // Pawn Rank based scaling.
-        static const Scale Scales[R_NO] =
+        const Scale Scales[R_NO] =
         {
             Scale(0),
             Scale(9),
@@ -648,10 +648,10 @@ namespace EndGame {
             }
 
             auto path = front_sqrs_bb (strong_color, sp_sq);
-            if (   (path & pos.pieces (weak_color, KING)) != 0
-                || (   (path & PieceAttacks[BSHP][wb_sq]) != 0
-                    && (path & attacks_bb<BSHP> (wb_sq, pos.pieces ())) != 0
-                    && dist (wb_sq, sp_sq) >= 3))
+            if (   0 != (path & pos.pieces (weak_color, KING))
+                || (   0 != (path & PieceAttacks[BSHP][wb_sq])
+                    && 0 != (path & attacks_bb<BSHP> (wb_sq, pos.pieces ()))
+                    && 3 <= dist (wb_sq, sp_sq)))
             {
                 return SCALE_DRAW;
             }
@@ -710,16 +710,16 @@ namespace EndGame {
                     Bitboard b;
                     if (   wk_sq == block1_sq
                         && (   wb_sq == block2_sq
-                            || (   (b = pos.pieces (weak_color, BSHP) & PieceAttacks[BSHP][block2_sq]) != 0
-                                && (b & attacks_bb<BSHP> (block2_sq, pos.pieces ())) != 0)
-                            || dist<Rank> (sp1_sq, sp2_sq) >= 2))
+                            || (   0 != (b = pos.pieces (weak_color, BSHP) & PieceAttacks[BSHP][block2_sq])
+                                && 0 != (b & attacks_bb<BSHP> (block2_sq, pos.pieces ())))
+                            || 2 <= dist<Rank> (sp1_sq, sp2_sq)))
                     {
                         return SCALE_DRAW;
                     }
                     if (   wk_sq == block2_sq
                         && (   wb_sq == block1_sq
-                            || (   (b = pos.pieces (weak_color, BSHP) & PieceAttacks[BSHP][block1_sq]) != 0
-                                && (b & attacks_bb<BSHP> (block1_sq, pos.pieces ())) != 0)))
+                            || (   0 != (b = pos.pieces (weak_color, BSHP) & PieceAttacks[BSHP][block1_sq])
+                                && 0 != (b & attacks_bb<BSHP> (block1_sq, pos.pieces ())))))
                     {
                         return SCALE_DRAW;
                     }
@@ -769,8 +769,8 @@ namespace EndGame {
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
         Bitboard front_squares = front_sqrs_bb (strong_color, sp_sq);
-        if (   (front_squares & PieceAttacks[BSHP][sb_sq]) != 0
-            && (front_squares & attacks_bb<BSHP> (sb_sq, pos.pieces ())) != 0)
+        if (   0 != (front_squares & PieceAttacks[BSHP][sb_sq])
+            && 0 != (front_squares & attacks_bb<BSHP> (sb_sq, pos.pieces ())))
         {
             return Scale(dist (wk_sq, sp_sq));
         }
@@ -787,8 +787,8 @@ namespace EndGame {
     template<> Scale Endgame<KBPsKPs>::operator() (const Position &pos) const
     {
         assert(pos.si->non_pawn_material (strong_color) == VALUE_MG_BSHP);
-        assert(pos.count<BSHP> (strong_color) == 1);
-        assert(pos.count<PAWN> (strong_color) != 0);
+        assert(1 == pos.count<BSHP> (strong_color));
+        assert(0 != pos.count<PAWN> (strong_color));
         // No assertions about the material of weak side, because we want draws to
         // be detected even when the weak side has some materials or pawns.
 
@@ -828,7 +828,7 @@ namespace EndGame {
             auto wk_sq = pos.square<KING> (  weak_color);
             auto sb_sq = pos.square<BSHP> (strong_color);
 
-            if (pos.count<PAWN> (weak_color) != 0)
+            if (0 != pos.count<PAWN> (weak_color))
             {
                 // Get weak side pawn that is closest to home rank
                 auto wp_sq = scan_backmost_sq (weak_color, pos.pieces (weak_color, PAWN));
@@ -871,8 +871,8 @@ namespace EndGame {
                 && dist (sp_sq, sk_sq) > 1
                 && rel_rank (strong_color, sp_sq) == R_6
                 && rel_rank (strong_color, sb_sq) == R_7
-                && ((FA_bb|FH_bb) & file_bb (sb_sq)) != 0
-                && (PawnAttacks[weak_color][sb_sq] & spawns) != 0)
+                && 0 != ((FA_bb|FH_bb) & file_bb (sb_sq))
+                && 0 != (PawnAttacks[weak_color][sb_sq] & spawns))
             {
                 return SCALE_DRAW;
             }

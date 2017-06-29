@@ -118,14 +118,14 @@ namespace MoveGen {
         template<GenType GT, Color Own>
         void generate_pawn_moves (ValMoves &moves, const Position &pos, Bitboard targets)
         {
-            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            static const auto Push = Own == WHITE ? DEL_N  : DEL_S;
-            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            const auto Push = Own == WHITE ? DEL_N  : DEL_S;
+            const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
 
-            static const Bitboard R3BB = Own == WHITE ? R3_bb : R6_bb;
-            static const Bitboard R5BB = Own == WHITE ? R5_bb : R4_bb;
-            static const Bitboard R7BB = Own == WHITE ? R7_bb : R2_bb;
+            const Bitboard R3BB = Own == WHITE ? R3_bb : R6_bb;
+            const Bitboard R5BB = Own == WHITE ? R5_bb : R4_bb;
+            const Bitboard R7BB = Own == WHITE ? R7_bb : R2_bb;
 
             // Pawns on 7th Rank
             Bitboard R7_pawns = pos.pieces (Own, PAWN) &  R7BB;
@@ -227,7 +227,7 @@ namespace MoveGen {
         template<GenType GT, Color Own, CastleSide CS>
         void generate_castling_moves (ValMoves &moves, const Position &pos)
         {
-            static const auto Opp = Own == WHITE ? BLACK : WHITE;
+            const auto Opp = Own == WHITE ? BLACK : WHITE;
 
             assert(EVASION != GT
                 && pos.can_castle (Own, CS)
@@ -270,7 +270,7 @@ namespace MoveGen {
         template<GenType GT, Color Own>
         void generate_king_moves (ValMoves &moves, const Position &pos, Bitboard targets)
         {
-            static const auto Opp = Own == WHITE ? BLACK : WHITE;
+            const auto Opp = Own == WHITE ? BLACK : WHITE;
 
             assert(EVASION != GT);
 

@@ -23,8 +23,8 @@ namespace Engine {
 
         i32 month_index (const string &month)
         {
-            static const i08 Months = 12;
-            static const string MonthStr[Months] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+            const i08 Months = 12;
+            const string MonthStr[Months] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
             for (auto m = 0; m < Months; ++m)
             {

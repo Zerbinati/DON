@@ -242,7 +242,7 @@ namespace Evaluator {
 
     #undef S
     #undef V
-    
+
         // Bonus for king attack by piece type
         const i32 PieceKingAttacks[] = {  0, 78, 56, 45, 11,  0 };
 
@@ -252,34 +252,32 @@ namespace Evaluator {
         template<bool Trace> template<Color Own>
         void Evaluation<Trace>::initialize ()
         {
-            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-            static const auto Push = Own == WHITE ? DEL_N : DEL_S;
-            static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
-            static const Bitboard UpRanks = Own == WHITE ?
-                                                 R7_bb|R6_bb :
-                                                 R2_bb|R3_bb;
-           
-            auto fk_sq = _pos.square<KING> (Own);
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            const auto Pull = Own == WHITE ? DEL_S : DEL_N;
+            const Bitboard UpRanks = Own == WHITE ?
+                                        R7_bb|R6_bb :
+                                        R2_bb|R3_bb;
 
             Bitboard pinned_pawns = _pos.abs_blockers (Own) & _pos.pieces (Own, PAWN);
             if (0 != pinned_pawns)
             {
                 Bitboard loosed_pawns = _pos.pieces (Own, PAWN) & ~pinned_pawns;
-                pin_attacked_by[Own][PAWN] = (  shift<LCap> (loosed_pawns)
-                                              | shift<RCap> (loosed_pawns))
-                                           | (  (  shift<LCap> (pinned_pawns)
-                                                 | shift<RCap> (pinned_pawns))
-                                              & PieceAttacks[BSHP][fk_sq]);
+                pin_attacked_by[Own][PAWN] =
+                      (  shift<LCap> (loosed_pawns)
+                       | shift<RCap> (loosed_pawns))
+                    | (  (  shift<LCap> (pinned_pawns)
+                          | shift<RCap> (pinned_pawns))
+                       & PieceAttacks[BSHP][_pos.square<KING> (Own)]);
             }
             else
             {
                 pin_attacked_by[Own][PAWN] = _pe->any_attacks[Own];
             }
 
-            pin_attacked_by[Own][KING] = PieceAttacks[KING][fk_sq];
-
+            pin_attacked_by[Own][KING] = PieceAttacks[KING][_pos.square<KING> (Own)];
             ful_attacked_by[Own]       = pin_attacked_by[Own][KING] | _pe->any_attacks[Own];
             pin_attacked_by[Own][NONE] = pin_attacked_by[Own][KING] | pin_attacked_by[Own][PAWN];
             dbl_attacked[Own]          = _pe->dbl_attacks[Own]
@@ -299,20 +297,15 @@ namespace Evaluator {
 
             if (_pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
             {
-                auto ek_sq = _pos.square<KING> (Opp);
-                king_ring[Opp] = PieceAttacks[KING][ek_sq];
-                switch (rel_rank (Opp, ek_sq))
+                b = PieceAttacks[KING][_pos.square<KING> (Opp)];
+                king_ring[Opp] = b;
+                switch (rel_rank (Opp, _pos.square<KING> (Opp)))
                 {
-                case R_1:
-                    king_ring[Opp] |= shift<Pull> (king_ring[Opp]);
-                    break;
-                case R_8:
-                    king_ring[Opp] |= shift<Push> (king_ring[Opp]);
-                    break;
-                default:
-                    break;
+                case R_1: king_ring[Opp] |= shift<Pull> (b); break;
+                case R_8: king_ring[Opp] |= shift<Push> (b); break;
+                default:                                     break;
                 }
-                king_ring_attackers_count[Own] = u08(pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]));
+                king_ring_attackers_count[Own] = u08(pop_count (b & pin_attacked_by[Own][PAWN]));
             }
             else
             {
@@ -325,12 +318,12 @@ namespace Evaluator {
         template<bool Trace> template<Color Own, PieceType PT>
         Score Evaluation<Trace>::evaluate_pieces ()
         {
-            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            static const auto Push = Own == WHITE ? DEL_N : DEL_S;
-            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
             // Mask of allowed outpost squares
-            static const Bitboard Outposts = Own == WHITE ?
+            const Bitboard Outposts = Own == WHITE ?
                                                 R4_bb|R5_bb|R6_bb :
                                                 R5_bb|R4_bb|R3_bb;
 
@@ -519,12 +512,12 @@ namespace Evaluator {
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::evaluate_king ()
         {
-            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            static const auto Push = Own == WHITE ? DEL_N : DEL_S;
-            //static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
-            //static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            //static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-            static const Bitboard Camp = Own == WHITE ?
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            //const auto Pull = Own == WHITE ? DEL_S : DEL_N;
+            //const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            //const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            const Bitboard Camp = Own == WHITE ?
                                              R1_bb|R2_bb|R3_bb|R4_bb|R5_bb :
                                              R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
 
@@ -696,12 +689,12 @@ namespace Evaluator {
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::evaluate_threats ()
         {
-            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            static const auto Push = Own == WHITE ? DEL_N  : DEL_S;
-            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-            static const Bitboard R2BB = Own == WHITE ? R2_bb : R7_bb;
-            static const Bitboard R7BB = Own == WHITE ? R7_bb : R2_bb;
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            const auto Push = Own == WHITE ? DEL_N  : DEL_S;
+            const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            const Bitboard R2BB = Own == WHITE ? R2_bb : R7_bb;
+            const Bitboard R7BB = Own == WHITE ? R7_bb : R2_bb;
 
             auto score = SCORE_ZERO;
 
@@ -846,8 +839,8 @@ namespace Evaluator {
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::evaluate_passers ()
         {
-            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            static const auto Push = Own == WHITE ? DEL_N : DEL_S;
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            const auto Push = Own == WHITE ? DEL_N : DEL_S;
 
             auto score = SCORE_ZERO;
 
@@ -959,12 +952,12 @@ namespace Evaluator {
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::evaluate_space ()
         {
-            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            static const auto Pull = Own == WHITE ? DEL_S : DEL_N;
-            static const auto Dull = Own == WHITE ? DEL_SS : DEL_NN;
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            const auto Pull = Own == WHITE ? DEL_S : DEL_N;
+            const auto Dull = Own == WHITE ? DEL_SS : DEL_NN;
             // SpaceArea contains the area of the board which is considered by the space evaluation.
             // Bonus based on how many squares inside this area are safe.
-            static const Bitboard SpaceArea = Own == WHITE ?
+            const Bitboard SpaceArea = Own == WHITE ?
                                                 R2_bb|R3_bb|R4_bb :
                                                 R7_bb|R6_bb|R5_bb;
             // Find the safe squares for our pieces inside the area defined by SpaceArea.
@@ -1178,10 +1171,9 @@ namespace Evaluator {
         return Evaluation<false> (pos).value ();
     }
 
-    // trace() is like evaluate(), but instead of returning a value, it returns
-    // a string (suitable for outputting to stdout) that contains the detailed
-    // descriptions and values of each evaluation term. Useful for debugging.
-    string trace (const Position &pos)
+    // trace_eval() returns a string (suitable for outputting to stdout) that contains
+    // the detailed descriptions and values of each evaluation term.
+    string trace_eval (const Position &pos)
     {
         std::memset (Tracer::cp, 0x00, sizeof (Tracer::cp));
         // White's point of view

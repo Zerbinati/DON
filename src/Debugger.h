@@ -4,8 +4,8 @@
 #include <fstream>
 #include <iostream>
 
-#include "Type.h"
 #include "tiebuffer.h"
+#include "Type.h"
 
 #if defined(_WIN32)
 #   include <ctime>

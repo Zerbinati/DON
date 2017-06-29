@@ -61,9 +61,9 @@ namespace BitBases {
                 // If all moves lead to positions classified as WIN, the result of the current position is WIN
                 // otherwise the current position is classified as UNKNOWN.
 
-                static const auto Opp  = Own == WHITE ? BLACK : WHITE;
-                static const auto Good = Own == WHITE ? WIN  : DRAW;
-                static const auto Bad  = Own == WHITE ? DRAW : WIN;
+                const auto Opp  = Own == WHITE ? BLACK : WHITE;
+                const auto Good = Own == WHITE ? WIN  : DRAW;
+                const auto Bad  = Own == WHITE ? DRAW : WIN;
 
                 Result r = INVALID;
                 Bitboard b = PieceAttacks[KING][_k_sq[Own]];

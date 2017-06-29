@@ -166,28 +166,26 @@ namespace Threading {
             , _searching = false;
 
     public:
-        u16   index    = 0
-            , pv_index = 0
-            , max_ply  = 0 // Used to send 'seldepth' info to GUI
-            , check_count = 0;
+        u16   index
+            , pv_index
+            , max_ply  = 0;
 
-        std::atomic<bool> count_reset = { true };
         std::atomic<i16> running_depth = { 0 };
         std::atomic<u64> nodes = { 0 }
             ,            tb_hits = { 0 };
 
         i16 finished_depth = 0;
 
-        Position root_pos;
+        Position  root_pos;
         RootMoves root_moves;
 
-        Pawns   ::Table   pawn_table;
-        Material::Table   matl_table;
+        Pawns   ::Table pawn_table;
+        Material::Table matl_table;
 
-        HistoryStats            history;
-        MoveHistoryBoardStats   cm_history;
+        HistoryStats          history;
+        MoveHistoryBoardStats cm_history;
 
-        SquareMoveBoardStats    counter_moves;
+        SquareMoveBoardStats  counter_moves;
 
         Thread ();
         Thread (const Thread&) = delete;
@@ -197,7 +195,6 @@ namespace Threading {
 
         void clear ()
         {
-            count_reset = true;
             pawn_table.clear ();
             matl_table.clear ();
 
@@ -253,11 +250,26 @@ namespace Threading {
         : public Thread
     {
     public:
+        u16   check_count = 0;
+        bool  easy_played = false
+            , failed_low  = false;
+
+        double best_move_change = 0.0;
+        
+        Move   easy_move   = MOVE_NONE;
+        Value  last_value  = VALUE_NONE;
+
+        TimeManager  time_mgr;
+        MoveManager  move_mgr;
+        SkillManager skill_mgr;
+
         MainThread () = default;
         MainThread (const MainThread&) = delete;
         MainThread& operator= (const MainThread&) = delete;
 
         virtual void search () override;
+
+        void check_limits ();
     };
 
     // ThreadPool class handles all the threads related stuff like
@@ -272,24 +284,13 @@ namespace Threading {
     public:
         u16    pv_limit    = 1;
 
-        bool   easy_played = false;
-        bool   failed_low  = false;
-        double best_move_change = 0.0;
-        Move   easy_move   = MOVE_NONE;
-        Value  last_value  = VALUE_NONE;
-
-        TimeManager     time_mgr;
-        MoveManager     move_mgr;
-        SkillManager    skill_mgr;
-
         ThreadPool () = default;
         ThreadPool (const ThreadPool&) = delete;
         ThreadPool& operator= (const ThreadPool&) = delete;
 
         MainThread* main_thread () const
         {
-            static auto *main_th = static_cast<MainThread*> (at (0));
-            return main_th;
+            return static_cast<MainThread*> (at (0));
         }
         
         Thread* best_thread () const;
@@ -297,7 +298,6 @@ namespace Threading {
         u64  nodes () const;
         u64  tb_hits () const;
 
-        void reset ();
         void clear ();
         void configure (u32 threads);
 

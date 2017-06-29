@@ -729,10 +729,9 @@ inline void remove_extension (std::string &filename)
 
 inline std::string append_path (const std::string &base_path, const std::string &file_path)
 {
-    static const char Separator = '/';
     return
-        base_path[base_path.length ()] != Separator ?
-            base_path + Separator + file_path :
+        base_path[base_path.length ()] != '/' ?
+            base_path + '/' + file_path :
             base_path + file_path;
 }
 

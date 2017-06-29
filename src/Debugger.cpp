@@ -1,4 +1,5 @@
 #include "Debugger.h"
+
 #include "Thread.h"
 
 namespace Debugger {
@@ -47,7 +48,7 @@ namespace Debugger {
 
     void dbg_print ()
     {
-        if (CondCount != 0)
+        if (0 != CondCount)
         {
             std::cerr << std::right
                 << "---------------------------\n"
@@ -57,7 +58,7 @@ namespace Debugger {
                 << std::left << std::endl;
         }
 
-        if (ItemCount != 0)
+        if (0 != ItemCount)
         {
             std::cerr << std::right
                 << "---------------------------\n"

@@ -19,8 +19,9 @@ namespace Transposition {
         u16 key16 () const
         {
             return
-                (u[3]^u[2]) != 0 ? u[3]^u[2] :
-                (u[3]^u[1]) != 0 ? u[3]^u[1] : u[3]^u[0];
+                0 != u[3] ? u[3] :
+                0 != u[2] ? u[2] :
+                0 != u[1] ? u[1] : u[0];
         }
     };
 
@@ -71,7 +72,7 @@ namespace Transposition {
         void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
         {
             const u16 key16 = KeySplit{ k }.key16 ();
-            assert(key16 != 0);
+            assert(0 != key16);
 
             // Preserve more valuable entries
             if (   key16 != _key16

@@ -11,7 +11,7 @@ namespace Evaluator {
 
     extern Value evaluate (const Position &pos);
     
-    extern std::string trace (const Position &pos);
+    extern std::string trace_eval (const Position &pos);
 }
 
 #endif // _EVALUATOR_H_INC_

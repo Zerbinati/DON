@@ -24,6 +24,7 @@ namespace UCI {
     using namespace Threading;
 
     namespace {
+
         // On ucinewgame following steps are needed to reset the state
         void newgame ()
         {
@@ -31,7 +32,7 @@ namespace UCI {
             Threadpool.wait_while_thinking ();
             Searcher::clear ();
             TT.auto_resize (i32(Options["Hash"]), true);
-            Threadpool.time_mgr.available_nodes = 0;
+            Threadpool.main_thread ()->time_mgr.available_nodes = 0;
             TBSyzygy::initialize ();
         }
 
@@ -44,7 +45,7 @@ namespace UCI {
     {
         // Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
         // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-        static const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+        const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         Position::Chess960 = false;
 
         newgame (); // Implied ucinewgame before the first position command
@@ -448,7 +449,7 @@ namespace UCI {
             else
             if (token == "eval")
             {
-                sync_cout << trace (root_pos) << sync_endl;
+                sync_cout << trace_eval (root_pos) << sync_endl;
             }
             else
             if (token == "bench")

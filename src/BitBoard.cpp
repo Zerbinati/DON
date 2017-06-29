@@ -56,7 +56,7 @@ namespace BitBoard {
 //        Square BSF_Table[SQ_NO];
 //        unsigned bsf_index (Bitboard bb)
 //        {
-//            assert(bb != 0);
+//            assert(0 != bb);
 //            bb ^= (bb - 1);
 //            return
 //#       if defined(BIT64)
@@ -160,7 +160,7 @@ namespace BitBoard {
 
                     ++size;
                     occ = (occ - magic.mask) & magic.mask;
-                } while (occ != 0);
+                } while (0 != occ);
 
 #           if !defined(BM2)
                 

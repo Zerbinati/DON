@@ -55,8 +55,8 @@ struct BoardStats
 {
     void fill (const T &v)
     {
-        T *p = &(*this)[0][0];
-        std::fill (p, p + sizeof (*this) / sizeof (*p), v);
+        T *ptr = &(*this)[0][0];
+        std::fill (ptr, ptr + sizeof (*this) / sizeof (*ptr), v);
     }
 };
 
@@ -70,7 +70,7 @@ struct HistoryStats
     // Color, Move, Value
     void update (Color c, Move m, i32 v)
     {
-        static const i32 D = 324;
+        const i32 D = 324;
         assert (abs (v) <= D); // Consistency check
         auto &e = (*this)[c][move_pp (m)];
         e += v*32 - e*abs (v)/D;
@@ -87,7 +87,7 @@ struct SquareHistoryStats
     // Piece, Destiny, Value
     void update (Piece pc, Square s, i32 v)
     {
-        static const i32 D = 936;
+        const i32 D = 936;
         assert (abs (v) <= D); // Consistency check
         auto &e = (*this)[pc][s];
         e += v*32 - e*abs (v)/D;

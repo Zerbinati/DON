@@ -243,15 +243,15 @@ namespace Notation {
     // It uses the two helpers to pretty format the value and time respectively.
     string pretty_pv_info (Thread *const &th)
     {
-        static const u16 K = 1000;
-        static const u32 M = K*K;
+        const u16 K = 1000;
+        const u32 M = K*K;
 
         ostringstream oss;
         const auto &root_move = th->root_moves[0];
         u64 total_nodes = Threadpool.nodes ();
         oss << std::setw ( 4) << th->finished_depth
             << std::setw ( 8) << pretty_value (root_move.new_value, th->root_pos.active)
-            << std::setw (12) << pretty_time (Threadpool.time_mgr.elapsed_time ());
+            << std::setw (12) << pretty_time (Threadpool.main_thread ()->time_mgr.elapsed_time ());
         if (total_nodes < 1*M)
         {
             oss << std::setw (8) << total_nodes / 1;

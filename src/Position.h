@@ -164,7 +164,7 @@ public:
     Phase phase   () const;
     bool draw (i16 pp) const;
 
-    bool see_ge (Move m, Value v = VALUE_ZERO) const;
+    bool see_ge (Move m, Value threshold = VALUE_ZERO) const;
 
     Bitboard attackers_to (Square s, Color c, Bitboard occ) const;
     Bitboard attackers_to (Square s, Color c) const;
@@ -212,7 +212,7 @@ public:
     explicit operator std::string () const;
 
 #if !defined(NDEBUG)
-    bool ok (u08 *step = nullptr) const;
+    bool ok () const;
 #endif
 
 };

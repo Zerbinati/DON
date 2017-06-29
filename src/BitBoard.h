@@ -328,13 +328,13 @@ namespace BitBoard {
 
     inline Square scan_lsq (Bitboard bb)
     {
-        assert(bb != 0);
+        assert(0 != bb);
 
         unsigned long index;
 #   if defined(BIT64)
         _BitScanForward64 (&index, bb);
 #   else
-        if (u32(bb >> 0) != 0)
+        if (0 != u32(bb >> 0))
         {
             _BitScanForward (&index, u32(bb >>  0));
         }
@@ -349,13 +349,13 @@ namespace BitBoard {
 
     inline Square scan_msq (Bitboard bb)
     {
-        assert(bb != 0);
+        assert(0 != bb);
 
         unsigned long index;
 #   if defined(BIT64)
         _BitScanReverse64 (&index, bb);
 #   else
-        if (u32(bb >> 32) != 0)
+        if (0 != u32(bb >> 32))
         {
             _BitScanReverse (&index, u32(bb >> 32));
             index += 32;
@@ -372,26 +372,26 @@ namespace BitBoard {
 
     inline Square scan_lsq (Bitboard bb)
     {
-        assert(bb != 0);
+        assert(0 != bb);
 
 #   if defined(BIT64)
         return Square(__builtin_ctzll (bb));
 #   else
-        return Square(u32(bb >> 0) != 0 ?
+        return Square(0 != u32(bb >> 0) ?
                 __builtin_ctz (bb >> 0) :
                 __builtin_ctz (bb >> 32) + 32);
 #   endif
     }
     inline Square scan_msq (Bitboard bb)
     {
-        assert(bb != 0);
+        assert(0 != bb);
 
 #   if defined(BIT64)
         return Square(i08(SQ_H8) ^ __builtin_clzll (bb));
 #   else
-        return Square(i08(SQ_H8) ^ (u32(bb >> 32) != 0 ?
-                                    __builtin_clz (bb >> 32) :
-                                    __builtin_clz (bb >> 0) + 32));
+        return Square(0 != (i08(SQ_H8) ^ (u32(bb >> 32)) ?
+                __builtin_clz (bb >> 32) :
+                __builtin_clz (bb >> 0) + 32));
 #   endif
     }
 
@@ -400,7 +400,7 @@ namespace BitBoard {
     //// Assembly code by Heinz van Saanen
     //inline Square scan_lsq (Bitboard bb)
     //{
-    //    assert(bb != 0);
+    //    assert(0 != bb);
     //    Bitboard index;
     //    __asm__ ("bsfq %1, %0": "=r" (index) : "rm" (bb));
     //    return Square(index);
@@ -408,7 +408,7 @@ namespace BitBoard {
     //
     //inline Square scan_msq (Bitboard bb)
     //{
-    //    assert(bb != 0);
+    //    assert(0 != bb);
     //    Bitboard index;
     //    __asm__ ("bsrq %1, %0": "=r" (index) : "rm" (bb));
     //    return Square(index);
@@ -477,7 +477,7 @@ namespace BitBoard {
 
     inline Square scan_lsq (Bitboard bb)
     {
-        assert(bb != 0);
+        assert(0 != bb);
         bb ^= (bb - 1); // Set all bits including the LS1B and below
         u08 index =
 #   if defined(BIT64)
@@ -492,7 +492,7 @@ namespace BitBoard {
 
     inline Square scan_msq (Bitboard bb)
     {
-        assert(bb != 0);
+        assert(0 != bb);
 
 #   if defined(BIT64)
         // Set all bits including the MS1B and below

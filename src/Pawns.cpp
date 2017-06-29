@@ -75,11 +75,11 @@ namespace Pawns {
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
         {
-            static const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            static const auto Push = Own == WHITE ? DEL_N  : DEL_S;
-            static const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            static const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-            static const auto PAtt = PawnAttacks[Own];
+            const auto Opp  = Own == WHITE ? BLACK : WHITE;
+            const auto Push = Own == WHITE ? DEL_N  : DEL_S;
+            const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
+            const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            const auto PAtt = PawnAttacks[Own];
 
             const Bitboard own_pawns = pos.pieces (Own, PAWN);
             const Bitboard opp_pawns = pos.pieces (Opp, PAWN);
@@ -210,7 +210,7 @@ namespace Pawns {
     template<Color Own>
     Value Entry::pawn_shelter_storm (const Position &pos, Square fk_sq) const
     {
-        static const auto Opp = Own == WHITE ? BLACK : WHITE;
+        const auto Opp = Own == WHITE ? BLACK : WHITE;
         // Max Safety corresponds to start position with all the pawns in front of the king and no enemy pawn on the horizon.
         auto value = Value(258);
         Bitboard front_pawns =
@@ -276,7 +276,7 @@ namespace Pawns {
     // Initialize lookup tables during startup
     void initialize ()
     {
-        static const i32 Seeds[R_NO] = { 0, 8, 19, 13, 71, 94, 169, 324 };
+        const i32 Seeds[R_NO] = { 0, 8, 19, 13, 71, 94, 169, 324 };
 
         for (u08 opposed = 0; opposed < 2; ++opposed)
         {

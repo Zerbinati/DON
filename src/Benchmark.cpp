@@ -2,15 +2,15 @@
 
 #include <string>
 
-#include "UCI.h"
+#include "Debugger.h"
 #include "Searcher.h"
 #include "Thread.h"
-#include "Debugger.h"
+#include "UCI.h"
 
 using namespace std;
-using namespace UCI;
-using namespace Searcher;
 using namespace Debugger;
+using namespace Searcher;
+using namespace UCI;
 
 namespace {
 
