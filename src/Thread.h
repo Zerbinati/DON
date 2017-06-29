@@ -250,7 +250,7 @@ namespace Threading {
         : public Thread
     {
     public:
-        u16   check_count = 0;
+        i16   check_count = 0;
         bool  easy_played = false
             , failed_low  = false;
 

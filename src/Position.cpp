@@ -1371,31 +1371,22 @@ bool Position::ok () const
     {
         // Too many Piece of color
         if (   16 < count<NONE> (c)
-            || pop_count (pieces (c)) != count<NONE> (c))
+            || pop_count (pieces (c)) != count<NONE> (c)
+            || 0 == pieces (c, KING)
+            || more_than_one (pieces (c, KING)))
         {
             assert(0 && "Position OK: BITBOARD");
             return false;
         }
         // Check if the number of Pawns plus the number of extra Queens, Rooks, Bishops, Knights exceeds 8
-        if (           (count<PAWN> (c)
-            + std::max (count<NIHT> (c)-2, 0)
-            + std::max (count<BSHP> (c)-2, 0)
-            + std::max (count<ROOK> (c)-2, 0)
-            + std::max (count<QUEN> (c)-1, 0)) > 8)
-        {
-            assert(0 && "Position OK: BITBOARD");
-            return false;
-        }
-        if (           (count<PAWN> (c)
-            + std::max (pop_count (pieces (c, BSHP) & Color_bb[WHITE])-1, 0)
-            + std::max (pop_count (pieces (c, BSHP) & Color_bb[BLACK])-1, 0)) > 8)
-        {
-            assert(0 && "Position OK: BITBOARD");
-            return false;
-        }
-        // There should be one and only one KING of color
-        if (   0 == pieces (c, KING)
-            || more_than_one (pieces (c, KING)))
+        if (   (        (count<PAWN> (c)
+             + std::max (count<NIHT> (c)-2, 0)
+             + std::max (count<BSHP> (c)-2, 0)
+             + std::max (count<ROOK> (c)-2, 0)
+             + std::max (count<QUEN> (c)-1, 0)) > 8)
+            || (        (count<PAWN> (c)
+             + std::max (pop_count (pieces (c, BSHP) & Color_bb[WHITE])-1, 0)
+             + std::max (pop_count (pieces (c, BSHP) & Color_bb[BLACK])-1, 0)) > 8))
         {
             assert(0 && "Position OK: BITBOARD");
             return false;

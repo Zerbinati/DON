@@ -125,7 +125,7 @@ namespace UCI {
                     {
                         fen += string (" ", !white_spaces (fen) ? 1 : 0) + token;
                     }
-                    //assert(_ok (fen));
+                    assert(_ok (fen));
                 }
                 else
                 {

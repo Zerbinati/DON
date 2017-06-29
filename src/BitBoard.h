@@ -296,10 +296,10 @@ namespace BitBoard {
         //return i32(__popcnt64 (bb));
         return i32(_mm_popcnt_u64 (bb));
 #   else
-        //return i32(__popcnt (u32(bb >>  0))
-        //         + __popcnt (u32(bb >> 32)));
-        return i32(_mm_popcnt_u32 (bb >>  0)
-                 + _mm_popcnt_u32 (bb >> 32));
+        //return i32(__popcnt (u32(bb >> 0x00))
+        //         + __popcnt (u32(bb >> 0x20)));
+        return i32(_mm_popcnt_u32 (bb >> 0x00)
+                 + _mm_popcnt_u32 (bb >> 0x20));
 #   endif
     }
 
@@ -313,8 +313,8 @@ namespace BitBoard {
 #   if defined(BIT64)
         return i32(__builtin_popcountll (bb));
 #   else
-        return i32(__builtin_popcountl (bb >>  0)
-                 + __builtin_popcountl (bb >> 32));
+        return i32(__builtin_popcountl (bb >> 0x00)
+                 + __builtin_popcountl (bb >> 0x20));
 #   endif
     }
 
@@ -336,12 +336,12 @@ namespace BitBoard {
 #   else
         if (0 != u32(bb >> 0))
         {
-            _BitScanForward (&index, u32(bb >>  0));
+            _BitScanForward (&index, u32(bb >> 0x00));
         }
         else
         {
-            _BitScanForward (&index, u32(bb >> 32));
-            index += 32;
+            _BitScanForward (&index, u32(bb >> 0x20));
+            index += 0x20;
         }
 #   endif
         return Square(index);
@@ -355,14 +355,14 @@ namespace BitBoard {
 #   if defined(BIT64)
         _BitScanReverse64 (&index, bb);
 #   else
-        if (0 != u32(bb >> 32))
+        if (0 != u32(bb >> 0x20))
         {
-            _BitScanReverse (&index, u32(bb >> 32));
-            index += 32;
+            _BitScanReverse (&index, u32(bb >> 0x20));
+            index += 0x20;
         }
         else
         {
-            _BitScanReverse (&index, u32(bb >>  0));
+            _BitScanReverse (&index, u32(bb >> 0x00));
         }
 #   endif
         return Square(index);
@@ -377,9 +377,9 @@ namespace BitBoard {
 #   if defined(BIT64)
         return Square(__builtin_ctzll (bb));
 #   else
-        return Square(0 != u32(bb >> 0) ?
-                __builtin_ctz (bb >> 0) :
-                __builtin_ctz (bb >> 32) + 32);
+        return Square(0 != u32(bb >> 0x00) ?
+                __builtin_ctz (bb >> 0x00) :
+                __builtin_ctz (bb >> 0x20) + 0x20);
 #   endif
     }
     inline Square scan_msq (Bitboard bb)
@@ -389,9 +389,9 @@ namespace BitBoard {
 #   if defined(BIT64)
         return Square(i08(SQ_H8) ^ __builtin_clzll (bb));
 #   else
-        return Square(0 != (i08(SQ_H8) ^ (u32(bb >> 32)) ?
-                __builtin_clz (bb >> 32) :
-                __builtin_clz (bb >> 0) + 32));
+        return Square(0 != (i08(SQ_H8) ^ (u32(bb >> 0x20)) ?
+                __builtin_clz (bb >> 0x20) :
+                __builtin_clz (bb >> 0x00) + 0x20));
 #   endif
     }
 
@@ -428,14 +428,14 @@ namespace BitBoard {
     const u64 DeBruijn_64 = U64(0x03F79D71B4CB0A89);
     const u08 BSF_Table[SQ_NO] =
     {
-        00, 47, 01, 56, 48, 27, 02, 60,
-        57, 49, 41, 37, 28, 16, 03, 61,
+         0, 47,  1, 56, 48, 27,  2, 60,
+        57, 49, 41, 37, 28, 16,  3, 61,
         54, 58, 35, 52, 50, 42, 21, 44,
-        38, 32, 29, 23, 17, 11, 04, 62,
+        38, 32, 29, 23, 17, 11,  4, 62,
         46, 55, 26, 59, 40, 36, 15, 53,
         34, 51, 20, 43, 31, 22, 10, 45,
         25, 39, 14, 33, 19, 30,  9, 24,
-        13, 18,  8, 12, 07, 06, 05, 63
+        13, 18,  8, 12,  7,  6,  5, 63
     };
 
 #   else
@@ -443,13 +443,13 @@ namespace BitBoard {
     const u32 DeBruijn_32 = U32(0x783A9B23);
     const u08 BSF_Table[SQ_NO] =
     {
-        63, 30, 03, 32, 25, 41, 22, 33,
+        63, 30,  3, 32, 25, 41, 22, 33,
         15, 50, 42, 13, 11, 53, 19, 34,
-        61, 29, 02, 51, 21, 43, 45, 10,
-        18, 47, 01, 54,  9, 57, 00, 35,
-        62, 31, 40, 04, 49, 05, 52, 26,
-        60, 06, 23, 44, 46, 27, 56, 16,
-        07, 39, 48, 24, 59, 14, 12, 55,
+        61, 29,  2, 51, 21, 43, 45, 10,
+        18, 47,  1, 54,  9, 57,  0, 35,
+        62, 31, 40,  4, 49,  5, 52, 26,
+        60,  6, 23, 44, 46, 27, 56, 16,
+         7, 39, 48, 24, 59, 14, 12, 55,
         38, 28, 58, 20, 37, 17, 36,  8
     };
 

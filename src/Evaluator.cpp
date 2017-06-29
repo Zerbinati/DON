@@ -205,8 +205,8 @@ namespace Evaluator {
 
         const Score PawnPushThreat  = S(38,22);
 
-        const Score HangPawnThreat  = S( 71,  61);
-        const Score SafePawnThreat  = S(182, 175);
+        const Score HangPawnThreat  = S( 71, 61);
+        const Score SafePawnThreat  = S(182,175);
 
         // PieceThreat[piece-type][piece-type] contains bonus according to piece type
         const Score PieceThreat[][NONE] =
@@ -299,11 +299,9 @@ namespace Evaluator {
             {
                 b = PieceAttacks[KING][_pos.square<KING> (Opp)];
                 king_ring[Opp] = b;
-                switch (rel_rank (Opp, _pos.square<KING> (Opp)))
+                if (rel_rank (Opp, _pos.square<KING> (Opp)) == R_1)
                 {
-                case R_1: king_ring[Opp] |= shift<Pull> (b); break;
-                case R_8: king_ring[Opp] |= shift<Push> (b); break;
-                default:                                     break;
+                    king_ring[Opp] |= shift<Pull> (b);
                 }
                 king_ring_attackers_count[Own] = u08(pop_count (b & pin_attacked_by[Own][PAWN]));
             }
@@ -324,8 +322,8 @@ namespace Evaluator {
             const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
             // Mask of allowed outpost squares
             const Bitboard Outposts = Own == WHITE ?
-                                                R4_bb|R5_bb|R6_bb :
-                                                R5_bb|R4_bb|R3_bb;
+                                        R4_bb|R5_bb|R6_bb :
+                                        R5_bb|R4_bb|R3_bb;
 
             assert(NIHT <= PT && PT <= QUEN);
 
@@ -518,8 +516,8 @@ namespace Evaluator {
             //const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             //const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
             const Bitboard Camp = Own == WHITE ?
-                                             R1_bb|R2_bb|R3_bb|R4_bb|R5_bb :
-                                             R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
+                                    R1_bb|R2_bb|R3_bb|R4_bb|R5_bb :
+                                    R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
 
             auto fk_sq = _pos.square<KING> (Own);
 
@@ -665,10 +663,10 @@ namespace Evaluator {
             assert(0 == ((Own == WHITE ? b << 4 : b >> 4) & b));
             assert(pop_count (Own == WHITE ? b << 4 : b >> 4) == pop_count (b));
             // Add the squares which are attacked twice in that flank and are not protected by a friend pawn.
-            b =   (Own == WHITE ? b << 4 : b >> 4)
-                | (   b
+            b =   (   b
                    &  dbl_attacked[Opp]
-                   & ~pin_attacked_by[Own][PAWN]);
+                   & ~pin_attacked_by[Own][PAWN])
+                | (Own == WHITE ? b << 4 : b >> 4);
             score -= EnemyInFlank * pop_count (b);
 
             // Penalty when our king is on a pawnless flank
@@ -955,25 +953,24 @@ namespace Evaluator {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
             const auto Pull = Own == WHITE ? DEL_S : DEL_N;
             const auto Dull = Own == WHITE ? DEL_SS : DEL_NN;
-            // SpaceArea contains the area of the board which is considered by the space evaluation.
-            // Bonus based on how many squares inside this area are safe.
-            const Bitboard SpaceArea = Own == WHITE ?
-                                                R2_bb|R3_bb|R4_bb :
-                                                R7_bb|R6_bb|R5_bb;
-            // Find the safe squares for our pieces inside the area defined by SpaceArea.
+            // SpaceMask contains the sqaure of the board which is considered by the space evaluation.
+            const Bitboard SpaceMask = Own == WHITE ?
+                                        R2_bb|R3_bb|R4_bb :
+                                        R7_bb|R6_bb|R5_bb;
+            // Find the safe squares for our pieces inside the area defined by SpaceMask.
             // A square is safe:
             // - if not occupied by friend pawns
             // - if not attacked by an enemy pawns
             // - if defended or not attacked by an enemy pieces.
             Bitboard safe_space =
-                   SpaceArea
+                   SpaceMask
                 &  Side_bb[CS_NO]
                 & ~_pos.pieces (Own, PAWN)
                 & ~pin_attacked_by[Opp][PAWN]
                 & (   pin_attacked_by[Own][NONE]
                    | ~pin_attacked_by[Opp][NONE]);
 
-            // Since SpaceArea is fully on our half of the board
+            // Since SpaceMask is fully on our half of the board
             assert((Own == WHITE ?
                         safe_space & U64(0xFFFFFFFF00000000) :
                         safe_space & U64(0x00000000FFFFFFFF)) == 0);
@@ -982,10 +979,8 @@ namespace Evaluator {
             Bitboard behind = _pos.pieces (Own, PAWN);
             behind |= shift<Pull> (behind);
             behind |= shift<Dull> (behind);
-            i32 count = pop_count (  (behind & safe_space)
-                                   | (Own == WHITE ?
-                                       safe_space << 32 :
-                                       safe_space >> 32));
+            i32 count  = pop_count (  (behind & safe_space)
+                                    | (Own == WHITE ? safe_space << 0x20 : safe_space >> 0x20));
             i32 weight = _pos.count<NONE> (Own) - 2 * _pe->open_count;
             auto score = mk_score (count * weight * weight / 16, 0);
 

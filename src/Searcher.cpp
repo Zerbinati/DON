@@ -724,7 +724,7 @@ namespace Searcher {
                 && ss->ply == (ss-1)->ply + 1
                 && ss->ply <= MaxPlies);
 
-            const bool in_check = 0 != pos.si->checkers;
+            bool in_check = 0 != pos.si->checkers;
             Value old_alfa;
 
             if (PVNode)
@@ -774,9 +774,9 @@ namespace Searcher {
             i16 qs_depth = in_check || 0 <= depth ? 0 : -1;
 
             if (   !PVNode
-                && tt_value != VALUE_NONE // Only in case of TT access race
+                && VALUE_NONE != tt_value // Only in case of TT access race
                 && tte->depth () >= qs_depth
-                && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
+                && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
                 return tt_value;
             }
@@ -799,12 +799,12 @@ namespace Searcher {
                 {
                     // Never assume anything on values stored in TT
                     ss->static_eval = tt_eval =
-                        tte->eval () != VALUE_NONE ?
+                        VALUE_NONE != tte->eval () ?
                             tte->eval () :
                             evaluate (pos);
                     // Can tt_value be used as a better position evaluation?
-                    if (   tt_value != VALUE_NONE
-                        && (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
+                    if (   VALUE_NONE != tt_value
+                        && BOUND_NONE != (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
                     {
                         tt_eval = tt_value;
                     }
@@ -979,8 +979,6 @@ namespace Searcher {
         template<bool PVNode>
         Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node, bool prun_node, Move exclude_move = MOVE_NONE)
         {
-            const bool root_node = 1 == ss->ply;
-           
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(!(PVNode && cut_node));
@@ -989,7 +987,8 @@ namespace Searcher {
                 && ss->ply == (ss-1)->ply + 1
                 && ss->ply <= MaxPlies);
 
-            const bool in_check = 0 != pos.si->checkers;
+            bool root_node = 1 == ss->ply;
+            bool in_check = 0 != pos.si->checkers;
 
             ss->move_count = 0;
             ss->stats_val = 0;
@@ -1076,16 +1075,16 @@ namespace Searcher {
 
             // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
-                && tt_value != VALUE_NONE // Only in case of TT access race
+                && VALUE_NONE != tt_value // Only in case of TT access race
                 && tte->depth () >= depth
-                && (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
+                && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
                 // Update move sorting heuristics on tt_move
                 if (MOVE_NONE != tt_move)
                 {
                     if (tt_value >= beta)
                     {
-                        // Bonus for a quiet tt_move
+                        // Bonus for a quiet tt_move that fails high
                         if (!pos.capture_or_promotion (tt_move))
                         {
                             update_stats (ss, pos, tt_move, stat_bonus (depth));
@@ -1100,12 +1099,14 @@ namespace Searcher {
                         }
                     }
                     else
-                    // Penalty for a quiet tt_move that fails low
-                    if (!pos.capture_or_promotion (tt_move))
                     {
-                        auto penalty = -stat_bonus (depth);
-                        th->history.update (pos.active, tt_move, penalty);
-                        update_cm_stats (ss, pos[org_sq (tt_move)], dst_sq (tt_move), penalty);
+                        // Penalty for a quiet tt_move that fails low
+                        if (!pos.capture_or_promotion (tt_move))
+                        {
+                            auto penalty = -stat_bonus (depth);
+                            th->history.update (pos.active, tt_move, penalty);
+                            update_cm_stats (ss, pos[org_sq (tt_move)], dst_sq (tt_move), penalty);
+                        }
                     }
                 }
                 return tt_value;
@@ -1125,16 +1126,17 @@ namespace Searcher {
                     && !pos.has_castleright (CR_ANY))
                 {
                     ProbeState state;
-                    WDLScore v = probe_wdl (pos, state);
+                    WDLScore wdl = probe_wdl (pos, state);
 
                     if (PB_FAILURE != state)
                     {
                         ++pos.tb_hits;
 
-                        auto draw_v = TBUseRule50 ? 1 : 0;
+                        auto draw = TBUseRule50 ? 1 : 0;
 
-                        auto value = v < -draw_v ? -VALUE_MATE + i32(MaxPlies + ss->ply) :
-                                     v > +draw_v ? +VALUE_MATE - i32(MaxPlies + ss->ply) : VALUE_ZERO + 2 * draw_v * v;
+                        auto value = wdl < -draw ? -VALUE_MATE + i32(MaxPlies + ss->ply) :
+                                     wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply) :
+                                                    VALUE_ZERO + 2 * draw * wdl;
 
                         tte->save (posi_key,
                                    MOVE_NONE,
@@ -1162,12 +1164,12 @@ namespace Searcher {
                 {
                     // Never assume anything on values stored in TT
                     ss->static_eval = tt_eval =
-                        tte->eval () != VALUE_NONE ?
+                        VALUE_NONE != tte->eval () ?
                             tte->eval () :
                             evaluate (pos);
                     // Can tt_value be used as a better position evaluation?
-                    if (   tt_value != VALUE_NONE
-                        && (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)) != BOUND_NONE)
+                    if (   VALUE_NONE != tt_value
+                        && BOUND_NONE != (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
                     {
                         tt_eval = tt_value;
                     }
@@ -1511,8 +1513,8 @@ namespace Searcher {
                     }
                 }
 
-                if (   move == tt_move
-                    && capture_or_promotion)
+                if (   capture_or_promotion
+                    && move == tt_move)
                 {
                     ttm_capture = true;
                 }
@@ -1545,7 +1547,7 @@ namespace Searcher {
                     {
                         assert(PROMOTE != mtype (move));
 
-                        // Increase reduction if ttMove is a capture
+                        // Increase reduction if tt_move is a capture
                         if (ttm_capture)
                         {
                             reduce_depth += 1;
@@ -1910,6 +1912,8 @@ namespace Threading {
             s->m_history    = &this->cm_history[NO_PIECE][0];
         }
 
+        auto *main_thread = Threadpool.main_thread ();
+
         max_ply = 0;
         tb_hits = 0;
         running_depth  = 0;
@@ -1924,16 +1928,16 @@ namespace Threading {
         while (   ++running_depth < MaxPlies
                && !ForceStop
                && (   0 == Limits.depth
-                   || Threadpool.main_thread ()->running_depth <= Limits.depth))
+                   || main_thread->running_depth <= Limits.depth))
         {
-            if (Threadpool.main_thread () == this)
+            if (main_thread == this)
             {
-                assert(Threadpool.main_thread () == this);
+                assert(main_thread == this);
                 if (Limits.use_time_management ())
                 {
-                    Threadpool.main_thread ()->failed_low = false;
+                    main_thread->failed_low = false;
                     // Age out PV variability metric
-                    Threadpool.main_thread ()->best_move_change *= 0.505;
+                    main_thread->best_move_change *= 0.505;
                 }
             }
             else
@@ -1992,12 +1996,12 @@ namespace Threading {
                         break;
                     }
 
-                    if (Threadpool.main_thread () == this)
+                    if (main_thread == this)
                     {
                         // Give some update before to re-search.
                         if (   1 == Threadpool.pv_limit
                             && (best_value <= alfa || beta <= best_value)
-                            && Threadpool.main_thread ()->time_mgr.elapsed_time () > 3*MilliSec)
+                            && main_thread->time_mgr.elapsed_time () > 3*MilliSec)
                         {
                             sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
                         }
@@ -2008,11 +2012,11 @@ namespace Threading {
                         beta = (alfa + beta) / 2;
                         alfa = std::max (best_value - window, -VALUE_INFINITE);
 
-                        if (Threadpool.main_thread () == this)
+                        if (main_thread == this)
                         {
                             if (Limits.use_time_management ())
                             {
-                                Threadpool.main_thread ()->failed_low = true;
+                                main_thread->failed_low = true;
                             }
                             PonderhitStop = false;
                         }
@@ -2036,11 +2040,11 @@ namespace Threading {
                 // Sort the PV lines searched so far and update the GUI
                 std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
 
-                if (Threadpool.main_thread () == this)
+                if (main_thread == this)
                 {
                     if (   ForceStop
                         || Threadpool.pv_limit == pv_index + 1
-                        || Threadpool.main_thread ()->time_mgr.elapsed_time () > 3*MilliSec)
+                        || main_thread->time_mgr.elapsed_time () > 3*MilliSec)
                     {
                         sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
                     }
@@ -2059,14 +2063,14 @@ namespace Threading {
             //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
             //}
 
-            if (Threadpool.main_thread () == this)
+            if (main_thread == this)
             {
                 // If skill level is enabled and can pick move, pick a sub-optimal best move
-                if (   Threadpool.main_thread ()->skill_mgr.enabled ()
-                    && Threadpool.main_thread ()->skill_mgr.can_pick (running_depth))
+                if (   main_thread->skill_mgr.enabled ()
+                    && main_thread->skill_mgr.can_pick (running_depth))
                 {
-                    Threadpool.main_thread ()->skill_mgr.clear ();
-                    Threadpool.main_thread ()->skill_mgr.pick_best_move (Threadpool.pv_limit);
+                    main_thread->skill_mgr.clear ();
+                    main_thread->skill_mgr.pick_best_move (Threadpool.pv_limit);
                 }
 
                 if (OutputStream.is_open ())
@@ -2089,32 +2093,32 @@ namespace Threading {
                         // -If all of the available time has been used
                         // -If matched an easy move from the previous search and just did a fast verification.
                         if (   1 == root_moves.size ()
-                            || (  Threadpool.main_thread ()->time_mgr.elapsed_time () >
-                                  Threadpool.main_thread ()->time_mgr.optimum_time
+                            || (  main_thread->time_mgr.elapsed_time () >
+                                  main_thread->time_mgr.optimum_time
                                         // Unstable factor
-                                        * (1.0 + Threadpool.main_thread ()->best_move_change)
+                                        * (1.0 + main_thread->best_move_change)
                                         // Improving factor
                                         * std::min (1.1385,
                                           std::max (0.3646,
                                                     0.5685
-                                                  + 0.1895 * (Threadpool.main_thread ()->failed_low ? 1 : 0)
-                                                  - 0.0096 * (Threadpool.main_thread ()->last_value != VALUE_NONE ? best_value - Threadpool.main_thread ()->last_value : 0))))
-                            || (Threadpool.main_thread ()->easy_played =
-                                    (   root_move == Threadpool.main_thread ()->easy_move
-                                     && Threadpool.main_thread ()->best_move_change < 0.030
-                                     && Threadpool.main_thread ()->time_mgr.elapsed_time () >
-                                        Threadpool.main_thread ()->time_mgr.optimum_time * 0.1136), Threadpool.main_thread ()->easy_played))
+                                                  + 0.1895 * (main_thread->failed_low ? 1 : 0)
+                                                  - 0.0096 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))))
+                            || (main_thread->easy_played =
+                                    (   root_move == main_thread->easy_move
+                                     && main_thread->best_move_change < 0.030
+                                     && main_thread->time_mgr.elapsed_time () >
+                                        main_thread->time_mgr.optimum_time * 0.1136), main_thread->easy_played))
                         {
                             stop = true;
                         }
 
                         if (MoveManager::PVSize <= root_move.size ())
                         {
-                            Threadpool.main_thread ()->move_mgr.update (root_pos, root_move);
+                            main_thread->move_mgr.update (root_pos, root_move);
                         }
                         else
                         {
-                            Threadpool.main_thread ()->move_mgr.clear ();
+                            main_thread->move_mgr.clear ();
                         }
                     }
                     else
@@ -2329,7 +2333,7 @@ namespace Threading {
             {
                 best_thread = Threadpool.best_thread ();
                 // If best thread is not main thread send new PV.
-                if (Threadpool.main_thread () != best_thread)
+                if (best_thread != this)
                 {
                     sync_cout << multipv_info (best_thread, best_thread->finished_depth, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
                 }
@@ -2383,8 +2387,7 @@ namespace Threading {
         std::cout << sync_endl;
     }
 
-    // check_limits() is used to print debug info and, more importantly,
-    // to detect when out of available limits and thus stop the search.
+    // Used to detect when out of available limits and thus stop the search, also print debug info.
     void MainThread::check_limits ()
     {
         if (--check_count > 0)
@@ -2392,7 +2395,7 @@ namespace Threading {
             return;
         }
         // At low node count increase the checking rate otherwise use a default value
-        check_count = u16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
+        check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
         assert(0 != check_count);
 
         auto elapsed_time = time_mgr.elapsed_time ();
