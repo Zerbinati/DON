@@ -75,7 +75,7 @@ template<PieceType PT> PieceType Position::pick_least_val_att (Square dst, Bitbo
         {
             attackers |= b & attacks_bb<ROOK> (dst, mocc);
         }
-        // Remove already processed pieces in X-ray
+        // Remove already processed pieces in x-ray.
         attackers &= mocc;
         return PT;
     }
@@ -84,7 +84,7 @@ template<PieceType PT> PieceType Position::pick_least_val_att (Square dst, Bitbo
 }
 template<> PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
 {
-    return KING; // No need to update bitboards, it is the last cycle
+    return KING; // No need to update bitboards, it is the last cycle.
 }
 
 // Static Exchange Evaluator (SEE): It tries to estimate the material gain or loss resulting from a move.
@@ -177,7 +177,7 @@ bool Position::see_ge (Move m, Value threshold) const
             return profit;
         }
 
-        // Locate and remove the next least valuable attacker
+        // Locate and remove the next least valuable attacker.
         victim = pick_least_val_att<PAWN> (dst, c_attackers, mocc, attackers);
         if (KING == victim)
         {
@@ -210,7 +210,7 @@ Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &p
     Bitboard blockers = 0;
     Bitboard defenders = pieces (Own);
     Bitboard attackers = pieces (Opp) ^ ex_attackers;
-    // Snipers are attackers that are aligned on square in x-ray
+    // Snipers are attackers that are aligned on square in x-ray.
     Bitboard snipers =
           attackers
         & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
@@ -264,7 +264,7 @@ bool Position::pseudo_legal (Move m) const
     {
     case NORMAL:
     {
-        // Is not a promotion, so promotion piece must be empty
+        // Is not a promotion, so promotion piece must be empty.
         assert(PAWN == (promote (m) - NIHT));
     }
         break;
@@ -283,10 +283,10 @@ bool Position::pseudo_legal (Move m) const
         {
             return false;
         }
-        // Castle is always encoded as "King captures friendly Rook"
+        // Castle is always encoded as "King captures friendly Rook".
         assert(dst == castle_rook[active][cs]);
         Bitboard b = king_path[active][cs];
-        // Check king's path for attackers
+        // Check king's path for attackers.
         while (0 != b)
         {
             if (0 != attackers_to (pop_lsq (b), ~active))
@@ -417,7 +417,7 @@ bool Position::pseudo_legal (Move m) const
     }
     return true;
 }
-// Tests whether a pseudo-legal move is legal
+// Tests whether a pseudo-legal move is legal.
 bool Position::legal (Move m) const
 {
     assert(_ok (m));
@@ -467,7 +467,7 @@ bool Position::legal (Move m) const
         auto fk_sq = square<KING> (active);
         Bitboard mocc = (pieces () ^ org_sq (m) ^ (dst_sq (m) - pawn_push (active))) | dst_sq (m);
         Bitboard b;
-        // If any attacker then in check and not legal move
+        // If any attacker then in check and not legal move.
         return (   0 == (b = pieces (~active, BSHP, QUEN) & PieceAttacks[BSHP][fk_sq])
                 || 0 == (b & attacks_bb<BSHP> (fk_sq, mocc)))
             && (   0 == (b = pieces (~active, ROOK, QUEN) & PieceAttacks[ROOK][fk_sq])
@@ -477,7 +477,7 @@ bool Position::legal (Move m) const
     }
     return false;
 }
-// Tests whether a pseudo-legal move gives a check
+// Tests whether a pseudo-legal move gives a check.
 bool Position::gives_check (Move m) const
 {
     auto org = org_sq (m);
@@ -502,7 +502,7 @@ bool Position::gives_check (Move m) const
         break;
     case CASTLE:
     {
-        // Castling with check ?
+        // Castling with check?
         auto ek_sq = square<KING> (~active);
         auto king_org = org;
         auto rook_org = dst; // 'King captures the rook' notation
@@ -515,7 +515,7 @@ bool Position::gives_check (Move m) const
         break;
     case ENPASSANT:
     {
-        // En-passant capture with check ?
+        // En-passant capture with check?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
         auto ek_sq = square<KING> (~active);
@@ -529,7 +529,7 @@ bool Position::gives_check (Move m) const
         break;
     case PROMOTE:
     {
-        // Promotion with check ?
+        // Promotion with check?
         auto ek_sq = square<KING> (~active);
         switch (promote (m))
         {
@@ -547,7 +547,7 @@ bool Position::gives_check (Move m) const
     }
     return false;
 }
-// Clear the position
+// Clear the position.
 void Position::clear ()
 {
     for (auto s = SQ_A1; s <= SQ_H8; ++s)
@@ -577,7 +577,7 @@ void Position::clear ()
     nodes = 0;
     tb_hits = 0;
 }
-// Set the castling right
+// Set the castling right.
 void Position::set_castle (Color c, CastleSide cs)
 {
     auto king_org = square<KING> (c);
@@ -614,7 +614,7 @@ void Position::set_castle (Color c, CastleSide cs)
         }
     }
 }
-// Can the en-passant possible
+// Can the en-passant possible.
 bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
 {
     assert(ep_sq != SQ_NO);
@@ -770,12 +770,12 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         }
         else
         {
-            assert(token == '-');
+            assert('-' == token);
             continue;
         }
     }
     
-    // 4. En-passant square. Ignore if no pawn capture is possible
+    // 4. En-passant square. Ignore if no pawn capture is possible.
     si->en_passant_sq = SQ_NO;
     u08 file, rank;
     if (   (iss >> file && ('a' <= file && file <= 'h'))
@@ -788,7 +788,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         }
     }
 
-    // 5-6. Clock ply and Game move count
+    // 5-6. Clock ply and Game move count.
     i16   clk_ply = 0
         , moves   = 1;
     if (full)
@@ -801,7 +801,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         {
             clk_ply = 0;
         }
-        // Rule 50 draw case
+        // Rule 50 draw case.
         assert(clk_ply <= 100);
 
         // Handle common problem move-num = 0.
@@ -811,7 +811,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         }
     }
 
-    // Convert from moves starting from 1 to ply starting from 0,
+    // Convert from moves starting from 1 to ply starting from 0.
     ply = i16(2*(moves - 1) + (BLACK == active ? 1 : 0));
 
     si->posi_key = RandZob.compute_posi_key (*this);
@@ -849,13 +849,13 @@ Position& Position::setup (const string &code, StateInfo &nsi, Color c)
     return *this;
 }
 
-// Do the natural-move
+// Do the natural-move.
 void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 {
     assert(_ok (m));
     assert(&nsi != si);
 
-    // Copy some fields of old state info to new state info object 
+    // Copy some fields of old state info to new state info object.
     std::memcpy (&nsi, si, offsetof(StateInfo, capture));
     nsi.ptr = si;
     si = &nsi;
@@ -898,7 +898,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->psq_score -= PSQ[pasive][si->capture][cap];
         si->clock_ply = 0;
     }
-    // Reset en-passant square
+    // Reset en-passant square.
     if (SQ_NO != si->en_passant_sq)
     {
         assert(si->clock_ply <= 1);
@@ -956,7 +956,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     {
         board[cap] = NO_PIECE; // Not done by remove_piece()
 
-        // NOTE:: some condition already set so may not work
+        // NOTE:: some condition already set so may not work.
         assert(PAWN == mpt
             && rel_rank (active, org) == R_5
             && rel_rank (active, dst) == R_6
@@ -982,7 +982,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
         si->clock_ply = 0;
         si->promotion = true;
-        // Replace the pawn with the promoted piece
+        // Replace the pawn with the promoted piece.
         remove_piece (org);
         board[org] = NO_PIECE; // Not done by remove_piece()
         place_piece (dst, active, ppt);
@@ -1006,7 +1006,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
           PSQ[active][ppt][dst]
         - PSQ[active][mpt][org];
 
-    // Update castling rights
+    // Update castling rights.
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
     if (CR_NONE != b)
     {
@@ -1019,12 +1019,12 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     assert(0 == attackers_to (square<KING> (active), pasive));
 
-    // Calculate checkers bitboard (if move is check)
+    // Calculate checkers bitboard (if move is check).
     si->checkers = is_check ? attackers_to (square<KING> (pasive), active) : 0;
     assert(!is_check
         || 0 != si->checkers);
 
-    // Switch sides
+    // Switch sides.
     active = pasive;
     si->posi_key ^= RandZob.color_key;
 
@@ -1034,7 +1034,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     assert(ok ());
 }
-// Undo the last natural-move
+// Undo the last natural-move.
 void Position::undo_move (Move m)
 {
     assert(si->ptr != nullptr);
@@ -1090,20 +1090,20 @@ void Position::undo_move (Move m)
     }
         break;
     }
-    // Restore the captured piece
+    // Restore the captured piece.
     if (NONE != si->capture)
     {
         assert(empty (cap));
         place_piece (cap, ~active, si->capture);
     }
 
-    // Point state pointer back to the previous state
+    // Point state pointer back to the previous state.
     si = si->ptr;
     --ply;
 
     assert(ok ());
 }
-// Do the null-move
+// Do the null-move.
 void Position::do_null_move (StateInfo &nsi)
 {
     assert(&nsi != si);
@@ -1112,7 +1112,7 @@ void Position::do_null_move (StateInfo &nsi)
     std::memcpy (&nsi, si, sizeof (StateInfo));
     nsi.ptr = si;
     si = &nsi;
-    // Reset en-passant square
+    // Reset en-passant square.
     if (SQ_NO != si->en_passant_sq)
     {
         si->posi_key ^= RandZob.en_passant_keys[_file (si->en_passant_sq)];
@@ -1130,7 +1130,7 @@ void Position::do_null_move (StateInfo &nsi)
 
     assert(ok ());
 }
-// Undo the last null-move
+// Undo the last null-move.
 void Position::undo_null_move ()
 {
     assert(nullptr != si->ptr);
@@ -1198,7 +1198,7 @@ void Position::mirror ()
     ff += ' ';
     // 3. Castling availability
     iss >> token;
-    // Swap castling
+    // Swap castling.
     if (token[0] != '-')
     {
         for (auto &ch : token)
@@ -1225,7 +1225,7 @@ void Position::mirror ()
     assert(ok ());
 }
 
-// Returns the fen of position
+// Returns the fen of position.
 string Position::fen (bool full) const
 {
     ostringstream oss;
@@ -1278,7 +1278,7 @@ string Position::fen (bool full) const
     return oss.str ();
 }
 // Returns an ASCII representation of the position to be
-// printed to the standard output
+// printed to the standard output.
 Position::operator string () const
 {
     ostringstream oss;
@@ -1413,7 +1413,7 @@ bool Position::ok () const
             }
             for (auto i = 0; i < count (c, pt); ++i)
             {
-                if (   !_ok  (squares[c][pt][i])
+                if (   !_ok (squares[c][pt][i])
                     || board[squares[c][pt][i]] != (c|pt))
                 {
                     assert(0 && "Position OK: SQUARELIST");

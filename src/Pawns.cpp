@@ -273,7 +273,7 @@ namespace Pawns {
         return e;
     }
 
-    // Initialize lookup tables during startup
+    // Initialize lookup tables during startup.
     void initialize ()
     {
         const i32 Seeds[R_NO] = { 0, 8, 19, 13, 71, 94, 169, 324 };

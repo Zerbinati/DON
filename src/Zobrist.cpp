@@ -7,7 +7,7 @@ using namespace std;
 using namespace BitBoard;
 
 namespace Zobrists {
-    
+    // Hash key of the material situation.
     Key Zobrist::compute_matl_key (const Position &pos) const
     {
         Key matl_key = 0;
@@ -23,7 +23,7 @@ namespace Zobrists {
         }
         return matl_key;
     }
-
+    // Hash key of the pawn structure.
     Key Zobrist::compute_pawn_key (const Position &pos) const
     {
         Key pawn_key = no_pawn_key;
@@ -36,7 +36,7 @@ namespace Zobrists {
         }
         return pawn_key;
     }
-
+    // Hash key of the complete position.
     Key Zobrist::compute_posi_key (const Position &pos) const
     {
         Key posi_key = 0;
@@ -67,7 +67,7 @@ namespace Zobrists {
         }
         return posi_key;
     }
-
+    //// Hash key of the FEN.
     //Key Zobrist::compute_fen_key (const string &fen) const
     //{
     //    assert(!white_spaces (fen));

@@ -388,7 +388,7 @@ inline Phase Position::phase () const
     return Phase(i32(std::min (std::max (si->non_pawn_material (), VALUE_ENDGAME), VALUE_MIDGAME)
                         - VALUE_ENDGAME) * PHASE_MIDGAME / (VALUE_MIDGAME - VALUE_ENDGAME));
 }
-// Attackers to the square by color on occupancy
+// Attackers to the square by color on occupancy.
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
     return (pieces (c, PAWN) & PawnAttacks[~c][s])
@@ -397,12 +397,12 @@ inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
          | (0 != (pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (c, ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
          | (pieces (c, KING) & PieceAttacks[KING][s]);
 }
-// Attackers to the square by color
+// Attackers to the square by color.
 inline Bitboard Position::attackers_to (Square s, Color c) const
 {
     return attackers_to (s, c, pieces ());
 }
-// Attackers to the square on occupancy
+// Attackers to the square on occupancy.
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
     return (pieces (BLACK, PAWN) & PawnAttacks[WHITE][s])
@@ -412,12 +412,12 @@ inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
          | (0 != (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
          | (pieces (KING)        & PieceAttacks[KING][s]);
 }
-// Attackers to the square
+// Attackers to the square.
 inline Bitboard Position::attackers_to (Square s) const
 {
     return attackers_to (s, pieces ());
 }
-//// Attackers to the square by color on occupancy
+//// Attackers to the square by color on occupancy.
 //inline Bitboard Position::xattackers_to (Square s, Color c, Bitboard occ) const
 //{
 //    return (pieces (c, PAWN) & PawnAttacks[~c][s])
@@ -448,12 +448,12 @@ inline Bitboard Position::dsc_checkers (Color c) const
     return si->king_checkers[ c] & pieces (c);
 }
 
-// Check if pawn passed at the given square
+// Check if pawn passed at the given square.
 inline bool Position::pawn_passed_at (Color c, Square s) const
 {
     return 0 == (pawn_pass_span (c, s) & pieces (~c, PAWN));
 }
-// Check the side has pair of opposite color bishops
+// Check the side has pair of opposite color bishops.
 inline bool Position::paired_bishop (Color c) const
 {
     for (i08 pc = 1; pc < count<BSHP> (c); ++pc)
@@ -587,7 +587,7 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
     return os;
 }
 
-// Set check info used for fast check detection
+// Set check info used for fast check detection.
 inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] =
@@ -615,7 +615,7 @@ inline Value StateInfo::non_pawn_material (Color c) const
 }
 
 #if !defined(NDEBUG)
-// Check the validity of FEN string
+// Check the validity of FEN string.
 inline bool _ok (const std::string &fen, bool full = true)
 {
     StateInfo si;

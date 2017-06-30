@@ -70,7 +70,7 @@ struct HistoryStats
     void update (Color c, Move m, i32 v)
     {
         const i32 D = 324;
-        assert (abs (v) <= D); // Consistency check
+        assert(abs (v) <= D); // Consistency check
         auto &e = (*this)[c][move_pp (m)];
         e += v*32 - e*abs (v)/D;
         assert(abs (e) <= 32 * D);
@@ -87,7 +87,7 @@ struct SquareHistoryStats
     void update (Piece pc, Square s, i32 v)
     {
         const i32 D = 936;
-        assert (abs (v) <= D); // Consistency check
+        assert(abs (v) <= D); // Consistency check
         auto &e = (*this)[pc][s];
         e += v*32 - e*abs (v)/D;
         assert(abs (e) <= 32 * D);
@@ -100,8 +100,8 @@ typedef BoardStats<MAX_PIECE, SQ_NO, SquareHistoryStats> MoveHistoryBoardStats;
 // SquareMoveBoardStats stores counter moves indexed by [piece][destiny]
 typedef BoardStats<MAX_PIECE, SQ_NO, Move> SquareMoveBoardStats;
 
-// The root of the tree is a PV node
-// At a PV node all the children have to be investigated
+// The root of the tree is a PV node.
+// At a PV node all the children have to be investigated.
 // The best move found at a PV node leads to a successor PV node,
 // while all the other investigated children are CUT nodes
 // At a CUT node the child causing a beta cut-off is an ALL node
@@ -109,11 +109,11 @@ typedef BoardStats<MAX_PIECE, SQ_NO, Move> SquareMoveBoardStats;
 // At an ALL node all the children have to be explored. The successors of an ALL node are CUT nodes
 // NonPV nodes = CUT nodes + ALL nodes
 //
-// RootMove is used for moves at the root of the tree
+// RootMove is used for moves at the root of the tree.
 // RootMove stores:
 //  - New/Old values
 //  - PV (really a refutation table in the case of moves which fail low)
-// Value is normally set at -VALUE_INFINITE for all non-pv moves
+// Value is normally set at -VALUE_INFINITE for all non-pv moves.
 class RootMove
     : public Moves
 {
