@@ -724,7 +724,7 @@ namespace Searcher {
                 && ss->ply == (ss-1)->ply + 1
                 && ss->ply <= MaxPlies);
 
-            bool in_check = 0 != pos.si->checkers;
+            bool in_check  = 0 != pos.si->checkers;
             Value old_alfa;
 
             if (PVNode)
@@ -988,7 +988,7 @@ namespace Searcher {
                 && ss->ply <= MaxPlies);
 
             bool root_node = 1 == ss->ply;
-            bool in_check = 0 != pos.si->checkers;
+            bool in_check  = 0 != pos.si->checkers;
 
             ss->move_count = 0;
             ss->stats_val = 0;
@@ -999,7 +999,7 @@ namespace Searcher {
             // Check for the available remaining limit
             if (Threadpool.main_thread () == th)
             {
-                static_cast<MainThread*>(th)->check_limits ();
+                Threadpool.main_thread ()->check_limits ();
             }
 
             if (PVNode)
@@ -1093,7 +1093,8 @@ namespace Searcher {
                         auto m = (ss-1)->current_move;
                         if (   1 == (ss-1)->move_count
                             && _ok (m)
-                            && NONE == pos.si->capture)
+                            && NONE == pos.si->capture
+                            && !pos.si->promotion)
                         {
                             update_cm_stats (ss-1, pos[fix_dst_sq (m)], dst_sq (m), -stat_bonus (depth + 1));
                         }
@@ -1761,7 +1762,8 @@ namespace Searcher {
                     // Penalty for a quiet best move in previous ply when it gets refuted
                     if (   1 == (ss-1)->move_count
                         && _ok (m)
-                        && NONE == pos.si->capture)
+                        && NONE == pos.si->capture
+                        && !pos.si->promotion)
                     {
                         update_cm_stats (ss-1, pos[fix_dst_sq (m)], dst_sq (m), -stat_bonus (depth + 1));
                     }
@@ -1770,7 +1772,8 @@ namespace Searcher {
                 // Bonus for prior countermove that caused the fail low
                 if (   2 < depth
                     && _ok (m)
-                    && NONE == pos.si->capture)
+                    && NONE == pos.si->capture
+                    && !pos.si->promotion)
                 {
                     update_cm_stats (ss-1, pos[fix_dst_sq (m)], dst_sq (m), stat_bonus (depth));
                 }

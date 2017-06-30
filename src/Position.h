@@ -38,28 +38,29 @@ struct StateInfo
 {
 public:
     // ---Copied when making a move---
-    Key         posi_key;       // Hash key of position.
-    Key         matl_key;       // Hash key of materials.
-    Key         pawn_key;       // Hash key of pawns.
+    Key         posi_key;       // Hash key of position
+    Key         matl_key;       // Hash key of materials
+    Key         pawn_key;       // Hash key of pawns
 
     Value       non_pawn_matl[CLR_NO];
     Score       psq_score;
 
-    CastleRight castle_rights;  // Castling-rights information.
+    CastleRight castle_rights;  // Castling-rights information
     Square      en_passant_sq;  // En-passant -> "In passing"
-    u08         clock_ply;      // Number of halfmoves clock since the last pawn advance or any capture.
-                                // Used to determine if a draw can be claimed under the clock-move rule.
+    u08         clock_ply;      // Number of halfmoves clock since the last pawn advance or any capture
+                                // Used to determine if a draw can be claimed under the clock-move rule
     u08         null_ply;
     
     // ---Not copied when making a move---
-    PieceType   capture;        // Piece type captured.
-    Bitboard    checkers;       // Checkers.
+    PieceType   capture;        // Piece type captured
+    bool        promotion;      // Promotion
+    Bitboard    checkers;       // Checkers
     // Check info
     Bitboard    king_blockers[CLR_NO];// Absolute and Discover Blockers
     Bitboard    king_checkers[CLR_NO];// Absolute and Discover Checkers
     Bitboard    checks[NONE];
 
-    StateInfo  *ptr;            // Previous StateInfo.
+    StateInfo  *ptr;            // Previous StateInfo pointer.
 
     void set_check_info (const Position &pos);
 

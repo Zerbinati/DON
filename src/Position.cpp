@@ -823,6 +823,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->clock_ply = u08(clk_ply);
     si->null_ply = 0;
     si->capture = NONE;
+    si->promotion = false;
     si->checkers = attackers_to (square<KING> (active), ~active);
     si->set_check_info (*this);
     thread = th;
@@ -911,8 +912,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         assert(PAWN == (promote (m) - NIHT)
             && KING != si->capture);
 
+        si->promotion = false;
         move_piece (org, dst);
-
         if (PAWN == mpt)
         {
             si->pawn_key ^=
@@ -940,6 +941,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             && contains (pieces (active, KING), org)
             && contains (pieces (active, ROOK), dst));
 
+        si->promotion = false;
         Square rook_org, rook_dst;
         do_castling<true> (org, dst, rook_org, rook_dst);
         si->posi_key ^=
@@ -962,6 +964,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
         assert(si->clock_ply <= 1);
         si->clock_ply = 0;
+        si->promotion = false;
         move_piece (org, dst);
         si->pawn_key ^=
               RandZob.piece_square_keys[active][PAWN][dst]
@@ -978,6 +981,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         assert(NIHT <= ppt && ppt <= QUEN);
 
         si->clock_ply = 0;
+        si->promotion = true;
         // Replace the pawn with the promoted piece
         remove_piece (org);
         board[org] = NO_PIECE; // Not done by remove_piece()
