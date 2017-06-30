@@ -62,11 +62,17 @@ public:
 
     StateInfo  *ptr;            // Previous StateInfo pointer.
 
-    void set_check_info (const Position &pos);
+    Value non_pawn_material () const
+    {
+        return non_pawn_matl[WHITE]
+             + non_pawn_matl[BLACK];
+    }
+    Value non_pawn_material (Color c) const
+    {
+        return non_pawn_matl[c];
+    }
 
-    Value non_pawn_material () const;
-    Value non_pawn_material (Color c) const;
-    
+    void set_check_info (const Position &pos);
 };
 
 typedef std::deque<StateInfo> StateList;
@@ -602,16 +608,6 @@ inline void StateInfo::set_check_info (const Position &pos)
     checks[ROOK] = attacks_bb<ROOK> (ek_sq, pos.pieces ());
     checks[QUEN] = checks[BSHP] | checks[ROOK];
     checks[KING] = 0;
-}
-
-inline Value StateInfo::non_pawn_material () const
-{
-    return non_pawn_matl[WHITE]
-         + non_pawn_matl[BLACK];
-}
-inline Value StateInfo::non_pawn_material (Color c) const
-{
-    return non_pawn_matl[c];
 }
 
 #if !defined(NDEBUG)

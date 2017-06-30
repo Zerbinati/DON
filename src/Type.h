@@ -613,7 +613,14 @@ public:
 
 typedef std::vector<Square>  Squares;
 typedef std::vector<Move>    Moves;
-typedef std::vector<ValMove> ValMoves;
+
+class ValMoves
+    : public std::vector<ValMove>
+{
+public:
+    void operator+= (Move m) { push_back (ValMove (m)); }
+    void operator-= (Move m) { erase (std::remove (begin (), end (), ValMove (m)), end ()); }
+};
 
 template<typename T, u32 Size>
 struct HashTable

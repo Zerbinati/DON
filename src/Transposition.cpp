@@ -28,7 +28,7 @@ namespace Transposition {
     #if defined(LPAGES)
 
         Memory::alloc_memory (_mem, mem_size, alignment);
-        if (_mem == nullptr)
+        if (nullptr == _mem)
         {
             return;
         }
@@ -54,7 +54,7 @@ namespace Transposition {
         alignment = std::max (u32(sizeof (void *)), alignment);
 
         _mem = calloc (mem_size + alignment-1, 1);
-        if (_mem == nullptr)
+        if (nullptr == _mem)
         {
             std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << std::endl;
             return;
@@ -109,7 +109,7 @@ namespace Transposition {
         }
 
         u32 rsize;
-        if (_clusters == nullptr)
+        if (nullptr == _clusters)
         {
             _cluster_count = 0;
             _cluster_mask  = 0;
@@ -150,7 +150,7 @@ namespace Transposition {
         const u16 key16 = KeySplit{ key }.key16 ();
         assert(key16 != 0);
         auto *const fte = cluster_entry (key);
-        assert(fte != nullptr);
+        assert(nullptr != fte);
         // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte; // Default first
         auto rworth = rte->worth ();

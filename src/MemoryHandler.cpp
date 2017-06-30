@@ -101,7 +101,7 @@ namespace Memory {
                  mem_size,                              // Size of allocation
                  MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,// Type of Allocation
                  PAGE_READWRITE);                       // Protection of Allocation
-            if (mem_ref != nullptr)
+            if (nullptr != mem_ref)
             {
                 PagesUsed = true;
                 std::memset (mem_ref, 0x00, mem_size);
@@ -113,7 +113,7 @@ namespace Memory {
                 mem_size,              // Size of allocation
                 MEM_COMMIT|MEM_RESERVE,// Type of Allocation
                 PAGE_READWRITE);       // Protection of Allocation
-            if (mem_ref != nullptr)
+            if (nullptr != mem_ref)
             {
                 PagesUsed = true;
                 std::memset (mem_ref, 0x00, mem_size);
@@ -166,7 +166,7 @@ namespace Memory {
         }
 
         ALIGN_MALLOC (mem_ref, alignment, mem_size);
-        if (mem_ref != nullptr)
+        if (nullptr != mem_ref)
         {
             std::memset (mem_ref, 0x00, mem_size);
             sync_cout << "info string No Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
@@ -178,7 +178,7 @@ namespace Memory {
 
     void  free_memory (void *mem)
     {
-        if (mem == nullptr)
+        if (nullptr == mem)
         {
             return;
         }

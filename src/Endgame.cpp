@@ -908,16 +908,16 @@ namespace EndGame {
 
     void initialize ()
     {
-        if (EndGames == nullptr)
+        if (nullptr == EndGames)
         {
             EndGames = new Endgames;
-            assert(EndGames != nullptr);
+            assert(nullptr != EndGames);
         }
     }
 
     void deinitialize ()
     {
-        if (EndGames != nullptr)
+        if (nullptr != EndGames)
         {
             delete EndGames;
             EndGames = nullptr;

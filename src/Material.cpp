@@ -16,7 +16,7 @@ namespace Material {
         {
             //          Own Pieces
             //  P     N     B     R     Q    BP
-            {   +2,    0,    0,    0,    0,   +40 }, // P
+            {    0,    0,    0,    0,    0,   +40 }, // P
             { +255,   -3,    0,    0,    0,   +32 }, // N
             { +104,   +4,    0,    0,    0,     0 }, // B     Own Pieces
             {   -2,  +47, +105, -149,    0,   -26 }, // R
@@ -51,7 +51,7 @@ namespace Material {
         // Calculates the imbalance by comparing the piece count of each piece type for both colors.
         // NOTE:: King == Bishop Pair
         template<Color Own>
-        Value imbalance (const i32 count[][NONE])
+        i32 imbalance (const i32 count[][NONE])
         {
             const auto Opp = Own == WHITE ? BLACK : WHITE;
 
@@ -60,7 +60,7 @@ namespace Material {
             // Second-degree polynomial material imbalance by Tord Romstad
             for (auto pt1 = PAWN; pt1 <= QUEN; ++pt1)
             {
-                if (count[Own][pt1] != 0)
+                if (0 != count[Own][pt1])
                 {
                     i32 v = 0;
 
@@ -75,12 +75,12 @@ namespace Material {
                     value += count[Own][pt1] * v;
                 }
             }
-            if (count[Own][KING] != 0)
+            if (0 != count[Own][KING])
             {
                 value += count[Own][KING] * OwnQuadratic[KING][KING]
                        + count[Opp][KING] * OppQuadratic[KING][KING];
             }
-            return Value(value);
+            return value;
         }
     }
 
@@ -88,23 +88,22 @@ namespace Material {
     // The pointer is also stored in a hash table.
     Entry* probe (const Position &pos)
     {
-        auto matl_key = pos.si->matl_key;
-        auto *e = pos.thread->matl_table[matl_key];
+        auto *e = pos.thread->matl_table[pos.si->matl_key];
 
-        if (e->key == matl_key)
+        if (e->key == pos.si->matl_key)
         {
             return e;
         }
 
         std::memset (e, 0x00, sizeof (*e));
-        e->key = matl_key;
+        e->key = pos.si->matl_key;
         e->scale[WHITE] =
         e->scale[BLACK] = SCALE_NORMAL;
 
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
         // configuration one, then a generic one if previous search failed.
-        if (nullptr != (e->value_func = EndGames->probe<Value> (matl_key)))
+        if (nullptr != (e->value_func = EndGames->probe<Value> (pos.si->matl_key)))
         {
             return e;
         }
@@ -125,7 +124,7 @@ namespace Material {
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
         EndgameBase<Scale> *scale_func;
-        if (nullptr != (scale_func = EndGames->probe<Scale> (matl_key)))
+        if (nullptr != (scale_func = EndGames->probe<Scale> (pos.si->matl_key)))
         {
             e->scale_func[scale_func->strong_color] = scale_func;
             return e;

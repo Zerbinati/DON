@@ -114,7 +114,7 @@ namespace UCI {
             }
         }
 
-        if (_on_change != nullptr)
+        if (nullptr != _on_change)
         {
             _on_change ();
         }

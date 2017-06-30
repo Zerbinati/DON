@@ -171,7 +171,7 @@ namespace Transposition {
         void clear ()
         {
             if (   !retain_hash
-                && _clusters != nullptr)
+                && nullptr != _clusters)
             {
                 std::memset (_clusters, 0x00, _cluster_count * sizeof (Cluster));
                 Entry::Generation = 0;

@@ -712,8 +712,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             --r;
         }
     }
-    assert(square<KING> (WHITE) != SQ_NO
-        && square<KING> (BLACK) != SQ_NO);
+    assert(SQ_NO != square<KING> (WHITE)
+        && SQ_NO != square<KING> (BLACK));
 
     // 2. Active color
     iss >> token;
@@ -1037,7 +1037,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 // Undo the last natural-move.
 void Position::undo_move (Move m)
 {
-    assert(si->ptr != nullptr);
+    assert(nullptr != si->ptr);
     assert(_ok (m));
     auto org = org_sq (m);
     auto dst = dst_sq (m);
@@ -1457,7 +1457,6 @@ bool Position::ok () const
         return false;
     }
 
-    
     return true;
 }
 #endif

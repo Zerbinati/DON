@@ -321,7 +321,7 @@ namespace TBSyzygy {
 
                 for (i32 i = 0; i < HSHMAX; ++i, ++entry)
                 {
-                    if (   entry->second.first == nullptr
+                    if (   nullptr == entry->second.first
                         || entry->first == key)
                     {
                         *entry = std::make_pair (key, std::make_pair (wdl, dtz));
@@ -422,7 +422,7 @@ namespace TBSyzygy {
                 *mapping = u64(mmap);
                 *base_address = MapViewOfFile (mmap, FILE_MAP_READ, 0, 0, 0);
 
-                if (*base_address == nullptr)
+                if (nullptr == *base_address)
                 {
                     std::cerr << "MapViewOfFile() failed, name = " << filename << ", error = " << GetLastError () << std::endl;
                     return nullptr;
@@ -494,7 +494,7 @@ namespace TBSyzygy {
 
         WDLEntry::~WDLEntry ()
         {
-            if (base_address != nullptr)
+            if (nullptr != base_address)
             {
                 TBFile::unmap (base_address, mapping);
             }
@@ -534,7 +534,7 @@ namespace TBSyzygy {
 
         DTZEntry::~DTZEntry ()
         {
-            if (base_address != nullptr)
+            if (nullptr != base_address)
             {
                 TBFile::unmap (base_address, mapping);
             }
@@ -1358,7 +1358,7 @@ namespace TBSyzygy {
             };
 
             u08 *data = TBFile ((e.key1 == pos.si->matl_key ? w + b : b + w), IsWDL ? ".rtbw" : ".rtbz").map (&e.base_address, &e.mapping, TB_MAGIC[IsWDL]);
-            if (data != nullptr)
+            if (nullptr != data)
             {
                 e.has_pawns ?
                     do_init (e, e.pawn_table, data) :
@@ -1379,8 +1379,8 @@ namespace TBSyzygy {
 
             E *entry = EntryTable.get<E> (pos.si->matl_key);
 
-            if (   entry == nullptr
-                || init (*entry, pos) == nullptr)
+            if (   nullptr == entry
+                || nullptr == init (*entry, pos))
             {
                 return state = PB_FAILURE, T();
             }
@@ -1481,7 +1481,7 @@ namespace TBSyzygy {
         // Check whether there has been at least one repetition of position since the last capture or pawn move.
         bool has_repeated (StateInfo *si)
         {
-            while (si != nullptr)
+            while (nullptr != si)
             {
                 auto p = std::min (si->clock_ply, si->null_ply);
                 if (p < 4)
@@ -1696,7 +1696,7 @@ namespace TBSyzygy {
 
         // Obtain 50-move counter for the root position.
         // In Stockfish there seems to be no clean way, so we do it like this:
-        i32 cnt50 = si.ptr != nullptr ? si.ptr->clock_ply : 0;
+        i32 cnt50 = nullptr != si.ptr ? si.ptr->clock_ply : 0;
 
         // Use 50-move counter to determine whether the root position is
         // won, lost or drawn.
