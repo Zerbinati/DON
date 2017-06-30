@@ -28,7 +28,7 @@ namespace UCI {
         // On ucinewgame following steps are needed to reset the state
         void newgame ()
         {
-            ForceStop = true;
+            Threadpool.force_stop = true;
             Threadpool.wait_while_thinking ();
             Searcher::clear ();
             TT.auto_resize (i32(Options["Hash"]), true);
@@ -255,7 +255,7 @@ namespace UCI {
                         limits.search_moves.shrink_to_fit ();
                     }
                 }
-                ForceStop = true;
+                Threadpool.force_stop = true;
                 Threadpool.wait_while_thinking ();
                 Threadpool.start_thinking (root_pos, states, limits);
             }
@@ -267,9 +267,9 @@ namespace UCI {
             else
             if (   token == "quit"
                ||  token == "stop"
-               || (token == "ponderhit" && PonderhitStop))
+               || (token == "ponderhit" && Threadpool.ponderhit_stop))
             {
-                ForceStop = true;
+                Threadpool.force_stop = true;
                 Threadpool.main_thread ()->start_searching (true); // Could be sleeping
             }
             else

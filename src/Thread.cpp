@@ -8,7 +8,7 @@
 Threading::ThreadPool Threadpool;
 
 double MoveSlowness = 0.90; // Move Slowness, in %age.
-u32    NodesTime    =    0; // 'Nodes as Time' mode
+u32    NodesTime    =    0; // 'Nodes as Time' mode.
 bool   Ponder       = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
 using namespace std;
@@ -260,7 +260,7 @@ Move SkillManager::pick_best_move (u16 pv_limit)
 {
     const auto &root_moves = Threadpool.main_thread ()->root_moves;
     assert(!root_moves.empty ());
-    static PRNG prng (now ()); // PRNG sequence should be non-deterministic
+    static PRNG prng (now ()); // PRNG sequence should be non-deterministic.
 
     if (MOVE_NONE == _best_move)
     {
@@ -291,7 +291,7 @@ Move SkillManager::pick_best_move (u16 pv_limit)
 
 namespace Threading {
 
-    // Thread constructor launches the thread and then waits until it goes to sleep in idle_loop().
+    // Launches the thread and then waits until it goes to sleep in idle_loop().
     Thread::Thread ()
     {
         _alive = true;
@@ -304,7 +304,7 @@ namespace Threading {
         _native_thread = std::thread (&Thread::idle_loop, this);
         _sleep_condition.wait (lk, [&] { return !_searching; });
     }
-    // Thread destructor waits for thread termination before returning.
+    // Waits for thread termination before returning.
     Thread::~Thread ()
     {
         _alive = false;
@@ -313,7 +313,7 @@ namespace Threading {
         lk.unlock ();
         _native_thread.join ();
     }
-    // Function where the thread is parked when it has no work to do
+    // Function where the thread is parked when it has no work to do.
     void Thread::idle_loop ()
     {
         bind_thread (index);
@@ -353,7 +353,7 @@ namespace Threading {
         }
         return best_th;
     }
-    // Returns the total game nodes searched
+    // Returns the total game nodes searched.
     u64 ThreadPool::nodes () const
     {
         u64 nodes = 0;
@@ -363,7 +363,7 @@ namespace Threading {
         }
         return nodes;
     }
-    // Returns the total TB hits
+    // Returns the total TB hits.
     u64 ThreadPool::tb_hits () const
     {
         u64 tb_hits = 0;
@@ -395,11 +395,11 @@ namespace Threading {
     // threads, with included pawns and material tables, if only few are used.
     void ThreadPool::configure (u32 threads)
     {
-        if (threads == 0)
+        if (0 == threads)
         {
             threads = thread::hardware_concurrency ();
         }
-        assert(threads > 0);
+        assert(0 < threads);
 
         wait_while_thinking ();
 
@@ -428,13 +428,13 @@ namespace Threading {
         TBLimitPiece =     i32(Options["SyzygyLimitPiece"]);
         TBUseRule50  =    bool(Options["SyzygyUseRule50"]);
         TBHasRoot    = false;
-        // Skip TB probing when no TB found: !MaxLimitPiece -> !TBLimitPiece
+        // Skip TB probing when no TB found: !MaxLimitPiece -> !TBLimitPiece.
         if (TBLimitPiece > MaxLimitPiece)
         {
             TBLimitPiece = MaxLimitPiece;
             TBProbeDepth = 0;
         }
-        // Filter root moves
+        // Filter root moves.
         if (   TBLimitPiece != 0
             && TBLimitPiece >= root_pos.count<NONE> ()
             && !root_moves.empty ()
@@ -449,12 +449,12 @@ namespace Threading {
                 // Do not probe tablebases during the search
                 TBLimitPiece = 0;
             }
-            // If DTZ tables are missing, use WDL tables as a fallback
+            // If DTZ tables are missing, use WDL tables as a fallback.
             else
             {
-                // Filter out moves that do not preserve the draw or the win
+                // Filter out moves that do not preserve the draw or the win.
                 TBHasRoot = root_probe_wdl (root_pos, root_moves, TBValue);
-                // Only probe during search if winning
+                // Only probe during search if winning.
                 if (   TBHasRoot
                     && TBValue <= VALUE_DRAW)
                 {
@@ -482,11 +482,11 @@ namespace Threading {
             th->root_pos.setup (fen, states.back (), th);
             th->root_moves = root_moves;
         }
-        // Restore si->ptr, cleared by Position::setup()
+        // Restore si->ptr, cleared by Position::setup().
         states.back () = back_si;
 
-        ForceStop     = false;
-        PonderhitStop = false;
+        force_stop     = false;
+        ponderhit_stop = false;
         main_thread ()->start_searching (false);
     }
     // Waits for the main thread while searching.
@@ -507,7 +507,7 @@ namespace Threading {
     // Cannot be done in destructor because threads must be terminated before deleting any static objects.
     void ThreadPool::deinitialize ()
     {
-        ForceStop = true;
+        force_stop = true;
         wait_while_thinking ();
         assert(!empty ());
         while (!empty ())

@@ -2,14 +2,13 @@
 #define _SEARCHER_H_INC_
 
 #include <array>
-#include <atomic>
 #include <vector>
 
 #include "MoveGenerator.h"
 #include "Position.h"
 #include "Type.h"
 
-// Limit stores information sent by GUI about available time to search the current move
+// Limit stores information sent by GUI about available time to search the current move.
 //  - Maximum time and increment
 //  - Maximum depth
 //  - Maximum nodes
@@ -20,7 +19,7 @@
 struct Limit
 {
 public:
-    // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds
+    // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds.
     struct Clock
     {
         TimePoint time  = 0; // Remaining Time [milli-seconds]
@@ -48,7 +47,7 @@ public:
     }
 };
 
-// StatBoards is a Generic 2-dimensional array used to store various statistics
+// StatBoards is a Generic 2-dimensional array used to store various statistics.
 template<i32 Size1, i32 Size2, typename T = i32>
 struct BoardStats
     : public std::array<std::array<T, Size2>, Size1>
@@ -60,7 +59,7 @@ struct BoardStats
     }
 };
 
-// HistoryStats indexed by [color][move's org and dst squares]
+// HistoryStats indexed by [color][move's org and dst squares].
 typedef BoardStats<CLR_NO, SQ_NO*SQ_NO> HistoryBoardStats;
 // HistoryStats records how often quiet moves have been successful or unsuccessful
 // during the current search, and is used for reduction and move ordering decisions.
@@ -78,9 +77,9 @@ struct HistoryStats
     }
 };
 
-// PieceToBoards are addressed by a move's [piece][destiny] information
+// PieceToBoards are addressed by a move's [piece][destiny] information.
 typedef BoardStats<MAX_PIECE, SQ_NO> SquareHistoryBoardStats;
-// PieceToHistory is like HistoryStats, but is based on SquareHistoryBoardStats
+// PieceToHistory is like HistoryStats, but is based on SquareHistoryBoardStats.
 struct SquareHistoryStats
     : public SquareHistoryBoardStats
 {
@@ -191,7 +190,7 @@ inline std::basic_ostream<CharT, Traits>&
 
 
 const u08 MaxKillers = 2;
-// Stack keeps the information of the nodes in the tree during the search
+// Stack keeps the information of the nodes in the tree during the search.
 struct Stack
 {
 public:
@@ -207,7 +206,7 @@ public:
     SquareHistoryStats *m_history;
 };
 
-// MovePicker class is used to pick one legal moves from the current position
+// MovePicker class is used to pick one legal moves from the current position.
 class MovePicker
 {
 private:
@@ -247,10 +246,6 @@ public:
 namespace Searcher {
 
     extern Limit Limits;
-
-    extern std::atomic<bool>
-                 ForceStop
-        ,        PonderhitStop; 
 
     extern u16   MultiPV;
     //extern i32   MultiPV_cp;

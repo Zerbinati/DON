@@ -220,20 +220,20 @@ namespace Threading {
             }
             _sleep_condition.notify_one ();
         }
-        // Waits on sleep condition until not searching
+        // Waits on sleep condition until not searching.
         void wait_while_searching ()
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return !_searching; });
         }
 
-        // Waits on sleep condition until 'condition' turns true
+        // Waits on sleep condition until 'condition' turns true.
         void wait_until (const std::atomic<bool> &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return bool(condition); });
         }
-        // Waits on sleep condition until 'condition' turns false
+        // Waits on sleep condition until 'condition' turns false.
         void wait_while (const std::atomic<bool> &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
@@ -245,7 +245,7 @@ namespace Threading {
         virtual void search ();
     };
 
-    // MainThread class is derived class used to characterize the the main one
+    // MainThread class is derived class used to characterize the the main one.
     class MainThread
         : public Thread
     {
@@ -272,7 +272,7 @@ namespace Threading {
         void check_limits ();
     };
 
-    // ThreadPool class handles all the threads related stuff like
+    // ThreadPool class handles all the threads related stuff like,
     // - initializing & deinitializing
     // - starting
     // - parking
@@ -283,6 +283,10 @@ namespace Threading {
     {
     public:
         u16    pv_limit    = 1;
+        
+        std::atomic<bool>
+                force_stop     { false }  // Stop on request
+            ,   ponderhit_stop { false }; // Stop on ponder-hit
 
         ThreadPool () = default;
         ThreadPool (const ThreadPool&) = delete;
