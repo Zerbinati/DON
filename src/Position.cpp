@@ -573,9 +573,6 @@ void Position::clear ()
             king_path  [c][cs] = 0;
         }
     }
-
-    nodes = 0;
-    tb_hits = 0;
 }
 // Set the castling right.
 void Position::set_castle (Color c, CastleSide cs)
@@ -855,6 +852,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     assert(_ok (m));
     assert(&nsi != si);
 
+    thread->nodes.fetch_add (1, std::memory_order_relaxed);
     // Copy some fields of old state info to new state info object.
     std::memcpy (&nsi, si, offsetof(StateInfo, capture));
     nsi.ptr = si;
@@ -1030,8 +1028,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     si->set_check_info (*this);
     ++ply;
-    ++nodes;
-
+    
     assert(ok ());
 }
 // Undo the last natural-move.

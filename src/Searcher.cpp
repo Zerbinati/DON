@@ -657,7 +657,8 @@ namespace Searcher {
             auto tb_hits      = Threadpool.tb_hits () + (TBHasRoot ? root_moves.size () : 0);
 
             ostringstream oss;
-            for (u16 i = 0; true; ++i)
+            u16 i = 0;
+            while (true)
             {
                 bool updated = 
                        i <= th->pv_index
@@ -700,7 +701,7 @@ namespace Searcher {
                     oss << " hashfull " << TT.hash_full ();
                 }
                 oss << " pv"        << root_moves[i];
-                if (i == Threadpool.pv_limit - 1)
+                if (i++ == Threadpool.pv_limit - 1)
                 {
                     break;
                 }
@@ -1128,7 +1129,7 @@ namespace Searcher {
 
                     if (PB_FAILURE != state)
                     {
-                        ++pos.tb_hits;
+                        th->tb_hits.fetch_add (1, std::memory_order_relaxed);
 
                         auto draw = TBUseRule50 ? 1 : 0;
 
@@ -1928,7 +1929,8 @@ namespace Threading {
         while (   ++running_depth < MaxPlies
                && !Threadpool.force_stop
                && (   0 == Limits.depth
-                   || main_thread->running_depth <= Limits.depth))
+                   || main_thread != this
+                   || running_depth <= Limits.depth))
         {
             if (main_thread == this)
             {
@@ -1976,9 +1978,6 @@ namespace Threading {
                 while (true)
                 {
                     best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, running_depth, false, true);
-
-                    nodes = root_pos.nodes;
-                    tb_hits = root_pos.tb_hits;
 
                     // Bring the best move to the front. It is critical that sorting is
                     // done with a stable algorithm because all the values but the first
@@ -2176,11 +2175,8 @@ namespace Threading {
             }
         }
 
-        if (Limits.use_time_management ())
-        {
-            // Initialize the time manager before searching.
-            time_mgr.initialize (root_pos.active, root_pos.ply);
-        }
+        // Initialize the time manager before searching.
+        time_mgr.initialize (root_pos.active, root_pos.ply);
 
         Transposition::Entry::Generation = u08(((root_pos.ply + 1) << 2) & 0xFC);
 
@@ -2294,11 +2290,14 @@ namespace Threading {
         }
 
     finish:
-        if (Limits.use_time_management ())
+        
+        // When playing in 'Nodes as Time' mode, update the time manager after searching
+        // by subtracting the nodes from the available ones.
+        if (0 != NodesTime)
         {
-            // Update the time manager after searching.
-            time_mgr.update (root_pos.active);
+            time_mgr.available_nodes += Limits.clock[root_pos.active].inc - Threadpool.nodes ();
         }
+
         // When reach max depth arrive here even without Force Stop is raised,
         // but if are pondering or in infinite search, according to UCI protocol,
         // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
@@ -2327,7 +2326,7 @@ namespace Threading {
             // Check if there are deeper thread than main thread.
             if (   1 == Threadpool.pv_limit
                 && !easy_played
-                //&& 0 == Limits.depth // Depth limit search don't use deeper thread
+                && 0 == Limits.depth // Depth limit search don't use deeper thread
                 && MOVE_NONE != root_moves[0][0]
                 && !skill_mgr.enabled ())
             {

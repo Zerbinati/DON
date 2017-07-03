@@ -291,7 +291,8 @@ namespace Evaluator {
                        | (  _pos.pieces (Opp, PAWN)
                           & (shift<Push> (_pos.pieces ()) | UpRanks));
             mob_area[Opp] = ~(b | _pos.square<KING> (Opp));
-            
+            mobility[Opp] = SCORE_ZERO;
+
             king_ring_attackers_weight[Own] = 0;
             king_zone_attacks_count[Own] = 0;
 
@@ -1097,9 +1098,6 @@ namespace Evaluator {
             initialize<WHITE> ();
             initialize<BLACK> ();
             
-            mobility[WHITE] =
-            mobility[BLACK] = SCORE_ZERO;
-
             // Evaluate all pieces except pawns and king
             score += evaluate_pieces<WHITE, NIHT> ()
                   -  evaluate_pieces<BLACK, NIHT> ();

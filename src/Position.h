@@ -131,9 +131,6 @@ public:
     Color active;
     i16   ply;
     
-    u64   nodes
-        , tb_hits;
-
     Thread *thread;
 
     StateInfo *si; // Current state information pointer

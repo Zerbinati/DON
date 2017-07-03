@@ -40,7 +40,6 @@ public:
 
     void initialize (Color c, i16 ply);
 
-    void update (Color c);
 };
 
 // MoveManager class is used to detect a so called 'easy move'.
@@ -170,11 +169,12 @@ namespace Threading {
             , pv_index
             , max_ply  = 0;
 
-        std::atomic<i16> running_depth = { 0 };
-        std::atomic<u64> nodes = { 0 }
-            ,            tb_hits = { 0 };
+        i16   running_depth = 0
+            , finished_depth = 0;
 
-        i16 finished_depth = 0;
+        std::atomic<u64>
+              nodes = { 0 }
+            , tb_hits = { 0 };
 
         Position  root_pos;
         RootMoves root_moves;

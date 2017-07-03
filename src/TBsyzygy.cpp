@@ -611,14 +611,14 @@ namespace TBSyzygy {
             //
             //       I(k) = k * d->span + d->span / 2      (1)
 
-            // First step is to get the 'k' of the I(k) nearest to our idx, using defintion (1)
+            // First step is to get the 'k' of the I(k) nearest to our idx, using definition (1)
             u32 k = u32(idx / d->span);
 
             // Then we read the corresponding SparseIndex[] entry
             u32 block  = number<u32, LittleEndian> (&d->sparseIndex[k].block);
             i32 offset = number<u16, LittleEndian> (&d->sparseIndex[k].offset);
 
-            // Now compute the difference idx - I(k). From defintion of k we know that
+            // Now compute the difference idx - I(k). From definition of k we know that
             //
             //       idx = k * d->span + idx % d->span    (2)
             //
@@ -816,10 +816,10 @@ namespace TBSyzygy {
                 assert(ptype (pc) == PAWN);
 
                 lead_pawns = b = pos.pieces (color (pc), PAWN);
-                while (0 != b)
+                do
                 {
                     squares[size++] = flip ? ~pop_lsq (b) : pop_lsq (b);
-                }
+                } while (0 != b);
                 lead_pawn_count = size;
 
                 std::swap (squares[0], *std::max_element (squares, squares + lead_pawn_count, pawns_comp));
@@ -849,13 +849,12 @@ namespace TBSyzygy {
             // Now we are ready to get all the position pieces (but the lead pawns) and
             // directly map them to the correct color and square.
             b = pos.pieces () ^ lead_pawns;
-            while (0 != b)
-            {
+            do {
                 auto s = pop_lsq (b);
                 squares[size] = flip ? ~s : s;
                 pieces[size] = Piece(flip ? ~pos[s] : pos[s]);
                 ++size;
-            }
+            } while (0 != b);
 
             // Then we reorder the pieces to have the same sequence as the one stored
             // in precomp->pieces[i]: the sequence that ensures the best compression.
@@ -1634,6 +1633,8 @@ namespace TBSyzygy {
     // no moves were filtered out.
     bool root_probe_dtz (Position &root_pos, RootMoves &root_moves, Value &value)
     {
+        assert(0 != root_moves.size ());
+
         ProbeState state;
         i32 dtz = probe_dtz (root_pos, state);
 

@@ -71,7 +71,7 @@ namespace Transposition {
 
         void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
         {
-            const u16 key16 = KeySplit{ k }.key16 ();
+            const auto key16 = KeySplit{ k }.key16 ();
             assert(0 != key16);
 
             // Preserve more valuable entries

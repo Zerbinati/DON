@@ -147,7 +147,7 @@ namespace Transposition {
     Entry* Table::probe (Key key, bool &tt_hit) const
     {
         assert(key != 0);
-        const u16 key16 = KeySplit{ key }.key16 ();
+        const auto key16 = KeySplit{ key }.key16 ();
         assert(key16 != 0);
         auto *const fte = cluster_entry (key);
         assert(nullptr != fte);

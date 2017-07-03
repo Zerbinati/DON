@@ -187,7 +187,7 @@ void TimeManager::initialize (Color c, i16 ply)
 {
     // If we have to play in 'Nodes as Time' mode, then convert from time
     // to nodes, and use resulting values in time management formulas.
-    // WARNING: Given npms (nodes per millisecond) must be much lower then
+    // WARNING: Given NodesTime (nodes per millisecond) must be much lower then
     // the real engine speed to avoid time losses.
     if (0 != NodesTime)
     {
@@ -241,16 +241,6 @@ void TimeManager::initialize (Color c, i16 ply)
     if (optimum_time > maximum_time)
     {
         optimum_time = maximum_time;
-    }
-}
-// Updates the allowed thinking time.
-void TimeManager::update (Color c)
-{
-    // When playing in 'Nodes as Time' mode,
-    // subtract the searched nodes from the available ones.
-    if (NodesTime != 0)
-    {
-        available_nodes += Limits.clock[c].inc - Threadpool.nodes ();
     }
 }
 
