@@ -694,9 +694,9 @@ namespace Searcher {
                                 v <= alfa ? " upperbound" : "" : "")
                     << " nodes "    << total_nodes
                     << " time "     << elapsed_time
-                    << " nps "      << total_nodes * MilliSec / elapsed_time
+                    << " nps "      << total_nodes * 1000 / elapsed_time
                     << " tbhits "   << tb_hits;
-                if (elapsed_time > MilliSec)
+                if (elapsed_time > 1000)
                 {
                     oss << " hashfull " << TT.hash_full ();
                 }
@@ -722,7 +722,6 @@ namespace Searcher {
                 && ss->ply == (ss-1)->ply + 1
                 && ss->ply <= MaxPlies);
 
-            bool in_check = 0 != pos.si->checkers;
             Value old_alfa;
 
             if (PVNode)
@@ -731,6 +730,7 @@ namespace Searcher {
                 ss->pv.clear ();
             }
 
+            bool in_check = 0 != pos.si->checkers;
             // Check for an immediate draw or maximum ply reached.
             if (   ss->ply >= MaxPlies
                 || pos.draw (ss->ply))
@@ -745,9 +745,8 @@ namespace Searcher {
 
             Move move;
             // Transposition table lookup.
-            auto posi_key = pos.si->posi_key;
             bool tt_hit;
-            auto *tte = TT.probe (posi_key, tt_hit);
+            auto *tte = TT.probe (pos.si->posi_key, tt_hit);
             auto tt_move =
                    tt_hit
                 && MOVE_NONE != (move = tte->move ())
@@ -822,7 +821,7 @@ namespace Searcher {
                     {
                         if (!tt_hit)
                         {
-                            tte->save (posi_key,
+                            tte->save (pos.si->posi_key,
                                        MOVE_NONE,
                                        value_to_tt (tt_eval, ss->ply),
                                        ss->static_eval,
@@ -908,10 +907,10 @@ namespace Searcher {
                     continue;
                 }
 
-                ss->current_move = move;
-
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
+
+                ss->current_move = move;
 
                 // Make the move
                 pos.do_move (move, si, gives_check);
@@ -938,7 +937,7 @@ namespace Searcher {
                         // Fail high
                         if (value >= beta)
                         {
-                            tte->save (posi_key,
+                            tte->save (pos.si->posi_key,
                                        move,
                                        value_to_tt (value, ss->ply),
                                        ss->static_eval,
@@ -960,7 +959,7 @@ namespace Searcher {
                 }
             }
 
-            tte->save (posi_key,
+            tte->save (pos.si->posi_key,
                        best_move,
                        value_to_tt (best_value, ss->ply),
                        ss->static_eval,
@@ -987,18 +986,7 @@ namespace Searcher {
 
             // Step 1. Initialize node.
             auto &th = pos.thread;
-            bool root_node = 1 == ss->ply;
-            bool in_check = 0 != pos.si->checkers;
-
-            ss->move_count = 0;
-            ss->stats_val = 0;
-
-            // Check for the available remaining limit.
-            if (Threadpool.main_thread () == th)
-            {
-                Threadpool.main_thread ()->check_limits ();
-            }
-
+            
             if (PVNode)
             {
                 // Update max_ply.
@@ -1007,6 +995,15 @@ namespace Searcher {
                     th->max_ply = ss->ply;
                 }
             }
+
+            // Check for the available remaining limit.
+            if (Threadpool.main_thread () == th)
+            {
+                Threadpool.main_thread ()->check_limits ();
+            }
+
+            bool root_node = 1 == ss->ply;
+            bool in_check = 0 != pos.si->checkers;
 
             if (!root_node)
             {
@@ -1035,6 +1032,8 @@ namespace Searcher {
                 }
             }
 
+            ss->statistics = 0;
+            ss->move_count = 0;
             ss->current_move = MOVE_NONE;
             ss->m_history = &th->cm_history[NO_PIECE][0];
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
@@ -1045,11 +1044,10 @@ namespace Searcher {
             // Step 4. Transposition table lookup
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
-            auto posi_key = pos.si->posi_key;
             bool tt_hit = false;
             auto *tte =
                 !exclusion ?
-                    TT.probe (posi_key, tt_hit) :
+                    TT.probe (pos.si->posi_key, tt_hit) :
                     nullptr;
             auto tt_move =
                 root_node ?
@@ -1137,7 +1135,7 @@ namespace Searcher {
                                      wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply) :
                                                     VALUE_ZERO + 2 * draw * wdl;
 
-                        tte->save (posi_key,
+                        tte->save (pos.si->posi_key,
                                    MOVE_NONE,
                                    value_to_tt (value, ss->ply),
                                    VALUE_NONE,
@@ -1182,7 +1180,7 @@ namespace Searcher {
 
                     if (!exclusion)
                     {
-                        tte->save (posi_key,
+                        tte->save (pos.si->posi_key,
                                    MOVE_NONE,
                                    VALUE_NONE,
                                    ss->static_eval,
@@ -1236,18 +1234,19 @@ namespace Searcher {
                             || ss->static_eval >= beta - 35*(depth - 6))
                         && pos.si->non_pawn_material (pos.active) > VALUE_ZERO)
                     {
+                        // Speculative prefetch as early as possible.
+                        prefetch (TT.cluster_entry (  pos.si->posi_key
+                                                    ^ RandZob.color_key
+                                                    ^ (SQ_NO != pos.si->en_passant_sq ? RandZob.en_passant_keys[_file (pos.si->en_passant_sq)] : 0)));
+
                         ss->current_move = MOVE_NULL;
                         ss->m_history = &th->cm_history[NO_PIECE][0];
+
+                        pos.do_null_move (si);
 
                         // Null move dynamic reduction based on depth and static evaluation.
                         auto reduced_depth = i16(depth - (67*depth + 823) / 256 + std::min (i16(tt_eval - beta)/VALUE_MG_PAWN, 3));
 
-                        // Speculative prefetch as early as possible.
-                        prefetch (TT.cluster_entry (  posi_key
-                                                    ^ RandZob.color_key
-                                                    ^ (SQ_NO != pos.si->en_passant_sq ? RandZob.en_passant_keys[_file (pos.si->en_passant_sq)] : 0)));
-
-                        pos.do_null_move (si);
                         auto null_value =
                             reduced_depth <= 0 ?
                                 -quien_search<false> (pos, ss+1, -beta, -beta+1) :
@@ -1301,14 +1300,13 @@ namespace Searcher {
                         {
                             assert(pos.pseudo_legal (move)
                                 && pos.legal (move));
-
-                            ss->current_move = move;
-                            ss->m_history = &th->cm_history[pos[org_sq (move)]][dst_sq (move)];
-
                             assert(pos.capture_or_promotion (move));
 
                             // Speculative prefetch as early as possible.
                             prefetch (TT.cluster_entry (pos.move_posi_key (move)));
+
+                            ss->current_move = move;
+                            ss->m_history = &th->cm_history[pos[org_sq (move)]][dst_sq (move)];
 
                             pos.do_move (move, si);
 
@@ -1331,7 +1329,7 @@ namespace Searcher {
                     {
                         depth_search<PVNode> (pos, ss, alfa, beta, 3*depth/4 - 2, cut_node, false);
 
-                        tte = TT.probe (posi_key, tt_hit);
+                        tte = TT.probe (pos.si->posi_key, tt_hit);
                         tt_move =
                                tt_hit
                             && MOVE_NONE != (move = tte->move ())
@@ -1355,6 +1353,7 @@ namespace Searcher {
 
             bool singular_ext_node =
                    !root_node
+                && tt_hit
                 && MOVE_NONE != tt_move
                 && VALUE_NONE != tt_value
                 && !exclusion // Recursive singular search is not allowed.
@@ -1403,20 +1402,27 @@ namespace Searcher {
 
                 ss->move_count = ++move_count;
 
+                bool gives_check = pos.gives_check (move);
+                bool capture_or_promotion = pos.capture_or_promotion (move);
+                bool move_count_pruning =
+                       MaxFutilityDepth > depth
+                    && FutilityMoveCounts[improving][depth] <= move_count;
+
                 auto mpc = pos[org_sq (move)];
-                assert(mpc != NO_PIECE);
+                assert(NO_PIECE != mpc);
 
                 if (   root_node
                     && Threadpool.main_thread () == th)
                 {
                     auto elapsed_time = Threadpool.main_thread ()->time_mgr.elapsed_time ();
-                    if (elapsed_time > 3*MilliSec)
+                    if (elapsed_time > 3000)
                     {
                         sync_cout
                             << "info"
-                            << " depth "          << depth
-                            << " currmovenumber " << th->pv_index + move_count
                             << " currmove "       << move_to_can (move)
+                            << " currmovenumber " << th->pv_index + move_count
+                            << " maxmoves "       << th->root_moves.size ()
+                            << " depth "          << depth
                             << " time "           << elapsed_time
                             << sync_endl;
                     }
@@ -1426,13 +1432,6 @@ namespace Searcher {
                 {
                     (ss+1)->pv.clear ();
                 }
-
-                bool gives_check = pos.gives_check (move);
-                bool capture_or_promotion = pos.capture_or_promotion (move);
-
-                bool move_count_pruning =
-                       MaxFutilityDepth > depth
-                    && FutilityMoveCounts[improving][depth] <= move_count;
 
                 // Calculate new depth for this move
                 i16 new_depth = depth - 1;
@@ -1518,12 +1517,12 @@ namespace Searcher {
                     ttm_capture = true;
                 }
 
+                // Speculative prefetch as early as possible.
+                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
+
                 // Update the current move (this must be done after singular extension search).
                 ss->current_move = move;
                 ss->m_history = &th->cm_history[mpc][dst_sq (move)];
-
-                // Speculative prefetch as early as possible.
-                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                 // Step 14. Make the move.
                 pos.do_move (move, si, gives_check);
@@ -1566,7 +1565,7 @@ namespace Searcher {
                             reduce_depth -= 2;
                         }
 
-                        ss->stats_val =
+                        ss->statistics =
                               th->history[~pos.active][move_pp (move)]
                             + smh1[mpc][dst_sq (move)]
                             + smh2[mpc][dst_sq (move)]
@@ -1574,20 +1573,20 @@ namespace Searcher {
                             - 4000; // Correction factor
 
                         // Decrease/Increase reduction by comparing opponent's stat value
-                        if (   (ss  )->stats_val > 0
-                            && (ss-1)->stats_val < 0)
+                        if (   (ss  )->statistics > 0
+                            && (ss-1)->statistics < 0)
                         {
                             reduce_depth -= 1;
                         }
                         else
-                        if (   (ss  )->stats_val < 0
-                            && (ss-1)->stats_val > 0)
+                        if (   (ss  )->statistics < 0
+                            && (ss-1)->statistics > 0)
                         {
                             reduce_depth += 1;
                         }
 
                         // Decrease/Increase reduction for moves with +/-ve history value
-                        reduce_depth -= i16((ss)->stats_val / 20000);
+                        reduce_depth -= i16((ss)->statistics / 20000);
                     }
 
                     if (reduce_depth < 0)
@@ -1776,9 +1775,10 @@ namespace Searcher {
                     update_cm_stats (ss-1, pos[fix_dst_sq (m)], dst_sq (m), stat_bonus (depth));
                 }
             }
+            
             if (!exclusion)
             {
-                tte->save (posi_key,
+                tte->save (pos.si->posi_key,
                            best_move,
                            value_to_tt (best_value, ss->ply),
                            ss->static_eval,
@@ -1908,17 +1908,12 @@ namespace Threading {
             s->current_move = MOVE_NONE;
             std::fill_n (s->killer_moves, MaxKillers, MOVE_NONE);
             s->static_eval  = VALUE_ZERO;
-            s->stats_val    = 0;
+            s->statistics   = 0;
             s->move_count   = 0;
             s->m_history    = &this->cm_history[NO_PIECE][0];
         }
 
         auto *main_thread = Threadpool.main_thread ();
-
-        max_ply = 0;
-        tb_hits = 0;
-        running_depth  = 0;
-        finished_depth = 0;
 
         auto best_value = VALUE_ZERO
            , window     = VALUE_ZERO
@@ -2000,7 +1995,7 @@ namespace Threading {
                         // Give some update before to re-search.
                         if (   1 == Threadpool.pv_limit
                             && (best_value <= alfa || beta <= best_value)
-                            && main_thread->time_mgr.elapsed_time () > 3*MilliSec)
+                            && main_thread->time_mgr.elapsed_time () > 3000)
                         {
                             sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
                         }
@@ -2043,7 +2038,7 @@ namespace Threading {
                 {
                     if (   Threadpool.force_stop
                         || Threadpool.pv_limit == pv_index + 1
-                        || main_thread->time_mgr.elapsed_time () > 3*MilliSec)
+                        || main_thread->time_mgr.elapsed_time () > 3000)
                     {
                         sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
                     }
@@ -2233,7 +2228,7 @@ namespace Threading {
             if (   Limits.use_time_management ()
                 && 0 != ContemptTime
                 && 0 != (diff_time = i64(  Limits.clock[ root_pos.active].time
-                                         - Limits.clock[~root_pos.active].time)/MilliSec))
+                                         - Limits.clock[~root_pos.active].time)/1000))
             {
                 timed_contempt = i16(diff_time/ContemptTime);
             }
@@ -2362,7 +2357,7 @@ namespace Threading {
             OutputStream
                 << "Nodes (N)  : " << total_nodes                         << '\n'
                 << "Time (ms)  : " << elapsed_time                        << '\n'
-                << "Speed (N/s): " << total_nodes*MilliSec / elapsed_time << '\n'
+                << "Speed (N/s): " << total_nodes * 1000 / elapsed_time   << '\n'
                 << "Hash-full  : " << TT.hash_full ()                     << '\n'
                 << "Best Move  : " << move_to_san (best_move, root_pos)   << '\n';
             if (MOVE_NONE != best_move)
@@ -2399,7 +2394,7 @@ namespace Threading {
 
         auto elapsed_time = time_mgr.elapsed_time ();
 
-        if (elapsed_time - Limits.elapsed_time >= MilliSec)
+        if (elapsed_time - Limits.elapsed_time >= 1000)
         {
             Limits.elapsed_time = elapsed_time;
             dbg_print ();

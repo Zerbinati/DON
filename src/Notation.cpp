@@ -81,6 +81,10 @@ namespace Notation {
         // Time to string
         string pretty_time (TimePoint time)
         {
+            const u32 MilliSec       = 1000;
+            const u32 MinuteMilliSec = 60*MilliSec;
+            const u32 HourMilliSec   = 60*MinuteMilliSec;
+
             u32 hours  = u32(time / HourMilliSec);
             time      %= HourMilliSec;
             u32 minutes= u32(time / MinuteMilliSec);
@@ -243,27 +247,31 @@ namespace Notation {
     // It uses the two helpers to pretty format the value and time respectively.
     string pretty_pv_info (Thread *const &th)
     {
-        const u16 K = 1000;
-        const u32 M = K*K;
+        const double K = 1000.0;
 
         ostringstream oss;
         const auto &root_move = th->root_moves[0];
-        u64 total_nodes = Threadpool.nodes ();
+        u64 nodes = Threadpool.nodes ();
         oss << std::setw ( 4) << th->finished_depth
             << std::setw ( 8) << pretty_value (root_move.new_value, th->root_pos.active)
             << std::setw (12) << pretty_time (Threadpool.main_thread ()->time_mgr.elapsed_time ());
-        if (total_nodes < 1*M)
+        if (nodes < 10*(K))
         {
-            oss << std::setw (8) << total_nodes / 1;
+            oss << std::setw (8) << u16(nodes);
         }
         else
-        if (total_nodes < K*M)
+        if (nodes < 10*(K*K))
         {
-            oss << std::setw (7) << total_nodes / K << 'K';
+            oss << std::setw (7) << u16(std::round (nodes / (K))) << 'K';
+        }
+        else
+        if (nodes < 10*(K*K*K))
+        {
+            oss << std::setw (7) << u16(std::round (nodes / (K*K))) << 'M';
         }
         else
         {
-            oss << std::setw (7) << total_nodes / M << 'M';
+            oss << std::setw (7) << u16(std::round (nodes / (K*K*K))) << 'G';
         }
         oss << ' ';
 

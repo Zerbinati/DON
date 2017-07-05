@@ -378,8 +378,9 @@ enum Bound : u08
 
 enum PhaseType : u08
 {
-    MG  = 0,
-    EG  = 1,
+    MG    = 0,
+    EG    = 1,
+    PH_NO = 2,
 };
 
 enum Phase : u08
@@ -574,10 +575,6 @@ inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
-
-const u32 MilliSec       = 1000;
-const u32 MinuteMilliSec = 60*MilliSec;
-const u32 HourMilliSec   = 60*MinuteMilliSec;
 
 inline TimePoint now ()
 {

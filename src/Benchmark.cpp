@@ -203,7 +203,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
         << "\n=================================\n"
         << "Total time (ms) :" << std::setw (16) << elapsed_time << '\n'
         << "Nodes searched  :" << std::setw (16) << total_nodes  << '\n'
-        << "Nodes/second    :" << std::setw (16) << total_nodes * MilliSec / elapsed_time
+        << "Nodes/second    :" << std::setw (16) << total_nodes * 1000 / elapsed_time
         << "\n---------------------------------\n"    
         << std::left << std::endl;
 }

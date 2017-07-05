@@ -786,20 +786,20 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     }
 
     // 5-6. Clock ply and Game move count.
-    i16   clk_ply = 0
+    i16   clock_ply = 0
         , moves   = 1;
     if (full)
     {
         iss >> std::skipws
-            >> clk_ply
+            >> clock_ply
             >> moves;
 
         if (SQ_NO != si->en_passant_sq)
         {
-            clk_ply = 0;
+            clock_ply = 0;
         }
         // Rule 50 draw case.
-        assert(clk_ply <= 100);
+        assert(clock_ply <= 100);
 
         // Handle common problem move-num = 0.
         if (moves <= 0)
@@ -817,7 +817,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->psq_score = compute_psq (*this);
     si->non_pawn_matl[WHITE] = compute_npm<WHITE> (*this);
     si->non_pawn_matl[BLACK] = compute_npm<BLACK> (*this);
-    si->clock_ply = u08(clk_ply);
+    si->clock_ply = u08(clock_ply);
     si->null_ply = 0;
     si->capture = NONE;
     si->promotion = false;
@@ -874,7 +874,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
                 dst :
                 dst - pawn_push (active);
     ++si->clock_ply;
-    ++si->null_ply;;
+    ++si->null_ply;
     si->capture = CASTLE != mt ? ptype (board[cap]) : NONE;
     if (NONE != si->capture)
     {

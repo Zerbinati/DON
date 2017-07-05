@@ -37,7 +37,7 @@ namespace Material {
         };
 
         // PawnsSet[count] contains a bonus/malus indexed by number of pawns
-        const int PawnsSet[] = { 24, -32, 107, -51, 117, -9, -126, -21, 31 };
+        const i32 PawnsSet[] = { 24, -32, 107, -51, 117, -9, -126, -21, 31 };
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.

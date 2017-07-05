@@ -409,6 +409,9 @@ namespace Threading {
     // and starts a new search, then returns immediately.
     void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits)
     {
+        force_stop     = false;
+        ponderhit_stop = false;
+
         Limits = limits;
 
         RootMoves root_moves;
@@ -464,19 +467,18 @@ namespace Threading {
         const auto fen = root_pos.fen ();
         for (auto *th : *this)
         {
-            th->max_ply = 0;
-            th->nodes = 0;
-            th->tb_hits = 0;
-
-            th->running_depth = 0;
             th->root_pos.setup (fen, states.back (), th);
             th->root_moves = root_moves;
+
+            th->max_ply = 0;
+            th->nodes   = 0;
+            th->tb_hits = 0;
+            th->running_depth  = 0;
+            th->finished_depth = 0;
         }
         // Restore si->ptr, cleared by Position::setup().
         states.back () = back_si;
 
-        force_stop     = false;
-        ponderhit_stop = false;
         main_thread ()->start_searching (false);
     }
     // Waits for the main thread while searching.

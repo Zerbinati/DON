@@ -169,15 +169,15 @@ namespace Threading {
             , pv_index
             , max_ply  = 0;
 
+        Position  root_pos;
+        RootMoves root_moves;
+
         i16   running_depth = 0
             , finished_depth = 0;
 
         std::atomic<u64>
               nodes = { 0 }
             , tb_hits = { 0 };
-
-        Position  root_pos;
-        RootMoves root_moves;
 
         Pawns   ::Table pawn_table;
         Material::Table matl_table;

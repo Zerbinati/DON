@@ -77,7 +77,129 @@ namespace Evaluator {
         class Evaluation
         {
         private:
+
+        #define V(v) Value(v)
+        #define S(mg, eg) mk_score (mg, eg)
+
+            // PieceMobility[piece-type][attacks] contains bonuses for mobility,
+            // indexed by piece type and number of attacked squares in the mobility area
+            const Score PieceMobility[5][28] =
+            {
+                {},
+                { // Knight
+                    S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12),
+                    S( 22, 26), S( 29, 29), S( 36, 29)
+                },
+                { // Bishop
+                    S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42),
+                    S( 55, 54), S( 63, 57), S( 63, 65), S( 68, 73), S( 81, 78), S( 81, 86),
+                    S( 91, 88), S( 98, 97)
+                },
+                { // Rook
+                    S(-58,-76), S(-27,-18), S(-15, 28), S(-10, 55), S( -5, 69), S( -2, 82),
+                    S(  9,112), S( 16,118), S( 30,132), S( 29,142), S( 32,155), S( 38,165),
+                    S( 46,166), S( 48,169), S( 58,171)
+                },
+                { // Queen
+                    S(-39,-36), S(-21,-15), S(  3,  8), S(  3, 18), S( 14, 34), S( 22, 54),
+                    S( 28, 61), S( 41, 73), S( 43, 79), S( 48, 92), S( 56, 94), S( 60,104),
+                    S( 60,113), S( 66,120), S( 67,123), S( 70,126), S( 71,133), S( 73,136),
+                    S( 79,140), S( 88,143), S( 88,148), S( 99,166), S(102,170), S(102,175),
+                    S(106,184), S(109,191), S(113,206), S(116,212)
+                }
+            };
+
+            // PieceCloseness[piece-type] * "distance to own king" determines a bonus for each piece.
+            const Score PieceCloseness[NONE] =
+            {
+                S( 0, 0), S(-3, -5), S(-4, -3), S(-3, 0), S(-1, 1)
+            };
+
+            // PieceOutpost[piece-type][supported by pawn] contains bonuses for piece outposts
+            // If they can reach an outpost square, bigger if that square is supported by a pawn
+            // If the minor piece occupies an outpost square then score is doubled
+            const Score PieceOutpost[3][2] =
+            {
+                {},
+                { S(22, 6), S(33, 9) },
+                { S( 9, 2), S(14, 4) }
+            };
+
+            // RookOnFile[semiopen/open] contains bonuses for rooks
+            // when there is no friend pawn on the rook file
+            const Score RookOnFile[2] =
+            {
+                S(20, 7), S(45,20)
+            };
+            // Bonus for minor behind a pawn
+            const Score MinorBehindPawn = S(16, 0);
+            // Penalty for bishop with pawns on same color
+            const Score BishopPawns     = S( 8,12);
+            // Penalty for bishop trapped with pawns (Chess960)
+            const Score BishopTrapped   = S(50,50);
+
+            // Bonus for rook on pawns
+            const Score RookOnPawns     = S( 8,24);
+            // Penalty for rook trapped
+            const Score RookTrapped     = S(92, 0);
+            // Penalty for queen weaken
+            const Score QueenWeaken     = S(50,10);
+
+            const Score ProbChecked     = S(10,10);
+            // King tropism
+            const Score EnemyInFlank    = S( 7, 0);
+            const Score PawnlessFlank   = S(20,80);
+
+            // Bonus for each hanged piece
+            const Score PieceHanged     = S(48,27);
+
+            const Score PawnPushThreat  = S(38,22);
+
+            const Score HangPawnThreat  = S( 71, 61);
+            const Score SafePawnThreat  = S(182,175);
+
+            // PieceThreat[piece-type][piece-type] contains bonus according to piece type
+            const Score PieceThreat[4][NONE] =
+            {
+                {},
+                { S( 0,33), S(45,43), S(46,47), S(47,107), S(48,118), S( 0, 0) },
+                { S( 0,33), S(45,43), S(46,47), S(47,107), S(48,118), S( 0, 0) },
+                { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) }
+            };
+
+            const Score PieceRankThreat = S(16, 3);
+
+            // KingThreat[one/more] contains bonus for king attacks on pawns or pieces which are not pawn-defended
+            const Score KingThreat[2] =
+            {
+                S( 3, 62), S( 9,138)
+            };
+
+            const Score PawnPassHinder = S( 7, 0);
+
+            // PawnPassFile[file] contains bonus for passed pawns according to distance from edge
+            const Score PawnPassFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
+            // PawnPassRank[rank] contains bonus for passed pawns according to the rank of the pawn
+            const Value PawnPassRank[PH_NO][R_NO] =
+            {
+                { V(  0), V(  5), V(  5), V( 31), V( 73), V(166), V(252), V(  0) },
+                { V(  0), V(  7), V( 14), V( 38), V( 73), V(166), V(252), V(  0) }
+            };
+
+            // Threshold for lazy evaluation
+            const Value LazyThreshold   = V(1500);
+            const Value SpaceThreshold  = V(12222);
+
+        #undef S
+        #undef V
+
+            // Bonus for king attack by piece type
+            const i32 PieceAttackWeights[5] = {  0, 78, 56, 45, 11 };
+
+            // ------------------------------------------------------------
+
             const Position &_pos;
+
             Material::Entry *_me = nullptr;
             Pawns   ::Entry *_pe = nullptr;
 
@@ -99,7 +221,7 @@ namespace Evaluator {
             // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
             u08      king_ring_attackers_count[CLR_NO];
             // Sum of the "weight" of the pieces of the color which attack a square in the king_ring of the enemy king.
-            // The weights of the individual piece types are given by the PieceKingAttacks[piece-type]
+            // The weights of the individual piece types are given by the PieceAttackWeights[piece-type]
             i32      king_ring_attackers_weight[CLR_NO];
             // Number of attacks by the color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
@@ -124,128 +246,9 @@ namespace Evaluator {
             Evaluation (const Position &pos)
                 : _pos (pos)
             {};
-            
+
             Value value ();
         };
-
-    #define V(v) Value(v)
-    #define S(mg, eg) mk_score (mg, eg)
-
-        // PieceMobility[piece-type][attacks] contains bonuses for mobility,
-        // indexed by piece type and number of attacked squares in the mobility area
-        const Score PieceMobility[][28] =
-        {
-            {},
-            { // Knight
-                S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12),
-                S( 22, 26), S( 29, 29), S( 36, 29)
-            },
-            { // Bishop
-                S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42),
-                S( 55, 54), S( 63, 57), S( 63, 65), S( 68, 73), S( 81, 78), S( 81, 86),
-                S( 91, 88), S( 98, 97)
-            },
-            { // Rook
-                S(-58,-76), S(-27,-18), S(-15, 28), S(-10, 55), S( -5, 69), S( -2, 82),
-                S(  9,112), S( 16,118), S( 30,132), S( 29,142), S( 32,155), S( 38,165),
-                S( 46,166), S( 48,169), S( 58,171)
-            },
-            { // Queen
-                S(-39,-36), S(-21,-15), S(  3,  8), S(  3, 18), S( 14, 34), S( 22, 54),
-                S( 28, 61), S( 41, 73), S( 43, 79), S( 48, 92), S( 56, 94), S( 60,104),
-                S( 60,113), S( 66,120), S( 67,123), S( 70,126), S( 71,133), S( 73,136),
-                S( 79,140), S( 88,143), S( 88,148), S( 99,166), S(102,170), S(102,175),
-                S(106,184), S(109,191), S(113,206), S(116,212)
-            }
-        };
-
-        // PieceCloseness[piece-type] * "distance to own king" determines a bonus for each piece.
-        const Score PieceCloseness[] =
-        {
-            S( 0, 0), S(-3, -5), S(-4, -3), S(-3, 0), S(-1, 1)
-        };
-
-        // PieceOutpost[piece-type][supported by pawn] contains bonuses for piece outposts
-        // If they can reach an outpost square, bigger if that square is supported by a pawn
-        // If the minor piece occupies an outpost square then score is doubled
-        const Score PieceOutpost[][2] =
-        {
-            {},
-            { S(22, 6), S(33, 9) },
-            { S( 9, 2), S(14, 4) }
-        };
-
-        // RookOnFile[semiopen/open] contains bonuses for rooks
-        // when there is no friend pawn on the rook file
-        const Score RookOnFile[] =
-        {
-            S(20, 7), S(45,20)
-        };
-        // Bonus for minor behind a pawn
-        const Score MinorBehindPawn = S(16, 0);
-        // Penalty for bishop with pawns on same color
-        const Score BishopPawns     = S( 8,12);
-        // Penalty for bishop trapped with pawns (Chess960)
-        const Score BishopTrapped   = S(50,50);
-
-        // Bonus for rook on pawns
-        const Score RookOnPawns     = S( 8,24);
-        // Penalty for rook trapped
-        const Score RookTrapped     = S(92, 0);
-        // Penalty for queen weaken
-        const Score QueenWeaken     = S(50,10);
-
-        const Score ProbChecked     = S(10,10);
-        // King tropism
-        const Score EnemyInFlank    = S( 7, 0);
-        const Score PawnlessFlank   = S(20,80);
-
-        // Bonus for each hanged piece
-        const Score PieceHanged     = S(48,27);
-
-        const Score PawnPushThreat  = S(38,22);
-
-        const Score HangPawnThreat  = S( 71, 61);
-        const Score SafePawnThreat  = S(182,175);
-
-        // PieceThreat[piece-type][piece-type] contains bonus according to piece type
-        const Score PieceThreat[][NONE] =
-        {
-            {},
-            { S( 0,33), S(45,43), S(46,47), S(47,107), S(48,118), S( 0, 0) },
-            { S( 0,33), S(45,43), S(46,47), S(47,107), S(48,118), S( 0, 0) },
-            { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) }
-        };
-
-        const Score PieceRankThreat = S(16, 3);
-
-        // KingThreat[one/more] contains bonus for king attacks on pawns or pieces which are not pawn-defended
-        const Score KingThreat[] =
-        {
-            S( 3, 62), S( 9,138)
-        };
-
-        const Score PawnPassHinder = S( 7, 0);
-
-        // PawnPassFile[file] contains bonus for passed pawns according to distance from edge
-        const Score PawnPassFile[] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
-        // PawnPassRank[rank] contains bonus for passed pawns according to the rank of the pawn
-        const Value PawnPassRank[][R_NO] =
-        {
-            { V(  0), V(  5), V(  5), V( 31), V( 73), V(166), V(252), V(  0) },
-            { V(  0), V(  7), V( 14), V( 38), V( 73), V(166), V(252), V(  0) }
-        };
-
-        // Threshold for lazy evaluation
-        const Value LazyThreshold   = V(1500);
-        const Value SpaceThreshold  = V(12222);
-
-    #undef S
-    #undef V
-
-        // Bonus for king attack by piece type
-        const i32 PieceKingAttacks[] = {  0, 78, 56, 45, 11,  0 };
-
 
         // initialize() computes king and pawn attacks, and the king ring bitboard for the color.
         // This is done at the beginning of the evaluation.
@@ -317,6 +320,8 @@ namespace Evaluator {
         template<bool Trace> template<Color Own, PieceType PT>
         Score Evaluation<Trace>::evaluate_pieces ()
         {
+            assert(NIHT <= PT && PT <= QUEN);
+
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
             const auto Push = Own == WHITE ? DEL_N : DEL_S;
             const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
@@ -326,7 +331,7 @@ namespace Evaluator {
                                         R4_bb|R5_bb|R6_bb :
                                         R5_bb|R4_bb|R3_bb;
 
-            assert(NIHT <= PT && PT <= QUEN);
+            auto fk_sq = _pos.square<KING> (Own);
 
             auto score = SCORE_ZERO;
             pin_attacked_by[Own][PT] = 0;
@@ -350,7 +355,7 @@ namespace Evaluator {
 
                 if (contains (_pos.abs_blockers (Own), s))
                 {
-                    attacks &= strline_bb (_pos.square<KING> (Own), s);
+                    attacks &= strline_bb (fk_sq, s);
                 }
 
                 if (QUEN == PT)
@@ -374,7 +379,7 @@ namespace Evaluator {
                 if (0 != (king_ring[Opp] & attacks))
                 {
                     king_ring_attackers_count[Own]++;
-                    king_ring_attackers_weight[Own] += PieceKingAttacks[PT];
+                    king_ring_attackers_weight[Own] += PieceAttackWeights[PT];
                     king_zone_attacks_count[Own] += u08(pop_count (pin_attacked_by[Opp][KING] & attacks));
                 }
 
@@ -384,8 +389,7 @@ namespace Evaluator {
                 mobility[Own] += PieceMobility[PT][mob];
 
                 // Bonus for piece closeness to King
-                score += PieceCloseness[PT] * dist (s, _pos.square<KING> (Own));
-                //score += PieceCloseness[PT] * dist (s, _pos.square<KING> (Opp));
+                score += PieceCloseness[PT] * dist (s, fk_sq);
 
                 Bitboard b;
                 // Special extra evaluation for pieces
@@ -475,7 +479,7 @@ namespace Evaluator {
                         && 0 == (front_sqrs_bb (Opp, s) & _pos.pieces (Own, PAWN)))
                     {
                         // Penalty for rook when trapped by the king, even more if the king can't castle
-                        auto kf = _file (_pos.square<KING> (Own));
+                        auto kf = _file (fk_sq);
                         if (   ((kf < F_E) == (_file (s) < kf))
                             && !_pe->side_semiopen (Own, kf, kf < F_E))
                         {
@@ -551,7 +555,7 @@ namespace Evaluator {
             if (king_ring_attackers_count[Opp] + _pos.count<QUEN> (Opp) > 1)
             {
                 // Find the attacked squares which are defended only by the king in the king zone...
-                Bitboard king_zone_undef =
+                Bitboard king_only_def =
                        pin_attacked_by[Own][KING]
                     &  pin_attacked_by[Opp][NONE]
                     & ~dbl_attacked[Own];
@@ -569,7 +573,7 @@ namespace Evaluator {
                 i32 king_danger =
                         1 * king_ring_attackers_count[Opp]*king_ring_attackers_weight[Opp]
                     + 102 * king_zone_attacks_count[Opp]
-                    + 201 * pop_count (king_zone_undef)
+                    + 201 * pop_count (king_only_def)
                     + 143 * pop_count (king_ring_undef | _pos.abs_blockers (Own))
                     //+ 143 * pop_count (_pos.dsc_blockers (Opp) & ~(  (_pos.pieces (Opp, PAWN) & (  (file_bb (fk_sq) & ~(  shift<LCap> (_pos.pieces (Own))
                     //                                                                                                    | shift<RCap> (_pos.pieces (Own))))
@@ -588,7 +592,7 @@ namespace Evaluator {
                 Bitboard safe_area =
                       ~_pos.pieces (Opp)
                     &  (  ~pin_attacked_by[Own][NONE]
-                        |  (  king_zone_undef
+                        |  (  king_only_def
                             & dbl_attacked[Opp]));
                 // ... and for some other probable potential checks, 
                 // the square to be safe from pawn-attacks and not being occupied by a blocked pawns.
@@ -692,8 +696,7 @@ namespace Evaluator {
             const auto Push = Own == WHITE ? DEL_N  : DEL_S;
             const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
             const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
-            const Bitboard R2BB = Own == WHITE ? R2_bb : R7_bb;
-            const Bitboard R7BB = Own == WHITE ? R7_bb : R2_bb;
+            const Bitboard R3BB = Own == WHITE ? R3_bb : R6_bb;
 
             auto score = SCORE_ZERO;
 
@@ -808,22 +811,23 @@ namespace Evaluator {
                 }
             }
 
-            // Bonus if some friend pawns safely push can attack an enemy piece
+            // Friend pawns can push on the next move
             b =    _pos.pieces (Own, PAWN)
-                & ~(  R7BB
-                    | _pos.abs_blockers (Own));
+                & ~_pos.abs_blockers (Own);
             // Friend pawns push
-            b =   shift<Push> (b | (  shift<Push> (b & R2BB)
-                                    & ~_pos.pieces ()))
+            b  =  shift<Push> (b)
                 & ~_pos.pieces ();
-            // Friend pawns safe push
+            b |=  shift<Push> (b & R3BB)
+                & ~_pos.pieces ();
+            // Friend pawns push safe
             b &=   safe
                 & ~pin_attacked_by[Opp][PAWN];
-            // Friend pawns safe push attacks an enemy piece not already attacked by pawn
+            // Friend pawns push safe attacks an enemy piece not already attacked by pawn
             b =    (  shift<LCap> (b)
                     | shift<RCap> (b))
                 &  _pos.pieces (Opp)
                 & ~pin_attacked_by[Own][PAWN];
+            // Bonus Friend pawns push safely can attack an enemy piece not already attacked by pawn
             score += PawnPushThreat * pop_count (b);
 
             if (Trace)

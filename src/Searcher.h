@@ -199,7 +199,7 @@ public:
     Move  killer_moves[MaxKillers];
 
     Value static_eval;
-    i32   stats_val;
+    i32   statistics;
     u08   move_count;
     Moves pv;
 

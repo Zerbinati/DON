@@ -856,6 +856,8 @@ namespace TBSyzygy {
                 ++size;
             } while (0 != b);
 
+            assert(size >= 2);
+
             // Then we reorder the pieces to have the same sequence as the one stored
             // in precomp->pieces[i]: the sequence that ensures the best compression.
             for (i32 i = lead_pawn_count; i < size; ++i)
