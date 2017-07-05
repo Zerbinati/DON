@@ -84,18 +84,18 @@ namespace {
 // example: bench 32 1 10000 movetime default
 void benchmark (istringstream &is, const Position &cur_pos)
 {
-    u32    hash     = 16;
-    u16    threads  =  1;
-    i64    value    = 13;
+    u32    hash = 16;
+    u16    threads = 1;
+    i64    value = 13;
     string token;
     string mode;
     string fen_fn;
     // Assign default values to missing arguments
-    hash    = is >> hash    && !is.fail ()                          ? hash    : 16;
-    threads = is >> threads && !is.fail ()                          ? threads :  1;
-    value   = is >> value   && !is.fail ()                          ? value   : 13;
-    mode    = is >> token   && !is.fail () && !white_spaces (token) ? token   : "depth";
-    fen_fn  = is >> token   && !is.fail () && !white_spaces (token) ? token   : "default";
+    hash = is >> hash && !is.fail () ? hash : 16;
+    threads = is >> threads && !is.fail () ? threads : 1;
+    value = is >> value && !is.fail () ? value : 13;
+    mode = is >> token && !is.fail () && !white_spaces (token) ? token : "depth";
+    fen_fn = is >> token && !is.fail () && !white_spaces (token) ? token : "default";
 
     Limit limits;
     if (mode == "time")
@@ -111,16 +111,16 @@ void benchmark (istringstream &is, const Position &cur_pos)
     else
     if (mode == "nodes")
     {
-        limits.nodes    = u64(abs (value));
+        limits.nodes = u64(abs (value));
     }
     else
     if (mode == "mate")
     {
-        limits.mate     = u08(abs (value));
+        limits.mate = u08(abs (value));
     }
     else //mode=="depth"
     {
-        limits.depth    = i16(abs (value));
+        limits.depth = i16(abs (value));
     }
 
     vector<string> fens;
@@ -156,13 +156,13 @@ void benchmark (istringstream &is, const Position &cur_pos)
 
     if (mode != "perft")
     {
-        Options["Hash"]        = to_string (hash);
-        Options["Threads"]     = to_string (threads);
+        Options["Hash"] = to_string (hash);
+        Options["Threads"] = to_string (threads);
         Options["Retain Hash"] = "false";
     }
 
     u64  total_nodes = 0;
-    auto start_time = now ();
+    TimePoint start_time = now ();
 
     StateInfo si;
     Position pos;
@@ -177,13 +177,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
             << std::setw (2) << i+1 << "/" << fens.size () << " "
             << std::left << fens[i] << std::endl;
 
-        if (mode == "perft")
-        {
-            u64 leaf_nodes = perft (pos, limits.depth);
-            std::cerr << "\nLeaf nodes: " << leaf_nodes << std::endl;
-            total_nodes += leaf_nodes;
-        }
-        else
+        if (mode != "perft")
         {
             clear ();
             limits.start_time = now ();
@@ -193,9 +187,15 @@ void benchmark (istringstream &is, const Position &cur_pos)
             Threadpool.wait_while_thinking ();
             total_nodes += Threadpool.nodes ();
         }
+        else
+        {
+            auto leaf_nodes = perft (pos, limits.depth);
+            std::cerr << "\nLeaf nodes: " << leaf_nodes << std::endl;
+            total_nodes += leaf_nodes;
+        }
     }
 
-    auto elapsed_time = std::max (now () - start_time, TimePoint(1));
+    auto elapsed_time = TimePoint(std::max (now () - start_time, 1LL));
 
     dbg_print (); // Just before exit
     std::cerr << std::right

@@ -41,7 +41,7 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
         && pos.pseudo_legal (ponder_move)
         && pos.legal (ponder_move))
     {
-        assert(MoveList<LEGAL> (pos).contains (ponder_move));
+        assert(MoveList<GenType::LEGAL> (pos).contains (ponder_move));
         *this += ponder_move;
     }
     pos.undo_move (move);
@@ -75,33 +75,13 @@ namespace {
 
     enum Stage : u08
     {
-        S_NATURAL_TT, S_NATURAL, S_GOOD_CAPTURE, S_QUIET, S_BAD_CAPTURE,
-        S_EVASION_TT, S_EVASION, S_ALL_EVASION,
-        S_PROBCUT_CAPTURE_TT, S_PROBCUT_CAPTURE, S_ALL_PROBCUT_CAPTURE,
-        S_Q_CHECK_TT, S_Q_CHECK, S_Q_CHECK_CAPTURE, S_Q_CHECK_QUIET,
-        S_Q_NO_CHECK_TT, S_Q_NO_CHECK, S_Q_NO_CHECK_CAPTURE,
-        S_Q_RECAPTURE_TT, S_Q_RECAPTURE, S_Q_ALL_RECAPTURE,
+        NATURAL_TT, NATURAL, GOOD_CAPTURE, QUIET, BAD_CAPTURE,
+        EVASION_TT, EVASION, ALL_EVASION,
+        PROBCUT_CAPTURE_TT, PROBCUT_CAPTURE, ALL_PROBCUT_CAPTURE,
+        Q_CHECK_TT, Q_CHECK, Q_CHECK_CAPTURE, Q_CHECK_QUIET,
+        Q_NO_CHECK_TT, Q_NO_CHECK, Q_NO_CHECK_CAPTURE,
+        Q_RECAPTURE_TT, Q_RECAPTURE, Q_ALL_RECAPTURE,
     };
-
-    //// Insertion sort
-    //void insertion_sort (ValMoves &moves)
-    //{
-    //    for (size_t i = 1; i < moves.size (); ++i)
-    //    {
-    //        size_t j = i;
-    //        auto m = moves[j];
-    //        while (   j > 0
-    //               && moves[j-1] < m)
-    //        {
-    //            moves[j] = moves[j-1];
-    //            --j;
-    //        }
-    //        if (i != j)
-    //        {
-    //            moves[j] = m;
-    //        }
-    //    }
-    //}
 }
 
 // MovePicker class constructors. As arguments pass information to help
@@ -124,13 +104,13 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
 
     if (0 == _pos.si->checkers)
     {
-        _stage = S_NATURAL_TT;
+        _stage = Stage::NATURAL_TT;
 
         _killer_moves.assign (_ss->killer_moves, _ss->killer_moves + MaxKillers);
     }
     else
     {
-        _stage = S_EVASION_TT;
+        _stage = Stage::EVASION_TT;
     }
     
     if (MOVE_NONE == _tt_move)
@@ -154,21 +134,21 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
 
     if (0 != _pos.si->checkers)
     {
-        _stage = S_EVASION_TT;
+        _stage = Stage::EVASION_TT;
     }
     else
     if (_depth >= 0)
     {
-        _stage = S_Q_CHECK_TT;
+        _stage = Stage::Q_CHECK_TT;
     }
     else
     if (_depth > -5)
     {
-        _stage = S_Q_NO_CHECK_TT;
+        _stage = Stage::Q_NO_CHECK_TT;
     }
     else
     {
-        _stage = S_Q_RECAPTURE_TT;
+        _stage = Stage::Q_RECAPTURE_TT;
         _recap_sq = dst_sq ((_ss-1)->current_move);
         if (   MOVE_NONE != _tt_move
             && !(   _pos.capture (_tt_move)
@@ -196,7 +176,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
         || (pos.pseudo_legal (ttm)
          && pos.legal (ttm)));
 
-    _stage = S_PROBCUT_CAPTURE_TT;
+    _stage = Stage::PROBCUT_CAPTURE_TT;
 
     // In ProbCut we generate captures with SEE greater than or equal to the given threshold
     if (   MOVE_NONE != _tt_move
@@ -220,7 +200,7 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
 // In the main search push captures with negative SEE values to the bad captures vector,
 // but instead of doing it now we delay until the move has been picked up,
 // saving some SEE calls in case of a cutoff.
-template<> void MovePicker::value<CAPTURE> ()
+template<> void MovePicker::value<GenType::CAPTURE> ()
 {
     for (auto &vm : _moves)
     {
@@ -234,7 +214,7 @@ template<> void MovePicker::value<CAPTURE> ()
             - 200 * rel_rank (_pos.active, dst_sq (vm.move));
     }
 }
-template<> void MovePicker::value<QUIET> ()
+template<> void MovePicker::value<GenType::QUIET> ()
 {
     const auto &history = _pos.thread->history;
 
@@ -255,7 +235,7 @@ template<> void MovePicker::value<QUIET> ()
     }
 }
 // First captures ordered by MVV/LVA, then non-captures ordered by stats heuristics
-template<> void MovePicker::value<EVASION> ()
+template<> void MovePicker::value<GenType::EVASION> ()
 {
     const auto &history = _pos.thread->history;
 
@@ -281,7 +261,7 @@ template<> void MovePicker::value<EVASION> ()
 
 // Finds the best move in the range [beg, end) and moves it to front,
 // it is faster than sorting all the moves in advance when there are few moves (e.g. the possible captures).
-ValMove& MovePicker::pick_best_move (u08 i)
+ValMove& MovePicker::swap_best_move (u08 i)
 {
     auto itr = _moves.begin () + i;
     std::swap (*itr, *std::max_element (itr, _moves.end ()));
@@ -294,19 +274,19 @@ Move MovePicker::next_move (bool skip_quiets)
     switch (_stage)
     {
 
-    case S_NATURAL_TT:
-    case S_EVASION_TT:
-    case S_PROBCUT_CAPTURE_TT:
-    case S_Q_CHECK_TT:
-    case S_Q_NO_CHECK_TT:
-    case S_Q_RECAPTURE_TT:
+    case Stage::NATURAL_TT:
+    case Stage::EVASION_TT:
+    case Stage::PROBCUT_CAPTURE_TT:
+    case Stage::Q_CHECK_TT:
+    case Stage::Q_NO_CHECK_TT:
+    case Stage::Q_RECAPTURE_TT:
         ++_stage;
         return _tt_move;
         break;
 
-    case S_NATURAL:
+    case Stage::NATURAL:
         ++_stage;
-        generate<CAPTURE> (_moves, _pos);
+        generate<GenType::CAPTURE> (_moves, _pos);
         filter_illegal (_moves, _pos);
         if (MOVE_NONE != _tt_move)
         {
@@ -315,13 +295,13 @@ Move MovePicker::next_move (bool skip_quiets)
         _index = 0;
         if (1 < _moves.size ())
         {
-            value<CAPTURE> ();
+            value<GenType::CAPTURE> ();
         }
         /* fallthrough */
-    case S_GOOD_CAPTURE:
+    case Stage::GOOD_CAPTURE:
         while (_index < _moves.size ())
         {
-            auto &vm = pick_best_move (_index++);
+            auto &vm = swap_best_move (_index++);
             if (_pos.see_ge (vm.move))
             {
                 return vm.move;
@@ -330,7 +310,7 @@ Move MovePicker::next_move (bool skip_quiets)
             _capture_moves.push_back (vm.move);
         }
         ++_stage;
-        generate<QUIET> (_moves, _pos);
+        generate<GenType::QUIET> (_moves, _pos);
         filter_illegal (_moves, _pos);
         if (MOVE_NONE != _tt_move)
         {
@@ -339,7 +319,7 @@ Move MovePicker::next_move (bool skip_quiets)
         _index = 0;
         if (1 < _moves.size ())
         {
-            value<QUIET> ();
+            value<GenType::QUIET> ();
         }
         // Killers to top of quiet move
         {
@@ -376,10 +356,10 @@ Move MovePicker::next_move (bool skip_quiets)
             }
         }
         /* fallthrough */
-    case S_QUIET:
+    case Stage::QUIET:
         while (_index < _moves.size ())
         {
-            auto &vm = pick_best_move (_index++);
+            auto &vm = swap_best_move (_index++);
             if (   skip_quiets
                 && vm.value < VALUE_ZERO)
             {
@@ -390,17 +370,17 @@ Move MovePicker::next_move (bool skip_quiets)
         ++_stage;
         _index = 0;
         /* fallthrough */
-    case S_BAD_CAPTURE:
+    case Stage::BAD_CAPTURE:
         while (_index < _capture_moves.size ())
         {
             return _capture_moves[_index++];
         }
         break;
 
-    case S_EVASION:
+    case Stage::EVASION:
         assert(0 != _pos.si->checkers);
         ++_stage;
-        generate<EVASION> (_moves, _pos);
+        generate<GenType::EVASION> (_moves, _pos);
         filter_illegal (_moves, _pos);
         if (MOVE_NONE != _tt_move)
         {
@@ -409,19 +389,19 @@ Move MovePicker::next_move (bool skip_quiets)
         _index = 0;
         if (1 < _moves.size ())
         {
-            value<EVASION> ();
+            value<GenType::EVASION> ();
         }
         /* fallthrough */
-    case S_ALL_EVASION:
+    case Stage::ALL_EVASION:
         while (_index < _moves.size ())
         {
-            return pick_best_move (_index++).move;
+            return swap_best_move (_index++).move;
         }
         break;
 
-    case S_PROBCUT_CAPTURE:
+    case Stage::PROBCUT_CAPTURE:
         ++_stage;
-        generate<CAPTURE> (_moves, _pos);
+        generate<GenType::CAPTURE> (_moves, _pos);
         filter_illegal (_moves, _pos);
         if (MOVE_NONE != _tt_move)
         {
@@ -430,13 +410,13 @@ Move MovePicker::next_move (bool skip_quiets)
         _index = 0;
         if (1 < _moves.size ())
         {
-            value<CAPTURE> ();
+            value<GenType::CAPTURE> ();
         }
         /* fallthrough */
-    case S_ALL_PROBCUT_CAPTURE:
+    case Stage::ALL_PROBCUT_CAPTURE:
         while (_index < _moves.size ())
         {
-            auto &vm = pick_best_move (_index++);
+            auto &vm = swap_best_move (_index++);
             if (_pos.see_ge (vm.move, _threshold))
             {
                 return vm.move;
@@ -444,9 +424,9 @@ Move MovePicker::next_move (bool skip_quiets)
         }
         break;
 
-    case S_Q_CHECK:
+    case Stage::Q_CHECK:
         ++_stage;
-        generate<CAPTURE> (_moves, _pos);
+        generate<GenType::CAPTURE> (_moves, _pos);
         filter_illegal (_moves, _pos);
         if (MOVE_NONE != _tt_move)
         {
@@ -455,16 +435,16 @@ Move MovePicker::next_move (bool skip_quiets)
         _index = 0;
         if (1 < _moves.size ())
         {
-            value<CAPTURE> ();
+            value<GenType::CAPTURE> ();
         }
         /* fallthrough */
-    case S_Q_CHECK_CAPTURE:
+    case Stage::Q_CHECK_CAPTURE:
         while (_index < _moves.size ())
         {
-            return pick_best_move (_index++).move;
+            return swap_best_move (_index++).move;
         }
         ++_stage;
-        generate<QUIET_CHECK> (_moves, _pos);
+        generate<GenType::QUIET_CHECK> (_moves, _pos);
         filter_illegal (_moves, _pos);
         if (MOVE_NONE != _tt_move)
         {
@@ -473,19 +453,19 @@ Move MovePicker::next_move (bool skip_quiets)
         _index = 0;
         if (1 < _moves.size ())
         {
-            value<QUIET> ();
+            value<GenType::QUIET> ();
         }
         /* fallthrough */
-    case S_Q_CHECK_QUIET:
+    case Stage::Q_CHECK_QUIET:
         while (_index < _moves.size ())
         {
-            return pick_best_move (_index++).move;
+            return swap_best_move (_index++).move;
         }
         break;
 
-    case S_Q_NO_CHECK:
+    case Stage::Q_NO_CHECK:
         ++_stage;
-        generate<CAPTURE> (_moves, _pos);
+        generate<GenType::CAPTURE> (_moves, _pos);
         filter_illegal (_moves, _pos);
         if (MOVE_NONE != _tt_move)
         {
@@ -494,19 +474,19 @@ Move MovePicker::next_move (bool skip_quiets)
         _index = 0;
         if (1 < _moves.size ())
         {
-            value<CAPTURE> ();
+            value<GenType::CAPTURE> ();
         }
         /* fallthrough */
-    case S_Q_NO_CHECK_CAPTURE:
+    case Stage::Q_NO_CHECK_CAPTURE:
         while (_index < _moves.size ())
         {
-            return pick_best_move (_index++).move;
+            return swap_best_move (_index++).move;
         }
         break;
 
-    case S_Q_RECAPTURE:
+    case Stage::Q_RECAPTURE:
         ++_stage;
-        generate<CAPTURE> (_moves, _pos);
+        generate<GenType::CAPTURE> (_moves, _pos);
         filter_illegal (_moves, _pos);
         if (MOVE_NONE != _tt_move)
         {
@@ -515,14 +495,14 @@ Move MovePicker::next_move (bool skip_quiets)
         _index = 0;
         if (1 < _moves.size ())
         {
-            value<CAPTURE> ();
+            value<GenType::CAPTURE> ();
         }
         /* fallthrough */
-    case S_Q_ALL_RECAPTURE:
+    case Stage::Q_ALL_RECAPTURE:
         assert(SQ_NO != _recap_sq);
         while (_index < _moves.size ())
         {
-            auto &vm = pick_best_move (_index++);
+            auto &vm = swap_best_move (_index++);
             if (dst_sq (vm.move) == _recap_sq)
             {
                 return vm.move;
@@ -541,27 +521,27 @@ namespace Searcher {
 
     Limit  Limits;
 
-    u16    MultiPV       = 1;
-    //i32    MultiPV_cp    = 0;
+    u16    MultiPV = 1;
+    //i32    MultiPV_cp = 0;
 
     i16    FixedContempt = 0
-        ,  ContemptTime  = 30
+        ,  ContemptTime = 30
         ,  ContemptValue = 50;
 
-    string HashFile     = "Hash.dat";
+    string HashFile = "Hash.dat";
 
-    bool   OwnBook      = false;
-    string BookFile     = "Book.bin";
+    bool   OwnBook = false;
+    string BookFile = "Book.bin";
     bool   BookMoveBest = true;
     i16    BookUptoMove = 20;
 
     i16    TBProbeDepth = 1;
     i32    TBLimitPiece = 6;
-    bool   TBUseRule50  = true;
-    bool   TBHasRoot    = false;
-    Value  TBValue      = VALUE_ZERO;
+    bool   TBUseRule50 = true;
+    bool   TBHasRoot = false;
+    Value  TBValue = VALUE_ZERO;
 
-    string OutputFile   = Empty;
+    string OutputFile = Empty;
 
     namespace {
 
@@ -585,8 +565,8 @@ namespace Searcher {
                                   [std::min (mc, u08(MaxReductionMoveCount-1))];
         }
 
-        Value DrawValue     [CLR_NO]
-            , BaseContempt  [CLR_NO];
+        Value DrawValue[CLR_NO]
+            , BaseContempt[CLR_NO];
 
         ofstream OutputStream;
 
@@ -660,12 +640,12 @@ namespace Searcher {
         // UCI requires that all (if any) unsearched PV lines are sent using a previous search score.
         string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
         {
-            auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), TimePoint(1));
+            auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), 1LL);
             
             const auto &root_moves = th->root_moves;
 
-            auto total_nodes  = Threadpool.nodes ();
-            auto tb_hits      = Threadpool.tb_hits () + (TBHasRoot ? root_moves.size () : 0);
+            auto total_nodes = Threadpool.nodes ();
+            auto tb_hits = Threadpool.tb_hits () + (TBHasRoot ? root_moves.size () : 0);
 
             ostringstream oss;
             u16 i = 0;
@@ -1057,9 +1037,9 @@ namespace Searcher {
             // TT value, so use a different position key in case of an excluded move.
             bool tt_hit = false;
             auto *tte =
-                !exclusion ?
-                    TT.probe (pos.si->posi_key, tt_hit) :
-                    nullptr;
+                exclusion ?
+                    nullptr :
+                    TT.probe (pos.si->posi_key, tt_hit);
             auto tt_move =
                 root_node ?
                     th->root_moves[th->pv_index][0] :
@@ -1136,9 +1116,9 @@ namespace Searcher {
                     ProbeState state;
                     WDLScore wdl = probe_wdl (pos, state);
 
-                    if (PB_FAILURE != state)
+                    if (ProbeState::PB_FAILURE != state)
                     {
-                        th->tb_hits.fetch_add (1, std::memory_order_relaxed);
+                        th->tb_hits.fetch_add (1, std::memory_order::memory_order_relaxed);
 
                         auto draw = TBUseRule50 ? 1 : 0;
 
@@ -1358,9 +1338,9 @@ namespace Searcher {
             }
 
             auto best_value = -VALUE_INFINITE;
-            auto value      = best_value;
+            auto value = -VALUE_INFINITE;
 
-            auto best_move  = MOVE_NONE;
+            auto best_move = MOVE_NONE;
 
             bool singular_ext_node =
                    !root_node
@@ -1398,8 +1378,7 @@ namespace Searcher {
                     && pos.legal (move));
 
                 if (   // Skip exclusion move
-                       (   exclusion
-                        && move == exclude_move)
+                       (move == exclude_move)
                        // At root obey the "searchmoves" option and skip moves not listed in
                        // RootMove list, as a consequence any illegal move is also skipped.
                        // In MultiPV mode also skip PV moves which have been already searched.
@@ -1735,7 +1714,7 @@ namespace Searcher {
             assert(!in_check
                 || 0 != move_count
                 || exclusion
-                || 0 == MoveList<LEGAL> (pos).size ());
+                || 0 == MoveList<GenType::LEGAL> (pos).size ());
 
             // Step 20. Check for checkmate and stalemate.
             // If all possible moves have been searched and if there are no legal moves,
@@ -1813,7 +1792,7 @@ namespace Searcher {
     {
         u64 leaf_nodes = 0;
         i16 move_count = 0;
-        for (const auto &vm : MoveList<LEGAL> (pos))
+        for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {
             u64 cum_nodes;
             if (   RootNode
@@ -1828,7 +1807,7 @@ namespace Searcher {
                 cum_nodes =
                     2 < depth ?
                         perft<false> (pos, depth - 1) :
-                        MoveList<LEGAL> (pos).size ();
+                        MoveList<GenType::LEGAL> (pos).size ();
                 pos.undo_move (vm.move);
             }
 
@@ -1915,21 +1894,21 @@ namespace Threading {
         Stack stacks[MaxPlies + 7]; // To allow referencing (ss-4) and (ss+2)
         for (auto s = stacks; s < stacks + MaxPlies + 7; ++s)
         {
-            s->ply          = i16(s - stacks - 3);
+            s->ply = i16(s - stacks - 3);
             s->current_move = MOVE_NONE;
             std::fill_n (s->killer_moves, MaxKillers, MOVE_NONE);
-            s->static_eval  = VALUE_ZERO;
-            s->statistics   = 0;
-            s->move_count   = 0;
-            s->m_history    = &this->cm_history[NO_PIECE][0];
+            s->static_eval = VALUE_ZERO;
+            s->statistics = 0;
+            s->move_count = 0;
+            s->m_history = &this->cm_history[NO_PIECE][0];
         }
 
         auto *main_thread = Threadpool.main_thread ();
 
         auto best_value = VALUE_ZERO
-           , window     = VALUE_ZERO
-           , alfa       = -VALUE_INFINITE
-           , beta       = +VALUE_INFINITE;
+           , window = VALUE_ZERO
+           , alfa = -VALUE_INFINITE
+           , beta = +VALUE_INFINITE;
 
         // Iterative deepening loop until requested to stop or the target depth is reached.
         while (   ++running_depth < MaxPlies
@@ -2075,7 +2054,7 @@ namespace Threading {
                     && main_thread->skill_mgr.can_pick (running_depth))
                 {
                     main_thread->skill_mgr.clear ();
-                    main_thread->skill_mgr.pick_best_move (Threadpool.pv_limit);
+                    main_thread->skill_mgr.pick_best_move (main_thread->root_moves);
                 }
 
                 if (OutputStream.is_open ())
@@ -2117,7 +2096,7 @@ namespace Threading {
                             stop = true;
                         }
 
-                        if (MoveManager::PVSize <= root_move.size ())
+                        if (3 <= root_move.size ())
                         {
                             main_thread->move_mgr.update (root_pos, root_move);
                         }
@@ -2195,6 +2174,7 @@ namespace Threading {
             // Convert from millisecs to nodes
             Limits.clock[root_pos.active].time = time_mgr.available_nodes;
             Limits.clock[root_pos.active].inc *= NodesTime;
+            Limits.clear_nontime ();
         }
 
         if (Limits.use_time_management ())
@@ -2272,7 +2252,7 @@ namespace Threading {
                 easy_move = move_mgr.easy_move (root_pos.si->posi_key);
                 move_mgr.clear ();
                 easy_played = false;
-                failed_low  = false;
+                failed_low = false;
                 best_move_change = 0.0;
             }
             if (skill_mgr.enabled ())
@@ -2309,8 +2289,15 @@ namespace Threading {
             // Swap best PV line with the sub-optimal one if skill level is enabled
             if (skill_mgr.enabled ())
             {
-                skill_mgr.pick_best_move (Threadpool.pv_limit);
-                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move));
+                skill_mgr.pick_best_move (root_moves);
+                if (MOVE_NONE != skill_mgr.best_move)
+                {
+                    auto itr = std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move);
+                    if (itr != root_moves.end ())
+                    {
+                        std::swap (root_moves[0], *itr);
+                    }
+                }
             }
         }
 
@@ -2373,7 +2360,7 @@ namespace Threading {
             last_value = root_move.new_value;
         }
 
-        auto best_move   = root_move[0];
+        auto best_move = root_move[0];
         auto ponder_move = MOVE_NONE != best_move
                         && (   root_move.size () > 1
                             || root_move.extract_ponder_move_from_tt (root_pos)) ?
@@ -2381,14 +2368,14 @@ namespace Threading {
 
         if (OutputStream.is_open ())
         {
-            auto total_nodes  = Threadpool.nodes ();
-            auto elapsed_time = std::max (time_mgr.elapsed_time (), TimePoint(1));
+            auto total_nodes = Threadpool.nodes ();
+            auto elapsed_time = std::max (time_mgr.elapsed_time (), 1LL);
             OutputStream
-                << "Nodes (N)  : " << total_nodes                         << '\n'
-                << "Time (ms)  : " << elapsed_time                        << '\n'
-                << "Speed (N/s): " << total_nodes * 1000 / elapsed_time   << '\n'
-                << "Hash-full  : " << TT.hash_full ()                     << '\n'
-                << "Best Move  : " << move_to_san (best_move, root_pos)   << '\n';
+                << "Nodes (N)  : " << total_nodes                       << '\n'
+                << "Time (ms)  : " << elapsed_time                      << '\n'
+                << "Speed (N/s): " << total_nodes * 1000 / elapsed_time << '\n'
+                << "Hash-full  : " << TT.hash_full ()                   << '\n'
+                << "Best Move  : " << move_to_san (best_move, root_pos) << '\n';
             if (MOVE_NONE != best_move)
             {
                 StateInfo si;
@@ -2415,7 +2402,7 @@ namespace Threading {
     {
         static TimePoint last_time = now ();
 
-        if (--check_count > 0)
+        if (--check_count >= 0)
         {
             return;
         }
@@ -2423,13 +2410,14 @@ namespace Threading {
         check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
         assert(0 != check_count);
 
-        TimePoint elapsed_time = time_mgr.elapsed_time ();
+        auto elapsed_time = time_mgr.elapsed_time ();
         TimePoint tick = Limits.start_time + elapsed_time;
 
         if (last_time <= tick - 1000)
         {
-            dbg_print ();
             last_time = tick;
+            
+            dbg_print ();
         }
 
         // Do not stop until told so by the GUI.

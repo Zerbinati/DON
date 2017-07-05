@@ -105,7 +105,7 @@ namespace EndGame {
         assert(verify_material (pos, weak_color, VALUE_ZERO, 0));
         // Stalemate detection with lone weak king
         if (   weak_color == pos.active
-            && 0 == MoveList<LEGAL> (pos).size ())
+            && 0 == MoveList<GenType::LEGAL> (pos).size ())
         {
             return VALUE_DRAW;
         }

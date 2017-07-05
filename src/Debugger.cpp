@@ -8,11 +8,11 @@ namespace Debugger {
 
     namespace {
 
-        u64 CondCount   = 0;
-        u64 HitCount    = 0;
+        u64 CondCount = 0;
+        u64 HitCount = 0;
 
-        u64 ItemCount   = 0;
-        i64 ItemSum     = 0;
+        u64 ItemCount = 0;
+        i64 ItemSum = 0;
     }
 
     void dbg_hit_on (bool hit)

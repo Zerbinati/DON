@@ -142,7 +142,7 @@ namespace BitBases {
                 else
                 // Position will be classified later
                 {
-                    result  = UNKNOWN;
+                    result = UNKNOWN;
                 }
             }
 

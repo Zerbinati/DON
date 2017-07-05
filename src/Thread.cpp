@@ -8,8 +8,8 @@
 Threading::ThreadPool Threadpool;
 
 double MoveSlowness = 0.90; // Move Slowness, in %age.
-u32    NodesTime    =    0; // 'Nodes as Time' mode.
-bool   Ponder       = true; // Whether or not the engine should analyze when it is the opponent's turn.
+u32    NodesTime = 0;       // 'Nodes as Time' mode.
+bool   Ponder = true;       // Whether or not the engine should analyze when it is the opponent's turn.
 
 using namespace std;
 using namespace UCI;
@@ -26,12 +26,6 @@ namespace { // Win Processors Group
     // API and returns the best group id for the thread index.
     i32 get_group (size_t index)
     {
-        i32 threads = 0;
-        i32 nodes = 0;
-        i32 cores = 0;
-        DWORD length = 0;
-        DWORD byte_offset = 0;
-
         // Early exit if the needed API is not available at runtime
         HMODULE k32 = GetModuleHandle ("Kernel32.dll");
         if (nullptr == k32)
@@ -42,45 +36,54 @@ namespace { // Win Processors Group
         {
             return -1;
         }
-
+        DWORD length = 0;
         // First call to get length. We expect it to fail due to null buffer
-        if (fun1 (RelationAll, nullptr, &length))
+        if (fun1 (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length))
         {
             return -1;
         }
 
         // Once we know length, allocate the buffer
-        SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *buffer, *ptr;
-        ptr = buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)malloc (length);
+        auto *buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) malloc (length);
+        if (nullptr == buffer)
+        {
+            return -1;
+        }
 
         // Second call, now we expect to succeed
-        if (0 == fun1 (RelationAll, buffer, &length))
+        if (!fun1 (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, buffer, &length))
         {
             free (buffer);
             return -1;
         }
 
+        auto *ptr = buffer;
+        DWORD byte_offset = 0;
+        i32 nodes = 0;
+        i32 cores = 0;
+        i32 threads = 0;
         while (   ptr->Size > 0
-               && byte_offset + ptr->Size <= length)
+               && ptr->Size + byte_offset <= length)
         {
-            if (ptr->Relationship == RelationNumaNode)
+            switch (ptr->Relationship)
             {
-                nodes++;
-            }
-            else
-            if (ptr->Relationship == RelationProcessorCore)
-            {
-                cores++;
+            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
+                ++nodes;
+                break;
+            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
+                ++cores;
                 threads += (ptr->Processor.Flags == LTP_PC_SMT) ? 2 : 1;
+                break;
+            default:
+                break;
             }
 
             byte_offset += ptr->Size;
-            ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) (((char*)ptr) + ptr->Size);
+            ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) ((char*)ptr + ptr->Size);
         }
         free (buffer);
 
         std::vector<i32> groups;
-
         // Run as many threads as possible on the same node until core limit is
         // reached, then move on filling the next node.
         for (i32 n = 0; n < nodes; ++n)
@@ -102,6 +105,7 @@ namespace { // Win Processors Group
         // then return -1 and let the OS to decide what to do.
         return index < groups.size () ? groups[index] : -1;
     }
+
     void bind_thread (size_t index)
     {
         // If OS already scheduled us on a different group than 0 then don't overwrite
@@ -131,7 +135,7 @@ namespace { // Win Processors Group
         }
 
         GROUP_AFFINITY affinity;
-        if (0 != fun2 (USHORT(group), &affinity))
+        if (fun2 (USHORT(group), &affinity))
         {
             fun3 (GetCurrentThread (), &affinity, nullptr);
         }
@@ -140,6 +144,10 @@ namespace { // Win Processors Group
     void bind_thread (size_t index)
     {}
 #endif
+
+    }
+
+namespace {
 
     const u08       MaximumMoveHorizon = 50; // Plan time management at most this many moves ahead, in num of moves.
     const u08       ReadyMoveHorizon   = 40; // Be prepared to always play at least this many moves, in num of moves.
@@ -190,9 +198,9 @@ void TimeManager::initialize (Color c, i16 ply)
         std::max (Limits.clock[c].time, MinimumMoveTime);
 
     const auto MaxMovesToGo =
-        0 != Limits.movestogo ?
-            std::min (Limits.movestogo, MaximumMoveHorizon) :
-            MaximumMoveHorizon;
+        0 == Limits.movestogo ?
+            MaximumMoveHorizon :
+            std::min (Limits.movestogo, MaximumMoveHorizon);
     // Calculate optimum time usage for different hypothetic "moves to go" and choose the
     // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
     for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
@@ -228,30 +236,29 @@ void TimeManager::initialize (Color c, i16 ply)
     }
 }
 
-// When playing with a strength handicap, choose best move among the first 'candidates'
-// RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-void SkillManager::pick_best_move (u16 pv_limit)
+// When playing with a strength handicap, choose best move among a set of RootMoves,
+// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
+void SkillManager::pick_best_move (const RootMoves &root_moves)
 {
-    const auto &root_moves = Threadpool.main_thread ()->root_moves;
     assert(!root_moves.empty ());
     static PRNG prng (now ()); // PRNG sequence should be non-deterministic.
 
     if (MOVE_NONE == best_move)
     {
         // RootMoves are already sorted by value in descending order
-        auto max_value  = root_moves[0].new_value;
-        i32  weakness   = MaxPlies - 8 * level;
-        i32  diversity  = std::min (max_value - root_moves[pv_limit - 1].new_value, VALUE_MG_PAWN);
-        // Choose best move. For each move score add two terms, both dependent on weakness.
-        // One is deterministic with weakness, and one is random with diversity.
-        // Then choose the move with the resulting highest value.
+        auto max_new_value = root_moves[0].new_value;
+        i32  weakness = MaxPlies - 8 * level;
+        i32  diversity = std::min (max_new_value - root_moves[Threadpool.pv_limit - 1].new_value, VALUE_MG_PAWN);
+        // First for each move score add two terms, both dependent on weakness.
+        // One is deterministic with weakness, and one is random with weakness.
+        // Then choose the move with the highest value.
         auto best_value = -VALUE_INFINITE;
-        for (u16 i = 0; i < pv_limit; ++i)
+        for (u16 i = 0; i < Threadpool.pv_limit; ++i)
         {
             auto &root_move = root_moves[i];
             auto value = root_move.new_value
                         // This is magic formula for push
-                       + (  weakness  * i32(max_value - root_move.new_value)
+                       + (  weakness  * i32(max_new_value - root_move.new_value)
                           + diversity * i32(prng.rand<u32> () % weakness)) / MaxPlies;
 
             if (best_value < value)
@@ -331,7 +338,7 @@ namespace Threading {
         u64 nodes = 0;
         for (const auto *th : *this)
         {
-            nodes += th->nodes.load (std::memory_order_relaxed);
+            nodes += th->nodes.load (std::memory_order::memory_order_relaxed);
         }
         return nodes;
     }
@@ -341,7 +348,7 @@ namespace Threading {
         u64 tb_hits = 0;
         for (const auto *th : *this)
         {
-            tb_hits += th->tb_hits.load (std::memory_order_relaxed);
+            tb_hits += th->tb_hits.load (std::memory_order::memory_order_relaxed);
         }
         return tb_hits;
     }
@@ -389,7 +396,7 @@ namespace Threading {
     // and starts a new search, then returns immediately.
     void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits)
     {
-        force_stop     = false;
+        force_stop = false;
         ponderhit_stop = false;
 
         Limits = limits;
@@ -398,9 +405,9 @@ namespace Threading {
         root_moves.initialize (root_pos, limits.search_moves);
 
         TBProbeDepth = i16(i32(Options["SyzygyProbeDepth"]));
-        TBLimitPiece =     i32(Options["SyzygyLimitPiece"]);
-        TBUseRule50  =    bool(Options["SyzygyUseRule50"]);
-        TBHasRoot    = false;
+        TBLimitPiece = i32(Options["SyzygyLimitPiece"]);
+        TBUseRule50 = bool(Options["SyzygyUseRule50"]);
+        TBHasRoot = false;
         // Skip TB probing when no TB found: !MaxLimitPiece -> !TBLimitPiece.
         if (TBLimitPiece > MaxLimitPiece)
         {
@@ -451,9 +458,9 @@ namespace Threading {
             th->root_moves = root_moves;
 
             th->max_ply = 0;
-            th->nodes   = 0;
+            th->nodes = 0;
             th->tb_hits = 0;
-            th->running_depth  = 0;
+            th->running_depth = 0;
             th->finished_depth = 0;
         }
         // Restore si->ptr, cleared by Position::setup().

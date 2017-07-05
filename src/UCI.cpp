@@ -138,14 +138,16 @@ namespace UCI {
 
                 if (token == "moves")
                 {
+                    u16 count = 0;
                     // Parse and validate moves (if any)
                     while (   iss >> token
                            && !iss.fail ())
                     {
+                        ++count;
                         auto m = move_from_can (token, root_pos);
                         if (MOVE_NONE == m)
                         {
-                            std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
+                            std::cerr << "ERROR: Illegal Move '" + token << "' at " << count << std::endl;
                             break;
                         }
                         states.push_back (StateInfo ());
@@ -188,19 +190,19 @@ namespace UCI {
                     if (token == "winc")
                     {
                         iss >> value;
-                        limits.clock[WHITE].inc  = u64(abs (value));
+                        limits.clock[WHITE].inc = u64(abs (value));
                     }
                     else
                     if (token == "binc")
                     {
                         iss >> value;
-                        limits.clock[BLACK].inc  = u64(abs (value));
+                        limits.clock[BLACK].inc = u64(abs (value));
                     }
                     else
                     if (token == "movetime")
                     {
                         iss >> value;
-                        limits.movetime  = u64(abs (value));
+                        limits.movetime = u64(abs (value));
                     }
                     else
                     if (token == "movestogo")
@@ -212,29 +214,29 @@ namespace UCI {
                     if (token == "depth")
                     {
                         iss >> value;
-                        limits.depth     = i16(abs (value));
+                        limits.depth = i16(abs (value));
                     }
                     else
                     if (token == "nodes")
                     {
                         iss >> value;
-                        limits.nodes     = u64(abs (value));
+                        limits.nodes = u64(abs (value));
                     }
                     else
                     if (token == "mate")
                     {
                         iss >> value;
-                        limits.mate      = u08(abs (value));
+                        limits.mate = u08(abs (value));
                     }
                     else
                     if (token == "infinite")
                     {
-                        limits.infinite  = true;
+                        limits.infinite = true;
                     }
                     else
                     if (token == "ponder")
                     {
-                        limits.ponder    = true;
+                        limits.ponder = true;
                     }
                     else
                     // Parse and Validate search-moves (if any)
@@ -246,7 +248,7 @@ namespace UCI {
                             auto m = move_from_can (token, root_pos);
                             if (MOVE_NONE == m)
                             {
-                                std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
+                                std::cerr << "ERROR: Illegal Rootmove '" + token << "'" << std::endl;
                                 continue;
                             }
                             limits.search_moves.push_back (m);
@@ -373,7 +375,7 @@ namespace UCI {
                 {
                     std::cout << "\nEvasion moves: ";
                     count = 0;
-                    for (const auto &vm : MoveList<EVASION> (root_pos))
+                    for (const auto &vm : MoveList<GenType::EVASION> (root_pos))
                     {
                         if (root_pos.legal (vm.move))
                         {
@@ -387,7 +389,7 @@ namespace UCI {
                 {
                     std::cout << "\nQuiet moves: ";
                     count = 0;
-                    for (const auto &vm : MoveList<QUIET> (root_pos))
+                    for (const auto &vm : MoveList<GenType::QUIET> (root_pos))
                     {
                         if (root_pos.legal (vm.move))
                         {
@@ -399,7 +401,7 @@ namespace UCI {
 
                     std::cout << "\nCheck moves: ";
                     count = 0;
-                    for (const auto &vm : MoveList<CHECK> (root_pos))
+                    for (const auto &vm : MoveList<GenType::CHECK> (root_pos))
                     {
                         if (root_pos.legal (vm.move))
                         {
@@ -411,7 +413,7 @@ namespace UCI {
 
                     std::cout << "\nQuiet Check moves: ";
                     count = 0;
-                    for (const auto &vm : MoveList<QUIET_CHECK> (root_pos))
+                    for (const auto &vm : MoveList<GenType::QUIET_CHECK> (root_pos))
                     {
                         if (root_pos.legal (vm.move))
                         {
@@ -423,7 +425,7 @@ namespace UCI {
 
                     std::cout << "\nCapture moves: ";
                     count = 0;
-                    for (const auto &vm : MoveList<CAPTURE> (root_pos))
+                    for (const auto &vm : MoveList<GenType::CAPTURE> (root_pos))
                     {
                         if (root_pos.legal (vm.move))
                         {
@@ -436,7 +438,7 @@ namespace UCI {
 
                 std::cout << "\nLegal moves: ";
                 count = 0;
-                for (const auto &vm : MoveList<LEGAL> (root_pos))
+                for (const auto &vm : MoveList<GenType::LEGAL> (root_pos))
                 {
                     std::cout << move_to_san (vm.move, root_pos) << ' ';
                     ++count;
@@ -460,7 +462,7 @@ namespace UCI {
             {
                 i32    depth;
                 string fen_fn;
-                depth  = (iss >> depth)  && !iss.fail () ? depth  : 1;
+                depth = (iss >> depth) && !iss.fail () ? depth : 1;
                 fen_fn = (iss >> fen_fn) && !iss.fail () ? fen_fn : "";
 
                 istringstream ss(to_string (i32(Options["Hash"]))    + ' '

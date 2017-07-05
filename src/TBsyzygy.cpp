@@ -39,8 +39,8 @@ namespace TBSyzygy {
     using namespace Threading;
     using namespace Searcher;
 
-    string  PathString      = Empty;
-    i32     MaxLimitPiece   = 0;
+    string  PathString = Empty;
+    i32     MaxLimitPiece = 0;
 
     namespace {
 
@@ -63,12 +63,12 @@ namespace TBSyzygy {
         {
             switch (wdl)
             {
-            case WDL_LOSS:          return -1;
-            case WDL_BLESSED_LOSS:  return -101;
-            case WDL_CURSED_WIN:    return +101;
-            case WDL_WIN:           return +1;
-            case WDL_DRAW:
-            default:                return 0;
+            case WDLScore::WDL_LOSS:         return -1;
+            case WDLScore::WDL_BLESSED_LOSS: return -101;
+            case WDLScore::WDL_CURSED_WIN:   return +101;
+            case WDLScore::WDL_WIN:          return +1;
+            case WDLScore::WDL_DRAW:
+            default:                         return 0;
             }
         }
 
@@ -308,7 +308,7 @@ namespace TBSyzygy {
             typedef pair<Key, EntryPair> Entry;
 
             static const i32 TBHASHBITS = 10;
-            static const i32 HSHMAX     = 5;
+            static const i32 HSHMAX = 5;
 
             Entry table[1 << TBHASHBITS][HSHMAX];
 
@@ -615,7 +615,7 @@ namespace TBSyzygy {
             u32 k = u32(idx / d->span);
 
             // Then we read the corresponding SparseIndex[] entry
-            u32 block  = number<u32, LittleEndian> (&d->sparseIndex[k].block);
+            u32 block = number<u32, LittleEndian> (&d->sparseIndex[k].block);
             i32 offset = number<u16, LittleEndian> (&d->sparseIndex[k].offset);
 
             // Now compute the difference idx - I(k). From definition of k we know that
@@ -757,10 +757,10 @@ namespace TBSyzygy {
 
             // DTZ tables store distance to zero in number of moves or plies. We
             // want to return plies, so we have convert to plies when needed.
-            if (   (WDL_WIN  == wdl && 0 == (flags & WIN_PLIES))
-                || (WDL_LOSS == wdl && 0 == (flags & LOSS_PLIES))
-                ||  WDL_CURSED_WIN == wdl
-                ||  WDL_BLESSED_LOSS == wdl)
+            if (   (WDLScore::WDL_WIN  == wdl && 0 == (flags & WIN_PLIES))
+                || (WDLScore::WDL_LOSS == wdl && 0 == (flags & LOSS_PLIES))
+                ||  WDLScore::WDL_CURSED_WIN == wdl
+                ||  WDLScore::WDL_BLESSED_LOSS == wdl)
             {
                 value *= 2;
             }
@@ -842,7 +842,7 @@ namespace TBSyzygy {
             // early exit otherwise.
             if (!IsWDL && !check_dtz_stm (entry, flip ? ~pos.active : pos.active, tbFile))
             {
-                state = PB_CHANGE_STM;
+                state = ProbeState::PB_CHANGE_STM;
                 return T ();
             }
 
@@ -1246,7 +1246,7 @@ namespace TBSyzygy {
 
             data++; // First byte stores flags
 
-            const i32  Sides   = IsWDL && (e.key1 != e.key2) ? 2 : 1;
+            const i32  Sides = IsWDL && (e.key1 != e.key2) ? 2 : 1;
             const File MaxFile = e.has_pawns ? F_D : F_A;
 
             bool pp = e.has_pawns && e.pawn_table.pawn_count[1]; // Pawns on both sides
@@ -1366,16 +1366,16 @@ namespace TBSyzygy {
                     do_init (e, e.piece_table, data);
             }
 
-            e.ready.store (true, memory_order_release);
+            e.ready.store (true, std::memory_order::memory_order_release);
             return e.base_address;
         }
 
         template<typename E, typename T = typename Ret<E>::type>
-        T probe_table (const Position &pos, ProbeState &state, WDLScore wdl = WDL_DRAW)
+        T probe_table (const Position &pos, ProbeState &state, WDLScore wdl = WDLScore::WDL_DRAW)
         {
             if ((pos.pieces () ^ pos.pieces (KING)) == 0)
             {
-                return T(WDL_DRAW); // KvK
+                return T(WDLScore::WDL_DRAW); // KvK
             }
 
             E *entry = EntryTable.get<E> (pos.si->matl_key);
@@ -1383,7 +1383,7 @@ namespace TBSyzygy {
             if (   nullptr == entry
                 || nullptr == init (*entry, pos))
             {
-                return state = PB_FAILURE, T();
+                return state = ProbeState::PB_FAILURE, T();
             }
 
             return do_probe_table (pos, entry, wdl, state);
@@ -1405,11 +1405,11 @@ namespace TBSyzygy {
         template<bool CheckZeroingMoves = false>
         WDLScore search (Position &pos, ProbeState &state)
         {
-            auto move_list = MoveList<LEGAL> (pos);
+            auto move_list = MoveList<GenType::LEGAL> (pos);
             size_t move_count = 0
                 ,  total_count = move_list.size ();
 
-            WDLScore value, best_value = WDL_LOSS;
+            WDLScore value, best_value = WDLScore::WDL_LOSS;
             StateInfo si;
 
             for (const Move &move : move_list)
@@ -1426,18 +1426,18 @@ namespace TBSyzygy {
                 value = -search (pos, state);
                 pos.undo_move (move);
 
-                if (PB_FAILURE == state)
+                if (ProbeState::PB_FAILURE == state)
                 {
-                    return WDL_DRAW;
+                    return WDLScore::WDL_DRAW;
                 }
 
                 if (value > best_value)
                 {
                     best_value = value;
 
-                    if (value >= WDL_WIN)
+                    if (value >= WDLScore::WDL_WIN)
                     {
-                        state = PB_ZEROING_BEST_MOVE; // Winning DTZ-zeroing move
+                        state = ProbeState::PB_ZEROING_BEST_MOVE; // Winning DTZ-zeroing move
                         return value;
                     }
                 }
@@ -1460,22 +1460,22 @@ namespace TBSyzygy {
             {
                 value = probe_table<WDLEntry> (pos, state);
 
-                if (PB_FAILURE == state)
+                if (ProbeState::PB_FAILURE == state)
                 {
-                    return WDL_DRAW;
+                    return WDLScore::WDL_DRAW;
                 }
             }
 
             // DTZ stores a "don't care" value if best_value is a win
             if (best_value >= value)
             {
-                state = best_value > WDL_DRAW
+                state = best_value > WDLScore::WDL_DRAW
                      || no_more_moves ?
-                            PB_ZEROING_BEST_MOVE : PB_SUCCESS;
+                            ProbeState::PB_ZEROING_BEST_MOVE : ProbeState::PB_SUCCESS;
                 return best_value;
             }
             
-            state = PB_SUCCESS;
+            state = ProbeState::PB_SUCCESS;
             return value;
         }
 
@@ -1537,33 +1537,33 @@ namespace TBSyzygy {
     // then do not accept moves leading to dtz + 50-move-counter == 100.
     i32      probe_dtz (Position &pos, ProbeState &state)
     {
-        state = PB_SUCCESS;
+        state = ProbeState::PB_SUCCESS;
         WDLScore wdl = search<true> (pos, state);
 
-        if (   PB_FAILURE == state
-            || WDL_DRAW == wdl) // DTZ tables don't store draws
+        if (   ProbeState::PB_FAILURE == state
+            || WDLScore::WDL_DRAW == wdl) // DTZ tables don't store draws
         {
             return 0;
         }
 
         // DTZ stores a 'don't care' value in this case, or even a plain wrong
         // one as in case the best move is a losing ep, so it cannot be probed.
-        if (PB_ZEROING_BEST_MOVE == state)
+        if (ProbeState::PB_ZEROING_BEST_MOVE == state)
         {
             return dtz_before_zeroing (wdl);
         }
 
         i32 dtz = probe_table<DTZEntry> (pos, state, wdl);
 
-        if (PB_FAILURE == state)
+        if (ProbeState::PB_FAILURE == state)
         {
             return 0;
         }
 
-        if (PB_CHANGE_STM != state)
+        if (ProbeState::PB_CHANGE_STM != state)
         {
-            return (dtz + 100 * (   WDL_BLESSED_LOSS == wdl
-                                 || WDL_CURSED_WIN   == wdl)) * sign (wdl);
+            return (dtz + 100 * (   WDLScore::WDL_BLESSED_LOSS == wdl
+                                 || WDLScore::WDL_CURSED_WIN   == wdl)) * sign (wdl);
         }
 
         // DTZ stores results for the other side, so we need to do a 1-ply search and
@@ -1571,7 +1571,7 @@ namespace TBSyzygy {
         StateInfo si;
         i32 minDTZ = 0xFFFF;
 
-        for (const Move &move : MoveList<LEGAL> (pos))
+        for (const Move &move : MoveList<GenType::LEGAL> (pos))
         {
             bool zeroing = pos.capture (move) || ptype (pos[org_sq (move)]) == PAWN;
 
@@ -1587,7 +1587,7 @@ namespace TBSyzygy {
 
             pos.undo_move (move);
 
-            if (PB_FAILURE == state)
+            if (ProbeState::PB_FAILURE == state)
             {
                 return 0;
             }
@@ -1623,7 +1623,7 @@ namespace TBSyzygy {
     //  2 : win
     WDLScore probe_wdl (Position &pos, ProbeState &state)
     {
-        state = PB_SUCCESS;
+        state = ProbeState::PB_SUCCESS;
         return search (pos, state);
     }
 
@@ -1640,7 +1640,7 @@ namespace TBSyzygy {
         ProbeState state;
         i32 dtz = probe_dtz (root_pos, state);
 
-        if (PB_FAILURE == state)
+        if (ProbeState::PB_FAILURE == state)
         {
             return false;
         }
@@ -1657,7 +1657,7 @@ namespace TBSyzygy {
                 && dtz > 0)
             {
                 ValMoves moves;
-                generate<LEGAL> (moves, root_pos);
+                generate<GenType::LEGAL> (moves, root_pos);
                 if (moves.size () == 0)
                 {
                     v = 1;
@@ -1689,7 +1689,7 @@ namespace TBSyzygy {
 
             root_pos.undo_move (move);
 
-            if (PB_FAILURE == state)
+            if (ProbeState::PB_FAILURE == state)
             {
                 return false;
             }
@@ -1703,19 +1703,19 @@ namespace TBSyzygy {
 
         // Use 50-move counter to determine whether the root position is
         // won, lost or drawn.
-        WDLScore wdl = WDL_DRAW;
+        WDLScore wdl = WDLScore::WDL_DRAW;
         if (dtz > 0)
         {
             wdl = +dtz + cnt50 <= 100 ?
-                WDL_WIN :
-                WDL_CURSED_WIN;
+                WDLScore::WDL_WIN :
+                WDLScore::WDL_CURSED_WIN;
         }
         else
         if (dtz < 0)
         {
             wdl = -dtz + cnt50 <= 100 ?
-                WDL_LOSS :
-                WDL_BLESSED_LOSS;
+                WDLScore::WDL_LOSS :
+                WDLScore::WDL_BLESSED_LOSS;
         }
 
         // Determine the score to report to the user.
@@ -1724,13 +1724,13 @@ namespace TBSyzygy {
         // If the position is winning or losing, but too few moves left, adjust the
         // score to show how close it is to winning or losing.
         // NOTE: i32(PawnValueEg) is used as scaling factor in score_to_uci().
-        if (   WDL_CURSED_WIN == wdl
+        if (   WDLScore::WDL_CURSED_WIN == wdl
             && dtz <= +100)
         {
             value = +Value(((200 - dtz - cnt50) * i32(VALUE_EG_PAWN)) / 200);
         }
         else
-        if (   WDL_BLESSED_LOSS == wdl
+        if (   WDLScore::WDL_BLESSED_LOSS == wdl
             && dtz >= -100)
         {
             value = -Value(((200 + dtz - cnt50) * i32(VALUE_EG_PAWN)) / 200);
@@ -1827,7 +1827,7 @@ namespace TBSyzygy {
 
         WDLScore wdl = probe_wdl (root_pos, state);
 
-        if (PB_FAILURE == state)
+        if (ProbeState::PB_FAILURE == state)
         {
             return false;
         }
@@ -1836,7 +1836,7 @@ namespace TBSyzygy {
 
         StateInfo si;
 
-        i32 best = WDL_LOSS;
+        i32 best = WDLScore::WDL_LOSS;
 
         // Probe each move
         for (size_t i = 0; i < root_moves.size (); ++i)
@@ -1846,7 +1846,7 @@ namespace TBSyzygy {
             WDLScore v = -probe_wdl (root_pos, state);
             root_pos.undo_move (move);
 
-            if (PB_FAILURE == state)
+            if (ProbeState::PB_FAILURE == state)
             {
                 return false;
             }

@@ -16,7 +16,7 @@ using namespace TBSyzygy;
 using namespace Threading;
 using namespace Transposition;
 
-bool Position::Chess960     = false;
+bool Position::Chess960 = false;
 u08  Position::DrawClockPly = 100;
 
 // Checks whether position is drawn by: Clock Ply Rule, Repetition.
@@ -27,7 +27,7 @@ bool Position::draw (i16 pp) const
     // Not in check or in check have legal moves 
     if (   si->clock_ply >= DrawClockPly
         && (   0 == si->checkers
-            || 0 != MoveList<LEGAL> (*this).size ()))
+            || 0 != MoveList<GenType::LEGAL> (*this).size ()))
     {
         return true;
     }
@@ -506,7 +506,7 @@ bool Position::gives_check (Move m) const
         auto ek_sq = square<KING> (~active);
         auto king_org = org;
         auto rook_org = dst; // 'King captures the rook' notation
-        dst           = rel_sq (active, rook_org > king_org ? SQ_G1 : SQ_C1);
+        /*change*/dst = rel_sq (active, rook_org > king_org ? SQ_G1 : SQ_C1);
         auto rook_dst = rel_sq (active, rook_org > king_org ? SQ_F1 : SQ_D1);
         // First x-ray check then full check
         return contains (PieceAttacks[ROOK][rook_dst]                                   , ek_sq)
@@ -787,7 +787,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
 
     // 5-6. Clock ply and Game move count.
     i16   clock_ply = 0
-        , moves   = 1;
+        , moves = 1;
     if (full)
     {
         iss >> std::skipws
@@ -852,7 +852,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     assert(_ok (m));
     assert(&nsi != si);
 
-    thread->nodes.fetch_add (1, std::memory_order_relaxed);
+    thread->nodes.fetch_add (1, std::memory_order::memory_order_relaxed);
     // Copy some fields of old state info to new state info object.
     std::memcpy (&nsi, si, offsetof(StateInfo, capture));
     nsi.ptr = si;
@@ -862,7 +862,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-    auto mt  = mtype (m);
+    auto mt = mtype (m);
     assert(contains (pieces (active), org)
         && (!contains (pieces (active), dst)
          || CASTLE == mt));

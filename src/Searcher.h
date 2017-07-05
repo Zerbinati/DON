@@ -43,14 +43,20 @@ public:
         clock[BLACK].time = 0;
         clock[WHITE].inc = 0;
         clock[BLACK].inc = 0;
-        movetime  = 0;
         movestogo = 0;
-        depth     = 0;
-        nodes     = 0;
-        mate      = 0;
-        infinite  = false;
-        ponder    = false;
+        ponder = false;
+        clear_nontime ();
     }
+
+    void clear_nontime ()
+    {
+        movetime = 0;
+        depth = 0;
+        nodes = 0;
+        mate = 0;
+        infinite = false;
+    }
+
     bool use_time_management () const
     {
         return !infinite
@@ -182,7 +188,7 @@ public:
     void initialize (const Position &pos, const Moves &moves)
     {
         clear ();
-        for (const auto &vm : MoveGen::MoveList<LEGAL> (pos))
+        for (const auto &vm : MoveGen::MoveList<GenType::LEGAL> (pos))
         {
             if (   moves.empty ()
                 || std::find (moves.begin (), moves.end (), vm.move) != moves.end ())
@@ -242,7 +248,7 @@ private:
     template<GenType GT>
     void value ();
 
-    ValMove& pick_best_move (u08 i);
+    ValMove& swap_best_move (u08 i);
 
 public:
     MovePicker () = delete;

@@ -12,8 +12,8 @@ namespace TBSyzygy {
         WDL_LOSS         = -2, // Loss
         WDL_BLESSED_LOSS = -1, // Loss, but draw under 50-move rule
         WDL_DRAW         =  0, // Draw
-        WDL_CURSED_WIN   =  1, // Win, but draw under 50-move rule
-        WDL_WIN          =  2, // Win
+        WDL_CURSED_WIN   = +1, // Win, but draw under 50-move rule
+        WDL_WIN          = +2, // Win
     };
     inline WDLScore operator-(WDLScore d) { return WDLScore(-i32(d)); }
 
@@ -22,8 +22,8 @@ namespace TBSyzygy {
     {
         PB_CHANGE_STM        = -1, // DTZ should check the other side
         PB_FAILURE           =  0, // Probe failure (missing file table)
-        PB_SUCCESS           =  1, // Probe success
-        PB_ZEROING_BEST_MOVE =  2  // Best move zeroes DTZ (capture or pawn move)
+        PB_SUCCESS           = +1, // Probe success
+        PB_ZEROING_BEST_MOVE = +2  // Best move zeroes DTZ (capture or pawn move)
     };
 
     extern std::string  PathString;
@@ -43,19 +43,19 @@ namespace TBSyzygy {
     {
         switch (wdl)
         {
-        case WDL_LOSS:
+        case WDLScore::WDL_LOSS:
             os << "Loss";
             break;
-        case WDL_BLESSED_LOSS:
+        case WDLScore::WDL_BLESSED_LOSS:
             os << "Blessed Loss";
             break;
-        case WDL_DRAW:
+        case WDLScore::WDL_DRAW:
             os << "Draw";
             break;
-        case WDL_CURSED_WIN:
+        case WDLScore::WDL_CURSED_WIN:
             os << "Cursed win";
             break;
-        case WDL_WIN:
+        case WDLScore::WDL_WIN:
             os << "Win";
             break;
         default:
@@ -71,16 +71,16 @@ namespace TBSyzygy {
     {
         switch (ps)
         {
-        case PB_CHANGE_STM:
+        case ProbeState::PB_CHANGE_STM:
             os << "Probed opponent side";
             break;
-        case PB_FAILURE:
+        case ProbeState::PB_FAILURE:
             os << "Failure";
             break;
-        case PB_SUCCESS:
+        case ProbeState::PB_SUCCESS:
             os << "Success";
             break;
-        case PB_ZEROING_BEST_MOVE:
+        case ProbeState::PB_ZEROING_BEST_MOVE:
             os << "Best move zeroes DTZ";
             break;
         default:

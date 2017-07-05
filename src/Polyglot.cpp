@@ -292,7 +292,7 @@ namespace Polyglot {
                 promote (move, pt);
             }
             // Add special move flags and verify it is legal
-            for (const auto &vm : MoveList<LEGAL> (pos))
+            for (const auto &vm : MoveList<GenType::LEGAL> (pos))
             {
                 if ((vm.move & ~PROMOTE) == move)
                 {

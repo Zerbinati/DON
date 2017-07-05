@@ -6,7 +6,7 @@
 #include "BitBoard.h"
 #include "Engine.h"
 
-Transposition::Table  TT;
+Transposition::Table TT;
 
 namespace Transposition {
 

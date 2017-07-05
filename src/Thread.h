@@ -39,18 +39,15 @@ public:
     TimePoint elapsed_time () const;
 
     void initialize (Color c, i16 ply);
-
 };
 
 // MoveManager class is used to detect a so called 'easy move'.
 // When PV is stable across multiple search iterations engine can fast return the best move.
 class MoveManager
 {
-public:
-    static const u08 PVSize = 3;
 private:
     Key  _posi_key;
-    Move _pv[PVSize];
+    Move _pv[3];
 
 public:
     // Keep track of how many times in a row the 3rd ply remains stable
@@ -62,22 +59,24 @@ public:
 
     Move easy_move (Key posi_key) const
     {
-        return posi_key == _posi_key ?
-            _pv[PVSize-1] :
-            MOVE_NONE;
+        return
+            posi_key == _posi_key ?
+                _pv[2] :
+                MOVE_NONE;
     }
 
     void clear ()
     {
         _posi_key = 0;
-        std::fill_n (_pv, PVSize, MOVE_NONE);
+        std::fill_n (_pv, 3, MOVE_NONE);
         stable_count = 0;
     }
+
     void update (Position &pos, const Moves &pv)
     {
-        assert(pv.size () >= PVSize);
+        assert(pv.size () >= 3);
 
-        if (pv[PVSize-1] == _pv[PVSize-1])
+        if (pv[2] == _pv[2])
         {
             ++stable_count;
         }
@@ -86,17 +85,17 @@ public:
             stable_count = 0;
         }
 
-        if (!std::equal (pv.begin (), pv.begin () + PVSize, _pv))
+        if (!std::equal (pv.begin (), pv.begin () + 3, _pv))
         {
-            std::copy (pv.begin (), pv.begin () + PVSize, _pv);
+            std::copy (pv.begin (), pv.begin () + 3, _pv);
 
             // Update posi key
             u08 ply = 0;
-            StateInfo si[PVSize-1];
+            StateInfo si[2];
             do
             {
                 pos.do_move (pv[ply], si[ply]);
-            } while (PVSize-1 > ++ply);
+            } while (2 > ++ply);
 
             _posi_key = pos.si->posi_key;
             
@@ -129,15 +128,18 @@ public:
     {
         return level < MaxLevel;
     }
+
     bool can_pick (i16 depth) const
     {
         return depth == level + 1;
     }
+    
     void clear ()
     {
         best_move = MOVE_NONE;
     }
-    void pick_best_move (u16 pv_limit);
+    
+    void pick_best_move (const RootMoves &root_moves);
 };
 
 namespace Threading {
@@ -222,7 +224,6 @@ namespace Threading {
             std::unique_lock<Mutex> lk (_mutex);
             _sleep_condition.wait (lk, [&] { return !_searching; });
         }
-
         // Waits on sleep condition until 'condition' turns true.
         void wait_until (const std::atomic<bool> &condition)
         {
@@ -279,11 +280,11 @@ namespace Threading {
         : public std::vector<Thread*>
     {
     public:
-        u16    pv_limit    = 1;
+        u16 pv_limit;
         
         std::atomic<bool>
-                force_stop     { false }  // Stop on request
-            ,   ponderhit_stop { false }; // Stop on ponder-hit
+                force_stop      // Stop on request
+            ,   ponderhit_stop; // Stop on ponder-hit
 
         ThreadPool () = default;
         ThreadPool (const ThreadPool&) = delete;
@@ -335,6 +336,6 @@ inline std::ostream& operator<< (std::ostream &os, const OutputState state)
 #define sync_endl std::endl << OS_UNLOCK
 
 // Global ThreadPool
-extern Threading::ThreadPool  Threadpool;
+extern Threading::ThreadPool Threadpool;
 
 #endif // _THREAD_H_INC_

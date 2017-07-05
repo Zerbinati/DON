@@ -131,7 +131,7 @@ namespace Notation {
         {
             can[4] = char(tolower (can[4])); // Promotion piece in lowercase
         }
-        for (const auto &vm : MoveList<LEGAL> (pos))
+        for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {
             if (can == move_to_can (vm.move))
             {
@@ -146,7 +146,7 @@ namespace Notation {
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
-        assert(MoveList<LEGAL> (pos).contains (m));
+        assert(MoveList<GenType::LEGAL> (pos).contains (m));
 
         string san;
         auto org = org_sq (m);
@@ -202,7 +202,7 @@ namespace Notation {
         {
             StateInfo si;
             pos.do_move (m, si, true);
-            san += (MoveList<LEGAL> (pos).size () != 0 ? "+" : "#");
+            san += (MoveList<GenType::LEGAL> (pos).size () != 0 ? "+" : "#");
             pos.undo_move (m);
         }
 
@@ -212,7 +212,7 @@ namespace Notation {
     // to the corresponding legal move, if any.
     Move move_from_san (const string &san, Position &pos)
     {
-        for (const auto &vm : MoveList<LEGAL> (pos))
+        for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {
             if (san == move_to_san (vm.move, pos))
             {
@@ -232,7 +232,7 @@ namespace Notation {
     //// to the corresponding legal move, if any.
     //Move move_from_lan (const string &lan, Position &pos)
     //{
-    //    for (const auto &vm : MoveList<LEGAL> (pos))
+    //    for (const auto &vm : MoveList<GenType::LEGAL> (pos))
     //    {
     //        if (lan == move_to_lan (vm.move, pos))
     //        {
