@@ -178,29 +178,13 @@ namespace {
 
 TimePoint TimeManager::elapsed_time () const
 {
-    return NodesTime != 0 ?
+    return 0 != NodesTime ?
             Threadpool.nodes () :
             now () - Limits.start_time;
 }
 // Calculates the allowed thinking time out of the time control and current game ply.
 void TimeManager::initialize (Color c, i16 ply)
 {
-    // If we have to play in 'Nodes as Time' mode, then convert from time
-    // to nodes, and use resulting values in time management formulas.
-    // WARNING: Given NodesTime (nodes per millisecond) must be much lower then
-    // the real engine speed to avoid time losses.
-    if (0 != NodesTime)
-    {
-        // Only once at game start
-        if (0 == available_nodes)
-        {
-            available_nodes = NodesTime * Limits.clock[c].time; // Time is in msec
-        }
-        // Convert from millisecs to nodes
-        Limits.clock[c].time = available_nodes;
-        Limits.clock[c].inc *= NodesTime;
-    }
-
     optimum_time =
     maximum_time =
         std::max (Limits.clock[c].time, MinimumMoveTime);

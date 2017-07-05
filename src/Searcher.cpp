@@ -2170,8 +2170,27 @@ namespace Threading {
             }
         }
 
-        // Initialize the time manager before searching.
-        time_mgr.initialize (root_pos.active, root_pos.ply);
+        // If we have to play in 'Nodes as Time' mode, then convert from time
+        // to nodes, and use resulting values in time management formulas.
+        // WARNING: Given NodesTime (nodes per millisecond) must be much lower then
+        // the real engine speed to avoid time losses.
+        if (0 != NodesTime)
+        {
+            // Only once at game start
+            if (0 == time_mgr.available_nodes)
+            {
+                time_mgr.available_nodes = NodesTime * Limits.clock[root_pos.active].time; // Time is in msec
+            }
+            // Convert from millisecs to nodes
+            Limits.clock[root_pos.active].time = time_mgr.available_nodes;
+            Limits.clock[root_pos.active].inc *= NodesTime;
+        }
+
+        if (Limits.use_time_management ())
+        {
+            // Initialize the time manager before searching.
+            time_mgr.initialize (root_pos.active, root_pos.ply);
+        }
 
         Transposition::Entry::Generation = u08(((root_pos.ply + 1) << 2) & 0xFC);
 
@@ -2285,7 +2304,7 @@ namespace Threading {
         }
 
     finish:
-        
+
         // When playing in 'Nodes as Time' mode, update the time manager after searching
         // by subtracting the nodes from the available ones.
         if (0 != NodesTime)

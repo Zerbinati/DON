@@ -1028,7 +1028,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     si->set_check_info (*this);
     ++ply;
-    
+
     assert(ok ());
 }
 // Undo the last natural-move.
