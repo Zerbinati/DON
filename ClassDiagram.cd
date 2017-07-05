@@ -119,7 +119,7 @@
   <Class Name="Threading::Thread">
     <Position X="6.5" Y="4" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAECCgCQIAAAAigEQCCABIBAAAAASAACBgAAABqwA=</HashCode>
+      <HashCode>AEAAECCgCQIAAAAggEACCABIBAAAAASAACBgAAABqwA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -130,21 +130,16 @@
   <Class Name="Threading::MainThread">
     <Position X="6.5" Y="10" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAgAAAAAAA=</HashCode>
+      <HashCode>gAAAAAACEAAAAAACgAAAAAAACQhAAAAAACEgAQAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Threading::ThreadPool">
     <Position X="14.25" Y="5.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEABAAAGUAAAACAAAAEAAAACSQhAAAAAAAEhAwAAIQA=</HashCode>
+      <HashCode>AEABAAAGQAAAACAAAAEAAAACQAAAAAAABAAhAgAAIQA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
-    <ShowAsAssociation>
-      <Field Name="time_mgr" />
-      <Field Name="move_mgr" />
-      <Field Name="skill_mgr" />
-    </ShowAsAssociation>
   </Class>
   <Class Name="RootMove">
     <Position X="12" Y="6.5" Width="1.5" />
@@ -181,7 +176,7 @@
   <Class Name="TimeManager">
     <Position X="16.75" Y="6.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>ABAAAAAAAAIAAAAIAAEAAgAAAAAAAAAAAAAwAAAEAAA=</HashCode>
+      <HashCode>ABAAAAAAAAIAAAAIAAEAAgAAAAAAAAAAAAAwAAAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -195,7 +190,7 @@
   <Class Name="SkillManager" Collapsed="true">
     <Position X="16.75" Y="5.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAAAgAAEAAAAAAACAAoAAoAAIAAAEAAAgAAAAAAA=</HashCode>
+      <HashCode>AECAAAAAAAAAAAAAAACAAAAAoAEAAAAEAAAgAAAAAEA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -214,7 +209,7 @@
   <Class Name="Evaluator::`anonymous-namespace'::Evaluation&lt;Trace&gt;">
     <Position X="26.5" Y="10.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>SAgAwAAAAQAAAAQAARlAAAAAEIAAAGAAAQAiEAQAIAA=</HashCode>
+      <HashCode>SQgAyAAAQQQAEQQQAR1AAAgMEIAAAGIBQSgjEE8QZAI=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -253,7 +248,7 @@
       </Path>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAEAAQAEAAAIAAgAIQAAAAAhAAQCEEAAAAgAAAAAIAI=</HashCode>
+      <HashCode>AAEAAQAEAAAIAAgQIQAAAAAhAAQCEEAAAAgAAAAAIAI=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -331,7 +326,7 @@
       </MemberNameLabel>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAQAAAAAAwAICAAAAAAAQCAQAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAQABAAAAwAACAAAAAAAQCAQAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -362,15 +357,8 @@
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
-    <NestedTypes>
-      <Struct Name="Limit::Clock" Collapsed="true">
-        <TypeIdentifier>
-          <NewMemberFileName>src\Searcher.h</NewMemberFileName>
-        </TypeIdentifier>
-      </Struct>
-    </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AgAAAAAAAAAAAAAJAAACEAAAAAAAAAAAAIgCMAAAIAI=</HashCode>
+      <HashCode>AgAAAAAAAAAAAAABAAACEQAAAAAAAAAAAIgCMAAAIAI=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -402,7 +390,7 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="HistoryStats" Collapsed="true">
+  <Struct Name="HistoryStats">
     <Position X="16.25" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
@@ -416,7 +404,7 @@
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="SquareHistoryStats" Collapsed="true">
+  <Struct Name="SquareHistoryStats">
     <Position X="18" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
@@ -699,7 +687,7 @@
   <Enum Name="Value">
     <Position X="12.25" Y="10.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gAAQAgAAQAQgIAgAAQkQEBAAIMDAQAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>gAAQAgAAQAQgIAgAAQEQEBAAIMDAQEAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -762,7 +750,7 @@
   <Enum Name="PhaseType" Collapsed="true">
     <Position X="27.75" Y="6.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAQEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAQEAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>

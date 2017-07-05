@@ -39,11 +39,11 @@ namespace Transposition {
     struct Entry
     {
     private:
-        u16 _key16  ;
-        u16 _move   ;
-        i16 _value  ;
-        i16 _eval   ;
-        i08 _depth  ;
+        u16 _key16;
+        u16 _move;
+        i16 _value;
+        i16 _eval;
+        i08 _depth;
         u08 _gen_bnd;
 
         friend class Table;

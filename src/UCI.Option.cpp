@@ -248,7 +248,7 @@ namespace UCI {
 
         void on_skill_level ()
         {
-            Threadpool.main_thread ()->skill_mgr.change_skill_level (u08(i32(Options["Skill Level"])));
+            Threadpool.main_thread ()->skill_mgr.level = (u08(i32(Options["Skill Level"])));
         }
 
         void on_time_opt ()
@@ -304,16 +304,16 @@ namespace UCI {
         void on_uci_elo ()
         {
             // ELO values corresponded to every Skill Levels
-            const i32 LevelELO[SkillManager::MaxSkillLevel + 1] =
+            const i32 LevelELO[SkillManager::MaxLevel + 1] =
             {
                 1250, 1436, 1622, 1808, 1994, 2180, 2366, 2552, 2738, 2924, 3110, 3296, 3482
             };
 
-            u08 skill_level = SkillManager::MaxSkillLevel;
+            u08 skill_level = SkillManager::MaxLevel;
             if (bool(Options["UCI_LimitStrength"]))
             {
                 i32 elo = i32(Options["UCI_ELO"]);
-                for (u08 level = 0; level < SkillManager::MaxSkillLevel; ++level)
+                for (u08 level = 0; level < SkillManager::MaxLevel; ++level)
                 {
                     if (elo < LevelELO[level + 1])
                     {
@@ -322,7 +322,7 @@ namespace UCI {
                     }
                 }
             }
-            Threadpool.main_thread ()->skill_mgr.change_skill_level (skill_level);
+            Threadpool.main_thread ()->skill_mgr.level = skill_level;
         }
     }
 
@@ -349,7 +349,7 @@ namespace UCI {
 
         Options["Threads"]                      << Option ( 1, 0, 512, on_thread_count);
 
-        Options["Skill Level"]                  << Option (SkillManager::MaxSkillLevel,  0, SkillManager::MaxSkillLevel, on_skill_level);
+        Options["Skill Level"]                  << Option (SkillManager::MaxLevel,  0, SkillManager::MaxLevel, on_skill_level);
 
         Options["MultiPV"]                      << Option (MultiPV, 1, 64, on_multipv);
         //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, 1000, on_multipv);

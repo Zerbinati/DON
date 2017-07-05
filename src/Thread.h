@@ -27,10 +27,10 @@ extern bool   Ponder;
 class TimeManager
 {
 public:
-    TimePoint optimum_time = 0;
-    TimePoint maximum_time = 0;
-
-    u64 available_nodes = 0; // 'Nodes as Time' mode
+    TimePoint optimum_time;
+    TimePoint maximum_time;
+    // Used in 'Nodes as Time' mode
+    u64 available_nodes;
 
     TimeManager () = default;
     TimeManager (const TimeManager&) = delete;
@@ -49,17 +49,14 @@ class MoveManager
 public:
     static const u08 PVSize = 3;
 private:
-    Key  _posi_key = 0;
+    Key  _posi_key;
     Move _pv[PVSize];
 
 public:
     // Keep track of how many times in a row the 3rd ply remains stable
-    u08  stable_count   = 0;
+    u08  stable_count;
 
-    MoveManager ()
-    {
-        clear ();
-    }
+    MoveManager () = default;
     MoveManager (const MoveManager&) = delete;
     MoveManager& operator= (const MoveManager&) = delete;
 
@@ -72,9 +69,9 @@ public:
 
     void clear ()
     {
-        _posi_key    = 0;
-        stable_count = 0;
+        _posi_key = 0;
         std::fill_n (_pv, PVSize, MOVE_NONE);
+        stable_count = 0;
     }
     void update (Position &pos, const Moves &pv)
     {
@@ -93,12 +90,16 @@ public:
         {
             std::copy (pv.begin (), pv.begin () + PVSize, _pv);
 
+            // Update posi key
             u08 ply = 0;
             StateInfo si[PVSize-1];
-            do {
+            do
+            {
                 pos.do_move (pv[ply], si[ply]);
-            } while (++ply < PVSize-1);
+            } while (PVSize-1 > ++ply);
+
             _posi_key = pos.si->posi_key;
+            
             while (0 != ply)
             {
                 pos.undo_move (pv[--ply]);
@@ -111,41 +112,32 @@ public:
 class SkillManager
 {
 public:
-    // MaxSkillLevel should be <= MaxPlies/8
-    static const u08 MaxSkillLevel = 12;
-    static const u16 MinSkillPV    = 4;
+    // MaxLevel should be <= MaxPlies/8
+    static const u08 MaxLevel = 12;
 
-private:
-    u08  _skill_level = MaxSkillLevel;
-    Move _best_move   = MOVE_NONE;
+    u08  level;
+    Move best_move;
 
-public:
-    explicit SkillManager (u08 skill_level = MaxSkillLevel)
-        : _skill_level (skill_level)
-        , _best_move (MOVE_NONE)
+    explicit SkillManager (u08 lvl = MaxLevel)
+        : level (lvl)
+        , best_move (MOVE_NONE)
     {}
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;
 
     bool enabled () const
     {
-        return _skill_level < MaxSkillLevel;
+        return level < MaxLevel;
     }
     bool can_pick (i16 depth) const
     {
-        return depth == _skill_level + 1;
-    }
-
-    void change_skill_level (u08 skill_level)
-    {
-        _skill_level = skill_level;
+        return depth == level + 1;
     }
     void clear ()
     {
-        _best_move = MOVE_NONE;
+        best_move = MOVE_NONE;
     }
-
-    Move pick_best_move (u16 pv_limit);
+    void pick_best_move (u16 pv_limit);
 };
 
 namespace Threading {
@@ -161,23 +153,23 @@ namespace Threading {
         Mutex             _mutex;
         ConditionVariable _sleep_condition;
 
-        bool  _alive     = true
-            , _searching = false;
+        bool  _alive
+            , _searching;
 
     public:
         u16   index
             , pv_index
-            , max_ply  = 0;
+            , max_ply;
 
         Position  root_pos;
         RootMoves root_moves;
 
-        i16   running_depth = 0
-            , finished_depth = 0;
+        i16   running_depth
+            , finished_depth;
 
         std::atomic<u64>
-              nodes = { 0 }
-            , tb_hits = { 0 };
+              nodes
+            , tb_hits;
 
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
@@ -195,6 +187,10 @@ namespace Threading {
 
         void clear ()
         {
+            max_ply = 0;
+            nodes = 0;
+            tb_hits = 0;
+
             pawn_table.clear ();
             matl_table.clear ();
 
@@ -250,14 +246,15 @@ namespace Threading {
         : public Thread
     {
     public:
-        i16   check_count = 0;
-        bool  easy_played = false
-            , failed_low  = false;
+        i16   check_count;
 
-        double best_move_change = 0.0;
+        bool  easy_played
+            , failed_low;
+
+        double best_move_change;
         
-        Move   easy_move   = MOVE_NONE;
-        Value  last_value  = VALUE_NONE;
+        Move  easy_move;
+        Value last_value;
 
         TimeManager  time_mgr;
         MoveManager  move_mgr;

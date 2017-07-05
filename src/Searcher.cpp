@@ -104,7 +104,7 @@ namespace {
     //}
 }
 
-// Constructors of the MovePicker class. As arguments pass information to help
+// MovePicker class constructors. As arguments pass information to help
 // it to return the (presumably) good moves first, to decide which moves to return
 // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
 // and about how important good move ordering is at the current node.
@@ -113,6 +113,10 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
     : _pos (pos)
     , _ss (ss)
     , _tt_move (ttm)
+    , _recap_sq (SQ_NO)
+    , _threshold (VALUE_ZERO)
+    , _depth (0)
+    , _index (0)
 {
     assert(MOVE_NONE == ttm
         || (pos.pseudo_legal (ttm)
@@ -138,7 +142,10 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
     : _pos (pos)
     , _ss (ss)
     , _tt_move (ttm)
+    , _recap_sq (SQ_NO)
+    , _threshold (VALUE_ZERO)
     , _depth (d)
+    , _index (0)
 {
     assert(d <= 0);
     assert(MOVE_NONE == ttm
@@ -177,8 +184,12 @@ MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i
 }
 MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
     : _pos (pos)
+    , _ss (nullptr)
     , _tt_move (ttm)
+    , _recap_sq (SQ_NO)
     , _threshold (thr)
+    , _depth (0)
+    , _index (0)
 {
     assert(0 == pos.si->checkers);
     assert(MOVE_NONE == ttm
@@ -1672,7 +1683,7 @@ namespace Searcher {
                             && Limits.use_time_management ()
                             && Threadpool.main_thread () == th)
                         {
-                            Threadpool.main_thread ()->best_move_change++;
+                            ++Threadpool.main_thread ()->best_move_change;
                         }
                     }
                     else
@@ -2148,6 +2159,8 @@ namespace Threading {
         assert(Threadpool.main_thread () == this
             && index == 0);
 
+        check_count = 0;
+
         if (!white_spaces (OutputFile))
         {
             OutputStream.open (OutputFile, ios_base::out|ios_base::app);
@@ -2170,16 +2183,14 @@ namespace Threading {
             }
         }
 
-        // If we have to play in 'Nodes as Time' mode, then convert from time
-        // to nodes, and use resulting values in time management formulas.
-        // WARNING: Given NodesTime (nodes per millisecond) must be much lower then
-        // the real engine speed to avoid time losses.
+        // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
+        // WARNING: Given NodesTime (nodes per millisecond) must be much lower then the real engine speed to avoid time losses.
         if (0 != NodesTime)
         {
             // Only once at game start
             if (0 == time_mgr.available_nodes)
             {
-                time_mgr.available_nodes = NodesTime * Limits.clock[root_pos.active].time; // Time is in msec
+                time_mgr.available_nodes = NodesTime * Limits.clock[root_pos.active].time;
             }
             // Convert from millisecs to nodes
             Limits.clock[root_pos.active].time = time_mgr.available_nodes;
@@ -2262,7 +2273,7 @@ namespace Threading {
                 move_mgr.clear ();
                 easy_played = false;
                 failed_low  = false;
-                best_move_change = 0.000;
+                best_move_change = 0.0;
             }
             if (skill_mgr.enabled ())
             {
@@ -2272,8 +2283,7 @@ namespace Threading {
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            Threadpool.pv_limit = std::min (std::max (MultiPV, skill_mgr.enabled () ? SkillManager::MinSkillPV : u16(0))
-                                          , u16(root_moves.size ()));
+            Threadpool.pv_limit = std::min (std::max (MultiPV, u16(skill_mgr.enabled () ? 4 : 1)), u16(root_moves.size ()));
 
             voting = true;
 
@@ -2299,14 +2309,14 @@ namespace Threading {
             // Swap best PV line with the sub-optimal one if skill level is enabled
             if (skill_mgr.enabled ())
             {
-                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), skill_mgr.pick_best_move (Threadpool.pv_limit)));
+                skill_mgr.pick_best_move (Threadpool.pv_limit);
+                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move));
             }
         }
 
     finish:
 
-        // When playing in 'Nodes as Time' mode, update the time manager after searching
-        // by subtracting the nodes from the available ones.
+        // When playing in 'Nodes as Time' mode, update the time manager after searching.
         if (0 != NodesTime)
         {
             time_mgr.available_nodes += Limits.clock[root_pos.active].inc - Threadpool.nodes ();
@@ -2403,6 +2413,8 @@ namespace Threading {
     // Used to detect when out of available limits and thus stop the search, also print debug info.
     void MainThread::check_limits ()
     {
+        static TimePoint last_time = now ();
+
         if (--check_count > 0)
         {
             return;
@@ -2411,12 +2423,13 @@ namespace Threading {
         check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
         assert(0 != check_count);
 
-        auto elapsed_time = time_mgr.elapsed_time ();
+        TimePoint elapsed_time = time_mgr.elapsed_time ();
+        TimePoint tick = Limits.start_time + elapsed_time;
 
-        if (elapsed_time - Limits.elapsed_time >= 1000)
+        if (last_time <= tick - 1000)
         {
-            Limits.elapsed_time = elapsed_time;
             dbg_print ();
+            last_time = tick;
         }
 
         // Do not stop until told so by the GUI.

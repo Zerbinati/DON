@@ -187,7 +187,6 @@ void benchmark (istringstream &is, const Position &cur_pos)
         {
             clear ();
             limits.start_time = now ();
-            limits.elapsed_time = 0;
             StateList states;
             states.push_back (si);
             Threadpool.start_thinking (pos, states, limits);

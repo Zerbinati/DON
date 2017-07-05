@@ -16,8 +16,8 @@ using namespace UCI;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-namespace {
-    // Win Processors Group
+namespace { // Win Processors Group
+    
     // bind_thread() set the group affinity for the thread index.
     void bind_thread (size_t index);
 
@@ -230,17 +230,17 @@ void TimeManager::initialize (Color c, i16 ply)
 
 // When playing with a strength handicap, choose best move among the first 'candidates'
 // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-Move SkillManager::pick_best_move (u16 pv_limit)
+void SkillManager::pick_best_move (u16 pv_limit)
 {
     const auto &root_moves = Threadpool.main_thread ()->root_moves;
     assert(!root_moves.empty ());
     static PRNG prng (now ()); // PRNG sequence should be non-deterministic.
 
-    if (MOVE_NONE == _best_move)
+    if (MOVE_NONE == best_move)
     {
         // RootMoves are already sorted by value in descending order
         auto max_value  = root_moves[0].new_value;
-        i32  weakness   = MaxPlies - 8 * _skill_level;
+        i32  weakness   = MaxPlies - 8 * level;
         i32  diversity  = std::min (max_value - root_moves[pv_limit - 1].new_value, VALUE_MG_PAWN);
         // Choose best move. For each move score add two terms, both dependent on weakness.
         // One is deterministic with weakness, and one is random with diversity.
@@ -248,30 +248,28 @@ Move SkillManager::pick_best_move (u16 pv_limit)
         auto best_value = -VALUE_INFINITE;
         for (u16 i = 0; i < pv_limit; ++i)
         {
-            auto value = root_moves[i].new_value
+            auto &root_move = root_moves[i];
+            auto value = root_move.new_value
                         // This is magic formula for push
-                       + (  weakness  * i32(max_value - root_moves[i].new_value)
+                       + (  weakness  * i32(max_value - root_move.new_value)
                           + diversity * i32(prng.rand<u32> () % weakness)) / MaxPlies;
 
             if (best_value < value)
             {
                 best_value = value;
-                _best_move = root_moves[i][0];
+                best_move = root_move[0];
             }
         }
     }
-    return _best_move;
 }
 
 namespace Threading {
 
     // Launches the thread and then waits until it goes to sleep in idle_loop().
     Thread::Thread ()
+        : _alive (true)
+        , index (u16(Threadpool.size ()))
     {
-        _alive = true;
-        
-        index = u16(Threadpool.size ());
-        
         clear ();
         std::unique_lock<Mutex> lk (_mutex);
         _searching = true;
@@ -281,8 +279,8 @@ namespace Threading {
     // Waits for thread termination before returning.
     Thread::~Thread ()
     {
-        _alive = false;
         std::unique_lock<Mutex> lk (_mutex);
+        _alive = false;
         _sleep_condition.notify_one ();
         lk.unlock ();
         _native_thread.join ();
@@ -354,8 +352,6 @@ namespace Threading {
         {
             th->clear ();
         }
-
-        Threadpool.main_thread ()->check_count = 0;
 
         if (Limits.use_time_management ())
         {

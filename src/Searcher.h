@@ -22,21 +22,35 @@ public:
     // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds.
     struct Clock
     {
-        TimePoint time  = 0; // Remaining Time [milli-seconds]
-        TimePoint inc   = 0; // Increment Time [milli-seconds]
-    }         clock[CLR_NO]; // Search with Clock
-    TimePoint movetime  = 0; // Search <x> exact time in milli-seconds
-    u08   movestogo = 0;     // Search <x> moves to the next time control
-    i16   depth     = 0;     // Search <x> depth (plies) only
-    u64   nodes     = 0;     // Search <x> nodes only
-    u08   mate      = 0;     // Search mate in <x> moves
-    bool  infinite  = false; // Search until the "stop" command
-    bool  ponder    = false; // Search on ponder move until the "stop" command
-    Moves search_moves;     // Restrict search to these root moves only
+        TimePoint time; // Remaining Time [milli-seconds]
+        TimePoint inc;  // Increment Time [milli-seconds]
+    } clock[CLR_NO];    // Search with Clock
+    TimePoint movetime; // Search <x> exact time in milli-seconds
+    u08   movestogo;    // Search <x> moves to the next time control
+    i16   depth;        // Search <x> depth (plies) only
+    u64   nodes;        // Search <x> nodes only
+    u08   mate;         // Search mate in <x> moves
+    bool  infinite;     // Search until the "stop" command
+    bool  ponder;       // Search on ponder move until the "stop" command
+    
+    Moves search_moves; // Restrict search to these root moves only
 
-    TimePoint start_time = 0;
-    TimePoint elapsed_time = 0;
+    TimePoint start_time;
 
+    Limit ()
+    {
+        clock[WHITE].time = 0;
+        clock[BLACK].time = 0;
+        clock[WHITE].inc = 0;
+        clock[BLACK].inc = 0;
+        movetime  = 0;
+        movestogo = 0;
+        depth     = 0;
+        nodes     = 0;
+        mate      = 0;
+        infinite  = false;
+        ponder    = false;
+    }
     bool use_time_management () const
     {
         return !infinite
@@ -109,7 +123,7 @@ typedef BoardStats<MAX_PIECE, SQ_NO, Move> SquareMoveBoardStats;
 // At an ALL node all the children have to be explored. The successors of an ALL node are CUT nodes
 // NonPV nodes = CUT nodes + ALL nodes
 //
-// RootMove is used for moves at the root of the tree.
+// RootMove class is used for moves at the root of the tree.
 // RootMove stores:
 //  - New/Old values
 //  - PV (really a refutation table in the case of moves which fail low)
@@ -118,11 +132,13 @@ class RootMove
     : public Moves
 {
 public:
-    Value old_value = -VALUE_INFINITE
-        , new_value = -VALUE_INFINITE;
+    Value old_value
+        , new_value;
 
     explicit RootMove (Move m = MOVE_NONE)
         : Moves (1, m)
+        , old_value (-VALUE_INFINITE)
+        , new_value (-VALUE_INFINITE)
     {}
     RootMove& operator= (const RootMove&) = default;
 
@@ -211,18 +227,15 @@ class MovePicker
 {
 private:
     const Position &_pos;
-    const Stack *const _ss = nullptr;
+    const Stack *const _ss;
 
-    Move   _tt_move   = MOVE_NONE;
-    Square _recap_sq  = SQ_NO;
-    Value  _threshold = VALUE_ZERO;
-
-    i16   _depth = 0;
-    u08   _index = 0;
-    u08   _stage = 0;
-
+    Move _tt_move;
+    Square _recap_sq;
+    Value _threshold;
+    i16 _depth;
+    u08 _stage;
+    u08 _index;
     ValMoves _moves;
-
     Moves _killer_moves
         , _capture_moves;
 

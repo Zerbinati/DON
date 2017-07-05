@@ -169,7 +169,6 @@ namespace UCI {
             {
                 Limit limits;
                 limits.start_time = now ();
-                limits.elapsed_time = 0;
                 i64 value;
                 while (   iss >> token
                        && !iss.fail ())
