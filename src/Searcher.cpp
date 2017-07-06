@@ -521,7 +521,7 @@ namespace Searcher {
 
     Limit  Limits;
 
-    u16    MultiPV =        1;
+    u08    MultiPV =        1;
     //i32    MultiPV_cp =     0;
 
     i16    FixedContempt =  0
@@ -648,7 +648,7 @@ namespace Searcher {
             auto tb_hits = Threadpool.tb_hits () + (TBHasRoot ? root_moves.size () : 0);
 
             ostringstream oss;
-            u16 i = 0;
+            u08 i = 0;
             while (true)
             {
                 bool updated = 
@@ -2265,7 +2265,7 @@ namespace Threading {
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            Threadpool.pv_limit = std::min (std::max (MultiPV, u16(skill_mgr.enabled () ? 4 : 1)), u16(root_moves.size ()));
+            Threadpool.pv_limit = std::min (std::max (MultiPV, u08(skill_mgr.enabled () ? 4 : 1)), u08(root_moves.size ()));
 
             for (auto *th : Threadpool)
             {

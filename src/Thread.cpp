@@ -27,11 +27,12 @@ namespace { // Win Processors Group
     i32 get_group (size_t index)
     {
         // Early exit if the needed API is not available at runtime
-        HMODULE k32 = GetModuleHandle ("Kernel32.dll");
-        if (nullptr == k32)
+        auto kernel32 = GetModuleHandle("Kernel32.dll");
+        if (nullptr == kernel32)
         {
+            return -1;
         }
-        auto fun1 = (fun1_t)GetProcAddress (k32, "GetLogicalProcessorInformationEx");
+        auto fun1 = (fun1_t)GetProcAddress (kernel32, "GetLogicalProcessorInformationEx");
         if (nullptr == fun1)
         {
             return -1;
@@ -125,9 +126,13 @@ namespace { // Win Processors Group
             return;
         }
         // Early exit if the needed API are not available at runtime
-        HMODULE k32 = GetModuleHandle ("Kernel32.dll");
-        auto fun2 = (fun2_t) GetProcAddress (k32, "GetNumaNodeProcessorMaskEx");
-        auto fun3 = (fun3_t) GetProcAddress (k32, "SetThreadGroupAffinity");
+        auto kernel32 = GetModuleHandle("Kernel32.dll");
+        if (nullptr == kernel32)
+        {
+            return;
+        }
+        auto fun2 = (fun2_t) GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx");
+        auto fun3 = (fun3_t) GetProcAddress (kernel32, "SetThreadGroupAffinity");
         if (   nullptr == fun2
             || nullptr == fun3)
         {
@@ -137,7 +142,12 @@ namespace { // Win Processors Group
         GROUP_AFFINITY affinity;
         if (fun2 (USHORT(group), &affinity))
         {
-            fun3 (GetCurrentThread (), &affinity, nullptr);
+            auto current_thread = GetCurrentThread ();
+            if (nullptr != current_thread)
+            {
+                PGROUP_AFFINITY ptr = nullptr;
+                fun3 (current_thread, &affinity, ptr);
+            }
         }
     }
 #else
@@ -253,7 +263,7 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
         // One is deterministic with weakness, and one is random with weakness.
         // Then choose the move with the highest value.
         auto best_value = -VALUE_INFINITE;
-        for (u16 i = 0; i < Threadpool.pv_limit; ++i)
+        for (u08 i = 0; i < Threadpool.pv_limit; ++i)
         {
             auto &root_move = root_moves[i];
             auto value = root_move.new_value
@@ -275,7 +285,7 @@ namespace Threading {
     // Launches the thread and then waits until it goes to sleep in idle_loop().
     Thread::Thread ()
         : _alive (true)
-        , index (u16(Threadpool.size ()))
+        , index (u08(Threadpool.size ()))
     {
         clear ();
         searching = true;

@@ -158,9 +158,10 @@ namespace Threading {
         bool  _alive;
 
     public:
-        u16   index
-            , pv_index
-            , max_ply;
+        u08   index
+            , pv_index;
+
+        u16 max_ply;
 
         std::atomic<bool> searching;
 
@@ -274,7 +275,7 @@ namespace Threading {
         : public std::vector<Thread*>
     {
     public:
-        u16 pv_limit;
+        u08 pv_limit;
         
         std::atomic<bool>
                 force_stop      // Stop on request

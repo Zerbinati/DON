@@ -351,7 +351,7 @@ namespace UCI {
 
         Options["Skill Level"]                  << Option (SkillManager::MaxLevel,  0, SkillManager::MaxLevel, on_skill_level);
 
-        Options["MultiPV"]                      << Option (MultiPV, 1, 64, on_multipv);
+        Options["MultiPV"]                      << Option (MultiPV, 1, 255, on_multipv);
         //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, 1000, on_multipv);
 
         Options["Fixed Contempt"]               << Option (FixedContempt, -100, 100, on_contempt_opt);

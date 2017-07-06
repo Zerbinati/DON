@@ -1201,9 +1201,9 @@ void Position::mirror ()
         for (auto &ch : token)
         {
             ch = Chess960 ?
-                    to_char (~to_file (char(tolower (ch))), islower (ch)) :
-                    tolower (ch) == 'k' ? (islower (ch) ? 'q' : 'Q') :
-                    tolower (ch) == 'q' ? (islower (ch) ? 'k' : 'K') : '-';
+                    to_char (~to_file (char(tolower (i32(ch)))), islower (i32(ch))) :
+                    tolower (ch) == 'k' ? (islower (i32(ch)) ? 'q' : 'Q') :
+                    tolower (ch) == 'q' ? (islower (i32(ch)) ? 'k' : 'K') : '-';
         }
     }
     ff += token;
