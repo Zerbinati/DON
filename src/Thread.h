@@ -151,17 +151,18 @@ namespace Threading {
     class Thread
     {
     private:
-        std::thread       _native_thread;
-        Mutex             _mutex;
+        std::thread _native_thread;
+        Mutex _mutex;
         ConditionVariable _sleep_condition;
 
-        bool  _alive
-            , _searching;
+        bool  _alive;
 
     public:
         u16   index
             , pv_index
             , max_ply;
+
+        std::atomic<bool> searching;
 
         Position  root_pos;
         RootMoves root_moves;
@@ -214,21 +215,15 @@ namespace Threading {
             std::unique_lock<Mutex> lk (_mutex);
             if (!resume)
             {
-                _searching = true;
+                searching = true;
             }
             _sleep_condition.notify_one ();
-        }
-        // Waits on sleep condition until not searching.
-        void wait_while_searching ()
-        {
-            std::unique_lock<Mutex> lk (_mutex);
-            _sleep_condition.wait (lk, [&] { return !_searching; });
         }
         // Waits on sleep condition until 'condition' turns true.
         void wait_until (const std::atomic<bool> &condition)
         {
             std::unique_lock<Mutex> lk (_mutex);
-            _sleep_condition.wait (lk, [&] { return bool(condition); });
+            _sleep_condition.wait (lk, [&] { return  bool(condition); });
         }
         // Waits on sleep condition until 'condition' turns false.
         void wait_while (const std::atomic<bool> &condition)
@@ -295,10 +290,40 @@ namespace Threading {
             return static_cast<MainThread*> (at (0));
         }
         
-        Thread* best_thread () const;
+        Thread* best_thread () const
+        {
+            auto *best_th = at (0);
+            for (auto *th : *this)
+            {
+                if (   best_th->finished_depth < th->finished_depth
+                    && best_th->root_moves[0].new_value <= th->root_moves[0].new_value)
+                {
+                    best_th = th;
+                }
+            }
+            return best_th;
+        }
         
-        u64  nodes () const;
-        u64  tb_hits () const;
+        // Returns the total nodes searched.
+        u64 nodes () const
+        {
+            u64 nodes = 0;
+            for (const auto *th : *this)
+            {
+                nodes += th->nodes.load (std::memory_order::memory_order_relaxed);
+            }
+            return nodes;
+        }
+        // Returns the total TB hits.
+        u64 tb_hits () const
+        {
+            u64 tb_hits = 0;
+            for (const auto *th : *this)
+            {
+                tb_hits += th->tb_hits.load (std::memory_order::memory_order_relaxed);
+            }
+            return tb_hits;
+        }
 
         void clear ();
         void configure (u32 threads);

@@ -999,7 +999,7 @@ namespace Searcher {
             if (!root_node)
             {
                 // Step 2. Check for aborted search, immediate draw or maximum ply reached.
-                if (   Threadpool.force_stop.load (memory_order_relaxed)
+                if (   Threadpool.force_stop.load (std::memory_order::memory_order_relaxed)
                     || ss->ply >= MaxPlies
                     || pos.draw (ss->ply))
                 {
@@ -1636,7 +1636,7 @@ namespace Searcher {
                 // Finished searching the move. If a stop or a cutoff occurred,
                 // the return value of the search cannot be trusted,
                 // and return immediately without updating best move, PV and TT.
-                if (Threadpool.force_stop.load (memory_order_relaxed))
+                if (Threadpool.force_stop.load (std::memory_order::memory_order_relaxed))
                 {
                     return VALUE_ZERO;
                 }
@@ -2331,7 +2331,7 @@ namespace Threading {
             {
                 if (th != this)
                 {
-                    th->wait_while_searching ();
+                    th->wait_while (th->searching);
                 }
             }
             // Check if there are deeper thread than main thread.

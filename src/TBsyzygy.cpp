@@ -1332,14 +1332,14 @@ namespace TBSyzygy {
 
             // Avoid a thread reads 'ready' == true while another is still in do_init(),
             // this could happen due to compiler reordering.
-            if (e.ready.load (memory_order_acquire))
+            if (e.ready.load (std::memory_order::memory_order_acquire))
             {
                 return e.base_address;
             }
 
             unique_lock<Mutex> lk (mutex);
 
-            if (e.ready.load (memory_order_relaxed)) // Recheck under lock
+            if (e.ready.load (std::memory_order::memory_order_relaxed)) // Recheck under lock
             {
                 return e.base_address;
             }

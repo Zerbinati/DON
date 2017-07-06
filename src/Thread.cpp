@@ -278,10 +278,9 @@ namespace Threading {
         , index (u16(Threadpool.size ()))
     {
         clear ();
-        std::unique_lock<Mutex> lk (_mutex);
-        _searching = true;
+        searching = true;
         _native_thread = std::thread (&Thread::idle_loop, this);
-        _sleep_condition.wait (lk, [&] { return !_searching; });
+        wait_while (searching);
     }
     // Waits for thread termination before returning.
     Thread::~Thread ()
@@ -301,10 +300,10 @@ namespace Threading {
         {
             std::unique_lock<Mutex> lk (_mutex);
 
-            _searching = false;
+            searching = false;
 
             while (   _alive
-                   && !_searching)
+                   && !searching)
             {
                 _sleep_condition.notify_one (); // Wake up any waiting thread
                 _sleep_condition.wait (lk);
@@ -317,40 +316,6 @@ namespace Threading {
                 search ();
             }
         }
-    }
-
-    Thread* ThreadPool::best_thread () const
-    {
-        auto *best_th = at (0);
-        for (auto *th : *this)
-        {
-            if (   best_th->finished_depth < th->finished_depth
-                && best_th->root_moves[0].new_value <= th->root_moves[0].new_value)
-            {
-                best_th = th;
-            }
-        }
-        return best_th;
-    }
-    // Returns the total game nodes searched.
-    u64 ThreadPool::nodes () const
-    {
-        u64 nodes = 0;
-        for (const auto *th : *this)
-        {
-            nodes += th->nodes.load (std::memory_order::memory_order_relaxed);
-        }
-        return nodes;
-    }
-    // Returns the total TB hits.
-    u64 ThreadPool::tb_hits () const
-    {
-        u64 tb_hits = 0;
-        for (const auto *th : *this)
-        {
-            tb_hits += th->tb_hits.load (std::memory_order::memory_order_relaxed);
-        }
-        return tb_hits;
     }
 
     void ThreadPool::clear ()
@@ -471,7 +436,7 @@ namespace Threading {
     // Waits for the main thread while searching.
     void ThreadPool::wait_while_thinking ()
     {
-        main_thread ()->wait_while_searching ();
+        main_thread ()->wait_while (main_thread ()->searching);
     }
 
     // Creates and launches requested threads, that will go immediately to sleep.
