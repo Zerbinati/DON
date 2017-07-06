@@ -11,11 +11,11 @@ namespace Zobrists {
     Key Zobrist::compute_matl_key (const Position &pos) const
     {
         Key matl_key = 0;
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (u08 c = WHITE; c <= BLACK; ++c)
         {
-            for (auto pt = PAWN; pt <= KING; ++pt)
+            for (u08 pt = PAWN; pt <= KING; ++pt)
             {
-                for (auto pc = 0; pc < pos.count (c, pt); ++pc)
+                for (i32 pc = 0; pc < pos.count (Color(c), PieceType(pt)); ++pc)
                 {
                     matl_key ^= piece_square_keys[c][pt][pc];
                 }
@@ -27,9 +27,9 @@ namespace Zobrists {
     Key Zobrist::compute_pawn_key (const Position &pos) const
     {
         Key pawn_key = no_pawn_key;
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (u08 c = WHITE; c <= BLACK; ++c)
         {
-            for (auto s : pos.squares[c][PAWN])
+            for (u08 s : pos.squares[c][PAWN])
             {
                 pawn_key ^= piece_square_keys[c][PAWN][s];
             }
@@ -40,11 +40,11 @@ namespace Zobrists {
     Key Zobrist::compute_posi_key (const Position &pos) const
     {
         Key posi_key = 0;
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (u08 c = WHITE; c <= BLACK; ++c)
         {
-            for (auto pt = PAWN; pt <= KING; ++pt)
+            for (u08 pt = PAWN; pt <= KING; ++pt)
             {
-                for (auto s : pos.squares[c][pt])
+                for (u08 s : pos.squares[c][pt])
                 {
                     posi_key ^= piece_square_keys[c][pt][s];
                 }
@@ -163,24 +163,24 @@ namespace Zobrists {
         static PRNG prng (0x105524);
 
         // Initialize Random Zobrist
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (u08 c = WHITE; c <= BLACK; ++c)
         {
-            for (auto pt = PAWN; pt <= KING; ++pt)
+            for (u08 pt = PAWN; pt <= KING; ++pt)
             {
-                for (auto s = SQ_A1; s <= SQ_H8; ++s)
+                for (u08 s = SQ_A1; s <= SQ_H8; ++s)
                 {
                     RandZob.piece_square_keys[c][pt][s] = prng.rand<Key> ();
                 }
             }
         }
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (u08 c = WHITE; c <= BLACK; ++c)
         {
-            for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
+            for (u08 cs = CS_KING; cs <= CS_QUEN; ++cs)
             {
                 RandZob.castle_right_keys[c][cs] = prng.rand<Key> ();
             }
         }
-        for (auto f = F_A; f <= F_H; ++f)
+        for (u08 f = F_A; f <= F_H; ++f)
         {
             RandZob.en_passant_keys[f] = prng.rand<Key> ();
         }

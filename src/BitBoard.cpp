@@ -211,10 +211,10 @@ namespace BitBoard {
         assert((Color_bb[WHITE] & Color_bb[BLACK]) == 0
             && (Color_bb[WHITE] | Color_bb[BLACK]) == (Color_bb[WHITE] ^ Color_bb[BLACK]));
 
-        //for (auto s = SQ_A1; s <= SQ_H8; ++s)
+        //for (u08 s = SQ_A1; s <= SQ_H8; ++s)
         //{
-        //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;
-        //    BSF_Table[bsf_index (Square_bb[s])] = s;
+        //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = Square(s);
+        //    BSF_Table[bsf_index (Square_bb[s])] = Square(s);
         //}
         //for (u32 b = 2; b < (1 << 8); ++b)
         //{
@@ -228,24 +228,24 @@ namespace BitBoard {
         }
     #endif
 
-        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (u08 s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            for (u08 s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
                 if (s1 != s2)
                 {
-                    SquareDist[s1][s2] = u08(std::max (dist<File> (s1, s2), dist<Rank> (s1, s2)));
-                    DistRings_bb[s1][SquareDist[s1][s2] - 1] |= s2;
+                    SquareDist[s1][s2] = u08(std::max (dist<File> (Square(s1), Square(s2)), dist<Rank> (Square(s1), Square(s2))));
+                    DistRings_bb[s1][SquareDist[s1][s2] - 1] |= Square(s2);
                 }
             }
         }
 
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (u08 c = WHITE; c <= BLACK; ++c)
         {
-            for (auto s = SQ_A1; s <= SQ_H8; ++s)
+            for (u08 s = SQ_A1; s <= SQ_H8; ++s)
             {
-                FrontSqrs_bb  [c][s] = FrontRank_bb[c][_rank (s)] &    File_bb[_file (s)];
-                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (s)] & AdjFile_bb[_file (s)];
+                FrontSqrs_bb  [c][s] = FrontRank_bb[c][_rank (Square(s))] &    File_bb[_file (Square(s))];
+                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (Square(s))] & AdjFile_bb[_file (Square(s))];
                 PawnPassSpan  [c][s] = FrontSqrs_bb[c][s] | PawnAttackSpan[c][s];
             }
         }
@@ -255,7 +255,7 @@ namespace BitBoard {
             u08 k;
             Delta del;
 
-            for (auto c = WHITE; c <= BLACK; ++c)
+            for (u08 c = WHITE; c <= BLACK; ++c)
             {
                 k = 0;
                 while (DEL_O != (del = PawnDeltas[c][k++]))

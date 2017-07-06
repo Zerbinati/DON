@@ -1115,7 +1115,7 @@ namespace Searcher {
                     ProbeState state;
                     WDLScore wdl = probe_wdl (pos, state);
 
-                    if (ProbeState::PB_FAILURE != state)
+                    if (ProbeState::FAILURE != state)
                     {
                         th->tb_hits.fetch_add (1, std::memory_order::memory_order_relaxed);
 
@@ -1591,7 +1591,7 @@ namespace Searcher {
                     value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true, true);
 
                     full_depth_search = alfa < value
-                                     && reduce_depth != 0;
+                                     && 0 != reduce_depth;
                 }
                 else
                 {
@@ -1891,15 +1891,15 @@ namespace Threading {
     void Thread::search ()
     {
         Stack stacks[MaxPlies + 7]; // To allow referencing (ss-4) and (ss+2)
-        for (auto s = stacks; s < stacks + MaxPlies + 7; ++s)
+        for (auto ss = stacks; ss < stacks + MaxPlies + 7; ++ss)
         {
-            s->ply = i16(s - stacks - 3);
-            s->current_move = MOVE_NONE;
-            std::fill_n (s->killer_moves, MaxKillers, MOVE_NONE);
-            s->static_eval = VALUE_ZERO;
-            s->statistics = 0;
-            s->move_count = 0;
-            s->m_history = &this->cm_history[NO_PIECE][0];
+            ss->ply = i16(ss - stacks - 3);
+            ss->current_move = MOVE_NONE;
+            std::fill_n (ss->killer_moves, MaxKillers, MOVE_NONE);
+            ss->static_eval = VALUE_ZERO;
+            ss->statistics = 0;
+            ss->move_count = 0;
+            ss->m_history = &cm_history[NO_PIECE][0];
         }
 
         auto *main_thread = Threadpool.main_thread ();

@@ -86,11 +86,11 @@ namespace PieceSquare
     Score compute_psq (const Position &pos)
     {
         auto psq_score = SCORE_ZERO;
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (u08 c = WHITE; c <= BLACK; ++c)
         {
-            for (auto pt = PAWN; pt <= KING; ++pt)
+            for (u08 pt = PAWN; pt <= KING; ++pt)
             {
-                for (auto s : pos.squares[c][pt])
+                for (u08 s : pos.squares[c][pt])
                 {
                     psq_score += PSQ[c][pt][s];
                 }
@@ -104,9 +104,9 @@ namespace PieceSquare
     template<Color Own> Value compute_npm (const Position &pos)
     {
         auto npm_value = VALUE_ZERO;
-        for (auto pt = NIHT; pt <= QUEN; ++pt)
+        for (u08 pt = NIHT; pt <= QUEN; ++pt)
         {
-            npm_value += PieceValues[MG][pt] * pos.count (Own, pt);
+            npm_value += PieceValues[MG][pt] * pos.count (Own, PieceType(pt));
         }
         return npm_value;
     }
@@ -116,7 +116,7 @@ namespace PieceSquare
     // Initialize lookup tables during startup
     void initialize ()
     {
-        for (auto pt = PAWN; pt <= KING; ++pt)
+        for (u08 pt = PAWN; pt <= KING; ++pt)
         {
             auto p_score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
             for (auto s = SQ_A1; s <= SQ_H8; ++s)

@@ -550,23 +550,23 @@ bool Position::gives_check (Move m) const
 // Clear the position.
 void Position::clear ()
 {
-    for (auto s = SQ_A1; s <= SQ_H8; ++s)
+    for (u08 s = SQ_A1; s <= SQ_H8; ++s)
     {
         board[s] = NO_PIECE;
         castle_mask[s] = CR_NONE;
     }
-    for (auto pt = PAWN; pt <= NONE; ++pt)
+    for (u08 pt = PAWN; pt <= NONE; ++pt)
     {
         types_bb[pt] = 0;
     }
-    for (auto c = WHITE; c <= BLACK; ++c)
+    for (u08 c = WHITE; c <= BLACK; ++c)
     {
         color_bb[c] = 0;
-        for (auto pt = PAWN; pt <= KING; ++pt)
+        for (u08 pt = PAWN; pt <= KING; ++pt)
         {
             squares[c][pt].clear ();
         }
-        for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
+        for (u08 cs = CS_KING; cs <= CS_QUEN; ++cs)
         {
             castle_rook[c][cs] = SQ_NO;
             castle_path[c][cs] = 0;

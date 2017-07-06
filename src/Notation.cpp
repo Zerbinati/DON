@@ -13,20 +13,21 @@ namespace Notation {
 
     namespace {
 
-        // Type of the Ambiguity
-        enum AmbiguityType : u08
+        // Ambiguity
+        enum Ambiguity : u08
         {
-            AMB_NONE,
-            AMB_RANK,
-            AMB_FILE,
-            AMB_SQR,
+            NONE,
+            RANK,
+            FILE,
+            SQUARE,
         };
 
         // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
         // NOTE: for pawns it is not needed because 'org' file is explicit.
-        AmbiguityType ambiguity (Move m, const Position &pos)
+        Ambiguity ambiguity (Move m, const Position &pos)
         {
-            assert(pos.legal (m));
+            assert(pos.pseudo_legal (m)
+                && pos.legal (m));
 
             auto org = org_sq (m);
             auto dst = dst_sq (m);
@@ -45,7 +46,7 @@ namespace Notation {
 
             Bitboard amb = (attacks & pos.pieces (pos.active, mpt)) ^ org;
             Bitboard pcs = amb; // & ~pos.abs_blockers (pos.active); // If pinned piece is considered as ambiguous
-            while (pcs != 0)
+            while (0 != pcs)
             {
                 auto sq = pop_lsq (pcs);
                 if (!pos.legal (mk_move<NORMAL> (sq, dst)))
@@ -53,13 +54,13 @@ namespace Notation {
                     amb ^= sq;
                 }
             }
-            if (amb != 0)
+            if (0 != amb)
             {
-                if ((amb & file_bb (org)) == 0) return AMB_RANK;
-                if ((amb & rank_bb (org)) == 0) return AMB_FILE;
-                return AMB_SQR;
+                if (0 == (amb & file_bb (org))) return Ambiguity::RANK;
+                if (0 == (amb & rank_bb (org))) return Ambiguity::FILE;
+                return Ambiguity::SQUARE;
             }
-            return AMB_NONE;
+            return Ambiguity::NONE;
         }
 
         // Value to string
@@ -116,7 +117,7 @@ namespace Notation {
 
         auto can = to_string (org_sq (m))
                  + to_string (fix_dst_sq (m));
-        if (mtype (m) == PROMOTE)
+        if (PROMOTE == mtype (m))
         {
             can += char(tolower (PieceChar[promote (m)]));
         }
@@ -126,10 +127,10 @@ namespace Notation {
     // to the corresponding legal move, if any.
     Move move_from_can (string &can, const Position &pos)
     {
-        if (   can.length () == 5
-            && isupper (can[4]))
+        if (   5 == can.length ()
+            && isupper (i32(can[4])))
         {
-            can[4] = char(tolower (can[4])); // Promotion piece in lowercase
+            can[4] = char(tolower (i32(can[4]))); // Promotion piece in lowercase
         }
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {
@@ -152,31 +153,31 @@ namespace Notation {
         auto org = org_sq (m);
         auto dst = dst_sq (m);
 
-        if (mtype (m) != CASTLE)
+        if (CASTLE != mtype (m))
         {
             auto pt = ptype (pos[org]);
 
-            if (pt != PAWN)
+            if (PAWN != pt)
             {
                 san = PieceChar[pt];
-                if (pt != KING)
+                if (KING != pt)
                 {
                     // Disambiguation if have more then one piece of type 'pt'
                     // that can reach 'dst' with a legal move.
                     switch (ambiguity (m, pos))
                     {
-                    case AMB_NONE:                               break;
-                    case AMB_RANK: san += to_char (_file (org)); break;
-                    case AMB_FILE: san += to_char (_rank (org)); break;
-                    case AMB_SQR:  san += to_string (org);       break;
-                    default:       assert(false);                break;
+                    case Ambiguity::NONE  :                               break;
+                    case Ambiguity::RANK  : san += to_char (_file (org)); break;
+                    case Ambiguity::FILE  : san += to_char (_rank (org)); break;
+                    case Ambiguity::SQUARE: san += to_string (org);       break;
+                    default:                assert(false);                break;
                     }
                 }
             }
 
             if (pos.capture (m))
             {
-                if (pt == PAWN)
+                if (PAWN == pt)
                 {
                     san += to_char (_file (org));
                 }
@@ -185,8 +186,8 @@ namespace Notation {
 
             san += to_string (dst);
 
-            if (   pt == PAWN
-                && mtype (m) == PROMOTE)
+            if (   PAWN == pt
+                && PROMOTE == mtype (m))
             {
                 san += "=";
                 san += PieceChar[promote (m)];
@@ -202,7 +203,7 @@ namespace Notation {
         {
             StateInfo si;
             pos.do_move (m, si, true);
-            san += (MoveList<GenType::LEGAL> (pos).size () != 0 ? "+" : "#");
+            san += (0 != MoveList<GenType::LEGAL> (pos).size () ? "+" : "#");
             pos.undo_move (m);
         }
 
@@ -286,7 +287,7 @@ namespace Notation {
             th->root_pos.do_move (m, states.back ());
             ++ply;
         }
-        while (ply != 0)
+        while (0 != ply)
         {
             th->root_pos.undo_move (root_move[--ply]);
             states.pop_back ();

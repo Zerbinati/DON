@@ -668,7 +668,7 @@ inline void to_upper (std::string &str)
 inline void toggle (std::string &str)
 {
     std::transform (str.begin (), str.end (), str.begin (),
-        [](char c) { return char (islower (c) ? ::toupper (c) : ::tolower (c)); });
+        [](i32 c) { return char (islower (c) ? ::toupper (c) : ::tolower (c)); });
 }
 
 inline std::string& trim_beg (std::string &str)

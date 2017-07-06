@@ -9,21 +9,21 @@ namespace TBSyzygy {
     // WDL Score
     enum WDLScore
     {
-        WDL_LOSS         = -2, // Loss
-        WDL_BLESSED_LOSS = -1, // Loss, but draw under 50-move rule
-        WDL_DRAW         =  0, // Draw
-        WDL_CURSED_WIN   = +1, // Win, but draw under 50-move rule
-        WDL_WIN          = +2, // Win
+        LOSS         = -2, // Loss
+        BLESSED_LOSS = -1, // Loss, but draw under 50-move rule
+        DRAW         =  0, // Draw
+        CURSED_WIN   = +1, // Win, but draw under 50-move rule
+        WIN          = +2, // Win
     };
     inline WDLScore operator-(WDLScore d) { return WDLScore(-i32(d)); }
 
     // Possible states after a probing operation
     enum ProbeState
     {
-        PB_CHANGE_STM        = -1, // DTZ should check the other side
-        PB_FAILURE           =  0, // Probe failure (missing file table)
-        PB_SUCCESS           = +1, // Probe success
-        PB_ZEROING_BEST_MOVE = +2  // Best move zeroes DTZ (capture or pawn move)
+        CHANGE_STM        = -1, // DTZ should check the other side
+        FAILURE           =  0, // Probe failure (missing file table)
+        SUCCESS           = +1, // Probe success
+        ZEROING_BEST_MOVE = +2  // Best move zeroes DTZ (capture or pawn move)
     };
 
     extern std::string  PathString;
@@ -43,19 +43,19 @@ namespace TBSyzygy {
     {
         switch (wdl)
         {
-        case WDLScore::WDL_LOSS:
+        case WDLScore::LOSS:
             os << "Loss";
             break;
-        case WDLScore::WDL_BLESSED_LOSS:
+        case WDLScore::BLESSED_LOSS:
             os << "Blessed Loss";
             break;
-        case WDLScore::WDL_DRAW:
+        case WDLScore::DRAW:
             os << "Draw";
             break;
-        case WDLScore::WDL_CURSED_WIN:
+        case WDLScore::CURSED_WIN:
             os << "Cursed win";
             break;
-        case WDLScore::WDL_WIN:
+        case WDLScore::WIN:
             os << "Win";
             break;
         default:
@@ -71,16 +71,16 @@ namespace TBSyzygy {
     {
         switch (ps)
         {
-        case ProbeState::PB_CHANGE_STM:
+        case ProbeState::CHANGE_STM:
             os << "Probed opponent side";
             break;
-        case ProbeState::PB_FAILURE:
+        case ProbeState::FAILURE:
             os << "Failure";
             break;
-        case ProbeState::PB_SUCCESS:
+        case ProbeState::SUCCESS:
             os << "Success";
             break;
-        case ProbeState::PB_ZEROING_BEST_MOVE:
+        case ProbeState::ZEROING_BEST_MOVE:
             os << "Best move zeroes DTZ";
             break;
         default:

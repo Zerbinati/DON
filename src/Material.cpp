@@ -58,13 +58,13 @@ namespace Material {
             i32 value = PawnsSet[count[Own][PAWN]];
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
-            for (auto pt1 = PAWN; pt1 <= QUEN; ++pt1)
+            for (u08 pt1 = PAWN; pt1 <= QUEN; ++pt1)
             {
                 if (0 != count[Own][pt1])
                 {
                     i32 v = 0;
 
-                    for (auto pt2 = PAWN; pt2 <= pt1; ++pt2)
+                    for (u08 pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
                         v += count[Own][pt2] * OwnQuadratic[pt1][pt2]
                            + count[Opp][pt2] * OppQuadratic[pt1][pt2];

@@ -353,8 +353,6 @@ namespace Threading {
         }
         assert(0 < threads);
 
-        wait_while_thinking ();
-
         while (size () < threads)
         {
             push_back (new Thread);
@@ -390,7 +388,7 @@ namespace Threading {
             TBProbeDepth = 0;
         }
         // Filter root moves.
-        if (   TBLimitPiece != 0
+        if (   0 != TBLimitPiece
             && TBLimitPiece >= root_pos.count<NONE> ()
             && !root_moves.empty ()
             && !root_pos.has_castleright (CR_ANY))
