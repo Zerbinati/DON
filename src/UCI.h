@@ -78,7 +78,10 @@ namespace UCI {
                 const Option &option = pair.second;
                 if (idx == option.index ())
                 {
-                    os << "option name " << pair.first << option << std::endl;
+                    os  << "option name "
+                        << pair.first
+                        << option
+                        << std::endl;
                     break;
                 }
             }

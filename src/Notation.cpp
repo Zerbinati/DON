@@ -79,7 +79,7 @@ namespace Notation {
             return oss.str ();
         }
         // Time to string
-        string pretty_time (TimePoint time)
+        string pretty_time (u64 time)
         {
             const u32 MilliSec       = 1000;
             const u32 MinuteMilliSec = 60*MilliSec;

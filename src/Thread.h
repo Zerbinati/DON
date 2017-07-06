@@ -27,8 +27,8 @@ extern bool   Ponder;
 class TimeManager
 {
 public:
-    TimePoint optimum_time;
-    TimePoint maximum_time;
+    u64 optimum_time;
+    u64 maximum_time;
     // Used in 'Nodes as Time' mode
     u64 available_nodes;
 
@@ -36,7 +36,7 @@ public:
     TimeManager (const TimeManager&) = delete;
     TimeManager& operator= (const TimeManager&) = delete;
 
-    TimePoint elapsed_time () const;
+    u64 elapsed_time () const;
 
     void initialize (Color c, i16 ply);
 };
@@ -164,7 +164,7 @@ namespace Threading {
 
         std::atomic<bool> searching;
 
-        Position  root_pos;
+        Position root_pos;
         RootMoves root_moves;
 
         i16   running_depth
@@ -177,10 +177,9 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        HistoryStats          history;
+        HistoryStats history;
         MoveHistoryBoardStats cm_history;
-
-        SquareMoveBoardStats  counter_moves;
+        SquareMoveBoardStats counter_moves;
 
         Thread ();
         Thread (const Thread&) = delete;

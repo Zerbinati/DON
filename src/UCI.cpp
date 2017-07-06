@@ -85,7 +85,7 @@ namespace UCI {
             if (token == "uci")
             {
                 sync_cout
-                    << info (true) << '\n'
+                    << info (true) << "\n"
                     << Options
                     << "uciok"
                     << sync_endl;
@@ -190,25 +190,25 @@ namespace UCI {
                     if (token == "winc")
                     {
                         iss >> value;
-                        limits.clock[WHITE].inc = u64(abs (value));
+                        limits.clock[WHITE].inc = u32(abs (value));
                     }
                     else
                     if (token == "binc")
                     {
                         iss >> value;
-                        limits.clock[BLACK].inc = u64(abs (value));
-                    }
-                    else
-                    if (token == "movetime")
-                    {
-                        iss >> value;
-                        limits.movetime = u64(abs (value));
+                        limits.clock[BLACK].inc = u32(abs (value));
                     }
                     else
                     if (token == "movestogo")
                     {
                         iss >> value;
                         limits.movestogo = u08(abs (value));
+                    }
+                    else
+                    if (token == "movetime")
+                    {
+                        iss >> value;
+                        limits.movetime = u64(abs (value));
                     }
                     else
                     if (token == "depth")
@@ -339,7 +339,7 @@ namespace UCI {
             //        {
             //            code += string (" ", !white_spaces (code) ? 1 : 0) + token;
             //        }
-            //        //std::cout << name << '\n' << code << std::endl;
+            //        //std::cout << name << "\n" << code << std::endl;
             //    }
             //    else
             //    if (token == "later")
@@ -358,10 +358,10 @@ namespace UCI {
             {
                 sync_cout
                     << std::hex << std::uppercase << std::setfill ('0')
-                    << "FEN: "                        << root_pos.fen ()       << '\n'
-                    << "Posi key: " << std::setw (16) << root_pos.si->posi_key << '\n'
-                    << "Poly key: " << std::setw (16) << root_pos.poly_key ()  << '\n'
-                    << "Matl key: " << std::setw (16) << root_pos.si->matl_key << '\n'
+                    << "FEN: "                        << root_pos.fen ()       << "\n"
+                    << "Posi key: " << std::setw (16) << root_pos.si->posi_key << "\n"
+                    << "Poly key: " << std::setw (16) << root_pos.poly_key ()  << "\n"
+                    << "Matl key: " << std::setw (16) << root_pos.si->matl_key << "\n"
                     << "Pawn key: " << std::setw (16) << root_pos.si->pawn_key
                     << std::setfill (' ') << std::nouppercase << std::dec
                     << sync_endl;

@@ -195,14 +195,16 @@ void benchmark (istringstream &is, const Position &cur_pos)
         }
     }
 
-    auto elapsed_time = TimePoint(std::max (now () - start_time, 1LL));
+    auto elapsed_time = std::max (u64(now () - start_time), 1ULL);
 
     dbg_print (); // Just before exit
-    std::cerr << std::right
+    std::cerr
+        << std::right
         << "\n=================================\n"
-        << "Total time (ms) :" << std::setw (16) << elapsed_time << '\n'
-        << "Nodes searched  :" << std::setw (16) << total_nodes  << '\n'
+        << "Total time (ms) :" << std::setw (16) << elapsed_time << "\n"
+        << "Nodes searched  :" << std::setw (16) << total_nodes  << "\n"
         << "Nodes/second    :" << std::setw (16) << total_nodes * 1000 / elapsed_time
         << "\n---------------------------------\n"    
-        << std::left << std::endl;
+        << std::left
+        << std::endl;
 }

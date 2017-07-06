@@ -1294,10 +1294,10 @@ Position::operator string () const
         oss << "   " << Notation::to_char (f, false);
     }
 
-    oss << '\n'
-        << "FEN: " << fen (true) << '\n'
+    oss << "\n"
+        << "FEN: " << fen (true) << "\n"
         << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
-        << si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << '\n';
+        << si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << "\n";
     oss << "Checkers: ";
     for (Bitboard b = si->checkers; 0 != b; )
     {
@@ -1314,7 +1314,7 @@ Position::operator string () const
         oss << "\nTablebases WDL: " << std::setw (4) << wdl << " (" << wdl_state << ")"
             << "\nTablebases DTZ: " << std::setw (4) << dtz << " (" << dtz_state << ")";
     }
-    oss << '\n';
+    oss << "\n";
     return oss.str ();
 }
 

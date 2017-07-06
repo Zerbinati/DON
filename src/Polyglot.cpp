@@ -340,9 +340,11 @@ namespace Polyglot {
                 for_each (pes.begin (), pes.end (), [&oss, &weight_sum] (Entry e)
                 {
                     oss << e << " prob: "
-                        << std::setfill ('0') << std::fixed << std::width_prec (6, 2)
+                        << std::setfill ('0')
+                        << std::width_prec (6, 2)
                         << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0)
-                        << std::setfill (' ') << std::endl;
+                        << std::setfill (' ')
+                        << std::endl;
                 });
             }
         }

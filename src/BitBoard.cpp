@@ -367,7 +367,7 @@ namespace BitBoard {
             s += " ";
             s += Notation::to_char (f, false);
         }
-        s += '\n';
+        s += "\n";
         return s;
     }
 #endif

@@ -8,8 +8,8 @@
 Threading::ThreadPool Threadpool;
 
 double MoveSlowness = 0.90; // Move Slowness, in %age.
-u32    NodesTime = 0;       // 'Nodes as Time' mode.
-bool   Ponder = true;       // Whether or not the engine should analyze when it is the opponent's turn.
+u32    NodesTime =    0;    // 'Nodes as Time' mode.
+bool   Ponder =       true; // Whether or not the engine should analyze when it is the opponent's turn.
 
 using namespace std;
 using namespace UCI;
@@ -149,11 +149,11 @@ namespace { // Win Processors Group
 
 namespace {
 
-    const u08       MaximumMoveHorizon = 50; // Plan time management at most this many moves ahead, in num of moves.
-    const u08       ReadyMoveHorizon   = 40; // Be prepared to always play at least this many moves, in num of moves.
-    const TimePoint OverheadClockTime  = 60; // Attempt to keep at least this much time at clock, in milliseconds.
-    const TimePoint OverheadMoveTime   = 30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
-    const TimePoint MinimumMoveTime    = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
+    const u08 MaximumMoveHorizon =  50;  // Plan time management at most this many moves ahead, in num of moves.
+    const u08 ReadyMoveHorizon =    40;  // Be prepared to always play at least this many moves, in num of moves.
+    const u32 OverheadClockTime =   60;  // Attempt to keep at least this much time at clock, in milliseconds.
+    const u32 OverheadMoveTime =    30;  // Attempt to keep at least this much time for each remaining move, in milliseconds.
+    const u32 MinimumMoveTime =     20;  // No matter what, use at least this much time before doing the move, in milliseconds.
 
     // Skew-logistic function based on naive statistical analysis of
     // "how many games are still undecided after n half-moves".
@@ -164,11 +164,11 @@ namespace {
         return std::max (std::pow (1.0 + std::exp ((ply - 58.400) / 7.640), -0.183), DBL_MIN); // Ensure non-zero
     }
 
-    template<bool Maximum>
-    TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
+    template<bool Optimum>
+    u64 remaining_time (u64 time, u08 movestogo, i16 ply)
     {
-        const auto  StepRatio = Maximum ? 7.09 : 1.00; // When in trouble, can step over reserved time with this ratio
-        const auto StealRatio = Maximum ? 0.35 : 0.00; // However must not steal time from remaining moves over this ratio
+        const auto  StepRatio = Optimum ? 1.00 : 7.09; // When in trouble, can step over reserved time with this ratio
+        const auto StealRatio = Optimum ? 0.00 : 0.35; // However must not steal time from remaining moves over this ratio
 
         auto move_imp1 = move_importance (ply) * MoveSlowness;
         auto move_imp2 = 0.0;
@@ -180,22 +180,22 @@ namespace {
         auto time_ratio1 = (move_imp1 * StepRatio + move_imp2 * 0.00      ) / (move_imp1 * StepRatio + move_imp2 * 1.00);
         auto time_ratio2 = (move_imp1 * 1.00      + move_imp2 * StealRatio) / (move_imp1 * 1.00      + move_imp2 * 1.00);
 
-        return TimePoint(std::round (time * std::min (time_ratio1, time_ratio2)));
+        return u64(std::round (time * std::min (time_ratio1, time_ratio2)));
     }
 }
 
-TimePoint TimeManager::elapsed_time () const
+u64 TimeManager::elapsed_time () const
 {
     return 0 != NodesTime ?
             Threadpool.nodes () :
-            now () - Limits.start_time;
+            u64(now () - Limits.start_time);
 }
 // Calculates the allowed thinking time out of the time control and current game ply.
 void TimeManager::initialize (Color c, i16 ply)
 {
     optimum_time =
     maximum_time =
-        std::max (Limits.clock[c].time, MinimumMoveTime);
+        std::max (Limits.clock[c].time, u64(MinimumMoveTime));
 
     const auto MaxMovesToGo =
         0 == Limits.movestogo ?
@@ -210,15 +210,15 @@ void TimeManager::initialize (Color c, i16 ply)
             + Limits.clock[c].time
             + Limits.clock[c].inc * (hyp_movestogo-1)
             - OverheadClockTime
-            - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
+            - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), 0ULL);
 
-        TimePoint time;
-        time = remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
+        u64 time;
+        time = remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
         if (optimum_time > time)
         {
             optimum_time = time;
         }
-        time = remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
+        time = remaining_time<false > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
         if (maximum_time > time)
         {
             maximum_time = time;

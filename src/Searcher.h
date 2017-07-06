@@ -19,14 +19,16 @@
 struct Limit
 {
 public:
-    // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds.
+    // Clock struct stores the time and inc per move in milli-seconds.
     struct Clock
     {
-        TimePoint time; // Remaining Time [milli-seconds]
-        TimePoint inc;  // Increment Time [milli-seconds]
+        u64 time;
+        u32 inc;
     } clock[CLR_NO];    // Search with Clock
-    TimePoint movetime; // Search <x> exact time in milli-seconds
+
     u08   movestogo;    // Search <x> moves to the next time control
+
+    u64   movetime;     // Search <x> exact time in milli-seconds
     i16   depth;        // Search <x> depth (plies) only
     u64   nodes;        // Search <x> nodes only
     u08   mate;         // Search mate in <x> moves
@@ -39,9 +41,9 @@ public:
 
     Limit ()
     {
-        clock[WHITE].time = 0;
+        clock[WHITE].time =
         clock[BLACK].time = 0;
-        clock[WHITE].inc = 0;
+        clock[WHITE].inc =
         clock[BLACK].inc = 0;
         movestogo = 0;
         ponder = false;

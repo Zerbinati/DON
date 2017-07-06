@@ -64,7 +64,7 @@ RootMoves::operator std::string () const
     std::ostringstream oss;
     for (const auto &rm : *this)
     {
-        oss << rm << '\n';
+        oss << rm << "\n";
     }
     return oss.str ();
 }
@@ -521,27 +521,27 @@ namespace Searcher {
 
     Limit  Limits;
 
-    u16    MultiPV = 1;
-    //i32    MultiPV_cp = 0;
+    u16    MultiPV =        1;
+    //i32    MultiPV_cp =     0;
 
-    i16    FixedContempt = 0
-        ,  ContemptTime = 30
-        ,  ContemptValue = 50;
+    i16    FixedContempt =  0
+        ,  ContemptTime =   30
+        ,  ContemptValue =  50;
 
-    string HashFile = "Hash.dat";
+    string HashFile =       "Hash.dat";
 
-    bool   OwnBook = false;
-    string BookFile = "Book.bin";
-    bool   BookMoveBest = true;
-    i16    BookUptoMove = 20;
+    bool   OwnBook =        false;
+    string BookFile =       "Book.bin";
+    bool   BookMoveBest =   true;
+    i16    BookUptoMove =   20;
 
-    i16    TBProbeDepth = 1;
-    i32    TBLimitPiece = 6;
-    bool   TBUseRule50 = true;
-    bool   TBHasRoot = false;
-    Value  TBValue = VALUE_ZERO;
+    i16    TBProbeDepth =   1;
+    i32    TBLimitPiece =   6;
+    bool   TBUseRule50 =    true;
+    bool   TBHasRoot =      false;
+    Value  TBValue =        VALUE_ZERO;
 
-    string OutputFile = Empty;
+    string OutputFile =     Empty;
 
     namespace {
 
@@ -640,7 +640,7 @@ namespace Searcher {
         // UCI requires that all (if any) unsearched PV lines are sent using a previous search score.
         string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
         {
-            auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), 1LL);
+            auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), 1ULL);
             
             const auto &root_moves = th->root_moves;
 
@@ -675,28 +675,28 @@ namespace Searcher {
                     && abs (v) < +VALUE_MATE - i32(MaxPlies);
 
                 oss << "info"
-                    << " multipv "  << i + 1
-                    << " depth "    << d
+                    << " multipv " << i + 1
+                    << " depth " << d
                     << " seldepth " << th->max_ply
-                    << " score "    << to_string (tb ? TBValue : v)
+                    << " score " << to_string (tb ? TBValue : v)
                     << (   !tb
                         && i == th->pv_index ?
                             beta <= v ? " lowerbound" :
                                 v <= alfa ? " upperbound" : "" : "")
-                    << " nodes "    << total_nodes
-                    << " time "     << elapsed_time
-                    << " nps "      << total_nodes * 1000 / elapsed_time
-                    << " tbhits "   << tb_hits;
+                    << " nodes " << total_nodes
+                    << " time " << elapsed_time
+                    << " nps " << total_nodes * 1000 / elapsed_time
+                    << " tbhits " << tb_hits;
                 if (elapsed_time > 1000)
                 {
                     oss << " hashfull " << TT.hash_full ();
                 }
-                oss << " pv"        << root_moves[i];
+                oss << " pv" << root_moves[i];
                 if (i++ == Threadpool.pv_limit - 1)
                 {
                     break;
                 }
-                oss << '\n';
+                oss << "\n";
             }
             return oss.str ();
         }
@@ -980,7 +980,6 @@ namespace Searcher {
             
             if (PVNode)
             {
-                // Update max_ply.
                 if (th->max_ply < ss->ply)
                 {
                     th->max_ply = ss->ply;
@@ -1409,11 +1408,11 @@ namespace Searcher {
                     {
                         sync_cout
                             << "info"
-                            << " currmove "       << move_to_can (move)
+                            << " currmove " << move_to_can (move)
                             << " currmovenumber " << th->pv_index + move_count
-                            << " maxmoves "       << th->root_moves.size ()
-                            << " depth "          << depth
-                            << " time "           << elapsed_time
+                            << " maxmoves " << th->root_moves.size ()
+                            << " depth " << depth
+                            << " time " << elapsed_time
                             << sync_endl;
                     }
                 }
@@ -2147,18 +2146,19 @@ namespace Threading {
             {
                 OutputStream
                     << std::boolalpha
-                    << "RootPos  : " << root_pos.fen ()                    << '\n'
-                    << "RootSize : " << root_moves.size ()                 << '\n'
-                    << "Infinite : " << Limits.infinite                    << '\n'
-                    << "Ponder   : " << Limits.ponder                      << '\n'
-                    << "ClockTime: " << Limits.clock[root_pos.active].time << '\n'
-                    << "Increment: " << Limits.clock[root_pos.active].inc  << '\n'
-                    << "MoveTime : " << Limits.movetime                    << '\n'
-                    << "MovesToGo: " << u16(Limits.movestogo)              << '\n'
-                    << "Depth    : " << Limits.depth                       << '\n'
-                    << " Depth Score    Time       Nodes  PV\n"
+                    << "RootPos  : " << root_pos.fen () << "\n"
+                    << "RootSize : " << root_moves.size () << "\n"
+                    << "Infinite : " << Limits.infinite << "\n"
+                    << "Ponder   : " << Limits.ponder << "\n"
+                    << "ClockTime: " << Limits.clock[root_pos.active].time << " ms\n"
+                    << "ClockInc : " << Limits.clock[root_pos.active].inc << " ms\n"
+                    << "MovesToGo: " << Limits.movestogo+0 << "\n"
+                    << "MoveTime : " << Limits.movetime << " ms\n"
+                    << "Depth    : " << Limits.depth << "\n"
+                    << " Depth Score    Time       Nodes PV\n"
                     << "-----------------------------------------------------------"
-                    << std::noboolalpha << std::endl;
+                    << std::noboolalpha
+                    << std::endl;
             }
         }
 
@@ -2195,7 +2195,7 @@ namespace Threading {
                 << "info"
                 << " depth " << 0
                 << " score " << to_string (0 != root_pos.si->checkers ? -VALUE_MATE : VALUE_DRAW)
-                << " time "  << 0
+                << " time " << 0
                 << sync_endl;
         }
         else
@@ -2233,6 +2233,8 @@ namespace Threading {
                 }
             }
 
+            voting = true;
+
             i16 timed_contempt = 0;
             i64 diff_time;
             if (   Limits.use_time_management ()
@@ -2264,8 +2266,6 @@ namespace Threading {
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
             Threadpool.pv_limit = std::min (std::max (MultiPV, u16(skill_mgr.enabled () ? 4 : 1)), u16(root_moves.size ()));
-
-            voting = true;
 
             for (auto *th : Threadpool)
             {
@@ -2365,36 +2365,41 @@ namespace Threading {
                         && (   root_move.size () > 1
                             || root_move.extract_ponder_move_from_tt (root_pos)) ?
                            root_move[1] : MOVE_NONE;
+        assert(MOVE_NONE != best_move
+            || (MOVE_NONE == best_move
+             && MOVE_NONE == ponder_move));
 
         if (OutputStream.is_open ())
         {
             auto total_nodes = Threadpool.nodes ();
-            auto elapsed_time = std::max (time_mgr.elapsed_time (), 1LL);
+            auto elapsed_time = std::max (time_mgr.elapsed_time (), 1ULL);
             OutputStream
-                << "Nodes (N)  : " << total_nodes                       << '\n'
-                << "Time (ms)  : " << elapsed_time                      << '\n'
-                << "Speed (N/s): " << total_nodes * 1000 / elapsed_time << '\n'
-                << "Hash-full  : " << TT.hash_full ()                   << '\n'
-                << "Best Move  : " << move_to_san (best_move, root_pos) << '\n';
+                << "Nodes      : " << total_nodes << " N\n"
+                << "Time       : " << elapsed_time << " ms\n"
+                << "Speed      : " << total_nodes * 1000 / elapsed_time << " N/s\n"
+                << "Hash-full  : " << TT.hash_full () << "\n"
+                << "Best Move  : " << move_to_san (best_move, root_pos) << "\n"
+                << "Ponder Move: ";
             if (MOVE_NONE != best_move)
             {
                 StateInfo si;
                 root_pos.do_move (best_move, si);
-                OutputStream
-                    << "Ponder Move: " << move_to_san (ponder_move, root_pos) << '\n';
+                OutputStream << move_to_san (ponder_move, root_pos) << "\n";
                 root_pos.undo_move (best_move);
+            }
+            else
+            {
+                OutputStream << "(none)\n";
             }
             OutputStream << std::endl;
             OutputStream.close ();
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position.
-        sync_cout << "bestmove " << move_to_can (best_move);
-        if (MOVE_NONE != best_move)
-        {
-            std::cout << " ponder " << move_to_can (ponder_move);
-        }
-        std::cout << sync_endl;
+        sync_cout
+            << "bestmove " << move_to_can (best_move)
+            << " ponder " << move_to_can (ponder_move)
+            << sync_endl;
     }
 
     // Used to detect when out of available limits and thus stop the search, also print debug info.

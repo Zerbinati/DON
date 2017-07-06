@@ -50,22 +50,26 @@ namespace Debugger {
     {
         if (0 != CondCount)
         {
-            std::cerr << std::right
+            std::cerr
+                << std::right
                 << "---------------------------\n"
-                << "Cond  :" << std::setw (20) << CondCount << '\n'
-                << "Hit   :" << std::setw (20) << HitCount  << '\n'
-                << "Rate  :" << std::setw (20) << std::setprecision (2) << std::fixed << (double) HitCount / CondCount * 100.0
-                << std::left << std::endl;
+                << "Cond  :" << std::setw (20) << CondCount << "\n"
+                << "Hit   :" << std::setw (20) << HitCount  << "\n"
+                << "Rate  :" << std::setw (20) << std::fixed << std::setprecision (2) << (double) HitCount / CondCount * 100.0
+                << std::left
+                << std::endl;
         }
 
         if (0 != ItemCount)
         {
-            std::cerr << std::right
+            std::cerr
+                << std::right
                 << "---------------------------\n"
-                << "Count :" << std::setw (20) << ItemCount << '\n'
-                << "Sum   :" << std::setw (20) << ItemSum   << '\n'
-                << "Mean  :" << std::setw (20) << std::setprecision (2) << std::fixed << (double) ItemSum / ItemCount
-                << std::left << std::endl;
+                << "Count :" << std::setw (20) << ItemCount << "\n"
+                << "Sum   :" << std::setw (20) << ItemSum   << "\n"
+                << "Mean  :" << std::setw (20) << std::fixed << std::setprecision (2) << (double) ItemSum / ItemCount
+                << std::left
+                << std::endl;
         }
     }
 

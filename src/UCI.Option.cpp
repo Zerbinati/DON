@@ -221,21 +221,21 @@ namespace UCI {
         void on_contempt_opt ()
         {
             FixedContempt = i16(i32(Options["Fixed Contempt"]));
-            ContemptTime  = i16(i32(Options["Timed Contempt"]));
+            ContemptTime =  i16(i32(Options["Timed Contempt"]));
             ContemptValue = i16(i32(Options["Valued Contempt"]));
         }
 
         void on_multipv ()
         {
             MultiPV = u08(i32(Options["MultiPV"]));
-            //MultiPV_cp  = i32(Options["MultiPV_cp"]);
+            //MultiPV_cp =  i32(Options["MultiPV_cp"]);
         }
 
         void on_book_opt ()
         {
-            OwnBook = bool(Options["OwnBook"]);
+            OwnBook =         bool(Options["OwnBook"]);
             auto filename = string(Options["Book File"]);
-            BookMoveBest = bool(Options["Book Move Best"]);
+            BookMoveBest =    bool(Options["Book Move Best"]);
             BookUptoMove = i16(i32(Options["Book Upto Move"]));
 
             trim (filename);
@@ -253,14 +253,14 @@ namespace UCI {
 
         void on_time_opt ()
         {
-            //MaximumMoveHorizon  = i32(Options["Maximum Move Horizon"]);
-            //ReadyMoveHorizon    = i32(Options["Ready Move Horizon"]);
-            //OverheadClockTime   = TimePoint(i32(Options["Overhead Clock Time"]));
-            //OverheadMoveTime    = TimePoint(i32(Options["Overhead Move Time"]));
-            //MinimumMoveTime     = TimePoint(i32(Options["Minimum Move Time"]));
-            MoveSlowness        = i32(Options["Move Slowness"])/100.0;
-            NodesTime           = i32(Options["Nodes Time"]);
-            Ponder              = bool(Options["Ponder"]);
+            //MaximumMoveHorizon = i32(Options["Maximum Move Horizon"]);
+            //ReadyMoveHorizon =   i32(Options["Ready Move Horizon"]);
+            //OverheadClockTime =  i32(Options["Overhead Clock Time"]);
+            //OverheadMoveTime =   i32(Options["Overhead Move Time"]);
+            //MinimumMoveTime =    i32(Options["Minimum Move Time"]);
+            MoveSlowness = i32(Options["Move Slowness"])/100.0;
+            NodesTime =    i32(Options["Nodes Time"]);
+            Ponder =      bool(Options["Ponder"]);
         }
 
         void on_debug_file ()
