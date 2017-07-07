@@ -256,8 +256,8 @@ namespace UCI {
             //MaximumMoveHorizon = i32(Options["Maximum Move Horizon"]);
             //ReadyMoveHorizon =   i32(Options["Ready Move Horizon"]);
             //OverheadClockTime =  i32(Options["Overhead Clock Time"]);
-            //OverheadMoveTime =   i32(Options["Overhead Move Time"]);
-            //MinimumMoveTime =    i32(Options["Minimum Move Time"]);
+            OverheadMoveTime =   i32(Options["Overhead Move Time"]);
+            MinimumMoveTime =    i32(Options["Minimum Move Time"]);
             MoveSlowness = i32(Options["Move Slowness"])/100.0;
             NodesTime =    i32(Options["Nodes Time"]);
             Ponder =      bool(Options["Ponder"]);
@@ -363,8 +363,8 @@ namespace UCI {
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon, 0, 100, on_time_opt);
         //Options["Ready Move Horizon"]           << Option (ReadyMoveHorizon, 0, 100, on_time_opt);
         //Options["Overhead Clock Time"]          << Option (i32(OverheadClockTime), 0, 30000, on_time_opt);
-        //Options["Overhead Move Time"]           << Option (i32(OverheadMoveTime), 0, 5000, on_time_opt);
-        //Options["Minimum Move Time"]            << Option (i32(MinimumMoveTime), 0, 5000, on_time_opt);
+        Options["Overhead Move Time"]           << Option (i32(OverheadMoveTime), 0, 5000, on_time_opt);
+        Options["Minimum Move Time"]            << Option (i32(MinimumMoveTime), 0, 5000, on_time_opt);
         Options["Move Slowness"]                << Option (i32(std::round (MoveSlowness*100)), 10, 1000, on_time_opt);
         Options["Nodes Time"]                   << Option (NodesTime, 0, 10000, on_time_opt);
         Options["Ponder"]                       << Option (Ponder, on_time_opt);
@@ -379,7 +379,7 @@ namespace UCI {
 
         Options["UCI_Chess960"]                 << Option (Position::Chess960, on_uci_chess960);
         Options["UCI_LimitStrength"]            << Option (false, on_uci_elo);
-        Options["UCI_ELO"]                      << Option (1250, 1250, 3490, on_uci_elo);
+        Options["UCI_ELO"]                      << Option (3490, 1250, 3490, on_uci_elo);
     }
 
     void deinitialize ()

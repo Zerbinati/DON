@@ -11,9 +11,9 @@ namespace Zobrists {
     Key Zobrist::compute_matl_key (const Position &pos) const
     {
         Key matl_key = 0;
-        for (u08 c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (u08 pt = PAWN; pt <= KING; ++pt)
+            for (i08 pt = PAWN; pt <= KING; ++pt)
             {
                 for (i32 pc = 0; pc < pos.count (Color(c), PieceType(pt)); ++pc)
                 {
@@ -27,9 +27,9 @@ namespace Zobrists {
     Key Zobrist::compute_pawn_key (const Position &pos) const
     {
         Key pawn_key = no_pawn_key;
-        for (u08 c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (u08 s : pos.squares[c][PAWN])
+            for (i08 s : pos.squares[c][PAWN])
             {
                 pawn_key ^= piece_square_keys[c][PAWN][s];
             }
@@ -40,11 +40,11 @@ namespace Zobrists {
     Key Zobrist::compute_posi_key (const Position &pos) const
     {
         Key posi_key = 0;
-        for (u08 c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (u08 pt = PAWN; pt <= KING; ++pt)
+            for (i08 pt = PAWN; pt <= KING; ++pt)
             {
-                for (u08 s : pos.squares[c][pt])
+                for (i08 s : pos.squares[c][pt])
                 {
                     posi_key ^= piece_square_keys[c][pt][s];
                 }
@@ -78,8 +78,8 @@ namespace Zobrists {
     //    File kf[CLR_NO] = { F_NO, F_NO };
     //    u08 token;
     //    size_t idx;
-    //    auto f = F_A;
-    //    auto r = R_8;
+    //    i08 f = F_A;
+    //    i08 r = R_8;
     //    while (   iss >> token
     //            && !isspace (token)
     //            && f <= F_NO
@@ -87,7 +87,7 @@ namespace Zobrists {
     //    {
     //        if (isdigit (token))
     //        {
-    //            f += File(token - '0'); // Advance the given number of files
+    //            f += token - '0';
     //        }
     //        else
     //        if (   isalpha (token)
@@ -96,21 +96,21 @@ namespace Zobrists {
     //            auto p = Piece(idx);
     //            if (KING == ptype (p))
     //            {
-    //                kf[color (p)] = f;
+    //                kf[color (p)] = File(f);
     //            }
-    //            fen_key ^= piece_square_keys[color (p)][ptype (p)][(f|r)];
+    //            fen_key ^= piece_square_keys[color (p)][ptype (p)][File(f)|Rank(r)];
     //            ++f;
     //        }
     //        else
     //        {
-    //            assert(token == '/');
+    //            assert('/' == token);
     //            f = F_A;
     //            --r;
     //        }
     //    }
     //
-    //    assert(kf[WHITE] != F_NO
-    //        && kf[BLACK] != F_NO);
+    //    assert(F_NO != kf[WHITE]
+    //        && F_NO != kf[BLACK]);
     //
     //    iss >> token;
     //    if (WHITE == Color(ColorChar.find (token)))
@@ -141,7 +141,7 @@ namespace Zobrists {
     //        }
     //        else
     //        {
-    //            assert(token == '-');
+    //            assert('-' == token);
     //            continue;
     //        }
     //    }
@@ -163,24 +163,24 @@ namespace Zobrists {
         static PRNG prng (0x105524);
 
         // Initialize Random Zobrist
-        for (u08 c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (u08 pt = PAWN; pt <= KING; ++pt)
+            for (i08 pt = PAWN; pt <= KING; ++pt)
             {
-                for (u08 s = SQ_A1; s <= SQ_H8; ++s)
+                for (i08 s = SQ_A1; s <= SQ_H8; ++s)
                 {
                     RandZob.piece_square_keys[c][pt][s] = prng.rand<Key> ();
                 }
             }
         }
-        for (u08 c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (u08 cs = CS_KING; cs <= CS_QUEN; ++cs)
+            for (i08 cs = CS_KING; cs <= CS_QUEN; ++cs)
             {
                 RandZob.castle_right_keys[c][cs] = prng.rand<Key> ();
             }
         }
-        for (u08 f = F_A; f <= F_H; ++f)
+        for (i08 f = F_A; f <= F_H; ++f)
         {
             RandZob.en_passant_keys[f] = prng.rand<Key> ();
         }

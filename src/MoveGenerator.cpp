@@ -329,19 +329,10 @@ namespace MoveGen {
         Bitboard targets;
         switch (GT)
         {
-        case GenType::NATURAL:
-            targets = ~pos.pieces ( pos.active);
-            break;
-        case GenType::CAPTURE:
-            targets =  pos.pieces (~pos.active);
-            break;
-        case GenType::QUIET:
-            targets = ~pos.pieces ();
-            break;
-        default:
-            assert(false);
-            targets = 0;
-            break;
+        case GenType::NATURAL: targets = ~pos.pieces ( pos.active); break;
+        case GenType::CAPTURE: targets =  pos.pieces (~pos.active); break;
+        case GenType::QUIET:   targets = ~pos.pieces ();            break;
+        default:assert(false); targets = 0;                         break;
         }
 
         WHITE == pos.active ?
@@ -372,14 +363,14 @@ namespace MoveGen {
             Bitboard attacks = 0;
             switch (ptype (pos[org]))
             {
-            case NIHT: attacks = targets & PieceAttacks[NIHT][org]; break;
+            case NIHT: attacks = targets & PieceAttacks[NIHT][org];                                                              break;
             case BSHP: attacks = 0 != (targets & PieceAttacks[BSHP][org]) ? targets & attacks_bb<BSHP> (org, pos.pieces ()) : 0; break;
             case ROOK: attacks = 0 != (targets & PieceAttacks[ROOK][org]) ? targets & attacks_bb<ROOK> (org, pos.pieces ()) : 0; break;
             case QUEN: attacks = 0 != (targets & PieceAttacks[QUEN][org]) ? targets & attacks_bb<QUEN> (org, pos.pieces ()) : 0; break;
             case KING: attacks =  targets
                                &  PieceAttacks[KING][org]
-                               & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)]; break;
-            default: assert(false); break;
+                               & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)];                                            break;
+            default: assert(false);                                                                                              break;
             }
             while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
@@ -402,14 +393,14 @@ namespace MoveGen {
             Bitboard attacks = 0;
             switch (ptype (pos[org]))
             {
-            case NIHT: attacks = targets & PieceAttacks[NIHT][org]; break;
+            case NIHT: attacks = targets & PieceAttacks[NIHT][org];                                                              break;
             case BSHP: attacks = 0 != (targets & PieceAttacks[BSHP][org]) ? targets & attacks_bb<BSHP> (org, pos.pieces ()) : 0; break;
             case ROOK: attacks = 0 != (targets & PieceAttacks[ROOK][org]) ? targets & attacks_bb<ROOK> (org, pos.pieces ()) : 0; break;
             case QUEN: attacks = 0 != (targets & PieceAttacks[QUEN][org]) ? targets & attacks_bb<QUEN> (org, pos.pieces ()) : 0; break;
             case KING: attacks =  targets
                                &  PieceAttacks[KING][org]
-                               & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)]; break;
-            default: assert(false); break;
+                               & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)];                                            break;
+            default: assert(false);                                                                                              break;
             }
             while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
@@ -445,7 +436,7 @@ namespace MoveGen {
             case BSHP: checker_attacks |= attacks_bb<BSHP> (checker_sq, mocc); break;
             case ROOK: checker_attacks |= attacks_bb<ROOK> (checker_sq, mocc); break;
             case QUEN: checker_attacks |= attacks_bb<QUEN> (checker_sq, mocc); break;
-            default: assert(false); break;
+            default: assert(false); checker_attacks |= 0;                      break;
             }
         }
 
@@ -489,14 +480,11 @@ namespace MoveGen {
                                      moves.end (),
                                      [&pos] (const ValMove &vm)
                                      {
-                                         //bool b =
                                          return
                                             (   0 != pos.abs_blockers (pos.active)
                                              || ENPASSANT == mtype (vm.move)
                                              || pos.square<KING> (pos.active) == org_sq (vm.move))
                                          && !pos.legal (vm.move);
-                                         //if (!b) { assert(pos.pseudo_legal (vm.move)); }
-                                         //return b;
                                      }),
                      moves.end ());
     }

@@ -284,7 +284,7 @@ namespace Evaluator {
             ful_attacked_by[Own]       = pin_attacked_by[Own][KING] | _pe->any_attacks[Own];
             pin_attacked_by[Own][NONE] = pin_attacked_by[Own][KING] | pin_attacked_by[Own][PAWN];
             dbl_attacked[Own]          = _pe->dbl_attacks[Own]
-                                       | (pin_attacked_by[Own][KING] & pin_attacked_by[Own][PAWN]);
+                                      | (pin_attacked_by[Own][KING] & pin_attacked_by[Own][PAWN]);
 
             // Do not include in mobility area
             // - squares protected by enemy pawns
@@ -364,9 +364,9 @@ namespace Evaluator {
                     Bitboard qb = _pos.pieces (Own, BSHP) & PieceAttacks[BSHP][s] & att;
                     Bitboard qr = _pos.pieces (Own, ROOK) & PieceAttacks[ROOK][s] & att;
                     dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
-                                          & (  attacks
-                                             | (0 != qb ? attacks_bb<BSHP> (s, _pos.pieces () ^ qb) : 0)
-                                             | (0 != qr ? attacks_bb<ROOK> (s, _pos.pieces () ^ qr) : 0));
+                                      & (  attacks
+                                         | (0 != qb ? attacks_bb<BSHP> (s, _pos.pieces () ^ qb) : 0)
+                                         | (0 != qr ? attacks_bb<ROOK> (s, _pos.pieces () ^ qr) : 0));
                 }
                 else
                 {
@@ -858,8 +858,8 @@ namespace Evaluator {
                 auto mg_value = PawnPassRank[MG][rank];
                 auto eg_value = PawnPassRank[EG][rank];
 
-                auto r  = dist (rank, R_2);
-                auto rr = r*(r-1);
+                i32 r  = dist (rank, R_2);
+                i32 rr = r*(r-1);
 
                 if (0 != rr)
                 {
@@ -913,14 +913,14 @@ namespace Evaluator {
                                 !contains (safe_front_squares, push_sq) ?
                                     0 : 4 : 6;
 
-                        mg_value += k*rr;
+                        mg_value += k*rr,
                         eg_value += k*rr;
                     }
                     else
                     // If the pawn is blocked by own pieces.
                     if (contains (_pos.pieces (Own), push_sq))
                     {
-                        mg_value += 1*rr + 2*r;
+                        mg_value += 1*rr + 2*r,
                         eg_value += 1*rr + 2*r;
                     }
                 }
@@ -930,7 +930,7 @@ namespace Evaluator {
                 if (   !_pos.pawn_passed_at (Own, s+Push)
                     || 0 != (_pos.pieces (PAWN) & front_sqrs_bb (Own, s)))
                 {
-                    mg_value /= 2;
+                    mg_value /= 2,
                     eg_value /= 2;
                 }
 

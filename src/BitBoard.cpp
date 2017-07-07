@@ -211,7 +211,7 @@ namespace BitBoard {
         assert((Color_bb[WHITE] & Color_bb[BLACK]) == 0
             && (Color_bb[WHITE] | Color_bb[BLACK]) == (Color_bb[WHITE] ^ Color_bb[BLACK]));
 
-        //for (u08 s = SQ_A1; s <= SQ_H8; ++s)
+        //for (i08 s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = Square(s);
         //    BSF_Table[bsf_index (Square_bb[s])] = Square(s);
@@ -228,9 +228,9 @@ namespace BitBoard {
         }
     #endif
 
-        for (u08 s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (i08 s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            for (u08 s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            for (i08 s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
                 if (s1 != s2)
                 {
@@ -240,9 +240,9 @@ namespace BitBoard {
             }
         }
 
-        for (u08 c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (u08 s = SQ_A1; s <= SQ_H8; ++s)
+            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
             {
                 FrontSqrs_bb  [c][s] = FrontRank_bb[c][_rank (Square(s))] &    File_bb[_file (Square(s))];
                 PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (Square(s))] & AdjFile_bb[_file (Square(s))];
@@ -255,7 +255,7 @@ namespace BitBoard {
             u08 k;
             Delta del;
 
-            for (u08 c = WHITE; c <= BLACK; ++c)
+            for (i08 c = WHITE; c <= BLACK; ++c)
             {
                 k = 0;
                 while (DEL_O != (del = PawnDeltas[c][k++]))
@@ -347,13 +347,13 @@ namespace BitBoard {
     {
         string s;
         s = " /---------------\\\n";
-        for (auto r = R_8; r >= R_1; --r)
+        for (i08 r = R_8; r >= R_1; --r)
         {
-            s += Notation::to_char (r);
+            s += Notation::to_char (Rank(r));
             s += "|";
-            for (auto f = F_A; f <= F_H; ++f)
+            for (i08 f = F_A; f <= F_H; ++f)
             {
-                s += contains (bb, (f|r)) ? '+' : '-';
+                s += contains (bb, File(f)|Rank(r)) ? '+' : '-';
                 if (f < F_H)
                 {
                     s += " ";
@@ -362,10 +362,10 @@ namespace BitBoard {
             s += "|\n";
         }
         s += " \\---------------/\n ";
-        for (auto f = F_A; f <= F_H; ++f)
+        for (i08 f = F_A; f <= F_H; ++f)
         {
             s += " ";
-            s += Notation::to_char (f, false);
+            s += Notation::to_char (File(f), false);
         }
         s += "\n";
         return s;

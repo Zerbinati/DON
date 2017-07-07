@@ -376,19 +376,14 @@ bool Position::pseudo_legal (Move m) const
     {
         switch (mpt)
         {
-        case NIHT:
-            if (    !contains (PieceAttacks[NIHT][org]          , dst))  { return false; } break;
-        case BSHP:
-            if (!(   contains (PieceAttacks[BSHP][org]          , dst)
-                 &&  contains (attacks_bb<BSHP> (org, pieces ()), dst))) { return false; } break;
-        case ROOK:
-            if (!(   contains (PieceAttacks[ROOK][org]          , dst)
-                  && contains (attacks_bb<ROOK> (org, pieces ()), dst))) { return false; } break;
-        case QUEN:
-            if (!(   contains (PieceAttacks[QUEN][org]          , dst)
-                  && contains (attacks_bb<QUEN> (org, pieces ()), dst))) { return false; } break;
-        case KING:
-            if (    !contains (PieceAttacks[KING][org]          , dst))  { return false; } break;
+        case NIHT: if (    !contains (PieceAttacks[NIHT][org]          , dst))  { return false; } break;
+        case BSHP: if (!(   contains (PieceAttacks[BSHP][org]          , dst)
+                         && contains (attacks_bb<BSHP> (org, pieces ()), dst))) { return false; } break;
+        case ROOK: if (!(   contains (PieceAttacks[ROOK][org]          , dst)
+                         && contains (attacks_bb<ROOK> (org, pieces ()), dst))) { return false; } break;
+        case QUEN: if (!(   contains (PieceAttacks[QUEN][org]          , dst)
+                         && contains (attacks_bb<QUEN> (org, pieces ()), dst))) { return false; } break;
+        case KING: if (    !contains (PieceAttacks[KING][org]          , dst))  { return false; } break;
         default: assert(false); break;
         }
     }
@@ -550,23 +545,23 @@ bool Position::gives_check (Move m) const
 // Clear the position.
 void Position::clear ()
 {
-    for (u08 s = SQ_A1; s <= SQ_H8; ++s)
+    for (i08 s = SQ_A1; s <= SQ_H8; ++s)
     {
         board[s] = NO_PIECE;
         castle_mask[s] = CR_NONE;
     }
-    for (u08 pt = PAWN; pt <= NONE; ++pt)
+    for (i08 pt = PAWN; pt <= NONE; ++pt)
     {
         types_bb[pt] = 0;
     }
-    for (u08 c = WHITE; c <= BLACK; ++c)
+    for (i08 c = WHITE; c <= BLACK; ++c)
     {
         color_bb[c] = 0;
-        for (u08 pt = PAWN; pt <= KING; ++pt)
+        for (i08 pt = PAWN; pt <= KING; ++pt)
         {
             squares[c][pt].clear ();
         }
-        for (u08 cs = CS_KING; cs <= CS_QUEN; ++cs)
+        for (i08 cs = CS_KING; cs <= CS_QUEN; ++cs)
         {
             castle_rook[c][cs] = SQ_NO;
             castle_path[c][cs] = 0;
@@ -590,24 +585,24 @@ void Position::set_castle (Color c, CastleSide cs)
     castle_mask[king_org] |= cr;
     castle_mask[rook_org] |= cr;
 
-    for (auto s = std::min (king_org, king_dst); s <= std::max (king_org, king_dst); ++s)
+    for (i08 s = std::min (king_org, king_dst); s <= std::max (king_org, king_dst); ++s)
     {
         if (s != king_org)
         {
-            king_path[c][cs] |= s;
+            king_path[c][cs] |= Square(s);
         }
         if (   s != king_org
             && s != rook_org)
         {
-            castle_path[c][cs] |= s;
+            castle_path[c][cs] |= Square(s);
         }
     }
-    for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
+    for (i08 s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
     {
         if (   s != king_org
             && s != rook_org)
         {
-            castle_path[c][cs] |= s;
+            castle_path[c][cs] |= Square(s);
         }
     }
 }
@@ -684,8 +679,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     u08 token;
     // 1. Piece placement on Board
     size_t idx;
-    auto f = F_A;
-    auto r = R_8;
+    i08 f = F_A;
+    i08 r = R_8;
     while (   iss >> token
            && !isspace (token)
            && f <= F_NO
@@ -693,13 +688,13 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     {
         if (isdigit (token))
         {
-            f += File(token - '0');
+            f += token - '0';
         }
         else
         if (   isalpha (token)
             && (idx = PieceChar.find (token)) != string::npos)
         {
-            place_piece (f|r, Piece(idx));
+            place_piece (File(f)|Rank(r), Piece(idx));
             ++f;
         }
         else
@@ -1146,7 +1141,7 @@ void Position::flip ()
     istringstream iss (fen (true));
     string ff, token;
     // 1. Piece placement
-    for (auto r = R_8; r >= R_1; --r)
+    for (i08 r = R_8; r >= R_1; --r)
     {
         std::getline (iss, token, r != R_1 ? '/' : ' ');
         toggle (token);
@@ -1182,7 +1177,7 @@ void Position::mirror ()
     istringstream iss (fen (true));
     string ff, token;
     // 1. Piece placement
-    for (auto r = R_8; r >= R_1; --r)
+    for (i08 r = R_8; r >= R_1; --r)
     {
         std::getline (iss, token, r != R_1 ? '/' : ' ');
         std::reverse (token.begin (), token.end ());
@@ -1227,12 +1222,12 @@ string Position::fen (bool full) const
 {
     ostringstream oss;
 
-    for (auto r = R_8; r >= R_1; --r)
+    for (i08 r = R_8; r >= R_1; --r)
     {
-        for (auto f = F_A; f <= F_H; ++f)
+        for (i08 f = F_A; f <= F_H; ++f)
         {
             i16 empty_count;
-            for (empty_count = 0; f <= F_H && empty (f|r); ++f)
+            for (empty_count = 0; f <= F_H && empty (File(f)|Rank(r)); ++f)
             {
                 ++empty_count;
             }
@@ -1242,7 +1237,7 @@ string Position::fen (bool full) const
             }
             if (f <= F_H)
             {
-                oss << board[f|r];
+                oss << board[File(f)|Rank(r)];
             }
         }
         if (r != R_1)
@@ -1280,18 +1275,18 @@ Position::operator string () const
 {
     ostringstream oss;
     oss << " +---+---+---+---+---+---+---+---+\n";
-    for (auto r = R_8; r >= R_1; --r)
+    for (i08 r = R_8; r >= R_1; --r)
     {
-        oss << to_char (r) << "| ";
-        for (auto f = F_A; f <= F_H; ++f)
+        oss << to_char (Rank(r)) << "| ";
+        for (i08 f = F_A; f <= F_H; ++f)
         {
-            oss << board[f|r] << " | ";
+            oss << board[File(f)|Rank(r)] << " | ";
         }
         oss << "\n +---+---+---+---+---+---+---+---+\n";
     }
-    for (auto f = F_A; f <= F_H; ++f)
+    for (i08 f = F_A; f <= F_H; ++f)
     {
-        oss << "   " << Notation::to_char (f, false);
+        oss << "   " << Notation::to_char (File(f), false);
     }
 
     oss << "\n"

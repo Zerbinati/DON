@@ -12,6 +12,12 @@
 #include "thread_win32.h"
 #include "Type.h"
 
+//extern u08 MaximumMoveHorizon;
+//extern u08 ReadyMoveHorizon;
+//extern u32 OverheadClockTime;
+extern u32 OverheadMoveTime;
+extern u32 MinimumMoveTime;
+
 extern double MoveSlowness;
 extern u32    NodesTime;
 extern bool   Ponder;
@@ -188,26 +194,7 @@ namespace Threading {
 
         virtual ~Thread ();
 
-        void clear ()
-        {
-            max_ply = 0;
-            nodes = 0;
-            tb_hits = 0;
-
-            pawn_table.clear ();
-            matl_table.clear ();
-
-            history.fill (0);
-            for (auto &pc : cm_history)
-            {
-                for (auto &dst : pc)
-                {
-                    dst.fill (0);
-                }
-            }
-            cm_history[NO_PIECE][0].fill (-1);
-            counter_moves.fill (MOVE_NONE);
-        }
+        void clear ();
 
         // Wakes up the thread that will start the search
         void start_searching (bool resume = false)

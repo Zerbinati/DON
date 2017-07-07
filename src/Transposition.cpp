@@ -130,9 +130,12 @@ namespace Transposition {
 
     void Table::auto_resize (u32 mem_size, bool force)
     {
-        for (auto msize = 0 != mem_size ? mem_size : MaxHashSize;
+        for (auto msize =
+             0 != mem_size ?
+                mem_size :
+                MaxHashSize;
              msize >= MinHashSize;
-             msize >>= 1)
+             msize /= 2)
         {
             if (0 != resize (msize, force))
             {

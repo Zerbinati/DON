@@ -47,11 +47,7 @@ public:
         clock[BLACK].inc = 0;
         movestogo = 0;
         ponder = false;
-        clear_nontime ();
-    }
-
-    void clear_nontime ()
-    {
+        
         movetime = 0;
         depth = 0;
         nodes = 0;
@@ -219,7 +215,8 @@ struct Stack
 {
 public:
     i16   ply;
-    Move  current_move;
+    Move  played_move;
+    Move  excluded_move;
     Move  killer_moves[MaxKillers];
 
     Value static_eval;
@@ -265,6 +262,9 @@ public:
 };
 
 namespace Searcher {
+
+    // Threshold used for countermoves based pruning
+    const i32 CounterMovePruneThreshold = 0;
 
     extern Limit Limits;
 

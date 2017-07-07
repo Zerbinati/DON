@@ -86,11 +86,11 @@ namespace PieceSquare
     Score compute_psq (const Position &pos)
     {
         auto psq_score = SCORE_ZERO;
-        for (u08 c = WHITE; c <= BLACK; ++c)
+        for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            for (u08 pt = PAWN; pt <= KING; ++pt)
+            for (i08 pt = PAWN; pt <= KING; ++pt)
             {
-                for (u08 s : pos.squares[c][pt])
+                for (i08 s : pos.squares[c][pt])
                 {
                     psq_score += PSQ[c][pt][s];
                 }
@@ -104,7 +104,7 @@ namespace PieceSquare
     template<Color Own> Value compute_npm (const Position &pos)
     {
         auto npm_value = VALUE_ZERO;
-        for (u08 pt = NIHT; pt <= QUEN; ++pt)
+        for (i08 pt = NIHT; pt <= QUEN; ++pt)
         {
             npm_value += PieceValues[MG][pt] * pos.count (Own, PieceType(pt));
         }
@@ -116,14 +116,14 @@ namespace PieceSquare
     // Initialize lookup tables during startup
     void initialize ()
     {
-        for (u08 pt = PAWN; pt <= KING; ++pt)
+        for (i08 pt = PAWN; pt <= KING; ++pt)
         {
             auto p_score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
-            for (auto s = SQ_A1; s <= SQ_H8; ++s)
+            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
             {
-                auto psq_score = p_score + HalfPSQ[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
-                PSQ[WHITE][pt][ s] = +psq_score;
-                PSQ[BLACK][pt][~s] = -psq_score;
+                auto psq_score = p_score + HalfPSQ[pt][_rank (Square(s))][std::min (_file (Square(s)), F_H - _file (Square(s)))];
+                PSQ[WHITE][pt][ Square(s)] = +psq_score;
+                PSQ[BLACK][pt][~Square(s)] = -psq_score;
             }
         }
     }

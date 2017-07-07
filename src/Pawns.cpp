@@ -274,13 +274,13 @@ namespace Pawns {
     {
         const i32 Seeds[R_NO] = { 0, 8, 19, 13, 71, 94, 169, 324 };
 
-        for (u08 opposed = 0; opposed < 2; ++opposed)
+        for (i08 opposed = 0; opposed < 2; ++opposed)
         {
-            for (u08 phalanx = 0; phalanx < 2; ++phalanx)
+            for (i08 phalanx = 0; phalanx < 2; ++phalanx)
             {
-                for (u08 apex = 0; apex < 2; ++apex)
+                for (i08 apex = 0; apex < 2; ++apex)
                 {
-                    for (auto r = R_2; r < R_8; ++r)
+                    for (i08 r = R_2; r < R_8; ++r)
                     {
                         auto v = i32((i32(Seeds[r] + (Seeds[r+1] - Seeds[r])*0.5*phalanx) >> opposed) * (1.0 + 0.5*apex));
                         Connected[opposed][phalanx][apex][r] = mk_score (v, v * (r-2) / 4);

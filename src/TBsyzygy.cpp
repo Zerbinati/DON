@@ -466,11 +466,11 @@ namespace TBSyzygy {
             key1 = pos.setup (code, si, WHITE).si->matl_key;
             piece_count = pos.count<NONE> ();
             has_pawns = 0 != pos.count<PAWN> ();
-            for (auto c = WHITE; c <= BLACK; ++c)
+            for (i08 c = WHITE; c <= BLACK; ++c)
             {    
-                for (auto pt = PAWN; pt < KING; ++pt)
+                for (i08 pt = PAWN; pt < KING; ++pt)
                 {
-                    if (pos.count (c, pt) == 1)
+                    if (pos.count (Color(c), PieceType(pt)) == 1)
                     {
                         has_unique_pieces = true;
                         goto done;
@@ -1346,10 +1346,10 @@ namespace TBSyzygy {
 
             // Pieces strings in decreasing order for each color, like ("KPP","KR")
             string w, b;
-            for (auto pt = KING; pt >= PAWN; --pt)
+            for (i08 pt = KING; pt >= PAWN; --pt)
             {
-                w += string(pos.count (WHITE, pt), PieceToChar[pt]);
-                b += string(pos.count (BLACK, pt), PieceToChar[pt]);
+                w += string(pos.count (WHITE, PieceType(pt)), PieceToChar[pt]);
+                b += string(pos.count (BLACK, PieceType(pt)), PieceToChar[pt]);
             }
 
             const u08 TB_MAGIC[][4] =
@@ -1880,9 +1880,9 @@ namespace TBSyzygy {
         {
             // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27
             i32 code = 0;
-            for (auto s = SQ_A1; s <= SQ_H8; ++s)
+            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
             {
-                if (off_A1H8 (s) < 0)
+                if (off_A1H8 (Square(s)) < 0)
                 {
                     MapB1H1H7[s] = code++;
                 }
@@ -1890,20 +1890,20 @@ namespace TBSyzygy {
             // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
             Squares diagonal;
             code = 0;
-            for (auto s = SQ_A1; s <= SQ_D4; ++s)
+            for (i08 s = SQ_A1; s <= SQ_D4; ++s)
             {
-                if (off_A1H8 (s) < 0 && _file (s) <= F_D)
+                if (off_A1H8 (Square(s)) < 0 && _file (Square(s)) <= F_D)
                 {
                     MapA1D1D4[s] = code++;
                 }
                 else
-                if (!off_A1H8 (s) && _file (s) <= F_D)
+                if (!off_A1H8 (Square(s)) && _file (Square(s)) <= F_D)
                 {
-                    diagonal.push_back (s);
+                    diagonal.push_back (Square(s));
                 }
             }
             // Diagonal squares are encoded as last ones
-            for (auto s : diagonal)
+            for (i08 s : diagonal)
             {
                 MapA1D1D4[s] = code++;
             }

@@ -5,165 +5,25 @@
 #include "Searcher.h"
 #include "TBsyzygy.h"
 
-Threading::ThreadPool Threadpool;
-
-double MoveSlowness = 0.90; // Move Slowness, in %age.
-u32    NodesTime =    0;    // 'Nodes as Time' mode.
-bool   Ponder =       true; // Whether or not the engine should analyze when it is the opponent's turn.
-
 using namespace std;
 using namespace UCI;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-namespace { // Win Processors Group
-    
-    // bind_thread() set the group affinity for the thread index.
-    void bind_thread (size_t index);
+u32 OverheadMoveTime = 30;  // Attempt to keep at least this much time for each remaining move, in milliseconds.
+u32 MinimumMoveTime =  20;  // No matter what, use at least this much time before doing the move, in milliseconds.
 
-#if defined(_WIN32)
-    // get_group() retrieves logical processor information using Windows specific
-    // API and returns the best group id for the thread index.
-    i32 get_group (size_t index)
-    {
-        // Early exit if the needed API is not available at runtime
-        auto kernel32 = GetModuleHandle("Kernel32.dll");
-        if (nullptr == kernel32)
-        {
-            return -1;
-        }
-        auto fun1 = (fun1_t)GetProcAddress (kernel32, "GetLogicalProcessorInformationEx");
-        if (nullptr == fun1)
-        {
-            return -1;
-        }
-        DWORD length = 0;
-        // First call to get length. We expect it to fail due to null buffer
-        if (fun1 (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length))
-        {
-            return -1;
-        }
+double MoveSlowness = 0.90; // Move Slowness, in %age.
+u32    NodesTime =    0;    // 'Nodes as Time' mode.
+bool   Ponder =       true; // Whether or not the engine should analyze when it is the opponent's turn.
 
-        // Once we know length, allocate the buffer
-        auto *buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) malloc (length);
-        if (nullptr == buffer)
-        {
-            return -1;
-        }
-
-        // Second call, now we expect to succeed
-        if (!fun1 (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, buffer, &length))
-        {
-            free (buffer);
-            return -1;
-        }
-
-        auto *ptr = buffer;
-        DWORD byte_offset = 0;
-        i32 nodes = 0;
-        i32 cores = 0;
-        i32 threads = 0;
-        while (   ptr->Size > 0
-               && ptr->Size + byte_offset <= length)
-        {
-            switch (ptr->Relationship)
-            {
-            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
-                ++nodes;
-                break;
-            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
-                ++cores;
-                threads += (ptr->Processor.Flags == LTP_PC_SMT) ? 2 : 1;
-                break;
-            default:
-                break;
-            }
-
-            byte_offset += ptr->Size;
-            ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) ((char*)ptr + ptr->Size);
-        }
-        free (buffer);
-
-        std::vector<i32> groups;
-        // Run as many threads as possible on the same node until core limit is
-        // reached, then move on filling the next node.
-        for (i32 n = 0; n < nodes; ++n)
-        {
-            for (i32 i = 0; i < cores / nodes; ++i)
-            {
-                groups.push_back (n);
-            }
-        }
-        // In case a core has more than one logical processor (we assume 2) and we
-        // have still threads to allocate, then spread them evenly across available
-        // nodes.
-        for (i32 t = 0; t < threads - cores; ++t)
-        {
-            groups.push_back (t % nodes);
-        }
-
-        // If we still have more threads than the total number of logical processors
-        // then return -1 and let the OS to decide what to do.
-        return index < groups.size () ? groups[index] : -1;
-    }
-
-    void bind_thread (size_t index)
-    {
-        // If OS already scheduled us on a different group than 0 then don't overwrite
-        // the choice, eventually we are one of many one-threaded processes running on
-        // some Windows NUMA hardware, for instance in fishtest.
-        // To make it simple, just check if running threads are below a threshold,
-        // in this case all this NUMA machinery is not needed.
-        if (Threadpool.size () < 8)
-        {
-            return;
-        }
-
-        // Use only local variables to be thread-safe
-        auto group = get_group (index);
-        if (-1 == group)
-        {
-            return;
-        }
-        // Early exit if the needed API are not available at runtime
-        auto kernel32 = GetModuleHandle("Kernel32.dll");
-        if (nullptr == kernel32)
-        {
-            return;
-        }
-        auto fun2 = (fun2_t) GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx");
-        auto fun3 = (fun3_t) GetProcAddress (kernel32, "SetThreadGroupAffinity");
-        if (   nullptr == fun2
-            || nullptr == fun3)
-        {
-            return;
-        }
-
-        GROUP_AFFINITY affinity;
-        if (fun2 (USHORT(group), &affinity))
-        {
-            auto current_thread = GetCurrentThread ();
-            if (nullptr != current_thread)
-            {
-                PGROUP_AFFINITY ptr = nullptr;
-                fun3 (current_thread, &affinity, ptr);
-            }
-        }
-    }
-#else
-    void bind_thread (size_t index)
-    {}
-#endif
-
-    }
+Threading::ThreadPool Threadpool;
 
 namespace {
 
-    const u08 MaximumMoveHorizon =  50;  // Plan time management at most this many moves ahead, in num of moves.
-    const u08 ReadyMoveHorizon =    40;  // Be prepared to always play at least this many moves, in num of moves.
-    const u32 OverheadClockTime =   60;  // Attempt to keep at least this much time at clock, in milliseconds.
-    const u32 OverheadMoveTime =    30;  // Attempt to keep at least this much time for each remaining move, in milliseconds.
-    const u32 MinimumMoveTime =     20;  // No matter what, use at least this much time before doing the move, in milliseconds.
+    u08 MaximumMoveHorizon =  50;  // Plan time management at most this many moves ahead, in num of moves.
+    u08 ReadyMoveHorizon =    40;  // Be prepared to always play at least this many moves, in num of moves.
+    u32 OverheadClockTime =   60;  // Attempt to keep at least this much time at clock, in milliseconds.
 
     // Skew-logistic function based on naive statistical analysis of
     // "how many games are still undecided after n half-moves".
@@ -282,6 +142,147 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
 
 namespace Threading {
 
+    namespace { // Win Processors Group
+    
+        // bind_thread() set the group affinity for the thread index.
+        void bind_thread (size_t index);
+
+    #if defined(_WIN32)
+        // get_group() retrieves logical processor information using Windows specific
+        // API and returns the best group id for the thread index.
+        i32 get_group (size_t index)
+        {
+            // Early exit if the needed API is not available at runtime
+            auto kernel32 = GetModuleHandle("Kernel32.dll");
+            if (nullptr == kernel32)
+            {
+                return -1;
+            }
+            auto fun1 = (fun1_t)GetProcAddress (kernel32, "GetLogicalProcessorInformationEx");
+            if (nullptr == fun1)
+            {
+                return -1;
+            }
+            DWORD length = 0;
+            // First call to get length. We expect it to fail due to null buffer
+            if (fun1 (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length))
+            {
+                return -1;
+            }
+
+            // Once we know length, allocate the buffer
+            auto *buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) malloc (length);
+            if (nullptr == buffer)
+            {
+                return -1;
+            }
+
+            // Second call, now we expect to succeed
+            if (!fun1 (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, buffer, &length))
+            {
+                free (buffer);
+                return -1;
+            }
+
+            auto *ptr = buffer;
+            DWORD byte_offset = 0;
+            i32 nodes = 0;
+            i32 cores = 0;
+            i32 threads = 0;
+            while (   ptr->Size > 0
+                   && ptr->Size + byte_offset <= length)
+            {
+                switch (ptr->Relationship)
+                {
+                case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
+                    ++nodes;
+                    break;
+                case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
+                    ++cores;
+                    threads += (ptr->Processor.Flags == LTP_PC_SMT) ? 2 : 1;
+                    break;
+                default:
+                    break;
+                }
+
+                byte_offset += ptr->Size;
+                ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) ((char*)ptr + ptr->Size);
+            }
+            free (buffer);
+
+            std::vector<i32> groups;
+            // Run as many threads as possible on the same node until core limit is
+            // reached, then move on filling the next node.
+            for (i32 n = 0; n < nodes; ++n)
+            {
+                for (i32 i = 0; i < cores / nodes; ++i)
+                {
+                    groups.push_back (n);
+                }
+            }
+            // In case a core has more than one logical processor (we assume 2) and we
+            // have still threads to allocate, then spread them evenly across available
+            // nodes.
+            for (i32 t = 0; t < threads - cores; ++t)
+            {
+                groups.push_back (t % nodes);
+            }
+
+            // If we still have more threads than the total number of logical processors
+            // then return -1 and let the OS to decide what to do.
+            return index < groups.size () ? groups[index] : -1;
+        }
+
+        void bind_thread (size_t index)
+        {
+            // If OS already scheduled us on a different group than 0 then don't overwrite
+            // the choice, eventually we are one of many one-threaded processes running on
+            // some Windows NUMA hardware, for instance in fishtest.
+            // To make it simple, just check if running threads are below a threshold,
+            // in this case all this NUMA machinery is not needed.
+            if (Threadpool.size () < 8)
+            {
+                return;
+            }
+
+            // Use only local variables to be thread-safe
+            auto group = get_group (index);
+            if (-1 == group)
+            {
+                return;
+            }
+            // Early exit if the needed API are not available at runtime
+            auto kernel32 = GetModuleHandle("Kernel32.dll");
+            if (nullptr == kernel32)
+            {
+                return;
+            }
+            auto fun2 = (fun2_t) GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx");
+            auto fun3 = (fun3_t) GetProcAddress (kernel32, "SetThreadGroupAffinity");
+            if (   nullptr == fun2
+                || nullptr == fun3)
+            {
+                return;
+            }
+
+            GROUP_AFFINITY affinity;
+            if (fun2 (USHORT(group), &affinity))
+            {
+                auto current_thread = GetCurrentThread ();
+                if (nullptr != current_thread)
+                {
+                    PGROUP_AFFINITY ptr = nullptr;
+                    fun3 (current_thread, &affinity, ptr);
+                }
+            }
+        }
+    #else
+        void bind_thread (size_t index)
+        {}
+    #endif
+
+    }
+
     // Launches the thread and then waits until it goes to sleep in idle_loop().
     Thread::Thread ()
         : _alive (true)
@@ -301,6 +302,28 @@ namespace Threading {
         lk.unlock ();
         _native_thread.join ();
     }
+
+    void Thread::clear ()
+    {
+        max_ply = 0;
+        nodes = 0;
+        tb_hits = 0;
+
+        pawn_table.clear ();
+        matl_table.clear ();
+
+        history.fill (0);
+        for (auto &pc : cm_history)
+        {
+            for (auto &dst : pc)
+            {
+                dst.fill (0);
+            }
+        }
+        cm_history[NO_PIECE][0].fill (CounterMovePruneThreshold - 1);
+        counter_moves.fill (MOVE_NONE);
+    }
+
     // Function where the thread is parked when it has no work to do.
     void Thread::idle_loop ()
     {
@@ -471,4 +494,3 @@ namespace Threading {
     }
 
 }
-
