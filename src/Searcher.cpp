@@ -54,7 +54,7 @@ RootMove::operator string () const
     for (auto move : *this)
     {
         assert(MOVE_NONE != move);
-        oss << ' ' << move_to_can (move);
+        oss << " " << move_to_can (move);
     }
     return oss.str ();
 }
@@ -781,7 +781,7 @@ namespace Searcher {
                 ss->static_eval = VALUE_NONE;
                 // Starting from the worst case which is checkmate
                 best_value =
-                futility_base = mated_in (ss->ply);
+                futility_base = -VALUE_INFINITE;
             }
             else
             {
@@ -954,6 +954,12 @@ namespace Searcher {
                     }
                 }
             }
+            
+            if (   in_check
+                && 0 == move_count)
+            {
+                return mated_in (ss->ply);
+            }
 
             tte->save (posi_key,
                        best_move,
@@ -964,6 +970,7 @@ namespace Searcher {
                        && best_value > old_alfa ?
                            BOUND_EXACT :
                            BOUND_UPPER);
+
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -1174,11 +1181,11 @@ namespace Searcher {
                             -(ss-1)->static_eval + Tempo*2;
 
                     tte->save (posi_key,
-                                MOVE_NONE,
-                                VALUE_NONE,
-                                ss->static_eval,
-                                -6,
-                                BOUND_NONE);
+                               MOVE_NONE,
+                               VALUE_NONE,
+                               ss->static_eval,
+                               -6,
+                               BOUND_NONE);
                 }
 
                 if (prun_node)
@@ -1614,10 +1621,9 @@ namespace Searcher {
                             -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node, true);
                 }
 
-                // Do a full PV search on:
-                // - 'full depth move count' move
-                // - 'fail high' move (search only if value < beta)
-                // otherwise let the parent node fail low with alfa >= value and try another move.
+                // Do a full PV search on following conditions:
+                // - 'first' move.
+                // - 'fail high (alfa < value)' move (only if value < beta otherwise let the parent node fail low with alfa >= value and try another move).
                 if (   PVNode
                     && (   1 == move_count
                         || (   alfa < value
@@ -1823,7 +1829,7 @@ namespace Searcher {
                     << std::setfill ('0')
                     << std::setw (2)
                     << ++move_count
-                    << ' '
+                    << " "
                     << std::left
                     << std::setfill (' ')
                     << std::setw (7)

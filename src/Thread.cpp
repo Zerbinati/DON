@@ -10,8 +10,8 @@ using namespace UCI;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-u32 OverheadMoveTime = 30;  // Attempt to keep at least this much time for each remaining move, in milliseconds.
-u32 MinimumMoveTime =  20;  // No matter what, use at least this much time before doing the move, in milliseconds.
+u32 OverheadMoveTime = 30;  // Attempt to keep at least this much time for each remaining move, in milli-seconds.
+u32 MinimumMoveTime =  20;  // No matter what, use at least this much time before doing the move, in milli-seconds.
 
 double MoveSlowness = 0.90; // Move Slowness, in %age.
 u32    NodesTime =    0;    // 'Nodes as Time' mode.
@@ -23,7 +23,7 @@ namespace {
 
     u08 MaximumMoveHorizon =  50;  // Plan time management at most this many moves ahead, in num of moves.
     u08 ReadyMoveHorizon =    40;  // Be prepared to always play at least this many moves, in num of moves.
-    u32 OverheadClockTime =   60;  // Attempt to keep at least this much time at clock, in milliseconds.
+    u32 OverheadClockTime =   60;  // Attempt to keep at least this much time at clock, in milli-seconds.
 
     // Skew-logistic function based on naive statistical analysis of
     // "how many games are still undecided after n half-moves".

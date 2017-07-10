@@ -274,7 +274,7 @@ namespace Notation {
         {
             oss << std::setw (7) << u16(std::round (nodes / (K*K*K))) << 'G';
         }
-        oss << ' ';
+        oss << " ";
 
         StateList states;
         u08 ply = 0;
@@ -282,7 +282,7 @@ namespace Notation {
         {
             oss <<
                 //move_to_can (m)
-                move_to_san (m, th->root_pos) << ' ';
+                move_to_san (m, th->root_pos) << " ";
             states.push_back (StateInfo ());
             th->root_pos.do_move (m, states.back ());
             ++ply;
