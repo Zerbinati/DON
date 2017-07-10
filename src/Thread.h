@@ -167,7 +167,7 @@ namespace Threading {
         u08   index
             , pv_index;
 
-        u16 max_ply;
+        i16 sel_depth;
 
         std::atomic<bool> searching;
 

@@ -388,8 +388,11 @@ inline i16  Position::move_num () const
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
 inline Phase Position::phase () const
 {
-    return Phase(i32(std::min (std::max (si->non_pawn_material (), VALUE_ENDGAME), VALUE_MIDGAME)
-                        - VALUE_ENDGAME) * PHASE_MIDGAME / (VALUE_MIDGAME - VALUE_ENDGAME));
+    return Phase(i32(std::min (
+                     std::max (si->non_pawn_material ()
+                        , VALUE_ENDGAME)
+                        , VALUE_MIDGAME) - VALUE_ENDGAME)
+                    * PHASE_MIDGAME / (VALUE_MIDGAME - VALUE_ENDGAME));
 }
 // Attackers to the square by color on occupancy.
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const

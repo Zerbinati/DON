@@ -39,6 +39,10 @@ namespace Material {
         // PawnsSet[count] contains a bonus/malus indexed by number of pawns
         const i32 PawnsSet[] = { 24, -32, 107, -51, 117, -9, -126, -21, 31 };
 
+        // QueenMinors[opp_minor_count] is applied when only one side has a queen.
+        // It contains a bonus/malus for the side with the queen.
+        const i32 QueenMinors[] = { +31, -8, -15, -25, -5 };
+
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
         Endgame<KXK>     EvaluateKXK [] = { Endgame<KXK>     (WHITE), Endgame<KXK>     (BLACK) };
@@ -80,6 +84,17 @@ namespace Material {
                 value += count[Own][KING] * OwnQuadratic[KING][KING]
                        + count[Opp][KING] * OppQuadratic[KING][KING];
             }
+            // Special handling of Queen vs Minors
+            if (   1 == count[Own][QUEN]
+                && 0 == count[Opp][QUEN])
+            {
+                i32 minor_count = count[Opp][NIHT] + count[Opp][BSHP];
+                if (minor_count <= 4)
+                {
+                    value += QueenMinors[minor_count];
+                }
+            }
+
             return value;
         }
     }
@@ -97,6 +112,7 @@ namespace Material {
 
         std::memset (e, 0x00, sizeof (*e));
         e->key = pos.si->matl_key;
+        e->phase = pos.phase ();
         e->scale[WHITE] =
         e->scale[BLACK] = SCALE_NORMAL;
 

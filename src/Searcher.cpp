@@ -648,21 +648,18 @@ namespace Searcher {
             auto tb_hits = Threadpool.tb_hits () + (TBHasRoot ? root_moves.size () : 0);
 
             ostringstream oss;
-            u08 i = 0;
-            while (true)
+            for (u08 i = 0; i < Threadpool.pv_limit; ++i)
             {
                 bool updated = 
                        i <= th->pv_index
                     && -VALUE_INFINITE != root_moves[i].new_value;
 
-                auto d = updated ? depth : i16(depth - 1);
-
+                i16 d =
+                    updated ?
+                        depth :
+                        depth - 1;
                 if (d <= 0)
                 {
-                    if (i == Threadpool.pv_limit - 1)
-                    {
-                        break;
-                    }
                     continue;
                 }
 
@@ -677,7 +674,7 @@ namespace Searcher {
                 oss << "info"
                     << " multipv " << i + 1
                     << " depth " << d
-                    << " seldepth " << th->max_ply
+                    << " seldepth " << th->sel_depth
                     << " score " << to_string (tb ? TBValue : v)
                     << (   !tb
                         && i == th->pv_index ?
@@ -692,11 +689,10 @@ namespace Searcher {
                     oss << " hashfull " << TT.hash_full ();
                 }
                 oss << " pv" << root_moves[i];
-                if (i++ == Threadpool.pv_limit - 1)
+                if (i+1 < Threadpool.pv_limit)
                 {
-                    break;
+                    oss << "\n";
                 }
-                oss << "\n";
             }
             return oss.str ();
         }
@@ -781,7 +777,7 @@ namespace Searcher {
                 ss->static_eval = VALUE_NONE;
                 // Starting from the worst case which is checkmate
                 best_value =
-                futility_base = -VALUE_INFINITE;
+                futility_base = mated_in (ss->ply);
             }
             else
             {
@@ -955,12 +951,6 @@ namespace Searcher {
                 }
             }
             
-            if (   in_check
-                && 0 == move_count)
-            {
-                return mated_in (ss->ply);
-            }
-
             tte->save (posi_key,
                        best_move,
                        value_to_tt (best_value, ss->ply),
@@ -970,7 +960,6 @@ namespace Searcher {
                        && best_value > old_alfa ?
                            BOUND_EXACT :
                            BOUND_UPPER);
-
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -994,9 +983,9 @@ namespace Searcher {
             
             if (PVNode)
             {
-                if (th->max_ply < ss->ply)
+                if (th->sel_depth < ss->ply)
                 {
-                    th->max_ply = ss->ply;
+                    th->sel_depth = ss->ply;
                 }
             }
 

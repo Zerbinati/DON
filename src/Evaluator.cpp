@@ -1021,8 +1021,6 @@ namespace Evaluator {
         template<bool Trace>
         Scale Evaluation<Trace>::evaluate_scale (Value eg)
         {
-            assert(PHASE_ENDGAME <= _pos.phase () && _pos.phase () <= PHASE_MIDGAME);
-
             auto strong_color = eg >= VALUE_ZERO ? WHITE : BLACK;
             Scale scale;
             if (   nullptr == _me->scale_func[strong_color]
@@ -1139,10 +1137,11 @@ namespace Evaluator {
             assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
             assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
 
-            auto phase = _pos.phase ();
+            assert(PHASE_ENDGAME <= _me->phase && _me->phase <= PHASE_MIDGAME);
+
             // Interpolates between a midgame and a endgame score, scaled based on game phase.
-            v = Value(  (  mg_value (score) * i32(phase)
-                         + eg_value (score) * i32(PHASE_MIDGAME - phase)
+            v = Value(  (  mg_value (score) * i32(_me->phase)
+                         + eg_value (score) * i32(PHASE_MIDGAME - _me->phase)
                                                     // Evaluate scale for the position
                                             * i32(evaluate_scale (eg_value (score)))/SCALE_NORMAL)
                       / PHASE_MIDGAME);
