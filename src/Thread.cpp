@@ -305,7 +305,6 @@ namespace Threading {
 
     void Thread::clear ()
     {
-        sel_depth = 0;
         nodes = 0;
         tb_hits = 0;
 
@@ -453,7 +452,6 @@ namespace Threading {
             th->root_pos.setup (fen, states.back (), th);
             th->root_moves = root_moves;
 
-            th->sel_depth = 0;
             th->nodes = 0;
             th->tb_hits = 0;
             th->running_depth = 0;

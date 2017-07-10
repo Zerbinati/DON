@@ -392,7 +392,7 @@ inline Phase Position::phase () const
                      std::max (si->non_pawn_material ()
                         , VALUE_ENDGAME)
                         , VALUE_MIDGAME) - VALUE_ENDGAME)
-                    * PHASE_MIDGAME / (VALUE_MIDGAME - VALUE_ENDGAME));
+                    * (PHASE_RESOLUTION) / (VALUE_MIDGAME - VALUE_ENDGAME));
 }
 // Attackers to the square by color on occupancy.
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const

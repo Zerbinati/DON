@@ -120,7 +120,7 @@ namespace Polyglot {
         Book (const Book&) = delete;
         Book& operator= (const Book&) = delete;
 
-       ~Book ();
+        ~Book ();
 
         std::string filename () const { return _book_fn; }
 

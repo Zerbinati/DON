@@ -8,7 +8,7 @@ namespace std {
     
     protected:
         noncopyable () = default;
-       ~noncopyable () = default;
+        virtual ~noncopyable () = default;
 
         // Don't forget to declare these functions.
         // Want to make sure they are unaccessable & non-copyable

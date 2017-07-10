@@ -54,7 +54,8 @@ public:
     Mutex () { InitializeCriticalSection (&cs); }
     Mutex (const Mutex&) = delete;
     Mutex& operator= (const Mutex&) = delete;
-   ~Mutex () { DeleteCriticalSection (&cs); }
+    ~Mutex () { DeleteCriticalSection (&cs); }
+
     void lock ()   { EnterCriticalSection (&cs); }
     void unlock () { LeaveCriticalSection (&cs); }
 };

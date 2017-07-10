@@ -376,17 +376,13 @@ enum Bound : u08
 
 };
 
-enum PhaseType : u08
+enum Phase : u16
 {
+    // For indexing
     MG    = 0,
     EG    = 1,
-    PH_NO = 2,
-};
-
-enum Phase : u08
-{
-    PHASE_ENDGAME   =   0,
-    PHASE_MIDGAME   = 128,
+    // For Computing
+    PHASE_RESOLUTION = 1024,
 };
 
 enum Scale : u08

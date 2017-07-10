@@ -674,7 +674,7 @@ namespace Searcher {
                 oss << "info"
                     << " multipv " << i + 1
                     << " depth " << d
-                    << " seldepth " << th->sel_depth
+                    << " seldepth " << root_moves[i].sel_depth
                     << " score " << to_string (tb ? TBValue : v)
                     << (   !tb
                         && i == th->pv_index ?
@@ -1405,12 +1405,14 @@ namespace Searcher {
                     auto elapsed_time = Threadpool.main_thread ()->time_mgr.elapsed_time ();
                     if (elapsed_time > 3000)
                     {
+                        auto &root_move = *std::find (th->root_moves.begin (), th->root_moves.end (), move);
                         sync_cout
                             << "info"
                             << " currmove " << move_to_can (move)
                             << " currmovenumber " << th->pv_index + move_count
                             << " maxmoves " << th->root_moves.size ()
                             << " depth " << depth
+                            << " seldepth " << root_move.sel_depth
                             << " time " << elapsed_time
                             << sync_endl;
                     }
@@ -1643,6 +1645,7 @@ namespace Searcher {
 
                 if (root_node)
                 {
+                    assert(std::find (th->root_moves.begin (), th->root_moves.end (), move) != th->root_moves.end ());
                     auto &root_move = *std::find (th->root_moves.begin (), th->root_moves.end (), move);
                     // First PV move or new best move?
                     if (   1 == move_count
@@ -1654,6 +1657,7 @@ namespace Searcher {
                             root_move += m;
                         }
                         root_move.new_value = value;
+                        root_move.sel_depth = th->sel_depth;
 
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
@@ -1951,6 +1955,9 @@ namespace Threading {
                  && pv_index < Threadpool.pv_limit;
                     ++pv_index)
             {
+                // Reset UCI info sel_depth for each depth and each PV line
+                sel_depth = 0;
+
                 // Reset aspiration window starting size.
                 if (running_depth > 4)
                 {

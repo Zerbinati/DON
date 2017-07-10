@@ -167,8 +167,6 @@ namespace Threading {
         u08   index
             , pv_index;
 
-        i16 sel_depth;
-
         std::atomic<bool> searching;
 
         Position root_pos;
@@ -176,6 +174,8 @@ namespace Threading {
 
         i16   running_depth
             , finished_depth;
+
+        i16   sel_depth;
 
         std::atomic<u64>
               nodes

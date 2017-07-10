@@ -130,6 +130,7 @@ typedef BoardStats<MAX_PIECE, SQ_NO, Move> SquareMoveBoardStats;
 // RootMove class is used for moves at the root of the tree.
 // RootMove stores:
 //  - New/Old values
+//  - Sel Depth
 //  - PV (really a refutation table in the case of moves which fail low)
 // Value is normally set at -VALUE_INFINITE for all non-pv moves.
 class RootMove
@@ -138,11 +139,14 @@ class RootMove
 public:
     Value old_value
         , new_value;
+    
+    i16 sel_depth;
 
     explicit RootMove (Move m = MOVE_NONE)
         : Moves (1, m)
         , old_value (-VALUE_INFINITE)
         , new_value (-VALUE_INFINITE)
+        , sel_depth (0)
     {}
     RootMove& operator= (const RootMove&) = default;
 

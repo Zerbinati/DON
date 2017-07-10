@@ -180,7 +180,7 @@ namespace Evaluator {
             // PawnPassFile[file] contains bonus for passed pawns according to distance from edge
             const Score PawnPassFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
             // PawnPassRank[rank] contains bonus for passed pawns according to the rank of the pawn
-            const Value PawnPassRank[PH_NO][R_NO] =
+            const Value PawnPassRank[2][R_NO] =
             {
                 { V(  0), V(  5), V(  5), V( 31), V( 73), V(166), V(252), V(  0) },
                 { V(  0), V(  7), V( 14), V( 38), V( 73), V(166), V(252), V(  0) }
@@ -1137,14 +1137,14 @@ namespace Evaluator {
             assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
             assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
 
-            assert(PHASE_ENDGAME <= _me->phase && _me->phase <= PHASE_MIDGAME);
+            assert(_me->phase <= PHASE_RESOLUTION);
 
             // Interpolates between a midgame and a endgame score, scaled based on game phase.
             v = Value(  (  mg_value (score) * i32(_me->phase)
-                         + eg_value (score) * i32(PHASE_MIDGAME - _me->phase)
+                         + eg_value (score) * i32(PHASE_RESOLUTION - _me->phase)
                                                     // Evaluate scale for the position
                                             * i32(evaluate_scale (eg_value (score)))/SCALE_NORMAL)
-                      / PHASE_MIDGAME);
+                      / (PHASE_RESOLUTION));
 
             if (Trace)
             {
