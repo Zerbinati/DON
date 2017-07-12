@@ -1137,14 +1137,14 @@ namespace Evaluator {
             assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
             assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
 
-            assert(_me->phase <= PHASE_RESOLUTION);
+            assert(_me->phase <= PhaseResolution);
 
-            // Interpolates between a midgame and a endgame score, scaled based on game phase.
-            v = Value(  (  mg_value (score) * i32(_me->phase)
-                         + eg_value (score) * i32(PHASE_RESOLUTION - _me->phase)
-                                                    // Evaluate scale for the position
-                                            * i32(evaluate_scale (eg_value (score)))/SCALE_NORMAL)
-                      / (PHASE_RESOLUTION));
+            // Interpolates between midgame and scaled endgame score.
+            v = Value(  (  mg_value (score) * (_me->phase - 0)
+                         + eg_value (score) * (PhaseResolution - _me->phase)
+                                              // Evaluate scale for the position
+                                            * evaluate_scale (eg_value (score))/SCALE_NORMAL)
+                      / PhaseResolution);
 
             if (Trace)
             {

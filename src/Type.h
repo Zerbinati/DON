@@ -113,7 +113,7 @@ typedef        uint64_t    u64;
 typedef u64 Key;
 typedef u64 Bitboard;
 
-const u16 MaxPlies   = 128; // Maximum Plies
+const u16 MaxPlies = 128; // Maximum Plies
 
 // Preloads the given address in L1/L2 cache.
 // This is a non-blocking function that doesn't stall
@@ -376,13 +376,10 @@ enum Bound : u08
 
 };
 
-enum Phase : u16
+enum Phase : u08
 {
-    // For indexing
     MG    = 0,
     EG    = 1,
-    // For Computing
-    PHASE_RESOLUTION = 1024,
 };
 
 enum Scale : u08

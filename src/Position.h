@@ -13,6 +13,8 @@
 class Position;
 using namespace BitBoard;
 
+const i32 PhaseResolution = 1024;
+
 const Value PieceValues[][MAX_PTYPE] =
 {
     { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
@@ -165,7 +167,7 @@ public:
     bool expeded_castle (Color c, CastleSide cs) const;
 
     i16  move_num () const;
-    Phase phase   () const;
+    i32  phase   () const;
     bool draw (i16 pp) const;
 
     bool see_ge (Move m, Value threshold = VALUE_ZERO) const;
@@ -300,7 +302,7 @@ inline i32 Position::count (Color c, PieceType pt) const
 template<PieceType PT> inline Square Position::square (Color c, i08 index) const
 {
     assert(PT < NONE);
-    assert(squares[c][PT].size () > index);
+    assert(squares[c][PT].size () > size_t(index));
     return squares[c][PT][index];
 }
 
@@ -386,13 +388,13 @@ inline i16  Position::move_num () const
     return i16(std::max ((ply - (BLACK == active ? 1 : 0))/2, 0) + 1);
 }
 // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-inline Phase Position::phase () const
+inline i32 Position::phase () const
 {
-    return Phase(i32(std::min (
-                     std::max (si->non_pawn_material ()
-                        , VALUE_ENDGAME)
-                        , VALUE_MIDGAME) - VALUE_ENDGAME)
-                    * (PHASE_RESOLUTION) / (VALUE_MIDGAME - VALUE_ENDGAME));
+    return i32(std::min (
+               std::max (si->non_pawn_material ()
+                    , VALUE_ENDGAME)
+                    , VALUE_MIDGAME) - VALUE_ENDGAME)
+                * PhaseResolution / (VALUE_MIDGAME - VALUE_ENDGAME);
 }
 // Attackers to the square by color on occupancy.
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const

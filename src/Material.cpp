@@ -10,47 +10,49 @@ namespace Material {
 
     namespace {
 
+        const i32 ImbalanceResolution = 128;
+
         // Polynomial material imbalance parameters
 
         const i32 OwnQuadratic[][NONE] =
         {
             //          Own Pieces
             //  P     N     B     R     Q    BP
-            {    0,    0,    0,    0,    0,   +40 }, // P
-            { +255,   -3,    0,    0,    0,   +32 }, // N
-            { +104,   +4,    0,    0,    0,     0 }, // B     Own Pieces
-            {   -2,  +47, +105, -149,    0,   -26 }, // R
-            {  +24, +122, +137, -134,    0,  -185 }, // Q
-            {    0,    0,    0,    0,    0, +1667 }  // BP
+            {     0,    0,     0,     0,    0,   +320 }, // P
+            { +2040,  -24,     0,     0,    0,   +256 }, // N
+            {  +832,  +32,     0,     0,    0,      0 }, // B     Own Pieces
+            {   -16, +376,  +840, -1192,    0,   -208 }, // R
+            {  +192, +976, +1096, -1072,    0,  -1480 }, // Q
+            {     0,    0,     0,     0,    0, +13336 }  // BP
         };
 
         const i32 OppQuadratic[][NONE] =
         {
             //          Opp Pieces
             //  P     N     B     R     Q    BP
-            {    0,    0,    0,    0,    0,  +36 }, // P
-            {  +63,    0,    0,    0,    0,   +9 }, // N
-            {  +65,  +42,    0,    0,    0,  +59 }, // B     Own Pieces
-            {  +39,  +24,  -24,    0,    0,  +46 }, // R
-            { +100,  -37, +141, +268,    0, +101 }, // Q
-            {    0,    0,    0,    0,    0,    0 }  // BP
+            {    0,     0,     0,     0,    0,  +288 }, // P
+            { +504,     0,     0,     0,    0,  +72 }, // N
+            { +520,  +336,     0,     0,    0, +472 }, // B     Own Pieces
+            { +312,  +192,  -192,     0,    0, +368 }, // R
+            { +800,  -296, +1128, +2144,    0, +808 }, // Q
+            {    0,     0,     0,     0,    0,    0 }  // BP
         };
 
         // PawnsSet[count] contains a bonus/malus indexed by number of pawns
-        const i32 PawnsSet[] = { 24, -32, 107, -51, 117, -9, -126, -21, 31 };
+        const i32 PawnsSet[9] = { +192, -256, +856, -408, +936, -72, -1008, -168, +248 };
 
         // QueenMinors[opp_minor_count] is applied when only one side has a queen.
         // It contains a bonus/malus for the side with the queen.
-        const i32 QueenMinors[] = { +31, -8, -15, -25, -5 };
+        const i32 QueenMinors[5] = { +248, -64, -120, -200, -40 };
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
-        Endgame<KXK>     EvaluateKXK [] = { Endgame<KXK>     (WHITE), Endgame<KXK>     (BLACK) };
+        Endgame<KXK>     ValueKXK    [CLR_NO] = { Endgame<KXK>     (WHITE), Endgame<KXK>     (BLACK) };
 
-        Endgame<KBPsKPs> ScaleKBPsKPs[] = { Endgame<KBPsKPs> (WHITE), Endgame<KBPsKPs> (BLACK) };
-        Endgame<KQKRPs>  ScaleKQKRPs [] = { Endgame<KQKRPs>  (WHITE), Endgame<KQKRPs>  (BLACK) };
-        Endgame<KPsK>    ScaleKPsK   [] = { Endgame<KPsK>    (WHITE), Endgame<KPsK>    (BLACK) };
-        Endgame<KPKP>    ScaleKPKP   [] = { Endgame<KPKP>    (WHITE), Endgame<KPKP>    (BLACK) };
+        Endgame<KBPsKPs> ScaleKBPsKPs[CLR_NO] = { Endgame<KBPsKPs> (WHITE), Endgame<KBPsKPs> (BLACK) };
+        Endgame<KQKRPs>  ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs>  (WHITE), Endgame<KQKRPs>  (BLACK) };
+        Endgame<KPsK>    ScaleKPsK   [CLR_NO] = { Endgame<KPsK>    (WHITE), Endgame<KPsK>    (BLACK) };
+        Endgame<KPKP>    ScaleKPKP   [CLR_NO] = { Endgame<KPKP>    (WHITE), Endgame<KPKP>    (BLACK) };
 
         // Calculates the imbalance by comparing the piece count of each piece type for both colors.
         // NOTE:: King == Bishop Pair
@@ -89,7 +91,7 @@ namespace Material {
                 && 0 == count[Opp][QUEN])
             {
                 i32 minor_count = count[Opp][NIHT] + count[Opp][BSHP];
-                if (minor_count <= 4)
+                if (minor_count < 5)
                 {
                     value += QueenMinors[minor_count];
                 }
@@ -129,7 +131,7 @@ namespace Material {
             if (   pos.si->non_pawn_material ( c) >= VALUE_MG_ROOK
                 && pos.count<NONE> (~c) == 1)
             {
-                e->value_func = &EvaluateKXK[c];
+                e->value_func = &ValueKXK[c];
                 return e;
             }
         }
@@ -225,7 +227,7 @@ namespace Material {
         };
 
         auto value = (  imbalance<WHITE> (piece_count)
-                      - imbalance<BLACK> (piece_count)) / 16;
+                      - imbalance<BLACK> (piece_count)) / ImbalanceResolution;
         e->imbalance = mk_score (value, value);
 
         return e;

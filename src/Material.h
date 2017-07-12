@@ -12,7 +12,7 @@ namespace Material {
     {
     public:
         Key   key;
-        Phase phase;
+        i32   phase;
         Score imbalance;
         Scale scale[CLR_NO];
 

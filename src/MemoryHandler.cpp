@@ -88,7 +88,7 @@ namespace Memory {
 
     }
 
-    void alloc_memory (void *&mem_ref, u64 mem_size, u32 alignment)
+    void alloc_memory (void *&mem_ref, size_t mem_size, u32 alignment)
     {
         PagesUsed = false;
 
@@ -206,7 +206,7 @@ namespace Memory {
         ALIGN_FREE (mem);
     }
 
-    void initialize   ()
+    void initialize ()
     {
 #   if defined(_WIN32)
         setup_privilege (SE_LOCK_MEMORY_NAME, true);
