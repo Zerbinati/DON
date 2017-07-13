@@ -107,36 +107,35 @@ namespace Polyglot {
     class Book
         : public std::fstream
     {
-    private:
-        std::string _book_fn = "";
-        openmode    _mode    = openmode(0);
-        size_t      _size    = 0U;
-
     public:
+
+        std::string book_fn = "";
+        std::ios_base::openmode mode;
+        size_t size;
+
         static const u08 HeaderSize;
 
-        Book () = default;
-        Book (const std::string &book_fn, openmode mode);
+        Book ();
+        Book (const std::string &bk_fn, std::ios_base::openmode m);
         Book (const Book&) = delete;
         Book& operator= (const Book&) = delete;
 
         ~Book ();
 
-        std::string filename () const { return _book_fn; }
-
-        size_t size ()
+        size_t get_size ()
         {
-            if (_size != 0U) return _size;
-
-            auto cur_pos = tellg ();
-            seekg (0L, ios_base::end);
-            _size = size_t(tellg ());
-            seekg (cur_pos, ios_base::beg);
-            clear ();
-            return _size;
+            if (size == size_t(0))
+            {
+                auto cur_pos = tellg ();
+                seekg (0L, ios_base::end);
+                size = size_t(tellg ());
+                seekg (cur_pos, ios_base::beg);
+                clear ();
+            }
+            return size;
         }
 
-        bool open (const std::string &book_fn, openmode mode);
+        bool open (const std::string &bk_fn, std::ios_base::openmode m);
         void close ();
 
         template<typename T>
@@ -144,7 +143,7 @@ namespace Polyglot {
         template<typename T>
         Book& operator<< (const T &t);
 
-        size_t find_index (const Key key);
+        size_t find_index (const Key posi_key);
         size_t find_index (const Position &pos);
         size_t find_index (const std::string &fen, bool c960 = false);
 

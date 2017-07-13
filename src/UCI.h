@@ -15,26 +15,26 @@ namespace UCI {
     {
     private:
         typedef void (*OnChange) ();
-
-        u08 _index = 0;
+       
         std::string
-              _type  = ""
-            , _default_value = ""
-            , _current_value = "";
-        i32   _minimum = 0
-            , _maximum = 0;
+              type
+            , default_value
+            , current_value;
+        i32   minimum
+            , maximum;
 
-        OnChange _on_change = nullptr;
+        OnChange on_change = nullptr;
 
     public:
-        explicit Option (OnChange on_change = nullptr);
-        Option (const bool  val, OnChange on_change = nullptr);
-        Option (const char *val, OnChange on_change = nullptr);
-        Option (const std::string &val, OnChange on_change = nullptr);
-        Option (const i32 val, i32 minimum, i32 maximum, OnChange on_change = nullptr);
-        Option (const Option&) = delete;
+        
+        u08 index;
 
-        u08 index () const { return _index; }
+        explicit Option (OnChange on_cng = nullptr);
+        Option (const bool  val, OnChange on_cng = nullptr);
+        Option (const char *val, OnChange on_cng = nullptr);
+        Option (const std::string &val, OnChange on_cng = nullptr);
+        Option (const i32 val, i32 min, i32 max, OnChange on_cng = nullptr);
+        Option (const Option&) = delete;
 
         explicit operator bool () const;
         explicit operator i32  () const;
@@ -76,7 +76,7 @@ namespace UCI {
             for (const auto &pair : optmap)
             {
                 const Option &option = pair.second;
-                if (idx == option.index ())
+                if (idx == option.index)
                 {
                     os  << "option name "
                         << pair.first

@@ -235,18 +235,18 @@ public:
 class MovePicker
 {
 private:
-    const Position &_pos;
-    const Stack *const _ss;
+    const Position &pos;
+    const Stack *const ss;
 
-    Move _tt_move;
-    Square _recap_sq;
-    Value _threshold;
-    i16 _depth;
-    u08 _stage;
-    u08 _index;
-    ValMoves _moves;
-    Moves _killer_moves
-        , _capture_moves;
+    Move tt_move;
+    Square recap_sq;
+    Value threshold;
+    i16 depth;
+    u08 stage;
+    u08 index;
+    ValMoves moves;
+    Moves killer_moves
+        , capture_moves;
 
     template<GenType GT>
     void value ();

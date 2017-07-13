@@ -9,22 +9,22 @@ namespace std {
     {
 
     private:
-        int _width;
-        int _prec;
+        int width;
+        int prec;
 
     public:
 
-        width_prec (int width, int prec)
-            : _width (width)
-            , _prec (prec)
+        width_prec (int w, int p)
+            : width (w)
+            , prec (p)
         {}
 
         template<typename CharT, typename Traits>
         basic_ostream<CharT, Traits>& operator() (basic_ostream<CharT, Traits> &os) const
         {
             os.setf (ios_base::fixed, ios_base::floatfield);
-            os.width (_width);
-            os.precision (_prec);
+            os.width (width);
+            os.precision (prec);
             return os;
         }
 
@@ -50,20 +50,20 @@ namespace std {
 
     private:
 
-        basic_ostream<C>& (*_fp_manip) (basic_ostream<C>&, T);
+        basic_ostream<C>& (*manip_fp) (basic_ostream<C>&, T);
         
-        T _val;
+        T value;
 
     public:
-        manip_infra (basic_ostream<C>& (*fp_manip) (basic_ostream<C>&, T), T val)
-            : _fp_manip (fp_manip)
-            , _val (val)
+        manip_infra (basic_ostream<C>& (*man_fp) (basic_ostream<C>&, T), T val)
+            : manip_fp (man_fp)
+            , value (val)
         {}
 
         void operator() (basic_ostream<C> &os) const
         {
             // Invoke the function pointer with the stream and value
-            _fp_manip (os, _val);
+            manip_fp (os, value);
         }  
 
     };

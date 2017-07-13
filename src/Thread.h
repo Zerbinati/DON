@@ -52,8 +52,8 @@ public:
 class MoveManager
 {
 private:
-    Key  _posi_key;
-    Move _pv[3];
+    Key  exp_posi_key;
+    Move pv[3];
 
 public:
     // Keep track of how many times in a row the 3rd ply remains stable
@@ -65,24 +65,21 @@ public:
 
     Move easy_move (Key posi_key) const
     {
-        return
-            posi_key == _posi_key ?
-                _pv[2] :
-                MOVE_NONE;
+        return posi_key == exp_posi_key ? pv[2] : MOVE_NONE;
     }
 
     void clear ()
     {
-        _posi_key = 0;
-        std::fill_n (_pv, 3, MOVE_NONE);
+        exp_posi_key = 0;
+        std::fill_n (pv, 3, MOVE_NONE);
         stable_count = 0;
     }
 
-    void update (Position &pos, const Moves &pv)
+    void update (Position &pos, const Moves &new_pv)
     {
-        assert(pv.size () >= 3);
+        assert(new_pv.size () >= 3);
 
-        if (pv[2] == _pv[2])
+        if (new_pv[2] == pv[2])
         {
             ++stable_count;
         }
@@ -91,11 +88,11 @@ public:
             stable_count = 0;
         }
 
-        if (!std::equal (pv.begin (), pv.begin () + 3, _pv))
+        if (!std::equal (new_pv.begin (), new_pv.begin () + 3, pv))
         {
-            std::copy (pv.begin (), pv.begin () + 3, _pv);
+            std::copy (new_pv.begin (), new_pv.begin () + 3, pv);
 
-            // Update posi key
+            // Update expected posi key
             u08 ply = 0;
             StateInfo si[2];
             do
@@ -103,7 +100,7 @@ public:
                 pos.do_move (pv[ply], si[ply]);
             } while (2 > ++ply);
 
-            _posi_key = pos.si->posi_key;
+            exp_posi_key = pos.si->posi_key;
             
             while (0 != ply)
             {
@@ -157,11 +154,11 @@ namespace Threading {
     class Thread
     {
     private:
-        std::thread _native_thread;
-        Mutex _mutex;
-        ConditionVariable _sleep_condition;
+        std::thread native_thread;
+        Mutex mutex;
+        ConditionVariable sleep_condition;
 
-        bool  _alive;
+        bool  alive;
 
     public:
         u08   index
@@ -199,24 +196,24 @@ namespace Threading {
         // Wakes up the thread that will start the search
         void start_searching (bool resume = false)
         {
-            std::unique_lock<Mutex> lk (_mutex);
+            std::unique_lock<Mutex> lk (mutex);
             if (!resume)
             {
                 searching = true;
             }
-            _sleep_condition.notify_one ();
+            sleep_condition.notify_one ();
         }
         // Waits on sleep condition until 'condition' turns true.
         void wait_until (const std::atomic<bool> &condition)
         {
-            std::unique_lock<Mutex> lk (_mutex);
-            _sleep_condition.wait (lk, [&] { return  bool(condition); });
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.wait (lk, [&] { return  bool(condition); });
         }
         // Waits on sleep condition until 'condition' turns false.
         void wait_while (const std::atomic<bool> &condition)
         {
-            std::unique_lock<Mutex> lk (_mutex);
-            _sleep_condition.wait (lk, [&] { return !bool(condition); });
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.wait (lk, [&] { return !bool(condition); });
         }
 
         void idle_loop ();

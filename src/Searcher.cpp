@@ -89,105 +89,105 @@ namespace {
 // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
 // and about how important good move ordering is at the current node.
 
-MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss)
-    : _pos (pos)
-    , _ss (ss)
-    , _tt_move (ttm)
-    , _recap_sq (SQ_NO)
-    , _threshold (VALUE_ZERO)
-    , _depth (0)
-    , _index (0)
+MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s)
+    : pos (p)
+    , ss (s)
+    , tt_move (ttm)
+    , recap_sq (SQ_NO)
+    , threshold (VALUE_ZERO)
+    , depth (0)
+    , index (0)
 {
-    assert(MOVE_NONE == ttm
-        || (pos.pseudo_legal (ttm)
-         && pos.legal (ttm)));
+    assert(MOVE_NONE == tt_move
+        || (pos.pseudo_legal (tt_move)
+         && pos.legal (tt_move)));
 
-    if (0 == _pos.si->checkers)
+    if (0 == pos.si->checkers)
     {
-        _stage = Stage::NATURAL_TT;
+        stage = Stage::NATURAL_TT;
 
-        _killer_moves.assign (_ss->killer_moves, _ss->killer_moves + MaxKillers);
+        killer_moves.assign (ss->killer_moves, ss->killer_moves + MaxKillers);
     }
     else
     {
-        _stage = Stage::EVASION_TT;
+        stage = Stage::EVASION_TT;
     }
     
-    if (MOVE_NONE == _tt_move)
+    if (MOVE_NONE == tt_move)
     {
-        ++_stage;
+        ++stage;
     }
 }
-MovePicker::MovePicker (const Position &pos, Move ttm, const Stack *const &ss, i16 d)
-    : _pos (pos)
-    , _ss (ss)
-    , _tt_move (ttm)
-    , _recap_sq (SQ_NO)
-    , _threshold (VALUE_ZERO)
-    , _depth (d)
-    , _index (0)
+MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s, i16 d)
+    : pos (p)
+    , ss (s)
+    , tt_move (ttm)
+    , recap_sq (SQ_NO)
+    , threshold (VALUE_ZERO)
+    , depth (d)
+    , index (0)
 {
-    assert(d <= 0);
-    assert(MOVE_NONE == ttm
-        || (pos.pseudo_legal (ttm)
-         && pos.legal (ttm)));
+    assert(depth <= 0);
+    assert(MOVE_NONE == tt_move
+        || (pos.pseudo_legal (tt_move)
+         && pos.legal (tt_move)));
 
-    if (0 != _pos.si->checkers)
+    if (0 != pos.si->checkers)
     {
-        _stage = Stage::EVASION_TT;
+        stage = Stage::EVASION_TT;
     }
     else
-    if (_depth >= 0)
+    if (depth >= 0)
     {
-        _stage = Stage::Q_CHECK_TT;
+        stage = Stage::Q_CHECK_TT;
     }
     else
-    if (_depth > -5)
+    if (depth > -5)
     {
-        _stage = Stage::Q_NO_CHECK_TT;
+        stage = Stage::Q_NO_CHECK_TT;
     }
     else
     {
-        _stage = Stage::Q_RECAPTURE_TT;
-        _recap_sq = dst_sq ((_ss-1)->played_move);
-        if (   MOVE_NONE != _tt_move
-            && !(   _pos.capture (_tt_move)
-                 && dst_sq (_tt_move) == _recap_sq))
+        stage = Stage::Q_RECAPTURE_TT;
+        recap_sq = dst_sq ((ss-1)->played_move);
+        if (   MOVE_NONE != tt_move
+            && !(   pos.capture (tt_move)
+                 && dst_sq (tt_move) == recap_sq))
         {
-            _tt_move = MOVE_NONE;
+            tt_move = MOVE_NONE;
         }
     }
-    if (MOVE_NONE == _tt_move)
+    if (MOVE_NONE == tt_move)
     {
-        ++_stage;
+        ++stage;
     }
 }
-MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
-    : _pos (pos)
-    , _ss (nullptr)
-    , _tt_move (ttm)
-    , _recap_sq (SQ_NO)
-    , _threshold (thr)
-    , _depth (0)
-    , _index (0)
+MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
+    : pos (p)
+    , ss (nullptr)
+    , tt_move (ttm)
+    , recap_sq (SQ_NO)
+    , threshold (thr)
+    , depth (0)
+    , index (0)
 {
     assert(0 == pos.si->checkers);
-    assert(MOVE_NONE == ttm
-        || (pos.pseudo_legal (ttm)
-         && pos.legal (ttm)));
+    assert(MOVE_NONE == tt_move
+        || (pos.pseudo_legal (tt_move)
+         && pos.legal (tt_move)));
 
-    _stage = Stage::PROBCUT_CAPTURE_TT;
+    stage = Stage::PROBCUT_CAPTURE_TT;
 
     // In ProbCut we generate captures with SEE greater than or equal to the given threshold
-    if (   MOVE_NONE != _tt_move
-        && !(   _pos.capture (_tt_move)
-             && _pos.see_ge (_tt_move, _threshold)))
+    if (   MOVE_NONE != tt_move
+        && !(   pos.capture (tt_move)
+             && pos.see_ge (tt_move, threshold)))
     {
-        _tt_move = MOVE_NONE;
+        tt_move = MOVE_NONE;
     }
-    if (MOVE_NONE == _tt_move)
+    if (MOVE_NONE == tt_move)
     {
-        ++_stage;
+        ++stage;
     }
 }
 
@@ -202,59 +202,59 @@ MovePicker::MovePicker (const Position &pos, Move ttm, Value thr)
 // saving some SEE calls in case of a cutoff.
 template<> void MovePicker::value<GenType::CAPTURE> ()
 {
-    for (auto &vm : _moves)
+    for (auto &vm : moves)
     {
-        assert(_pos.pseudo_legal (vm.move)
-            && _pos.legal (vm.move)
-            && _pos.capture_or_promotion (vm.move));
+        assert(pos.pseudo_legal (vm.move)
+            && pos.legal (vm.move)
+            && pos.capture_or_promotion (vm.move));
 
         vm.value =
-              PieceValues[MG][_pos.cap_type (vm.move)]
-            - ptype (_pos[org_sq (vm.move)])
-            - 200 * rel_rank (_pos.active, dst_sq (vm.move));
+              PieceValues[MG][pos.cap_type (vm.move)]
+            - ptype (pos[org_sq (vm.move)])
+            - 200 * rel_rank (pos.active, dst_sq (vm.move));
     }
 }
 template<> void MovePicker::value<GenType::QUIET> ()
 {
-    const auto &history = _pos.thread->history;
+    const auto &history = pos.thread->history;
 
-    const auto &smh1 = *(_ss-1)->m_history;
-    const auto &smh2 = *(_ss-2)->m_history;
-    const auto &smh4 = *(_ss-4)->m_history;
+    const auto &smh1 = *(ss-1)->m_history;
+    const auto &smh2 = *(ss-2)->m_history;
+    const auto &smh4 = *(ss-4)->m_history;
 
-    for (auto &vm : _moves)
+    for (auto &vm : moves)
     {
-        assert(_pos.pseudo_legal (vm.move)
-            && _pos.legal (vm.move));
+        assert(pos.pseudo_legal (vm.move)
+            && pos.legal (vm.move));
 
         vm.value =
-              history[_pos.active][move_pp (vm.move)]
-            + smh1[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
-            + smh2[_pos[org_sq (vm.move)]][dst_sq (vm.move)]
-            + smh4[_pos[org_sq (vm.move)]][dst_sq (vm.move)];
+              history[pos.active][move_pp (vm.move)]
+            + smh1[pos[org_sq (vm.move)]][dst_sq (vm.move)]
+            + smh2[pos[org_sq (vm.move)]][dst_sq (vm.move)]
+            + smh4[pos[org_sq (vm.move)]][dst_sq (vm.move)];
     }
 }
 // First captures ordered by MVV/LVA, then non-captures ordered by stats heuristics
 template<> void MovePicker::value<GenType::EVASION> ()
 {
-    const auto &history = _pos.thread->history;
+    const auto &history = pos.thread->history;
 
-    for (auto &vm : _moves)
+    for (auto &vm : moves)
     {
-        assert(_pos.pseudo_legal (vm.move)
-            && _pos.legal (vm.move));
+        assert(pos.pseudo_legal (vm.move)
+            && pos.legal (vm.move));
         
-        if (_pos.capture (vm.move))
+        if (pos.capture (vm.move))
         {
             vm.value =
-                  PieceValues[MG][_pos.cap_type (vm.move)]
-                - ptype (_pos[org_sq (vm.move)])
+                  PieceValues[MG][pos.cap_type (vm.move)]
+                - ptype (pos[org_sq (vm.move)])
                 + MaxValue;
         }
         else
         {
             vm.value =
-                  history[_pos.active][move_pp (vm.move)];
+                  history[pos.active][move_pp (vm.move)];
         }
     }
 }
@@ -263,15 +263,15 @@ template<> void MovePicker::value<GenType::EVASION> ()
 // it is faster than sorting all the moves in advance when there are few moves (e.g. the possible captures).
 ValMove& MovePicker::swap_best_move (u08 i)
 {
-    auto itr = _moves.begin () + i;
-    std::swap (*itr, *std::max_element (itr, _moves.end ()));
+    auto itr = moves.begin () + i;
+    std::swap (*itr, *std::max_element (itr, moves.end ()));
     return *itr;
 }
 // Returns a new legal move every time it is called, until there are no more moves left.
 // It picks the move with the biggest value from a list of generated moves.
 Move MovePicker::next_move (bool skip_quiets)
 {
-    switch (_stage)
+    switch (stage)
     {
 
     case Stage::NATURAL_TT:
@@ -280,86 +280,86 @@ Move MovePicker::next_move (bool skip_quiets)
     case Stage::Q_CHECK_TT:
     case Stage::Q_NO_CHECK_TT:
     case Stage::Q_RECAPTURE_TT:
-        ++_stage;
-        return _tt_move;
+        ++stage;
+        return tt_move;
         break;
 
     case Stage::NATURAL:
-        ++_stage;
-        generate<GenType::CAPTURE> (_moves, _pos);
-        filter_illegal (_moves, _pos);
-        if (MOVE_NONE != _tt_move)
+        ++stage;
+        generate<GenType::CAPTURE> (moves, pos);
+        filter_illegal (moves, pos);
+        if (MOVE_NONE != tt_move)
         {
-            _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        _index = 0;
-        if (1 < _moves.size ())
+        index = 0;
+        if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
         }
         /* fallthrough */
     case Stage::GOOD_CAPTURE:
-        while (_index < _moves.size ())
+        while (index < moves.size ())
         {
-            auto &vm = swap_best_move (_index++);
-            if (_pos.see_ge (vm.move))
+            auto &vm = swap_best_move (index++);
+            if (pos.see_ge (vm.move))
             {
                 return vm.move;
             }
             // Losing capture, add it to the capture moves
-            _capture_moves.push_back (vm.move);
+            capture_moves.push_back (vm.move);
         }
-        ++_stage;
-        generate<GenType::QUIET> (_moves, _pos);
-        filter_illegal (_moves, _pos);
-        if (MOVE_NONE != _tt_move)
+        ++stage;
+        generate<GenType::QUIET> (moves, pos);
+        filter_illegal (moves, pos);
+        if (MOVE_NONE != tt_move)
         {
-            _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        _index = 0;
-        if (1 < _moves.size ())
+        index = 0;
+        if (1 < moves.size ())
         {
             value<GenType::QUIET> ();
         }
         // Killers to top of quiet move
         {
-            auto m = (_ss-1)->played_move;
+            auto m = (ss-1)->played_move;
             if (_ok (m))
             {
-                auto cm = _pos.thread->counter_moves[_pos[fix_dst_sq (m)]][dst_sq (m)];
+                auto cm = pos.thread->counter_moves[pos[fix_dst_sq (m)]][dst_sq (m)];
                 if (   MOVE_NONE != cm
-                    && _tt_move != cm
-                    && std::find (_killer_moves.begin (), _killer_moves.end (), cm) == _killer_moves.end ())
+                    && tt_move != cm
+                    && std::find (killer_moves.begin (), killer_moves.end (), cm) == killer_moves.end ())
                 {
-                    _killer_moves.push_back (cm);
+                    killer_moves.push_back (cm);
                 }
             }
-            _killer_moves.erase (std::remove_if (_killer_moves.begin (),
-                                                 _killer_moves.end (),
-                                                 [&](Move mm)
-                                                 {
-                                                     return mm == MOVE_NONE
-                                                         || mm == _tt_move;
-                                                 }),
-                                 _killer_moves.end ());
+            killer_moves.erase (std::remove_if (killer_moves.begin (),
+                                                killer_moves.end (),
+                                                [&](Move mm)
+                                                {
+                                                    return mm == MOVE_NONE
+                                                        || mm == tt_move;
+                                                }),
+                                 killer_moves.end ());
 
             i32 k = 0;
-            for (auto km : _killer_moves)
+            for (auto km : killer_moves)
             {
-                auto itr = std::find (_moves.begin (), _moves.end (), km);
-                if (itr != _moves.end ())
+                auto itr = std::find (moves.begin (), moves.end (), km);
+                if (itr != moves.end ())
                 {
-                    assert(_pos.pseudo_legal (km)
-                        && _pos.legal (km));
+                    assert(pos.pseudo_legal (km)
+                        && pos.legal (km));
                     itr->value = MaxValue - k++;
                 }
             }
         }
         /* fallthrough */
     case Stage::QUIET:
-        while (_index < _moves.size ())
+        while (index < moves.size ())
         {
-            auto &vm = swap_best_move (_index++);
+            auto &vm = swap_best_move (index++);
             if (   skip_quiets
                 && vm.value < VALUE_ZERO)
             {
@@ -367,57 +367,57 @@ Move MovePicker::next_move (bool skip_quiets)
             }
             return vm.move;
         }
-        ++_stage;
-        _index = 0;
+        ++stage;
+        index = 0;
         /* fallthrough */
     case Stage::BAD_CAPTURE:
-        while (_index < _capture_moves.size ())
+        while (index < capture_moves.size ())
         {
-            return _capture_moves[_index++];
+            return capture_moves[index++];
         }
         break;
 
     case Stage::EVASION:
-        assert(0 != _pos.si->checkers);
-        ++_stage;
-        generate<GenType::EVASION> (_moves, _pos);
-        filter_illegal (_moves, _pos);
-        if (MOVE_NONE != _tt_move)
+        assert(0 != pos.si->checkers);
+        ++stage;
+        generate<GenType::EVASION> (moves, pos);
+        filter_illegal (moves, pos);
+        if (MOVE_NONE != tt_move)
         {
-            _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        _index = 0;
-        if (1 < _moves.size ())
+        index = 0;
+        if (1 < moves.size ())
         {
             value<GenType::EVASION> ();
         }
         /* fallthrough */
     case Stage::ALL_EVASION:
-        while (_index < _moves.size ())
+        while (index < moves.size ())
         {
-            return swap_best_move (_index++).move;
+            return swap_best_move (index++).move;
         }
         break;
 
     case Stage::PROBCUT_CAPTURE:
-        ++_stage;
-        generate<GenType::CAPTURE> (_moves, _pos);
-        filter_illegal (_moves, _pos);
-        if (MOVE_NONE != _tt_move)
+        ++stage;
+        generate<GenType::CAPTURE> (moves, pos);
+        filter_illegal (moves, pos);
+        if (MOVE_NONE != tt_move)
         {
-            _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        _index = 0;
-        if (1 < _moves.size ())
+        index = 0;
+        if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
         }
         /* fallthrough */
     case Stage::ALL_PROBCUT_CAPTURE:
-        while (_index < _moves.size ())
+        while (index < moves.size ())
         {
-            auto &vm = swap_best_move (_index++);
-            if (_pos.see_ge (vm.move, _threshold))
+            auto &vm = swap_best_move (index++);
+            if (pos.see_ge (vm.move, threshold))
             {
                 return vm.move;
             }
@@ -425,85 +425,85 @@ Move MovePicker::next_move (bool skip_quiets)
         break;
 
     case Stage::Q_CHECK:
-        ++_stage;
-        generate<GenType::CAPTURE> (_moves, _pos);
-        filter_illegal (_moves, _pos);
-        if (MOVE_NONE != _tt_move)
+        ++stage;
+        generate<GenType::CAPTURE> (moves, pos);
+        filter_illegal (moves, pos);
+        if (MOVE_NONE != tt_move)
         {
-            _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        _index = 0;
-        if (1 < _moves.size ())
+        index = 0;
+        if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
         }
         /* fallthrough */
     case Stage::Q_CHECK_CAPTURE:
-        while (_index < _moves.size ())
+        while (index < moves.size ())
         {
-            return swap_best_move (_index++).move;
+            return swap_best_move (index++).move;
         }
-        ++_stage;
-        generate<GenType::QUIET_CHECK> (_moves, _pos);
-        filter_illegal (_moves, _pos);
-        if (MOVE_NONE != _tt_move)
+        ++stage;
+        generate<GenType::QUIET_CHECK> (moves, pos);
+        filter_illegal (moves, pos);
+        if (MOVE_NONE != tt_move)
         {
-            _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        _index = 0;
-        if (1 < _moves.size ())
+        index = 0;
+        if (1 < moves.size ())
         {
             value<GenType::QUIET> ();
         }
         /* fallthrough */
     case Stage::Q_CHECK_QUIET:
-        while (_index < _moves.size ())
+        while (index < moves.size ())
         {
-            return swap_best_move (_index++).move;
+            return swap_best_move (index++).move;
         }
         break;
 
     case Stage::Q_NO_CHECK:
-        ++_stage;
-        generate<GenType::CAPTURE> (_moves, _pos);
-        filter_illegal (_moves, _pos);
-        if (MOVE_NONE != _tt_move)
+        ++stage;
+        generate<GenType::CAPTURE> (moves, pos);
+        filter_illegal (moves, pos);
+        if (MOVE_NONE != tt_move)
         {
-            _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        _index = 0;
-        if (1 < _moves.size ())
+        index = 0;
+        if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
         }
         /* fallthrough */
     case Stage::Q_NO_CHECK_CAPTURE:
-        while (_index < _moves.size ())
+        while (index < moves.size ())
         {
-            return swap_best_move (_index++).move;
+            return swap_best_move (index++).move;
         }
         break;
 
     case Stage::Q_RECAPTURE:
-        ++_stage;
-        generate<GenType::CAPTURE> (_moves, _pos);
-        filter_illegal (_moves, _pos);
-        if (MOVE_NONE != _tt_move)
+        ++stage;
+        generate<GenType::CAPTURE> (moves, pos);
+        filter_illegal (moves, pos);
+        if (MOVE_NONE != tt_move)
         {
-            _moves.erase (std::remove (_moves.begin (), _moves.end (), _tt_move), _moves.end ());
+            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        _index = 0;
-        if (1 < _moves.size ())
+        index = 0;
+        if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
         }
         /* fallthrough */
     case Stage::Q_ALL_RECAPTURE:
-        assert(SQ_NO != _recap_sq);
-        while (_index < _moves.size ())
+        assert(SQ_NO != recap_sq);
+        while (index < moves.size ())
         {
-            auto &vm = swap_best_move (_index++);
-            if (dst_sq (vm.move) == _recap_sq)
+            auto &vm = swap_best_move (index++);
+            if (dst_sq (vm.move) == recap_sq)
             {
                 return vm.move;
             }

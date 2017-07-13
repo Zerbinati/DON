@@ -16,10 +16,10 @@ namespace Notation {
         // Ambiguity
         enum Ambiguity : u08
         {
-            NONE,
-            RANK,
-            FILE,
-            SQUARE,
+            AMB_NONE,
+            AMB_RANK,
+            AMB_FILE,
+            AMB_SQUARE,
         };
 
         // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
@@ -56,11 +56,11 @@ namespace Notation {
             }
             if (0 != amb)
             {
-                if (0 == (amb & file_bb (org))) return Ambiguity::RANK;
-                if (0 == (amb & rank_bb (org))) return Ambiguity::FILE;
-                return Ambiguity::SQUARE;
+                if (0 == (amb & file_bb (org))) return Ambiguity::AMB_RANK;
+                if (0 == (amb & rank_bb (org))) return Ambiguity::AMB_FILE;
+                return Ambiguity::AMB_SQUARE;
             }
-            return Ambiguity::NONE;
+            return Ambiguity::AMB_NONE;
         }
 
         // Value to string
@@ -166,11 +166,11 @@ namespace Notation {
                     // that can reach 'dst' with a legal move.
                     switch (ambiguity (m, pos))
                     {
-                    case Ambiguity::NONE  :                               break;
-                    case Ambiguity::RANK  : san += to_char (_file (org)); break;
-                    case Ambiguity::FILE  : san += to_char (_rank (org)); break;
-                    case Ambiguity::SQUARE: san += to_string (org);       break;
-                    default:                assert(false);                break;
+                    case Ambiguity::AMB_NONE  :                               break;
+                    case Ambiguity::AMB_RANK  : san += to_char (_file (org)); break;
+                    case Ambiguity::AMB_FILE  : san += to_char (_rank (org)); break;
+                    case Ambiguity::AMB_SQUARE: san += to_string (org);       break;
+                    default:                assert(false);                    break;
                     }
                 }
             }

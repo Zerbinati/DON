@@ -39,12 +39,12 @@ namespace Transposition {
     struct Entry
     {
     private:
-        u16 _key16;
-        u16 _move;
-        i16 _value;
-        i16 _eval;
-        i08 _depth;
-        u08 _gen_bnd;
+        u16 k16;
+        u16 m16;
+        i16 v16;
+        i16 e16;
+        i08 d08;
+        u08 gb08;
 
         friend class Table;
 
@@ -52,22 +52,22 @@ namespace Transposition {
         // "Generation" variable distinguish transposition table entries from different searches.
         static u08 Generation;
 
-        //u16   key16 () const { return u16  (_key16); }
-        Move  move  () const { return Move (_move);  }
-        Value value () const { return Value(_value); }
-        Value eval  () const { return Value(_eval);  }
-        i16   depth () const { return i16  (_depth); }
-        Bound bound () const { return Bound(_gen_bnd & 0x03); }
-        //u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
+        //u16   key16 () const { return u16  (k16); }
+        Move  move  () const { return Move (m16);  }
+        Value value () const { return Value(v16); }
+        Value eval  () const { return Value(e16);  }
+        i16   depth () const { return i16  (d08); }
+        Bound bound () const { return Bound(gb08 & 0x03); }
+        //u08   gen   () const { return u08  (gb08 & 0xFC); }
 
-        bool alive () const { return (_gen_bnd & 0xFC) == Generation; }
+        bool alive () const { return (gb08 & 0xFC) == Generation; }
         // The worth of an entry is calculated as its depth minus 8 times its relative age.
         // Due to packed storage format for generation and its cyclic nature
         // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
         // to calculate the entry age correctly even after generation overflows into the next cycle.
-        u08  worth () const { return u08(_depth - 2*((0x103 + Generation - _gen_bnd) & 0xFC)); }
+        u08  worth () const { return u08(d08 - 2*((0x103 + Generation - gb08) & 0xFC)); }
 
-        void refresh () { _gen_bnd = u08(Generation + (_gen_bnd & 0x03)); }
+        void refresh () { gb08 = u08(Generation + (gb08 & 0x03)); }
 
         void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
         {
@@ -75,22 +75,22 @@ namespace Transposition {
             assert(0 != key16);
 
             // Preserve more valuable entries
-            if (   key16 != _key16
-                || d > _depth - 4
-                //|| Generation != (_gen_bnd & 0xFC) // Matching non-zero keys are already refreshed by probe()
+            if (   key16 != k16
+                || d > d08 - 4
+                //|| Generation != (gb08 & 0xFC) // Matching non-zero keys are already refreshed by probe()
                 || b == BOUND_EXACT)
             {
-                _value      = i16(v);
-                _eval       = i16(e);
-                _depth      = i08(d);
-                _gen_bnd    = u08(Generation + b);
+                v16  = i16(v);
+                e16  = i16(e);
+                d08  = i08(d);
+                gb08 = u08(Generation + b);
             }
-            if (   key16 != _key16
+            if (   key16 != k16
                 || (   m != MOVE_NONE
-                    && m != _move))
+                    && m != m16))
             {
-                _key16      = key16;
-                _move       = u16(m);
+                k16  = key16;
+                m16  = u16(m);
             }
         }
     };
@@ -118,12 +118,8 @@ namespace Transposition {
     class Table
     {
     private:
-        void    *_mem           = nullptr;
-        Cluster *_clusters      = nullptr;
-        size_t   _cluster_count = 0;
-        size_t   _cluster_mask  = 0;
-
         void alloc_aligned_memory (size_t mem_size, u32 alignment);
+
         void free_aligned_memory ();
 
     public:
@@ -141,9 +137,20 @@ namespace Transposition {
 
         static const u32 BufferSize = 0x10000;
 
-        bool retain_hash = false;
+        void *mem;
+        Cluster *clusters;
+        size_t cluster_count;
+        size_t cluster_mask;
+        bool   retain_hash;
 
-        Table () = default;
+        Table ()
+            : mem (nullptr)
+            , clusters (nullptr)
+            , cluster_count (0)
+            , cluster_mask (0)
+            , retain_hash (false)
+        {}
+
         Table (const Table&) = delete;
         Table& operator= (const Table&) = delete;
         
@@ -152,29 +159,24 @@ namespace Transposition {
             free_aligned_memory ();
         }
 
-        size_t cluster_count () const
-        {
-            return _cluster_count;
-        }
-
         size_t entry_count () const
         {
-            return _cluster_count * Cluster::EntryCount;
+            return cluster_count * Cluster::EntryCount;
         }
 
         // Returns hash size in MB
         u32 size () const
         {
-            return u32((_cluster_count * sizeof (Cluster)) >> 20);
+            return u32((cluster_count * sizeof (Cluster)) >> 20);
         }
 
         // Reset the entire transposition table with zeroes.
         void clear ()
         {
             if (   !retain_hash
-                && nullptr != _clusters)
+                && nullptr != clusters)
             {
-                std::memset (_clusters, 0x00, _cluster_count * sizeof (Cluster));
+                std::memset (clusters, 0x00, cluster_count * sizeof (Cluster));
                 Entry::Generation = 0;
                 sync_cout << "info string Hash cleared" << sync_endl;
             }
@@ -184,7 +186,7 @@ namespace Transposition {
         // The lower order bits of the key are used to get the index of the cluster inside the table.
         Entry* cluster_entry (Key key) const
         {
-            return _clusters[key & _cluster_mask].entries;
+            return clusters[key & cluster_mask].entries;
         }
 
         u32 resize (u32 mem_size, bool force = false);
@@ -192,7 +194,7 @@ namespace Transposition {
 
         void auto_resize (u32 mem_size, bool force = false);
 
-        Entry* probe (Key key, bool &tt_hit) const;
+        Entry* probe (Key posi_key, bool &tt_hit) const;
 
         u32 hash_full () const;
 
@@ -210,10 +212,10 @@ namespace Transposition {
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
             os.write (reinterpret_cast<const CharT*> (&Entry::Generation), sizeof (Entry::Generation));
-            os.write (reinterpret_cast<const CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
-            for (u32 i = 0; i < tt._cluster_count / BufferSize; ++i)
+            os.write (reinterpret_cast<const CharT*> (&tt.cluster_count), sizeof (tt.cluster_count));
+            for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
             {
-                os.write (reinterpret_cast<const CharT*> (tt._clusters+i*BufferSize), sizeof (Cluster)*BufferSize);
+                os.write (reinterpret_cast<const CharT*> (tt.clusters+i*BufferSize), sizeof (Cluster)*BufferSize);
             }
             return os;
         }
@@ -230,12 +232,12 @@ namespace Transposition {
             is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
             is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
             is.read (reinterpret_cast<CharT*> (&generation), sizeof (generation));
-            is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
+            is.read (reinterpret_cast<CharT*> (&tt.cluster_count), sizeof (tt.cluster_count));
             tt.resize (mem_size);
             Entry::Generation = generation;
-            for (u32 i = 0; i < tt._cluster_count / BufferSize; ++i)
+            for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
             {
-                is.read (reinterpret_cast<CharT*> (tt._clusters+i*BufferSize), sizeof (Cluster)*BufferSize);
+                is.read (reinterpret_cast<CharT*> (tt.clusters+i*BufferSize), sizeof (Cluster)*BufferSize);
             }
             return is;
         }

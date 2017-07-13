@@ -155,7 +155,7 @@ namespace EndGame {
     }
 
     // Mate with KBN vs K. This is similar to KX vs K, but have to drive the
-    // defending king towards a corner square of the right color.
+    // defending king towards a corner square of the bishop color.
     template<> Value Endgame<KBNK>::operator() (const Position &pos) const
     {
         assert(verify_material (pos, strong_color, VALUE_MG_NIHT + VALUE_MG_BSHP, 0));
@@ -165,9 +165,9 @@ namespace EndGame {
         auto wk_sq = pos.square<KING> (  weak_color);
         auto sb_sq = pos.square<BSHP> (strong_color);
 
-        // kbnk mate table tries to drive toward corners A1 or H8,
-        // if have a bishop that cannot reach the above squares
-        // flip the kings so to drive enemy toward corners A8 or H1.
+        // kbnk mate table tries to drive toward corners of square of bishop.
+        // Drive enemy king toward corners A1 or H8, otherwise
+        // Drive enemy king toward corners A8 or H1 by flipping the kings.
         if (opposite_colors (sb_sq, SQ_A1))
         {
             sk_sq = ~sk_sq;
@@ -180,11 +180,11 @@ namespace EndGame {
 
         return strong_color == pos.active ? +value : -value;
     }
-
-    template<> Value Endgame<KNNK>::operator() (const Position &pos) const
+    // Draw with KNN vs K
+    template<> Value Endgame<KNNK>::operator() (const Position &) const
     {
-        assert(verify_material (pos, strong_color, VALUE_MG_NIHT*2, 0));
-        (void) pos;
+        //assert(verify_material (pos, strong_color, VALUE_MG_NIHT*2, 0));
+        //(void) pos;
         return VALUE_DRAW;
     }
 

@@ -43,28 +43,36 @@ namespace Polyglot {
     const u08 Book::HeaderSize = 96;
     static_assert (Book::HeaderSize == 96, "Book header size incorrect");
 
-    Book::Book (const string &book_fn, openmode mode)
-        : fstream (book_fn, mode|ios_base::binary)
-        , _book_fn (book_fn)
-        , _mode (mode)
-        , _size (0U)
+    Book::Book ()
+        : fstream ()
+        , book_fn ("")
+        , mode (ios_base::openmode(0))
+        , size (size_t(0))
+    {
+
+    }
+    Book::Book (const string &bk_fn, ios_base::openmode m)
+        : fstream (bk_fn, m|ios_base::binary)
+        , book_fn (bk_fn)
+        , mode (m)
+        , size (0U)
     {}
 
     Book::~Book ()
     {
-        _book_fn = "";
-        _mode    = openmode (0);
-        _size    = 0U;
+        book_fn = "";
+        mode = ios_base::openmode(0);
+        size = size_t(0);
         close ();
     }
 
     // Tries to open a book file with the given name after closing any existing one.
-    bool Book::open (const string &book_fn, openmode mode)
+    bool Book::open (const string &bk_fn, ios_base::openmode m)
     {
-        _book_fn = book_fn;
-        _mode    = mode;
-        _size    = 0U;
-        fstream::open (book_fn, mode|ios_base::binary);
+        book_fn = bk_fn;
+        mode = m;
+        size = size_t(0);
+        fstream::open (bk_fn, m|ios_base::binary);
         clear (); // Reset any error flag to allow retry open()
         return is_open ();
     }
@@ -116,7 +124,7 @@ namespace Polyglot {
     }
 
     // Returns the index of the 1st book entry with the same key as the input.
-    size_t Book::find_index (const Key key)
+    size_t Book::find_index (const Key posi_key)
     {
         if (!is_open ())
         {
@@ -124,7 +132,7 @@ namespace Polyglot {
         }
 
         auto beg_index = size_t(0);
-        auto end_index = size_t((size () - HeaderSize) / sizeof (Entry) - 1);
+        auto end_index = size_t((get_size () - HeaderSize) / sizeof (Entry) - 1);
         assert(beg_index <= end_index);
 
         while (beg_index < end_index && good ())
@@ -136,7 +144,7 @@ namespace Polyglot {
             Entry pe;
             *this >> pe;
 
-            if (key <= pe.key)
+            if (posi_key <= pe.key)
             {
                 end_index = mid_index;
             }

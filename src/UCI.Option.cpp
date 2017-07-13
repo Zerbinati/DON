@@ -22,56 +22,56 @@ namespace UCI {
     using namespace Memory;
 #endif
 
-    Option::Option (OnChange on_change)
-        : _type ("button")
-        , _default_value ("")
-        , _current_value ("")
-        , _minimum (0)
-        , _maximum (0)
-        , _on_change (on_change)
+    Option::Option (OnChange on_cng)
+        : type ("button")
+        , default_value ("")
+        , current_value ("")
+        , minimum (0)
+        , maximum (0)
+        , on_change (on_cng)
     {}
-    Option::Option (const bool  val, OnChange on_change)
-        : _type ("check")
-        , _minimum (0)
-        , _maximum (0)
-        , _on_change (on_change)
+    Option::Option (const bool val, OnChange on_cng)
+        : type ("check")
+        , minimum (0)
+        , maximum (0)
+        , on_change (on_cng)
     {
-        _default_value = _current_value = (val ? "true" : "false");
+        default_value = current_value = (val ? "true" : "false");
     }
-    Option::Option (const char *val, OnChange on_change)
-        : Option (string(val), on_change)
+    Option::Option (const char *val, OnChange on_cng)
+        : Option (string(val), on_cng)
     {}
-    Option::Option (const string &val, OnChange on_change)
-        : _type ("string")
-        , _minimum (0)
-        , _maximum (0)
-        , _on_change (on_change)
+    Option::Option (const string &val, OnChange on_cng)
+        : type ("string")
+        , minimum (0)
+        , maximum (0)
+        , on_change (on_cng)
     {
-        _default_value = _current_value = val;
+        default_value = current_value = val;
     }
-    Option::Option (const i32 val, i32 minimum, i32 maximum, OnChange on_change)
-        : _type ("spin")
-        , _minimum (minimum)
-        , _maximum (maximum)
-        , _on_change (on_change)
+    Option::Option (const i32 val, i32 min, i32 max, OnChange on_cng)
+        : type ("spin")
+        , minimum (min)
+        , maximum (max)
+        , on_change (on_cng)
     {
-        _default_value = _current_value = std::to_string (val);
+        default_value = current_value = std::to_string (val);
     }
 
     Option::operator bool () const
     {
-        assert(_type == "check");
-        return _current_value == "true";
+        assert(type == "check");
+        return current_value == "true";
     }
     Option::operator i32 () const
     {
-        assert(_type == "spin");
-        return stoi (_current_value);
+        assert(type == "spin");
+        return stoi (current_value);
     }
     Option::operator string () const
     {
-        assert(_type == "string");
-        return _current_value;
+        assert(type == "string");
+        return current_value;
     }
 
     // operator=() updates value and triggers on_change() action.
@@ -82,9 +82,9 @@ namespace UCI {
     }
     Option& Option::operator= (const string &value)
     {
-        assert(!_type.empty ());
+        assert(!type.empty ());
 
-        if (_type != "button")
+        if (type != "button")
         {
             auto val = value;
 
@@ -93,7 +93,7 @@ namespace UCI {
                 return *this;
             }
 
-            if (_type == "check")
+            if (type == "check")
             {
                 to_lower (val);
                 if (   val != "true"
@@ -103,20 +103,20 @@ namespace UCI {
                 }
             }
             else
-            if (_type == "spin")
+            if (type == "spin")
             {
-                val = std::to_string (std::min (std::max (stoi (val), _minimum), _maximum));
+                val = std::to_string (std::min (std::max (stoi (val), minimum), maximum));
             }
 
-            if (_current_value != val)
+            if (current_value != val)
             {
-                _current_value = val;
+                current_value = val;
             }
         }
 
-        if (nullptr != _on_change)
+        if (nullptr != on_change)
         {
-            _on_change ();
+            on_change ();
         }
 
         return *this;
@@ -127,21 +127,21 @@ namespace UCI {
     {
         static u08 insert_order = 0;
         *this = opt;
-        _index = insert_order++;
+        index = insert_order++;
     }
     // operator()() is to string method of option
     string Option::operator() ()  const
     {
         ostringstream oss;
-        oss << " type " << _type;
-        if (_type != "button")
+        oss << " type " << type;
+        if (type != "button")
         {
-            oss << " default " << _default_value;
-            if (_type == "spin")
+            oss << " default " << default_value;
+            if (type == "spin")
             {
-                oss << " min " << _minimum << " max " << _maximum;
+                oss << " min " << minimum << " max " << maximum;
             }
-            //oss << " current " << _current_value;
+            //oss << " current " << current_value;
         }
         return oss.str ();
     }

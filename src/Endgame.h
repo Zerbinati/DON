@@ -114,11 +114,11 @@ namespace EndGame {
         template<typename T> using Ptr = std::unique_ptr<EndgameBase<T>>;
         template<typename T> using Map = std::map<Key, Ptr<T>>;
 
-        std::pair<Map<Value>, Map<Scale>> _maps;
+        std::pair<Map<Value>, Map<Scale>> maps;
 
         template<typename T> Map<T>& map ()
         {
-            return std::get<std::is_same<T, Scale>::value> (_maps);
+            return std::get<std::is_same<T, Scale>::value> (maps);
         }
 
         template<EndgameCode EC, typename ET = EndgameType<EC>, typename EP = Ptr<ET>>

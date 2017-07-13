@@ -229,7 +229,6 @@ enum Delta : i08
 
     DEL_WWN = i08(DEL_WW) + i08(DEL_N),
     DEL_WWS = i08(DEL_WW) + i08(DEL_S),
-
 };
 
 enum CastleSide : i08
@@ -508,7 +507,7 @@ inline Square rel_sq (Color c, Square s) { return Square(s ^ (c*i08(SQ_A8))); }
 inline bool opposite_colors (Square s1, Square s2)
 {
     i08 s = i08(s1) ^ i08(s2);
-    return (((s >> 3) ^ s) & 1) == 1;
+    return 0 != (((s >> 3) ^ s) & 1);
 }
 
 inline Delta pawn_push (Color c)
@@ -621,17 +620,17 @@ template<typename T, u32 Size>
 struct HashTable
 {
 private:
-    std::array<T, Size> _table;
+    std::array<T, Size> table;
 
 public:
     void clear ()
     {
-        std::fill (_table.begin (), _table.end (), T());
+        std::fill (table.begin (), table.end (), T());
     }
 
     T* operator[] (Key k)
     {
-        return &_table[u32(k) & (Size - 1)];
+        return &table[u32(k) & (Size - 1)];
     }
 };
 

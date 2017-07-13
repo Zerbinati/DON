@@ -285,22 +285,22 @@ namespace Threading {
 
     // Launches the thread and then waits until it goes to sleep in idle_loop().
     Thread::Thread ()
-        : _alive (true)
+        : alive (true)
         , index (u08(Threadpool.size ()))
     {
         clear ();
         searching = true;
-        _native_thread = std::thread (&Thread::idle_loop, this);
+        native_thread = std::thread (&Thread::idle_loop, this);
         wait_while (searching);
     }
     // Waits for thread termination before returning.
     Thread::~Thread ()
     {
-        std::unique_lock<Mutex> lk (_mutex);
-        _alive = false;
-        _sleep_condition.notify_one ();
+        std::unique_lock<Mutex> lk (mutex);
+        alive = false;
+        sleep_condition.notify_one ();
         lk.unlock ();
-        _native_thread.join ();
+        native_thread.join ();
     }
 
     void Thread::clear ()
@@ -328,22 +328,22 @@ namespace Threading {
     {
         bind_thread (index);
 
-        while (_alive)
+        while (alive)
         {
-            std::unique_lock<Mutex> lk (_mutex);
+            std::unique_lock<Mutex> lk (mutex);
 
             searching = false;
 
-            while (   _alive
+            while (   alive
                    && !searching)
             {
-                _sleep_condition.notify_one (); // Wake up any waiting thread
-                _sleep_condition.wait (lk);
+                sleep_condition.notify_one (); // Wake up any waiting thread
+                sleep_condition.wait (lk);
             }
 
             lk.unlock ();
 
-            if (_alive)
+            if (alive)
             {
                 search ();
             }
