@@ -98,7 +98,8 @@ public:
             do
             {
                 pos.do_move (pv[ply], si[ply]);
-            } while (2 > ++ply);
+            }
+            while (2 > ++ply);
 
             exp_posi_key = pos.si->posi_key;
             

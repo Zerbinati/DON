@@ -819,7 +819,8 @@ namespace TBSyzygy {
                 do
                 {
                     squares[size++] = flip ? ~pop_lsq (b) : pop_lsq (b);
-                } while (0 != b);
+                }
+                while (0 != b);
                 lead_pawn_count = size;
 
                 std::swap (squares[0], *std::max_element (squares, squares + lead_pawn_count, pawns_comp));
@@ -849,12 +850,14 @@ namespace TBSyzygy {
             // Now we are ready to get all the position pieces (but the lead pawns) and
             // directly map them to the correct color and square.
             b = pos.pieces () ^ lead_pawns;
-            do {
+            do
+            {
                 auto s = pop_lsq (b);
                 squares[size] = flip ? ~s : s;
                 pieces[size] = Piece(flip ? ~pos[s] : pos[s]);
                 ++size;
-            } while (0 != b);
+            }
+            while (0 != b);
 
             assert(size >= 2);
 

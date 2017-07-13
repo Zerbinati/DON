@@ -150,7 +150,8 @@ namespace BitBoard {
                 // Have individual table sizes for each square with "Fancy Magic Bitboards".
                 u32 size = 0;
                 Bitboard occ = 0;
-                do {
+                do
+                {
 #               if defined(BM2)
                     magic.attacks[PEXT(occ, magic.mask)] = sliding_attacks (deltas, s, occ);
 #               else
@@ -160,7 +161,8 @@ namespace BitBoard {
 
                     ++size;
                     occ = (occ - magic.mask) & magic.mask;
-                } while (0 != occ);
+                }
+                while (0 != occ);
 
 #           if !defined(BM2)
                 

@@ -65,7 +65,8 @@ namespace UCI {
         }
 
         string token;
-        do {
+        do
+        {
             // Block here waiting for input or EOF
             if (   argc == 1
                 && !std::getline (cin, cmd, '\n'))
@@ -485,8 +486,9 @@ namespace UCI {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
             }
             
-        } while (   argc == 1
-                 && cmd != "quit");
+        }
+        while (   argc == 1
+               && cmd != "quit");
 
         Threadpool.wait_while_thinking ();
     }

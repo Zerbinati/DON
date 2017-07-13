@@ -1,5 +1,7 @@
 #include "BitBases.h"
 
+#include <vector>
+
 #include "BitBoard.h"
 
 namespace BitBases {
@@ -10,7 +12,7 @@ namespace BitBases {
     namespace {
 
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
-        const u32 MaxIndex = 2*24*i08(SQ_NO)*i08(SQ_NO); // stm * p_sq * wk_sq * bk_sq = 196608
+        const u32 MaxIndex = 2*24*SQ_NO*SQ_NO; // stm * p_sq * wk_sq * bk_sq = 196608
 
         // Each u32 entity stores results of 32 positions, one per bit
         u32 KPK_Bitbase[MaxIndex / 32];
@@ -61,20 +63,20 @@ namespace BitBases {
                 // If all moves lead to positions classified as WIN, the result of the current position is WIN
                 // otherwise the current position is classified as UNKNOWN.
 
-                const auto Opp  = Own == WHITE ? BLACK : WHITE;
-                const auto Good = Own == WHITE ? Result::WIN  : Result::DRAW;
-                const auto Bad  = Own == WHITE ? Result::DRAW : Result::WIN;
+                const auto Opp  = WHITE == Own ? BLACK : WHITE;
+                const auto Good = WHITE == Own ? Result::WIN  : Result::DRAW;
+                const auto Bad  = WHITE == Own ? Result::DRAW : Result::WIN;
 
                 Result r = Result::INVALID;
                 Bitboard b = PieceAttacks[KING][k_sq[Own]];
                 while (0 != b)
                 {
-                    r |= Own == WHITE ?
+                    r |= WHITE == Own ?
                             db[index (Opp, pop_lsq (b), k_sq[Opp], p_sq)].result :
                             db[index (Opp, k_sq[Opp], pop_lsq (b), p_sq)].result;
                 }
 
-                if (Own == WHITE)
+                if (WHITE == Own)
                 {
                     // Single push
                     if (_rank (p_sq) < R_7)
@@ -101,6 +103,7 @@ namespace BitBases {
             }
 
         public:
+
             Result result;
 
             KPK_Position () = default;
@@ -116,14 +119,14 @@ namespace BitBases {
                 if (   dist (k_sq[WHITE], k_sq[BLACK]) <= 1
                     || k_sq[WHITE] == p_sq
                     || k_sq[BLACK] == p_sq
-                    || (   active == WHITE
+                    || (   WHITE == active
                         && contains (PawnAttacks[WHITE][p_sq], k_sq[BLACK])))
                 {
                     result = Result::INVALID;
                 }
                 else
                 // Immediate win if a pawn can be promoted without getting captured
-                if (   active == WHITE
+                if (   WHITE == active
                     && _rank (p_sq) == R_7
                     && k_sq[WHITE] != (p_sq + DEL_N)
                     && (   dist (k_sq[BLACK], p_sq + DEL_N) > 1
@@ -133,7 +136,7 @@ namespace BitBases {
                 }
                 else
                 // Immediate draw if is a stalemate or king captures undefended pawn
-                if (   active == BLACK
+                if (   BLACK == active
                     && (   0 == (PieceAttacks[KING][k_sq[BLACK]] & ~(PieceAttacks[KING][k_sq[WHITE]] | PawnAttacks[WHITE][p_sq]))
                         || contains (PieceAttacks[KING][k_sq[BLACK]] & ~PieceAttacks[KING][k_sq[WHITE]], p_sq)))
                 {
@@ -153,7 +156,6 @@ namespace BitBases {
                         classify<BLACK> (db);
             }
         };
-
     }
 
     void initialize ()
@@ -170,14 +172,16 @@ namespace BitBases {
         bool repeat;
         // Iterate through the positions until none of the unknown positions can be
         // changed to either wins or draws (15 cycles needed).
-        do {
+        do
+        {
             repeat = false;
             for (u32 idx = 0; idx < MaxIndex; ++idx)
             {
                 repeat |= (   Result::UNKNOWN == db[idx].result
                            && Result::UNKNOWN != db[idx].classify (db));
             }
-        } while (repeat);
+        }
+        while (repeat);
 
         // Map 32 results into one KPK_Bitbase[] entry
         for (u32 idx = 0; idx < MaxIndex; ++idx)

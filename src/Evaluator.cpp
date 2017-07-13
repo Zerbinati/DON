@@ -886,16 +886,17 @@ namespace Evaluator {
                             ,  unsafe_front_squares = front_squares;
                         // If there is a rook or queen attacking/defending the pawn from behind, consider front squares.
                         // Otherwise consider only the squares in the pawn's path attacked or occupied by the enemy.
-                        Bitboard behind_majors = front_sqrs_bb (Opp, s) & pos.pieces (ROOK, QUEN);
-                        if (0 != behind_majors)
+                        Bitboard behind_major = front_sqrs_bb (Opp, s) & pos.pieces (ROOK, QUEN);
+                        if (0 != behind_major)
                         {
-                            behind_majors &= attacks_bb<ROOK> (s, pos.pieces ());
+                            behind_major &= attacks_bb<ROOK> (s, pos.pieces ());
+                            assert(1 >= pop_count (behind_major));
                         }
                         Bitboard b;
                         // If there is no enemy rook or queen attacking the pawn from behind,
                         // consider only the squares in the pawn's path attacked or occupied by the enemy,
                         // Otherwise add all X-ray attacks by the enemy rook or queen.
-                        if (   0 == (b = (behind_majors & pos.pieces (Opp)))
+                        if (   0 == (b = (behind_major & pos.pieces (Opp)))
                             || 0 != (b & pos.abs_blockers (Opp)))
                         {
                             unsafe_front_squares &= pin_attacked_by[Opp][NONE] | pos.pieces (Opp);
@@ -903,7 +904,7 @@ namespace Evaluator {
                         // If there is no friend rook or queen attacking the pawn from behind,
                         // consider only the squares in the pawn's path attacked by the friend.
                         // Otherwise add all X-ray attacks by the friend rook or queen.
-                        if (   0 == (b = (behind_majors & pos.pieces (Own)))
+                        if (   0 == (b = (behind_major & pos.pieces (Own)))
                             || 0 != (b & pos.abs_blockers (Own)))
                         {
                             safe_front_squares   &= pin_attacked_by[Own][NONE];

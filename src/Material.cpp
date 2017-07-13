@@ -10,7 +10,7 @@ namespace Material {
 
     namespace {
 
-        const i32 ImbalanceResolution = 128;
+        const i32 ImbalanceResolution = 16;
 
         // Polynomial material imbalance parameters
 
@@ -18,32 +18,32 @@ namespace Material {
         {
             //          Own Pieces
             //  P     N     B     R     Q    BP
-            {     0,    0,     0,     0,    0,   +320 }, // P
-            { +2040,  -24,     0,     0,    0,   +256 }, // N
-            {  +832,  +32,     0,     0,    0,      0 }, // B     Own Pieces
-            {   -16, +376,  +840, -1192,    0,   -208 }, // R
-            {  +192, +976, +1096, -1072,    0,  -1480 }, // Q
-            {     0,    0,     0,     0,    0, +13336 }  // BP
+            {    0,    0,    0,    0,    0,   +40 }, // P
+            { +255,   -3,    0,    0,    0,   +32 }, // N
+            { +104,   +4,    0,    0,    0,     0 }, // B     Own Pieces
+            {   -2,  +47, +105, -149,    0,   -26 }, // R
+            {  +24, +122, +137, -134,    0,  -185 }, // Q
+            {    0,    0,    0,    0,    0, +1667 }  // BP
         };
 
         const i32 OppQuadratic[][NONE] =
         {
             //          Opp Pieces
             //  P     N     B     R     Q    BP
-            {    0,     0,     0,     0,    0,  +288 }, // P
-            { +504,     0,     0,     0,    0,  +72 }, // N
-            { +520,  +336,     0,     0,    0, +472 }, // B     Own Pieces
-            { +312,  +192,  -192,     0,    0, +368 }, // R
-            { +800,  -296, +1128, +2144,    0, +808 }, // Q
-            {    0,     0,     0,     0,    0,    0 }  // BP
+            {    0,    0,    0,    0,    0,  +36 }, // P
+            {  +63,    0,    0,    0,    0,   +9 }, // N
+            {  +65,  +42,    0,    0,    0,  +59 }, // B     Own Pieces
+            {  +39,  +24,  -24,    0,    0,  +46 }, // R
+            { +100,  -37, +141, +268,    0, +101 }, // Q
+            {    0,    0,    0,    0,    0,    0 }  // BP
         };
 
         // PawnsSet[count] contains a bonus/malus indexed by number of pawns
-        const i32 PawnsSet[9] = { +192, -256, +856, -408, +936, -72, -1008, -168, +248 };
+        const i32 PawnsSet[9] = { +24, -32, +107, -51, +117, -9, -126, -21, +31 };
 
         // QueenMinors[opp_minor_count] is applied when only one side has a queen.
         // It contains a bonus/malus for the side with the queen.
-        const i32 QueenMinors[5] = { +248, -64, -120, -200, -40 };
+        const i32 QueenMinors[5] = { +31, -8, -15, -25, -5 };
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.

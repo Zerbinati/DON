@@ -13,7 +13,7 @@
 class Position;
 using namespace BitBoard;
 
-const i32 PhaseResolution = 1024;
+const i32 PhaseResolution = 128;
 
 const Value PieceValues[][MAX_PTYPE] =
 {
