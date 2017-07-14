@@ -11,6 +11,7 @@ namespace Evaluator {
 
     using namespace std;
     using namespace BitBoard;
+    using namespace Material;
     using namespace MoveGen;
     using namespace EndGame;
 
@@ -736,7 +737,7 @@ namespace Evaluator {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
                 score += PieceThreat[NIHT][pt];
-                if (pt != PAWN)
+                if (PAWN != pt)
                 {
                     score += PieceRankThreat * rel_rank (Opp, s);
                 }
@@ -754,7 +755,7 @@ namespace Evaluator {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
                 score += PieceThreat[BSHP][pt];
-                if (pt != PAWN)
+                if (PAWN != pt)
                 {
                     score += PieceRankThreat * rel_rank (Opp, s);
                 }
@@ -769,7 +770,7 @@ namespace Evaluator {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
                 score += PieceThreat[ROOK][pt];
-                if (pt != PAWN)
+                if (PAWN != pt)
                 {
                     score += PieceRankThreat * rel_rank (Opp, s);
                 }
@@ -1099,7 +1100,7 @@ namespace Evaluator {
                 + pe->score;
 
             // Early exit if score is high
-            auto v = (mg_value (score) + eg_value (score)) / 2;
+            Value v = (mg_value (score) + eg_value (score)) / 2;
             if (abs (v) > LazyThreshold)
             {
                 return WHITE == pos.active ? +v : -v;
@@ -1148,11 +1149,9 @@ namespace Evaluator {
             assert(me->phase <= PhaseResolution);
 
             // Interpolates between midgame and scaled endgame score.
-            v = Value(  (  mg_value (score) * (me->phase - 0)
-                         + eg_value (score) * (PhaseResolution - me->phase)
-                                              // Evaluate scale for the position
-                                            * evaluate_scale (eg_value (score))/SCALE_NORMAL)
-                      / PhaseResolution);
+            double vv = double(mg_value (score)) * (me->phase)                     // Evaluate scale for the position
+                      + double(eg_value (score)) * (PhaseResolution - me->phase) * evaluate_scale (eg_value (score)) / SCALE_NORMAL;
+            v = Value(i32(std::round (vv / PhaseResolution)));
 
             if (Trace)
             {

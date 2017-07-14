@@ -597,14 +597,13 @@ namespace Searcher {
             }
             assert(1 == std::count (ss->killer_moves, ss->killer_moves + MaxKillers, move));
 
-            auto &th = pos.thread;
             auto m = (ss-1)->played_move;
             if (_ok (m))
             {
-                th->counter_moves[pos[fix_dst_sq (m)]][dst_sq (m)] = move;
+                pos.thread->counter_moves[pos[fix_dst_sq (m)]][dst_sq (m)] = move;
             }
 
-            th->history.update (pos.active, move, value);
+            pos.thread->history.update (pos.active, move, value);
             update_cm_stats (ss, pos[org_sq (move)], dst_sq (move), value);
         }
 
@@ -1746,7 +1745,7 @@ namespace Searcher {
                         // Decrease all the other played quiet moves.
                         for (auto qm : quiet_moves)
                         {
-                            pos.thread->history.update (pos.active, qm, -bonus);
+                            th->history.update (pos.active, qm, -bonus);
                             update_cm_stats (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                         }
                     }

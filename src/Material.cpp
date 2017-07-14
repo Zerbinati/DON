@@ -10,8 +10,6 @@ namespace Material {
 
     namespace {
 
-        const i32 ImbalanceResolution = 16;
-
         // Polynomial material imbalance parameters
 
         const i32 OwnQuadratic[][NONE] =
@@ -114,7 +112,15 @@ namespace Material {
 
         std::memset (e, 0x00, sizeof (*e));
         e->key = pos.si->matl_key;
-        e->phase = pos.phase ();
+
+        // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
+        auto npm = pos.si->non_pawn_material ();
+        e->phase = i32(std::round (double(std::min (
+                                          std::max (npm
+                                            , VALUE_ENDGAME)
+                                            , VALUE_MIDGAME) - VALUE_ENDGAME)
+                                 * PhaseResolution
+                                 / (VALUE_MIDGAME - VALUE_ENDGAME)));
         e->scale[WHITE] =
         e->scale[BLACK] = SCALE_NORMAL;
 
@@ -171,7 +177,7 @@ namespace Material {
             }
             else
             // Only pawns on the board
-            if (   pos.si->non_pawn_material () == VALUE_ZERO
+            if (   npm == VALUE_ZERO
                 && pos.pieces (PAWN) != 0)
             {
                 switch (pos.count<PAWN> (~c))
@@ -226,8 +232,8 @@ namespace Material {
             }
         };
 
-        auto value = (  imbalance<WHITE> (piece_count)
-                      - imbalance<BLACK> (piece_count)) / ImbalanceResolution;
+        auto value = i32(std::round (double(  imbalance<WHITE> (piece_count)
+                                            - imbalance<BLACK> (piece_count)) / 16)); // Imbalance Resolution
         e->imbalance = mk_score (value, value);
 
         return e;

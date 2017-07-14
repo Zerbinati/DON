@@ -262,10 +262,9 @@ namespace UCI {
                 Threadpool.start_thinking (root_pos, states, limits);
             }
             // GUI sends 'ponderhit' to tell us to ponder on the same move the
-            // opponent has played. In case Ponderhit Stop stream set are
-            // waiting for 'ponderhit' to stop the search (for instance because
-            // already ran out of time), otherwise should continue searching but
-            // switching from pondering to normal search.
+            // opponent has played. In case Threadpool.ponderhit_stop is set
+            // wait for 'ponderhit' to stop the search (for instance because already ran out of time),
+            // otherwise should continue searching but switching from pondering to normal search.
             else
             if (   token == "quit"
                ||  token == "stop"
