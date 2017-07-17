@@ -259,7 +259,7 @@ public:
     MovePicker& operator= (const MovePicker&) = delete;
 
     MovePicker (const Position&, Move, const Stack *const&);
-    MovePicker (const Position&, Move, const Stack *const&, i16);
+    MovePicker (const Position&, Move, const Stack *const&, i16, Square);
     MovePicker (const Position&, Move, Value);
 
     Move next_move (bool skip_quiets = false);

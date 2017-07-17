@@ -118,7 +118,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s)
         ++stage;
     }
 }
-MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s, i16 d)
+MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s, i16 d, Square sq)
     : pos (p)
     , ss (s)
     , tt_move (ttm)
@@ -149,7 +149,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s, i16 
     else
     {
         stage = Stage::Q_RECAPTURE_TT;
-        recap_sq = dst_sq ((ss-1)->played_move);
+        recap_sq = sq;
         if (   MOVE_NONE != tt_move
             && !(   pos.capture (tt_move)
                  && dst_sq (tt_move) == recap_sq))
@@ -729,8 +729,6 @@ namespace Searcher {
                         DrawValue[pos.active];
             }
 
-            //auto &th = pos.thread;
-
             Move move;
             // Transposition table lookup.
             Key  posi_key = pos.si->posi_key;
@@ -751,6 +749,7 @@ namespace Searcher {
                     value_of_tt (tte->value (), ss->ply) :
                     VALUE_NONE;
 
+            auto last_move = (ss-1)->played_move;
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
             // Note that in quien_search use only 2 types of depth: (0) or (-1).
@@ -800,7 +799,7 @@ namespace Searcher {
                 else
                 {
                     ss->static_eval = tt_eval =
-                        MOVE_NULL != (ss-1)->played_move ?
+                        MOVE_NULL != last_move ?
                             evaluate (pos) :
                             -(ss-1)->static_eval + Tempo*2;
                 }
@@ -841,7 +840,7 @@ namespace Searcher {
             u08 move_count = 0;
 
             // Initialize move picker (2) for the current position.
-            MovePicker mp (pos, tt_move, ss, depth);
+            MovePicker mp (pos, tt_move, ss, depth, dst_sq (last_move));
             StateInfo si;
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = mp.next_move ()))
@@ -978,18 +977,17 @@ namespace Searcher {
             // Step 1. Initialize node.
             ss->statistics = 0;
             ss->move_count = 0;
-            auto &th = pos.thread;
             
             if (PVNode)
             {
-                if (th->sel_depth < ss->ply)
+                if (pos.thread->sel_depth < ss->ply)
                 {
-                    th->sel_depth = ss->ply;
+                    pos.thread->sel_depth = ss->ply;
                 }
             }
 
             // Check for the available remaining limit.
-            if (Threadpool.main_thread () == th)
+            if (Threadpool.main_thread () == pos.thread)
             {
                 Threadpool.main_thread ()->check_limits ();
             }
@@ -1025,7 +1023,7 @@ namespace Searcher {
             }
 
             ss->played_move = MOVE_NONE;
-            ss->m_history = &th->cm_history[NO_PIECE][0];
+            ss->m_history = &pos.thread->cm_history[NO_PIECE][0];
             assert(MOVE_NONE == (ss+1)->excluded_move);
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
 
@@ -1038,7 +1036,7 @@ namespace Searcher {
             auto *tte = TT.probe (posi_key, tt_hit);
             auto tt_move =
                 root_node ?
-                    th->root_moves[th->pv_index][0] :
+                    pos.thread->root_moves[pos.thread->pv_index][0] :
                        tt_hit
                     && MOVE_NONE != (move = tte->move ())
                     && pos.pseudo_legal (move)
@@ -1053,6 +1051,8 @@ namespace Searcher {
                 tt_hit ?
                     value_of_tt (tte->value (), ss->ply) :
                     VALUE_NONE;
+
+            auto last_move = (ss-1)->played_move;
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
@@ -1074,13 +1074,12 @@ namespace Searcher {
                             update_stats (ss, pos, tt_move, stat_bonus (depth));
                         }
                         // Extra penalty for a quiet tt_move in previous ply when it gets refuted.
-                        auto m = (ss-1)->played_move;
                         if (   1 == (ss-1)->move_count
-                            && _ok (m)
+                            && _ok (last_move)
                             && NONE == pos.si->capture
                             && !pos.si->promotion)
                         {
-                            update_cm_stats (ss-1, pos[fix_dst_sq (m)], dst_sq (m), -stat_bonus (depth + 1));
+                            update_cm_stats (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
                         }
                     }
                     else
@@ -1089,7 +1088,7 @@ namespace Searcher {
                         if (!pos.capture_or_promotion (tt_move))
                         {
                             auto penalty = -stat_bonus (depth);
-                            th->history.update (pos.active, tt_move, penalty);
+                            pos.thread->history.update (pos.active, tt_move, penalty);
                             update_cm_stats (ss, pos[org_sq (tt_move)], dst_sq (tt_move), penalty);
                         }
                     }
@@ -1114,7 +1113,7 @@ namespace Searcher {
 
                     if (ProbeState::FAILURE != state)
                     {
-                        th->tb_hits.fetch_add (1, std::memory_order::memory_order_relaxed);
+                        pos.thread->tb_hits.fetch_add (1, std::memory_order::memory_order_relaxed);
 
                         auto draw = TBUseRule50 ? 1 : 0;
 
@@ -1164,7 +1163,7 @@ namespace Searcher {
                 else
                 {
                     ss->static_eval = tt_eval =
-                        MOVE_NULL != (ss-1)->played_move ?
+                        MOVE_NULL != last_move ?
                             evaluate (pos) :
                             -(ss-1)->static_eval + Tempo*2;
 
@@ -1229,7 +1228,7 @@ namespace Searcher {
                                                         0)));
 
                         ss->played_move = MOVE_NULL;
-                        ss->m_history = &th->cm_history[NO_PIECE][0];
+                        ss->m_history = &pos.thread->cm_history[NO_PIECE][0];
 
                         pos.do_null_move (si);
 
@@ -1280,7 +1279,7 @@ namespace Searcher {
                     {
                         auto beta_margin = std::min (beta + 200, +VALUE_INFINITE);
                         
-                        assert(_ok ((ss-1)->played_move));
+                        assert(_ok (last_move));
 
                         // Initialize move picker (3) for the current position.
                         MovePicker mp (pos, tt_move, beta_margin - ss->static_eval);
@@ -1295,7 +1294,7 @@ namespace Searcher {
                             prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                             ss->played_move = move;
-                            ss->m_history = &th->cm_history[pos[org_sq (move)]][dst_sq (move)];
+                            ss->m_history = &pos.thread->cm_history[pos[org_sq (move)]][dst_sq (move)];
 
                             pos.do_move (move, si);
 
@@ -1380,9 +1379,9 @@ namespace Searcher {
                        // In "searchmoves" mode, skip moves not listed in RootMoves, as a consequence any illegal move is also skipped.
                        // In MultiPV mode, skip PV moves which have been already searched.
                     || (   root_node
-                        && std::find (th->root_moves.begin () + th->pv_index,
-                                      th->root_moves.end (), move) ==
-                                      th->root_moves.end ()))
+                        && std::find (pos.thread->root_moves.begin () + pos.thread->pv_index,
+                                      pos.thread->root_moves.end (), move) ==
+                                      pos.thread->root_moves.end ()))
                 {
                     continue;
                 }
@@ -1399,17 +1398,17 @@ namespace Searcher {
                 assert(NO_PIECE != mpc);
 
                 if (   root_node
-                    && Threadpool.main_thread () == th)
+                    && Threadpool.main_thread () == pos.thread)
                 {
                     auto elapsed_time = Threadpool.main_thread ()->time_mgr.elapsed_time ();
                     if (elapsed_time > 3000)
                     {
-                        auto &root_move = *std::find (th->root_moves.begin (), th->root_moves.end (), move);
+                        auto &root_move = *std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move);
                         sync_cout
                             << "info"
                             << " currmove " << move_to_can (move)
-                            << " currmovenumber " << th->pv_index + move_count
-                            << " maxmoves " << th->root_moves.size ()
+                            << " currmovenumber " << pos.thread->pv_index + move_count
+                            << " maxmoves " << pos.thread->root_moves.size ()
                             << " depth " << depth
                             << " seldepth " << root_move.sel_depth
                             << " time " << elapsed_time
@@ -1508,7 +1507,7 @@ namespace Searcher {
 
                 // Update the current move (this must be done after singular extension search).
                 ss->played_move = move;
-                ss->m_history = &th->cm_history[mpc][dst_sq (move)];
+                ss->m_history = &pos.thread->cm_history[mpc][dst_sq (move)];
 
                 // Step 14. Make the move.
                 pos.do_move (move, si, gives_check);
@@ -1558,7 +1557,7 @@ namespace Searcher {
                         }
 
                         ss->statistics =
-                              th->history[~pos.active][move_pp (move)]
+                              pos.thread->history[~pos.active][move_pp (move)]
                             + smh1[mpc][dst_sq (move)]
                             + smh2[mpc][dst_sq (move)]
                             + smh4[mpc][dst_sq (move)]
@@ -1644,8 +1643,8 @@ namespace Searcher {
 
                 if (root_node)
                 {
-                    assert(std::find (th->root_moves.begin (), th->root_moves.end (), move) != th->root_moves.end ());
-                    auto &root_move = *std::find (th->root_moves.begin (), th->root_moves.end (), move);
+                    assert(std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move) != pos.thread->root_moves.end ());
+                    auto &root_move = *std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move);
                     // First PV move or new best move?
                     if (   1 == move_count
                         || alfa < value)
@@ -1656,14 +1655,14 @@ namespace Searcher {
                             root_move += m;
                         }
                         root_move.new_value = value;
-                        root_move.sel_depth = th->sel_depth;
+                        root_move.sel_depth = pos.thread->sel_depth;
 
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
                         if (   1 < move_count
                             && Limits.use_time_management ()
-                            && Threadpool.main_thread () == th)
+                            && Threadpool.main_thread () == pos.thread)
                         {
                             ++Threadpool.main_thread ()->best_move_change;
                         }
@@ -1734,7 +1733,6 @@ namespace Searcher {
             }
             else
             {
-                auto m = (ss-1)->played_move;
                 // Quiet best move: update move sorting heuristics.
                 if (MOVE_NONE != best_move)
                 {
@@ -1745,27 +1743,27 @@ namespace Searcher {
                         // Decrease all the other played quiet moves.
                         for (auto qm : quiet_moves)
                         {
-                            th->history.update (pos.active, qm, -bonus);
+                            pos.thread->history.update (pos.active, qm, -bonus);
                             update_cm_stats (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                         }
                     }
                     // Penalty for a quiet best move in previous ply when it gets refuted.
                     if (   1 == (ss-1)->move_count
-                        && _ok (m)
+                        && _ok (last_move)
                         && NONE == pos.si->capture
                         && !pos.si->promotion)
                     {
-                        update_cm_stats (ss-1, pos[fix_dst_sq (m)], dst_sq (m), -stat_bonus (depth + 1));
+                        update_cm_stats (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
                     }
                 }
                 else
                 // Bonus for prior countermove that caused the fail low.
                 if (   2 < depth
-                    && _ok (m)
+                    && _ok (last_move)
                     && NONE == pos.si->capture
                     && !pos.si->promotion)
                 {
-                    update_cm_stats (ss-1, pos[fix_dst_sq (m)], dst_sq (m), stat_bonus (depth));
+                    update_cm_stats (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), stat_bonus (depth));
                 }
             }
             
