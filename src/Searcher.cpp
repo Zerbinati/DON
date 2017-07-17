@@ -89,14 +89,15 @@ namespace {
 // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
 // and about how important good move ordering is at the current node.
 
-MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s)
+MovePicker::MovePicker (const Position &p, const SquareHistoryStats *const &sh1, const SquareHistoryStats *const &sh2, const SquareHistoryStats *const &sh4, Move ttm, Move km[MaxKillers], Move cm)
     : pos (p)
-    , ss (s)
-    , tt_move (ttm)
-    , recap_sq (SQ_NO)
+    , smh1 (sh1)
+    , smh2 (sh2)
+    , smh4 (sh4)
     , threshold (VALUE_ZERO)
     , depth (0)
-    , index (0)
+    , tt_move (ttm)
+    , recap_sq (SQ_NO)
 {
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
@@ -106,7 +107,21 @@ MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s)
     {
         stage = Stage::NATURAL_TT;
 
-        killer_moves.assign (ss->killer_moves, ss->killer_moves + MaxKillers);
+        killers_moves.assign (km, km + MaxKillers);
+        if (   MOVE_NONE != cm
+            && tt_move != cm
+            && std::find (killers_moves.begin (), killers_moves.end (), cm) == killers_moves.end ())
+        {
+            killers_moves.push_back (cm);
+        }
+        killers_moves.erase (std::remove_if (killers_moves.begin (),
+                                             killers_moves.end (),
+                                             [&](Move mm)
+                                             {
+                                                 return mm == MOVE_NONE
+                                                     || mm == tt_move;
+                                             }),
+                             killers_moves.end ());
     }
     else
     {
@@ -118,14 +133,15 @@ MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s)
         ++stage;
     }
 }
-MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s, i16 d, Square sq)
+MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rsq)
     : pos (p)
-    , ss (s)
-    , tt_move (ttm)
-    , recap_sq (SQ_NO)
+    , smh1 (nullptr)
+    , smh2 (nullptr)
+    , smh4 (nullptr)
     , threshold (VALUE_ZERO)
     , depth (d)
-    , index (0)
+    , tt_move (ttm)
+    , recap_sq (SQ_NO)
 {
     assert(depth <= 0);
     assert(MOVE_NONE == tt_move
@@ -149,7 +165,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s, i16 
     else
     {
         stage = Stage::Q_RECAPTURE_TT;
-        recap_sq = sq;
+        recap_sq = rsq;
         if (   MOVE_NONE != tt_move
             && !(   pos.capture (tt_move)
                  && dst_sq (tt_move) == recap_sq))
@@ -164,12 +180,13 @@ MovePicker::MovePicker (const Position &p, Move ttm, const Stack *const &s, i16 
 }
 MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     : pos (p)
-    , ss (nullptr)
-    , tt_move (ttm)
-    , recap_sq (SQ_NO)
+    , smh1 (nullptr)
+    , smh2 (nullptr)
+    , smh4 (nullptr)
     , threshold (thr)
     , depth (0)
-    , index (0)
+    , tt_move (ttm)
+    , recap_sq (SQ_NO)
 {
     assert(0 == pos.si->checkers);
     assert(MOVE_NONE == tt_move
@@ -216,29 +233,21 @@ template<> void MovePicker::value<GenType::CAPTURE> ()
 }
 template<> void MovePicker::value<GenType::QUIET> ()
 {
-    const auto &history = pos.thread->history;
-
-    const auto &smh1 = *(ss-1)->m_history;
-    const auto &smh2 = *(ss-2)->m_history;
-    const auto &smh4 = *(ss-4)->m_history;
-
     for (auto &vm : moves)
     {
         assert(pos.pseudo_legal (vm.move)
             && pos.legal (vm.move));
 
         vm.value =
-              history[pos.active][move_pp (vm.move)]
-            + smh1[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-            + smh2[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-            + smh4[pos[org_sq (vm.move)]][dst_sq (vm.move)];
+              pos.thread->history[pos.active][move_pp (vm.move)]
+            + (*smh1)[pos[org_sq (vm.move)]][dst_sq (vm.move)]
+            + (*smh2)[pos[org_sq (vm.move)]][dst_sq (vm.move)]
+            + (*smh4)[pos[org_sq (vm.move)]][dst_sq (vm.move)];
     }
 }
 // First captures ordered by MVV/LVA, then non-captures ordered by stats heuristics
 template<> void MovePicker::value<GenType::EVASION> ()
 {
-    const auto &history = pos.thread->history;
-
     for (auto &vm : moves)
     {
         assert(pos.pseudo_legal (vm.move)
@@ -254,7 +263,7 @@ template<> void MovePicker::value<GenType::EVASION> ()
         else
         {
             vm.value =
-                  history[pos.active][move_pp (vm.move)];
+                  pos.thread->history[pos.active][move_pp (vm.move)];
         }
     }
 }
@@ -323,28 +332,8 @@ Move MovePicker::next_move (bool skip_quiets)
         }
         // Killers to top of quiet move
         {
-            auto m = (ss-1)->played_move;
-            if (_ok (m))
-            {
-                auto cm = pos.thread->counter_moves[pos[fix_dst_sq (m)]][dst_sq (m)];
-                if (   MOVE_NONE != cm
-                    && tt_move != cm
-                    && std::find (killer_moves.begin (), killer_moves.end (), cm) == killer_moves.end ())
-                {
-                    killer_moves.push_back (cm);
-                }
-            }
-            killer_moves.erase (std::remove_if (killer_moves.begin (),
-                                                killer_moves.end (),
-                                                [&](Move mm)
-                                                {
-                                                    return mm == MOVE_NONE
-                                                        || mm == tt_move;
-                                                }),
-                                 killer_moves.end ());
-
             i32 k = 0;
-            for (auto km : killer_moves)
+            for (auto km : killers_moves)
             {
                 auto itr = std::find (moves.begin (), moves.end (), km);
                 if (itr != moves.end ())
@@ -451,15 +440,11 @@ Move MovePicker::next_move (bool skip_quiets)
             moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
         index = 0;
-        if (1 < moves.size ())
-        {
-            value<GenType::QUIET> ();
-        }
         /* fallthrough */
     case Stage::Q_CHECK_QUIET:
         while (index < moves.size ())
         {
-            return swap_best_move (index++).move;
+            return moves[index++].move;
         }
         break;
 
@@ -750,6 +735,7 @@ namespace Searcher {
                     VALUE_NONE;
 
             auto last_move = (ss-1)->played_move;
+
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
             // Note that in quien_search use only 2 types of depth: (0) or (-1).
@@ -840,7 +826,7 @@ namespace Searcher {
             u08 move_count = 0;
 
             // Initialize move picker (2) for the current position.
-            MovePicker mp (pos, tt_move, ss, depth, dst_sq (last_move));
+            MovePicker mp (pos, tt_move, depth, dst_sq (last_move));
             StateInfo si;
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = mp.next_move ()))
@@ -1355,6 +1341,10 @@ namespace Searcher {
             const auto &smh1 = *(ss-1)->m_history;
             const auto &smh2 = *(ss-2)->m_history;
             const auto &smh4 = *(ss-4)->m_history;
+            const auto cm =
+                _ok (last_move) ?
+                    pos.thread->counter_moves[pos[fix_dst_sq (last_move)]][dst_sq (last_move)] :
+                    MOVE_NONE;
 
             u08 move_count = 0;
 
@@ -1365,7 +1355,7 @@ namespace Searcher {
                 , ttm_capture = false;
 
             // Initialize move picker (1) for the current position.
-            MovePicker mp (pos, tt_move, ss);
+            MovePicker mp (pos, &smh1, &smh2, &smh4, tt_move, ss->killer_moves, cm);
             // Step 11. Loop through moves
             // Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = mp.next_move (skip_quiets)))

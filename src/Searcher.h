@@ -236,17 +236,22 @@ class MovePicker
 {
 private:
     const Position &pos;
-    const Stack *const ss;
+    const SquareHistoryStats *const smh1;
+    const SquareHistoryStats *const smh2;
+    const SquareHistoryStats *const smh4;
+
+    const Value threshold;
+    const i16 depth;
 
     Move tt_move;
     Square recap_sq;
-    Value threshold;
-    i16 depth;
+
+    ValMoves moves;
+    Moves killers_moves
+        , capture_moves;
+
     u08 stage;
     u08 index;
-    ValMoves moves;
-    Moves killer_moves
-        , capture_moves;
 
     template<GenType GT>
     void value ();
@@ -258,8 +263,8 @@ public:
     MovePicker (const MovePicker&) = delete;
     MovePicker& operator= (const MovePicker&) = delete;
 
-    MovePicker (const Position&, Move, const Stack *const&);
-    MovePicker (const Position&, Move, const Stack *const&, i16, Square);
+    MovePicker (const Position&, const SquareHistoryStats *const&, const SquareHistoryStats *const&, const SquareHistoryStats *const&, Move, Move[MaxKillers], Move);
+    MovePicker (const Position&, Move, i16, Square);
     MovePicker (const Position&, Move, Value);
 
     Move next_move (bool skip_quiets = false);
