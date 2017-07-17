@@ -251,7 +251,7 @@ private:
         , capture_moves;
 
     u08 stage;
-    u08 index;
+    u08 m;
 
     template<GenType GT>
     void value ();

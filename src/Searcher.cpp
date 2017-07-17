@@ -226,7 +226,7 @@ template<> void MovePicker::value<GenType::CAPTURE> ()
             && pos.capture_or_promotion (vm.move));
 
         vm.value =
-              PieceValues[MG][pos.cap_type (vm.move)]
+              i32(PieceValues[MG][pos.cap_type (vm.move)])
             - ptype (pos[org_sq (vm.move)])
             - 200 * rel_rank (pos.active, dst_sq (vm.move));
     }
@@ -256,7 +256,7 @@ template<> void MovePicker::value<GenType::EVASION> ()
         if (pos.capture (vm.move))
         {
             vm.value =
-                  PieceValues[MG][pos.cap_type (vm.move)]
+                  i32(PieceValues[MG][pos.cap_type (vm.move)])
                 - ptype (pos[org_sq (vm.move)])
                 + MaxValue;
         }
@@ -301,16 +301,16 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        index = 0;
+        m = 0;
         if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
         }
         /* fallthrough */
     case Stage::GOOD_CAPTURE:
-        while (index < moves.size ())
+        while (m < moves.size ())
         {
-            auto &vm = swap_best_move (index++);
+            auto &vm = swap_best_move (m++);
             if (pos.see_ge (vm.move))
             {
                 return vm.move;
@@ -325,7 +325,7 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        index = 0;
+        m = 0;
         if (1 < moves.size ())
         {
             value<GenType::QUIET> ();
@@ -346,9 +346,9 @@ Move MovePicker::next_move (bool skip_quiets)
         }
         /* fallthrough */
     case Stage::QUIET:
-        while (index < moves.size ())
+        while (m < moves.size ())
         {
-            auto &vm = swap_best_move (index++);
+            auto &vm = swap_best_move (m++);
             if (   skip_quiets
                 && vm.value < VALUE_ZERO)
             {
@@ -357,12 +357,12 @@ Move MovePicker::next_move (bool skip_quiets)
             return vm.move;
         }
         ++stage;
-        index = 0;
+        m = 0;
         /* fallthrough */
     case Stage::BAD_CAPTURE:
-        while (index < capture_moves.size ())
+        while (m < capture_moves.size ())
         {
-            return capture_moves[index++];
+            return capture_moves[m++];
         }
         break;
 
@@ -375,16 +375,16 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        index = 0;
+        m = 0;
         if (1 < moves.size ())
         {
             value<GenType::EVASION> ();
         }
         /* fallthrough */
     case Stage::ALL_EVASION:
-        while (index < moves.size ())
+        while (m < moves.size ())
         {
-            return swap_best_move (index++).move;
+            return swap_best_move (m++).move;
         }
         break;
 
@@ -396,16 +396,16 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        index = 0;
+        m = 0;
         if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
         }
         /* fallthrough */
     case Stage::ALL_PROBCUT_CAPTURE:
-        while (index < moves.size ())
+        while (m < moves.size ())
         {
-            auto &vm = swap_best_move (index++);
+            auto &vm = swap_best_move (m++);
             if (pos.see_ge (vm.move, threshold))
             {
                 return vm.move;
@@ -421,16 +421,16 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        index = 0;
+        m = 0;
         if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
         }
         /* fallthrough */
     case Stage::Q_CHECK_CAPTURE:
-        while (index < moves.size ())
+        while (m < moves.size ())
         {
-            return swap_best_move (index++).move;
+            return swap_best_move (m++).move;
         }
         ++stage;
         generate<GenType::QUIET_CHECK> (moves, pos);
@@ -439,12 +439,12 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        index = 0;
+        m = 0;
         /* fallthrough */
     case Stage::Q_CHECK_QUIET:
-        while (index < moves.size ())
+        while (m < moves.size ())
         {
-            return moves[index++].move;
+            return moves[m++].move;
         }
         break;
 
@@ -456,16 +456,16 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        index = 0;
+        m = 0;
         if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
         }
         /* fallthrough */
     case Stage::Q_NO_CHECK_CAPTURE:
-        while (index < moves.size ())
+        while (m < moves.size ())
         {
-            return swap_best_move (index++).move;
+            return swap_best_move (m++).move;
         }
         break;
 
@@ -477,7 +477,7 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        index = 0;
+        m = 0;
         if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
@@ -485,9 +485,9 @@ Move MovePicker::next_move (bool skip_quiets)
         /* fallthrough */
     case Stage::Q_ALL_RECAPTURE:
         assert(SQ_NO != recap_sq);
-        while (index < moves.size ())
+        while (m < moves.size ())
         {
-            auto &vm = swap_best_move (index++);
+            auto &vm = swap_best_move (m++);
             if (dst_sq (vm.move) == recap_sq)
             {
                 return vm.move;
@@ -1985,7 +1985,7 @@ namespace Threading {
                             sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
                         }
                     }
-                    // If failing low/high set new bounds, otherwise exit the loop.
+                    // If fail low set new bounds.
                     if (best_value <= alfa)
                     {
                         beta = (alfa + beta) / 2;
@@ -2001,11 +2001,13 @@ namespace Threading {
                         }
                     }
                     else
+                    // If fail high set new bounds.
                     if (beta <= best_value)
                     {
-                        alfa = (alfa + beta) / 2;
+                        //alfa = (alfa + beta) / 2; // NOTE:: Don't change alfa
                         beta = std::min (best_value + window, +VALUE_INFINITE);
                     }
+                    // Otherwise exit the loop
                     else
                     {
                         break;
