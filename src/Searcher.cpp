@@ -801,7 +801,7 @@ namespace Searcher {
                                        MOVE_NONE,
                                        value_to_tt (tt_eval, ss->ply),
                                        ss->static_eval,
-                                       -6,
+                                       DepthNone,
                                        BOUND_LOWER);
                         }
 
@@ -1157,7 +1157,7 @@ namespace Searcher {
                                MOVE_NONE,
                                VALUE_NONE,
                                ss->static_eval,
-                               -6,
+                               DepthNone,
                                BOUND_NONE);
                 }
 

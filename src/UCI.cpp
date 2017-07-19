@@ -30,8 +30,8 @@ namespace UCI {
         {
             Threadpool.force_stop = true;
             Threadpool.wait_while_thinking ();
-            Searcher::clear ();
             TT.auto_resize (i32(Options["Hash"]), true);
+            Searcher::clear ();
             Threadpool.main_thread ()->time_mgr.available_nodes = 0;
             TBSyzygy::initialize ();
         }

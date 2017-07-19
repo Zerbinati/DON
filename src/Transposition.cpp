@@ -149,9 +149,8 @@ namespace Transposition {
     // Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
     Entry* Table::probe (Key posi_key, bool &tt_hit) const
     {
-        assert(posi_key != 0);
+        assert(0 != posi_key);
         const auto key16 = KeySplit{ posi_key }.key16 ();
-        assert(key16 != 0);
         auto *const fte = cluster_entry (posi_key);
         assert(nullptr != fte);
         // Find an entry to be replaced according to the replacement strategy
@@ -159,10 +158,13 @@ namespace Transposition {
         auto rworth = rte->worth ();
         for (auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
         {
-            if (   0 == ite->k16
-                || key16 == ite->k16)
+            if (ite->empty ())
             {
-                return tt_hit = key16 == ite->k16, ite;
+                return tt_hit = false, ite;
+            }
+            if (key16 == ite->k16)
+            {
+                return tt_hit = true, ite;
             }
             // Entry1 is considered more valuable than Entry2, if Entry1.worth() > Entry2.worth().
             auto iworth = ite->worth ();

@@ -16,13 +16,7 @@ namespace Transposition {
         u64 k;
         u16 u[4];
 
-        u16 key16 () const
-        {
-            return
-                0 != u[3] ? u[3] :
-                0 != u[2] ? u[2] :
-                0 != u[1] ? u[1] : u[0];
-        }
+        u16 key16 () const { return u[3]; }
     };
 
     // Transposition::Entry needs 16 byte to be stored
@@ -49,16 +43,19 @@ namespace Transposition {
         friend class Table;
 
     public:
+        static const i08 Empty = DepthNone-1;
+
         // "Generation" variable distinguish transposition table entries from different searches.
         static u08 Generation;
 
-        //u16   key16 () const { return u16  (k16); }
+        //u16   key16      () const { return u16  (k16); }
         Move  move       () const { return Move (m16); }
         Value value      () const { return Value(v16); }
         Value eval       () const { return Value(e16); }
         i16   depth      () const { return i16  (d08); }
         Bound bound      () const { return Bound(gb08 & 0x03); }
         u08   generation () const { return u08  (gb08 & 0xFC); }
+        bool  empty      () const { return d08 == Empty; }
 
         // The worth of an entry is calculated as its depth minus 8 times its relative age.
         // Due to packed storage format for generation and its cyclic nature
@@ -68,27 +65,35 @@ namespace Transposition {
 
         void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
         {
+            assert(0 != k);
             const auto key16 = KeySplit{ k }.key16 ();
-            assert(0 != key16);
-            u08 bb = bound ();
+            bool bb = false;
+            bool ee = empty ();
             // Preserve more valuable entries
-            if (   k16 != key16
+            if (   ee
+                || k16 != key16
                 || d08 - 4 < d
                 || BOUND_EXACT == b)
             {
                 v16 = i16(v);
                 e16 = i16(e);
                 d08 = i08(d);
-                bb  = u08(b);
+                bb  = true;
             }
-            if (   k16 != key16
+            if (   ee
+                || k16 != key16
                 || (   MOVE_NONE != m
                     && m16 != m))
             {
                 k16 = key16;
                 m16 = u16(m);
             }
-            gb08 = u08(Generation + bb);
+            if (   ee
+                || bb
+                || generation () != Generation)
+            {
+                gb08 = u08(Generation + u08(bb ? b : bound ()));
+            }
         }
     };
 
@@ -138,7 +143,7 @@ namespace Transposition {
         Cluster *clusters;
         size_t cluster_count;
         size_t cluster_mask;
-        bool   retain_hash;
+        bool retain_hash;
 
         Table ()
             : mem (nullptr)
@@ -170,10 +175,21 @@ namespace Transposition {
         // Reset the entire transposition table with zeroes.
         void clear ()
         {
-            if (   !retain_hash
-                && nullptr != clusters)
+            assert(nullptr != clusters);
+            if (!retain_hash)
             {
-                std::memset (clusters, 0x00, cluster_count * sizeof (Cluster));
+                // Clear first cluster
+                std::memset (clusters, 0x00, sizeof (Cluster));
+                for (u08 e = 0; e < Cluster::EntryCount; ++e)
+                {
+                    clusters->entries[e].d08 = Entry::Empty;
+                }
+                // Clear other cluster using first cluster as template
+                for (auto *clt = clusters + 1; clt < clusters + cluster_count; ++clt)
+                {
+                    std::memcpy (clt, clusters, sizeof (Cluster));
+                }
+
                 Entry::Generation = 0;
                 sync_cout << "info string Hash cleared" << sync_endl;
             }
@@ -181,9 +197,10 @@ namespace Transposition {
 
         // Returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
-        Entry* cluster_entry (Key key) const
+        Entry* cluster_entry (Key posi_key) const
         {
-            return clusters[key & cluster_mask].entries;
+            assert(0 != posi_key);
+            return clusters[posi_key & cluster_mask].entries;
         }
 
         u32 resize (u32 mem_size, bool force = false);
