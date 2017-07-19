@@ -53,45 +53,42 @@ namespace Transposition {
         static u08 Generation;
 
         //u16   key16 () const { return u16  (k16); }
-        Move  move  () const { return Move (m16);  }
-        Value value () const { return Value(v16); }
-        Value eval  () const { return Value(e16);  }
-        i16   depth () const { return i16  (d08); }
-        Bound bound () const { return Bound(gb08 & 0x03); }
-        //u08   gen   () const { return u08  (gb08 & 0xFC); }
+        Move  move       () const { return Move (m16); }
+        Value value      () const { return Value(v16); }
+        Value eval       () const { return Value(e16); }
+        i16   depth      () const { return i16  (d08); }
+        Bound bound      () const { return Bound(gb08 & 0x03); }
+        u08   generation () const { return u08  (gb08 & 0xFC); }
 
-        bool alive () const { return (gb08 & 0xFC) == Generation; }
         // The worth of an entry is calculated as its depth minus 8 times its relative age.
         // Due to packed storage format for generation and its cyclic nature
         // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
         // to calculate the entry age correctly even after generation overflows into the next cycle.
-        u08  worth () const { return u08(d08 - 2*((0x103 + Generation - gb08) & 0xFC)); }
-
-        void refresh () { gb08 = u08(Generation + (gb08 & 0x03)); }
+        u08   worth      () const { return u08(d08 - 2*((0x103 + Generation - gb08) & 0xFC)); }
 
         void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
         {
             const auto key16 = KeySplit{ k }.key16 ();
             assert(0 != key16);
-
+            u08 bb = bound ();
             // Preserve more valuable entries
-            if (   key16 != k16
-                || d > d08 - 4
-                //|| Generation != (gb08 & 0xFC) // Matching non-zero keys are already refreshed by probe()
-                || b == BOUND_EXACT)
+            if (   k16 != key16
+                || d08 - 4 < d
+                || BOUND_EXACT == b)
             {
-                v16  = i16(v);
-                e16  = i16(e);
-                d08  = i08(d);
-                gb08 = u08(Generation + b);
+                v16 = i16(v);
+                e16 = i16(e);
+                d08 = i08(d);
+                bb  = u08(b);
             }
-            if (   key16 != k16
-                || (   m != MOVE_NONE
-                    && m != m16))
+            if (   k16 != key16
+                || (   MOVE_NONE != m
+                    && m16 != m))
             {
-                k16  = key16;
-                m16  = u16(m);
+                k16 = key16;
+                m16 = u16(m);
             }
+            gb08 = u08(Generation + bb);
         }
     };
 

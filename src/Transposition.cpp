@@ -159,26 +159,20 @@ namespace Transposition {
         auto rworth = rte->worth ();
         for (auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
         {
-            if (   ite->k16 == 0
-                || ite->k16 == key16)
+            if (   0 == ite->k16
+                || key16 == ite->k16)
             {
-                tt_hit = ite->k16 != 0;
-                if (   tt_hit
-                    && !ite->alive ())
-                {
-                    ite->refresh ();
-                }
-                return ite;
+                return tt_hit = key16 == ite->k16, ite;
             }
             // Entry1 is considered more valuable than Entry2, if Entry1.worth() > Entry2.worth().
-            if (rworth > ite->worth ())
+            auto iworth = ite->worth ();
+            if (rworth > iworth)
             {
-                rworth = ite->worth ();
+                rworth = iworth;
                 rte = ite;
             }
         }
-        tt_hit = false;
-        return rte;
+        return tt_hit = false, rte;
     }
     // Returns an approximation of the per-mille of the 
     // all transposition entries during a search which have received
@@ -195,7 +189,7 @@ namespace Transposition {
             const auto *fte = clt->entries;
             for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
             {
-                if (ite->alive ())
+                if (ite->generation () == Entry::Generation)
                 {
                     ++entry_count;
                 }
