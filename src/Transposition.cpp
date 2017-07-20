@@ -12,7 +12,7 @@ namespace Transposition {
 
     using namespace std;
 
-    u08 Entry::Generation = 0;
+    u08 Entry::Generation;
 
     // Size of Transposition entry (10 bytes)
     static_assert (sizeof (Entry) == 10, "Entry size incorrect");
@@ -78,7 +78,6 @@ namespace Transposition {
         clusters = nullptr;
         cluster_count = 0;
         cluster_mask  = 0;
-        Entry::Generation = 0;
     }
 
     // resize(mb) sets the size of the table, measured in mega-bytes.
@@ -144,16 +143,37 @@ namespace Transposition {
         }
         Engine::stop (EXIT_FAILURE);
     }
+
+    // Clear the entire transposition table.
+    void Table::clear ()
+    {
+        assert(nullptr != clusters);
+        if (!retain_hash)
+        {
+            // Clear first cluster
+            std::memset (clusters, 0x00, sizeof (*clusters));
+            for (auto *ent = clusters->entries; ent < clusters->entries + Cluster::EntryCount; ++ent)
+            {
+                ent->d08 = Entry::Empty;
+            }
+            // Clear other cluster using first cluster as template
+            for (auto *clt = clusters + 1; clt < clusters + cluster_count; ++clt)
+            {
+                std::memcpy (clt, clusters, sizeof (*clusters));
+            }
+            sync_cout << "info string Hash cleared" << sync_endl;
+        }
+    }
+
     // probe() looks up the entry in the transposition table.
     // If the position is found, it returns true and a pointer to the found entry.
     // Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
     Entry* Table::probe (Key posi_key, bool &tt_hit) const
     {
-        assert(0 != posi_key);
         const auto key16 = KeySplit{ posi_key }.key16 ();
         auto *const fte = cluster_entry (posi_key);
         assert(nullptr != fte);
-        // Find an entry to be replaced according to the replacement strategy
+        // Find an entry to be replaced according to the replacement strategy.
         auto *rte = fte; // Default first
         auto rworth = rte->worth ();
         for (auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
@@ -166,7 +186,11 @@ namespace Transposition {
             {
                 return tt_hit = true, ite;
             }
-            // Entry1 is considered more valuable than Entry2, if Entry1.worth() > Entry2.worth().
+            //if (ite == fte)
+            //{
+            //    continue;
+            //}
+            // Replacement strategy.
             auto iworth = ite->worth ();
             if (rworth > iworth)
             {

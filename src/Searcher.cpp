@@ -153,12 +153,12 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rsq)
         stage = Stage::EVASION_TT;
     }
     else
-    if (depth >= 0)
+    if (depth > DepthQSNoCheck)
     {
         stage = Stage::Q_CHECK_TT;
     }
     else
-    if (depth > -5)
+    if (depth > DepthQSRecapture)
     {
         stage = Stage::Q_NO_CHECK_TT;
     }
@@ -487,10 +487,10 @@ Move MovePicker::next_move (bool skip_quiets)
         assert(SQ_NO != recap_sq);
         while (m < moves.size ())
         {
-            auto &vm = swap_best_move (m++);
-            if (dst_sq (vm.move) == recap_sq)
+            auto move = swap_best_move (m++).move;
+            if (dst_sq (move) == recap_sq)
             {
-                return vm.move;
+                return move;
             }
         }
         break;
@@ -720,10 +720,10 @@ namespace Searcher {
             bool tt_hit;
             auto *tte = TT.probe (posi_key, tt_hit);
             auto tt_move =
-                   tt_hit
-                && MOVE_NONE != (move = tte->move ())
-                && pos.pseudo_legal (move)
-                && pos.legal (move) ?
+                tt_hit
+             && MOVE_NONE != (move = tte->move ())
+             && pos.pseudo_legal (move)
+             && pos.legal (move) ?
                     move :
                     MOVE_NONE;
             assert(MOVE_NONE == tt_move
@@ -738,8 +738,10 @@ namespace Searcher {
 
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
-            // Note that in quien_search use only 2 types of depth: (0) or (-1).
-            i16 qs_depth = in_check || 0 <= depth ? 0 : -1;
+            // Note that in quien_search use only 2 types of depth: DepthQSCheck or DepthQSNoCheck.
+            i16 qs_depth = in_check || DepthQSCheck <= depth ?
+                            DepthQSCheck :
+                            DepthQSNoCheck;
 
             if (   !PVNode
                 && tt_hit
@@ -1023,10 +1025,10 @@ namespace Searcher {
             auto tt_move =
                 root_node ?
                     pos.thread->root_moves[pos.thread->pv_index][0] :
-                       tt_hit
-                    && MOVE_NONE != (move = tte->move ())
-                    && pos.pseudo_legal (move)
-                    && pos.legal (move) ?
+                    tt_hit
+                 && MOVE_NONE != (move = tte->move ())
+                 && pos.pseudo_legal (move)
+                 && pos.legal (move) ?
                         move :
                         MOVE_NONE;
             assert(MOVE_NONE == tt_move
@@ -1305,10 +1307,10 @@ namespace Searcher {
 
                         tte = TT.probe (posi_key, tt_hit);
                         tt_move =
-                               tt_hit
-                            && MOVE_NONE != (move = tte->move ())
-                            && pos.pseudo_legal (move)
-                            && pos.legal (move) ?
+                            tt_hit
+                         && MOVE_NONE != (move = tte->move ())
+                         && pos.pseudo_legal (move)
+                         && pos.legal (move) ?
                                 move :
                                 MOVE_NONE;
                         tt_value =
@@ -1381,8 +1383,8 @@ namespace Searcher {
                 bool gives_check = pos.gives_check (move);
                 bool capture_or_promotion = pos.capture_or_promotion (move);
                 bool move_count_pruning =
-                       MaxFutilityDepth > depth
-                    && FutilityMoveCounts[improving][depth] <= move_count;
+                    MaxFutilityDepth > depth
+                 && FutilityMoveCounts[improving][depth] <= move_count;
 
                 auto mpc = pos[org_sq (move)];
                 assert(NO_PIECE != mpc);
@@ -1582,8 +1584,9 @@ namespace Searcher {
 
                     value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true, true);
 
-                    full_depth_search = alfa < value
-                                     && 0 != reduce_depth;
+                    full_depth_search =
+                        alfa < value
+                     && 0 != reduce_depth;
                 }
                 else
                 {
@@ -2181,7 +2184,7 @@ namespace Threading {
             time_mgr.initialize (root_pos.active, root_pos.ply);
         }
 
-        Transposition::Entry::Generation = u08(((root_pos.ply + 1) << 2) & 0xFC);
+        Transposition::Entry::Generation = u08((root_pos.ply + 1) << 2);
 
         bool voting = false;
 
@@ -2362,10 +2365,12 @@ namespace Threading {
         }
 
         auto best_move = root_move[0];
-        auto ponder_move = MOVE_NONE != best_move
-                        && (   root_move.size () > 1
-                            || root_move.extract_ponder_move_from_tt (root_pos)) ?
-                           root_move[1] : MOVE_NONE;
+        auto ponder_move =
+            MOVE_NONE != best_move
+         && (   root_move.size () > 1
+             || root_move.extract_ponder_move_from_tt (root_pos)) ?
+                root_move[1] :
+                MOVE_NONE;
         assert(MOVE_NONE != best_move
             || (MOVE_NONE == best_move
              && MOVE_NONE == ponder_move));
@@ -2433,7 +2438,7 @@ namespace Threading {
         }
 
         if (   (   Limits.use_time_management ()
-                && elapsed_time > time_mgr.maximum_time - 10) // 2*TimerResolution
+                && elapsed_time > time_mgr.maximum_time - 10) // 2 * Timer Resolution
             || (   0 != Limits.movetime
                 && elapsed_time >= Limits.movetime)
             || (   0 != Limits.nodes

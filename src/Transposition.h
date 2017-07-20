@@ -61,37 +61,28 @@ namespace Transposition {
         // Due to packed storage format for generation and its cyclic nature
         // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
         // to calculate the entry age correctly even after generation overflows into the next cycle.
-        u08   worth      () const { return u08(d08 - 2*((0x103 + Generation - gb08) & 0xFC)); }
+        i16   worth      () const { return d08 - 2*((Generation + (0x103 - gb08)) & 0xFC); }
 
         void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
         {
-            assert(0 != k);
             const auto key16 = KeySplit{ k }.key16 ();
-            bool bb = false;
-            bool ee = empty ();
             // Preserve more valuable entries
-            if (   ee
-                || k16 != key16
-                || d08 - 4 < d
-                || BOUND_EXACT == b)
+            if (   k16 != key16
+                || MOVE_NONE != m
+                || empty ())
             {
+                m16 = u16(m);
+            }
+            if (   k16 != key16
+                || d08 - 4 < d
+                || BOUND_EXACT == b
+                || empty ())
+            {
+                k16 = key16;
                 v16 = i16(v);
                 e16 = i16(e);
                 d08 = i08(d);
-                bb  = true;
-            }
-            if (   ee
-                || k16 != key16
-                || MOVE_NONE != m)
-            {
-                k16 = key16;
-                m16 = u16(m);
-            }
-            if (   ee
-                || bb
-                || generation () != Generation)
-            {
-                gb08 = u08(Generation + u08(bb ? b : bound ()));
+                gb08 = u08(Generation + b);
             }
         }
     };
@@ -171,34 +162,10 @@ namespace Transposition {
             return u32((cluster_count * sizeof (Cluster)) >> 20);
         }
 
-        // Reset the entire transposition table with zeroes.
-        void clear ()
-        {
-            assert(nullptr != clusters);
-            if (!retain_hash)
-            {
-                // Clear first cluster
-                std::memset (clusters, 0x00, sizeof (Cluster));
-                for (u08 e = 0; e < Cluster::EntryCount; ++e)
-                {
-                    clusters->entries[e].d08 = Entry::Empty;
-                }
-                // Clear other cluster using first cluster as template
-                for (auto *clt = clusters + 1; clt < clusters + cluster_count; ++clt)
-                {
-                    std::memcpy (clt, clusters, sizeof (Cluster));
-                }
-
-                Entry::Generation = 0;
-                sync_cout << "info string Hash cleared" << sync_endl;
-            }
-        }
-
         // Returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
         Entry* cluster_entry (Key posi_key) const
         {
-            assert(0 != posi_key);
             return clusters[posi_key & cluster_mask].entries;
         }
 
@@ -206,6 +173,8 @@ namespace Transposition {
         u32 resize ();
 
         void auto_resize (u32 mem_size, bool force = false);
+
+        void clear ();
 
         Entry* probe (Key posi_key, bool &tt_hit) const;
 
