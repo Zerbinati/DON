@@ -77,7 +77,6 @@ namespace Transposition {
         mem = nullptr;
         clusters = nullptr;
         cluster_count = 0;
-        cluster_mask  = 0;
     }
 
     // resize(mb) sets the size of the table, measured in mega-bytes.
@@ -107,20 +106,14 @@ namespace Transposition {
             alloc_aligned_memory (msize, CacheLineSize);
         }
 
-        u32 rsize;
         if (nullptr == clusters)
         {
-            cluster_count = 0;
-            cluster_mask  = 0;
-            rsize = 0;
+            return cluster_count = 0, 0;
         }
         else
         {
-            cluster_count = new_cluster_count;
-            cluster_mask  = new_cluster_count - 1;
-            rsize = u32(msize >> 20);
+            return cluster_count = new_cluster_count, u32(msize >> 20);
         }
-        return rsize;
     }
     u32 Table::resize ()
     {
@@ -152,14 +145,14 @@ namespace Transposition {
         {
             // Clear first cluster
             std::memset (clusters, 0x00, sizeof (*clusters));
-            for (auto *ent = clusters->entries; ent < clusters->entries + Cluster::EntryCount; ++ent)
+            for (auto *ite = clusters->entries; ite < clusters->entries + Cluster::EntryCount; ++ite)
             {
-                ent->d08 = Entry::Empty;
+                ite->d08 = Entry::Empty;
             }
             // Clear other cluster using first cluster as template
-            for (auto *clt = clusters + 1; clt < clusters + cluster_count; ++clt)
+            for (auto *itc = clusters + 1; itc < clusters + cluster_count; ++itc)
             {
-                std::memcpy (clt, clusters, sizeof (*clusters));
+                std::memcpy (itc, clusters, sizeof (*clusters));
             }
             sync_cout << "info string Hash cleared" << sync_endl;
         }
@@ -168,28 +161,24 @@ namespace Transposition {
     // probe() looks up the entry in the transposition table.
     // If the position is found, it returns true and a pointer to the found entry.
     // Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
-    Entry* Table::probe (Key posi_key, bool &tt_hit) const
+    Entry* Table::probe (const Key key, bool &tt_hit) const
     {
-        const auto key16 = KeySplit{ posi_key }.key16 ();
-        auto *const fte = cluster_entry (posi_key);
+        auto *const fte = cluster_entry (key);
         assert(nullptr != fte);
+        const u16 key16 = key >> 0x30; // Use the high 16 bits as key inside the cluster
         // Find an entry to be replaced according to the replacement strategy.
         auto *rte = fte; // Default first
         auto rworth = rte->worth ();
-        for (auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
+        for (auto *ite = fte; ite < fte + Cluster::EntryCount; ++ite)
         {
-            if (ite->empty ())
+            if (   ite->empty ()
+                || ite->k16 == key16)
             {
-                return tt_hit = false, ite;
+                return tt_hit = !ite->empty (), ite;
             }
-            if (key16 == ite->k16)
-            {
-                return tt_hit = true, ite;
-            }
-            //if (ite == fte)
-            //{
-            //    continue;
-            //}
+
+            //if (ite == fte) continue;
+
             // Replacement strategy.
             auto iworth = ite->worth ();
             if (rworth > iworth)
@@ -208,12 +197,11 @@ namespace Transposition {
     // hash, are using <x>%. of the state of full.
     u32 Table::hash_full () const
     {
-        u64 entry_count = 0;
-        auto cluster_limit = std::min (size_t(1000/Cluster::EntryCount), cluster_count);
-        for (const auto *clt = clusters; clt < clusters + cluster_limit; ++clt)
+        u32 entry_count = 0;
+        auto cluster_limit = std::min (size_t(1000 / Cluster::EntryCount), cluster_count);
+        for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
         {
-            const auto *fte = clt->entries;
-            for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
+            for (const auto *ite = itc->entries; ite < itc->entries + Cluster::EntryCount; ++ite)
             {
                 if (ite->generation () == Entry::Generation)
                 {
@@ -221,7 +209,7 @@ namespace Transposition {
                 }
             }
         }
-        return u32(entry_count * cluster_limit * Cluster::EntryCount / 1000);
+        return u32(entry_count * 1000 / (cluster_limit * Cluster::EntryCount));
     }
 
     void Table::save (const string &hash_fn) const

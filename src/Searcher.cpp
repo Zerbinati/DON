@@ -716,9 +716,9 @@ namespace Searcher {
 
             Move move;
             // Transposition table lookup.
-            Key  posi_key = pos.si->posi_key;
+            Key  key = pos.si->posi_key;
             bool tt_hit;
-            auto *tte = TT.probe (posi_key, tt_hit);
+            auto *tte = TT.probe (key, tt_hit);
             auto tt_move =
                 tt_hit
              && MOVE_NONE != (move = tte->move ())
@@ -799,7 +799,7 @@ namespace Searcher {
                     {
                         if (!tt_hit)
                         {
-                            tte->save (posi_key,
+                            tte->save (key,
                                        MOVE_NONE,
                                        value_to_tt (tt_eval, ss->ply),
                                        ss->static_eval,
@@ -915,7 +915,7 @@ namespace Searcher {
                         // Fail high
                         if (value >= beta)
                         {
-                            tte->save (posi_key,
+                            tte->save (key,
                                        move,
                                        value_to_tt (value, ss->ply),
                                        ss->static_eval,
@@ -937,7 +937,7 @@ namespace Searcher {
                 }
             }
             
-            tte->save (posi_key,
+            tte->save (key,
                        best_move,
                        value_to_tt (best_value, ss->ply),
                        ss->static_eval,
@@ -1019,9 +1019,9 @@ namespace Searcher {
             // Step 4. Transposition table lookup
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
-            Key  posi_key = pos.si->posi_key ^ Key(ss->excluded_move);
+            Key  key = pos.si->posi_key ^ Key(ss->excluded_move);
             bool tt_hit;
-            auto *tte = TT.probe (posi_key, tt_hit);
+            auto *tte = TT.probe (key, tt_hit);
             auto tt_move =
                 root_node ?
                     pos.thread->root_moves[pos.thread->pv_index][0] :
@@ -1109,7 +1109,7 @@ namespace Searcher {
                                      wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply) :
                                                     VALUE_ZERO + 2 * draw * wdl;
 
-                        tte->save (posi_key,
+                        tte->save (key,
                                    MOVE_NONE,
                                    value_to_tt (value, ss->ply),
                                    VALUE_NONE,
@@ -1155,7 +1155,7 @@ namespace Searcher {
                             evaluate (pos) :
                             -(ss-1)->static_eval + Tempo*2;
 
-                    tte->save (posi_key,
+                    tte->save (key,
                                MOVE_NONE,
                                VALUE_NONE,
                                ss->static_eval,
@@ -1209,7 +1209,7 @@ namespace Searcher {
                         && VALUE_ZERO != pos.si->non_pawn_material (pos.active))
                     {
                         // Speculative prefetch as early as possible.
-                        prefetch (TT.cluster_entry (  posi_key
+                        prefetch (TT.cluster_entry (  key
                                                     ^ RandZob.color_key
                                                     ^ (SQ_NO != pos.si->en_passant_sq ?
                                                         RandZob.en_passant_keys[_file (pos.si->en_passant_sq)] :
@@ -1305,7 +1305,7 @@ namespace Searcher {
                     {
                         depth_search<PVNode> (pos, ss, alfa, beta, 3*depth/4 - 2, cut_node, false);
 
-                        tte = TT.probe (posi_key, tt_hit);
+                        tte = TT.probe (key, tt_hit);
                         tt_move =
                             tt_hit
                          && MOVE_NONE != (move = tte->move ())
@@ -1762,7 +1762,7 @@ namespace Searcher {
             
             if (MOVE_NONE == ss->excluded_move)
             {
-                tte->save (posi_key,
+                tte->save (key,
                            best_move,
                            value_to_tt (best_value, ss->ply),
                            ss->static_eval,
@@ -2007,7 +2007,7 @@ namespace Threading {
                     // If fail high set new bounds.
                     if (beta <= best_value)
                     {
-                        //alfa = (alfa + beta) / 2; // NOTE:: Don't change alfa
+                        // NOTE:: Don't change alfa = (alfa + beta) / 2;
                         beta = std::min (best_value + window, +VALUE_INFINITE);
                     }
                     // Otherwise exit the loop
@@ -2390,14 +2390,14 @@ namespace Threading {
             {
                 StateInfo si;
                 root_pos.do_move (best_move, si);
-                OutputStream << move_to_san (ponder_move, root_pos) << "\n";
+                OutputStream << move_to_san (ponder_move, root_pos);
                 root_pos.undo_move (best_move);
             }
             else
             {
-                OutputStream << "(none)\n";
+                OutputStream << "(none)";
             }
-            OutputStream << std::endl;
+            OutputStream << "\n" << std::endl;
             OutputStream.close ();
         }
 

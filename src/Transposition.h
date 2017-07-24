@@ -11,14 +11,6 @@
 
 namespace Transposition {
 
-    union KeySplit
-    {
-        u64 k;
-        u16 u[4];
-
-        u16 key16 () const { return u[3]; }
-    };
-
     // Transposition::Entry needs 16 byte to be stored
     //
     //  Key--------- 16 bits
@@ -65,24 +57,25 @@ namespace Transposition {
 
         void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
         {
-            const auto key16 = KeySplit{ k }.key16 ();
             // Preserve more valuable entries
-            if (   k16 != key16
-                || MOVE_NONE != m
-                || empty ())
+            if (   k16 != (k >> 0x30)
+                || MOVE_NONE != m)
             {
                 m16 = u16(m);
             }
-            if (   k16 != key16
+            if (   k16 != (k >> 0x30)
                 || d08 - 4 < d
-                || BOUND_EXACT == b
-                || empty ())
+                || BOUND_EXACT == b)
             {
-                k16 = key16;
+                k16 = u16(k >> 0x30);
+                gb08 = u08((   (   d08 - 4 < d
+                                && !empty ())
+                            || BOUND_EXACT == b ?
+                                Generation :
+                                generation ()) + b);
+                d08 = i08(d);
                 v16 = i16(v);
                 e16 = i16(e);
-                d08 = i08(d);
-                gb08 = u08(Generation + b);
             }
         }
     };
@@ -132,14 +125,12 @@ namespace Transposition {
         void *mem;
         Cluster *clusters;
         size_t cluster_count;
-        size_t cluster_mask;
         bool retain_hash;
 
         Table ()
             : mem (nullptr)
             , clusters (nullptr)
             , cluster_count (0)
-            , cluster_mask (0)
             , retain_hash (false)
         {}
 
@@ -151,23 +142,15 @@ namespace Transposition {
             free_aligned_memory ();
         }
 
-        size_t entry_count () const
-        {
-            return cluster_count * Cluster::EntryCount;
-        }
+        size_t cluster_mask () const { return cluster_count - 1; }
+        //size_t entry_count () const { return cluster_count * Cluster::EntryCount; }
 
         // Returns hash size in MB
-        u32 size () const
-        {
-            return u32((cluster_count * sizeof (Cluster)) >> 20);
-        }
+        u32 size () const { return u32((cluster_count * sizeof (Cluster)) >> 20); }
 
         // Returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
-        Entry* cluster_entry (Key posi_key) const
-        {
-            return clusters[posi_key & cluster_mask].entries;
-        }
+        Entry* cluster_entry (const Key key) const { return clusters[size_t(key) & cluster_mask ()].entries; }
 
         u32 resize (u32 mem_size, bool force = false);
         u32 resize ();
@@ -176,7 +159,7 @@ namespace Transposition {
 
         void clear ();
 
-        Entry* probe (Key posi_key, bool &tt_hit) const;
+        Entry* probe (const Key key, bool &tt_hit) const;
 
         u32 hash_full () const;
 

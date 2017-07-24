@@ -159,13 +159,15 @@ namespace Evaluator {
             const Score HangPawnThreat  = S( 71, 61);
             const Score SafePawnThreat  = S(182,175);
 
-            // PieceThreat[piece-type][piece-type] contains bonus according to piece type
-            const Score PieceThreat[4][NONE] =
+            // MinorPieceThreat[piece-type] contains bonus for minor attacks according to piece type
+            const Score MinorPieceThreat[NONE] =
             {
-                {},
-                { S( 0,33), S(45,43), S(46,47), S(47,107), S(48,118), S( 0, 0) },
-                { S( 0,33), S(45,43), S(46,47), S(47,107), S(48,118), S( 0, 0) },
-                { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) }
+                S( 0,33), S(45,43), S(46,47), S(72,107), S(48,118), S( 0, 0)
+            };
+            // MajorPieceThreat[piece-type] contains bonus for major attacks according to piece type
+            const Score MajorPieceThreat[NONE] =
+            {
+                S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0)
             };
 
             const Score PieceRankThreat = S(16, 3);
@@ -365,9 +367,9 @@ namespace Evaluator {
                     Bitboard qb = pos.pieces (Own, BSHP) & PieceAttacks[BSHP][s] & att;
                     Bitboard qr = pos.pieces (Own, ROOK) & PieceAttacks[ROOK][s] & att;
                     dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
-                                      & (  attacks
-                                         | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
-                                         | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
+                                       & (  attacks
+                                          | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
+                                          | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
                 }
                 else
                 {
@@ -713,8 +715,8 @@ namespace Evaluator {
             // - attack the square twice and not defended twice.
             Bitboard defended =
                    pin_attacked_by[Opp][PAWN]
-                | (   dbl_attacked[Opp]
-                   & ~dbl_attacked[Own]);
+                |  (   dbl_attacked[Opp]
+                    & ~dbl_attacked[Own]);
 
             // Enemy not defended and attacked by any friend piece
             Bitboard weak_pieces =
@@ -724,52 +726,35 @@ namespace Evaluator {
 
             // Add a bonus according to the type of attacking pieces
 
-            // Enemies attacked by knights
-            b =   (  weak_pieces
-                    // Rooks or Queens
-                   | pos.pieces (Opp, ROOK, QUEN)
-                    // Enemy defended non-pawns
-                   | (  nonpawns
-                      & defended))
-                & pin_attacked_by[Own][NIHT];
+            // Enemies attacked by minors
+            b =    (  weak_pieces
+                     // Rooks or Queens
+                    | pos.pieces (Opp, ROOK, QUEN)
+                     // Enemy defended non-pawns
+                    | (  nonpawns
+                       & defended))
+                &  (  pin_attacked_by[Own][NIHT]
+                    | pin_attacked_by[Own][BSHP]);
             while (0 != b)
             {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
-                score += PieceThreat[NIHT][pt];
+                score += MinorPieceThreat[pt];
                 if (PAWN != pt)
                 {
                     score += PieceRankThreat * rel_rank (Opp, s);
                 }
             }
-            // Enemies attacked by bishops
-            b =   (  weak_pieces
-                    // Rooks or Queens
-                   | pos.pieces (Opp, ROOK, QUEN)
-                    // Enemy defended non-pawns
-                   | (  nonpawns
-                      & defended))
-                & pin_attacked_by[Own][BSHP];
+            // Enemies attacked by majors
+            b =    (  weak_pieces
+                     // Queens
+                    | pos.pieces (Opp, QUEN))
+                &  pin_attacked_by[Own][ROOK];
             while (0 != b)
             {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
-                score += PieceThreat[BSHP][pt];
-                if (PAWN != pt)
-                {
-                    score += PieceRankThreat * rel_rank (Opp, s);
-                }
-            }
-            // Enemies attacked by rooks
-            b =   (  weak_pieces
-                    // Queens
-                   | pos.pieces (Opp, QUEN))
-                & pin_attacked_by[Own][ROOK];
-            while (0 != b)
-            {
-                auto s = pop_lsq (b);
-                auto pt = ptype (pos[s]);
-                score += PieceThreat[ROOK][pt];
+                score += MajorPieceThreat[pt];
                 if (PAWN != pt)
                 {
                     score += PieceRankThreat * rel_rank (Opp, s);
