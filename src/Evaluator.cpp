@@ -1134,9 +1134,9 @@ namespace Evaluator {
             assert(me->phase <= PhaseResolution);
 
             // Interpolates between midgame and scaled endgame score.
-            double vv = double(mg_value (score)) * (me->phase)                     // Evaluate scale for the position
-                      + double(eg_value (score)) * (PhaseResolution - me->phase) * evaluate_scale (eg_value (score)) / SCALE_NORMAL;
-            v = Value(i32(std::round (vv / PhaseResolution)));
+            v = Value((  mg_value (score) * (me->phase)                     // Evaluate scale for the position
+                       + eg_value (score) * (PhaseResolution - me->phase) * evaluate_scale (eg_value (score)) / SCALE_NORMAL)
+                     / PhaseResolution);
 
             if (Trace)
             {

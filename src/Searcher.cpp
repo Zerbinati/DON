@@ -98,6 +98,7 @@ MovePicker::MovePicker (const Position &p, const SquareHistoryStats *const &sh1,
     , depth (0)
     , tt_move (ttm)
     , recap_sq (SQ_NO)
+    , killers_moves (km, km + MaxKillers)
 {
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
@@ -107,7 +108,6 @@ MovePicker::MovePicker (const Position &p, const SquareHistoryStats *const &sh1,
     {
         stage = Stage::NATURAL_TT;
 
-        killers_moves.assign (km, km + MaxKillers);
         if (   MOVE_NONE != cm
             && tt_move != cm
             && std::find (killers_moves.begin (), killers_moves.end (), cm) == killers_moves.end ())
@@ -133,7 +133,7 @@ MovePicker::MovePicker (const Position &p, const SquareHistoryStats *const &sh1,
         ++stage;
     }
 }
-MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rsq)
+MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     : pos (p)
     , smh1 (nullptr)
     , smh2 (nullptr)
@@ -165,7 +165,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rsq)
     else
     {
         stage = Stage::Q_RECAPTURE_TT;
-        recap_sq = rsq;
+        recap_sq = rs;
         if (   MOVE_NONE != tt_move
             && !(   pos.capture (tt_move)
                  && dst_sq (tt_move) == recap_sq))
