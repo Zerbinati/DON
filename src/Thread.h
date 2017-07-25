@@ -182,9 +182,9 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        HistoryStats history;
-        MoveHistoryBoardStats cm_history;
-        SquareMoveBoardStats counter_moves;
+        HistoryStat history;
+        MoveHistoryStatTable cm_history;
+        SquareMoveStatTable counter_moves;
 
         Thread ();
         Thread (const Thread&) = delete;

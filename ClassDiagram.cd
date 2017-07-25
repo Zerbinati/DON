@@ -3,7 +3,7 @@
   <Class Name="Position">
     <Position X="6" Y="3" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEgAEAAKCQQACA2xZYKoIBRngBEEEAVgIAAkaDBgJQA=</HashCode>
+      <HashCode>AEgAEAAKCQQACA2xZYKoIBRngBEEEAVgIAAgaDBgJQA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -221,19 +221,18 @@
   <Class Name="MovePicker">
     <Position X="16.75" Y="13" Width="1.75" />
     <TypeIdentifier>
-      <HashCode>AAQAAAgAAgAAAAAAAAAAAIAAQwEACCAQCAAgIAABAAA=</HashCode>
+      <HashCode>ABQAAAgACgAAAAAAAAAAAIAAQgEACCAACgAgAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="threshold" />
-      <Field Name="killer_moves" />
       <Field Name="capture_moves" />
     </ShowAsAssociation>
   </Class>
   <Class Name="Evaluator::`anonymous-namespace'::Evaluation&lt;Trace&gt;">
     <Position X="26.5" Y="10.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>QQgAiAAAQQQAEQAQAR1AAYgMEIAAAGIBQSgjEE8QZAI=</HashCode>
+      <HashCode>QQiAiAAAQYQAEQAQAR1AAYgMEIAAAGIBQSgjEE8QZAI=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Class>
@@ -340,16 +339,16 @@
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="static_eval" />
-      <Field Name="m_history" />
       <Field Name="killer_moves" />
+      <Field Name="static_eval" />
       <Field Name="pv" />
+      <Field Name="m_history" />
     </ShowAsAssociation>
   </Struct>
   <Struct Name="Transposition::Entry">
     <Position X="21" Y="14" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAgAEAAAACAAACAAAAAAAAEBAAAACAgAEISMAAAARA=</HashCode>
+      <HashCode>AAAgAAAAAACAAACAAAIAAAAGAAAAACAgAEISMAAAARA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -408,21 +407,21 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="HistoryStats">
+  <Struct Name="HistoryStat">
     <Position X="16.25" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="BoardStats&lt;Size1, Size2, T&gt;" Collapsed="true">
-    <Position X="18" Y="1" Width="2.5" />
+  <Struct Name="StatTable&lt;Size1, Size2, T&gt;" Collapsed="true">
+    <Position X="18" Y="0.5" Width="2.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="SquareHistoryStats">
+  <Struct Name="SquareHistoryStat">
     <Position X="18" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
@@ -597,29 +596,36 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="HistoryBoardStats" Collapsed="true">
-    <Position X="16.25" Y="2.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="SquareHistoryBoardStats" Collapsed="true">
-    <Position X="18" Y="2.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="SquareMoveBoardStats" Collapsed="true">
+  <Typedef Name="SquareMoveStatTable" Collapsed="true">
     <Position X="21.5" Y="2.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="MoveHistoryBoardStats" Collapsed="true">
+  <Typedef Name="MoveHistoryStatTable" Collapsed="true">
     <Position X="19.75" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="HistoryStatTable" Collapsed="true">
+    <Position X="16.25" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="SquareHistoryStatTable" Collapsed="true">
+    <Position X="18" Y="2.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="HistoryTuple" Collapsed="true">
+    <Position X="21.75" Y="3.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>

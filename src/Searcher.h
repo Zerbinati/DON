@@ -3,10 +3,13 @@
 
 #include <array>
 #include <vector>
+#include <tuple>
 
 #include "MoveGenerator.h"
 #include "Position.h"
 #include "Type.h"
+
+const u08 MaxKillers = 2;
 
 // Limit stores information sent by GUI about available time to search the current move.
 //  - Maximum time and increment
@@ -67,7 +70,7 @@ public:
 
 // StatBoards is a Generic 2-dimensional array used to store various statistics.
 template<i32 Size1, i32 Size2, typename T = i32>
-struct BoardStats
+struct StatTable
     : public std::array<std::array<T, Size2>, Size1>
 {
     void fill (const T &v)
@@ -77,12 +80,12 @@ struct BoardStats
     }
 };
 
-// HistoryStats indexed by [color][move's org and dst squares].
-typedef BoardStats<CLR_NO, SQ_NO*SQ_NO> HistoryBoardStats;
-// HistoryStats records how often quiet moves have been successful or unsuccessful
+// HistoryStatTable indexed by [color][move's org and dst squares].
+typedef StatTable<CLR_NO, SQ_NO*SQ_NO> HistoryStatTable;
+// HistoryStat records how often quiet moves have been successful or unsuccessful
 // during the current search, and is used for reduction and move ordering decisions.
-struct HistoryStats
-    : public HistoryBoardStats
+struct HistoryStat
+    : public HistoryStatTable
 {
     // Color, Move, Value
     void update (Color c, Move m, i32 v)
@@ -96,10 +99,10 @@ struct HistoryStats
 };
 
 // PieceToBoards are addressed by a move's [piece][destiny] information.
-typedef BoardStats<MAX_PIECE, SQ_NO> SquareHistoryBoardStats;
-// PieceToHistory is like HistoryStats, but is based on SquareHistoryBoardStats.
-struct SquareHistoryStats
-    : public SquareHistoryBoardStats
+typedef StatTable<MAX_PIECE, SQ_NO> SquareHistoryStatTable;
+// PieceToHistory is like HistoryStat, but is based on SquareHistoryStatTable.
+struct SquareHistoryStat
+    : public SquareHistoryStatTable
 {
     // Piece, Destiny, Value
     void update (Piece pc, Square s, i32 v)
@@ -112,11 +115,74 @@ struct SquareHistoryStats
     }
 };
 
-// MoveHistoryBoardStats
-typedef BoardStats<MAX_PIECE, SQ_NO, SquareHistoryStats> MoveHistoryBoardStats;
+// MoveHistoryStatTable
+typedef StatTable<MAX_PIECE, SQ_NO, SquareHistoryStat> MoveHistoryStatTable;
 
-// SquareMoveBoardStats stores counter moves indexed by [piece][destiny]
-typedef BoardStats<MAX_PIECE, SQ_NO, Move> SquareMoveBoardStats;
+// SquareMoveStatTable stores counter moves indexed by [piece][destiny]
+typedef StatTable<MAX_PIECE, SQ_NO, Move> SquareMoveStatTable;
+
+// Group all histories in a std::tuple to pass them around handily. Also
+// define a helper function to access each history by ply.
+typedef std::tuple<HistoryStat*, SquareHistoryStat*, SquareHistoryStat*, SquareHistoryStat*, SquareHistoryStat*> HistoryTuple;
+
+template<i32 N>
+inline auto history_at_ply (const HistoryTuple &ht) -> decltype(*std::get<N> (ht))
+{
+    return *std::get<N> (ht);
+}
+
+// MovePicker class is used to pick one legal moves from the current position.
+class MovePicker
+{
+private:
+    const Position &pos;
+
+    Move tt_move;
+    Value threshold;
+    Square recap_sq;
+
+    const HistoryTuple *history_tuple;
+
+    ValMoves moves;
+    Moves killers_moves
+        , capture_moves;
+
+    u08 stage;
+    u08 m;
+
+    template<GenType GT>
+    void value ();
+
+    ValMove& swap_best_move (u08 i);
+
+public:
+    MovePicker () = delete;
+    MovePicker (const MovePicker&) = delete;
+    MovePicker& operator= (const MovePicker&) = delete;
+
+    MovePicker (const Position&, Move, i16, const Move*, Move, const HistoryTuple*);
+    MovePicker (const Position&, Move, i16, Square, const HistoryTuple*);
+    MovePicker (const Position&, Move, Value);
+
+    Move next_move (bool skip_quiets = false);
+};
+
+// Stack keeps the information of the nodes in the tree during the search.
+struct Stack
+{
+public:
+    i16   ply;
+    Move  played_move;
+    Move  excluded_move;
+    Move  killer_moves[MaxKillers];
+
+    Value static_eval;
+    i32   statistics;
+    u08   move_count;
+    Moves pv;
+
+    SquareHistoryStat *m_history;
+};
 
 // The root of the tree is a PV node.
 // At a PV node all the children have to be investigated.
@@ -211,64 +277,6 @@ inline std::basic_ostream<CharT, Traits>&
     os << std::string(root_moves);
     return os;
 }
-
-
-const u08 MaxKillers = 2;
-// Stack keeps the information of the nodes in the tree during the search.
-struct Stack
-{
-public:
-    i16   ply;
-    Move  played_move;
-    Move  excluded_move;
-    Move  killer_moves[MaxKillers];
-
-    Value static_eval;
-    i32   statistics;
-    u08   move_count;
-    Moves pv;
-
-    SquareHistoryStats *m_history;
-};
-
-// MovePicker class is used to pick one legal moves from the current position.
-class MovePicker
-{
-private:
-    const Position &pos;
-    const SquareHistoryStats *const smh1;
-    const SquareHistoryStats *const smh2;
-    const SquareHistoryStats *const smh4;
-
-    const Value threshold;
-    const i16 depth;
-
-    Move tt_move;
-    Square recap_sq;
-
-    ValMoves moves;
-    Moves killers_moves
-        , capture_moves;
-
-    u08 stage;
-    u08 m;
-
-    template<GenType GT>
-    void value ();
-
-    ValMove& swap_best_move (u08 i);
-
-public:
-    MovePicker () = delete;
-    MovePicker (const MovePicker&) = delete;
-    MovePicker& operator= (const MovePicker&) = delete;
-
-    MovePicker (const Position&, const SquareHistoryStats *const&, const SquareHistoryStats *const&, const SquareHistoryStats *const&, Move, Move[MaxKillers], Move);
-    MovePicker (const Position&, Move, i16, Square);
-    MovePicker (const Position&, Move, Value);
-
-    Move next_move (bool skip_quiets = false);
-};
 
 namespace Searcher {
 

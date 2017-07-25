@@ -55,7 +55,7 @@ namespace Material {
         // Calculates the imbalance by comparing the piece count of each piece type for both colors.
         // NOTE:: King == Bishop Pair
         template<Color Own>
-        i32 imbalance (const i32 count[][NONE])
+        i32 imbalance (const i32 (*count)[NONE])
         {
             const auto Opp = Own == WHITE ? BLACK : WHITE;
 
