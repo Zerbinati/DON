@@ -295,7 +295,8 @@ namespace Searcher {
         ,        ContemptValue;
 
     extern std::string HashFile;
-    
+    extern bool RetainHash;
+
     extern bool  OwnBook;
     extern std::string BookFile;
     extern bool  BookMoveBest;

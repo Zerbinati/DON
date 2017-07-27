@@ -125,13 +125,11 @@ namespace Transposition {
         void *mem;
         Cluster *clusters;
         size_t cluster_count;
-        bool retain_hash;
 
         Table ()
             : mem (nullptr)
             , clusters (nullptr)
             , cluster_count (0)
-            , retain_hash (false)
         {}
 
         Table (const Table&) = delete;

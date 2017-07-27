@@ -373,7 +373,7 @@ Move MovePicker::next_move ()
                     {
                         *max = *(max - 1);
                     }
-                    *beg = tmp;
+                    *max = tmp;
                 }
                 return ++m, beg->move;
             }
@@ -548,6 +548,7 @@ namespace Searcher {
         ,  ContemptValue =  50;
 
     string HashFile =       "Hash.dat";
+    bool   RetainHash =     false;
 
     bool   OwnBook =        false;
     string BookFile =       "Book.bin";
@@ -1898,8 +1899,11 @@ namespace Searcher {
     // Resets search state to its initial value, to obtain reproducible results.
     void clear ()
     {
-        TT.clear ();
-        Threadpool.clear ();
+        if (!RetainHash)
+        {
+            TT.clear ();
+            Threadpool.clear ();
+        }
     }
 }
 
@@ -1931,7 +1935,10 @@ namespace Threading {
             ss->m_history = &cm_history[NO_PIECE][0];
         }
 
-        auto *main_thread = Threadpool.main_thread ();
+        auto *main_thread =
+            this == Threadpool.main_thread () ?
+                Threadpool.main_thread () :
+                nullptr;
 
         auto best_value = VALUE_ZERO
            , window = VALUE_ZERO
@@ -1942,12 +1949,11 @@ namespace Threading {
         while (   ++running_depth < MaxPlies
                && !Threadpool.force_stop
                && (   0 == Limits.depth
-                   || main_thread != this
+                   || nullptr == main_thread
                    || running_depth <= Limits.depth))
         {
-            if (main_thread == this)
+            if (nullptr != main_thread)
             {
-                assert(main_thread == this);
                 if (Limits.use_time_management ())
                 {
                     main_thread->failed_low = false;
@@ -2011,7 +2017,7 @@ namespace Threading {
                         break;
                     }
 
-                    if (main_thread == this)
+                    if (nullptr != main_thread)
                     {
                         // Give some update before to re-search.
                         if (   1 == Threadpool.pv_limit
@@ -2027,7 +2033,7 @@ namespace Threading {
                         beta = (alfa + beta) / 2;
                         alfa = std::max (best_value - window, -VALUE_INFINITE);
 
-                        if (main_thread == this)
+                        if (nullptr != main_thread)
                         {
                             if (Limits.use_time_management ())
                             {
@@ -2057,7 +2063,7 @@ namespace Threading {
                 // Sort the PV lines searched so far and update the GUI.
                 std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
 
-                if (main_thread == this)
+                if (nullptr != main_thread)
                 {
                     if (   Threadpool.force_stop
                         || Threadpool.pv_limit == pv_index + 1
@@ -2080,7 +2086,7 @@ namespace Threading {
             //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
             //}
 
-            if (main_thread == this)
+            if (nullptr != main_thread)
             {
                 // If skill level is enabled and can pick move, pick a sub-optimal best move.
                 if (   main_thread->skill_mgr.enabled ()

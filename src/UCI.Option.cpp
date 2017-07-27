@@ -171,7 +171,7 @@ namespace UCI {
 
         void on_retain_hash ()
         {
-            TT.retain_hash = bool(Options["Retain Hash"]);
+            RetainHash = bool(Options["Retain Hash"]);
         }
 
         void on_save_hash ()
@@ -335,7 +335,7 @@ namespace UCI {
 #endif
 
         Options["Clear Hash"]                   << Option (on_clear_hash);
-        Options["Retain Hash"]                  << Option (TT.retain_hash, on_retain_hash);
+        Options["Retain Hash"]                  << Option (RetainHash, on_retain_hash);
 
         Options["Hash File"]                    << Option (HashFile, on_hash_file);
         Options["Save Hash"]                    << Option (on_save_hash);

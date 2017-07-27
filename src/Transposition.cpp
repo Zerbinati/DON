@@ -141,21 +141,18 @@ namespace Transposition {
     void Table::clear ()
     {
         assert(nullptr != clusters);
-        if (!retain_hash)
+        // Clear first cluster
+        std::memset (clusters, 0x00, sizeof (*clusters));
+        for (auto *ite = clusters->entries; ite < clusters->entries + Cluster::EntryCount; ++ite)
         {
-            // Clear first cluster
-            std::memset (clusters, 0x00, sizeof (*clusters));
-            for (auto *ite = clusters->entries; ite < clusters->entries + Cluster::EntryCount; ++ite)
-            {
-                ite->d08 = Entry::Empty;
-            }
-            // Clear other cluster using first cluster as template
-            for (auto *itc = clusters + 1; itc < clusters + cluster_count; ++itc)
-            {
-                std::memcpy (itc, clusters, sizeof (*clusters));
-            }
-            sync_cout << "info string Hash cleared" << sync_endl;
+            ite->d08 = Entry::Empty;
         }
+        // Clear other cluster using first cluster as template
+        for (auto *itc = clusters + 1; itc < clusters + cluster_count; ++itc)
+        {
+            std::memcpy (itc, clusters, sizeof (*clusters));
+        }
+        sync_cout << "info string Hash cleared" << sync_endl;
     }
 
     // probe() looks up the entry in the transposition table.
@@ -165,6 +162,7 @@ namespace Transposition {
     {
         auto *const fte = cluster_entry (key);
         assert(nullptr != fte);
+        assert(0 == (Entry::Generation & 0x03));
         const u16 key16 = key >> 0x30; // Use the high 16 bits as key inside the cluster
         // Find an entry to be replaced according to the replacement strategy.
         auto *rte = fte; // Default first
