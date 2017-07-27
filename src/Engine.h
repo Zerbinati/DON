@@ -5,7 +5,12 @@
 
 namespace Engine {
 
-    extern std::string info (bool uci = false);
+    const std::string Name = "DON";
+    // Version number. If version is left empty, then show compile date in the format DD-MM-YY.
+    const std::string Version = "";
+    const std::string Author = "Ehsan Rashid";
+
+    extern std::string info ();
 
     extern void run (i32 argc, const char *const *argv);
 

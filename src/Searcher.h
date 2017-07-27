@@ -121,10 +121,10 @@ typedef StatTable<MAX_PIECE, SQ_NO, SquareHistoryStat> MoveHistoryStatTable;
 // SquareMoveStatTable stores counter moves indexed by [piece][destiny]
 typedef StatTable<MAX_PIECE, SQ_NO, Move> SquareMoveStatTable;
 
-// Group all histories in a std::tuple to pass them around handily. Also
-// define a helper function to access each history by ply.
+// Group all histories in a std::tuple to pass them around handily.
 typedef std::tuple<HistoryStat*, SquareHistoryStat*, SquareHistoryStat*, SquareHistoryStat*, SquareHistoryStat*> HistoryTuple;
 
+// Helper function to access each history by ply.
 template<i32 N>
 inline auto history_at_ply (const HistoryTuple &ht) -> decltype(*std::get<N> (ht))
 {
@@ -145,7 +145,7 @@ private:
 
     ValMoves moves;
     Moves killers_moves
-        , capture_moves;
+        , bad_capture_moves;
 
     u08 stage;
     u08 m;
@@ -153,9 +153,11 @@ private:
     template<GenType GT>
     void value ();
 
-    ValMove& swap_best_move (u08 i);
+    ValMove& next_max_move ();
 
 public:
+    bool skip_quiets;
+
     MovePicker () = delete;
     MovePicker (const MovePicker&) = delete;
     MovePicker& operator= (const MovePicker&) = delete;
@@ -164,7 +166,7 @@ public:
     MovePicker (const Position&, Move, i16, Square, const HistoryTuple*);
     MovePicker (const Position&, Move, Value);
 
-    Move next_move (bool skip_quiets = false);
+    Move next_move ();
 };
 
 // Stack keeps the information of the nodes in the tree during the search.

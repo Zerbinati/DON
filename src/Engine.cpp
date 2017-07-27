@@ -18,9 +18,6 @@ namespace Engine {
 
     namespace {
 
-        // Version number. If Version is left empty, then show compile date in the format DD-MM-YY.
-        const string Version = "";
-
         i32 month_index (const string &month)
         {
             const i08 Months = 12;
@@ -38,11 +35,9 @@ namespace Engine {
 
     }
 
-    string info (bool uci)
+    string info ()
     {
         ostringstream oss;
-
-        oss << (uci ? "id name " : "") << "DON ";
 
         oss << std::setfill ('0');
     #if defined(VER)
@@ -83,14 +78,12 @@ namespace Engine {
         oss << ".LP";
     #endif
 
-        oss << (uci ? "\nid author " : " by ") << "Ehsan Rashid";
-
         return oss.str ();
     }
 
     void run (i32 argc, const char *const *argv)
     {
-        std::cout << info (false) << std::endl;
+        std::cout << Name << " " << info () << " by " << Author << std::endl;
         std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency () << std::endl;
 
 #if defined(LPAGES)

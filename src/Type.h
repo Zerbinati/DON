@@ -448,12 +448,6 @@ inline CastleRight& operator^= (CastleRight &cr, i32 i) { cr = CastleRight(i32(c
 
 INC_DEC_OPERATORS(PieceType)
 
-inline Move operator| (Move m, i32 i) { return Move(i32(m) | i); }
-inline Move operator& (Move m, i32 i) { return Move(i32(m) & i); }
-
-inline Move& operator|= (Move &m, i32 i) { m = Move(i32(m) | i); return m; }
-inline Move& operator&= (Move &m, i32 i) { m = Move(i32(m) & i); return m; }
-
 BASIC_OPERATORS(Value)
 ARTHMAT_OPERATORS(Value)
 INC_DEC_OPERATORS(Value)
@@ -556,9 +550,9 @@ inline Square    org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
 inline Square    dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
 inline bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
 inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
-inline MoveType  mtype   (Move m) { return MoveType(PROMOTE & m); }
-inline void      promote (Move &m, PieceType pt) { m &= 0x0FFF; m |= PROMOTE + ((pt - 1) << 12); }
-inline i16       move_pp (Move m) { return i16(m & 0x0FFF); }
+inline MoveType  mtype   (Move m) { return MoveType(m & PROMOTE); }
+inline i16       move_pp (Move m) { return m & 0x0FFF; }
+inline void      promote (Move &m, PieceType pt) { m = Move((m & 0x0FFF) + (PROMOTE + ((pt - 1) << 12))); }
 
 template<MoveType MT>
 inline Move mk_move (Square org, Square dst)               { return Move(MT + (org << 6) + dst); }

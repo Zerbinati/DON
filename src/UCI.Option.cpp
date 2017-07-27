@@ -165,7 +165,6 @@ namespace UCI {
 
         void on_clear_hash ()
         {
-            Threadpool.force_stop = true;
             Threadpool.wait_while_thinking ();
             Searcher::clear ();
         }

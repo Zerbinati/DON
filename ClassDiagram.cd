@@ -226,7 +226,7 @@
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="threshold" />
-      <Field Name="capture_moves" />
+      <Field Name="bad_capture_moves" />
     </ShowAsAssociation>
   </Class>
   <Class Name="Evaluator::`anonymous-namespace'::Evaluation&lt;Trace&gt;">

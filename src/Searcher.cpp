@@ -96,11 +96,13 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const Move *km, Move
     , recap_sq (SQ_NO)
     , history_tuple (ht)
     , killers_moves (km, km + MaxKillers)
+    , skip_quiets (false)
 {
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
          && pos.legal (tt_move)));
     assert(d > 0);
+    assert(threshold < VALUE_ZERO);
 
     if (0 == pos.si->checkers)
     {
@@ -117,7 +119,10 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const Move *km, Move
                                              [&](Move mm)
                                              {
                                                  return mm == MOVE_NONE
-                                                     || mm == tt_move;
+                                                     || mm == tt_move
+                                                     ||  pos.capture (mm)
+                                                     || !pos.pseudo_legal (mm)
+                                                     || !pos.legal (mm);
                                              }),
                              killers_moves.end ());
     }
@@ -137,6 +142,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs, const His
     , threshold (VALUE_ZERO)
     , recap_sq (SQ_NO)
     , history_tuple (ht)
+    , skip_quiets (false)
 {
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
@@ -179,6 +185,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     , threshold (thr)
     , recap_sq (SQ_NO)
     , history_tuple (nullptr)
+    , skip_quiets (false)
 {
     assert(0 == pos.si->checkers);
     assert(MOVE_NONE == tt_move
@@ -229,11 +236,14 @@ template<> void MovePicker::value<GenType::QUIET> ()
         assert(pos.pseudo_legal (vm.move)
             && pos.legal (vm.move));
 
+        auto mpc = pos[org_sq (vm.move)];
+        assert(NO_PIECE != mpc);
+        auto dst = dst_sq (vm.move);
         vm.value =
               history_at_ply<0> (*history_tuple)[pos.active][move_pp (vm.move)]
-            + history_at_ply<1> (*history_tuple)[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-            + history_at_ply<2> (*history_tuple)[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-            + history_at_ply<4> (*history_tuple)[pos[org_sq (vm.move)]][dst_sq (vm.move)];
+            + history_at_ply<1> (*history_tuple)[mpc][dst]
+            + history_at_ply<2> (*history_tuple)[mpc][dst]
+            + history_at_ply<4> (*history_tuple)[mpc][dst];
     }
 }
 // First captures ordered by MVV/LVA, then non-captures ordered by stats heuristics
@@ -259,11 +269,11 @@ template<> void MovePicker::value<GenType::EVASION> ()
     }
 }
 
-// Finds the best move in the range [beg, end) and moves it to front,
-// it is faster than sorting all the moves in advance when there are few moves (e.g. the possible captures).
-ValMove& MovePicker::swap_best_move (u08 i)
+// Finds the max move in the range [beg, end) and moves it to front.
+// It is faster than sorting all the moves in advance when there are few moves.
+ValMove& MovePicker::next_max_move ()
 {
-    auto beg = moves.begin () + i;
+    auto beg = moves.begin () + m++;
     auto max = std::max_element (beg, moves.end ());
     if (beg != max)
     {
@@ -273,7 +283,7 @@ ValMove& MovePicker::swap_best_move (u08 i)
 }
 // Returns a new legal move every time it is called, until there are no more moves left.
 // It picks the move with the biggest value from a list of generated moves.
-Move MovePicker::next_move (bool skip_quiets)
+Move MovePicker::next_move ()
 {
     START:
     switch (stage)
@@ -306,13 +316,13 @@ Move MovePicker::next_move (bool skip_quiets)
     case Stage::GOOD_CAPTURES:
         while (m < moves.size ())
         {
-            auto move = swap_best_move (m++).move;
+            auto move = next_max_move ().move;
             if (pos.see_ge (move))
             {
                 return move;
             }
             // Losing capture, add it to the capture moves
-            capture_moves.push_back (move);
+            bad_capture_moves.push_back (move);
         }
         ++stage;
         /* fallthrough */
@@ -335,8 +345,6 @@ Move MovePicker::next_move (bool skip_quiets)
                 auto itr = std::find (moves.begin (), moves.end (), km);
                 if (itr != moves.end ())
                 {
-                    assert(pos.pseudo_legal (km)
-                        && pos.legal (km));
                     itr->value = MaxValue - k++;
                 }
             }
@@ -345,46 +353,47 @@ Move MovePicker::next_move (bool skip_quiets)
         m = 0;
         /* fallthrough */
     case Stage::QUIETS_1:
-        while (m < moves.size ())
+        if (m < moves.size ())
         {
             auto beg = moves.begin () + m;
             auto max = std::max_element (beg, moves.end ());
-            if (   skip_quiets
-                && max->value < 0)
+            if (   !skip_quiets
+                || max->value >= 0)
             {
-                break;
+                if (max->value < threshold)
+                {
+                    ++stage;
+                    goto START;
+                }
+                if (beg != max)
+                {
+                    // TODO:: use std::rotate
+                    auto tmp = *max;
+                    for (; max != beg; --max)
+                    {
+                        *max = *(max - 1);
+                    }
+                    *beg = tmp;
+                }
+                return ++m, beg->move;
             }
-            if (max->value < threshold)
-            {
-                ++stage;
-                goto START;
-            }
-            if (beg != max)
-            {
-                std::swap (*beg, *max);
-            }
-            return ++m, beg->move;
         }
         stage += 2;
         m = 0;
         goto START;
     case Stage::QUIETS_2:
-        while (m < moves.size ())
+        if (   m < moves.size ()
+            && !skip_quiets)
         {
-            if (skip_quiets) // Note:: No need vm.value < 0
-            {
-                assert(moves[m].value < 0);
-                break;
-            }
             return moves[m++].move;
         }
         ++stage;
         m = 0;
         /* fallthrough */
     case Stage::BAD_CAPTURES:
-        while (m < capture_moves.size ())
+        if (m < bad_capture_moves.size ())
         {
-            return capture_moves[m++];
+            return bad_capture_moves[m++];
         }
         break;
 
@@ -404,9 +413,9 @@ Move MovePicker::next_move (bool skip_quiets)
         m = 0;
         /* fallthrough */
     case Stage::EVASIONS:
-        while (m < moves.size ())
+        if (m < moves.size ())
         {
-            return swap_best_move (m++).move;
+            return next_max_move ().move;
         }
         break;
 
@@ -427,7 +436,7 @@ Move MovePicker::next_move (bool skip_quiets)
     case Stage::PROBCUT_CAPTURES:
         while (m < moves.size ())
         {
-            auto move = swap_best_move (m++).move;
+            auto move = next_max_move ().move;
             if (pos.see_ge (move, threshold))
             {
                 return move;
@@ -442,7 +451,6 @@ Move MovePicker::next_move (bool skip_quiets)
         {
             moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
         }
-        
         if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
@@ -451,9 +459,9 @@ Move MovePicker::next_move (bool skip_quiets)
         m = 0;
         /* fallthrough */
     case Stage::QS_CHECK_CAPTURES:
-        while (m < moves.size ())
+        if (m < moves.size ())
         {
-            return swap_best_move (m++).move;
+            return next_max_move ().move;
         }
         ++stage;
         /* fallthrough */
@@ -468,7 +476,7 @@ Move MovePicker::next_move (bool skip_quiets)
         m = 0;
         /* fallthrough */
     case Stage::QS_CHECK_QUIETS:
-        while (m < moves.size ())
+        if (m < moves.size ())
         {
             return moves[m++].move;
         }
@@ -489,9 +497,9 @@ Move MovePicker::next_move (bool skip_quiets)
         m = 0;
         /* fallthrough */
     case Stage::QS_NO_CHECK_CAPTURES:
-        while (m < moves.size ())
+        if (m < moves.size ())
         {
-            return swap_best_move (m++).move;
+            return next_max_move ().move;
         }
         break;
 
@@ -513,7 +521,7 @@ Move MovePicker::next_move (bool skip_quiets)
         assert(SQ_NO != recap_sq);
         while (m < moves.size ())
         {
-            auto move = swap_best_move (m++).move;
+            auto move = next_max_move ().move;
             if (dst_sq (move) == recap_sq)
             {
                 return move;
@@ -635,15 +643,19 @@ namespace Searcher {
         Value value_to_tt (Value v, i32 ply)
         {
             assert(VALUE_NONE != v);
-            return v + ((v >= +VALUE_MATE_MAX_PLY) - (v <= -VALUE_MATE_MAX_PLY)) * ply;
+            return v >= +VALUE_MATE_MAX_PLY ? v + ply :
+                   v <= -VALUE_MATE_MAX_PLY ? v - ply :
+                   v;
         }
         // It adjusts a mate score from "plies to mate from the current position" to "plies to mate from the root".
         // Non-mate scores are unchanged.
         // The function is called after retrieving a value of the transposition table.
         Value value_of_tt (Value v, i32 ply)
         {
-            return v - (VALUE_NONE != v ?
-                       ((v >= +VALUE_MATE_MAX_PLY) - (v <= -VALUE_MATE_MAX_PLY)) * ply : 0);
+            return v ==  VALUE_NONE         ? VALUE_NONE :
+                   v >= +VALUE_MATE_MAX_PLY ? v - ply :
+                   v <= -VALUE_MATE_MAX_PLY ? v + ply :
+                   v;
         }
 
         // Formats PV information according to UCI protocol.
@@ -864,7 +876,8 @@ namespace Searcher {
                     && pos.legal (move));
 
                 ++move_count;
-
+                auto mpc = pos[org_sq (move)];
+                assert(NO_PIECE != mpc);
                 bool gives_check = pos.gives_check (move);
 
                 // Futility pruning
@@ -874,7 +887,7 @@ namespace Searcher {
                     && !gives_check
                     //&& 0 == Limits.mate
                         // Advance pawn push
-                    && !(   PAWN == ptype (pos[org_sq (move)])
+                    && !(   PAWN == ptype (mpc)
                          && rel_rank (pos.active, org_sq (move)) > R_4))
                 {
                     // Futility pruning parent node
@@ -1372,15 +1385,14 @@ namespace Searcher {
             Moves quiet_moves;
             quiet_moves.reserve (16);
 
-            bool  skip_quiets = false
-                , ttm_capture = false;
+            bool ttm_capture = false;
 
             const HistoryTuple history_tuple (&pos.thread->history, (ss-1)->m_history, (ss-2)->m_history, (ss-3)->m_history, (ss-4)->m_history);
             // Initialize move picker (1) for the current position.
             MovePicker move_picker (pos, tt_move, depth, ss->killer_moves, _ok (last_move) ? pos.thread->counter_moves[pos[fix_dst_sq (last_move)]][dst_sq (last_move)] : MOVE_NONE, &history_tuple);
             // Step 11. Loop through moves
             // Loop through all legal moves until no moves remain or a beta cutoff occurs.
-            while (MOVE_NONE != (move = move_picker.next_move (skip_quiets)))
+            while (MOVE_NONE != (move = move_picker.next_move ()))
             {
                 assert(pos.pseudo_legal (move)
                     && pos.legal (move));
@@ -1408,6 +1420,7 @@ namespace Searcher {
 
                 auto mpc = pos[org_sq (move)];
                 assert(NO_PIECE != mpc);
+                auto dst = dst_sq (move);
 
                 if (   root_node
                     && Threadpool.main_thread () == pos.thread)
@@ -1476,14 +1489,14 @@ namespace Searcher {
                     if (   !capture_or_promotion
                         && !gives_check
                             // Advance pawn push.
-                        && !(   PAWN == ptype (pos[org_sq (move)])
+                        && !(   PAWN == ptype (mpc)
                              && rel_rank (pos.active, org_sq (move)) > R_4
                              && pos.si->non_pawn_material () < Value(5000)))
                     {
                         // Move count based pruning.
                         if (move_count_pruning)
                         {
-                            skip_quiets = true;
+                            move_picker.skip_quiets = true;
                             continue;
                         }
 
@@ -1491,8 +1504,8 @@ namespace Searcher {
                         i16 lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Countermoves based pruning.
                                (   3 > lmr_depth
-                                && history_at_ply<1> (history_tuple)[mpc][dst_sq (move)] < CounterMovePruneThreshold
-                                && history_at_ply<2> (history_tuple)[mpc][dst_sq (move)] < CounterMovePruneThreshold)
+                                && history_at_ply<1> (history_tuple)[mpc][dst] < CounterMovePruneThreshold
+                                && history_at_ply<2> (history_tuple)[mpc][dst] < CounterMovePruneThreshold)
                                 // Futility pruning: parent node.
                             || (   7 > lmr_depth
                                 && !in_check
@@ -1519,7 +1532,7 @@ namespace Searcher {
 
                 // Update the current move (this must be done after singular extension search).
                 ss->played_move = move;
-                ss->m_history = &pos.thread->cm_history[mpc][dst_sq (move)];
+                ss->m_history = &pos.thread->cm_history[mpc][dst];
 
                 // Step 14. Make the move.
                 pos.do_move (move, si, gives_check);
@@ -1563,16 +1576,16 @@ namespace Searcher {
                         // Decrease reduction for moves that escape a capture in no-cut nodes.
                         // Filter out castling moves, because they are coded as "king captures rook" and hence break mk_move().
                         if (   NORMAL == mtype (move)
-                            && !pos.see_ge (mk_move<NORMAL> (dst_sq (move), org_sq (move))))
+                            && !pos.see_ge (mk_move<NORMAL> (dst, org_sq (move))))
                         {
                             reduce_depth -= 2;
                         }
 
                         ss->statistics =
                               history_at_ply<0> (history_tuple)[~pos.active][move_pp (move)]
-                            + history_at_ply<1> (history_tuple)[mpc][dst_sq (move)]
-                            + history_at_ply<2> (history_tuple)[mpc][dst_sq (move)]
-                            + history_at_ply<4> (history_tuple)[mpc][dst_sq (move)]
+                            + history_at_ply<1> (history_tuple)[mpc][dst]
+                            + history_at_ply<2> (history_tuple)[mpc][dst]
+                            + history_at_ply<4> (history_tuple)[mpc][dst]
                             - 4000; // Correction factor
 
                         // Decrease/Increase reduction by comparing opponent's stat value

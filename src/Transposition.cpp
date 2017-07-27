@@ -174,7 +174,14 @@ namespace Transposition {
             if (   ite->empty ()
                 || ite->k16 == key16)
             {
-                return tt_hit = !ite->empty (), ite;
+                tt_hit = !ite->empty ();
+                // Refresh entry.
+                if (   tt_hit
+                    && ite->generation () != Entry::Generation)
+                {
+                    ite->gb08 = u08(Entry::Generation + ite->bound ());
+                }
+                return ite;
             }
 
             //if (ite == fte) continue;
