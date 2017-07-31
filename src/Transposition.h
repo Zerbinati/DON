@@ -68,12 +68,8 @@ namespace Transposition {
                 || BOUND_EXACT == b)
             {
                 k16 = u16(k >> 0x30);
-                gb08 = u08((   (   d08 - 4 < d
-                                && !empty ())
-                            || BOUND_EXACT == b ?
-                                Generation :
-                                generation ()) + b);
                 d08 = i08(d);
+                gb08 = u08(Generation + b);
                 v16 = i16(v);
                 e16 = i16(e);
             }
@@ -82,7 +78,7 @@ namespace Transposition {
 
     const u08 CacheLineSize = 64;
     // Transposition::Cluster needs 32 bytes to be stored
-    // 3 x 10 + 2
+    // 10 x 3 + 2 x 1 = 32
     struct Cluster
     {
     public:
@@ -115,7 +111,7 @@ namespace Transposition {
         // Maximum size of Transposition::Table (1048576 MB = 1048 GB = 1 TB)
         static const u32 MaxHashSize =
 #       if defined(BIT64)
-            (U64(1) << (MaxHashBit - 20)) * sizeof (Cluster);
+            (u64(1) << (MaxHashBit - 20)) * sizeof (Cluster);
 #       else
             2048;
 #       endif

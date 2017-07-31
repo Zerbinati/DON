@@ -41,7 +41,7 @@ namespace Material {
 
         // QueenMinors[opp_minor_count] is applied when only one side has a queen.
         // It contains a bonus/malus for the side with the queen.
-        const i32 QueenMinors[5] = { +31, -8, -15, -25, -5 };
+        const i32 QueenMinors[13] = { +31, -8, -15, -25, -5 };
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
@@ -88,11 +88,7 @@ namespace Material {
             if (   1 == count[Own][QUEN]
                 && 0 == count[Opp][QUEN])
             {
-                i32 minor_count = count[Opp][NIHT] + count[Opp][BSHP];
-                if (minor_count < 5)
-                {
-                    value += QueenMinors[minor_count];
-                }
+                value += QueenMinors[count[Opp][NIHT] + count[Opp][BSHP]];
             }
 
             return value;

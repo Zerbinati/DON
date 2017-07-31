@@ -35,6 +35,7 @@ namespace UCI {
         }
 
     }
+
     // Waits for a command from stdin, parses it and calls the appropriate function.
     // Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     // Single command line arguments is executed once and returns immediately, e.g. 'bench'.
@@ -81,21 +82,20 @@ namespace UCI {
                 continue;
             }
 
-            // GUI sends 'ponderhit' to tell us to ponder on the same move the
-            // opponent has played. In case Threadpool.ponderhit_stop is set
-            // wait for 'ponderhit' to stop the search (for instance because already ran out of time),
+            // GUI sends 'ponderhit' to tell us to ponder on the same move the opponent has played.
+            // In case Threadpool.stop_on_ponderhit is set wait for 'ponderhit' to stop the search (for instance because already ran out of time),
             // otherwise should continue searching but switching from pondering to normal search.
             if (    token == "quit"
                 ||  token == "stop"
-                || (token == "ponderhit" && Threadpool.ponderhit_stop))
+                || (token == "ponderhit" && Threadpool.stop_on_ponderhit))
             {
-                Threadpool.force_stop = true;
+                Threadpool.stop = true;
                 Threadpool.main_thread ()->start_searching (true); // Could be sleeping
             }
             else
-            if (token == "ponderhit")
+            if (token == "ponderhit" && Threadpool.ponder)
             {
-                Limits.ponder = false;
+                Threadpool.ponder = false;
             }
             else
             if (token == "isready")
@@ -138,6 +138,10 @@ namespace UCI {
                 {
                     Limit limits;
                     limits.start_time = now ();
+
+                    bool ponder = false;    // Search on ponder move until the "stop" command
+                    Moves search_moves;     // Restrict search to these root moves only
+
                     i64 value;
                     while (   iss >> token
                            && !iss.fail ())
@@ -203,7 +207,7 @@ namespace UCI {
                         else
                         if (token == "ponder")
                         {
-                            limits.ponder = true;
+                            ponder = true;
                         }
                         else
                         // Parse and Validate search-moves (if any)
@@ -218,12 +222,12 @@ namespace UCI {
                                     std::cerr << "ERROR: Illegal Rootmove '" + token << "'" << std::endl;
                                     continue;
                                 }
-                                limits.search_moves.push_back (m);
+                                search_moves.push_back (m);
                             }
-                            limits.search_moves.shrink_to_fit ();
+                            search_moves.shrink_to_fit ();
                         }
                     }
-                    Threadpool.start_thinking (root_pos, states, limits);
+                    Threadpool.start_thinking (root_pos, states, limits, search_moves, ponder);
                 }
                 // This sets up the position:
                 //  - starting position ("startpos")
@@ -364,8 +368,8 @@ namespace UCI {
                         depth = (iss >> depth) && !iss.fail () ? depth : 1;
                         fen_fn = (iss >> fen_fn) && !iss.fail () ? fen_fn : "";
 
-                        istringstream ss(to_string (i32(Options["Hash"]))    + ' '
-                                       + to_string (i32(Options["Threads"])) + ' '
+                        istringstream ss(to_string (i32(Options["Hash"]))    + " "
+                                       + to_string (i32(Options["Threads"])) + " "
                                        + to_string (depth) + " perft " + fen_fn);
                         benchmark (ss, root_pos);
                     }
@@ -398,9 +402,9 @@ namespace UCI {
                             << std::hex << std::uppercase << std::setfill ('0')
                             << "FEN: "                        << root_pos.fen ()       << "\n"
                             << "Posi key: " << std::setw (16) << root_pos.si->posi_key << "\n"
-                            << "Poly key: " << std::setw (16) << root_pos.poly_key ()  << "\n"
                             << "Matl key: " << std::setw (16) << root_pos.si->matl_key << "\n"
-                            << "Pawn key: " << std::setw (16) << root_pos.si->pawn_key
+                            << "Pawn key: " << std::setw (16) << root_pos.si->pawn_key << "\n"
+                            << "PG key: " << std::setw (16) << root_pos.pg_key ()
                             << std::setfill (' ') << std::nouppercase << std::dec
                             << sync_endl;
                     }

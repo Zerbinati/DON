@@ -255,7 +255,8 @@ namespace Evaluator {
 
         // initialize() computes king and pawn attacks, and the king ring bitboard for the color.
         // This is done at the beginning of the evaluation.
-        template<bool Trace> template<Color Own>
+        template<bool Trace>
+        template<Color Own>
         void Evaluation<Trace>::initialize ()
         {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
@@ -320,7 +321,8 @@ namespace Evaluator {
         }
 
         // Evaluates bonuses and penalties of the pieces of the color and type
-        template<bool Trace> template<Color Own, PieceType PT>
+        template<bool Trace>
+        template<Color Own, PieceType PT>
         Score Evaluation<Trace>::evaluate_pieces ()
         {
             assert(NIHT <= PT && PT <= QUEN);
@@ -515,7 +517,8 @@ namespace Evaluator {
         }
 
         // Evaluates bonuses and penalties of the king of the color
-        template<bool Trace> template<Color Own>
+        template<bool Trace>
+        template<Color Own>
         Score Evaluation<Trace>::evaluate_king ()
         {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
@@ -692,7 +695,8 @@ namespace Evaluator {
         }
 
         // Evaluates the threats of the color
-        template<bool Trace> template<Color Own>
+        template<bool Trace>
+        template<Color Own>
         Score Evaluation<Trace>::evaluate_threats ()
         {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
@@ -801,9 +805,9 @@ namespace Evaluator {
             b =    pos.pieces (Own, PAWN)
                 & ~pos.abs_blockers (Own);
             // Friend pawns push
-            b  =  shift<Push> (b)
+            b  =   shift<Push> (b)
                 & ~pos.pieces ();
-            b |=  shift<Push> (b & R3BB)
+            b |=   shift<Push> (b & R3BB)
                 & ~pos.pieces ();
             // Friend pawns push safe
             b &=   safe
@@ -825,7 +829,8 @@ namespace Evaluator {
         }
 
         // Evaluates the passed pawns of the color
-        template<bool Trace> template<Color Own>
+        template<bool Trace>
+        template<Color Own>
         Score Evaluation<Trace>::evaluate_passers ()
         {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
@@ -946,7 +951,8 @@ namespace Evaluator {
         // available for minor pieces on the central four files on ranks 2-4
         // Safe squares one, two or three squares behind a friend pawn are counted twice
         // The aim is to improve play on opening
-        template<bool Trace> template<Color Own>
+        template<bool Trace>
+        template<Color Own>
         Score Evaluation<Trace>::evaluate_space ()
         {
             const auto Opp  = Own == WHITE ? BLACK : WHITE;
@@ -1015,14 +1021,17 @@ namespace Evaluator {
         template<bool Trace>
         Scale Evaluation<Trace>::evaluate_scale (Value eg)
         {
-            auto strong_color = eg >= VALUE_ZERO ? WHITE : BLACK;
+            auto strong_color =
+                eg >= VALUE_ZERO ?
+                    WHITE :
+                    BLACK;
             Scale scale;
             if (   nullptr == me->scale_func[strong_color]
-                || (scale = (*me->scale_func[strong_color])(pos)) == SCALE_NONE)
+                || SCALE_NONE == (scale = (*me->scale_func[strong_color])(pos)))
             {
                 scale = me->scale[strong_color];
             }
-            assert(scale != SCALE_NONE);
+            assert(SCALE_NONE != scale);
 
             // If don't already have an unusual scale, check for certain types of endgames.
             switch (scale)

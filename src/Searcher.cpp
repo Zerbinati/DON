@@ -271,7 +271,7 @@ template<> void MovePicker::value<GenType::EVASION> ()
 
 // Finds the max move in the range [beg, end) and moves it to front.
 // It is faster than sorting all the moves in advance when there are few moves.
-ValMove& MovePicker::next_max_move ()
+const ValMove& MovePicker::next_max_move ()
 {
     auto beg = moves.begin () + m++;
     auto max = std::max_element (beg, moves.end ());
@@ -1027,7 +1027,7 @@ namespace Searcher {
             if (!root_node)
             {
                 // Step 2. Check for aborted search, immediate draw or maximum ply reached.
-                if (   Threadpool.force_stop.load (std::memory_order::memory_order_relaxed)
+                if (   Threadpool.stop.load (std::memory_order::memory_order_relaxed)
                     || ss->ply >= MaxPlies
                     || pos.draw (ss->ply))
                 {
@@ -1663,7 +1663,7 @@ namespace Searcher {
                 // Finished searching the move. If a stop or a cutoff occurred,
                 // the return value of the search cannot be trusted,
                 // and return immediately without updating best move, PV and TT.
-                if (Threadpool.force_stop.load (std::memory_order::memory_order_relaxed))
+                if (Threadpool.stop.load (std::memory_order::memory_order_relaxed))
                 {
                     return VALUE_ZERO;
                 }
@@ -1947,7 +1947,7 @@ namespace Threading {
 
         // Iterative deepening loop until requested to stop or the target depth is reached.
         while (   ++running_depth < MaxPlies
-               && !Threadpool.force_stop
+               && !Threadpool.stop
                && (   0 == Limits.depth
                    || nullptr == main_thread
                    || running_depth <= Limits.depth))
@@ -1980,7 +1980,7 @@ namespace Threading {
 
             // MultiPV loop. Perform a full root search for each PV line.
             for (   pv_index = 0;
-                    !Threadpool.force_stop
+                    !Threadpool.stop
                  && pv_index < Threadpool.pv_limit;
                     ++pv_index)
             {
@@ -2012,7 +2012,7 @@ namespace Threading {
                     // If search has been stopped, break immediately.
                     // Sorting and writing PV back to TT is safe becuase
                     // root moves is still valid, although refers to the previous iteration.
-                    if (Threadpool.force_stop)
+                    if (Threadpool.stop)
                     {
                         break;
                     }
@@ -2039,7 +2039,7 @@ namespace Threading {
                             {
                                 main_thread->failed_low = true;
                             }
-                            Threadpool.ponderhit_stop = false;
+                            Threadpool.stop_on_ponderhit = false;
                         }
                     }
                     else
@@ -2065,7 +2065,7 @@ namespace Threading {
 
                 if (nullptr != main_thread)
                 {
-                    if (   Threadpool.force_stop
+                    if (   Threadpool.stop
                         || Threadpool.pv_limit == pv_index + 1
                         || main_thread->time_mgr.elapsed_time () > 3000)
                     {
@@ -2074,7 +2074,7 @@ namespace Threading {
                 }
             }
 
-            if (!Threadpool.force_stop)
+            if (!Threadpool.stop)
             {
                 finished_depth = running_depth;
             }
@@ -2101,8 +2101,8 @@ namespace Threading {
                     OutputStream << pretty_pv_info (this) << std::endl;
                 }
 
-                if (   !Threadpool.force_stop
-                    && !Threadpool.ponderhit_stop)
+                if (   !Threadpool.stop
+                    && !Threadpool.stop_on_ponderhit)
                 {
                     // Stop the search early:
                     bool stop = false;
@@ -2156,13 +2156,13 @@ namespace Threading {
                     {
                         // If allowed to ponder do not stop the search now but
                         // keep pondering until GUI sends "ponderhit" or "stop".
-                        if (Limits.ponder)
+                        if (Threadpool.ponder)
                         {
-                            Threadpool.ponderhit_stop = true;
+                            Threadpool.stop_on_ponderhit = true;
                         }
                         else
                         {
-                            Threadpool.force_stop = true;
+                            Threadpool.stop = true;
                         }
                     }
                 }
@@ -2188,14 +2188,14 @@ namespace Threading {
                 OutputStream
                     << std::boolalpha
                     << "RootPos  : " << root_pos.fen () << "\n"
-                    << "RootSize : " << root_moves.size () << "\n"
-                    << "Infinite : " << Limits.infinite << "\n"
-                    << "Ponder   : " << Limits.ponder << "\n"
+                    << "MaxMoves : " << root_moves.size () << "\n"
                     << "ClockTime: " << Limits.clock[root_pos.active].time << " ms\n"
                     << "ClockInc : " << Limits.clock[root_pos.active].inc << " ms\n"
                     << "MovesToGo: " << Limits.movestogo+0 << "\n"
                     << "MoveTime : " << Limits.movetime << " ms\n"
                     << "Depth    : " << Limits.depth << "\n"
+                    << "Infinite : " << Limits.infinite << "\n"
+                    << "Ponder   : " << Threadpool.ponder << "\n"
                     << " Depth Score    Time       Nodes PV\n"
                     << "-----------------------------------------------------------"
                     << std::noboolalpha
@@ -2356,19 +2356,19 @@ namespace Threading {
         // but if are pondering or in infinite search, according to UCI protocol,
         // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
         // Simply wait here until GUI sends one of those commands (that raise Force Stop).
-        if (   !Threadpool.force_stop
+        if (   !Threadpool.stop
             && (   Limits.infinite
-                || Limits.ponder))
+                || Threadpool.ponder))
         {
-            Threadpool.ponderhit_stop = true;
-            wait_until (Threadpool.force_stop);
+            Threadpool.stop_on_ponderhit = true;
+            wait_until (Threadpool.stop);
         }
 
         Thread *best_thread = this;
         if (voting)
         {
             // Stop the threads if not already stopped.
-            Threadpool.force_stop = true;
+            Threadpool.stop = true;
             // Wait until all threads have finished.
             for (auto *th : Threadpool)
             {
@@ -2471,7 +2471,7 @@ namespace Threading {
 
         // Do not stop until told so by the GUI.
         if (   Limits.infinite
-            || Limits.ponder)
+            || Threadpool.ponder)
         {
             return;
         }
@@ -2483,7 +2483,7 @@ namespace Threading {
             || (   0 != Limits.nodes
                 && Threadpool.nodes () >= Limits.nodes))
         {
-            Threadpool.force_stop = true;
+            Threadpool.stop = true;
         }
     }
 }

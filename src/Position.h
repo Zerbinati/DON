@@ -155,7 +155,7 @@ public:
 
     template<PieceType PT> Square square (Color c, i08 index = 0) const;
 
-    Key poly_key () const;
+    Key pg_key () const;
     Key move_posi_key (Move m) const;
 
     bool can_castle (Color c) const;
@@ -303,7 +303,7 @@ template<PieceType PT> inline Square Position::square (Color c, i08 index) const
     return squares[c][PT][index];
 }
 
-inline Key Position::poly_key () const
+inline Key Position::pg_key () const
 {
     return PolyZob.compute_posi_key (*this);
 }
@@ -452,20 +452,26 @@ inline bool Position::pawn_passed_at (Color c, Square s) const
 // Check the side has pair of opposite color bishops.
 inline bool Position::paired_bishop (Color c) const
 {
-    for (i08 pc = 1; pc < count<BSHP> (c); ++pc)
-    {
-        if (opposite_colors (square<BSHP> (c, pc-1), square<BSHP> (c, pc)))
-        {
-            return true;
-        }
-    }
-    return false;
+    //for (i08 pc = 1; pc < count<BSHP> (c); ++pc)
+    //{
+    //    if (opposite_colors (square<BSHP> (c, pc-1), square<BSHP> (c, pc)))
+    //    {
+    //        return true;
+    //    }
+    //}
+    //return false;
+    return 0 != (pieces (c, BSHP) & Color_bb[WHITE])
+        && 0 != (pieces (c, BSHP) & Color_bb[BLACK]);
 }
 inline bool Position::opposite_bishops () const
 {
     return 1 == count<BSHP> (WHITE)
         && 1 == count<BSHP> (BLACK)
         && opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
+        //&& (   (   0 != (pieces (WHITE, BSHP) & Color_bb[WHITE])
+        //        && 0 != (pieces (BLACK, BSHP) & Color_bb[BLACK]))
+        //    || (   0 != (pieces (WHITE, BSHP) & Color_bb[BLACK])
+        //        && 0 != (pieces (BLACK, BSHP) & Color_bb[WHITE])));
 }
 inline bool Position::en_passant (Move m) const
 {

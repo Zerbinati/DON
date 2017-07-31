@@ -36,10 +36,7 @@ public:
     u64   nodes;        // Search <x> nodes only
     u08   mate;         // Search mate in <x> moves
     bool  infinite;     // Search until the "stop" command
-    bool  ponder;       // Search on ponder move until the "stop" command
     
-    Moves search_moves; // Restrict search to these root moves only
-
     TimePoint start_time;
 
     Limit ()
@@ -49,7 +46,6 @@ public:
         clock[WHITE].inc =
         clock[BLACK].inc = 0;
         movestogo = 0;
-        ponder = false;
         
         movetime = 0;
         depth = 0;
@@ -126,7 +122,7 @@ typedef std::tuple<HistoryStat*, SquareHistoryStat*, SquareHistoryStat*, SquareH
 
 // Helper function to access each history by ply.
 template<i32 N>
-inline auto history_at_ply (const HistoryTuple &ht) -> decltype(*std::get<N> (ht))
+inline auto history_at_ply (const HistoryTuple &ht) -> const decltype(*std::get<N> (ht))&
 {
     return *std::get<N> (ht);
 }
@@ -153,7 +149,7 @@ private:
     template<GenType GT>
     void value ();
 
-    ValMove& next_max_move ();
+    const ValMove& next_max_move ();
 
 public:
     bool skip_quiets;
@@ -255,13 +251,13 @@ public:
     void operator+= (const RootMove &rm) { push_back (rm); }
     void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
 
-    void initialize (const Position &pos, const Moves &moves)
+    void initialize (const Position &pos, const Moves &search_moves)
     {
         clear ();
         for (const auto &vm : MoveGen::MoveList<GenType::LEGAL> (pos))
         {
-            if (   moves.empty ()
-                || std::find (moves.begin (), moves.end (), vm.move) != moves.end ())
+            if (   search_moves.empty ()
+                || std::find (search_moves.begin (), search_moves.end (), vm.move) != search_moves.end ())
             {
                 *this += RootMove (vm.move);
             }

@@ -387,17 +387,24 @@ namespace Threading {
         shrink_to_fit ();
         sync_cout << "info string Thread(s) used " << threads << sync_endl;
     }
+
+    void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits, bool ponde)
+    {
+        const Moves search_moves;
+        start_thinking (root_pos, states, limits, search_moves, ponde);
+    }
     // Wakes up the main thread sleeping in Thread::idle_loop()
     // and starts a new search, then returns immediately.
-    void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits)
+    void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits, const Moves &search_moves, bool ponde)
     {
-        force_stop = false;
-        ponderhit_stop = false;
-
+        stop = false;
+        stop_on_ponderhit = false;
+        
         Limits = limits;
+        ponder = ponde;
 
         RootMoves root_moves;
-        root_moves.initialize (root_pos, limits.search_moves);
+        root_moves.initialize (root_pos, search_moves);
 
         TBProbeDepth = i16(i32(Options["SyzygyProbeDepth"]));
         TBLimitPiece = i32(Options["SyzygyLimitPiece"]);
@@ -480,7 +487,7 @@ namespace Threading {
     // Cannot be done in destructor because threads must be terminated before deleting any static objects.
     void ThreadPool::deinitialize ()
     {
-        force_stop = true;
+        stop = true;
         wait_while_thinking ();
         assert(!empty ());
         while (!empty ())

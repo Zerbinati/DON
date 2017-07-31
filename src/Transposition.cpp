@@ -84,14 +84,7 @@ namespace Transposition {
     // each cluster consists of Cluster::EntryCount number of entry.
     u32 Table::resize (u32 mem_size, bool force)
     {
-        if (mem_size < MinHashSize)
-        {
-            mem_size = MinHashSize;
-        }
-        if (mem_size > MaxHashSize)
-        {
-            mem_size = MaxHashSize;
-        }
+        mem_size = std::min (std::max (mem_size, MinHashSize), MaxHashSize);
         size_t msize = size_t(mem_size) << 20;
         u08 hash_bit = BitBoard::scan_msq (msize / sizeof (Cluster));
         assert(hash_bit <= MaxHashBit);
@@ -100,7 +93,7 @@ namespace Transposition {
 
         msize = new_cluster_count * sizeof (Cluster);
         if (   force
-            || new_cluster_count != cluster_count)
+            || cluster_count != new_cluster_count)
         {
             free_aligned_memory ();
             alloc_aligned_memory (msize, CacheLineSize);

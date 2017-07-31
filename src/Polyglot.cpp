@@ -124,7 +124,7 @@ namespace Polyglot {
     }
 
     // Returns the index of the 1st book entry with the same key as the input.
-    size_t Book::find_index (const Key posi_key)
+    size_t Book::find_index (const Key key)
     {
         if (!is_open ())
         {
@@ -144,7 +144,7 @@ namespace Polyglot {
             Entry pe;
             *this >> pe;
 
-            if (posi_key <= pe.key)
+            if (key <= pe.key)
             {
                 end_index = mid_index;
             }
@@ -158,12 +158,12 @@ namespace Polyglot {
     }
     size_t Book::find_index (const Position &pos)
     {
-        return find_index (pos.poly_key ());
+        return find_index (pos.pg_key ());
     }
     size_t Book::find_index (const string &fen, bool c960)
     {
         StateInfo si;
-        return find_index (Position ().setup (fen, si, nullptr, c960).poly_key ());
+        return find_index (Position ().setup (fen, si, nullptr, c960).pg_key ());
     }
 
     // Tries to find a book move for the given position.
@@ -175,9 +175,9 @@ namespace Polyglot {
         static PRNG pr (now ());
         if (is_open ())
         {
-            Key poly_key = pos.poly_key ();
+            Key key = pos.pg_key ();
 
-            auto index = find_index (poly_key);
+            auto index = find_index (key);
 
             seekg (OFFSET(index));
 
@@ -236,7 +236,7 @@ namespace Polyglot {
             //    }
             //}
 
-            while (*this >> pe, pe.key == poly_key && good ())
+            while (*this >> pe, pe.key == key && good ())
             {
                 if (MOVE_NONE == pe.move) continue; // Skip MOVE_NONE
 
@@ -316,16 +316,16 @@ namespace Polyglot {
         ostringstream oss;
         if (is_open ())
         {
-            Key poly_key = pos.poly_key ();
+            Key key = pos.pg_key ();
 
-            auto index = find_index (poly_key);
+            auto index = find_index (key);
 
             seekg (OFFSET(index));
 
             Entry pe;
             vector<Entry> pes;
             u32 weight_sum = 0;
-            while (*this >> pe, pe.key == poly_key && good ())
+            while (*this >> pe, pe.key == key && good ())
             {
                 if (MOVE_NONE == pe.move)
                 {
@@ -340,7 +340,7 @@ namespace Polyglot {
             {
                 std::cerr
                     << "ERROR: Position not found... "
-                    << std::hex << std::uppercase << poly_key << std::nouppercase << std::dec
+                    << std::hex << std::uppercase << key << std::nouppercase << std::dec
                     << std::endl;
             }
             else
