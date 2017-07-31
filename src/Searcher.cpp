@@ -1448,7 +1448,7 @@ namespace Searcher {
                 }
 
                 // Calculate new depth for this move
-                i16 new_depth = i16(depth - 1);
+                i16 new_depth = depth - 1;
 
                 // Step 12. Extensions
 
@@ -1948,8 +1948,8 @@ namespace Threading {
         // Iterative deepening loop until requested to stop or the target depth is reached.
         while (   ++running_depth < MaxPlies
                && !Threadpool.stop
-               && (   0 == Limits.depth
-                   || nullptr == main_thread
+               && (   nullptr == main_thread
+                   || 0 == Limits.depth
                    || running_depth <= Limits.depth))
         {
             if (nullptr != main_thread)

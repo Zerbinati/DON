@@ -6,4 +6,6 @@
 
 extern void benchmark (std::istringstream &is, const Position &cur_pos);
 
+extern void perft (std::istringstream &is, const Position &cur_pos);
+
 #endif // _BENCHMARK_H_INC_

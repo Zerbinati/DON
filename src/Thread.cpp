@@ -13,7 +13,7 @@ using namespace TBSyzygy;
 u32 OverheadMoveTime = 30;  // Attempt to keep at least this much time for each remaining move, in milli-seconds.
 u32 MinimumMoveTime =  20;  // No matter what, use at least this much time before doing the move, in milli-seconds.
 
-double MoveSlowness = 0.90; // Move Slowness, in %age.
+double MoveSlowness = 0.89; // Move Slowness, in %age.
 u32    NodesTime =    0;    // 'Nodes as Time' mode.
 bool   Ponder =       true; // Whether or not the engine should analyze when it is the opponent's turn.
 
@@ -31,7 +31,8 @@ namespace {
     // Data was extracted from the CCRL game database with some simple filtering criteria.
     double move_importance (i16 ply)
     {
-        return std::max (std::pow (1.0 + std::exp ((ply - 58.400) / 7.640), -0.183), DBL_MIN); // Ensure non-zero
+        //                                       Shift    Scale    Skew
+        return std::pow (1.0 + std::exp ((ply - 58.400) / 7.640), -0.183) + DBL_MIN; // Ensure non-zero
     }
 
     template<bool Optimum>
@@ -50,7 +51,7 @@ namespace {
         auto time_ratio1 = (move_imp1 * StepRatio + move_imp2 * 0.00      ) / (move_imp1 * StepRatio + move_imp2 * 1.00);
         auto time_ratio2 = (move_imp1 * 1.00      + move_imp2 * StealRatio) / (move_imp1 * 1.00      + move_imp2 * 1.00);
 
-        return u64(std::round (time * std::min (time_ratio1, time_ratio2)));
+        return u64(time * std::min (time_ratio1, time_ratio2));
     }
 }
 
@@ -58,7 +59,7 @@ u64 TimeManager::elapsed_time () const
 {
     return 0 != NodesTime ?
             Threadpool.nodes () :
-            u64(now () - Limits.start_time);
+            now () - Limits.start_time;
 }
 // Calculates the allowed thinking time out of the time control and current game ply.
 void TimeManager::initialize (Color c, i16 ply)
@@ -82,28 +83,19 @@ void TimeManager::initialize (Color c, i16 ply)
             - OverheadClockTime
             - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), 0ULL);
 
-        u64 time;
-        time = remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
-        if (optimum_time > time)
-        {
-            optimum_time = time;
-        }
-        time = remaining_time<false > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime;
-        if (maximum_time > time)
-        {
-            maximum_time = time;
-        }
+        optimum_time = std::min (remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, optimum_time);
+        maximum_time = std::min (remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, maximum_time);
     }
 
     if (Ponder)
     {
         optimum_time += optimum_time / 4;
     }
-    // Make sure that optimum time is not over maximum time
-    if (optimum_time > maximum_time)
-    {
-        optimum_time = maximum_time;
-    }
+    //// Make sure that optimum time is not over maximum time
+    //if (optimum_time > maximum_time)
+    //{
+    //    optimum_time = maximum_time;
+    //}
 }
 
 // When playing with a strength handicap, choose best move among a set of RootMoves,
@@ -453,10 +445,9 @@ namespace Threading {
         }
 
         const auto back_si = states.back ();
-        const auto fen = root_pos.fen ();
         for (auto *th : *this)
         {
-            th->root_pos.setup (fen, states.back (), th);
+            th->root_pos.setup (root_pos.fen (), states.back (), th);
             th->root_moves = root_moves;
 
             th->nodes = 0;
@@ -464,7 +455,7 @@ namespace Threading {
             th->running_depth = 0;
             th->finished_depth = 0;
         }
-        // Restore si->ptr, cleared by Position::setup().
+        // Restore states.back(), cleared by Position::setup().
         states.back () = back_si;
 
         main_thread ()->start_searching (false);

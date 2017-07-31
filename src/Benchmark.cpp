@@ -67,11 +67,11 @@ namespace {
 }
 
 // Runs a simple benchmark by letting engine analyze a set of positions for a given limit.
-// There are five optional parameters:
+// There are 5 optional parameters:
 //  - Transposition table size (default is 16 MB)
 //  - Threads count (default is 1 Thread)
 //  - Limit value spent for each position (default is 13)
-//  - Type of the Limit value:
+//  - Limit type:
 //     * 'depth' (default)
 //     * 'time'
 //     * 'movetime'
@@ -84,18 +84,18 @@ namespace {
 // example: bench 32 1 10000 movetime default
 void benchmark (istringstream &is, const Position &cur_pos)
 {
-    u32    hash = 16;
-    u16    threads = 1;
-    i64    value = 13;
+    u32    hash;
+    u16    threads;
+
+    i64    value;
     string token;
-    string mode;
-    string fen_fn;
+
     // Assign default values to missing arguments
-    hash = is >> hash && !is.fail () ? hash : 16;
+    hash    = is >> hash && !is.fail () ? hash : 16;
     threads = is >> threads && !is.fail () ? threads : 1;
-    value = is >> value && !is.fail () ? value : 13;
-    mode = is >> token && !is.fail () && !white_spaces (token) ? token : "depth";
-    fen_fn = is >> token && !is.fail () && !white_spaces (token) ? token : "default";
+    value   = is >> value && !is.fail () ? value : 13;
+    string mode   = is >> token && !is.fail () && !white_spaces (token) ? token : "depth";
+    string fen_fn = is >> token && !is.fail () && !white_spaces (token) ? token : "default";
 
     Limit limits;
     if (mode == "time")
@@ -154,21 +154,18 @@ void benchmark (istringstream &is, const Position &cur_pos)
         fens.shrink_to_fit ();
     }
 
-    if (mode != "perft")
-    {
-        Options["Hash"] = to_string (hash);
-        Options["Threads"] = to_string (threads);
-        Options["Retain Hash"] = "false";
-    }
+    Options["Hash"] = to_string (hash);
+    Options["Threads"] = to_string (threads);
+    Options["Retain Hash"] = "false";
 
     u64  total_nodes = 0;
-    TimePoint start_time = now ();
-
-    StateInfo si;
+    StateList states (1);
     Position pos;
+    auto start_time = now ();
     for (u16 i = 0; i < fens.size (); ++i)
     {
-        pos.setup (fens[i], si, Threadpool.main_thread ());
+        states.resize (1);
+        pos.setup (fens[i], states.back (), Threadpool.main_thread ());
         assert(pos.fen () == fens[i]);
 
         std::cerr
@@ -177,25 +174,14 @@ void benchmark (istringstream &is, const Position &cur_pos)
             << std::setw (2) << i+1 << "/" << fens.size () << " "
             << std::left << fens[i] << std::endl;
 
-        if (mode != "perft")
-        {
-            clear ();
-            limits.start_time = now ();
-            StateList states;
-            states.push_back (si);
-            Threadpool.start_thinking (pos, states, limits);
-            Threadpool.wait_while_thinking ();
-            total_nodes += Threadpool.nodes ();
-        }
-        else
-        {
-            auto leaf_nodes = perft (pos, limits.depth);
-            std::cerr << "\nLeaf nodes: " << leaf_nodes << std::endl;
-            total_nodes += leaf_nodes;
-        }
+        clear ();
+        limits.start_time = now ();
+        Threadpool.start_thinking (pos, states, limits);
+        Threadpool.wait_while_thinking ();
+        total_nodes += Threadpool.nodes ();
     }
 
-    auto elapsed_time = std::max (u64(now () - start_time), 1ULL);
+    auto elapsed_time = std::max (now () - start_time, 1LL);
 
     dbg_print (); // Just before exit
     std::cerr
@@ -205,6 +191,90 @@ void benchmark (istringstream &is, const Position &cur_pos)
         << "Nodes searched  :" << std::setw (16) << total_nodes  << "\n"
         << "Nodes/second    :" << std::setw (16) << total_nodes * 1000 / elapsed_time
         << "\n---------------------------------\n"    
+        << std::left
+        << std::endl;
+}
+
+// Runs command perft
+// There are 2 optional parameters:
+//  - Depth
+//  - FEN positions to be used:
+//     * 'default' for builtin positions (default)
+//     * 'current' for current position
+//     * '<filename>' for file containing FEN positions
+void perft (istringstream &is, const Position &cur_pos)
+{
+    i16 depth;
+    string fen_fn;
+
+    // Assign default values to missing arguments
+    depth  = is >> depth && !is.fail () ? depth : 6;
+    fen_fn = is >> fen_fn && !is.fail () && !white_spaces (fen_fn) ? fen_fn : "default";
+
+    vector<string> fens;
+
+    if (fen_fn == "default")
+    {
+        fens = DefaultFENs;
+    }
+    else
+    if (fen_fn == "current")
+    {
+        fens.push_back (cur_pos.fen ());
+    }
+    else
+    {
+        ifstream ifs (fen_fn);
+        if (!ifs.is_open ())
+        {
+            std::cerr << "ERROR: unable to open file ... \'" << fen_fn << "\'" << std::endl;
+            return;
+        }
+        string fen;
+        while (std::getline (ifs, fen))
+        {
+            if (!white_spaces (fen))
+            {
+                fens.push_back (fen);
+            }
+        }
+        ifs.close ();
+        fens.shrink_to_fit ();
+    }
+
+    u64  total_nodes = 0;
+    StateList states (1);
+    Position pos;
+    auto start_time = now ();
+    for (u16 i = 0; i < fens.size (); ++i)
+    {
+        states.resize (1);
+        pos.setup (fens[i], states.back (), Threadpool.main_thread ());
+        assert (pos.fen () == fens[i]);
+
+        std::cerr
+            << "\n---------------\n"
+            << "Position: " << std::right
+            << std::setw (2) << i+1 << "/" << fens.size () << " "
+            << std::left << fens[i] << std::endl;
+
+        auto leaf_nodes = perft (pos, depth);
+        std::cerr
+            << "\nLeaf nodes: "
+            << leaf_nodes << std::endl;
+        total_nodes += leaf_nodes;
+    }
+
+    auto elapsed_time = std::max (now () - start_time, 1LL);
+
+    dbg_print (); // Just before exit
+    std::cerr
+        << std::right
+        << "\n=================================\n"
+        << "Total time (ms) :" << std::setw (16) << elapsed_time << "\n"
+        << "Nodes searched  :" << std::setw (16) << total_nodes  << "\n"
+        << "Nodes/second    :" << std::setw (16) << total_nodes * 1000 / elapsed_time
+        << "\n---------------------------------\n"
         << std::left
         << std::endl;
 }

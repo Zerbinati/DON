@@ -363,15 +363,7 @@ namespace UCI {
                     else
                     if (token == "perft")
                     {
-                        i32    depth;
-                        string fen_fn;
-                        depth = (iss >> depth) && !iss.fail () ? depth : 1;
-                        fen_fn = (iss >> fen_fn) && !iss.fail () ? fen_fn : "";
-
-                        istringstream ss(to_string (i32(Options["Hash"]))    + " "
-                                       + to_string (i32(Options["Threads"])) + " "
-                                       + to_string (depth) + " perft " + fen_fn);
-                        benchmark (ss, root_pos);
+                        perft (iss, root_pos);
                     }
                     else
                     if (token == "flip")

@@ -129,7 +129,6 @@ namespace Transposition {
         }
         Engine::stop (EXIT_FAILURE);
     }
-
     // Clear the entire transposition table.
     void Table::clear ()
     {

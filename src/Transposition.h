@@ -53,7 +53,7 @@ namespace Transposition {
         // Due to packed storage format for generation and its cyclic nature
         // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
         // to calculate the entry age correctly even after generation overflows into the next cycle.
-        i16   worth      () const { return d08 - 2*((Generation + (0x103 - gb08)) & 0xFC); }
+        i16   worth      () const { return d08 - 2*((Generation + 0x103 - gb08) & 0xFC); }
 
         void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
         {
