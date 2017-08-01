@@ -182,9 +182,9 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
+        SquareMoveStatTable counter_moves;
         HistoryStat history;
         MoveHistoryStatTable cm_history;
-        SquareMoveStatTable counter_moves;
 
         Thread ();
         Thread (const Thread&) = delete;
@@ -337,9 +337,15 @@ inline std::ostream& operator<< (std::ostream &os, const OutputState state)
 
     switch (state)
     {
-    case OS_LOCK  : mutex.lock ();   break;
-    case OS_UNLOCK: mutex.unlock (); break;
-    default:        assert(false);   break;
+    case OS_LOCK  :
+        mutex.lock ();
+        break;
+    case OS_UNLOCK:
+        mutex.unlock ();
+        break;
+    default:
+        assert(false);
+        break;
     }
     return os;
 }

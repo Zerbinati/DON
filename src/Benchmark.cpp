@@ -91,11 +91,11 @@ void benchmark (istringstream &is, const Position &cur_pos)
     string token;
 
     // Assign default values to missing arguments
-    hash    = is >> hash && !is.fail () ? hash : 16;
-    threads = is >> threads && !is.fail () ? threads : 1;
-    value   = is >> value && !is.fail () ? value : 13;
-    string mode   = is >> token && !is.fail () && !white_spaces (token) ? token : "depth";
-    string fen_fn = is >> token && !is.fail () && !white_spaces (token) ? token : "default";
+    hash    = (is >> hash) ? hash : 16;
+    threads = (is >> threads) ? threads : 1;
+    value   = (is >> value) ? value : 13;
+    string mode   = (is >> token) && !white_spaces (token) ? token : "depth";
+    string fen_fn = (is >> token) && !white_spaces (token) ? token : "default";
 
     Limit limits;
     if (mode == "time")
@@ -208,8 +208,8 @@ void perft (istringstream &is, const Position &cur_pos)
     string fen_fn;
 
     // Assign default values to missing arguments
-    depth  = is >> depth && !is.fail () ? depth : 6;
-    fen_fn = is >> fen_fn && !is.fail () && !white_spaces (fen_fn) ? fen_fn : "default";
+    depth  = (is >> depth) ? depth : 6;
+    fen_fn = (is >> fen_fn) && !white_spaces (fen_fn) ? fen_fn : "default";
 
     vector<string> fens;
 

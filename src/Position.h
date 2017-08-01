@@ -592,7 +592,7 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
 // Set check info used for fast check detection.
 inline void StateInfo::set_check_info (const Position &pos)
 {
-    king_checkers[WHITE] =
+    king_checkers[WHITE] = 0;
     king_checkers[BLACK] = 0;
     king_blockers[WHITE] = pos.slider_blockers<WHITE> (pos.square<KING> (WHITE), 0, king_checkers[WHITE], king_checkers[BLACK]);
     king_blockers[BLACK] = pos.slider_blockers<BLACK> (pos.square<KING> (BLACK), 0, king_checkers[BLACK], king_checkers[WHITE]);
@@ -611,7 +611,8 @@ inline void StateInfo::set_check_info (const Position &pos)
 inline bool _ok (const std::string &fen, bool full = true)
 {
     StateInfo si;
-    return Position().setup (fen, si, nullptr, full).ok ();
+    return !white_spaces (fen)
+        && Position().setup (fen, si, nullptr, full).ok ();
 }
 #endif
 

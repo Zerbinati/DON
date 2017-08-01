@@ -143,8 +143,7 @@ namespace UCI {
                     Moves search_moves;     // Restrict search to these root moves only
 
                     i64 value;
-                    while (   iss >> token
-                           && !iss.fail ())
+                    while (iss >> token)
                     {
                         if (token == "wtime")
                         {
@@ -213,8 +212,7 @@ namespace UCI {
                         // Parse and Validate search-moves (if any)
                         if (token == "searchmoves")
                         {
-                            while (   iss >> token
-                                   && !iss.fail ())
+                            while (iss >> token)
                             {
                                 auto m = move_from_can (token, root_pos);
                                 if (MOVE_NONE == m)
@@ -249,16 +247,15 @@ namespace UCI {
                     if (token == "fen")
                     {
                         while (   iss >> token
-                               && !iss.fail ()
                                && token != "moves") // Consume "moves" token if any
                         {
-                            fen += string (" ", !white_spaces (fen) ? 1 : 0) + token;
+                            fen += token + " ";
                         }
                         assert(_ok (fen));
                     }
                     else
                     {
-                        assert(false);
+                        std::cerr << "ERROR: Illegal token : " + token << std::endl;
                         continue;
                     }
 
@@ -269,8 +266,7 @@ namespace UCI {
                     {
                         u16 count = 0;
                         // Parse and validate moves (if any)
-                        while (   iss >> token
-                               && !iss.fail ())
+                        while (iss >> token)
                         {
                             ++count;
                             auto m = move_from_can (token, root_pos);
@@ -294,7 +290,6 @@ namespace UCI {
                         string name;
                         // Read option-name (can contain spaces) also consume "value" token
                         while (   iss >> token
-                               && !iss.fail ()
                                && token != "value")
                         {
                             name += string (" ", !white_spaces (name) ? 1 : 0) + token;
@@ -302,8 +297,7 @@ namespace UCI {
 
                         string value;
                         // Read option-value (can contain spaces)
-                        while (   iss >> token
-                               && !iss.fail ())
+                        while (iss >> token)
                         {
                             value += string (" ", !white_spaces (value) ? 1 : 0) + token;
                         }
@@ -333,15 +327,13 @@ namespace UCI {
                 //        string name;
                 //        // Read "name" (can contain spaces), consume "code" token
                 //        while (   iss >> token
-                //               && !iss.fail ()
                 //               && token != "code")
                 //        {
                 //            name += string (" ", !white_spaces (name) ? 1 : 0) + token;
                 //        }
                 //        string code;
                 //        // Read "code" (can contain spaces)
-                //        while (   iss >> token
-                //               && !iss.fail ())
+                //        while (iss >> token)
                 //        {
                 //            code += string (" ", !white_spaces (code) ? 1 : 0) + token;
                 //        }

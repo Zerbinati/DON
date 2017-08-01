@@ -30,8 +30,6 @@ namespace EndGame {
         KRPKR,   // KRP vs KR
         KRPKB,   // KRP vs KB
         KRPPKRP, // KRPP vs KRP
-        KPsK,    // KPs vs Ks
-        KPKP,    // KP vs KP
         KNPK,    // KNP vs K
         KBPKB,   // KBP vs KB
         KBPPKB,  // KBPP vs KB
@@ -39,35 +37,10 @@ namespace EndGame {
         KNPKB,   // KNP vs KB
 
         // Generic Scale functions
+        KPKP,    // KP vs KP
+        KPsK,    // KPs vs K
         KBPsKPs, // KBPs vs KPs
         KQKRPs,  // KQ vs KRPs
-    };
-
-    const std::string EndgameStrings[] =
-    {
-        "",
-        "KXK",
-        "KPK",
-        "KBNK",
-        "KNNK",
-        "KRKP",
-        "KRKB",
-        "KRKN",
-        "KQKP",
-        "KQKR",
-
-        "",
-        "KRPKR",
-        "KRPKB",
-        "KRPPKRP",
-        "KPsK",
-        "KPKP",
-        "KNPK",
-        "KBPKB",
-        "KBPPKB",
-        "KBPKN",
-        "KNPKB",
-
     };
 
     // Endgame functions can be of two category depending on whether they return Value or Scale.
@@ -122,11 +95,12 @@ namespace EndGame {
         }
 
         template<EndgameCode EC, typename ET = EndgameType<EC>, typename EP = Ptr<ET>>
-        void add ()
+        void add (const std::string &code)
         {
-            StateInfo si;
-            map<ET> ()[Position ().setup (EndgameStrings[EC], si, WHITE).si->matl_key] = EP (new Endgame<EC> (WHITE));
-            map<ET> ()[Position ().setup (EndgameStrings[EC], si, BLACK).si->matl_key] = EP (new Endgame<EC> (BLACK));
+            StateInfo si[CLR_NO];
+            std::memset (si, 0, sizeof (si));
+            map<ET> ()[Position ().setup (code, si[WHITE], WHITE).si->matl_key] = EP (new Endgame<EC> (WHITE));
+            map<ET> ()[Position ().setup (code, si[BLACK], BLACK).si->matl_key] = EP (new Endgame<EC> (BLACK));
         }
 
     public:
@@ -136,9 +110,10 @@ namespace EndGame {
 
         template<typename T> EndgameBase<T>* probe (Key matl_key)
         {
-            return map<T> ().find (matl_key) != map<T> ().end () ?
-                        map<T> ()[matl_key].get () :
-                        nullptr;
+            return
+                map<T> ().find (matl_key) != map<T> ().end () ?
+                    map<T> ()[matl_key].get () :
+                    nullptr;
         }
     };
 

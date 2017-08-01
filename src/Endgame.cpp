@@ -14,9 +14,8 @@ namespace EndGame {
 
     namespace {
 
-        // Table used to drive the weak king towards the edge of the board
-        // in KX vs K and KQ vs KR endgames.
-        const i32 PushToEdge  [SQ_NO] =
+        // Table used to drive the weak king towards the edge of the board.
+        const i32 PushToEdge[SQ_NO] =
         {
             100, 90, 80, 70, 70, 80, 90, 100,
             90,  70, 60, 50, 50, 60, 70,  90,
@@ -28,8 +27,7 @@ namespace EndGame {
             100, 90, 80, 70, 70, 80, 90, 100
         };
 
-        // Table used to drive the weak king towards a corner square of the right color
-        // in KBN vs K and KBB vs KN endgames.
+        // Table used to drive the weak king towards a corner square of the right color.
         const i32 PushToCorner[SQ_NO] =
         {
             200, 190, 180, 170, 160, 150, 140, 130,
@@ -75,24 +73,24 @@ namespace EndGame {
     Endgames::Endgames ()
     {
         // EVALUATION_FUNCTIONS
-        add<KPK>     ();
-        add<KNNK>    ();
-        add<KBNK>    ();
-        add<KRKP>    ();
-        add<KRKB>    ();
-        add<KRKN>    ();
-        add<KQKP>    ();
-        add<KQKR>    ();
+        add<KPK>     ("KPK");
+        add<KNNK>    ("KNNK");
+        add<KBNK>    ("KBNK");
+        add<KRKP>    ("KRKP");
+        add<KRKB>    ("KRKB");
+        add<KRKN>    ("KRKN");
+        add<KQKP>    ("KQKP");
+        add<KQKR>    ("KQKR");
 
         // SCALING_FUNCTIONS
-        add<KNPK>    ();
-        add<KNPKB>   ();
-        add<KRPKR>   ();
-        add<KRPKB>   ();
-        add<KBPKB>   ();
-        add<KBPKN>   ();
-        add<KBPPKB>  ();
-        add<KRPPKRP> ();
+        add<KRPKR>   ("KRPKR");
+        add<KRPKB>   ("KRPKB");
+        add<KRPPKRP> ("KRPPKRP");
+        add<KNPK>    ("KNPK");
+        add<KBPKB>   ("KBPKB");
+        add<KBPPKB>  ("KBPPKB");
+        add<KBPKN>   ("KBPKN");
+        add<KNPKB>   ("KNPKB");
     }
 
     // Mate with KX vs K. This function is used to evaluate positions with
@@ -432,7 +430,8 @@ namespace EndGame {
         }
         // If the pawn is not far advanced, and the defending king is somewhere in
         // the pawn's path, it's probably a draw.
-        if (r <= R_4 && wk_sq > sp_sq)
+        if (   r <= R_4
+            && wk_sq > sp_sq)
         {
             if (_file (wk_sq) == _file (sp_sq))
             {
@@ -528,61 +527,6 @@ namespace EndGame {
         {
             assert(R_1 < r && r < R_7);
             return Scales[r];
-        }
-
-        return SCALE_NONE;
-    }
-
-    // K and two or more pawns vs K. There is just a single rule here: If all pawns
-    // are on the same rook file and are blocked by the defending king, it's a draw.
-    template<> Scale Endgame<KPsK>::operator() (const Position &pos) const
-    {
-        assert(pos.si->non_pawn_material (strong_color) == VALUE_ZERO);
-        assert(pos.count<PAWN> (strong_color) >= 2);
-        assert(verify_material (pos, weak_color, VALUE_ZERO, 0));
-
-        auto wk_sq  = pos.square<KING> (  weak_color);
-        auto spawns = pos.pieces (strong_color, PAWN);
-
-        // If all pawns are ahead of the king, all pawns are on a single
-        // rook file and the king is within one file of the pawns then draw.
-        if (   0 == (spawns & ~front_rank_bb (weak_color, wk_sq))
-            && (   0 == (spawns & ~FA_bb)
-                || 0 == (spawns & ~FH_bb))
-            && dist<File> (wk_sq, scan_frntmost_sq (strong_color, spawns)) <= 1)
-        {
-            return SCALE_DRAW;
-        }
-
-        return SCALE_NONE;
-    }
-
-    // KP vs KP. This is done by removing the weakest side's pawn and probing the
-    // KP vs K bitbase: If the weakest side has a draw without the pawn, it probably
-    // has at least a draw with the pawn as well. The exception is when the strong
-    // side's pawn is far advanced and not on a rook file; in this case it is often
-    // possible to win (e.g. 8/4k3/3p4/3P4/6K1/8/8/8 w - - 0 1).
-    template<> Scale Endgame<KPKP>::operator() (const Position &pos) const
-    {
-        assert(verify_material (pos, strong_color, VALUE_ZERO, 1));
-        assert(verify_material (pos,   weak_color, VALUE_ZERO, 1));
-
-        // Assume strong_color is white and the pawn is on files A-D
-        auto sk_sq = normalize (pos, strong_color, pos.square<KING> (strong_color));
-        auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
-        auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
-
-        // If the pawn has advanced to the fifth rank or further, and is not a rook pawn,
-        // then it's too dangerous to assume that it's at least a draw.
-        if (   _rank (sp_sq) < R_5
-            || _file (sp_sq) == F_A)
-        {
-            // Probe the KPK bitbase with the weakest side's pawn removed.
-            // If it's a draw, it's probably at least a draw even with the pawn.
-            if (!probe (strong_color == pos.active ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
-            {
-                return SCALE_DRAW;
-            }
         }
 
         return SCALE_NONE;
@@ -779,6 +723,61 @@ namespace EndGame {
     }
 
     // Generic Scaling functions
+
+    // KP vs KP. This is done by removing the weakest side's pawn and probing the
+    // KP vs K bitbase: If the weakest side has a draw without the pawn, it probably
+    // has at least a draw with the pawn as well. The exception is when the strong
+    // side's pawn is far advanced and not on a rook file; in this case it is often
+    // possible to win (e.g. 8/4k3/3p4/3P4/6K1/8/8/8 w - - 0 1).
+    template<> Scale Endgame<KPKP>::operator() (const Position &pos) const
+    {
+        assert(verify_material (pos, strong_color, VALUE_ZERO, 1));
+        assert(verify_material (pos,   weak_color, VALUE_ZERO, 1));
+
+        // Assume strong_color is white and the pawn is on files A-D
+        auto sk_sq = normalize (pos, strong_color, pos.square<KING> (strong_color));
+        auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
+        auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
+
+        // If the pawn has advanced to the fifth rank or further, and is not a rook pawn,
+        // then it's too dangerous to assume that it's at least a draw.
+        if (   _rank (sp_sq) < R_5
+            || _file (sp_sq) == F_A)
+        {
+            // Probe the KPK bitbase with the weakest side's pawn removed.
+            // If it's a draw, it's probably at least a draw even with the pawn.
+            if (!probe (strong_color == pos.active ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+            {
+                return SCALE_DRAW;
+            }
+        }
+
+        return SCALE_NONE;
+    }
+
+    // K and two or more pawns vs K. There is just a single rule here: If all pawns
+    // are on the same rook file and are blocked by the defending king, it's a draw.
+    template<> Scale Endgame<KPsK>::operator() (const Position &pos) const
+    {
+        assert(pos.si->non_pawn_material (strong_color) == VALUE_ZERO);
+        assert(pos.count<PAWN> (strong_color) >= 2);
+        assert(verify_material (pos, weak_color, VALUE_ZERO, 0));
+
+        auto wk_sq  = pos.square<KING> (  weak_color);
+        auto spawns = pos.pieces (strong_color, PAWN);
+
+        // If all pawns are ahead of the king, all pawns are on a single
+        // rook file and the king is within one file of the pawns then draw.
+        if (   0 == (spawns & ~front_rank_bb (weak_color, wk_sq))
+            && (   0 == (spawns & ~FA_bb)
+                || 0 == (spawns & ~FH_bb))
+            && dist<File> (wk_sq, scan_frntmost_sq (strong_color, spawns)) <= 1)
+        {
+            return SCALE_DRAW;
+        }
+
+        return SCALE_NONE;
+    }
 
     // KB and one or more pawns vs K and zero or more pawns.
     // It checks for draws with rook pawns and a bishop of the wrong color.

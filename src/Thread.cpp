@@ -78,10 +78,10 @@ void TimeManager::initialize (Color c, i16 ply)
     {
         // Calculate thinking time for hypothetic "moves to go"
         auto hyp_time = std::max (
-            + Limits.clock[c].time
-            + Limits.clock[c].inc * (hyp_movestogo-1)
-            - OverheadClockTime
-            - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), 0ULL);
+                        + Limits.clock[c].time
+                        + Limits.clock[c].inc * (hyp_movestogo-1)
+                        - OverheadClockTime
+                        - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), 0ULL);
 
         optimum_time = std::min (remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, optimum_time);
         maximum_time = std::min (remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, maximum_time);
@@ -102,9 +102,9 @@ void TimeManager::initialize (Color c, i16 ply)
 // using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 void SkillManager::pick_best_move (const RootMoves &root_moves)
 {
-    assert(!root_moves.empty ());
     static PRNG prng (now ()); // PRNG sequence should be non-deterministic.
 
+    assert(!root_moves.empty ());
     if (MOVE_NONE == best_move)
     {
         // RootMoves are already sorted by value in descending order
@@ -303,16 +303,16 @@ namespace Threading {
         pawn_table.clear ();
         matl_table.clear ();
 
+        counter_moves.fill (MOVE_NONE);
         history.fill (0);
         for (auto &pc : cm_history)
         {
-            for (auto &dst : pc)
+            for (auto &s_history : pc)
             {
-                dst.fill (0);
+                s_history.fill (0);
             }
         }
         cm_history[NO_PIECE][0].fill (CounterMovePruneThreshold - 1);
-        counter_moves.fill (MOVE_NONE);
     }
 
     // Function where the thread is parked when it has no work to do.
@@ -369,7 +369,7 @@ namespace Threading {
 
         while (size () < threads)
         {
-            push_back (new Thread);
+            push_back (new Thread ());
         }
         while (size () > threads)
         {
@@ -471,7 +471,7 @@ namespace Threading {
     void ThreadPool::initialize ()
     {
         assert(empty ());
-        push_back (new MainThread);
+        push_back (new MainThread ());
         configure (i32(Options["Threads"]));
     }
     // Cleanly terminates the threads before the program exits.
