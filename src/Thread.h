@@ -179,12 +179,12 @@ namespace Threading {
               nodes
             , tb_hits;
 
-        Pawns   ::Table pawn_table;
-        Material::Table matl_table;
-
         SquareMoveStatTable counter_moves;
         HistoryStat history;
         MoveHistoryStatTable cm_history;
+
+        Pawns   ::Table pawn_table;
+        Material::Table matl_table;
 
         Thread ();
         Thread (const Thread&) = delete;

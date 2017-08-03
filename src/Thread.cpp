@@ -300,9 +300,6 @@ namespace Threading {
         nodes = 0;
         tb_hits = 0;
 
-        pawn_table.clear ();
-        matl_table.clear ();
-
         counter_moves.fill (MOVE_NONE);
         history.fill (0);
         for (auto &pc : cm_history)
@@ -313,6 +310,10 @@ namespace Threading {
             }
         }
         cm_history[NO_PIECE][0].fill (CounterMovePruneThreshold - 1);
+        
+        // Don't clear effects performance
+        //pawn_table.clear ();
+        //matl_table.clear ();
     }
 
     // Function where the thread is parked when it has no work to do.

@@ -101,11 +101,14 @@ namespace Transposition {
 
         if (nullptr == clusters)
         {
-            return cluster_count = 0, 0;
+            cluster_count = 0;
+            return 0;
         }
         else
         {
-            return cluster_count = new_cluster_count, u32(msize >> 20);
+            cluster_count = new_cluster_count;
+            clear ();
+            return u32(msize >> 20);
         }
     }
     u32 Table::resize ()
@@ -144,7 +147,6 @@ namespace Transposition {
         {
             std::memcpy (itc, clusters, sizeof (*clusters));
         }
-        sync_cout << "info string Hash cleared" << sync_endl;
     }
 
     // probe() looks up the entry in the transposition table.

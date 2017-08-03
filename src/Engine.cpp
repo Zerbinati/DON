@@ -11,6 +11,7 @@
 #include "Thread.h"
 #include "UCI.h"
 #include "Zobrist.h"
+#include "Transposition.h"
 
 namespace Engine {
 
@@ -98,6 +99,7 @@ namespace Engine {
         EndGame  ::initialize ();
         Threadpool.initialize ();
         Searcher ::initialize ();
+        TT.auto_resize (i32(Options["Hash"]), true);
 
         UCI::loop (argc, argv);
     }

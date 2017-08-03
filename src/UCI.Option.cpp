@@ -18,9 +18,6 @@ namespace UCI {
     using namespace Searcher;
     using namespace TBSyzygy;
     using namespace Debugger;
-#if defined(LPAGES)
-    using namespace Memory;
-#endif
 
     Option::Option (OnChange on_cng)
         : type ("button")
@@ -158,7 +155,7 @@ namespace UCI {
 #   if defined(LPAGES)
         void on_memory_type ()
         {
-            LargePages = bool(Options["Large Pages"]);
+            Memory::LargePages = bool(Options["Large Pages"]);
             TT.resize ();
         }
 #   endif
@@ -166,7 +163,7 @@ namespace UCI {
         void on_clear_hash ()
         {
             Threadpool.wait_while_thinking ();
-            Searcher::clear ();
+            clear ();
         }
 
         void on_retain_hash ()
@@ -331,7 +328,7 @@ namespace UCI {
         Options["Hash"]                         << Option (16, 0, Table::MaxHashSize, on_hash_size);
 
 #if defined(LPAGES)
-        Options["Large Pages"]                  << Option (LargePages, on_memory_type);
+        Options["Large Pages"]                  << Option (Memory::LargePages, on_memory_type);
 #endif
 
         Options["Clear Hash"]                   << Option (on_clear_hash);

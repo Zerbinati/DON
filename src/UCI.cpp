@@ -28,8 +28,7 @@ namespace UCI {
         // On ucinewgame following steps are needed to reset the state
         void newgame ()
         {
-            TT.auto_resize (i32(Options["Hash"]), true);
-            Searcher::clear ();
+            clear ();
             Threadpool.main_thread ()->time_mgr.available_nodes = 0;
             TBSyzygy::initialize ();
         }

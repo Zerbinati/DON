@@ -143,25 +143,17 @@ namespace Pawns {
                 // after one or two pawn pushes when are not attacked more times than defended.
                 // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
                 if (   0 == (own_pawns & front_sqrs_bb (Own, s))
-                    && stoppers == (levers | escapes)
-                    && pop_count (supporters) >= pop_count (levers)
-                    && pop_count (phalanxes) >= pop_count (escapes))
+                    && (   (   stoppers == (levers | escapes)
+                            && pop_count (supporters) >= pop_count (levers)
+                            && pop_count (phalanxes) >= pop_count (escapes))
+                        || (   stoppers == square_bb (s+Push)
+                            && rel_rank (Own, s) > R_4
+                            && 0 != (b = shift<Push> (supporters) & ~opp_pawns)
+                            && pop_count (b) > pop_count (  (opp_pawns ^ stoppers)
+                                                          & (  shift<LCap> (b)
+                                                             | shift<RCap> (b))))))
                 {
                     e->passers[Own] |= s;
-                }
-                else
-                if (   stoppers == square_bb (s+Push)
-                    && rel_rank (Own, s) > R_4)
-                {
-                    b = shift<Push> (supporters) & ~opp_pawns;
-                    while (0 != b)
-                    {
-                        if (0 == ((opp_pawns ^ stoppers) & PAtt[pop_lsq (b)]))
-                        {
-                            e->passers[Own] |= s;
-                            break;
-                        }
-                    }
                 }
 
                 if (   0 != supporters
