@@ -86,16 +86,16 @@ void benchmark (istringstream &is, const Position &cur_pos)
 {
     u32    hash;
     u16    threads;
-
     i64    value;
-    string token;
+    string mode;
+    string fen_fn;
 
     // Assign default values to missing arguments
-    hash    = (is >> hash) ? hash : 16;
+    hash    = (is >> hash)    ? hash    : 16;
     threads = (is >> threads) ? threads : 1;
-    value   = (is >> value) ? value : 13;
-    string mode   = (is >> token) && !white_spaces (token) ? token : "depth";
-    string fen_fn = (is >> token) && !white_spaces (token) ? token : "default";
+    value   = (is >> value)   ? value   : 13;
+    mode    = (is >> mode)   && !white_spaces (mode)   ? mode   : "depth";
+    fen_fn  = (is >> fen_fn) && !white_spaces (fen_fn) ? fen_fn : "default";
 
     Limit limits;
     if (mode == "time")
@@ -156,7 +156,6 @@ void benchmark (istringstream &is, const Position &cur_pos)
 
     Options["Hash"] = to_string (hash);
     Options["Threads"] = to_string (threads);
-    Options["Retain Hash"] = "false";
 
     u64  total_nodes = 0;
     StateList states (1);
@@ -164,15 +163,15 @@ void benchmark (istringstream &is, const Position &cur_pos)
     auto start_time = now ();
     for (u16 i = 0; i < fens.size (); ++i)
     {
-        states.resize (1);
-        pos.setup (fens[i], states.back (), Threadpool.main_thread ());
-        assert(pos.fen () == fens[i]);
-
         std::cerr
             << "\n---------------\n"
             << "Position: " << std::right
             << std::setw (2) << i+1 << "/" << fens.size () << " "
             << std::left << fens[i] << std::endl;
+
+        states.resize (1);
+        pos.setup (fens[i], states.back (), Threadpool.main_thread ());
+        assert(pos.fen () == fens[i]);
 
         clear ();
         limits.start_time = now ();
@@ -248,17 +247,17 @@ void perft (istringstream &is, const Position &cur_pos)
     auto start_time = now ();
     for (u16 i = 0; i < fens.size (); ++i)
     {
-        states.resize (1);
-        pos.setup (fens[i], states.back (), Threadpool.main_thread ());
-        assert (pos.fen () == fens[i]);
-
         std::cerr
             << "\n---------------\n"
             << "Position: " << std::right
             << std::setw (2) << i+1 << "/" << fens.size () << " "
             << std::left << fens[i] << std::endl;
 
-        auto leaf_nodes = perft (pos, depth);
+        states.resize (1);
+        pos.setup (fens[i], states.back (), Threadpool.main_thread ());
+        assert(pos.fen () == fens[i]);
+
+        auto leaf_nodes = perft<true > (pos, depth);
         std::cerr
             << "\nLeaf nodes: "
             << leaf_nodes << std::endl;

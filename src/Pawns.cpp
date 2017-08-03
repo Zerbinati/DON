@@ -57,20 +57,18 @@ namespace Pawns {
     #define S(mg, eg) mk_score(mg, eg)
 
         // Isolated pawn penalty indexed by [opposed]
-        const Score Isolated[]  = { S(45,40), S(30,27) };
+        const Score Isolated[]  = { S(27,30), S(13,18) };
         // Backward pawn penalty indexed by [opposed]
-        const Score Backward[]  = { S(56,33), S(41,19) };
+        const Score Backward[]  = { S(40,26), S(24,12) };
         // Levered pawn bonus indexed by [rank]
         const Score Levered[]   = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
-        // Unsupported pawn penalty
-        const Score Unsupported = S(17, 8);
         // Blocked pawn penalty
         const Score Blocked     = S(18,38);
 
     #undef S
 
         // Connected pawn bonus indexed by [opposed][phalanx][twice supported][rank]
-        Score Connected[2][2][2][R_NO];
+        Score Connected[2][2][3][R_NO];
 
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
@@ -105,8 +103,8 @@ namespace Pawns {
             auto score = SCORE_ZERO;
 
             File f;
-            Bitboard b, neighbours, supporters, stoppers, phalanxes, levers, escapes;
-            bool opposed, backward;
+            Bitboard b, neighbours, supporters, phalanxes, stoppers, levers, escapes;
+            bool blocked, opposed, backward;
             for (auto s : pos.squares[Own][PAWN])
             {
                 assert(pos[s] == (Own|PAWN));
@@ -117,11 +115,12 @@ namespace Pawns {
 
                 neighbours = own_pawns & adj_file_bb (f);
                 supporters = neighbours & rank_bb (s-Push);
-                stoppers   = opp_pawns & pawn_pass_span (Own, s);
                 phalanxes  = neighbours & rank_bb (s);
+                stoppers   = opp_pawns & pawn_pass_span (Own, s);
                 levers     = opp_pawns & PAtt[s];
                 escapes    = opp_pawns & PAtt[s+Push];
 
+                blocked    = contains (own_pawns, s-Push);
                 opposed    = 0 != (opp_pawns & front_sqrs_bb (Own, s));
 
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
@@ -138,30 +137,42 @@ namespace Pawns {
                             // backward because it cannot advance without being captured.
                           && 0 != (stoppers & (b | shift<Push> (b & adj_file_bb (f))));
 
-                // Include also not passed pawns which could become passed after one or two pawn pushes
-                // when are not attacked more times than defended.
+                assert(!backward || 0 == (pawn_attack_span (Opp, s+Push) & neighbours));
+
+                // Include also not passed pawns which could become passed
+                // after one or two pawn pushes when are not attacked more times than defended.
                 // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
-                if (   0 == (stoppers ^ levers ^ escapes)
-                    && 0 == (own_pawns & front_sqrs_bb (Own, s))
+                if (   0 == (own_pawns & front_sqrs_bb (Own, s))
+                    && stoppers == (levers | escapes)
                     && pop_count (supporters) >= pop_count (levers)
-                    && pop_count (phalanxes)  >= pop_count (escapes))
+                    && pop_count (phalanxes) >= pop_count (escapes))
                 {
                     e->passers[Own] |= s;
                 }
                 else
                 if (   stoppers == square_bb (s+Push)
-                    && rel_rank (Own, s) >= R_5)
+                    && rel_rank (Own, s) > R_4)
                 {
                     b = shift<Push> (supporters) & ~opp_pawns;
                     while (0 != b)
                     {
-                        if (!more_than_one (opp_pawns & PAtt[pop_lsq (b)]))
+                        if (0 == ((opp_pawns ^ stoppers) & PAtt[pop_lsq (b)]))
                         {
                             e->passers[Own] |= s;
+                            break;
                         }
                     }
                 }
 
+                if (   0 != supporters
+                    || 0 != phalanxes)
+                {
+                    score += Connected[opposed ? 1 : 0]
+                                      [0 != phalanxes ? 1 : 0]
+                                      [pop_count (supporters)]
+                                      [rel_rank (Own, s)];
+                }
+                else
                 if (0 == neighbours)
                 {
                     score -= Isolated[opposed ? 1 : 0];
@@ -171,27 +182,13 @@ namespace Pawns {
                 {
                     score -= Backward[opposed ? 1 : 0];
                 }
-                else
-                if (0 == supporters)
-                {
-                    score -= Unsupported;
-                }
-
-                if (   0 != supporters
-                    || 0 != phalanxes)
-                {
-                    score += Connected[opposed ? 1 : 0]
-                                      [phalanxes != 0 ? 1 : 0]
-                                      [more_than_one (supporters) ? 1 : 0]
-                                      [rel_rank (Own, s)];
-                }
 
                 if (0 != levers)
                 {
                     score += Levered[rel_rank (Own, s)];
                 }
 
-                if (   contains (own_pawns, s-Push)
+                if (   blocked
                     && 0 == supporters)
                 {
                     score -= Blocked;
@@ -272,18 +269,18 @@ namespace Pawns {
     // Initialize lookup tables during startup.
     void initialize ()
     {
-        const i32 Seeds[R_NO] = { 0, 8, 19, 13, 71, 94, 169, 324 };
+        const i32 Seeds[R_NO] = { 0, 13, 24, 18, 76, 100, 175, 330 };
 
         for (i08 opposed = 0; opposed < 2; ++opposed)
         {
             for (i08 phalanx = 0; phalanx < 2; ++phalanx)
             {
-                for (i08 apex = 0; apex < 2; ++apex)
+                for (i08 support = 0; support < 3; ++support)
                 {
                     for (i08 r = R_2; r < R_8; ++r)
                     {
-                        auto v = i32((i32(Seeds[r] + (Seeds[r+1] - Seeds[r])*0.5*phalanx) >> opposed) * (1.0 + 0.5*apex));
-                        Connected[opposed][phalanx][apex][r] = mk_score (v, v * (r-2) / 4);
+                        i32 v = 17 * support + ((Seeds[r] + (phalanx ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed);
+                        Connected[opposed][phalanx][support][r] = mk_score (v, v * (r-2) / 4);
                     }
                 }
             }

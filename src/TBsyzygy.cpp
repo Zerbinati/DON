@@ -461,8 +461,9 @@ namespace TBSyzygy {
         {
             memset (this, 0, sizeof (*this));
             ready = false;
-            StateInfo si;
             Position pos;
+            StateInfo si;
+            std::memset (&si, 0, sizeof (si));
             key1 = pos.setup (code, si, WHITE).si->matl_key;
             piece_count = pos.count<NONE> ();
             has_pawns = 0 != pos.count<PAWN> ();
