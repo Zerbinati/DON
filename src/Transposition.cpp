@@ -53,7 +53,7 @@ namespace Transposition {
 
         alignment = std::max (u32(sizeof (void *)), alignment);
 
-        mem = calloc (mem_size + alignment-1, 1);
+        mem = malloc (mem_size + alignment-1);
         if (nullptr == mem)
         {
             std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << std::endl;
@@ -156,15 +156,13 @@ namespace Transposition {
     {
         auto *const fte = cluster_entry (key);
         assert(nullptr != fte);
-        assert(0 == (Entry::Generation & 0x03));
-        const u16 key16 = key >> 0x30; // Use the high 16 bits as key inside the cluster
         // Find an entry to be replaced according to the replacement strategy.
         auto *rte = fte; // Default first
         auto rworth = rte->worth ();
         for (auto *ite = fte; ite < fte + Cluster::EntryCount; ++ite)
         {
             if (   ite->empty ()
-                || ite->k16 == key16)
+                || ite->k16 == (key >> 0x30))
             {
                 tt_hit = !ite->empty ();
                 // Refresh entry.

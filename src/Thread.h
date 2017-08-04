@@ -264,7 +264,7 @@ namespace Threading {
         
         std::atomic<bool>
                 stop                // Stop search
-            ,   stop_on_ponderhit   // Stop search on ponder-hit
+            ,   stop_on_ponderhit   // Stop search on ponderhit
             ,   ponder;             // Search on ponder move until the "stop/ponderhit" command
 
         ThreadPool () = default;
@@ -314,8 +314,9 @@ namespace Threading {
         void clear ();
         void configure (u32 threads);
 
-        void start_thinking (Position &root_pos, StateList &states, const Limit &limits, bool ponde = false);
-        void start_thinking (Position &root_pos, StateList &states, const Limit &limits, const Moves &search_moves, bool ponde = false);
+        void start_thinking (Position &root_pos, StateList &states, const Limit &limits, const Moves &search_moves);
+        void start_thinking (Position &root_pos, StateList &states, const Limit &limits);
+
         void wait_while_thinking ();
 
         void initialize ();

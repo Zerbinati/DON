@@ -156,6 +156,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
 
     Options["Hash"] = to_string (hash);
     Options["Threads"] = to_string (threads);
+    Threadpool.ponder = false;
 
     u64  total_nodes = 0;
     StateList states (1);

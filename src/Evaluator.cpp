@@ -1176,8 +1176,8 @@ namespace Evaluator {
         std::memset (Tracer::cp, 0x00, sizeof (Tracer::cp));
         // White's point of view
         auto value = WHITE == pos.active ?
-                        +Evaluation<true> (pos).value () :
-                        -Evaluation<true> (pos).value ();
+                        +Evaluation<true > (pos).value () :
+                        -Evaluation<true > (pos).value ();
 
         ostringstream oss;
         oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed

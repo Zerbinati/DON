@@ -83,7 +83,7 @@ typedef StatTable<CLR_NO, SQ_NO*SQ_NO> HistoryStatTable;
 struct HistoryStat
     : public HistoryStatTable
 {
-    // Color, Move, Value
+    // Update by Color, Move, Value
     void update (Color c, Move m, i32 v)
     {
         const i32 D = 324;
@@ -100,7 +100,7 @@ typedef StatTable<MAX_PIECE, SQ_NO> SquareHistoryStatTable;
 struct SquareHistoryStat
     : public SquareHistoryStatTable
 {
-    // Piece, Destiny, Value
+    // Update by Piece, Destiny, Value
     void update (Piece pc, Square s, i32 v)
     {
         const i32 D = 936;

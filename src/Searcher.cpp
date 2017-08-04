@@ -2209,7 +2209,7 @@ namespace Threading {
             // WARNING: Given NodesTime (nodes per millisecond) must be much lower then the real engine speed to avoid time losses.
             if (0 != NodesTime)
             {
-                // Only once at game start
+                // Only once at after ucinewgame
                 if (0 == time_mgr.available_nodes)
                 {
                     time_mgr.available_nodes = Limits.clock[root_pos.active].time * NodesTime;
@@ -2224,6 +2224,7 @@ namespace Threading {
         }
 
         Transposition::Entry::Generation = u08((root_pos.ply + 1) << 2);
+        assert(0 == (Transposition::Entry::Generation & 0x03));
 
         bool voting = false;
 

@@ -622,10 +622,10 @@ private:
     std::array<T, Size> table;
 
 public:
-    void clear ()
-    {
-        std::fill (table.begin (), table.end (), T());
-    }
+    //void clear ()
+    //{
+    //    std::fill (table.begin (), table.end (), T());
+    //}
 
     T* operator[] (Key k)
     {

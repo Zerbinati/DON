@@ -92,7 +92,7 @@ namespace UCI {
                 Threadpool.main_thread ()->start_searching (true); // Could be sleeping
             }
             else
-            if (token == "ponderhit" && Threadpool.ponder)
+            if (token == "ponderhit")
             {
                 Threadpool.ponder = false;
             }
@@ -137,9 +137,9 @@ namespace UCI {
                 {
                     Limit limits;
                     limits.start_time = now ();
+                    Threadpool.ponder = false;
 
-                    bool ponder = false;    // Search on ponder move until the "stop" command
-                    Moves search_moves;     // Restrict search to these root moves only
+                    Moves search_moves; // Restrict search to these root moves only
 
                     i64 value;
                     while (iss >> token)
@@ -205,7 +205,7 @@ namespace UCI {
                         else
                         if (token == "ponder")
                         {
-                            ponder = true;
+                            Threadpool.ponder = true;
                         }
                         else
                         // Parse and Validate search-moves (if any)
@@ -224,7 +224,7 @@ namespace UCI {
                             search_moves.shrink_to_fit ();
                         }
                     }
-                    Threadpool.start_thinking (root_pos, states, limits, search_moves, ponder);
+                    Threadpool.start_thinking (root_pos, states, limits, search_moves);
                 }
                 // This sets up the position:
                 //  - starting position ("startpos")

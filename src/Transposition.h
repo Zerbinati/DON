@@ -58,7 +58,7 @@ namespace Transposition {
         void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
         {
             // Preserve more valuable entries
-            if (   k16 != (k >> 0x30)
+            if (   k16 != (k >> 0x30)   // Use the high 16 bits as key inside the cluster
                 || MOVE_NONE != m)
             {
                 m16 = u16(m);
