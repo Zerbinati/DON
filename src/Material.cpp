@@ -99,7 +99,7 @@ namespace Material {
     // The pointer is also stored in a hash table.
     Entry* probe (const Position &pos)
     {
-        auto *e = pos.thread->matl_table[pos.si->matl_key];
+        auto *e = pos.thread->matl_table.get (pos.si->matl_key);
 
         if (e->key == pos.si->matl_key)
         {

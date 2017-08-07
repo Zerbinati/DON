@@ -3,7 +3,6 @@
 
 #include <array>
 #include <vector>
-#include <tuple>
 
 #include "MoveGenerator.h"
 #include "Position.h"
@@ -64,9 +63,9 @@ public:
     }
 };
 
-// StatBoards is a Generic 2-dimensional array used to store various statistics.
-template<i32 Size1, i32 Size2, typename T = i32>
-struct StatTable
+// Table2D is a Generic 2-dimensional array used to store various statistics.
+template<i32 Size1, i32 Size2, typename T>
+struct Table2D
     : public std::array<std::array<T, Size2>, Size1>
 {
     void fill (const T &v)
@@ -76,56 +75,47 @@ struct StatTable
     }
 };
 
-// HistoryStatTable indexed by [color][move's org and dst squares].
-typedef StatTable<CLR_NO, SQ_NO*SQ_NO> HistoryStatTable;
-// HistoryStat records how often quiet moves have been successful or unsuccessful
+// ButterflyStatTable store stats indexed by [color][move's org and dst squares].
+typedef Table2D<CLR_NO, SQ_NO*SQ_NO, i32> ButterflyStatTable;
+// ButterflyHistory records how often quiet moves have been successful or unsuccessful
 // during the current search, and is used for reduction and move ordering decisions.
-struct HistoryStat
-    : public HistoryStatTable
+struct ButterflyHistory
+    : public ButterflyStatTable
 {
-    // Update by Color, Move, Value
-    void update (Color c, Move m, i32 v)
+    // Update by color, move (org-dst), bonus
+    void update (Color c, Move m, i32 bonus)
     {
         const i32 D = 324;
-        assert(abs (v) <= D); // Consistency check
+        assert(abs (bonus) <= D); // Consistency check
         auto &e = (*this)[c][move_pp (m)];
-        e += v*32 - e*abs (v)/D;
+        e += bonus*32 - e*abs (bonus)/D;
         assert(abs (e) <= 32 * D);
     }
 };
 
-// PieceToBoards are addressed by a move's [piece][destiny] information.
-typedef StatTable<MAX_PIECE, SQ_NO> SquareHistoryStatTable;
-// PieceToHistory is like HistoryStat, but is based on SquareHistoryStatTable.
-struct SquareHistoryStat
-    : public SquareHistoryStatTable
+// PieceDestinyStatTable store stats indexed by [piece][destiny].
+typedef Table2D<MAX_PIECE, SQ_NO, i32> PieceDestinyStatTable;
+// PieceToHistory is like ButterflyHistory, but is based on PieceDestinyStatTable.
+struct PieceDestinyHistory
+    : public PieceDestinyStatTable
 {
-    // Update by Piece, Destiny, Value
-    void update (Piece pc, Square s, i32 v)
+    // Update by piece, square (dst), bonus
+    void update (Piece pc, Square s, i32 bonus)
     {
         const i32 D = 936;
-        assert(abs (v) <= D); // Consistency check
+        assert(abs (bonus) <= D); // Consistency check
         auto &e = (*this)[pc][s];
-        e += v*32 - e*abs (v)/D;
+        e += bonus*32 - e*abs (bonus)/D;
         assert(abs (e) <= 32 * D);
     }
 };
 
-// MoveHistoryStatTable
-typedef StatTable<MAX_PIECE, SQ_NO, SquareHistoryStat> MoveHistoryStatTable;
+// ContinuationStatTable is the history of a given pair of moves, usually the current one given a previous one.
+// History table is based on PieceDestinyStatTable instead of ButterflyStatTable.
+typedef Table2D<MAX_PIECE, SQ_NO, PieceDestinyHistory> ContinuationStatTable;
 
-// SquareMoveStatTable stores counter moves indexed by [piece][destiny]
-typedef StatTable<MAX_PIECE, SQ_NO, Move> SquareMoveStatTable;
-
-// Group all histories in a std::tuple to pass them around handily.
-typedef std::tuple<HistoryStat*, SquareHistoryStat*, SquareHistoryStat*, SquareHistoryStat*, SquareHistoryStat*> HistoryTuple;
-
-// Helper function to access each history by ply.
-template<i32 N>
-inline auto history_at_ply (const HistoryTuple &ht) -> const decltype(*std::get<N> (ht))&
-{
-    return *std::get<N> (ht);
-}
+// PieceDestinyMoveTable stores counter moves indexed by [piece][destiny]
+typedef Table2D<MAX_PIECE, SQ_NO, Move> PieceDestinyMoveTable;
 
 // MovePicker class is used to pick one legal moves from the current position.
 class MovePicker
@@ -137,7 +127,8 @@ private:
     Value threshold;
     Square recap_sq;
 
-    const HistoryTuple *history_tuple;
+    const ButterflyHistory* butterfly;
+    const PieceDestinyHistory** piece_destiny;
 
     ValMoves moves;
     Moves killers_moves
@@ -158,8 +149,8 @@ public:
     MovePicker (const MovePicker&) = delete;
     MovePicker& operator= (const MovePicker&) = delete;
 
-    MovePicker (const Position&, Move, i16, const Move*, Move, const HistoryTuple*);
-    MovePicker (const Position&, Move, i16, Square, const HistoryTuple*);
+    MovePicker (const Position&, Move, i16, const ButterflyHistory*, const PieceDestinyHistory**, const Move*, Move);
+    MovePicker (const Position&, Move, i16, const ButterflyHistory*, const PieceDestinyHistory**, Square);
     MovePicker (const Position&, Move, Value);
 
     Move next_move ();
@@ -179,7 +170,7 @@ public:
     u08   move_count;
     Moves pv;
 
-    SquareHistoryStat *m_history;
+    PieceDestinyHistory *piece_destiny;
 };
 
 // The root of the tree is a PV node.

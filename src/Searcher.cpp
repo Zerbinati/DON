@@ -89,12 +89,13 @@ namespace {
 // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
 // and about how important good move ordering is at the current node.
 
-MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const Move *km, Move cm, const HistoryTuple *ht)
+MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const ButterflyHistory *bf, const PieceDestinyHistory **pd, const Move *km, Move cm)
     : pos (p)
     , tt_move (ttm)
     , threshold (Value(-4000 * d))
     , recap_sq (SQ_NO)
-    , history_tuple (ht)
+    , butterfly (bf)
+    , piece_destiny (pd)
     , killers_moves (km, km + MaxKillers)
     , skip_quiets (false)
 {
@@ -136,12 +137,13 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const Move *km, Move
         ++stage;
     }
 }
-MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs, const HistoryTuple *ht)
+MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const ButterflyHistory *bf, const PieceDestinyHistory **pd, Square rs)
     : pos (p)
     , tt_move (ttm)
     , threshold (VALUE_ZERO)
     , recap_sq (SQ_NO)
-    , history_tuple (ht)
+    , butterfly (bf)
+    , piece_destiny (pd)
     , skip_quiets (false)
 {
     assert(MOVE_NONE == tt_move
@@ -184,7 +186,8 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     , tt_move (ttm)
     , threshold (thr)
     , recap_sq (SQ_NO)
-    , history_tuple (nullptr)
+    , butterfly (nullptr)
+    , piece_destiny (nullptr)
     , skip_quiets (false)
 {
     assert(0 == pos.si->checkers);
@@ -240,10 +243,10 @@ template<> void MovePicker::value<GenType::QUIET> ()
         assert(NO_PIECE != mpc);
         auto dst = dst_sq (vm.move);
         vm.value =
-              history_at_ply<0> (*history_tuple)[pos.active][move_pp (vm.move)]
-            + history_at_ply<1> (*history_tuple)[mpc][dst]
-            + history_at_ply<2> (*history_tuple)[mpc][dst]
-            + history_at_ply<4> (*history_tuple)[mpc][dst];
+              (*butterfly)[pos.active][move_pp (vm.move)]
+            + (*piece_destiny[0])[mpc][dst]
+            + (*piece_destiny[1])[mpc][dst]
+            + (*piece_destiny[3])[mpc][dst];
     }
 }
 // First captures ordered by MVV/LVA, then non-captures ordered by stats heuristics
@@ -264,7 +267,7 @@ template<> void MovePicker::value<GenType::EVASION> ()
         else
         {
             vm.value =
-                  history_at_ply<0> (*history_tuple)[pos.active][move_pp (vm.move)];
+                  (*butterfly)[pos.active][move_pp (vm.move)];
         }
     }
 }
@@ -597,18 +600,18 @@ namespace Searcher {
         }
 
         // Updates countermoves and followupmoves history stats
-        void update_cm_stats (Stack *const &ss, Piece pc, Square s, i32 value)
+        void update_continuation_histories (Stack *const &ss, Piece pc, Square dst, i32 value)
         {
             for (auto i : {1, 2, 4})
             {
                 if (_ok ((ss-i)->played_move))
                 {
-                    (ss-i)->m_history->update (pc, s, value);
+                    (ss-i)->piece_destiny->update (pc, dst, value);
                 }
             }
         }
         // Updates move sorting heuristics
-        void update_stats (Stack *const &ss, const Position &pos, Move move, i32 value)
+        void update_histories (Stack *const &ss, const Position &pos, Move move, i32 value)
         {
             if (ss->killer_moves[0] != move)
             {
@@ -623,8 +626,8 @@ namespace Searcher {
                 pos.thread->counter_moves[pos[fix_dst_sq (m)]][dst_sq (m)] = move;
             }
 
-            pos.thread->history.update (pos.active, move, value);
-            update_cm_stats (ss, pos[org_sq (move)], dst_sq (move), value);
+            pos.thread->butterfly.update (pos.active, move, value);
+            update_continuation_histories (ss, pos[org_sq (move)], dst_sq (move), value);
         }
 
         // Appends the move and child pv
@@ -867,9 +870,9 @@ namespace Searcher {
             u08 move_count = 0;
             StateInfo si;
 
-            const HistoryTuple history_tuple (&pos.thread->history, nullptr, nullptr, nullptr, nullptr);
+            const PieceDestinyHistory* piece_destiny[] = { nullptr, nullptr, nullptr, nullptr };
             // Initialize move picker (2) for the current position.
-            MovePicker move_picker (pos, tt_move, depth, dst_sq (last_move), &history_tuple);
+            MovePicker move_picker (pos, tt_move, depth, &pos.thread->butterfly, piece_destiny, dst_sq (last_move));
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
@@ -1052,7 +1055,7 @@ namespace Searcher {
             }
 
             ss->played_move = MOVE_NONE;
-            ss->m_history = &pos.thread->cm_history[NO_PIECE][0];
+            ss->piece_destiny = &pos.thread->continuation[NO_PIECE][0];
             assert(MOVE_NONE == (ss+1)->excluded_move);
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
 
@@ -1100,7 +1103,7 @@ namespace Searcher {
                         // Bonus for a quiet tt_move that fails high.
                         if (!pos.capture_or_promotion (tt_move))
                         {
-                            update_stats (ss, pos, tt_move, stat_bonus (depth));
+                            update_histories (ss, pos, tt_move, stat_bonus (depth));
                         }
                         // Extra penalty for a quiet tt_move in previous ply when it gets refuted.
                         if (   1 == (ss-1)->move_count
@@ -1108,7 +1111,7 @@ namespace Searcher {
                             && NONE == pos.si->capture
                             && !pos.si->promotion)
                         {
-                            update_cm_stats (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
+                            update_continuation_histories (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
                         }
                     }
                     else
@@ -1117,8 +1120,8 @@ namespace Searcher {
                         if (!pos.capture_or_promotion (tt_move))
                         {
                             auto penalty = -stat_bonus (depth);
-                            pos.thread->history.update (pos.active, tt_move, penalty);
-                            update_cm_stats (ss, pos[org_sq (tt_move)], dst_sq (tt_move), penalty);
+                            pos.thread->butterfly.update (pos.active, tt_move, penalty);
+                            update_continuation_histories (ss, pos[org_sq (tt_move)], dst_sq (tt_move), penalty);
                         }
                     }
                 }
@@ -1257,7 +1260,7 @@ namespace Searcher {
                                                         0)));
 
                         ss->played_move = MOVE_NULL;
-                        ss->m_history = &pos.thread->cm_history[NO_PIECE][0];
+                        ss->piece_destiny = &pos.thread->continuation[NO_PIECE][0];
 
                         pos.do_null_move (si);
 
@@ -1323,7 +1326,7 @@ namespace Searcher {
                             prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                             ss->played_move = move;
-                            ss->m_history = &pos.thread->cm_history[pos[org_sq (move)]][dst_sq (move)];
+                            ss->piece_destiny = &pos.thread->continuation[pos[org_sq (move)]][dst_sq (move)];
 
                             pos.do_move (move, si);
 
@@ -1388,9 +1391,9 @@ namespace Searcher {
 
             bool ttm_capture = false;
 
-            const HistoryTuple history_tuple (&pos.thread->history, (ss-1)->m_history, (ss-2)->m_history, (ss-3)->m_history, (ss-4)->m_history);
+            const PieceDestinyHistory* piece_destiny[] = { (ss-1)->piece_destiny, (ss-2)->piece_destiny, (ss-3)->piece_destiny, (ss-4)->piece_destiny };
             // Initialize move picker (1) for the current position.
-            MovePicker move_picker (pos, tt_move, depth, ss->killer_moves, _ok (last_move) ? pos.thread->counter_moves[pos[fix_dst_sq (last_move)]][dst_sq (last_move)] : MOVE_NONE, &history_tuple);
+            MovePicker move_picker (pos, tt_move, depth, &pos.thread->butterfly, piece_destiny, ss->killer_moves, _ok (last_move) ? pos.thread->counter_moves[pos[fix_dst_sq (last_move)]][dst_sq (last_move)] : MOVE_NONE);
             // Step 11. Loop through moves
             // Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
@@ -1505,8 +1508,8 @@ namespace Searcher {
                         i16 lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Countermoves based pruning.
                                (   3 > lmr_depth
-                                && history_at_ply<1> (history_tuple)[mpc][dst] < CounterMovePruneThreshold
-                                && history_at_ply<2> (history_tuple)[mpc][dst] < CounterMovePruneThreshold)
+                                && (*piece_destiny[0])[mpc][dst] < CounterMovePruneThreshold
+                                && (*piece_destiny[1])[mpc][dst] < CounterMovePruneThreshold)
                                 // Futility pruning: parent node.
                             || (   7 > lmr_depth
                                 && !in_check
@@ -1533,7 +1536,7 @@ namespace Searcher {
 
                 // Update the current move (this must be done after singular extension search).
                 ss->played_move = move;
-                ss->m_history = &pos.thread->cm_history[mpc][dst];
+                ss->piece_destiny = &pos.thread->continuation[mpc][dst];
 
                 // Step 14. Make the move.
                 pos.do_move (move, si, gives_check);
@@ -1583,10 +1586,10 @@ namespace Searcher {
                         }
 
                         ss->statistics =
-                              history_at_ply<0> (history_tuple)[~pos.active][move_pp (move)]
-                            + history_at_ply<1> (history_tuple)[mpc][dst]
-                            + history_at_ply<2> (history_tuple)[mpc][dst]
-                            + history_at_ply<4> (history_tuple)[mpc][dst]
+                              pos.thread->butterfly[~pos.active][move_pp (move)]
+                            + (*piece_destiny[0])[mpc][dst]
+                            + (*piece_destiny[1])[mpc][dst]
+                            + (*piece_destiny[3])[mpc][dst]
                             - 4000; // Correction factor
 
                         // Decrease/Increase reduction by comparing opponent's stat value
@@ -1766,12 +1769,12 @@ namespace Searcher {
                     if (!pos.capture_or_promotion (best_move))
                     {
                         auto bonus = stat_bonus (depth);
-                        update_stats (ss, pos, best_move, bonus);
+                        update_histories (ss, pos, best_move, bonus);
                         // Decrease all the other played quiet moves.
                         for (auto qm : quiet_moves)
                         {
-                            pos.thread->history.update (pos.active, qm, -bonus);
-                            update_cm_stats (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
+                            pos.thread->butterfly.update (pos.active, qm, -bonus);
+                            update_continuation_histories (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                         }
                     }
                     // Penalty for a quiet best move in previous ply when it gets refuted.
@@ -1780,7 +1783,7 @@ namespace Searcher {
                         && NONE == pos.si->capture
                         && !pos.si->promotion)
                     {
-                        update_cm_stats (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
+                        update_continuation_histories (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
                     }
                 }
                 else
@@ -1790,7 +1793,7 @@ namespace Searcher {
                     && NONE == pos.si->capture
                     && !pos.si->promotion)
                 {
-                    update_cm_stats (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), stat_bonus (depth));
+                    update_continuation_histories (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), stat_bonus (depth));
                 }
             }
             
@@ -1932,7 +1935,7 @@ namespace Threading {
             ss->static_eval = VALUE_ZERO;
             ss->statistics = 0;
             ss->move_count = 0;
-            ss->m_history = &cm_history[NO_PIECE][0];
+            ss->piece_destiny = &continuation[NO_PIECE][0];
         }
 
         auto *main_thread =

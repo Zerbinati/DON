@@ -30,13 +30,15 @@ namespace Pawns {
 
         bool file_semiopen (Color c, File f) const
         {
-            return (semiopens[c] & (1 << f)) != 0;
+            return 0 != (  semiopens[c]
+                          & (1 << f));
         }
         bool side_semiopen (Color c, File f, bool left) const
         {
-            return (semiopens[c] & (left ?
-                                     ((1 << (f  )) - 1) :
-                                    ~((1 << (f+1)) - 1))) != 0;
+            return 0 != (  semiopens[c]
+                         & (left ?
+                                ((1 << (f  )) - 1) :
+                               ~((1 << (f+1)) - 1)));
         }
 
         template<Color Own>

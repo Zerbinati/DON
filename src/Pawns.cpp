@@ -241,7 +241,7 @@ namespace Pawns {
     // The pointer is also stored in a hash table.
     Entry* probe (const Position &pos)
     {
-        auto *e = pos.thread->pawn_table[pos.si->pawn_key];
+        auto *e = pos.thread->pawn_table.get (pos.si->pawn_key);
 
         if (e->key == pos.si->pawn_key)
         {

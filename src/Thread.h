@@ -179,9 +179,9 @@ namespace Threading {
               nodes
             , tb_hits;
 
-        SquareMoveStatTable counter_moves;
-        HistoryStat history;
-        MoveHistoryStatTable cm_history;
+        PieceDestinyMoveTable counter_moves;
+        ButterflyHistory butterfly;
+        ContinuationStatTable continuation;
 
         Pawns   ::Table pawn_table;
         Material::Table matl_table;

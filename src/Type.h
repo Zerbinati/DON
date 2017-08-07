@@ -617,19 +617,12 @@ public:
 
 template<typename T, u32 Size>
 struct HashTable
+    : std::array<T, Size>
 {
-private:
-    std::array<T, Size> table;
-
 public:
-    //void clear ()
-    //{
-    //    std::fill (table.begin (), table.end (), T());
-    //}
-
-    T* operator[] (Key k)
+    T* get (Key key)
     {
-        return &table[u32(k) & (Size - 1)];
+        return &(*this)[u32(key) & (Size - 1)];
     }
 };
 

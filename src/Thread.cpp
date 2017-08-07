@@ -301,19 +301,18 @@ namespace Threading {
         tb_hits = 0;
 
         counter_moves.fill (MOVE_NONE);
-        history.fill (0);
-        for (auto &pc : cm_history)
+        butterfly.fill (0);
+        for (auto &pc : continuation)
         {
             for (auto &s_history : pc)
             {
                 s_history.fill (0);
             }
         }
-        cm_history[NO_PIECE][0].fill (CounterMovePruneThreshold - 1);
+        continuation[NO_PIECE][0].fill (CounterMovePruneThreshold - 1);
         
-        // Don't clear effects performance
-        //pawn_table.clear ();
-        //matl_table.clear ();
+        pawn_table.fill (Pawns   ::Entry ());
+        matl_table.fill (Material::Entry ());
     }
 
     // Function where the thread is parked when it has no work to do.
