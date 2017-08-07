@@ -147,6 +147,7 @@ namespace Transposition {
         {
             std::memcpy (itc, clusters, sizeof (*clusters));
         }
+        //sync_cout << "info string Hash cleared" << sync_endl;
     }
 
     // probe() looks up the entry in the transposition table.

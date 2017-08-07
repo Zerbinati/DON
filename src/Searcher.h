@@ -127,7 +127,6 @@ private:
     Value threshold;
     Square recap_sq;
 
-    const ButterflyHistory* butterfly;
     const PieceDestinyHistory** piece_destiny;
 
     ValMoves moves;
@@ -149,8 +148,8 @@ public:
     MovePicker (const MovePicker&) = delete;
     MovePicker& operator= (const MovePicker&) = delete;
 
-    MovePicker (const Position&, Move, i16, const ButterflyHistory*, const PieceDestinyHistory**, const Move*, Move);
-    MovePicker (const Position&, Move, i16, const ButterflyHistory*, const PieceDestinyHistory**, Square);
+    MovePicker (const Position&, Move, i16, const PieceDestinyHistory**, const Move*, Move);
+    MovePicker (const Position&, Move, i16, const PieceDestinyHistory**, Square);
     MovePicker (const Position&, Move, Value);
 
     Move next_move ();

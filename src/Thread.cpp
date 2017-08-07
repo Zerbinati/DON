@@ -302,11 +302,11 @@ namespace Threading {
 
         counter_moves.fill (MOVE_NONE);
         butterfly.fill (0);
-        for (auto &pc : continuation)
+        for (auto &pd : continuation)
         {
-            for (auto &s_history : pc)
+            for (auto &piece_destiny : pd)
             {
-                s_history.fill (0);
+                piece_destiny.fill (0);
             }
         }
         continuation[NO_PIECE][0].fill (CounterMovePruneThreshold - 1);

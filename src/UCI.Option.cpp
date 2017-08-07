@@ -162,7 +162,6 @@ namespace UCI {
 
         void on_clear_hash ()
         {
-            Threadpool.wait_while_thinking ();
             clear ();
         }
 

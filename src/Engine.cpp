@@ -100,6 +100,9 @@ namespace Engine {
         Threadpool.initialize ();
         Searcher ::initialize ();
         TT.auto_resize (i32(Options["Hash"]), true);
+        TBSyzygy ::initialize ();
+
+        Searcher ::clear ();
 
         UCI::loop (argc, argv);
     }

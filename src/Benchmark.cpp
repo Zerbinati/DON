@@ -154,6 +154,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
         fens.shrink_to_fit ();
     }
 
+    clear ();
     Options["Hash"] = to_string (hash);
     Options["Threads"] = to_string (threads);
     Threadpool.ponder = false;
@@ -174,7 +175,6 @@ void benchmark (istringstream &is, const Position &cur_pos)
         pos.setup (fens[i], states.back (), Threadpool.main_thread ());
         assert(pos.fen () == fens[i]);
 
-        clear ();
         limits.start_time = now ();
         Threadpool.start_thinking (pos, states, limits);
         Threadpool.wait_while_thinking ();
@@ -241,6 +241,8 @@ void perft (istringstream &is, const Position &cur_pos)
         ifs.close ();
         fens.shrink_to_fit ();
     }
+
+    clear ();
 
     u64  total_nodes = 0;
     StateList states (1);

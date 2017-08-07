@@ -89,12 +89,11 @@ namespace {
 // (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
 // and about how important good move ordering is at the current node.
 
-MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const ButterflyHistory *bf, const PieceDestinyHistory **pd, const Move *km, Move cm)
+MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pd, const Move *km, Move cm)
     : pos (p)
     , tt_move (ttm)
     , threshold (Value(-4000 * d))
     , recap_sq (SQ_NO)
-    , butterfly (bf)
     , piece_destiny (pd)
     , killers_moves (km, km + MaxKillers)
     , skip_quiets (false)
@@ -137,12 +136,11 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const ButterflyHisto
         ++stage;
     }
 }
-MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const ButterflyHistory *bf, const PieceDestinyHistory **pd, Square rs)
+MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pd, Square rs)
     : pos (p)
     , tt_move (ttm)
     , threshold (VALUE_ZERO)
     , recap_sq (SQ_NO)
-    , butterfly (bf)
     , piece_destiny (pd)
     , skip_quiets (false)
 {
@@ -186,7 +184,6 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     , tt_move (ttm)
     , threshold (thr)
     , recap_sq (SQ_NO)
-    , butterfly (nullptr)
     , piece_destiny (nullptr)
     , skip_quiets (false)
 {
@@ -243,7 +240,7 @@ template<> void MovePicker::value<GenType::QUIET> ()
         assert(NO_PIECE != mpc);
         auto dst = dst_sq (vm.move);
         vm.value =
-              (*butterfly)[pos.active][move_pp (vm.move)]
+              pos.thread->butterfly[pos.active][move_pp (vm.move)]
             + (*piece_destiny[0])[mpc][dst]
             + (*piece_destiny[1])[mpc][dst]
             + (*piece_destiny[3])[mpc][dst];
@@ -267,7 +264,7 @@ template<> void MovePicker::value<GenType::EVASION> ()
         else
         {
             vm.value =
-                  (*butterfly)[pos.active][move_pp (vm.move)];
+                  pos.thread->butterfly[pos.active][move_pp (vm.move)];
         }
     }
 }
@@ -599,7 +596,7 @@ namespace Searcher {
             return depth <= 17 ? depth*(depth + 2) - 2 : 0;
         }
 
-        // Updates countermoves and followupmoves history stats
+        // Updates histories of the move pairs formed by moves at ply -1, -2, and -4 with current move.
         void update_continuation_histories (Stack *const &ss, Piece pc, Square dst, i32 value)
         {
             for (auto i : {1, 2, 4})
@@ -872,7 +869,7 @@ namespace Searcher {
 
             const PieceDestinyHistory* piece_destiny[] = { nullptr, nullptr, nullptr, nullptr };
             // Initialize move picker (2) for the current position.
-            MovePicker move_picker (pos, tt_move, depth, &pos.thread->butterfly, piece_destiny, dst_sq (last_move));
+            MovePicker move_picker (pos, tt_move, depth, piece_destiny, dst_sq (last_move));
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
@@ -1393,7 +1390,7 @@ namespace Searcher {
 
             const PieceDestinyHistory* piece_destiny[] = { (ss-1)->piece_destiny, (ss-2)->piece_destiny, (ss-3)->piece_destiny, (ss-4)->piece_destiny };
             // Initialize move picker (1) for the current position.
-            MovePicker move_picker (pos, tt_move, depth, &pos.thread->butterfly, piece_destiny, ss->killer_moves, _ok (last_move) ? pos.thread->counter_moves[pos[fix_dst_sq (last_move)]][dst_sq (last_move)] : MOVE_NONE);
+            MovePicker move_picker (pos, tt_move, depth, piece_destiny, ss->killer_moves, _ok (last_move) ? pos.thread->counter_moves[pos[fix_dst_sq (last_move)]][dst_sq (last_move)] : MOVE_NONE);
             // Step 11. Loop through moves
             // Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
@@ -1902,6 +1899,9 @@ namespace Searcher {
     // Resets search state to its initial value, to obtain reproducible results.
     void clear ()
     {
+        Threadpool.stop = true;
+        Threadpool.wait_while_thinking ();
+        Threadpool.main_thread ()->time_mgr.available_nodes = 0;
         if (!RetainHash)
         {
             TT.clear ();
