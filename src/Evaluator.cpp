@@ -348,12 +348,21 @@ namespace Evaluator {
                 Bitboard attacks;
                 switch (PT)
                 {
-                case NIHT: attacks = PieceAttacks[NIHT][s];                                                                             break;
-                case BSHP: attacks = attacks_bb<BSHP> (s, pos.pieces () ^ (pos.pieces (Own, BSHP, QUEN) & ~pos.abs_blockers (Own))); break;
-                case ROOK: attacks = attacks_bb<ROOK> (s, pos.pieces () ^ (pos.pieces (Own, ROOK, QUEN) & ~pos.abs_blockers (Own))); break;
-                case QUEN: attacks = attacks_bb<QUEN> (s, pos.pieces () ^ (pos.pieces (Own,       QUEN) & ~pos.abs_blockers (Own))); break;
-                default:   assert(false);
-                           attacks = 0;
+                case NIHT:
+                    attacks = PieceAttacks[NIHT][s];
+                    break;
+                case BSHP:
+                    attacks = attacks_bb<BSHP> (s, pos.pieces () ^ (pos.pieces (Own, BSHP, QUEN) & ~pos.abs_blockers (Own)));
+                    break;
+                case ROOK:
+                    attacks = attacks_bb<ROOK> (s, pos.pieces () ^ (pos.pieces (Own, ROOK, QUEN) & ~pos.abs_blockers (Own)));
+                    break;
+                case QUEN:
+                    attacks = attacks_bb<QUEN> (s, pos.pieces () ^ (pos.pieces (Own,       QUEN) & ~pos.abs_blockers (Own)));
+                    break;
+                default:
+                    assert(false);
+                    attacks = 0;
                 }
 
                 ful_attacked_by[Own] |= attacks;

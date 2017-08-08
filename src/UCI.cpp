@@ -334,7 +334,6 @@ namespace UCI {
             // Additional custom non-UCI commands, useful for debugging
             else
             {
-                
                 if (token == "bench")
                 {
                     benchmark (iss, root_pos);

@@ -104,7 +104,11 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     assert(d > 0);
     assert(threshold < VALUE_ZERO);
 
-    if (0 == pos.si->checkers)
+    if (0 != pos.si->checkers)
+    {
+        stage = Stage::EVASION_TT;
+    }
+    else
     {
         stage = Stage::NATURAL_TT;
 
@@ -125,10 +129,6 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
                                                      || !pos.legal (mm);
                                              }),
                              killers_moves.end ());
-    }
-    else
-    {
-        stage = Stage::EVASION_TT;
     }
     
     if (MOVE_NONE == tt_move)
@@ -167,13 +167,8 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     {
         stage = Stage::QS_RECAPTURE_TT;
         recap_sq = rs;
-        if (   MOVE_NONE != tt_move
-            && !(   pos.capture (tt_move)
-                 && dst_sq (tt_move) == recap_sq))
-        {
-            tt_move = MOVE_NONE;
-        }
     }
+
     if (MOVE_NONE == tt_move)
     {
         ++stage;
@@ -193,7 +188,6 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
          && pos.legal (tt_move)));
 
     stage = Stage::PROBCUT_CAPTURE_TT;
-
     // In ProbCut we generate captures with SEE greater than or equal to the given threshold
     if (   MOVE_NONE != tt_move
         && !(   pos.capture (tt_move)
@@ -201,6 +195,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     {
         tt_move = MOVE_NONE;
     }
+
     if (MOVE_NONE == tt_move)
     {
         ++stage;
@@ -224,9 +219,8 @@ template<> void MovePicker::value<GenType::CAPTURE> ()
             && pos.legal (vm.move)
             && pos.capture_or_promotion (vm.move));
 
-        vm.value =
-              i32(PieceValues[MG][pos.cap_type (vm.move)])
-            - 200 * rel_rank (pos.active, dst_sq (vm.move));
+        vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
+                 - 200 * rel_rank (pos.active, dst_sq (vm.move));
     }
 }
 template<> void MovePicker::value<GenType::QUIET> ()
@@ -239,11 +233,10 @@ template<> void MovePicker::value<GenType::QUIET> ()
         auto mpc = pos[org_sq (vm.move)];
         assert(NO_PIECE != mpc);
         auto dst = dst_sq (vm.move);
-        vm.value =
-              pos.thread->butterfly[pos.active][move_pp (vm.move)]
-            + (*piece_destiny[0])[mpc][dst]
-            + (*piece_destiny[1])[mpc][dst]
-            + (*piece_destiny[3])[mpc][dst];
+        vm.value = pos.thread->butterfly[pos.active][move_pp (vm.move)]
+                 + (*piece_destiny[0])[mpc][dst]
+                 + (*piece_destiny[1])[mpc][dst]
+                 + (*piece_destiny[3])[mpc][dst];
     }
 }
 // First captures ordered by MVV/LVA, then non-captures ordered by stats heuristics
@@ -256,15 +249,13 @@ template<> void MovePicker::value<GenType::EVASION> ()
         
         if (pos.capture (vm.move))
         {
-            vm.value =
-                  i32(PieceValues[MG][pos.cap_type (vm.move)])
-                - ptype (pos[org_sq (vm.move)])
-                + MaxValue;
+            vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
+                     - ptype (pos[org_sq (vm.move)])
+                     + MaxValue;
         }
         else
         {
-            vm.value =
-                  pos.thread->butterfly[pos.active][move_pp (vm.move)];
+            vm.value = pos.thread->butterfly[pos.active][move_pp (vm.move)];
         }
     }
 }
@@ -282,7 +273,7 @@ const ValMove& MovePicker::next_max_move ()
     return *beg;
 }
 // Returns a new legal move every time it is called, until there are no more moves left.
-// It picks the move with the biggest value from a list of generated moves.
+// It picks the next max value move from a list of generated moves.
 Move MovePicker::next_move ()
 {
     START:
