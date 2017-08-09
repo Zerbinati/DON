@@ -85,30 +85,31 @@ namespace PieceSquare
     // and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
     Score compute_psq (const Position &pos)
     {
-        auto psq_score = SCORE_ZERO;
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        auto psq = SCORE_ZERO;
+        for (auto c : { WHITE, BLACK })
         {
-            for (i08 pt = PAWN; pt <= KING; ++pt)
+            for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
             {
-                for (i08 s : pos.squares[c][pt])
+                for (auto s : pos.squares[c][pt])
                 {
-                    psq_score += PSQ[c][pt][s];
+                    psq += PSQ[c][pt][s];
                 }
             }
         }
-        return psq_score;
+        return psq;
     }
 
     // Computes the non-pawn middle game material value for the given side.
     // Material values are updated incrementally during the search.
-    template<Color Own> Value compute_npm (const Position &pos)
+    template<Color Own>
+    Value compute_npm (const Position &pos)
     {
-        auto npm_value = VALUE_ZERO;
-        for (i08 pt = NIHT; pt <= QUEN; ++pt)
+        auto npm = VALUE_ZERO;
+        for (auto pt : { NIHT, BSHP, ROOK, QUEN })
         {
-            npm_value += PieceValues[MG][pt] * pos.count (Own, PieceType(pt));
+            npm += PieceValues[MG][pt] * pos.count (Own, pt);
         }
-        return npm_value;
+        return npm;
     }
     template Value compute_npm<WHITE> (const Position&);
     template Value compute_npm<BLACK> (const Position&);
@@ -116,14 +117,14 @@ namespace PieceSquare
     // Initialize lookup tables during startup
     void initialize ()
     {
-        for (i08 pt = PAWN; pt <= KING; ++pt)
+        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            auto p_score = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
-            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+            auto p = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
+            for (auto s : SQ)
             {
-                auto psq_score = p_score + HalfPSQ[pt][_rank (Square(s))][std::min (_file (Square(s)), F_H - _file (Square(s)))];
-                PSQ[WHITE][pt][ Square(s)] = +psq_score;
-                PSQ[BLACK][pt][~Square(s)] = -psq_score;
+                auto psq = p + HalfPSQ[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
+                PSQ[WHITE][pt][ s] = +psq;
+                PSQ[BLACK][pt][~s] = -psq;
             }
         }
     }

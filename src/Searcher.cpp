@@ -124,9 +124,9 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
                                              {
                                                  return mm == MOVE_NONE
                                                      || mm == tt_move
-                                                     ||  pos.capture (mm)
                                                      || !pos.pseudo_legal (mm)
-                                                     || !pos.legal (mm);
+                                                     || !pos.legal (mm)
+                                                     ||  pos.capture (mm);
                                              }),
                              killers_moves.end ());
     }

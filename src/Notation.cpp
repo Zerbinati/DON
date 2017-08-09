@@ -256,6 +256,7 @@ namespace Notation {
         oss << std::setw ( 4) << th->finished_depth
             << std::setw ( 8) << pretty_value (root_move.new_value, th->root_pos.active)
             << std::setw (12) << pretty_time (Threadpool.main_thread ()->time_mgr.elapsed_time ());
+        
         if (nodes < 10*(K))
         {
             oss << std::setw (8) << u16(nodes);
@@ -263,16 +264,16 @@ namespace Notation {
         else
         if (nodes < 10*(K*K))
         {
-            oss << std::setw (7) << u16(std::round (nodes / (K))) << 'K';
+            oss << std::setw (7) << u16(std::round (nodes / (K))) << "K";
         }
         else
         if (nodes < 10*(K*K*K))
         {
-            oss << std::setw (7) << u16(std::round (nodes / (K*K))) << 'M';
+            oss << std::setw (7) << u16(std::round (nodes / (K*K))) << "M";
         }
         else
         {
-            oss << std::setw (7) << u16(std::round (nodes / (K*K*K))) << 'G';
+            oss << std::setw (7) << u16(std::round (nodes / (K*K*K))) << "G";
         }
         oss << " ";
 

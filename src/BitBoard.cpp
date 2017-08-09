@@ -119,7 +119,7 @@ namespace BitBoard {
 #       endif
 
             u32 offset = 0;
-            for (auto s = SQ_A1; s <= SQ_H8; ++s)
+            for (auto s : SQ)
             {
                 auto &magic = magics[s];
 
@@ -213,10 +213,10 @@ namespace BitBoard {
         assert((Color_bb[WHITE] & Color_bb[BLACK]) == 0
             && (Color_bb[WHITE] | Color_bb[BLACK]) == (Color_bb[WHITE] ^ Color_bb[BLACK]));
 
-        //for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+        //for (auto s : SQ)
         //{
-        //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = Square(s);
-        //    BSF_Table[bsf_index (Square_bb[s])] = Square(s);
+        //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;
+        //    BSF_Table[bsf_index (Square_bb[s])] = s;
         //}
         //for (u32 b = 2; b < (1 << 8); ++b)
         //{
@@ -230,34 +230,34 @@ namespace BitBoard {
         }
     #endif
 
-        for (i08 s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (auto s1 : SQ)
         {
-            for (i08 s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            for (auto s2 : SQ)
             {
                 if (s1 != s2)
                 {
-                    SquareDist[s1][s2] = u08(std::max (dist<File> (Square(s1), Square(s2)), dist<Rank> (Square(s1), Square(s2))));
-                    DistRings_bb[s1][SquareDist[s1][s2] - 1] |= Square(s2);
+                    SquareDist[s1][s2] = u08(std::max (dist<File> (s1, s2), dist<Rank> (s1, s2)));
+                    DistRings_bb[s1][SquareDist[s1][s2] - 1] |= s2;
                 }
             }
         }
 
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        for (auto c : { WHITE, BLACK })
         {
-            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+            for (auto s : SQ)
             {
-                FrontSqrs_bb  [c][s] = FrontRank_bb[c][_rank (Square(s))] &    File_bb[_file (Square(s))];
-                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (Square(s))] & AdjFile_bb[_file (Square(s))];
+                FrontSqrs_bb  [c][s] = FrontRank_bb[c][_rank (s)] &    File_bb[_file (s)];
+                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (s)] & AdjFile_bb[_file (s)];
                 PawnPassSpan  [c][s] = FrontSqrs_bb[c][s] | PawnAttackSpan[c][s];
             }
         }
 
-        for (auto s = SQ_A1; s <= SQ_H8; ++s)
+        for (auto s : SQ)
         {
             u08 k;
             Delta del;
 
-            for (i08 c = WHITE; c <= BLACK; ++c)
+            for (auto c : { WHITE, BLACK })
             {
                 k = 0;
                 while (DEL_O != (del = PawnDeltas[c][k++]))
@@ -307,9 +307,9 @@ namespace BitBoard {
         initialize_table (RTable, RMagics, PieceDeltas[ROOK]);
 
         // NOTE:: must be after Initialize Sliding
-        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (auto s1 : SQ)
         {
-            for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            for (auto s2 : SQ)
             {
                 for (auto pt : { BSHP, ROOK })
                 {
@@ -349,13 +349,13 @@ namespace BitBoard {
     {
         string s;
         s = " /---------------\\\n";
-        for (i08 r = R_8; r >= R_1; --r)
+        for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
         {
-            s += Notation::to_char (Rank(r));
+            s += Notation::to_char (r);
             s += "|";
-            for (i08 f = F_A; f <= F_H; ++f)
+            for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
             {
-                s += contains (bb, File(f)|Rank(r)) ? '+' : '-';
+                s += (contains (bb, f|r) ? "+" : "-");
                 if (f < F_H)
                 {
                     s += " ";
@@ -364,10 +364,10 @@ namespace BitBoard {
             s += "|\n";
         }
         s += " \\---------------/\n ";
-        for (i08 f = F_A; f <= F_H; ++f)
+        for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
             s += " ";
-            s += Notation::to_char (File(f), false);
+            s += Notation::to_char (f, false);
         }
         s += "\n";
         return s;

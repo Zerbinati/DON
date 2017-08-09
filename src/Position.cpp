@@ -545,23 +545,23 @@ bool Position::gives_check (Move m) const
 // Clear the position.
 void Position::clear ()
 {
-    for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+    for (auto s : SQ)
     {
         board[s] = NO_PIECE;
         castle_mask[s] = CR_NONE;
     }
-    for (i08 pt = PAWN; pt <= NONE; ++pt)
+    for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING, NONE })
     {
         types_bb[pt] = 0;
     }
-    for (i08 c = WHITE; c <= BLACK; ++c)
+    for (auto c : { WHITE, BLACK })
     {
         color_bb[c] = 0;
-        for (i08 pt = PAWN; pt <= KING; ++pt)
+        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
             squares[c][pt].clear ();
         }
-        for (i08 cs = CS_KING; cs <= CS_QUEN; ++cs)
+        for (auto cs : { CS_KING, CS_QUEN })
         {
             castle_rook[c][cs] = SQ_NO;
             castle_path[c][cs] = 0;
@@ -585,24 +585,24 @@ void Position::set_castle (Color c, CastleSide cs)
     castle_mask[king_org] |= cr;
     castle_mask[rook_org] |= cr;
 
-    for (i08 s = std::min (king_org, king_dst); s <= std::max (king_org, king_dst); ++s)
+    for (auto s = std::min (king_org, king_dst); s <= std::max (king_org, king_dst); ++s)
     {
         if (s != king_org)
         {
-            king_path[c][cs] |= Square(s);
+            king_path[c][cs] |= s;
         }
         if (   s != king_org
             && s != rook_org)
         {
-            castle_path[c][cs] |= Square(s);
+            castle_path[c][cs] |= s;
         }
     }
-    for (i08 s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
+    for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
     {
         if (   s != king_org
             && s != rook_org)
         {
-            castle_path[c][cs] |= Square(s);
+            castle_path[c][cs] |= s;
         }
     }
 }
@@ -682,7 +682,6 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     i08 f = F_A;
     i08 r = R_8;
     while (   iss >> token
-           && !isspace (token)
            && f <= F_NO
            && r >= R_1)
     {
@@ -696,6 +695,11 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         {
             place_piece (File(f)|Rank(r), Piece(idx));
             ++f;
+        }
+        else
+        if (isspace (token))
+        {
+            break;
         }
         else
         {
@@ -835,9 +839,12 @@ Position& Position::setup (const string &code, StateInfo &nsi, Color c)
         code.substr (0, code.find ('K', 1))  // Strong
     };
     to_lower (sides[c]);
-    string fen = "8/" + sides[0] + char(8 - sides[0].length () + '0') + "/8/8/8/8/"
-               + sides[1] + char(8 - sides[1].length () + '0') + "/8 w - - 0 1";
+    
+    string fen = "8/" + sides[WHITE] + char(8 - sides[WHITE].length () + '0') + "/8/8/8/8/"
+               + sides[BLACK] + char(8 - sides[BLACK].length () + '0') + "/8 w - -";
+    
     setup (fen, nsi, nullptr, false);
+    
     return *this;
 }
 
@@ -1141,23 +1148,23 @@ void Position::flip ()
     istringstream iss (fen (true));
     string ff, token;
     // 1. Piece placement
-    for (i08 r = R_8; r >= R_1; --r)
+    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
-        std::getline (iss, token, r != R_1 ? '/' : ' ');
+        std::getline (iss, token, r > R_1 ? '/' : ' ');
         toggle (token);
-        token += r != R_8 ? '/' : ' ';
+        token += r < R_8 ? "/" : " ";
         ff = token + ff;
     }
     // 2. Active color
     iss >> token;
-    ff += token[0] == 'w' ? 'b' :
-          token[0] == 'b' ? 'w' : '-';
-    ff += ' ';
+    ff += token[0] == 'w' ? "b" :
+          token[0] == 'b' ? "w" : "-";
+    ff += " ";
     // 3. Castling availability
     iss >> token;
     toggle (token);
     ff += token;
-    ff += ' ';
+    ff += " ";
     // 4. En-passant square
     iss >> token;
     ff += token[0] == '-' ?
@@ -1168,7 +1175,7 @@ void Position::flip ()
     std::getline (iss, token);
     ff += token;
 
-    setup (ff, *si, thread, true);
+    setup (ff, *si, thread);
 
     assert(ok ());
 }
@@ -1177,17 +1184,17 @@ void Position::mirror ()
     istringstream iss (fen (true));
     string ff, token;
     // 1. Piece placement
-    for (i08 r = R_8; r >= R_1; --r)
+    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
-        std::getline (iss, token, r != R_1 ? '/' : ' ');
+        std::getline (iss, token, r > R_1 ? '/' : ' ');
         std::reverse (token.begin (), token.end ());
-        token += r != R_1 ? '/' : ' ';
+        token += r > R_1 ? "/" : " ";
         ff = ff + token;
     }
     // 2. Active color
     iss >> token;
     ff += token;
-    ff += ' ';
+    ff += " ";
     // 3. Castling availability
     iss >> token;
     // Swap castling.
@@ -1202,7 +1209,7 @@ void Position::mirror ()
         }
     }
     ff += token;
-    ff += ' ';
+    ff += " ";
     // 4. En-passant square
     iss >> token;
     ff += token[0] == '-' ?
@@ -1212,7 +1219,7 @@ void Position::mirror ()
     std::getline (iss, token);
     ff += token;
 
-    setup (ff, *si, thread, true);
+    setup (ff, *si, thread);
 
     assert(ok ());
 }
@@ -1222,12 +1229,12 @@ string Position::fen (bool full) const
 {
     ostringstream oss;
 
-    for (i08 r = R_8; r >= R_1; --r)
+    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
-        for (i08 f = F_A; f <= F_H; ++f)
+        for (auto f = F_A; f <= F_H; ++f)
         {
             i16 empty_count;
-            for (empty_count = 0; f <= F_H && empty (File(f)|Rank(r)); ++f)
+            for (empty_count = 0; f <= F_H && empty (f|r); ++f)
             {
                 ++empty_count;
             }
@@ -1237,16 +1244,16 @@ string Position::fen (bool full) const
             }
             if (f <= F_H)
             {
-                oss << board[File(f)|Rank(r)];
+                oss << board[f|r];
             }
         }
-        if (r != R_1)
+        if (r > R_1)
         {
             oss << '/';
         }
     }
 
-    oss << ' ' << active << ' ';
+    oss << " " << active << " ";
 
     if (has_castleright (CR_ANY))
     {
@@ -1260,11 +1267,11 @@ string Position::fen (bool full) const
         oss << '-';
     }
 
-    oss << ' ' << (SQ_NO != si->en_passant_sq ? to_string (si->en_passant_sq) : "-");
+    oss << " " << (SQ_NO != si->en_passant_sq ? to_string (si->en_passant_sq) : "-");
 
     if (full)
     {
-        oss << ' ' << i16(si->clock_ply) << ' ' << move_num ();
+        oss << " " << i16(si->clock_ply) << " " << move_num ();
     }
 
     return oss.str ();
@@ -1275,18 +1282,18 @@ Position::operator string () const
 {
     ostringstream oss;
     oss << " +---+---+---+---+---+---+---+---+\n";
-    for (i08 r = R_8; r >= R_1; --r)
+    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
-        oss << to_char (Rank(r)) << "| ";
-        for (i08 f = F_A; f <= F_H; ++f)
+        oss << to_char (r) << "| ";
+        for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
-            oss << board[File(f)|Rank(r)] << " | ";
+            oss << board[f|r] << " | ";
         }
         oss << "\n +---+---+---+---+---+---+---+---+\n";
     }
-    for (i08 f = F_A; f <= F_H; ++f)
+    for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
     {
-        oss << "   " << Notation::to_char (File(f), false);
+        oss << "   " << Notation::to_char (f, false);
     }
 
     oss << "\n"
@@ -1296,7 +1303,7 @@ Position::operator string () const
     oss << "Checkers: ";
     for (Bitboard b = si->checkers; 0 != b; )
     {
-        oss << pop_lsq (b) << ' ';
+        oss << pop_lsq (b) << " ";
     }
     if (   MaxLimitPiece >= count<NONE> ()
         && !has_castleright (CR_ANY))
@@ -1351,9 +1358,9 @@ bool Position::ok () const
         assert(0 && "Position OK: BITBOARD");
         return false;
     }
-    for (auto pt1 = PAWN; pt1 <= KING; ++pt1)
+    for (auto pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
-        for (auto pt2 = PAWN; pt2 <= KING; ++pt2)
+        for (auto pt2 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
             if (   pt1 != pt2
                 && 0 != (pieces (pt1) & pieces (pt2)))
@@ -1363,7 +1370,7 @@ bool Position::ok () const
             }
         }
     }
-    for (auto c = WHITE; c <= BLACK; ++c)
+    for (auto c : { WHITE, BLACK })
     {
         // Too many Piece of color
         if (   16 < count<NONE> (c)
@@ -1394,9 +1401,9 @@ bool Position::ok () const
         return true;
     }
 
-    for (auto c = WHITE; c <= BLACK; ++c)
+    for (auto c : { WHITE, BLACK })
     {
-        for (auto pt = PAWN; pt <= KING; ++pt)
+        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
             if (count (c, pt) != pop_count (pieces (c, pt)))
             {
@@ -1415,9 +1422,9 @@ bool Position::ok () const
         }
     }
 
-    for (auto c = WHITE; c <= BLACK; ++c)
+    for (auto c : { WHITE, BLACK })
     {
-        for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
+        for (auto cs : { CS_KING, CS_QUEN })
         {
             auto cr = castle_right (c, cs);
             if (   can_castle (c, cs)

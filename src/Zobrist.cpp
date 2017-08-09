@@ -11,11 +11,11 @@ namespace Zobrists {
     Key Zobrist::compute_matl_key (const Position &pos) const
     {
         Key matl_key = 0;
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        for (auto c : { WHITE, BLACK })
         {
-            for (i08 pt = PAWN; pt <= KING; ++pt)
+            for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
             {
-                for (i32 pc = 0; pc < pos.count (Color(c), PieceType(pt)); ++pc)
+                for (i32 pc = 0; pc < pos.count (c, pt); ++pc)
                 {
                     matl_key ^= piece_square_keys[c][pt][pc];
                 }
@@ -27,9 +27,9 @@ namespace Zobrists {
     Key Zobrist::compute_pawn_key (const Position &pos) const
     {
         Key pawn_key = no_pawn_key;
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        for (auto c : { WHITE, BLACK })
         {
-            for (i08 s : pos.squares[c][PAWN])
+            for (auto s : pos.squares[c][PAWN])
             {
                 pawn_key ^= piece_square_keys[c][PAWN][s];
             }
@@ -40,11 +40,11 @@ namespace Zobrists {
     Key Zobrist::compute_posi_key (const Position &pos) const
     {
         Key posi_key = 0;
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        for (auto c : { WHITE, BLACK })
         {
-            for (i08 pt = PAWN; pt <= KING; ++pt)
+            for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
             {
-                for (i08 s : pos.squares[c][pt])
+                for (auto s : pos.squares[c][pt])
                 {
                     posi_key ^= piece_square_keys[c][pt][s];
                 }
@@ -81,9 +81,8 @@ namespace Zobrists {
     //    i08 f = F_A;
     //    i08 r = R_8;
     //    while (   iss >> token
-    //            && !isspace (token)
-    //            && f <= F_NO
-    //            && r >= R_1)
+    //           && f <= F_NO
+    //           && r >= R_1)
     //    {
     //        if (isdigit (token))
     //        {
@@ -100,6 +99,11 @@ namespace Zobrists {
     //            }
     //            fen_key ^= piece_square_keys[color (p)][ptype (p)][File(f)|Rank(r)];
     //            ++f;
+    //        }
+    //        else
+    //        if (isspace (token))
+    //        {
+    //            break;
     //        }
     //        else
     //        {
@@ -163,19 +167,19 @@ namespace Zobrists {
         static PRNG prng (0x105524);
 
         // Initialize Random Zobrist
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        for (auto c : { WHITE, BLACK })
         {
-            for (i08 pt = PAWN; pt <= KING; ++pt)
+            for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
             {
-                for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+                for (auto s : SQ)
                 {
                     RandZob.piece_square_keys[c][pt][s] = prng.rand<Key> ();
                 }
             }
         }
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        for (auto c : { WHITE, BLACK })
         {
-            for (i08 cs = CS_KING; cs <= CS_QUEN; ++cs)
+            for (auto cs : { CS_KING, CS_QUEN })
             {
                 RandZob.castle_right_keys[c][cs] = prng.rand<Key> ();
             }

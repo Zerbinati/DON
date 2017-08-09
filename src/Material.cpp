@@ -62,13 +62,13 @@ namespace Material {
             i32 value = PawnsSet[count[Own][PAWN]];
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
-            for (i08 pt1 = PAWN; pt1 <= QUEN; ++pt1)
+            for (auto pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN })
             {
                 if (0 != count[Own][pt1])
                 {
                     i32 v = 0;
 
-                    for (i08 pt2 = PAWN; pt2 <= pt1; ++pt2)
+                    for (auto pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
                         v += count[Own][pt2] * OwnQuadratic[pt1][pt2]
                            + count[Opp][pt2] * OppQuadratic[pt1][pt2];
@@ -128,7 +128,7 @@ namespace Material {
             return e;
         }
         // Generic evaluation
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (auto c : { WHITE, BLACK })
         {
             if (   pos.si->non_pawn_material ( c) >= VALUE_MG_ROOK
                 && pos.count<NONE> (~c) == 1)
@@ -153,7 +153,7 @@ namespace Material {
         // Didn't find any specialized scaling function, so fall back on
         // generic scaling functions that refer to more than one material distribution.
         // Note that these ones don't return after setting the function.
-        for (auto c = WHITE; c <= BLACK; ++c)
+        for (auto c : { WHITE, BLACK })
         {
             if (   pos.si->non_pawn_material ( c) == VALUE_MG_BSHP
                 && pos.count<BSHP> ( c) == 1

@@ -213,11 +213,8 @@ namespace UCI {
                 }
                 Threadpool.start_thinking (root_pos, states, limits, search_moves);
             }
-            // This sets up the position:
-            //  - starting position ("startpos")
-            //  - fen-string position ("fen")
-            // and then makes the moves given in the following move list ("moves")
-            // also saving the moves on stack.
+            // This sets up the starting position "startpos"/"fen <fenstring>" and then
+            // makes the moves given in the move list "moves" also saving the moves on stack.
             else
             if (token == "position")
             {
@@ -267,7 +264,7 @@ namespace UCI {
                 }
             }
             else
-            // This function updates the UCI option ("name") to the given value ("value").
+            // This function updates the UCI option "name" to the given "value".
             if (token == "setoption")
             {
                 iss >> token; // Consume "name" token
@@ -391,7 +388,7 @@ namespace UCI {
                         {
                             if (root_pos.legal (vm.move))
                             {
-                                std::cout << move_to_san (vm.move, root_pos) << ' ';
+                                std::cout << move_to_san (vm.move, root_pos) << " ";
                                 ++count;
                             }
                         }
@@ -405,7 +402,7 @@ namespace UCI {
                         {
                             if (root_pos.legal (vm.move))
                             {
-                                std::cout << move_to_san (vm.move, root_pos) << ' ';
+                                std::cout << move_to_san (vm.move, root_pos) << " ";
                                 ++count;
                             }
                         }
@@ -417,7 +414,7 @@ namespace UCI {
                         {
                             if (root_pos.legal (vm.move))
                             {
-                                std::cout << move_to_san (vm.move, root_pos) << ' ';
+                                std::cout << move_to_san (vm.move, root_pos) << " ";
                                 ++count;
                             }
                         }
@@ -429,7 +426,7 @@ namespace UCI {
                         {
                             if (root_pos.legal (vm.move))
                             {
-                                std::cout << move_to_san (vm.move, root_pos) << ' ';
+                                std::cout << move_to_san (vm.move, root_pos) << " ";
                                 ++count;
                             }
                         }
@@ -441,7 +438,7 @@ namespace UCI {
                         {
                             if (root_pos.legal (vm.move))
                             {
-                                std::cout << move_to_san (vm.move, root_pos) << ' ';
+                                std::cout << move_to_san (vm.move, root_pos) << " ";
                                 ++count;
                             }
                         }
@@ -452,7 +449,7 @@ namespace UCI {
                     count = 0;
                     for (const auto &vm : MoveList<GenType::LEGAL> (root_pos))
                     {
-                        std::cout << move_to_san (vm.move, root_pos) << ' ';
+                        std::cout << move_to_san (vm.move, root_pos) << " ";
                         ++count;
                     }
                     std::cout << "(" << count << ")";

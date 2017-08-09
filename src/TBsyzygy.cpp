@@ -467,11 +467,11 @@ namespace TBSyzygy {
             key1 = pos.setup (code, si, WHITE).si->matl_key;
             piece_count = pos.count<NONE> ();
             has_pawns = 0 != pos.count<PAWN> ();
-            for (i08 c = WHITE; c <= BLACK; ++c)
+            for (auto c : { WHITE, BLACK })
             {    
-                for (i08 pt = PAWN; pt < KING; ++pt)
+                for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
                 {
-                    if (pos.count (Color(c), PieceType(pt)) == 1)
+                    if (pos.count (c, pt) == 1)
                     {
                         has_unique_pieces = true;
                         goto done;
@@ -499,11 +499,11 @@ namespace TBSyzygy {
             {
                 TBFile::unmap (base_address, mapping);
             }
-            for (i32 i = 0; i < 2; ++i)
+            for (auto i : { 0 , 1 })
             {
                 if (has_pawns)
                 {
-                    for (auto f = F_A; f <= F_D; ++f)
+                    for (auto f : { F_A, F_B, F_C, F_D })
                     {
                         delete pawn_table.file[i][f].precomp;
                     }
@@ -1350,10 +1350,10 @@ namespace TBSyzygy {
 
             // Pieces strings in decreasing order for each color, like ("KPP","KR")
             string w, b;
-            for (i08 pt = KING; pt >= PAWN; --pt)
+            for (auto pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
             {
-                w += string(pos.count (WHITE, PieceType(pt)), PieceToChar[pt]);
-                b += string(pos.count (BLACK, PieceType(pt)), PieceToChar[pt]);
+                w += string(pos.count (WHITE, pt), PieceToChar[pt]);
+                b += string(pos.count (BLACK, pt), PieceToChar[pt]);
             }
 
             const u08 TB_MAGIC[][4] =
@@ -1884,9 +1884,9 @@ namespace TBSyzygy {
         {
             // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27
             i32 code = 0;
-            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+            for (auto s : SQ)
             {
-                if (off_A1H8 (Square(s)) < 0)
+                if (off_A1H8 (s) < 0)
                 {
                     MapB1H1H7[s] = code++;
                 }
@@ -1894,20 +1894,23 @@ namespace TBSyzygy {
             // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
             Squares diagonal;
             code = 0;
-            for (i08 s = SQ_A1; s <= SQ_D4; ++s)
+            for (auto s = SQ_A1; s <= SQ_D4; ++s)
             {
-                if (off_A1H8 (Square(s)) < 0 && _file (Square(s)) <= F_D)
+                if (_file (s) <= F_D)
                 {
-                    MapA1D1D4[s] = code++;
-                }
-                else
-                if (!off_A1H8 (Square(s)) && _file (Square(s)) <= F_D)
-                {
-                    diagonal.push_back (Square(s));
+                    if (off_A1H8 (s) < 0)
+                    {
+                        MapA1D1D4[s] = code++;
+                    }
+                    else
+                    if (off_A1H8 (s) == 0)
+                    {
+                        diagonal.push_back (s);
+                    }
                 }
             }
             // Diagonal squares are encoded as last ones
-            for (i08 s : diagonal)
+            for (auto s : diagonal)
             {
                 MapA1D1D4[s] = code++;
             }
@@ -1915,13 +1918,13 @@ namespace TBSyzygy {
             // If the first king is on the a1-d4 diagonal, the other one shall not to be above the a1-h8 diagonal.
             vector<pair<i32, Square>> both_on_diagonal;
             code = 0;
-            for (i32 idx = 0; idx < 10; idx++)
+            for (i32 idx = 0; idx < 10; ++idx)
             {
                 for (auto s1 = SQ_A1; s1 <= SQ_D4; ++s1)
                 {
                     if (MapA1D1D4[s1] == idx && (idx || s1 == SQ_B1)) // SQ_B1 is mapped to 0
                     {
-                        for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+                        for (auto s2 : SQ)
                         {
                             if (contains (PieceAttacks[KING][s1] | s1, s2))
                             {
@@ -1976,7 +1979,7 @@ namespace TBSyzygy {
                                         // can have up to 4 leading pawns (KPPPPK).
             for (i32 lead_pawn_count = 1; lead_pawn_count <= 4; ++lead_pawn_count)
             {
-                for (auto f = F_A; f <= F_D; ++f)
+                for (auto f : { F_A, F_B, F_C, F_D })
                 {
                     // Restart the index at every file because TB table is splitted
                     // by file, so we can reuse the same index for different files.
@@ -1984,7 +1987,7 @@ namespace TBSyzygy {
 
                     // Sum all possible combinations for a given file, starting with
                     // the leading pawn on rank 2 and increasing the rank.
-                    for (auto r = R_2; r <= R_7; ++r)
+                    for (auto r : { R_2, R_3, R_4, R_5, R_6, R_7 })
                     {
                         auto sq = f|r;
 
