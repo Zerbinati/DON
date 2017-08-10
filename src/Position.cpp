@@ -205,7 +205,7 @@ bool Position::see_ge (Move m, Value threshold) const
 template<Color Own>
 Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const
 {
-    const auto Opp = Own == WHITE ? BLACK : WHITE;
+    const auto Opp = WHITE == Own ? BLACK : WHITE;
 
     Bitboard blockers = 0;
     Bitboard defenders = pieces (Own);
@@ -376,15 +376,21 @@ bool Position::pseudo_legal (Move m) const
     {
         switch (mpt)
         {
-        case NIHT: if (    !contains (PieceAttacks[NIHT][org]          , dst))  { return false; } break;
-        case BSHP: if (!(   contains (PieceAttacks[BSHP][org]          , dst)
-                         && contains (attacks_bb<BSHP> (org, pieces ()), dst))) { return false; } break;
-        case ROOK: if (!(   contains (PieceAttacks[ROOK][org]          , dst)
-                         && contains (attacks_bb<ROOK> (org, pieces ()), dst))) { return false; } break;
-        case QUEN: if (!(   contains (PieceAttacks[QUEN][org]          , dst)
-                         && contains (attacks_bb<QUEN> (org, pieces ()), dst))) { return false; } break;
-        case KING: if (    !contains (PieceAttacks[KING][org]          , dst))  { return false; } break;
-        default: assert(false); break;
+        case NIHT: if (   !contains (PieceAttacks[NIHT][org]          , dst)) { return false; }
+            break;
+        case BSHP: if (   !contains (PieceAttacks[BSHP][org]          , dst)
+                       || !contains (attacks_bb<BSHP> (org, pieces ()), dst)) { return false; }
+            break;
+        case ROOK: if (   !contains (PieceAttacks[ROOK][org]          , dst)
+                       || !contains (attacks_bb<ROOK> (org, pieces ()), dst)) { return false; }
+            break;
+        case QUEN: if (   !contains (PieceAttacks[QUEN][org]          , dst)
+                       || !contains (attacks_bb<QUEN> (org, pieces ()), dst)) { return false; }
+            break;
+        case KING: if (   !contains (PieceAttacks[KING][org]          , dst)) { return false; }
+            break;
+        default: assert(false);
+            break;
         }
     }
 
@@ -528,13 +534,17 @@ bool Position::gives_check (Move m) const
         auto ek_sq = square<KING> (~active);
         switch (promote (m))
         {
-        case NIHT: return contains (PieceAttacks[NIHT][dst]                , ek_sq); break;
+        case NIHT: return contains (PieceAttacks[NIHT][dst]                , ek_sq);
+            break;
         case BSHP: return contains (PieceAttacks[BSHP][dst]                , ek_sq)
-                       && contains (attacks_bb<BSHP> (dst, pieces () ^ org), ek_sq); break;
+                       && contains (attacks_bb<BSHP> (dst, pieces () ^ org), ek_sq);
+            break;
         case ROOK: return contains (PieceAttacks[ROOK][dst]                , ek_sq)
-                       && contains (attacks_bb<ROOK> (dst, pieces () ^ org), ek_sq); break;
+                       && contains (attacks_bb<ROOK> (dst, pieces () ^ org), ek_sq);
+            break;
         case QUEN: return contains (PieceAttacks[QUEN][dst]                , ek_sq)
-                       && contains (attacks_bb<QUEN> (dst, pieces () ^ org), ek_sq); break;
+                       && contains (attacks_bb<QUEN> (dst, pieces () ^ org), ek_sq);
+            break;
         default: assert(false); break;
         }
     }
@@ -726,6 +736,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         token = char(tolower (token));
         if ('k' == token)
         {
+            assert(rel_rank (c, square<KING> (c)) == R_1);
             for (rook_org = rel_sq (c, SQ_H1); rook_org >= rel_sq (c, SQ_A1); --rook_org)
             {
                 assert(!contains (pieces (c, KING), rook_org));
@@ -742,6 +753,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         else
         if ('q' == token)
         {
+            assert(rel_rank (c, square<KING> (c)) == R_1);
             for (rook_org = rel_sq (c, SQ_A1); rook_org <= rel_sq (c, SQ_H1); ++rook_org)
             {
                 assert(!contains (pieces (c, KING), rook_org));
@@ -759,7 +771,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         // Chess960
         if ('a' <= token && token <= 'h')
         {
-            rook_org = to_file (token)|rel_rank (c, R_1);
+            assert(rel_rank (c, square<KING> (c)) == R_1);
+            rook_org = to_file (token)|_rank (square<KING> (c));
             auto cs = rook_org > square<KING> (c) ? CS_KING : CS_QUEN;
             castle_rook[c][cs] = rook_org;
             set_castle (c, cs);

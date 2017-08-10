@@ -73,17 +73,17 @@ namespace Pawns {
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
         {
-            const auto Opp  = Own == WHITE ? BLACK : WHITE;
-            const auto Push = Own == WHITE ? DEL_N  : DEL_S;
-            const auto LCap = Own == WHITE ? DEL_NW : DEL_SE;
-            const auto RCap = Own == WHITE ? DEL_NE : DEL_SW;
+            const auto Opp  = WHITE == Own ? BLACK : WHITE;
+            const auto Push = WHITE == Own ? DEL_N  : DEL_S;
+            const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
+            const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
             const auto PAtt = PawnAttacks[Own];
 
-            const Bitboard own_pawns = pos.pieces (Own, PAWN);
-            const Bitboard opp_pawns = pos.pieces (Opp, PAWN);
+            Bitboard own_pawns = pos.pieces (Own, PAWN);
+            Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            const Bitboard l_cap = shift<LCap> (own_pawns);
-            const Bitboard r_cap = shift<RCap> (own_pawns);
+            Bitboard l_cap = shift<LCap> (own_pawns);
+            Bitboard r_cap = shift<RCap> (own_pawns);
 
             e->any_attacks[Own] = l_cap | r_cap;
             e->dbl_attacks[Own] = l_cap & r_cap;
@@ -199,7 +199,7 @@ namespace Pawns {
     template<Color Own>
     Value Entry::pawn_shelter_storm (const Position &pos, Square fk_sq) const
     {
-        const auto Opp = Own == WHITE ? BLACK : WHITE;
+        const auto Opp = WHITE == Own ? BLACK : WHITE;
         // Max Safety corresponds to start position with all the pawns in front of the king and no enemy pawn on the horizon.
         auto value = Value(258);
         Bitboard front_pawns =

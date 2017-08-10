@@ -396,25 +396,25 @@ enum Scale : u08
 };
 
 #define BASIC_OPERATORS(T)                                                       \
-    inline T  operator+  (T  t       ) { return T(+i32(t)); }                    \
-    inline T  operator-  (T  t       ) { return T(-i32(t)); }                    \
-    inline T  operator+  (T  t1, T t2) { return T(i32(t1) + i32(t2)); }          \
-    inline T  operator-  (T  t1, T t2) { return T(i32(t1) - i32(t2)); }          \
+    inline T operator+ (T t) { return T(+i32(t)); }                              \
+    inline T operator- (T t) { return T(-i32(t)); }                              \
+    inline T operator+ (T t1, T t2) { return T(i32(t1) + i32(t2)); }             \
+    inline T operator- (T t1, T t2) { return T(i32(t1) - i32(t2)); }             \
     inline T& operator+= (T &t1, T t2) { t1 = T(i32(t1) + i32(t2)); return t1; } \
     inline T& operator-= (T &t1, T t2) { t1 = T(i32(t1) - i32(t2)); return t1; }
 
-#define ARTHMAT_OPERATORS(T)                                                     \
-    inline T  operator+  (T  t, i32 i) { return T(i32(t) + i); }                 \
-    inline T  operator-  (T  t, i32 i) { return T(i32(t) - i); }                 \
-    inline T  operator*  (T  t, i32 i) { return T(i32(t) * i); }                 \
-    inline T  operator/  (T  t, i32 i) { return T(i32 (t) / i); }                \
-    inline T& operator+= (T &t, i32 i) { t = T(i32(t) + i); return t; }          \
-    inline T& operator-= (T &t, i32 i) { t = T(i32(t) - i); return t; }          \
-    inline T& operator*= (T &t, i32 i) { t = T(i32(t) * i); return t; }          \
+#define ARTHMAT_OPERATORS(T)                                            \
+    inline T operator+ (T t, i32 i) { return T(i32(t) + i); }           \
+    inline T operator- (T t, i32 i) { return T(i32(t) - i); }           \
+    inline T operator* (T t, i32 i) { return T(i32(t) * i); }           \
+    inline T operator/ (T t, i32 i) { return T(i32(t) / i); }           \
+    inline T& operator+= (T &t, i32 i) { t = T(i32(t) + i); return t; } \
+    inline T& operator-= (T &t, i32 i) { t = T(i32(t) - i); return t; } \
+    inline T& operator*= (T &t, i32 i) { t = T(i32(t) * i); return t; } \
     inline T& operator/= (T &t, i32 i) { t = T(i32(t) / i); return t; }
 
-#define INC_DEC_OPERATORS(T)                                                     \
-    inline T& operator++ (T &t) { t = T(i32(t) + 1); return t; }                 \
+#define INC_DEC_OPERATORS(T)                                     \
+    inline T& operator++ (T &t) { t = T(i32(t) + 1); return t; } \
     inline T& operator-- (T &t) { t = T(i32(t) - 1); return t; }
 
 BASIC_OPERATORS(File)
@@ -425,26 +425,31 @@ INC_DEC_OPERATORS(Rank)
 
 INC_DEC_OPERATORS(Color)
 
-inline Delta  operator+  (Delta  d1, Delta d2) { return Delta(i32(d1) + i32(d2)); }
-inline Delta  operator-  (Delta  d1, Delta d2) { return Delta(i32(d1) - i32(d2)); }
-inline Delta  operator*  (Delta   d, i32    i) { return Delta(i32(d) * i); }
-inline Delta  operator/  (Delta   d, i32    i) { return Delta(i32(d) / i); }
+inline Delta operator+ (Delta  d1, Delta d2) { return Delta(i32(d1) + i32(d2)); }
+inline Delta operator- (Delta  d1, Delta d2) { return Delta(i32(d1) - i32(d2)); }
+inline Delta operator* (Delta d, i32 i) { return Delta(i32(d) * i); }
+inline Delta operator/ (Delta d, i32 i) { return Delta(i32(d) / i); }
 
-inline Square  operator+  (Square  s, Delta d) { return Square(i32(s) + i32(d)); }
-inline Square  operator-  (Square  s, Delta d) { return Square(i32(s) - i32(d)); }
+inline Square operator+ (Square s, Delta d) { return Square(i32(s) + i32(d)); }
+inline Square operator- (Square s, Delta d) { return Square(i32(s) - i32(d)); }
+
 inline Square& operator+= (Square &s, Delta d) { s = Square(i32(s) + i32(d)); return s; }
 inline Square& operator-= (Square &s, Delta d) { s = Square(i32(s) - i32(d)); return s; }
-inline Delta   operator-  (Square s1, Square s2) { return Delta(i32(s1) - i32(s2)); }
+
+inline Delta operator- (Square s1, Square s2) { return Delta(i32(s1) - i32(s2)); }
 INC_DEC_OPERATORS(Square)
 
 INC_DEC_OPERATORS(CastleSide)
 
-inline CastleRight  operator|  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) | i); }
-inline CastleRight  operator&  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) & i); }
-inline CastleRight  operator^  (CastleRight  cr, i32 i) { return CastleRight(i32(cr) ^ i); }
-inline CastleRight& operator|= (CastleRight &cr, i32 i) { cr = CastleRight(i32(cr) | i); return cr; }
-inline CastleRight& operator&= (CastleRight &cr, i32 i) { cr = CastleRight(i32(cr) & i); return cr; }
-inline CastleRight& operator^= (CastleRight &cr, i32 i) { cr = CastleRight(i32(cr) ^ i); return cr; }
+inline CastleRight operator~ (CastleRight cr) { return CastleRight(~i32(cr)); }
+
+inline CastleRight operator| (CastleRight cr1, CastleRight cr2) { return CastleRight(i32(cr1) | i32(cr2)); }
+inline CastleRight operator& (CastleRight cr1, CastleRight cr2) { return CastleRight(i32(cr1) & i32(cr2)); }
+inline CastleRight operator^ (CastleRight cr1, CastleRight cr2) { return CastleRight(i32(cr1) ^ i32(cr2)); }
+
+inline CastleRight& operator|= (CastleRight &cr1, CastleRight cr2) { cr1 = CastleRight(i32(cr1) | i32(cr2)); return cr1; }
+inline CastleRight& operator&= (CastleRight &cr1, CastleRight cr2) { cr1 = CastleRight(i32(cr1) & i32(cr2)); return cr1; }
+inline CastleRight& operator^= (CastleRight &cr1, CastleRight cr2) { cr1 = CastleRight(i32(cr1) ^ i32(cr2)); return cr1; }
 
 INC_DEC_OPERATORS(PieceType)
 
@@ -452,14 +457,14 @@ BASIC_OPERATORS(Value)
 ARTHMAT_OPERATORS(Value)
 INC_DEC_OPERATORS(Value)
 
-inline Score mk_score (i32 mg, i32 eg)
+constexpr Score mk_score (i32 mg, i32 eg)
 {
     return Score(i32((u32(eg) << 0x10)) + mg);
 }
 
 inline Value mg_value (u32 s)
 {
-    union { u16 u; i16 s; } mg = { u16(u32(s         )        ) };
+    union { u16 u; i16 s; } mg = { u16(u32(s + 0x0000) >> 0x00) };
     return Value(mg.s);
 }
 inline Value eg_value (u32 s)
@@ -470,9 +475,10 @@ inline Value eg_value (u32 s)
 
 BASIC_OPERATORS(Score)
 // Multiplication & Division of a Score must be handled separately for each term
-inline Score  operator*  (Score  s, i32 i) { return mk_score (mg_value (s) * i, eg_value (s) * i); }
+inline Score operator* (Score s, i32 i) { return mk_score (mg_value (s) * i, eg_value (s) * i); }
+inline Score operator/ (Score s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+
 inline Score& operator*= (Score &s, i32 i) { s = mk_score (mg_value (s) * i, eg_value (s) * i); return s; }
-inline Score  operator/  (Score  s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
 inline Score& operator/= (Score &s, i32 i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
 
 #undef INC_DEC_OPERATORS
@@ -499,14 +505,14 @@ inline Color color (Square s) { return Color(((s ^ (s >> 3)) & 1) != 1); }
 inline Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
 inline Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
 
-inline Rank rel_rank (Color c, Rank   r) { return   Rank(r ^ (c*i08(R_8))); }
-inline Rank rel_rank (Color c, Square s) { return rel_rank (c, _rank (s)); }
+//inline Rank rel_rank (Color c, Rank r) { return Rank(r ^ (c*i08(R_8))); }
+inline Rank rel_rank (Color c, Square s) { return Rank(_rank (s) ^ (c*i08(R_8))); }
 inline Square rel_sq (Color c, Square s) { return Square(s ^ (c*i08(SQ_A8))); }
 
 inline bool opposite_colors (Square s1, Square s2)
 {
     i08 s = i08(s1) ^ i08(s2);
-    return 0 != (((s >> 3) ^ s) & 1);
+    return 0 != (((s >> 3) ^ s) & BLACK);
 }
 
 inline Delta pawn_push (Color c)
@@ -564,9 +570,7 @@ inline Value  cp_to_value (double cp) { return Value(i32(std::round (cp*i32(VALU
 inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
-
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
-
 inline TimePoint now ()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>

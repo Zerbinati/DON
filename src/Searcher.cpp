@@ -122,8 +122,8 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
                                              killers_moves.end (),
                                              [&](Move mm)
                                              {
-                                                 return mm == MOVE_NONE
-                                                     || mm == tt_move
+                                                 return MOVE_NONE == mm
+                                                     || tt_move == mm
                                                      || !pos.pseudo_legal (mm)
                                                      || !pos.legal (mm)
                                                      ||  pos.capture (mm);
@@ -295,7 +295,11 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
         {
-            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
+            auto itr = std::find (moves.begin (), moves.end (), tt_move);
+            if (itr != moves.end ())
+            {
+                moves.erase (itr);
+            }
         }
         if (1 < moves.size ())
         {
@@ -312,7 +316,7 @@ Move MovePicker::next_move ()
             {
                 return move;
             }
-            // Losing capture, add it to the capture moves
+            // Losing capture: Add it to the capture moves
             bad_capture_moves.push_back (move);
         }
         ++stage;
@@ -322,7 +326,11 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
         {
-            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
+            auto itr = std::find (moves.begin (), moves.end (), tt_move);
+            if (itr != moves.end ())
+            {
+                moves.erase (itr);
+            }
         }
         if (1 < moves.size ())
         {
@@ -358,7 +366,6 @@ Move MovePicker::next_move ()
                 }
                 if (beg != max)
                 {
-                    // TODO:: use std::rotate
                     auto tmp = *max;
                     for (; max != beg; --max)
                     {
@@ -378,6 +385,15 @@ Move MovePicker::next_move ()
         {
             return moves[m++].move;
         }
+        //// NO need already done
+        //if (MOVE_NONE != tt_move)
+        //{
+        //    auto itr = std::find (bad_capture_moves.begin (), bad_capture_moves.end (), tt_move);
+        //    if (itr != bad_capture_moves.end ())
+        //    {
+        //        bad_capture_moves.erase (itr);
+        //    }
+        //}
         ++stage;
         m = 0;
         /* fallthrough */
@@ -394,7 +410,11 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
         {
-            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
+            auto itr = std::find (moves.begin (), moves.end (), tt_move);
+            if (itr != moves.end ())
+            {
+                moves.erase (itr);
+            }
         }
         if (1 < moves.size ())
         {
@@ -415,7 +435,11 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
         {
-            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
+            auto itr = std::find (moves.begin (), moves.end (), tt_move);
+            if (itr != moves.end ())
+            {
+                moves.erase (itr);
+            }
         }
         if (1 < moves.size ())
         {
@@ -440,7 +464,11 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
         {
-            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
+            auto itr = std::find (moves.begin (), moves.end (), tt_move);
+            if (itr != moves.end ())
+            {
+                moves.erase (itr);
+            }
         }
         if (1 < moves.size ())
         {
@@ -461,7 +489,11 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
         {
-            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
+            auto itr = std::find (moves.begin (), moves.end (), tt_move);
+            if (itr != moves.end ())
+            {
+                moves.erase (itr);
+            }
         }
         ++stage;
         m = 0;
@@ -478,7 +510,11 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
         {
-            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
+            auto itr = std::find (moves.begin (), moves.end (), tt_move);
+            if (itr != moves.end ())
+            {
+                moves.erase (itr);
+            }
         }
         if (1 < moves.size ())
         {
@@ -499,7 +535,11 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
         {
-            moves.erase (std::remove (moves.begin (), moves.end (), tt_move), moves.end ());
+            auto itr = std::find (moves.begin (), moves.end (), tt_move);
+            if (itr != moves.end ())
+            {
+                moves.erase (itr);
+            }
         }
         if (1 < moves.size ())
         {
