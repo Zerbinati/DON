@@ -347,30 +347,28 @@ namespace BitBoard {
     // Bitboard in an easily readable format. This is sometimes useful for debugging.
     string pretty (Bitboard bb)
     {
-        string s;
-        s = " /---------------\\\n";
+        ostringstream oss;
+        oss << " /---------------\\\n";
         for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
         {
-            s += Notation::to_char (r);
-            s += "|";
+            oss << Notation::to_char (r) << "|";
             for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
             {
-                s += (contains (bb, f|r) ? "+" : "-");
+                oss << (contains (bb, f|r) ? "+" : "-");
                 if (f < F_H)
                 {
-                    s += " ";
+                    oss << " ";
                 }
             }
-            s += "|\n";
+            oss << "|\n";
         }
-        s += " \\---------------/\n ";
+        oss << " \\---------------/\n ";
         for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
-            s += " ";
-            s += Notation::to_char (f, false);
+            oss << " " << Notation::to_char (f, false);
         }
-        s += "\n";
-        return s;
+        oss << "\n";
+        return oss.str ();
     }
 #endif
 

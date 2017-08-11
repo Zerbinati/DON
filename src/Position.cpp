@@ -830,7 +830,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->non_pawn_matl[WHITE] = compute_npm<WHITE> (*this);
     si->non_pawn_matl[BLACK] = compute_npm<BLACK> (*this);
     si->clock_ply = u08(clock_ply);
-    assert(si->null_ply == 0);
+    assert(0 == si->null_ply);
     si->capture = NONE;
     assert(!si->promotion);
     si->checkers = attackers_to (square<KING> (active), ~active);

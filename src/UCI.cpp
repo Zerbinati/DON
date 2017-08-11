@@ -70,8 +70,11 @@ namespace UCI {
                 continue;
             }
 
-            // GUI sends 'ponderhit' to tell us to ponder on the same move the opponent has played.
-            // In case Threadpool.stop_on_ponderhit is set wait for 'ponderhit' to stop the search (for instance because already ran out of time),
+            // GUI sends 'ponderhit' to tell that to ponder on the same move the opponent has played.
+            // So 'ponderhit' will be sent if told to ponder on the same move the opponent has played.
+            // We should continue searching but switch from pondering to normal search.
+            // In case Threadpool.stop_on_ponderhit is set wait for 'ponderhit' to stop the search
+            // (for instance because already ran out of time, max depth is reached),
             // otherwise should continue searching but switching from pondering to normal search.
             if (    token == "quit"
                 ||  token == "stop"
@@ -124,9 +127,8 @@ namespace UCI {
 
                 Limit limits;
                 limits.start_time = now ();
-                Threadpool.ponder = false;
-
                 Moves search_moves; // Restrict search to these root moves only
+                bool ponder = false;
 
                 i64 value;
                 while (iss >> token)
@@ -192,7 +194,7 @@ namespace UCI {
                     else
                     if (token == "ponder")
                     {
-                        Threadpool.ponder = true;
+                        ponder = true;
                     }
                     else
                     // Parse and Validate search-moves (if any)
@@ -211,7 +213,7 @@ namespace UCI {
                         search_moves.shrink_to_fit ();
                     }
                 }
-                Threadpool.start_thinking (root_pos, states, limits, search_moves);
+                Threadpool.start_thinking (root_pos, states, limits, search_moves, ponder);
             }
             // This sets up the starting position "startpos"/"fen <fenstring>" and then
             // makes the moves given in the move list "moves" also saving the moves on stack.
@@ -466,7 +468,8 @@ namespace UCI {
                && cmd != "quit");
 
         Threadpool.wait_while_thinking ();
-        delete ui_thread; ui_thread = nullptr;
+        delete ui_thread;
+        ui_thread = nullptr;
     }
 
 }

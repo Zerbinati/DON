@@ -97,6 +97,8 @@ void benchmark (istringstream &is, const Position &cur_pos)
     mode    = (is >> mode)   && !white_spaces (mode)   ? mode   : "depth";
     fen_fn  = (is >> fen_fn) && !white_spaces (fen_fn) ? fen_fn : "default";
 
+    auto *ui_thread = cur_pos.thread;
+
     Limit limits;
     if (mode == "time")
     {
@@ -157,7 +159,6 @@ void benchmark (istringstream &is, const Position &cur_pos)
     clear ();
     Options["Hash"] = to_string (hash);
     Options["Threads"] = to_string (threads);
-    Threadpool.ponder = false;
 
     u64  total_nodes = 0;
     StateList states (1);
@@ -172,7 +173,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
             << std::left << fens[i] << std::endl;
 
         states.resize (1);
-        pos.setup (fens[i], states.back (), Threadpool.main_thread ());
+        pos.setup (fens[i], states.back (), ui_thread);
         assert(pos.fen () == fens[i]);
 
         limits.start_time = now ();
@@ -211,8 +212,9 @@ void perft (istringstream &is, const Position &cur_pos)
     depth  = (is >> depth) ? depth : 6;
     fen_fn = (is >> fen_fn) && !white_spaces (fen_fn) ? fen_fn : "default";
 
-    vector<string> fens;
+    auto *ui_thread = cur_pos.thread;
 
+    vector<string> fens;
     if (fen_fn == "default")
     {
         fens = DefaultFENs;
@@ -257,7 +259,7 @@ void perft (istringstream &is, const Position &cur_pos)
             << std::left << fens[i] << std::endl;
 
         states.resize (1);
-        pos.setup (fens[i], states.back (), Threadpool.main_thread ());
+        pos.setup (fens[i], states.back (), ui_thread);
         assert(pos.fen () == fens[i]);
 
         auto leaf_nodes = perft<true > (pos, depth);

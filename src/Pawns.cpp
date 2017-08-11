@@ -14,7 +14,7 @@ namespace Pawns {
 
         // Weakness of friend pawn shelter in front of the friend king, indexed by [distance from edge][rank]
         // R_1 = 0 is used for files where we have no pawns or pawn is behind our king.
-        const Value ShelterWeak[][R_NO] =
+        const Value ShelterWeak[F_NO/2][R_NO] =
         {
             { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98), V(0) }, // => A and H file
             { V(116), V( 4), V(28), V(87), V(94), V(108), V(108), V(0) }, // => B and G file
@@ -24,7 +24,7 @@ namespace Pawns {
 
         // Dangerness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
         // For the unopposed and unblocked cases, R_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
-        const Value StromDanger[][F_NO/2][R_NO] =
+        const Value StromDanger[4][F_NO/2][R_NO] =
         {
             {// BlockedByKing
                 { V( 0), V(-290), V(-274), V(57), V(41), V(0), V(0), V(0) },
@@ -57,13 +57,13 @@ namespace Pawns {
     #define S(mg, eg) mk_score(mg, eg)
 
         // Isolated pawn penalty indexed by [opposed]
-        const Score Isolated[]  = { S(27,30), S(13,18) };
+        const Score Isolated[2] = { S(27,30), S(13,18) };
         // Backward pawn penalty indexed by [opposed]
-        const Score Backward[]  = { S(40,26), S(24,12) };
+        const Score Backward[2] = { S(40,26), S(24,12) };
         // Levered pawn bonus indexed by [rank]
-        const Score Levered[]   = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
+        const Score Levered[R_NO] = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
         // Blocked pawn penalty
-        const Score Blocked     = S(18,38);
+        const Score Blocked = S(18,38);
 
     #undef S
 
@@ -210,7 +210,7 @@ namespace Pawns {
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
         auto kf = std::min (std::max (_file (fk_sq), F_B), F_G);
-        for (auto f = kf - File(1); f <= kf + File(1); ++f)
+        for (auto f : { kf - File(1), kf, kf + File(1) })
         {
             assert(F_A <= f && f <= F_H);
             Bitboard file_front_pawns;

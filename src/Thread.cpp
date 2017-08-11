@@ -382,11 +382,12 @@ namespace Threading {
 
     // Wakes up the main thread sleeping in Thread::idle_loop()
     // and starts a new search, then returns immediately.
-    void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits, const Moves &search_moves)
+    void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits, const Moves &search_moves, bool ponde)
     {
         stop = false;
         stop_on_ponderhit = false;
-        
+        ponder = ponde;
+
         Limits = limits;
 
         RootMoves root_moves;
@@ -454,10 +455,10 @@ namespace Threading {
 
         main_thread ()->start_searching (false);
     }
-    void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits)
+    void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits, bool ponde)
     {
         const Moves search_moves;
-        start_thinking (root_pos, states, limits, search_moves);
+        start_thinking (root_pos, states, limits, search_moves, ponde);
     }
 
     // Waits for the main thread while searching.

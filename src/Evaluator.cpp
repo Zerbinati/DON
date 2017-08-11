@@ -153,8 +153,6 @@ namespace Evaluator {
             // Bonus for king attack by piece type
             static const i32 PieceAttackWeights[NONE];
 
-            // ------------------------------------------------------------
-
             const Position &pos;
 
             Material::Entry *me = nullptr;
@@ -207,8 +205,6 @@ namespace Evaluator {
             Value value ();
         };
         
-        // -----------------------------------------------------------------------
-
     #define V(v) Value(v)
     #define S(mg, eg) mk_score (mg, eg)
 
@@ -1070,14 +1066,14 @@ namespace Evaluator {
                 {
                     return
                         // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
-                           VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE) && 1 == pos.count<BSHP> (WHITE)
-                        && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) && 1 == pos.count<BSHP> (BLACK) ?
-                                1 >= pos.count<PAWN> () ?
-                                    Scale( 9) :
-                                    Scale(31) :
+                        VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE)
+                     && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) ?
+                            1 >= pos.count<PAWN> () ?
+                                Scale( 9) :
+                                Scale(31) :
                         // Endgame with opposite-colored bishops but also other pieces
                         // is still a bit drawish, but not as drawish as with only the two bishops. 
-                                Scale(46);
+                            Scale(46);
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 if (   VALUE_EG_BSHP >= abs (eg)
@@ -1130,7 +1126,7 @@ namespace Evaluator {
 
             initialize<WHITE> ();
             initialize<BLACK> ();
-            
+
             // Evaluate all pieces except pawns and king
             score += evaluate_pieces<WHITE, NIHT> ()
                   -  evaluate_pieces<BLACK, NIHT> ();
@@ -1154,7 +1150,7 @@ namespace Evaluator {
             // Evaluate passers
             score += evaluate_passers<WHITE> ()
                   -  evaluate_passers<BLACK> ();
-            
+
             // Evaluate space, if in the opening phase
             if (pos.si->non_pawn_material () >= SpaceThreshold)
             {

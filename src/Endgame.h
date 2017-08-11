@@ -89,7 +89,8 @@ namespace EndGame {
 
         std::pair<Map<Value>, Map<Scale>> maps;
 
-        template<typename T> Map<T>& map ()
+        template<typename T>
+        Map<T>& map ()
         {
             return std::get<std::is_same<T, Scale>::value> (maps);
         }
@@ -108,7 +109,8 @@ namespace EndGame {
         Endgames (const Endgames&) = delete;
         Endgames& operator= (const Endgames&) = delete;
 
-        template<typename T> EndgameBase<T>* probe (Key matl_key)
+        template<typename T>
+        EndgameBase<T>* probe (Key matl_key)
         {
             return
                 map<T> ().find (matl_key) != map<T> ().end () ?

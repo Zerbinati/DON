@@ -628,7 +628,7 @@ namespace Searcher {
         }
 
         // Updates histories of the move pairs formed by moves at ply -1, -2, and -4 with current move.
-        void update_continuation_histories (Stack *const &ss, Piece pc, Square dst, i32 value)
+        void update_continuation_tables (Stack *const &ss, Piece pc, Square dst, i32 value)
         {
             for (auto i : {1, 2, 4})
             {
@@ -639,7 +639,7 @@ namespace Searcher {
             }
         }
         // Updates move sorting heuristics
-        void update_histories (Stack *const &ss, const Position &pos, Move move, i32 value)
+        void update_tables (Stack *const &ss, const Position &pos, Move move, i32 value)
         {
             if (ss->killer_moves[0] != move)
             {
@@ -655,7 +655,7 @@ namespace Searcher {
             }
 
             pos.thread->butterfly.update (pos.active, move, value);
-            update_continuation_histories (ss, pos[org_sq (move)], dst_sq (move), value);
+            update_continuation_tables (ss, pos[org_sq (move)], dst_sq (move), value);
         }
 
         // Appends the move and child pv
@@ -1131,7 +1131,7 @@ namespace Searcher {
                         // Bonus for a quiet tt_move that fails high.
                         if (!pos.capture_or_promotion (tt_move))
                         {
-                            update_histories (ss, pos, tt_move, stat_bonus (depth));
+                            update_tables (ss, pos, tt_move, stat_bonus (depth));
                         }
                         // Extra penalty for a quiet tt_move in previous ply when it gets refuted.
                         if (   1 == (ss-1)->move_count
@@ -1139,7 +1139,7 @@ namespace Searcher {
                             && NONE == pos.si->capture
                             && !pos.si->promotion)
                         {
-                            update_continuation_histories (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
+                            update_continuation_tables (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
                         }
                     }
                     else
@@ -1149,7 +1149,7 @@ namespace Searcher {
                         {
                             auto penalty = -stat_bonus (depth);
                             pos.thread->butterfly.update (pos.active, tt_move, penalty);
-                            update_continuation_histories (ss, pos[org_sq (tt_move)], dst_sq (tt_move), penalty);
+                            update_continuation_tables (ss, pos[org_sq (tt_move)], dst_sq (tt_move), penalty);
                         }
                     }
                 }
@@ -1797,12 +1797,12 @@ namespace Searcher {
                     if (!pos.capture_or_promotion (best_move))
                     {
                         auto bonus = stat_bonus (depth);
-                        update_histories (ss, pos, best_move, bonus);
+                        update_tables (ss, pos, best_move, bonus);
                         // Decrease all the other played quiet moves.
                         for (auto qm : quiet_moves)
                         {
                             pos.thread->butterfly.update (pos.active, qm, -bonus);
-                            update_continuation_histories (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
+                            update_continuation_tables (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                         }
                     }
                     // Penalty for a quiet best move in previous ply when it gets refuted.
@@ -1811,7 +1811,7 @@ namespace Searcher {
                         && NONE == pos.si->capture
                         && !pos.si->promotion)
                     {
-                        update_continuation_histories (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
+                        update_continuation_tables (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
                     }
                 }
                 else
@@ -1821,7 +1821,7 @@ namespace Searcher {
                     && NONE == pos.si->capture
                     && !pos.si->promotion)
                 {
-                    update_continuation_histories (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), stat_bonus (depth));
+                    update_continuation_tables (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), stat_bonus (depth));
                 }
             }
             
@@ -2189,7 +2189,7 @@ namespace Threading {
                     if (stop)
                     {
                         // If allowed to ponder do not stop the search now but
-                        // keep pondering until GUI sends "ponderhit" or "stop".
+                        // keep pondering until GUI sends "stop"/"ponderhit".
                         if (Threadpool.ponder)
                         {
                             Threadpool.stop_on_ponderhit = true;
@@ -2365,14 +2365,7 @@ namespace Threading {
             if (skill_mgr.enabled ())
             {
                 skill_mgr.pick_best_move (root_moves);
-                if (MOVE_NONE != skill_mgr.best_move)
-                {
-                    auto itr = std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move);
-                    if (itr != root_moves.end ())
-                    {
-                        std::swap (root_moves[0], *itr);
-                    }
-                }
+                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move));
             }
         }
 
@@ -2389,7 +2382,7 @@ namespace Threading {
 
         // When reach max depth arrive here even without Force Stop is raised,
         // but if are pondering or in infinite search, according to UCI protocol,
-        // shouldn't print the best move before the GUI sends a "stop" or "ponderhit" command.
+        // shouldn't print the best move before the GUI sends a "stop"/"ponderhit" command.
         // Simply wait here until GUI sends one of those commands (that raise Force Stop).
         if (   !Threadpool.stop
             && (   Limits.infinite
