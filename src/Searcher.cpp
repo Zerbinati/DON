@@ -84,10 +84,10 @@ namespace {
     };
 }
 
-// MovePicker class constructors. As arguments pass information to help
-// it to return the (presumably) good moves first, to decide which moves to return
-// (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
-// and about how important good move ordering is at the current node.
+/// MovePicker class constructors. As arguments pass information to help
+/// it to return the (presumably) good moves first, to decide which moves to return
+/// (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
+/// and about how important good move ordering is at the current node.
 
 MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pd, const Move *km, Move cm)
     : pos (p)
@@ -202,60 +202,43 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     }
 }
 
-// Assigns a numerical move ordering score to each move in a move list.
-// The moves with highest scores will be picked first.
-
-// Winning and equal captures in the main search are ordered by MVV/LVA, preferring captures near our home rank.
-// Surprisingly, this appears to perform slightly better than SEE-based move ordering,
-// exchanging big pieces before capturing a hanging piece probably helps to reduce the subtree size.
-// In the main search push captures with negative SEE values to the bad captures vector,
-// but instead of doing it now we delay until the move has been picked up,
-// saving some SEE calls in case of a cutoff.
-template<> void MovePicker::value<GenType::CAPTURE> ()
-{
-    for (auto &vm : moves)
-    {
-        assert(pos.pseudo_legal (vm.move)
-            && pos.legal (vm.move)
-            && pos.capture_or_promotion (vm.move));
-
-        vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
-                 - 200 * rel_rank (pos.active, dst_sq (vm.move));
-    }
-}
-template<> void MovePicker::value<GenType::QUIET> ()
+/// value() assigns a numerical value to each move in a list, used for sorting.
+/// Captures are ordered by Most Valuable Victim (MVV), preferring captures near our home rank.
+/// Surprisingly, this appears to perform slightly better than SEE-based move ordering,
+/// exchanging big pieces before capturing a hanging piece probably helps to reduce the subtree size.
+/// Quiets are ordered using the histories.
+template<GenType GT>
+void MovePicker::value ()
 {
     for (auto &vm : moves)
     {
         assert(pos.pseudo_legal (vm.move)
             && pos.legal (vm.move));
 
-        auto mpc = pos[org_sq (vm.move)];
-        assert(NO_PIECE != mpc);
-        auto dst = dst_sq (vm.move);
-        vm.value = pos.thread->butterfly[pos.active][move_pp (vm.move)]
-                 + (*piece_destiny[0])[mpc][dst]
-                 + (*piece_destiny[1])[mpc][dst]
-                 + (*piece_destiny[3])[mpc][dst];
-    }
-}
-// First captures ordered by MVV/LVA, then non-captures ordered by stats heuristics
-template<> void MovePicker::value<GenType::EVASION> ()
-{
-    for (auto &vm : moves)
-    {
-        assert(pos.pseudo_legal (vm.move)
-            && pos.legal (vm.move));
-        
-        if (pos.capture (vm.move))
+        if (   GenType::CAPTURE == GT
+            || (GenType::EVASION == GT && pos.capture (vm.move)))
         {
+            assert(pos.capture_or_promotion (vm.move));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
-                     - ptype (pos[org_sq (vm.move)])
-                     + MaxValue;
+                     - (GenType::EVASION == GT ?
+                        ptype (pos[org_sq (vm.move)]) :
+                        200 * rel_rank (pos.active, dst_sq (vm.move)));
         }
         else
+        if (GenType::QUIET == GT)
         {
-            vm.value = pos.thread->butterfly[pos.active][move_pp (vm.move)];
+            auto mpc = pos[org_sq (vm.move)];
+            assert(NO_PIECE != mpc);
+            auto dst = dst_sq (vm.move);
+            vm.value = pos.thread->butterfly[pos.active][move_pp (vm.move)]
+                     + (*piece_destiny[0])[mpc][dst]
+                     + (*piece_destiny[1])[mpc][dst]
+                     + (*piece_destiny[3])[mpc][dst];
+        }
+        else // Evasion Quiet 
+        {
+            vm.value = pos.thread->butterfly[pos.active][move_pp (vm.move)]
+                     - MaxValue;
         }
     }
 }
@@ -2405,7 +2388,7 @@ namespace Threading {
             {
                 if (th != this)
                 {
-                    th->wait_while (th->searching);
+                    th->wait_while_busy ();
                 }
             }
             // Check if there are deeper thread than main thread.

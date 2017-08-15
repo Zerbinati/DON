@@ -23,27 +23,25 @@ namespace UCI {
     using namespace TBSyzygy;
     using namespace Threading;
 
-    // Waits for a command from stdin, parses it and calls the appropriate function.
-    // Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
-    // Single command line arguments is executed once and returns immediately, e.g. 'bench'.
-    // In addition to the UCI ones, also some additional commands are supported.
+    /// UCI::loop() Waits for a command from stdin, parses it and calls the appropriate function.
+    /// Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
+    /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
+    /// In addition to the UCI ones, also some additional commands are supported.
     void loop (i32 argc, const char *const *argv)
     {
         // Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
         // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
         const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-        
-        auto *ui_thread = new Thread ();//std::make_shared<Thread> (0);
-
         Position::Chess960 = false;
+
+        Position root_pos;
 
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
-        StateList states (1);
-
-        Position root_pos;
-        root_pos.setup (StartFEN, states.back (), ui_thread);
+        StateListPtr states (new std::deque<StateInfo> (1));
+        auto ui_thread = std::make_shared<Thread> (0);
+        root_pos.setup (StartFEN, states->back (), ui_thread.get ());
         // Join arguments
         string cmd;
         for (i32 i = 1; i < argc; ++i)
@@ -243,8 +241,8 @@ namespace UCI {
                     continue;
                 }
 
-                states.resize (1);
-                root_pos.setup (fen, states.back (), ui_thread);
+                states = StateListPtr (new std::deque<StateInfo> (1)); // Drop old and create a new one
+                root_pos.setup (fen, states->back (), Threadpool.main_thread ());
 
                 if (token == "moves")
                 {
@@ -259,8 +257,8 @@ namespace UCI {
                             std::cerr << "ERROR: Illegal Move '" + token << "' at " << count << std::endl;
                             break;
                         }
-                        states.emplace_back ();
-                        root_pos.do_move (m, states.back ());
+                        states->emplace_back ();
+                        root_pos.do_move (m, states->back ());
                     }
                 }
             }
@@ -465,8 +463,6 @@ namespace UCI {
         }
         while (   argc == 1
                && cmd != "quit");
-
-        Threadpool.wait_while_thinking ();
     }
 
 }

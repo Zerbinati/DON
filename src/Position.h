@@ -73,7 +73,7 @@ public:
 // (from the start position to the position just before the search starts).
 // Needed by 'draw by repetition' detection.
 // Use a std::deque because pointers to elements are not invalidated upon list resizing.
-typedef std::deque<StateInfo> StateList;
+typedef std::unique_ptr<std::deque<StateInfo>> StateListPtr;
 
 namespace Threading {
     class Thread;

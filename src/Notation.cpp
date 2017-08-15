@@ -277,21 +277,21 @@ namespace Notation {
         }
         oss << " ";
 
-        StateList states;
+        StateListPtr states (new std::deque<StateInfo> (0));
         u08 ply = 0;
         for (auto m : root_move)
         {
             oss <<
                 //move_to_can (m)
                 move_to_san (m, th->root_pos) << " ";
-            states.push_back (StateInfo ());
-            th->root_pos.do_move (m, states.back ());
+            states->emplace_back ();
+            th->root_pos.do_move (m, states->back ());
             ++ply;
         }
         while (0 != ply)
         {
             th->root_pos.undo_move (root_move[--ply]);
-            states.pop_back ();
+            states->pop_back ();
         }
 
         return oss.str ();

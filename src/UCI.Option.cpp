@@ -194,7 +194,12 @@ namespace UCI {
 
         void on_thread_count ()
         {
-            Threadpool.configure (i32(Options["Threads"]));
+            auto threads = i32(Options["Threads"]);
+            if (0 == threads)
+            {
+                threads = thread::hardware_concurrency ();
+            }
+            Threadpool.configure (threads);
         }
 
         void on_draw_move_dist ()

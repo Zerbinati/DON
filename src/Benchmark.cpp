@@ -161,7 +161,6 @@ void benchmark (istringstream &is, const Position &cur_pos)
     Options["Threads"] = to_string (threads);
 
     u64  total_nodes = 0;
-    StateList states (1);
     Position pos;
     auto start_time = now ();
     for (u16 i = 0; i < fens.size (); ++i)
@@ -172,8 +171,8 @@ void benchmark (istringstream &is, const Position &cur_pos)
             << std::setw (2) << i+1 << "/" << fens.size () << " "
             << std::left << fens[i] << std::endl;
 
-        states.resize (1);
-        pos.setup (fens[i], states.back (), ui_thread);
+        StateListPtr states (new std::deque<StateInfo> (1));
+        pos.setup (fens[i], states->back (), ui_thread);
         assert(pos.fen () == fens[i]);
 
         limits.start_time = now ();
@@ -247,7 +246,6 @@ void perft (istringstream &is, const Position &cur_pos)
     clear ();
 
     u64  total_nodes = 0;
-    StateList states (1);
     Position pos;
     auto start_time = now ();
     for (u16 i = 0; i < fens.size (); ++i)
@@ -257,9 +255,8 @@ void perft (istringstream &is, const Position &cur_pos)
             << "Position: " << std::right
             << std::setw (2) << i+1 << "/" << fens.size () << " "
             << std::left << fens[i] << std::endl;
-
-        states.resize (1);
-        pos.setup (fens[i], states.back (), ui_thread);
+        StateInfo si;
+        pos.setup (fens[i], si, ui_thread);
         assert(pos.fen () == fens[i]);
 
         auto leaf_nodes = perft<true > (pos, depth);

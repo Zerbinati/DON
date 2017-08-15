@@ -567,8 +567,8 @@ namespace TBSyzygy {
                     MaxLimitPiece = i32(pieces.size ());
                 }
 
-                wdl_table.push_back (WDLEntry (code));
-                dtz_table.push_back (DTZEntry (wdl_table.back ()));
+                wdl_table.emplace_back (code);
+                dtz_table.emplace_back (wdl_table.back ());
 
                 insert (wdl_table.back ().key1, &wdl_table.back (), &dtz_table.back ());
                 insert (wdl_table.back ().key2, &wdl_table.back (), &dtz_table.back ());

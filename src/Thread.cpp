@@ -25,10 +25,10 @@ namespace {
     u08 ReadyMoveHorizon =    40;  // Be prepared to always play at least this many moves, in num of moves.
     u32 OverheadClockTime =   60;  // Attempt to keep at least this much time at clock, in milli-seconds.
 
-    // Skew-logistic function based on naive statistical analysis of
-    // "how many games are still undecided after n half-moves".
-    // Game is considered "undecided" as long as neither side has >275cp advantage.
-    // Data was extracted from the CCRL game database with some simple filtering criteria.
+    /// Skew-logistic function based on naive statistical analysis of
+    /// "how many games are still undecided after n half-moves".
+    /// Game is considered "undecided" as long as neither side has >275cp advantage.
+    /// Data was extracted from the CCRL game database with some simple filtering criteria.
     double move_importance (i16 ply)
     {
         //                                       Shift    Scale    Skew
@@ -61,7 +61,7 @@ u64 TimeManager::elapsed_time () const
             Threadpool.nodes () :
             now () - Limits.start_time;
 }
-// Calculates the allowed thinking time out of the time control and current game ply.
+/// Calculates the allowed thinking time out of the time control and current game ply.
 void TimeManager::initialize (Color c, i16 ply)
 {
     optimum_time =
@@ -98,8 +98,8 @@ void TimeManager::initialize (Color c, i16 ply)
     //}
 }
 
-// When playing with a strength handicap, choose best move among a set of RootMoves,
-// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
+/// When playing with a strength handicap, choose best move among a set of RootMoves,
+/// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 void SkillManager::pick_best_move (const RootMoves &root_moves)
 {
     static PRNG prng (now ()); // PRNG sequence should be non-deterministic.
@@ -275,26 +275,28 @@ namespace Threading {
 
     }
 
-    // Launches the thread and then waits until it goes to sleep in idle_loop().
-    Thread::Thread ()
-        : alive (true)
-        , index (u08(Threadpool.size ()))
+    /// Thread constructor launches the thread and waits until it goes to sleep in idle_loop().
+    /// Note that 'searching' and 'dead' should be already set.
+    Thread::Thread (u08 n)
+        : index (n)
+        , std_thread (&Thread::idle_loop, this)
     {
         clear ();
-        searching = true;
-        native_thread = std::thread (&Thread::idle_loop, this);
-        wait_while (searching);
-    }
-    // Waits for thread termination before returning.
-    Thread::~Thread ()
-    {
-        std::unique_lock<Mutex> lk (mutex);
-        alive = false;
-        sleep_condition.notify_one ();
-        lk.unlock ();
-        native_thread.join ();
+        wait_while_busy ();
     }
 
+    /// Thread destructor wakes up the thread in idle_loop() and
+    /// waits for its termination.
+    /// Thread should be already waiting.
+    Thread::~Thread ()
+    {
+        assert(!busy);
+        dead = true;
+        start_searching ();
+        std_thread.join ();
+    }
+
+    /// Thread::clear() clears all the thread related stuff.
     void Thread::clear ()
     {
         nodes = 0;
@@ -315,30 +317,40 @@ namespace Threading {
         matl_table.fill (Material::Entry ());
     }
 
-    // Function where the thread is parked when it has no work to do.
+    /// Thread::start_searching() wakes up the thread that will start the search.
+    void Thread::start_searching ()
+    {
+        std::lock_guard<Mutex> lk (mutex);
+        busy = true;
+        condition_var.notify_one (); // Wake up the thread in idle_loop()
+    }
+
+    /// Thread::wait_while_busy() blocks on the condition variable while the thread is busy.
+    void Thread::wait_while_busy ()
+    {
+        std::unique_lock<Mutex> lk (mutex);
+        condition_var.wait (lk, [&] { return !busy; });
+    }
+
+    /// Thread::idle_loop() is where the thread is parked.
+    /// Blocked on the condition variable, when it has no work to do.
     void Thread::idle_loop ()
     {
         bind_thread (index);
 
-        while (alive)
+        while (true)
         {
             std::unique_lock<Mutex> lk (mutex);
-
-            searching = false;
-
-            while (   alive
-                   && !searching)
+            busy = false;
+            condition_var.notify_one (); // Wake up anyone waiting for search finished
+            condition_var.wait (lk, [&] { return busy; });
+            if (dead)
             {
-                sleep_condition.notify_one (); // Wake up any waiting thread
-                sleep_condition.wait (lk);
+                return;
             }
-
             lk.unlock ();
 
-            if (alive)
-            {
-                search ();
-            }
+            search ();
         }
     }
 
@@ -356,33 +368,26 @@ namespace Threading {
         }
     }
 
-    // Updates internal threads parameters creates/destroys threads to match the requested number.
-    // Thread objects are dynamically allocated to avoid creating in advance all possible
-    // threads, with included pawns and material tables, if only few are used.
+    // ThreadPool::configure() creates/destroys threads to match the requested number.
     void ThreadPool::configure (u32 threads)
     {
-        if (0 == threads)
-        {
-            threads = thread::hardware_concurrency ();
-        }
         assert(0 < threads);
-
         while (size () < threads)
         {
-            push_back (new Thread ());
+            push_back (new Thread (u08(size ())));
         }
         while (size () > threads)
         {
             delete back ();
-            pop_back ();
+            pop_back (); // Get rid of stale pointer
         }
         shrink_to_fit ();
         sync_cout << "info string Thread(s) used " << threads << sync_endl;
     }
 
-    // Wakes up the main thread sleeping in Thread::idle_loop()
-    // and starts a new search, then returns immediately.
-    void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits, const Moves &search_moves, bool ponde)
+    /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and returns immediately.
+    /// Main thread will wake up other threads and start the search.
+    void ThreadPool::start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits, const Moves &search_moves, bool ponde)
     {
         stop = false;
         stop_on_ponderhit = false;
@@ -439,10 +444,23 @@ namespace Threading {
             }
         }
 
-        const auto back_si = states.back ();
+        // After ownership transfer 'states' becomes empty, so if we stop the search
+        // and call 'go' again without setting a new position states.get() == NULL.
+        assert(states.get ()
+            || setup_states.get ());
+
+        if (states.get ())
+        {
+            setup_states = std::move (states); // Ownership transfer, states is now empty
+        }
+
+        // We use Position::set() to set root position across threads.
+        // So we need to save and later to restore last stateinfo, cleared by set().
+        // Note that states is shared by threads but is accessed in read-only mode.
+        const auto back_si = setup_states->back ();
         for (auto *th : *this)
         {
-            th->root_pos.setup (root_pos.fen (), states.back (), th);
+            th->root_pos.setup (root_pos.fen (), setup_states->back (), th);
             th->root_moves = root_moves;
 
             th->nodes = 0;
@@ -450,12 +468,11 @@ namespace Threading {
             th->running_depth = 0;
             th->finished_depth = 0;
         }
-        // Restore states.back(), cleared by Position::setup().
-        states.back () = back_si;
+        setup_states->back () = back_si;
 
         main_thread ()->start_searching ();
     }
-    void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits, bool ponde)
+    void ThreadPool::start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits, bool ponde)
     {
         const Moves search_moves;
         start_thinking (root_pos, states, limits, search_moves, ponde);
@@ -464,30 +481,24 @@ namespace Threading {
     // Waits for the main thread while searching.
     void ThreadPool::wait_while_thinking ()
     {
-        main_thread ()->wait_while (main_thread ()->searching);
+        main_thread ()->wait_while_busy ();
     }
 
     // Creates and launches requested threads, that will go immediately to sleep.
     // Cannot use a constructor becuase threadpool is a static object and require a fully initialized engine.
-    void ThreadPool::initialize ()
+    void ThreadPool::initialize (u32 threads)
     {
         assert(empty ());
-        push_back (new MainThread ());
-        configure (i32(Options["Threads"]));
+        push_back (new MainThread (0));
+        configure (threads);
     }
     // Cleanly terminates the threads before the program exits.
     // Cannot be done in destructor because threads must be terminated before deleting any static objects.
     void ThreadPool::deinitialize ()
     {
-        stop = true;
         wait_while_thinking ();
         assert(!empty ());
-        while (!empty ())
-        {
-            delete back ();
-            // Get rid of stale pointer
-            pop_back ();
-        }
+        configure (0);
     }
 
 }

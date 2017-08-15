@@ -22,14 +22,14 @@ extern double MoveSlowness;
 extern u32    NodesTime;
 extern bool   Ponder;
 
-// TimeManager class computes the optimal time to think depending on the
-// maximum available time, the move game number and other parameters.
-// Support four different kind of time controls, passed in 'limits':
-//
-// moves_to_go = 0, increment = 0 means: x basetime                             ['sudden death' time control]
-// moves_to_go = 0, increment > 0 means: x basetime + z increment
-// moves_to_go > 0, increment = 0 means: x moves in y basetime                  ['standard' time control]
-// moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
+/// TimeManager class computes the optimal time to think depending on the
+/// maximum available time, the move game number and other parameters.
+/// Support four different kind of time controls, passed in 'limits':
+///
+/// moves_to_go = 0, increment = 0 means: x basetime                             ['sudden death' time control]
+/// moves_to_go = 0, increment > 0 means: x basetime + z increment
+/// moves_to_go > 0, increment = 0 means: x moves in y basetime                  ['standard' time control]
+/// moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
 class TimeManager
 {
 public:
@@ -47,8 +47,8 @@ public:
     void initialize (Color c, i16 ply);
 };
 
-// MoveManager class is used to detect a so called 'easy move'.
-// When PV is stable across multiple search iterations engine can fast return the best move.
+/// MoveManager class is used to detect a so called 'easy move'.
+/// When PV is stable across multiple search iterations engine can fast return the best move.
 class MoveManager
 {
 private:
@@ -111,7 +111,7 @@ public:
     }
 };
 
-// Skill Manager class is used to implement strength limit
+/// Skill Manager class is used to implement strength limit
 class SkillManager
 {
 public:
@@ -148,36 +148,34 @@ public:
 
 namespace Threading {
 
-    // Thread class keeps together all the thread related stuff like.
-    // It also use pawn and material hash tables so that once get a pointer
-    // to an entry its life time is unlimited and don't have to care about
-    // someone changing the entry under its feet.
+    /// Thread class keeps together all the thread-related stuff.
+    /// It use pawn and material hash tables so that once get a pointer to
+    /// an entry its life time is unlimited and we don't have to care about
+    /// someone changing the entry under our feet.
     class Thread
     {
-    private:
-        std::thread native_thread;
-        Mutex mutex;
-        ConditionVariable sleep_condition;
+    protected:
+        u08  index;
 
-        bool  alive;
+    private:
+        Mutex mutex;
+        ConditionVariable condition_var;
+        bool dead = false
+           , busy = true;
+        std::thread std_thread;
 
     public:
-        u08   index
-            , pv_index;
-
-        std::atomic<bool> searching;
 
         Position root_pos;
         RootMoves root_moves;
 
-        i16   running_depth
-            , finished_depth;
+        i16  running_depth
+           , finished_depth;
 
-        i16   sel_depth;
+        i16  sel_depth;
+        u08  pv_index;
 
-        std::atomic<u64>
-              nodes
-            , tb_hits;
+        std::atomic<u64> nodes, tb_hits;
 
         PieceDestinyMoveTable counter_moves;
         ButterflyHistory butterfly;
@@ -186,48 +184,34 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        Thread ();
+        explicit Thread (u08 n);
+        Thread () = delete;
         Thread (const Thread&) = delete;
         Thread& operator= (const Thread&) = delete;
 
         virtual ~Thread ();
 
         void clear ();
-
-        // Wakes up the thread that will start the search
-        void start_searching ()
-        {
-            std::unique_lock<Mutex> lk (mutex);
-            searching = true;
-            sleep_condition.notify_one (); // Wake up the thread in idle_loop()
-        }
-        // Waits on sleep condition until 'condition' turns true.
-        void wait_until (const std::atomic<bool> &condition)
-        {
-            std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&] { return  bool(condition); });
-        }
-        // Waits on sleep condition until 'condition' turns false.
-        void wait_while (const std::atomic<bool> &condition)
-        {
-            std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&] { return !bool(condition); });
-        }
+        
+        void start_searching ();
+        void wait_while_busy ();
 
         void idle_loop ();
 
         virtual void search ();
     };
 
-    // MainThread class is derived class used to characterize the the main one.
+    /// MainThread class is derived class used specific for main thread.
     class MainThread
         : public Thread
     {
-    public:
-        i16   check_count;
+        using Thread::Thread;
 
-        bool  easy_played
-            , failed_low;
+    public:
+        i16  check_count;
+
+        bool easy_played
+           , failed_low;
 
         double best_move_change;
         
@@ -238,24 +222,35 @@ namespace Threading {
         MoveManager  move_mgr;
         SkillManager skill_mgr;
 
-        MainThread () = default;
+        MainThread () = delete;
         MainThread (const MainThread&) = delete;
         MainThread& operator= (const MainThread&) = delete;
 
-        virtual void search () override;
+        void search () override;
 
         void check_limits ();
     };
 
-    // ThreadPool class handles all the threads related stuff like,
-    // - initializing & deinitializing
-    // - starting
-    // - parking
-    // - launching.
-    // All the access to shared thread data is done through this.
+    /// ThreadPool class handles all the threads related stuff like,
+    /// initializing & deinitializing, starting, parking & launching a thread
+    /// All the access to shared thread data is done through this class.
     class ThreadPool
         : public std::vector<Thread*>
     {
+
+    private:
+        StateListPtr setup_states;
+
+        u64 accumulate (std::atomic<u64> Thread::*member) const
+        {
+            u64 sum = 0;
+            for (const auto *th : *this)
+            {
+                sum += (th->*member).load (std::memory_order::memory_order_relaxed);
+            }
+            return sum;
+        }
+
     public:
         u08 pv_limit;
         
@@ -268,11 +263,10 @@ namespace Threading {
         ThreadPool (const ThreadPool&) = delete;
         ThreadPool& operator= (const ThreadPool&) = delete;
 
-        MainThread* main_thread () const
-        {
-            return static_cast<MainThread*> (at (0));
-        }
-        
+        MainThread* main_thread () const { return static_cast<MainThread*> (front ()); }
+        u64 nodes () const { return accumulate (&Thread::nodes); }
+        u64 tb_hits () const { return accumulate (&Thread::tb_hits); }
+
         Thread* best_thread () const
         {
             auto *best_th = at (0);
@@ -287,36 +281,17 @@ namespace Threading {
             return best_th;
         }
         
-        // Returns the total nodes searched.
-        u64 nodes () const
-        {
-            u64 nodes = 0;
-            for (const auto *th : *this)
-            {
-                nodes += th->nodes.load (std::memory_order::memory_order_relaxed);
-            }
-            return nodes;
-        }
-        // Returns the total TB hits.
-        u64 tb_hits () const
-        {
-            u64 tb_hits = 0;
-            for (const auto *th : *this)
-            {
-                tb_hits += th->tb_hits.load (std::memory_order::memory_order_relaxed);
-            }
-            return tb_hits;
-        }
-
         void clear ();
         void configure (u32 threads);
 
-        void start_thinking (Position &root_pos, StateList &states, const Limit &limits, const Moves &search_moves, bool ponde = false);
-        void start_thinking (Position &root_pos, StateList &states, const Limit &limits, bool ponde = false);
+        void start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits, const Moves &search_moves, bool ponde = false);
+        void start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits, bool ponde = false);
 
         void wait_while_thinking ();
 
-        void initialize ();
+        // No constructor and destructor, threads rely on globals that should
+        // be initialized and valid during the whole thread lifetime.
+        void initialize (u32 threads);
         void deinitialize ();
     };
 
@@ -328,7 +303,7 @@ enum OutputState : u08
     OS_UNLOCK,
 };
 
-// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
+/// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream &os, const OutputState state)
 {
     static Mutex mutex;

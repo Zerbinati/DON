@@ -97,7 +97,7 @@ namespace Engine {
         BitBases ::initialize ();
         Pawns    ::initialize ();
         EndGame  ::initialize ();
-        Threadpool.initialize ();
+        Threadpool.initialize (i32(Options["Threads"]));
         Searcher ::initialize ();
         TT.auto_resize (i32(Options["Hash"]), true);
         TBSyzygy ::initialize ();
@@ -107,8 +107,10 @@ namespace Engine {
         UCI::loop (argc, argv);
     }
 
+    /// Exit from engine with exit code (in case of some crash).
     void stop (i32 code)
     {
+        Threadpool.stop = true;
         Threadpool.deinitialize ();
         EndGame  ::deinitialize ();
         UCI      ::deinitialize ();
