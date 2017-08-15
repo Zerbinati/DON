@@ -289,8 +289,8 @@ namespace Threading {
 
         void wait_while_thinking ();
 
-        // No constructor and destructor, threads rely on globals that should
-        // be initialized and valid during the whole thread lifetime.
+        /// No constructor and destructor, threads rely on globals that should
+        /// be initialized and valid during the whole thread lifetime.
         void initialize (u32 threads);
         void deinitialize ();
     };

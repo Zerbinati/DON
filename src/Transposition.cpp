@@ -14,12 +14,12 @@ namespace Transposition {
 
     u08 Entry::Generation;
 
-    // Size of Transposition entry (10 bytes)
+    /// Size of Transposition entry (10 bytes)
     static_assert (sizeof (Entry) == 10, "Entry size incorrect");
-    // Size of Transposition cluster (32 bytes)
+    /// Size of Transposition cluster (32 bytes)
     static_assert (CacheLineSize % sizeof (Cluster) == 0, "Cluster size incorrect");
 
-    // Alocate the aligned memory
+    /// Table::alloc_aligned_memory() allocates the aligned memory
     void Table::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
         assert((alignment & (alignment-1)) == 0);
@@ -66,7 +66,7 @@ namespace Transposition {
     #endif
 
     }
-    // Free the aligned memory
+    /// Table::free_aligned_memory() frees the aligned memory
     void Table::free_aligned_memory ()
     {
     #   if defined(LPAGES)
@@ -79,9 +79,9 @@ namespace Transposition {
         cluster_count = 0;
     }
 
-    // resize(mb) sets the size of the table, measured in mega-bytes.
-    // Transposition table consists of a power of 2 number of clusters and
-    // each cluster consists of Cluster::EntryCount number of entry.
+    /// Table::resize() sets the size of the table, measured in mega-bytes.
+    /// Transposition table consists of a power of 2 number of clusters and
+    /// each cluster consists of Cluster::EntryCount number of entry.
     u32 Table::resize (u32 mem_size, bool force)
     {
         mem_size = std::min (std::max (mem_size, MinHashSize), MaxHashSize);
@@ -116,6 +116,7 @@ namespace Transposition {
         return resize (size (), true);
     }
 
+    /// Table::auto_resize()
     void Table::auto_resize (u32 mem_size, bool force)
     {
         for (auto msize =
@@ -132,7 +133,7 @@ namespace Transposition {
         }
         Engine::stop (EXIT_FAILURE);
     }
-    // Clear the entire transposition table.
+    /// Table::clear() clear the entire transposition table.
     void Table::clear ()
     {
         assert(nullptr != clusters);
@@ -150,9 +151,9 @@ namespace Transposition {
         //sync_cout << "info string Hash cleared" << sync_endl;
     }
 
-    // probe() looks up the entry in the transposition table.
-    // If the position is found, it returns true and a pointer to the found entry.
-    // Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
+    /// Table::probe() looks up the entry in the transposition table.
+    /// If the position is found, it returns true and a pointer to the found entry.
+    /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
     Entry* Table::probe (const Key key, bool &tt_hit) const
     {
         auto *const fte = cluster_entry (key);
@@ -187,12 +188,12 @@ namespace Transposition {
         }
         return tt_hit = false, rte;
     }
-    // Returns an approximation of the per-mille of the 
-    // all transposition entries during a search which have received
-    // at least one write during the current search.
-    // It is used to display the "info hashfull ..." information in UCI.
-    // "the hash is <x> permill full", the engine should send this info regularly.
-    // hash, are using <x>%. of the state of full.
+    /// Table::hash_full() returns an approximation of the per-mille of the 
+    /// all transposition entries during a search which have received
+    /// at least one write during the current search.
+    /// It is used to display the "info hashfull ..." information in UCI.
+    /// "the hash is <x> permill full", the engine should send this info regularly.
+    /// hash, are using <x>%. of the state of full.
     u32 Table::hash_full () const
     {
         u32 entry_count = 0;
@@ -209,7 +210,7 @@ namespace Transposition {
         }
         return u32(entry_count * 1000 / (cluster_limit * Cluster::EntryCount));
     }
-
+    /// Table::save() saves hash
     void Table::save (const string &hash_fn) const
     {
         ofstream ofs (hash_fn, ios_base::out|ios_base::binary);
@@ -220,7 +221,7 @@ namespace Transposition {
             sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
         }
     }
-
+    /// Table::load() loads hash
     void Table::load (const string &hash_fn)
     {
         ifstream ifs (hash_fn, ios_base::in|ios_base::binary);

@@ -13,7 +13,7 @@ namespace Notation {
 
     namespace {
 
-        // Ambiguity
+        /// Ambiguity
         enum Ambiguity : u08
         {
             AMB_NONE,
@@ -22,8 +22,8 @@ namespace Notation {
             AMB_SQUARE,
         };
 
-        // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
-        // NOTE: for pawns it is not needed because 'org' file is explicit.
+        /// Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
+        /// NOTE: for pawns it is not needed because 'org' file is explicit.
         Ambiguity ambiguity (Move m, const Position &pos)
         {
             assert(pos.pseudo_legal (m)
@@ -105,11 +105,11 @@ namespace Notation {
         }
     }
 
-    // Converts a move to a string in coordinate algebraic notation representation.
-    // The only special case is castling moves,
-    //  - e1g1 notation in normal chess mode,
-    //  - e1h1 notation in chess960 mode.
-    // Internally castle moves are always coded as "king captures rook".
+    /// Converts a move to a string in coordinate algebraic notation representation.
+    /// The only special case is castling moves,
+    ///  - e1g1 notation in normal chess mode,
+    ///  - e1h1 notation in chess960 mode.
+    /// Internally castle moves are always coded as "king captures rook".
     string move_to_can (Move m)
     {
         if (MOVE_NONE == m) return "(none)";
@@ -123,8 +123,8 @@ namespace Notation {
         }
         return can;
     }
-    // Converts a string representing a move in coordinate algebraic notation
-    // to the corresponding legal move, if any.
+    /// Converts a string representing a move in coordinate algebraic notation
+    /// to the corresponding legal move, if any.
     Move move_from_can (string &can, const Position &pos)
     {
         if (   5 == can.length ()
@@ -142,7 +142,7 @@ namespace Notation {
         return MOVE_NONE;
     }
 
-    // Converts a move to a string in short algebraic notation representation.
+    /// Converts a move to a string in short algebraic notation representation.
     string move_to_san (Move m, Position &pos)
     {
         if (MOVE_NONE == m) return "(none)";
@@ -209,8 +209,8 @@ namespace Notation {
 
         return san;
     }
-    // Converts a string representing a move in short algebraic notation
-    // to the corresponding legal move, if any.
+    /// Converts a string representing a move in short algebraic notation
+    /// to the corresponding legal move, if any.
     Move move_from_san (const string &san, Position &pos)
     {
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))
@@ -223,14 +223,14 @@ namespace Notation {
         return MOVE_NONE;
     }
 
-    //// Converts a move to a string in long algebraic notation representation.
+    ///// Converts a move to a string in long algebraic notation representation.
     //string move_to_lan (Move m, Position &pos)
     //{
     //    string lan;
     //    return lan;
     //}
-    //// Converts a string representing a move in long algebraic notation
-    //// to the corresponding legal move, if any.
+    ///// Converts a string representing a move in long algebraic notation
+    ///// to the corresponding legal move, if any.
     //Move move_from_lan (const string &lan, Position &pos)
     //{
     //    for (const auto &vm : MoveList<GenType::LEGAL> (pos))
@@ -243,9 +243,9 @@ namespace Notation {
     //    return MOVE_NONE;
     //}
 
-    // Returns formated human-readable search information,
-    // typically to be appended to the search log file.
-    // It uses the two helpers to pretty format the value and time respectively.
+    /// Returns formated human-readable search information,
+    /// typically to be appended to the search log file.
+    /// It uses the two helpers to pretty format the value and time respectively.
     string pretty_pv_info (Thread *const &th)
     {
         const double K = 1000.0;

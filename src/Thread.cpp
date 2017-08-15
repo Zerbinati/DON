@@ -1,12 +1,11 @@
 #include "Thread.h"
 
 #include <cfloat>
-#include "UCI.h"
+#include "Option.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
 
 using namespace std;
-using namespace UCI;
 using namespace Searcher;
 using namespace TBSyzygy;
 
@@ -134,14 +133,19 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
 
 namespace Threading {
 
-    namespace { // Win Processors Group
+    /// Win Processors Group
+    /// Under Windows it is not possible for a process to run on more than one logical processor group.
+    /// This usually means to be limited to use max 64 cores.
+    /// To overcome this, some special platform specific API should be called to set group affinity for each thread.
+    /// Original code from Texel by Peter Österlund.
+    namespace { 
     
-        // bind_thread() set the group affinity for the thread index.
+        /// bind_thread() set the group affinity for the thread index.
         void bind_thread (size_t index);
 
     #if defined(_WIN32)
-        // get_group() retrieves logical processor information using Windows specific
-        // API and returns the best group id for the thread index.
+        /// get_group() retrieves logical processor information using Windows specific
+        /// API and returns the best group id for the thread index.
         i32 get_group (size_t index)
         {
             // Early exit if the needed API is not available at runtime
@@ -354,6 +358,7 @@ namespace Threading {
         }
     }
 
+    /// ThreadPool::clear() clears the threadpool
     void ThreadPool::clear ()
     {
         for (auto *th : *this)
@@ -368,7 +373,7 @@ namespace Threading {
         }
     }
 
-    // ThreadPool::configure() creates/destroys threads to match the requested number.
+    /// ThreadPool::configure() creates/destroys threads to match the requested number.
     void ThreadPool::configure (u32 threads)
     {
         assert(0 < threads);
@@ -478,22 +483,22 @@ namespace Threading {
         start_thinking (root_pos, states, limits, search_moves, ponde);
     }
 
-    // Waits for the main thread while searching.
+    /// Waits for the main thread while searching.
     void ThreadPool::wait_while_thinking ()
     {
         main_thread ()->wait_while_busy ();
     }
 
-    // Creates and launches requested threads, that will go immediately to sleep.
-    // Cannot use a constructor becuase threadpool is a static object and require a fully initialized engine.
+    /// Creates and launches requested threads, that will go immediately to sleep.
+    /// Cannot use a constructor becuase threadpool is a static object and require a fully initialized engine.
     void ThreadPool::initialize (u32 threads)
     {
         assert(empty ());
         push_back (new MainThread (0));
         configure (threads);
     }
-    // Cleanly terminates the threads before the program exits.
-    // Cannot be done in destructor because threads must be terminated before deleting any static objects.
+    /// Cleanly terminates the threads before the program exits.
+    /// Cannot be done in destructor because threads must be terminated before deleting any static objects.
     void ThreadPool::deinitialize ()
     {
         wait_while_thinking ();

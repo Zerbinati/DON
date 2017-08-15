@@ -9,7 +9,7 @@ namespace MoveGen {
 
     namespace {
 
-        // Generates piece normal move
+        /// Generates piece normal move
         template<GenType GT, Color Own, PieceType PT>
         void generate_piece_moves (ValMoves &moves, const Position &pos, Bitboard targets)
         {
@@ -41,7 +41,7 @@ namespace MoveGen {
             }
         }
 
-        // Generates pawn promotion move
+        /// Generates pawn promotion move
         template<GenType GT, Delta Del>
         void generate_promotion_moves (ValMoves &moves, const Position &pos, Square dst)
         {
@@ -114,7 +114,7 @@ namespace MoveGen {
                 break;
             }
         }
-        // Generates pawn normal move
+        /// Generates pawn normal move
         template<GenType GT, Color Own>
         void generate_pawn_moves (ValMoves &moves, const Position &pos, Bitboard targets)
         {
@@ -223,7 +223,7 @@ namespace MoveGen {
             }
         }
 
-        // Generates king castling move
+        /// Generates king castling move
         template<GenType GT, Color Own, CastleSide CS>
         void generate_castling_moves (ValMoves &moves, const Position &pos)
         {
@@ -266,7 +266,7 @@ namespace MoveGen {
                 moves += m;
             }
         }
-        // Generates king normal move
+        /// Generates king normal move
         template<GenType GT, Color Own>
         void generate_king_moves (ValMoves &moves, const Position &pos, Bitboard targets)
         {
@@ -303,7 +303,7 @@ namespace MoveGen {
         }
 
 
-        // Generates all pseudo-legal moves of color for targets.
+        /// Generates all pseudo-legal moves of color for targets.
         template<GenType GT, Color Own>
         void generate_moves (ValMoves &moves, const Position &pos, Bitboard targets)
         {
@@ -348,16 +348,16 @@ namespace MoveGen {
             generate_moves<GT, BLACK> (moves, pos, targets);
     }
     
-    // Explicit template instantiations
-    // --------------------------------
-    // generate<NATURAL> generates all pseudo-legal captures and non-captures.
+    /// Explicit template instantiations
+    /// --------------------------------
+    /// generate<NATURAL> generates all pseudo-legal captures and non-captures.
     template void generate<GenType::NATURAL> (ValMoves&, const Position&);
-    // generate<CAPTURES> generates all pseudo-legal captures and queen promotions.
+    /// generate<CAPTURES> generates all pseudo-legal captures and queen promotions.
     template void generate<GenType::CAPTURE> (ValMoves&, const Position&);
-    // generate<QUIETS> generates all pseudo-legal non-captures and underpromotions.
+    /// generate<QUIETS> generates all pseudo-legal non-captures and underpromotions.
     template void generate<GenType::QUIET  > (ValMoves&, const Position&);
 
-    // Generates all pseudo-legal non-captures and knight underpromotions moves that give check.
+    /// Generates all pseudo-legal non-captures and knight underpromotions moves that give check.
     template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position &pos)
     {
         assert(0 == pos.si->checkers);
@@ -403,7 +403,7 @@ namespace MoveGen {
             generate_moves<GenType::QUIET_CHECK, WHITE> (moves, pos, targets) :
             generate_moves<GenType::QUIET_CHECK, BLACK> (moves, pos, targets);
     }
-    // Generates all pseudo-legal check giving moves.
+    /// Generates all pseudo-legal check giving moves.
     template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position &pos)
     {
         assert(0 == pos.si->checkers);
@@ -448,7 +448,7 @@ namespace MoveGen {
             generate_moves<GenType::CHECK, WHITE> (moves, pos, targets) :
             generate_moves<GenType::CHECK, BLACK> (moves, pos, targets);
     }
-    // Generates all pseudo-legal check evasions moves when the side to move is in check.
+    /// Generates all pseudo-legal check evasions moves when the side to move is in check.
     template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position &pos)
     {
         assert(0 != pos.si->checkers);
@@ -512,7 +512,7 @@ namespace MoveGen {
             generate_moves<GenType::EVASION, WHITE> (moves, pos, targets) :
             generate_moves<GenType::EVASION, BLACK> (moves, pos, targets);
     }
-    // Generates all legal moves.
+    /// Generates all legal moves.
     template<> void generate<GenType::LEGAL      > (ValMoves &moves, const Position &pos)
     {
         0 == pos.si->checkers ?
@@ -520,7 +520,8 @@ namespace MoveGen {
             generate<GenType::EVASION> (moves, pos);
         filter_illegal (moves, pos);
     }
-
+    
+    /// Filter illegal moves
     void filter_illegal (ValMoves &moves, const Position &pos)
     {
         moves.erase (std::remove_if (moves.begin (),

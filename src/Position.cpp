@@ -2,7 +2,7 @@
 
 #include "MoveGenerator.h"
 #include "Notation.h"
-#include "PieceSquare.h"
+#include "PSQT.h"
 #include "TBsyzygy.h"
 #include "Thread.h"
 #include "Transposition.h"
@@ -11,7 +11,7 @@ using namespace std;
 using namespace BitBoard;
 using namespace MoveGen;
 using namespace Notation;
-using namespace PieceSquare;
+using namespace PSQT;
 using namespace TBSyzygy;
 using namespace Threading;
 using namespace Transposition;
@@ -19,8 +19,8 @@ using namespace Transposition;
 bool Position::Chess960 = false;
 u08  Position::DrawClockPly = 100;
 
-// Checks whether position is drawn by: Clock Ply Rule, Repetition.
-// It does not detect Insufficient materials and Stalemate.
+/// Position::draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
+/// It does not detect Insufficient materials and Stalemate.
 bool Position::draw (i16 pp) const
 {
     // Draw by Clock Ply Rule?
@@ -53,9 +53,11 @@ bool Position::draw (i16 pp) const
     }
     return false;
 }
-// Helper function used by see_ge() to locate the least valuable attacker for the side to move,
-// remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
-template<PieceType PT> PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const
+
+/// Position::pick_least_val_att() helper function used by see_ge() to locate the least valuable attacker for the side to move,
+/// remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
+template<PieceType PT>
+PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
     Bitboard b = c_attackers & pieces (PT);
     if (0 != b)
@@ -87,7 +89,7 @@ template<> PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitbo
     return KING; // No need to update bitboards, it is the last cycle.
 }
 
-// Static Exchange Evaluator (SEE): It tries to estimate the material gain or loss resulting from a move.
+/// Position::see_ge() Static Exchange Evaluator (SEE): It tries to estimate the material gain or loss resulting from a move.
 bool Position::see_ge (Move m, Value threshold) const
 {
     assert(_ok (m));
@@ -198,10 +200,10 @@ bool Position::see_ge (Move m, Value threshold) const
     return profit;
 }
 
-// Returns a bitboard of all the pieces that are blocking attacks on the square.
-// A piece blocks a slider if removing that piece from the board would result in a position where square is attacked by the sliders in 'attackers'.
-// For example, a king-attack blocking piece can be either absolute or discovered blocked piece,
-// according if its color is the opposite or the same of the color of the sliders in 'attackers'.
+/// Position::slider_blockers() returns a bitboard of all the pieces that are blocking attacks on the square.
+/// A piece blocks a slider if removing that piece from the board would result in a position where square is attacked by the sliders in 'attackers'.
+/// For example, a king-attack blocking piece can be either absolute or discovered blocked piece,
+/// according if its color is the opposite or the same of the color of the sliders in 'attackers'.
 template<Color Own>
 Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const
 {
@@ -242,9 +244,9 @@ Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &p
 template Bitboard Position::slider_blockers<WHITE> (Square, Bitboard, Bitboard&, Bitboard&) const;
 template Bitboard Position::slider_blockers<BLACK> (Square, Bitboard, Bitboard&, Bitboard&) const;
 
-// Tests whether a random move is pseudo-legal.
-// It is used to validate moves from TT that can be corrupted
-// due to SMP concurrent access or hash position key aliasing.
+/// Position::pseudo_legal() tests whether a random move is pseudo-legal.
+/// It is used to validate moves from TT that can be corrupted
+/// due to SMP concurrent access or hash position key aliasing.
 bool Position::pseudo_legal (Move m) const
 {
     assert(_ok (m));
@@ -418,7 +420,7 @@ bool Position::pseudo_legal (Move m) const
     }
     return true;
 }
-// Tests whether a pseudo-legal move is legal.
+/// Position::legal() tests whether a pseudo-legal move is legal.
 bool Position::legal (Move m) const
 {
     assert(_ok (m));
@@ -478,7 +480,7 @@ bool Position::legal (Move m) const
     }
     return false;
 }
-// Tests whether a pseudo-legal move gives a check.
+/// Position::gives_check() tests whether a pseudo-legal move gives a check.
 bool Position::gives_check (Move m) const
 {
     auto org = org_sq (m);
@@ -552,7 +554,7 @@ bool Position::gives_check (Move m) const
     }
     return false;
 }
-// Clear the position.
+/// Position::clear() clear the position.
 void Position::clear ()
 {
     for (auto s : SQ)
@@ -579,7 +581,7 @@ void Position::clear ()
         }
     }
 }
-// Set the castling right.
+/// Position::set_castle() set the castling right.
 void Position::set_castle (Color c, CastleSide cs)
 {
     auto king_org = square<KING> (c);
@@ -616,7 +618,7 @@ void Position::set_castle (Color c, CastleSide cs)
         }
     }
 }
-// Can the en-passant possible.
+/// Position::can_en_passant() Can the en-passant possible.
 bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
 {
     assert(ep_sq != SQ_NO);
@@ -650,36 +652,40 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
     return false;
 }
 
-// A FEN string defines a particular position using only the ASCII character set.
-// A FEN string contains six fields separated by a space.
-// 1) Piece placement (from white's perspective).
-//    Each rank is described, starting with rank 8 and ending with rank 1;
-//    within each rank, the contents of each square are described from file A through file H.
-//    Following the Standard Algebraic Notation (SAN),
-//    each piece is identified by a single letter taken from the standard English names.
-//    White pieces are designated using upper-case letters ("PNBRQK") while
-//    Black pieces are designated using lower-case letters ("pnbrqk").
-//    Blank squares are noted using digits 1 through 8 (the number of blank squares),
-//    and "/" separates ranks.
-// 2) Active color. "w" means white, "b" means black - moves next.
-// 3) Castling availability. If neither side can castle, this is "-". 
-//    Otherwise, this has one or more letters:
-//    "K" (White can castle  Kingside).
-//    "Q" (White can castle Queenside).
-//    "k" (Black can castle  Kingside).
-//    "q" (Black can castle Queenside).
-//    In Chess 960 file "a-h" is used.
-// 4) En passant target square (in algebraic notation).
-//    If there's no en passant target square, this is "-".
-//    If a pawn has just made a 2-square move, this is the position "behind" the pawn.
-//    This is recorded only if there really is a pawn that might have advanced two squares
-//    and if there is a pawn in position to make an en passant capture legally!!!. 
-// 5) Halfmove clock. This is the number of halfmoves since the last pawn advance or capture.
-//    This is used to determine if a draw can be claimed under the fifty-move rule.
-// 6) Fullmove number. The number of the full move.
-//    It starts at 1, and is incremented after Black's move.
+/// Position::setup() initializes the position object with the given FEN string.
+/// This function is not very robust - make sure that input FENs are correct,
+/// this is assumed to be the responsibility of the GUI.
 Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, bool full)
 {
+    // A FEN string defines a particular position using only the ASCII character set.
+    // A FEN string contains six fields separated by a space.
+    // 1) Piece placement (from white's perspective).
+    //    Each rank is described, starting with rank 8 and ending with rank 1;
+    //    within each rank, the contents of each square are described from file A through file H.
+    //    Following the Standard Algebraic Notation (SAN),
+    //    each piece is identified by a single letter taken from the standard English names.
+    //    White pieces are designated using upper-case letters ("PNBRQK") while
+    //    Black pieces are designated using lower-case letters ("pnbrqk").
+    //    Blank squares are noted using digits 1 through 8 (the number of blank squares),
+    //    and "/" separates ranks.
+    // 2) Active color. "w" means white, "b" means black - moves next.
+    // 3) Castling availability. If neither side can castle, this is "-". 
+    //    Otherwise, this has one or more letters:
+    //    "K" (White can castle  Kingside).
+    //    "Q" (White can castle Queenside).
+    //    "k" (Black can castle  Kingside).
+    //    "q" (Black can castle Queenside).
+    //    In Chess 960 file "a-h" is used.
+    // 4) En passant target square (in algebraic notation).
+    //    If there's no en passant target square, this is "-".
+    //    If a pawn has just made a 2-square move, this is the position "behind" the pawn.
+    //    This is recorded only if there really is a pawn that might have advanced two squares
+    //    and if there is a pawn in position to make an en passant capture legally!!!. 
+    // 5) Halfmove clock. This is the number of halfmoves since the last pawn advance or capture.
+    //    This is used to determine if a draw can be claimed under the fifty-move rule.
+    // 6) Fullmove number. The number of the full move.
+    //    It starts at 1, and is incremented after Black's move.
+
     istringstream iss (ff);
     iss >> std::noskipws;
 
@@ -838,8 +844,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     thread = th;
     return *this;
 }
-// Overload to initialize the position object with the given endgame code string like "KBPKN".
-// It is manily an helper to get the material key out of an endgame code.
+/// Position::setup() initializes the position object with the given endgame code string like "KBPKN".
+/// It is manily an helper to get the material key out of an endgame code.
 Position& Position::setup (const string &code, StateInfo &nsi, Color c)
 {
     assert(0 < code.length () && code.length () <= 8);
@@ -861,7 +867,9 @@ Position& Position::setup (const string &code, StateInfo &nsi, Color c)
     return *this;
 }
 
-// Do the natural-move.
+/// Position::do_move() makes a move, and saves all information necessary
+/// to a StateInfo object. The move is assumed to be legal. Pseudo-legal
+/// moves should be filtered out before this function is called.
 void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 {
     assert(_ok (m));
@@ -1046,7 +1054,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     assert(ok ());
 }
-// Undo the last natural-move.
+/// Position::undo_move() unmakes a move. When it returns, the position should
+/// be restored to exactly the same state as before the move was made.
 void Position::undo_move (Move m)
 {
     assert(nullptr != si->ptr);
@@ -1115,7 +1124,8 @@ void Position::undo_move (Move m)
 
     assert(ok ());
 }
-// Do the null-move.
+/// Position::do_null_move() makes a "null move":
+// It flips the side to move without executing any move on the board.
 void Position::do_null_move (StateInfo &nsi)
 {
     assert(&nsi != si);
@@ -1142,7 +1152,7 @@ void Position::do_null_move (StateInfo &nsi)
 
     assert(ok ());
 }
-// Undo the last null-move.
+/// Position::do_null_move() unmakes a "null move":
 void Position::undo_null_move ()
 {
     assert(nullptr != si->ptr);
@@ -1154,8 +1164,8 @@ void Position::undo_null_move ()
 
     assert(ok ());
 }
-// Flips position with the white and black sides reversed.
-// This is only useful for debugging especially for finding evaluation symmetry bugs.
+/// Position::flip() flips position with the white and black sides reversed.
+/// This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip ()
 {
     istringstream iss (fen (true));
@@ -1192,6 +1202,7 @@ void Position::flip ()
 
     assert(ok ());
 }
+/// Position::mirror() mirrors position.
 void Position::mirror ()
 {
     istringstream iss (fen (true));
@@ -1237,7 +1248,8 @@ void Position::mirror ()
     assert(ok ());
 }
 
-// Returns the fen of position.
+/// Position::fen() returns a FEN representation of the position.
+/// In case of Chess960 the Shredder-FEN notation is used.
 string Position::fen (bool full) const
 {
     ostringstream oss;
@@ -1289,8 +1301,7 @@ string Position::fen (bool full) const
 
     return oss.str ();
 }
-// Returns an ASCII representation of the position to be
-// printed to the standard output.
+/// Position::operator string () returns an ASCII representation of the position.
 Position::operator string () const
 {
     ostringstream oss;
@@ -1334,8 +1345,8 @@ Position::operator string () const
 }
 
 #if !defined(NDEBUG)
-// Performs some consistency checks for the position,
-// and raises an asserts if something wrong is detected.
+/// Position::ok() performs some consistency checks for the position,
+/// and raises an asserts if something wrong is detected.
 bool Position::ok () const
 {
     const bool Fast = true;

@@ -10,7 +10,7 @@
 
 namespace UCI {
 
-    // Option class implements an option as defined by UCI protocol
+    /// Option class implements an option as defined by UCI protocol
     class Option
     {
     private:
@@ -49,10 +49,8 @@ namespace UCI {
 
     };
 
-    // Options container is actually a std::map of Option
+    /// Options container is actually a std::map of Option
     typedef std::map<std::string, Option, std::no_case_less_comparer> OptionMap;
-
-    extern void loop (i32 argc, const char *const *argv);
 
     extern void initialize ();
     extern void deinitialize ();
@@ -65,8 +63,8 @@ namespace UCI {
         return os;
     }
 
-    // operator<<() is used to print all the options default values in chronological
-    // insertion order (the idx field) and in the format defined by the UCI protocol.
+    /// operator<<() is used to print all the options default values in chronological
+    /// insertion order (the idx field) and in the format defined by the UCI protocol.
     template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
         operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap)

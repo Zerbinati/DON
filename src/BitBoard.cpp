@@ -97,10 +97,10 @@ namespace BitBoard {
         const u32 MaxRTSize = U32(0x19000);
         Bitboard RTable[MaxRTSize];
 
-        // Initialize all bishop and rook attacks at startup.
-        // Magic bitboards are used to look up attacks of sliding pieces.
-        // As a reference see chessprogramming.wikispaces.com/Magic+Bitboards.
-        // In particular, here we use the so called "fancy" approach.
+        /// Initialize all bishop and rook attacks at startup.
+        /// Magic bitboards are used to look up attacks of sliding pieces.
+        /// As a reference see chessprogramming.wikispaces.com/Magic+Bitboards.
+        /// In particular, here we use the so called "fancy" approach.
         void initialize_table (Bitboard *const table, Magic *const magics, const Delta *const deltas)
         {
 
@@ -343,8 +343,8 @@ namespace BitBoard {
     }
 
 #if !defined(NDEBUG)
-    // Returns an ASCII representation of a bitboard to print on console output
-    // Bitboard in an easily readable format. This is sometimes useful for debugging.
+    /// Returns an ASCII representation of a bitboard to print on console output
+    /// Bitboard in an easily readable format. This is sometimes useful for debugging.
     string pretty (Bitboard bb)
     {
         ostringstream oss;

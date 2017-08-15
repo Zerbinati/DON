@@ -182,7 +182,6 @@ namespace Evaluator {
             // Pieces which attack more than one square are counted multiple times.
             u08      king_zone_attacks_count[CLR_NO];
 
-            // Evaluation helpers
             template<Color Own> void initialize ();
             template<Color Own, PieceType PT> Score evaluate_pieces ();
             template<Color Own> Score evaluate_king ();
@@ -274,8 +273,7 @@ namespace Evaluator {
         template<bool Trace>
         const i32 Evaluation<Trace>::PieceAttackWeights[NONE] = { 0, 78, 56, 45, 11 };
 
-        // initialize() computes king and pawn attacks, and the king ring bitboard for the color.
-        // This is done at the beginning of the evaluation.
+        /// initialize() computes king and pawn attacks, and the king ring bitboard for the color.
         template<bool Trace>
         template<Color Own>
         void Evaluation<Trace>::initialize ()
@@ -340,7 +338,7 @@ namespace Evaluator {
             }
         }
 
-        // Evaluates bonuses and penalties of the pieces of the color and type
+        /// Evaluates bonuses and penalties of the pieces of the color and type
         template<bool Trace>
         template<Color Own, PieceType PT>
         Score Evaluation<Trace>::evaluate_pieces ()
@@ -543,7 +541,7 @@ namespace Evaluator {
             return score;
         }
 
-        // Evaluates bonuses and penalties of the king of the color
+        /// Evaluates bonuses and penalties of the king of the color
         template<bool Trace>
         template<Color Own>
         Score Evaluation<Trace>::evaluate_king ()
@@ -719,7 +717,7 @@ namespace Evaluator {
             return score;
         }
 
-        // Evaluates the threats of the color
+        /// Evaluates the threats of the color
         template<bool Trace>
         template<Color Own>
         Score Evaluation<Trace>::evaluate_threats ()
@@ -853,7 +851,7 @@ namespace Evaluator {
             return score;
         }
 
-        // Evaluates the passed pawns of the color
+        /// Evaluates the passed pawns of the color
         template<bool Trace>
         template<Color Own>
         Score Evaluation<Trace>::evaluate_passers ()
@@ -972,11 +970,11 @@ namespace Evaluator {
             return score;
         }
 
-        // Evaluates the space of the color
-        // The space evaluation is a simple bonus based on the number of safe squares
-        // available for minor pieces on the central four files on ranks 2-4
-        // Safe squares one, two or three squares behind a friend pawn are counted twice
-        // The aim is to improve play on opening
+        /// Evaluates the space of the color
+        /// The space evaluation is a simple bonus based on the number of safe squares
+        /// available for minor pieces on the central four files on ranks 2-4
+        /// Safe squares one, two or three squares behind a friend pawn are counted twice
+        /// The aim is to improve play on opening
         template<bool Trace>
         template<Color Own>
         Score Evaluation<Trace>::evaluate_space ()
@@ -1021,8 +1019,8 @@ namespace Evaluator {
             return score;
         }
 
-        // Evaluates the initiative correction value for the position
-        // i.e. second order bonus/malus based on the known attacking/defending status of the players
+        /// Evaluates the initiative correction value for the position
+        /// i.e. second order bonus/malus based on the known attacking/defending status of the players
         template<bool Trace>
         Score Evaluation<Trace>::evaluate_initiative (Value eg)
         {
@@ -1041,7 +1039,7 @@ namespace Evaluator {
             return mk_score (0, sign (eg) * initiative);
         }
 
-        // Evaluates the scale for the position
+        /// Evaluates the scale for the position
         template<bool Trace>
         Scale Evaluation<Trace>::evaluate_scale (Value eg)
         {
@@ -1089,9 +1087,9 @@ namespace Evaluator {
             return scale;
         }
 
-        // value() is the main function of the class. It computes the various parts of
-        // the evaluation and returns the value of the position from the point of view
-        // of the side to move.
+        /// value() is the main function of the class. It computes the various parts of
+        /// the evaluation and returns the value of the position from the point of view
+        /// of the side to move.
         template<bool Trace>
         Value Evaluation<Trace>::value ()
         {
@@ -1185,15 +1183,15 @@ namespace Evaluator {
         }
     }
 
-    // evaluate() is the evaluator for the outer world. It returns a static evaluation
-    // of the position from the point of view of the side to move.
+    /// evaluate() is the evaluator for the outer world. It returns a static evaluation
+    /// of the position from the point of view of the side to move.
     Value evaluate (const Position &pos)
     {
         return Evaluation<false> (pos).value ();
     }
 
-    // trace_eval() returns a string (suitable for outputting to stdout) that contains
-    // the detailed descriptions and values of each evaluation term.
+    /// trace_eval() returns a string (suitable for outputting to stdout) that contains
+    /// the detailed descriptions and values of each evaluation term.
     string trace_eval (const Position &pos)
     {
         std::memset (Tracer::cp, 0x00, sizeof (Tracer::cp));

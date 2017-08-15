@@ -7,6 +7,7 @@ class Position;
 
 namespace Zobrists {
 
+    /// Zobrist
     class Zobrist
     {
     public:

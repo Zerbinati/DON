@@ -5,7 +5,7 @@
 
 class Position;
 
-namespace PieceSquare {
+namespace PSQT {
 
     extern Score PSQ[CLR_NO][NONE][SQ_NO];
 

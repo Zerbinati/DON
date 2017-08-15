@@ -66,7 +66,7 @@ namespace Polyglot {
         close ();
     }
 
-    // Tries to open a book file with the given name after closing any existing one.
+    /// Tries to open a book file with the given name after closing any existing one.
     bool Book::open (const string &bk_fn, ios_base::openmode m)
     {
         book_fn = bk_fn;
@@ -123,7 +123,7 @@ namespace Polyglot {
         return *this;
     }
 
-    // Returns the index of the 1st book entry with the same key as the input.
+    /// Book::find_index() returns the index of the 1st book entry with the same key as the input.
     size_t Book::find_index (const Key key)
     {
         if (!is_open ())
@@ -166,10 +166,10 @@ namespace Polyglot {
         return find_index (Position ().setup (fen, si, nullptr, c960).pg_key ());
     }
 
-    // Tries to find a book move for the given position.
-    // If no move is found returns MOVE_NONE.
-    // If pick_best is true returns always the highest rated move,
-    // otherwise randomly chooses one, based on the move score.
+    /// Book::probe_move() Tries to find a book move for the given position.
+    /// If no move is found returns MOVE_NONE.
+    /// If pick_best is true returns always the highest rated move,
+    /// otherwise randomly chooses one, based on the move score.
     Move Book::probe_move (const Position &pos, bool pick_best)
     {
         static PRNG pr (now ());

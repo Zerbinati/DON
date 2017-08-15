@@ -5,7 +5,7 @@
 #include <cstdlib>
 
 #include "Thread.h"
-#include "UCI.h"
+#include "Option.h"
 
 #if defined(_WIN32)
 

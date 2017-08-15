@@ -12,7 +12,7 @@
 
 namespace EndGame {
 
-    // EndgameCode lists all supported endgame functions by corresponding codes
+    /// EndgameCode lists all supported endgame functions by corresponding codes
     enum EndgameCode : u08
     {
         EVALUATION_FUNCTIONS,
@@ -43,11 +43,11 @@ namespace EndGame {
         KQKRPs,  // KQ vs KRPs
     };
 
-    // Endgame functions can be of two category depending on whether they return Value or Scale.
+    /// Endgame functions can be of two category depending on whether they return Value or Scale.
     template<EndgameCode EC>
     using EndgameType = typename std::conditional<EC < SCALING_FUNCTIONS, Value, Scale>::type;
 
-    // Base and derived functors for endgame evaluation and scaling functions
+    /// Base and derived functors for endgame evaluation and scaling functions
     template<typename ET>
     class EndgameBase
     {
@@ -79,8 +79,8 @@ namespace EndGame {
         ET operator() (const Position &pos) const override;
     };
 
-    // The Endgames class stores the pointers to endgame evaluation and scaling base objects in two std::map. 
-    // Uses polymorphism to invoke the actual endgame function by calling its virtual operator().
+    /// The Endgames class stores the pointers to endgame evaluation and scaling base objects in two std::map. 
+    /// Uses polymorphism to invoke the actual endgame function by calling its virtual operator().
     class Endgames
     {
     private:

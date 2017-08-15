@@ -25,8 +25,8 @@ PGOBENCH = ./$(EXE) bench
 
 ### Object files
 OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
-	MoveGenerator.o Notation.o Pawns.o PieceSquare.o Polyglot.o Position.o Searcher.o \
-	TBsyzygy.o Thread.o Transposition.o UCI.o UCI.Option.o Zobrist.o MemoryHandler.o Debugger.o
+	MoveGenerator.o Notation.o Pawns.o PSQT.o Polyglot.o Position.o Searcher.o TBsyzygy.o \
+	Thread.o Transposition.o Option.o Zobrist.o MemoryHandler.o Debugger.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration

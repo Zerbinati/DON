@@ -27,11 +27,11 @@ namespace Notation {
     {
         return std::string{ to_char (_file (s)), to_char (_rank (s)) };
     }
-    // Converts a value to a string suitable for use with the UCI protocol specifications:
-    //
-    // cp   <x>   The score x from the engine's point of view in centipawns.
-    // mate <y>   Mate in y moves, not plies.
-    //            If the engine is getting mated use negative values for y.
+    /// Converts a value to a string suitable for use with the UCI protocol specifications:
+    ///
+    /// cp   <x>   The score x from the engine's point of view in centipawns.
+    /// mate <y>   Mate in y moves, not plies.
+    ///            If the engine is getting mated use negative values for y.
     inline std::string to_string (Value v)
     {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);

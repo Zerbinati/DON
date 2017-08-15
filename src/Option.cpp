@@ -1,4 +1,4 @@
-#include "UCI.h"
+#include "Option.h"
 
 #include <fstream>
 
@@ -71,12 +71,12 @@ namespace UCI {
         return current_value;
     }
 
-    // operator=() updates value and triggers on_change() action.
-    // It's up to the GUI to check for option's limits,
+    /// Option::operator=() updates value and triggers on_change() action.
     Option& Option::operator= (const char   *value)
     {
         return *this = string(value);
     }
+    /// Option::operator=() updates value and triggers on_change() action.
     Option& Option::operator= (const string &value)
     {
         assert(!type.empty ());
@@ -119,14 +119,14 @@ namespace UCI {
         return *this;
     }
 
-    // operator<<() inits options and assigns idx in the correct printing order
+    /// Option::operator<<() inits options and assigns idx in the correct printing order
     void Option::operator<< (const Option &opt)
     {
         static u08 insert_order = 0;
         *this = opt;
         index = insert_order++;
     }
-    // operator()() is to string method of option
+    /// Option::operator()() is to string method of option
     string Option::operator() ()  const
     {
         ostringstream oss;
@@ -143,9 +143,9 @@ namespace UCI {
         return oss.str ();
     }
     
+    /// 'On change' actions, triggered by an option's value change
+
     namespace {
-        
-        // 'On change' actions, triggered by an option's value change
 
         void on_hash_size ()
         {

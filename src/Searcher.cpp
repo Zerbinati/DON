@@ -8,7 +8,7 @@
 #include "TBsyzygy.h"
 #include "Thread.h"
 #include "Transposition.h"
-#include "UCI.h"
+#include "Option.h"
 #include "Zobrist.h"
 
 using namespace std;
@@ -21,10 +21,9 @@ using namespace Polyglot;
 using namespace TBSyzygy;
 using namespace Threading;
 using namespace Transposition;
-using namespace UCI;
 using namespace Zobrists;
 
-// Extract ponder move from TT is called in case have no ponder move before exiting the search,
+/// RootMove::extract_ponder_move_from_tt() extract ponder move from TT is called in case have no ponder move before exiting the search,
 bool RootMove::extract_ponder_move_from_tt (Position &pos)
 {
     assert(1 == size ());
@@ -47,7 +46,7 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     pos.undo_move (best_move);
     return 1 < size ();
 }
-
+/// RootMove::operator string()
 RootMove::operator string () const
 {
     ostringstream oss;
@@ -58,10 +57,10 @@ RootMove::operator string () const
     }
     return oss.str ();
 }
-
-RootMoves::operator std::string () const
+/// RootMoves::operator string()
+RootMoves::operator string () const
 {
-    std::ostringstream oss;
+    ostringstream oss;
     for (const auto &rm : *this)
     {
         oss << rm << "\n";
@@ -202,7 +201,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     }
 }
 
-/// value() assigns a numerical value to each move in a list, used for sorting.
+/// MovePicker::value() assigns a numerical value to each move in a list, used for sorting.
 /// Captures are ordered by Most Valuable Victim (MVV), preferring captures near our home rank.
 /// Surprisingly, this appears to perform slightly better than SEE-based move ordering,
 /// exchanging big pieces before capturing a hanging piece probably helps to reduce the subtree size.
@@ -243,8 +242,8 @@ void MovePicker::value ()
     }
 }
 
-// Finds the max move in the range [beg, end) and moves it to front.
-// It is faster than sorting all the moves in advance when there are few moves.
+/// MovePicker::next_max_move() finds the max move in the range [beg, end) and moves it to front.
+/// It is faster than sorting all the moves in advance when there are few moves.
 const ValMove& MovePicker::next_max_move ()
 {
     auto beg = moves.begin () + m++;
@@ -255,8 +254,11 @@ const ValMove& MovePicker::next_max_move ()
     }
     return *beg;
 }
-// Returns a new legal move every time it is called, until there are no more moves left.
-// It picks the next max value move from a list of generated moves.
+
+/// MovePicker::next_move() is the most important method of the MovePicker class.
+/// It returns a new legal move every time it is called, until there are no more moves left.
+/// It picks the move with the biggest value from a list of generated moves
+/// taking care not to return the ttMove if it has already been searched.
 Move MovePicker::next_move ()
 {
     START:
@@ -604,13 +606,13 @@ namespace Searcher {
 
         ofstream OutputStream;
 
-        // Stats bonus, based on depth
+        /// stat_bonus() is the bonus, based on depth
         i32 stat_bonus (i16 depth)
         {
             return depth <= 17 ? depth*(depth + 2) - 2 : 0;
         }
 
-        // Updates histories of the move pairs formed by moves at ply -1, -2, and -4 with current move.
+        /// update_continuation_tables() updates tables of the move pairs with current move.
         void update_continuation_tables (Stack *const &ss, Piece pc, Square dst, i32 value)
         {
             for (auto i : {1, 2, 4})
@@ -621,7 +623,7 @@ namespace Searcher {
                 }
             }
         }
-        // Updates move sorting heuristics
+        /// update_tables() updates move sorting heuristics
         void update_tables (Stack *const &ss, const Position &pos, Move move, i32 value)
         {
             if (ss->killer_moves[0] != move)
@@ -641,7 +643,7 @@ namespace Searcher {
             update_continuation_tables (ss, pos[org_sq (move)], dst_sq (move), value);
         }
 
-        // Appends the move and child pv
+        /// update_pv() appends the move and child pv
         void update_pv (Moves &pv, Move move, const Moves &child_pv)
         {
             pv.clear ();
@@ -652,9 +654,9 @@ namespace Searcher {
             }
         }
 
-        // It adjusts a mate score from "plies to mate from the root" to
-        // "plies to mate from the current position". Non-mate scores are unchanged.
-        // The function is called before storing a value to the transposition table.
+        /// It adjusts a mate score from "plies to mate from the root" to
+        /// "plies to mate from the current position". Non-mate scores are unchanged.
+        /// The function is called before storing a value to the transposition table.
         Value value_to_tt (Value v, i32 ply)
         {
             assert(VALUE_NONE != v);
@@ -662,9 +664,9 @@ namespace Searcher {
                    v <= -VALUE_MATE_MAX_PLY ? v - ply :
                    v;
         }
-        // It adjusts a mate score from "plies to mate from the current position" to "plies to mate from the root".
-        // Non-mate scores are unchanged.
-        // The function is called after retrieving a value of the transposition table.
+        /// It adjusts a mate score from "plies to mate from the current position" to "plies to mate from the root".
+        /// Non-mate scores are unchanged.
+        /// The function is called after retrieving a value of the transposition table.
         Value value_of_tt (Value v, i32 ply)
         {
             return v ==  VALUE_NONE         ? VALUE_NONE :
@@ -673,8 +675,8 @@ namespace Searcher {
                    v;
         }
 
-        // Formats PV information according to UCI protocol.
-        // UCI requires that all (if any) unsearched PV lines are sent using a previous search score.
+        /// multipv_info() formats PV information according to UCI protocol.
+        /// UCI requires that all (if any) unsearched PV lines are sent using a previous search score.
         string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
         {
             auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), 1ULL);
@@ -734,8 +736,8 @@ namespace Searcher {
             return oss.str ();
         }
 
-        // The quiescence search function, which is called by the main depth limited search function
-        // when the remaining depth is less than equal to 0.
+        /// quien_search() is quiescence search function, which is called by the main depth limited search function
+        /// when the remaining depth is less than equal to 0.
         template<bool PVNode>
         Value quien_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth = 0)
         {
@@ -1005,7 +1007,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
         }
-        // The main depth limited search function for both PV and non-PV nodes.
+        /// depth_search() is main depth limited search function for both PV and non-PV nodes.
         template<bool PVNode>
         Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node, bool prun_node)
         {
@@ -1827,8 +1829,8 @@ namespace Searcher {
         }
     }
 
-    // Utility to verify move generation.
-    // All the leaf nodes up to the given depth are generated, and the sum is returned.
+    /// Searcher::perft() is utility to verify move generation.
+    /// All the leaf nodes up to the given depth are generated, and the sum is returned.
     template<bool RootNode>
     u64 perft (Position &pos, i16 depth)
     {
@@ -1880,11 +1882,11 @@ namespace Searcher {
         }
         return leaf_nodes;
     }
-    // Explicit template instantiations
+    /// Explicit template instantiations
     template u64 perft<false> (Position&, i16);
     template u64 perft<true > (Position&, i16);
 
-    // Initialize lookup tables during startup.
+    /// Searcher::initialize() initializes lookup tables at startup.
     void initialize ()
     {
         for (i16 d = 0; d < MaxFutilityDepth; ++d)
@@ -1910,7 +1912,7 @@ namespace Searcher {
             }
         }
     }
-    // Resets search state to its initial value, to obtain reproducible results.
+    /// Searcher::clear() resets search state to its initial value.
     void clear ()
     {
         Threadpool.stop = true;
@@ -1932,11 +1934,11 @@ namespace Threading {
     const u08 SkipSize [SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
     const u08 SkipPhase[SkipIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
-    // Thread iterative deepening loop function.
-    // It calls depth_search() repeatedly with increasing depth until
-    // - the force stop requested.
-    // - the allocated thinking time has been consumed.
-    // - the maximum search depth is reached.
+    /// Thread::search() is thread iterative deepening loop function.
+    /// It calls depth_search() repeatedly with increasing depth until
+    /// - the force stop requested.
+    /// - the allocated thinking time has been consumed.
+    /// - the maximum search depth is reached.
     void Thread::search ()
     {
         Stack stacks[MaxPlies + 7]; // To allow referencing (ss-4) and (ss+2)
@@ -2187,8 +2189,8 @@ namespace Threading {
         }
     }
 
-    // Main thread search function.
-    // It searches from root position and outputs the "bestmove"/"ponder".
+    /// MainThread::search() is main thread search function.
+    /// It searches from root position and outputs the "bestmove"/"ponder".
     void MainThread::search ()
     {
         static Book book; // Defined static to initialize the PRNG only once
@@ -2375,7 +2377,7 @@ namespace Threading {
         while (   !Threadpool.stop
                && (   Limits.infinite
                    || Threadpool.ponder))
-        {} // Busy wait for a stop or a ponder reset
+        {} // Busy wait for a "stop"/"ponderhit" command.
 
         Thread *best_thread = this;
         if (voting)
@@ -2460,7 +2462,7 @@ namespace Threading {
             << " ponder " << move_to_can (ponder_move)
             << sync_endl;
     }
-    // Used to detect when out of available limits and thus stop the search, also print debug info.
+    /// MainThread::check_limits() is used to detect when out of available limits and thus stop the search, also print debug info.
     void MainThread::check_limits ()
     {
         static TimePoint last_time = now ();

@@ -52,8 +52,8 @@ namespace Material {
         Endgame<KBPsKPs> ScaleKBPsKPs[CLR_NO] = { Endgame<KBPsKPs> (WHITE), Endgame<KBPsKPs> (BLACK) };
         Endgame<KQKRPs>  ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs>  (WHITE), Endgame<KQKRPs>  (BLACK) };
 
-        // Calculates the imbalance by comparing the piece count of each piece type for both colors.
-        // NOTE:: King == Bishop Pair
+        ///  imbalance() calculates the imbalance by the piece count of each piece type for both colors.
+        /// NOTE:: King == Bishop Pair
         template<Color Own>
         i32 imbalance (const i32 (*count)[NONE])
         {
@@ -95,8 +95,8 @@ namespace Material {
         }
     }
 
-    // Looks up a MaterialEntry object, and returns a pointer to it.
-    // The pointer is also stored in a hash table.
+    /// Material::probe() looks up a current position's material configuration in the material hash table
+    /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe (const Position &pos)
     {
         auto *e = pos.thread->matl_table.get (pos.si->matl_key);

@@ -1,4 +1,4 @@
-#include "PieceSquare.h"
+#include "PSQT.h"
 
 #include "Position.h"
 
@@ -75,14 +75,14 @@ namespace {
     #undef S
 }
 
-namespace PieceSquare
+namespace PSQT
 {
     // PSQ[color][piece-type][square] scores.
     Score PSQ[CLR_NO][NONE][SQ_NO];
 
-    // Computes the scores for the middle game and the endgame.
-    // These functions are used to initialize the scores when a new position is set up,
-    // and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
+    /// Computes the scores for the middle game and the endgame.
+    /// These functions are used to initialize the scores when a new position is set up,
+    /// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
     Score compute_psq (const Position &pos)
     {
         auto psq = SCORE_ZERO;
@@ -99,8 +99,8 @@ namespace PieceSquare
         return psq;
     }
 
-    // Computes the non-pawn middle game material value for the given side.
-    // Material values are updated incrementally during the search.
+    /// Computes the non-pawn middle game material value for the given side.
+    /// Material values are updated incrementally during the search.
     template<Color Own>
     Value compute_npm (const Position &pos)
     {
@@ -114,7 +114,7 @@ namespace PieceSquare
     template Value compute_npm<WHITE> (const Position&);
     template Value compute_npm<BLACK> (const Position&);
 
-    // Initialize lookup tables during startup
+    /// Initializes lookup tables during startup
     void initialize ()
     {
         for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })

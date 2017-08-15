@@ -5,12 +5,11 @@
 #include "Debugger.h"
 #include "Searcher.h"
 #include "Thread.h"
-#include "UCI.h"
+#include "Option.h"
 
 using namespace std;
 using namespace Debugger;
 using namespace Searcher;
-using namespace UCI;
 
 namespace {
 
@@ -66,22 +65,22 @@ namespace {
     };
 }
 
-// Runs a simple benchmark by letting engine analyze a set of positions for a given limit.
-// There are 5 optional parameters:
-//  - Transposition table size (default is 16 MB)
-//  - Threads count (default is 1 Thread)
-//  - Limit value spent for each position (default is 13)
-//  - Limit type:
-//     * 'depth' (default)
-//     * 'time'
-//     * 'movetime'
-//     * 'nodes'
-//     * 'mate'
-//  - FEN positions to be used:
-//     * 'default' for builtin positions (default)
-//     * 'current' for current position
-//     * '<filename>' for file containing FEN positions
-// example: bench 32 1 10000 movetime default
+/// Runs a simple benchmark by letting engine analyze a set of positions for a given limit.
+/// There are 5 optional parameters:
+///  - Transposition table size (default is 16 MB)
+///  - Threads count (default is 1 Thread)
+///  - Limit value spent for each position (default is 13)
+///  - Limit type:
+///     * 'depth' (default)
+///     * 'time'
+///     * 'movetime'
+///     * 'nodes'
+///     * 'mate'
+///  - FEN positions to be used:
+///     * 'default' for builtin positions (default)
+///     * 'current' for current position
+///     * '<filename>' for file containing FEN positions
+/// example: bench 32 1 10000 movetime default
 void benchmark (istringstream &is, const Position &cur_pos)
 {
     u32    hash;
@@ -195,13 +194,13 @@ void benchmark (istringstream &is, const Position &cur_pos)
         << std::endl;
 }
 
-// Runs command perft
-// There are 2 optional parameters:
-//  - Depth
-//  - FEN positions to be used:
-//     * 'default' for builtin positions (default)
-//     * 'current' for current position
-//     * '<filename>' for file containing FEN positions
+/// Runs command perft
+/// There are 2 optional parameters:
+///  - Depth
+///  - FEN positions to be used:
+///     * 'default' for builtin positions (default)
+///     * 'current' for current position
+///     * '<filename>' for file containing FEN positions
 void perft (istringstream &is, const Position &cur_pos)
 {
     i16 depth;

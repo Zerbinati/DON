@@ -10,14 +10,14 @@
 
 const u08 MaxKillers = 2;
 
-// Limit stores information sent by GUI about available time to search the current move.
-//  - Maximum time and increment
-//  - Maximum depth
-//  - Maximum nodes
-//  - Maximum mate
-//  - Search moves
-//  - Infinite analysis mode
-//  - Ponder (think while is opponent's side to move) mode
+/// Limit stores information sent by GUI about available time to search the current move.
+///  - Maximum time and increment
+///  - Maximum depth
+///  - Maximum nodes
+///  - Maximum mate
+///  - Search moves
+///  - Infinite analysis mode
+///  - Ponder (think while is opponent's side to move) mode
 struct Limit
 {
 public:
@@ -63,7 +63,7 @@ public:
     }
 };
 
-// Table2D is a Generic 2-dimensional array used to store various statistics.
+/// Table2D is a Generic 2-dimensional array used to store various statistics.
 template<i32 Size1, i32 Size2, typename T>
 struct Table2D
     : public std::array<std::array<T, Size2>, Size1>
@@ -75,10 +75,10 @@ struct Table2D
     }
 };
 
-// ButterflyStatTable store stats indexed by [color][move's org and dst squares].
+/// ButterflyStatTable store stats indexed by [color][move's org and dst squares].
 typedef Table2D<CLR_NO, SQ_NO*SQ_NO, i32> ButterflyStatTable;
-// ButterflyHistory records how often quiet moves have been successful or unsuccessful
-// during the current search, and is used for reduction and move ordering decisions.
+/// ButterflyHistory records how often quiet moves have been successful or unsuccessful
+/// during the current search, and is used for reduction and move ordering decisions.
 struct ButterflyHistory
     : public ButterflyStatTable
 {
@@ -93,13 +93,13 @@ struct ButterflyHistory
     }
 };
 
-// PieceDestinyStatTable store stats indexed by [piece][destiny].
+/// PieceDestinyStatTable store stats indexed by [piece][destiny].
 typedef Table2D<MAX_PIECE, SQ_NO, i32> PieceDestinyStatTable;
-// PieceToHistory is like ButterflyHistory, but is based on PieceDestinyStatTable.
+/// PieceToHistory is like ButterflyHistory, but is based on PieceDestinyStatTable.
 struct PieceDestinyHistory
     : public PieceDestinyStatTable
 {
-    // Update by piece, square (dst), bonus
+    /// Update by piece, square (dst), bonus
     void update (Piece pc, Square s, i32 bonus)
     {
         const i32 D = 936;
@@ -110,14 +110,14 @@ struct PieceDestinyHistory
     }
 };
 
-// ContinuationStatTable is the history of a given pair of moves, usually the current one given a previous one.
-// History table is based on PieceDestinyStatTable instead of ButterflyStatTable.
+/// ContinuationStatTable is the history of a given pair of moves, usually the current one given a previous one.
+/// History table is based on PieceDestinyStatTable instead of ButterflyStatTable.
 typedef Table2D<MAX_PIECE, SQ_NO, PieceDestinyHistory> ContinuationStatTable;
 
-// PieceDestinyMoveTable stores counter moves indexed by [piece][destiny]
+/// PieceDestinyMoveTable stores counter moves indexed by [piece][destiny]
 typedef Table2D<MAX_PIECE, SQ_NO, Move> PieceDestinyMoveTable;
 
-// MovePicker class is used to pick one legal moves from the current position.
+/// MovePicker class is used to pick one legal moves from the current position.
 class MovePicker
 {
 private:
@@ -155,7 +155,7 @@ public:
     Move next_move ();
 };
 
-// Stack keeps the information of the nodes in the tree during the search.
+/// Stack keeps the information of the nodes in the tree during the search.
 struct Stack
 {
 public:
@@ -172,21 +172,21 @@ public:
     PieceDestinyHistory *piece_destiny;
 };
 
-// The root of the tree is a PV node.
-// At a PV node all the children have to be investigated.
-// The best move found at a PV node leads to a successor PV node,
-// while all the other investigated children are CUT nodes
-// At a CUT node the child causing a beta cut-off is an ALL node
-// In a perfectly ordered tree only one child of a CUT node has to be explored
-// At an ALL node all the children have to be explored. The successors of an ALL node are CUT nodes
-// NonPV nodes = CUT nodes + ALL nodes
-//
-// RootMove class is used for moves at the root of the tree.
-// RootMove stores:
-//  - New/Old values
-//  - Sel Depth
-//  - PV (really a refutation table in the case of moves which fail low)
-// Value is normally set at -VALUE_INFINITE for all non-pv moves.
+/// The root of the tree is a PV node.
+/// At a PV node all the children have to be investigated.
+/// The best move found at a PV node leads to a successor PV node,
+/// while all the other investigated children are CUT nodes
+/// At a CUT node the child causing a beta cut-off is an ALL node
+/// In a perfectly ordered tree only one child of a CUT node has to be explored
+/// At an ALL node all the children have to be explored. The successors of an ALL node are CUT nodes
+/// NonPV nodes = CUT nodes + ALL nodes
+///
+/// RootMove class is used for moves at the root of the tree.
+/// RootMove stores:
+///  - New/Old values
+///  - Sel Depth
+///  - PV (really a refutation table in the case of moves which fail low)
+/// Value is normally set at -VALUE_INFINITE for all non-pv moves.
 class RootMove
     : public Moves
 {

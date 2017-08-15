@@ -1,25 +1,25 @@
 #ifndef _NULLSTREAM_H_INC_
 #define _NULLSTREAM_H_INC_
 
-// Copyright (c) 2006 - 2010
-// Seweryn Habdank-Wojewodzki
-//
-// Distributed under the Boost Software License, Version 1.0.
-// ( copy at http://www.boost.org/LICENSE_1_0.txt )
-//
-// Copyright Maciej Sobczak, 2002
-//
-// Permission to copy, use, modify, sell and distribute this software
-// is granted provided this copyright notice appears in all copies.
-// This software is provided "as is" without express or implied
-// warranty, and with no claim as to its suitability for any purpose.
+/// Copyright (c) 2006 - 2010
+/// Seweryn Habdank-Wojewodzki
+///
+/// Distributed under the Boost Software License, Version 1.0.
+/// ( copy at http://www.boost.org/LICENSE_1_0.txt )
+///
+/// Copyright Maciej Sobczak, 2002
+///
+/// Permission to copy, use, modify, sell and distribute this software
+/// is granted provided this copyright notice appears in all copies.
+/// This software is provided "as is" without express or implied
+/// warranty, and with no claim as to its suitability for any purpose.
 
 #include <streambuf>
 #include <ostream>
 
 namespace std {
 
-    // Generic null stream buffer class
+    /// Generic null stream buffer class
     template<typename CharT, typename Traits = char_traits<CharT> >
     class basic_null_buffer
         : public basic_streambuf<CharT, Traits>
@@ -42,7 +42,7 @@ namespace std {
 
     };
 
-    // generic null output stream class
+    /// Generic null output stream class
     template<typename CharT, typename Traits = char_traits<CharT> >
     class basic_null_stream
         : private basic_null_buffer<CharT, Traits>
@@ -71,7 +71,7 @@ namespace std {
         return nstream;
     }
 
-    // helper declarations for narrow and wide streams
+    /// Helper declarations for narrow and wide streams
     typedef basic_null_stream<char>     null_stream;
     typedef basic_null_stream<wchar_t>  null_wstream;
 

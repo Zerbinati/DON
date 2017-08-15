@@ -11,17 +11,17 @@
 
 namespace Transposition {
 
-    // Transposition::Entry needs 16 byte to be stored
-    //
-    //  Key--------- 16 bits
-    //  Move-------- 16 bits
-    //  Value------- 16 bits
-    //  Evaluation-- 16 bits
-    //  Depth------- 08 bits
-    //  Generation-- 06 bits
-    //  Bound------- 02 bits
-    //  ====================
-    //  Total------- 80 bits = 10 bytes
+    /// Transposition::Entry needs 16 byte to be stored
+    ///
+    ///  Key        16 bits
+    ///  Move       16 bits
+    ///  Value      16 bits
+    ///  Evaluation 16 bits
+    ///  Depth      08 bits
+    ///  Generation 06 bits
+    ///  Bound      02 bits
+    ///  --------------------
+    ///  Total      80 bits = 10 bytes
     struct Entry
     {
     private:
@@ -77,8 +77,8 @@ namespace Transposition {
     };
 
     const u08 CacheLineSize = 64;
-    // Transposition::Cluster needs 32 bytes to be stored
-    // 10 x 3 + 2 x 1 = 32
+    /// Transposition::Cluster needs 32 bytes to be stored
+    /// 10 x 3 + 2 x 1 = 32
     struct Cluster
     {
     public:
@@ -89,13 +89,13 @@ namespace Transposition {
         char padding[2]; // Align to a divisor of the cache line size
     };
 
-    // Transposition::Table consists of a power of 2 number of clusters
-    // and each cluster consists of Cluster::EntryCount number of entry.
-    // Each non-empty entry contains information of exactly one position.
-    // Size of a cluster should divide the size of a cache line size,
-    // to ensure that clusters never cross cache lines.
-    // In case it is less, it should be padded to guarantee always aligned accesses.
-    // This ensures best cache performance, as the cacheline is prefetched.
+    /// Transposition::Table consists of a power of 2 number of clusters
+    /// and each cluster consists of Cluster::EntryCount number of entry.
+    /// Each non-empty entry contains information of exactly one position.
+    /// Size of a cluster should divide the size of a cache line size,
+    /// to ensure that clusters never cross cache lines.
+    /// In case it is less, it should be padded to guarantee always aligned accesses.
+    /// This ensures best cache performance, as the cacheline is prefetched.
     class Table
     {
     private:
@@ -139,11 +139,11 @@ namespace Transposition {
         size_t cluster_mask () const { return cluster_count - 1; }
         //size_t entry_count () const { return cluster_count * Cluster::EntryCount; }
 
-        // Returns hash size in MB
+        /// size () returns hash size in MB
         u32 size () const { return u32((cluster_count * sizeof (Cluster)) >> 20); }
 
-        // Returns a pointer to the first entry of a cluster given a position.
-        // The lower order bits of the key are used to get the index of the cluster inside the table.
+        /// cluster_entry() returns a pointer to the first entry of a cluster given a position.
+        /// The lower order bits of the key are used to get the index of the cluster inside the table.
         Entry* cluster_entry (const Key key) const { return clusters[size_t(key) & cluster_mask ()].entries; }
 
         u32 resize (u32 mem_size, bool force = false);

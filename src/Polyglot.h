@@ -8,11 +8,11 @@
 
 namespace Polyglot {
 
-    // Polyglot::Entry needs 16 bytes to be stored.
-    //  - Key       8 bytes
-    //  - Move      2 bytes
-    //  - Weight    2 bytes
-    //  - Learn     4 bytes
+    /// Polyglot::Entry needs 16 bytes to be stored.
+    ///  - Key       8 bytes
+    ///  - Move      2 bytes
+    ///  - Weight    2 bytes
+    ///  - Learn     4 bytes
     struct Entry
     {
         static const Entry NullEntry;
@@ -99,11 +99,11 @@ namespace Polyglot {
         return os;
     }
 
-    // Polyglot::Book is a file containing series of Polyglot::Entry.
-    // All integers are stored in big-endian format,
-    // with the highest byte first (regardless of size).
-    // The entries are ordered according to the key in ascending order.
-    // Polyglot::Book file has *.bin extension.
+    /// Polyglot::Book is a file containing series of Polyglot::Entry.
+    /// All integers are stored in big-endian format,
+    /// with the highest byte first (regardless of size).
+    /// The entries are ordered according to the key in ascending order.
+    /// Polyglot::Book file has *.bin extension.
     class Book
         : public std::fstream
     {

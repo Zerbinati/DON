@@ -16,28 +16,28 @@
 #include <string>
 #include <vector>
 
-// Compiling:
-// With Makefile (e.g. for Linux and OSX), configuration is done automatically, to get started type 'make help'.
-// Without Makefile (e.g. with Microsoft Visual Studio) some switches need to be set manually:
-//
-// -DNDEBUG    | Disable debugging mode. Always use this.
-// -DPREFETCH  | Enable use of prefetch asm-instruction.
-//             | Don't enable it if want the executable to run on some very old machines.
-// -DPOP       | Enable use of internal pop count table. Works in both 32-bit & 64-bit mode.
-//             | For compiling requires hardware without ABM support.
-// -DABM       | Add runtime support for use of ABM asm-instruction. Works only in 64-bit mode.
-//             | For compiling requires hardware with ABM support.
-// -DBM2       | Add runtime support for use of BM2 asm-instruction. Works only in 64-bit mode.
-//             | For compiling requires hardware with BM2 support.
-// -DLPAGES    | Add runtime support for large pages.
+/// Compiling:
+/// With Makefile (e.g. for Linux and OSX), configuration is done automatically, to get started type 'make help'.
+/// Without Makefile (e.g. with Microsoft Visual Studio) some switches need to be set manually:
+///
+/// -DNDEBUG    | Disable debugging mode. Always use this.
+/// -DPREFETCH  | Enable use of prefetch asm-instruction.
+///             | Don't enable it if want the executable to run on some very old machines.
+/// -DPOP       | Enable use of internal pop count table. Works in both 32-bit & 64-bit mode.
+///             | For compiling requires hardware without ABM support.
+/// -DABM       | Add runtime support for use of ABM asm-instruction. Works only in 64-bit mode.
+///             | For compiling requires hardware with ABM support.
+/// -DBM2       | Add runtime support for use of BM2 asm-instruction. Works only in 64-bit mode.
+///             | For compiling requires hardware with BM2 support.
+/// -DLPAGES    | Add runtime support for large pages.
 
-// Predefined macros hell:
-//
-// __GNUC__           Compiler is gcc, Clang or Intel on Linux
-// __INTEL_COMPILER   Compiler is Intel
-// _MSC_VER           Compiler is MSVC or Intel on Windows
-// _WIN32             Building on Windows (any)
-// _WIN64             Building on Windows 64 bit
+/// Predefined macros hell:
+///
+/// __GNUC__           Compiler is gcc, Clang or Intel on Linux
+/// __INTEL_COMPILER   Compiler is Intel
+/// _MSC_VER           Compiler is MSVC or Intel on Windows
+/// _WIN32             Building on Windows (any)
+/// _WIN64             Building on Windows 64 bit
 
 // Windows or MinGW
 #if defined(_WIN32)
@@ -120,10 +120,10 @@ const i16 DepthQSNoCheck    = -1;
 const i16 DepthQSRecapture  = -5;
 const i16 DepthNone         = -6;
 
-// Preloads the given address in L1/L2 cache.
-// This is a non-blocking function that doesn't stall
-// the CPU waiting for data to be loaded from memory,
-// which can be quite slow.
+/// Preloads the given address in L1/L2 cache.
+/// This is a non-blocking function that doesn't stall
+/// the CPU waiting for data to be loaded from memory,
+/// which can be quite slow.
 #if defined(PREFETCH)
 #   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
@@ -187,9 +187,10 @@ enum Color : i08
     BLACK,
     CLR_NO,
 };
-// Square needs 6-bits to be stored
-// bit 0-2: File
-// bit 3-5: Rank
+
+/// Square needs 6-bits to be stored
+/// bit 0-2: File
+/// bit 3-5: Rank
 enum Square : i08
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
@@ -242,7 +243,7 @@ enum CastleSide : i08
     CS_QUEN,    // Queen Side (Long  Castle)
     CS_NO,
 };
-// Castle Right defined as in Polyglot book hash key
+/// Castle Right defined as in Polyglot book hash key
 enum CastleRight : u08
 {
     CR_NONE  = 0,                   // 0000
@@ -270,9 +271,9 @@ enum PieceType : i08
     NONE     , // 110
     MAX_PTYPE, // 111
 };
-// Piece needs 4-bits to be stored
-// bit 0-2: Type of piece
-// bit   3: Color of piece { White = 0..., Black = 1... }
+/// Piece needs 4-bits to be stored
+/// bit 0-2: Type of piece
+/// bit   3: Color of piece { White = 0..., Black = 1... }
 enum Piece : u08
 {
     W_PAWN   = 0, //  0000
@@ -301,14 +302,14 @@ enum MoveType : u16
     ENPASSANT = 0x8000, // 1000
     PROMOTE   = 0xC000, // 11xx
 };
-// Move needs 16-bits to be stored
-//
-// bit 00-05: Destiny square: (0...63)
-// bit 06-11: Origin square: (0...63)
-// bit 12-13: Promotion piece: (Knight...Queen) - 1
-// bit 14-15: Move flag: (0) Normal (1) Castle (2) En-Passant (3) Promotion
-//
-// Special cases are MOVE_NONE and MOVE_NULL.
+/// Move needs 16-bits to be stored
+///
+/// bit 00-05: Destiny square: (0...63)
+/// bit 06-11: Origin square: (0...63)
+/// bit 12-13: Promotion piece: (Knight...Queen) - 1
+/// bit 14-15: Move flag: (0) Normal (1) Castle (2) En-Passant (3) Promotion
+///
+/// Special cases are MOVE_NONE and MOVE_NULL.
 enum Move : u16
 {
     MOVE_NONE = 0x00,
@@ -337,10 +338,10 @@ enum Value : i32
 
     VALUE_MIDGAME = 15258, VALUE_ENDGAME = 3915,
 };
-// Score needs 32-bits to be stored
-// the lower 16-bits are used to store the midgame value
-// the upper 16-bits are used to store the endgame value
-// Take some care to avoid left-shifting a signed int to avoid undefined behavior.
+/// Score needs 32-bits to be stored
+/// the lower 16-bits are used to store the midgame value
+/// the upper 16-bits are used to store the endgame value
+/// Take some care to avoid left-shifting a signed int to avoid undefined behavior.
 enum Score : u32
 {
     SCORE_ZERO = 0,
@@ -462,6 +463,10 @@ constexpr Score mk_score (i32 mg, i32 eg)
     return Score(i32((u32(eg) << 0x10)) + mg);
 }
 
+/// Extracting the signed lower and upper 16 bits is not so trivial because
+/// according to the standard a simple cast to short is implementation defined
+/// and so is a right shift of a signed integer.
+
 inline Value mg_value (u32 s)
 {
     union { u16 u; i16 s; } mg = { u16(u32(s + 0x0000) >> 0x00) };
@@ -474,7 +479,7 @@ inline Value eg_value (u32 s)
 }
 
 BASIC_OPERATORS(Score)
-// Multiplication & Division of a Score must be handled separately for each term
+/// Multiplication & Division of a Score must be handled separately for each term
 inline Score operator* (Score s, i32 i) { return mk_score (mg_value (s) * i, eg_value (s) * i); }
 inline Score operator/ (Score s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
 

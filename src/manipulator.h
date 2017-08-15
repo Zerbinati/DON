@@ -38,12 +38,12 @@ namespace std {
     }
 
     /*
-    // manip_infra is a small, intermediary class that serves as a utility
-    // for custom manipulators with arguments.
-    // Call its constructor with a function pointer and a value
-    // from your main manipulator function.
-    // The function pointer should be a helper function that does the actual work.
-    // See examples below.
+    /// manip_infra is a small, intermediary class that serves as a utility
+    /// for custom manipulators with arguments.
+    /// Call its constructor with a function pointer and a value
+    /// from your main manipulator function.
+    /// The function pointer should be a helper function that does the actual work.
+    /// See examples below.
     template<typename T, typename C>
     class manip_infra
     {

@@ -13,21 +13,21 @@
 class Position;
 using namespace BitBoard;
 
-// StateInfo stores information needed to restore a Position object to its previous state
-// when we retract a move. Whenever a move is made on the board (by calling do_move),
-// a StateInfo object must be passed as a parameter.
-//
-//  - Castling-rights information.
-//  - En-passant square (SQ_NO if no en passant capture is possible).
-//  - Counter (clock) for detecting 50 move rule draws.
-//  - Hash key of the material situation.
-//  - Hash key of the pawn structure.
-//  - Hash key of the position.
-//  - Move played on the last position.
-//  - Piece type captured on last position.
-//  - Bitboard of all checking pieces.
-//  - Pointer to previous StateInfo. 
-//  - Hash keys for all previous positions in the game for detecting repetition draws.
+/// StateInfo stores information needed to restore a Position object to its previous state
+/// when we retract a move. Whenever a move is made on the board (by calling do_move),
+/// a StateInfo object must be passed as a parameter.
+///
+///  - Castling-rights information.
+///  - En-passant square (SQ_NO if no en passant capture is possible).
+///  - Counter (clock) for detecting 50 move rule draws.
+///  - Hash key of the material situation.
+///  - Hash key of the pawn structure.
+///  - Hash key of the position.
+///  - Move played on the last position.
+///  - Piece type captured on last position.
+///  - Bitboard of all checking pieces.
+///  - Pointer to previous StateInfo. 
+///  - Hash keys for all previous positions in the game for detecting repetition draws.
 struct StateInfo
 {
 public:
@@ -69,10 +69,10 @@ public:
     void set_check_info (const Position &pos);
 };
 
-// A list to keep track of the position states along the setup moves
-// (from the start position to the position just before the search starts).
-// Needed by 'draw by repetition' detection.
-// Use a std::deque because pointers to elements are not invalidated upon list resizing.
+/// A list to keep track of the position states along the setup moves
+/// (from the start position to the position just before the search starts).
+/// Needed by 'draw by repetition' detection.
+/// Use a std::deque because pointers to elements are not invalidated upon list resizing.
 typedef std::unique_ptr<std::deque<StateInfo>> StateListPtr;
 
 namespace Threading {
@@ -80,21 +80,17 @@ namespace Threading {
 }
 using namespace Threading;
 
-// Position class stores information regarding the board representation:
-//  - 64-entry array of pieces, indexed by the square.
-//  - Bitboards of each piece type.
-//  - Bitboards of each color
-//  - Bitboard of all occupied squares.
-//  - List of squares for the pieces.
-//  - Count of the pieces.
-//  - ----------x-----------
-//  - Color of side on move.
-//  - Ply of the game.
-//  - Nodes visited during search.
-//  - StateInfo object for the base status.
-//  - StateInfo pointer for the current status.
-//  - Information about the castling rights.
-//  - Initial files of both pairs of rooks, castle path and kings path, this is used to implement the Chess960 castling rules.
+/// Position class stores information regarding the board representation:
+///  - 64-entry array of pieces, indexed by the square.
+///  - Bitboards of each piece type.
+///  - Bitboards of each color
+///  - Bitboard of all occupied squares.
+///  - List of squares for the pieces.
+///  - Information about the castling rights.
+///  - Initial files of both pairs of rooks, castle path and kings path, this is used to implement the Chess960 castling rules.
+///  - Color of side on move.
+///  - Ply of the game.
+///  - StateInfo pointer for the current status.
 class Position
 {
 private:
@@ -254,14 +250,14 @@ inline Bitboard Position::pieces (Color c, PieceType pt1, PieceType pt2) const
     return color_bb[c]&(types_bb[pt1]|types_bb[pt2]);
 }
 
-// Count specific piece
+/// Position::count() counts specific piece
 template<PieceType PT> inline i32 Position::count () const
 {
     assert(PT < NONE);
     return i32(squares[WHITE][PT].size ()
              + squares[BLACK][PT].size ());
 }
-// Count total pieces
+/// Position::count() counts total pieces
 template<> inline i32 Position::count<NONE> () const
 {
     return i32(squares[WHITE][PAWN].size () + squares[BLACK][PAWN].size ()
@@ -271,13 +267,13 @@ template<> inline i32 Position::count<NONE> () const
              + squares[WHITE][QUEN].size () + squares[BLACK][QUEN].size ()
              + squares[WHITE][KING].size () + squares[BLACK][KING].size ());
 }
-// Count specific piece of color
+/// Position::count() counts specific piece of color
 template<PieceType PT> inline i32 Position::count (Color c) const
 {
     assert(PT < NONE);
     return i32(squares[c][PT].size ());
 }
-// Count total pieces of color
+/// Position::count<NONE>() counts total pieces of color
 template<> inline i32 Position::count<NONE> (Color c) const
 {
     return i32(squares[c][PAWN].size ()
@@ -305,8 +301,8 @@ inline Key Position::pg_key () const
 {
     return PolyZob.compute_posi_key (*this);
 }
-// Computes the new hash key after the given moven. Needed for speculative prefetch.
-// It doesn't recognize special moves like castling, en-passant and promotions.
+/// Position::move_posi_key() computes the new hash key after the given moven.
+/// Needed for speculative prefetch.
 inline Key Position::move_posi_key (Move m) const
 {
     auto org = org_sq (m);
@@ -377,12 +373,12 @@ inline bool Position::expeded_castle (Color c, CastleSide cs) const
 {
     return 0 == (castle_path[c][cs] & pieces ());
 }
-// move_num starts at 1, and is incremented after BLACK's move.
+/// Position::move_num() starts at 1, and is incremented after BLACK's move.
 inline i16  Position::move_num () const
 {
     return i16(std::max ((ply - (BLACK == active ? 1 : 0))/2, 0) + 1);
 }
-// Attackers to the square by color on occupancy.
+/// Position::attackers_to() finds attackers to the square by color on occupancy.
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
     return (pieces (c, PAWN) & PawnAttacks[~c][s])
@@ -391,12 +387,12 @@ inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
          | (0 != (pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (c, ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
          | (pieces (c, KING) & PieceAttacks[KING][s]);
 }
-// Attackers to the square by color.
+/// Position::attackers_to() finds attackers to the square by color.
 inline Bitboard Position::attackers_to (Square s, Color c) const
 {
     return attackers_to (s, c, pieces ());
 }
-// Attackers to the square on occupancy.
+/// Position::attackers_to() finds attackers to the square on occupancy.
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
     return (pieces (BLACK, PAWN) & PawnAttacks[WHITE][s])
@@ -406,12 +402,12 @@ inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
          | (0 != (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]) ? pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
          | (pieces (KING)        & PieceAttacks[KING][s]);
 }
-// Attackers to the square.
+/// Position::attackers_to() finds attackers to the square.
 inline Bitboard Position::attackers_to (Square s) const
 {
     return attackers_to (s, pieces ());
 }
-//// Attackers to the square by color on occupancy.
+///// Position::xattackers_to() finds attackers to the square by color on occupancy.
 //inline Bitboard Position::xattackers_to (Square s, Color c, Bitboard occ) const
 //{
 //    return (pieces (c, PAWN) & PawnAttacks[~c][s])
@@ -421,33 +417,33 @@ inline Bitboard Position::attackers_to (Square s) const
 //         | (pieces (c, KING) & PieceAttacks[KING][s]);
 //}
 
-// Absolute blockers are friend pieces, that blocks the check to friend king.
+/// Position::abs_blockers() find absolute blockers (friend pieces), that blocks the check to friend king.
 inline Bitboard Position::abs_blockers (Color c) const
 {
     return si->king_blockers[ c] & pieces (c);
 }
-// Discovered blockers are friend pieces, that blocks the check to enemy king.
+/// Position::dsc_blockers() finds discovered blockers (friend pieces), that blocks the check to enemy king.
 inline Bitboard Position::dsc_blockers (Color c) const
 {
     return si->king_blockers[~c] & pieces (c);
 }
-// Absolute checkers are friend pieces, that give the check when enemy piece is moved.
+/// Position::abs_checkers() find absolute checkers (friend pieces), that give the check when enemy piece is moved.
 inline Bitboard Position::abs_checkers (Color c) const
 {
     return si->king_checkers[~c] & pieces (c);
 }
-// Discovered checkers are friend pieces, that give the check when own piece is moved.
+/// Position::dsc_checkers() finds discovered checkers (friend pieces), that give the check when friend piece is moved.
 inline Bitboard Position::dsc_checkers (Color c) const
 {
     return si->king_checkers[ c] & pieces (c);
 }
 
-// Check if pawn passed at the given square.
+/// Position::pawn_passed_at() check if pawn passed at the given square.
 inline bool Position::pawn_passed_at (Color c, Square s) const
 {
     return 0 == (pawn_pass_span (c, s) & pieces (~c, PAWN));
 }
-// Check the side has pair of opposite color bishops.
+/// Position::paired_bishop() check the side has pair of opposite color bishops.
 inline bool Position::paired_bishop (Color c) const
 {
     //for (i08 pc = 1; pc < count<BSHP> (c); ++pc)
@@ -562,8 +558,8 @@ inline void Position::move_piece (Square s1, Square s2)
     assert(!v.empty ());
     v[v.size () > 1 ? std::find (v.begin (), v.end (), s1) - v.begin () : 0] = s2;
 }
-// do_castling() is a helper used to do/undo a castling move.
-// This is a bit tricky, especially in Chess960.
+/// do_castling() is a helper used to do/undo a castling move.
+/// This is a bit tricky, especially in Chess960.
 template<bool Do>
 inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
@@ -587,7 +583,7 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
     return os;
 }
 
-// Set check info used for fast check detection.
+/// StateInfo::set_check_info() sets check info used for fast check detection.
 inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] = 0;
@@ -605,7 +601,7 @@ inline void StateInfo::set_check_info (const Position &pos)
 }
 
 #if !defined(NDEBUG)
-// Check the validity of FEN string.
+/// _ok() Check the validity of FEN string.
 inline bool _ok (const std::string &fen, bool full = true)
 {
     StateInfo si;

@@ -599,15 +599,14 @@
     <ClCompile Include="src\MoveGenerator.cpp" />
     <ClCompile Include="src\Notation.cpp" />
     <ClCompile Include="src\Pawns.cpp" />
-    <ClCompile Include="src\PieceSquare.cpp" />
+    <ClCompile Include="src\PSQT.cpp" />
     <ClCompile Include="src\Polyglot.cpp" />
     <ClCompile Include="src\Position.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
     <ClCompile Include="src\TBsyzygy.cpp" />
     <ClCompile Include="src\Thread.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
-    <ClCompile Include="src\UCI.cpp" />
-    <ClCompile Include="src\UCI.Option.cpp" />
+    <ClCompile Include="src\Option.cpp" />
     <ClCompile Include="src\Zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -627,7 +626,7 @@
     <ClInclude Include="src\Notation.h" />
     <ClInclude Include="src\nullstream.h" />
     <ClInclude Include="src\Pawns.h" />
-    <ClInclude Include="src\PieceSquare.h" />
+    <ClInclude Include="src\PSQT.h" />
     <ClInclude Include="src\Polyglot.h" />
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\PRNG.h" />
@@ -638,7 +637,7 @@
     <ClInclude Include="src\tiebuffer.h" />
     <ClInclude Include="src\Transposition.h" />
     <ClInclude Include="src\Type.h" />
-    <ClInclude Include="src\UCI.h" />
+    <ClInclude Include="src\Option.h" />
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>

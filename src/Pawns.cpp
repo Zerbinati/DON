@@ -194,8 +194,8 @@ namespace Pawns {
         template Score evaluate<BLACK> (const Position&, Entry*);
     }
 
-    // Calculates shelter and storm penalties.
-    // For the king file, as well as the two closest files.
+    /// Calculates shelter and storm penalties.
+    /// For the king file, as well as the two closest files.
     template<Color Own>
     Value Entry::pawn_shelter_storm (const Position &pos, Square fk_sq) const
     {
@@ -237,8 +237,8 @@ namespace Pawns {
     template Value Entry::pawn_shelter_storm<WHITE> (const Position&, Square) const;
     template Value Entry::pawn_shelter_storm<BLACK> (const Position&, Square) const;
 
-    // Looks up a PawnEntry object, and returns a pointer to it.
-    // The pointer is also stored in a hash table.
+    /// Looks up a PawnEntry object, and returns a pointer to it.
+    /// The pointer is also stored in a hash table.
     Entry* probe (const Position &pos)
     {
         auto *e = pos.thread->pawn_table.get (pos.si->pawn_key);
@@ -258,7 +258,7 @@ namespace Pawns {
         return e;
     }
 
-    // Initialize lookup tables during startup.
+    /// Initializes lookup tables during startup.
     void initialize ()
     {
         const i32 Seeds[R_NO] = { 0, 13, 24, 18, 76, 100, 175, 330 };

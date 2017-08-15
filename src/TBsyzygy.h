@@ -6,7 +6,7 @@
 
 namespace TBSyzygy {
 
-    // WDL Score
+    /// WDL Score
     enum WDLScore
     {
         LOSS         = -2, // Loss
@@ -17,7 +17,7 @@ namespace TBSyzygy {
     };
     inline WDLScore operator-(WDLScore d) { return WDLScore(-i32(d)); }
 
-    // Possible states after a probing operation
+    /// Possible states after a probing operation
     enum ProbeState
     {
         CHANGE_STM        = -1, // DTZ should check the other side
