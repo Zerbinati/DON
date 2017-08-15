@@ -2346,7 +2346,7 @@ namespace Threading {
             {
                 if (th != this)
                 {
-                    th->start_searching (false);
+                    th->start_searching ();
                 }
             }
 
@@ -2380,22 +2380,25 @@ namespace Threading {
             }
         }
 
-        // When reach max depth arrive here even without Force Stop is raised,
-        // but if are pondering or in infinite search, according to UCI protocol,
-        // shouldn't print the best move before the GUI sends a "stop"/"ponderhit" command.
-        // Simply wait here until GUI sends one of those commands (that raise Force Stop).
-        if (   !Threadpool.stop
-            && (   Limits.infinite
-                || Threadpool.ponder))
+        // When we reach the maximum depth, we can arrive here without a raise of Threads.stop.
+        // However, if we are pondering or in an infinite search, the UCI protocol states that
+        // we shouldn't print the best move before the GUI sends a "stop"/"ponderhit" command.
+        // We therefore simply wait here until the GUI sends one of those commands (which also raises Threads.stop).
+        if (Threadpool.ponder)
         {
             Threadpool.stop_on_ponderhit = true;
-            wait_until (Threadpool.stop);
         }
+
+        while (   !Threadpool.stop
+               && (   Limits.infinite
+                   || Threadpool.ponder))
+        {} // Busy wait for a stop or a ponder reset
 
         Thread *best_thread = this;
         if (voting)
         {
             // Stop the threads if not already stopped.
+            // Also raise the stop if "ponderhit" just reset Threads.ponder
             Threadpool.stop = true;
             // Wait until all threads have finished.
             for (auto *th : Threadpool)

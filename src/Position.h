@@ -69,6 +69,10 @@ public:
     void set_check_info (const Position &pos);
 };
 
+// A list to keep track of the position states along the setup moves
+// (from the start position to the position just before the search starts).
+// Needed by 'draw by repetition' detection.
+// Use a std::deque because pointers to elements are not invalidated upon list resizing.
 typedef std::deque<StateInfo> StateList;
 
 namespace Threading {

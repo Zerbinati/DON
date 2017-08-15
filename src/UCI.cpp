@@ -33,7 +33,7 @@ namespace UCI {
         // The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
         const string StartFEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
         
-        auto *ui_thread = new Thread ();
+        auto *ui_thread = new Thread ();//std::make_shared<Thread> (0);
 
         Position::Chess960 = false;
 
@@ -62,7 +62,7 @@ namespace UCI {
             }
 
             istringstream iss (cmd);
-            token.clear (); // std::getline() could return empty or blank line
+            token.clear (); // Avoid a stale if getline() returns empty or blank line
             iss >> skipws >> token;
 
             if (white_spaces (token))
@@ -81,7 +81,6 @@ namespace UCI {
                 || (token == "ponderhit" && Threadpool.stop_on_ponderhit))
             {
                 Threadpool.stop = true;
-                Threadpool.main_thread ()->start_searching (true); // Could be sleeping
             }
             else
             if (token == "ponderhit")
@@ -260,7 +259,7 @@ namespace UCI {
                             std::cerr << "ERROR: Illegal Move '" + token << "' at " << count << std::endl;
                             break;
                         }
-                        states.push_back (StateInfo ());
+                        states.emplace_back ();
                         root_pos.do_move (m, states.back ());
                     }
                 }
@@ -468,8 +467,6 @@ namespace UCI {
                && cmd != "quit");
 
         Threadpool.wait_while_thinking ();
-        delete ui_thread;
-        ui_thread = nullptr;
     }
 
 }

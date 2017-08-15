@@ -195,14 +195,11 @@ namespace Threading {
         void clear ();
 
         // Wakes up the thread that will start the search
-        void start_searching (bool resume = false)
+        void start_searching ()
         {
             std::unique_lock<Mutex> lk (mutex);
-            if (!resume)
-            {
-                searching = true;
-            }
-            sleep_condition.notify_one ();
+            searching = true;
+            sleep_condition.notify_one (); // Wake up the thread in idle_loop()
         }
         // Waits on sleep condition until 'condition' turns true.
         void wait_until (const std::atomic<bool> &condition)

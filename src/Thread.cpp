@@ -453,7 +453,7 @@ namespace Threading {
         // Restore states.back(), cleared by Position::setup().
         states.back () = back_si;
 
-        main_thread ()->start_searching (false);
+        main_thread ()->start_searching ();
     }
     void ThreadPool::start_thinking (Position &root_pos, StateList &states, const Limit &limits, bool ponde)
     {
