@@ -81,7 +81,7 @@ namespace {
 ///     * 'current' for current position
 ///     * '<filename>' for file containing FEN positions
 /// example: bench 32 1 10000 movetime default
-void benchmark (istringstream &is, const Position &cur_pos)
+void benchmark (istringstream &is, const Position &root_pos)
 {
     u32    hash;
     u16    threads;
@@ -96,7 +96,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
     mode    = (is >> mode)   && !white_spaces (mode)   ? mode   : "depth";
     fen_fn  = (is >> fen_fn) && !white_spaces (fen_fn) ? fen_fn : "default";
 
-    auto *ui_thread = cur_pos.thread;
+    auto *ui_thread = root_pos.thread;
 
     Limit limits;
     if (mode == "time")
@@ -133,7 +133,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
     else
     if (fen_fn == "current")
     {
-        fens.push_back (cur_pos.fen ());
+        fens.push_back (root_pos.fen ());
     }
     else
     {
@@ -201,7 +201,7 @@ void benchmark (istringstream &is, const Position &cur_pos)
 ///     * 'default' for builtin positions (default)
 ///     * 'current' for current position
 ///     * '<filename>' for file containing FEN positions
-void perft (istringstream &is, const Position &cur_pos)
+void perft (istringstream &is, const Position &root_pos)
 {
     i16 depth;
     string fen_fn;
@@ -210,7 +210,7 @@ void perft (istringstream &is, const Position &cur_pos)
     depth  = (is >> depth) ? depth : 6;
     fen_fn = (is >> fen_fn) && !white_spaces (fen_fn) ? fen_fn : "default";
 
-    auto *ui_thread = cur_pos.thread;
+    auto *ui_thread = root_pos.thread;
 
     vector<string> fens;
     if (fen_fn == "default")
@@ -220,7 +220,7 @@ void perft (istringstream &is, const Position &cur_pos)
     else
     if (fen_fn == "current")
     {
-        fens.push_back (cur_pos.fen ());
+        fens.push_back (root_pos.fen ());
     }
     else
     {

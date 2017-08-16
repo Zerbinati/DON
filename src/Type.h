@@ -522,28 +522,20 @@ inline bool opposite_colors (Square s1, Square s2)
 
 inline Delta pawn_push (Color c)
 {
-    return
-        c == WHITE ? DEL_N :
-        c == BLACK ? DEL_S : DEL_O;
+    return WHITE == c ? DEL_N : DEL_S;
 }
 
 inline CastleRight castle_right (Color c)
 {
-    //return CastleRight(CR_WHITE << ((c << 1)));
-    return
-        c == WHITE ? CR_WHITE :
-        c == BLACK ? CR_BLACK : CR_NONE;
+    //return CastleRight(CR_WHITE << ((c << BLACK)));
+    return WHITE == c ? CR_WHITE : CR_BLACK;
 }
 inline CastleRight castle_right (Color c, CastleSide cs)
 {
-    //return CastleRight(CR_WKING << ((c << 1) + cs));
-    return
-        c == WHITE ?
-            cs == CS_KING ? CR_WKING :
-            cs == CS_QUEN ? CR_WQUEN : CR_NONE :
-        c == BLACK ?
-            cs == CS_KING ? CR_BKING :
-            cs == CS_QUEN ? CR_BQUEN : CR_NONE : CR_NONE;
+    //return CastleRight(CR_WKING << ((c << BLACK) + cs));
+    return WHITE == c ? 
+               CS_KING == cs ? CR_WKING : CR_WQUEN :
+               CS_KING == cs ? CR_BKING : CR_BQUEN;
 }
 
 inline Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
@@ -591,8 +583,7 @@ public:
     ValMove ()
         : move (MOVE_NONE)
         , value (0)
-    {
-    }
+    {}
     explicit ValMove (Move m)
         : move (m)
         , value (0)
@@ -620,8 +611,8 @@ class ValMoves
     : public std::vector<ValMove>
 {
 public:
-    void operator+= (Move m) { push_back (ValMove (m)); }
-    void operator-= (Move m) { erase (std::remove (begin (), end (), ValMove (m)), end ()); }
+    void operator+= (Move move) { emplace_back (move); }
+    void operator-= (Move move) { erase (std::remove (begin (), end (), move), end ()); }
 };
 
 template<typename T, u32 Size>

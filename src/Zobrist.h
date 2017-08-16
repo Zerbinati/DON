@@ -25,10 +25,10 @@ namespace Zobrists {
         Zobrist (const Zobrist&) = delete;
         Zobrist& operator= (const Zobrist&) = delete;
 
-        Key compute_matl_key (const Position &pos) const;
-        Key compute_pawn_key (const Position &pos) const;
-        Key compute_posi_key (const Position &pos) const;
-        //Key compute_fen_key (const std::string &fen) const;
+        Key compute_matl_key (const Position&) const;
+        Key compute_pawn_key (const Position&) const;
+        Key compute_posi_key (const Position&) const;
+        //Key compute_fen_key (const std::string&) const;
     };
 
     extern void initialize ();

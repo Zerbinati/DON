@@ -22,14 +22,8 @@ extern double MoveSlowness;
 extern u32    NodesTime;
 extern bool   Ponder;
 
-/// TimeManager class computes the optimal time to think depending on the
+/// TimeManager class is used to computes the optimal time to think depending on the
 /// maximum available time, the move game number and other parameters.
-/// Support four different kind of time controls, passed in 'limits':
-///
-/// moves_to_go = 0, increment = 0 means: x basetime                             ['sudden death' time control]
-/// moves_to_go = 0, increment > 0 means: x basetime + z increment
-/// moves_to_go > 0, increment = 0 means: x moves in y basetime                  ['standard' time control]
-/// moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
 class TimeManager
 {
 public:
@@ -44,7 +38,7 @@ public:
 
     u64 elapsed_time () const;
 
-    void initialize (Color c, i16 ply);
+    void initialize (Color, i16);
 };
 
 /// MoveManager class is used to detect a so called 'easy move'.
@@ -75,40 +69,8 @@ public:
         stable_count = 0;
     }
 
-    void update (Position &pos, const Moves &new_pv)
-    {
-        assert(new_pv.size () >= 3);
+    void update (Position&, const Moves&);
 
-        if (new_pv[2] == pv[2])
-        {
-            ++stable_count;
-        }
-        else
-        {
-            stable_count = 0;
-        }
-
-        if (!std::equal (new_pv.begin (), new_pv.begin () + 3, pv))
-        {
-            std::copy (new_pv.begin (), new_pv.begin () + 3, pv);
-
-            // Update expected posi key
-            u08 ply = 0;
-            StateInfo si[2];
-            do
-            {
-                pos.do_move (pv[ply], si[ply]);
-            }
-            while (2 > ++ply);
-
-            exp_posi_key = pos.si->posi_key;
-            
-            while (0 != ply)
-            {
-                pos.undo_move (pv[--ply]);
-            }
-        }
-    }
 };
 
 /// Skill Manager class is used to implement strength limit
@@ -155,17 +117,14 @@ namespace Threading {
     class Thread
     {
     protected:
-        u08  index;
-
-    private:
         Mutex mutex;
         ConditionVariable condition_var;
         bool dead = false
            , busy = true;
+        u08  index;
         std::thread std_thread;
 
     public:
-
         Position root_pos;
         RootMoves root_moves;
 
@@ -201,12 +160,10 @@ namespace Threading {
         virtual void search ();
     };
 
-    /// MainThread class is derived class used specific for main thread.
+    /// MainThread class is derived from Thread class used specific for main thread.
     class MainThread
         : public Thread
     {
-        using Thread::Thread;
-
     public:
         i16  check_count;
 
@@ -222,6 +179,7 @@ namespace Threading {
         MoveManager  move_mgr;
         SkillManager skill_mgr;
 
+        explicit MainThread (u08 n);
         MainThread () = delete;
         MainThread (const MainThread&) = delete;
         MainThread& operator= (const MainThread&) = delete;
@@ -282,16 +240,16 @@ namespace Threading {
         }
         
         void clear ();
-        void configure (u32 threads);
+        void configure (u32);
 
-        void start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits, const Moves &search_moves, bool ponde = false);
-        void start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits, bool ponde = false);
+        void start_thinking (Position&, StateListPtr&, const Limit&, const Moves&, bool = false);
+        void start_thinking (Position&, StateListPtr&, const Limit&, bool = false);
 
         void wait_while_thinking ();
 
         /// No constructor and destructor, threads rely on globals that should
         /// be initialized and valid during the whole thread lifetime.
-        void initialize (u32 threads);
+        void initialize (u32);
         void deinitialize ();
     };
 

@@ -96,9 +96,9 @@ namespace Debugger {
     };
 
     // Debug functions used mainly to collect run-time statistics
-    extern void dbg_hit_on (bool hit);
-    extern void dbg_hit_on (bool cond, bool hit);
-    extern void dbg_mean_of (i64 item);
+    extern void dbg_hit_on (bool);
+    extern void dbg_hit_on (bool, bool);
+    extern void dbg_mean_of (i64);
     extern void dbg_print ();
 
 }

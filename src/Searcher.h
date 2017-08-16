@@ -127,7 +127,7 @@ private:
     Value threshold;
     Square recap_sq;
 
-    const PieceDestinyHistory** piece_destiny;
+    const PieceDestinyHistory **piece_destiny;
 
     ValMoves moves;
     Moves killers_moves
@@ -217,7 +217,7 @@ public:
     void operator+= (Move m) { emplace_back (m); }
     void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
-    bool extract_ponder_move_from_tt (Position &pos);
+    bool extract_ponder_move_from_tt (Position&);
 
     explicit operator std::string () const;
 };
@@ -238,6 +238,8 @@ public:
     RootMoves (const RootMoves&) = default;
     RootMoves& operator= (const RootMoves&) = default;
 
+    void operator+= (Move m) { emplace_back (m); }
+    void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
     void operator+= (const RootMove &rm) { emplace_back (rm); }
     void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
 
@@ -249,7 +251,7 @@ public:
             if (   search_moves.empty ()
                 || std::find (search_moves.begin (), search_moves.end (), vm.move) != search_moves.end ())
             {
-                *this += RootMove (vm.move);
+                *this += vm.move;
             }
         }
         shrink_to_fit ();
@@ -268,7 +270,7 @@ inline std::basic_ostream<CharT, Traits>&
 
 namespace Searcher {
 
-    // Threshold used for countermoves based pruning
+    // Threshold for countermoves based pruning
     const i32 CounterMovePruneThreshold = 0;
 
     extern Limit Limits;
@@ -297,7 +299,7 @@ namespace Searcher {
     extern std::string OutputFile;
 
     template<bool RootNode = true>
-    extern u64 perft (Position &pos, i16 depth);
+    extern u64 perft (Position&, i16);
 
     extern void initialize ();
 

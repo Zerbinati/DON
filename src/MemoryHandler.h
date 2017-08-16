@@ -9,9 +9,9 @@ namespace Memory {
 
     extern bool LargePages;
 
-    extern void alloc_memory (void *&mem_ref, size_t mem_size, u32 alignment);
+    extern void alloc_memory (void*&, size_t, u32);
 
-    extern void  free_memory (void *mem);
+    extern void free_memory (void*);
 
     extern void initialize ();
     extern void deinitialize ();

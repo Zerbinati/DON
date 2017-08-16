@@ -29,11 +29,11 @@ namespace TBSyzygy {
     extern std::string  PathString;
     extern i32          MaxLimitPiece;
 
-    extern i32      probe_dtz (Position &pos, ProbeState &state);
-    extern WDLScore probe_wdl (Position &pos, ProbeState &state);
+    extern i32      probe_dtz (Position&, ProbeState&);
+    extern WDLScore probe_wdl (Position&, ProbeState&);
 
-    extern bool root_probe_dtz (Position &root_pos, RootMoves &root_moves, Value &value);
-    extern bool root_probe_wdl (Position &root_pos, RootMoves &root_moves, Value &value);
+    extern bool root_probe_dtz (Position&, RootMoves&, Value&);
+    extern bool root_probe_wdl (Position&, RootMoves&, Value&);
 
     extern void initialize ();
 

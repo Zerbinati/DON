@@ -116,7 +116,7 @@ namespace Polyglot {
         static const u08 HeaderSize;
 
         Book ();
-        Book (const std::string &bk_fn, std::ios_base::openmode m);
+        Book (const std::string&, std::ios_base::openmode);
         Book (const Book&) = delete;
         Book& operator= (const Book&) = delete;
 
@@ -135,21 +135,21 @@ namespace Polyglot {
             return size;
         }
 
-        bool open (const std::string &bk_fn, std::ios_base::openmode m);
+        bool open (const std::string&, std::ios_base::openmode);
         void close ();
 
         template<typename T>
-        Book& operator>> (      T &t);
+        Book& operator>> (      T&);
         template<typename T>
-        Book& operator<< (const T &t);
+        Book& operator<< (const T&);
 
-        size_t find_index (const Key posi_key);
-        size_t find_index (const Position &pos);
-        size_t find_index (const std::string &fen, bool c960 = false);
+        size_t find_index (const Key);
+        size_t find_index (const Position&);
+        size_t find_index (const std::string&, bool = false);
 
-        Move probe_move (const Position &pos, bool pick_best = true);
+        Move probe_move (const Position&, bool = true);
 
-        std::string read_entries (const Position &pos);
+        std::string read_entries (const Position&);
 
     };
 

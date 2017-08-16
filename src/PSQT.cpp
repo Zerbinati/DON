@@ -114,7 +114,7 @@ namespace PSQT
     template Value compute_npm<WHITE> (const Position&);
     template Value compute_npm<BLACK> (const Position&);
 
-    /// Initializes lookup tables during startup
+    /// PSQT::initialize() initializes lookup tables at startup
     void initialize ()
     {
         for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })

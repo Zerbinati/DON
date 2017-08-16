@@ -78,8 +78,8 @@ namespace Engine {
             do
             {
                 // Block here waiting for input or EOF
-                if (   argc == 1
-                    && !std::getline (cin, cmd, '\n'))
+                if (   1 == argc
+                    && !std::getline (std::cin, cmd, '\n'))
                 {
                     cmd = "quit";
                 }
@@ -254,7 +254,7 @@ namespace Engine {
                     if (token == "fen")
                     {
                         while (   iss >> token
-                                && token != "moves") // Consume "moves" token if any
+                               && token != "moves") // Consume "moves" token if any
                         {
                             fen += token + " ";
                         }
@@ -486,7 +486,7 @@ namespace Engine {
                     }
                 }
             }
-            while (   argc == 1
+            while (   1 == argc
                    && cmd != "quit");
         }
     }
@@ -537,6 +537,7 @@ namespace Engine {
         return oss.str ();
     }
 
+    /// Engine::run() runs with command arguments
     void run (i32 argc, const char *const *argv)
     {
         std::cout << Name << " " << info () << " by " << Author << std::endl;
@@ -562,7 +563,7 @@ namespace Engine {
         loop (argc, argv);
     }
 
-    /// Exit from engine with exit code (in case of some crash).
+    /// Engine::stop() exits with a code (in case of some crash).
     void stop (i32 code)
     {
         Threadpool.stop = true;

@@ -52,8 +52,8 @@ namespace Material {
         Endgame<KBPsKPs> ScaleKBPsKPs[CLR_NO] = { Endgame<KBPsKPs> (WHITE), Endgame<KBPsKPs> (BLACK) };
         Endgame<KQKRPs>  ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs>  (WHITE), Endgame<KQKRPs>  (BLACK) };
 
-        ///  imbalance() calculates the imbalance by the piece count of each piece type for both colors.
-        /// NOTE:: King == Bishop Pair
+        /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
+        /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
         i32 imbalance (const i32 (*count)[NONE])
         {

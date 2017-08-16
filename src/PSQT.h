@@ -9,10 +9,10 @@ namespace PSQT {
 
     extern Score PSQ[CLR_NO][NONE][SQ_NO];
 
-    extern Score compute_psq (const Position &pos);
+    extern Score compute_psq (const Position&);
 
     template<Color Own>
-    extern Value compute_npm (const Position &pos);
+    extern Value compute_npm (const Position&);
 
     extern void initialize ();
 

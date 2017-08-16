@@ -1124,7 +1124,7 @@ void Position::undo_move (Move m)
 
     assert(ok ());
 }
-/// Position::do_null_move() makes a "null move":
+/// Position::do_null_move() makes a 'null move'.
 // It flips the side to move without executing any move on the board.
 void Position::do_null_move (StateInfo &nsi)
 {
@@ -1152,7 +1152,7 @@ void Position::do_null_move (StateInfo &nsi)
 
     assert(ok ());
 }
-/// Position::do_null_move() unmakes a "null move":
+/// Position::do_null_move() unmakes a 'null move'.
 void Position::undo_null_move ()
 {
     assert(nullptr != si->ptr);

@@ -94,18 +94,20 @@ using namespace Threading;
 class Position
 {
 private:
-    void place_piece (Square s, Color c, PieceType pt);
-    void place_piece (Square s, Piece p);
-    void remove_piece (Square s);
-    void move_piece (Square s1, Square s2);
+    void place_piece (Square, Color, PieceType);
+    void place_piece (Square, Piece);
+    void remove_piece (Square);
+    void move_piece (Square, Square);
 
-    void set_castle (Color c, CastleSide cs);
+    void set_castle (Color, CastleSide);
 
-    bool can_en_passant (Color c, Square ep_sq, bool move_done = true) const;
+    bool can_en_passant (Color, Square, bool = true) const;
 
-    template<bool Do> void do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst);
+    template<bool Do>
+    void do_castling (Square, Square&, Square&, Square&);
 
-    template<PieceType PT> PieceType pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const;
+    template<PieceType PT>
+    PieceType pick_least_val_att (Square, Bitboard, Bitboard&, Bitboard&) const;
 
 public:
     static bool Chess960;
@@ -137,68 +139,68 @@ public:
     bool empty  (Square s)  const;
 
     Bitboard pieces () const;
-    Bitboard pieces (Color c) const;
-    Bitboard pieces (PieceType pt) const;
-    Bitboard pieces (Color c, PieceType pt) const;
-    Bitboard pieces (PieceType p1, PieceType p2) const;
-    Bitboard pieces (Color c, PieceType p1, PieceType p2) const;
+    Bitboard pieces (Color) const;
+    Bitboard pieces (PieceType) const;
+    Bitboard pieces (Color, PieceType) const;
+    Bitboard pieces (PieceType, PieceType) const;
+    Bitboard pieces (Color, PieceType, PieceType) const;
 
     template<PieceType PT> i32 count () const;
-    template<PieceType PT> i32 count (Color c) const;
-    i32 count (Color c, PieceType pt) const;
+    template<PieceType PT> i32 count (Color) const;
+    i32 count (Color, PieceType) const;
 
-    template<PieceType PT> Square square (Color c, i08 index = 0) const;
+    template<PieceType PT> Square square (Color, i08 = 0) const;
 
     Key pg_key () const;
-    Key move_posi_key (Move m) const;
+    Key move_posi_key (Move) const;
 
-    bool can_castle (Color c) const;
-    bool can_castle (Color c, CastleSide cs) const;
-    bool has_castleright (CastleRight cr) const;
+    bool can_castle (Color) const;
+    bool can_castle (Color, CastleSide) const;
+    bool has_castleright (CastleRight) const;
 
-    bool expeded_castle (Color c, CastleSide cs) const;
+    bool expeded_castle (Color, CastleSide) const;
 
     i16  move_num () const;
-    bool draw (i16 pp) const;
+    bool draw (i16) const;
 
-    bool see_ge (Move m, Value threshold = VALUE_ZERO) const;
+    bool see_ge (Move, Value = VALUE_ZERO) const;
 
-    Bitboard attackers_to (Square s, Color c, Bitboard occ) const;
-    Bitboard attackers_to (Square s, Color c) const;
-    Bitboard attackers_to (Square s, Bitboard occ) const;
-    Bitboard attackers_to (Square s) const;
-    //Bitboard xattackers_to (Square s, Color c, Bitboard occ) const;
+    Bitboard attackers_to (Square, Color, Bitboard) const;
+    Bitboard attackers_to (Square, Color) const;
+    Bitboard attackers_to (Square, Bitboard) const;
+    Bitboard attackers_to (Square) const;
+    //Bitboard xattackers_to (Square, Color, Bitboard) const;
 
     template<Color Own>
-    Bitboard slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const;
-    Bitboard abs_blockers (Color c) const;
-    Bitboard dsc_blockers (Color c) const;
-    Bitboard abs_checkers (Color c) const;
-    Bitboard dsc_checkers (Color c) const;
+    Bitboard slider_blockers (Square, Bitboard, Bitboard&, Bitboard&) const;
+    Bitboard abs_blockers (Color) const;
+    Bitboard dsc_blockers (Color) const;
+    Bitboard abs_checkers (Color) const;
+    Bitboard dsc_checkers (Color) const;
 
-    bool pseudo_legal   (Move m) const;
-    bool legal          (Move m) const;
-    bool en_passant     (Move m) const;
-    bool capture        (Move m) const;
-    bool promotion      (Move m) const;
-    bool capture_or_promotion (Move m) const;
-    bool gives_check    (Move m) const;
+    bool pseudo_legal   (Move) const;
+    bool legal          (Move) const;
+    bool en_passant     (Move) const;
+    bool capture        (Move) const;
+    bool promotion      (Move) const;
+    bool capture_or_promotion (Move) const;
+    bool gives_check    (Move) const;
 
-    PieceType cap_type  (Move m) const;
+    PieceType cap_type  (Move) const;
 
-    bool pawn_passed_at (Color c, Square s) const;
-    bool paired_bishop  (Color c) const;
+    bool pawn_passed_at (Color, Square) const;
+    bool paired_bishop  (Color) const;
     bool opposite_bishops ()    const;
 
     void clear ();
 
-    Position& setup (const std::string &ff, StateInfo &si, Thread *const th = nullptr, bool full = true);
-    Position& setup (const std::string &code, StateInfo &si, Color c);
+    Position& setup (const std::string&, StateInfo&, Thread *const = nullptr, bool = true);
+    Position& setup (const std::string&, StateInfo&, Color);
     
-    void do_move (Move m, StateInfo &si, bool gives_check);
-    void do_move (Move m, StateInfo &si);
-    void undo_move (Move m);
-    void do_null_move (StateInfo &si);
+    void do_move (Move, StateInfo&, bool);
+    void do_move (Move, StateInfo&);
+    void undo_move (Move);
+    void do_null_move (StateInfo&);
     void undo_null_move ();
 
     void flip ();
@@ -250,14 +252,14 @@ inline Bitboard Position::pieces (Color c, PieceType pt1, PieceType pt2) const
     return color_bb[c]&(types_bb[pt1]|types_bb[pt2]);
 }
 
-/// Position::count() counts specific piece
+/// Position::count<>() counts specific piece
 template<PieceType PT> inline i32 Position::count () const
 {
     assert(PT < NONE);
     return i32(squares[WHITE][PT].size ()
              + squares[BLACK][PT].size ());
 }
-/// Position::count() counts total pieces
+/// Position::count<NONE>() counts total pieces
 template<> inline i32 Position::count<NONE> () const
 {
     return i32(squares[WHITE][PAWN].size () + squares[BLACK][PAWN].size ()
@@ -267,7 +269,7 @@ template<> inline i32 Position::count<NONE> () const
              + squares[WHITE][QUEN].size () + squares[BLACK][QUEN].size ()
              + squares[WHITE][KING].size () + squares[BLACK][KING].size ());
 }
-/// Position::count() counts specific piece of color
+/// Position::count<>() counts specific piece of color
 template<PieceType PT> inline i32 Position::count (Color c) const
 {
     assert(PT < NONE);
@@ -283,7 +285,7 @@ template<> inline i32 Position::count<NONE> (Color c) const
              + squares[c][QUEN].size ()
              + squares[c][KING].size ());
 }
-
+/// Position::count() counts specific piece of color and type
 inline i32 Position::count (Color c, PieceType pt) const
 {
     assert(pt < NONE);

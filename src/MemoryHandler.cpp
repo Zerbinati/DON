@@ -171,7 +171,7 @@ namespace Memory {
         std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << std::endl;
     }
 
-    void  free_memory (void *mem)
+    void free_memory (void *mem)
     {
         if (nullptr == mem)
         {

@@ -9,7 +9,7 @@ namespace Material {
 
     const i32 PhaseResolution = 128;
 
-    // Material::Entry contains various information about a material configuration.
+    /// Material::Entry contains various information about a material configuration.
     struct Entry
     {
     public:
@@ -24,7 +24,7 @@ namespace Material {
 
     typedef HashTable<Entry, 0x2000> Table;
 
-    extern Entry* probe (const Position &pos);
+    extern Entry* probe (const Position&);
 }
 
 #endif // _MATERIAL_H_INC_

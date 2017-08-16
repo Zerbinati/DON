@@ -12,7 +12,7 @@ namespace Debugger {
         u64 HitCount = 0;
 
         u64 ItemCount = 0;
-        i64 ItemSum = 0;
+        i64 ItemValueSum = 0;
     }
 
     void dbg_hit_on (bool hit)
@@ -36,13 +36,13 @@ namespace Debugger {
         }
     }
 
-    void dbg_mean_of (i64 item)
+    void dbg_mean_of (i64 item_value)
     {
         static Mutex mutex;
 
         mutex.lock ();
         ++ItemCount;
-        ItemSum += item;
+        ItemValueSum += item_value;
         mutex.unlock ();
     }
 
@@ -66,8 +66,8 @@ namespace Debugger {
                 << std::right
                 << "---------------------------\n"
                 << "Count :" << std::setw (20) << ItemCount << "\n"
-                << "Sum   :" << std::setw (20) << ItemSum   << "\n"
-                << "Mean  :" << std::setw (20) << std::fixed << std::setprecision (2) << (double) ItemSum / ItemCount
+                << "Sum   :" << std::setw (20) << ItemValueSum << "\n"
+                << "Mean  :" << std::setw (20) << std::fixed << std::setprecision (2) << (double) ItemValueSum / ItemCount
                 << std::left
                 << std::endl;
         }

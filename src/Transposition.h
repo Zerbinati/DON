@@ -99,7 +99,7 @@ namespace Transposition {
     class Table
     {
     private:
-        void alloc_aligned_memory (size_t mem_size, u32 alignment);
+        void alloc_aligned_memory (size_t, u32);
 
         void free_aligned_memory ();
 
@@ -139,26 +139,26 @@ namespace Transposition {
         size_t cluster_mask () const { return cluster_count - 1; }
         //size_t entry_count () const { return cluster_count * Cluster::EntryCount; }
 
-        /// size () returns hash size in MB
+        /// Table::size() returns hash size in MB
         u32 size () const { return u32((cluster_count * sizeof (Cluster)) >> 20); }
 
-        /// cluster_entry() returns a pointer to the first entry of a cluster given a position.
+        /// Table::cluster_entry() returns a pointer to the first entry of a cluster given a position.
         /// The lower order bits of the key are used to get the index of the cluster inside the table.
         Entry* cluster_entry (const Key key) const { return clusters[size_t(key) & cluster_mask ()].entries; }
 
-        u32 resize (u32 mem_size, bool force = false);
+        u32 resize (u32, bool = false);
         u32 resize ();
 
-        void auto_resize (u32 mem_size, bool force = false);
+        void auto_resize (u32, bool = false);
 
         void clear ();
 
-        Entry* probe (const Key key, bool &tt_hit) const;
+        Entry* probe (const Key, bool&) const;
 
         u32 hash_full () const;
 
-        void save (const std::string &hash_fn) const;
-        void load (const std::string &hash_fn);
+        void save (const std::string&) const;
+        void load (const std::string&);
 
         template<typename CharT, typename Traits>
         friend std::basic_ostream<CharT, Traits>&

@@ -236,7 +236,7 @@ namespace TBSyzygy {
         i32 MapA1D1D4[SQ_NO];
         i32 MapKK[10][SQ_NO]; // [MapA1D1D4][SQ_NO]
 
-        // Comparison function to sort leading pawns in ascending MapPawns[] order
+        /// Comparison function to sort leading pawns in ascending MapPawns[] order
         bool pawns_comp (Square i, Square j)
         {
             return MapPawns[i] < MapPawns[j];
@@ -575,21 +575,21 @@ namespace TBSyzygy {
             }
         }
 
-        // TB tables are compressed with canonical Huffman code. The compressed data is divided into
-        // blocks of size d->block_size, and each block stores a variable number of symbols.
-        // Each symbol represents either a WDL or a (remapped) DTZ value, or a pair of other symbols
-        // (recursively). If you keep expanding the symbols in a block, you end up with up to 65536
-        // WDL or DTZ values. Each symbol represents up to 256 values and will correspond after
-        // Huffman coding to at least 1 bit. So a block of 32 bytes corresponds to at most
-        // 32 x 8 x 256 = 65536 values. This maximum is only reached for tables that consist mostly
-        // of draws or mostly of wins, but such tables are actually quite common. In principle, the
-        // blocks in WDL tables are 64 bytes long (and will be aligned on cache lines). But for
-        // mostly-draw or mostly-win tables this can leave many 64-byte blocks only half-filled, so
-        // in such cases blocks are 32 bytes long. The blocks of DTZ tables are up to 1024 bytes long.
-        // The generator picks the size that leads to the smallest table. The "book" of symbols and
-        // Huffman codes is the same for all blocks in the table. A non-symmetric pawnless TB file
-        // will have one table for wtm and one for btm, a TB file with pawns will have tables per
-        // file a,b,c,d also in this case one set for wtm and one for btm.
+        /// TB tables are compressed with canonical Huffman code. The compressed data is divided into
+        /// blocks of size d->block_size, and each block stores a variable number of symbols.
+        /// Each symbol represents either a WDL or a (remapped) DTZ value, or a pair of other symbols
+        /// (recursively). If you keep expanding the symbols in a block, you end up with up to 65536
+        /// WDL or DTZ values. Each symbol represents up to 256 values and will correspond after
+        /// Huffman coding to at least 1 bit. So a block of 32 bytes corresponds to at most
+        /// 32 x 8 x 256 = 65536 values. This maximum is only reached for tables that consist mostly
+        /// of draws or mostly of wins, but such tables are actually quite common. In principle, the
+        /// blocks in WDL tables are 64 bytes long (and will be aligned on cache lines). But for
+        /// mostly-draw or mostly-win tables this can leave many 64-byte blocks only half-filled, so
+        /// in such cases blocks are 32 bytes long. The blocks of DTZ tables are up to 1024 bytes long.
+        /// The generator picks the size that leads to the smallest table. The "book" of symbols and
+        /// Huffman codes is the same for all blocks in the table. A non-symmetric pawnless TB file
+        /// will have one table for wtm and one for btm, a TB file with pawns will have tables per
+        /// file a,b,c,d also in this case one set for wtm and one for btm.
         i32 decompress_pairs (PairsData *d, u64 idx)
         {
             // Special case where all table positions store the same value
@@ -730,10 +730,10 @@ namespace TBSyzygy {
                 || ((entry->key1 == entry->key2) && !entry->has_pawns);
         }
 
-        // DTZ scores are sorted by frequency of occurrence and then assigned the
-        // values 0, 1, 2, ... in order of decreasing frequency. This is done for each
-        // of the four WDLScore values. The mapping information necessary to reconstruct
-        // the original values is stored in the TB file and read during map[] init.
+        /// DTZ scores are sorted by frequency of occurrence and then assigned the
+        /// values 0, 1, 2, ... in order of decreasing frequency. This is done for each
+        //// of the four WDLScore values. The mapping information necessary to reconstruct
+        /// the original values is stored in the TB file and read during map[] init.
         WDLScore map_score (WDLEntry*, File, i32 value, WDLScore) { return WDLScore(value - 2); }
 
         i32 map_score (DTZEntry* entry, File f, i32 value, WDLScore wdl)
@@ -769,12 +769,12 @@ namespace TBSyzygy {
             return value + 1;
         }
 
-        // Compute a unique index out of a position and use it to probe the TB file. To
-        // encode k pieces of same type and color, first sort the pieces by square in
-        // ascending order s1 <= s2 <= ... <= sk then compute the unique index as:
-        //
-        //      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
-        //
+        /// Compute a unique index out of a position and use it to probe the TB file. To
+        /// encode k pieces of same type and color, first sort the pieces by square in
+        /// ascending order s1 <= s2 <= ... <= sk then compute the unique index as:
+        ///
+        ///      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
+        ///
         template<typename Entry, typename T = typename Ret<Entry>::type>
         T do_probe_table (const Position &pos, Entry *entry, WDLScore wdl, ProbeState &state)
         {
@@ -1038,16 +1038,16 @@ namespace TBSyzygy {
             return map_score (entry, tbFile, decompress_pairs (d, idx), wdl);
         }
 
-        // Group together pieces that will be encoded together. The general rule is that
-        // a group contains pieces of same type and color. The exception is the leading
-        // group that, in case of positions withouth pawns, can be formed by 3 different
-        // pieces (default) or by the king pair when there is not a unique piece apart
-        // from the kings. When there are pawns, pawns are always first in pieces[].
-        //
-        // As example KRKN -> KRK + N, KNNK -> KK + NN, KPPKP -> P + PP + K + K
-        //
-        // The actual grouping depends on the TB generator and can be inferred from the
-        // sequence of pieces in piece[] array.
+        /// Group together pieces that will be encoded together. The general rule is that
+        /// a group contains pieces of same type and color. The exception is the leading
+        /// group that, in case of positions withouth pawns, can be formed by 3 different
+        /// pieces (default) or by the king pair when there is not a unique piece apart
+        /// from the kings. When there are pawns, pawns are always first in pieces[].
+        ///
+        /// As example KRKN -> KRK + N, KNNK -> KK + NN, KPPKP -> P + PP + K + K
+        ///
+        /// The actual grouping depends on the TB generator and can be inferred from the
+        /// sequence of pieces in piece[] array.
         template<typename T>
         void set_groups (T &e, PairsData *d, i32 order[], File f)
         {
@@ -1110,9 +1110,9 @@ namespace TBSyzygy {
             d->group_idx[n] = idx;
         }
 
-        // In Recursive Pairing each symbol represents a pair of childern symbols. So
-        // read d->btree[] symbols data and expand each one in his left and right child
-        // symbol until reaching the leafs that represent the symbol value.
+        /// In Recursive Pairing each symbol represents a pair of childern symbols. So
+        /// read d->btree[] symbols data and expand each one in his left and right child
+        /// symbol until reaching the leafs that represent the symbol value.
         u08 set_symlen (PairsData *d, Sym s, vector<bool>& visited)
         {
             visited[s] = true; // We can set it now because tree is acyclic
@@ -1341,7 +1341,7 @@ namespace TBSyzygy {
                 return e.base_address;
             }
 
-            unique_lock<Mutex> lk (mutex);
+            std::unique_lock<Mutex> lk (mutex);
 
             if (e.ready.load (std::memory_order::memory_order_relaxed)) // Recheck under lock
             {
@@ -1393,19 +1393,19 @@ namespace TBSyzygy {
             return do_probe_table (pos, entry, wdl, state);
         }
 
-        // For a position where the side to move has a winning capture it is not necessary
-        // to store a winning value so the generator treats such positions as "don't cares"
-        // and tries to assign to it a value that improves the compression ratio. Similarly,
-        // if the side to move has a drawing capture, then the position is at least drawn.
-        // If the position is won, then the TB needs to store a win value. But if the
-        // position is drawn, the TB may store a loss value if that is better for compression.
-        // All of this means that during probing, the engine must look at captures and probe
-        // their results and must probe the position itself. The "best" state of these
-        // probes is the correct state for the position.
-        // DTZ table don't store values when a following move is a zeroing winning move
-        // (winning capture or winning pawn move). Also DTZ store wrong values for positions
-        // where the best move is an ep-move (even if losing). So in all these cases set
-        // the state to ZEROING_BEST_MOVE.
+        /// For a position where the side to move has a winning capture it is not necessary
+        /// to store a winning value so the generator treats such positions as "don't cares"
+        /// and tries to assign to it a value that improves the compression ratio. Similarly,
+        /// if the side to move has a drawing capture, then the position is at least drawn.
+        /// If the position is won, then the TB needs to store a win value. But if the
+        /// position is drawn, the TB may store a loss value if that is better for compression.
+        /// All of this means that during probing, the engine must look at captures and probe
+        /// their results and must probe the position itself. The "best" state of these
+        /// probes is the correct state for the position.
+        /// DTZ table don't store values when a following move is a zeroing winning move
+        /// (winning capture or winning pawn move). Also DTZ store wrong values for positions
+        /// where the best move is an ep-move (even if losing). So in all these cases set
+        /// the state to ZEROING_BEST_MOVE.
         template<bool CheckZeroingMoves = false>
         WDLScore search (Position &pos, ProbeState &state)
         {
@@ -1483,7 +1483,7 @@ namespace TBSyzygy {
             return value;
         }
 
-        // Check whether there has been at least one repetition of position since the last capture or pawn move.
+        /// Check whether there has been at least one repetition of position since the last capture or pawn move.
         bool has_repeated (StateInfo *si)
         {
             while (nullptr != si)

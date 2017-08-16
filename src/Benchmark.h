@@ -4,8 +4,8 @@
 #include <istream>
 #include "Position.h"
 
-extern void benchmark (std::istringstream &is, const Position &cur_pos);
+extern void benchmark (std::istringstream&, const Position&);
 
-extern void perft (std::istringstream &is, const Position &cur_pos);
+extern void perft (std::istringstream&, const Position&);
 
 #endif // _BENCHMARK_H_INC_

@@ -42,7 +42,7 @@ namespace Pawns {
         }
 
         template<Color Own>
-        Value pawn_shelter_storm (const Position &pos, Square fk_sq) const;
+        Value pawn_shelter_storm (const Position&, Square) const;
 
         template<Color Own>
         u08 do_king_safety (const Position &pos, Square fk_sq)
@@ -68,7 +68,7 @@ namespace Pawns {
 
     typedef HashTable<Entry, 0x4000> Table;
 
-    extern Entry* probe (const Position &pos);
+    extern Entry* probe (const Position&);
 
     extern void initialize ();
 }

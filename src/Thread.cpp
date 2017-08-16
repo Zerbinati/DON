@@ -54,13 +54,20 @@ namespace {
     }
 }
 
+/// TimeManager::elapsed_time()
 u64 TimeManager::elapsed_time () const
 {
     return 0 != NodesTime ?
             Threadpool.nodes () :
             now () - Limits.start_time;
 }
-/// Calculates the allowed thinking time out of the time control and current game ply.
+/// TimeManager::initialize() calculates the allowed thinking time out of the time control and current game ply.
+/// Support four different kind of time controls, passed in 'limits':
+///
+/// moves_to_go = 0, increment = 0 means: x basetime                             ['sudden death' time control]
+/// moves_to_go = 0, increment > 0 means: x basetime + z increment
+/// moves_to_go > 0, increment = 0 means: x moves in y basetime                  ['standard' time control]
+/// moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
 void TimeManager::initialize (Color c, i16 ply)
 {
     optimum_time =
@@ -97,7 +104,42 @@ void TimeManager::initialize (Color c, i16 ply)
     //}
 }
 
-/// When playing with a strength handicap, choose best move among a set of RootMoves,
+void MoveManager::update (Position &pos, const Moves &new_pv)
+{
+    assert (new_pv.size () >= 3);
+
+    if (new_pv[2] == pv[2])
+    {
+        ++stable_count;
+    }
+    else
+    {
+        stable_count = 0;
+    }
+
+    if (!std::equal (new_pv.begin (), new_pv.begin () + 3, pv))
+    {
+        std::copy (new_pv.begin (), new_pv.begin () + 3, pv);
+
+        // Update expected posi key
+        u08 ply = 0;
+        StateInfo si[2];
+        do
+        {
+            pos.do_move (pv[ply], si[ply]);
+        }
+        while (2 > ++ply);
+
+        exp_posi_key = pos.si->posi_key;
+
+        while (0 != ply)
+        {
+            pos.undo_move (pv[--ply]);
+        }
+    }
+}
+
+/// SkillManager::pick_best_move() chooses best move among a set of RootMoves when playing with a strength handicap,
 /// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 void SkillManager::pick_best_move (const RootMoves &root_moves)
 {
@@ -285,8 +327,8 @@ namespace Threading {
         : index (n)
         , std_thread (&Thread::idle_loop, this)
     {
-        clear ();
         wait_while_busy ();
+        clear ();
     }
 
     /// Thread destructor wakes up the thread in idle_loop() and
@@ -350,13 +392,24 @@ namespace Threading {
             condition_var.wait (lk, [&] { return busy; });
             if (dead)
             {
-                return;
+                break;
             }
             lk.unlock ();
 
             search ();
         }
     }
+
+    /// MainThread constructor
+    MainThread::MainThread (u08 n)
+        : Thread (n)
+        , check_count (0)
+        , easy_played (false)
+        , failed_low (false)
+        , best_move_change (0.0)
+        , easy_move (MOVE_NONE)
+        , last_value (VALUE_NONE)
+    {}
 
     /// ThreadPool::clear() clears the threadpool
     void ThreadPool::clear ()
@@ -376,7 +429,6 @@ namespace Threading {
     /// ThreadPool::configure() creates/destroys threads to match the requested number.
     void ThreadPool::configure (u32 threads)
     {
-        assert(0 < threads);
         while (size () < threads)
         {
             push_back (new Thread (u08(size ())));
@@ -450,17 +502,17 @@ namespace Threading {
         }
 
         // After ownership transfer 'states' becomes empty, so if we stop the search
-        // and call 'go' again without setting a new position states.get() == NULL.
-        assert(states.get ()
-            || setup_states.get ());
+        // and call 'go' again without setting a new position states.get() == nullptr.
+        assert(nullptr != states.get ()
+            || nullptr != setup_states.get ());
 
-        if (states.get ())
+        if (nullptr != states.get ())
         {
             setup_states = std::move (states); // Ownership transfer, states is now empty
         }
 
-        // We use Position::set() to set root position across threads.
-        // So we need to save and later to restore last stateinfo, cleared by set().
+        // We use setup() to set root position across threads.
+        // So we need to save and later to restore last stateinfo, cleared by setup().
         // Note that states is shared by threads but is accessed in read-only mode.
         const auto back_si = setup_states->back ();
         for (auto *th : *this)
@@ -483,22 +535,22 @@ namespace Threading {
         start_thinking (root_pos, states, limits, search_moves, ponde);
     }
 
-    /// Waits for the main thread while searching.
+    /// ThreadPool::wait_while_thinking() waits for the main thread while searching.
     void ThreadPool::wait_while_thinking ()
     {
         main_thread ()->wait_while_busy ();
     }
 
-    /// Creates and launches requested threads, that will go immediately to sleep.
-    /// Cannot use a constructor becuase threadpool is a static object and require a fully initialized engine.
+    /// ThreadPool::initialize() creates and launches requested threads, that will go immediately to sleep.
+    /// Cannot use a constructor because threadpool is a static object and require a fully initialized engine (due to allocation of Tables in the Thread).
     void ThreadPool::initialize (u32 threads)
     {
         assert(empty ());
         push_back (new MainThread (0));
         configure (threads);
     }
-    /// Cleanly terminates the threads before the program exits.
-    /// Cannot be done in destructor because threads must be terminated before deleting any static objects.
+    /// ThreadPool::deinitialize() cleanly terminates the threads before the program exits.
+    /// Cannot use a destructor because threads must be terminated before deleting any static objects.
     void ThreadPool::deinitialize ()
     {
         wait_while_thinking ();

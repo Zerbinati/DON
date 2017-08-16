@@ -69,7 +69,7 @@ namespace Notation {
             ostringstream oss;
             if (abs (v) < +VALUE_MATE - i32(MaxPlies))
             {
-                oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (c == WHITE ? +v : -v);
+                oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (WHITE == c ? +v : -v);
             }
             else
             {

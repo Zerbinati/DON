@@ -18,9 +18,9 @@ enum GenType : u08
 namespace MoveGen {
 
     template<GenType GT>
-    extern void generate (ValMoves &moves, const Position &pos);
+    extern void generate (ValMoves&, const Position&);
 
-    extern void filter_illegal (ValMoves &moves, const Position &pos);
+    extern void filter_illegal (ValMoves&, const Position&);
 
     template<GenType GT, PieceType PT = NONE>
     class MoveList

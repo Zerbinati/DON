@@ -51,16 +51,16 @@ namespace Notation {
             (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m));
     }
 
-    extern std::string move_to_can (Move m);
-    extern Move move_from_can (std::string &can, const Position &pos);
+    extern std::string move_to_can (Move);
+    extern Move move_from_can (std::string&, const Position&);
 
-    extern std::string move_to_san (Move m, Position &pos);
-    extern Move move_from_san (const std::string &san, Position &pos);
+    extern std::string move_to_san (Move, Position&);
+    extern Move move_from_san (const std::string&, Position&);
 
-    //extern std::string move_to_lan (Move m, Position &pos);
-    //extern Move move_from_lan (const std::string &lan, Position &pos);
+    //extern std::string move_to_lan (Move, Position&);
+    //extern Move move_from_lan (const std::string &, Position &);
 
-    extern std::string pretty_pv_info (Thread *const &th);
+    extern std::string pretty_pv_info (Thread *const&);
 }
 
 template<typename CharT, typename Traits>

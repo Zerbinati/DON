@@ -244,7 +244,7 @@ namespace BitBoard {
     
     // attacks_bb(s, occ) takes a square and a bitboard of occupied squares,
     // and returns a bitboard representing all squares attacked by PT (Bishop or Rook) on the given square.
-    template<PieceType PT> Bitboard attacks_bb (Square s, Bitboard occ);
+    template<PieceType PT> Bitboard attacks_bb (Square, Bitboard);
     
     // Attacks of the Knight with occupancy
     template<> inline Bitboard attacks_bb<NIHT> (Square s, Bitboard)
@@ -532,8 +532,8 @@ namespace BitBoard {
 
     // Find the square corresponding to the most/least advanced bit relative to the given color.
 
-    inline Square scan_frntmost_sq (Color c, Bitboard bb) { return c == WHITE ? scan_msq (bb) : scan_lsq (bb); }
-    inline Square scan_backmost_sq (Color c, Bitboard bb) { return c == WHITE ? scan_lsq (bb) : scan_msq (bb); }
+    inline Square scan_frntmost_sq (Color c, Bitboard bb) { return WHITE == c ? scan_msq (bb) : scan_lsq (bb); }
+    inline Square scan_backmost_sq (Color c, Bitboard bb) { return WHITE == c ? scan_lsq (bb) : scan_msq (bb); }
 
     inline Square pop_lsq (Bitboard &bb)
     {
@@ -549,7 +549,9 @@ namespace BitBoard {
     extern void initialize ();
 
 #if !defined(NDEBUG)
-    extern std::string pretty (Bitboard bb);
+
+    extern std::string pretty (Bitboard);
+
 #endif
 
 }

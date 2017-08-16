@@ -12,8 +12,8 @@ namespace Engine {
 
     extern std::string info ();
 
-    extern void run (i32 argc, const char *const *argv);
-    extern void stop (i32 code);
+    extern void run (i32, const char *const *);
+    extern void stop (i32);
 
 }
 

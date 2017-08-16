@@ -343,6 +343,7 @@ namespace BitBoard {
     }
 
 #if !defined(NDEBUG)
+
     /// Returns an ASCII representation of a bitboard to print on console output
     /// Bitboard in an easily readable format. This is sometimes useful for debugging.
     string pretty (Bitboard bb)
@@ -370,6 +371,7 @@ namespace BitBoard {
         oss << "\n";
         return oss.str ();
     }
+
 #endif
 
 }

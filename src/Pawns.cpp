@@ -237,8 +237,8 @@ namespace Pawns {
     template Value Entry::pawn_shelter_storm<WHITE> (const Position&, Square) const;
     template Value Entry::pawn_shelter_storm<BLACK> (const Position&, Square) const;
 
-    /// Looks up a PawnEntry object, and returns a pointer to it.
-    /// The pointer is also stored in a hash table.
+    /// Pawns::probe() looks up a current position's pawn configuration in the pawn hash table
+    /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe (const Position &pos)
     {
         auto *e = pos.thread->pawn_table.get (pos.si->pawn_key);
@@ -258,7 +258,7 @@ namespace Pawns {
         return e;
     }
 
-    /// Initializes lookup tables during startup.
+    /// Pawns::initialize() initializes lookup tables at startup.
     void initialize ()
     {
         const i32 Seeds[R_NO] = { 0, 13, 24, 18, 76, 100, 175, 330 };

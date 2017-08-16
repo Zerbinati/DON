@@ -215,7 +215,8 @@ void MovePicker::value ()
             && pos.legal (vm.move));
 
         if (   GenType::CAPTURE == GT
-            || (GenType::EVASION == GT && pos.capture (vm.move)))
+            || (   GenType::EVASION == GT
+                && pos.capture (vm.move)))
         {
             assert(pos.capture_or_promotion (vm.move));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
@@ -2249,7 +2250,7 @@ namespace Threading {
 
         if (root_moves.empty ())
         {
-            root_moves += RootMove ();
+            root_moves += MOVE_NONE;
 
             sync_cout
                 << "info"
@@ -2374,9 +2375,9 @@ namespace Threading {
             Threadpool.stop_on_ponderhit = true;
         }
 
-        while (   !Threadpool.stop
-               && (   Limits.infinite
-                   || Threadpool.ponder))
+        while (   (   Limits.infinite
+                   || Threadpool.ponder)
+               && !Threadpool.stop)
         {} // Busy wait for a "stop"/"ponderhit" command.
 
         Thread *best_thread = this;

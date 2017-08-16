@@ -29,21 +29,21 @@ namespace UCI {
         
         u08 index;
 
-        explicit Option (OnChange on_cng = nullptr);
-        Option (const bool  val, OnChange on_cng = nullptr);
-        Option (const char *val, OnChange on_cng = nullptr);
-        Option (const std::string &val, OnChange on_cng = nullptr);
-        Option (const i32 val, i32 min, i32 max, OnChange on_cng = nullptr);
+        explicit Option (OnChange = nullptr);
+        Option (const bool, OnChange = nullptr);
+        Option (const char*, OnChange = nullptr);
+        Option (const std::string&, OnChange = nullptr);
+        Option (const i32, i32, i32, OnChange = nullptr);
         Option (const Option&) = delete;
 
         explicit operator bool () const;
         explicit operator i32  () const;
         explicit operator std::string () const;
 
-        Option& operator=  (const char        *value);
-        Option& operator=  (const std::string &value);
+        Option& operator=  (const char*);
+        Option& operator=  (const std::string&);
 
-        void    operator<< (const Option &opt);
+        void    operator<< (const Option&);
 
         std::string operator() ()  const;
 
