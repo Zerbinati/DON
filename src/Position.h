@@ -500,8 +500,8 @@ inline bool Position::capture_or_promotion (Move m) const
 inline PieceType Position::cap_type (Move m) const
 {
     return ENPASSANT != mtype (m) ?
-        ptype (board[dst_sq (m)]) :
-        PAWN;
+               ptype (board[dst_sq (m)]) :
+               PAWN;
 }
 
 inline void Position::do_move (Move m, StateInfo &nsi)

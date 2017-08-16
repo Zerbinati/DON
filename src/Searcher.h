@@ -68,10 +68,10 @@ template<i32 Size1, i32 Size2, typename T>
 struct Table2D
     : public std::array<std::array<T, Size2>, Size1>
 {
-    void fill (const T &v)
+    void fill (const T &val)
     {
         T *ptr = &(*this)[0][0];
-        std::fill (ptr, ptr + sizeof (*this) / sizeof (*ptr), v);
+        std::fill (ptr, ptr + sizeof (*this) / sizeof (*ptr), val);
     }
 };
 
@@ -184,7 +184,7 @@ public:
 /// RootMove class is used for moves at the root of the tree.
 /// RootMove stores:
 ///  - New/Old values
-///  - Sel Depth
+///  - SelDepth
 ///  - PV (really a refutation table in the case of moves which fail low)
 /// Value is normally set at -VALUE_INFINITE for all non-pv moves.
 class RootMove
@@ -243,19 +243,7 @@ public:
     void operator+= (const RootMove &rm) { emplace_back (rm); }
     void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
 
-    void initialize (const Position &pos, const Moves &search_moves)
-    {
-        clear ();
-        for (const auto &vm : MoveGen::MoveList<GenType::LEGAL> (pos))
-        {
-            if (   search_moves.empty ()
-                || std::find (search_moves.begin (), search_moves.end (), vm.move) != search_moves.end ())
-            {
-                *this += vm.move;
-            }
-        }
-        shrink_to_fit ();
-    }
+    void initialize (const Position&, const Moves&);
 
     explicit operator std::string () const;
 };

@@ -57,6 +57,21 @@ RootMove::operator string () const
     }
     return oss.str ();
 }
+
+/// RootMoves::initialize()
+void RootMoves::initialize (const Position &pos, const Moves &search_moves)
+{
+    clear ();
+    for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+    {
+        if (   search_moves.empty ()
+            || std::find (search_moves.begin (), search_moves.end (), vm.move) != search_moves.end ())
+        {
+            *this += vm.move;
+        }
+    }
+    shrink_to_fit ();
+}
 /// RootMoves::operator string()
 RootMoves::operator string () const
 {
@@ -1837,22 +1852,26 @@ namespace Searcher {
     {
         u64 leaf_nodes = 0;
         i16 move_count = 0;
+
+        const bool LeafNode = 2 >= depth;
+
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {
-            u64 cum_nodes;
+            u64 inter_nodes;
             if (   RootNode
                 && 1 >= depth)
             {
-                cum_nodes = 1;
+                inter_nodes = 1;
             }
             else
             {
                 StateInfo si;
                 pos.do_move (vm.move, si);
-                cum_nodes =
-                    2 < depth ?
-                        perft<false> (pos, depth - 1) :
-                        MoveList<GenType::LEGAL> (pos).size ();
+                inter_nodes =
+                    LeafNode ?
+                        MoveList<GenType::LEGAL> (pos).size () :
+                        perft<false> (pos, depth - 1);
+                        
                 pos.undo_move (vm.move);
             }
 
@@ -1873,13 +1892,13 @@ namespace Searcher {
                     << std::right
                     << std::setfill ('.')
                     << std::setw (16)
-                    << cum_nodes
+                    << inter_nodes
                     << std::setfill (' ')
                     << std::left
                     << sync_endl;
             }
 
-            leaf_nodes += cum_nodes;
+            leaf_nodes += inter_nodes;
         }
         return leaf_nodes;
     }
