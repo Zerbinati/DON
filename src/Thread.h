@@ -150,13 +150,12 @@ namespace Threading {
 
         virtual ~Thread ();
 
-        void clear ();
-        
         void start_searching ();
         void wait_while_busy ();
 
         void idle_loop ();
 
+        virtual void clear ();
         virtual void search ();
     };
 
@@ -184,6 +183,7 @@ namespace Threading {
         MainThread (const MainThread&) = delete;
         MainThread& operator= (const MainThread&) = delete;
 
+        void clear () override;
         void search () override;
 
         void check_limits ();
@@ -227,7 +227,7 @@ namespace Threading {
 
         Thread* best_thread () const
         {
-            auto *best_th = at (0);
+            auto *best_th = front ();
             for (auto *th : *this)
             {
                 if (   best_th->finished_depth < th->finished_depth

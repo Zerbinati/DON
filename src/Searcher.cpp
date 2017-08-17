@@ -27,9 +27,9 @@ using namespace Zobrists;
 bool RootMove::extract_ponder_move_from_tt (Position &pos)
 {
     assert(1 == size ());
-    assert(MOVE_NONE != at (0));
+    assert(MOVE_NONE != front ());
 
-    auto best_move = at (0);
+    auto best_move = front ();
     StateInfo si;
     pos.do_move (best_move, si);
     bool tt_hit;
@@ -217,7 +217,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
 }
 
 /// MovePicker::value() assigns a numerical value to each move in a list, used for sorting.
-/// Captures are ordered by Most Valuable Victim (MVV), preferring captures near our home rank.
+/// Captures are ordered by Most Valuable Victim/Least Valuable Attacker (MVV/LVA), preferring captures near our home rank.
 /// Surprisingly, this appears to perform slightly better than SEE-based move ordering,
 /// exchanging big pieces before capturing a hanging piece probably helps to reduce the subtree size.
 /// Quiets are ordered using the histories.
@@ -229,19 +229,19 @@ void MovePicker::value ()
         assert(pos.pseudo_legal (vm.move)
             && pos.legal (vm.move));
 
-        if (   GenType::CAPTURE == GT
-            || (   GenType::EVASION == GT
-                && pos.capture (vm.move)))
+        if (   GenType::QUIET != GT
+            && (   GenType::CAPTURE == GT
+                || pos.capture (vm.move)))
         {
             assert(pos.capture_or_promotion (vm.move));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
-                     - (GenType::EVASION == GT ?
-                        ptype (pos[org_sq (vm.move)]) :
-                        200 * rel_rank (pos.active, dst_sq (vm.move)));
+                     - ptype (pos[org_sq (vm.move)])
+                     - 200 * rel_rank (pos.active, dst_sq (vm.move))
+                     + MaxValue;
         }
         else
-        if (GenType::QUIET == GT)
         {
+            assert(!pos.capture (vm.move));
             auto mpc = pos[org_sq (vm.move)];
             assert(NO_PIECE != mpc);
             auto dst = dst_sq (vm.move);
@@ -249,11 +249,6 @@ void MovePicker::value ()
                      + (*piece_destiny[0])[mpc][dst]
                      + (*piece_destiny[1])[mpc][dst]
                      + (*piece_destiny[3])[mpc][dst];
-        }
-        else // Evasion Quiet 
-        {
-            vm.value = pos.thread->butterfly[pos.active][move_pp (vm.move)]
-                     - MaxValue;
         }
     }
 }
@@ -899,7 +894,8 @@ namespace Searcher {
             u08 move_count = 0;
             StateInfo si;
 
-            const PieceDestinyHistory* piece_destiny[] = { nullptr, nullptr, nullptr, nullptr };
+            ss->piece_destiny = &pos.thread->continuation[NO_PIECE][0];
+            const PieceDestinyHistory* piece_destiny[] = { (ss-1)->piece_destiny, (ss-2)->piece_destiny, (ss-3)->piece_destiny, (ss-4)->piece_destiny };
             // Initialize move picker (2) for the current position.
             MovePicker move_picker (pos, tt_move, depth, piece_destiny, dst_sq (last_move));
             // Loop through the moves until no moves remain or a beta cutoff occurs.
@@ -2320,7 +2316,7 @@ namespace Threading {
             if (   Limits.use_time_management ()
                 && 0 != ContemptTime
                 && 0 != (diff_time = i64(  Limits.clock[ root_pos.active].time
-                                         - Limits.clock[~root_pos.active].time)/1000))
+                                         - Limits.clock[~root_pos.active].time) / 1000))
             {
                 timed_contempt = i16(diff_time/ContemptTime);
             }

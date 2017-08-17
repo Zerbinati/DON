@@ -330,7 +330,6 @@ namespace Threading {
         wait_while_busy ();
         clear ();
     }
-
     /// Thread destructor wakes up the thread in idle_loop() and
     /// waits for its termination.
     /// Thread should be already waiting.
@@ -341,28 +340,6 @@ namespace Threading {
         start_searching ();
         std_thread.join ();
     }
-
-    /// Thread::clear() clears all the thread related stuff.
-    void Thread::clear ()
-    {
-        nodes = 0;
-        tb_hits = 0;
-
-        counter_moves.fill (MOVE_NONE);
-        butterfly.fill (0);
-        for (auto &pd : continuation)
-        {
-            for (auto &piece_destiny : pd)
-            {
-                piece_destiny.fill (0);
-            }
-        }
-        continuation[NO_PIECE][0].fill (CounterMovePruneThreshold - 1);
-        
-        pawn_table.fill (Pawns   ::Entry ());
-        matl_table.fill (Material::Entry ());
-    }
-
     /// Thread::start_searching() wakes up the thread that will start the search.
     void Thread::start_searching ()
     {
@@ -370,14 +347,12 @@ namespace Threading {
         busy = true;
         condition_var.notify_one (); // Wake up the thread in idle_loop()
     }
-
     /// Thread::wait_while_busy() blocks on the condition variable while the thread is busy.
     void Thread::wait_while_busy ()
     {
         std::unique_lock<Mutex> lk (mutex);
         condition_var.wait (lk, [&] { return !busy; });
     }
-
     /// Thread::idle_loop() is where the thread is parked.
     /// Blocked on the condition variable, when it has no work to do.
     void Thread::idle_loop ()
@@ -399,6 +374,26 @@ namespace Threading {
             search ();
         }
     }
+    /// Thread::clear() clears all the thread related stuff.
+    void Thread::clear ()
+    {
+        nodes = 0;
+        tb_hits = 0;
+
+        counter_moves.fill (MOVE_NONE);
+        butterfly.fill (0);
+        for (auto &pd : continuation)
+        {
+            for (auto &piece_destiny : pd)
+            {
+                piece_destiny.fill (0);
+            }
+        }
+        continuation[NO_PIECE][0].fill (CounterMovePruneThreshold - 1);
+
+        pawn_table.fill (Pawns::Entry ());
+        matl_table.fill (Material::Entry ());
+    }
 
     /// MainThread constructor
     MainThread::MainThread (u08 n)
@@ -410,6 +405,16 @@ namespace Threading {
         , easy_move (MOVE_NONE)
         , last_value (VALUE_NONE)
     {}
+    /// MainThread::clear()
+    void MainThread::clear ()
+    {
+        Thread::clear();
+        if (Limits.use_time_management ())
+        {
+            move_mgr.clear ();
+            last_value = VALUE_NONE;
+        }
+    }
 
     /// ThreadPool::clear() clears the threadpool
     void ThreadPool::clear ()
@@ -418,14 +423,7 @@ namespace Threading {
         {
             th->clear ();
         }
-
-        if (Limits.use_time_management ())
-        {
-            Threadpool.main_thread ()->move_mgr.clear ();
-            Threadpool.main_thread ()->last_value = VALUE_NONE;
-        }
     }
-
     /// ThreadPool::configure() creates/destroys threads to match the requested number.
     void ThreadPool::configure (u32 threads)
     {
@@ -441,7 +439,6 @@ namespace Threading {
         shrink_to_fit ();
         sync_cout << "info string Thread(s) used " << threads << sync_endl;
     }
-
     /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and returns immediately.
     /// Main thread will wake up other threads and start the search.
     void ThreadPool::start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits, const Moves &search_moves, bool ponde)
@@ -534,13 +531,11 @@ namespace Threading {
         const Moves search_moves;
         start_thinking (root_pos, states, limits, search_moves, ponde);
     }
-
     /// ThreadPool::wait_while_thinking() waits for the main thread while searching.
     void ThreadPool::wait_while_thinking ()
     {
         main_thread ()->wait_while_busy ();
     }
-
     /// ThreadPool::initialize() creates and launches requested threads, that will go immediately to sleep.
     /// Cannot use a constructor because threadpool is a static object and require a fully initialized engine (due to allocation of Tables in the Thread).
     void ThreadPool::initialize (u32 threads)

@@ -596,6 +596,10 @@ public:
     operator Move () const { return move; }
     void operator= (Move m) { move = m; }
 
+    // Inhibit unwanted implicit conversions to Move
+    // with an ambiguity that yields to a compile error.
+    operator float () const;
+
     bool operator<  (const ValMove &vm) const { return value <  vm.value; }
     bool operator>  (const ValMove &vm) const { return value >  vm.value; }
     bool operator<= (const ValMove &vm) const { return value <= vm.value; }

@@ -73,10 +73,24 @@ struct Table2D
         T *ptr = &(*this)[0][0];
         std::fill (ptr, ptr + sizeof (*this) / sizeof (*ptr), val);
     }
+
+    void update (T &entry, i32 bonus, const i32 D)
+    {
+        assert([&]
+                {
+                    T v = T(entry + bonus * 32 - entry * abs (bonus) / D);
+                    return INT16_MIN < v && v < INT16_MAX;
+                }());
+        assert(abs (bonus) <= D); // Consistency check
+        
+        entry += T(bonus*32 - entry*abs (bonus) / D);
+
+        assert(abs (entry) <= 32 * D);
+    }
 };
 
 /// ButterflyStatTable store stats indexed by [color][move's org and dst squares].
-typedef Table2D<CLR_NO, SQ_NO*SQ_NO, i32> ButterflyStatTable;
+typedef Table2D<CLR_NO, SQ_NO*SQ_NO, i16> ButterflyStatTable;
 /// ButterflyHistory records how often quiet moves have been successful or unsuccessful
 /// during the current search, and is used for reduction and move ordering decisions.
 struct ButterflyHistory
@@ -85,16 +99,12 @@ struct ButterflyHistory
     // Update by color, move (org-dst), bonus
     void update (Color c, Move m, i32 bonus)
     {
-        const i32 D = 324;
-        assert(abs (bonus) <= D); // Consistency check
-        auto &e = (*this)[c][move_pp (m)];
-        e += bonus*32 - e*abs (bonus)/D;
-        assert(abs (e) <= 32 * D);
+        Table2D::update ((*this)[c][move_pp (m)], bonus, 324);
     }
 };
 
 /// PieceDestinyStatTable store stats indexed by [piece][destiny].
-typedef Table2D<MAX_PIECE, SQ_NO, i32> PieceDestinyStatTable;
+typedef Table2D<MAX_PIECE, SQ_NO, i16> PieceDestinyStatTable;
 /// PieceToHistory is like ButterflyHistory, but is based on PieceDestinyStatTable.
 struct PieceDestinyHistory
     : public PieceDestinyStatTable
@@ -102,11 +112,7 @@ struct PieceDestinyHistory
     /// Update by piece, square (dst), bonus
     void update (Piece pc, Square s, i32 bonus)
     {
-        const i32 D = 936;
-        assert(abs (bonus) <= D); // Consistency check
-        auto &e = (*this)[pc][s];
-        e += bonus*32 - e*abs (bonus)/D;
-        assert(abs (e) <= 32 * D);
+        Table2D::update ((*this)[pc][s], bonus, 936);
     }
 };
 
@@ -211,8 +217,8 @@ public:
     bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
     bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
 
-    bool operator== (Move m) const { return at (0) == m; }
-    bool operator!= (Move m) const { return at (0) != m; }
+    bool operator== (Move m) const { return front () == m; }
+    bool operator!= (Move m) const { return front () != m; }
 
     void operator+= (Move m) { emplace_back (m); }
     void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
@@ -224,9 +230,9 @@ public:
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
+    operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &root_move)
 {
-    os << std::string(rm);
+    os << std::string(root_move);
     return os;
 }
 
