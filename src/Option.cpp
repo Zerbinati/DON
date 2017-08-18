@@ -253,12 +253,9 @@ namespace UCI {
 
         void on_time_opt ()
         {
-            //MaximumMoveHorizon = i32(Options["Maximum Move Horizon"]);
-            //ReadyMoveHorizon =   i32(Options["Ready Move Horizon"]);
-            //OverheadClockTime =  i32(Options["Overhead Clock Time"]);
-            OverheadMoveTime =   i32(Options["Overhead Move Time"]);
-            NodesTime =          i32(Options["Nodes Time"]);
-            Ponder =             bool(Options["Ponder"]);
+            OverheadMoveTime = i32(Options["Overhead Move Time"]);
+            NodesTime =        i32(Options["Nodes Time"]);
+            Ponder =           bool(Options["Ponder"]);
         }
 
         void on_debug_file ()

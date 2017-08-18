@@ -17,38 +17,41 @@ Threading::ThreadPool Threadpool;
 
 namespace {
 
-    i32 remaining_time (Color c, i16 ply, bool optimum)
+    u08 MaxMovesToGo = 50;
+
+    u64 remaining_time (Color c, i16 ply, bool optimum)
     {
         double sd;
-        double ratio; // Which ratio of time we are going to use. It is <= 1
+        double ratio; // Which ratio of time we are going to use. It is <= 1.
 
         i16 move_num = (ply + 1) / 2;
-        // In moves-to-go we distribute time according to a quadratic function with
-        // the maximum around move 20 for 40 moves in y time case.
+        // In movestogo distribution of time.
         if (0 != Limits.movestogo)
         {
             sd = 8.5;
             ratio = (optimum ? 1.0 : 6.0)
-                  / std::min (Limits.movestogo, u08(50))
-                  * (move_num <= 40 ? 
+                  / std::min (Limits.movestogo, MaxMovesToGo)
+                  * (move_num <= 40 ?
+                        // quadratic function with the maximum around move 20 for 40 moves in y time case.
                         1.1 - 0.001 * std::pow (move_num - 20, 2) :
+                        // constant function.
                         1.5);
         }
-        // Otherwise we increase usage of remaining time as the game goes on
+        // Otherwise we increase usage of remaining time as the game goes on.
         else
         {
             sd = 1 + 20 * move_num / (500.0 + move_num);
             ratio = (optimum ? 0.017 : 0.070) * sd;
         }
 
-        // Usage of increment follows quadratic distribution with the maximum at move 25
-        ratio *= (1 + (Limits.clock[c].inc * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0)) / (Limits.clock[c].time * sd));
-        if (ratio > 1.0)
-        {
-            ratio = 1.0;
-        }
-
-        return i32(ratio * std::max (Limits.clock[c].time - OverheadMoveTime, 0ULL));
+        // Usage of increment follows quadratic distribution with the maximum at move 25.
+        ratio = std::min (ratio * (1.0 + Limits.clock[c].inc
+                                       * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0)
+                                       / std::max (Limits.clock[c].time * sd, DBL_MIN)), 1.0);
+        u64 time = Limits.clock[c].time > OverheadMoveTime ?
+                        Limits.clock[c].time - OverheadMoveTime :
+                        0;
+        return u64(time * ratio);
     }
 
 }

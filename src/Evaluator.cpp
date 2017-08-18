@@ -271,7 +271,7 @@ namespace Evaluator {
     #undef V
 
         template<bool Trace>
-        const i32 Evaluation<Trace>::PieceAttackWeights[NONE] = { 0, 78, 56, 45, 11 };
+        const i32 Evaluation<Trace>::PieceAttackWeights[NONE] = { 0, 78, 56, 45, 11, 0 };
 
         /// initialize() computes king and pawn attacks, and the king ring bitboard for the color.
         template<bool Trace>
@@ -400,7 +400,8 @@ namespace Evaluator {
                 }
                 else
                 {
-                    dbl_attacked[Own] |= pin_attacked_by[Own][NONE] & attacks;
+                    dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
+                                       & attacks;
                 }
                 
                 pin_attacked_by[Own][NONE] |=
