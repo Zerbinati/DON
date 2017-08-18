@@ -12,15 +12,12 @@
 #include "thread_win32.h"
 #include "Type.h"
 
-//extern u08 MaximumMoveHorizon;
-//extern u08 ReadyMoveHorizon;
-//extern u32 OverheadClockTime;
-extern u32 OverheadMoveTime;
-extern u32 MinimumMoveTime;
-
-extern double MoveSlowness;
-extern u32    NodesTime;
-extern bool   Ponder;
+//extern u08  MaximumMoveHorizon;
+//extern u08  ReadyMoveHorizon;
+//extern u32  OverheadClockTime;
+extern u32  OverheadMoveTime;
+extern u32  NodesTime;
+extern bool Ponder;
 
 /// TimeManager class is used to computes the optimal time to think depending on the
 /// maximum available time, the move game number and other parameters.

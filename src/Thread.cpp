@@ -9,49 +9,48 @@ using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-u32 OverheadMoveTime = 30;  // Attempt to keep at least this much time for each remaining move, in milli-seconds.
-u32 MinimumMoveTime =  20;  // No matter what, use at least this much time before doing the move, in milli-seconds.
-
-double MoveSlowness = 0.89; // Move Slowness, in %age.
-u32    NodesTime =    0;    // 'Nodes as Time' mode.
-bool   Ponder =       true; // Whether or not the engine should analyze when it is the opponent's turn.
+u32  OverheadMoveTime = 30;   // Attempt to keep at least this much time for each remaining move, in milli-seconds.
+u32  NodesTime =        0;    // 'Nodes as Time' mode.
+bool Ponder =           true; // Whether or not the engine should analyze when it is the opponent's turn.
 
 Threading::ThreadPool Threadpool;
 
 namespace {
 
-    u08 MaximumMoveHorizon =  50;  // Plan time management at most this many moves ahead, in num of moves.
-    u08 ReadyMoveHorizon =    40;  // Be prepared to always play at least this many moves, in num of moves.
-    u32 OverheadClockTime =   60;  // Attempt to keep at least this much time at clock, in milli-seconds.
-
-    /// Skew-logistic function based on naive statistical analysis of
-    /// "how many games are still undecided after n half-moves".
-    /// Game is considered "undecided" as long as neither side has >275cp advantage.
-    /// Data was extracted from the CCRL game database with some simple filtering criteria.
-    double move_importance (i16 ply)
+    i32 remaining_time (Color c, i16 ply, bool optimum)
     {
-        //                                       Shift    Scale    Skew
-        return std::pow (1.0 + std::exp ((ply - 58.400) / 7.640), -0.183) + DBL_MIN; // Ensure non-zero
-    }
+        double sd;
+        double ratio; // Which ratio of time we are going to use. It is <= 1
 
-    template<bool Optimum>
-    u64 remaining_time (u64 time, u08 movestogo, i16 ply)
-    {
-        const auto  StepRatio = Optimum ? 1.00 : 7.09; // When in trouble, can step over reserved time with this ratio
-        const auto StealRatio = Optimum ? 0.00 : 0.35; // However must not steal time from remaining moves over this ratio
-
-        auto move_imp1 = move_importance (ply) * MoveSlowness;
-        auto move_imp2 = 0.0;
-        for (u08 i = 1; i < movestogo; ++i)
+        i16 move_num = (ply + 1) / 2;
+        // In moves-to-go we distribute time according to a quadratic function with
+        // the maximum around move 20 for 40 moves in y time case.
+        if (0 != Limits.movestogo)
         {
-            move_imp2 += move_importance (ply + 2 * i);
+            sd = 8.5;
+            ratio = (optimum ? 1.0 : 6.0)
+                  / std::min (Limits.movestogo, u08(50))
+                  * (move_num <= 40 ? 
+                        1.1 - 0.001 * std::pow (move_num - 20, 2) :
+                        1.5);
+        }
+        // Otherwise we increase usage of remaining time as the game goes on
+        else
+        {
+            sd = 1 + 20 * move_num / (500.0 + move_num);
+            ratio = (optimum ? 0.017 : 0.070) * sd;
         }
 
-        auto time_ratio1 = (move_imp1 * StepRatio + move_imp2 * 0.00      ) / (move_imp1 * StepRatio + move_imp2 * 1.00);
-        auto time_ratio2 = (move_imp1 * 1.00      + move_imp2 * StealRatio) / (move_imp1 * 1.00      + move_imp2 * 1.00);
+        // Usage of increment follows quadratic distribution with the maximum at move 25
+        ratio *= (1 + (Limits.clock[c].inc * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0)) / (Limits.clock[c].time * sd));
+        if (ratio > 1.0)
+        {
+            ratio = 1.0;
+        }
 
-        return u64(time * std::min (time_ratio1, time_ratio2));
+        return i32(ratio * std::max (Limits.clock[c].time - OverheadMoveTime, 0ULL));
     }
+
 }
 
 /// TimeManager::elapsed_time()
@@ -70,38 +69,13 @@ u64 TimeManager::elapsed_time () const
 /// moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
 void TimeManager::initialize (Color c, i16 ply)
 {
-    optimum_time =
-    maximum_time =
-        std::max (Limits.clock[c].time, u64(MinimumMoveTime));
-
-    const auto MaxMovesToGo =
-        0 == Limits.movestogo ?
-            MaximumMoveHorizon :
-            std::min (Limits.movestogo, MaximumMoveHorizon);
-    // Calculate optimum time usage for different hypothetic "moves to go" and choose the
-    // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
-    for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
-    {
-        // Calculate thinking time for hypothetic "moves to go"
-        auto hyp_time = std::max (
-                        + Limits.clock[c].time
-                        + Limits.clock[c].inc * (hyp_movestogo-1)
-                        - OverheadClockTime
-                        - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), 0ULL);
-
-        optimum_time = std::min (remaining_time<true > (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, optimum_time);
-        maximum_time = std::min (remaining_time<false> (hyp_time, hyp_movestogo, ply) + MinimumMoveTime, maximum_time);
-    }
+    optimum_time = remaining_time (c, ply, true);
+    maximum_time = remaining_time (c, ply, false);
 
     if (Ponder)
     {
         optimum_time += optimum_time / 4;
     }
-    //// Make sure that optimum time is not over maximum time
-    //if (optimum_time > maximum_time)
-    //{
-    //    optimum_time = maximum_time;
-    //}
 }
 
 void MoveManager::update (Position &pos, const Moves &new_pv)

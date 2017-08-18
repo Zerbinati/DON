@@ -74,17 +74,11 @@ struct Table2D
         std::fill (ptr, ptr + sizeof (*this) / sizeof (*ptr), val);
     }
 
-    void update (T &entry, i32 bonus, const i32 D)
+    void update (T &entry, i32 bonus, const i16 D)
     {
-        assert([&]
-                {
-                    T v = T(entry + bonus * 32 - entry * abs (bonus) / D);
-                    return INT16_MIN < v && v < INT16_MAX;
-                }());
-        assert(abs (bonus) <= D); // Consistency check
-        
+        assert(abs (32 * D) < INT16_MAX); // Ensure range is [-32 * D, 32 * D]
+        assert(abs (bonus) <= D);         // Ensure we don't overflow
         entry += T(bonus*32 - entry*abs (bonus) / D);
-
         assert(abs (entry) <= 32 * D);
     }
 };
