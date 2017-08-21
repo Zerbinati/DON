@@ -2118,6 +2118,22 @@ namespace Threading {
             //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
             //}
 
+            // Has any of the threads found a "mate in <x>"?
+            if (   0 != Limits.mate
+                && best_value >= +VALUE_MATE - 2*Limits.mate)
+            {
+                // If allowed to ponder do not stop the search now but
+                // keep pondering until GUI sends "stop"/"ponderhit".
+                if (Threadpool.ponder)
+                {
+                    Threadpool.stop_on_ponderhit = true;
+                }
+                else
+                {
+                    Threadpool.stop = true;
+                }
+            }
+
             if (nullptr != main_thread)
             {
                 // If skill level is enabled and can pick move, pick a sub-optimal best move.
@@ -2128,21 +2144,12 @@ namespace Threading {
                     main_thread->skill_mgr.pick_best_move (main_thread->root_moves);
                 }
 
-                if (OutputStream.is_open ())
+                if (Limits.use_time_management ())
                 {
-                    OutputStream << pretty_pv_info (this) << std::endl;
-                }
-
-                if (   !Threadpool.stop
-                    && !Threadpool.stop_on_ponderhit)
-                {
-                    // Stop the search early:
-                    bool stop = false;
-
-                    // Have time for the next iteration? Can stop searching now?
-                    if (Limits.use_time_management ())
+                    auto &root_move = root_moves[0];
+                    if (   !Threadpool.stop
+                        && !Threadpool.stop_on_ponderhit)
                     {
-                        auto &root_move = root_moves[0];
                         // Stop the search
                         // -If there is only one legal move available
                         // -If all of the available time has been used
@@ -2164,39 +2171,32 @@ namespace Threading {
                                      && main_thread->time_mgr.elapsed_time () >
                                         main_thread->time_mgr.optimum_time * 0.1136), main_thread->easy_played))
                         {
-                            stop = true;
+                            // If allowed to ponder do not stop the search now but
+                            // keep pondering until GUI sends "stop"/"ponderhit".
+                            if (Threadpool.ponder)
+                            {
+                                Threadpool.stop_on_ponderhit = true;
+                            }
+                            else
+                            {
+                                Threadpool.stop = true;
+                            }
                         }
+                    }
 
-                        if (3 <= root_move.size ())
-                        {
-                            main_thread->move_mgr.update (root_pos, root_move);
-                        }
-                        else
-                        {
-                            main_thread->move_mgr.clear ();
-                        }
+                    if (3 <= root_move.size ())
+                    {
+                        main_thread->move_mgr.update (root_pos, root_move);
                     }
                     else
-                    // Have found a "mate in <x>"?
-                    if (   0 != Limits.mate
-                        && best_value >= +VALUE_MATE - 2*Limits.mate)
                     {
-                        stop = true;
+                        main_thread->move_mgr.clear ();
                     }
+                }
 
-                    if (stop)
-                    {
-                        // If allowed to ponder do not stop the search now but
-                        // keep pondering until GUI sends "stop"/"ponderhit".
-                        if (Threadpool.ponder)
-                        {
-                            Threadpool.stop_on_ponderhit = true;
-                        }
-                        else
-                        {
-                            Threadpool.stop = true;
-                        }
-                    }
+                if (OutputStream.is_open ())
+                {
+                    OutputStream << pretty_pv_info (this) << std::endl;
                 }
             }
         }
