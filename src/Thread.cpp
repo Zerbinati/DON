@@ -513,11 +513,7 @@ namespace Threading {
         const Moves search_moves;
         start_thinking (root_pos, states, limits, search_moves, ponde);
     }
-    /// ThreadPool::wait_while_thinking() waits for the main thread while searching.
-    void ThreadPool::wait_while_thinking ()
-    {
-        main_thread ()->wait_while_busy ();
-    }
+
     /// ThreadPool::initialize() creates and launches requested threads, that will go immediately to sleep.
     /// Cannot use a constructor because threadpool is a static object and require a fully initialized engine (due to allocation of Tables in the Thread).
     void ThreadPool::initialize (u32 threads)
@@ -530,7 +526,7 @@ namespace Threading {
     /// Cannot use a destructor because threads must be terminated before deleting any static objects.
     void ThreadPool::deinitialize ()
     {
-        wait_while_thinking ();
+        main_thread ()->wait_while_busy ();
         assert(!empty ());
         configure (0);
     }

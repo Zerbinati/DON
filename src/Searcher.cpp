@@ -1932,7 +1932,7 @@ namespace Searcher {
     void clear ()
     {
         Threadpool.stop = true;
-        Threadpool.wait_while_thinking ();
+        Threadpool.main_thread ()->wait_while_busy ();
         Threadpool.main_thread ()->time_mgr.available_nodes = 0;
         if (!RetainHash)
         {

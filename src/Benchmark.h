@@ -2,9 +2,11 @@
 #define _BENCHMARK_H_INC_
 
 #include <istream>
+#include <vector>
+
 #include "Position.h"
 
-extern void benchmark (std::istringstream&, const Position&);
+extern std::vector<std::string> setup_bench (std::istringstream&, const Position&);
 
 extern void perft (std::istringstream&, const Position&);
 

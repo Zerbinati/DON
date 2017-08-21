@@ -242,8 +242,6 @@ namespace Threading {
         void start_thinking (Position&, StateListPtr&, const Limit&, const Moves&, bool = false);
         void start_thinking (Position&, StateListPtr&, const Limit&, bool = false);
 
-        void wait_while_thinking ();
-
         /// No constructor and destructor, threads rely on globals that should
         /// be initialized and valid during the whole thread lifetime.
         void initialize (u32);
