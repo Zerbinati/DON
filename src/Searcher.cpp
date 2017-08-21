@@ -2509,7 +2509,7 @@ namespace Threading {
         }
 
         if (   (   Limits.use_time_management ()
-                && elapsed_time > time_mgr.maximum_time - 10) // 2 * Timer Resolution
+                && elapsed_time > time_mgr.maximum_time)
             || (   0 != Limits.movetime
                 && elapsed_time >= Limits.movetime)
             || (   0 != Limits.nodes

@@ -9,7 +9,7 @@ using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-u32  OverheadMoveTime = 30;   // Attempt to keep at least this much time for each remaining move, in milli-seconds.
+u32  OverheadMoveTime = 60;   // Attempt to keep at least this much time for each remaining move, in milli-seconds.
 u32  NodesTime =        0;    // 'Nodes as Time' mode.
 bool Ponder =           true; // Whether or not the engine should analyze when it is the opponent's turn.
 
@@ -17,41 +17,50 @@ Threading::ThreadPool Threadpool;
 
 namespace {
 
-    u08 MaxMovesToGo = 50;
-
-    u64 remaining_time (Color c, i16 ply, bool optimum)
+    u64 remaining_time (Color c, i16 move_num, bool optimum)
     {
-        double sd;
-        double ratio; // Which ratio of time we are going to use. It is <= 1.
+        if (0 == Limits.clock[c].time)
+        {
+            return 0;
+        }
 
-        i16 move_num = (ply + 1) / 2;
+        double ratio; // Which ratio of time we are going to use
+
+        // Usage of increment follows quadratic distribution with the maximum at move 25.
+        double inc = Limits.clock[c].inc
+                   * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0);
+
         // In movestogo distribution of time.
         if (0 != Limits.movestogo)
         {
-            sd = 8.5;
             ratio = (optimum ? 1.0 : 6.0)
-                  / std::min (Limits.movestogo, MaxMovesToGo)
                   * (move_num <= 40 ?
                         // quadratic function with the maximum around move 20 for 40 moves in y time case.
                         1.1 - 0.001 * std::pow (move_num - 20, 2) :
                         // constant function.
-                        1.5);
+                        1.5)
+                  * (1.0 + inc / (Limits.clock[c].time * 8.5))
+                  / std::min (Limits.movestogo, u08(50));
         }
         // Otherwise we increase usage of remaining time as the game goes on.
         else
         {
-            sd = 1 + 20 * move_num / (500.0 + move_num);
-            ratio = (optimum ? 0.017 : 0.070) * sd;
+            ratio = (optimum ? 0.017 : 0.070)
+                  * ((1.0 + 20 * move_num / (500.0 + move_num)) + inc / Limits.clock[c].time);
         }
 
-        // Usage of increment follows quadratic distribution with the maximum at move 25.
-        ratio = std::min (ratio * (1.0 + Limits.clock[c].inc
-                                       * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0)
-                                       / std::max (Limits.clock[c].time * sd, DBL_MIN)), 1.0);
-        u64 time = Limits.clock[c].time > OverheadMoveTime ?
-                        Limits.clock[c].time - OverheadMoveTime :
-                        0;
-        return u64(time * ratio);
+        u64 time = u64((Limits.clock[c].time > OverheadMoveTime ?
+                            Limits.clock[c].time - OverheadMoveTime :
+                            0)
+                       * std::min (ratio, 1.0));
+
+        if (   optimum
+            && Ponder)
+        {
+            time = u64(time * 1.25);
+        }
+
+        return time;
     }
 
 }
@@ -72,13 +81,9 @@ u64 TimeManager::elapsed_time () const
 /// moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
 void TimeManager::initialize (Color c, i16 ply)
 {
-    optimum_time = remaining_time (c, ply, true);
-    maximum_time = remaining_time (c, ply, false);
-
-    if (Ponder)
-    {
-        optimum_time += optimum_time / 4;
-    }
+    i16 move_num = (ply + 1) / 2;
+    optimum_time = remaining_time (c, move_num, true);
+    maximum_time = remaining_time (c, move_num, false);
 }
 
 void MoveManager::update (Position &pos, const Moves &new_pv)
