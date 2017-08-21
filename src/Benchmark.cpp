@@ -90,9 +90,9 @@ namespace {
 /// bench -> search default positions up to depth 13
 /// bench 64 1 15 -> search default positions up to depth 15 (TT = 64MB)
 /// bench 64 4 5000 movetime current -> search current position with 4 threads for 5 sec (TT = 64MB)
-/// bench 64 1 100000 nodes default -> search default positions for 100K nodes each (TT = 64MB)
-/// bench 16 1 5 perft default -> run a perft 5 on default positions
-vector<string> setup_bench (istringstream &is, const Position &root_pos)
+/// bench 64 1 100000 nodes -> search default positions for 100K nodes (TT = 64MB)
+/// bench 16 1 5 perft -> run perft 5 on default positions
+vector<string> setup_bench (istringstream &is, const Position &pos)
 {
     string token;
 
@@ -116,7 +116,7 @@ vector<string> setup_bench (istringstream &is, const Position &root_pos)
     else
     if (cmd_fn == "current")
     {
-        cmds.push_back (root_pos.fen ());
+        cmds.push_back (pos.fen ());
     }
     else
     {
@@ -144,7 +144,7 @@ vector<string> setup_bench (istringstream &is, const Position &root_pos)
     uci_cmds.emplace_back ("setoption name Threads value " + threads);
     uci_cmds.emplace_back ("setoption name Hash value " + hash);
 
-    for (const string &cmd : cmds)
+    for (const auto &cmd : cmds)
     {
         if (cmd.find ("setoption") != string::npos)
         {
@@ -158,188 +158,3 @@ vector<string> setup_bench (istringstream &is, const Position &root_pos)
     }
     return uci_cmds;
 }
-
-    /*
-    auto *ui_thread = root_pos.thread;
-
-    Limit limits;
-    if (mode == "time")
-    {
-        limits.clock[WHITE].time =
-        limits.clock[BLACK].time = u64(abs (value));
-    }
-    else
-    if (mode == "movetime")
-    {
-        limits.movetime = u64(abs (value));
-    }
-    else
-    if (mode == "nodes")
-    {
-        limits.nodes = u64(abs (value));
-    }
-    else
-    if (mode == "mate")
-    {
-        limits.mate = u08(abs (value));
-    }
-    else //mode=="depth"
-    {
-        limits.depth = i16(abs (value));
-    }
-
-    vector<string> fens;
-
-    if (fen_fn == "default")
-    {
-        fens = DefaultFENs;
-    }
-    else
-    if (fen_fn == "current")
-    {
-        fens.push_back (root_pos.fen ());
-    }
-    else
-    {
-        ifstream ifs (fen_fn);
-        if (!ifs.is_open ())
-        {
-            std::cerr << "ERROR: unable to open file ... \'" << fen_fn << "\'" << std::endl;
-            return;
-        }
-        string fen;
-        while (std::getline (ifs, fen))
-        {
-            if (!white_spaces (fen))
-            {
-                fens.push_back (fen);
-            }
-        }
-        ifs.close ();
-        fens.shrink_to_fit ();
-    }
-
-    clear ();
-    Options["Hash"] = to_string (hash);
-    Options["Threads"] = to_string (threads);
-
-    u64  total_nodes = 0;
-    Position pos;
-    auto start_time = now ();
-    for (u16 i = 0; i < fens.size (); ++i)
-    {
-        std::cerr
-            << "\n---------------\n"
-            << "Position: " << std::right
-            << std::setw (2) << i+1 << "/" << fens.size () << " "
-            << std::left << fens[i] << std::endl;
-
-        StateListPtr states (new std::deque<StateInfo> (1));
-        pos.setup (fens[i], states->back (), ui_thread);
-        assert(pos.fen () == fens[i]);
-
-        limits.start_time = now ();
-        Threadpool.start_thinking (pos, states, limits);
-        Threadpool.wait_while_thinking ();
-        total_nodes += Threadpool.nodes ();
-    }
-
-    auto elapsed_time = std::max (now () - start_time, 1LL);
-
-    dbg_print (); // Just before exit
-    std::cerr
-        << std::right
-        << "\n=================================\n"
-        << "Total time (ms) :" << std::setw (16) << elapsed_time << "\n"
-        << "Nodes searched  :" << std::setw (16) << total_nodes  << "\n"
-        << "Nodes/second    :" << std::setw (16) << total_nodes * 1000 / elapsed_time
-        << "\n---------------------------------\n"    
-        << std::left
-        << std::endl;
-}
-
-/// Runs command perft
-/// There are 2 optional parameters:
-///  - Depth
-///  - FEN positions to be used:
-///     * 'default' for builtin positions (default)
-///     * 'current' for current position
-///     * '<filename>' for file containing FEN positions
-void perft (istringstream &is, const Position &root_pos)
-{
-    i16 depth;
-    string fen_fn;
-
-    // Assign default values to missing arguments
-    depth  = (is >> depth) ? depth : 6;
-    fen_fn = (is >> fen_fn) && !white_spaces (fen_fn) ? fen_fn : "default";
-
-    auto *ui_thread = root_pos.thread;
-
-    vector<string> fens;
-    if (fen_fn == "default")
-    {
-        fens = DefaultFENs;
-    }
-    else
-    if (fen_fn == "current")
-    {
-        fens.push_back (root_pos.fen ());
-    }
-    else
-    {
-        ifstream ifs (fen_fn);
-        if (!ifs.is_open ())
-        {
-            std::cerr << "ERROR: unable to open file ... \'" << fen_fn << "\'" << std::endl;
-            return;
-        }
-        string fen;
-        while (std::getline (ifs, fen))
-        {
-            if (!white_spaces (fen))
-            {
-                fens.push_back (fen);
-            }
-        }
-        ifs.close ();
-        fens.shrink_to_fit ();
-    }
-
-    clear ();
-
-    u64  total_nodes = 0;
-    Position pos;
-    auto start_time = now ();
-    for (u16 i = 0; i < fens.size (); ++i)
-    {
-        std::cerr
-            << "\n---------------\n"
-            << "Position: " << std::right
-            << std::setw (2) << i+1 << "/" << fens.size () << " "
-            << std::left << fens[i] << std::endl;
-        StateInfo si;
-        pos.setup (fens[i], si, ui_thread);
-        assert(pos.fen () == fens[i]);
-
-        auto leaf_nodes = perft<true > (pos, depth);
-        std::cerr
-            << "\nLeaf nodes: "
-            << leaf_nodes << std::endl;
-        total_nodes += leaf_nodes;
-    }
-
-    auto elapsed_time = std::max (now () - start_time, 1LL);
-
-    dbg_print (); // Just before exit
-    std::cerr
-        << std::right
-        << "\n=================================\n"
-        << "Total time (ms) :" << std::setw (16) << elapsed_time << "\n"
-        << "Nodes searched  :" << std::setw (16) << total_nodes  << "\n"
-        << "Nodes/second    :" << std::setw (16) << total_nodes * 1000 / elapsed_time
-        << "\n---------------------------------\n"
-        << std::left
-        << std::endl;
-}
-*/

@@ -14,7 +14,7 @@ cat << EOF > perft.exp
    set timeout 10
    lassign \$argv pos depth result
    spawn ./DON
-   send "position \$pos\\n perft \$depth current\\n"
+   send "position \$pos\\ngo perft \$depth current\\n"
    expect "Nodes searched? \$result" {} timeout {exit 1}
    send "quit\\n"
    expect eof

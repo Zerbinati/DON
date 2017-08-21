@@ -35,7 +35,8 @@ public:
     u64   nodes;        // Search <x> nodes only
     u08   mate;         // Search mate in <x> moves
     bool  infinite;     // Search until the "stop" command
-    
+    i16 perft;
+
     TimePoint start_time;
 
     Limit ()
@@ -51,11 +52,13 @@ public:
         nodes = 0;
         mate = 0;
         infinite = false;
+        perft = 0;
     }
 
     bool use_time_management () const
     {
         return !infinite
+            && 0 == perft
             && 0 == movetime
             && 0 == depth
             && 0 == nodes
@@ -285,9 +288,6 @@ namespace Searcher {
     extern Value TBValue;
 
     extern std::string OutputFile;
-
-    template<bool RootNode = true>
-    extern u64 perft (Position&, i16);
 
     extern void initialize ();
 

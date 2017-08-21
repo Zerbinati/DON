@@ -170,6 +170,8 @@ namespace Engine {
                 else
                 if (token == "infinite")  limits.infinite = true;
                 else
+                if (token == "perft")     iss >> limits.perft;
+                else
                 if (token == "ponder")    ponder = true;
                 else
                 // Parse and Validate search-moves (if any)
@@ -283,14 +285,14 @@ namespace Engine {
         {
             Position::Chess960 = false;
 
-            Position pos;
-
             // Stack to keep track of the position states along the setup moves
             // (from the start position to the position just before the search starts).
             // Needed by 'draw by repetition' detection.
             StateListPtr states (new std::deque<StateInfo> (1));
             auto ui_thread = std::make_shared<Thread> (0);
+            Position pos;
             pos.setup (StartFEN, states->back (), ui_thread.get ());
+
             // Join arguments
             string cmd;
             for (i32 i = 1; i < argc; ++i)

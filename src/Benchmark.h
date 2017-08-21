@@ -8,6 +8,4 @@
 
 extern std::vector<std::string> setup_bench (std::istringstream&, const Position&);
 
-extern void perft (std::istringstream&, const Position&);
-
 #endif // _BENCHMARK_H_INC_

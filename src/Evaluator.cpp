@@ -199,7 +199,7 @@ namespace Evaluator {
 
             Evaluation (const Position &p)
                 : pos (p)
-            {};
+            {}
 
             Value value ();
         };
