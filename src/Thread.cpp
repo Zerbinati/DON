@@ -19,7 +19,7 @@ namespace {
 
     u64 remaining_time (Color c, i16 move_num, bool optimum)
     {
-        if (0 == Limits.clock[c].time)
+        if (0 >= Limits.clock[c].time)
         {
             return 0;
         }
@@ -49,9 +49,7 @@ namespace {
                   * ((1.0 + 20 * move_num / (500.0 + move_num)) + inc / Limits.clock[c].time);
         }
 
-        u64 time = u64((Limits.clock[c].time > OverheadMoveTime ?
-                            Limits.clock[c].time - OverheadMoveTime :
-                            0)
+        u64 time = u64(  (Limits.clock[c].time > OverheadMoveTime ? Limits.clock[c].time - OverheadMoveTime : 0)
                        * std::min (ratio, 1.0));
 
         if (   optimum
@@ -88,7 +86,7 @@ void TimeManager::initialize (Color c, i16 ply)
 
 void MoveManager::update (Position &pos, const Moves &new_pv)
 {
-    assert (new_pv.size () >= 3);
+    assert(new_pv.size () >= 3);
 
     if (new_pv[2] == pv[2])
     {
@@ -423,7 +421,7 @@ namespace Threading {
     }
     /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and returns immediately.
     /// Main thread will wake up other threads and start the search.
-    void ThreadPool::start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits, const Moves &search_moves, bool ponde)
+    void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limit &limits, const Moves &search_moves, bool ponde)
     {
         stop = false;
         stop_on_ponderhit = false;
@@ -432,7 +430,7 @@ namespace Threading {
         Limits = limits;
 
         RootMoves root_moves;
-        root_moves.initialize (root_pos, search_moves);
+        root_moves.initialize (pos, search_moves);
 
         TBProbeDepth = i16(i32(Options["SyzygyProbeDepth"]));
         TBLimitPiece = i32(Options["SyzygyLimitPiece"]);
@@ -446,13 +444,13 @@ namespace Threading {
         }
         // Filter root moves.
         if (   0 != TBLimitPiece
-            && TBLimitPiece >= root_pos.count<NONE> ()
+            && TBLimitPiece >= pos.count<NONE> ()
             && !root_moves.empty ()
-            && !root_pos.has_castleright (CR_ANY))
+            && !pos.has_castleright (CR_ANY))
         {
             // If the current root position is in the tablebases,
             // then RootMoves contains only moves that preserve the draw or the win.
-            TBHasRoot = root_probe_dtz (root_pos, root_moves, TBValue);
+            TBHasRoot = root_probe_dtz (pos, root_moves, TBValue);
 
             if (TBHasRoot)
             {
@@ -463,7 +461,7 @@ namespace Threading {
             else
             {
                 // Filter out moves that do not preserve the draw or the win.
-                TBHasRoot = root_probe_wdl (root_pos, root_moves, TBValue);
+                TBHasRoot = root_probe_wdl (pos, root_moves, TBValue);
                 // Only probe during search if winning.
                 if (   TBHasRoot
                     && TBValue <= VALUE_DRAW)
@@ -496,7 +494,7 @@ namespace Threading {
         const auto back_si = setup_states->back ();
         for (auto *th : *this)
         {
-            th->root_pos.setup (root_pos.fen (), setup_states->back (), th);
+            th->root_pos.setup (pos.fen (), setup_states->back (), th);
             th->root_moves = root_moves;
 
             th->nodes = 0;
@@ -508,10 +506,10 @@ namespace Threading {
 
         main_thread ()->start_searching ();
     }
-    void ThreadPool::start_thinking (Position &root_pos, StateListPtr &states, const Limit &limits, bool ponde)
+    void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limit &limits, bool ponde)
     {
         const Moves search_moves;
-        start_thinking (root_pos, states, limits, search_moves, ponde);
+        start_thinking (pos, states, limits, search_moves, ponde);
     }
 
     /// ThreadPool::initialize() creates and launches requested threads, that will go immediately to sleep.
@@ -520,6 +518,7 @@ namespace Threading {
     {
         assert(empty ());
         push_back (new MainThread (0));
+        assert(!empty ());
         configure (threads);
     }
     /// ThreadPool::deinitialize() cleanly terminates the threads before the program exits.

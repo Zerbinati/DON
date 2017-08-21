@@ -355,9 +355,6 @@ namespace UCI {
 
         Options["Draw Move Dist"]               << Option (Position::DrawClockPly/2, 5, 50, on_draw_move_dist);
 
-        //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon, 0, 100, on_time_opt);
-        //Options["Ready Move Horizon"]           << Option (ReadyMoveHorizon, 0, 100, on_time_opt);
-        //Options["Overhead Clock Time"]          << Option (i32(OverheadClockTime), 0, 30000, on_time_opt);
         Options["Overhead Move Time"]           << Option (i32(OverheadMoveTime), 0, 5000, on_time_opt);
         Options["Nodes Time"]                   << Option (NodesTime, 0, 10000, on_time_opt);
         Options["Ponder"]                       << Option (Ponder, on_time_opt);

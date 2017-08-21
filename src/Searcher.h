@@ -218,7 +218,7 @@ public:
     bool operator!= (Move m) const { return front () != m; }
 
     void operator+= (Move m) { emplace_back (m); }
-    void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
+    //void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
     bool extract_ponder_move_from_tt (Position&);
 
@@ -242,9 +242,9 @@ public:
     RootMoves& operator= (const RootMoves&) = default;
 
     void operator+= (Move m) { emplace_back (m); }
-    void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
+    //void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
     void operator+= (const RootMove &rm) { emplace_back (rm); }
-    void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
+    //void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
 
     void initialize (const Position&, const Moves&);
 

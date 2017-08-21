@@ -163,7 +163,7 @@ namespace Engine {
                 {
                     fen += token + " ";
                 }
-                assert (_ok (fen));
+                assert(_ok (fen));
             }
             else
             {
@@ -172,7 +172,7 @@ namespace Engine {
             }
 
             states = StateListPtr (new std::deque<StateInfo> (1)); // Drop old and create a new one
-            pos.setup (fen, states->back (), Threadpool.main_thread ());
+            pos.setup (fen, states->back (), pos.thread);
 
             if (token == "moves")
             {
@@ -320,9 +320,9 @@ namespace Engine {
             bool chess960 = Position::Chess960;
 
             vector<string> uci_cmds;
-            uci_cmds.emplace_back ("ucinewgame");
             uci_cmds.emplace_back ("setoption name Threads value " + threads);
             uci_cmds.emplace_back ("setoption name Hash value " + hash);
+            uci_cmds.emplace_back ("setoption name Clear Hash");
 
             for (const auto &cmd : cmds)
             {
@@ -350,10 +350,10 @@ namespace Engine {
         void bench (istringstream &iss, Position &pos, StateListPtr &states)
         {
             auto uci_cmds = setup_bench (iss, pos);
-            u64 num = count_if (uci_cmds.begin (), uci_cmds.end (), [](string s) { return s.find ("position ") == 0; });
-
+            u16 num = u16(count_if (uci_cmds.begin (), uci_cmds.end (), [](string s) { return s.find ("go ") == 0; }));
+            u16 count = 0;
+            
             auto elapsed_time = now ();
-            u32 count = 0;
             u64 total_nodes = 0;
             for (const auto &cmd : uci_cmds)
             {
@@ -384,9 +384,8 @@ namespace Engine {
                     setoption (is);
                 }
                 else
-                if (token == "ucinewgame")
                 {
-                    clear ();
+                    std::cerr << "Unknown command: \'" << token << "\'" << std::endl;
                 }
             }
 

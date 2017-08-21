@@ -616,7 +616,7 @@ class ValMoves
 {
 public:
     void operator+= (Move move) { emplace_back (move); }
-    void operator-= (Move move) { erase (std::remove (begin (), end (), move), end ()); }
+    //void operator-= (Move move) { erase (std::remove (begin (), end (), move), end ()); }
 };
 
 template<typename T, u32 Size>

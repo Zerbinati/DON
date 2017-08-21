@@ -12,9 +12,6 @@
 #include "thread_win32.h"
 #include "Type.h"
 
-//extern u08  MaximumMoveHorizon;
-//extern u08  ReadyMoveHorizon;
-//extern u32  OverheadClockTime;
 extern u32  OverheadMoveTime;
 extern u32  NodesTime;
 extern bool Ponder;
