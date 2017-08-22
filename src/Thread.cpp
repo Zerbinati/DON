@@ -512,6 +512,20 @@ namespace Threading {
         start_thinking (pos, states, limits, search_moves, ponde);
     }
 
+    void ThreadPool::stop_thinking ()
+    {
+        // If allowed to ponder do not stop the search now but
+        // keep pondering until GUI sends "stop"/"ponderhit".
+        if (ponder)
+        {
+            stop_on_ponderhit = true;
+        }
+        else
+        {
+            stop = true;
+        }
+    }
+
     /// ThreadPool::initialize() creates and launches requested threads, that will go immediately to sleep.
     /// Cannot use a constructor because threadpool is a static object and require a fully initialized engine (due to allocation of Tables in the Thread).
     void ThreadPool::initialize (u32 threads)

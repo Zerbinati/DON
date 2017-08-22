@@ -2122,16 +2122,7 @@ namespace Threading {
             if (   0 != Limits.mate
                 && best_value >= +VALUE_MATE - 2*Limits.mate)
             {
-                // If allowed to ponder do not stop the search now but
-                // keep pondering until GUI sends "stop"/"ponderhit".
-                if (Threadpool.ponder)
-                {
-                    Threadpool.stop_on_ponderhit = true;
-                }
-                else
-                {
-                    Threadpool.stop = true;
-                }
+                Threadpool.stop_thinking ();
             }
 
             if (nullptr != main_thread)
@@ -2171,16 +2162,7 @@ namespace Threading {
                                      && main_thread->time_mgr.elapsed_time () >
                                         main_thread->time_mgr.optimum_time * 0.1136), main_thread->easy_played))
                         {
-                            // If allowed to ponder do not stop the search now but
-                            // keep pondering until GUI sends "stop"/"ponderhit".
-                            if (Threadpool.ponder)
-                            {
-                                Threadpool.stop_on_ponderhit = true;
-                            }
-                            else
-                            {
-                                Threadpool.stop = true;
-                            }
+                            Threadpool.stop_thinking ();
                         }
                     }
 
