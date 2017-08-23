@@ -2148,19 +2148,19 @@ namespace Threading {
                         if (   1 == root_moves.size ()
                             || (  main_thread->time_mgr.elapsed_time () >
                                   main_thread->time_mgr.optimum_time
-                                        // Unstable factor
-                                        * (1.0 + main_thread->best_move_change)
-                                        // Improving factor
-                                        * std::min (1.1385,
-                                          std::max (0.3646,
-                                                    0.5685
-                                                  + 0.1895 * (main_thread->failed_low ? 1 : 0)
-                                                  - 0.0096 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))))
+                                // Unstable factor
+                                * i32(1000 * (1.0 + main_thread->best_move_change)) / 1000
+                                // Improving factor
+                                * std::min (715,
+                                  std::max (229,
+                                            357
+                                          + 119 * (main_thread->failed_low ? 1 : 0)
+                                          -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 628)
                             || (main_thread->easy_played =
                                     (   root_move == main_thread->easy_move
                                      && main_thread->best_move_change < 0.030
                                      && main_thread->time_mgr.elapsed_time () >
-                                        main_thread->time_mgr.optimum_time * 0.1136), main_thread->easy_played))
+                                        main_thread->time_mgr.optimum_time * 5 / 44), main_thread->easy_played))
                         {
                             Threadpool.stop_thinking ();
                         }

@@ -19,7 +19,7 @@ namespace {
 
     u64 remaining_time (Color c, i16 move_num, bool optimum)
     {
-        if (0 >= Limits.clock[c].time)
+        if (0 == Limits.clock[c].time)
         {
             return 0;
         }
@@ -88,34 +88,28 @@ void MoveManager::update (Position &pos, const Moves &new_pv)
 {
     assert(new_pv.size () >= 3);
 
-    if (new_pv[2] == pv[2])
+    if (new_pv[2] == move)
     {
         ++stable_count;
     }
     else
     {
+        move = new_pv[2];
+        exp_posi_keys.clear ();
         stable_count = 0;
     }
 
-    if (!std::equal (new_pv.begin (), new_pv.begin () + 3, pv))
+    if (stable_count >= 4)
     {
-        std::copy (new_pv.begin (), new_pv.begin () + 3, pv);
-
-        // Update expected posi key
-        u08 ply = 0;
         StateInfo si[2];
-        do
+        pos.do_move (new_pv[0], si[0]);
+        pos.do_move (new_pv[1], si[1]);
+        if (std::find (exp_posi_keys.begin (), exp_posi_keys.end (), pos.si->posi_key) == exp_posi_keys.end ())
         {
-            pos.do_move (pv[ply], si[ply]);
+            exp_posi_keys.push_back (pos.si->posi_key);
         }
-        while (2 > ++ply);
-
-        exp_posi_key = pos.si->posi_key;
-
-        while (0 != ply)
-        {
-            pos.undo_move (pv[--ply]);
-        }
+        pos.undo_move (new_pv[1]);
+        pos.undo_move (new_pv[0]);
     }
 }
 

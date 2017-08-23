@@ -40,8 +40,8 @@ public:
 class MoveManager
 {
 private:
-    Key  exp_posi_key;
-    Move pv[3];
+    Move move;
+    std::vector<Key> exp_posi_keys;
 
 public:
     // Keep track of how many times in a row the 3rd ply remains stable
@@ -53,18 +53,18 @@ public:
 
     Move easy_move (Key posi_key) const
     {
-        return posi_key == exp_posi_key ? pv[2] : MOVE_NONE;
+        return std::find (exp_posi_keys.begin (), exp_posi_keys.end (), posi_key) != exp_posi_keys.end () ?
+                move : MOVE_NONE;
     }
 
     void clear ()
     {
-        exp_posi_key = 0;
-        std::fill_n (pv, 3, MOVE_NONE);
+        move = MOVE_NONE;
+        exp_posi_keys.clear ();
         stable_count = 0;
     }
 
     void update (Position&, const Moves&);
-
 };
 
 /// Skill Manager class is used to implement strength limit

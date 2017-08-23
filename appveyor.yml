@@ -1,5 +1,5 @@
 version: 1.0.{build}
-clone_depth: 5
+clone_depth: 50
 
 branches:
   only:
@@ -28,18 +28,40 @@ init:
   - msbuild /version
 
 before_build:
-  - cd src
-  - echo project (DON) >> CMakeLists.txt
-  - echo add_executable(DON BitBases.cpp BitBoard.cpp Endgame.cpp Engine.cpp Evaluator.cpp Main.cpp >> CMakeLists.txt
-  - echo Material.cpp MoveGenerator.cpp Notation.cpp Pawns.cpp PSQT.cpp Polyglot.cpp Position.cpp Searcher.cpp >> CMakeLists.txt
-  - echo TBsyzygy.cpp Thread.cpp Transposition.cpp Option.cpp Zobrist.cpp MemoryHandler.cpp Debugger.cpp >> CMakeLists.txt
-  - echo set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/src) >> CMakeLists.txt
-#   - echo target_compile_options(DON PUBLIC "/Ox") >> CMakeLists.txt
+  - ps: |
+      # Get sources
+      $src = get-childitem -Path *.cpp -Recurse | select -ExpandProperty FullName
+      $src = $src -join ' '
+      $src = $src.Replace("\", "/")
+
+      # Build CMakeLists.txt
+      $t = 'cmake_minimum_required(VERSION 3.8)',
+           'project(Stockfish)',
+           'set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/src)',
+           'set(source_files', $src, ')',
+           'add_executable(DON ${source_files})'
+
+      # Write CMakeLists.txt withouth BOM
+      $MyPath = (Get-Item -Path "." -Verbose).FullName + '\CMakeLists.txt'
+      $Utf8NoBomEncoding = New-Object System.Text.UTF8Encoding $False
+      [System.IO.File]::WriteAllLines($MyPath, $t, $Utf8NoBomEncoding)
+
+      # Obtain bench reference from git log
+      $b = git log HEAD | sls "\b[Bb]ench[ :]+[0-9]{7}" | select -first 1
+      $bench = $b -match '\D+(\d+)' | % { $matches[1] }
+      Write-Host "Reference bench:" $bench
 
 build_script:
   - cmake -G "Visual Studio 14 2015 Win64" .
   - cmake --build .
 
 before_test:
-  - cd Debug
-  - DON.exe bench > null
+  - cd src/Debug
+  - ps: |
+      # Verify bench number
+      ./DON bench 2> out.txt 1> null
+      $s = (gc "./out.txt" | out-string)
+      $r = ($s -match 'Nodes searched \D+(\d+)' | % { $matches[1] })
+      Write-Host "Engine bench:" $r
+      Write-Host "Reference bench:" $bench
+      If ($r -ne $bench) { exit 1 }

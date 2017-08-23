@@ -256,7 +256,6 @@ namespace Engine {
         /// - limit value spent for each position (default is 13)
         /// - limit type:
         ///     * depth (default)
-        ///     * time
         ///     * movetime
         ///     * nodes
         ///     * mate
@@ -705,8 +704,6 @@ namespace Engine {
         oss << ".BM2";
     #elif defined(ABM)
         oss << ".ABM";
-    #elif defined(POP)
-        oss << ".POP";
     #endif
 
     #if defined(LPAGES)

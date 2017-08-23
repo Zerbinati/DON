@@ -23,8 +23,6 @@
 /// -DNDEBUG    | Disable debugging mode. Always use this.
 /// -DPREFETCH  | Enable use of prefetch asm-instruction.
 ///             | Don't enable it if want the executable to run on some very old machines.
-/// -DPOP       | Enable use of internal pop count table. Works in both 32-bit & 64-bit mode.
-///             | For compiling requires hardware without ABM support.
 /// -DABM       | Add runtime support for use of ABM asm-instruction. Works only in 64-bit mode.
 ///             | For compiling requires hardware with ABM support.
 /// -DBM2       | Add runtime support for use of BM2 asm-instruction. Works only in 64-bit mode.

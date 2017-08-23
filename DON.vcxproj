@@ -280,7 +280,7 @@
       <AdditionalOptions>
       </AdditionalOptions>
       <CompileAs>CompileAsCpp</CompileAs>
-      <UndefinePreprocessorDefinitions>POP;VER;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>VER;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
@@ -326,7 +326,7 @@
       </AdditionalOptions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <UndefinePreprocessorDefinitions>POP;VER;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>VER;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
@@ -439,7 +439,7 @@
       <AdditionalOptions>
       </AdditionalOptions>
       <MinimalRebuild>false</MinimalRebuild>
-      <UndefinePreprocessorDefinitions>POP;VER;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>VER;</UndefinePreprocessorDefinitions>
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
@@ -484,7 +484,7 @@
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <BrowseInformation>true</BrowseInformation>
-      <UndefinePreprocessorDefinitions>POP;VER;</UndefinePreprocessorDefinitions>
+      <UndefinePreprocessorDefinitions>VER;</UndefinePreprocessorDefinitions>
       <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <Link>

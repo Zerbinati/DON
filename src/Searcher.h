@@ -46,7 +46,7 @@ public:
         clock[WHITE].inc =
         clock[BLACK].inc = 0;
         movestogo = 0;
-        
+
         movetime = 0;
         depth = 0;
         nodes = 0;
@@ -58,7 +58,6 @@ public:
     bool use_time_management () const
     {
         return !infinite
-            && 0 == perft
             && 0 == movetime
             && 0 == depth
             && 0 == nodes
@@ -79,10 +78,10 @@ struct Table2D
 
     void update (T &entry, i32 bonus, const i16 D)
     {
-        assert(abs (32 * D) < INT16_MAX); // Ensure range is [-32 * D, 32 * D]
-        assert(abs (bonus) <= D);         // Ensure we don't overflow
-        entry += T(bonus*32 - entry*abs (bonus) / D);
-        assert(abs (entry) <= 32 * D);
+        assert(32*D < INT16_MAX); // Ensure 32*D is in range INT16_MAX
+        assert(abs (bonus) <= D); // Ensure bonus don't overflow
+        entry += T(32*bonus - entry*abs (bonus) / D);
+        assert(abs (entry) < INT16_MAX);
     }
 };
 
