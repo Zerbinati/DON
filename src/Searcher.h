@@ -66,7 +66,7 @@ public:
 };
 
 /// Table2D is a Generic 2-dimensional array used to store various statistics.
-template<i32 Size1, i32 Size2, typename T>
+template<u32 Size1, u32 Size2, typename T>
 struct Table2D
     : public std::array<std::array<T, Size2>, Size1>
 {
@@ -151,7 +151,7 @@ public:
     MovePicker& operator= (const MovePicker&) = delete;
 
     MovePicker (const Position&, Move, i16, const PieceDestinyHistory**, const Move*, Move);
-    MovePicker (const Position&, Move, i16, const PieceDestinyHistory**, Square);
+    MovePicker (const Position&, Move, i16, Square);
     MovePicker (const Position&, Move, Value);
 
     Move next_move ();

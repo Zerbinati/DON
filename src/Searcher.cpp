@@ -103,6 +103,7 @@ namespace {
 /// (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
 /// and about how important good move ordering is at the current node.
 
+/// MovePicker constructor for the main search
 MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pd, const Move *km, Move cm)
     : pos (p)
     , tt_move (ttm)
@@ -150,12 +151,13 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
         ++stage;
     }
 }
-MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pd, Square rs)
+/// MovePicker constructor for quiescence search
+MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     : pos (p)
     , tt_move (ttm)
     , threshold (VALUE_ZERO)
     , recap_sq (SQ_NO)
-    , piece_destiny (pd)
+    , piece_destiny (nullptr)
     , skip_quiets (false)
 {
     assert(MOVE_NONE == tt_move
@@ -188,6 +190,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
         ++stage;
     }
 }
+/// MovePicker constructor for probCut search
 MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     : pos (p)
     , tt_move (ttm)
@@ -224,22 +227,24 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
 template<GenType GT>
 void MovePicker::value ()
 {
+    static_assert(GenType::CAPTURE == GT
+               || GenType::QUIET == GT
+               || GenType::EVASION == GT, "GT incorrect");
+
     for (auto &vm : moves)
     {
         assert(pos.pseudo_legal (vm.move)
             && pos.legal (vm.move));
 
-        if (   GenType::QUIET != GT
-            && (   GenType::CAPTURE == GT
-                || pos.capture (vm.move)))
+        if (GenType::CAPTURE == GT)
         {
             assert(pos.capture_or_promotion (vm.move));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
                      - ptype (pos[org_sq (vm.move)])
-                     - 200 * rel_rank (pos.active, dst_sq (vm.move))
-                     + MaxValue;
+                     - 200 * rel_rank (pos.active, dst_sq (vm.move));
         }
         else
+        if (GenType::QUIET == GT)
         {
             assert(!pos.capture (vm.move));
             auto mpc = pos[org_sq (vm.move)];
@@ -249,6 +254,14 @@ void MovePicker::value ()
                      + (*piece_destiny[0])[mpc][dst]
                      + (*piece_destiny[1])[mpc][dst]
                      + (*piece_destiny[3])[mpc][dst];
+        }
+        else // GenType::EVASION == GT
+        {
+            vm.value = pos.capture (vm.move) ?
+                          i32(PieceValues[MG][pos.cap_type (vm.move)])
+                        - ptype (pos[org_sq (vm.move)])
+                        + MaxValue :
+                          pos.thread->butterfly[pos.active][move_pp (vm.move)];
         }
     }
 }
@@ -381,7 +394,7 @@ Move MovePicker::next_move ()
         {
             return moves[m++].move;
         }
-        //// NO need already done
+        //// No need already done
         //if (MOVE_NONE != tt_move)
         //{
         //    auto itr = std::find (bad_capture_moves.begin (), bad_capture_moves.end (), tt_move);
@@ -894,10 +907,8 @@ namespace Searcher {
             u08 move_count = 0;
             StateInfo si;
 
-            ss->piece_destiny = &pos.thread->continuation[NO_PIECE][0];
-            const PieceDestinyHistory* piece_destiny[] = { (ss-1)->piece_destiny, (ss-2)->piece_destiny, (ss-3)->piece_destiny, (ss-4)->piece_destiny };
             // Initialize move picker (2) for the current position.
-            MovePicker move_picker (pos, tt_move, depth, piece_destiny, dst_sq (last_move));
+            MovePicker move_picker (pos, tt_move, depth, dst_sq (last_move));
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
@@ -1853,7 +1864,7 @@ namespace Searcher {
             for (const auto &vm : MoveList<GenType::LEGAL> (pos))
             {
                 u64 inter_nodes;
-                if (RootNode
+                if (   RootNode
                     && 1 >= depth)
                 {
                     inter_nodes = 1;

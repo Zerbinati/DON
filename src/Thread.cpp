@@ -86,30 +86,29 @@ void TimeManager::initialize (Color c, i16 ply)
 
 void MoveManager::update (Position &pos, const Moves &new_pv)
 {
-    assert(new_pv.size () >= 3);
+    assert(new_pv.size () >= 3
+        && new_pv[2] != MOVE_NONE);
 
     if (new_pv[2] == move)
     {
-        ++stable_count;
+        if (++stable_count >= 4)
+        {
+            StateInfo si[2];
+            pos.do_move (new_pv[0], si[0]);
+            pos.do_move (new_pv[1], si[1]);
+            if (std::find (exp_posi_keys.begin (), exp_posi_keys.end (), pos.si->posi_key) == exp_posi_keys.end ())
+            {
+                exp_posi_keys.push_back (pos.si->posi_key);
+            }
+            pos.undo_move (new_pv[1]);
+            pos.undo_move (new_pv[0]);
+        }
     }
     else
     {
         move = new_pv[2];
         exp_posi_keys.clear ();
         stable_count = 0;
-    }
-
-    if (stable_count >= 4)
-    {
-        StateInfo si[2];
-        pos.do_move (new_pv[0], si[0]);
-        pos.do_move (new_pv[1], si[1]);
-        if (std::find (exp_posi_keys.begin (), exp_posi_keys.end (), pos.si->posi_key) == exp_posi_keys.end ())
-        {
-            exp_posi_keys.push_back (pos.si->posi_key);
-        }
-        pos.undo_move (new_pv[1]);
-        pos.undo_move (new_pv[0]);
     }
 }
 
