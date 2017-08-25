@@ -246,22 +246,18 @@ void MovePicker::value ()
         else
         if (GenType::QUIET == GT)
         {
-            assert(!pos.capture (vm.move));
-            auto mpc = pos[org_sq (vm.move)];
-            assert(NO_PIECE != mpc);
-            auto dst = dst_sq (vm.move);
             vm.value = pos.thread->butterfly[pos.active][move_pp (vm.move)]
-                     + (*piece_destiny[0])[mpc][dst]
-                     + (*piece_destiny[1])[mpc][dst]
-                     + (*piece_destiny[3])[mpc][dst];
+                     + (*piece_destiny[0])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
+                     + (*piece_destiny[1])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
+                     + (*piece_destiny[3])[pos[org_sq (vm.move)]][dst_sq (vm.move)];
         }
         else // GenType::EVASION == GT
         {
             vm.value = pos.capture (vm.move) ?
                           i32(PieceValues[MG][pos.cap_type (vm.move)])
-                        - ptype (pos[org_sq (vm.move)])
-                        + MaxValue :
-                          pos.thread->butterfly[pos.active][move_pp (vm.move)];
+                        - ptype (pos[org_sq (vm.move)]) :
+                          pos.thread->butterfly[pos.active][move_pp (vm.move)]
+                        - MaxValue;
         }
     }
 }
@@ -1187,7 +1183,7 @@ namespace Searcher {
 
                         auto value = wdl < -draw ? -VALUE_MATE + i32(MaxPlies + ss->ply) :
                                      wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply) :
-                                                    VALUE_ZERO + 2 * draw * wdl;
+                                                    VALUE_ZERO + 2 * wdl * draw;
 
                         tte->save (key,
                                    MOVE_NONE,
@@ -1960,9 +1956,9 @@ namespace Threading {
 
     /// Thread::search() is thread iterative deepening loop function.
     /// It calls depth_search() repeatedly with increasing depth until
-    /// - the force stop requested.
-    /// - the allocated thinking time has been consumed.
-    /// - the maximum search depth is reached.
+    /// - Force stop requested.
+    /// - Allocated thinking time has been consumed.
+    /// - Maximum search depth is reached.
     void Thread::search ()
     {
         Stack stacks[MaxPlies + 7]; // To allow referencing (ss-4) and (ss+2)

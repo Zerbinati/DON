@@ -19,7 +19,7 @@ namespace {
 
     u64 remaining_time (Color c, i16 move_num, bool optimum)
     {
-        if (0 == Limits.clock[c].time)
+        if (Limits.clock[c].time <= OverheadMoveTime)
         {
             return 0;
         }
@@ -30,7 +30,7 @@ namespace {
         double inc = Limits.clock[c].inc
                    * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0);
 
-        // In movestogo distribution of time.
+        // In movestogo use distribution of time.
         if (0 != Limits.movestogo)
         {
             ratio = (optimum ? 1.0 : 6.0)
@@ -42,15 +42,14 @@ namespace {
                   * (1.0 + inc / (Limits.clock[c].time * 8.5))
                   / std::min (Limits.movestogo, u08(50));
         }
-        // Otherwise we increase usage of remaining time as the game goes on.
+        // Otherwise increase usage of remaining time as the game goes on.
         else
         {
             ratio = (optimum ? 0.017 : 0.070)
                   * ((1.0 + 20 * move_num / (500.0 + move_num)) + inc / Limits.clock[c].time);
         }
 
-        u64 time = u64(  (Limits.clock[c].time > OverheadMoveTime ? Limits.clock[c].time - OverheadMoveTime : 0)
-                       * std::min (ratio, 1.0));
+        u64 time = u64((Limits.clock[c].time - OverheadMoveTime) * std::min (ratio, 1.0));
 
         if (   optimum
             && Ponder)
@@ -89,25 +88,27 @@ void MoveManager::update (Position &pos, const Moves &new_pv)
     assert(new_pv.size () >= 3
         && new_pv[2] != MOVE_NONE);
 
-    if (new_pv[2] == move)
+    if (new_pv[2] == pv[2])
     {
         if (++stable_count >= 4)
         {
-            StateInfo si[2];
-            pos.do_move (new_pv[0], si[0]);
-            pos.do_move (new_pv[1], si[1]);
-            if (std::find (exp_posi_keys.begin (), exp_posi_keys.end (), pos.si->posi_key) == exp_posi_keys.end ())
+            if (!std::equal (new_pv.begin (), new_pv.begin () + 3, pv))
             {
-                exp_posi_keys.push_back (pos.si->posi_key);
+                std::copy (new_pv.begin (), new_pv.begin () + 3, pv);
+
+                StateInfo si[2];
+                pos.do_move (new_pv[0], si[0]);
+                pos.do_move (new_pv[1], si[1]);
+                exp_posi_key = pos.si->posi_key;
+                pos.undo_move (new_pv[1]);
+                pos.undo_move (new_pv[0]);
             }
-            pos.undo_move (new_pv[1]);
-            pos.undo_move (new_pv[0]);
         }
     }
     else
     {
-        move = new_pv[2];
-        exp_posi_keys.clear ();
+        pv[2] = new_pv[2];
+        exp_posi_key = 0;
         stable_count = 0;
     }
 }
