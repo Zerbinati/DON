@@ -19,44 +19,42 @@ namespace {
 
     u64 remaining_time (Color c, i16 move_num, bool optimum)
     {
-        if (Limits.clock[c].time <= OverheadMoveTime)
+        u64 time = 0;
+        if (Limits.clock[c].time > OverheadMoveTime)
         {
-            return 0;
+            double ratio; // Which ratio of time we are going to use
+
+            // Usage of increment follows quadratic distribution with the maximum at move 25.
+            double inc = Limits.clock[c].inc
+                       * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0);
+
+            // In movestogo use distribution of time.
+            if (0 != Limits.movestogo)
+            {
+                ratio = (optimum ? 1.0 : 6.0)
+                      * (move_num <= 40 ?
+                            // quadratic function with the maximum around move 20 for 40 moves in y time case.
+                            1.1 - 0.001 * std::pow (move_num - 20, 2) :
+                            // constant function.
+                            1.5)
+                      * (1.0 + inc / (Limits.clock[c].time * 8.5))
+                      / std::min (Limits.movestogo, u08(50));
+            }
+            // Otherwise increase usage of remaining time as the game goes on.
+            else
+            {
+                ratio = (optimum ? 0.017 : 0.070)
+                      * ((1.0 + 20.0 * move_num / (500.0 + move_num)) + inc / Limits.clock[c].time);
+            }
+
+            time = u64((Limits.clock[c].time - OverheadMoveTime) * std::min (ratio, 1.0));
+
+            if (   optimum
+                && Ponder)
+            {
+                time = (time * 5) / 4;
+            }
         }
-
-        double ratio; // Which ratio of time we are going to use
-
-        // Usage of increment follows quadratic distribution with the maximum at move 25.
-        double inc = Limits.clock[c].inc
-                   * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0);
-
-        // In movestogo use distribution of time.
-        if (0 != Limits.movestogo)
-        {
-            ratio = (optimum ? 1.0 : 6.0)
-                  * (move_num <= 40 ?
-                        // quadratic function with the maximum around move 20 for 40 moves in y time case.
-                        1.1 - 0.001 * std::pow (move_num - 20, 2) :
-                        // constant function.
-                        1.5)
-                  * (1.0 + inc / (Limits.clock[c].time * 8.5))
-                  / std::min (Limits.movestogo, u08(50));
-        }
-        // Otherwise increase usage of remaining time as the game goes on.
-        else
-        {
-            ratio = (optimum ? 0.017 : 0.070)
-                  * ((1.0 + 20 * move_num / (500.0 + move_num)) + inc / Limits.clock[c].time);
-        }
-
-        u64 time = u64((Limits.clock[c].time - OverheadMoveTime) * std::min (ratio, 1.0));
-
-        if (   optimum
-            && Ponder)
-        {
-            time = u64(time * 1.25);
-        }
-
         return time;
     }
 
@@ -81,6 +79,13 @@ void TimeManager::initialize (Color c, i16 ply)
     i16 move_num = (ply + 1) / 2;
     optimum_time = remaining_time (c, move_num, true);
     maximum_time = remaining_time (c, move_num, false);
+}
+
+void MoveManager::clear ()
+{
+    exp_posi_key = 0;
+    std::fill_n (pv, 3, MOVE_NONE);
+    stable_count = 0;
 }
 
 void MoveManager::update (Position &pos, const Moves &new_pv)
@@ -302,7 +307,7 @@ namespace Threading {
         , std_thread (&Thread::idle_loop, this)
     {
         wait_while_busy ();
-        clear ();
+        clear (); // Init
     }
     /// Thread destructor wakes up the thread in idle_loop() and
     /// waits for its termination.
@@ -388,6 +393,21 @@ namespace Threading {
             move_mgr.clear ();
             last_value = VALUE_NONE;
         }
+    }
+
+    Thread* ThreadPool::best_thread () const
+    {
+        auto *best_th = front ();
+        for (auto *th : *this)
+        {
+            if (   best_th->root_moves[0].new_value < th->root_moves[0].new_value
+                && (   best_th->finished_depth <= th->finished_depth
+                    || VALUE_MATE_MAX_PLY <= th->root_moves[0].new_value))
+            {
+                best_th = th;
+            }
+        }
+        return best_th;
     }
 
     /// ThreadPool::clear() clears the threadpool

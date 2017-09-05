@@ -635,11 +635,11 @@ namespace Searcher {
         /// update_continuation_tables() updates tables of the move pairs with current move.
         void update_continuation_tables (Stack *const &ss, Piece pc, Square dst, i32 value)
         {
-            for (auto i : {1, 2, 4})
+            for (auto s : { ss-1, ss-2, ss-4})
             {
-                if (_ok ((ss-i)->played_move))
+                if (_ok (s->played_move))
                 {
-                    (ss-i)->piece_destiny->update (pc, dst, value);
+                    s->piece_destiny->update (pc, dst, value);
                 }
             }
         }
@@ -1587,7 +1587,8 @@ namespace Searcher {
                     && (   move_count_pruning
                         || !capture_or_promotion))
                 {
-                    i16 reduce_depth = reduction_depth (PVNode, improving, depth, move_count);
+                    u08 mch = u08(std::max (move_count - (ss-1)->move_count / 16, 1));
+                    i16 reduce_depth = reduction_depth (PVNode, improving, depth, mch);
 
                     if (capture_or_promotion)
                     {
@@ -2116,20 +2117,23 @@ namespace Threading {
             if (!Threadpool.stop)
             {
                 finished_depth = running_depth;
-            }
 
-            //if (0 != ContemptValue)
-            //{
-            //    auto valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
-            //    DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] - valued_contempt;
-            //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
-            //}
+                assert(root_moves[0].new_value == best_value);
 
-            // Has any of the threads found a "mate in <x>"?
-            if (   0 != Limits.mate
-                && best_value >= +VALUE_MATE - 2*Limits.mate)
-            {
-                Threadpool.stop_thinking ();
+                if (0 != ContemptValue)
+                {
+                    auto valued_contempt = Value(i32 (best_value)/ContemptValue);
+                    DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] - valued_contempt;
+                    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
+                }
+
+                // Has any of the threads found a "mate in <x>"?
+                if (   !Threadpool.stop_on_ponderhit
+                    && 0 != Limits.mate
+                    && best_value >= +VALUE_MATE - 2*Limits.mate)
+                {
+                    Threadpool.stop_thinking ();
+                }
             }
 
             if (nullptr != main_thread)
@@ -2402,7 +2406,7 @@ namespace Threading {
                     th->wait_while_busy ();
                 }
             }
-            // Check if there are deeper thread than main thread.
+            // Check if there is better thread than main thread.
             if (   1 == Threadpool.pv_limit
                 && !easy_played
                 && 0 == Limits.depth // Depth limit search don't use deeper thread

@@ -83,39 +83,39 @@ namespace Evaluator {
         #define S(mg, eg) mk_score (mg, eg)
 
             // Bonus for minor behind a pawn
-            static const Score MinorBehindPawn = S(16, 0);
+            static const Score MinorBehindPawn =    S(16, 0);
             // Penalty for bishop with pawns on same color
-            static const Score BishopPawns = S( 8,12);
+            static const Score BishopPawns =        S( 8,12);
             // Penalty for bishop trapped with pawns (Chess960)
-            static const Score BishopTrapped = S(50,50);
+            static const Score BishopTrapped =      S(50,50);
 
             // Bonus for rook on pawns
-            static const Score RookOnPawns = S( 8,24);
+            static const Score RookOnPawns =        S( 8,24);
             // Penalty for rook trapped
-            static const Score RookTrapped = S(92, 0);
+            static const Score RookTrapped =        S(92, 0);
             // Penalty for queen weaken
-            static const Score QueenWeaken = S(50,10);
+            static const Score QueenWeaken =        S(50,10);
 
-            static const Score ProbChecked = S(10,10);
+            static const Score ProbChecked =        S(10,10);
             // King tropism
-            static const Score EnemyInFlank = S( 7, 0);
-            static const Score PawnlessFlank = S(20,80);
+            static const Score EnemyInFlank =       S( 7, 0);
+            static const Score PawnlessFlank =      S(20,80);
 
             // Bonus for each hanged piece
-            static const Score PieceHanged = S(48,27);
+            static const Score PieceHanged =        S(48,27);
 
-            static const Score PawnPushThreat = S(38,22);
+            static const Score PawnPushThreat =     S(38,22);
 
-            static const Score HangPawnThreat = S( 71, 61);
-            static const Score SafePawnThreat = S(182,175);
+            static const Score HangPawnThreat =     S( 71, 61);
+            static const Score SafePawnThreat =     S(182,175);
 
-            static const Score PieceRankThreat = S(16, 3);
+            static const Score PieceRankThreat =    S(16, 3);
 
-            static const Score PawnPassHinder = S( 7, 0);
+            static const Score PawnPassHinder =     S( 7, 0);
 
             // Threshold for lazy evaluation
-            static const Value LazyThreshold = V(1500);
-            static const Value SpaceThreshold = V(12222);
+            static const Value LazyThreshold =      V(1500);
+            static const Value SpaceThreshold =     V(12222);
 
         #undef S
         #undef V
@@ -325,7 +325,7 @@ namespace Evaluator {
             {
                 b = PieceAttacks[KING][pos.square<KING> (Opp)];
                 king_ring[Opp] = b;
-                if (rel_rank (Opp, pos.square<KING> (Opp)) == R_1)
+                if (R_1 == rel_rank (Opp, pos.square<KING> (Opp)))
                 {
                     king_ring[Opp] |= shift<Pull> (b);
                 }
@@ -603,12 +603,12 @@ namespace Evaluator {
                 i32 king_danger =
                         1 * king_ring_attackers_count[Opp]*king_ring_attackers_weight[Opp]
                     + 102 * king_zone_attacks_count[Opp]
-                    + 201 * pop_count (king_only_def)
-                    + 143 * pop_count (king_ring_undef | pos.abs_blockers (Own))
+                    + 191 * pop_count (king_only_def | king_ring_undef)
+                    + 143 * pop_count (pos.abs_blockers (Own))
                     //+ 143 * pop_count (pos.dsc_blockers (Opp) & ~(  (pos.pieces (Opp, PAWN) & (  (file_bb (fk_sq) & ~(  shift<LCap> (pos.pieces (Own))
-                    //                                                                                                    | shift<RCap> (pos.pieces (Own))))
-                    //                                                                             | shift<Pull> (pos.pieces ())))
-                    //                                               | pos.abs_blockers (Opp)))
+                    //                                                                                                  | shift<RCap> (pos.pieces (Own))))
+                    //                                                                           | shift<Pull> (pos.pieces ())))
+                    //                                              | pos.abs_blockers (Opp)))
                     - 848 * (0 == pos.count<QUEN>(Opp))
                     -   9 * value / 8
                     +  40;
@@ -1008,7 +1008,9 @@ namespace Evaluator {
             behind |= shift<Pull> (behind);
             behind |= shift<Dull> (behind);
             i32 count  = pop_count (  (behind & safe_space)
-                                    | (WHITE == Own ? safe_space << 0x20 : safe_space >> 0x20));
+                                    | (WHITE == Own ?
+                                        safe_space << 0x20 :
+                                        safe_space >> 0x20));
             i32 weight = pos.count<NONE> (Own) - 2 * pe->open_count;
             auto score = mk_score (count * weight * weight / 16, 0);
 

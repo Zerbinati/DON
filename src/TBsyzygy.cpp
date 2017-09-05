@@ -376,11 +376,11 @@ namespace TBSyzygy {
                 file += ext;
                 for (const auto &path : Paths)
                 {
-                    auto file_path = append_path (path, file);
-                    open (file_path);
+                    auto fname = append_path (path, file);
+                    open (fname);
                     if (is_open ())
                     {
-                        filename = file_path;
+                        filename = fname;
                         close ();
                         break;
                     }
@@ -396,6 +396,11 @@ namespace TBSyzygy {
 #ifndef _WIN32
                 struct stat statbuf;
                 i32 fd = ::open (filename.c_str (), O_RDONLY);
+                if (fd == -1)
+                {
+                    return *base_address = nullptr, nullptr;
+                }
+
                 fstat (fd, &statbuf);
                 *mapping = statbuf.st_size;
                 *base_address = mmap (nullptr, statbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
@@ -404,10 +409,14 @@ namespace TBSyzygy {
                 if (*base_address == MAP_FAILED)
                 {
                     std::cerr << "Could not mmap() " << filename << std::endl;
-                    return nullptr;
+                    Engine::stop (EXIT_FAILURE);
                 }
 #else
                 HANDLE fd = CreateFile (filename.c_str (), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+                if (fd == INVALID_HANDLE_VALUE)
+                {
+                    return *base_address = nullptr, nullptr;
+                }
                 DWORD size_high;
                 DWORD size_low = GetFileSize (fd, &size_high);
                 HANDLE mmap = CreateFileMapping (fd, nullptr, PAGE_READONLY, size_high, size_low, nullptr);
@@ -416,7 +425,7 @@ namespace TBSyzygy {
                 if (mmap == 0)
                 {
                     std::cerr << "CreateFileMapping() failed, name = " << filename << ", error = " << GetLastError () << std::endl;
-                    return nullptr;
+                    Engine::stop (EXIT_FAILURE);
                 }
 
                 *mapping = u64(mmap);
@@ -437,8 +446,7 @@ namespace TBSyzygy {
                 {
                     std::cerr << "Corrupted table in file " << filename << std::endl;
                     unmap (*base_address, *mapping);
-                    *base_address = nullptr;
-                    return nullptr;
+                    return *base_address = nullptr, nullptr;
                 }
 
                 return data;
@@ -560,19 +568,22 @@ namespace TBSyzygy {
                 code += PieceToChar[pt];
             }
             TBFile file (code, ".rtbw");
-            if (!file.filename.empty ())
+            if (file.filename.empty ()) // Only WDL file is checked
             {
-                if (MaxLimitPiece < i32(pieces.size ()))
-                {
-                    MaxLimitPiece = i32(pieces.size ());
-                }
-
-                wdl_table.emplace_back (code);
-                dtz_table.emplace_back (wdl_table.back ());
-
-                insert (wdl_table.back ().key1, &wdl_table.back (), &dtz_table.back ());
-                insert (wdl_table.back ().key2, &wdl_table.back (), &dtz_table.back ());
+                return;
             }
+
+            if (MaxLimitPiece < i32(pieces.size ()))
+            {
+                MaxLimitPiece = i32(pieces.size ());
+            }
+
+            wdl_table.emplace_back (code);
+            dtz_table.emplace_back (wdl_table.back ());
+
+            insert (wdl_table.back ().key1, &wdl_table.back (), &dtz_table.back ());
+            insert (wdl_table.back ().key2, &wdl_table.back (), &dtz_table.back ());
+
         }
 
         /// TB tables are compressed with canonical Huffman code. The compressed data is divided into

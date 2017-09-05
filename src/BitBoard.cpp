@@ -315,25 +315,11 @@ namespace BitBoard {
                 {
                     if (contains (PieceAttacks[pt][s1], s2))
                     {
-                        Bitboard s1s2_attacks
-                            ,    s2s1_attacks;
-                        switch (pt)
-                        {
-                        case BSHP:
-                            s1s2_attacks = attacks_bb<BSHP> (s1, Square_bb[s2]);
-                            s2s1_attacks = attacks_bb<BSHP> (s2, Square_bb[s1]);
-                            break;
-                        case ROOK:
-                            s1s2_attacks = attacks_bb<ROOK> (s1, Square_bb[s2]);
-                            s2s1_attacks = attacks_bb<ROOK> (s2, Square_bb[s1]);
-                            break;
-                        default:
-                            s1s2_attacks = 0;
-                            s2s1_attacks = 0;
-                            break;
-                        }
+                        Between_bb[s1][s2] = (BSHP == pt ? attacks_bb<BSHP> (s1, Square_bb[s2]) :
+                                                           attacks_bb<ROOK> (s1, Square_bb[s2]))
+                                           & (BSHP == pt ? attacks_bb<BSHP> (s2, Square_bb[s1]) :
+                                                           attacks_bb<ROOK> (s2, Square_bb[s1]));
 
-                        Between_bb[s1][s2] = (s1s2_attacks & s2s1_attacks);
                         StrLine_bb[s1][s2] = (PieceAttacks[pt][s1] & PieceAttacks[pt][s2]) | s1 | s2;
                     }
                 }

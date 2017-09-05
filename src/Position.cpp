@@ -93,42 +93,24 @@ template<> PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitbo
 bool Position::see_ge (Move m, Value threshold) const
 {
     assert(_ok (m));
-    auto org = org_sq (m);
-    auto dst = dst_sq (m);
-    auto c = color (board[org]);
-    Bitboard mocc;
-    Value balance; // Values of the pieces taken by own's minus opp's
-    switch (mtype (m))
+
+    // Only deal with normal moves, assume others pass a simple see
+    if (NORMAL != mtype (m))
     {
-    case CASTLE:
-        // Castle moves are implemented as king capturing the rook so cannot be handled correctly.
-        // Simply assume the SEE value is VALUE_ZERO that is always correct unless in the rare case the rook ends up under attack.
-        return threshold <= VALUE_ZERO;
-        break;
-    case ENPASSANT:
-        assert(contains (pieces (c, PAWN), org));
-        mocc = square_bb (dst - pawn_push (c));
-        balance = PieceValues[MG][PAWN];
-        break;
-    default:
-        assert(contains (pieces (c), org));
-        mocc = 0;
-        balance = PieceValues[MG][ptype (board[dst])];
-        break;
+        return VALUE_ZERO >= threshold;
     }
 
+    auto org = org_sq (m);
+    auto dst = dst_sq (m);
+
+    auto balance = PieceValues[MG][ptype (board[dst])]; // Values of the pieces taken by own's minus opp's
     if (balance < threshold)
     {
         return false;
     }
 
-    // The first victim
     auto victim = ptype (board[org]);
-    if (KING == victim)
-    {
-        return true;
-    }
-
+    assert(PAWN <= victim && victim <= KING);
     balance -= PieceValues[MG][victim];
     if (balance >= threshold)
     {
@@ -136,7 +118,9 @@ bool Position::see_ge (Move m, Value threshold) const
     }
 
     bool profit = true; // True if the opponent is to move
-    mocc ^= pieces () ^ org ^ dst;
+    
+    auto c = color (board[org]);
+    Bitboard mocc = pieces () ^ org ^ dst;
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, mocc) & mocc;

@@ -53,15 +53,11 @@ public:
 
     Move easy_move (Key posi_key) const
     {
-        return posi_key == exp_posi_key ? pv[2] : MOVE_NONE;
+        return posi_key == exp_posi_key ?
+                pv[2] : MOVE_NONE;
     }
 
-    void clear ()
-    {
-        exp_posi_key = 0;
-        std::fill_n (pv, 3, MOVE_NONE);
-        stable_count = 0;
-    }
+    void clear ();
 
     void update (Position&, const Moves&);
 };
@@ -218,19 +214,7 @@ namespace Threading {
         u64 nodes () const { return accumulate (&Thread::nodes); }
         u64 tb_hits () const { return accumulate (&Thread::tb_hits); }
 
-        Thread* best_thread () const
-        {
-            auto *best_th = front ();
-            for (auto *th : *this)
-            {
-                if (   best_th->finished_depth < th->finished_depth
-                    && best_th->root_moves[0].new_value <= th->root_moves[0].new_value)
-                {
-                    best_th = th;
-                }
-            }
-            return best_th;
-        }
+        Thread* best_thread () const;
         
         void clear ();
         void configure (u32);
