@@ -271,7 +271,7 @@ namespace Evaluator {
     #undef V
 
         template<bool Trace>
-        const i32 Evaluation<Trace>::PieceAttackWeights[NONE] = { 0, 78, 56, 45, 11, 0 };
+        const i32 Evaluation<Trace>::PieceAttackWeights[NONE] = { 5, 78, 56, 45, 11, 0 };
 
         /// initialize() computes king and pawn attacks, and the king ring bitboard for the color.
         template<bool Trace>
@@ -318,7 +318,6 @@ namespace Evaluator {
             mob_area[Opp] = ~(b | pos.square<KING> (Opp));
             mobility[Opp] = SCORE_ZERO;
 
-            king_ring_attackers_weight[Own] = 0;
             king_zone_attacks_count[Own] = 0;
 
             if (pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
@@ -330,11 +329,13 @@ namespace Evaluator {
                     king_ring[Opp] |= shift<Pull> (b);
                 }
                 king_ring_attackers_count[Own] = u08(pop_count (b & pin_attacked_by[Own][PAWN]));
+                king_ring_attackers_weight[Own] = king_ring_attackers_count[Own] * PieceAttackWeights[PAWN];
             }
             else
             {
                 king_ring[Opp] = 0;
                 king_ring_attackers_count[Own] = 0;
+                king_ring_attackers_weight[Own] = 0;
             }
         }
 
