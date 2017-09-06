@@ -25,8 +25,8 @@ PGOBENCH = ./$(EXE) bench
 
 ### Object files
 OBJS = BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
-	MoveGenerator.o Notation.o Pawns.o PSQT.o Polyglot.o Position.o Searcher.o TBsyzygy.o \
-	Thread.o Transposition.o Option.o Zobrist.o MemoryHandler.o Debugger.o
+    MoveGenerator.o Notation.o Pawns.o PSQT.o Polyglot.o Position.o Searcher.o TBsyzygy.o \
+    Thread.o Transposition.o Option.o Zobrist.o MemoryHandler.o Debugger.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration
@@ -139,7 +139,7 @@ endif
 
 ### 3.1 Compiler Selection (Default = gcc)
 
-CXXFLAGS += -std=c++11 -Wall -Wcast-qual -fno-exceptions -fno-rtti -Wno-type-limits $(EXTRACXXFLAGS)
+CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-type-limits $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
 LDFLAGS += $(EXTRALDFLAGS)
 
@@ -150,7 +150,7 @@ endif
 
 ifeq ($(COMP), gcc)
 	comp = gcc
-	CXX  = g++
+	CXX = g++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 	ifeq ($(ARCH), armv7)
 		ifeq ($(OS), Android)
@@ -188,18 +188,18 @@ ifeq ($(COMP), mingw)
 	endif
 
 	CXXFLAGS += -Wextra -Wshadow
-	LDFLAGS  += -static
+	LDFLAGS += -static
 endif
 
 ifeq ($(COMP), icc)
 	comp = icc
-	CXX  = icpc
+	CXX = icpc
 	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
 endif
 
 ifeq ($(COMP), clang)
 	comp = clang
-	CXX  = clang++
+	CXX = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
 	ifneq ($(KERNEL), Darwin)
@@ -232,7 +232,7 @@ endif
 
 ifeq ($(KERNEL), Darwin)
 	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.9
-	LDFLAGS  += -arch $(arch) -mmacosx-version-min=10.9
+	LDFLAGS += -arch $(arch) -mmacosx-version-min=10.9
 endif
 
 ### Travis CI script uses COMPILER to overwrite CXX
@@ -297,7 +297,7 @@ ifeq ($(optimize), yes)
 	ifeq ($(comp), clang)
 		ifeq ($(KERNEL), Darwin)
 			CXXFLAGS += -flto
-			LDFLAGS  += $(CXXFLAGS)
+			LDFLAGS += $(CXXFLAGS)
 			ifeq ($(arch), i386)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
@@ -317,7 +317,7 @@ endif
 ifeq ($(pfch), yes)
 	CXXFLAGS += -DPREFETCH
 	ifeq ($(sse), yes)
-		CXXFLAGS    += -msse
+		CXXFLAGS += -msse
 		DEPENDFLAGS += -msse
 	endif
 endif
@@ -352,7 +352,7 @@ ifeq ($(comp), gcc)
 	ifeq ($(optimize), yes)
 		ifeq ($(debug), no)
 			CXXFLAGS += -flto
-			LDFLAGS  += $(CXXFLAGS)
+			LDFLAGS += $(CXXFLAGS)
 		endif
 	endif
 endif
@@ -362,7 +362,7 @@ ifeq ($(comp), mingw)
 		ifeq ($(optimize), yes)
 			ifeq ($(debug), no)
 				CXXFLAGS += -flto
-				LDFLAGS  += $(CXXFLAGS)
+				LDFLAGS += $(CXXFLAGS)
 			endif
 		endif
 	endif
@@ -372,7 +372,7 @@ endif
 ### Note that this breaks Android 4.0 and earlier.
 ifeq ($(OS), Android)
 	CXXFLAGS += -fPIE
-	LDFLAGS  += -fPIE -pie
+	LDFLAGS += -fPIE -pie
 endif
 
 ### 3.11 Custom Version.
@@ -483,9 +483,9 @@ default:
 ### ==========================================================================
 
 all: $(EXE) .depend
-	@echo "=========================================="
-	@echo "*            COMPILE SUCCESS             *"
-	@echo "=========================================="
+	@echo "================================="
+	@echo "*            SUCCESS            *"
+	@echo "================================="
 
 config-sanity:
 	@echo ""
@@ -529,6 +529,19 @@ config-sanity:
 $(EXE): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
+clang-profile-make:
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
+	EXTRACXXFLAGS='-fprofile-instr-generate' \
+	EXTRALDFLAGS='-fprofile-instr-generate' \
+	all
+
+clang-profile-use:
+	llvm-profdata merge -output=DON.profdata *.profraw
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
+	EXTRACXXFLAGS='-fprofile-instr-use=DON.profdata' \
+	EXTRALDFLAGS='-fprofile-use' \
+	all
+
 gcc-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-generate' \
@@ -550,19 +563,6 @@ icc-profile-make:
 icc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-prof_use -prof_dir ./profdir' \
-	all
-
-clang-profile-make:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-generate ' \
-	EXTRALDFLAGS=' -fprofile-instr-generate' \
-	all
-
-clang-profile-use:
-	llvm-profdata merge -output=DON.profdata *.profraw
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-use=DON.profdata' \
-	EXTRALDFLAGS='-fprofile-use ' \
 	all
 
 .depend:
