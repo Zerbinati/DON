@@ -167,11 +167,11 @@ public:
     Move  killer_moves[MaxKillers];
 
     Value static_eval;
-    i32   statistics;
     u08   move_count;
-    Moves pv;
-
+    i32   statistics; // LMR stats
     PieceDestinyHistory *piece_destiny;
+
+    Moves pv;
 };
 
 /// The root of the tree is a PV node.

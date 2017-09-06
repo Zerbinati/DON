@@ -323,8 +323,7 @@ namespace Evaluator {
 
             if (pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
             {
-                b = PieceAttacks[KING][pos.square<KING> (Opp)];
-                king_ring[Opp] = b;
+                b = king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
                 if (R_1 == rel_rank (Opp, pos.square<KING> (Opp)))
                 {
                     king_ring[Opp] |= shift<Pull> (b);
@@ -998,10 +997,9 @@ namespace Evaluator {
                    | ~pin_attacked_by[Opp][NONE]);
 
             // Since SpaceMask is fully on our half of the board
-            assert((WHITE == Own ?
-                        safe_space & U64(0xFFFFFFFF00000000) :
-                        safe_space & U64(0x00000000FFFFFFFF)) == 0);
-
+            assert(u32(safe_space >> (WHITE == Own ?
+                                        0x20 :
+                                        0x00)) == 0);
             // Find all squares which are at most three squares behind some friend pawn
             Bitboard behind = pos.pieces (Own, PAWN);
             behind |= shift<Pull> (behind);

@@ -1450,6 +1450,7 @@ namespace Searcher {
 
                 bool gives_check = pos.gives_check (move);
                 bool capture_or_promotion = pos.capture_or_promotion (move);
+
                 bool move_count_pruning =
                     MaxFutilityDepth > depth
                  && FutilityMoveCounts[improving][depth] <= move_count;
@@ -1566,18 +1567,18 @@ namespace Searcher {
                 // Speculative prefetch as early as possible.
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
+                if (   capture_or_promotion
+                    && move == tt_move)
+                {
+                    ttm_capture = true;
+                }
+
                 // Update the current move (this must be done after singular extension search).
                 ss->played_move = move;
                 ss->piece_destiny = &pos.thread->continuation[mpc][dst];
 
                 // Step 14. Make the move.
                 pos.do_move (move, si, gives_check);
-
-                if (   capture_or_promotion
-                    && move == tt_move)
-                {
-                    ttm_capture = true;
-                }
 
                 bool full_depth_search;
                 // Step 15. Reduced depth search (LMR).
@@ -1597,11 +1598,8 @@ namespace Searcher {
                     {
                         assert(PROMOTE != mtype (move));
 
-                        // Decrease reduction if opponent's move count is high
-                        if ((ss-1)->move_count >= MaxFutilityDepth)
-                        {
-                            reduce_depth -= 1;
-                        }
+                        // Decrease reduction on opponent's move count
+                        reduce_depth -= i16((ss-1)->move_count / (MaxReductionMoveCount/4));
 
                         // Increase reduction if tt_move is a capture
                         if (ttm_capture)
@@ -1628,23 +1626,23 @@ namespace Searcher {
                             + (*piece_destiny[0])[mpc][dst]
                             + (*piece_destiny[1])[mpc][dst]
                             + (*piece_destiny[3])[mpc][dst]
-                            - 4000; // Correction factor
+                            - 4000;
 
-                        // Decrease/Increase reduction by comparing opponent's stat value
-                        if (   (ss-0)->statistics > 0
+                        // Decrease/Increase reduction by comparing opponent's statistics
+                        if (   ss->statistics > 0
                             && (ss-1)->statistics < 0)
                         {
                             reduce_depth -= 1;
                         }
                         else
-                        if (   (ss-0)->statistics < 0
+                        if (   ss->statistics < 0
                             && (ss-1)->statistics > 0)
                         {
                             reduce_depth += 1;
                         }
 
                         // Decrease/Increase reduction for moves with +/-ve history value
-                        reduce_depth -= i16((ss)->statistics / 20000);
+                        reduce_depth -= i16(ss->statistics / 20000);
                     }
 
                     reduce_depth = std::min (std::max (reduce_depth, i16(0)), i16(new_depth - 1));
@@ -1657,8 +1655,9 @@ namespace Searcher {
                 }
                 else
                 {
-                    full_depth_search = !PVNode
-                                     || 1 < move_count;
+                    full_depth_search =
+                        !PVNode
+                     || 1 < move_count;
                 }
 
                 // Step 16. Full depth search when LMR is skipped or fails high.
@@ -1869,8 +1868,8 @@ namespace Searcher {
                     pos.do_move (vm.move, si);
                     inter_nodes =
                         LeafNode ?
-                        MoveList<GenType::LEGAL> (pos).size () :
-                        perft<false> (pos, depth - 1);
+                            MoveList<GenType::LEGAL> (pos).size () :
+                            perft<false> (pos, depth - 1);
 
                     pos.undo_move (vm.move);
                 }
@@ -1967,8 +1966,8 @@ namespace Threading {
             ss->excluded_move = MOVE_NONE;
             std::fill_n (ss->killer_moves, MaxKillers, MOVE_NONE);
             ss->static_eval = VALUE_ZERO;
-            ss->statistics = 0;
             ss->move_count = 0;
+            ss->statistics = 0;
             ss->piece_destiny = &continuation[NO_PIECE][0];
         }
 
