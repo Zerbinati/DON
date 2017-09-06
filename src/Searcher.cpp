@@ -1587,8 +1587,7 @@ namespace Searcher {
                     && (   move_count_pruning
                         || !capture_or_promotion))
                 {
-                    u08 mch = u08(std::max (move_count - (ss-1)->move_count / 16, 1));
-                    i16 reduce_depth = reduction_depth (PVNode, improving, depth, mch);
+                    i16 reduce_depth = reduction_depth (PVNode, improving, depth, move_count);
 
                     if (capture_or_promotion)
                     {
@@ -1597,6 +1596,12 @@ namespace Searcher {
                     else
                     {
                         assert(PROMOTE != mtype (move));
+
+                        // Decrease reduction if opponent's move count is high
+                        if ((ss-1)->move_count >= MaxFutilityDepth)
+                        {
+                            reduce_depth -= 1;
+                        }
 
                         // Increase reduction if tt_move is a capture
                         if (ttm_capture)
@@ -1642,15 +1647,7 @@ namespace Searcher {
                         reduce_depth -= i16((ss)->statistics / 20000);
                     }
 
-                    if (reduce_depth < 0)
-                    {
-                        reduce_depth = 0;
-                    }
-                    else
-                    if (reduce_depth > new_depth - 1)
-                    {
-                        reduce_depth = new_depth - 1;
-                    }
+                    reduce_depth = std::min (std::max (reduce_depth, i16(0)), i16(new_depth - 1));
 
                     value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true, true);
 

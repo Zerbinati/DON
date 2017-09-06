@@ -349,7 +349,6 @@ namespace Evaluator {
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
-            // Mask of allowed outpost squares
             const Bitboard Outposts = WHITE == Own ? R4_bb|R5_bb|R6_bb : R5_bb|R4_bb|R3_bb;
 
             auto fk_sq = pos.square<KING> (Own);
