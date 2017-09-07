@@ -1429,10 +1429,10 @@ bool Position::ok () const
                 assert(0 && "Position OK: SQUARELIST");
                 return false;
             }
-            for (auto i = 0; i < count (c, pt); ++i)
+            for (auto s : squares[c][pt])
             {
-                if (   !_ok (squares[c][pt][i])
-                    || board[squares[c][pt][i]] != (c|pt))
+                if (   !_ok (s)
+                    || board[s] != (c|pt))
                 {
                     assert(0 && "Position OK: SQUARELIST");
                     return false;
