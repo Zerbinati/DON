@@ -912,7 +912,9 @@ namespace Searcher {
                     && pos.legal (move));
 
                 ++move_count;
-                auto mpc = pos[org_sq (move)];
+
+                auto org = org_sq (move);
+                auto mpc = pos[org];
                 assert(NO_PIECE != mpc);
                 bool gives_check = pos.gives_check (move);
 
@@ -924,7 +926,7 @@ namespace Searcher {
                     //&& 0 == Limits.mate
                         // Advance pawn push
                     && !(   PAWN == ptype (mpc)
-                         && rel_rank (pos.active, org_sq (move)) > R_4))
+                         && rel_rank (pos.active, org) > R_4))
                 {
                     // Futility pruning parent node
                     auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst_sq (move)])];
@@ -1455,9 +1457,11 @@ namespace Searcher {
                     MaxFutilityDepth > depth
                  && FutilityMoveCounts[improving][depth] <= move_count;
 
-                auto mpc = pos[org_sq (move)];
-                assert(NO_PIECE != mpc);
+                auto org = org_sq (move);
                 auto dst = dst_sq (move);
+                auto mpc = pos[org];
+                assert(NO_PIECE != mpc);
+                
 
                 if (   root_node
                     && Threadpool.main_thread () == pos.thread)
@@ -1527,7 +1531,7 @@ namespace Searcher {
                         && !gives_check
                             // Advance pawn push.
                         && !(   PAWN == ptype (mpc)
-                             && rel_rank (pos.active, org_sq (move)) > R_4
+                             && rel_rank (pos.active, org) > R_4
                              && pos.si->non_pawn_material () < Value(5000)))
                     {
                         // Move count based pruning.
@@ -1598,15 +1602,16 @@ namespace Searcher {
                     {
                         assert(PROMOTE != mtype (move));
 
-                        // Decrease reduction on opponent's move count
-                        reduce_depth -= i16((ss-1)->move_count / (MaxReductionMoveCount/4));
-
+                        // Decrease reduction if opponent's move count is high
+                        if ((ss-1)->move_count >= 16)
+                        {
+                            reduce_depth -= 1;
+                        }
                         // Increase reduction if tt_move is a capture
                         if (ttm_capture)
                         {
                             reduce_depth += 1;
                         }
-
                         // Increase reduction for cut nodes
                         if (cut_node)
                         {
@@ -1616,7 +1621,7 @@ namespace Searcher {
                         // Decrease reduction for moves that escape a capture in no-cut nodes.
                         // Filter out castling moves, because they are coded as "king captures rook" and hence break mk_move().
                         if (   NORMAL == mtype (move)
-                            && !pos.see_ge (mk_move<NORMAL> (dst, org_sq (move))))
+                            && !pos.see_ge (mk_move<NORMAL> (dst, org)))
                         {
                             reduce_depth -= 2;
                         }

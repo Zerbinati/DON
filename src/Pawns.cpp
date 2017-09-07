@@ -12,16 +12,23 @@ namespace Pawns {
 
     #define V(v) Value(v)
 
-        // Weakness of friend pawn shelter in front of the friend king, indexed by [distance from edge][rank]
+        // Weakness of friend pawn shelter in front of the friend king, indexed by [is king-file][distance from edge][rank]
         // R_1 = 0 is used for files where we have no pawns or pawn is behind our king.
-        const Value ShelterWeak[F_NO/2][R_NO] =
+        const Value ShelterWeak[2][F_NO/2][R_NO] =
         {
-            { V(100), V(20), V(10), V(46), V(82), V( 86), V( 98), V(0) }, // => A and H file
-            { V(116), V( 4), V(28), V(87), V(94), V(108), V(108), V(0) }, // => B and G file
-            { V(109), V( 1), V(59), V(87), V(88), V( 91), V(116), V(0) }, // => C and F file
-            { V( 75), V(12), V(43), V(59), V(90), V( 94), V(112), V(0) }  // => D and E file
+            { 
+                { V( 97), V(17), V( 9), V(44), V( 84), V( 87), V( 99) },
+                { V(106), V( 6), V(33), V(86), V( 87), V(104), V(112) },
+                { V(101), V( 2), V(65), V(98), V( 58), V( 89), V(115) },
+                { V( 73), V( 7), V(54), V(73), V( 84), V( 83), V(111) }
+            },
+            {
+                { V(104), V(20), V( 6), V(27), V( 86), V( 93), V( 82) },
+                { V(123), V( 9), V(34), V(96), V(112), V( 88), V( 75) },
+                { V(120), V(25), V(65), V(91), V( 66), V( 78), V(117) },
+                { V( 81), V( 2), V(47), V(63), V( 94), V( 93), V(104) }
+            }
         };
-
         // Dangerness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
         // For the unopposed and unblocked cases, R_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
         const Value StromDanger[4][F_NO/2][R_NO] =
@@ -223,7 +230,7 @@ namespace Pawns {
                 || (own_r != opp_r));
 
             auto ff = std::min (f, F_H - f);
-            value -= ShelterWeak[ff][own_r]
+            value -= ShelterWeak[f == _file (fk_sq) ? 1 : 0][ff][own_r]
                    + StromDanger[   f == _file (fk_sq)
                                  && opp_r == rel_rank (Own, fk_sq) + 1 ? 0 : // BlockedByKing
                                     own_r == R_1                       ? 1 : // Unopposed
