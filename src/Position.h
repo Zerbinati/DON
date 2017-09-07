@@ -5,6 +5,7 @@
 #include <deque>
 #include <memory> // For std::unique_ptr
 #include <string>
+#include <list>
 
 #include "BitBoard.h"
 #include "Zobrist.h"
@@ -116,7 +117,7 @@ public:
     Piece    board[SQ_NO];
     Bitboard color_bb[CLR_NO];
     Bitboard types_bb[MAX_PTYPE];
-    Squares  squares[CLR_NO][NONE];
+    std::list<Square> squares[CLR_NO][NONE];
 
     CastleRight castle_mask[SQ_NO];
 
@@ -294,8 +295,8 @@ inline i32 Position::count (Color c, PieceType pt) const
 template<PieceType PT> inline Square Position::square (Color c, i08 index) const
 {
     assert(PT < NONE);
-    assert(squares[c][PT].size () > size_t(index));
-    return squares[c][PT][index];
+    assert(i08(squares[c][PT].size ()) > index);
+    return *std::next (squares[c][PT].begin (), index);
 }
 
 inline Key Position::pg_key () const
@@ -512,10 +513,9 @@ inline void Position::place_piece (Square s, Color c, PieceType pt)
 {
     //assert(empty (s)); // Not needed, in case of remove_piece()
     board[s] = (c|pt);
-    Bitboard bb = square_bb (s);
-    color_bb[c]    |= bb;
-    types_bb[pt]   |= bb;
-    types_bb[NONE] |= bb;
+    color_bb[c] |= s;
+    types_bb[pt] |= s;
+    types_bb[NONE] |= s;
 
     squares[c][pt].push_back (s);
 }
@@ -530,18 +530,11 @@ inline void Position::remove_piece (Square s)
     auto c  = color (board[s]);
     auto pt = ptype (board[s]);
     //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
-    Bitboard bb = square_bb (s);
-    color_bb[c]    ^= bb;
-    types_bb[pt]   ^= bb;
-    types_bb[NONE] ^= bb;
+    color_bb[c] ^= s;
+    types_bb[pt] ^= s;
+    types_bb[NONE] ^= s;
 
-    auto &v = squares[c][pt];
-    assert(!v.empty ());
-    if (v.size () > 1)
-    {
-        std::swap (*std::find (v.begin (), v.end (), s), v.back ());
-    }
-    v.pop_back ();
+    squares[c][pt].remove (s);
 }
 inline void Position::move_piece (Square s1, Square s2)
 {
@@ -551,13 +544,11 @@ inline void Position::move_piece (Square s1, Square s2)
     board[s2] = board[s1];
     board[s1] = NO_PIECE;
     Bitboard bb = square_bb (s1) ^ square_bb (s2);
-    color_bb[c]    ^= bb;
-    types_bb[pt]   ^= bb;
+    color_bb[c] ^= bb;
+    types_bb[pt] ^= bb;
     types_bb[NONE] ^= bb;
 
-    auto &v = squares[c][pt];
-    assert(!v.empty ());
-    v[v.size () > 1 ? std::find (v.begin (), v.end (), s1) - v.begin () : 0] = s2;
+    std::replace (squares[c][pt].begin (), squares[c][pt].end (), s1, s2);
 }
 /// do_castling() is a helper used to do/undo a castling move.
 /// This is a bit tricky, especially in Chess960.
