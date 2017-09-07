@@ -1986,8 +1986,8 @@ namespace TBSyzygy {
             // among pawns with same file, the one with lowest rank.
             i32 availableSquares = 47; // Available squares when lead pawn is in a2
 
-                                        // Init the tables for the encoding of leading pawns group: with 6-men TB we
-                                        // can have up to 4 leading pawns (KPPPPK).
+            // Init the tables for the encoding of leading pawns group:
+            // with 6-men TB can have up to 4 leading pawns (KPPPPK).
             for (i32 lead_pawn_count = 1; lead_pawn_count <= 4; ++lead_pawn_count)
             {
                 for (auto f : { F_A, F_B, F_C, F_D })

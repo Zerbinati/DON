@@ -188,14 +188,11 @@ bool Position::see_ge (Move m, Value threshold) const
 /// A piece blocks a slider if removing that piece from the board would result in a position where square is attacked by the sliders in 'attackers'.
 /// For example, a king-attack blocking piece can be either absolute or discovered blocked piece,
 /// according if its color is the opposite or the same of the color of the sliders in 'attackers'.
-template<Color Own>
-Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const
+Bitboard Position::slider_blockers (Color c, Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const
 {
-    const auto Opp = WHITE == Own ? BLACK : WHITE;
-
     Bitboard blockers = 0;
-    Bitboard defenders = pieces (Own);
-    Bitboard attackers = pieces (Opp) ^ ex_attackers;
+    Bitboard defenders = pieces ( c);
+    Bitboard attackers = pieces (~c) ^ ex_attackers;
     // Snipers are attackers that are aligned on square in x-ray.
     Bitboard snipers =
           attackers
@@ -224,9 +221,6 @@ Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &p
     }
     return blockers;
 }
-// Explicit template instantiations
-template Bitboard Position::slider_blockers<WHITE> (Square, Bitboard, Bitboard&, Bitboard&) const;
-template Bitboard Position::slider_blockers<BLACK> (Square, Bitboard, Bitboard&, Bitboard&) const;
 
 /// Position::pseudo_legal() tests whether a random move is pseudo-legal.
 /// It is used to validate moves from TT that can be corrupted
@@ -362,20 +356,26 @@ bool Position::pseudo_legal (Move m) const
     {
         switch (mpt)
         {
-        case NIHT: if (   !contains (PieceAttacks[NIHT][org]          , dst)) { return false; }
+        case NIHT:
+            if (   !contains (PieceAttacks[NIHT][org]          , dst)) { return false; }
             break;
-        case BSHP: if (   !contains (PieceAttacks[BSHP][org]          , dst)
-                       || !contains (attacks_bb<BSHP> (org, pieces ()), dst)) { return false; }
+        case BSHP:
+            if (   !contains (PieceAttacks[BSHP][org]          , dst)
+                || !contains (attacks_bb<BSHP> (org, pieces ()), dst)) { return false; }
             break;
-        case ROOK: if (   !contains (PieceAttacks[ROOK][org]          , dst)
-                       || !contains (attacks_bb<ROOK> (org, pieces ()), dst)) { return false; }
+        case ROOK:
+            if (   !contains (PieceAttacks[ROOK][org]          , dst)
+                || !contains (attacks_bb<ROOK> (org, pieces ()), dst)) { return false; }
             break;
-        case QUEN: if (   !contains (PieceAttacks[QUEN][org]          , dst)
-                       || !contains (attacks_bb<QUEN> (org, pieces ()), dst)) { return false; }
+        case QUEN:
+            if (   !contains (PieceAttacks[QUEN][org]          , dst)
+                || !contains (attacks_bb<QUEN> (org, pieces ()), dst)) { return false; }
             break;
-        case KING: if (   !contains (PieceAttacks[KING][org]          , dst)) { return false; }
+        case KING:
+            if (   !contains (PieceAttacks[KING][org]          , dst)) { return false; }
             break;
-        default: assert(false);
+        default:
+            assert(false);
             break;
         }
     }
@@ -422,8 +422,13 @@ bool Position::legal (Move m) const
         {
             return 0 == attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m));
         }
+        // A non-king move is legal if and only if it is not pinned or
+        // it is moving along the ray towards or away from the king or
+        // it is a blocking evasion or a capture of the checking piece.
+        return !contains (si->king_blockers[active], org_sq (m))
+            || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
     }
-    // NOTE: no break
+        break;
     case PROMOTE:
     {
         // A non-king move is legal if and only if it is not pinned or
@@ -520,18 +525,24 @@ bool Position::gives_check (Move m) const
         auto ek_sq = square<KING> (~active);
         switch (promote (m))
         {
-        case NIHT: return contains (PieceAttacks[NIHT][dst]                , ek_sq);
+        case NIHT:
+            return contains (PieceAttacks[NIHT][dst]                , ek_sq);
             break;
-        case BSHP: return contains (PieceAttacks[BSHP][dst]                , ek_sq)
-                       && contains (attacks_bb<BSHP> (dst, pieces () ^ org), ek_sq);
+        case BSHP:
+            return contains (PieceAttacks[BSHP][dst]                , ek_sq)
+                && contains (attacks_bb<BSHP> (dst, pieces () ^ org), ek_sq);
             break;
-        case ROOK: return contains (PieceAttacks[ROOK][dst]                , ek_sq)
-                       && contains (attacks_bb<ROOK> (dst, pieces () ^ org), ek_sq);
+        case ROOK:
+            return contains (PieceAttacks[ROOK][dst]                , ek_sq)
+                && contains (attacks_bb<ROOK> (dst, pieces () ^ org), ek_sq);
             break;
-        case QUEN: return contains (PieceAttacks[QUEN][dst]                , ek_sq)
-                       && contains (attacks_bb<QUEN> (dst, pieces () ^ org), ek_sq);
+        case QUEN:
+            return contains (PieceAttacks[QUEN][dst]                , ek_sq)
+                && contains (attacks_bb<QUEN> (dst, pieces () ^ org), ek_sq);
             break;
-        default: assert(false); break;
+        default:
+            assert(false);
+            break;
         }
     }
         break;

@@ -171,8 +171,7 @@ public:
     Bitboard attackers_to (Square) const;
     //Bitboard xattackers_to (Square, Color, Bitboard) const;
 
-    template<Color Own>
-    Bitboard slider_blockers (Square, Bitboard, Bitboard&, Bitboard&) const;
+    Bitboard slider_blockers (Color, Square, Bitboard, Bitboard&, Bitboard&) const;
     Bitboard abs_blockers (Color) const;
     Bitboard dsc_blockers (Color) const;
     Bitboard abs_checkers (Color) const;
@@ -590,8 +589,8 @@ inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] = 0;
     king_checkers[BLACK] = 0;
-    king_blockers[WHITE] = pos.slider_blockers<WHITE> (pos.square<KING> (WHITE), 0, king_checkers[WHITE], king_checkers[BLACK]);
-    king_blockers[BLACK] = pos.slider_blockers<BLACK> (pos.square<KING> (BLACK), 0, king_checkers[BLACK], king_checkers[WHITE]);
+    king_blockers[WHITE] = pos.slider_blockers (WHITE, pos.square<KING> (WHITE), 0, king_checkers[WHITE], king_checkers[BLACK]);
+    king_blockers[BLACK] = pos.slider_blockers (BLACK, pos.square<KING> (BLACK), 0, king_checkers[BLACK], king_checkers[WHITE]);
 
     auto ek_sq = pos.square<KING> (~pos.active);
     checks[PAWN] = PawnAttacks[~pos.active][ek_sq];

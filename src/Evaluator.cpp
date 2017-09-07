@@ -521,9 +521,9 @@ namespace Evaluator {
                 case QUEN:
                 {
                     // Penalty for pin or discover attack on the queen
-                    if (0 != (pos.slider_blockers<Own> (s, pos.pieces (Opp, QUEN), b, b) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
-                                                                                                                                            | shift<RCap> (pos.pieces (Own))))
-                                                                                               | pos.abs_blockers (Opp))))
+                    if (0 != (pos.slider_blockers (Own, s, pos.pieces (Opp, QUEN), b, b) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
+                                                                                                                                         | shift<RCap> (pos.pieces (Own))))
+                                                                                             | pos.abs_blockers (Opp))))
                     {
                         score -= QueenWeaken;
                     }

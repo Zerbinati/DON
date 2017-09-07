@@ -37,11 +37,21 @@ namespace Notation {
             Bitboard attacks = 0;
             switch (mpt)
             {
-            case NIHT: attacks = PieceAttacks[NIHT][dst];               break;
-            case BSHP: attacks = attacks_bb<BSHP> (dst, pos.pieces ()); break;
-            case ROOK: attacks = attacks_bb<ROOK> (dst, pos.pieces ()); break;
-            case QUEN: attacks = attacks_bb<QUEN> (dst, pos.pieces ()); break;
-            default: assert(false); break;
+            case NIHT:
+                attacks = PieceAttacks[NIHT][dst];
+                break;
+            case BSHP:
+                attacks = attacks_bb<BSHP> (dst, pos.pieces ());
+                break;
+            case ROOK:
+                attacks = attacks_bb<ROOK> (dst, pos.pieces ());
+                break;
+            case QUEN:
+                attacks = attacks_bb<QUEN> (dst, pos.pieces ());
+                break;
+            default:
+                assert(false);
+                break;
             }
 
             Bitboard amb = (attacks & pos.pieces (pos.active, mpt)) ^ org;
@@ -166,11 +176,20 @@ namespace Notation {
                     // that can reach 'dst' with a legal move.
                     switch (ambiguity (m, pos))
                     {
-                    case Ambiguity::AMB_NONE  :                               break;
-                    case Ambiguity::AMB_RANK  : san += to_char (_file (org)); break;
-                    case Ambiguity::AMB_FILE  : san += to_char (_rank (org)); break;
-                    case Ambiguity::AMB_SQUARE: san += to_string (org);       break;
-                    default:                assert(false);                    break;
+                    case Ambiguity::AMB_NONE:
+                        break;
+                    case Ambiguity::AMB_RANK:
+                        san += to_char (_file (org));
+                        break;
+                    case Ambiguity::AMB_FILE:
+                        san += to_char (_rank (org));
+                        break;
+                    case Ambiguity::AMB_SQUARE:
+                        san += to_string (org);
+                        break;
+                    default:
+                        assert(false);
+                        break;
                     }
                 }
             }

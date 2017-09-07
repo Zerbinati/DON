@@ -123,7 +123,8 @@ namespace Threading {
         i16  sel_depth;
         u08  pv_index;
 
-        std::atomic<u64> nodes, tb_hits;
+        std::atomic<u64> nodes
+            ,            tb_hits;
 
         PieceDestinyMoveTable counter_moves;
         ButterflyHistory butterfly;
