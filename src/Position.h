@@ -463,11 +463,11 @@ inline bool Position::opposite_bishops () const
 {
     return 1 == count<BSHP> (WHITE)
         && 1 == count<BSHP> (BLACK)
-        && opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
-        //&& (   (   0 != (pieces (WHITE, BSHP) & Color_bb[WHITE])
-        //        && 0 != (pieces (BLACK, BSHP) & Color_bb[BLACK]))
-        //    || (   0 != (pieces (WHITE, BSHP) & Color_bb[BLACK])
-        //        && 0 != (pieces (BLACK, BSHP) & Color_bb[WHITE])));
+        //&& opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
+        && (   (   0 != (pieces (WHITE, BSHP) & Color_bb[WHITE])
+                && 0 != (pieces (BLACK, BSHP) & Color_bb[BLACK]))
+            || (   0 != (pieces (WHITE, BSHP) & Color_bb[BLACK])
+                && 0 != (pieces (BLACK, BSHP) & Color_bb[WHITE])));
 }
 inline bool Position::en_passant (Move m) const
 {
