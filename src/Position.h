@@ -296,7 +296,9 @@ template<PieceType PT> inline Square Position::square (Color c, i08 index) const
 {
     assert(PT < NONE);
     assert(i08(squares[c][PT].size ()) > index);
-    return *std::next (squares[c][PT].begin (), index);
+    return *(index == 0 ?
+             squares[c][PT].begin () : 
+             std::next (squares[c][PT].begin (), index));
 }
 
 inline Key Position::pg_key () const

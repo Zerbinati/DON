@@ -606,9 +606,6 @@ public:
     bool operator!= (const ValMove &vm) const { return value != vm.value; }
 };
 
-typedef std::vector<Square>  Squares;
-typedef std::vector<Move>    Moves;
-
 class ValMoves
     : public std::vector<ValMove>
 {

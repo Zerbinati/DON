@@ -88,7 +88,7 @@ void MoveManager::clear ()
     stable_count = 0;
 }
 
-void MoveManager::update (Position &pos, const Moves &new_pv)
+void MoveManager::update (Position &pos, const vector<Move> &new_pv)
 {
     assert(new_pv.size () >= 3
         && new_pv[2] != MOVE_NONE);
@@ -227,7 +227,7 @@ namespace Threading {
             }
             free (buffer);
 
-            std::vector<i32> groups;
+            vector<i32> groups;
             // Run as many threads as possible on the same node until core limit is
             // reached, then move on filling the next node.
             for (i32 n = 0; n < nodes; ++n)
@@ -322,14 +322,14 @@ namespace Threading {
     /// Thread::start_searching() wakes up the thread that will start the search.
     void Thread::start_searching ()
     {
-        std::lock_guard<Mutex> lk (mutex);
+        lock_guard<Mutex> lk (mutex);
         busy = true;
         condition_var.notify_one (); // Wake up the thread in idle_loop()
     }
     /// Thread::wait_while_busy() blocks on the condition variable while the thread is busy.
     void Thread::wait_while_busy ()
     {
-        std::unique_lock<Mutex> lk (mutex);
+        unique_lock<Mutex> lk (mutex);
         condition_var.wait (lk, [&] { return !busy; });
     }
     /// Thread::idle_loop() is where the thread is parked.
@@ -340,7 +340,7 @@ namespace Threading {
 
         while (true)
         {
-            std::unique_lock<Mutex> lk (mutex);
+            unique_lock<Mutex> lk (mutex);
             busy = false;
             condition_var.notify_one (); // Wake up anyone waiting for search finished
             condition_var.wait (lk, [&] { return busy; });
@@ -435,7 +435,7 @@ namespace Threading {
     }
     /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and returns immediately.
     /// Main thread will wake up other threads and start the search.
-    void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limit &limits, const Moves &search_moves, bool ponde)
+    void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limit &limits, const vector<Move> &search_moves, bool ponde)
     {
         stop = false;
         stop_on_ponderhit = false;
@@ -522,7 +522,7 @@ namespace Threading {
     }
     void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limit &limits, bool ponde)
     {
-        const Moves search_moves;
+        const vector<Move> search_moves;
         start_thinking (pos, states, limits, search_moves, ponde);
     }
 

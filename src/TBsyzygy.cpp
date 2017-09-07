@@ -1902,7 +1902,7 @@ namespace TBSyzygy {
                 }
             }
             // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
-            Squares diagonal;
+            vector<Square> diagonal;
             code = 0;
             for (auto s = SQ_A1; s <= SQ_D4; ++s)
             {

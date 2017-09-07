@@ -59,7 +59,7 @@ RootMove::operator string () const
 }
 
 /// RootMoves::initialize()
-void RootMoves::initialize (const Position &pos, const Moves &search_moves)
+void RootMoves::initialize (const Position &pos, const vector<Move> &search_moves)
 {
     clear ();
     for (const auto &vm : MoveList<GenType::LEGAL> (pos))
@@ -664,7 +664,7 @@ namespace Searcher {
         }
 
         /// update_pv() appends the move and child pv
-        void update_pv (Moves &pv, Move move, const Moves &child_pv)
+        void update_pv (vector<Move> &pv, Move move, const vector<Move> &child_pv)
         {
             pv.clear ();
             pv.push_back (move);
@@ -1418,7 +1418,7 @@ namespace Searcher {
 
             u08 move_count = 0;
 
-            Moves quiet_moves;
+            vector<Move> quiet_moves;
             quiet_moves.reserve (16);
 
             bool ttm_capture = false;
@@ -1866,6 +1866,7 @@ namespace Searcher {
                 {
                     StateInfo si;
                     pos.do_move (vm.move, si);
+
                     inter_nodes =
                         LeafNode ?
                             MoveList<GenType::LEGAL> (pos).size () :

@@ -201,7 +201,7 @@ namespace Engine {
 
             Limit limits;
             limits.start_time = now ();
-            Moves search_moves; // Restrict search to these root moves only
+            vector<Move> search_moves; // Restrict search to these root moves only
             bool ponder = false;
             string token;
             while (iss >> token)

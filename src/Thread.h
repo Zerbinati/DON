@@ -59,7 +59,7 @@ public:
 
     void clear ();
 
-    void update (Position&, const Moves&);
+    void update (Position&, const std::vector<Move>&);
 };
 
 /// Skill Manager class is used to implement strength limit
@@ -220,7 +220,7 @@ namespace Threading {
         void clear ();
         void configure (u32);
 
-        void start_thinking (Position&, StateListPtr&, const Limit&, const Moves&, bool = false);
+        void start_thinking (Position&, StateListPtr&, const Limit&, const std::vector<Move>&, bool = false);
         void start_thinking (Position&, StateListPtr&, const Limit&, bool = false);
 
         void stop_thinking ();

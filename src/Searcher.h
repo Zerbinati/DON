@@ -132,8 +132,8 @@ private:
     const PieceDestinyHistory **piece_destiny;
 
     ValMoves moves;
-    Moves killers_moves
-        , bad_capture_moves;
+    std::vector<Move> killers_moves
+        ,             bad_capture_moves;
 
     u08 stage;
     u08 m;
@@ -171,7 +171,7 @@ public:
     i32   statistics; // LMR stats
     PieceDestinyHistory *piece_destiny;
 
-    Moves pv;
+    std::vector<Move> pv;
 };
 
 /// The root of the tree is a PV node.
@@ -190,7 +190,7 @@ public:
 ///  - PV (really a refutation table in the case of moves which fail low)
 /// Value is normally set at -VALUE_INFINITE for all non-pv moves.
 class RootMove
-    : public Moves
+    : public std::vector<Move>
 {
 public:
     Value old_value
@@ -199,7 +199,7 @@ public:
     i16 sel_depth;
 
     explicit RootMove (Move m = MOVE_NONE)
-        : Moves (1, m)
+        : std::vector<Move> (1, m)
         , old_value (-VALUE_INFINITE)
         , new_value (-VALUE_INFINITE)
         , sel_depth (0)
@@ -245,7 +245,7 @@ public:
     void operator+= (const RootMove &rm) { emplace_back (rm); }
     //void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
 
-    void initialize (const Position&, const Moves&);
+    void initialize (const Position&, const std::vector<Move>&);
 
     explicit operator std::string () const;
 };
