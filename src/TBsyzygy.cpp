@@ -7,7 +7,6 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
-#include <list>
 #include <vector>
 
 #include "BitBoard.h"
