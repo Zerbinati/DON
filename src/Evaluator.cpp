@@ -166,7 +166,6 @@ namespace Evaluator {
             // Contains all squares attacked by the color and piece type with pinned removed.
             Bitboard pin_attacked_by[CLR_NO][MAX_PTYPE];
             // Contains all squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
-            // Diagonal x-ray through pawn or squares attacked by 2 pawns are not explicitly added.
             Bitboard dbl_attacked[CLR_NO];
 
             // Zone around the king which is considered by the king safety evaluation.
@@ -385,14 +384,25 @@ namespace Evaluator {
                 {
                     attacks &= strline_bb (fk_sq, s);
                 }
-
+                
+                if (BSHP == PT)
+                {
+                    Bitboard att = attacks & ~pos.abs_blockers (Own);
+                    Bitboard bp = pos.pieces (Own, PAWN) & att & front_rank_bb (Own, s);
+                    dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
+                                       & (  attacks
+                                          | (0 != bp ? ((shift<LCap> (bp) | shift<RCap> (bp)) & PieceAttacks[BSHP][s]) : 0));
+                }
+                else
                 if (QUEN == PT)
                 {
                     Bitboard att = attacks & ~pos.abs_blockers (Own);
-                    Bitboard qb = pos.pieces (Own, BSHP) & PieceAttacks[BSHP][s] & att;
-                    Bitboard qr = pos.pieces (Own, ROOK) & PieceAttacks[ROOK][s] & att;
+                    Bitboard qp = pos.pieces (Own, PAWN) & att & front_rank_bb (Own, s);
+                    Bitboard qb = pos.pieces (Own, BSHP) & att & PieceAttacks[BSHP][s];
+                    Bitboard qr = pos.pieces (Own, ROOK) & att & PieceAttacks[ROOK][s];
                     dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                        & (  attacks
+                                          | (0 != qp ? ((shift<LCap> (qp) | shift<RCap> (qp)) & PieceAttacks[BSHP][s]) : 0)
                                           | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                           | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
                 }
@@ -422,10 +432,8 @@ namespace Evaluator {
 
                 Bitboard b;
                 // Special extra evaluation for pieces
-                switch (PT)
-                {
-                case NIHT:
-                case BSHP:
+                if (   NIHT == PT
+                    || BSHP == PT)
                 {
                     // Bonus for minors when behind a pawn
                     if (   rel_rank (Own, s) < R_5
@@ -486,9 +494,8 @@ namespace Evaluator {
                         }
                     }
                 }
-                    break;
-
-                case ROOK:
+                else
+                if (ROOK == PT)
                 {
                     // Bonus for rook aligning with enemy pawns on the same rank/file
                     if (rel_rank (Own, s) > R_4)
@@ -516,9 +523,8 @@ namespace Evaluator {
                         }
                     }
                 }
-                    break;
-
-                case QUEN:
+                else
+                if (QUEN == PT)
                 {
                     // Penalty for pin or discover attack on the queen
                     if (0 != (pos.slider_blockers (Own, s, pos.pieces (Opp, QUEN), b, b) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
@@ -527,8 +533,6 @@ namespace Evaluator {
                     {
                         score -= QueenWeaken;
                     }
-                }
-                    break;
                 }
             }
 
@@ -1056,10 +1060,9 @@ namespace Evaluator {
             assert(SCALE_NONE != scale);
 
             // If don't already have an unusual scale, check for certain types of endgames.
-            switch (scale)
+            if (   SCALE_NORMAL == scale
+                || SCALE_ONEPAWN == scale)
             {
-            case SCALE_NORMAL:
-            case SCALE_ONEPAWN:
                 if (pos.opposite_bishops ())
                 {
                     return
@@ -1080,9 +1083,6 @@ namespace Evaluator {
                 {
                     return Scale(37 + 7 * pos.count<PAWN> (strong_color));
                 }
-                break;
-            default:
-                break;
             }
             return scale;
         }

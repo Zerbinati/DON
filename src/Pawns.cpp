@@ -16,13 +16,13 @@ namespace Pawns {
         // R_1 = 0 is used for files where we have no pawns or pawn is behind our king.
         const Value ShelterWeak[2][F_NO/2][R_NO] =
         {
-            { 
+            {// Not On King file
                 { V( 97), V(17), V( 9), V(44), V( 84), V( 87), V( 99) },
                 { V(106), V( 6), V(33), V(86), V( 87), V(104), V(112) },
                 { V(101), V( 2), V(65), V(98), V( 58), V( 89), V(115) },
                 { V( 73), V( 7), V(54), V(73), V( 84), V( 83), V(111) }
             },
-            {
+            {// On King file
                 { V(104), V(20), V( 6), V(27), V( 86), V( 93), V( 82) },
                 { V(123), V( 9), V(34), V(96), V(112), V( 88), V( 75) },
                 { V(120), V(25), V(65), V(91), V( 66), V( 78), V(117) },
