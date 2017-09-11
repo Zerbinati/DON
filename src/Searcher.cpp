@@ -1317,7 +1317,8 @@ namespace Searcher {
                             {
                                 // Don't return unproven wins.
                                 return unproven ?
-                                        beta : null_value;
+                                        beta :
+                                        null_value;
                             }
 
                             // Do verification search at high depths.
@@ -1330,7 +1331,8 @@ namespace Searcher {
                             {
                                 // Don't return unproven wins.
                                 return unproven ?
-                                        beta : null_value;
+                                        beta :
+                                        null_value;
                             }
                         }
                     }
