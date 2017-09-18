@@ -317,17 +317,15 @@ inline Key Position::move_posi_key (Move m) const
         && NONE != mpt);
     
     auto key = si->posi_key;
-    auto mt = mtype (m);
-    auto ppt = PROMOTE != mt ? mpt : promote (m);
-    if (CASTLE == mt)
+    auto ppt = PROMOTE != mtype (m) ? mpt : promote (m);
+    if (CASTLE == mtype (m))
     {
-        key ^=
-              RandZob.piece_square_keys[active][ROOK][dst]
-            ^ RandZob.piece_square_keys[active][ROOK][rel_sq (active, dst > org ? SQ_F1 : SQ_D1)];
+        key ^= RandZob.piece_square_keys[active][ROOK][dst]
+             ^ RandZob.piece_square_keys[active][ROOK][rel_sq (active, dst > org ? SQ_F1 : SQ_D1)];
     }
     else
     {
-        if (   NORMAL == mt
+        if (   NORMAL == mtype (m)
             && PAWN == mpt
             && 16 == (u08(dst) ^ u08(org)))
         {
@@ -337,10 +335,10 @@ inline Key Position::move_posi_key (Move m) const
                 key ^= RandZob.en_passant_keys[_file (ep_sq)];
             }
         }
-        auto cpt = ENPASSANT != mt ? ptype (board[dst]) : PAWN;
+        auto cpt = ENPASSANT != mtype (m) ? ptype (board[dst]) : PAWN;
         if (NONE != cpt)
         {
-            key ^= RandZob.piece_square_keys[~active][cpt][ENPASSANT != mt ?
+            key ^= RandZob.piece_square_keys[~active][cpt][ENPASSANT != mtype (m) ?
                                                                 dst :
                                                                 dst - pawn_push (active)];
         }
@@ -355,7 +353,7 @@ inline Key Position::move_posi_key (Move m) const
     }
     return key
          ^ RandZob.color_key
-         ^ RandZob.piece_square_keys[active][ppt][mt != CASTLE ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
+         ^ RandZob.piece_square_keys[active][ppt][CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
          ^ RandZob.piece_square_keys[active][mpt][org]
          ^ (SQ_NO != si->en_passant_sq ? RandZob.en_passant_keys[_file (si->en_passant_sq)] : 0);
 }
@@ -585,11 +583,10 @@ inline void StateInfo::set_check_info (const Position &pos)
     king_blockers[WHITE] = pos.slider_blockers (WHITE, pos.square<KING> (WHITE), 0, king_checkers[WHITE], king_checkers[BLACK]);
     king_blockers[BLACK] = pos.slider_blockers (BLACK, pos.square<KING> (BLACK), 0, king_checkers[BLACK], king_checkers[WHITE]);
 
-    auto ek_sq = pos.square<KING> (~pos.active);
-    checks[PAWN] = PawnAttacks[~pos.active][ek_sq];
-    checks[NIHT] = PieceAttacks[NIHT][ek_sq];
-    checks[BSHP] = attacks_bb<BSHP> (ek_sq, pos.pieces ());
-    checks[ROOK] = attacks_bb<ROOK> (ek_sq, pos.pieces ());
+    checks[PAWN] = PawnAttacks[~pos.active][pos.square<KING> (~pos.active)];
+    checks[NIHT] = PieceAttacks[NIHT][pos.square<KING> (~pos.active)];
+    checks[BSHP] = attacks_bb<BSHP> (pos.square<KING> (~pos.active), pos.pieces ());
+    checks[ROOK] = attacks_bb<ROOK> (pos.square<KING> (~pos.active), pos.pieces ());
     checks[QUEN] = checks[BSHP] | checks[ROOK];
     checks[KING] = 0;
 }

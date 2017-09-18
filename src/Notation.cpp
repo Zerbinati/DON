@@ -31,30 +31,35 @@ namespace Notation {
 
             auto org = org_sq (m);
             auto dst = dst_sq (m);
-            auto mpt = ptype (pos[org]);
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
-            Bitboard attacks = 0;
-            switch (mpt)
+            Bitboard attacks;
+            if (NIHT == ptype (pos[org]))
             {
-            case NIHT:
                 attacks = PieceAttacks[NIHT][dst];
-                break;
-            case BSHP:
+            }
+            else
+            if (BSHP == ptype (pos[org]))
+            {
                 attacks = attacks_bb<BSHP> (dst, pos.pieces ());
-                break;
-            case ROOK:
+            }
+            else
+            if (ROOK == ptype (pos[org]))
+            {
                 attacks = attacks_bb<ROOK> (dst, pos.pieces ());
-                break;
-            case QUEN:
+            }
+            else
+            if (QUEN == ptype (pos[org]))
+            {
                 attacks = attacks_bb<QUEN> (dst, pos.pieces ());
-                break;
-            default:
+            }
+            else
+            {
                 assert(false);
-                break;
+                attacks = 0;
             }
 
-            Bitboard amb = (attacks & pos.pieces (pos.active, mpt)) ^ org;
+            Bitboard amb = (attacks & pos.pieces (pos.active, ptype (pos[org]))) ^ org;
             Bitboard pcs = amb; // & ~pos.abs_blockers (pos.active); // If pinned piece is considered as ambiguous
             while (0 != pcs)
             {
@@ -115,7 +120,7 @@ namespace Notation {
         }
     }
 
-    /// Converts a move to a string in coordinate algebraic notation representation.
+    /// Converts a move to a string in coordinate algebraic notation.
     /// The only special case is castling moves,
     ///  - e1g1 notation in normal chess mode,
     ///  - e1h1 notation in chess960 mode.
@@ -152,7 +157,7 @@ namespace Notation {
         return MOVE_NONE;
     }
 
-    /// Converts a move to a string in short algebraic notation representation.
+    /// Converts a move to a string in short algebraic notation.
     string move_to_san (Move m, Position &pos)
     {
         if (MOVE_NONE == m) return "(none)";
@@ -165,19 +170,15 @@ namespace Notation {
 
         if (CASTLE != mtype (m))
         {
-            auto pt = ptype (pos[org]);
-
-            if (PAWN != pt)
+            if (PAWN != ptype (pos[org]))
             {
-                san = PieceChar[pt];
-                if (KING != pt)
+                san = PieceChar[ptype (pos[org])];
+                if (KING != ptype (pos[org]))
                 {
                     // Disambiguation if have more then one piece of type 'pt'
                     // that can reach 'dst' with a legal move.
                     switch (ambiguity (m, pos))
                     {
-                    case Ambiguity::AMB_NONE:
-                        break;
                     case Ambiguity::AMB_RANK:
                         san += to_char (_file (org));
                         break;
@@ -187,8 +188,8 @@ namespace Notation {
                     case Ambiguity::AMB_SQUARE:
                         san += to_string (org);
                         break;
+                    case Ambiguity::AMB_NONE:
                     default:
-                        assert(false);
                         break;
                     }
                 }
@@ -196,7 +197,7 @@ namespace Notation {
 
             if (pos.capture (m))
             {
-                if (PAWN == pt)
+                if (PAWN == ptype (pos[org]))
                 {
                     san += to_char (_file (org));
                 }
@@ -205,7 +206,7 @@ namespace Notation {
 
             san += to_string (dst);
 
-            if (   PAWN == pt
+            if (   PAWN == ptype (pos[org])
                 && PROMOTE == mtype (m))
             {
                 san += "=";
@@ -242,7 +243,7 @@ namespace Notation {
         return MOVE_NONE;
     }
 
-    ///// Converts a move to a string in long algebraic notation representation.
+    ///// Converts a move to a string in long algebraic notation.
     //string move_to_lan (Move m, Position &pos)
     //{
     //    string lan;
@@ -268,10 +269,10 @@ namespace Notation {
     string pretty_pv_info (Thread *const &th)
     {
         const double K = 1000.0;
-
-        ostringstream oss;
         const auto &root_move = th->root_moves[0];
         u64 nodes = Threadpool.nodes ();
+
+        ostringstream oss;
         oss << std::setw ( 4) << th->finished_depth
             << std::setw ( 8) << pretty_value (root_move.new_value, th->root_pos.active)
             << std::setw (12) << pretty_time (Threadpool.main_thread ()->time_mgr.elapsed_time ());

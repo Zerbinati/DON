@@ -756,8 +756,7 @@ namespace Searcher {
             return oss.str ();
         }
 
-        /// quien_search() is quiescence search function, which is called by the main depth limited search function
-        /// when the remaining depth is less than equal to 0.
+        /// quien_search() is quiescence search function, which is called by the main depth limited search function when the remaining depth <= 0.
         template<bool PVNode>
         Value quien_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth = 0)
         {
@@ -1028,7 +1027,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
         }
-        /// depth_search() is main depth limited search function for both PV and non-PV nodes.
+        /// depth_search() is main depth limited search function, which is called when the remaining depth > 0.
         template<bool PVNode>
         Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node, bool prun_node)
         {
@@ -2124,12 +2123,12 @@ namespace Threading {
 
                 assert(root_moves[0].new_value == best_value);
 
-                if (0 != ContemptValue)
-                {
-                    auto valued_contempt = Value(i32 (best_value)/ContemptValue);
-                    DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] - valued_contempt;
-                    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
-                }
+                //if (0 != ContemptValue)
+                //{
+                //    auto valued_contempt = Value(i32 (best_value)/ContemptValue);
+                //    DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] - valued_contempt;
+                //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
+                //}
 
                 // Has any of the threads found a "mate in <x>"?
                 if (   !Threadpool.stop_on_ponderhit

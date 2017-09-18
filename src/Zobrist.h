@@ -34,7 +34,7 @@ namespace Zobrists {
     extern void initialize ();
 }
 
-extern       Zobrists::Zobrist RandZob;
+extern Zobrists::Zobrist RandZob;
 extern const Zobrists::Zobrist PolyZob;
 
 #endif // _ZOBRIST_H_INC_

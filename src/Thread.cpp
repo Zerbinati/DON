@@ -9,9 +9,9 @@ using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-u32  OverheadMoveTime = 60;   // Attempt to keep at least this much time for each remaining move, in milli-seconds.
-u32  NodesTime =        0;    // 'Nodes as Time' mode.
-bool Ponder =           true; // Whether or not the engine should analyze when it is the opponent's turn.
+u32  OverheadMoveTime = 100;    // Attempt to keep at least this much time for each remaining move, in milli-seconds.
+u32  NodesTime =        0;      // 'Nodes as Time' mode.
+bool Ponder =           true;   // Whether or not the engine should analyze when it is the opponent's turn.
 
 Threading::ThreadPool Threadpool;
 
@@ -160,7 +160,7 @@ namespace Threading {
     /// To overcome this, some special platform specific API should be called to set group affinity for each thread.
     /// Original code from Texel by Peter Österlund.
     namespace { 
-    
+
         /// bind_thread() set the group affinity for the thread index.
         void bind_thread (size_t index);
 
@@ -211,12 +211,12 @@ namespace Threading {
             {
                 switch (ptr->Relationship)
                 {
-                case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
-                    ++nodes;
-                    break;
                 case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
                     ++cores;
                     threads += (ptr->Processor.Flags == LTP_PC_SMT) ? 2 : 1;
+                    break;
+                case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
+                    ++nodes;
                     break;
                 default:
                     break;
@@ -285,12 +285,7 @@ namespace Threading {
             GROUP_AFFINITY affinity;
             if (fun2 (USHORT(group), &affinity))
             {
-                auto current_thread = GetCurrentThread ();
-                if (nullptr != current_thread)
-                {
-                    PGROUP_AFFINITY ptr = nullptr;
-                    fun3 (current_thread, &affinity, ptr);
-                }
+                fun3 (GetCurrentThread (), &affinity, nullptr);
             }
         }
     #else

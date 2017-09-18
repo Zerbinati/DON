@@ -30,14 +30,13 @@ namespace MoveGen {
                     }
                     attacks &= pos.si->checks[PT];
                 }
-                if (0 != attacks)
+                if (   BSHP == PT
+                    || ROOK == PT
+                    || QUEN == PT)
                 {
-                    if (NIHT != PT)
-                    {
-                        attacks &= attacks_bb<PT> (s, pos.pieces ());
-                    }
-                    while (0 != attacks) { moves += mk_move<NORMAL> (s, pop_lsq (attacks)); }
+                    attacks &= attacks_bb<PT> (s, pos.pieces ());
                 }
+                while (0 != attacks) { moves += mk_move<NORMAL> (s, pop_lsq (attacks)); }
             }
         }
 
@@ -52,66 +51,43 @@ namespace MoveGen {
                 || DEL_SE == Del
                 || DEL_SW == Del);
 
-            switch (GT)
+            if (   GenType::NATURAL == GT
+                || GenType::EVASION == GT
+                || GenType::CAPTURE == GT
+                || (   GenType::CHECK == GT
+                    && contains (PieceAttacks[QUEN][dst], pos.square<KING> (~pos.active))
+                    && contains (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - Del)), pos.square<KING> (~pos.active))))
             {
-            case GenType::NATURAL:
-            case GenType::EVASION:
-            case GenType::CAPTURE:
-            case GenType::QUIET:
-                if (GenType::QUIET != GT)
-                {
-                    moves += mk_move (dst - Del, dst, QUEN);
-                }
-                if (GenType::CAPTURE != GT)
-                {
-                    moves += mk_move (dst - Del, dst, ROOK);
-                    moves += mk_move (dst - Del, dst, BSHP);
-                    moves += mk_move (dst - Del, dst, NIHT);
-                }
-                break;
-            case GenType::QUIET_CHECK:
-            {
-                auto ek_sq = pos.square<KING> (~pos.active);
-                if (   contains (PieceAttacks[ROOK][dst]                            , ek_sq)
-                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - Del)), ek_sq))
-                {
-                    moves += mk_move (dst - Del, dst, ROOK);
-                }
-                if (   contains (PieceAttacks[BSHP][dst]                            , ek_sq)
-                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - Del)), ek_sq))
-                {
-                    moves += mk_move (dst - Del, dst, BSHP);
-                }
-                if (   contains (PieceAttacks[NIHT][dst]                            , ek_sq))
-                {
-                    moves += mk_move (dst - Del, dst, NIHT);
-                }
+                moves += mk_move (dst - Del, dst, QUEN);
             }
-                break;
-            case GenType::CHECK:
+            if (   GenType::NATURAL == GT
+                || GenType::EVASION == GT
+                || GenType::QUIET == GT
+                || ((   GenType::CHECK == GT
+                     || GenType::QUIET_CHECK == GT)
+                    && contains (PieceAttacks[ROOK][dst], pos.square<KING> (~pos.active))
+                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - Del)), pos.square<KING> (~pos.active))))
             {
-                auto ek_sq = pos.square<KING> (~pos.active);
-                if (   contains (PieceAttacks[QUEN][dst]                            , ek_sq)
-                    && contains (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - Del)), ek_sq))
-                {
-                    moves += mk_move (dst - Del, dst, QUEN);
-                }
-                if (   contains (PieceAttacks[ROOK][dst]                            , ek_sq)
-                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - Del)), ek_sq))
-                {
-                    moves += mk_move (dst - Del, dst, ROOK);
-                }
-                if (   contains (PieceAttacks[BSHP][dst]                            , ek_sq)
-                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - Del)), ek_sq))
-                {
-                    moves += mk_move (dst - Del, dst, BSHP);
-                }
-                if (   contains (PieceAttacks[NIHT][dst]                            , ek_sq))
-                {
-                    moves += mk_move (dst - Del, dst, NIHT);
-                }
+                moves += mk_move (dst - Del, dst, ROOK);
             }
-                break;
+            if (   GenType::NATURAL == GT
+                || GenType::EVASION == GT
+                || GenType::QUIET == GT
+                || ((   GenType::CHECK == GT
+                     || GenType::QUIET_CHECK == GT)
+                    && contains (PieceAttacks[BSHP][dst], pos.square<KING> (~pos.active))
+                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - Del)), pos.square<KING> (~pos.active))))
+            {
+                moves += mk_move (dst - Del, dst, BSHP);
+            }
+            if (   GenType::NATURAL == GT
+                || GenType::EVASION == GT
+                || GenType::QUIET == GT
+                || ((   GenType::CHECK == GT
+                     || GenType::QUIET_CHECK == GT)
+                    && contains (PieceAttacks[NIHT][dst], pos.square<KING> (~pos.active))))
+            {
+                moves += mk_move (dst - Del, dst, NIHT);
             }
         }
         /// Generates pawn normal move
@@ -135,7 +111,11 @@ namespace MoveGen {
             Bitboard empties = ~pos.pieces ();
             Bitboard enemies = pos.pieces (Opp) & targets;
             // Pawn single-push and double-push, no promotions
-            if (GenType::CAPTURE != GT)
+            if (   GenType::NATURAL == GT
+                || GenType::EVASION == GT
+                || GenType::QUIET == GT
+                || GenType::CHECK == GT
+                || GenType::QUIET_CHECK == GT)
             {
                 Bitboard push_1 = empties & shift<Push> (Rx_pawns);
                 Bitboard push_2 = empties & shift<Push> (push_1 & R3BB);
@@ -163,8 +143,10 @@ namespace MoveGen {
                 while (0 != push_2) { auto dst = pop_lsq (push_2); moves += mk_move<NORMAL> (dst - Push*2, dst); }
             }
             // Pawn normal and en-passant captures, no promotions
-            if (   GenType::QUIET != GT
-                && GenType::QUIET_CHECK != GT)
+            if (   GenType::NATURAL == GT
+                || GenType::EVASION == GT
+                || GenType::CAPTURE == GT
+                || GenType::CHECK == GT)
             {
                 Bitboard l_attack = enemies & shift<LCap> (Rx_pawns);
                 Bitboard r_attack = enemies & shift<RCap> (Rx_pawns);
@@ -259,9 +241,11 @@ namespace MoveGen {
             }
 
             auto m = mk_move<CASTLE> (king_org, rook_org);
-            if (   (   GenType::CHECK != GT
-                    && GenType::QUIET_CHECK != GT)
-                || pos.gives_check (m))
+            if (   GenType::NATURAL == GT
+                || GenType::QUIET == GT
+                || ((   GenType::CHECK == GT
+                     || GenType::QUIET_CHECK == GT)
+                    && pos.gives_check (m)))
             {
                 moves += m;
             }
@@ -274,8 +258,9 @@ namespace MoveGen {
 
             assert(GenType::EVASION != GT);
 
-            if (   GenType::CHECK != GT
-                && GenType::QUIET_CHECK != GT)
+            if (   GenType::NATURAL == GT
+                || GenType::CAPTURE == GT
+                || GenType::QUIET == GT)
             {
                 auto fk_sq = pos.square<KING> (Own);
                 Bitboard attacks =
@@ -285,7 +270,10 @@ namespace MoveGen {
                 while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
             }
 
-            if (   GenType::CAPTURE != GT
+            if (   (   GenType::NATURAL == GT
+                    || GenType::QUIET == GT
+                    || GenType::CHECK == GT
+                    || GenType::QUIET_CHECK == GT)
                 && 0 == pos.si->checkers
                 && pos.can_castle (Own))
             {
@@ -312,7 +300,11 @@ namespace MoveGen {
             generate_piece_moves<GT, Own, BSHP> (moves, pos, targets);
             generate_piece_moves<GT, Own, ROOK> (moves, pos, targets);
             generate_piece_moves<GT, Own, QUEN> (moves, pos, targets);
-            if (GenType::EVASION != GT)
+            if (   GenType::NATURAL == GT
+                || GenType::CAPTURE == GT
+                || GenType::QUIET == GT
+                || GenType::CHECK == GT
+                || GenType::QUIET_CHECK == GT)
             {
                 generate_king_moves<GT, Own> (moves, pos, targets);
             }
@@ -326,21 +318,25 @@ namespace MoveGen {
             || GenType::CAPTURE == GT
             || GenType::QUIET == GT);
         moves.clear ();
-        Bitboard targets = 0;
-        switch (GT)
+        Bitboard targets;
+        if (GenType::NATURAL == GT)
         {
-        case GenType::NATURAL:
             targets = ~pos.pieces ( pos.active);
-            break;
-        case GenType::CAPTURE:
+        }
+        else
+        if (GenType::CAPTURE == GT)
+        {
             targets =  pos.pieces (~pos.active);
-            break;
-        case GenType::QUIET:
+        }
+        else
+        if (GenType::QUIET == GT)
+        {
             targets = ~pos.pieces ();
-            break;
-        default:
+        }
+        else
+        {
             assert(false);
-            break;
+            targets = 0;
         }
 
         WHITE == pos.active ?
@@ -368,33 +364,41 @@ namespace MoveGen {
         while (0 != dsc_blockers)
         {
             auto org = pop_lsq (dsc_blockers);
-            Bitboard attacks = 0;
-            switch (ptype (pos[org]))
+            Bitboard attacks;
+            if (NIHT == ptype (pos[org]))
             {
-            case NIHT:
                 attacks =  targets
                         &  PieceAttacks[NIHT][org];
-                break;
-            case BSHP:
+            }
+            else
+            if (BSHP == ptype (pos[org]))
+            {
                 attacks = 0 != (targets & PieceAttacks[BSHP][org]) ?
                            targets & attacks_bb<BSHP> (org, pos.pieces ()) : 0;
-                break;
-            case ROOK:
+            }
+            else
+            if (ROOK == ptype (pos[org]))
+            {
                 attacks = 0 != (targets & PieceAttacks[ROOK][org]) ?
                            targets & attacks_bb<ROOK> (org, pos.pieces ()) : 0;
-                break;
-            case QUEN:
+            }
+            else
+            if (QUEN == ptype (pos[org]))
+            {
                 attacks = 0 != (targets & PieceAttacks[QUEN][org]) ?
                            targets & attacks_bb<QUEN> (org, pos.pieces ()) : 0;
-                break;
-            case KING:
+            }
+            else
+            if (KING == ptype (pos[org]))
+            {
                 attacks =  targets
                         &  PieceAttacks[KING][org]
                         & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)];
-                break;
-            default:
+            }
+            else
+            {
                 assert(false);
-                break;
+                attacks = 0;
             }
             while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
@@ -415,31 +419,40 @@ namespace MoveGen {
         {
             auto org = pop_lsq (dsc_blockers);
             Bitboard attacks = 0;
-            switch (ptype (pos[org]))
+            if (NIHT == ptype (pos[org]))
             {
-            case NIHT:
                 attacks =  targets
                         &  PieceAttacks[NIHT][org];
-                break;
-            case BSHP:
+            }
+            else
+            if (BSHP == ptype (pos[org]))
+            {
                 attacks = 0 != (targets & PieceAttacks[BSHP][org]) ?
                            targets & attacks_bb<BSHP> (org, pos.pieces ()) : 0;
-                break;
-            case ROOK:
+            }
+            else
+            if (ROOK == ptype (pos[org]))
+            {
                 attacks = 0 != (targets & PieceAttacks[ROOK][org]) ?
                            targets & attacks_bb<ROOK> (org, pos.pieces ()) : 0;
-                break;
-            case QUEN:
+            }
+            else
+            if (QUEN == ptype (pos[org]))
+            {
                 attacks = 0 != (targets & PieceAttacks[QUEN][org]) ?
                            targets & attacks_bb<QUEN> (org, pos.pieces ()) : 0;
-                break;
-            case KING:
+            }
+            else
+            if (KING == ptype (pos[org]))
+            {
                 attacks =  targets
                         &  PieceAttacks[KING][org]
                         & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)];
-                break;
-            default: assert(false);
-                break;
+            }
+            else
+            {
+                assert(false);
+                attacks = 0;
             }
             while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
@@ -470,20 +483,23 @@ namespace MoveGen {
         {
             checker_sq = pop_lsq (sliders);
             assert(color (pos[checker_sq]) == ~pos.active);
-            switch (ptype (pos[checker_sq]))
+            if (BSHP == ptype (pos[checker_sq]))
             {
-            case BSHP:
                 checker_attacks |= attacks_bb<BSHP> (checker_sq, mocc);
-                break;
-            case ROOK:
+            }
+            else
+            if (ROOK == ptype (pos[checker_sq]))
+            {
                 checker_attacks |= attacks_bb<ROOK> (checker_sq, mocc);
-                break;
-            case QUEN:
+            }
+            else
+            if (QUEN == ptype (pos[checker_sq]))
+            {
                 checker_attacks |= attacks_bb<QUEN> (checker_sq, mocc);
-                break;
-            default:
+            }
+            else
+            {
                 assert(false);
-                break;
             }
         }
 
