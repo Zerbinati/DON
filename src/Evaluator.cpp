@@ -101,6 +101,8 @@ namespace Evaluator {
             static const Score EnemyInFlank =       S( 7, 0);
             static const Score PawnlessFlank =      S(20,80);
 
+            static const Score PawnWeakUnopposed =  S( 5, 25);
+
             // Bonus for each hanged piece
             static const Score PieceHanged =        S(48,27);
 
@@ -244,8 +246,8 @@ namespace Evaluator {
         const Score Evaluation<Trace>::PieceOutpost[3][2] =
         {
             {},
-            { S(22, 6), S(33, 9) },
-            { S( 9, 2), S(14, 4) }
+            { S(22, 6), S(36,12) },
+            { S( 9, 2), S(15, 5) }
         };
 
         template<bool Trace>
@@ -566,9 +568,6 @@ namespace Evaluator {
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
-            //const auto Pull = WHITE == Own ? DEL_S : DEL_N;
-            //const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
-            //const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
             const Bitboard Camp = WHITE == Own ? R1_bb|R2_bb|R3_bb|R4_bb|R5_bb : R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
 
             auto fk_sq = pos.square<KING> (Own);
@@ -612,7 +611,7 @@ namespace Evaluator {
                     & ~pos.pieces (Opp)
                     &  pin_attacked_by[Opp][NONE]
                     & ~pin_attacked_by[Own][NONE];
-                // Initialize the king danger, which will be transformed later into a king danger score.
+                // Initialize the king danger, which will be transformed later into a score.
                 // The initial value is based on the
                 // - the number and types of the enemy's attacking pieces,
                 // - the number of attacked and undefended squares around our king,
@@ -696,9 +695,9 @@ namespace Evaluator {
                     score -= ProbChecked;
                 }
 
-                // Transform the king units into a score, and substract it from the evaluation
                 if (king_danger > 0)
                 {
+                    // Transform the king_danger into a score
                     score -= mk_score (king_danger*king_danger / 0x1000, king_danger / 0x10);
                 }
             }
@@ -836,6 +835,12 @@ namespace Evaluator {
                 {
                     score += HangPawnThreat;
                 }
+            }
+
+            // Bonus for opponent unopposed weak pawns
+            if (0 != pos.pieces (Own, ROOK, QUEN))
+            {
+                score += PawnWeakUnopposed * i32(pe->weak_unopposed_count[Opp]);
             }
 
             // Friend pawns can push on the next move

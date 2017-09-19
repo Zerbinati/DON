@@ -763,9 +763,9 @@ namespace Searcher {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(0 >= depth);
-            assert(ss->ply > 1
+            assert(ss->ply >= 1
                 && ss->ply == (ss-1)->ply + 1
-                && ss->ply <= MaxPlies);
+                && ss->ply < MaxPlies);
 
             Value old_alfa;
 
@@ -1035,9 +1035,9 @@ namespace Searcher {
             assert(PVNode || (alfa == beta-1));
             assert(!(PVNode && cut_node));
             assert(0 < depth && depth < MaxPlies);
-            assert(ss->ply >= 1
+            assert(ss->ply >= 0
                 && ss->ply == (ss-1)->ply + 1
-                && ss->ply <= MaxPlies);
+                && ss->ply < MaxPlies);
 
             // Step 1. Initialize node.
             ss->statistics = 0;
@@ -1045,9 +1045,10 @@ namespace Searcher {
             
             if (PVNode)
             {
-                if (pos.thread->sel_depth < ss->ply)
+                // Used to send selDepth info to GUI (selDepth from 1, ply from 0)
+                if (pos.thread->sel_depth < ss->ply + 1)
                 {
-                    pos.thread->sel_depth = ss->ply;
+                    pos.thread->sel_depth = ss->ply + 1;
                 }
             }
 
@@ -1057,7 +1058,7 @@ namespace Searcher {
                 Threadpool.main_thread ()->check_limits ();
             }
 
-            bool root_node = 1 == ss->ply;
+            bool root_node = PVNode && 0 == ss->ply;
             bool in_check = 0 != pos.si->checkers;
 
             if (!root_node)
@@ -1182,8 +1183,8 @@ namespace Searcher {
 
                         auto draw = TBUseRule50 ? 1 : 0;
 
-                        auto value = wdl < -draw ? -VALUE_MATE + i32(MaxPlies + ss->ply) :
-                                     wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply) :
+                        auto value = wdl < -draw ? -VALUE_MATE + i32(MaxPlies + ss->ply + 1) :
+                                     wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply + 1) :
                                                     VALUE_ZERO + 2 * wdl * draw;
 
                         tte->save (key,
@@ -1968,7 +1969,7 @@ namespace Threading {
         Stack stacks[MaxPlies + 7]; // To allow referencing (ss-4) and (ss+2)
         for (auto ss = stacks; ss < stacks + MaxPlies + 7; ++ss)
         {
-            ss->ply = i16(ss - stacks - 3);
+            ss->ply = i16(ss - (stacks + 4));
             ss->played_move = MOVE_NONE;
             ss->excluded_move = MOVE_NONE;
             std::fill_n (ss->killer_moves, MaxKillers, MOVE_NONE);
