@@ -78,7 +78,7 @@ namespace TBSyzygy {
             char offset[2];  // Offset within the block
         };
 
-        static_assert(sizeof (SparseEntry) == 6, "SparseEntry must be 6 bytes");
+        static_assert (sizeof (SparseEntry) == 6, "SparseEntry size incorrect");
 
         typedef u16 Sym; // Huffman symbol
 
@@ -104,7 +104,7 @@ namespace TBSyzygy {
             }
         };
 
-        static_assert(sizeof (LR) == 3, "LR tree entry must be 3 bytes");
+        static_assert (sizeof (LR) == 3, "LR size incorrect");
 
         const i32 TBPIECES = 6;
 

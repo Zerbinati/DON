@@ -51,6 +51,10 @@ namespace Zobrists {
                 }
             }
         }
+        if (WHITE == pos.active)
+        {
+            posi_key ^= color_key;
+        }
         if (pos.has_castleright (CR_ANY))
         {
             if (pos.can_castle (WHITE, CS_KING)) posi_key ^= castle_right_keys[WHITE][CS_KING];
@@ -61,10 +65,6 @@ namespace Zobrists {
         if (SQ_NO != pos.si->en_passant_sq)
         {
             posi_key ^= en_passant_keys[_file (pos.si->en_passant_sq)];
-        }
-        if (WHITE == pos.active)
-        {
-            posi_key ^= color_key;
         }
         return posi_key;
     }
@@ -113,7 +113,6 @@ namespace Zobrists {
     //            --r;
     //        }
     //    }
-    //
     //    assert(F_NO != kf[WHITE]
     //        && F_NO != kf[BLACK]);
     //
@@ -197,7 +196,7 @@ namespace Zobrists {
 }
 
 // Random numbers from PRNG, used to compute position key
-      Zobrists::Zobrist RandZob;
+Zobrists::Zobrist RandZob;
 // Constant numbers from Polyglot, used to compute polyglot book hash key
 const Zobrists::Zobrist PolyZob =
 {

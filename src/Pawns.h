@@ -21,6 +21,7 @@ namespace Pawns {
         Bitboard attack_span[CLR_NO];
         Bitboard passers    [CLR_NO];
         u08      semiopens  [CLR_NO];
+        u08      weak_unopposed_count[CLR_NO];
         u08      color_count[CLR_NO][CLR_NO];
 
         u08    index         [CLR_NO];
@@ -52,13 +53,15 @@ namespace Pawns {
             {
                 return u08(p - king_square[Own]);
             }
-            king_square[Own][index[Own]] = fk_sq;
+
             u08 kp_dist = 0;
             Bitboard pawns = pos.pieces (Own, PAWN);
             if (0 != pawns)
             {
                 while (0 == (pawns & dist_rings_bb (fk_sq, kp_dist++))) {}
             }
+
+            king_square[Own][index[Own]] = fk_sq;
             king_pawn_dist[Own][index[Own]] = kp_dist;
             king_safety   [Own][index[Own]] = pawn_shelter_storm<Own> (pos, fk_sq);
             return index[Own] < MaxCache - 1 ? index[Own]++ : index[Own];

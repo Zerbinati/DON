@@ -38,10 +38,13 @@ public:
     template<typename T>
     T rand () { return T(rand64 ()); }
     
+#if !defined(BM2)
     /// Special generator used to fast initialize magic numbers.
     /// Output values only have 1/8th of their bits set on average.
     template<typename T>
     T sparse_rand () { return T(rand64 () & rand64 () & rand64 ()); }
+#endif
+
 };
 
 #endif // _PRNG_H_INC_

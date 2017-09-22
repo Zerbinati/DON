@@ -227,9 +227,9 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
 template<GenType GT>
 void MovePicker::value ()
 {
-    static_assert(GenType::CAPTURE == GT
-               || GenType::QUIET == GT
-               || GenType::EVASION == GT, "GT incorrect");
+    static_assert (GenType::CAPTURE == GT
+                || GenType::QUIET == GT
+                || GenType::EVASION == GT, "GT incorrect");
 
     for (auto &vm : moves)
     {
@@ -240,7 +240,7 @@ void MovePicker::value ()
         {
             assert(pos.capture_or_promotion (vm.move));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
-                     - ptype (pos[org_sq (vm.move)])
+                     //- ptype (pos[org_sq (vm.move)])
                      - 200 * rel_rank (pos.active, dst_sq (vm.move));
         }
         else
@@ -364,21 +364,21 @@ Move MovePicker::next_move ()
             if (   !skip_quiets
                 || max->value >= 0)
             {
-                if (max->value < threshold)
+                if (max->value >= threshold)
                 {
-                    ++stage;
-                    goto START;
-                }
-                if (beg != max)
-                {
-                    auto tmp = *max;
-                    for (; max != beg; --max)
+                    if (beg != max)
                     {
-                        *max = *(max - 1);
+                        auto tmp = *max;
+                        for (; max != beg; --max)
+                        {
+                            *max = *(max - 1);
+                        }
+                        *max = tmp;
                     }
-                    *max = tmp;
+                    return ++m, beg->move;
                 }
-                return ++m, beg->move;
+                ++stage;
+                goto START;
             }
         }
         stage += 2;
@@ -667,11 +667,8 @@ namespace Searcher {
         void update_pv (vector<Move> &pv, Move move, const vector<Move> &child_pv)
         {
             pv.clear ();
-            pv.push_back (move);
-            for (auto m : child_pv)
-            {
-                pv.push_back (m);
-            }
+            pv.emplace_back (move);
+            pv.insert (pv.end (), child_pv.begin (), child_pv.end ());
         }
 
         /// It adjusts a mate score from "plies to mate from the root" to
@@ -756,17 +753,16 @@ namespace Searcher {
             return oss.str ();
         }
 
-        /// quien_search() is quiescence search function, which is called by the main depth limited search function
-        /// when the remaining depth is less than equal to 0.
+        /// quien_search() is quiescence search function, which is called by the main depth limited search function when the remaining depth <= 0.
         template<bool PVNode>
         Value quien_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth = 0)
         {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(0 >= depth);
-            assert(ss->ply > 1
+            assert(ss->ply >= 1
                 && ss->ply == (ss-1)->ply + 1
-                && ss->ply <= MaxPlies);
+                && ss->ply < MaxPlies);
 
             Value old_alfa;
 
@@ -1028,7 +1024,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
         }
-        /// depth_search() is main depth limited search function for both PV and non-PV nodes.
+        /// depth_search() is main depth limited search function, which is called when the remaining depth > 0.
         template<bool PVNode>
         Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node, bool prun_node)
         {
@@ -1036,9 +1032,9 @@ namespace Searcher {
             assert(PVNode || (alfa == beta-1));
             assert(!(PVNode && cut_node));
             assert(0 < depth && depth < MaxPlies);
-            assert(ss->ply >= 1
+            assert(ss->ply >= 0
                 && ss->ply == (ss-1)->ply + 1
-                && ss->ply <= MaxPlies);
+                && ss->ply < MaxPlies);
 
             // Step 1. Initialize node.
             ss->statistics = 0;
@@ -1046,9 +1042,10 @@ namespace Searcher {
             
             if (PVNode)
             {
-                if (pos.thread->sel_depth < ss->ply)
+                // Used to send selDepth info to GUI (selDepth from 1, ply from 0)
+                if (pos.thread->sel_depth < ss->ply + 1)
                 {
-                    pos.thread->sel_depth = ss->ply;
+                    pos.thread->sel_depth = ss->ply + 1;
                 }
             }
 
@@ -1058,7 +1055,7 @@ namespace Searcher {
                 Threadpool.main_thread ()->check_limits ();
             }
 
-            bool root_node = 1 == ss->ply;
+            bool root_node = PVNode && 0 == ss->ply;
             bool in_check = 0 != pos.si->checkers;
 
             if (!root_node)
@@ -1183,8 +1180,8 @@ namespace Searcher {
 
                         auto draw = TBUseRule50 ? 1 : 0;
 
-                        auto value = wdl < -draw ? -VALUE_MATE + i32(MaxPlies + ss->ply) :
-                                     wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply) :
+                        auto value = wdl < -draw ? -VALUE_MATE + i32(MaxPlies + ss->ply + 1) :
+                                     wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply + 1) :
                                                     VALUE_ZERO + 2 * wdl * draw;
 
                         tte->save (key,
@@ -1609,11 +1606,13 @@ namespace Searcher {
                         {
                             reduce_depth -= 1;
                         }
+
                         // Increase reduction if tt_move is a capture
                         if (ttm_capture)
                         {
                             reduce_depth += 1;
                         }
+
                         // Increase reduction for cut nodes
                         if (cut_node)
                         {
@@ -1621,7 +1620,6 @@ namespace Searcher {
                         }
                         else
                         // Decrease reduction for moves that escape a capture in no-cut nodes.
-                        // Filter out castling moves, because they are coded as "king captures rook" and hence break mk_move().
                         if (   NORMAL == mtype (move)
                             && !pos.see_ge (mk_move<NORMAL> (dst, org)))
                         {
@@ -1635,21 +1633,26 @@ namespace Searcher {
                             + (*piece_destiny[3])[mpc][dst]
                             - 4000;
 
-                        // Decrease/Increase reduction by comparing opponent's statistics
-                        if (   ss->statistics > 0
-                            && (ss-1)->statistics < 0)
+                        if ((ss-1)->statistics == 0)
                         {
-                            reduce_depth -= 1;
+                            // Decrease/Increase reduction for moves with +/-ve history value
+                            reduce_depth -= i16(ss->statistics / 20000);
                         }
                         else
-                        if (   ss->statistics < 0
-                            && (ss-1)->statistics > 0)
                         {
-                            reduce_depth += 1;
+                            // Decrease/Increase reduction by comparing opponent's statistics
+                            if (   ss->statistics > 0
+                                && (ss-1)->statistics < 0)
+                            {
+                                reduce_depth -= 1;
+                            }
+                            else
+                            if (   ss->statistics < 0
+                                && (ss-1)->statistics > 0)
+                            {
+                                reduce_depth += 1;
+                            }
                         }
-
-                        // Decrease/Increase reduction for moves with +/-ve history value
-                        reduce_depth -= i16(ss->statistics / 20000);
                     }
 
                     reduce_depth = std::min (std::max (reduce_depth, i16(0)), i16(new_depth - 1));
@@ -1716,10 +1719,7 @@ namespace Searcher {
                         || alfa < value)
                     {
                         root_move.resize (1);
-                        for (auto m : (ss+1)->pv)
-                        {
-                            root_move += m;
-                        }
+                        root_move.insert (root_move.end (), (ss+1)->pv.begin (), (ss+1)->pv.end ());
                         root_move.new_value = value;
                         root_move.sel_depth = pos.thread->sel_depth;
 
@@ -1832,7 +1832,7 @@ namespace Searcher {
                     update_continuation_tables (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), stat_bonus (depth));
                 }
             }
-            
+
             if (MOVE_NONE == ss->excluded_move)
             {
                 tte->save (key,
@@ -1969,7 +1969,7 @@ namespace Threading {
         Stack stacks[MaxPlies + 7]; // To allow referencing (ss-4) and (ss+2)
         for (auto ss = stacks; ss < stacks + MaxPlies + 7; ++ss)
         {
-            ss->ply = i16(ss - stacks - 3);
+            ss->ply = i16(ss - (stacks + 4));
             ss->played_move = MOVE_NONE;
             ss->excluded_move = MOVE_NONE;
             std::fill_n (ss->killer_moves, MaxKillers, MOVE_NONE);
@@ -2124,12 +2124,12 @@ namespace Threading {
 
                 assert(root_moves[0].new_value == best_value);
 
-                if (0 != ContemptValue)
-                {
-                    auto valued_contempt = Value(i32 (best_value)/ContemptValue);
-                    DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] - valued_contempt;
-                    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
-                }
+                //if (0 != ContemptValue)
+                //{
+                //    auto valued_contempt = Value(i32 (best_value)/ContemptValue);
+                //    DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] - valued_contempt;
+                //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
+                //}
 
                 // Has any of the threads found a "mate in <x>"?
                 if (   !Threadpool.stop_on_ponderhit

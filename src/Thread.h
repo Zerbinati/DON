@@ -88,12 +88,12 @@ public:
     {
         return depth == level + 1;
     }
-    
+
     void clear ()
     {
         best_move = MOVE_NONE;
     }
-    
+
     void pick_best_move (const RootMoves &root_moves);
 };
 
@@ -160,7 +160,7 @@ namespace Threading {
            , failed_low;
 
         double best_move_change;
-        
+
         Move  easy_move;
         Value last_value;
 
@@ -201,7 +201,7 @@ namespace Threading {
 
     public:
         u08 pv_limit;
-        
+
         std::atomic<bool>
                 stop                // Stop search
             ,   stop_on_ponderhit   // Stop search on ponderhit
@@ -216,7 +216,7 @@ namespace Threading {
         u64 tb_hits () const { return accumulate (&Thread::tb_hits); }
 
         Thread* best_thread () const;
-        
+
         void clear ();
         void configure (u32);
 
@@ -225,8 +225,8 @@ namespace Threading {
 
         void stop_thinking ();
 
-        /// No constructor and destructor, threads rely on globals that should
-        /// be initialized and valid during the whole thread lifetime.
+        // No constructor and destructor, threads rely on globals that should
+        // be initialized and valid during the whole thread lifetime.
         void initialize (u32);
         void deinitialize ();
     };
@@ -240,21 +240,17 @@ enum OutputState : u08
 };
 
 /// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<< (std::ostream &os, const OutputState state)
+inline std::ostream& operator<< (std::ostream &os, OutputState state)
 {
     static Mutex mutex;
-
-    switch (state)
+    if (OutputState::OS_LOCK == state)
     {
-    case OS_LOCK  :
         mutex.lock ();
-        break;
-    case OS_UNLOCK:
+    }
+    else
+    if (OutputState::OS_UNLOCK == state)
+    {
         mutex.unlock ();
-        break;
-    default:
-        assert(false);
-        break;
     }
     return os;
 }

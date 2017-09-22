@@ -63,10 +63,10 @@ namespace Pawns {
 
     #define S(mg, eg) mk_score(mg, eg)
 
-        // Isolated pawn penalty indexed by [opposed]
-        const Score Isolated[2] = { S(27,30), S(13,18) };
-        // Backward pawn penalty indexed by [opposed]
-        const Score Backward[2] = { S(40,26), S(24,12) };
+        // Isolated pawn penalty
+        const Score Isolated = S(13,18);
+        // Backward pawn penalty
+        const Score Backward = S(24,12);
         // Levered pawn bonus indexed by [rank]
         const Score Levered[R_NO] = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
         // Blocked pawn penalty
@@ -97,6 +97,7 @@ namespace Pawns {
             e->attack_span[Own] = 0;
             e->passers    [Own] = 0;
             e->semiopens  [Own] = u08(0xFF);
+            e->weak_unopposed_count[Own] = 0;
             e->color_count[Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
             e->color_count[Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
             e->index      [Own] = 0;
@@ -174,12 +175,20 @@ namespace Pawns {
                 else
                 if (0 == neighbours)
                 {
-                    score -= Isolated[opposed ? 1 : 0];
+                    score -= Isolated;
+                    if (!opposed)
+                    {
+                        e->weak_unopposed_count[Own]++;
+                    }
                 }
                 else
                 if (backward)
                 {
-                    score -= Backward[opposed ? 1 : 0];
+                    score -= Backward;
+                    if (!opposed)
+                    {
+                        e->weak_unopposed_count[Own]++;
+                    }
                 }
 
                 if (0 != levers)
