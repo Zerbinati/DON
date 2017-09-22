@@ -13,10 +13,10 @@ namespace MoveGen {
         template<GenType GT, Color Own, PieceType PT>
         void generate_piece_moves (ValMoves &moves, const Position &pos, Bitboard targets)
         {
-            assert(NIHT == PT
-                || BSHP == PT
-                || ROOK == PT
-                || QUEN == PT);
+            static_assert (NIHT == PT
+                        || BSHP == PT
+                        || ROOK == PT
+                        || QUEN == PT, "PT incorrect");
 
             for (auto s : pos.squares[Own][PT])
             {
@@ -44,12 +44,12 @@ namespace MoveGen {
         template<GenType GT, Delta Del>
         void generate_promotion_moves (ValMoves &moves, const Position &pos, Square dst)
         {
-            assert(DEL_N  == Del
-                || DEL_NE == Del
-                || DEL_NW == Del
-                || DEL_S  == Del
-                || DEL_SE == Del
-                || DEL_SW == Del);
+            static_assert (DEL_N  == Del
+                        || DEL_NE == Del
+                        || DEL_NW == Del
+                        || DEL_S  == Del
+                        || DEL_SE == Del
+                        || DEL_SW == Del, "Del incorrect");
 
             if (   GenType::NATURAL == GT
                 || GenType::EVASION == GT
@@ -311,12 +311,13 @@ namespace MoveGen {
         }
     }
 
-    template<GenType GT> void generate (ValMoves &moves, const Position &pos)
+    template<GenType GT>
+    void generate (ValMoves &moves, const Position &pos)
     {
         assert(0 == pos.si->checkers);
-        assert(GenType::NATURAL == GT
-            || GenType::CAPTURE == GT
-            || GenType::QUIET == GT);
+        static_assert (GenType::NATURAL == GT
+                    || GenType::CAPTURE == GT
+                    || GenType::QUIET == GT, "GT incorrect");
         moves.clear ();
         Bitboard targets;
         if (GenType::NATURAL == GT)

@@ -208,7 +208,7 @@ namespace Evaluator {
 
             Value value ();
         };
-        
+
     #define V(v) Value(v)
     #define S(mg, eg) mk_score (mg, eg)
 
