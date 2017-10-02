@@ -165,10 +165,8 @@ public:
     Move  played_move;
     Move  excluded_move;
     Move  killer_moves[MaxKillers];
-
-    Value static_eval;
     u08   move_count;
-    i32   statistics; // LMR stats
+    Value static_eval;
     PieceDestinyHistory *piece_destiny;
 
     std::vector<Move> pv;

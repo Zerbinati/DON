@@ -178,19 +178,19 @@ public:
     Bitboard abs_checkers (Color) const;
     Bitboard dsc_checkers (Color) const;
 
-    bool pseudo_legal   (Move) const;
-    bool legal          (Move) const;
-    bool en_passant     (Move) const;
-    bool capture        (Move) const;
-    bool promotion      (Move) const;
+    bool pseudo_legal (Move) const;
+    bool legal (Move) const;
+    bool en_passant (Move) const;
+    bool capture (Move) const;
+    bool promotion (Move) const;
     bool capture_or_promotion (Move) const;
-    bool gives_check    (Move) const;
+    bool gives_check (Move) const;
 
     PieceType cap_type  (Move) const;
 
     bool pawn_passed_at (Color, Square) const;
     bool paired_bishop  (Color) const;
-    bool opposite_bishops ()    const;
+    bool opposite_bishops () const;
 
     void clear ();
 

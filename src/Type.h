@@ -318,7 +318,6 @@ enum Value : i32
 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
-    VALUE_ONE       = 1,
 
     VALUE_NONE      = SHRT_MAX,
     VALUE_INFINITE  = i32(VALUE_NONE) - 1,
@@ -347,36 +346,10 @@ enum Score : u32
 
 enum Bound : u08
 {
-    // NONE BOUND           - NO_NODE
     BOUND_NONE  = 0,
-
-    // UPPER (BETA) BOUND   - ALL_NODE
-    // BETA evaluation, when do not reach up to ALPHA the move is 'Fail-Low' 
-    // All moves were searched, but none improved ALPHA.
-    // A fail-low indicates that this position was not good enough.
-    // because there are some other means of reaching a position that is better.
-    // Engine will not make the move that allowed the opponent to put in this position.
-    // What the actual evaluation of the position was?
-    // It was atmost ALPHA (or lower).
     BOUND_UPPER = 1,
-
-    // LOWER (ALPHA) BOUND  - CUT_NODE
-    // ALPHA evaluation, when exceed BETA the move is too good.
-    // 'Fail-High' or 'BETA-Cutoff' and cut off the rest of the search.
-    // Since some of the search is cut off, What the actual evaluation of the position was?
-    // It was atleast BETA or higher.
     BOUND_LOWER = 2,
-
-    // EXACT (-) BOUND      - PV_NODE
-    // EXACT evaluation, when receive a definite evaluation,
-    // that is searched all possible moves and received a new best move
-    // (or received an evaluation from quiescent search that was between ALPHA and BETA).
-    // if score for max-player was improved (score > alfa), alfa the max so far,
-    // while the min-player improved his score as well (score < beta), beta the min so far.
-    // The current node searched was an expected PV-Node,
-    // which was confirmed by the search in finding and collecting a principal variation.
-    BOUND_EXACT = BOUND_LOWER + BOUND_UPPER,
-
+    BOUND_EXACT = 3,
 };
 
 enum Phase : u08
