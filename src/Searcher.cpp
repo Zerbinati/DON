@@ -796,8 +796,8 @@ namespace Searcher {
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
             auto tt_value = tt_hit ?
-                                value_of_tt (tte->value (), ss->ply) :
-                                VALUE_NONE;
+                            value_of_tt (tte->value (), ss->ply) :
+                            VALUE_NONE;
 
             auto last_move = (ss-1)->played_move;
 
@@ -970,11 +970,10 @@ namespace Searcher {
 
                     if (alfa < value)
                     {
-                        best_move = move;
-
                         // Update pv even in fail-high case
                         if (PVNode)
                         {
+                            best_move = move;
                             update_pv (ss->pv, move, (ss+1)->pv);
                         }
                         // Fail high
@@ -1099,8 +1098,8 @@ namespace Searcher {
                  && pos.legal (tt_move)));
 
             auto tt_value = tt_hit ?
-                                value_of_tt (tte->value (), ss->ply) :
-                                VALUE_NONE;
+                            value_of_tt (tte->value (), ss->ply) :
+                            VALUE_NONE;
 
             auto last_move = (ss-1)->played_move;
 
@@ -1589,6 +1588,13 @@ namespace Searcher {
                         {
                             reduce_depth -= 1;
                         }
+                        // Decrease reduction for exact PV nodes
+                        if (   PVNode
+                            && tt_hit
+                            && BOUND_EXACT == tte->bound ())
+                        {
+                            reduce_depth -= 1;
+                        }
 
                         // Increase reduction if tt_move is a capture
                         if (ttm_capture)
@@ -1721,10 +1727,12 @@ namespace Searcher {
                         best_move = move;
 
                         // Update pv even in fail-high case.
-                        if (   PVNode
-                            && !root_node)
+                        if (PVNode)
                         {
-                            update_pv (ss->pv, move, (ss+1)->pv);
+                            if (!root_node)
+                            {
+                                update_pv (ss->pv, move, (ss+1)->pv);
+                            }
                         }
                         // Fail high
                         if (value >= beta)
@@ -2341,15 +2349,6 @@ namespace Threading {
 
     finish:
 
-        if (Limits.use_time_management ())
-        {
-            // When playing in 'Nodes as Time' mode, update the time manager after searching.
-            if (0 != NodesTime)
-            {
-                time_mgr.available_nodes += Limits.clock[root_pos.active].inc - Threadpool.nodes ();
-            }
-        }
-
         // When we reach the maximum depth, we can arrive here without a raise of Threads.stop.
         // However, if we are pondering or in an infinite search, the UCI protocol states that
         // we shouldn't print the best move before the GUI sends a "stop"/"ponderhit" command.
@@ -2401,6 +2400,11 @@ namespace Threading {
 
         if (Limits.use_time_management ())
         {
+            // When playing in 'Nodes as Time' mode, update the time manager after searching.
+            if (0 != NodesTime)
+            {
+                time_mgr.available_nodes += Limits.clock[root_pos.active].inc - Threadpool.nodes ();
+            }
             last_value = root_move.new_value;
         }
 

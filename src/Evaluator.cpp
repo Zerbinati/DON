@@ -82,13 +82,14 @@ namespace Evaluator {
         #define V(v) Value(v)
         #define S(mg, eg) mk_score (mg, eg)
 
-            // Bonus for minor behind a pawn
-            static const Score MinorBehindPawn =    S(16, 0);
+            // Bonus for knight behind a pawn
+            static const Score KnightBehindPawn =   S(21, 3);
+            // Bonus for bishop behind a pawn
+            static const Score BishopBehindPawn =   S(16, 4);
             // Penalty for bishop with pawns on same color
             static const Score BishopPawns =        S( 8,12);
             // Penalty for bishop trapped with pawns (Chess960)
             static const Score BishopTrapped =      S(50,50);
-
             // Bonus for rook on pawns
             static const Score RookOnPawns =        S( 8,24);
             // Penalty for rook trapped
@@ -129,10 +130,11 @@ namespace Evaluator {
             // PieceCloseness[piece-type] * "distance to own king" determines a bonus for each piece.
             static const Score PieceCloseness[NONE];
 
-            // PieceOutpost[piece-type][supported by pawn] contains bonuses for piece outposts
+            // Outpost[supported by pawn] contains bonuses for outposts
             // If they can reach an outpost square, bigger if that square is supported by a pawn
             // If the minor piece occupies an outpost square then score is doubled
-            static const Score PieceOutpost[3][2];
+            static const Score KnightOutpost[2];
+            static const Score BishopOutpost[2];
 
             // RookOnFile[semiopen/open] contains bonuses for rooks
             // when there is no friend pawn on the rook file
@@ -172,6 +174,8 @@ namespace Evaluator {
             // Contains all squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
             Bitboard dbl_attacked[CLR_NO];
 
+            i32      pins_weight[CLR_NO];
+
             // Zone around the king which is considered by the king safety evaluation.
             // This consists of the squares directly adjacent to the king, and the three (or two, for a king on an edge file) squares two ranks in front of the king.
             // For instance, if black's king is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8, f7, g7, h7, f6, g6 and h6.
@@ -184,8 +188,6 @@ namespace Evaluator {
             // Number of attacks by the color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
             u08      king_zone_attacks_count[CLR_NO];
-
-            i32      pins_weight[CLR_NO];
 
             template<Color Own> void initialize ();
             template<Color Own, PieceType PT> Score evaluate_pieces ();
@@ -243,12 +245,9 @@ namespace Evaluator {
         const Score Evaluation<Trace>::PieceCloseness[NONE] = { S( 0, 0), S(-3, -5), S(-4, -3), S(-3, 0), S(-1, 1) };
 
         template<bool Trace>
-        const Score Evaluation<Trace>::PieceOutpost[3][2] =
-        {
-            {},
-            { S(22, 6), S(36,12) },
-            { S( 9, 2), S(15, 5) }
-        };
+        const Score Evaluation<Trace>::KnightOutpost[2] = { S(22, 6), S(36,12) };
+        template<bool Trace>
+        const Score Evaluation<Trace>::BishopOutpost[2] = { S( 9, 2), S(15, 5) };
 
         template<bool Trace>
         const Score Evaluation<Trace>::RookOnFile[2] = { S(20, 7), S(45,20) };
@@ -291,7 +290,7 @@ namespace Evaluator {
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto Pull = WHITE == Own ? DEL_S : DEL_N;
-            const Bitboard UpRanks = WHITE == Own ? R7_bb|R6_bb : R2_bb|R3_bb;
+            const Bitboard LowRanks = WHITE == Own ? R7_bb|R6_bb : R2_bb|R3_bb;
 
             Bitboard pinned_pawns = pos.abs_blockers (Own) & pos.pieces (Own, PAWN);
             if (0 != pinned_pawns)
@@ -315,13 +314,15 @@ namespace Evaluator {
             dbl_attacked[Own]          = pe->dbl_attacks[Own]
                                        | (pin_attacked_by[Own][KING] & pin_attacked_by[Own][PAWN]);
 
+            pins_weight[Own] = pop_count (pos.abs_blockers (Own) & pos.pieces (Own, PAWN)) * PinsWeight[PAWN];
+
             // Do not include in mobility area
             // - squares protected by enemy pawns
             // - squares occupied by block pawns (pawns blocked or on ranks 2-3)
             // - square occupied by friend king
             Bitboard b = pin_attacked_by[Own][PAWN]
                        | (  pos.pieces (Opp, PAWN)
-                          & (  UpRanks
+                          & (  LowRanks
                              | shift<Push> (pos.pieces ())));
             mob_area[Opp] = ~(b | pos.square<KING> (Opp));
             mobility[Opp] = SCORE_ZERO;
@@ -342,8 +343,6 @@ namespace Evaluator {
                 king_ring[Opp] = 0;
                 king_ring_attackers_count[Own] = 0;
             }
-
-            pins_weight[Own] = pop_count (pos.abs_blockers (Own) & pos.pieces (Own, PAWN)) * PinsWeight[PAWN];
         }
 
         /// Evaluates bonuses and penalties of the pieces of the color and type
@@ -449,22 +448,21 @@ namespace Evaluator {
 
                 Bitboard b;
                 // Special extra evaluation for pieces
-                if (   NIHT == PT
-                    || BSHP == PT)
+                if (NIHT == PT)
                 {
-                    // Bonus for minors when behind a pawn
-                    if (   rel_rank (Own, s) < R_5
+                    // Bonus for knight behind a pawn
+                    if (   R_5 > rel_rank (Own, s)
                         && contains (pos.pieces (PAWN), s+Push))
                     {
-                        score += MinorBehindPawn;
+                        score += KnightBehindPawn;
                     }
 
                     b = Outposts
                       & ~pe->attack_span[Opp];
-                    // Bonus for minors outpost squares
+                    // Bonus for knight outpost squares
                     if (contains (b, s))
                     {
-                        score += PieceOutpost[PT][contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
+                        score += KnightOutpost[contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
                     }
                     else
                     {
@@ -472,41 +470,66 @@ namespace Evaluator {
                            & ~pos.pieces (Own);
                         if (0 != b)
                         {
-                            score += PieceOutpost[PT][0 != (pin_attacked_by[Own][PAWN] & b)] * 1;
+                            score += KnightOutpost[0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
+                        }
+                    }
+                }
+                else
+                if (BSHP == PT)
+                {
+                    // Bonus for bishop when behind a pawn
+                    if (   R_5 > rel_rank (Own, s)
+                        && contains (pos.pieces (PAWN), s+Push))
+                    {
+                        score += BishopBehindPawn;
+                    }
+
+                    b = Outposts
+                      & ~pe->attack_span[Opp];
+                    // Bonus for bishop outpost squares
+                    if (contains (b, s))
+                    {
+                        score += BishopOutpost[contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
+                    }
+                    else
+                    {
+                        b &= attacks
+                           & ~pos.pieces (Own);
+                        if (0 != b)
+                        {
+                            score += BishopOutpost[0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
                         }
                     }
 
-                    if (BSHP == PT)
-                    {
-                        // Penalty for pawns on the same color square as the bishop
-                        score -= BishopPawns * i32(pe->color_count[Own][color (s)]);
+                    // Penalty for pawns on the same color square as the bishop
+                    score -= BishopPawns * i32(pe->color_count[Own][color (s)]);
 
-                        if (   mob <= 2
-                            && contains (FA_bb|FH_bb,  s)
-                            && rel_rank (Own, s) >= R_4)
+                    if (   2 >= mob
+                        && contains (FA_bb|FH_bb,  s)
+                        && R_4 <= rel_rank (Own, s))
+                    {
+                        auto del = (F_A == _file (s) ? DEL_E : DEL_W)-Push;
+                        if (pos[s+del] == (Own|PAWN))
                         {
-                            auto del = (F_A == _file (s) ? DEL_E : DEL_W)-Push;
+                            score -= BishopTrapped * (pos.empty (s+del+Push) ? 1 : 2);
+                        }
+                    }
+
+                    if (Position::Chess960)
+                    {
+                        // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
+                        // It is a very serious problem, especially when that pawn is also blocked.
+                        // Bishop (white or black) on a1/h1 or a8/h8 which is trapped by own pawn on b2/g2 or b7/g7.
+                        if (   1 >= mob
+                            && contains (FA_bb|FH_bb, s)
+                            && R_1 == rel_rank (Own, s))
+                        {
+                            auto del = (F_A == _file (s) ? DEL_E : DEL_W)+Push;
                             if (pos[s+del] == (Own|PAWN))
                             {
-                                score -= BishopTrapped * (pos.empty (s+del+Push) ? 1 : 2);
-                            }
-                        }
-
-                        if (Position::Chess960)
-                        {
-                            // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
-                            // It is a very serious problem, especially when that pawn is also blocked.
-                            // Bishop (white or black) on a1/h1 or a8/h8 which is trapped by own pawn on b2/g2 or b7/g7.
-                            if (   contains (FA_bb|FH_bb, s)
-                                && rel_rank (Own, s) == R_1)
-                            {
-                                auto del = (F_A == _file (s) ? DEL_E : DEL_W)+Push;
-                                if (pos[s+del] == (Own|PAWN))
-                                {
-                                    score -= BishopTrapped * (pos.empty (s+del+Push) ?
-                                                                  pos[s+del+del] != (Own|PAWN) ?
-                                                                      1 : 2 : 4);
-                                }
+                                score -= BishopTrapped * (pos.empty (s+del+Push) ?
+                                                                pos[s+del+del] != (Own|PAWN) ?
+                                                                    1 : 2 : 4);
                             }
                         }
                     }
@@ -515,7 +538,7 @@ namespace Evaluator {
                 if (ROOK == PT)
                 {
                     // Bonus for rook aligning with enemy pawns on the same rank/file
-                    if (rel_rank (Own, s) > R_4)
+                    if (R_4 < rel_rank (Own, s))
                     {
                         score += RookOnPawns * pop_count (pos.pieces (Opp, PAWN) & PieceAttacks[ROOK][s]);
                     }
@@ -526,8 +549,8 @@ namespace Evaluator {
                         score += RookOnFile[pe->file_semiopen (Opp, _file (s)) ? 1 : 0];
                     }
                     else
-                    if (   mob <= 3
-                        && rel_rank (Own, s) < R_5
+                    if (   3 >= mob
+                        && R_5 > rel_rank (Own, s)
                         && 0 != (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN))
                         && 0 == (front_sqrs_bb (Opp, s) & pos.pieces (Own, PAWN)))
                     {
