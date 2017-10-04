@@ -99,14 +99,10 @@ namespace MoveGen {
             const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 
-            const Bitboard R3BB = WHITE == Own ? R3_bb : R6_bb;
-            const Bitboard R5BB = WHITE == Own ? R5_bb : R4_bb;
-            const Bitboard R7BB = WHITE == Own ? R7_bb : R2_bb;
-
             // Pawns on 7th Rank
-            Bitboard R7_pawns = pos.pieces (Own, PAWN) &  R7BB;
+            Bitboard R7_pawns = pos.pieces (Own, PAWN) &  rank_bb (WHITE == Own ? R_7 : R_2);
             // Pawns not on 7th Rank
-            Bitboard Rx_pawns = pos.pieces (Own, PAWN) & ~R7BB;
+            Bitboard Rx_pawns = pos.pieces (Own, PAWN) & ~rank_bb (WHITE == Own ? R_7 : R_2);
 
             Bitboard empties = ~pos.pieces ();
             Bitboard enemies = pos.pieces (Opp) & targets;
@@ -118,7 +114,7 @@ namespace MoveGen {
                 || GenType::QUIET_CHECK == GT)
             {
                 Bitboard push_1 = empties & shift<Push> (Rx_pawns);
-                Bitboard push_2 = empties & shift<Push> (push_1 & R3BB);
+                Bitboard push_2 = empties & shift<Push> (push_1 & rank_bb (WHITE == Own ? R_3 : R_6));
                 if (   GenType::CHECK == GT
                     || GenType::QUIET_CHECK == GT)
                 {
@@ -132,7 +128,7 @@ namespace MoveGen {
                     if (0 != dsc_pawns)
                     {
                         Bitboard dc_push_1 = empties & shift<Push> (dsc_pawns);
-                        Bitboard dc_push_2 = empties & shift<Push> (dc_push_1 & R3BB);
+                        Bitboard dc_push_2 = empties & shift<Push> (dc_push_1 & rank_bb (WHITE == Own ? R_3 : R_6));
                         push_1 |= dc_push_1;
                         push_2 |= dc_push_2;
                     }
@@ -169,7 +165,7 @@ namespace MoveGen {
                 if (SQ_NO != pos.si->en_passant_sq)
                 {
                     assert(rel_rank (Own, pos.si->en_passant_sq) == R_6);
-                    Bitboard ep_captures = Rx_pawns & R5BB;
+                    Bitboard ep_captures = Rx_pawns & rank_bb (WHITE == Own ? R_5 : R_4);
                     if (0 != ep_captures)
                     {
                         // If the checking piece is the double pushed pawn and also is in the target.

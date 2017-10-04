@@ -86,6 +86,8 @@ namespace Evaluator {
             static const Score KnightBehindPawn =   S(21, 3);
             // Bonus for bishop behind a pawn
             static const Score BishopBehindPawn =   S(16, 4);
+            // Bonus for bishop long range
+            static const Score BishopOnDiagonal =    S(22, 0);
             // Penalty for bishop with pawns on same color
             static const Score BishopPawns =        S( 8,12);
             // Penalty for bishop trapped with pawns (Chess960)
@@ -290,7 +292,6 @@ namespace Evaluator {
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto Pull = WHITE == Own ? DEL_S : DEL_N;
-            const Bitboard LowRanks = WHITE == Own ? R7_bb|R6_bb : R2_bb|R3_bb;
 
             Bitboard pinned_pawns = pos.abs_blockers (Own) & pos.pieces (Own, PAWN);
             if (0 != pinned_pawns)
@@ -322,7 +323,7 @@ namespace Evaluator {
             // - square occupied by friend king
             Bitboard b = pin_attacked_by[Own][PAWN]
                        | (  pos.pieces (Opp, PAWN)
-                          & (  LowRanks
+                          & (  LowRanks_bb[Opp]
                              | shift<Push> (pos.pieces ())));
             mob_area[Opp] = ~(b | pos.square<KING> (Opp));
             mobility[Opp] = SCORE_ZERO;
@@ -356,7 +357,6 @@ namespace Evaluator {
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
-            const Bitboard Outposts = WHITE == Own ? R4_bb|R5_bb|R6_bb : R5_bb|R4_bb|R3_bb;
 
             auto fk_sq = pos.square<KING> (Own);
 
@@ -452,22 +452,24 @@ namespace Evaluator {
                 {
                     // Bonus for knight behind a pawn
                     if (   R_5 > rel_rank (Own, s)
+                        && !contains (pin_attacked_by[Opp][PAWN], s)
                         && contains (pos.pieces (PAWN), s+Push))
                     {
                         score += KnightBehindPawn;
                     }
 
-                    b = Outposts
-                      & ~pe->attack_span[Opp];
                     // Bonus for knight outpost squares
-                    if (contains (b, s))
+                    if (   contains (Outposts_bb[Own], s)
+                        && !contains (pin_attacked_by[Opp][PAWN], s))
                     {
                         score += KnightOutpost[contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
                     }
                     else
                     {
-                        b &= attacks
-                           & ~pos.pieces (Own);
+                        b = Outposts_bb[Own]
+                          & attacks
+                          & ~(  pe->attack_span[Opp]
+                              | ~pos.pieces (Own));
                         if (0 != b)
                         {
                             score += KnightOutpost[0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
@@ -479,26 +481,36 @@ namespace Evaluator {
                 {
                     // Bonus for bishop when behind a pawn
                     if (   R_5 > rel_rank (Own, s)
+                        && !contains (pin_attacked_by[Opp][PAWN], s)
                         && contains (pos.pieces (PAWN), s+Push))
                     {
                         score += BishopBehindPawn;
                     }
 
-                    b = Outposts
-                      & ~pe->attack_span[Opp];
                     // Bonus for bishop outpost squares
-                    if (contains (b, s))
+                    if (   contains (Outposts_bb[Own], s)
+                        && !contains (pin_attacked_by[Opp][PAWN], s))
                     {
                         score += BishopOutpost[contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
                     }
                     else
                     {
-                        b &= attacks
-                           & ~pos.pieces (Own);
+                        b = Outposts_bb[Own]
+                          & attacks
+                          & ~(  pe->attack_span[Opp]
+                              | ~pos.pieces (Own));
                         if (0 != b)
                         {
                             score += BishopOutpost[0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
                         }
+                    }
+
+                    // Bonus for bishop on a long diagonal without pawns in the center
+                    if (   contains (Diagonals_bb, s)
+                        && !contains (pin_attacked_by[Opp][PAWN], s)
+                        && 0 == (pos.pieces (PAWN) & Center_bb & PieceAttacks[BSHP][s]))
+                    {
+                        score += BishopOnDiagonal;
                     }
 
                     // Penalty for pawns on the same color square as the bishop
@@ -591,8 +603,7 @@ namespace Evaluator {
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
-            const Bitboard Camp = WHITE == Own ? R1_bb|R2_bb|R3_bb|R4_bb|R5_bb : R8_bb|R7_bb|R6_bb|R5_bb|R4_bb;
-
+            
             auto fk_sq = pos.square<KING> (Own);
 
             // King Safety: friend pawns shelter and enemy pawns storm
@@ -727,8 +738,8 @@ namespace Evaluator {
 
             // King tropism: Find squares that enemy attacks in the friend king flank
             auto kf = _file (fk_sq);
-            b =    Camp
-                &  KingFlank[kf]
+            b =    Camp_bb[Own]
+                &  KingFlank_bb[kf]
                 &  pin_attacked_by[Opp][NONE];
             assert(0 == ((WHITE == Own ? b << 4 : b >> 4) & b));
             assert(pop_count (WHITE == Own ? b << 4 : b >> 4) == pop_count (b));
@@ -740,7 +751,7 @@ namespace Evaluator {
             score -= EnemyInFlank * pop_count (b);
 
             // Penalty when our king is on a pawnless flank
-            if (0 == (KingFlank[kf] & pos.pieces (PAWN)))
+            if (0 == (KingFlank_bb[kf] & pos.pieces (PAWN)))
             {
                 score -= PawnlessFlank;
             }
@@ -762,7 +773,6 @@ namespace Evaluator {
             const auto Push = WHITE == Own ? DEL_N  : DEL_S;
             const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
-            const Bitboard R3BB = WHITE == Own ? R3_bb : R6_bb;
 
             auto score = SCORE_ZERO;
 
@@ -872,7 +882,7 @@ namespace Evaluator {
             // Friend pawns push
             b  =   shift<Push> (b)
                 & ~pos.pieces ();
-            b |=   shift<Push> (b & R3BB)
+            b |=   shift<Push> (b & rank_bb (WHITE == Own ? R_3 : R_6))
                 & ~pos.pieces ();
             // Friend pawns push safe
             b &=   safe
@@ -1024,20 +1034,18 @@ namespace Evaluator {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
             const auto Pull = WHITE == Own ? DEL_S : DEL_N;
             const auto Dull = WHITE == Own ? DEL_SS : DEL_NN;
-            // SpaceMask contains the sqaure of the board which is considered by the space evaluation.
-            const Bitboard SpaceMask = WHITE == Own ? R2_bb|R3_bb|R4_bb : R7_bb|R6_bb|R5_bb;
+            
             // Find the safe squares for our pieces inside the area defined by SpaceMask.
             // A square is safe:
             // - if not occupied by friend pawns
             // - if not attacked by an enemy pawns
             // - if defended or not attacked by an enemy pieces.
-            Bitboard safe_space =
-                   SpaceMask
-                &  Side_bb[CS_NO]
-                & ~pos.pieces (Own, PAWN)
-                & ~pin_attacked_by[Opp][PAWN]
-                & (   pin_attacked_by[Own][NONE]
-                   | ~pin_attacked_by[Opp][NONE]);
+            Bitboard safe_space = Space_bb[Own]
+                                &  Side_bb[CS_NO]
+                                & ~pos.pieces (Own, PAWN)
+                                & ~pin_attacked_by[Opp][PAWN]
+                                & (   pin_attacked_by[Own][NONE]
+                                   | ~pin_attacked_by[Opp][NONE]);
 
             // Since SpaceMask is fully on our half of the board
             assert(u32(safe_space >> (WHITE == Own ?

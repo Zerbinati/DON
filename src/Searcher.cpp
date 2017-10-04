@@ -1398,6 +1398,9 @@ namespace Searcher {
             quiet_moves.reserve (16);
 
             bool ttm_capture = false;
+            bool pv_exact = PVNode
+                          && tt_hit
+                          && BOUND_EXACT == tte->bound ();
 
             const PieceDestinyHistory* piece_destiny[] = { (ss-1)->piece_destiny, (ss-2)->piece_destiny, (ss-3)->piece_destiny, (ss-4)->piece_destiny };
             // Initialize move picker (1) for the current position.
@@ -1589,9 +1592,7 @@ namespace Searcher {
                             reduce_depth -= 1;
                         }
                         // Decrease reduction for exact PV nodes
-                        if (   PVNode
-                            && tt_hit
-                            && BOUND_EXACT == tte->bound ())
+                        if (pv_exact)
                         {
                             reduce_depth -= 1;
                         }

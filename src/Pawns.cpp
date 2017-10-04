@@ -84,7 +84,7 @@ namespace Pawns {
             const auto Push = WHITE == Own ? DEL_N  : DEL_S;
             const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
-            const auto PAtt = PawnAttacks[Own];
+            const auto PawnAtt = PawnAttacks[Own];
 
             Bitboard own_pawns = pos.pieces (Own, PAWN);
             Bitboard opp_pawns = pos.pieces (Opp, PAWN);
@@ -125,8 +125,8 @@ namespace Pawns {
                 supporters = neighbours & rank_bb (s-Push);
                 phalanxes  = neighbours & rank_bb (s);
                 stoppers   = opp_pawns & pawn_pass_span (Own, s);
-                levers     = opp_pawns & PAtt[s];
-                escapes    = opp_pawns & PAtt[s+Push];
+                levers     = opp_pawns & PawnAtt[s];
+                escapes    = opp_pawns & PawnAtt[s+Push];
 
                 blocked    = contains (own_pawns, s-Push);
                 opposed    = 0 != (opp_pawns & front_sqrs_bb (Own, s));
@@ -191,15 +191,15 @@ namespace Pawns {
                     }
                 }
 
-                if (0 != levers)
-                {
-                    score += Levered[rel_rank (Own, s)];
-                }
-
                 if (   blocked
                     && 0 == supporters)
                 {
                     score -= Blocked;
+                }
+
+                if (0 != levers)
+                {
+                    score += Levered[rel_rank (Own, s)];
                 }
             }
 
