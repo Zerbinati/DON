@@ -26,41 +26,37 @@ namespace BitBoard {
     const Bitboard Diagonals_bb = U64(0x8142241818244281); // A1..H8 | H1..A8
     const Bitboard Center_bb = (FD_bb|FE_bb) & (R4_bb|R5_bb);
 
-    const Bitboard Side_bb[] =
-    {
-        FE_bb|FF_bb|FG_bb|FH_bb,
-        FA_bb|FB_bb|FC_bb|FD_bb,
-        FC_bb|FD_bb|FE_bb|FF_bb
-    };
     const Bitboard Color_bb[] =
     {
         U64(0x55AA55AA55AA55AA),
         U64(0xAA55AA55AA55AA55)
     };
 
+    const Bitboard Side_bb[] =
+    {
+        FE_bb|FF_bb|FG_bb|FH_bb,
+        FA_bb|FB_bb|FC_bb|FD_bb,
+        FC_bb|FD_bb|FE_bb|FF_bb
+    };
     const Bitboard KingFlank_bb[] =
     {
         Side_bb[CS_QUEN], Side_bb[CS_QUEN], Side_bb[CS_QUEN], Side_bb[CS_NO], Side_bb[CS_NO], Side_bb[CS_KING], Side_bb[CS_KING], Side_bb[CS_KING]
     };
-
     const Bitboard Outposts_bb[] =
     {
         R4_bb|R5_bb|R6_bb,
         R5_bb|R4_bb|R3_bb
     };
-
     const Bitboard Camp_bb[] =
     {
         R1_bb|R2_bb|R3_bb|R4_bb|R5_bb,
         R8_bb|R7_bb|R6_bb|R5_bb|R4_bb
     };
-
     const Bitboard LowRanks_bb[] =
     {
         R2_bb|R3_bb,
         R7_bb|R6_bb
     };
-
     const Bitboard Space_bb[] =
     {
         R2_bb|R3_bb|R4_bb,

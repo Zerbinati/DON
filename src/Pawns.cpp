@@ -94,10 +94,9 @@ namespace Pawns {
 
             e->any_attacks[Own] = l_cap | r_cap;
             e->dbl_attacks[Own] = l_cap & r_cap;
-            e->attack_span[Own] = 0;
             e->passers    [Own] = 0;
+            e->weak_unopposed[Own] = 0;
             e->semiopens  [Own] = u08(0xFF);
-            e->weak_unopposed_count[Own] = 0;
             e->color_count[Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
             e->color_count[Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
             e->index      [Own] = 0;
@@ -119,7 +118,6 @@ namespace Pawns {
 
                 f = _file (s);
                 e->semiopens  [Own] &= u08(~(1 << f));
-                e->attack_span[Own] |= pawn_attack_span (Own, s);
 
                 neighbours = own_pawns & adj_file_bb (f);
                 supporters = neighbours & rank_bb (s-Push);
@@ -173,21 +171,13 @@ namespace Pawns {
                                       [rel_rank (Own, s)];
                 }
                 else
-                if (0 == neighbours)
+                if (   0 == neighbours
+                    || backward)
                 {
-                    score -= Isolated;
+                    score -= 0 == neighbours ? Isolated : Backward;
                     if (!opposed)
                     {
-                        e->weak_unopposed_count[Own]++;
-                    }
-                }
-                else
-                if (backward)
-                {
-                    score -= Backward;
-                    if (!opposed)
-                    {
-                        e->weak_unopposed_count[Own]++;
+                        e->weak_unopposed[Own] |= s;
                     }
                 }
 

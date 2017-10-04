@@ -1852,10 +1852,9 @@ namespace Searcher {
                     StateInfo si;
                     pos.do_move (vm.move, si);
 
-                    inter_nodes =
-                        LeafNode ?
-                            MoveList<GenType::LEGAL> (pos).size () :
-                            perft<false> (pos, depth - 1);
+                    inter_nodes = LeafNode ?
+                                    MoveList<GenType::LEGAL> (pos).size () :
+                                    perft<false> (pos, depth - 1);
 
                     pos.undo_move (vm.move);
                 }

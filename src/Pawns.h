@@ -18,10 +18,9 @@ namespace Pawns {
 
         Bitboard any_attacks[CLR_NO];
         Bitboard dbl_attacks[CLR_NO];
-        Bitboard attack_span[CLR_NO];
         Bitboard passers    [CLR_NO];
+        Bitboard weak_unopposed[CLR_NO];
         u08      semiopens  [CLR_NO];
-        u08      weak_unopposed_count[CLR_NO];
         u08      color_count[CLR_NO][CLR_NO];
 
         u08    index         [CLR_NO];
@@ -37,9 +36,7 @@ namespace Pawns {
         bool side_semiopen (Color c, File f, bool left) const
         {
             return 0 != (  semiopens[c]
-                         & (left ?
-                                ((1 << (f  )) - 1) :
-                               ~((1 << (f+1)) - 1)));
+                         & (left ? ((1 << (f  )) - 1) : ~((1 << (f+1)) - 1)));
         }
 
         template<Color Own>
