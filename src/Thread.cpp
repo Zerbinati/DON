@@ -143,7 +143,7 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
                        + (  weakness  * i32(max_new_value - root_move.new_value)
                           + diversity * i32(prng.rand<u32> () % weakness)) / MaxPlies;
 
-            if (best_value < value)
+            if (best_value <= value)
             {
                 best_value = value;
                 best_move = root_move[0];

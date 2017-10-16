@@ -145,10 +145,10 @@ namespace TBSyzygy {
             }
         };
 
-        // We define types for the different parts of the WLDEntry and DTZEntry with
+        // We define types for the different parts of the WDLEntry and DTZEntry with
         // corresponding specializations for pieces or pawns.
 
-        struct WLDEntryPiece
+        struct WDLEntryPiece
         {
         public:
             PairsData *precomp;
@@ -157,8 +157,8 @@ namespace TBSyzygy {
         struct WDLEntryPawn
         {
         public:
-            u08 pawn_count[2];        // [Lead color / other color]
-            WLDEntryPiece file[2][4]; // [wtm / btm][FILE_A..FILE_D]
+            u08 pawn_count[CLR_NO];        // [Lead color / other color]
+            WDLEntryPiece file[CLR_NO][4]; // [wtm / btm][FILE_A..FILE_D]
         };
 
         struct DTZEntryPiece
@@ -172,7 +172,7 @@ namespace TBSyzygy {
         struct DTZEntryPawn
         {
         public:
-            u08 pawn_count[2];
+            u08 pawn_count[CLR_NO];
             DTZEntryPiece file[4];
             u08 *map;
         };
@@ -199,7 +199,7 @@ namespace TBSyzygy {
            ~WDLEntry ();
             union
             {
-                WLDEntryPiece piece_table[2]; // [wtm / btm]
+                WDLEntryPiece piece_table[CLR_NO]; // [wtm / btm]
                 WDLEntryPawn  pawn_table;
             };
         };
@@ -506,18 +506,18 @@ namespace TBSyzygy {
             {
                 TBFile::unmap (base_address, mapping);
             }
-            for (auto i : { 0 , 1 })
+            for (auto c : { WHITE , BLACK })
             {
                 if (has_pawns)
                 {
                     for (auto f : { F_A, F_B, F_C, F_D })
                     {
-                        delete pawn_table.file[i][f].precomp;
+                        delete pawn_table.file[c][f].precomp;
                     }
                 }
                 else
                 {
-                    delete piece_table[i].precomp;
+                    delete piece_table[c].precomp;
                 }
             }
         }

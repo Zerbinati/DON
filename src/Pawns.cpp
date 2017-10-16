@@ -94,12 +94,13 @@ namespace Pawns {
 
             e->any_attacks[Own] = l_cap | r_cap;
             e->dbl_attacks[Own] = l_cap & r_cap;
-            e->passers    [Own] = 0;
+
+            e->passers[Own] = 0;
             e->weak_unopposed[Own] = 0;
-            e->semiopens  [Own] = u08(0xFF);
+            e->semiopens[Own] = u08(0xFF);
             e->color_count[Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
             e->color_count[Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
-            e->index      [Own] = 0;
+            e->index[Own] = 0;
             std::fill_n (e->king_square[Own], MaxCache, SQ_NO);
             std::fill_n (e->king_safety[Own], MaxCache, VALUE_ZERO);
             std::fill_n (e->king_pawn_dist[Own], MaxCache, 0);
@@ -117,7 +118,7 @@ namespace Pawns {
                 assert(pos[s] == (Own|PAWN));
 
                 f = _file (s);
-                e->semiopens  [Own] &= u08(~(1 << f));
+                e->semiopens[Own] &= u08(~(1 << f));
 
                 neighbours = own_pawns & adj_file_bb (f);
                 supporters = neighbours & rank_bb (s-Push);
@@ -136,14 +137,15 @@ namespace Pawns {
                 backward   = 0 == levers
                           && 0 != stoppers
                           && 0 != neighbours
-                          && rel_rank (Own, s) < R_6
+                          && R_6 > rel_rank (Own, s)
                             // Find the backmost rank with neighbours or stoppers
                           && 0 != (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers)))
                             // If have an enemy pawn in the same or next rank, the pawn is
                             // backward because it cannot advance without being captured.
                           && 0 != (stoppers & (b | shift<Push> (b & adj_file_bb (f))));
 
-                assert(!backward || 0 == (pawn_attack_span (Opp, s+Push) & neighbours));
+                assert(!backward
+                    || 0 == (pawn_attack_span (Opp, s+Push) & neighbours));
 
                 // Include also not passed pawns which could become passed
                 // after one or two pawn pushes when are not attacked more times than defended.
@@ -153,7 +155,7 @@ namespace Pawns {
                             && pop_count (supporters) >= pop_count (levers)
                             && pop_count (phalanxes) >= pop_count (escapes))
                         || (   stoppers == square_bb (s+Push)
-                            && rel_rank (Own, s) > R_4
+                            && R_4 < rel_rank (Own, s)
                             && 0 != (b = shift<Push> (supporters) & ~opp_pawns)
                             && pop_count (b) > pop_count (  (opp_pawns ^ stoppers)
                                                           & (  shift<LCap> (b)
@@ -171,8 +173,8 @@ namespace Pawns {
                                       [rel_rank (Own, s)];
                 }
                 else
-                if (   0 == neighbours
-                    || backward)
+                if (   backward
+                    || 0 == neighbours)
                 {
                     score -= 0 == neighbours ? Isolated : Backward;
                     if (!opposed)

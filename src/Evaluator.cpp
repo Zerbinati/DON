@@ -29,10 +29,9 @@ namespace Evaluator {
                 PASSER,
                 SPACE,
                 TOTAL,
-                TERM_NO
             };
 
-            double cp[TERM_NO][CLR_NO][2];
+            double cp[13][CLR_NO][2];
 
             void write (u08 term, Color c, Score score)
             {
@@ -87,7 +86,7 @@ namespace Evaluator {
             // Bonus for bishop behind a pawn
             static const Score BishopBehindPawn =   S(16, 4);
             // Bonus for bishop long range
-            static const Score BishopOnDiagonal =    S(22, 0);
+            static const Score BishopOnDiagonal =   S(22, 0);
             // Penalty for bishop with pawns on same color
             static const Score BishopPawns =        S( 8,12);
             // Penalty for bishop trapped with pawns (Chess960)
@@ -104,7 +103,7 @@ namespace Evaluator {
             static const Score EnemyInFlank =       S( 7, 0);
             static const Score PawnlessFlank =      S(20,80);
 
-            static const Score PawnWeakUnopposed =  S( 5, 25);
+            static const Score PawnWeakUnopposed =  S( 5,25);
 
             // Bonus for each hanged piece
             static const Score PieceHanged =        S(48,27);
@@ -112,7 +111,7 @@ namespace Evaluator {
             static const Score PawnPushThreat =     S(38,22);
 
             static const Score HangPawnThreat =     S( 71, 61);
-            static const Score SafePawnThreat =     S(182,175);
+            static const Score SafePawnThreat =     S(192,175);
 
             static const Score PieceRankThreat =    S(16, 3);
 
@@ -133,8 +132,7 @@ namespace Evaluator {
             static const Score PieceCloseness[NONE];
 
             // Outpost[supported by pawn] contains bonuses for outposts
-            // If they can reach an outpost square, bigger if that square is supported by a pawn
-            // If the minor piece occupies an outpost square then score is doubled
+            // indexed by piece type supported by friend pawns
             static const Score KnightOutpost[2];
             static const Score BishopOutpost[2];
 
@@ -345,7 +343,7 @@ namespace Evaluator {
             }
         }
 
-        /// Evaluates bonuses and penalties of the pieces of the color and type
+        /// evaluate_pieces() evaluates bonuses and penalties of the pieces of the color and type
         template<bool Trace>
         template<Color Own, PieceType PT>
         Score Evaluation<Trace>::evaluate_pieces ()
@@ -356,8 +354,6 @@ namespace Evaluator {
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
-
-            auto fk_sq = pos.square<KING> (Own);
 
             auto score = SCORE_ZERO;
             pin_attacked_by[Own][PT] = 0;
@@ -396,7 +392,7 @@ namespace Evaluator {
 
                 if (contains (pos.abs_blockers (Own), s))
                 {
-                    attacks &= strline_bb (fk_sq, s);
+                    attacks &= strline_bb (pos.square<KING> (Own), s);
                     pins_weight[Own] += PinsWeight[PT];
                 }
                 
@@ -443,7 +439,7 @@ namespace Evaluator {
                 mobility[Own] += PieceMobility[PT][mob];
 
                 // Bonus for piece closeness to king
-                score += PieceCloseness[PT] * dist (s, fk_sq);
+                score += PieceCloseness[PT] * dist (s, pos.square<KING> (Own));
 
                 Bitboard b;
                 // Special extra evaluation for pieces
@@ -451,15 +447,13 @@ namespace Evaluator {
                 {
                     // Bonus for knight behind a pawn
                     if (   R_5 > rel_rank (Own, s)
-                        && !contains (pin_attacked_by[Opp][PAWN], s)
                         && contains (pos.pieces (PAWN), s+Push))
                     {
                         score += KnightBehindPawn;
                     }
 
                     // Bonus for knight outpost squares
-                    if (   contains (Outposts_bb[Own], s)
-                        && !contains (pin_attacked_by[Opp][PAWN], s))
+                    if (contains (Outposts_bb[Own], s))
                     {
                         score += KnightOutpost[contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
                     }
@@ -467,8 +461,8 @@ namespace Evaluator {
                     {
                         b = Outposts_bb[Own]
                           & attacks
-                          & ~(  pin_attacked_by[Opp][PAWN]
-                              | pos.pieces (Own));
+                          & ~pos.pieces (Own)
+                          & ~pin_attacked_by[Opp][PAWN];
                         if (0 != b)
                         {
                             score += KnightOutpost[0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
@@ -480,15 +474,13 @@ namespace Evaluator {
                 {
                     // Bonus for bishop when behind a pawn
                     if (   R_5 > rel_rank (Own, s)
-                        && !contains (pin_attacked_by[Opp][PAWN], s)
                         && contains (pos.pieces (PAWN), s+Push))
                     {
                         score += BishopBehindPawn;
                     }
 
                     // Bonus for bishop outpost squares
-                    if (   contains (Outposts_bb[Own], s)
-                        && !contains (pin_attacked_by[Opp][PAWN], s))
+                    if (contains (Outposts_bb[Own], s))
                     {
                         score += BishopOutpost[contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
                     }
@@ -496,35 +488,23 @@ namespace Evaluator {
                     {
                         b = Outposts_bb[Own]
                           & attacks
-                          & ~(  pin_attacked_by[Opp][PAWN]
-                              | pos.pieces (Own));
+                          & ~pos.pieces (Own)
+                          & ~pin_attacked_by[Opp][PAWN];
                         if (0 != b)
                         {
                             score += BishopOutpost[0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
                         }
                     }
 
-                    // Bonus for bishop on a long diagonal without pawns in the center
-                    if (   contains (Diagonals_bb, s)
-                        && !contains (pin_attacked_by[Opp][PAWN], s)
-                        && 0 == (pos.pieces (PAWN) & Center_bb & PieceAttacks[BSHP][s]))
+                    // Bonus for bishop on a long diagonal which can "see" both center squares
+                    if (   more_than_one (Center_bb & (PieceAttacks[BSHP][s] | s))
+                        && more_than_one (Center_bb & (attacks_bb<BSHP> (s, pos.pieces (PAWN)) | s)))
                     {
                         score += BishopOnDiagonal;
                     }
 
                     // Penalty for pawns on the same color square as the bishop
                     score -= BishopPawns * i32(pe->color_count[Own][color (s)]);
-
-                    if (   2 >= mob
-                        && contains (FA_bb|FH_bb,  s)
-                        && R_4 <= rel_rank (Own, s))
-                    {
-                        auto del = (F_A == _file (s) ? DEL_E : DEL_W)-Push;
-                        if (pos[s+del] == (Own|PAWN))
-                        {
-                            score -= BishopTrapped * (pos.empty (s+del+Push) ? 1 : 2);
-                        }
-                    }
 
                     if (Position::Chess960)
                     {
@@ -535,12 +515,11 @@ namespace Evaluator {
                             && contains (FA_bb|FH_bb, s)
                             && R_1 == rel_rank (Own, s))
                         {
-                            auto del = (F_A == _file (s) ? DEL_E : DEL_W)+Push;
-                            if (pos[s+del] == (Own|PAWN))
+                            auto del = Delta((F_E - _file (s))/3) + Push;
+                            if (contains (pos.pieces (Own, PAWN), s+del))
                             {
-                                score -= BishopTrapped * (pos.empty (s+del+Push) ?
-                                                                pos[s+del+del] != (Own|PAWN) ?
-                                                                    1 : 2 : 4);
+                                score -= BishopTrapped * (!contains (pos.pieces (), s+del+Push) ?
+                                                          !contains (pos.pieces (Own, PAWN), s+del+del) ? 1 : 2 : 4);
                             }
                         }
                     }
@@ -549,9 +528,10 @@ namespace Evaluator {
                 if (ROOK == PT)
                 {
                     // Bonus for rook aligning with enemy pawns on the same rank/file
-                    if (R_4 < rel_rank (Own, s))
+                    if (   R_4 < rel_rank (Own, s)
+                        && 0 != (b = pos.pieces (Opp, PAWN) & PieceAttacks[ROOK][s]))
                     {
-                        score += RookOnPawns * pop_count (pos.pieces (Opp, PAWN) & PieceAttacks[ROOK][s]);
+                        score += RookOnPawns * pop_count (b);
                     }
 
                     // Bonus for rook when on an open or semi-open file
@@ -560,13 +540,13 @@ namespace Evaluator {
                         score += RookOnFile[pe->file_semiopen (Opp, _file (s)) ? 1 : 0];
                     }
                     else
+                    // Penalty for rook when trapped by the king, even more if the king can't castle
                     if (   3 >= mob
                         && R_5 > rel_rank (Own, s)
                         && 0 != (front_sqrs_bb (Own, s) & pos.pieces (Own, PAWN))
                         && 0 == (front_sqrs_bb (Opp, s) & pos.pieces (Own, PAWN)))
                     {
-                        // Penalty for rook when trapped by the king, even more if the king can't castle
-                        auto kf = _file (fk_sq);
+                        auto kf = _file (pos.square<KING> (Own));
                         if (   ((kf < F_E) == (_file (s) < kf))
                             && !pe->side_semiopen (Own, kf, kf < F_E))
                         {
@@ -595,7 +575,7 @@ namespace Evaluator {
             return score;
         }
 
-        /// Evaluates bonuses and penalties of the king of the color
+        /// evaluate_king() evaluates bonuses and penalties of the king of the color
         template<bool Trace>
         template<Color Own>
         Score Evaluation<Trace>::evaluate_king ()
@@ -757,7 +737,7 @@ namespace Evaluator {
             return score;
         }
 
-        /// Evaluates the threats of the color
+        /// evaluate_threats() evaluates the threats of the color
         template<bool Trace>
         template<Color Own>
         Score Evaluation<Trace>::evaluate_threats ()
@@ -893,7 +873,7 @@ namespace Evaluator {
             return score;
         }
 
-        /// Evaluates the passed pawns of the color
+        /// evaluate_passers() evaluates the passed pawns of the color
         template<bool Trace>
         template<Color Own>
         Score Evaluation<Trace>::evaluate_passers ()
@@ -1012,7 +992,7 @@ namespace Evaluator {
             return score;
         }
 
-        /// Evaluates the space of the color
+        /// evaluate_space() evaluates the space of the color
         /// The space evaluation is a simple bonus based on the number of safe squares
         /// available for minor pieces on the central four files on ranks 2-4
         /// Safe squares one, two or three squares behind a friend pawn are counted twice
@@ -1056,7 +1036,7 @@ namespace Evaluator {
             return score;
         }
 
-        /// Evaluates the initiative correction value for the position
+        /// evaluate_initiative() evaluates the initiative correction value for the position
         /// i.e. second order bonus/malus based on the known attacking/defending status of the players
         template<bool Trace>
         Score Evaluation<Trace>::evaluate_initiative (Value eg)
@@ -1076,7 +1056,7 @@ namespace Evaluator {
             return mk_score (0, sign (eg) * initiative);
         }
 
-        /// Evaluates the scale for the position
+        /// evaluate_scale() evaluates the scale for the position
         template<bool Trace>
         Scale Evaluation<Trace>::evaluate_scale (Value eg)
         {
@@ -1225,8 +1205,8 @@ namespace Evaluator {
         std::memset (Tracer::cp, 0x00, sizeof (Tracer::cp));
         // White's point of view
         auto value = WHITE == pos.active ?
-                        +Evaluation<true > (pos).value () :
-                        -Evaluation<true > (pos).value ();
+                        +Evaluation<true> (pos).value () :
+                        -Evaluation<true> (pos).value ();
 
         ostringstream oss;
         oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed

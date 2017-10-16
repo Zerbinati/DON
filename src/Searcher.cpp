@@ -601,15 +601,15 @@ namespace Searcher {
 
     namespace {
 
-        const i16 MaxRazorDepth = 4;
+        const u08 MaxRazorDepth = 4;
         // RazorMargins[depth]
         Value RazorMargins[MaxRazorDepth] = { Value(0), Value(570), Value(602), Value(554) };
 
-        const i16 MaxFutilityDepth = 16;
+        const u08 MaxFutilityDepth = 16;
         // FutilityMoveCounts[improving][depth]
         u08 FutilityMoveCounts[2][MaxFutilityDepth];
 
-        const i16 MaxReductionDepth = 64;
+        const u08 MaxReductionDepth = 64;
         const u08 MaxReductionMoveCount = 64;
         // ReductionDepths[pv][improving][depth][move_count]
         i16 ReductionDepths[2][2][MaxReductionDepth][MaxReductionMoveCount];
@@ -635,7 +635,7 @@ namespace Searcher {
         /// update_continuation_tables() updates tables of the move pairs with current move.
         void update_continuation_tables (Stack *const &ss, Piece pc, Square dst, i32 value)
         {
-            for (auto s : { ss-1, ss-2, ss-4})
+            for (auto s : { ss-1, ss-2, ss-4 })
             {
                 if (_ok (s->played_move))
                 {
@@ -1637,15 +1637,13 @@ namespace Searcher {
 
                     value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true, true, own_stats);
 
-                    fd_search =
-                        alfa < value
-                     && 0 != reduce_depth;
+                    fd_search = alfa < value
+                             && 0 != reduce_depth;
                 }
                 else
                 {
-                    fd_search =
-                        !PVNode
-                     || 1 < move_count;
+                    fd_search = !PVNode
+                             || 1 < move_count;
                 }
 
                 // Step 16. Full depth search when LMR is skipped or fails high.
@@ -1891,14 +1889,16 @@ namespace Searcher {
     /// Searcher::initialize() initializes lookup tables at startup.
     void initialize ()
     {
-        for (i16 d = 0; d < MaxFutilityDepth; ++d)
+        for (i08 d = 0; d < MaxFutilityDepth; ++d)
         {
             FutilityMoveCounts[0][d] = u08(0.74 * std::pow (d, 1.78) + 2.4);
             FutilityMoveCounts[1][d] = u08(1.00 * std::pow (d, 2.00) + 5.0);
         }
-        for (i08 imp = 0; imp < 2; ++imp)
+        for (auto imp : { 0, 1 })
         {
-            for (i16 d = 1; d < MaxReductionDepth; ++d)
+            ReductionDepths[0][imp][0][0] = 0;
+            ReductionDepths[1][imp][0][0] = 0;
+            for (i08 d = 1; d < MaxReductionDepth; ++d)
             {
                 for (i08 mc = 1; mc < MaxReductionMoveCount; ++mc)
                 {
@@ -2122,7 +2122,7 @@ namespace Threading {
                 if (   main_thread->skill_mgr.enabled ()
                     && main_thread->skill_mgr.can_pick (running_depth))
                 {
-                    main_thread->skill_mgr.clear ();
+                    main_thread->skill_mgr.best_move = MOVE_NONE;
                     main_thread->skill_mgr.pick_best_move (main_thread->root_moves);
                 }
 
@@ -2312,7 +2312,7 @@ namespace Threading {
             }
             if (skill_mgr.enabled ())
             {
-                skill_mgr.clear ();
+                skill_mgr.best_move = MOVE_NONE;
             }
 
             // Have to play with skill handicap?

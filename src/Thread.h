@@ -89,11 +89,6 @@ public:
         return depth == level + 1;
     }
 
-    void clear ()
-    {
-        best_move = MOVE_NONE;
-    }
-
     void pick_best_move (const RootMoves &root_moves);
 };
 
