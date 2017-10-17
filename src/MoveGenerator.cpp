@@ -95,7 +95,7 @@ namespace MoveGen {
         void generate_pawn_moves (ValMoves &moves, const Position &pos, Bitboard targets)
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
-            const auto Push = WHITE == Own ? DEL_N  : DEL_S;
+            const auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 

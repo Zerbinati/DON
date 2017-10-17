@@ -451,18 +451,18 @@ namespace Evaluator {
                     {
                         score += KnightBehindPawn;
                     }
-
+                    
+                    b = Outposts_bb[Own]
+                      & ~pin_attacked_by[Opp][PAWN];
                     // Bonus for knight outpost squares
-                    if (contains (Outposts_bb[Own], s))
+                    if (contains (b, s))
                     {
                         score += KnightOutpost[contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
                     }
                     else
                     {
-                        b = Outposts_bb[Own]
-                          & attacks
-                          & ~pos.pieces (Own)
-                          & ~pin_attacked_by[Opp][PAWN];
+                        b &= attacks
+                          & ~pos.pieces (Own);
                         if (0 != b)
                         {
                             score += KnightOutpost[0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
@@ -479,17 +479,17 @@ namespace Evaluator {
                         score += BishopBehindPawn;
                     }
 
+                    b = Outposts_bb[Own]
+                      & ~pin_attacked_by[Opp][PAWN];
                     // Bonus for bishop outpost squares
-                    if (contains (Outposts_bb[Own], s))
+                    if (contains (b, s))
                     {
                         score += BishopOutpost[contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
                     }
                     else
                     {
-                        b = Outposts_bb[Own]
-                          & attacks
-                          & ~pos.pieces (Own)
-                          & ~pin_attacked_by[Opp][PAWN];
+                        b &= attacks
+                          & ~pos.pieces (Own);
                         if (0 != b)
                         {
                             score += BishopOutpost[0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
@@ -497,8 +497,7 @@ namespace Evaluator {
                     }
 
                     // Bonus for bishop on a long diagonal which can "see" both center squares
-                    if (   more_than_one (Center_bb & (PieceAttacks[BSHP][s] | s))
-                        && more_than_one (Center_bb & (attacks_bb<BSHP> (s, pos.pieces (PAWN)) | s)))
+                    if (2 == pop_count (Center_bb & (attacks_bb<BSHP> (s, pos.pieces (PAWN)) | s)))
                     {
                         score += BishopOnDiagonal;
                     }
@@ -586,7 +585,7 @@ namespace Evaluator {
             auto fk_sq = pos.square<KING> (Own);
 
             // King Safety: friend pawns shelter and enemy pawns storm
-            auto index = pe->do_king_safety<Own> (pos, fk_sq);
+            auto index = pe->king_safety_on<Own> (pos, fk_sq);
             auto value = pe->king_safety[Own][index];
             if (   rel_rank (Own, fk_sq) == R_1
                 && pos.can_castle (Own))
@@ -743,7 +742,7 @@ namespace Evaluator {
         Score Evaluation<Trace>::evaluate_threats ()
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
-            const auto Push = WHITE == Own ? DEL_N  : DEL_S;
+            const auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 

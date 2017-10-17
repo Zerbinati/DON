@@ -43,7 +43,7 @@ namespace Pawns {
         Value pawn_shelter_storm (const Position&, Square) const;
 
         template<Color Own>
-        u08 do_king_safety (const Position &pos, Square fk_sq)
+        u08 king_safety_on (const Position &pos, Square fk_sq)
         {
             auto p = std::find (king_square[Own], king_square[Own] + index[Own] + 1, fk_sq);
             if (p != king_square[Own] + index[Own] + 1)
@@ -60,7 +60,7 @@ namespace Pawns {
 
             king_square[Own][index[Own]] = fk_sq;
             king_pawn_dist[Own][index[Own]] = kp_dist;
-            king_safety   [Own][index[Own]] = pawn_shelter_storm<Own> (pos, fk_sq);
+            king_safety[Own][index[Own]] = pawn_shelter_storm<Own> (pos, fk_sq);
             return index[Own] < MaxCache - 1 ? index[Own]++ : index[Own];
         }
 

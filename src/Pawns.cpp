@@ -81,7 +81,7 @@ namespace Pawns {
         Score evaluate (const Position &pos, Entry *e)
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
-            const auto Push = WHITE == Own ? DEL_N  : DEL_S;
+            const auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
             const auto PawnAtt = PawnAttacks[Own];
@@ -105,8 +105,8 @@ namespace Pawns {
             std::fill_n (e->king_safety[Own], MaxCache, VALUE_ZERO);
             std::fill_n (e->king_pawn_dist[Own], MaxCache, 0);
 
-            e->do_king_safety<Own> (pos, rel_sq (Own, SQ_G1));
-            e->do_king_safety<Own> (pos, rel_sq (Own, SQ_C1));
+            e->king_safety_on<Own> (pos, rel_sq (Own, SQ_G1));
+            e->king_safety_on<Own> (pos, rel_sq (Own, SQ_C1));
 
             auto score = SCORE_ZERO;
 

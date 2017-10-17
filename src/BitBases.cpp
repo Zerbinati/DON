@@ -64,7 +64,7 @@ namespace BitBases {
                 // otherwise the current position is classified as UNKNOWN.
 
                 const auto Opp  = WHITE == Own ? BLACK : WHITE;
-                const auto Good = WHITE == Own ? Result::WIN  : Result::DRAW;
+                const auto Good = WHITE == Own ? Result::WIN : Result::DRAW;
                 const auto Bad  = WHITE == Own ? Result::DRAW : Result::WIN;
 
                 Result r = Result::INVALID;
@@ -94,12 +94,11 @@ namespace BitBases {
                     }
                 }
 
-                return result =
-                    r & Good  ?
-                        Good  :
-                        r & Result::UNKNOWN ?
-                            Result::UNKNOWN :
-                            Bad;
+                return result = r & Good  ?
+                                    Good  :
+                                    r & Result::UNKNOWN ?
+                                        Result::UNKNOWN :
+                                        Bad;
             }
 
         public:
