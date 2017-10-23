@@ -173,8 +173,8 @@ namespace Pawns {
                                       [rel_rank (Own, s)];
                 }
                 else
-                if (   backward
-                    || 0 == neighbours)
+                if (   0 == neighbours
+                    || backward)
                 {
                     score -= 0 == neighbours ? Isolated : Backward;
                     if (!opposed)

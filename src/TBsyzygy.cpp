@@ -612,7 +612,7 @@ namespace TBSyzygy {
             // Because each block n stores block_length[n] + 1 values, the index i of the block
             // that contains the value at position idx is:
             //
-            //                    for (i = -1, sum = 0; sum <= idx; i++)
+            //                    for (i = -1, sum = 0; sum <= idx; ++i)
             //                        sum += block_length[i + 1] + 1;
             //
             // This can be slow, so we use SparseIndex[] populated with a set of SparseEntry that
@@ -728,7 +728,13 @@ namespace TBSyzygy {
             return d->btree[sym].get<LR::Center> ();
         }
 
-        bool check_dtz_stm (WDLEntry *     , i32    , File  ) { return true; }
+        bool check_dtz_stm (WDLEntry *entry, i32 stm, File f)
+        {
+            (void) entry;
+            (void) stm;
+            (void) f;
+            return true;
+        }
 
         bool check_dtz_stm (DTZEntry *entry, i32 stm, File f)
         {
@@ -744,9 +750,15 @@ namespace TBSyzygy {
         /// values 0, 1, 2, ... in order of decreasing frequency. This is done for each
         //// of the four WDLScore values. The mapping information necessary to reconstruct
         /// the original values is stored in the TB file and read during map[] init.
-        WDLScore map_score (WDLEntry*, File, i32 value, WDLScore) { return WDLScore(value - 2); }
+        WDLScore map_score (WDLEntry *entry, File f, i32 value, WDLScore wdl)
+        {
+            (void) entry;
+            (void) f;
+            (void) wdl;
+            return WDLScore(value - 2);
+        }
 
-        i32 map_score (DTZEntry* entry, File f, i32 value, WDLScore wdl)
+        i32 map_score (DTZEntry *entry, File f, i32 value, WDLScore wdl)
         {
             const i32 WDLMap[] = { 1, 3, 0, 2, 0 };
 
@@ -1059,7 +1071,7 @@ namespace TBSyzygy {
         /// The actual grouping depends on the TB generator and can be inferred from the
         /// sequence of pieces in piece[] array.
         template<typename T>
-        void set_groups (T &e, PairsData *d, i32 order[], File f)
+        void set_groups (T &e, PairsData *d, i32 *order, File f)
         {
             i32 n = 0, firstLen = e.has_pawns ? 0 : e.has_unique_pieces ? 3 : 2;
             d->group_len[n] = 1;
@@ -1123,7 +1135,7 @@ namespace TBSyzygy {
         /// In Recursive Pairing each symbol represents a pair of childern symbols. So
         /// read d->btree[] symbols data and expand each one in his left and right child
         /// symbol until reaching the leafs that represent the symbol value.
-        u08 set_symlen (PairsData *d, Sym s, vector<bool>& visited)
+        u08 set_symlen (PairsData *d, Sym s, vector<bool> &visited)
         {
             visited[s] = true; // We can set it now because tree is acyclic
             Sym sr = d->btree[s].get<LR::Right> ();
@@ -1222,16 +1234,19 @@ namespace TBSyzygy {
         }
 
         template<typename T>
-        u08* set_dtz_map (WDLEntry&, T&, u08*, File)
+        u08* set_dtz_map (WDLEntry &, T &p, u08 *data, File max_file)
         {
+            (void) p;
+            (void) data;
+            (void) max_file;
             return nullptr;
         }
 
         template<typename T>
-        u08* set_dtz_map (DTZEntry&, T& p, u08 *data, File maxFile)
+        u08* set_dtz_map (DTZEntry &, T &p, u08 *data, File max_file)
         {
             p.map = data;
-            for (auto f = F_A; f <= maxFile; ++f)
+            for (auto f = F_A; f <= max_file; ++f)
             {
                 if (0 != (item (p, 0, f).precomp->flags & MAPPED))
                 {
@@ -1246,7 +1261,7 @@ namespace TBSyzygy {
         }
 
         template<typename Entry, typename T>
-        void do_init (Entry& e, T& p, u08 *data)
+        void do_init (Entry &e, T &p, u08 *data)
         {
             enum
             {
@@ -1269,7 +1284,7 @@ namespace TBSyzygy {
 
             for (auto f = F_A; f <= MaxFile; ++f)
             {
-                for (i32 i = 0; i < Sides; i++)
+                for (i32 i = 0; i < Sides; ++i)
                 {
                     item (p, i, f).precomp = new PairsData ();
                 }
@@ -1283,7 +1298,7 @@ namespace TBSyzygy {
 
                 for (i32 k = 0; k < e.piece_count; ++k, ++data)
                 {
-                    for (i32 i = 0; i < Sides; i++)
+                    for (i32 i = 0; i < Sides; ++i)
                     {
                         item (p, i, f).precomp->pieces[k] = tb_piece (i ? *data >>  4 : *data & 0xF);
                     }
@@ -1299,7 +1314,7 @@ namespace TBSyzygy {
 
             for (auto f = F_A; f <= MaxFile; ++f)
             {
-                for (i32 i = 0; i < Sides; i++)
+                for (i32 i = 0; i < Sides; ++i)
                 {
                     data = set_sizes (item (p, i, f).precomp, data);
                 }
@@ -1312,7 +1327,7 @@ namespace TBSyzygy {
             PairsData *d;
             for (auto f = F_A; f <= MaxFile; ++f)
             {
-                for (i32 i = 0; i < Sides; i++)
+                for (i32 i = 0; i < Sides; ++i)
                 {
                     (d = item (p, i, f).precomp)->sparseIndex = (SparseEntry*) data;
                     data += d->sparse_index_size * sizeof (SparseEntry);
@@ -1320,7 +1335,7 @@ namespace TBSyzygy {
             }
             for (auto f = F_A; f <= MaxFile; ++f)
             {
-                for (i32 i = 0; i < Sides; i++)
+                for (i32 i = 0; i < Sides; ++i)
                 {
                     (d = item (p, i, f).precomp)->block_length = (u16*) data;
                     data += d->block_length_size * sizeof (u16);
@@ -1328,7 +1343,7 @@ namespace TBSyzygy {
             }
             for (auto f = F_A; f <= MaxFile; ++f)
             {
-                for (i32 i = 0; i < Sides; i++)
+                for (i32 i = 0; i < Sides; ++i)
                 {
                     data = (u08*)(((uintptr_t) data + 0x3F) & ~0x3F); // 64 byte alignment
                     (d = item (p, i, f).precomp)->data = data;
@@ -1387,7 +1402,7 @@ namespace TBSyzygy {
         template<typename E, typename T = typename Ret<E>::type>
         T probe_table (const Position &pos, ProbeState &state, WDLScore wdl = WDLScore::DRAW)
         {
-            if ((pos.pieces () ^ pos.pieces (KING)) == 0)
+            if (0 == (pos.pieces () ^ pos.pieces (KING)))
             {
                 return T(WDLScore::DRAW); // KvK
             }
@@ -1661,9 +1676,9 @@ namespace TBSyzygy {
 
         StateInfo si;
         // Probe each move
-        for (size_t i = 0; i < root_moves.size (); ++i)
+        for (auto &root_move : root_moves)
         {
-            Move move = root_moves[i][0];
+            Move move = root_move[0];
             root_pos.do_move (move, si);
             i32 v = 0;
 
@@ -1708,7 +1723,7 @@ namespace TBSyzygy {
                 return false;
             }
 
-            root_moves[i].new_value = Value(v);
+            root_move.new_value = Value(v);
         }
 
         // Obtain 50-move counter for the root position.
@@ -1752,17 +1767,17 @@ namespace TBSyzygy {
 
         // Now be a bit smart about filtering out moves.
         size_t size = 0;
+        // winning (or 50-move rule draw)
         if (dtz > 0)
-        { // winning (or 50-move rule draw)
-            i32 best = 0xffff;
-
-            for (size_t i = 0; i < root_moves.size (); ++i)
+        {
+            i32 best = 0xFFFF;
+            // Probe each move
+            for (auto &root_move : root_moves)
             {
-                i32 v = root_moves[i].new_value;
-                if (   v > 0
-                    && best > v)
+                if (   0 < root_move.new_value
+                    && best > root_move.new_value)
                 {
-                    best = v;
+                    best = root_move.new_value;
                 }
             }
 
@@ -1775,28 +1790,27 @@ namespace TBSyzygy {
             {
                 max = 99 - cnt50;
             }
+
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
-                i32 v = root_moves[i].new_value;
-
-                if (   v > 0
-                    && v <= max)
+                if (   0 < root_moves[i].new_value
+                    && max >= root_moves[i].new_value)
                 {
                     root_moves[size++] = root_moves[i];
                 }
             }
         }
         else
+        // losing (or 50-move rule draw)
         if (dtz < 0)
-        { // losing (or 50-move rule draw)
+        {
             i32 best = 0;
-
-            for (size_t i = 0; i < root_moves.size (); ++i)
+            // Probe each move
+            for (auto &root_move : root_moves)
             {
-                i32 v = root_moves[i].new_value;
-                if (best > v)
+                if (best > root_move.new_value)
                 {
-                    best = v;
+                    best = root_move.new_value;
                 }
             }
 
@@ -1808,24 +1822,25 @@ namespace TBSyzygy {
 
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
-                if (root_moves[i].new_value == best)
+                if (best == root_moves[i].new_value)
                 {
                     root_moves[size++] = root_moves[i];
                 }
             }
         }
+        // drawing
         else
-        { // drawing
-          // Try all moves that preserve the draw.
+        {
+            // Try all moves that preserve the draw.
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
-                if (root_moves[i].new_value == 0)
+                if (0 == root_moves[i].new_value)
                 {
                     root_moves[size++] = root_moves[i];
                 }
             }
         }
-        root_moves.resize (size, RootMove (MOVE_NONE));
+        root_moves.resize (size);
 
         return true;
     }
@@ -1853,9 +1868,9 @@ namespace TBSyzygy {
         i32 best = WDLScore::LOSS;
 
         // Probe each move
-        for (size_t i = 0; i < root_moves.size (); ++i)
+        for (auto &root_move : root_moves)
         {
-            Move move = root_moves[i][0];
+            Move move = root_move[0];
             root_pos.do_move (move, si);
             WDLScore v = -probe_wdl (root_pos, state);
             root_pos.undo_move (move);
@@ -1865,7 +1880,7 @@ namespace TBSyzygy {
                 return false;
             }
 
-            root_moves[i].new_value = Value(v);
+            root_move.new_value = Value(v);
 
             if (best < v)
             {
@@ -1876,12 +1891,12 @@ namespace TBSyzygy {
         size_t size = 0;
         for (size_t i = 0; i < root_moves.size (); ++i)
         {
-            if (root_moves[i].new_value == best)
+            if (best == root_moves[i].new_value)
             {
                 root_moves[size++] = root_moves[i];
             }
         }
-        root_moves.resize (size, RootMove (MOVE_NONE));
+        root_moves.resize (size);
 
         return true;
     }
@@ -1902,21 +1917,21 @@ namespace TBSyzygy {
                 }
             }
             // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
-            vector<Square> diagonal;
             code = 0;
-            for (auto s = SQ_A1; s <= SQ_D4; ++s)
+            vector<Square> diagonal;
+            for (auto s : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
+                            SQ_A2, SQ_B2, SQ_C2, SQ_D2,
+                            SQ_A3, SQ_B3, SQ_C3, SQ_D3,
+                            SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
             {
-                if (_file (s) <= F_D)
+                if (off_A1H8 (s) < 0)
                 {
-                    if (off_A1H8 (s) < 0)
-                    {
-                        MapA1D1D4[s] = code++;
-                    }
-                    else
-                    if (off_A1H8 (s) == 0)
-                    {
-                        diagonal.push_back (s);
-                    }
+                    MapA1D1D4[s] = code++;
+                }
+                else
+                if (off_A1H8 (s) == 0)
+                {
+                    diagonal.push_back (s);
                 }
             }
             // Diagonal squares are encoded as last ones
@@ -1930,9 +1945,13 @@ namespace TBSyzygy {
             code = 0;
             for (i32 idx = 0; idx < 10; ++idx)
             {
-                for (auto s1 = SQ_A1; s1 <= SQ_D4; ++s1)
+                for (auto s1 : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
+                                 SQ_A2, SQ_B2, SQ_C2, SQ_D2,
+                                 SQ_A3, SQ_B3, SQ_C3, SQ_D3,
+                                 SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
                 {
-                    if (MapA1D1D4[s1] == idx && (idx || s1 == SQ_B1)) // SQ_B1 is mapped to 0
+                    if (   MapA1D1D4[s1] == idx
+                        && (0 != idx || s1 == SQ_B1)) // SQ_B1 is mapped to 0
                     {
                         for (auto s2 : SQ)
                         {
@@ -1941,12 +1960,12 @@ namespace TBSyzygy {
                                 continue; // Illegal position
                             }
                             else
-                            if (!off_A1H8 (s1) && off_A1H8 (s2) > 0)
+                            if (off_A1H8 (s1) == 0 && off_A1H8 (s2) > 0)
                             {
                                 continue; // First on diagonal, second above
                             }
                             else
-                            if (!off_A1H8 (s1) && !off_A1H8 (s2))
+                            if (off_A1H8 (s1) == 0 && off_A1H8 (s2) == 0)
                             {
                                 both_on_diagonal.push_back (std::make_pair (idx, s2));
                             }
@@ -1969,7 +1988,7 @@ namespace TBSyzygy {
             // are Binomial[k][n] ways to choose k elements from a set of n elements.
             Binomial[0][0] = 1;
 
-            for (i32 n = 1; n < 64; n++) // Squares
+            for (i32 n = 1; n < 64; ++n) // Squares
             {
                 for (i32 k = 0; k < 6 && k <= n; ++k) // Pieces
                 {

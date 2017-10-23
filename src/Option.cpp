@@ -253,9 +253,9 @@ namespace UCI {
 
         void on_time_opt ()
         {
-            OverheadMoveTime = i32(Options["Overhead Move Time"]);
-            NodesTime =        i32(Options["Nodes Time"]);
-            Ponder =           bool(Options["Ponder"]);
+            OverheadMoveTime = u16(i32(Options["Overhead Move Time"]));
+            NodesTime = u16(i32(Options["Nodes Time"]));
+            Ponder = bool(Options["Ponder"]);
         }
 
         void on_debug_file ()
@@ -355,7 +355,7 @@ namespace UCI {
 
         Options["Draw Move Dist"]               << Option (Position::DrawClockPly/2, 5, 50, on_draw_move_dist);
 
-        Options["Overhead Move Time"]           << Option (i32(OverheadMoveTime), 0, 5000, on_time_opt);
+        Options["Overhead Move Time"]           << Option (OverheadMoveTime, 0, 5000, on_time_opt);
         Options["Nodes Time"]                   << Option (NodesTime, 0, 10000, on_time_opt);
         Options["Ponder"]                       << Option (Ponder, on_time_opt);
 

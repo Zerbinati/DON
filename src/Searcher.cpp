@@ -1268,9 +1268,7 @@ namespace Searcher {
                         // Speculative prefetch as early as possible.
                         prefetch (TT.cluster_entry (  key
                                                     ^ RandZob.color_key
-                                                    ^ (SQ_NO != pos.si->en_passant_sq ?
-                                                        RandZob.en_passant_keys[_file (pos.si->en_passant_sq)] :
-                                                        0)));
+                                                    ^ (SQ_NO != pos.si->en_passant_sq ? RandZob.en_passant_keys[_file (pos.si->en_passant_sq)] : 0)));
 
                         ss->played_move = MOVE_NULL;
                         ss->piece_destiny = &pos.thread->continuation[NO_PIECE][0];

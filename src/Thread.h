@@ -12,8 +12,8 @@
 #include "thread_win32.h"
 #include "Type.h"
 
-extern u32  OverheadMoveTime;
-extern u32  NodesTime;
+extern u16  OverheadMoveTime;
+extern u16  NodesTime;
 extern bool Ponder;
 
 /// TimeManager class is used to computes the optimal time to think depending on the

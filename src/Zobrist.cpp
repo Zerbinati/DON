@@ -16,7 +16,7 @@ namespace Zobrists {
         {
             for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
             {
-                for (i32 pc = 0; pc < pos.count (c, pt); ++pc)
+                for (u08 pc = 0; pc < pos.count (c, pt); ++pc)
                 {
                     matl_key ^= piece_square_keys[c][pt][pc];
                 }

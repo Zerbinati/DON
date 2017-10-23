@@ -9,9 +9,9 @@ using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-u32  OverheadMoveTime = 100;    // Attempt to keep at least this much time for each remaining move, in milli-seconds.
-u32  NodesTime =        0;      // 'Nodes as Time' mode.
-bool Ponder =           true;   // Whether or not the engine should analyze when it is the opponent's turn.
+u16  OverheadMoveTime = 100;// Attempt to keep at least this much time for each remaining move, in milli-seconds.
+u16  NodesTime = 0;         // 'Nodes as Time' mode.
+bool Ponder = true;         // Whether or not the engine should analyze when it is the opponent's turn.
 
 Threading::ThreadPool Threadpool;
 
@@ -37,8 +37,12 @@ namespace {
                             1.1 - 0.001 * std::pow (move_num - 20, 2) :
                             // constant function.
                             1.5)
-                      * (1.0 + inc / (Limits.clock[c].time * 8.5))
                       / std::min (Limits.movestogo, u08(50));
+                if (1 < Limits.movestogo)
+                {
+                    ratio = std::min (0.75, ratio);
+                }
+                ratio *= 1.0 + inc / (Limits.clock[c].time * 8.5);
             }
             // Otherwise increase usage of remaining time as the game goes on.
             else
@@ -83,9 +87,9 @@ void TimeManager::initialize (Color c, i16 ply)
 
 void MoveManager::clear ()
 {
+    stable_count = 0;
     exp_posi_key = 0;
     std::fill_n (pv, 3, MOVE_NONE);
-    stable_count = 0;
 }
 
 void MoveManager::update (Position &pos, const vector<Move> &new_pv)
@@ -112,9 +116,10 @@ void MoveManager::update (Position &pos, const vector<Move> &new_pv)
     }
     else
     {
-        pv[2] = new_pv[2];
-        exp_posi_key = 0;
         stable_count = 0;
+        exp_posi_key = 0;
+        std::fill_n (pv, 2, MOVE_NONE);
+        pv[2] = new_pv[2];
     }
 }
 
@@ -452,9 +457,10 @@ namespace Threading {
             TBProbeDepth = 0;
         }
         // Filter root moves.
-        if (   0 != TBLimitPiece
+        if (   !root_moves.empty ()
+            && 1 == MultiPV
+            && 0 != TBLimitPiece
             && TBLimitPiece >= pos.count<NONE> ()
-            && !root_moves.empty ()
             && !pos.has_castleright (CR_ANY))
         {
             // If the current root position is in the tablebases,

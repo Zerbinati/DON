@@ -28,10 +28,11 @@ namespace Evaluator {
                 THREAT,
                 PASSER,
                 SPACE,
+                INITIATIVE,
                 TOTAL,
             };
 
-            double cp[13][CLR_NO][2];
+            double cp[TOTAL+1][CLR_NO][2];
 
             void write (u08 term, Color c, Score score)
             {
@@ -51,6 +52,7 @@ namespace Evaluator {
                 case PAWN:
                 case MATERIAL:
                 case IMBALANCE:
+                case INITIATIVE:
                 case TOTAL:
                     os << " | ----- ----- | ----- ----- | ";
                     break;
@@ -1052,7 +1054,12 @@ namespace Evaluator {
             // Now apply the bonus: note that we find the attacking side by extracting
             // the sign of the endgame value, and that we carefully cap the bonus so
             // that the endgame score will never change sign after the bonus.
-            return mk_score (0, sign (eg) * initiative);
+            auto score = mk_score (0, sign (eg) * initiative);
+            if (Trace)
+            {
+                Tracer::write (INITIATIVE, score);
+            }
+            return score;
         }
 
         /// evaluate_scale() evaluates the scale for the position
@@ -1224,6 +1231,7 @@ namespace Evaluator {
             << "         Threat" << Term(THREAT)
             << "    Pawn Passer" << Term(PASSER)
             << "          Space" << Term(SPACE)
+            << "     Initiative" << Term (INITIATIVE)
             << "----------------+-------------+-------------+--------------\n"
             << "          Total" << Term(TOTAL)
             << "\nEvaluation: " << value_to_cp (value) << " (white side)\n"
