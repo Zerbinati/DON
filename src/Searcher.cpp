@@ -3,12 +3,12 @@
 #include "Debugger.h"
 #include "Evaluator.h"
 #include "Notation.h"
+#include "Option.h"
 #include "Polyglot.h"
 #include "PRNG.h"
 #include "TBsyzygy.h"
 #include "Thread.h"
 #include "Transposition.h"
-#include "Option.h"
 #include "Zobrist.h"
 
 using namespace std;

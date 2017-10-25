@@ -27,18 +27,18 @@ namespace UCI {
 
     public:
         
-        u08 index;
+        size_t index;
 
         explicit Option (OnChange = nullptr);
-        Option (const bool, OnChange = nullptr);
         Option (const char*, OnChange = nullptr);
         Option (const std::string&, OnChange = nullptr);
+        Option (const bool, OnChange = nullptr);
         Option (const i32, i32, i32, OnChange = nullptr);
         Option (const Option&) = delete;
 
+        explicit operator std::string () const;
         explicit operator bool () const;
         explicit operator i32  () const;
-        explicit operator std::string () const;
 
         Option& operator=  (const char*);
         Option& operator=  (const std::string&);
@@ -69,7 +69,7 @@ namespace UCI {
     inline std::basic_ostream<CharT, Traits>&
         operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap)
     {
-        for (u08 idx = 0; idx < optmap.size (); ++idx)
+        for (size_t idx = 0; idx < optmap.size (); ++idx)
         {
             for (const auto &pair : optmap)
             {

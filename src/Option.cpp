@@ -27,14 +27,6 @@ namespace UCI {
         , maximum (0)
         , on_change (on_cng)
     {}
-    Option::Option (const bool val, OnChange on_cng)
-        : type ("check")
-        , minimum (0)
-        , maximum (0)
-        , on_change (on_cng)
-    {
-        default_value = current_value = (val ? "true" : "false");
-    }
     Option::Option (const char *val, OnChange on_cng)
         : Option (string(val), on_cng)
     {}
@@ -46,6 +38,14 @@ namespace UCI {
     {
         default_value = current_value = val;
     }
+    Option::Option (const bool val, OnChange on_cng)
+        : type ("check")
+        , minimum (0)
+        , maximum (0)
+        , on_change (on_cng)
+    {
+        default_value = current_value = (val ? "true" : "false");
+    }
     Option::Option (const i32 val, i32 min, i32 max, OnChange on_cng)
         : type ("spin")
         , minimum (min)
@@ -55,6 +55,11 @@ namespace UCI {
         default_value = current_value = std::to_string (val);
     }
 
+    Option::operator string () const
+    {
+        assert(type == "string");
+        return current_value;
+    }
     Option::operator bool () const
     {
         assert(type == "check");
@@ -64,11 +69,6 @@ namespace UCI {
     {
         assert(type == "spin");
         return stoi (current_value);
-    }
-    Option::operator string () const
-    {
-        assert(type == "string");
-        return current_value;
     }
 
     /// Option::operator=() updates value and triggers on_change() action.
@@ -83,13 +83,12 @@ namespace UCI {
 
         if (type != "button")
         {
-            auto val = value;
-
-            if (val.empty ())
+            if (value.empty ())
             {
                 return *this;
             }
 
+            auto val = value;
             if (type == "check")
             {
                 to_lower (val);
@@ -105,10 +104,7 @@ namespace UCI {
                 val = std::to_string (std::min (std::max (stoi (val), minimum), maximum));
             }
 
-            if (current_value != val)
-            {
-                current_value = val;
-            }
+            current_value = val;
         }
 
         if (nullptr != on_change)
@@ -122,7 +118,7 @@ namespace UCI {
     /// Option::operator<<() inits options and assigns idx in the correct printing order
     void Option::operator<< (const Option &opt)
     {
-        static u08 insert_order = 0;
+        static size_t insert_order = 0;
         *this = opt;
         index = insert_order++;
     }
@@ -221,23 +217,22 @@ namespace UCI {
         void on_contempt_opt ()
         {
             FixedContempt = i16(i32(Options["Fixed Contempt"]));
-            ContemptTime =  i16(i32(Options["Timed Contempt"]));
+            ContemptTime = i16(i32(Options["Timed Contempt"]));
             ContemptValue = i16(i32(Options["Valued Contempt"]));
         }
 
         void on_multipv ()
         {
-            MultiPV = u08(i32(Options["MultiPV"]));
+            MultiPV = i32(Options["MultiPV"]);
             //MultiPV_cp =  i32(Options["MultiPV_cp"]);
         }
 
         void on_book_opt ()
         {
-            OwnBook =         bool(Options["OwnBook"]);
-            auto filename = string(Options["Book File"]);
-            BookMoveBest =    bool(Options["Book Move Best"]);
+            OwnBook = bool(Options["OwnBook"]);
+            BookMoveBest = bool(Options["Book Move Best"]);
             BookUptoMove = i16(i32(Options["Book Upto Move"]));
-
+            auto filename = string(Options["Book File"]);
             trim (filename);
             if (!white_spaces (filename))
             {
@@ -298,15 +293,15 @@ namespace UCI {
 
         void on_uci_elo ()
         {
-            // ELO values corresponded to every Skill Levels
-            const i32 LevelELO[SkillManager::MaxLevel + 1] =
-            {
-                1250, 1436, 1622, 1808, 1994, 2180, 2366, 2552, 2738, 2924, 3110, 3296, 3482
-            };
-
-            u08 skill_level = SkillManager::MaxLevel;
             if (bool(Options["UCI_LimitStrength"]))
             {
+                // ELO values corresponded to every Skill Levels
+                const i32 LevelELO[SkillManager::MaxLevel + 1] =
+                {
+                    1250, 1436, 1622, 1808, 1994, 2180, 2366, 2552, 2738, 2924, 3110, 3296, 3482
+                };
+
+                u08 skill_level = SkillManager::MaxLevel;
                 i32 elo = i32(Options["UCI_ELO"]);
                 for (u08 level = 0; level < SkillManager::MaxLevel; ++level)
                 {
@@ -316,60 +311,60 @@ namespace UCI {
                         break;
                     }
                 }
+                Threadpool.main_thread ()->skill_mgr.level = skill_level;
             }
-            Threadpool.main_thread ()->skill_mgr.level = skill_level;
         }
     }
 
     void initialize ()
     {
 
-        Options["Hash"]                         << Option (16, 0, Table::MaxHashSize, on_hash_size);
+        Options["Hash"]               << Option (16, 0, Table::MaxHashSize, on_hash_size);
 
 #if defined(LPAGES)
-        Options["Large Pages"]                  << Option (Memory::LargePages, on_memory_type);
+        Options["Large Pages"]        << Option (Memory::LargePages, on_memory_type);
 #endif
 
-        Options["Clear Hash"]                   << Option (on_clear_hash);
-        Options["Retain Hash"]                  << Option (RetainHash, on_retain_hash);
+        Options["Clear Hash"]         << Option (on_clear_hash);
+        Options["Retain Hash"]        << Option (RetainHash, on_retain_hash);
 
-        Options["Hash File"]                    << Option (HashFile, on_hash_file);
-        Options["Save Hash"]                    << Option (on_save_hash);
-        Options["Load Hash"]                    << Option (on_load_hash);
+        Options["Hash File"]          << Option (HashFile, on_hash_file);
+        Options["Save Hash"]          << Option (on_save_hash);
+        Options["Load Hash"]          << Option (on_load_hash);
 
-        Options["OwnBook"]                      << Option (OwnBook, on_book_opt);
-        Options["Book File"]                    << Option (BookFile, on_book_opt);
-        Options["Book Move Best"]               << Option (BookMoveBest, on_book_opt);
-        Options["Book Upto Move"]               << Option (BookUptoMove, 0, 50, on_book_opt);
+        Options["OwnBook"]            << Option (OwnBook, on_book_opt);
+        Options["Book File"]          << Option (BookFile, on_book_opt);
+        Options["Book Move Best"]     << Option (BookMoveBest, on_book_opt);
+        Options["Book Upto Move"]     << Option (BookUptoMove, 0, 50, on_book_opt);
 
-        Options["Threads"]                      << Option ( 1, 0, 512, on_thread_count);
+        Options["Threads"]            << Option ( 1, 0, 512, on_thread_count);
 
-        Options["Skill Level"]                  << Option (SkillManager::MaxLevel,  0, SkillManager::MaxLevel, on_skill_level);
+        Options["Skill Level"]        << Option (SkillManager::MaxLevel,  0, SkillManager::MaxLevel, on_skill_level);
 
-        Options["MultiPV"]                      << Option (MultiPV, 1, 255, on_multipv);
-        //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, 1000, on_multipv);
+        Options["MultiPV"]            << Option (i32(MultiPV), 1, 255, on_multipv);
+        //Options["MultiPV_cp"]         << Option (MultiPV_cp, 0, 1000, on_multipv);
 
-        Options["Fixed Contempt"]               << Option (FixedContempt, -100, 100, on_contempt_opt);
-        Options["Timed Contempt"]               << Option (ContemptTime , 0, 1000, on_contempt_opt);
-        Options["Valued Contempt"]              << Option (ContemptValue, 0, 1000, on_contempt_opt);
+        Options["Fixed Contempt"]     << Option (FixedContempt, -100, 100, on_contempt_opt);
+        Options["Timed Contempt"]     << Option (ContemptTime , 0, 1000, on_contempt_opt);
+        Options["Valued Contempt"]    << Option (ContemptValue, 0, 1000, on_contempt_opt);
 
-        Options["Draw Move Dist"]               << Option (Position::DrawClockPly/2, 5, 50, on_draw_move_dist);
+        Options["Draw Move Dist"]     << Option (Position::DrawClockPly/2, 5, 50, on_draw_move_dist);
 
-        Options["Overhead Move Time"]           << Option (OverheadMoveTime, 0, 5000, on_time_opt);
-        Options["Nodes Time"]                   << Option (NodesTime, 0, 10000, on_time_opt);
-        Options["Ponder"]                       << Option (Ponder, on_time_opt);
+        Options["Overhead Move Time"] << Option (OverheadMoveTime, 0, 5000, on_time_opt);
+        Options["Nodes Time"]         << Option (NodesTime, 0, 10000, on_time_opt);
+        Options["Ponder"]             << Option (Ponder, on_time_opt);
 
-        Options["SyzygyPath"]                   << Option (PathString, on_syzygy_path);
-        Options["SyzygyProbeDepth"]             << Option (TBProbeDepth, 1, 100);
-        Options["SyzygyLimitPiece"]             << Option (TBLimitPiece, 0, 6);
-        Options["SyzygyUseRule50"]              << Option (TBUseRule50);
+        Options["SyzygyPath"]         << Option (PathString, on_syzygy_path);
+        Options["SyzygyProbeDepth"]   << Option (TBProbeDepth, 1, 100);
+        Options["SyzygyLimitPiece"]   << Option (TBLimitPiece, 0, 6);
+        Options["SyzygyUseRule50"]    << Option (TBUseRule50);
 
-        Options["Debug File"]                   << Option (Empty, on_debug_file);
-        Options["Output File"]                  << Option (OutputFile, on_output_file);
+        Options["Debug File"]         << Option (Empty, on_debug_file);
+        Options["Output File"]        << Option (OutputFile, on_output_file);
 
-        Options["UCI_Chess960"]                 << Option (Position::Chess960, on_uci_chess960);
-        Options["UCI_LimitStrength"]            << Option (false, on_uci_elo);
-        Options["UCI_ELO"]                      << Option (3490, 1250, 3490, on_uci_elo);
+        Options["UCI_Chess960"]       << Option (Position::Chess960, on_uci_chess960);
+        Options["UCI_LimitStrength"]  << Option (false, on_uci_elo);
+        Options["UCI_ELO"]            << Option (3490, 1250, 3490, on_uci_elo);
     }
 
     void deinitialize ()

@@ -730,10 +730,10 @@ namespace Engine {
         BitBases ::initialize ();
         Pawns    ::initialize ();
         EndGame  ::initialize ();
+        TT.auto_resize (i32(Options["Hash"]), true);
         Threadpool.initialize (i32(Options["Threads"]));
         Searcher ::initialize ();
         TBSyzygy ::initialize ();
-        TT.auto_resize (i32(Options["Hash"]), true);
 
         Searcher ::clear ();
 

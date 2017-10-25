@@ -20,11 +20,15 @@ namespace {
     /// remaining_time()
     u64 remaining_time (Color c, i16 move_num, bool optimum)
     {
-        // Increment of time going to be use
+        if (Limits.clock[c].time == 0)
+        {
+            return 0;
+        }
+        // Increment of time
         double inc = Limits.clock[c].inc
                      // quadratic function with the maximum around move 25 
                    * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0);
-        // Ratio of time going to be use
+        // Ratio of time
         double ratio = std::min (0 == Limits.movestogo ?
                                       // y+z
                                       (optimum ? 0.017 : 0.07)
