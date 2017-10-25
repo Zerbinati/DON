@@ -17,49 +17,35 @@ Threading::ThreadPool Threadpool;
 
 namespace {
 
+    /// remaining_time()
     u64 remaining_time (Color c, i16 move_num, bool optimum)
     {
-        u64 time = 0;
-        if (Limits.clock[c].time > OverheadMoveTime)
+        // Increment of time going to be use
+        double inc = Limits.clock[c].inc
+                     // quadratic function with the maximum around move 25 
+                   * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0);
+        // Ratio of time going to be use
+        double ratio = std::min (0 == Limits.movestogo ?
+                                      // y+z
+                                      (optimum ? 0.017 : 0.07)
+                                    * ((1 + 0.04 * move_num / (1 + 0.002 * move_num)) + inc / Limits.clock[c].time) :
+                                      // x/y+z
+                                      std::min (  (optimum ? 1.0 : 6.0)
+                                                * (move_num <= 40 ?
+                                                    // quadratic function with the maximum around move 20 for case less then 40 moves in y time.
+                                                    1.1 - 0.001 * std::pow (move_num - 20, 2) :
+                                                    // constant function.
+                                                    1.5)
+                                                / std::min (Limits.movestogo, u08(50)),
+                                                1 < Limits.movestogo ? 0.75 : 1.5)
+                                    * (1 + inc / (Limits.clock[c].time * 8.5)),
+                                 1.0);
+        if (   optimum
+            && Ponder)
         {
-            double ratio; // Which ratio of time we are going to use
-
-            // Usage of increment follows quadratic distribution with the maximum at move 25.
-            double inc = Limits.clock[c].inc
-                       * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0);
-
-            // In movestogo use distribution of time.
-            if (0 != Limits.movestogo)
-            {
-                ratio = (optimum ? 1.0 : 6.0)
-                      * (move_num <= 40 ?
-                            // quadratic function with the maximum around move 20 for 40 moves in y time case.
-                            1.1 - 0.001 * std::pow (move_num - 20, 2) :
-                            // constant function.
-                            1.5)
-                      / std::min (Limits.movestogo, u08(50));
-                if (1 < Limits.movestogo)
-                {
-                    ratio = std::min (0.75, ratio);
-                }
-                ratio *= 1.0 + inc / (Limits.clock[c].time * 8.5);
-            }
-            // Otherwise increase usage of remaining time as the game goes on.
-            else
-            {
-                ratio = (optimum ? 0.017 : 0.070)
-                      * ((1.0 + 20.0 * move_num / (500.0 + move_num)) + inc / Limits.clock[c].time);
-            }
-
-            time = u64((Limits.clock[c].time - OverheadMoveTime) * std::min (ratio, 1.0));
-
-            if (   optimum
-                && Ponder)
-            {
-                time = (time * 5) / 4;
-            }
+            ratio *= 1.25;
         }
-        return time;
+        return u64(std::max (Limits.clock[c].time - OverheadMoveTime, 0ULL) * ratio);
     }
 
 }
@@ -74,10 +60,10 @@ u64 TimeManager::elapsed_time () const
 /// TimeManager::initialize() calculates the allowed thinking time out of the time control and current game ply.
 /// Support four different kind of time controls, passed in 'limits':
 ///
-/// moves_to_go = 0, increment = 0 means: x basetime                             ['sudden death' time control]
-/// moves_to_go = 0, increment > 0 means: x basetime + z increment
-/// moves_to_go > 0, increment = 0 means: x moves in y basetime                  ['standard' time control]
-/// moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
+/// increment == 0, moves to go == 0 => y basetime                             ['sudden death']
+/// increment != 0, moves to go == 0 => y basetime + z increment
+/// increment == 0, moves to go != 0 => x moves in y basetime                  ['standard']
+/// increment != 0, moves to go != 0 => x moves in y basetime + z increment
 void TimeManager::initialize (Color c, i16 ply)
 {
     i16 move_num = (ply + 1) / 2;
@@ -85,13 +71,14 @@ void TimeManager::initialize (Color c, i16 ply)
     maximum_time = remaining_time (c, move_num, false);
 }
 
+/// MoveManager::clear() 
 void MoveManager::clear ()
 {
     stable_count = 0;
     exp_posi_key = 0;
     std::fill_n (pv, 3, MOVE_NONE);
 }
-
+/// MoveManager::update()
 void MoveManager::update (Position &pos, const vector<Move> &new_pv)
 {
     assert(new_pv.size () >= 3
@@ -133,9 +120,10 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
     if (MOVE_NONE == best_move)
     {
         // RootMoves are already sorted by value in descending order
-        auto max_new_value = root_moves[0].new_value;
+        auto max_value = root_moves[0].new_value;
+        auto min_value = root_moves[Threadpool.pv_limit - 1].new_value;
         i32  weakness = MaxPlies - 8 * level;
-        i32  diversity = std::min (max_new_value - root_moves[Threadpool.pv_limit - 1].new_value, VALUE_MG_PAWN);
+        i32  diversion = std::min (max_value - min_value, VALUE_MG_PAWN);
         // First for each move score add two terms, both dependent on weakness.
         // One is deterministic with weakness, and one is random with weakness.
         // Then choose the move with the highest value.
@@ -143,10 +131,11 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
         for (u08 i = 0; i < Threadpool.pv_limit; ++i)
         {
             auto &root_move = root_moves[i];
-            auto value = root_move.new_value
+            auto cur_value = root_move.new_value;
+            auto value = cur_value
                         // This is magic formula for push
-                       + (  weakness  * i32(max_new_value - root_move.new_value)
-                          + diversity * i32(prng.rand<u32> () % weakness)) / MaxPlies;
+                       + (  weakness  * i32(max_value - cur_value)
+                          + diversion * i32(prng.rand<u32> () % weakness)) / MaxPlies;
 
             if (best_value <= value)
             {
@@ -302,7 +291,7 @@ namespace Threading {
 
     /// Thread constructor launches the thread and waits until it goes to sleep in idle_loop().
     /// Note that 'searching' and 'dead' should be already set.
-    Thread::Thread (u08 n)
+    Thread::Thread (size_t n)
         : index (n)
         , std_thread (&Thread::idle_loop, this)
     {
@@ -375,7 +364,7 @@ namespace Threading {
     }
 
     /// MainThread constructor
-    MainThread::MainThread (u08 n)
+    MainThread::MainThread (size_t n)
         : Thread (n)
         , check_count (0)
         , easy_played (false)
@@ -395,6 +384,7 @@ namespace Threading {
         }
     }
 
+    /// ThreadPool::best_thread()
     Thread* ThreadPool::best_thread () const
     {
         auto *best_th = front ();
@@ -409,7 +399,6 @@ namespace Threading {
         }
         return best_th;
     }
-
     /// ThreadPool::clear() clears the threadpool
     void ThreadPool::clear ()
     {
@@ -423,7 +412,7 @@ namespace Threading {
     {
         while (size () < threads)
         {
-            push_back (new Thread (u08(size ())));
+            push_back (new Thread (size ()));
         }
         while (size () > threads)
         {
@@ -526,7 +515,7 @@ namespace Threading {
         const vector<Move> search_moves;
         start_thinking (pos, states, limits, search_moves, ponde);
     }
-
+    /// ThreadPool::stop_thinking()
     void ThreadPool::stop_thinking ()
     {
         // If allowed to ponder do not stop the search now but
@@ -540,14 +529,11 @@ namespace Threading {
             stop = true;
         }
     }
-
     /// ThreadPool::initialize() creates and launches requested threads, that will go immediately to sleep.
     /// Cannot use a constructor because threadpool is a static object and require a fully initialized engine (due to allocation of Tables in the Thread).
     void ThreadPool::initialize (u32 threads)
     {
-        assert(empty ());
         push_back (new MainThread (0));
-        assert(!empty ());
         configure (threads);
     }
     /// ThreadPool::deinitialize() cleanly terminates the threads before the program exits.
@@ -555,7 +541,6 @@ namespace Threading {
     void ThreadPool::deinitialize ()
     {
         main_thread ()->wait_while_busy ();
-        assert(!empty ());
         configure (0);
     }
 

@@ -119,7 +119,7 @@ namespace Engine {
             {
                 string name;
                 // Read option-name (can contain spaces) also consume "value" token
-                while (iss >> token
+                while (   iss >> token
                        && token != "value")
                 {
                     name += string (" ", !white_spaces (name) ? 1 : 0) + token;
@@ -147,9 +147,10 @@ namespace Engine {
         /// makes the moves given in the move list "moves" also saving the moves on stack.
         void position (istringstream &iss, Position &pos, StateListPtr &states)
         {
-            string fen;
             string token;
             iss >> token; // Consume "startpos" or "fen" token
+            
+            string fen;
             if (token == "startpos")
             {
                 fen = StartFEN;
@@ -158,8 +159,8 @@ namespace Engine {
             else
             if (token == "fen")
             {
-                while (iss >> token
-                        && token != "moves") // Consume "moves" token if any
+                while (   iss >> token
+                       && token != "moves") // Consume "moves" token if any
                 {
                     fen += token + " ";
                 }
@@ -418,7 +419,7 @@ namespace Engine {
         //        string name;
         //        // Read "name" (can contain spaces), consume "code" token
         //        while (   iss >> token
-        //                && token != "code")
+        //               && token != "code")
         //        {
         //            name += string (" ", !white_spaces (name) ? 1 : 0) + token;
         //        }

@@ -532,8 +532,8 @@ template<MoveType MT>
 inline Move mk_move (Square org, Square dst)               { return Move(MT + (org << 6) + dst); }
 inline Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst); }
 
-inline double value_to_cp (Value   v) { return double(v)/i32(VALUE_EG_PAWN); }
-inline Value  cp_to_value (double cp) { return Value(i32(std::round (cp*i32(VALUE_EG_PAWN)))); }
+inline double value_to_cp (Value   v) { return double(v/i32(VALUE_EG_PAWN)); }
+inline Value  cp_to_value (double cp) { return Value(i32(cp*i32(VALUE_EG_PAWN))); }
 
 inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
@@ -570,6 +570,7 @@ public:
     // Inhibit unwanted implicit conversions to Move
     // with an ambiguity that yields to a compile error.
     operator float () const;
+    operator double () const;
 
     bool operator<  (const ValMove &vm) const { return value <  vm.value; }
     bool operator>  (const ValMove &vm) const { return value >  vm.value; }

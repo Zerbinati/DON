@@ -390,15 +390,6 @@ Move MovePicker::next_move ()
         {
             return moves[m++].move;
         }
-        //// No need already done
-        //if (MOVE_NONE != tt_move)
-        //{
-        //    auto itr = std::find (bad_capture_moves.begin (), bad_capture_moves.end (), tt_move);
-        //    if (itr != bad_capture_moves.end ())
-        //    {
-        //        bad_capture_moves.erase (itr);
-        //    }
-        //}
         ++stage;
         m = 0;
         /* fallthrough */
@@ -576,7 +567,7 @@ namespace Searcher {
 
     Limit  Limits;
 
-    u08    MultiPV =        1;
+    size_t MultiPV =        1;
     //i32    MultiPV_cp =     0;
 
     i16    FixedContempt =  0
@@ -704,7 +695,7 @@ namespace Searcher {
             auto tb_hits = Threadpool.tb_hits () + (TBHasRoot ? root_moves.size () : 0);
 
             ostringstream oss;
-            for (u08 i = 0; i < Threadpool.pv_limit; ++i)
+            for (size_t i = 0; i < Threadpool.pv_limit; ++i)
             {
                 bool updated = i <= th->pv_index
                             && -VALUE_INFINITE != root_moves[i].new_value;
@@ -741,7 +732,7 @@ namespace Searcher {
                     oss << " hashfull " << TT.hash_full ();
                 }
                 oss << " pv" << root_moves[i];
-                if (i+1 < Threadpool.pv_limit)
+                if (i < Threadpool.pv_limit - 1)
                 {
                     oss << "\n";
                 }
@@ -2136,15 +2127,15 @@ namespace Threading {
                         // -If matched an easy move from the previous search and just did a fast verification.
                         if (   1 == root_moves.size ()
                             || (  main_thread->time_mgr.elapsed_time () >
-                                  main_thread->time_mgr.optimum_time
+                              u64(main_thread->time_mgr.optimum_time
                                 // Unstable factor
-                                * i32(1000 * (1.0 + main_thread->best_move_change)) / 1000
+                                * (1.0 + main_thread->best_move_change)
                                 // Improving factor
                                 * std::min (715,
                                   std::max (229,
                                             357
                                           + 119 * (main_thread->failed_low ? 1 : 0)
-                                          -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 628)
+                                          -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 628))
                             || (main_thread->easy_played =
                                     (   root_move == main_thread->easy_move
                                      && main_thread->best_move_change < 0.030
@@ -2288,8 +2279,8 @@ namespace Threading {
 
             i16 timed_contempt = 0;
             i64 diff_time;
-            if (   Limits.use_time_management ()
-                && 0 != ContemptTime
+            if (   0 != ContemptTime
+                && Limits.use_time_management ()
                 && 0 != (diff_time = i64(  Limits.clock[ root_pos.active].time
                                          - Limits.clock[~root_pos.active].time) / 1000))
             {
@@ -2316,7 +2307,7 @@ namespace Threading {
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            Threadpool.pv_limit = std::min (std::max (MultiPV, u08(skill_mgr.enabled () ? 4 : 1)), u08(root_moves.size ()));
+            Threadpool.pv_limit = std::min (std::max (MultiPV, size_t(skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
 
             for (auto *th : Threadpool)
             {

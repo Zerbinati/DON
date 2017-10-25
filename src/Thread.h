@@ -105,7 +105,8 @@ namespace Threading {
         ConditionVariable condition_var;
         bool dead = false
            , busy = true;
-        u08  index;
+
+        size_t index;
         std::thread std_thread;
 
     public:
@@ -115,9 +116,9 @@ namespace Threading {
         i16  running_depth
            , finished_depth;
 
-        i16  sel_depth;
-        u08  pv_index;
+        size_t pv_index;
 
+        i16  sel_depth;
         std::atomic<u64> nodes
             ,            tb_hits;
 
@@ -128,7 +129,7 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        explicit Thread (u08 n);
+        explicit Thread (size_t n);
         Thread () = delete;
         Thread (const Thread&) = delete;
         Thread& operator= (const Thread&) = delete;
@@ -163,7 +164,7 @@ namespace Threading {
         MoveManager  move_mgr;
         SkillManager skill_mgr;
 
-        explicit MainThread (u08 n);
+        explicit MainThread (size_t n);
         MainThread () = delete;
         MainThread (const MainThread&) = delete;
         MainThread& operator= (const MainThread&) = delete;
@@ -195,7 +196,7 @@ namespace Threading {
         }
 
     public:
-        u08 pv_limit;
+        size_t pv_limit;
 
         std::atomic<bool>
                 stop                // Stop search

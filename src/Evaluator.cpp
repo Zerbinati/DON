@@ -558,6 +558,7 @@ namespace Evaluator {
                 else
                 if (QUEN == PT)
                 {
+                    b = 0;
                     // Penalty for pin or discover attack on the queen
                     if (0 != (pos.slider_blockers (Own, s, pos.pieces (Opp, QUEN), b, b) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<LCap> (pos.pieces (Own))
                                                                                                                                          | shift<RCap> (pos.pieces (Own))))
@@ -621,7 +622,7 @@ namespace Evaluator {
                 // ... and those which are not defended at all in the king ring.
                 Bitboard king_ring_undef = king_ring[Own]
                                          & ~pos.pieces (Opp)
-                                         & pin_attacked_by[Opp][NONE]
+                                         &  pin_attacked_by[Opp][NONE]
                                          & ~pin_attacked_by[Own][NONE];
                 // Initialize the king danger, which will be transformed later into a score.
                 // The initial value is based on the
@@ -816,7 +817,7 @@ namespace Evaluator {
               & ~pin_attacked_by[Opp][NONE];
             score += PieceHanged * pop_count (b);
 
-            Bitboard safe = pin_attacked_by[Own][NONE]
+            Bitboard safe =  pin_attacked_by[Own][NONE]
                           | ~pin_attacked_by[Opp][NONE];
 
             // Enemy non-pawns attacked by any friend pawn
@@ -842,9 +843,7 @@ namespace Evaluator {
             // Bonus for opponent unopposed weak pawns
             if (0 != pos.pieces (Own, ROOK, QUEN))
             {
-                score += PawnWeakUnopposed * pop_count (  pe->weak_unopposed[Opp]
-                                                        & (  pin_attacked_by[Own][ROOK]
-                                                           | pin_attacked_by[Own][QUEN]));
+                score += PawnWeakUnopposed * pop_count (pe->weak_unopposed[Opp]);
             }
 
             // Friend pawns can push on the next move
@@ -1015,7 +1014,7 @@ namespace Evaluator {
                                 & Side_bb[CS_NO]
                                 & ~pos.pieces (Own, PAWN)
                                 & ~pin_attacked_by[Opp][PAWN]
-                                & (  pin_attacked_by[Own][NONE]
+                                & (   pin_attacked_by[Own][NONE]
                                    | ~pin_attacked_by[Opp][NONE]);
 
             // Since SpaceMask is fully on our half of the board
