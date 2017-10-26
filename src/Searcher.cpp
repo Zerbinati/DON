@@ -1434,15 +1434,13 @@ namespace Searcher {
                     if (elapsed_time > 3000)
                     {
                         auto &root_move = *std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move);
-                        sync_cout
-                            << "info"
-                            << " currmove " << move_to_can (move)
-                            << " currmovenumber " << pos.thread->pv_index + move_count
-                            << " maxmoves " << pos.thread->root_moves.size ()
-                            << " depth " << depth
-                            << " seldepth " << root_move.sel_depth
-                            << " time " << elapsed_time
-                            << sync_endl;
+                        sync_cout << "info"
+                                  << " currmove " << move_to_can (move)
+                                  << " currmovenumber " << pos.thread->pv_index + move_count
+                                  << " maxmoves " << pos.thread->root_moves.size ()
+                                  << " depth " << depth
+                                  << " seldepth " << root_move.sel_depth
+                                  << " time " << elapsed_time << sync_endl;
                     }
                 }
 
@@ -1848,25 +1846,23 @@ namespace Searcher {
 
                 if (RootNode)
                 {
-                    sync_cout
-                        << std::right
-                        << std::setfill ('0')
-                        << std::setw (2)
-                        << ++move_count
-                        << " "
-                        << std::left
-                        << std::setfill (' ')
-                        << std::setw (7)
-                        <<
-                        //move_to_can (vm.move)
-                        move_to_san (vm.move, pos)
-                        << std::right
-                        << std::setfill ('.')
-                        << std::setw (16)
-                        << inter_nodes
-                        << std::setfill (' ')
-                        << std::left
-                        << sync_endl;
+                    sync_cout << std::right
+                              << std::setfill ('0')
+                              << std::setw (2)
+                              << ++move_count
+                              << " "
+                              << std::left
+                              << std::setfill (' ')
+                              << std::setw (7)
+                              <<
+                                 //move_to_can (vm.move)
+                                 move_to_san (vm.move, pos)
+                              << std::right
+                              << std::setfill ('.')
+                              << std::setw (16)
+                              << inter_nodes
+                              << std::setfill (' ')
+                              << std::left << sync_endl;
                 }
 
                 leaf_nodes += inter_nodes;
@@ -2186,21 +2182,19 @@ namespace Threading {
             OutputStream.open (OutputFile, ios_base::out|ios_base::app);
             if (OutputStream.is_open ())
             {
-                OutputStream
-                    << std::boolalpha
-                    << "RootPos  : " << root_pos.fen () << "\n"
-                    << "MaxMoves : " << root_moves.size () << "\n"
-                    << "ClockTime: " << Limits.clock[root_pos.active].time << " ms\n"
-                    << "ClockInc : " << Limits.clock[root_pos.active].inc << " ms\n"
-                    << "MovesToGo: " << Limits.movestogo+0 << "\n"
-                    << "MoveTime : " << Limits.movetime << " ms\n"
-                    << "Depth    : " << Limits.depth << "\n"
-                    << "Infinite : " << Limits.infinite << "\n"
-                    << "Ponder   : " << Threadpool.ponder << "\n"
-                    << " Depth Score    Time       Nodes PV\n"
-                    << "-----------------------------------------------------------"
-                    << std::noboolalpha
-                    << std::endl;
+                OutputStream << std::boolalpha
+                             << "RootPos  : " << root_pos.fen () << "\n"
+                             << "MaxMoves : " << root_moves.size () << "\n"
+                             << "ClockTime: " << Limits.clock[root_pos.active].time << " ms\n"
+                             << "ClockInc : " << Limits.clock[root_pos.active].inc << " ms\n"
+                             << "MovesToGo: " << Limits.movestogo+0 << "\n"
+                             << "MoveTime : " << Limits.movetime << " ms\n"
+                             << "Depth    : " << Limits.depth << "\n"
+                             << "Infinite : " << Limits.infinite << "\n"
+                             << "Ponder   : " << Threadpool.ponder << "\n"
+                             << " Depth Score    Time       Nodes PV\n"
+                             << "-----------------------------------------------------------"
+                             << std::noboolalpha << std::endl;
             }
         }
 
@@ -2233,12 +2227,10 @@ namespace Threading {
         {
             root_moves += MOVE_NONE;
 
-            sync_cout
-                << "info"
-                << " depth " << 0
-                << " score " << to_string (0 != root_pos.si->checkers ? -VALUE_MATE : VALUE_DRAW)
-                << " time " << 0
-                << sync_endl;
+            sync_cout << "info"
+                      << " depth " << 0
+                      << " score " << to_string (0 != root_pos.si->checkers ? -VALUE_MATE : VALUE_DRAW)
+                      << " time " << 0 << sync_endl;
         }
         else
         {
@@ -2287,7 +2279,7 @@ namespace Threading {
                 timed_contempt = i16(diff_time/ContemptTime);
             }
 
-            auto contempt = cp_to_value ((FixedContempt + timed_contempt) / 100.0);
+            auto contempt = cp_to_value (FixedContempt + timed_contempt);
             DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] = VALUE_DRAW - contempt;
             DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] = VALUE_DRAW + contempt;
 
@@ -2412,13 +2404,12 @@ namespace Threading {
         {
             auto total_nodes = Threadpool.nodes ();
             auto elapsed_time = std::max (time_mgr.elapsed_time (), 1ULL);
-            OutputStream
-                << "Nodes      : " << total_nodes << " N\n"
-                << "Time       : " << elapsed_time << " ms\n"
-                << "Speed      : " << total_nodes * 1000 / elapsed_time << " N/s\n"
-                << "Hash-full  : " << TT.hash_full () << "\n"
-                << "Best Move  : " << move_to_san (best_move, root_pos) << "\n"
-                << "Ponder Move: ";
+            OutputStream << "Nodes      : " << total_nodes << " N\n"
+                         << "Time       : " << elapsed_time << " ms\n"
+                         << "Speed      : " << total_nodes * 1000 / elapsed_time << " N/s\n"
+                         << "Hash-full  : " << TT.hash_full () << "\n"
+                         << "Best Move  : " << move_to_san (best_move, root_pos) << "\n"
+                         << "Ponder Move: ";
             if (MOVE_NONE != best_move)
             {
                 StateInfo si;
@@ -2435,10 +2426,8 @@ namespace Threading {
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position.
-        sync_cout
-            << "bestmove " << move_to_can (best_move)
-            << " ponder " << move_to_can (ponder_move)
-            << sync_endl;
+        sync_cout << "bestmove " << move_to_can (best_move)
+                  << " ponder " << move_to_can (ponder_move) << sync_endl;
     }
     /// MainThread::check_limits() is used to detect when out of available limits and thus stop the search, also print debug info.
     void MainThread::check_limits ()
@@ -2450,7 +2439,7 @@ namespace Threading {
             return;
         }
         // At low node count increase the checking rate otherwise use a default value.
-        check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
+        check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round (double(Limits.nodes) / 0x1000)), 1), 0x1000) : 0x1000);
         assert(0 != check_count);
 
         auto elapsed_time = time_mgr.elapsed_time ();

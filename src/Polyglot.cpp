@@ -135,9 +135,10 @@ namespace Polyglot {
         auto end_index = size_t((get_size () - HeaderSize) / sizeof (Entry) - 1);
         assert(beg_index <= end_index);
 
-        while (beg_index < end_index && good ())
+        while (   good ()
+               && beg_index < end_index)
         {
-            auto mid_index = size_t((beg_index + end_index) / 2);
+            auto mid_index = (beg_index + end_index) / 2;
             assert(beg_index <= mid_index && mid_index < end_index);
 
             seekg (OFFSET(mid_index), ios_base::beg);
@@ -189,7 +190,7 @@ namespace Polyglot {
             u32 weight_sum = 0;
 
             //vector<Entry> pes;
-            //while (*this >> pe, pe.key == key && good ())
+            //while (*this >> pe && pe.key == key)
             //{
             //    pes.push_back (pe);
             //    if (max_weight < pe.weight)
@@ -236,7 +237,7 @@ namespace Polyglot {
             //    }
             //}
 
-            while (*this >> pe, pe.key == key && good ())
+            while (*this >> pe && pe.key == key)
             {
                 if (MOVE_NONE == pe.move) continue; // Skip MOVE_NONE
 
@@ -325,7 +326,7 @@ namespace Polyglot {
             Entry pe;
             vector<Entry> pes;
             u32 weight_sum = 0;
-            while (*this >> pe, pe.key == key && good ())
+            while (*this >> pe && pe.key == key)
             {
                 if (MOVE_NONE == pe.move)
                 {
@@ -338,21 +339,14 @@ namespace Polyglot {
 
             if (pes.empty ())
             {
-                std::cerr
-                    << "ERROR: Position not found... "
-                    << std::hex << std::uppercase << key << std::nouppercase << std::dec
-                    << std::endl;
+                std::cerr << "ERROR: Position not found... "
+                          << std::hex << std::uppercase << key << std::nouppercase << std::dec << std::endl;
             }
             else
             {
                 for_each (pes.begin (), pes.end (), [&oss, &weight_sum] (Entry e)
                 {
-                    oss << e << " prob: "
-                        << std::setfill ('0')
-                        << std::width_prec (6, 2)
-                        << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0)
-                        << std::setfill (' ')
-                        << std::endl;
+                    oss << e << " prob: " << std::setfill ('0') << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0) << std::setfill (' ') << std::endl;
                 });
             }
         }

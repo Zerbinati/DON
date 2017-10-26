@@ -243,7 +243,7 @@ namespace UCI {
 
         void on_skill_level ()
         {
-            Threadpool.main_thread ()->skill_mgr.level = (u08(i32(Options["Skill Level"])));
+            Threadpool.main_thread ()->skill_mgr.level = u08(i32(Options["Skill Level"]));
         }
 
         void on_time_opt ()
@@ -293,6 +293,7 @@ namespace UCI {
 
         void on_uci_elo ()
         {
+            u08 skill_level;
             if (bool(Options["UCI_LimitStrength"]))
             {
                 // ELO values corresponded to every Skill Levels
@@ -301,7 +302,7 @@ namespace UCI {
                     1250, 1436, 1622, 1808, 1994, 2180, 2366, 2552, 2738, 2924, 3110, 3296, 3482
                 };
 
-                u08 skill_level = SkillManager::MaxLevel;
+                skill_level = SkillManager::MaxLevel;
                 i32 elo = i32(Options["UCI_ELO"]);
                 for (u08 level = 0; level < SkillManager::MaxLevel; ++level)
                 {
@@ -311,8 +312,12 @@ namespace UCI {
                         break;
                     }
                 }
-                Threadpool.main_thread ()->skill_mgr.level = skill_level;
             }
+            else
+            {
+                skill_level = u08(i32(Options["Skill Level"]));
+            }
+            Threadpool.main_thread ()->skill_mgr.level = skill_level;
         }
     }
 

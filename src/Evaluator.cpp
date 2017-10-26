@@ -36,8 +36,8 @@ namespace Evaluator {
 
             void write (u08 term, Color c, Score score)
             {
-                cp[term][c][MG] = value_to_cp (mg_value (score));
-                cp[term][c][EG] = value_to_cp (eg_value (score));
+                cp[term][c][MG] = value_to_cp (mg_value (score)) / 100.0;
+                cp[term][c][EG] = value_to_cp (eg_value (score)) / 100.0;
             }
             void write (u08 term, Score wscore, Score bscore = SCORE_ZERO)
             {
@@ -364,31 +364,10 @@ namespace Evaluator {
             {
                 assert(pos[s] == (Own|PT));
                 // Find attacked squares, including x-ray attacks for bishops and rooks
-                Bitboard attacks;
-                if (NIHT == PT)
-                {
-                    attacks = PieceAttacks[NIHT][s];
-                }
-                else
-                if (BSHP == PT)
-                {
-                    attacks = attacks_bb<BSHP> (s, pos.pieces () ^ (pos.pieces (Own, BSHP, QUEN) & ~pos.abs_blockers (Own)));
-                }
-                else
-                if (ROOK == PT)
-                {
-                    attacks = attacks_bb<ROOK> (s, pos.pieces () ^ (pos.pieces (Own, ROOK, QUEN) & ~pos.abs_blockers (Own)));
-                }
-                else
-                if (QUEN == PT)
-                {
-                    attacks = attacks_bb<QUEN> (s, pos.pieces () ^ (pos.pieces (Own, QUEN) & ~pos.abs_blockers (Own)));
-                }
-                else
-                {
-                    assert(false);
-                    attacks = 0;
-                }
+                Bitboard attacks = NIHT == PT ? PieceAttacks[NIHT][s] :
+                                   BSHP == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ (pos.pieces (Own, BSHP, QUEN) & ~pos.abs_blockers (Own))) :
+                                   ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces () ^ (pos.pieces (Own, ROOK, QUEN) & ~pos.abs_blockers (Own))) :
+                                   QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces () ^ (pos.pieces (Own, QUEN) & ~pos.abs_blockers (Own))) : (assert(false), 0);
 
                 ful_attacked_by[Own] |= attacks;
 
@@ -404,20 +383,18 @@ namespace Evaluator {
                     Bitboard bp = pos.pieces (Own, PAWN) & att & front_rank_bb (Own, s);
                     dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                        & (  attacks
-                                          | (0 != bp ? ((shift<LCap> (bp) | shift<RCap> (bp)) & PieceAttacks[BSHP][s]) : 0));
+                                          | ((shift<LCap> (bp) | shift<RCap> (bp)) & PieceAttacks[BSHP][s]));
                 }
                 else
                 if (QUEN == PT)
                 {
                     Bitboard att = attacks & ~pos.abs_blockers (Own);
                     Bitboard qp = pos.pieces (Own, PAWN) & att & front_rank_bb (Own, s);
-                    Bitboard qb = pos.pieces (Own, BSHP) & att & PieceAttacks[BSHP][s];
-                    Bitboard qr = pos.pieces (Own, ROOK) & att & PieceAttacks[ROOK][s];
                     dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                        & (  attacks
-                                          | (0 != qp ? ((shift<LCap> (qp) | shift<RCap> (qp)) & PieceAttacks[BSHP][s]) : 0)
-                                          | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
-                                          | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
+                                          | ((shift<LCap> (qp) | shift<RCap> (qp)) & PieceAttacks[BSHP][s])
+                                          | attacks_bb<BSHP> (s, pos.pieces () ^ (pos.pieces (Own, BSHP) & att & PieceAttacks[BSHP][s]))
+                                          | attacks_bb<ROOK> (s, pos.pieces () ^ (pos.pieces (Own, ROOK) & att & PieceAttacks[ROOK][s])));
                 }
                 else
                 {
@@ -1233,7 +1210,7 @@ namespace Evaluator {
             << "     Initiative" << Term (INITIATIVE)
             << "----------------+-------------+-------------+--------------\n"
             << "          Total" << Term(TOTAL)
-            << "\nEvaluation: " << value_to_cp (value) << " (white side)\n"
+            << "\nEvaluation: " << value_to_cp (value) / 100.0 << " (white side)\n"
             << std::noshowpoint << std::noshowpos;
         return oss.str ();
     }

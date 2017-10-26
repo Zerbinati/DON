@@ -168,7 +168,7 @@ namespace Engine {
             }
             else
             {
-                std::cerr << "ERROR: Illegal token : " + token << std::endl;
+                std::cerr << "ERROR: Illegal token : " << token << std::endl;
                 return;
             }
 
@@ -185,7 +185,7 @@ namespace Engine {
                     auto m = move_from_can (token, pos);
                     if (MOVE_NONE == m)
                     {
-                        std::cerr << "ERROR: Illegal Move '" + token << "' at " << count << std::endl;
+                        std::cerr << "ERROR: Illegal Move '" << token << "' at " << count << std::endl;
                         break;
                     }
                     states->emplace_back ();
@@ -239,7 +239,7 @@ namespace Engine {
                         auto m = move_from_can (token, pos);
                         if (MOVE_NONE == m)
                         {
-                            std::cerr << "ERROR: Illegal Rootmove '" + token << "'" << std::endl;
+                            std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                             continue;
                         }
                         search_moves.push_back (m);
@@ -393,15 +393,13 @@ namespace Engine {
 
             Debugger::dbg_print (); // Just before exiting
 
-            std::cerr
-                << std::right
-                << "\n=================================\n"
-                << "Total time (ms) :" << std::setw (16) << elapsed_time << "\n"
-                << "Nodes searched  :" << std::setw (16) << total_nodes  << "\n"
-                << "Nodes/second    :" << std::setw (16) << total_nodes * 1000 / elapsed_time
-                << "\n---------------------------------\n"
-                << std::left
-                << std::endl;
+            std::cerr << std::right
+                      << "\n=================================\n"
+                      << "Total time (ms) :" << std::setw (16) << elapsed_time << "\n"
+                      << "Nodes searched  :" << std::setw (16) << total_nodes  << "\n"
+                      << "Nodes/second    :" << std::setw (16) << total_nodes * 1000 / elapsed_time
+                      << "\n---------------------------------\n"
+                      << std::left << std::endl;
         }
 
         ///// reg() register an engin, with following tokens:

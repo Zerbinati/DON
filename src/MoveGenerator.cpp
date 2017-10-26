@@ -315,26 +315,9 @@ namespace MoveGen {
                     || GenType::CAPTURE == GT
                     || GenType::QUIET == GT, "GT incorrect");
         moves.clear ();
-        Bitboard targets;
-        if (GenType::NATURAL == GT)
-        {
-            targets = ~pos.pieces ( pos.active);
-        }
-        else
-        if (GenType::CAPTURE == GT)
-        {
-            targets =  pos.pieces (~pos.active);
-        }
-        else
-        if (GenType::QUIET == GT)
-        {
-            targets = ~pos.pieces ();
-        }
-        else
-        {
-            assert(false);
-            targets = 0;
-        }
+        Bitboard targets = GenType::NATURAL == GT ? ~pos.pieces ( pos.active) :
+                           GenType::CAPTURE == GT ?  pos.pieces (~pos.active) :
+                           GenType::QUIET   == GT ? ~pos.pieces () : (assert(false), 0);
 
         WHITE == pos.active ?
             generate_moves<GT, WHITE> (moves, pos, targets) :
@@ -361,42 +344,11 @@ namespace MoveGen {
         while (0 != dsc_blockers)
         {
             auto org = pop_lsq (dsc_blockers);
-            Bitboard attacks;
-            if (NIHT == ptype (pos[org]))
-            {
-                attacks =  targets
-                        &  PieceAttacks[NIHT][org];
-            }
-            else
-            if (BSHP == ptype (pos[org]))
-            {
-                attacks = 0 != (targets & PieceAttacks[BSHP][org]) ?
-                           targets & attacks_bb<BSHP> (org, pos.pieces ()) : 0;
-            }
-            else
-            if (ROOK == ptype (pos[org]))
-            {
-                attacks = 0 != (targets & PieceAttacks[ROOK][org]) ?
-                           targets & attacks_bb<ROOK> (org, pos.pieces ()) : 0;
-            }
-            else
-            if (QUEN == ptype (pos[org]))
-            {
-                attacks = 0 != (targets & PieceAttacks[QUEN][org]) ?
-                           targets & attacks_bb<QUEN> (org, pos.pieces ()) : 0;
-            }
-            else
-            if (KING == ptype (pos[org]))
-            {
-                attacks =  targets
-                        &  PieceAttacks[KING][org]
-                        & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)];
-            }
-            else
-            {
-                assert(false);
-                attacks = 0;
-            }
+            Bitboard attacks = NIHT == ptype (pos[org]) ? targets & PieceAttacks[NIHT][org] :
+                               BSHP == ptype (pos[org]) ? targets & attacks_bb<BSHP> (org, pos.pieces ()) :
+                               ROOK == ptype (pos[org]) ? targets & attacks_bb<ROOK> (org, pos.pieces ()) :
+                               QUEN == ptype (pos[org]) ? targets & attacks_bb<QUEN> (org, pos.pieces ()) :
+                               KING == ptype (pos[org]) ? targets & PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)] : (assert(false), 0);
             while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
@@ -415,42 +367,11 @@ namespace MoveGen {
         while (0 != dsc_blockers)
         {
             auto org = pop_lsq (dsc_blockers);
-            Bitboard attacks = 0;
-            if (NIHT == ptype (pos[org]))
-            {
-                attacks =  targets
-                        &  PieceAttacks[NIHT][org];
-            }
-            else
-            if (BSHP == ptype (pos[org]))
-            {
-                attacks = 0 != (targets & PieceAttacks[BSHP][org]) ?
-                           targets & attacks_bb<BSHP> (org, pos.pieces ()) : 0;
-            }
-            else
-            if (ROOK == ptype (pos[org]))
-            {
-                attacks = 0 != (targets & PieceAttacks[ROOK][org]) ?
-                           targets & attacks_bb<ROOK> (org, pos.pieces ()) : 0;
-            }
-            else
-            if (QUEN == ptype (pos[org]))
-            {
-                attacks = 0 != (targets & PieceAttacks[QUEN][org]) ?
-                           targets & attacks_bb<QUEN> (org, pos.pieces ()) : 0;
-            }
-            else
-            if (KING == ptype (pos[org]))
-            {
-                attacks =  targets
-                        &  PieceAttacks[KING][org]
-                        & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)];
-            }
-            else
-            {
-                assert(false);
-                attacks = 0;
-            }
+            Bitboard attacks = NIHT == ptype (pos[org]) ? targets & PieceAttacks[NIHT][org] :
+                               BSHP == ptype (pos[org]) ? targets & attacks_bb<BSHP> (org, pos.pieces ()) :
+                               ROOK == ptype (pos[org]) ? targets & attacks_bb<ROOK> (org, pos.pieces ()) :
+                               QUEN == ptype (pos[org]) ? targets & attacks_bb<QUEN> (org, pos.pieces ()) :
+                               KING == ptype (pos[org]) ? targets & PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)] : (assert(false), 0);
             while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
@@ -480,24 +401,10 @@ namespace MoveGen {
         {
             checker_sq = pop_lsq (sliders);
             assert(color (pos[checker_sq]) == ~pos.active);
-            if (BSHP == ptype (pos[checker_sq]))
-            {
-                checker_attacks |= attacks_bb<BSHP> (checker_sq, mocc);
-            }
-            else
-            if (ROOK == ptype (pos[checker_sq]))
-            {
-                checker_attacks |= attacks_bb<ROOK> (checker_sq, mocc);
-            }
-            else
-            if (QUEN == ptype (pos[checker_sq]))
-            {
-                checker_attacks |= attacks_bb<QUEN> (checker_sq, mocc);
-            }
-            else
-            {
-                assert(false);
-            }
+
+            checker_attacks |= BSHP == ptype (pos[checker_sq]) ? attacks_bb<BSHP> (checker_sq, mocc) :
+                               ROOK == ptype (pos[checker_sq]) ? attacks_bb<ROOK> (checker_sq, mocc) :
+                               QUEN == ptype (pos[checker_sq]) ? attacks_bb<QUEN> (checker_sq, mocc) : (assert(false), 0);
         }
 
         // Generate evasions for king, capture and non capture moves

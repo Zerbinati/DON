@@ -20,7 +20,7 @@ namespace {
     /// remaining_time()
     u64 remaining_time (Color c, i16 move_num, bool optimum)
     {
-        if (Limits.clock[c].time == 0)
+        if (Limits.clock[c].time <= OverheadMoveTime)
         {
             return 0;
         }
@@ -44,12 +44,12 @@ namespace {
                                                 1 < Limits.movestogo ? 0.75 : 1.5)
                                     * (1 + inc / (Limits.clock[c].time * 8.5)),
                                  1.0);
-        if (   optimum
-            && Ponder)
+        if (   Ponder
+            && optimum)
         {
             ratio *= 1.25;
         }
-        return u64(std::max (Limits.clock[c].time - OverheadMoveTime, 0ULL) * ratio);
+        return u64((Limits.clock[c].time - OverheadMoveTime) * ratio);
     }
 
 }

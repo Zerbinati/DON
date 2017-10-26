@@ -33,31 +33,10 @@ namespace Notation {
             auto dst = dst_sq (m);
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
-            Bitboard attacks;
-            if (NIHT == ptype (pos[org]))
-            {
-                attacks = PieceAttacks[NIHT][dst];
-            }
-            else
-            if (BSHP == ptype (pos[org]))
-            {
-                attacks = attacks_bb<BSHP> (dst, pos.pieces ());
-            }
-            else
-            if (ROOK == ptype (pos[org]))
-            {
-                attacks = attacks_bb<ROOK> (dst, pos.pieces ());
-            }
-            else
-            if (QUEN == ptype (pos[org]))
-            {
-                attacks = attacks_bb<QUEN> (dst, pos.pieces ());
-            }
-            else
-            {
-                assert(false);
-                attacks = 0;
-            }
+            Bitboard attacks = NIHT == ptype (pos[org]) ? PieceAttacks[NIHT][dst] :
+                               BSHP == ptype (pos[org]) ? attacks_bb<BSHP> (dst, pos.pieces ()) :
+                               ROOK == ptype (pos[org]) ? attacks_bb<ROOK> (dst, pos.pieces ()) :
+                               QUEN == ptype (pos[org]) ? attacks_bb<QUEN> (dst, pos.pieces ()) : (assert(false), 0);
 
             Bitboard amb = (attacks & pos.pieces (pos.active, ptype (pos[org]))) ^ org;
             Bitboard pcs = amb; // & ~pos.abs_blockers (pos.active); // If pinned piece is considered as ambiguous
@@ -84,7 +63,7 @@ namespace Notation {
             ostringstream oss;
             if (abs (v) < +VALUE_MATE - i32(MaxPlies))
             {
-                oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (WHITE == c ? +v : -v);
+                oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (WHITE == c ? +v : -v) / 100.0;
             }
             else
             {

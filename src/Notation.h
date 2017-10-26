@@ -35,12 +35,18 @@ namespace Notation {
     inline std::string to_string (Value v)
     {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
-
-        return abs (v) < +VALUE_MATE - i32(MaxPlies) ?
-            "cp "   + std::to_string (i32(100 * value_to_cp (v))) :
-            "mate " + std::to_string (i32(v > VALUE_ZERO ?
-                                            +(VALUE_MATE - v + 1) :
-                                            -(VALUE_MATE + v + 0)) / 2);
+        std::stringstream ss;
+        if (abs (v) < +VALUE_MATE - i32(MaxPlies))
+        {
+            ss << "cp " << value_to_cp (v);
+        }
+        else
+        {
+            ss << "mate " << i32(v > VALUE_ZERO ?
+                                +(VALUE_MATE - v + 1) :
+                                -(VALUE_MATE + v + 0)) / 2;
+        }
+        return ss.str ();
     }
 
     inline Square fix_dst_sq (Move m)

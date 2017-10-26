@@ -513,32 +513,13 @@ bool Position::gives_check (Move m) const
     if (PROMOTE == mtype (m))
     {
         // Promotion with check?
-        if (NIHT == promote (m))
-        {
-            return contains (PieceAttacks[NIHT][dst_sq (m)], square<KING> (~active));
-        }
-        else
-        if (BSHP == promote (m))
-        {
-            return contains (PieceAttacks[BSHP][dst_sq (m)], square<KING> (~active))
-                && contains (attacks_bb<BSHP> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active));
-        }
-        else
-        if (ROOK == promote (m))
-        {
-            return contains (PieceAttacks[ROOK][dst_sq (m)], square<KING> (~active))
-                && contains (attacks_bb<ROOK> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active));
-        }
-        else
-        if (QUEN == promote (m))
-        {
-            return contains (PieceAttacks[QUEN][dst_sq (m)], square<KING> (~active))
-                && contains (attacks_bb<QUEN> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active));
-        }
-        else
-        {
-            assert(false);
-        }
+        return NIHT == promote (m) ? contains (PieceAttacks[NIHT][dst_sq (m)], square<KING> (~active)) :
+               BSHP == promote (m) ? contains (PieceAttacks[BSHP][dst_sq (m)], square<KING> (~active))
+                                  && contains (attacks_bb<BSHP> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active)) :
+               ROOK == promote (m) ? contains (PieceAttacks[ROOK][dst_sq (m)], square<KING> (~active))
+                                  && contains (attacks_bb<ROOK> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active)) :
+               QUEN == promote (m) ? contains (PieceAttacks[QUEN][dst_sq (m)], square<KING> (~active))
+                                  && contains (attacks_bb<QUEN> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active)) : (assert(false), false);
     }
 
     return false;
