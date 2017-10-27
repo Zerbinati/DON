@@ -131,12 +131,12 @@ private:
 
     const PieceDestinyHistory **piece_destiny;
 
+    size_t i;
     ValMoves moves;
     std::vector<Move> killers_moves
         ,             bad_capture_moves;
 
     u08 stage;
-    u08 m;
 
     template<GenType GT>
     void value ();

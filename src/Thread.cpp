@@ -423,7 +423,6 @@ namespace Threading {
             delete back ();
             pop_back (); // Get rid of stale pointer
         }
-        shrink_to_fit ();
         sync_cout << "info string Thread(s) used " << threads << sync_endl;
     }
     /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and returns immediately.

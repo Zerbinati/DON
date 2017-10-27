@@ -390,11 +390,13 @@ namespace Evaluator {
                 {
                     Bitboard att = attacks & ~pos.abs_blockers (Own);
                     Bitboard qp = pos.pieces (Own, PAWN) & att & front_rank_bb (Own, s);
+                    Bitboard qb = pos.pieces (Own, BSHP) & att & PieceAttacks[BSHP][s];
+                    Bitboard qr = pos.pieces (Own, ROOK) & att & PieceAttacks[ROOK][s];
                     dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                        & (  attacks
                                           | ((shift<LCap> (qp) | shift<RCap> (qp)) & PieceAttacks[BSHP][s])
-                                          | attacks_bb<BSHP> (s, pos.pieces () ^ (pos.pieces (Own, BSHP) & att & PieceAttacks[BSHP][s]))
-                                          | attacks_bb<ROOK> (s, pos.pieces () ^ (pos.pieces (Own, ROOK) & att & PieceAttacks[ROOK][s])));
+                                          | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
+                                          | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
                 }
                 else
                 {

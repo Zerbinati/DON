@@ -34,7 +34,7 @@ namespace BitBoard {
 
     const Bitboard Side_bb[] =
     {
-        FE_bb|FF_bb|FG_bb|FH_bb,
+        FH_bb|FG_bb|FF_bb|FE_bb,
         FA_bb|FB_bb|FC_bb|FD_bb,
         FC_bb|FD_bb|FE_bb|FF_bb
     };
@@ -268,14 +268,9 @@ namespace BitBoard {
     }
     
     // attacks_bb(s, occ) takes a square and a bitboard of occupied squares,
-    // and returns a bitboard representing all squares attacked by PT (Bishop or Rook) on the given square.
+    // and returns a bitboard representing all squares attacked by PT (Bishop or Rook or Queen) on the given square.
     template<PieceType PT> Bitboard attacks_bb (Square, Bitboard);
     
-    // Attacks of the Knight with occupancy
-    template<> inline Bitboard attacks_bb<NIHT> (Square s, Bitboard)
-    {
-        return PieceAttacks[NIHT][s];
-    }
     // Attacks of the Bishop with occupancy
     template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
     {

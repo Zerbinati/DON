@@ -113,12 +113,12 @@ namespace Threading {
         Position root_pos;
         RootMoves root_moves;
 
-        i16  running_depth
-           , finished_depth;
+        i16   running_depth
+            , finished_depth
+            , sel_depth;
 
         size_t pv_index;
-
-        i16  sel_depth;
+        
         std::atomic<u64> nodes
             ,            tb_hits;
 

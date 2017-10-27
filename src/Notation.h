@@ -35,18 +35,18 @@ namespace Notation {
     inline std::string to_string (Value v)
     {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
-        std::stringstream ss;
+        std::ostringstream oss;
         if (abs (v) < +VALUE_MATE - i32(MaxPlies))
         {
-            ss << "cp " << value_to_cp (v);
+            oss << "cp " << value_to_cp (v);
         }
         else
         {
-            ss << "mate " << i32(v > VALUE_ZERO ?
+            oss << "mate " << i32(v > VALUE_ZERO ?
                                 +(VALUE_MATE - v + 1) :
                                 -(VALUE_MATE + v + 0)) / 2;
         }
-        return ss.str ();
+        return oss.str ();
     }
 
     inline Square fix_dst_sq (Move m)
@@ -64,25 +64,9 @@ namespace Notation {
     extern Move move_from_san (const std::string&, Position&);
 
     //extern std::string move_to_lan (Move, Position&);
-    //extern Move move_from_lan (const std::string &, Position &);
+    //extern Move move_from_lan (const std::string&, Position&);
 
     extern std::string pretty_pv_info (Thread *const&);
-}
-
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
-{
-    os << Notation::move_to_can (m);
-    return os;
-}
-
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<< (std::basic_ostream<CharT, Traits> &os, Color c)
-{
-    os << ColorChar[c];
-    return os;
 }
 
 template<typename CharT, typename Traits>
@@ -111,44 +95,26 @@ inline std::basic_ostream<CharT, Traits>&
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
+    operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
+{
+    os << Notation::move_to_can (m);
+    return os;
+}
+
+template<typename CharT, typename Traits>
+inline std::basic_ostream<CharT, Traits>&
+    operator<< (std::basic_ostream<CharT, Traits> &os, Color c)
+{
+    os << ColorChar[c];
+    return os;
+}
+
+template<typename CharT, typename Traits>
+inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, Piece p)
 {
     os << PieceChar[p];
     return os;
 }
-
-//inline std::string to_string (CastleRight cr)
-//{
-//    std::string scr;
-//    if (CR_NONE != (cr & CR_ANY))
-//    {
-//        if (CR_NONE != (cr & CR_WHITE))
-//        {
-//            scr += "W:";
-//            if (CR_NONE != (cr & CR_WKING)) scr += " OO";
-//            if (CR_NONE != (cr & CR_WQUEN)) scr += " OOO";
-//            scr += " - ";
-//        }
-//        if (CR_NONE != (cr & CR_BLACK))
-//        {
-//            scr += "B:";
-//            if (CR_NONE != (cr & CR_BKING)) scr += " OO";
-//            if (CR_NONE != (cr & CR_BQUEN)) scr += " OOO";
-//        }
-//    }
-//    else
-//    {
-//        scr = "-";
-//    }
-//    return scr;
-//}
-//
-//template<typename CharT, typename Traits>
-//inline std::basic_ostream<CharT, Traits>&
-//operator<< (std::basic_ostream<CharT, Traits> &os, CastleRight cr)
-//{
-//    os << to_string (cr);
-//    return os;
-//}
 
 #endif // _NOTATION_H_INC_

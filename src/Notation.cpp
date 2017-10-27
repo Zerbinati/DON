@@ -58,18 +58,19 @@ namespace Notation {
         }
 
         // Value to string
-        string pretty_value (Value v, Color c)
+        string pretty_value (Value v)
         {
+            assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
             ostringstream oss;
             if (abs (v) < +VALUE_MATE - i32(MaxPlies))
             {
-                oss << std::setprecision (2) << std::fixed << std::showpos << value_to_cp (WHITE == c ? +v : -v) / 100.0;
+                oss << std::showpos << std::setprecision (2) << std::fixed << value_to_cp (v) / 100.0 << std::noshowpos;
             }
             else
             {
-                oss << "#" << std::showpos << i32(v > VALUE_ZERO ?
+                oss << std::showpos << "#" << i32(v > VALUE_ZERO ?
                                                     +(VALUE_MATE - v + 1) :
-                                                    -(VALUE_MATE + v + 0)) / 2;
+                                                    -(VALUE_MATE + v + 0)) / 2 << std::noshowpos;
             }
             return oss.str ();
         }
@@ -242,9 +243,7 @@ namespace Notation {
     //    return MOVE_NONE;
     //}
 
-    /// Returns formated human-readable search information,
-    /// typically to be appended to the search log file.
-    /// It uses the two helpers to pretty format the value and time respectively.
+    /// Returns formated human-readable search information.
     string pretty_pv_info (Thread *const &th)
     {
         const double K = 1000.0;
@@ -253,7 +252,7 @@ namespace Notation {
 
         ostringstream oss;
         oss << std::setw ( 4) << th->finished_depth
-            << std::setw ( 8) << pretty_value (root_move.new_value, th->root_pos.active)
+            << std::setw ( 8) << pretty_value (root_move.new_value)
             << std::setw (12) << pretty_time (Threadpool.main_thread ()->time_mgr.elapsed_time ());
         
         if (nodes < 10*(K))

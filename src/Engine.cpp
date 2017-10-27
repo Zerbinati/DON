@@ -244,7 +244,6 @@ namespace Engine {
                         }
                         search_moves.push_back (m);
                     }
-                    search_moves.shrink_to_fit ();
                 }
             }
             Threadpool.start_thinking (pos, states, limits, search_moves, ponder);
@@ -314,7 +313,6 @@ namespace Engine {
                     }
                 }
                 ifs.close ();
-                cmds.shrink_to_fit ();
             }
 
             bool chess960 = Position::Chess960;

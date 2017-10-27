@@ -70,7 +70,6 @@ void RootMoves::initialize (const Position &pos, const vector<Move> &search_move
             *this += vm.move;
         }
     }
-    shrink_to_fit ();
 }
 /// RootMoves::operator string()
 RootMoves::operator string () const
@@ -220,9 +219,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
 }
 
 /// MovePicker::value() assigns a numerical value to each move in a list, used for sorting.
-/// Captures are ordered by Most Valuable Victim/Least Valuable Attacker (MVV/LVA), preferring captures near our home rank.
-/// Surprisingly, this appears to perform slightly better than SEE-based move ordering,
-/// exchanging big pieces before capturing a hanging piece probably helps to reduce the subtree size.
+/// Captures are ordered by Most Valuable Victim (MVV), preferring captures near our home rank.
 /// Quiets are ordered using the histories.
 template<GenType GT>
 void MovePicker::value ()
@@ -240,7 +237,6 @@ void MovePicker::value ()
         {
             assert(pos.capture_or_promotion (vm.move));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
-                     //- ptype (pos[org_sq (vm.move)])
                      - 200 * rel_rank (pos.active, dst_sq (vm.move));
         }
         else
@@ -266,7 +262,7 @@ void MovePicker::value ()
 /// It is faster than sorting all the moves in advance when there are few moves.
 const ValMove& MovePicker::next_max_move ()
 {
-    auto beg = moves.begin () + m++;
+    auto beg = moves.begin () + i++;
     auto max = std::max_element (beg, moves.end ());
     if (beg != max)
     {
@@ -278,7 +274,7 @@ const ValMove& MovePicker::next_max_move ()
 /// MovePicker::next_move() is the most important method of the MovePicker class.
 /// It returns a new legal move every time it is called, until there are no more moves left.
 /// It picks the move with the biggest value from a list of generated moves
-/// taking care not to return the ttMove if it has already been searched.
+/// taking care not to return the tt_move if it has already been searched.
 Move MovePicker::next_move ()
 {
     START:
@@ -311,16 +307,17 @@ Move MovePicker::next_move ()
             value<GenType::CAPTURE> ();
         }
         ++stage;
-        m = 0;
+        i = 0;
         /* fallthrough */
     case Stage::GOOD_CAPTURES:
-        while (m < moves.size ())
+        while (i < moves.size ())
         {
             auto move = next_max_move ().move;
             if (pos.see_ge (move))
             {
                 return move;
             }
+            assert(!pos.promotion (move));
             // Losing capture: Add it to the capture moves
             bad_capture_moves.push_back (move);
         }
@@ -354,12 +351,12 @@ Move MovePicker::next_move ()
             }
         }
         ++stage;
-        m = 0;
+        i = 0;
         /* fallthrough */
     case Stage::QUIETS_1:
-        if (m < moves.size ())
+        if (i < moves.size ())
         {
-            auto beg = moves.begin () + m;
+            auto beg = moves.begin () + i;
             auto max = std::max_element (beg, moves.end ());
             if (   !skip_quiets
                 || max->value >= 0)
@@ -375,28 +372,28 @@ Move MovePicker::next_move ()
                         }
                         *max = tmp;
                     }
-                    return ++m, beg->move;
+                    return ++i, beg->move;
                 }
                 ++stage;
                 goto START;
             }
         }
         stage += 2;
-        m = 0;
+        i = 0;
         goto START;
     case Stage::QUIETS_2:
-        if (   m < moves.size ()
+        if (   i < moves.size ()
             && !skip_quiets)
         {
-            return moves[m++].move;
+            return moves[i++].move;
         }
         ++stage;
-        m = 0;
+        i = 0;
         /* fallthrough */
     case Stage::BAD_CAPTURES:
-        if (m < bad_capture_moves.size ())
+        if (i < bad_capture_moves.size ())
         {
-            return bad_capture_moves[m++];
+            return bad_capture_moves[i++];
         }
         break;
 
@@ -417,10 +414,10 @@ Move MovePicker::next_move ()
             value<GenType::EVASION> ();
         }
         ++stage;
-        m = 0;
+        i = 0;
         /* fallthrough */
     case Stage::EVASIONS:
-        if (m < moves.size ())
+        if (i < moves.size ())
         {
             return next_max_move ().move;
         }
@@ -442,10 +439,10 @@ Move MovePicker::next_move ()
             value<GenType::CAPTURE> ();
         }
         ++stage;
-        m = 0;
+        i = 0;
         /* fallthrough */
     case Stage::PROBCUT_CAPTURES:
-        while (m < moves.size ())
+        while (i < moves.size ())
         {
             auto move = next_max_move ().move;
             if (pos.see_ge (move, threshold))
@@ -471,10 +468,10 @@ Move MovePicker::next_move ()
             value<GenType::CAPTURE> ();
         }
         ++stage;
-        m = 0;
+        i = 0;
         /* fallthrough */
     case Stage::QS_CHECK_CAPTURES:
-        if (m < moves.size ())
+        if (i < moves.size ())
         {
             return next_max_move ().move;
         }
@@ -492,12 +489,12 @@ Move MovePicker::next_move ()
             }
         }
         ++stage;
-        m = 0;
+        i = 0;
         /* fallthrough */
     case Stage::QS_CHECK_QUIETS:
-        if (m < moves.size ())
+        if (i < moves.size ())
         {
-            return moves[m++].move;
+            return moves[i++].move;
         }
         break;
 
@@ -517,10 +514,10 @@ Move MovePicker::next_move ()
             value<GenType::CAPTURE> ();
         }
         ++stage;
-        m = 0;
+        i = 0;
         /* fallthrough */
     case Stage::QS_NO_CHECK_CAPTURES:
-        if (m < moves.size ())
+        if (i < moves.size ())
         {
             return next_max_move ().move;
         }
@@ -542,11 +539,11 @@ Move MovePicker::next_move ()
             value<GenType::CAPTURE> ();
         }
         ++stage;
-        m = 0;
+        i = 0;
         /* fallthrough */
     case Stage::QS_RECAPTURES:
         assert(SQ_NO != recap_sq);
-        while (m < moves.size ())
+        while (i < moves.size ())
         {
             auto move = next_max_move ().move;
             if (dst_sq (move) == recap_sq)
@@ -1941,7 +1938,7 @@ namespace Threading {
         }
 
         auto *main_thread =
-            this == Threadpool.main_thread () ?
+            Threadpool.main_thread () == this ?
                 Threadpool.main_thread () :
                 nullptr;
 
@@ -1984,10 +1981,7 @@ namespace Threading {
             }
 
             // MultiPV loop. Perform a full root search for each PV line.
-            for (   pv_index = 0;
-                    !Threadpool.stop
-                 && pv_index < Threadpool.pv_limit;
-                    ++pv_index)
+            for (pv_index = 0; !Threadpool.stop && pv_index < Threadpool.pv_limit; ++pv_index)
             {
                 // Reset UCI info sel_depth for each depth and each PV line
                 sel_depth = 0;
@@ -2313,9 +2307,9 @@ namespace Threading {
 
             // Clear any candidate easy move
             if (   Limits.use_time_management ()
-                && (// Prevents consecutive fast moves
+                && (   // Prevents consecutive fast moves
                        easy_played
-                    // Unstable for the last search iterations
+                       // Unstable for the last search iterations
                     || move_mgr.stable_count < 6))
             {
                 move_mgr.clear ();
@@ -2390,12 +2384,11 @@ namespace Threading {
         }
 
         auto best_move = root_move[0];
-        auto ponder_move =
-            MOVE_NONE != best_move
-         && (   root_move.size () > 1
-             || root_move.extract_ponder_move_from_tt (root_pos)) ?
-                root_move[1] :
-                MOVE_NONE;
+        auto ponder_move = MOVE_NONE != best_move
+                        && (   root_move.size () > 1
+                            || root_move.extract_ponder_move_from_tt (root_pos)) ?
+                               root_move[1] :
+                               MOVE_NONE;
         assert(MOVE_NONE != best_move
             || (MOVE_NONE == best_move
              && MOVE_NONE == ponder_move));

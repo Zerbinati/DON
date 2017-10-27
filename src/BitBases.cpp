@@ -166,7 +166,6 @@ namespace BitBases {
         {
             db.push_back (KPK_Position (idx));
         }
-        db.shrink_to_fit ();
 
         bool repeat;
         // Iterate through the positions until none of the unknown positions can be
