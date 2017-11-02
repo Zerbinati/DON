@@ -270,20 +270,16 @@ namespace Engine {
         /// bench 64 4 5000 movetime current -> search current position with 4 threads for 5 sec (TT = 64MB)
         /// bench 64 1 100000 nodes -> search default positions for 100K nodes (TT = 64MB)
         /// bench 16 1 5 perft -> run perft 5 on default positions
-        vector<string> setup_bench (istringstream &is, const Position &pos)
+        vector<string> setup_bench (istringstream &iss, const Position &pos)
         {
             string token;
 
             // Assign default values to missing arguments
-            string hash    = (is >> token) ? token : "16";
-            string threads = (is >> token) ? token : "1";
-            string value   = (is >> token) ? token : "13";
-            string mode    = (is >> token) && !white_spaces (token) ? token : "depth";
-            string cmd_fn  = (is >> token) && !white_spaces (token) ? token : "default";
-
-            std::ostringstream oss;
-            oss << "go" << " " << mode << " " << value;
-            string go = oss.str ();
+            string hash    = (iss >> token) ? token : "16";
+            string threads = (iss >> token) ? token : "1";
+            string value   = (iss >> token) ? token : "13";
+            string mode    = (iss >> token) && !white_spaces (token) ? token : "depth";
+            string cmd_fn  = (iss >> token) && !white_spaces (token) ? token : "default";
 
             vector<string> cmds;
 
@@ -321,6 +317,8 @@ namespace Engine {
             uci_cmds.emplace_back ("setoption name Threads value " + threads);
             uci_cmds.emplace_back ("setoption name Hash value " + hash);
             uci_cmds.emplace_back ("setoption name Clear Hash");
+
+            string go = string ("go") + " " + mode + " " + value;
 
             for (const auto &cmd : cmds)
             {

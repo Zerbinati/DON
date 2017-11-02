@@ -595,8 +595,8 @@ namespace Evaluator {
             if (king_ring_attackers_count[Opp] + pos.count<QUEN> (Opp) > 1)
             {
                 // Find the attacked squares which are defended only by the king in the king zone...
-                Bitboard king_only_def = pin_attacked_by[Own][KING]
-                                       & pin_attacked_by[Opp][NONE]
+                Bitboard king_only_def =  pin_attacked_by[Own][KING]
+                                       &  pin_attacked_by[Opp][NONE]
                                        & ~dbl_attacked[Own];
                 // ... and those which are not defended at all in the king ring.
                 Bitboard king_ring_undef = king_ring[Own]
@@ -641,10 +641,10 @@ namespace Evaluator {
                 }
 
                 // For other pieces, the safe square also if attacked twice and only defended by a queen.
-                safe_area |= dbl_attacked[Opp]
+                safe_area |=  dbl_attacked[Opp]
                            & ~(  dbl_attacked[Own]
                                | pos.pieces (Opp))
-                           & pin_attacked_by[Own][QUEN];
+                           &  pin_attacked_by[Own][QUEN];
 
                 // Enemy rooks safe and other checks
                 b = rook_attack
@@ -692,14 +692,14 @@ namespace Evaluator {
 
             // King tropism: Find squares that enemy attacks in the friend king flank
             auto kf = _file (fk_sq);
-            b = Camp_bb[Own]
-              & KingFlank_bb[kf]
-              & pin_attacked_by[Opp][NONE];
+            b =  Camp_bb[Own]
+              &  KingFlank_bb[kf]
+              &  pin_attacked_by[Opp][NONE];
             assert(0 == ((WHITE == Own ? b << 4 : b >> 4) & b));
             assert(pop_count (WHITE == Own ? b << 4 : b >> 4) == pop_count (b));
             // Add the squares which are attacked twice in that flank and are not protected by a friend pawn.
-            b = (  b
-                 & dbl_attacked[Opp]
+            b = (   b
+                 &  dbl_attacked[Opp]
                  & ~pin_attacked_by[Own][PAWN])
               | (WHITE == Own ? b << 4 : b >> 4);
             score -= EnemyInFlank * pop_count (b);
@@ -733,20 +733,19 @@ namespace Evaluator {
             Bitboard b;
             
             // Enemy non-pawns
-            Bitboard nonpawns = pos.pieces (Opp)
-                              ^ pos.pieces (Opp, PAWN);
+            Bitboard nonpawns = pos.pieces (Opp) ^ pos.pieces (Opp, PAWN);
 
             // Squares defended by the opponent,
             // - attack the square with a pawn
             // - attack the square twice and not defended twice.
             Bitboard defended = pin_attacked_by[Opp][PAWN]
-                              | (  dbl_attacked[Opp]
+                              | (   dbl_attacked[Opp]
                                  & ~dbl_attacked[Own]);
 
             // Enemy not defended and attacked by any friend piece
-            Bitboard weak_pieces = pos.pieces (Opp)
+            Bitboard weak_pieces =  pos.pieces (Opp)
                                  & ~defended
-                                 & pin_attacked_by[Own][NONE];
+                                 &  pin_attacked_by[Own][NONE];
 
             // Add a bonus according to the type of attacking pieces
 
@@ -792,7 +791,7 @@ namespace Evaluator {
                 score += KingThreat[more_than_one (b) ? 1 : 0];
             }
             // Enemies attacked by friend are hanging
-            b = weak_pieces
+            b =  weak_pieces
               & ~pin_attacked_by[Opp][NONE];
             score += PieceHanged * pop_count (b);
 
@@ -826,20 +825,20 @@ namespace Evaluator {
             }
 
             // Friend pawns can push on the next move
-            b = pos.pieces (Own, PAWN)
+            b =  pos.pieces (Own, PAWN)
               & ~pos.abs_blockers (Own);
             // Friend pawns push
-            b = shift<Push> (b)
+            b =  shift<Push> (b)
               & ~pos.pieces ();
-            b |= shift<Push> (b & rank_bb (WHITE == Own ? R_3 : R_6))
+            b |=  shift<Push> (b & rank_bb (WHITE == Own ? R_3 : R_6))
                & ~pos.pieces ();
             // Friend pawns push safe
-            b &= safe
+            b &=  safe
                & ~pin_attacked_by[Opp][PAWN];
             // Friend pawns push safe attacks an enemy piece not already attacked by pawn
             b = (  shift<LCap> (b)
                  | shift<RCap> (b))
-              & pos.pieces (Opp)
+              &  pos.pieces (Opp)
               & ~pin_attacked_by[Own][PAWN];
             // Bonus Friend pawns push safely can attack an enemy piece not already attacked by pawn
             score += PawnPushThreat * pop_count (b);

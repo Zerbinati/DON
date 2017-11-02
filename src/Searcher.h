@@ -218,6 +218,7 @@ public:
     //void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
     bool extract_ponder_move_from_tt (Position&);
+    bool draw (Position&) const;
 
     explicit operator std::string () const;
 };

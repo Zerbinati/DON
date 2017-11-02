@@ -103,7 +103,7 @@ namespace MoveGen {
             Bitboard Rx_pawns = pos.pieces (Own, PAWN) & ~rank_bb (WHITE == Own ? R_7 : R_2);
 
             Bitboard empties = ~pos.pieces ();
-            Bitboard enemies = pos.pieces (Opp) & targets;
+            Bitboard enemies =  pos.pieces (Opp) & targets;
             // Pawn single-push and double-push, no promotions
             if (   GenType::NATURAL == GT
                 || GenType::EVASION == GT

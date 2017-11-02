@@ -46,6 +46,25 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     pos.undo_move (best_move);
     return 1 < size ();
 }
+/// RootMove::draw()
+bool RootMove::draw (Position &pos) const
+{
+    StateListPtr states (new std::deque<StateInfo> (0));
+    i16 ply = 0;
+    for (auto m : *this)
+    {
+        states->emplace_back ();
+        pos.do_move (m, states->back ());
+        ++ply;
+    }
+    bool d = pos.draw (ply);
+    while (0 != ply)
+    {
+        pos.undo_move ((*this)[--ply]);
+        states->pop_back ();
+    }
+    return d;
+}
 /// RootMove::operator string()
 RootMove::operator string () const
 {
@@ -1267,8 +1286,8 @@ namespace Searcher {
                         auto reduced_depth = i16(depth - (67*depth + 823) / 256 + std::min (i16(tt_eval - beta)/VALUE_MG_PAWN, 3));
 
                         auto null_value = reduced_depth <= 0 ?
-                                -quien_search<false> (pos, ss+1, -beta, -beta+1) :
-                                -depth_search<false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node, false);
+                                            -quien_search<false> (pos, ss+1, -beta, -beta+1) :
+                                            -depth_search<false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node, false);
                         pos.undo_null_move ();
 
                         if (null_value >= beta)
@@ -1287,8 +1306,8 @@ namespace Searcher {
 
                             // Do verification search at high depths.
                             auto value = reduced_depth <= 0 ?
-                                    quien_search<false> (pos, ss, beta-1, beta) :
-                                    depth_search<false> (pos, ss, beta-1, beta, reduced_depth, false, false);
+                                            quien_search<false> (pos, ss, beta-1, beta) :
+                                            depth_search<false> (pos, ss, beta-1, beta, reduced_depth, false, false);
 
                             if (value >= beta)
                             {
@@ -1385,8 +1404,8 @@ namespace Searcher {
 
             bool ttm_capture = false;
             bool pv_exact = PVNode
-                          && tt_hit
-                          && BOUND_EXACT == tte->bound ();
+                         && tt_hit
+                         && BOUND_EXACT == tte->bound ();
 
             const PieceDestinyHistory* piece_destiny[] = { (ss-1)->piece_destiny, (ss-2)->piece_destiny, (ss-3)->piece_destiny, (ss-4)->piece_destiny };
             // Initialize move picker (1) for the current position.
@@ -1522,7 +1541,7 @@ namespace Searcher {
                     else
                     // SEE based pruning.
                     if (   7 > depth
-                        && new_depth < depth
+                        && 0 == extension
                         && !pos.see_ge (move, -VALUE_EG_PAWN*i32(depth)))
                     {
                         continue;
@@ -1542,12 +1561,11 @@ namespace Searcher {
                 ss->played_move = move;
                 ss->piece_destiny = &pos.thread->continuation[mpc][dst];
 
-                i32 own_stats =
-                      pos.thread->butterfly[pos.active][move_pp (move)]
-                    + (*piece_destiny[0])[mpc][dst]
-                    + (*piece_destiny[1])[mpc][dst]
-                    + (*piece_destiny[3])[mpc][dst]
-                    - 4000;
+                i32 own_stats = pos.thread->butterfly[pos.active][move_pp (move)]
+                              + (*piece_destiny[0])[mpc][dst]
+                              + (*piece_destiny[1])[mpc][dst]
+                              + (*piece_destiny[3])[mpc][dst]
+                              - 4000;
 
                 // Step 14. Make the move.
                 pos.do_move (move, si, gives_check);
@@ -1634,13 +1652,11 @@ namespace Searcher {
                 if (fd_search)
                 {
                     value = new_depth <= 0 ?
-                            -quien_search<false> (pos, ss+1, -alfa-1, -alfa) :
-                            -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node, true, own_stats);
+                                -quien_search<false> (pos, ss+1, -alfa-1, -alfa) :
+                                -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node, true, own_stats);
                 }
 
-                // Do a full PV search on following conditions:
-                // - 'first' move.
-                // - 'fail high (alfa < value)' move (only if value < beta otherwise let the parent node fail low with alfa >= value and try another move).
+                // Full PV search.
                 if (   PVNode
                     && (   1 == move_count
                         || (   alfa < value
@@ -1650,8 +1666,8 @@ namespace Searcher {
                     (ss+1)->pv.clear ();
 
                     value = new_depth <= 0 ?
-                            -quien_search<true> (pos, ss+1, -beta, -alfa) :
-                            -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false, true);
+                                -quien_search<true> (pos, ss+1, -beta, -alfa) :
+                                -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false, true);
                 }
 
                 // Step 17. Undo move.
@@ -2111,15 +2127,20 @@ namespace Threading {
                     if (   !Threadpool.stop
                         && !Threadpool.stop_on_ponderhit)
                     {
+                        bool hard_think = DrawValue[root_pos.active] == best_value
+                                       && (  Limits.clock[ root_pos.active].time
+                                           - Limits.clock[~root_pos.active].time) > main_thread->time_mgr.elapsed_time ()
+                                       && root_move.draw (root_pos);
+
                         // Stop the search
                         // -If there is only one legal move available
                         // -If all of the available time has been used
                         // -If matched an easy move from the previous search and just did a fast verification.
                         if (   1 == root_moves.size ()
                             || (  main_thread->time_mgr.elapsed_time () >
-                              u64(main_thread->time_mgr.optimum_time
+                              u64((double) main_thread->time_mgr.optimum_time
                                 // Unstable factor
-                                * (1.0 + main_thread->best_move_change)
+                                * (main_thread->best_move_change + (hard_think ? 2 : 1))
                                 // Improving factor
                                 * std::min (715,
                                   std::max (229,
@@ -2127,10 +2148,12 @@ namespace Threading {
                                           + 119 * (main_thread->failed_low ? 1 : 0)
                                           -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 628))
                             || (main_thread->easy_played =
-                                    (   root_move == main_thread->easy_move
+                                    (   !hard_think
+                                     && root_move == main_thread->easy_move
                                      && main_thread->best_move_change < 0.030
                                      && main_thread->time_mgr.elapsed_time () >
-                                        main_thread->time_mgr.optimum_time * 5 / 44), main_thread->easy_played))
+                                    u64((double) main_thread->time_mgr.optimum_time * 5 / 44)),
+                                main_thread->easy_played))
                         {
                             Threadpool.stop_thinking ();
                         }
@@ -2333,10 +2356,11 @@ namespace Threading {
             Threadpool.stop_on_ponderhit = true;
         }
 
+        // Busy wait for a "stop"/"ponderhit" command.
         while (   (   Limits.infinite
                    || Threadpool.ponder)
                && !Threadpool.stop)
-        {} // Busy wait for a "stop"/"ponderhit" command.
+        {}
 
         Thread *best_thread = this;
         if (voting)
@@ -2432,7 +2456,7 @@ namespace Threading {
             return;
         }
         // At low node count increase the checking rate otherwise use a default value.
-        check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round (double(Limits.nodes) / 0x1000)), 1), 0x1000) : 0x1000);
+        check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
         assert(0 != check_count);
 
         auto elapsed_time = time_mgr.elapsed_time ();
