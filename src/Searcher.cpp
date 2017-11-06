@@ -256,7 +256,7 @@ void MovePicker::value ()
         {
             assert(pos.capture_or_promotion (vm.move));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
-                     + pos.thread->capture_history[pos[org_sq (vm.move)]][dst_sq (vm.move)][pos.cap_type (vm.move)];
+                     + pos.thread->capture_history[pos[org_sq (vm.move)]][move_pp (vm.move)][pos.cap_type (vm.move)];
         }
         else
         if (GenType::QUIET == GT)
@@ -663,10 +663,9 @@ namespace Searcher {
             }
             assert(1 == std::count (ss->killer_moves, ss->killer_moves + MaxKillers, move));
 
-            auto m = (ss-1)->played_move;
-            if (_ok (m))
+            if (_ok ((ss-1)->played_move))
             {
-                pos.thread->counter_moves[pos[fix_dst_sq (m)]][dst_sq (m)] = move;
+                pos.thread->counter_moves.update (pos[fix_dst_sq ((ss-1)->played_move, Position::Chess960)], dst_sq ((ss-1)->played_move), move);
             }
         }
 
@@ -1125,7 +1124,7 @@ namespace Searcher {
                         // Bonus for a quiet tt_move that fails high.
                         if (pos.capture_or_promotion (tt_move))
                         {
-                            pos.thread->capture_history.update (pos[org_sq (tt_move)], dst_sq (tt_move), pos.cap_type (tt_move), stat_bonus (depth));
+                            pos.thread->capture_history.update (pos[org_sq (tt_move)], tt_move, pos.cap_type (tt_move), stat_bonus (depth));
                         }
                         else
                         {
@@ -1141,7 +1140,7 @@ namespace Searcher {
                             //&& !pos.si->promotion
                             && NONE == pos.si->capture)
                         {
-                            update_stacks_continuation (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
+                            update_stacks_continuation (ss-1, pos[fix_dst_sq (last_move, Position::Chess960)], dst_sq (last_move), -stat_bonus (depth + 1));
                         }
                     }
                     else
@@ -1417,7 +1416,7 @@ namespace Searcher {
 
             const PieceDestinyHistory* piece_destiny_history[] = { (ss-1)->piece_destiny_history, (ss-2)->piece_destiny_history, (ss-3)->piece_destiny_history, (ss-4)->piece_destiny_history };
             // Initialize move picker (1) for the current position.
-            MovePicker move_picker (pos, tt_move, depth, piece_destiny_history, ss->killer_moves, _ok (last_move) ? pos.thread->counter_moves[pos[fix_dst_sq (last_move)]][dst_sq (last_move)] : MOVE_NONE);
+            MovePicker move_picker (pos, tt_move, depth, piece_destiny_history, ss->killer_moves, _ok (last_move) ? pos.thread->counter_moves[pos[fix_dst_sq (last_move, Position::Chess960)]][dst_sq (last_move)] : MOVE_NONE);
             // Step 11. Loop through moves
             // Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
@@ -1795,11 +1794,11 @@ namespace Searcher {
                     if (pos.capture_or_promotion (best_move))
                     {
                         auto bonus = stat_bonus (depth);
-                        pos.thread->capture_history.update (pos[org_sq (best_move)], dst_sq (best_move), pos.cap_type (best_move), bonus);
+                        pos.thread->capture_history.update (pos[org_sq (best_move)], best_move, pos.cap_type (best_move), bonus);
                         // Decrease all the other played capture moves.
                         for (auto cm : capture_moves)
                         {
-                            pos.thread->capture_history.update (pos[org_sq (cm)], dst_sq (cm), pos.cap_type (cm), -bonus);
+                            pos.thread->capture_history.update (pos[org_sq (cm)], cm, pos.cap_type (cm), -bonus);
                         }
                     }
                     else
@@ -1823,7 +1822,7 @@ namespace Searcher {
                         //&& !pos.si->promotion
                         && NONE == pos.si->capture)
                     {
-                        update_stacks_continuation (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), -stat_bonus (depth + 1));
+                        update_stacks_continuation (ss-1, pos[fix_dst_sq (last_move, Position::Chess960)], dst_sq (last_move), -stat_bonus (depth + 1));
                     }
                 }
                 else
@@ -1833,7 +1832,7 @@ namespace Searcher {
                     //&& !pos.si->promotion
                     && NONE == pos.si->capture)
                 {
-                    update_stacks_continuation (ss-1, pos[fix_dst_sq (last_move)], dst_sq (last_move), stat_bonus (depth));
+                    update_stacks_continuation (ss-1, pos[fix_dst_sq (last_move, Position::Chess960)], dst_sq (last_move), stat_bonus (depth));
                 }
             }
 

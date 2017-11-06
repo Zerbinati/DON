@@ -120,7 +120,15 @@ typedef ContinuationStatTable ContinuationHistory;
 
 /// PieceDestinyMoveTable stores counter moves indexed by [piece][destiny]
 typedef Table2D<MAX_PIECE, SQ_NO, Move> PieceDestinyMoveTable;
-typedef PieceDestinyMoveTable PieceDestinyMoveHistory;
+/// PieceDestinyMoveHistory is based on PieceDestinyMoveTable
+struct PieceDestinyMoveHistory
+    : public PieceDestinyMoveTable
+{
+    void update (Piece pc, Square dst, Move cm)
+    {
+        (*this)[pc][dst] = cm;
+    }
+};
 
 /// Table3D is a Generic 3-dimensional array used to store various statistics
 template<int Size1, int Size2, int Size3, typename T>
@@ -143,14 +151,14 @@ struct Table3D
 };
 
 /// CapturePieceDestinyTable stores stats indexed by [piece][destiny][captured piece type]
-typedef Table3D<MAX_PIECE, SQ_NO, MAX_PTYPE, i16> CapturePieceDestinyStatTable;
+typedef Table3D<MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE, i16> CapturePieceDestinyStatTable;
 /// CapturePieceDestinyHistory is based on CapturePieceDestinyStatTable
 struct CapturePieceDestinyHistory
     : public CapturePieceDestinyStatTable
 {
-    void update (Piece pc, Square dst, PieceType ct, i32 bonus)
+    void update (Piece pc, Move m, PieceType ct, i32 bonus)
     {
-        Table3D::update ((*this)[pc][dst][ct], bonus, 324, 2);
+        Table3D::update ((*this)[pc][move_pp (m)][ct], bonus, 324, 2);
     }
 };
 

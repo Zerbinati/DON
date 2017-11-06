@@ -527,6 +527,13 @@ inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 inline MoveType  mtype   (Move m) { return MoveType(m & PROMOTE); }
 inline i16       move_pp (Move m) { return m & 0x0FFF; }
 inline void      promote (Move &m, PieceType pt) { m = Move((m & 0x0FFF) + (PROMOTE + ((pt - 1) << 12))); }
+inline Square fix_dst_sq (Move m, bool chess960)
+{
+    return mtype (m) != CASTLE
+        || chess960 ?
+        dst_sq (m) :
+        (dst_sq (m) > org_sq (m) ? F_G : F_C) | _rank (dst_sq (m));
+}
 
 template<MoveType MT>
 inline Move mk_move (Square org, Square dst)               { return Move(MT + (org << 6) + dst); }
