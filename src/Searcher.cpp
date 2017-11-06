@@ -238,7 +238,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
 }
 
 /// MovePicker::value() assigns a numerical value to each move in a list, used for sorting.
-/// Captures are ordered by Most Valuable Victim (MVV), preferring captures near our home rank.
+/// Captures are ordered by Most Valuable Victim (MVV) with using the histories.
 /// Quiets are ordered using the histories.
 template<GenType GT>
 void MovePicker::value ()
@@ -1123,17 +1123,18 @@ namespace Searcher {
                     if (tt_value >= beta)
                     {
                         // Bonus for a quiet tt_move that fails high.
-                        if (!pos.capture_or_promotion (tt_move))
+                        if (pos.capture_or_promotion (tt_move))
+                        {
+                            pos.thread->capture_history.update (pos[org_sq (tt_move)], dst_sq (tt_move), pos.cap_type (tt_move), stat_bonus (depth));
+                        }
+                        else
                         {
                             update_killers (ss, pos, tt_move);
                             auto bonus = stat_bonus (depth);
                             pos.thread->butterfly_history.update (pos.active, tt_move, bonus);
                             update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), bonus);
                         }
-                        else
-                        {
-                            pos.thread->capture_history.update (pos[org_sq (tt_move)], dst_sq (tt_move), pos.cap_type (tt_move), stat_bonus (depth));
-                        }
+                        
                         // Extra penalty for a quiet tt_move in previous ply when it gets refuted.
                         if (   1 == (ss-1)->move_count
                             && _ok (last_move)
@@ -1757,13 +1758,13 @@ namespace Searcher {
 
                 if (move != best_move)
                 {
-                    if (!capture_or_promotion)
+                    if (capture_or_promotion)
                     {
-                        quiet_moves.push_back (move);
+                        capture_moves.push_back (move);
                     }
                     else
                     {
-                        capture_moves.push_back (move);
+                        quiet_moves.push_back (move);
                     }
                 }
             }
@@ -1791,7 +1792,17 @@ namespace Searcher {
                 // Quiet best move: update move sorting heuristics.
                 if (MOVE_NONE != best_move)
                 {
-                    if (!pos.capture_or_promotion (best_move))
+                    if (pos.capture_or_promotion (best_move))
+                    {
+                        auto bonus = stat_bonus (depth);
+                        pos.thread->capture_history.update (pos[org_sq (best_move)], dst_sq (best_move), pos.cap_type (best_move), bonus);
+                        // Decrease all the other played capture moves.
+                        for (auto cm : capture_moves)
+                        {
+                            pos.thread->capture_history.update (pos[org_sq (cm)], dst_sq (cm), pos.cap_type (cm), -bonus);
+                        }
+                    }
+                    else
                     {
                         update_killers (ss, pos, best_move);
                         auto bonus = stat_bonus (depth);
@@ -1804,16 +1815,7 @@ namespace Searcher {
                             update_stacks_continuation (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                         }
                     }
-                    else
-                    {
-                        auto bonus = stat_bonus (depth);
-                        pos.thread->capture_history.update (pos[org_sq (best_move)], dst_sq (best_move), pos.cap_type (best_move), bonus);
-                        // Decrease all the other played capture moves.
-                        for (auto cm : capture_moves)
-                        {
-                            pos.thread->capture_history.update (pos[org_sq (cm)], dst_sq (cm), pos.cap_type (cm), -bonus);
-                        }
-                    }
+                    
 
                     // Penalty for a quiet best move in previous ply when it gets refuted.
                     if (   1 == (ss-1)->move_count

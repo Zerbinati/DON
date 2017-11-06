@@ -137,7 +137,7 @@ struct Table3D
     {
         assert (abs (W*D) < (std::numeric_limits<T>::max)()); // Ensure range is [-W * D, +W * D]
         assert (abs (bonus) <= D); // Ensure we don't overflow
-        entry += T (bonus * W - entry * abs (bonus) / D);
+        entry += T(W*bonus - entry*abs (bonus) / D);
         assert (abs (entry) <= W*D);
     }
 };
