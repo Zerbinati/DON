@@ -75,45 +75,6 @@ void TimeManager::initialize (Color c, i16 ply)
     maximum_time = remaining_time (c, move_num, false);
 }
 
-/// MoveManager::clear() 
-void MoveManager::clear ()
-{
-    stable_count = 0;
-    exp_posi_key = 0;
-    std::fill_n (pv, 3, MOVE_NONE);
-}
-/// MoveManager::update()
-void MoveManager::update (Position &pos, const vector<Move> &new_pv)
-{
-    assert(new_pv.size () >= 3
-        && new_pv[2] != MOVE_NONE);
-
-    if (new_pv[2] == pv[2])
-    {
-        if (++stable_count >= 4)
-        {
-            if (!std::equal (new_pv.begin (), new_pv.begin () + 3, pv))
-            {
-                std::copy (new_pv.begin (), new_pv.begin () + 3, pv);
-
-                StateInfo si[2];
-                pos.do_move (new_pv[0], si[0]);
-                pos.do_move (new_pv[1], si[1]);
-                exp_posi_key = pos.si->posi_key;
-                pos.undo_move (new_pv[1]);
-                pos.undo_move (new_pv[0]);
-            }
-        }
-    }
-    else
-    {
-        stable_count = 0;
-        exp_posi_key = 0;
-        std::fill_n (pv, 2, MOVE_NONE);
-        pv[2] = new_pv[2];
-    }
-}
-
 /// SkillManager::pick_best_move() chooses best move among a set of RootMoves when playing with a strength handicap,
 /// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 void SkillManager::pick_best_move (const RootMoves &root_moves)
@@ -371,11 +332,12 @@ namespace Threading {
     MainThread::MainThread (size_t n)
         : Thread (n)
         , check_count (0)
-        , easy_played (false)
         , failed_low (false)
         , best_move_change (0.0)
-        , easy_move (MOVE_NONE)
         , last_value (VALUE_NONE)
+        , last_best_move (MOVE_NONE)
+        , last_best_move_depth (0)
+        , last_time_reduction (1.0)
     {}
     /// MainThread::clear()
     void MainThread::clear ()
@@ -383,7 +345,6 @@ namespace Threading {
         Thread::clear();
         if (Limits.use_time_management ())
         {
-            move_mgr.clear ();
             last_value = VALUE_NONE;
         }
     }

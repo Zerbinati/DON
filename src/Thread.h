@@ -35,33 +35,6 @@ public:
     void initialize (Color, i16);
 };
 
-/// MoveManager class is used to detect a so called 'easy move'.
-/// When PV is stable across multiple search iterations engine can fast return the best move.
-class MoveManager
-{
-private:
-    Key  exp_posi_key;
-    Move pv[3];
-
-public:
-    // Keep track of how many times in a row the 3rd ply remains stable
-    u08  stable_count;
-
-    MoveManager () = default;
-    MoveManager (const MoveManager&) = delete;
-    MoveManager& operator= (const MoveManager&) = delete;
-
-    Move easy_move (Key posi_key) const
-    {
-        return posi_key == exp_posi_key ?
-                pv[2] : MOVE_NONE;
-    }
-
-    void clear ();
-
-    void update (Position&, const std::vector<Move>&);
-};
-
 /// Skill Manager class is used to implement strength limit
 class SkillManager
 {
@@ -150,18 +123,18 @@ namespace Threading {
         : public Thread
     {
     public:
-        i16  check_count;
+        i16    check_count;
 
-        bool easy_played
-           , failed_low;
+        bool   failed_low;
 
         double best_move_change;
 
-        Move  easy_move;
-        Value last_value;
+        Value  last_value;
+        Move   last_best_move;
+        i16    last_best_move_depth;
+        double last_time_reduction;
 
         TimeManager  time_mgr;
-        MoveManager  move_mgr;
         SkillManager skill_mgr;
 
         explicit MainThread (size_t n);

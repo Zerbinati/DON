@@ -1918,6 +1918,8 @@ namespace Searcher {
         Threadpool.stop = true;
         Threadpool.main_thread ()->wait_while_busy ();
         Threadpool.main_thread ()->time_mgr.available_nodes = 0;
+        Threadpool.main_thread ()->last_value = VALUE_NONE;
+        Threadpool.main_thread ()->last_time_reduction = 1.0;
         if (!RetainHash)
         {
             TT.clear ();
@@ -2092,23 +2094,24 @@ namespace Threading {
             if (!Threadpool.stop)
             {
                 finished_depth = running_depth;
+            }
 
-                assert(root_moves[0].new_value == best_value);
+            assert(root_moves[0].new_value == best_value);
 
-                //if (0 != ContemptValue)
-                //{
-                //    auto valued_contempt = Value(i32 (best_value)/ContemptValue);
-                //    DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] - valued_contempt;
-                //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
-                //}
+            //if (0 != ContemptValue)
+            //{
+            //    auto valued_contempt = Value(i32(best_value)/ContemptValue);
+            //    DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] - valued_contempt;
+            //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
+            //}
 
-                // Has any of the threads found a "mate in <x>"?
-                if (   !Threadpool.stop_on_ponderhit
-                    && 0 != Limits.mate
-                    && best_value >= +VALUE_MATE - 2*Limits.mate)
-                {
-                    Threadpool.stop_thinking ();
-                }
+            // Has any of the threads found a "mate in <x>"?
+            if (   !Threadpool.stop
+                && !Threadpool.stop_on_ponderhit
+                && 0 != Limits.mate
+                && best_value >= +VALUE_MATE - 2*Limits.mate)
+            {
+                Threadpool.stop_thinking ();
             }
 
             if (nullptr != main_thread)
@@ -2124,48 +2127,54 @@ namespace Threading {
                 if (Limits.use_time_management ())
                 {
                     auto &root_move = root_moves[0];
+                    
                     if (   !Threadpool.stop
                         && !Threadpool.stop_on_ponderhit)
                     {
+                        if (root_move[0] != main_thread->last_best_move)
+                        {
+                            main_thread->last_best_move = root_move[0];
+                            main_thread->last_best_move_depth = running_depth;
+                        }
+
                         bool hard_think = DrawValue[root_pos.active] == best_value
                                        && (  Limits.clock[ root_pos.active].time
                                            - Limits.clock[~root_pos.active].time) > main_thread->time_mgr.elapsed_time ()
                                        && root_move.draw (root_pos);
 
+                        // If the best_move is stable over several iterations, reduce time for this move,
+                        // the longer the move has been stable, the more.
+                        // Use part of the gained time from a previous stable move for the current move.
+                        double time_reduction = 1.0;
+                        for (auto i : { 3, 4, 5 })
+                        {
+                            if (   !hard_think
+                                && main_thread->last_best_move_depth * i < finished_depth)
+                            {
+                                time_reduction *= 1.3;
+                            }
+                        }
+
                         // Stop the search
                         // -If there is only one legal move available
                         // -If all of the available time has been used
-                        // -If matched an easy move from the previous search and just did a fast verification.
                         if (   1 == root_moves.size ()
                             || (  main_thread->time_mgr.elapsed_time () >
-                              u64((double) main_thread->time_mgr.optimum_time
+                              u64(main_thread->time_mgr.optimum_time
                                 // Unstable factor
                                 * (main_thread->best_move_change + (hard_think ? 2 : 1))
+                                * std::pow (main_thread->last_time_reduction, 0.51) / time_reduction
                                 // Improving factor
                                 * std::min (715,
                                   std::max (229,
                                             357
                                           + 119 * (main_thread->failed_low ? 1 : 0)
-                                          -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 628))
-                            || (main_thread->easy_played =
-                                    (   !hard_think
-                                     && root_move == main_thread->easy_move
-                                     && main_thread->best_move_change < 0.030
-                                     && main_thread->time_mgr.elapsed_time () >
-                                    u64((double) main_thread->time_mgr.optimum_time * 5 / 44)),
-                                main_thread->easy_played))
+                                          -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 628)))
                         {
                             Threadpool.stop_thinking ();
                         }
-                    }
 
-                    if (3 <= root_move.size ())
-                    {
-                        main_thread->move_mgr.update (root_pos, root_move);
-                    }
-                    else
-                    {
-                        main_thread->move_mgr.clear ();
+                        main_thread->last_time_reduction = time_reduction;
                     }
                 }
 
@@ -2302,12 +2311,12 @@ namespace Threading {
 
             if (Limits.use_time_management ())
             {
-                easy_move = move_mgr.easy_move (root_pos.si->posi_key);
-                move_mgr.clear ();
-                easy_played = false;
                 failed_low = false;
                 best_move_change = 0.0;
+                last_best_move = MOVE_NONE;
+                last_best_move_depth = 0;
             }
+
             if (skill_mgr.enabled ())
             {
                 skill_mgr.best_move = MOVE_NONE;
@@ -2328,15 +2337,6 @@ namespace Threading {
 
             Thread::search (); // Let's start searching !
 
-            // Clear any candidate easy move
-            if (   Limits.use_time_management ()
-                && (   // Prevents consecutive fast moves
-                       easy_played
-                       // Unstable for the last search iterations
-                    || move_mgr.stable_count < 6))
-            {
-                move_mgr.clear ();
-            }
             // Swap best PV line with the sub-optimal one if skill level is enabled
             if (skill_mgr.enabled ())
             {
@@ -2378,7 +2378,6 @@ namespace Threading {
             }
             // Check if there is better thread than main thread.
             if (   1 == Threadpool.pv_limit
-                && !easy_played
                 && 0 == Limits.depth // Depth limit search don't use deeper thread
                 && MOVE_NONE != root_moves[0][0]
                 && !skill_mgr.enabled ())
