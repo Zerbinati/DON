@@ -3,6 +3,7 @@
 
 #include <array>
 #include <vector>
+#include <limits>
 
 #include "MoveGenerator.h"
 #include "Position.h"
@@ -78,10 +79,10 @@ struct Table2D
 
     void update (T &entry, i32 bonus, const i16 D)
     {
-        assert(32*D < INT16_MAX); // Ensure 32*D is in range INT16_MAX
+        assert(abs (32*D) < (std::numeric_limits<T>::max)()); // Ensure range is [-32 * D, +32 * D]
         assert(abs (bonus) <= D); // Ensure bonus don't overflow
         entry += T(32*bonus - entry*abs (bonus) / D);
-        assert(abs (entry) < INT16_MAX);
+        assert(abs (entry) <= 32*D);
     }
 };
 
@@ -101,23 +102,58 @@ struct ButterflyHistory
 
 /// PieceDestinyStatTable store stats indexed by [piece][destiny].
 typedef Table2D<MAX_PIECE, SQ_NO, i16> PieceDestinyStatTable;
-/// PieceToHistory is like ButterflyHistory, but is based on PieceDestinyStatTable.
+/// PieceDestinyHistory is based on PieceDestinyStatTable.
 struct PieceDestinyHistory
     : public PieceDestinyStatTable
 {
-    /// Update by piece, square (dst), bonus
-    void update (Piece pc, Square s, i32 bonus)
+    /// Update by piece, destiny, bonus
+    void update (Piece pc, Square dst, i32 bonus)
     {
-        Table2D::update ((*this)[pc][s], bonus, 936);
+        Table2D::update ((*this)[pc][dst], bonus, 936);
     }
 };
 
 /// ContinuationStatTable is the history of a given pair of moves, usually the current one given a previous one.
 /// History table is based on PieceDestinyStatTable instead of ButterflyStatTable.
 typedef Table2D<MAX_PIECE, SQ_NO, PieceDestinyHistory> ContinuationStatTable;
+typedef ContinuationStatTable ContinuationHistory;
 
 /// PieceDestinyMoveTable stores counter moves indexed by [piece][destiny]
 typedef Table2D<MAX_PIECE, SQ_NO, Move> PieceDestinyMoveTable;
+typedef PieceDestinyMoveTable PieceDestinyMoveHistory;
+
+/// Table3D is a Generic 3-dimensional array used to store various statistics
+template<int Size1, int Size2, int Size3, typename T>
+struct Table3D
+    : public std::array<std::array<std::array<T, Size3>, Size2>, Size1>
+{
+    void fill (const T &val)
+    {
+        T *ptr = &(*this)[0][0][0];
+        std::fill (ptr, ptr + sizeof (*this) / sizeof (*ptr), val);
+    }
+
+    void update (T &entry, i32 bonus, const i16 D, const i16 W)
+    {
+        assert (abs (W*D) < (std::numeric_limits<T>::max)()); // Ensure range is [-W * D, +W * D]
+        assert (abs (bonus) <= D); // Ensure we don't overflow
+        entry += T (bonus * W - entry * abs (bonus) / D);
+        assert (abs (entry) <= W*D);
+    }
+};
+
+/// CapturePieceDestinyTable stores stats indexed by [piece][destiny][captured piece type]
+typedef Table3D<MAX_PIECE, SQ_NO, MAX_PTYPE, i16> CapturePieceDestinyStatTable;
+/// CapturePieceDestinyHistory is based on CapturePieceDestinyStatTable
+struct CapturePieceDestinyHistory
+    : public CapturePieceDestinyStatTable
+{
+    void update (Piece pc, Square dst, PieceType ct, i32 bonus)
+    {
+        Table3D::update ((*this)[pc][dst][ct], bonus, 324, 2);
+    }
+};
+
 
 /// MovePicker class is used to pick one legal moves from the current position.
 class MovePicker
@@ -129,7 +165,7 @@ private:
     Value threshold;
     Square recap_sq;
 
-    const PieceDestinyHistory **piece_destiny;
+    const PieceDestinyHistory **piece_destiny_history;
 
     size_t i;
     ValMoves moves;
@@ -167,7 +203,7 @@ public:
     Move  killer_moves[MaxKillers];
     u08   move_count;
     Value static_eval;
-    PieceDestinyHistory *piece_destiny;
+    PieceDestinyHistory *piece_destiny_history;
 
     std::vector<Move> pv;
 };

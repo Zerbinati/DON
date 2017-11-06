@@ -314,15 +314,16 @@ namespace Threading {
         tb_hits = 0;
 
         counter_moves.fill (MOVE_NONE);
-        butterfly.fill (0);
-        for (auto &pd : continuation)
+        butterfly_history.fill (0);
+        capture_history.fill (0);
+        for (auto &pd : continuation_history)
         {
             for (auto &piece_destiny : pd)
             {
                 piece_destiny.fill (0);
             }
         }
-        continuation[NO_PIECE][0].fill (CounterMovePruneThreshold - 1);
+        continuation_history[NO_PIECE][0].fill (CounterMovePruneThreshold - 1);
 
         pawn_table.fill (Pawns::Entry ());
         matl_table.fill (Material::Entry ());
