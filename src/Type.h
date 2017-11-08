@@ -527,7 +527,7 @@ inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 inline MoveType  mtype   (Move m) { return MoveType(m & PROMOTE); }
 inline i16       move_pp (Move m) { return m & 0x0FFF; }
 inline void      promote (Move &m, PieceType pt) { m = Move((m & 0x0FFF) + (PROMOTE + ((pt - 1) << 12))); }
-inline Square fix_dst_sq (Move m, bool chess960)
+inline Square fix_dst_sq (Move m, bool chess960 = false)
 {
     return mtype (m) != CASTLE
         || chess960 ?

@@ -125,7 +125,7 @@ namespace {
 MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pdh, const Move *km, Move cm)
     : pos (p)
     , tt_move (ttm)
-    , threshold (Value(-4000 * d))
+    , threshold (Value(-4000*d))
     , recap_sq (SQ_NO)
     , piece_destiny_history (pdh)
     , killers_moves (km, km + MaxKillers)
@@ -665,7 +665,7 @@ namespace Searcher {
 
             if (_ok ((ss-1)->played_move))
             {
-                pos.thread->counter_moves.update (pos[fix_dst_sq ((ss-1)->played_move, Position::Chess960)], dst_sq ((ss-1)->played_move), move);
+                pos.thread->counter_moves.update (pos[fix_dst_sq ((ss-1)->played_move)], (ss-1)->played_move, move);
             }
         }
 
@@ -805,8 +805,6 @@ namespace Searcher {
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
 
-            auto last_move = (ss-1)->played_move;
-
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
             // Note that in quien_search use only 2 types of depth: DepthQSCheck or DepthQSNoCheck.
@@ -853,7 +851,7 @@ namespace Searcher {
                 else
                 {
                     ss->static_eval = tt_eval =
-                        MOVE_NULL != last_move ?
+                        MOVE_NULL != (ss-1)->played_move ?
                             evaluate (pos) :
                             -(ss-1)->static_eval + Tempo*2;
                 }
@@ -895,7 +893,7 @@ namespace Searcher {
             StateInfo si;
 
             // Initialize move picker (2) for the current position.
-            MovePicker move_picker (pos, tt_move, depth, dst_sq (last_move));
+            MovePicker move_picker (pos, tt_move, depth, dst_sq ((ss-1)->played_move));
             // Loop through the moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
@@ -1107,8 +1105,6 @@ namespace Searcher {
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
 
-            auto last_move = (ss-1)->played_move;
-
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
                 && tt_hit
@@ -1124,7 +1120,8 @@ namespace Searcher {
                         // Bonus for a quiet tt_move that fails high.
                         if (pos.capture_or_promotion (tt_move))
                         {
-                            pos.thread->capture_history.update (pos[org_sq (tt_move)], tt_move, pos.cap_type (tt_move), stat_bonus (depth));
+                            auto bonus = stat_bonus (depth);
+                            pos.thread->capture_history.update (pos[org_sq (tt_move)], tt_move, pos.cap_type (tt_move), bonus);
                         }
                         else
                         {
@@ -1136,11 +1133,12 @@ namespace Searcher {
                         
                         // Extra penalty for a quiet tt_move in previous ply when it gets refuted.
                         if (   1 == (ss-1)->move_count
-                            && _ok (last_move)
+                            && _ok ((ss-1)->played_move)
                             //&& !pos.si->promotion
                             && NONE == pos.si->capture)
                         {
-                            update_stacks_continuation (ss-1, pos[fix_dst_sq (last_move, Position::Chess960)], dst_sq (last_move), -stat_bonus (depth + 1));
+                            auto bonus = stat_bonus (depth + 1);
+                            update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -bonus);
                         }
                     }
                     else
@@ -1148,9 +1146,9 @@ namespace Searcher {
                         // Penalty for a quiet tt_move that fails low.
                         if (!pos.capture_or_promotion (tt_move))
                         {
-                            auto penalty = -stat_bonus (depth);
-                            pos.thread->butterfly_history.update (pos.active, tt_move, penalty);
-                            update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), penalty);
+                            auto bonus = stat_bonus (depth);
+                            pos.thread->butterfly_history.update (pos.active, tt_move, -bonus);
+                            update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), -bonus);
                         }
                     }
                 }
@@ -1221,7 +1219,7 @@ namespace Searcher {
                 else
                 {
                     ss->static_eval = tt_eval =
-                        MOVE_NULL != last_move ?
+                        MOVE_NULL != (ss-1)->played_move ?
                             evaluate (pos) :
                             -(ss-1)->static_eval + Tempo*2;
 
@@ -1275,8 +1273,7 @@ namespace Searcher {
                     if (   !PVNode
                         && tt_eval >= beta
                         //&& 0 == Limits.mate
-                        && (   12 < depth
-                            || ss->static_eval >= beta - 35*(depth - 6))
+                        && ss->static_eval + 36*depth - 225 >= beta
                         && VALUE_ZERO != pos.si->non_pawn_material (pos.active))
                     {
                         // Speculative prefetch as early as possible.
@@ -1296,7 +1293,7 @@ namespace Searcher {
                                             -quien_search<false> (pos, ss+1, -beta, -beta+1) :
                                             -depth_search<false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node, false);
                         pos.undo_null_move ();
-
+                        
                         if (null_value >= beta)
                         {
                             bool unproven = null_value >= +VALUE_MATE_MAX_PLY;
@@ -1335,7 +1332,7 @@ namespace Searcher {
                         && abs (beta) < +VALUE_MATE_MAX_PLY)
                     {
                         auto beta_margin = std::min (beta + 200, +VALUE_INFINITE);
-                        assert(_ok (last_move));
+                        assert(_ok ((ss-1)->played_move));
 
                         // Initialize move picker (3) for the current position.
                         MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
@@ -1406,17 +1403,18 @@ namespace Searcher {
 
             u08 move_count = 0;
 
-            vector<Move> quiet_moves;
-            vector<Move> capture_moves;
+            vector<Move> quiet_moves
+                       , capture_moves;
 
             bool ttm_capture = false;
             bool pv_exact = PVNode
                          && tt_hit
                          && BOUND_EXACT == tte->bound ();
 
-            const PieceDestinyHistory* piece_destiny_history[] = { (ss-1)->piece_destiny_history, (ss-2)->piece_destiny_history, (ss-3)->piece_destiny_history, (ss-4)->piece_destiny_history };
+            const PieceDestinyHistory *piece_destiny_history[4] = { (ss-1)->piece_destiny_history, (ss-2)->piece_destiny_history, (ss-3)->piece_destiny_history, (ss-4)->piece_destiny_history };
+            auto counter_move = _ok ((ss-1)->played_move) ? pos.thread->counter_moves[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] : MOVE_NONE;
             // Initialize move picker (1) for the current position.
-            MovePicker move_picker (pos, tt_move, depth, piece_destiny_history, ss->killer_moves, _ok (last_move) ? pos.thread->counter_moves[pos[fix_dst_sq (last_move, Position::Chess960)]][dst_sq (last_move)] : MOVE_NONE);
+            MovePicker move_picker (pos, tt_move, depth, piece_destiny_history, ss->killer_moves, counter_move);
             // Step 11. Loop through moves
             // Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
@@ -1519,7 +1517,7 @@ namespace Searcher {
                             // Advance pawn push.
                         && !(   PAWN == ptype (mpc)
                              && rel_rank (pos.active, org) > R_4
-                             && pos.si->non_pawn_material () < Value(5000)))
+                             && Value(5000) > pos.si->non_pawn_material ()))
                     {
                         // Move count based pruning.
                         if (move_count_pruning)
@@ -1549,7 +1547,7 @@ namespace Searcher {
                     // SEE based pruning.
                     if (   7 > depth
                         && 0 == extension
-                        && !pos.see_ge (move, -VALUE_EG_PAWN*i32(depth)))
+                        && !pos.see_ge (move, Value(-i32(VALUE_EG_PAWN)*depth)))
                     {
                         continue;
                     }
@@ -1558,8 +1556,8 @@ namespace Searcher {
                 // Speculative prefetch as early as possible.
                 prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
-                if (   capture_or_promotion
-                    && move == tt_move)
+                if (   move == tt_move
+                    && capture_or_promotion)
                 {
                     ttm_capture = true;
                 }
@@ -1814,25 +1812,26 @@ namespace Searcher {
                             update_stacks_continuation (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                         }
                     }
-                    
 
                     // Penalty for a quiet best move in previous ply when it gets refuted.
                     if (   1 == (ss-1)->move_count
-                        && _ok (last_move)
+                        && _ok ((ss-1)->played_move)
                         //&& !pos.si->promotion
                         && NONE == pos.si->capture)
                     {
-                        update_stacks_continuation (ss-1, pos[fix_dst_sq (last_move, Position::Chess960)], dst_sq (last_move), -stat_bonus (depth + 1));
+                        auto bonus = stat_bonus (depth + 1);
+                        update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -bonus);
                     }
                 }
                 else
                 // Bonus for prior countermove that caused the fail low.
                 if (   2 < depth
-                    && _ok (last_move)
+                    && _ok ((ss-1)->played_move)
                     //&& !pos.si->promotion
                     && NONE == pos.si->capture)
                 {
-                    update_stacks_continuation (ss-1, pos[fix_dst_sq (last_move, Position::Chess960)], dst_sq (last_move), stat_bonus (depth));
+                    auto bonus = stat_bonus (depth);
+                    update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), bonus);
                 }
             }
 
@@ -2061,16 +2060,15 @@ namespace Threading {
                         break;
                     }
 
-                    if (nullptr != main_thread)
+                    // Give some update before to re-search.
+                    if (   nullptr != main_thread
+                        && 1 == Threadpool.pv_limit
+                        && (best_value <= alfa || beta <= best_value)
+                        && main_thread->time_mgr.elapsed_time () > 3000)
                     {
-                        // Give some update before to re-search.
-                        if (   1 == Threadpool.pv_limit
-                            && (best_value <= alfa || beta <= best_value)
-                            && main_thread->time_mgr.elapsed_time () > 3000)
-                        {
-                            sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
-                        }
+                        sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
                     }
+
                     // If fail low set new bounds.
                     if (best_value <= alfa)
                     {
@@ -2107,14 +2105,12 @@ namespace Threading {
                 // Sort the PV lines searched so far and update the GUI.
                 std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
 
-                if (nullptr != main_thread)
-                {
-                    if (   Threadpool.stop
+                if (   nullptr != main_thread
+                    && (   Threadpool.stop
                         || Threadpool.pv_limit == pv_index + 1
-                        || main_thread->time_mgr.elapsed_time () > 3000)
-                    {
-                        sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
-                    }
+                        || main_thread->time_mgr.elapsed_time () > 3000))
+                {
+                    sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
                 }
             }
 
@@ -2156,7 +2152,7 @@ namespace Threading {
                     if (   !Threadpool.stop
                         && !Threadpool.stop_on_ponderhit)
                     {
-                        if (root_move[0] != main_thread->last_best_move)
+                        if (main_thread->last_best_move != root_move[0])
                         {
                             main_thread->last_best_move = root_move[0];
                             main_thread->last_best_move_depth = running_depth;
@@ -2171,15 +2167,16 @@ namespace Threading {
                         // the longer the move has been stable, the more.
                         // Use part of the gained time from a previous stable move for the current move.
                         double time_reduction = 1.0;
-                        for (auto i : { 3, 4, 5 })
+                        if (!hard_think)
                         {
-                            if (   !hard_think
-                                && main_thread->last_best_move_depth * i < finished_depth)
+                            for (auto i : { 3, 4, 5 })
                             {
-                                time_reduction *= 1.3;
+                                if (main_thread->last_best_move_depth * i < finished_depth)
+                                {
+                                    time_reduction *= 1.3;
+                                }
                             }
                         }
-
                         // Stop the search
                         // -If there is only one legal move available
                         // -If all of the available time has been used

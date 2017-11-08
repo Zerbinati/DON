@@ -119,14 +119,14 @@ typedef Table2D<MAX_PIECE, SQ_NO, PieceDestinyHistory> ContinuationStatTable;
 typedef ContinuationStatTable ContinuationHistory;
 
 /// PieceDestinyMoveTable stores counter moves indexed by [piece][destiny]
-typedef Table2D<MAX_PIECE, SQ_NO, Move> PieceDestinyMoveTable;
+typedef Table2D<MAX_PIECE, SQ_NO*SQ_NO, Move> PieceDestinyMoveTable;
 /// PieceDestinyMoveHistory is based on PieceDestinyMoveTable
 struct PieceDestinyMoveHistory
     : public PieceDestinyMoveTable
 {
-    void update (Piece pc, Square dst, Move cm)
+    void update (Piece pc, Move lm, Move cm)
     {
-        (*this)[pc][dst] = cm;
+        (*this)[pc][move_pp (lm)] = cm;
     }
 };
 
