@@ -39,6 +39,7 @@ namespace Engine {
 
         const vector<string> DefaultCmds =
         {
+            // ---Chess Normal---
             "setoption name UCI_Chess960 value false",
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
             "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
@@ -70,27 +71,23 @@ namespace Engine {
             "1r3k2/4q3/2Pp3b/3Bp3/2Q2p2/1p1P2P1/1P2KP2/3N4 w - - 0 1",
             "6k1/4pp1p/3p2p1/P1pPb3/R7/1r2P1PP/3B1P2/6K1 w - - 0 1",
             "8/3p3B/5p2/5P2/p7/PP5b/k7/6K1 w - - 0 1",
-
             // 5-men positions
             "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 80",     // Kc2 - Mate
             "8/8/8/5N2/8/p7/8/2NK3k w - - 0 82",      // Na2 - Mate
             "8/3k4/8/8/8/4B3/4KB2/2B5 w - - 0 85",    // Draw
-
             // 6-men positions
             "8/8/1P6/5pr1/8/4R3/7k/2K5 w - - 0 92",   // Re5 - Mate
             "8/2p4P/8/kr6/6R1/8/8/1K6 w - - 0 94",    // Ka2 - Mate
             "8/8/3P3k/8/1p6/8/1P6/1K3n2 b - - 0 90",  // Nd2 - Draw
-
             // 7-men positions
             "8/R7/2q5/8/6k1/8/1P5p/K6R w - - 0 124", // Draw
-
             // Mate and stalemate positions
             "6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1",
             "r2r1n2/pp2bk2/2p1p2p/3q4/3PN1QP/2P3R1/P4PP1/5RK1 w - - 0 1",
             "8/8/8/8/8/6k1/6p1/6K1 w - - 0 1",
             "7k/7P/6K1/8/3B4/8/8/8 b - - 0 1",
 
-            // Chess 960
+            // ---Chess 960---
             "setoption name UCI_Chess960 value true",
             "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w KQkq - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
         };
@@ -115,31 +112,44 @@ namespace Engine {
         {
             string token;
             iss >> token; // Consume "name" token
+
+            string name;
             if (token == "name")
             {
-                string name;
                 // Read option-name (can contain spaces) also consume "value" token
                 while (   iss >> token
                        && token != "value")
                 {
                     name += string (" ", !white_spaces (name) ? 1 : 0) + token;
                 }
-
-                string value;
+            }
+            else
+            {
+                std::cerr << "ERROR: Illegal token : " << token << std::endl;
+                return;
+            }
+            string value;
+            if (token == "value")
+            {
                 // Read option-value (can contain spaces)
                 while (iss >> token)
                 {
                     value += string (" ", !white_spaces (value) ? 1 : 0) + token;
                 }
+            }
+            else
+            {
+                std::cerr << "ERROR: Illegal token : " << token << std::endl;
+                return;
+            }
 
-                if (Options.find (name) != Options.end ())
-                {
-                    Options[name] = value;
-                }
-                else
-                {
-                    sync_cout << "No such option: \'" << name << "\'" << sync_endl;
-                }
+            if (Options.find (name) != Options.end ())
+            {
+                Options[name] = value;
+            }
+            else
+            {
+                sync_cout << "No such option: \'" << name << "\'" << sync_endl;
             }
         }
 
@@ -275,13 +285,14 @@ namespace Engine {
             string token;
 
             // Assign default values to missing arguments
-            string hash    = (iss >> token) ? token : "16";
-            string threads = (iss >> token) ? token : "1";
-            string value   = (iss >> token) ? token : "13";
+            string hash    = (iss >> token) && !white_spaces (token) ? token : "16";
+            string threads = (iss >> token) && !white_spaces (token) ? token : "1";
+            string value   = (iss >> token) && !white_spaces (token) ? token : "13";
             string mode    = (iss >> token) && !white_spaces (token) ? token : "depth";
             string cmd_fn  = (iss >> token) && !white_spaces (token) ? token : "default";
 
             vector<string> cmds;
+            vector<string> uci_cmds;
 
             if (cmd_fn == "default")
             {
@@ -298,7 +309,7 @@ namespace Engine {
                 if (!ifs.is_open ())
                 {
                     std::cerr << "ERROR: unable to open file ... \'" << cmd_fn << "\'" << std::endl;
-                    Engine::stop (EXIT_FAILURE);
+                    return uci_cmds;
                 }
                 string cmd;
                 while (std::getline (ifs, cmd))
@@ -313,7 +324,6 @@ namespace Engine {
 
             bool chess960 = Position::Chess960;
 
-            vector<string> uci_cmds;
             uci_cmds.emplace_back ("setoption name Threads value " + threads);
             uci_cmds.emplace_back ("setoption name Hash value " + hash);
             uci_cmds.emplace_back ("setoption name Clear Hash");
@@ -346,7 +356,7 @@ namespace Engine {
         void bench (istringstream &iss, Position &pos, StateListPtr &states)
         {
             auto uci_cmds = setup_bench (iss, pos);
-            u16 num = u16(count_if (uci_cmds.begin (), uci_cmds.end (), [](string s) { return s.find ("go ") == 0; }));
+            u16 total = u16(count_if (uci_cmds.begin (), uci_cmds.end (), [](string s) { return s.find ("go ") == 0; }));
             u16 count = 0;
             
             auto elapsed_time = now ();
@@ -362,7 +372,7 @@ namespace Engine {
                     std::cerr
                         << "\n---------------\n"
                         << "Position: " << std::right
-                        << std::setw (2) << ++count << '/' << num << " "
+                        << std::setw (2) << ++count << '/' << total << " "
                         << std::left << pos.fen () << std::endl;
 
                     go (is, pos, states);
@@ -397,39 +407,6 @@ namespace Engine {
                       << "\n---------------------------------\n"
                       << std::left << std::endl;
         }
-
-        ///// reg() register an engin, with following tokens:
-        ///// - later: the user doesn't want to register the engine now.
-        ///// - name <x> code <y>: the engine should be registered with the name <x> and code <y>
-        ///// Example:
-        /////   "register later"
-        /////   "register name Stefan MK code 4359874324"
-        //void reg (istringstream &iss)
-        //{
-        //    string token;
-        //    iss >> token;
-        //    if (token == "name")
-        //    {
-        //        string name;
-        //        // Read "name" (can contain spaces), consume "code" token
-        //        while (   iss >> token
-        //               && token != "code")
-        //        {
-        //            name += string (" ", !white_spaces (name) ? 1 : 0) + token;
-        //        }
-        //        string code;
-        //        // Read "code" (can contain spaces)
-        //        while (iss >> token)
-        //        {
-        //            code += string (" ", !white_spaces (code) ? 1 : 0) + token;
-        //        }
-        //        //std::cout << name << "\n" << code << std::endl;
-        //    }
-        //    else
-        //    if (token == "later")
-        //    {
-        //    }
-        //}
 
         /// loop() Waits for a command from stdin, parses it and calls the appropriate function.
         /// Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.

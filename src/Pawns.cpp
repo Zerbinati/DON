@@ -80,17 +80,15 @@ namespace Pawns {
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
         {
-            const auto Opp  = WHITE == Own ? BLACK : WHITE;
+            const auto Opp = WHITE == Own ? BLACK : WHITE;
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
-            const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
-            const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
             const auto PawnAtt = PawnAttacks[Own];
 
             Bitboard own_pawns = pos.pieces (Own, PAWN);
             Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            Bitboard l_cap = shift<LCap> (own_pawns);
-            Bitboard r_cap = shift<RCap> (own_pawns);
+            Bitboard l_cap = shift<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
+            Bitboard r_cap = shift<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
 
             e->any_attacks[Own] = l_cap | r_cap;
             e->dbl_attacks[Own] = l_cap & r_cap;
@@ -128,7 +126,7 @@ namespace Pawns {
                 escapes    = opp_pawns & PawnAtt[s+Push];
 
                 blocked    = contains (own_pawns, s-Push);
-                opposed    = 0 != (opp_pawns & front_sqrs_bb (Own, s));
+                opposed    = 0 != (opp_pawns & front_line_bb (Own, s));
 
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
                 // The pawn is backward when it cannot safely progress to next rank:
@@ -150,7 +148,7 @@ namespace Pawns {
                 // Include also not passed pawns which could become passed
                 // after one or two pawn pushes when are not attacked more times than defended.
                 // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
-                if (   0 == (own_pawns & front_sqrs_bb (Own, s))
+                if (   0 == (own_pawns & front_line_bb (Own, s))
                     && (   (   stoppers == (levers | escapes)
                             && pop_count (supporters) >= pop_count (levers)
                             && pop_count (phalanxes) >= pop_count (escapes))
@@ -158,8 +156,8 @@ namespace Pawns {
                             && R_4 < rel_rank (Own, s)
                             && 0 != (b = shift<Push> (supporters) & ~opp_pawns)
                             && pop_count (b) > pop_count (  (opp_pawns ^ stoppers)
-                                                          & (  shift<LCap> (b)
-                                                             | shift<RCap> (b))))))
+                                                          & (  shift<WHITE == Own ? DEL_NW : DEL_SE> (b)
+                                                             | shift<WHITE == Own ? DEL_NE : DEL_SW> (b))))))
                 {
                     e->passers[Own] |= s;
                 }

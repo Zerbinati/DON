@@ -103,32 +103,38 @@ bool Position::see_ge (Move m, Value threshold) const
     auto org = org_sq (m);
     auto dst = dst_sq (m);
 
-    auto balance = PieceValues[MG][ptype (board[dst])]; // Values of the pieces taken by own's minus opp's
-    if (balance < threshold)
+    // The opponent may be able to recapture so this is the best result we can hope for.
+    auto balance = PieceValues[MG][ptype (board[dst])] - threshold;
+    if (balance < VALUE_ZERO)
     {
         return false;
     }
 
     auto victim = ptype (board[org]);
     assert(PAWN <= victim && victim <= KING);
+
+    // Now assume the worst possible result: that the opponent can capture our piece for free.
     balance -= PieceValues[MG][victim];
-    if (balance >= threshold)
+    if (balance >= VALUE_ZERO)
     {
         return true;
     }
 
-    bool profit = true; // True if the opponent is to move
-    
-    auto c = color (board[org]);
+    bool opp_to_move = true; // True if the opponent is to move
+    auto c = ~color (board[org]);
     Bitboard mocc = pieces () ^ org ^ dst;
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, mocc) & mocc;
-    Bitboard c_attackers;
     while (0 != attackers)
     {
-        c = ~c;
-        c_attackers = attackers & pieces (c);
+        // The balance is negative only because we assumed we could win
+        // the last piece for free. We are truly winning only if we can
+        // win the last piece _cheaply enough_. Test if we can actually
+        // do this otherwise "give up".
+        assert(balance < VALUE_ZERO);
+
+        Bitboard c_attackers = attackers & pieces (c);
 
         Bitboard b;
         // Don't allow pinned pieces to attack pieces except the king
@@ -142,7 +148,7 @@ bool Position::see_ge (Move m, Value threshold) const
                 c_attackers &= ~between_bb (pop_lsq (b), square<KING> (c));
             }
         }
-        
+
         // If move is a discovered check, the only possible defensive capture on
         // the destination square is a capture by the king to evade the check.
         if (   0 != c_attackers
@@ -158,30 +164,44 @@ bool Position::see_ge (Move m, Value threshold) const
             }
         }
 
+        // If we have no more attackers we must give up
         if (0 == c_attackers)
         {
-            return profit;
+            break;
         }
 
         // Locate and remove the next least valuable attacker.
         victim = pick_least_val_att<PAWN> (dst, c_attackers, mocc, attackers);
+
         if (KING == victim)
         {
-            return profit == (0 != (attackers & pieces (~c)));
+            // Our only attacker is the king. If the opponent still has attackers we must give up.
+            // Otherwise we make the move and (having no more attackers) the opponent must give up.
+            if (0 == (attackers & pieces (~c)))
+            {
+                opp_to_move = !opp_to_move;
+            }
+            break;
         }
 
-        balance +=
-            profit ?
-                +PieceValues[MG][victim] :
-                -PieceValues[MG][victim];
+        // Assume the opponent can win the next piece for free
+        balance += PieceValues[MG][victim];
 
-        profit = !profit;
-        if (profit == (balance >= threshold))
+        // If balance is negative after receiving a free piece then give up
+        if (balance < VALUE_ZERO)
         {
-            return profit;
+            opp_to_move = !opp_to_move;
+            break;
         }
+
+        // The first line swaps all negative numbers with non-negative numbers.
+        // The compiler probably knows that it is just the bitwise negation ~balance.
+        balance = -balance - 1;
+        opp_to_move = !opp_to_move;
+        c = ~c;
     }
-    return profit;
+    // If the opponent gave up we win, otherwise we lose.
+    return opp_to_move;
 }
 
 /// Position::slider_blockers() returns a bitboard of all the pieces that are blocking attacks on the square.

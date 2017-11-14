@@ -591,7 +591,7 @@ namespace EndGame {
                 return SCALE_DRAW;
             }
 
-            auto path = front_sqrs_bb (strong_color, sp_sq);
+            auto path = front_line_bb (strong_color, sp_sq);
             if (   0 != (path & pos.pieces (weak_color, KING))
                 || (   0 != (path & PieceAttacks[BSHP][wb_sq])
                     && 0 != (path & attacks_bb<BSHP> (wb_sq, pos.pieces ()))
@@ -712,9 +712,9 @@ namespace EndGame {
 
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        Bitboard front_squares = front_sqrs_bb (strong_color, sp_sq);
-        if (   0 != (front_squares & PieceAttacks[BSHP][sb_sq])
-            && 0 != (front_squares & attacks_bb<BSHP> (sb_sq, pos.pieces ())))
+        Bitboard front_line = front_line_bb (strong_color, sp_sq);
+        if (   0 != (front_line & PieceAttacks[BSHP][sb_sq])
+            && 0 != (front_line & attacks_bb<BSHP> (sb_sq, pos.pieces ())))
         {
             return Scale(dist (wk_sq, sp_sq));
         }

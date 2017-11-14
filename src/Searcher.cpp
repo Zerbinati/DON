@@ -1025,13 +1025,13 @@ namespace Searcher {
             assert(PVNode || (alfa == beta-1));
             assert(!(PVNode && cut_node));
             assert(0 < depth && depth < MaxPlies);
-            assert(ss->ply >= 0
-                && ss->ply == (ss-1)->ply + 1
-                && ss->ply < MaxPlies);
 
-            // Step 1. Initialize node.
-            ss->move_count = 0;
-            
+            // Check for the available remaining limit.
+            if (Threadpool.main_thread () == pos.thread)
+            {
+                Threadpool.main_thread ()->check_limits ();
+            }
+
             if (PVNode)
             {
                 // Used to send selDepth info to GUI (selDepth from 1, ply from 0)
@@ -1041,12 +1041,7 @@ namespace Searcher {
                 }
             }
 
-            // Check for the available remaining limit.
-            if (Threadpool.main_thread () == pos.thread)
-            {
-                Threadpool.main_thread ()->check_limits ();
-            }
-
+            // Step 1. Initialize node.
             bool root_node = PVNode && 0 == ss->ply;
             bool in_check = 0 != pos.si->checkers;
 
@@ -1077,6 +1072,11 @@ namespace Searcher {
                 }
             }
 
+            assert(ss->ply >= 0
+                && ss->ply == (ss-1)->ply + 1
+                && ss->ply < MaxPlies);
+
+            ss->move_count = 0;
             ss->played_move = MOVE_NONE;
             ss->piece_destiny_history = &pos.thread->continuation_history[NO_PIECE][0];
             assert(MOVE_NONE == (ss+1)->excluded_move);
@@ -1118,12 +1118,7 @@ namespace Searcher {
                     if (tt_value >= beta)
                     {
                         // Bonus for a quiet tt_move that fails high.
-                        if (pos.capture_or_promotion (tt_move))
-                        {
-                            auto bonus = stat_bonus (depth);
-                            pos.thread->capture_history.update (pos[org_sq (tt_move)], tt_move, pos.cap_type (tt_move), bonus);
-                        }
-                        else
+                        if (!pos.capture_or_promotion (tt_move))
                         {
                             update_killers (ss, pos, tt_move);
                             auto bonus = stat_bonus (depth);
@@ -1264,7 +1259,7 @@ namespace Searcher {
                         && tt_eval - 150*depth >= beta
                         && tt_eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
                         //&& 0 == Limits.mate
-                        && VALUE_ZERO != pos.si->non_pawn_material (pos.active))
+                        && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
                     {
                         return tt_eval;
                     }
@@ -1274,7 +1269,7 @@ namespace Searcher {
                         && tt_eval >= beta
                         //&& 0 == Limits.mate
                         && ss->static_eval + 36*depth - 225 >= beta
-                        && VALUE_ZERO != pos.si->non_pawn_material (pos.active))
+                        && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
                     {
                         // Speculative prefetch as early as possible.
                         prefetch (TT.cluster_entry (  key
@@ -1377,9 +1372,6 @@ namespace Searcher {
                                 && pos.legal (move) ?
                                     move :
                                     MOVE_NONE;
-                        tt_value = tt_hit ?
-                                    value_of_tt (tte->value (), ss->ply) :
-                                    VALUE_NONE;
                     }
                 }
             }
@@ -1401,18 +1393,21 @@ namespace Searcher {
             bool improving = (ss-2)->static_eval <= (ss-0)->static_eval
                           || (ss-2)->static_eval == VALUE_NONE;
 
+            bool pv_exact = PVNode
+                         && tt_hit
+                         && BOUND_EXACT == tte->bound ();
+
+            bool ttm_capture = false;
+
             u08 move_count = 0;
 
             vector<Move> quiet_moves
                        , capture_moves;
 
-            bool ttm_capture = false;
-            bool pv_exact = PVNode
-                         && tt_hit
-                         && BOUND_EXACT == tte->bound ();
-
             const PieceDestinyHistory *piece_destiny_history[4] = { (ss-1)->piece_destiny_history, (ss-2)->piece_destiny_history, (ss-3)->piece_destiny_history, (ss-4)->piece_destiny_history };
-            auto counter_move = _ok ((ss-1)->played_move) ? pos.thread->counter_moves[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] : MOVE_NONE;
+            auto counter_move = _ok ((ss-1)->played_move) ?
+                                    pos.thread->counter_moves[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
+                                    MOVE_NONE;
             // Initialize move picker (1) for the current position.
             MovePicker move_picker (pos, tt_move, depth, piece_destiny_history, ss->killer_moves, counter_move);
             // Step 11. Loop through moves
@@ -1510,7 +1505,7 @@ namespace Searcher {
                 if (   !root_node
                     //&& 0 == Limits.mate
                     && best_value > -VALUE_MATE_MAX_PLY
-                    && VALUE_ZERO != pos.si->non_pawn_material (pos.active))
+                    && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
                 {
                     if (   !capture_or_promotion
                         && !gives_check
@@ -1755,13 +1750,13 @@ namespace Searcher {
 
                 if (move != best_move)
                 {
-                    if (capture_or_promotion)
+                    if (!capture_or_promotion)
                     {
-                        capture_moves.push_back (move);
+                        quiet_moves.push_back (move);
                     }
                     else
                     {
-                        quiet_moves.push_back (move);
+                        capture_moves.push_back (move);
                     }
                 }
             }
@@ -1789,17 +1784,7 @@ namespace Searcher {
                 // Quiet best move: update move sorting heuristics.
                 if (MOVE_NONE != best_move)
                 {
-                    if (pos.capture_or_promotion (best_move))
-                    {
-                        auto bonus = stat_bonus (depth);
-                        pos.thread->capture_history.update (pos[org_sq (best_move)], best_move, pos.cap_type (best_move), bonus);
-                        // Decrease all the other played capture moves.
-                        for (auto cm : capture_moves)
-                        {
-                            pos.thread->capture_history.update (pos[org_sq (cm)], cm, pos.cap_type (cm), -bonus);
-                        }
-                    }
-                    else
+                    if (!pos.capture_or_promotion (best_move))
                     {
                         update_killers (ss, pos, best_move);
                         auto bonus = stat_bonus (depth);
@@ -1810,6 +1795,16 @@ namespace Searcher {
                         {
                             pos.thread->butterfly_history.update (pos.active, qm, -bonus);
                             update_stacks_continuation (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
+                        }
+                    }
+                    else
+                    {
+                        auto bonus = stat_bonus (depth);
+                        pos.thread->capture_history.update (pos[org_sq (best_move)], best_move, pos.cap_type (best_move), bonus);
+                        // Decrease all the other played capture moves.
+                        for (auto cm : capture_moves)
+                        {
+                            pos.thread->capture_history.update (pos[org_sq (cm)], cm, pos.cap_type (cm), -bonus);
                         }
                     }
 
@@ -2107,7 +2102,7 @@ namespace Threading {
 
                 if (   nullptr != main_thread
                     && (   Threadpool.stop
-                        || Threadpool.pv_limit == pv_index + 1
+                        || Threadpool.pv_limit - 1 == pv_index
                         || main_thread->time_mgr.elapsed_time () > 3000))
                 {
                     sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;

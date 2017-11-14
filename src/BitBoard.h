@@ -129,7 +129,7 @@ namespace BitBoard {
 
     extern u08      SquareDist[SQ_NO][SQ_NO];
 
-    extern Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
+    extern Bitboard FrontLine_bb[CLR_NO][SQ_NO];
 
     extern Bitboard Between_bb[SQ_NO][SQ_NO];
     extern Bitboard StrLine_bb[SQ_NO][SQ_NO];
@@ -206,7 +206,7 @@ namespace BitBoard {
     inline Bitboard adj_rank_bb (Rank r) { return AdjRank_bb[r]; }
 
     inline Bitboard front_rank_bb (Color c, Square s) { return FrontRank_bb[c][_rank (s)]; }
-    inline Bitboard front_sqrs_bb (Color c, Square s) { return FrontSqrs_bb[c][s]; }
+    inline Bitboard front_line_bb (Color c, Square s) { return FrontLine_bb[c][s]; }
 
     inline Bitboard between_bb (Square s1, Square s2) { return Between_bb[s1][s2]; }
     inline Bitboard strline_bb (Square s1, Square s2) { return StrLine_bb[s1][s2]; }

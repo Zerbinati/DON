@@ -184,7 +184,7 @@ namespace Zobrists {
                 RandZob.castle_right_keys[c][cs] = prng.rand<Key> ();
             }
         }
-        for (i08 f = F_A; f <= F_H; ++f)
+        for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
             RandZob.en_passant_keys[f] = prng.rand<Key> ();
         }

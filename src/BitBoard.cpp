@@ -9,7 +9,7 @@ namespace BitBoard {
 
     u08      SquareDist[SQ_NO][SQ_NO];
 
-    Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
+    Bitboard FrontLine_bb[CLR_NO][SQ_NO];
 
     Bitboard Between_bb[SQ_NO][SQ_NO];
     Bitboard StrLine_bb[SQ_NO][SQ_NO];
@@ -246,9 +246,9 @@ namespace BitBoard {
         {
             for (auto s : SQ)
             {
-                FrontSqrs_bb  [c][s] = FrontRank_bb[c][_rank (s)] &    File_bb[_file (s)];
+                FrontLine_bb  [c][s] = FrontRank_bb[c][_rank (s)] &    File_bb[_file (s)];
                 PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (s)] & AdjFile_bb[_file (s)];
-                PawnPassSpan  [c][s] = FrontSqrs_bb[c][s] | PawnAttackSpan[c][s];
+                PawnPassSpan  [c][s] = FrontLine_bb[c][s] | PawnAttackSpan[c][s];
             }
         }
 

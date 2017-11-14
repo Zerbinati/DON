@@ -176,8 +176,6 @@ namespace Transposition {
                 return ite;
             }
 
-            //if (ite == fte) continue;
-
             // Replacement strategy.
             auto iworth = ite->worth ();
             if (rworth > iworth)
@@ -186,7 +184,8 @@ namespace Transposition {
                 rte = ite;
             }
         }
-        return tt_hit = false, rte;
+        tt_hit = false;
+        return rte;
     }
     /// Table::hash_full() returns an approximation of the per-mille of the 
     /// all transposition entries during a search which have received
