@@ -56,37 +56,35 @@ bool Position::draw (i16 pp) const
 
 /// Position::pick_least_val_att() helper function used by see_ge() to locate the least valuable attacker for the side to move,
 /// remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
-template<PieceType PT>
-PieceType Position::pick_least_val_att (Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const
+PieceType Position::pick_least_val_att (PieceType pt, Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
-    Bitboard b = c_attackers & pieces (PT);
+    assert(pt < KING);
+    Bitboard b = c_attackers & pieces (pt);
     if (0 != b)
     {
         mocc ^= b & ~(b - 1);
 
-        if (   (   PAWN == PT
-                || BSHP == PT
-                || QUEN == PT)
+        if (   (   PAWN == pt
+                || BSHP == pt
+                || QUEN == pt)
             && 0 != (b = mocc & pieces (BSHP, QUEN) & PieceAttacks[BSHP][dst]))
         {
             attackers |= b & attacks_bb<BSHP> (dst, mocc);
         }
-        if (   (   ROOK == PT
-                || QUEN == PT)
+        if (   (   ROOK == pt
+                || QUEN == pt)
             && 0 != (b = mocc & pieces (ROOK, QUEN) & PieceAttacks[ROOK][dst]))
         {
             attackers |= b & attacks_bb<ROOK> (dst, mocc);
         }
         // Remove already processed pieces in x-ray.
         attackers &= mocc;
-        return PT;
+        return pt;
     }
 
-    return pick_least_val_att<PieceType(PT+1)> (dst, c_attackers, mocc, attackers);
-}
-template<> PieceType Position::pick_least_val_att<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
-{
-    return KING; // No need to update bitboards, it is the last cycle.
+    return QUEN != pt ?
+            pick_least_val_att (++pt, dst, c_attackers, mocc, attackers) :
+            KING;
 }
 
 /// Position::see_ge() Static Exchange Evaluator (SEE): It tries to estimate the material gain or loss resulting from a move.
@@ -171,7 +169,7 @@ bool Position::see_ge (Move m, Value threshold) const
         }
 
         // Locate and remove the next least valuable attacker.
-        victim = pick_least_val_att<PAWN> (dst, c_attackers, mocc, attackers);
+        victim = pick_least_val_att (PAWN, dst, c_attackers, mocc, attackers);
 
         if (KING == victim)
         {
@@ -276,7 +274,7 @@ bool Position::pseudo_legal (Move m) const
               && rel_rank (active, org) == R_1
               && rel_rank (active, dst) == R_1
               && contains (pieces (active, ROOK), dst)
-              && can_castle (active, cs)
+              && si->can_castle (active, cs)
               && expeded_castle (active, cs)
               && 0 == si->checkers))
         {
@@ -844,10 +842,12 @@ Position& Position::setup (const string &code, StateInfo &nsi, Color c)
         code.substr (   code.find ('K', 1)), // Weak
         code.substr (0, code.find ('K', 1))  // Strong
     };
+    assert(sides[WHITE].length () <= 8
+        && sides[BLACK].length () <= 8);
+
     to_lower (sides[c]);
-    
-    string fen = "8/" + sides[WHITE] + char(8 - sides[WHITE].length () + '0') + "/8/8/8/8/"
-               + sides[BLACK] + char(8 - sides[BLACK].length () + '0') + "/8 w - -";
+    string fen = "8/" + sides[WHITE] + char('0' + 8 - sides[WHITE].length ()) + "/8/8/8/8/"
+                      + sides[BLACK] + char('0' + 8 - sides[BLACK].length ()) + "/8 w - -";
     
     setup (fen, nsi, nullptr, false);
     
@@ -884,7 +884,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
                 dst - pawn_push (active);
     ++si->clock_ply;
     ++si->null_ply;
-    si->capture = CASTLE != mtype (m) ? ptype (board[cap]) : NONE;
+    si->capture = CASTLE != mtype (m) ?
+                    ptype (board[cap]) :
+                    NONE;
     if (NONE != si->capture)
     {
         assert(capture (m));
@@ -948,7 +950,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
         si->promotion = false;
         Square rook_org, rook_dst;
-        do_castling<true> (org, dst, rook_org, rook_dst);
+        do_castling (org, dst, rook_org, rook_dst);
         si->posi_key ^= RandZob.piece_square_keys[active][ROOK][rook_dst]
                       ^ RandZob.piece_square_keys[active][ROOK][rook_org];
         si->psq_score += PSQ[active][ROOK][rook_dst]
@@ -1057,7 +1059,7 @@ void Position::undo_move (Move m)
         assert(NONE == si->capture);
 
         Square rook_org, rook_dst;
-        do_castling<false> (org, dst, rook_org, rook_dst);
+        undo_castling (org, dst, rook_org, rook_dst);
     }
     else
     if (ENPASSANT == mtype (m))
@@ -1168,7 +1170,7 @@ void Position::flip ()
           token.replace (1, 1, token[1] == '3' ? "6" :
                                token[1] == '6' ? "3" : "-");
     // 5-6. Halfmove clock and Fullmove number
-    std::getline (iss, token);
+    std::getline (iss, token, '\n');
     ff += token;
 
     setup (ff, *si, thread);
@@ -1200,9 +1202,9 @@ void Position::mirror ()
         for (auto &ch : token)
         {
             ch = Chess960 ?
-                    to_char (~to_file (char(tolower (i32(ch)))), islower (i32(ch))) :
-                    tolower (ch) == 'k' ? (islower (i32(ch)) ? 'q' : 'Q') :
-                    tolower (ch) == 'q' ? (islower (i32(ch)) ? 'k' : 'K') : '-';
+                    to_char (~to_file (char(tolower (ch))), islower (ch)) :
+                    tolower (ch) == 'k' ? (islower (ch) ? 'q' : 'Q') :
+                    tolower (ch) == 'q' ? (islower (ch) ? 'k' : 'K') : '-';
         }
     }
     ff += token;
@@ -1213,7 +1215,7 @@ void Position::mirror ()
           token :
           token.replace (0, 1, string(1, to_char (~to_file (token[0]))));
     // 5-6. Halfmove clock and Fullmove number
-    std::getline (iss, token);
+    std::getline (iss, token, '\n');
     ff += token;
 
     setup (ff, *si, thread);
@@ -1253,12 +1255,12 @@ string Position::fen (bool full) const
 
     oss << " " << active << " ";
 
-    if (has_castleright (CR_ANY))
+    if (si->can_castle (CR_ANY))
     {
-        if (can_castle (WHITE, CS_KING)) oss << (Chess960 ? to_char (_file (castle_rook[WHITE][CS_KING]), false) : 'K');
-        if (can_castle (WHITE, CS_QUEN)) oss << (Chess960 ? to_char (_file (castle_rook[WHITE][CS_QUEN]), false) : 'Q');
-        if (can_castle (BLACK, CS_KING)) oss << (Chess960 ? to_char (_file (castle_rook[BLACK][CS_KING]),  true) : 'k');
-        if (can_castle (BLACK, CS_QUEN)) oss << (Chess960 ? to_char (_file (castle_rook[BLACK][CS_QUEN]),  true) : 'q');
+        if (si->can_castle (WHITE, CS_KING)) oss << (Chess960 ? to_char (_file (castle_rook[WHITE][CS_KING]), false) : 'K');
+        if (si->can_castle (WHITE, CS_QUEN)) oss << (Chess960 ? to_char (_file (castle_rook[WHITE][CS_QUEN]), false) : 'Q');
+        if (si->can_castle (BLACK, CS_KING)) oss << (Chess960 ? to_char (_file (castle_rook[BLACK][CS_KING]),  true) : 'k');
+        if (si->can_castle (BLACK, CS_QUEN)) oss << (Chess960 ? to_char (_file (castle_rook[BLACK][CS_QUEN]),  true) : 'q');
     }
     else
     {
@@ -1302,8 +1304,8 @@ Position::operator string () const
     {
         oss << pop_lsq (b) << " ";
     }
-    if (   MaxLimitPiece >= count<NONE> ()
-        && !has_castleright (CR_ANY))
+    if (   MaxLimitPiece >= count ()
+        && !si->can_castle (CR_ANY))
     {
         StateInfo st;
         Position pos;
@@ -1332,12 +1334,12 @@ bool Position::ok () const
 
     if (   (   active != WHITE
             && active != BLACK)
-        || (1 != count<KING> (WHITE) || !_ok (square<KING> (WHITE)) || W_KING != board[square<KING> (WHITE)])
-        || (1 != count<KING> (BLACK) || !_ok (square<KING> (BLACK)) || B_KING != board[square<KING> (BLACK)])
+        || (1 != count (WHITE, KING) || !_ok (square<KING> (WHITE)) || W_KING != board[square<KING> (WHITE)])
+        || (1 != count (BLACK, KING) || !_ok (square<KING> (BLACK)) || B_KING != board[square<KING> (BLACK)])
         || 1 != std::count (board, board + SQ_NO, W_KING)
         || 1 != std::count (board, board + SQ_NO, B_KING)
-        || (   32 < count<NONE> ()
-            || pop_count (pieces ()) != count<NONE> ()))
+        || (   32 < count ()
+            || pop_count (pieces ()) != count ()))
     {
         assert(false && "Position OK: BASIC");
         return false;
@@ -1370,8 +1372,8 @@ bool Position::ok () const
     for (auto c : { WHITE, BLACK })
     {
         // Too many Piece of color
-        if (   16 < count<NONE> (c)
-            || pop_count (pieces (c)) != count<NONE> (c)
+        if (   16 < count (c)
+            || pop_count (pieces (c)) != count (c)
             || 0 == pieces (c, KING)
             || more_than_one (pieces (c, KING)))
         {
@@ -1379,12 +1381,12 @@ bool Position::ok () const
             return false;
         }
         // Check if the number of Pawns plus the number of extra Queens, Rooks, Bishops, Knights exceeds 8
-        if (   (        (count<PAWN> (c)
-             + std::max (count<NIHT> (c)-2, 0)
-             + std::max (count<BSHP> (c)-2, 0)
-             + std::max (count<ROOK> (c)-2, 0)
-             + std::max (count<QUEN> (c)-1, 0)) > 8)
-            || (        (count<PAWN> (c)
+        if (   (        (count (c, PAWN)
+             + std::max (count (c, NIHT)-2, 0)
+             + std::max (count (c, BSHP)-2, 0)
+             + std::max (count (c, ROOK)-2, 0)
+             + std::max (count (c, QUEN)-1, 0)) > 8)
+            || (        (count (c, PAWN)
              + std::max (pop_count (pieces (c, BSHP) & Color_bb[WHITE])-1, 0)
              + std::max (pop_count (pieces (c, BSHP) & Color_bb[BLACK])-1, 0)) > 8))
         {
@@ -1424,7 +1426,7 @@ bool Position::ok () const
         for (auto cs : { CS_KING, CS_QUEN })
         {
             auto cr = castle_right (c, cs);
-            if (   can_castle (c, cs)
+            if (   si->can_castle (c, cs)
                 && (   board[castle_rook[c][cs]] != (c|ROOK)
                     || castle_mask[castle_rook[c][cs]] != cr
                     || (castle_mask[square<KING> (c)] & cr) != cr))

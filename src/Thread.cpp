@@ -414,8 +414,8 @@ namespace Threading {
         if (   !root_moves.empty ()
             && 1 == MultiPV
             && 0 != TBLimitPiece
-            && TBLimitPiece >= pos.count<NONE> ()
-            && !pos.has_castleright (CR_ANY))
+            && TBLimitPiece >= pos.count ()
+            && !pos.si->can_castle (CR_ANY))
         {
             // If the current root position is in the tablebases,
             // then RootMoves contains only moves that preserve the draw or the win.
@@ -466,19 +466,14 @@ namespace Threading {
             th->root_pos.setup (pos.fen (), setup_states->back (), th);
             th->root_moves = root_moves;
 
-            th->nodes = 0;
-            th->tb_hits = 0;
             th->running_depth = 0;
             th->finished_depth = 0;
+            th->nodes = 0;
+            th->tb_hits = 0;
         }
         setup_states->back () = back_si;
 
         main_thread ()->start_searching ();
-    }
-    void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limit &limits, bool ponde)
-    {
-        const vector<Move> search_moves;
-        start_thinking (pos, states, limits, search_moves, ponde);
     }
     /// ThreadPool::stop_thinking()
     void ThreadPool::stop_thinking ()

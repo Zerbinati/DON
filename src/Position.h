@@ -67,6 +67,19 @@ public:
         return non_pawn_matl[c];
     }
 
+    bool can_castle (Color c) const
+    {
+        return CR_NONE != (castle_rights & castle_right (c));
+    }
+    bool can_castle (Color c, CastleSide cs) const
+    {
+        return CR_NONE != (castle_rights & castle_right (c, cs));
+    }
+    bool can_castle (CastleRight cr) const
+    {
+        return CR_NONE != (castle_rights & cr);
+    }
+
     void set_check_info (const Position &pos);
 };
 
@@ -104,11 +117,10 @@ private:
 
     bool can_en_passant (Color, Square, bool = true) const;
 
-    template<bool Do>
     void do_castling (Square, Square&, Square&, Square&);
+    void undo_castling (Square, Square&, Square&, Square&);
 
-    template<PieceType PT>
-    PieceType pick_least_val_att (Square, Bitboard, Bitboard&, Bitboard&) const;
+    PieceType pick_least_val_att (PieceType, Square, Bitboard, Bitboard&, Bitboard&) const;
 
 public:
     static bool Chess960;
@@ -146,18 +158,15 @@ public:
     Bitboard pieces (PieceType, PieceType) const;
     Bitboard pieces (Color, PieceType, PieceType) const;
 
-    template<PieceType PT> i32 count () const;
-    template<PieceType PT> i32 count (Color) const;
+    i32 count () const;
+    i32 count (Color) const;
+    i32 count (PieceType) const;
     i32 count (Color, PieceType) const;
 
     template<PieceType PT> Square square (Color, i08 = 0) const;
 
     Key pg_key () const;
     Key move_posi_key (Move) const;
-
-    bool can_castle (Color) const;
-    bool can_castle (Color, CastleSide) const;
-    bool has_castleright (CastleRight) const;
 
     bool expeded_castle (Color, CastleSide) const;
 
@@ -236,30 +245,28 @@ inline Bitboard Position::pieces (Color c) const
 }
 inline Bitboard Position::pieces (PieceType pt) const
 {
+    assert(PAWN <= pt && pt <= KING);
     return types_bb[pt];
 }
 inline Bitboard Position::pieces (Color c, PieceType pt) const
 {
+    assert(PAWN <= pt && pt <= KING);
     return color_bb[c]&types_bb[pt];
 }
 inline Bitboard Position::pieces (PieceType pt1, PieceType pt2) const
 {
+    assert(PAWN <= pt1 && pt1 <= KING);
+    assert(PAWN <= pt2 && pt2 <= KING);
     return types_bb[pt1]|types_bb[pt2];
 }
 inline Bitboard Position::pieces (Color c, PieceType pt1, PieceType pt2) const
 {
+    assert(PAWN <= pt1 && pt1 <= KING);
+    assert(PAWN <= pt2 && pt2 <= KING);
     return color_bb[c]&(types_bb[pt1]|types_bb[pt2]);
 }
-
-/// Position::count<>() counts specific piece
-template<PieceType PT> inline i32 Position::count () const
-{
-    assert(PT < NONE);
-    return i32(squares[WHITE][PT].size ()
-             + squares[BLACK][PT].size ());
-}
-/// Position::count<NONE>() counts total pieces
-template<> inline i32 Position::count<NONE> () const
+/// Position::count() counts all
+inline i32 Position::count () const
 {
     return i32(squares[WHITE][PAWN].size () + squares[BLACK][PAWN].size ()
              + squares[WHITE][NIHT].size () + squares[BLACK][NIHT].size ()
@@ -268,14 +275,8 @@ template<> inline i32 Position::count<NONE> () const
              + squares[WHITE][QUEN].size () + squares[BLACK][QUEN].size ()
              + squares[WHITE][KING].size () + squares[BLACK][KING].size ());
 }
-/// Position::count<>() counts specific piece of color
-template<PieceType PT> inline i32 Position::count (Color c) const
-{
-    assert(PT < NONE);
-    return i32(squares[c][PT].size ());
-}
-/// Position::count<NONE>() counts total pieces of color
-template<> inline i32 Position::count<NONE> (Color c) const
+/// Position::count() counts specific color
+inline i32 Position::count (Color c) const
 {
     return i32(squares[c][PAWN].size ()
              + squares[c][NIHT].size ()
@@ -284,20 +285,26 @@ template<> inline i32 Position::count<NONE> (Color c) const
              + squares[c][QUEN].size ()
              + squares[c][KING].size ());
 }
-/// Position::count() counts specific piece of color and type
+/// Position::count() counts specific type
+inline i32 Position::count (PieceType pt) const
+{
+    assert(PAWN <= pt && pt <= KING);
+    return i32(squares[WHITE][pt].size () + squares[BLACK][pt].size ());
+}
+/// Position::count() counts specific color and type
 inline i32 Position::count (Color c, PieceType pt) const
 {
-    assert(pt < NONE);
+    assert(PAWN <= pt && pt <= KING);
     return i32(squares[c][pt].size ());
 }
 
 template<PieceType PT> inline Square Position::square (Color c, i08 index) const
 {
-    assert(PT < NONE);
+    static_assert (PAWN <= PT && PT <= KING, "PT incorrect");
     assert(i08(squares[c][PT].size ()) > index);
-    return *(index == 0 ?
-             squares[c][PT].begin () : 
-             std::next (squares[c][PT].begin (), index));
+    return index == 0 ?
+             *squares[c][PT].begin () : 
+             *std::next (squares[c][PT].begin (), index);
 }
 
 inline Key Position::pg_key () const
@@ -316,7 +323,9 @@ inline Key Position::move_posi_key (Move m) const
         && NONE != mpt);
     
     auto key = si->posi_key;
-    auto ppt = PROMOTE != mtype (m) ? mpt : promote (m);
+    auto ppt = PROMOTE != mtype (m) ?
+                mpt :
+                promote (m);
     if (CASTLE == mtype (m))
     {
         key ^= RandZob.piece_square_keys[active][ROOK][dst]
@@ -334,7 +343,9 @@ inline Key Position::move_posi_key (Move m) const
                 key ^= RandZob.en_passant_keys[_file (ep_sq)];
             }
         }
-        auto cpt = ENPASSANT != mtype (m) ? ptype (board[dst]) : PAWN;
+        auto cpt = ENPASSANT != mtype (m) ?
+                    ptype (board[dst]) :
+                    PAWN;
         if (NONE != cpt)
         {
             key ^= RandZob.piece_square_keys[~active][cpt][ENPASSANT != mtype (m) ?
@@ -352,22 +363,13 @@ inline Key Position::move_posi_key (Move m) const
     }
     return key
          ^ RandZob.color_key
-         ^ RandZob.piece_square_keys[active][ppt][CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
+         ^ RandZob.piece_square_keys[active][ppt][CASTLE != mtype (m) ?
+                                                    dst :
+                                                    rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
          ^ RandZob.piece_square_keys[active][mpt][org]
-         ^ (SQ_NO != si->en_passant_sq ? RandZob.en_passant_keys[_file (si->en_passant_sq)] : 0);
-}
-
-inline bool Position::can_castle (Color c) const
-{
-    return CR_NONE != (si->castle_rights & castle_right (c));
-}
-inline bool Position::can_castle (Color c, CastleSide cs) const
-{
-    return CR_NONE != (si->castle_rights & castle_right (c, cs));
-}
-inline bool Position::has_castleright (CastleRight cr) const
-{
-    return CR_NONE != (si->castle_rights & cr);
+         ^ (SQ_NO != si->en_passant_sq ?
+                RandZob.en_passant_keys[_file (si->en_passant_sq)] :
+                0);
 }
 
 inline bool Position::expeded_castle (Color c, CastleSide cs) const
@@ -438,7 +440,7 @@ inline bool Position::pawn_passed_at (Color c, Square s) const
 /// Position::paired_bishop() check the side has pair of opposite color bishops.
 inline bool Position::paired_bishop (Color c) const
 {
-    //for (u08 pc = 1; pc < count<BSHP> (c); ++pc)
+    //for (u08 pc = 1; pc < count (c, BSHP); ++pc)
     //{
     //    if (opposite_colors (square<BSHP> (c, pc-1), square<BSHP> (c, pc)))
     //    {
@@ -451,8 +453,8 @@ inline bool Position::paired_bishop (Color c) const
 }
 inline bool Position::opposite_bishops () const
 {
-    return 1 == count<BSHP> (WHITE)
-        && 1 == count<BSHP> (BLACK)
+    return 1 == count (WHITE, BSHP)
+        && 1 == count (BLACK, BSHP)
         //&& opposite_colors (square<BSHP> (WHITE), square<BSHP> (BLACK));
         && (   (   0 != (pieces (WHITE, BSHP) & Color_bb[WHITE])
                 && 0 != (pieces (BLACK, BSHP) & Color_bb[BLACK]))
@@ -542,20 +544,34 @@ inline void Position::move_piece (Square s1, Square s2)
 }
 /// do_castling() is a helper used to do/undo a castling move.
 /// This is a bit tricky, especially in Chess960.
-template<bool Do>
 inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
     rook_org = king_dst; // Castling is always encoded as "King captures friendly Rook"
     king_dst = rel_sq (active, rook_org > king_org ? SQ_G1 : SQ_C1);
     rook_dst = rel_sq (active, rook_org > king_org ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
-    remove_piece (Do ? king_org : king_dst);
-    remove_piece (Do ? rook_org : rook_dst);
-    board[Do ? king_org : king_dst] =
-    board[Do ? rook_org : rook_dst] = NO_PIECE; // Not done by remove_piece()
-    place_piece (Do ? king_dst : king_org, active, KING);
-    place_piece (Do ? rook_dst : rook_org, active, ROOK);
+    remove_piece (king_org);
+    remove_piece (rook_org);
+    board[king_org] =
+    board[rook_org] = NO_PIECE; // Not done by remove_piece()
+    place_piece (king_dst, active, KING);
+    place_piece (rook_dst, active, ROOK);
 }
+
+inline void Position::undo_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
+{
+    rook_org = king_dst; // Castling is always encoded as "King captures friendly Rook"
+    king_dst = rel_sq (active, rook_org > king_org ? SQ_G1 : SQ_C1);
+    rook_dst = rel_sq (active, rook_org > king_org ? SQ_F1 : SQ_D1);
+    // Remove both pieces first since squares could overlap in chess960
+    remove_piece (king_dst);
+    remove_piece (rook_dst);
+    board[king_dst] =
+    board[rook_dst] = NO_PIECE; // Not done by remove_piece()
+    place_piece (king_org, active, KING);
+    place_piece (rook_org, active, ROOK);
+}
+
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&

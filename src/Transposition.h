@@ -40,20 +40,20 @@ namespace Transposition {
         // "Generation" variable distinguish transposition table entries from different searches.
         static u08 Generation;
 
-        //u16   key16      () const { return u16  (k16); }
-        Move  move       () const { return Move (m16); }
-        Value value      () const { return Value(v16); }
-        Value eval       () const { return Value(e16); }
-        i16   depth      () const { return i16  (d08); }
-        Bound bound      () const { return Bound(gb08 & 0x03); }
-        u08   generation () const { return u08  (gb08 & 0xFC); }
-        bool  empty      () const { return d08 == Empty; }
+        //u16   key16 () const { return u16(k16); }
+        Move  move () const { return Move(m16); }
+        Value value () const { return Value(v16); }
+        Value eval () const { return Value(e16); }
+        i16   depth () const { return i16(d08); }
+        Bound bound () const { return Bound(gb08 & 0x03); }
+        u08   generation () const { return u08(gb08 & 0xFC); }
+        bool  empty () const { return d08 == Empty; }
 
         // The worth of an entry is calculated as its depth minus 2 times its relative age.
         // Due to packed storage format for generation and its cyclic nature
         // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
         // to calculate the entry age correctly even after generation overflows into the next cycle.
-        i16   worth      () const { return d08 - 2*((Generation + 0x103 - gb08) & 0xFC); }
+        i16   worth () const { return d08 - ((Generation + 0x103 - gb08) & 0xFC) * 2; }
 
         void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
         {

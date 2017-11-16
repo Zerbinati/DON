@@ -206,7 +206,7 @@ namespace MoveGen {
             const auto Opp = WHITE == Own ? BLACK : WHITE;
 
             assert(GenType::EVASION != GT
-                && pos.can_castle (Own, CS)
+                && pos.si->can_castle (Own, CS)
                 && pos.expeded_castle (Own, CS)
                 && 0 == pos.si->checkers);
 
@@ -268,15 +268,15 @@ namespace MoveGen {
                     || GenType::CHECK == GT
                     || GenType::QUIET_CHECK == GT)
                 && 0 == pos.si->checkers
-                && pos.can_castle (Own))
+                && pos.si->can_castle (Own))
             {
                 if (   pos.expeded_castle (Own, CS_KING)
-                    && pos.can_castle (Own, CS_KING))
+                    && pos.si->can_castle (Own, CS_KING))
                 {
                     generate_castling_moves<GT, Own, CS_KING> (moves, pos);
                 }
                 if (   pos.expeded_castle (Own, CS_QUEN)
-                    && pos.can_castle (Own, CS_QUEN))
+                    && pos.si->can_castle (Own, CS_QUEN))
                 {
                     generate_castling_moves<GT, Own, CS_QUEN> (moves, pos);
                 }
@@ -415,7 +415,7 @@ namespace MoveGen {
 
         // If double-check or only king, then only king move can save the day
         if (   more_than_one (pos.si->checkers)
-            || 1 == pos.count<NONE> (pos.active))
+            || 1 == pos.count (pos.active))
         {
             return;
         }

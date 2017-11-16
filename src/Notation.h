@@ -50,7 +50,7 @@ namespace Notation {
     }
 
     extern std::string move_to_can (Move);
-    extern Move move_from_can (std::string&, const Position&);
+    extern Move move_from_can (const std::string&, const Position&);
 
     extern std::string move_to_san (Move, Position&);
     extern Move move_from_san (const std::string&, Position&);

@@ -100,7 +100,7 @@ namespace Threading {
         CapturePieceDestinyHistory capture_history;
         ContinuationHistory continuation_history;
 
-        Pawns   ::Table pawn_table;
+        Pawns::Table pawn_table;
         Material::Table matl_table;
 
         explicit Thread (size_t n);
@@ -191,8 +191,6 @@ namespace Threading {
         void configure (u32);
 
         void start_thinking (Position&, StateListPtr&, const Limit&, const std::vector<Move>&, bool = false);
-        void start_thinking (Position&, StateListPtr&, const Limit&, bool = false);
-
         void stop_thinking ();
 
         // No constructor and destructor, threads rely on globals that should

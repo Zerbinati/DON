@@ -113,34 +113,21 @@ namespace Engine {
             string token;
             iss >> token; // Consume "name" token
 
+            //if (token != "name") return;
             string name;
-            if (token == "name")
+            // Read option-name (can contain spaces)
+            while (   iss >> token
+                   && token != "value") // Consume "value" token if any
             {
-                // Read option-name (can contain spaces) also consume "value" token
-                while (   iss >> token
-                       && token != "value")
-                {
-                    name += string (" ", !white_spaces (name) ? 1 : 0) + token;
-                }
+                name += string (" ", !white_spaces (name) ? 1 : 0) + token;
             }
-            else
-            {
-                std::cerr << "ERROR: Illegal token : " << token << std::endl;
-                return;
-            }
+
+            //if (token != "value") return;
             string value;
-            if (token == "value")
+            // Read option-value (can contain spaces)
+            while (iss >> token)
             {
-                // Read option-value (can contain spaces)
-                while (iss >> token)
-                {
-                    value += string (" ", !white_spaces (value) ? 1 : 0) + token;
-                }
-            }
-            else
-            {
-                std::cerr << "ERROR: Illegal token : " << token << std::endl;
-                return;
+                value += string (" ", !white_spaces (value) ? 1 : 0) + token;
             }
 
             if (Options.find (name) != Options.end ())
@@ -167,7 +154,7 @@ namespace Engine {
                 iss >> token; // Consume "moves" token if any
             }
             else
-            if (token == "fen")
+            //if (token == "fen")
             {
                 while (   iss >> token
                        && token != "moves") // Consume "moves" token if any
@@ -176,31 +163,24 @@ namespace Engine {
                 }
                 assert(_ok (fen));
             }
-            else
-            {
-                std::cerr << "ERROR: Illegal token : " << token << std::endl;
-                return;
-            }
 
             states = StateListPtr (new std::deque<StateInfo> (1)); // Drop old and create a new one
             pos.setup (fen, states->back (), pos.thread);
 
-            if (token == "moves")
+            //if (token != "moves") return;
+            u16 count = 0;
+            // Parse and validate moves (if any)
+            while (iss >> token)
             {
-                u16 count = 0;
-                // Parse and validate moves (if any)
-                while (iss >> token)
+                ++count;
+                auto m = move_from_can (token, pos);
+                if (MOVE_NONE == m)
                 {
-                    ++count;
-                    auto m = move_from_can (token, pos);
-                    if (MOVE_NONE == m)
-                    {
-                        std::cerr << "ERROR: Illegal Move '" << token << "' at " << count << std::endl;
-                        break;
-                    }
-                    states->emplace_back ();
-                    pos.do_move (m, states->back ());
+                    std::cerr << "ERROR: Illegal Move '" << token << "' at " << count << std::endl;
+                    break;
                 }
+                states->emplace_back ();
+                pos.do_move (m, states->back ());
             }
         }
 
@@ -212,8 +192,10 @@ namespace Engine {
 
             Limit limits;
             limits.start_time = now ();
-            vector<Move> search_moves; // Restrict search to these root moves only
+            i16 depth = 0;
             bool ponder = false;
+            vector<Move> search_moves; // Restrict search to these root moves only
+            
             string token;
             while (iss >> token)
             {
@@ -237,7 +219,7 @@ namespace Engine {
                 else
                 if (token == "infinite")  limits.infinite = true;
                 else
-                if (token == "perft")     iss >> limits.perft;
+                if (token == "perft")     iss >> depth;
                 else
                 if (token == "ponder")    ponder = true;
                 else
@@ -255,8 +237,22 @@ namespace Engine {
                         search_moves.push_back (m);
                     }
                 }
+                else
+                {
+                    std::cerr << "ERROR: Illegal token : " << token << std::endl;
+                    return;
+                }
             }
-            Threadpool.start_thinking (pos, states, limits, search_moves, ponder);
+
+            if (0 != depth)
+            {
+                auto nodes = perft<true> (pos, depth);
+                sync_cout << "\nTotal Nodes: " << nodes << sync_endl;
+            }
+            else
+            {
+                Threadpool.start_thinking (pos, states, limits, search_moves, ponder);
+            }
         }
 
         /// setup_bench() builds a list of UCI commands to be run by bench.
@@ -289,30 +285,30 @@ namespace Engine {
             string threads = (iss >> token) && !white_spaces (token) ? token : "1";
             string value   = (iss >> token) && !white_spaces (token) ? token : "13";
             string mode    = (iss >> token) && !white_spaces (token) ? token : "depth";
-            string cmd_fn  = (iss >> token) && !white_spaces (token) ? token : "default";
+            string pos_fn  = (iss >> token) && !white_spaces (token) ? token : "default";
 
             vector<string> cmds;
             vector<string> uci_cmds;
 
-            if (cmd_fn == "default")
-            {
-                cmds = DefaultCmds;
-            }
-            else
-            if (cmd_fn == "current")
+            if (pos_fn == "current")
             {
                 cmds.emplace_back (pos.fen ());
             }
             else
+            if (pos_fn == "default")
             {
-                ifstream ifs (cmd_fn);
+                cmds = DefaultCmds;
+            }
+            else
+            {
+                ifstream ifs (pos_fn);
                 if (!ifs.is_open ())
                 {
-                    std::cerr << "ERROR: unable to open file ... \'" << cmd_fn << "\'" << std::endl;
+                    std::cerr << "ERROR: unable to open file ... \'" << pos_fn << "\'" << std::endl;
                     return uci_cmds;
                 }
                 string cmd;
-                while (std::getline (ifs, cmd))
+                while (std::getline (ifs, cmd, '\n'))
                 {
                     if (!white_spaces (cmd))
                     {
@@ -343,7 +339,7 @@ namespace Engine {
                 }
             }
 
-            if (cmd_fn != "current")
+            if (pos_fn != "current")
             {
                 uci_cmds.emplace_back ("setoption name UCI_Chess960 value " + string (chess960 ? "true" : "false"));
                 uci_cmds.emplace_back ("position fen " + pos.fen ());
@@ -414,6 +410,13 @@ namespace Engine {
         /// In addition to the UCI ones, also some additional commands are supported.
         void loop (i32 argc, const char *const *argv)
         {
+            // Join arguments
+            string cmd;
+            for (i32 i = 1; i < argc; ++i)
+            {
+                cmd += string (" ", !white_spaces (cmd) ? 1 : 0) + string (argv[i]);
+            }
+
             // Stack to keep track of the position states along the setup moves
             // (from the start position to the position just before the search starts).
             // Needed by 'draw by repetition' detection.
@@ -422,13 +425,6 @@ namespace Engine {
             Position::Chess960 = false;
             Position pos;
             pos.setup (StartFEN, states->back (), ui_thread.get ());
-
-            // Join arguments
-            string cmd;
-            for (i32 i = 1; i < argc; ++i)
-            {
-                cmd += string (" ", !white_spaces (cmd) ? 1 : 0) + string (argv[i]);
-            }
 
             string token;
             do
@@ -501,12 +497,6 @@ namespace Engine {
                 {
                     setoption (iss);
                 }
-                //else
-                //if (token == "register")
-                //{
-                //    reg (iss);
-                //}
-
                 // Additional custom non-UCI commands, useful for debugging
                 else
                 {
@@ -692,21 +682,21 @@ namespace Engine {
         std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency () << std::endl;
 
 #if defined(LPAGES)
-        Memory   ::initialize ();
+        Memory::initialize ();
 #endif
-        UCI      ::initialize ();
-        BitBoard ::initialize ();
-        PSQT     ::initialize ();
-        Zobrists ::initialize ();
-        BitBases ::initialize ();
-        Pawns    ::initialize ();
-        EndGame  ::initialize ();
+        UCI::initialize ();
+        BitBoard::initialize ();
+        PSQT::initialize ();
+        Zobrists::initialize ();
+        BitBases::initialize ();
+        Pawns::initialize ();
+        EndGame::initialize ();
         TT.auto_resize (i32(Options["Hash"]), true);
         Threadpool.initialize (i32(Options["Threads"]));
-        Searcher ::initialize ();
-        TBSyzygy ::initialize ();
+        Searcher::initialize ();
+        TBSyzygy::initialize ();
 
-        Searcher ::clear ();
+        Searcher::clear ();
 
         loop (argc, argv);
     }
@@ -716,10 +706,10 @@ namespace Engine {
     {
         Threadpool.stop = true;
         Threadpool.deinitialize ();
-        EndGame  ::deinitialize ();
-        UCI      ::deinitialize ();
+        EndGame::deinitialize ();
+        UCI::deinitialize ();
 #if defined(LPAGES)
-        Memory   ::deinitialize ();
+        Memory::deinitialize ();
 #endif
         exit (code);
     }

@@ -28,7 +28,6 @@ public:
         u64 time;
         u32 inc;
     } clock[CLR_NO];    // Search with Clock
-
     u08  movestogo;     // Search <x> moves to the next time control
 
     u64  movetime;      // Search <x> exact time in milli-seconds
@@ -36,7 +35,6 @@ public:
     u64  nodes;         // Search <x> nodes only
     u08  mate;          // Search mate in <x> moves
     bool infinite;      // Search until the "stop" command
-    i16  perft;         // Perft depth
 
     TimePoint start_time;
 
@@ -53,7 +51,6 @@ public:
         nodes = 0;
         mate = 0;
         infinite = false;
-        perft = 0;
     }
 
     bool use_time_management () const
@@ -334,6 +331,9 @@ namespace Searcher {
     extern void initialize ();
 
     extern void clear ();
+
+    template<bool RootNode>
+    extern u64 perft (Position&, i16);
 }
 
 #endif // _SEARCHER_H_INC_

@@ -163,8 +163,8 @@ namespace Evaluator {
 
             const Position &pos;
 
+            Pawns::Entry *pe = nullptr;
             Material::Entry *me = nullptr;
-            Pawns   ::Entry *pe = nullptr;
 
             Bitboard mob_area[CLR_NO];
             Score    mobility[CLR_NO];
@@ -528,7 +528,7 @@ namespace Evaluator {
                         if (   ((kf < F_E) == (_file (s) < kf))
                             && !pe->side_semiopen (Own, kf, kf < F_E))
                         {
-                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.can_castle (Own) ? 1 : 2);
+                            score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.si->can_castle (Own) ? 1 : 2);
                         }
                     }
                 }
@@ -567,17 +567,17 @@ namespace Evaluator {
             auto index = pe->king_safety_on<Own> (pos, fk_sq);
             auto value = pe->king_safety[Own][index];
             if (   rel_rank (Own, fk_sq) == R_1
-                && pos.can_castle (Own))
+                && pos.si->can_castle (Own))
             {
                 if (   value < pe->king_safety[Own][0]
-                    && pos.can_castle (Own, CS_KING)
+                    && pos.si->can_castle (Own, CS_KING)
                     && pos.expeded_castle (Own, CS_KING)
                     && 0 == (pos.king_path[Own][CS_KING] & ful_attacked_by[Opp]))
                 {
                     value = pe->king_safety[Own][0];
                 }
                 if (   value < pe->king_safety[Own][1]
-                    && pos.can_castle (Own, CS_QUEN)
+                    && pos.si->can_castle (Own, CS_QUEN)
                     && pos.expeded_castle (Own, CS_QUEN)
                     && 0 == (pos.king_path[Own][CS_QUEN] & ful_attacked_by[Opp]))
                 {
@@ -589,7 +589,7 @@ namespace Evaluator {
 
             Bitboard b;
             // Main king safety evaluation
-            if (king_ring_attackers_count[Opp] + pos.count<QUEN> (Opp) > 1)
+            if (king_ring_attackers_count[Opp] + pos.count (Opp, QUEN) > 1)
             {
                 // Find the attacked squares which are defended only by the king in the king zone...
                 Bitboard weak_area =  pin_attacked_by[Opp][NONE]
@@ -607,7 +607,7 @@ namespace Evaluator {
                                 + 102 * king_zone_attacks_count[Opp]
                                 + 191 * pop_count (king_ring[Own] & weak_area)
                                 +  24 * pins_weight[Own]
-                                - 848 * (0 == pos.count<QUEN>(Opp))
+                                - 848 * (0 == pos.count (Opp, QUEN))
                                 -   9 * value / 8
                                 +  40;
 
@@ -987,7 +987,7 @@ namespace Evaluator {
             behind |= shift<WHITE == Own ? DEL_SS : DEL_NN> (behind);
             i32 count  = pop_count (  (behind & safe_space)
                                     | (WHITE == Own ? safe_space << 0x20 : safe_space >> 0x20));
-            i32 weight = pos.count<NONE> (Own) - 2 * pe->open_count;
+            i32 weight = pos.count (Own) - 2 * pe->open_count;
             auto score = mk_score (count * weight * weight / 16, 0);
 
             if (Trace)
@@ -1008,7 +1008,7 @@ namespace Evaluator {
 
             // Compute the initiative bonus for the attacking side
             i32 initiative =  8 * (king_dist + pe->asymmetry - 17)
-                           + 12 * pos.count<PAWN> ()
+                           + 12 * pos.count (PAWN)
                              // Pawn on both flanks
                            + 16 * (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
                                    && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]) ? 1 : 0);
@@ -1047,7 +1047,7 @@ namespace Evaluator {
                         // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
                         VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE)
                      && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) ?
-                            1 >= pos.count<PAWN> () ?
+                            1 >= pos.count (PAWN) ?
                                 Scale( 9) :
                                 Scale(31) :
                         // Endgame with opposite-colored bishops but also other pieces
@@ -1056,10 +1056,10 @@ namespace Evaluator {
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 if (   VALUE_EG_BSHP >= abs (eg)
-                    && 2 >= pos.count<PAWN> (strong_color)
+                    && 2 >= pos.count (strong_color, PAWN)
                     && !pos.pawn_passed_at (~strong_color, pos.square<KING> (~strong_color)))
                 {
-                    return Scale(37 + 7 * pos.count<PAWN> (strong_color));
+                    return Scale(37 + 7 * pos.count (strong_color, PAWN));
                 }
             }
             return scale;

@@ -131,7 +131,7 @@ namespace Material {
         for (auto c : { WHITE, BLACK })
         {
             if (   pos.si->non_pawn_material ( c) >= VALUE_MG_ROOK
-                && pos.count<NONE> (~c) == 1)
+                && pos.count (~c) == 1)
             {
                 e->value_func = &ValueKXK[c];
                 return e;
@@ -156,18 +156,18 @@ namespace Material {
         for (auto c : { WHITE, BLACK })
         {
             if (   pos.si->non_pawn_material ( c) == VALUE_MG_BSHP
-                && pos.count<BSHP> ( c) == 1
-                && pos.count<PAWN> ( c) != 0)
+                && pos.count ( c, BSHP) == 1
+                && pos.count ( c, PAWN) != 0)
             {
                 e->scale_func[c] = &ScaleKBPsKPs[c];
             }
             else
             if (   pos.si->non_pawn_material ( c) == VALUE_MG_QUEN
-                && pos.count<QUEN> ( c) == 1
-                && pos.count<PAWN> ( c) == 0
+                && pos.count ( c, QUEN) == 1
+                && pos.count ( c, PAWN) == 0
                 && pos.si->non_pawn_material (~c) == VALUE_MG_ROOK
-                && pos.count<ROOK> (~c) == 1
-                && pos.count<PAWN> (~c) != 0)
+                && pos.count (~c, ROOK) == 1
+                && pos.count (~c, PAWN) != 0)
             {
                 e->scale_func[c] = &ScaleKQKRPs[c];
             }
@@ -176,14 +176,14 @@ namespace Material {
             if (   npm == VALUE_ZERO
                 && 0 != pos.pieces (PAWN))
             {
-                switch (pos.count<PAWN> (~c))
+                switch (pos.count (~c, PAWN))
                 {
                 case 0:
-                    assert(pos.count<PAWN> ( c) > 1);
+                    assert(pos.count ( c, PAWN) > 1);
                     e->scale_func[c] = &ScaleKPsK[c];
                     break;
                 case 1:
-                    if (pos.count<PAWN> ( c) == 1)
+                    if (pos.count ( c, PAWN) == 1)
                     {
                         e->scale_func[c] = &ScaleKPKP[c];
                     }
@@ -197,7 +197,7 @@ namespace Material {
             if (abs (  pos.si->non_pawn_material ( c)
                      - pos.si->non_pawn_material (~c)) <= VALUE_MG_BSHP)
             {
-                switch (pos.count<PAWN> ( c))
+                switch (pos.count ( c, PAWN))
                 {
                 case 0:
                     e->scale[c] =
@@ -219,12 +219,12 @@ namespace Material {
         const i32 piece_count[CLR_NO][NONE] =
         {
             {
-                pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
-                pos.count<ROOK> (WHITE), pos.count<QUEN> (WHITE), pos.paired_bishop (WHITE) ? 1 : 0
+                pos.count (WHITE, PAWN), pos.count (WHITE, NIHT), pos.count (WHITE, BSHP),
+                pos.count (WHITE, ROOK), pos.count (WHITE, QUEN), pos.paired_bishop (WHITE) ? 1 : 0
             },
             {
-                pos.count<PAWN> (BLACK), pos.count<NIHT> (BLACK), pos.count<BSHP> (BLACK),
-                pos.count<ROOK> (BLACK), pos.count<QUEN> (BLACK), pos.paired_bishop (BLACK) ? 1 : 0
+                pos.count (BLACK, PAWN), pos.count (BLACK, NIHT), pos.count (BLACK, BSHP),
+                pos.count (BLACK, ROOK), pos.count (BLACK, QUEN), pos.paired_bishop (BLACK) ? 1 : 0
             }
         };
 

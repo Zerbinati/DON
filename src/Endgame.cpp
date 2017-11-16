@@ -47,7 +47,7 @@ namespace EndGame {
         // Map the square as if color is white and sqaure only pawn is on the left half of the board.
         Square normalize (const Position &pos, Color c, Square sq)
         {
-            assert(pos.count<PAWN> (c) == 1);
+            assert(pos.count (c, PAWN) == 1);
 
             if (_file (pos.square<PAWN> (c)) >= F_E)
             {
@@ -64,7 +64,7 @@ namespace EndGame {
         bool verify_material (const Position &pos, Color c, Value npm, i32 pawn_count)
         {
             return pos.si->non_pawn_material (c) == npm
-                && pos.count<PAWN> (c) == pawn_count;
+                && pos.count (c, PAWN) == pawn_count;
         }
 #endif
 
@@ -112,18 +112,18 @@ namespace EndGame {
         auto wk_sq = pos.square<KING> (  weak_color);
 
         auto value = std::min (
-                     VALUE_EG_PAWN*pos.count<PAWN> (strong_color)
+                     VALUE_EG_PAWN*pos.count (strong_color, PAWN)
                    + pos.si->non_pawn_material (strong_color)
                    + PushToEdge[wk_sq]
                    + PushClose[dist (sk_sq, wk_sq)]
                    , +VALUE_KNOWN_WIN - 1);
 
-        if (   0 != pos.count<QUEN> (strong_color)
-            || 0 != pos.count<ROOK> (strong_color)
+        if (   0 != pos.count (strong_color, QUEN)
+            || 0 != pos.count (strong_color, ROOK)
             || pos.paired_bishop (strong_color)
-            || (   0 != pos.count<BSHP> (strong_color)
-                && 0 != pos.count<NIHT> (strong_color))
-            || 2 < pos.count<NIHT> (strong_color))
+            || (   0 != pos.count (strong_color, BSHP)
+                && 0 != pos.count (strong_color, NIHT))
+            || 2 < pos.count (strong_color, NIHT))
         {
             value = std::min (value + VALUE_KNOWN_WIN, +VALUE_MATE_MAX_PLY - 1);
         }
@@ -760,7 +760,7 @@ namespace EndGame {
     template<> Scale Endgame<KPsK>::operator() (const Position &pos) const
     {
         assert(pos.si->non_pawn_material (strong_color) == VALUE_ZERO);
-        assert(pos.count<PAWN> (strong_color) >= 2);
+        assert(pos.count (strong_color, PAWN) >= 2);
         assert(verify_material (pos, weak_color, VALUE_ZERO, 0));
 
         auto wk_sq  = pos.square<KING> (  weak_color);
@@ -786,8 +786,8 @@ namespace EndGame {
     template<> Scale Endgame<KBPsKPs>::operator() (const Position &pos) const
     {
         assert(pos.si->non_pawn_material (strong_color) == VALUE_MG_BSHP);
-        assert(1 == pos.count<BSHP> (strong_color));
-        assert(0 != pos.count<PAWN> (strong_color));
+        assert(1 == pos.count (strong_color, BSHP));
+        assert(0 != pos.count (strong_color, PAWN));
         // No assertions about the material of weak side, because we want draws to
         // be detected even when the weak side has some materials or pawns.
 
@@ -805,14 +805,11 @@ namespace EndGame {
             auto promote_sq = rel_sq (strong_color, sp_f|R_8);
             auto wk_sq = pos.square<KING> (  weak_color);
 
-            // The bishop has the wrong color.
-            if (opposite_colors (promote_sq, sb_sq))
+            // The bishop has the wrong color and the defending king defends the queening square.
+            if (   opposite_colors (promote_sq, sb_sq)
+                && dist (promote_sq, wk_sq) <= 1)
             {
-                // If the defending king defends the queening square.
-                if (dist (promote_sq, wk_sq) <= 1)
-                {
-                    return SCALE_DRAW;
-                }
+                return SCALE_DRAW;
             }
         }
 
@@ -827,7 +824,7 @@ namespace EndGame {
             auto wk_sq = pos.square<KING> (  weak_color);
             auto sb_sq = pos.square<BSHP> (strong_color);
 
-            if (0 != pos.count<PAWN> (weak_color))
+            if (0 != pos.count (weak_color, PAWN))
             {
                 // Get weak side pawn that is closest to home rank
                 auto wp_sq = scan_backmost_sq (weak_color, pos.pieces (weak_color, PAWN));
@@ -846,7 +843,7 @@ namespace EndGame {
                 if (   rel_rank (strong_color, wp_sq) == R_7
                     && contains (pos.pieces (strong_color, PAWN), wp_sq + pawn_push (weak_color))
                     && (   opposite_colors (sb_sq, wp_sq)
-                        || pos.count<PAWN> (strong_color) == 1))
+                        || pos.count (strong_color, PAWN) == 1))
                 {
                     // It's a draw if the weak king is on its back two ranks, within 2
                     // squares of the blocking pawn and the strong king is not closer.
@@ -863,18 +860,18 @@ namespace EndGame {
                 }
             }
 
-            auto promote_sq = rel_sq (strong_color, sp_f|R_8);
-            // If the defending king defends the queening square.
-            // and strong pawn block bishop and king can't be driven away
-            if (   dist (promote_sq, wk_sq) <= 1
-                && dist (sp_sq, sk_sq) > 1
-                && rel_rank (strong_color, sp_sq) == R_6
-                && rel_rank (strong_color, sb_sq) == R_7
-                && 0 != ((FA_bb|FH_bb) & file_bb (sb_sq))
-                && 0 != (PawnAttacks[weak_color][sb_sq] & spawns))
-            {
-                return SCALE_DRAW;
-            }
+            //auto promote_sq = rel_sq (strong_color, sp_f|R_8);
+            //// If the defending king defends the queening square.
+            //// and strong pawn block bishop and king can't be driven away
+            //if (   dist (promote_sq, wk_sq) <= 1
+            //    && dist (sp_sq, sk_sq) > 1
+            //    && rel_rank (strong_color, sp_sq) == R_6
+            //    && rel_rank (strong_color, sb_sq) == R_7
+            //    && 0 != ((FA_bb|FH_bb) & file_bb (sb_sq))
+            //    && 0 != (PawnAttacks[weak_color][sb_sq] & spawns))
+            //{
+            //    return SCALE_DRAW;
+            //}
         }
 
         return SCALE_NONE;
@@ -885,8 +882,8 @@ namespace EndGame {
     template<> Scale Endgame<KQKRPs>::operator() (const Position &pos) const
     {
         assert(verify_material (pos, strong_color, VALUE_MG_QUEN, 0));
-        assert(pos.count<ROOK> (weak_color) == 1);
-        assert(pos.count<PAWN> (weak_color) != 0);
+        assert(pos.count (weak_color, ROOK) == 1);
+        assert(pos.count (weak_color, PAWN) != 0);
 
         auto sk_sq = pos.square<KING> (strong_color);
         auto wk_sq = pos.square<KING> (  weak_color);

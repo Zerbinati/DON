@@ -120,13 +120,13 @@ namespace Notation {
     }
     /// Converts a string representing a move in coordinate algebraic notation
     /// to the corresponding legal move, if any.
-    Move move_from_can (string &can, const Position &pos)
+    Move move_from_can (const string &can, const Position &pos)
     {
-        if (   5 == can.length ()
-            && isupper (i32(can[4])))
-        {
-            can[4] = char(tolower (i32(can[4]))); // Promotion piece in lowercase
-        }
+        //if (   5 == can.length ()
+        //    && isupper (can[4]))
+        //{
+        //    can[4] = char(tolower (can[4])); // Promotion piece in lowercase
+        //}
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {
             if (can == move_to_can (vm.move))
