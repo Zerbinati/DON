@@ -578,12 +578,10 @@ namespace EndGame {
         if (opposite_colors (sb_sq, wb_sq))
         {
             // Assume that the position is drawn in the following three situations:
-            //
-            //   a. The pawn is on rank 5 or further back.
-            //   b. The defending king is somewhere in the pawn's path.
-            //   c. The defending bishop attacks some square along the pawn's path,
+            //   1. The pawn is on rank 5 or further back.
+            //   2. The defending king is somewhere in the pawn's path.
+            //   3. The defending bishop attacks some square along the pawn's path,
             //      and is at least three squares away from the pawn.
-            //
             // These rules are probably not perfect, but in practice they work reasonably well.
 
             if (rel_rank (strong_color, sp_sq) <= R_5)
@@ -593,9 +591,9 @@ namespace EndGame {
 
             auto path = front_line_bb (strong_color, sp_sq);
             if (   0 != (path & pos.pieces (weak_color, KING))
-                || (   0 != (path & PieceAttacks[BSHP][wb_sq])
-                    && 0 != (path & attacks_bb<BSHP> (wb_sq, pos.pieces ()))
-                    && 3 <= dist (wb_sq, sp_sq)))
+                || (   3 <= dist (wb_sq, sp_sq)
+                    && 0 != (path & PieceAttacks[BSHP][wb_sq])
+                    && 0 != (path & attacks_bb<BSHP> (wb_sq, pos.pieces ()))))
             {
                 return SCALE_DRAW;
             }
@@ -712,9 +710,8 @@ namespace EndGame {
 
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
-        Bitboard front_line = front_line_bb (strong_color, sp_sq);
-        if (   0 != (front_line & PieceAttacks[BSHP][sb_sq])
-            && 0 != (front_line & attacks_bb<BSHP> (sb_sq, pos.pieces ())))
+        if (   0 != (front_line_bb (strong_color, sp_sq) & PieceAttacks[BSHP][sb_sq]) 
+            && 0 != (front_line_bb (strong_color, sp_sq) & attacks_bb<BSHP> (sb_sq, pos.pieces ())))
         {
             return Scale(dist (wk_sq, sp_sq));
         }
@@ -829,15 +826,6 @@ namespace EndGame {
                 // Get weak side pawn that is closest to home rank
                 auto wp_sq = scan_backmost_sq (weak_color, pos.pieces (weak_color, PAWN));
 
-                //// It's a draw if weak pawn is on rank 7, bishop can't attack the pawn, and
-                //// weak king can stop opposing opponent's king from penetrating.
-                //if (   rel_rank (strong_color, wp_sq) == R_7
-                //    && opposite_colors (sb_sq, wp_sq)
-                //    && dist (wp_sq, wk_sq) <= dist (wp_sq, sk_sq))
-                //{
-                //    return SCALE_DRAW;
-                //}
-
                 // There's potential for a draw if weak pawn is blocked on the 7th rank
                 // and the bishop cannot attack it or they only have one pawn left
                 if (   rel_rank (strong_color, wp_sq) == R_7
@@ -859,19 +847,6 @@ namespace EndGame {
                     }
                 }
             }
-
-            //auto promote_sq = rel_sq (strong_color, sp_f|R_8);
-            //// If the defending king defends the queening square.
-            //// and strong pawn block bishop and king can't be driven away
-            //if (   dist (promote_sq, wk_sq) <= 1
-            //    && dist (sp_sq, sk_sq) > 1
-            //    && rel_rank (strong_color, sp_sq) == R_6
-            //    && rel_rank (strong_color, sb_sq) == R_7
-            //    && 0 != ((FA_bb|FH_bb) & file_bb (sb_sq))
-            //    && 0 != (PawnAttacks[weak_color][sb_sq] & spawns))
-            //{
-            //    return SCALE_DRAW;
-            //}
         }
 
         return SCALE_NONE;

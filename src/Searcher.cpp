@@ -332,14 +332,10 @@ Move MovePicker::next_move ()
         while (i < moves.size ())
         {
             auto &vm = next_max_move ();
-            if (   pos.see_ge (vm.move)
-                || (   BSHP == ptype (pos[org_sq (vm.move)])
-                    && NIHT == ptype (pos[dst_sq (vm.move)])
-                    && 1090 < vm.value))
+            if (pos.see_ge (vm.move, Value(-(55 * vm.value) / 1024)))
             {
                 return vm.move;
             }
-            assert(!pos.promotion (vm.move));
             // Losing capture: Add it to the capture moves
             bad_capture_moves.push_back (vm.move);
         }
