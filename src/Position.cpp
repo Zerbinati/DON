@@ -600,14 +600,12 @@ void Position::set_castle (Color c, CastleSide cs)
     }
 }
 /// Position::can_en_passant() Can the en-passant possible.
-bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
+bool Position::can_en_passant (Color c, Square ep_sq) const
 {
     assert(ep_sq != SQ_NO);
     assert(rel_rank (c, ep_sq) == R_6);
-    auto cap = move_done ?
-                ep_sq - pawn_push (c) :
-                ep_sq + pawn_push (c);
-    if (!contains (pieces (~c, PAWN), cap))
+
+    if (!contains (pieces (~c, PAWN), ep_sq - pawn_push (c)))
     {
         return false;
     }
@@ -615,7 +613,7 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
     // En-passant attackers
     Bitboard attackers = PawnAttacks[~c][ep_sq] & pieces (c, PAWN);
     assert(pop_count (attackers) <= 2);
-    Bitboard mocc = (pieces () ^ cap) | ep_sq;
+    Bitboard mocc = (pieces () ^ (ep_sq - pawn_push (c))) | ep_sq;
     Bitboard bq = pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (c)];
     Bitboard rq = pieces (~c, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (c)];
     if (   0 != attackers
@@ -855,9 +853,8 @@ Position& Position::setup (const string &code, StateInfo &nsi, Color c)
     return *this;
 }
 
-/// Position::do_move() makes a move, and saves all information necessary
-/// to a StateInfo object. The move is assumed to be legal. Pseudo-legal
-/// moves should be filtered out before this function is called.
+/// Position::do_move() makes a move, and saves all information necessary to a StateInfo object.
+/// The move is assumed to be legal.
 void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 {
     assert(_ok (m));
@@ -1023,12 +1020,15 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     assert(!is_check
         || 0 != si->checkers);
 
+    ++ply;
+
     // Switch sides.
     active = pasive;
     si->posi_key ^= RandZob.color_key;
 
+    prefetch (TT.cluster_entry (si->posi_key));
+
     si->set_check_info (*this);
-    ++ply;
 
     assert(ok ());
 }
@@ -1082,9 +1082,9 @@ void Position::undo_move (Move m)
         place_piece (org, active, PAWN);
     }
 
-    // Restore the captured piece.
     if (NONE != si->capture)
     {
+        // Restore the captured piece.
         assert(empty (ENPASSANT != mtype (m) ? dst : dst - pawn_push (active)));
         place_piece (ENPASSANT != mtype (m) ? dst : dst - pawn_push (active), ~active, si->capture);
     }
@@ -1113,17 +1113,19 @@ void Position::do_null_move (StateInfo &nsi)
     }
     ++si->clock_ply;
     si->null_ply = 0;
+    si->capture = NONE;
+    assert(0 == si->checkers);
 
     active = ~active;
     si->posi_key ^= RandZob.color_key;
 
-    si->capture = NONE;
-    assert(0 == si->checkers);
+    prefetch (TT.cluster_entry (si->posi_key));
+
     si->set_check_info (*this);
 
     assert(ok ());
 }
-/// Position::do_null_move() unmakes a 'null move'.
+/// Position::undo_null_move() unmakes a 'null move'.
 void Position::undo_null_move ()
 {
     assert(nullptr != si->ptr);
@@ -1152,8 +1154,11 @@ void Position::flip ()
     }
     // 2. Active color
     iss >> token;
-    ff += token[0] == 'w' ? "b" :
-          token[0] == 'b' ? "w" : "-";
+    switch (token[0])
+    {
+    case 'w': ff += "b"; break;
+    case 'b': ff += "w"; break;
+    }
     ff += " ";
     // 3. Castling availability
     iss >> token;
@@ -1198,13 +1203,22 @@ void Position::mirror ()
     {
         for (auto &ch : token)
         {
-            ch = Chess960 ?
-                    to_char (~to_file (char(tolower (ch))), islower (ch)) :
-                    tolower (ch) == 'k' ? (islower (ch) ? 'q' : 'Q') :
-                    tolower (ch) == 'q' ? (islower (ch) ? 'k' : 'K') : '-';
+            if (Chess960)
+            {
+                ff += to_char (~to_file (char(tolower (ch))), islower (ch));
+            }
+            else
+            {
+                switch (ch)
+                {
+                case 'K': ff += 'Q'; break;
+                case 'Q': ff += 'K'; break;
+                case 'k': ff += 'q'; break;
+                case 'q': ff += 'k'; break;
+                }
+            }
         }
     }
-    ff += token;
     ff += " ";
     // 4. En-passant square
     iss >> token;

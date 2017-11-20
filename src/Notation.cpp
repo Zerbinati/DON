@@ -114,7 +114,7 @@ namespace Notation {
                  + to_string (fix_dst_sq (m, Position::Chess960));
         if (PROMOTE == mtype (m))
         {
-            can += char(tolower (PieceChar[promote (m)]));
+            can += PieceChar[promote (m) + 8];
         }
         return can;
     }
@@ -152,7 +152,7 @@ namespace Notation {
         {
             if (PAWN != ptype (pos[org]))
             {
-                san = PieceChar[ptype (pos[org])];
+                san = PieceChar[ptype (pos[org]) + 0];
                 if (KING != ptype (pos[org]))
                 {
                     // Disambiguation if have more then one piece of type 'pt'
@@ -190,12 +190,12 @@ namespace Notation {
                 && PROMOTE == mtype (m))
             {
                 san += "=";
-                san += PieceChar[promote (m)];
+                san += PieceChar[promote (m) + 0];
             }
         }
         else
         {
-            san = (dst > org ? "O-O" : "O-O-O");
+            san = dst > org ? "O-O" : "O-O-O";
         }
 
         // Move marker for check & checkmate
@@ -275,20 +275,18 @@ namespace Notation {
         }
         oss << " ";
 
-        StateListPtr states (new std::deque<StateInfo> (0));
-        u08 ply = 0;
-        for (auto m : root_move)
+        StateListPtr states (new deque<StateInfo> (0));
+        for (auto i = 0; i < root_move.size (); ++i)
         {
-            oss <<
-                //move_to_can (m)
-                move_to_san (m, th->root_pos) << " ";
+            oss << //move_to_can (m)
+                   move_to_san (root_move[i], th->root_pos)
+                << " ";
             states->emplace_back ();
-            th->root_pos.do_move (m, states->back ());
-            ++ply;
+            th->root_pos.do_move (root_move[i], states->back ());
         }
-        while (0 != ply)
+        for (auto i = root_move.size (); i > 0; --i)
         {
-            th->root_pos.undo_move (root_move[--ply]);
+            th->root_pos.undo_move (root_move[i-1]);
             states->pop_back ();
         }
 

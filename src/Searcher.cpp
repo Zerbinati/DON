@@ -49,21 +49,19 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
 /// RootMove::draw()
 bool RootMove::draw (Position &pos) const
 {
-    StateListPtr states (new std::deque<StateInfo> (0));
-    i16 ply = 0;
-    for (auto m : *this)
+    StateListPtr states (new deque<StateInfo> (0));
+    for (auto i = 0; i < size (); ++i)
     {
         states->emplace_back ();
-        pos.do_move (m, states->back ());
-        ++ply;
+        pos.do_move (at (i), states->back ());
     }
-    bool d = pos.draw (ply);
-    while (0 != ply)
+    bool dr = pos.draw (i16(size ()));
+    for (auto i = size (); i > 0; --i)
     {
-        pos.undo_move ((*this)[--ply]);
+        pos.undo_move (at (i-1));
         states->pop_back ();
     }
-    return d;
+    return dr;
 }
 /// RootMove::operator string()
 RootMove::operator string () const
@@ -163,7 +161,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
                                              }),
                              killers_moves.end ());
     }
-    
+
     if (MOVE_NONE == tt_move)
     {
         ++stage;
@@ -949,9 +947,6 @@ namespace Searcher {
                     continue;
                 }
 
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
-
                 ss->played_move = move;
 
                 // Make the move
@@ -1268,13 +1263,6 @@ namespace Searcher {
                         && ss->static_eval + 36*depth - 225 >= beta
                         && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
                     {
-                        // Speculative prefetch as early as possible.
-                        prefetch (TT.cluster_entry (  key
-                                                    ^ RandZob.color_key
-                                                    ^ (SQ_NO != pos.si->en_passant_sq ?
-                                                        RandZob.en_passant_keys[_file (pos.si->en_passant_sq)] :
-                                                        0)));
-
                         ss->played_move = MOVE_NULL;
                         ss->piece_destiny_history = &pos.thread->continuation_history[NO_PIECE][0];
 
@@ -1336,9 +1324,6 @@ namespace Searcher {
                             assert(pos.pseudo_legal (move)
                                 && pos.legal (move)
                                 && pos.capture_or_promotion (move));
-
-                            // Speculative prefetch as early as possible.
-                            prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                             ss->played_move = move;
                             ss->piece_destiny_history = &pos.thread->continuation_history[pos[org_sq (move)]][dst_sq (move)];
@@ -1546,9 +1531,6 @@ namespace Searcher {
                         continue;
                     }
                 }
-
-                // Speculative prefetch as early as possible.
-                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                 if (   move == tt_move
                     && capture_or_promotion)
@@ -1933,8 +1915,8 @@ namespace Searcher {
                     << std::setfill (' ')
                     << std::setw (7)
                     <<
-                    //move_to_can (vm.move)
-                    move_to_san (vm.move, pos)
+                       //move_to_can (vm.move)
+                       move_to_san (vm.move, pos)
                     << std::right
                     << std::setfill ('.')
                     << std::setw (16)
