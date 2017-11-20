@@ -1268,10 +1268,10 @@ string Position::fen (bool full) const
 
     if (si->can_castle (CR_ANY))
     {
-        if (si->can_castle (WHITE, CS_KING)) oss << (Chess960 ? to_char (_file (castle_rook[WHITE][CS_KING]), false) : 'K');
-        if (si->can_castle (WHITE, CS_QUEN)) oss << (Chess960 ? to_char (_file (castle_rook[WHITE][CS_QUEN]), false) : 'Q');
-        if (si->can_castle (BLACK, CS_KING)) oss << (Chess960 ? to_char (_file (castle_rook[BLACK][CS_KING]),  true) : 'k');
-        if (si->can_castle (BLACK, CS_QUEN)) oss << (Chess960 ? to_char (_file (castle_rook[BLACK][CS_QUEN]),  true) : 'q');
+        if (si->can_castle (CR_WKING)) oss << (Chess960 ? to_char (_file (castle_rook[WHITE][CS_KING]), false) : 'K');
+        if (si->can_castle (CR_WQUEN)) oss << (Chess960 ? to_char (_file (castle_rook[WHITE][CS_QUEN]), false) : 'Q');
+        if (si->can_castle (CR_BKING)) oss << (Chess960 ? to_char (_file (castle_rook[BLACK][CS_KING]),  true) : 'k');
+        if (si->can_castle (CR_BQUEN)) oss << (Chess960 ? to_char (_file (castle_rook[BLACK][CS_QUEN]),  true) : 'q');
     }
     else
     {
@@ -1306,11 +1306,10 @@ Position::operator string () const
         oss << "   " << Notation::to_char (f, false);
     }
 
-    oss << "\n"
-        << "FEN: " << fen (true) << "\n"
-        << "Key: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
-        << si->posi_key << std::nouppercase << std::dec << std::setfill (' ') << "\n";
-    oss << "Checkers: ";
+    oss << "\nFEN: " << fen (true)
+        << "\nKey: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
+        << si->posi_key << std::nouppercase << std::dec << std::setfill (' ');
+    oss << "\nCheckers: ";
     for (Bitboard b = si->checkers; 0 != b; )
     {
         oss << pop_lsq (b) << " ";
@@ -1433,7 +1432,7 @@ bool Position::ok () const
         for (auto cs : { CS_KING, CS_QUEN })
         {
             auto cr = castle_right (c, cs);
-            if (   si->can_castle (c, cs)
+            if (   si->can_castle (cr)
                 && (   board[castle_rook[c][cs]] != (c|ROOK)
                     || castle_mask[castle_rook[c][cs]] != cr
                     || (castle_mask[square<KING> (c)] & cr) != cr))

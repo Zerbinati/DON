@@ -306,19 +306,19 @@ namespace Searcher {
     extern Limit Limits;
 
     extern size_t MultiPV;
-    //extern i32   MultiPV_cp;
+    //extern i32    MultiPV_cp;
 
-    extern i16   FixedContempt
-        ,        ContemptTime 
-        ,        ContemptValue;
+    extern i16  FixedContempt
+        ,       ContemptTime 
+        ,       ContemptValue;
 
     extern std::string HashFile;
     extern bool RetainHash;
 
-    extern bool  OwnBook;
+    extern bool OwnBook;
     extern std::string BookFile;
-    extern bool  BookMoveBest;
-    extern i16   BookUptoMove;
+    extern bool BookMoveBest;
+    extern i16  BookUptoMove;
 
     extern i16   TBProbeDepth;
     extern i32   TBLimitPiece;

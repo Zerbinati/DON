@@ -583,17 +583,11 @@ namespace EndGame {
             //   3. The defending bishop attacks some square along the pawn's path,
             //      and is at least three squares away from the pawn.
             // These rules are probably not perfect, but in practice they work reasonably well.
-
-            if (rel_rank (strong_color, sp_sq) <= R_5)
-            {
-                return SCALE_DRAW;
-            }
-
-            auto path = front_line_bb (strong_color, sp_sq);
-            if (   0 != (path & pos.pieces (weak_color, KING))
+            if (   rel_rank (strong_color, sp_sq) <= R_5
+                || 0 != (front_line_bb (strong_color, sp_sq) & pos.pieces (weak_color, KING))
                 || (   3 <= dist (wb_sq, sp_sq)
-                    && 0 != (path & PieceAttacks[BSHP][wb_sq])
-                    && 0 != (path & attacks_bb<BSHP> (wb_sq, pos.pieces ()))))
+                    && 0 != (front_line_bb (strong_color, sp_sq) & PieceAttacks[BSHP][wb_sq])
+                    && 0 != (front_line_bb (strong_color, sp_sq) & attacks_bb<BSHP> (wb_sq, pos.pieces ()))))
             {
                 return SCALE_DRAW;
             }
@@ -649,19 +643,18 @@ namespace EndGame {
             case 1:
                 if (opposite_colors (wk_sq, sb_sq))
                 {
-                    Bitboard b;
                     if (   wk_sq == block1_sq
                         && (   wb_sq == block2_sq
-                            || (   0 != (b = pos.pieces (weak_color, BSHP) & PieceAttacks[BSHP][block2_sq])
-                                && 0 != (b & attacks_bb<BSHP> (block2_sq, pos.pieces ())))
+                            || (   0 != (pos.pieces (weak_color, BSHP) & PieceAttacks[BSHP][block2_sq])
+                                && 0 != (pos.pieces (weak_color, BSHP) & attacks_bb<BSHP> (block2_sq, pos.pieces ())))
                             || 2 <= dist<Rank> (sp1_sq, sp2_sq)))
                     {
                         return SCALE_DRAW;
                     }
                     if (   wk_sq == block2_sq
                         && (   wb_sq == block1_sq
-                            || (   0 != (b = pos.pieces (weak_color, BSHP) & PieceAttacks[BSHP][block1_sq])
-                                && 0 != (b & attacks_bb<BSHP> (block1_sq, pos.pieces ())))))
+                            || (   0 != (pos.pieces (weak_color, BSHP) & PieceAttacks[BSHP][block1_sq])
+                                && 0 != (pos.pieces (weak_color, BSHP) & attacks_bb<BSHP> (block1_sq, pos.pieces ())))))
                     {
                         return SCALE_DRAW;
                     }

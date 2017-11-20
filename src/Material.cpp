@@ -36,9 +36,6 @@ namespace Material {
             {    0,    0,    0,    0,    0,    0 }  // BP
         };
 
-        // PawnsSet[count] contains a bonus/malus indexed by number of pawns
-        const i32 PawnsSet[9] = { +24, -32, +107, -51, +117, -9, -126, -21, +31 };
-
         // QueenMinors[opp_minor_count] is applied when only one side has a queen.
         // It contains a bonus/malus for the side with the queen.
         const i32 QueenMinors[13] = { +31, -8, -15, -25, -5 };
@@ -59,7 +56,7 @@ namespace Material {
         {
             const auto Opp = WHITE == Own ? BLACK : WHITE;
 
-            i32 value = PawnsSet[count[Own][PAWN]];
+            i32 value = 0;
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
             for (auto pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN })
@@ -110,9 +107,8 @@ namespace Material {
         e->key = pos.si->matl_key;
 
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        auto npm = pos.si->non_pawn_material ();
         e->phase = i32(std::min (
-                       std::max (npm
+                       std::max (pos.si->non_pawn_material ()
                                    , VALUE_ENDGAME)
                                    , VALUE_MIDGAME) - VALUE_ENDGAME)
                  * PhaseResolution
@@ -173,7 +169,7 @@ namespace Material {
             }
             else
             // Only pawns on the board
-            if (   npm == VALUE_ZERO
+            if (   pos.si->non_pawn_material () == VALUE_ZERO
                 && 0 != pos.pieces (PAWN))
             {
                 switch (pos.count (~c, PAWN))
@@ -200,12 +196,11 @@ namespace Material {
                 switch (pos.count ( c, PAWN))
                 {
                 case 0:
-                    e->scale[c] =
-                        pos.si->non_pawn_material ( c) <  VALUE_MG_ROOK ?
-                            SCALE_DRAW :
-                            pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ?
-                                Scale(4) :
-                                Scale(14);
+                    e->scale[c] = pos.si->non_pawn_material ( c) <  VALUE_MG_ROOK ?
+                                    SCALE_DRAW :
+                                    pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ?
+                                        Scale(4) :
+                                        Scale(14);
                     break;
                 case 1:
                     e->scale[c] = SCALE_ONEPAWN;

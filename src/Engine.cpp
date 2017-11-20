@@ -119,7 +119,7 @@ namespace Engine {
             while (   iss >> token
                    && token != "value") // Consume "value" token if any
             {
-                name += string (" ", !white_spaces (name) ? 1 : 0) + token;
+                name += string(" ", !white_spaces (name) ? 1 : 0) + token;
             }
 
             //if (token != "value") return;
@@ -127,7 +127,7 @@ namespace Engine {
             // Read option-value (can contain spaces)
             while (iss >> token)
             {
-                value += string (" ", !white_spaces (value) ? 1 : 0) + token;
+                value += string(" ", !white_spaces (value) ? 1 : 0) + token;
             }
 
             if (Options.find (name) != Options.end ())
@@ -324,7 +324,7 @@ namespace Engine {
             uci_cmds.emplace_back ("setoption name Hash value " + hash);
             uci_cmds.emplace_back ("setoption name Clear Hash");
 
-            string go = string ("go") + " " + mode + " " + value;
+            string go = string("go") + " " + mode + " " + value;
 
             for (const auto &cmd : cmds)
             {
@@ -341,7 +341,7 @@ namespace Engine {
 
             if (pos_fn != "current")
             {
-                uci_cmds.emplace_back ("setoption name UCI_Chess960 value " + string (chess960 ? "true" : "false"));
+                uci_cmds.emplace_back ("setoption name UCI_Chess960 value " + string(chess960 ? "true" : "false"));
                 uci_cmds.emplace_back ("position fen " + pos.fen ());
             }
             return uci_cmds;
@@ -414,7 +414,7 @@ namespace Engine {
             string cmd;
             for (i32 i = 1; i < argc; ++i)
             {
-                cmd += string (" ", !white_spaces (cmd) ? 1 : 0) + string (argv[i]);
+                cmd += string(argv[i]) + " ";
             }
 
             // Stack to keep track of the position states along the setup moves

@@ -247,12 +247,11 @@ namespace Notation {
     string pretty_pv_info (Thread *const &th)
     {
         const double K = 1000.0;
-        const auto &root_move = th->root_moves[0];
         u64 nodes = Threadpool.nodes ();
 
         ostringstream oss;
         oss << std::setw ( 4) << th->finished_depth
-            << std::setw ( 8) << pretty_value (root_move.new_value)
+            << std::setw ( 8) << pretty_value (th->root_moves[0].new_value)
             << std::setw (12) << pretty_time (Threadpool.main_thread ()->time_mgr.elapsed_time ());
         
         if (nodes < 10*(K))
@@ -276,17 +275,17 @@ namespace Notation {
         oss << " ";
 
         StateListPtr states (new deque<StateInfo> (0));
-        for (auto i = 0; i < root_move.size (); ++i)
+        for (size_t i = 0; i < th->root_moves[0].size (); ++i)
         {
             oss << //move_to_can (m)
-                   move_to_san (root_move[i], th->root_pos)
+                   move_to_san (th->root_moves[0][i], th->root_pos)
                 << " ";
             states->emplace_back ();
-            th->root_pos.do_move (root_move[i], states->back ());
+            th->root_pos.do_move (th->root_moves[0][i], states->back ());
         }
-        for (auto i = root_move.size (); i > 0; --i)
+        for (size_t i = th->root_moves[0].size (); i > 0; --i)
         {
-            th->root_pos.undo_move (root_move[i-1]);
+            th->root_pos.undo_move (th->root_moves[0][i-1]);
             states->pop_back ();
         }
 

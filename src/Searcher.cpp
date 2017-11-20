@@ -50,13 +50,13 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
 bool RootMove::draw (Position &pos) const
 {
     StateListPtr states (new deque<StateInfo> (0));
-    for (auto i = 0; i < size (); ++i)
+    for (size_t i = 0; i < size (); ++i)
     {
         states->emplace_back ();
         pos.do_move (at (i), states->back ());
     }
     bool dr = pos.draw (i16(size ()));
-    for (auto i = size (); i > 0; --i)
+    for (size_t i = size (); i > 0; --i)
     {
         pos.undo_move (at (i-1));
         states->pop_back ();
@@ -245,33 +245,42 @@ void MovePicker::value ()
                 || GenType::QUIET == GT
                 || GenType::EVASION == GT, "GT incorrect");
 
-    for (auto &vm : moves)
+    switch (GT)
     {
-        assert(pos.pseudo_legal (vm.move)
-            && pos.legal (vm.move));
-
-        if (GenType::CAPTURE == GT)
+    case GenType::CAPTURE:
+        for (auto &vm : moves)
         {
-            assert(pos.capture_or_promotion (vm.move));
+            assert(pos.pseudo_legal (vm.move)
+                && pos.legal (vm.move)
+                && pos.capture_or_promotion (vm.move));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
-                     + pos.thread->capture_history[pos[org_sq (vm.move)]][move_pp (vm.move)][pos.cap_type (vm.move)];
+                        + pos.thread->capture_history[pos[org_sq (vm.move)]][move_pp (vm.move)][pos.cap_type (vm.move)];
         }
-        else
-        if (GenType::QUIET == GT)
+        break;
+    case GenType::QUIET:
+        for (auto &vm : moves)
         {
+            assert(pos.pseudo_legal (vm.move)
+                && pos.legal (vm.move)
+                &&!pos.capture_or_promotion (vm.move));
             vm.value = pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
-                     + (*piece_destiny_history[0])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-                     + (*piece_destiny_history[1])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-                     + (*piece_destiny_history[3])[pos[org_sq (vm.move)]][dst_sq (vm.move)];
+                        + (*piece_destiny_history[0])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
+                        + (*piece_destiny_history[1])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
+                        + (*piece_destiny_history[3])[pos[org_sq (vm.move)]][dst_sq (vm.move)];
         }
-        else // GenType::EVASION == GT
+        break;
+    default: //GenType::EVASION
+        for (auto &vm : moves)
         {
+            assert(pos.pseudo_legal (vm.move)
+                && pos.legal (vm.move));
             vm.value = pos.capture (vm.move) ?
-                          i32(PieceValues[MG][pos.cap_type (vm.move)])
+                            i32(PieceValues[MG][pos.cap_type (vm.move)])
                         - ptype (pos[org_sq (vm.move)]) :
-                          pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
+                            pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
                         - MaxValue;
         }
+        break;
     }
 }
 
@@ -596,11 +605,11 @@ namespace Searcher {
     bool   BookMoveBest =   true;
     i16    BookUptoMove =   20;
 
-    i16    TBProbeDepth =   1;
-    i32    TBLimitPiece =   6;
-    bool   TBUseRule50 =    true;
-    bool   TBHasRoot =      false;
-    Value  TBValue =        VALUE_ZERO;
+    i16   TBProbeDepth =   1;
+    i32   TBLimitPiece =   6;
+    bool  TBUseRule50 =    true;
+    bool  TBHasRoot =      false;
+    Value TBValue =        VALUE_ZERO;
 
     string OutputFile =     Empty;
 

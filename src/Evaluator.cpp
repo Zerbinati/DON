@@ -119,7 +119,6 @@ namespace Evaluator {
 
             static const Score PawnPassHinder =     S( 7, 0);
 
-            // Threshold for lazy evaluation
             static const Value LazyThreshold =      V(1500);
             static const Value SpaceThreshold =     V(12222);
 
@@ -1192,7 +1191,7 @@ namespace Evaluator {
             << "         Threat" << Term(THREAT)
             << "    Pawn Passer" << Term(PASSER)
             << "          Space" << Term(SPACE)
-            << "     Initiative" << Term (INITIATIVE)
+            << "     Initiative" << Term(INITIATIVE)
             << "----------------+-------------+-------------+--------------\n"
             << "          Total" << Term(TOTAL)
             << "\nEvaluation: " << value_to_cp (value) / 100.0 << " (white side)\n"

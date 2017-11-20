@@ -203,7 +203,9 @@ ifeq ($(COMP), clang)
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
 	ifneq ($(KERNEL), Darwin)
-		LDFLAGS += -latomic
+		ifneq ($(KERNEL), OpenBSD)
+			LDFLAGS += -latomic
+		endif
 	endif
 
 	ifeq ($(ARCH), armv7)
