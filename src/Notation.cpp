@@ -114,7 +114,7 @@ namespace Notation {
                  + to_string (fix_dst_sq (m, Position::Chess960));
         if (PROMOTE == mtype (m))
         {
-            can += PieceChar[promote (m) + 8];
+            can += PieceChar[BLACK|promote (m)];
         }
         return can;
     }
@@ -152,7 +152,7 @@ namespace Notation {
         {
             if (PAWN != ptype (pos[org]))
             {
-                san = PieceChar[ptype (pos[org]) + 0];
+                san = PieceChar[WHITE|ptype (pos[org])];
                 if (KING != ptype (pos[org]))
                 {
                     // Disambiguation if have more then one piece of type 'pt'
@@ -190,7 +190,7 @@ namespace Notation {
                 && PROMOTE == mtype (m))
             {
                 san += "=";
-                san += PieceChar[promote (m) + 0];
+                san += PieceChar[WHITE|promote (m)];
             }
         }
         else
@@ -203,7 +203,7 @@ namespace Notation {
         {
             StateInfo si;
             pos.do_move (m, si, true);
-            san += (0 != MoveList<GenType::LEGAL> (pos).size () ? "+" : "#");
+            san += 0 != MoveList<GenType::LEGAL> (pos).size () ? "+" : "#";
             pos.undo_move (m);
         }
 
@@ -226,6 +226,9 @@ namespace Notation {
     ///// Converts a move to a string in long algebraic notation.
     //string move_to_lan (Move m, Position &pos)
     //{
+    //    if (MOVE_NONE == m) return "(none)";
+    //    if (MOVE_NULL == m) return "(null)";
+    //    assert(MoveList<GenType::LEGAL> (pos).contains (m));
     //    string lan;
     //    return lan;
     //}

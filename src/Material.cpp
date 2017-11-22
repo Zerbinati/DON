@@ -170,7 +170,7 @@ namespace Material {
             else
             // Only pawns on the board
             if (   pos.si->non_pawn_material () == VALUE_ZERO
-                && 0 != pos.pieces (PAWN))
+                && pos.pieces (PAWN) != 0)
             {
                 switch (pos.count (~c, PAWN))
                 {

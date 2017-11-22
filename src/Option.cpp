@@ -230,7 +230,7 @@ namespace UCI {
         void on_book_opt ()
         {
             OwnBook = bool(Options["OwnBook"]);
-            BookMoveBest = bool(Options["Book Move Best"]);
+            BookPickBest = bool(Options["Book Move Best"]);
             BookUptoMove = i16(i32(Options["Book Upto Move"]));
             auto filename = string(Options["Book File"]);
             trim (filename);
@@ -339,7 +339,7 @@ namespace UCI {
 
         Options["OwnBook"]            << Option (OwnBook, on_book_opt);
         Options["Book File"]          << Option (BookFile, on_book_opt);
-        Options["Book Move Best"]     << Option (BookMoveBest, on_book_opt);
+        Options["Book Pick Best"]     << Option (BookPickBest, on_book_opt);
         Options["Book Upto Move"]     << Option (BookUptoMove, 0, 50, on_book_opt);
 
         Options["Threads"]            << Option ( 1, 0, 512, on_thread_count);

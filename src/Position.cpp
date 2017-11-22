@@ -611,7 +611,7 @@ bool Position::can_en_passant (Color c, Square ep_sq) const
     }
     
     // En-passant attackers
-    Bitboard attackers = PawnAttacks[~c][ep_sq] & pieces (c, PAWN);
+    Bitboard attackers = pieces (c, PAWN) & PawnAttacks[~c][ep_sq];
     assert(pop_count (attackers) <= 2);
     Bitboard mocc = (pieces () ^ (ep_sq - pawn_push (c))) | ep_sq;
     Bitboard bq = pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (c)];
@@ -1075,6 +1075,7 @@ void Position::undo_move (Move m)
     {
         assert(rel_rank (active, org) == R_7
             && rel_rank (active, dst) == R_8
+            && si->promotion
             && contains (pieces (active, promote (m)), dst));
 
         remove_piece (dst);
@@ -1138,11 +1139,11 @@ void Position::undo_null_move ()
     assert(ok ());
 }
 
-/// Position::flip() flips position with the white and black sides reversed.
+/// Position::flip() flips position (White and Black sides swaped).
 /// This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip ()
 {
-    istringstream iss (fen (true));
+    istringstream iss (fen ());
     string ff, token;
     // 1. Piece placement
     for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
@@ -1154,23 +1155,23 @@ void Position::flip ()
     }
     // 2. Active color
     iss >> token;
-    switch (token[0])
-    {
-    case 'w': ff += "b"; break;
-    case 'b': ff += "w"; break;
-    }
+    ff += ColorChar[~Color(ColorChar.find (token))];
     ff += " ";
     // 3. Castling availability
     iss >> token;
-    toggle (token);
+    if (token != "-")
+    {
+        toggle (token);
+    }
     ff += token;
     ff += " ";
     // 4. En-passant square
     iss >> token;
-    ff += token[0] == '-' ?
-          token :
-          token.replace (1, 1, token[1] == '3' ? "6" :
-                               token[1] == '6' ? "3" : "-");
+    if (token != "-")
+    {
+        token.replace (1, 1, string(1, to_char (~to_rank (token[1]))));
+    }
+    ff += token;
     // 5-6. Halfmove clock and Fullmove number
     std::getline (iss, token, '\n');
     ff += token;
@@ -1179,10 +1180,10 @@ void Position::flip ()
 
     assert(ok ());
 }
-/// Position::mirror() mirrors position.
+/// Position::mirror() mirrors position (King and Queen sides swaped).
 void Position::mirror ()
 {
-    istringstream iss (fen (true));
+    istringstream iss (fen ());
     string ff, token;
     // 1. Piece placement
     for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
@@ -1198,33 +1199,37 @@ void Position::mirror ()
     ff += " ";
     // 3. Castling availability
     iss >> token;
-    // Swap castling.
-    if (token[0] != '-')
+    if (token != "-")
     {
         for (auto &ch : token)
         {
             if (Chess960)
             {
-                ff += to_char (~to_file (char(tolower (ch))), islower (ch));
+                assert(isalpha (ch));
+                ch = to_char (~to_file (char(tolower (ch))), islower (ch));
             }
             else
             {
                 switch (ch)
                 {
-                case 'K': ff += 'Q'; break;
-                case 'Q': ff += 'K'; break;
-                case 'k': ff += 'q'; break;
-                case 'q': ff += 'k'; break;
+                case 'K': ch = 'Q'; break;
+                case 'Q': ch = 'K'; break;
+                case 'k': ch = 'q'; break;
+                case 'q': ch = 'k'; break;
+                default: assert(false);
                 }
             }
         }
     }
+    ff += token;
     ff += " ";
     // 4. En-passant square
     iss >> token;
-    ff += token[0] == '-' ?
-          token :
-          token.replace (0, 1, string(1, to_char (~to_file (token[0]))));
+    if (token != "-")
+    {
+        token.replace (0, 1, string(1, to_char (~to_file (token[0]))));
+    }
+    ff += token;
     // 5-6. Halfmove clock and Fullmove number
     std::getline (iss, token, '\n');
     ff += token;
@@ -1242,12 +1247,14 @@ string Position::fen (bool full) const
 
     for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
-        for (auto f = F_A; f <= F_H; ++f)
+        i08 f = F_A;
+        while (f <= F_H)
         {
-            i16 empty_count;
-            for (empty_count = 0; f <= F_H && empty (f|r); ++f)
+            i16 empty_count = 0;
+            while (f <= F_H && empty (File(f)|r))
             {
                 ++empty_count;
+                ++f;
             }
             if (0 != empty_count)
             {
@@ -1255,8 +1262,9 @@ string Position::fen (bool full) const
             }
             if (f <= F_H)
             {
-                oss << board[f|r];
+                oss << board[File(f)|r];
             }
+            ++f;
         }
         if (r > R_1)
         {
@@ -1306,7 +1314,7 @@ Position::operator string () const
         oss << "   " << Notation::to_char (f, false);
     }
 
-    oss << "\nFEN: " << fen (true)
+    oss << "\nFEN: " << fen ()
         << "\nKey: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
         << si->posi_key << std::nouppercase << std::dec << std::setfill (' ');
     oss << "\nCheckers: ";

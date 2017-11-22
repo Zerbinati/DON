@@ -317,7 +317,7 @@ namespace Searcher {
 
     extern bool OwnBook;
     extern std::string BookFile;
-    extern bool BookMoveBest;
+    extern bool BookPickBest;
     extern i16  BookUptoMove;
 
     extern i16   TBProbeDepth;

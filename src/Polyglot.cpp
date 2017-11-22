@@ -66,7 +66,7 @@ namespace Polyglot {
         close ();
     }
 
-    /// Tries to open a book file with the given name after closing any existing one.
+    /// open() tries to open a book file with the given name after closing any existing one.
     bool Book::open (const string &bk_fn, ios_base::openmode m)
     {
         book_fn = bk_fn;
@@ -76,6 +76,7 @@ namespace Polyglot {
         clear (); // Reset any error flag to allow retry open()
         return is_open ();
     }
+    /// close()
     void Book::close ()
     {
         if (is_open ())
@@ -106,24 +107,22 @@ namespace Polyglot {
 
     template<> Book& Book::operator>> (      Entry &pe)
     {
-        *this
-            >> pe.key
-            >> pe.move
-            >> pe.weight
-            >> pe.learn;
+        *this >> pe.key
+              >> pe.move
+              >> pe.weight
+              >> pe.learn;
         return *this;
     }
     template<> Book& Book::operator<< (const Entry &pe)
     {
-        *this
-            << pe.key
-            << pe.move
-            << pe.weight
-            << pe.learn;
+        *this << pe.key
+              << pe.move
+              << pe.weight
+              << pe.learn;
         return *this;
     }
 
-    /// Book::find_index() returns the index of the 1st book entry with the same key as the input.
+    /// find_index() returns the index of the 1st book entry with the same key as the input.
     size_t Book::find_index (const Key key)
     {
         if (!is_open ())
@@ -167,148 +166,104 @@ namespace Polyglot {
         return find_index (Position ().setup (fen, si, nullptr, c960).pg_key ());
     }
 
-    /// Book::probe_move() Tries to find a book move for the given position.
+    /// probe_move() Tries to find a book move for the given position.
     /// If no move is found returns MOVE_NONE.
     /// If pick_best is true returns always the highest rated move,
     /// otherwise randomly chooses one, based on the move score.
     Move Book::probe_move (const Position &pos, bool pick_best)
     {
         static PRNG pr (now ());
-        if (is_open ())
+        if (!is_open ())
         {
-            Key key = pos.pg_key ();
+            return MOVE_NONE;
+        }
 
-            auto index = find_index (key);
+        Key key = pos.pg_key ();
 
-            seekg (OFFSET(index));
+        auto index = find_index (key);
 
-            auto move = MOVE_NONE;
+        seekg (OFFSET(index));
 
-            Entry pe;
+        auto move = MOVE_NONE;
 
-            u16 max_weight = 0;
-            u32 weight_sum = 0;
+        Entry pe;
 
-            //vector<Entry> pes;
-            //while (*this >> pe && pe.key == key)
-            //{
-            //    pes.push_back (pe);
-            //    if (max_weight < pe.weight)
-            //    {
-            //        max_weight = pe.weight;
-            //    }
-            //    weight_sum += pe.weight;
-            //}
-            //if (!pes.size ()) return MOVE_NONE;
-            //
-            //if (pick_best)
-            //{
-            //    auto itr = pes.begin ();
-            //    while (itr != pes.end ())
-            //    {
-            //        pe = *itr;
-            //        if (pe.weight == max_weight)
-            //        {
-            //            move = Move(pe.move);
-            //            break;
-            //        }
-            //        ++itr;
-            //    }
-            //}
-            //else
-            //{
-            //    //There is a straightforward algorithm for picking an item at random, where items have individual weights:
-            //    //1) calculate the sum of all the weights
-            //    //2) pick a random number that is 0 or greater and is less than the sum of the weights
-            //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
-            //
-            //    u32 rand = (pr.rand<u32> () % weight_sum);
-            //    auto itr = pes.begin ();
-            //    while (itr != pes.end ())
-            //    {
-            //        pe = *itr;
-            //        if (pe.weight > rand)
-            //        {
-            //            move = Move(pe.move);
-            //            break;
-            //        }
-            //        rand -= pe.weight;
-            //        ++itr;
-            //    }
-            //}
+        u16 max_weight = 0;
+        u32 weight_sum = 0;
 
-            while (*this >> pe && pe.key == key)
+        while (   *this >> pe
+               && pe.key == key)
+        {
+            if (MOVE_NONE == pe.move) continue; // Skip MOVE_NONE
+
+            if (max_weight < pe.weight)
             {
-                if (MOVE_NONE == pe.move) continue; // Skip MOVE_NONE
+                max_weight = pe.weight;
+            }
+            weight_sum += pe.weight;
 
-                if (max_weight < pe.weight)
-                {
-                    max_weight = pe.weight;
-                }
-                weight_sum += pe.weight;
-
-                if (pick_best)
-                {
-                    if (pe.weight == max_weight)
-                    {
-                        move = Move(pe.move);
-                    }
-                }
-                // Choose book move according to its score.
-                // If a move has a very high score it has a higher probability
-                // of being choosen than a move with a lower score.
-                else
-                if (weight_sum != 0)
-                {
-                    u16 rand = pr.rand<u16> () % weight_sum;
-                    if (pe.weight > rand)
-                    {
-                        move = Move(pe.move);
-                    }
-                }
-                // Note that first entry is always chosen if not pick best and sum of weight = 0
-                else
-                if (MOVE_NONE == move)
+            if (pick_best)
+            {
+                if (pe.weight == max_weight)
                 {
                     move = Move(pe.move);
                 }
             }
-
-            if (MOVE_NONE == move)
+            // Choose book move according to its score.
+            // If a move has a very high score it has a higher probability
+            // of being choosen than a move with a lower score.
+            else
+            if (weight_sum != 0)
             {
-                return MOVE_NONE;
-            }
-
-            // Polyglot book move is encoded as follows:
-            //
-            // bit 00-05: destiny square    (0...63)
-            // bit 06-11: origin square     (0...63)
-            // bit 12-14: promotion piece   (None = 0, Knight = 1 ... Queen = 4)
-            // bit    15: empty
-            // Move is "0" (a1a1) then it should simply be ignored.
-            // It seems to me that in that case one might as well delete the entry from the book.
-
-            // Castling moves follow "king captures rook" representation.
-            // Promotion moves have promotion piece different then our structure of move
-            // So in case book move is a promotion have to convert to our representation,
-            // in all the other cases can directly compare with a Move after having masked out
-            // the special Move's flags (bit 14-15) that are not supported by Polyglot.
-            // Polyglot use 3 bits while engine use 2 bits.
-            auto pt = PieceType((move >> 12) & MAX_PTYPE);
-            // Set new type for promotion piece
-            if (pt != PAWN)
-            {
-                promote (move, pt);
-            }
-            // Add special move flags and verify it is legal
-            for (const auto &vm : MoveList<GenType::LEGAL> (pos))
-            {
-                if ((vm.move & ~PROMOTE) == move)
+                u16 rand = pr.rand<u16> () % weight_sum;
+                if (pe.weight > rand)
                 {
-                    return vm.move;
+                    move = Move(pe.move);
                 }
             }
+            // Note that first entry is always chosen if not pick best and sum of weight = 0
+            else
+            if (MOVE_NONE == move)
+            {
+                move = Move(pe.move);
+            }
         }
+
+        if (MOVE_NONE == move)
+        {
+            return MOVE_NONE;
+        }
+
+        // Polyglot book move is encoded as follows:
+        //
+        // bit 00-05: destiny square    (0...63)
+        // bit 06-11: origin square     (0...63)
+        // bit 12-14: promotion piece   (None = 0, Knight = 1 ... Queen = 4)
+        // bit    15: empty
+        // Move is "0" (a1a1) then it should simply be ignored.
+        // It seems to me that in that case one might as well delete the entry from the book.
+
+        // Castling moves follow "king captures rook" representation.
+        // Promotion moves have promotion piece different then our structure of move
+        // So in case book move is a promotion have to convert to our representation,
+        // in all the other cases can directly compare with a Move after having masked out
+        // the special Move's flags (bit 14-15) that are not supported by Polyglot.
+        // Polyglot use 3 bits while engine use 2 bits.
+        auto pt = PieceType((move >> 12) & MAX_PTYPE);
+        // Set new type for promotion piece
+        if (pt != PAWN)
+        {
+            promote (move, pt);
+        }
+        // Add special move flags and verify it is legal
+        for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+        {
+            if ((vm.move & ~PROMOTE) == move)
+            {
+                return vm.move;
+            }
+        }
+
         return MOVE_NONE;
     }
 
@@ -326,13 +281,13 @@ namespace Polyglot {
             Entry pe;
             vector<Entry> pes;
             u32 weight_sum = 0;
-            while (*this >> pe && pe.key == key)
+            while (   *this >> pe
+                   && pe.key == key)
             {
                 if (MOVE_NONE == pe.move)
                 {
-                    continue; // Skip MOVE_NONE
+                    continue;
                 }
-
                 pes.push_back (pe);
                 weight_sum += pe.weight;
             }

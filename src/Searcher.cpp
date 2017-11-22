@@ -245,42 +245,33 @@ void MovePicker::value ()
                 || GenType::QUIET == GT
                 || GenType::EVASION == GT, "GT incorrect");
 
-    switch (GT)
+    for (auto &vm : moves)
     {
-    case GenType::CAPTURE:
-        for (auto &vm : moves)
+        assert(pos.pseudo_legal (vm.move)
+            && pos.legal (vm.move));
+
+        if (GenType::CAPTURE == GT)
         {
-            assert(pos.pseudo_legal (vm.move)
-                && pos.legal (vm.move)
-                && pos.capture_or_promotion (vm.move));
+            assert(pos.capture_or_promotion (vm.move));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
-                        + pos.thread->capture_history[pos[org_sq (vm.move)]][move_pp (vm.move)][pos.cap_type (vm.move)];
+                     + pos.thread->capture_history[pos[org_sq (vm.move)]][move_pp (vm.move)][pos.cap_type (vm.move)];
         }
-        break;
-    case GenType::QUIET:
-        for (auto &vm : moves)
+        else
+        if (GenType::QUIET == GT)
         {
-            assert(pos.pseudo_legal (vm.move)
-                && pos.legal (vm.move)
-                &&!pos.capture_or_promotion (vm.move));
             vm.value = pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
-                        + (*piece_destiny_history[0])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-                        + (*piece_destiny_history[1])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-                        + (*piece_destiny_history[3])[pos[org_sq (vm.move)]][dst_sq (vm.move)];
+                     + (*piece_destiny_history[0])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
+                     + (*piece_destiny_history[1])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
+                     + (*piece_destiny_history[3])[pos[org_sq (vm.move)]][dst_sq (vm.move)];
         }
-        break;
-    default: //GenType::EVASION
-        for (auto &vm : moves)
+        else // GenType::EVASION == GT
         {
-            assert(pos.pseudo_legal (vm.move)
-                && pos.legal (vm.move));
             vm.value = pos.capture (vm.move) ?
-                            i32(PieceValues[MG][pos.cap_type (vm.move)])
+                          i32(PieceValues[MG][pos.cap_type (vm.move)])
                         - ptype (pos[org_sq (vm.move)]) :
-                            pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
+                          pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
                         - MaxValue;
         }
-        break;
     }
 }
 
@@ -590,28 +581,28 @@ namespace Searcher {
 
     Limit  Limits;
 
-    size_t MultiPV =        1;
-    //i32    MultiPV_cp =     0;
+    size_t MultiPV =       1;
+    //i32    MultiPV_cp =    0;
 
-    i16    FixedContempt =  0
-        ,  ContemptTime =   30
-        ,  ContemptValue =  50;
+    i16    FixedContempt = 0
+        ,  ContemptTime =  30
+        ,  ContemptValue = 50;
 
-    string HashFile =       "Hash.dat";
-    bool   RetainHash =     false;
+    string HashFile =     "Hash.dat";
+    bool   RetainHash =   false;
 
-    bool   OwnBook =        false;
-    string BookFile =       "Book.bin";
-    bool   BookMoveBest =   true;
-    i16    BookUptoMove =   20;
+    bool   OwnBook =      false;
+    string BookFile =     "Book.bin";
+    bool   BookPickBest = true;
+    i16    BookUptoMove = 20;
 
-    i16   TBProbeDepth =   1;
-    i32   TBLimitPiece =   6;
-    bool  TBUseRule50 =    true;
-    bool  TBHasRoot =      false;
-    Value TBValue =        VALUE_ZERO;
+    i16   TBProbeDepth =  1;
+    i32   TBLimitPiece =  6;
+    bool  TBUseRule50 =   true;
+    bool  TBHasRoot =     false;
+    Value TBValue =       VALUE_ZERO;
 
-    string OutputFile =     Empty;
+    string OutputFile =   Empty;
 
     namespace {
 
@@ -1130,7 +1121,7 @@ namespace Searcher {
                         // Extra penalty for a quiet tt_move in previous ply when it gets refuted.
                         if (   1 == (ss-1)->move_count
                             && _ok ((ss-1)->played_move)
-                            //&& !pos.si->promotion
+                            && !pos.si->promotion
                             && NONE == pos.si->capture)
                         {
                             auto bonus = stat_bonus (depth + 1);
@@ -1801,7 +1792,7 @@ namespace Searcher {
                     // Penalty for a quiet best move in previous ply when it gets refuted.
                     if (   1 == (ss-1)->move_count
                         && _ok ((ss-1)->played_move)
-                        //&& !pos.si->promotion
+                        && !pos.si->promotion
                         && NONE == pos.si->capture)
                     {
                         auto bonus = stat_bonus (depth + 1);
@@ -1812,7 +1803,7 @@ namespace Searcher {
                 // Bonus for prior countermove that caused the fail low.
                 if (   2 < depth
                     && _ok ((ss-1)->played_move)
-                    //&& !pos.si->promotion
+                    && !pos.si->promotion
                     && NONE == pos.si->capture)
                 {
                     auto bonus = stat_bonus (depth);
@@ -2276,7 +2267,7 @@ namespace Threading {
             {
                 book.open (BookFile, ios_base::in);
                 bool found = false;
-                auto book_best_move = book.probe_move (root_pos, BookMoveBest);
+                auto book_best_move = book.probe_move (root_pos, BookPickBest);
                 if (MOVE_NONE != book_best_move)
                 {
                     auto itr = std::find (root_moves.begin (), root_moves.end (), book_best_move);
@@ -2286,7 +2277,7 @@ namespace Threading {
                         std::swap (root_move, *itr);
                         StateInfo si;
                         root_pos.do_move (book_best_move, si);
-                        auto book_ponder_move = book.probe_move (root_pos, BookMoveBest);
+                        auto book_ponder_move = book.probe_move (root_pos, BookPickBest);
                         root_move += book_ponder_move;
                         root_pos.undo_move (book_best_move);
                         found = true;
