@@ -1315,8 +1315,7 @@ Position::operator string () const
     }
 
     oss << "\nFEN: " << fen ()
-        << "\nKey: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16)
-        << si->posi_key << std::nouppercase << std::dec << std::setfill (' ');
+        << "\nKey: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16) << si->posi_key << std::nouppercase << std::dec << std::setfill (' ');
     oss << "\nCheckers: ";
     for (Bitboard b = si->checkers; 0 != b; )
     {
@@ -1343,7 +1342,7 @@ Position::operator string () const
 bool Position::ok () const
 {
     const bool Fast = true;
-    
+
     // BASIC
     if (   (   active != WHITE
             && active != BLACK)

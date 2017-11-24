@@ -168,6 +168,8 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     }
 }
 /// MovePicker constructor for quiescence search
+/// Because the depth <= 0 here, only captures, queen promotions
+/// and checks (only if depth >= DepthQSCheck) will be generated.
 MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     : pos (p)
     , tt_move (ttm)
@@ -579,27 +581,27 @@ Move MovePicker::next_move ()
 
 namespace Searcher {
 
-    Limit  Limits;
+    Limit Limits;
 
     size_t MultiPV =       1;
     //i32    MultiPV_cp =    0;
 
-    i16    FixedContempt = 0
-        ,  ContemptTime =  30
-        ,  ContemptValue = 50;
+    i16   FixedContempt = 0
+        , ContemptTime =  30
+        , ContemptValue = 50;
 
     string HashFile =     "Hash.dat";
-    bool   RetainHash =   false;
+    bool RetainHash =     false;
 
-    bool   OwnBook =      false;
+    bool OwnBook =        false;
     string BookFile =     "Book.bin";
-    bool   BookPickBest = true;
-    i16    BookUptoMove = 20;
+    bool BookPickBest =   true;
+    i16 BookUptoMove =    20;
 
-    i16   TBProbeDepth =  1;
-    i32   TBLimitPiece =  6;
-    bool  TBUseRule50 =   true;
-    bool  TBHasRoot =     false;
+    i16 TBProbeDepth =    1;
+    i32 TBLimitPiece =    6;
+    bool TBUseRule50 =    true;
+    bool TBHasRoot =      false;
     Value TBValue =       VALUE_ZERO;
 
     string OutputFile =   Empty;
@@ -832,10 +834,15 @@ namespace Searcher {
                 if (tt_hit)
                 {
                     // Never assume anything on values stored in TT.
-                    ss->static_eval = tt_eval =
-                        VALUE_NONE != tte->eval () ?
-                            tte->eval () :
-                            evaluate (pos);
+                    if (VALUE_NONE != tte->eval ())
+                    {
+                        ss->static_eval = tt_eval = tte->eval ();
+                    }
+                    else
+                    {
+                        ss->static_eval = tt_eval = evaluate (pos);
+                    }
+
                     // Can tt_value be used as a better position evaluation?
                     if (   VALUE_NONE != tt_value
                         && BOUND_NONE != (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
@@ -1092,7 +1099,6 @@ namespace Searcher {
             assert(MOVE_NONE == tt_move
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
-
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
@@ -1117,7 +1123,7 @@ namespace Searcher {
                             pos.thread->butterfly_history.update (pos.active, tt_move, bonus);
                             update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), bonus);
                         }
-                        
+
                         // Extra penalty for a quiet tt_move in previous ply when it gets refuted.
                         if (   1 == (ss-1)->move_count
                             && _ok ((ss-1)->played_move)
@@ -1192,10 +1198,15 @@ namespace Searcher {
                 if (tt_hit)
                 {
                     // Never assume anything on values stored in TT.
-                    ss->static_eval = tt_eval =
-                        VALUE_NONE != tte->eval () ?
-                            tte->eval () :
-                            evaluate (pos);
+                    if (VALUE_NONE != tte->eval ())
+                    {
+                        ss->static_eval = tt_eval = tte->eval ();
+                    }
+                    else
+                    {
+                        ss->static_eval = tt_eval = evaluate (pos);
+                    }
+
                     // Can tt_value be used as a better position evaluation?
                     if (   VALUE_NONE != tt_value
                         && BOUND_NONE != (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
@@ -1350,10 +1361,10 @@ namespace Searcher {
                         depth_search<PVNode> (pos, ss, alfa, beta, 3*depth/4 - 2, cut_node, false);
 
                         tte = TT.probe (key, tt_hit);
-                        tt_move =  tt_hit
-                                && MOVE_NONE != (move = tte->move ())
-                                && pos.pseudo_legal (move)
-                                && pos.legal (move) ?
+                        tt_move = tt_hit
+                               && MOVE_NONE != (move = tte->move ())
+                               && pos.pseudo_legal (move)
+                               && pos.legal (move) ?
                                     move :
                                     MOVE_NONE;
                     }
@@ -1370,8 +1381,7 @@ namespace Searcher {
                                   && MOVE_NONE != tt_move
                                   && VALUE_NONE != tt_value
                                   && MOVE_NONE == ss->excluded_move // Recursive singular search is not allowed.
-                                  && 7 < depth
-                                  && tte->depth () + 4 > depth
+                                  && 7 < depth && depth < tte->depth () + 4
                                   && BOUND_NONE != (tte->bound () & BOUND_LOWER);
 
             bool improving = (ss-2)->static_eval <= (ss-0)->static_eval
@@ -1407,9 +1417,7 @@ namespace Searcher {
                        // In "searchmoves" mode, skip moves not listed in RootMoves, as a consequence any illegal move is also skipped.
                        // In MultiPV mode, skip PV moves which have been already searched.
                     || (   root_node
-                        && std::find (pos.thread->root_moves.begin () + pos.thread->pv_index,
-                                      pos.thread->root_moves.end (), move) ==
-                                      pos.thread->root_moves.end ()))
+                        && std::find (pos.thread->root_moves.begin () + pos.thread->pv_index, pos.thread->root_moves.end (), move) == pos.thread->root_moves.end ()))
                 {
                     continue;
                 }
@@ -1611,7 +1619,7 @@ namespace Searcher {
                         {
                             reduce_depth -= 1;
                         }
-                        
+
                         // Decrease/Increase reduction for moves with +/-ve own stats
                         reduce_depth -= i16(own_stats / 20000);
                     }
@@ -1831,7 +1839,7 @@ namespace Searcher {
 
     }
 
-    /// Searcher::initialize() initializes lookup tables at startup.
+    /// initialize() initializes lookup tables at startup.
     void initialize ()
     {
         for (i08 d = 0; d < MaxFutilityDepth; ++d)
@@ -1859,7 +1867,7 @@ namespace Searcher {
             }
         }
     }
-    /// Searcher::clear() resets search state to its initial value.
+    /// clear() resets search state to its initial value.
     void clear ()
     {
         Threadpool.stop = true;
@@ -2434,7 +2442,7 @@ namespace Threading {
             {
                 OutputStream << "(none)";
             }
-            OutputStream << "\n" << std::endl;
+            OutputStream << std::endl;
             OutputStream.close ();
         }
 
@@ -2461,7 +2469,7 @@ namespace Threading {
         if (last_time <= tick - 1000)
         {
             last_time = tick;
-            
+
             dbg_print ();
         }
 

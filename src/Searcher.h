@@ -308,9 +308,9 @@ namespace Searcher {
     extern size_t MultiPV;
     //extern i32    MultiPV_cp;
 
-    extern i16  FixedContempt
-        ,       ContemptTime 
-        ,       ContemptValue;
+    extern i16 FixedContempt
+        ,      ContemptTime 
+        ,      ContemptValue;
 
     extern std::string HashFile;
     extern bool RetainHash;
@@ -318,12 +318,12 @@ namespace Searcher {
     extern bool OwnBook;
     extern std::string BookFile;
     extern bool BookPickBest;
-    extern i16  BookUptoMove;
+    extern i16 BookUptoMove;
 
-    extern i16   TBProbeDepth;
-    extern i32   TBLimitPiece;
-    extern bool  TBUseRule50;
-    extern bool  TBHasRoot;
+    extern i16 TBProbeDepth;
+    extern i32 TBLimitPiece;
+    extern bool TBUseRule50;
+    extern bool TBHasRoot;
     extern Value TBValue;
 
     extern std::string OutputFile;
