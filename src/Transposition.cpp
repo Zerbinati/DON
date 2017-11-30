@@ -209,7 +209,7 @@ namespace Transposition {
         }
         return u32(entry_count * 1000 / (cluster_limit * Cluster::EntryCount));
     }
-    /// Table::save() saves hash
+    /// Table::save() saves hash to file
     void Table::save (const string &hash_fn) const
     {
         ofstream ofs (hash_fn, ios_base::out|ios_base::binary);
@@ -220,7 +220,7 @@ namespace Transposition {
             sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
         }
     }
-    /// Table::load() loads hash
+    /// Table::load() loads hash from file
     void Table::load (const string &hash_fn)
     {
         ifstream ifs (hash_fn, ios_base::in|ios_base::binary);

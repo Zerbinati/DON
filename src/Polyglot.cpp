@@ -213,7 +213,7 @@ namespace Polyglot {
             // If a move has a very high score it has a higher probability
             // of being choosen than a move with a lower score.
             else
-            if (weight_sum != 0)
+            if (0 != weight_sum)
             {
                 u16 rand = pr.rand<u16> () % weight_sum;
                 if (pe.weight > rand)
@@ -249,11 +249,11 @@ namespace Polyglot {
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
         // Polyglot use 3 bits while engine use 2 bits.
-        auto pt = PieceType((move >> 12) & MAX_PTYPE);
+        i08 pt = (move >> 12) & MAX_PTYPE;
         // Set new type for promotion piece
-        if (pt != PAWN)
+        if (0 != pt)
         {
-            promote (move, pt);
+            promote (move, PieceType(pt));
         }
         // Add special move flags and verify it is legal
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))

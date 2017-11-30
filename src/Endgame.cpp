@@ -47,7 +47,7 @@ namespace EndGame {
         // Map the square as if color is white and sqaure only pawn is on the left half of the board.
         Square normalize (const Position &pos, Color c, Square sq)
         {
-            assert(pos.count (c, PAWN) == 1);
+            assert(1 == pos.count (c, PAWN));
 
             if (_file (pos.square<PAWN> (c)) >= F_E)
             {
@@ -296,9 +296,9 @@ namespace EndGame {
 
         auto value = Value(PushClose[dist (sk_sq, wk_sq)]);
 
-        if (   rel_rank (weak_color, wp_sq) < R_7
+        if (   R_7 > rel_rank (weak_color, wp_sq)
             || !contains (FA_bb|FC_bb|FF_bb|FH_bb, wp_sq)
-            || dist (wk_sq, wp_sq) != 1)
+            || 1 != dist (wk_sq, wp_sq))
         {
             value += VALUE_EG_QUEN - VALUE_EG_PAWN;
         }
@@ -521,9 +521,9 @@ namespace EndGame {
         }
         auto r = std::max (rel_rank (strong_color, sp1_sq),
                            rel_rank (strong_color, sp2_sq));
-        if (   dist<File> (wk_sq, sp1_sq) <= 1
-            && dist<File> (wk_sq, sp2_sq) <= 1
-            && rel_rank (strong_color, wk_sq) > r)
+        if (   1 >= dist<File> (wk_sq, sp1_sq)
+            && 1 >= dist<File> (wk_sq, sp2_sq)
+            && r < rel_rank (strong_color, wk_sq))
         {
             assert(R_1 < r && r < R_7);
             return Scales[r];
@@ -570,7 +570,7 @@ namespace EndGame {
         if (   _file (wk_sq) == _file (sp_sq)
             && rel_rank (strong_color, sp_sq) < rel_rank (strong_color, wk_sq)
             && (   opposite_colors (wk_sq, sb_sq)
-                || rel_rank (strong_color, wk_sq) <= R_6))
+                || R_6 >= rel_rank (strong_color, wk_sq)))
         {
             return SCALE_DRAW;
         }
@@ -583,7 +583,7 @@ namespace EndGame {
             //   3. The defending bishop attacks some square along the pawn's path,
             //      and is at least three squares away from the pawn.
             // These rules are probably not perfect, but in practice they work reasonably well.
-            if (   rel_rank (strong_color, sp_sq) <= R_5
+            if (   R_5 >= rel_rank (strong_color, sp_sq)
                 || 0 != (front_line_bb (strong_color, sp_sq) & pos.pieces (weak_color, KING))
                 || (   3 <= dist (wb_sq, sp_sq)
                     && 0 != (front_line_bb (strong_color, sp_sq) & PieceAttacks[BSHP][wb_sq])
@@ -682,7 +682,7 @@ namespace EndGame {
         if (   _file (wk_sq) == _file (sp_sq)
             && rel_rank (strong_color, sp_sq) < rel_rank (strong_color, wk_sq)
             && (   opposite_colors (wk_sq, sb_sq)
-                || rel_rank (strong_color, wk_sq) <= R_6))
+                || R_6 >= rel_rank (strong_color, wk_sq)))
         {
             return SCALE_DRAW;
         }
@@ -749,8 +749,8 @@ namespace EndGame {
     /// are on the same rook file and are blocked by the defending king, it's a draw.
     template<> Scale Endgame<KPsK>::operator() (const Position &pos) const
     {
-        assert(pos.si->non_pawn_material (strong_color) == VALUE_ZERO);
-        assert(pos.count (strong_color, PAWN) >= 2);
+        assert(VALUE_ZERO == pos.si->non_pawn_material (strong_color));
+        assert(2 <= pos.count (strong_color, PAWN));
         assert(verify_material (pos, weak_color, VALUE_ZERO, 0));
 
         auto wk_sq  = pos.square<KING> (  weak_color);
@@ -761,7 +761,7 @@ namespace EndGame {
         if (   0 == (spawns & ~front_rank_bb (weak_color, wk_sq))
             && (   0 == (spawns & ~FA_bb)
                 || 0 == (spawns & ~FH_bb))
-            && dist<File> (wk_sq, scan_frntmost_sq (strong_color, spawns)) <= 1)
+            && 1 >= dist<File> (wk_sq, scan_frntmost_sq (strong_color, spawns)))
         {
             return SCALE_DRAW;
         }
@@ -821,10 +821,10 @@ namespace EndGame {
 
                 // There's potential for a draw if weak pawn is blocked on the 7th rank
                 // and the bishop cannot attack it or they only have one pawn left
-                if (   rel_rank (strong_color, wp_sq) == R_7
+                if (   R_7 == rel_rank (strong_color, wp_sq)
                     && contains (pos.pieces (strong_color, PAWN), wp_sq + pawn_push (weak_color))
                     && (   opposite_colors (sb_sq, wp_sq)
-                        || pos.count (strong_color, PAWN) == 1))
+                        || 1 == pos.count (strong_color, PAWN)))
                 {
                     // It's a draw if the weak king is on its back two ranks, within 2
                     // squares of the blocking pawn and the strong king is not closer.
@@ -832,8 +832,8 @@ namespace EndGame {
                     // positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w and
                     // where qsearch will immediately correct the problem
                     // positions such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w
-                    if (   rel_rank (strong_color, wk_sq) >= R_7
-                        && dist (wk_sq, wp_sq) <= 2
+                    if (   R_7 <= rel_rank (strong_color, wk_sq)
+                        && 2 >= dist (wk_sq, wp_sq)
                         && dist (wk_sq, wp_sq) <= dist (sk_sq, wp_sq))
                     {
                         return SCALE_DRAW;
@@ -850,19 +850,19 @@ namespace EndGame {
     template<> Scale Endgame<KQKRPs>::operator() (const Position &pos) const
     {
         assert(verify_material (pos, strong_color, VALUE_MG_QUEN, 0));
-        assert(pos.count (weak_color, ROOK) == 1);
-        assert(pos.count (weak_color, PAWN) != 0);
+        assert(1 == pos.count (weak_color, ROOK));
+        assert(0 != pos.count (weak_color, PAWN));
 
         auto sk_sq = pos.square<KING> (strong_color);
         auto wk_sq = pos.square<KING> (  weak_color);
         auto wr_sq = pos.square<ROOK> (  weak_color);
 
-        if (   rel_rank (weak_color, wk_sq) <= R_2
-            && rel_rank (weak_color, sk_sq) >= R_4
-            && rel_rank (weak_color, wr_sq) == R_3
-            && (  pos.pieces (weak_color, PAWN)
-                & PieceAttacks[KING][wk_sq]
-                & PawnAttacks[strong_color][wr_sq]) != 0)
+        if (   R_2 >= rel_rank (weak_color, wk_sq)
+            && R_4 <= rel_rank (weak_color, sk_sq)
+            && R_3 == rel_rank (weak_color, wr_sq)
+            && 0 != (  pos.pieces (weak_color, PAWN)
+                     & PieceAttacks[KING][wk_sq]
+                     & PawnAttacks[strong_color][wr_sq]))
         {
             return SCALE_DRAW;
         }

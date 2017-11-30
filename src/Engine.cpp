@@ -146,7 +146,7 @@ namespace Engine {
         {
             string token;
             iss >> token; // Consume "startpos" or "fen" token
-            
+
             string fen;
             if (token == "startpos")
             {
@@ -656,21 +656,31 @@ namespace Engine {
     #endif
         oss << std::setfill (' ');
 
+        oss <<
     #if defined(BIT64)
-        oss << ".64";
+        ".64"
     #else
-        oss << ".32";
+        ".32"
     #endif
+        ;
 
+        oss <<
     #if defined(BM2)
-        oss << ".BM2";
+        ".BM2"
     #elif defined(ABM)
-        oss << ".ABM";
+        ".ABM"
+    #else
+        ""
     #endif
+        ;
 
+        oss <<
     #if defined(LPAGES)
-        oss << ".LP";
+        ".LP"
+    #else
+        ""
     #endif
+        ;
 
         return oss.str ();
     }

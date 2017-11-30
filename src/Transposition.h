@@ -100,24 +100,9 @@ namespace Transposition {
     {
     private:
         void alloc_aligned_memory (size_t, u32);
-
         void free_aligned_memory ();
 
     public:
-        // Maximum bit of hash for cluster
-        static const u08 MaxHashBit = 35;
-        // Minimum size of Transposition::Table (4 MB)
-        static const u32 MinHashSize = 4;
-        // Maximum size of Transposition::Table (1048576 MB = 1048 GB = 1 TB)
-        static const u32 MaxHashSize =
-#       if defined(BIT64)
-            (u64(1) << (MaxHashBit - 20)) * sizeof (Cluster);
-#       else
-            2048;
-#       endif
-
-        static const u32 BufferSize = 0x10000;
-
         void *mem;
         Cluster *clusters;
         size_t cluster_count;
@@ -139,10 +124,10 @@ namespace Transposition {
         size_t cluster_mask () const { return cluster_count - 1; }
         //size_t entry_count () const { return cluster_count * Cluster::EntryCount; }
 
-        /// Table::size() returns hash size in MB
+        /// size() returns hash size in MB
         u32 size () const { return u32((cluster_count * sizeof (Cluster)) >> 20); }
 
-        /// Table::cluster_entry() returns a pointer to the first entry of a cluster given a position.
+        /// cluster_entry() returns a pointer to the first entry of a cluster given a position.
         /// The lower order bits of the key are used to get the index of the cluster inside the table.
         Entry* cluster_entry (const Key key) const { return clusters[size_t(key) & cluster_mask ()].entries; }
 
@@ -159,6 +144,20 @@ namespace Transposition {
 
         void save (const std::string&) const;
         void load (const std::string&);
+
+        // Maximum bit of hash for cluster
+        static const u08 MaxHashBit = 35;
+        // Minimum size of Transposition::Table (4 MB)
+        static const u32 MinHashSize = 4;
+        // Maximum size of Transposition::Table (1048576 MB = 1048 GB = 1 TB)
+        static const u32 MaxHashSize =
+#       if defined(BIT64)
+            (u64 (1) << (MaxHashBit - 20)) * sizeof (Cluster);
+#       else
+            2048;
+#       endif
+
+        static const u32 BufferSize = 0x10000;
 
         template<typename CharT, typename Traits>
         friend std::basic_ostream<CharT, Traits>&

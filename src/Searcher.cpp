@@ -798,9 +798,7 @@ namespace Searcher {
             assert(MOVE_NONE == tt_move
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
-            auto tt_value = tt_hit ?
-                            value_of_tt (tte->value (), ss->ply) :
-                            VALUE_NONE;
+            Value tt_value = VALUE_NONE;
 
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
@@ -811,8 +809,8 @@ namespace Searcher {
 
             if (   !PVNode
                 && tt_hit
-                && VALUE_NONE != tt_value // Only in case of TT access race
-                && tte->depth () >= qs_depth
+                && qs_depth <= tte->depth ()
+                && VALUE_NONE != (tt_value = value_of_tt (tte->value (), ss->ply)) // Only in case of TT access race
                 && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
                 return tt_value;
@@ -844,7 +842,7 @@ namespace Searcher {
                     }
 
                     // Can tt_value be used as a better position evaluation?
-                    if (   VALUE_NONE != tt_value
+                    if (   VALUE_NONE != (tt_value = value_of_tt (tte->value (), ss->ply))
                         && BOUND_NONE != (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
                     {
                         tt_eval = tt_value;
@@ -852,10 +850,9 @@ namespace Searcher {
                 }
                 else
                 {
-                    ss->static_eval = tt_eval =
-                        MOVE_NULL != (ss-1)->played_move ?
-                            evaluate (pos) :
-                            -(ss-1)->static_eval + Tempo*2;
+                    ss->static_eval = tt_eval = MOVE_NULL != (ss-1)->played_move ?
+                                                    evaluate (pos) :
+                                                    -(ss-1)->static_eval + Tempo*2;
                 }
 
                 if (alfa < tt_eval)
@@ -917,7 +914,7 @@ namespace Searcher {
                     //&& 0 == Limits.mate
                         // Advance pawn push
                     && !(   PAWN == ptype (mpc)
-                         && rel_rank (pos.active, org) > R_4))
+                         && R_4 < rel_rank (pos.active, org)))
                 {
                     // Futility pruning parent node
                     auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst_sq (move)])];
@@ -1099,15 +1096,13 @@ namespace Searcher {
             assert(MOVE_NONE == tt_move
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
-            auto tt_value = tt_hit ?
-                            value_of_tt (tte->value (), ss->ply) :
-                            VALUE_NONE;
+            Value tt_value = VALUE_NONE;
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
                 && tt_hit
-                && VALUE_NONE != tt_value // Only in case of TT access race.
-                && tte->depth () >= depth
+                && depth <= tte->depth ()
+                && VALUE_NONE != (tt_value = value_of_tt (tte->value (), ss->ply)) // Only in case of TT access race.
                 && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
                 // Update move sorting heuristics on tt_move.
@@ -1208,7 +1203,7 @@ namespace Searcher {
                     }
 
                     // Can tt_value be used as a better position evaluation?
-                    if (   VALUE_NONE != tt_value
+                    if (   VALUE_NONE != (tt_value = value_of_tt (tte->value (), ss->ply))
                         && BOUND_NONE != (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
                     {
                         tt_eval = tt_value;
@@ -1216,10 +1211,9 @@ namespace Searcher {
                 }
                 else
                 {
-                    ss->static_eval = tt_eval =
-                        MOVE_NULL != (ss-1)->played_move ?
-                            evaluate (pos) :
-                            -(ss-1)->static_eval + Tempo*2;
+                    ss->static_eval = tt_eval = MOVE_NULL != (ss-1)->played_move ?
+                                                    evaluate (pos) :
+                                                    -(ss-1)->static_eval + Tempo*2;
 
                     tte->save (key,
                                MOVE_NONE,
@@ -1285,8 +1279,9 @@ namespace Searcher {
                         auto null_value = reduced_depth <= 0 ?
                                             -quien_search<false> (pos, ss+1, -beta, -beta+1) :
                                             -depth_search<false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node, false);
+
                         pos.undo_null_move ();
-                        
+
                         if (null_value >= beta)
                         {
                             bool unproven = null_value >= +VALUE_MATE_MAX_PLY;
@@ -1379,9 +1374,9 @@ namespace Searcher {
             bool singular_ext_node = !root_node
                                   && tt_hit
                                   && MOVE_NONE != tt_move
-                                  && VALUE_NONE != tt_value
                                   && MOVE_NONE == ss->excluded_move // Recursive singular search is not allowed.
                                   && 7 < depth && depth < tte->depth () + 4
+                                  && VALUE_NONE != (tt_value = value_of_tt (tte->value (), ss->ply))
                                   && BOUND_NONE != (tte->bound () & BOUND_LOWER);
 
             bool improving = (ss-2)->static_eval <= (ss-0)->static_eval
@@ -1503,7 +1498,7 @@ namespace Searcher {
                         && !gives_check
                             // Advance pawn push.
                         && !(   PAWN == ptype (mpc)
-                             && rel_rank (pos.active, org) > R_4
+                             && R_4 < rel_rank (pos.active, org)
                              && Value(5000) > pos.si->non_pawn_material ()))
                     {
                         // Move count based pruning.
@@ -1761,12 +1756,11 @@ namespace Searcher {
             // Otherwise it must be a checkmate or a stalemate, so return value accordingly.
             if (0 == move_count)
             {
-                best_value =
-                    MOVE_NONE != ss->excluded_move ?
-                        alfa :
-                        in_check ?
-                            mated_in (ss->ply) :
-                            DrawValue[pos.active];
+                best_value = MOVE_NONE != ss->excluded_move ?
+                                alfa :
+                                in_check ?
+                                    mated_in (ss->ply) :
+                                    DrawValue[pos.active];
             }
             else
             {
@@ -1895,7 +1889,7 @@ namespace Searcher {
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {
             u64 inter_nodes;
-            if (RootNode
+            if (   RootNode
                 && 1 >= depth)
             {
                 inter_nodes = 1;
@@ -1906,8 +1900,8 @@ namespace Searcher {
                 pos.do_move (vm.move, si);
 
                 inter_nodes = LeafNode ?
-                    MoveList<GenType::LEGAL> (pos).size () :
-                    perft<false> (pos, depth - 1);
+                                MoveList<GenType::LEGAL> (pos).size () :
+                                perft<false> (pos, depth - 1);
 
                 pos.undo_move (vm.move);
             }
@@ -1970,10 +1964,9 @@ namespace Threading {
             ss->piece_destiny_history = &continuation_history[NO_PIECE][0];
         }
 
-        auto *main_thread =
-            Threadpool.main_thread () == this ?
-                Threadpool.main_thread () :
-                nullptr;
+        auto *main_thread = Threadpool.main_thread () == this ?
+                            Threadpool.main_thread () :
+                            nullptr;
 
         auto best_value = VALUE_ZERO
            , window = VALUE_ZERO
@@ -2204,7 +2197,7 @@ namespace Threading {
     {
         static Book book; // Defined static to initialize the PRNG only once
         assert(Threadpool.main_thread () == this
-            && index == 0);
+            && 0 == index);
 
         check_count = 0;
 
@@ -2265,6 +2258,8 @@ namespace Threading {
         }
         else
         {
+            bool think = true;
+
             // Check if can play with own book.
             if (   OwnBook
                 && !white_spaces (BookFile)
@@ -2274,83 +2269,81 @@ namespace Threading {
                 && !Limits.infinite)
             {
                 book.open (BookFile, ios_base::in);
-                bool found = false;
                 auto book_best_move = book.probe_move (root_pos, BookPickBest);
                 if (MOVE_NONE != book_best_move)
                 {
                     auto itr = std::find (root_moves.begin (), root_moves.end (), book_best_move);
                     if (itr != root_moves.end ())
                     {
-                        auto &root_move = root_moves[0];
-                        std::swap (root_move, *itr);
+                        think = false;
+                        std::swap (root_moves[0], *itr);
                         StateInfo si;
                         root_pos.do_move (book_best_move, si);
                         auto book_ponder_move = book.probe_move (root_pos, BookPickBest);
-                        root_move += book_ponder_move;
+                        if (MOVE_NONE != book_ponder_move)
+                        {
+                            root_moves[0] += book_ponder_move;
+                        }
                         root_pos.undo_move (book_best_move);
-                        found = true;
                     }
                 }
                 book.close ();
-                if (found)
+            }
+
+            if (think)
+            {
+                voting = true;
+
+                i16 timed_contempt = 0;
+                i64 diff_time;
+                if (   0 != ContemptTime
+                    && Limits.use_time_management ()
+                    && 0 != (diff_time = i64(  Limits.clock[ root_pos.active].time
+                                             - Limits.clock[~root_pos.active].time) / 1000))
                 {
-                    goto finish;
+                    timed_contempt = i16(diff_time/ContemptTime);
                 }
-            }
 
-            voting = true;
+                auto contempt = cp_to_value (FixedContempt + timed_contempt);
+                DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] = VALUE_DRAW - contempt;
+                DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] = VALUE_DRAW + contempt;
 
-            i16 timed_contempt = 0;
-            i64 diff_time;
-            if (   0 != ContemptTime
-                && Limits.use_time_management ()
-                && 0 != (diff_time = i64(  Limits.clock[ root_pos.active].time
-                                         - Limits.clock[~root_pos.active].time) / 1000))
-            {
-                timed_contempt = i16(diff_time/ContemptTime);
-            }
-
-            auto contempt = cp_to_value (FixedContempt + timed_contempt);
-            DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] = VALUE_DRAW - contempt;
-            DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] = VALUE_DRAW + contempt;
-
-            if (Limits.use_time_management ())
-            {
-                failed_low = false;
-                best_move_change = 0.0;
-                last_best_move = MOVE_NONE;
-                last_best_move_depth = 0;
-            }
-
-            if (skill_mgr.enabled ())
-            {
-                skill_mgr.best_move = MOVE_NONE;
-            }
-
-            // Have to play with skill handicap?
-            // In this case enable MultiPV search by skill pv size
-            // that will use behind the scenes to get a set of possible moves.
-            Threadpool.pv_limit = std::min (std::max (MultiPV, size_t(skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
-
-            for (auto *th : Threadpool)
-            {
-                if (th != this)
+                if (Limits.use_time_management ())
                 {
-                    th->start_searching ();
+                    failed_low = false;
+                    best_move_change = 0.0;
+                    last_best_move = MOVE_NONE;
+                    last_best_move_depth = 0;
                 }
-            }
 
-            Thread::search (); // Let's start searching !
+                if (skill_mgr.enabled ())
+                {
+                    skill_mgr.best_move = MOVE_NONE;
+                }
 
-            // Swap best PV line with the sub-optimal one if skill level is enabled
-            if (skill_mgr.enabled ())
-            {
-                skill_mgr.pick_best_move (root_moves);
-                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move));
+                // Have to play with skill handicap?
+                // In this case enable MultiPV search by skill pv size
+                // that will use behind the scenes to get a set of possible moves.
+                Threadpool.pv_limit = std::min (std::max (MultiPV, size_t(skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
+
+                for (auto *th : Threadpool)
+                {
+                    if (th != this)
+                    {
+                        th->start_searching ();
+                    }
+                }
+
+                Thread::search (); // Let's start searching !
+
+                // Swap best PV line with the sub-optimal one if skill level is enabled
+                if (skill_mgr.enabled ())
+                {
+                    skill_mgr.pick_best_move (root_moves);
+                    std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move));
+                }
             }
         }
-
-    finish:
 
         // When we reach the maximum depth, we can arrive here without a raise of Threads.stop.
         // However, if we are pondering or in an infinite search, the UCI protocol states that

@@ -112,8 +112,8 @@ namespace Evaluator {
 
             static const Score PawnPushThreat =     S(38,22);
 
-            static const Score HangPawnThreat =     S( 71, 61);
             static const Score SafePawnThreat =     S(192,175);
+            static const Score HangPawnThreat =     S(71,61);
 
             static const Score PieceRankThreat =    S(16, 3);
 
@@ -536,9 +536,10 @@ namespace Evaluator {
                 {
                     b = 0;
                     // Penalty for pin or discover attack on the queen
-                    if (0 != (pos.slider_blockers (Own, s, pos.pieces (Opp, QUEN), b, b) & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<WHITE == Own ? DEL_NW : DEL_SE> (pos.pieces (Own))
-                                                                                                                                         | shift<WHITE == Own ? DEL_NE : DEL_SW> (pos.pieces (Own))))
-                                                                                             | pos.abs_blockers (Opp))))
+                    if (0 != (  pos.slider_blockers (Own, s, pos.pieces (Opp, QUEN), b, b)
+                              & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<WHITE == Own ? DEL_NW : DEL_SE> (pos.pieces (Own))
+                                                                              | shift<WHITE == Own ? DEL_NE : DEL_SW> (pos.pieces (Own))))
+                                  | pos.abs_blockers (Opp))))
                     {
                         score -= QueenWeaken;
                     }
@@ -565,7 +566,7 @@ namespace Evaluator {
             // King Safety: friend pawns shelter and enemy pawns storm
             auto index = pe->king_safety_on<Own> (pos, fk_sq);
             auto value = pe->king_safety[Own][index];
-            if (   rel_rank (Own, fk_sq) == R_1
+            if (   R_1 == rel_rank (Own, fk_sq)
                 && pos.si->can_castle (Own))
             {
                 if (   value < pe->king_safety[Own][0]
@@ -717,17 +718,14 @@ namespace Evaluator {
             auto score = SCORE_ZERO;
 
             Bitboard b;
-            
             // Enemy non-pawns
             Bitboard nonpawns = pos.pieces (Opp) ^ pos.pieces (Opp, PAWN);
-
             // Squares defended by the opponent,
             // - attack the square with a pawn
             // - attack the square twice and not defended twice.
             Bitboard defended_area = pin_attacked_by[Opp][PAWN]
                                    | (   dbl_attacked[Opp]
                                       & ~dbl_attacked[Own]);
-
             // Enemy not defended and attacked by any friend piece
             Bitboard weak_pieces =  pos.pieces (Opp)
                                  & ~defended_area
@@ -822,8 +820,8 @@ namespace Evaluator {
             b &= safe_area
               & ~pin_attacked_by[Opp][PAWN];
             // Friend pawns push safe attacks an enemy piece not already attacked by pawn
-            b = (  shift<WHITE == Own ? DEL_NW : DEL_SE> (b)
-                 | shift<WHITE == Own ? DEL_NE : DEL_SW> (b))
+            b =  (  shift<WHITE == Own ? DEL_NW : DEL_SE> (b)
+                  | shift<WHITE == Own ? DEL_NE : DEL_SW> (b))
               &  pos.pieces (Opp)
               & ~pin_attacked_by[Own][PAWN];
             // Bonus Friend pawns push safely can attack an enemy piece not already attacked by pawn
@@ -872,7 +870,7 @@ namespace Evaluator {
                     }
                     eg_value -= 2*rr*dist (pos.square<KING> (Own), push_sq);
                     // If block square is not the queening square then consider also a second push.
-                    if (rel_rank (Own, push_sq) != R_8)
+                    if (R_8 != rel_rank (Own, push_sq))
                     {
                         eg_value -= 1*rr*dist (pos.square<KING> (Own), push_sq+pawn_push (Own));
                     }
@@ -984,8 +982,8 @@ namespace Evaluator {
             Bitboard behind = pos.pieces (Own, PAWN);
             behind |= shift<WHITE == Own ? DEL_S  : DEL_N > (behind);
             behind |= shift<WHITE == Own ? DEL_SS : DEL_NN> (behind);
-            i32 count  = pop_count (  (behind & safe_space)
-                                    | (WHITE == Own ? safe_space << 0x20 : safe_space >> 0x20));
+            i32 count = pop_count (  (behind & safe_space)
+                                   | (WHITE == Own ? safe_space << 0x20 : safe_space >> 0x20));
             i32 weight = pos.count (Own) - 2 * pe->open_count;
             auto score = mk_score (count * weight * weight / 16, 0);
 
@@ -1015,10 +1013,12 @@ namespace Evaluator {
             // the sign of the endgame value, and that we carefully cap the bonus so
             // that the endgame score will never change sign after the bonus.
             auto score = mk_score (0, sign (eg) * initiative);
+
             if (Trace)
             {
                 Tracer::write (INITIATIVE, score);
             }
+
             return score;
         }
 
@@ -1136,11 +1136,10 @@ namespace Evaluator {
 
             assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
             assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
-
-            assert(me->phase <= PhaseResolution);
+            assert(0 <= me->phase && me->phase <= PhaseResolution);
 
             // Interpolates between midgame and scaled endgame score.
-            v = Value((  mg_value (score) * (me->phase)                     // Evaluate scale for the position
+            v = Value((  mg_value (score) * (me->phase)
                        + eg_value (score) * (PhaseResolution - me->phase) * evaluate_scale (eg_value (score)) / SCALE_NORMAL)
                      / PhaseResolution);
 

@@ -419,7 +419,7 @@ inline bool Position::promotion (Move m) const
 {
     return PROMOTE == mtype (m)
         && contains (pieces (active, PAWN), org_sq (m))
-        && rel_rank (active, org_sq (m)) == R_7;
+        && R_7 == rel_rank (active, org_sq (m));
 }
 inline bool Position::capture_or_promotion (Move m) const
 {

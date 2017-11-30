@@ -124,6 +124,17 @@ namespace Threading {
         void bind_thread (size_t index);
 
     #if defined(_WIN32)
+        
+        /// The needed Windows API for processor groups could be missed from old Windows versions,
+        /// so instead of calling them directly (forcing the linker to resolve the calls at compile time),
+        /// try to load them at runtime. To do this first define the corresponding function pointers.
+        extern "C"
+        {
+            typedef bool (*GLPIE)(LOGICAL_PROCESSOR_RELATIONSHIP LogicalProcRelationship, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX PtrSysLogicalProcInfo, PDWORD PtrLength);
+            typedef bool (*GNNPME)(USHORT Node, PGROUP_AFFINITY PtrGroupAffinity);
+            typedef bool (*STGA)(HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
+        }
+
         /// get_group() retrieves logical processor information using Windows specific
         /// API and returns the best group id for the thread index.
         i32 get_group (size_t index)
@@ -134,45 +145,46 @@ namespace Threading {
             {
                 return -1;
             }
-            auto fun1 = (fun1_t)GetProcAddress (kernel32, "GetLogicalProcessorInformationEx");
-            if (nullptr == fun1)
+            auto GetLogicalProcessorInformationEx = (GLPIE) GetProcAddress (kernel32, "GetLogicalProcessorInformationEx");
+            if (nullptr == GetLogicalProcessorInformationEx)
             {
                 return -1;
             }
+
             DWORD length = 0;
             // First call to get length. We expect it to fail due to null buffer
-            if (fun1 (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length))
+            if (GetLogicalProcessorInformationEx (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length))
             {
                 return -1;
             }
 
             // Once we know length, allocate the buffer
-            auto *buffer = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) malloc (length);
-            if (nullptr == buffer)
+            auto *ptrSysLogicalProcInfoBase = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *> (malloc (length));
+            if (nullptr == ptrSysLogicalProcInfoBase)
             {
                 return -1;
             }
 
             // Second call, now we expect to succeed
-            if (!fun1 (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, buffer, &length))
+            if (!GetLogicalProcessorInformationEx (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, ptrSysLogicalProcInfoBase, &length))
             {
-                free (buffer);
+                free (ptrSysLogicalProcInfoBase);
                 return -1;
             }
 
-            auto *ptr = buffer;
-            DWORD byte_offset = 0;
-            i32 nodes = 0;
-            i32 cores = 0;
-            i32 threads = 0;
-            while (   ptr->Size > 0
-                   && ptr->Size + byte_offset <= length)
+            auto *ptrSysLogicalProcInfoCurr = ptrSysLogicalProcInfoBase;
+            DWORD offset = 0;
+            u16 nodes = 0;
+            u16 cores = 0;
+            u16 threads = 0;
+            while (   ptrSysLogicalProcInfoCurr->Size > 0
+                   && ptrSysLogicalProcInfoCurr->Size + offset <= length)
             {
-                switch (ptr->Relationship)
+                switch (ptrSysLogicalProcInfoCurr->Relationship)
                 {
                 case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
                     ++cores;
-                    threads += (ptr->Processor.Flags == LTP_PC_SMT) ? 2 : 1;
+                    threads += ptrSysLogicalProcInfoCurr->Processor.Flags == LTP_PC_SMT ? 2 : 1;
                     break;
                 case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
                     ++nodes;
@@ -181,17 +193,17 @@ namespace Threading {
                     break;
                 }
 
-                byte_offset += ptr->Size;
-                ptr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) ((char*)ptr + ptr->Size);
+                offset += ptrSysLogicalProcInfoCurr->Size;
+                ptrSysLogicalProcInfoCurr = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *> (reinterpret_cast<BYTE *> (ptrSysLogicalProcInfoCurr) + ptrSysLogicalProcInfoCurr->Size);
             }
-            free (buffer);
+            free (ptrSysLogicalProcInfoBase);
 
-            vector<i32> groups;
+            vector<u16> groups;
             // Run as many threads as possible on the same node until core limit is
             // reached, then move on filling the next node.
-            for (i32 n = 0; n < nodes; ++n)
+            for (u16 n = 0; n < nodes; ++n)
             {
-                for (i32 i = 0; i < cores / nodes; ++i)
+                for (u16 i = 0; i < cores / nodes; ++i)
                 {
                     groups.push_back (n);
                 }
@@ -199,7 +211,7 @@ namespace Threading {
             // In case a core has more than one logical processor (we assume 2) and we
             // have still threads to allocate, then spread them evenly across available
             // nodes.
-            for (i32 t = 0; t < threads - cores; ++t)
+            for (u16 t = 0; t < threads - cores; ++t)
             {
                 groups.push_back (t % nodes);
             }
@@ -233,18 +245,21 @@ namespace Threading {
             {
                 return;
             }
-            auto fun2 = (fun2_t) GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx");
-            auto fun3 = (fun3_t) GetProcAddress (kernel32, "SetThreadGroupAffinity");
-            if (   nullptr == fun2
-                || nullptr == fun3)
+
+            auto GetNumaNodeProcessorMaskEx = (GNNPME) GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx");
+            if (nullptr == GetNumaNodeProcessorMaskEx)
             {
                 return;
             }
-
             GROUP_AFFINITY affinity;
-            if (fun2 (USHORT(group), &affinity))
+            if (GetNumaNodeProcessorMaskEx (USHORT(group), &affinity))
             {
-                fun3 (GetCurrentThread (), &affinity, nullptr);
+                auto SetThreadGroupAffinity = (STGA) GetProcAddress (kernel32, "SetThreadGroupAffinity");
+                if (nullptr == SetThreadGroupAffinity)
+                {
+                    return;
+                }
+                SetThreadGroupAffinity (GetCurrentThread (), &affinity, nullptr);
             }
         }
     #else

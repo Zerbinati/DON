@@ -139,7 +139,7 @@ endif
 
 ### 3.1 Compiler Selection (Default = gcc)
 
-CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-type-limits $(EXTRACXXFLAGS)
+CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-type-limits -fno-exceptions $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
 LDFLAGS += $(EXTRALDFLAGS)
 
