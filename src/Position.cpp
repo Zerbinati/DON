@@ -58,7 +58,7 @@ bool Position::draw (i16 pp) const
 /// remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
 PieceType Position::pick_least_val_att (PieceType pt, Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
-    assert(pt < KING);
+    assert(KING > pt);
     Bitboard b = c_attackers & pieces (pt);
     if (0 != b)
     {
@@ -67,13 +67,15 @@ PieceType Position::pick_least_val_att (PieceType pt, Square dst, Bitboard c_att
         if (   (   PAWN == pt
                 || BSHP == pt
                 || QUEN == pt)
-            && 0 != (b = mocc & pieces (BSHP, QUEN) & PieceAttacks[BSHP][dst]))
+            && 0 != (b = mocc & pieces (BSHP, QUEN) & PieceAttacks[BSHP][dst])
+            && (attackers | b) != attackers)
         {
             attackers |= b & attacks_bb<BSHP> (dst, mocc);
         }
         if (   (   ROOK == pt
                 || QUEN == pt)
-            && 0 != (b = mocc & pieces (ROOK, QUEN) & PieceAttacks[ROOK][dst]))
+            && 0 != (b = mocc & pieces (ROOK, QUEN) & PieceAttacks[ROOK][dst])
+            && (attackers | b) != attackers)
         {
             attackers |= b & attacks_bb<ROOK> (dst, mocc);
         }
@@ -162,7 +164,7 @@ bool Position::see_ge (Move m, Value threshold) const
             }
         }
 
-        // If we have no more attackers we must give up
+        // If have no more attackers must give up
         if (0 == c_attackers)
         {
             break;
@@ -184,18 +186,17 @@ bool Position::see_ge (Move m, Value threshold) const
 
         // Assume the opponent can win the next piece for free
         balance += PieceValues[MG][victim];
+        opp_to_move = !opp_to_move;
 
         // If balance is negative after receiving a free piece then give up
         if (balance < VALUE_ZERO)
         {
-            opp_to_move = !opp_to_move;
             break;
         }
 
         // The first line swaps all negative numbers with non-negative numbers.
         // The compiler probably knows that it is just the bitwise negation ~balance.
         balance = -balance - 1;
-        opp_to_move = !opp_to_move;
         c = ~c;
     }
     // If the opponent gave up we win, otherwise we lose.
@@ -259,7 +260,7 @@ bool Position::pseudo_legal (Move m) const
     if (NORMAL == mtype (m))
     {
         // Is not a promotion, so promotion piece must be empty.
-        assert(PAWN == (promote (m) - NIHT));
+        assert(0 == (promote (m) - NIHT));
     }
     else
     if (CASTLE == mtype (m))
@@ -523,7 +524,6 @@ bool Position::gives_check (Move m) const
                QUEN == promote (m) ? contains (PieceAttacks[QUEN][dst_sq (m)], square<KING> (~active))
                                   && contains (attacks_bb<QUEN> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active)) : (assert(false), false);
     }
-
     return false;
 }
 /// Position::clear() clear the position.
@@ -857,14 +857,13 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     nsi.ptr = si;
     si = &nsi;
 
-    auto pasive = ~active;
-
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     assert(contains (pieces (active), org)
         && (!contains (pieces (active), dst)
          || CASTLE == mtype (m)));
 
+    auto pasive = ~active;
     auto mpt = ptype (board[org]);
     assert(NONE != mpt);
     auto ppt = mpt;
@@ -873,6 +872,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
                 dst - pawn_push (active);
     ++si->clock_ply;
     ++si->null_ply;
+
     si->capture = CASTLE != mtype (m) ?
                     ptype (board[cap]) :
                     NONE;
@@ -906,7 +906,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     if (NORMAL == mtype (m))
     {
-        assert(PAWN == (promote (m) - NIHT)
+        assert(0 == (promote (m) - NIHT)
             && KING != si->capture);
 
         si->promotion = false;
@@ -1026,16 +1026,16 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 /// be restored to exactly the same state as before the move was made.
 void Position::undo_move (Move m)
 {
-    assert(nullptr != si->ptr);
     assert(_ok (m));
+    assert(nullptr != si->ptr
+        && KING != si->capture);
+
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-
-    active = ~active;
     assert(empty (org)
         || CASTLE == mtype (m));
-    assert(KING != si->capture);
 
+    active = ~active;
     if (NORMAL == mtype (m))
     {
         move_piece (dst, org);

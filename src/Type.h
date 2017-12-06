@@ -335,8 +335,8 @@ enum Value : i32
 
     VALUE_MIDGAME = 15258, VALUE_ENDGAME = 3915,
 
-    //VALUE_MG_FULL = 4 * VALUE_MG_NIHT + 4 * VALUE_MG_BSHP + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_QUEN,
-    //VALUE_EG_FULL = 4 * VALUE_EG_NIHT + 4 * VALUE_EG_BSHP + 4 * VALUE_EG_ROOK + 2 * VALUE_EG_QUEN,
+    //VALUE_MG_FULL = VALUE_MG_NIHT * 4 + VALUE_MG_BSHP * 4 + VALUE_MG_ROOK * 4 + VALUE_MG_QUEN * 2,
+    //VALUE_EG_FULL = VALUE_EG_NIHT * 4 + VALUE_EG_BSHP * 4 + VALUE_EG_ROOK * 4 + VALUE_EG_QUEN * 2,
 };
 /// Score needs 32-bits to be stored
 /// the lower 16-bits are used to store the midgame value
@@ -370,23 +370,23 @@ enum Scale : u08
     SCALE_NONE    = 255,
 };
 
-#define BASIC_OPERATORS(T)                                                       \
-    inline T operator+ (T t) { return T(+i32(t)); }                              \
-    inline T operator- (T t) { return T(-i32(t)); }                              \
-    inline T operator+ (T t1, T t2) { return T(i32(t1) + i32(t2)); }             \
-    inline T operator- (T t1, T t2) { return T(i32(t1) - i32(t2)); }             \
-    inline T& operator+= (T &t1, T t2) { t1 = T(i32(t1) + i32(t2)); return t1; } \
-    inline T& operator-= (T &t1, T t2) { t1 = T(i32(t1) - i32(t2)); return t1; }
+#define BASIC_OPERATORS(T)                                              \
+    constexpr T operator+ (T t) { return T(+i32(t)); }                  \
+    constexpr T operator- (T t) { return T(-i32(t)); }                  \
+    constexpr T operator+ (T t1, T t2) { return T(i32(t1) + i32(t2)); } \
+    constexpr T operator- (T t1, T t2) { return T(i32(t1) - i32(t2)); } \
+    inline T& operator+= (T &t1, T t2) { t1 = t1 + t2; return t1; }     \
+    inline T& operator-= (T &t1, T t2) { t1 = t1 - t2; return t1; }
 
-#define ARTHMAT_OPERATORS(T)                                            \
-    inline T operator+ (T t, i32 i) { return T(i32(t) + i); }           \
-    inline T operator- (T t, i32 i) { return T(i32(t) - i); }           \
-    inline T operator* (T t, i32 i) { return T(i32(t) * i); }           \
-    inline T operator/ (T t, i32 i) { return T(i32(t) / i); }           \
-    inline T& operator+= (T &t, i32 i) { t = T(i32(t) + i); return t; } \
-    inline T& operator-= (T &t, i32 i) { t = T(i32(t) - i); return t; } \
-    inline T& operator*= (T &t, i32 i) { t = T(i32(t) * i); return t; } \
-    inline T& operator/= (T &t, i32 i) { t = T(i32(t) / i); return t; }
+#define ARTHMAT_OPERATORS(T)                                     \
+    constexpr T operator+ (T t, i32 i) { return T(i32(t) + i); } \
+    constexpr T operator- (T t, i32 i) { return T(i32(t) - i); } \
+    constexpr T operator* (T t, i32 i) { return T(i32(t) * i); } \
+    constexpr T operator/ (T t, i32 i) { return T(i32(t) / i); } \
+    inline T& operator+= (T &t, i32 i) { t = t + i; return t; }  \
+    inline T& operator-= (T &t, i32 i) { t = t - i; return t; }  \
+    inline T& operator*= (T &t, i32 i) { t = t * i; return t; }  \
+    inline T& operator/= (T &t, i32 i) { t = t / i; return t; }
 
 #define INC_DEC_OPERATORS(T)                                     \
     inline T& operator++ (T &t) { t = T(i32(t) + 1); return t; } \
@@ -400,16 +400,14 @@ INC_DEC_OPERATORS(Rank)
 
 INC_DEC_OPERATORS(Color)
 
-inline Delta operator+ (Delta  d1, Delta d2) { return Delta(i32(d1) + i32(d2)); }
-inline Delta operator- (Delta  d1, Delta d2) { return Delta(i32(d1) - i32(d2)); }
-inline Delta operator* (Delta d, i32 i) { return Delta(i32(d) * i); }
-inline Delta operator/ (Delta d, i32 i) { return Delta(i32(d) / i); }
+BASIC_OPERATORS(Delta)
+ARTHMAT_OPERATORS(Delta)
 
 inline Square operator+ (Square s, Delta d) { return Square(i32(s) + i32(d)); }
 inline Square operator- (Square s, Delta d) { return Square(i32(s) - i32(d)); }
 
-inline Square& operator+= (Square &s, Delta d) { s = Square(i32(s) + i32(d)); return s; }
-inline Square& operator-= (Square &s, Delta d) { s = Square(i32(s) - i32(d)); return s; }
+inline Square& operator+= (Square &s, Delta d) { s = s + d; return s; }
+inline Square& operator-= (Square &s, Delta d) { s = s - d; return s; }
 
 inline Delta operator- (Square s1, Square s2) { return Delta(i32(s1) - i32(s2)); }
 INC_DEC_OPERATORS(Square)
@@ -460,33 +458,37 @@ inline Score operator/ (Score s, i32 i) { return mk_score (mg_value (s) / i, eg_
 inline Score& operator*= (Score &s, i32 i) { s = mk_score (mg_value (s) * i, eg_value (s) * i); return s; }
 inline Score& operator/= (Score &s, i32 i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
 
+/// Only declared but not defined. We don't want to multiply two scores due to
+/// a very high risk of overflow. So user should explicitly convert to integer.
+Score operator* (Score, Score) = delete;
+Score operator/ (Score, Score) = delete;
+
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
-inline Color operator~ (Color c) { return Color(c ^ i08(BLACK)); }
+constexpr Color operator~ (Color c) { return Color(c ^ i08(BLACK)); }
 
-inline File operator~ (File f) { return File(f ^ i08(F_H)); }
-inline File to_file   (char f) { return File(f - 'a'); }
+constexpr File operator~ (File f) { return File(f ^ i08(F_H)); }
+constexpr File to_file   (char f) { return File(f - 'a'); }
 
-inline Rank operator~ (Rank r) { return Rank(r ^ i08(R_8)); }
-inline Rank to_rank   (char r) { return Rank(r - '1'); }
+constexpr Rank operator~ (Rank r) { return Rank(r ^ i08(R_8)); }
+constexpr Rank to_rank   (char r) { return Rank(r - '1'); }
 
-inline Square operator| (File f, Rank r) { return Square(( r << 3) + f); }
-inline Square operator| (Rank r, File f) { return Square((~r << 3) + f); }
-inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
+constexpr Square operator| (File f, Rank r) { return Square(( r << 3) + f); }
+constexpr Square operator| (Rank r, File f) { return Square((~r << 3) + f); }
+constexpr Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
-inline bool _ok    (Square s) { return (s & ~i08(SQ_H8)) == 0; }
-inline File _file  (Square s) { return File(s & i08(F_H)); }
-inline Rank _rank  (Square s) { return Rank(s >> 3); }
-inline Color color (Square s) { return Color(((s ^ (s >> 3)) & 1) != 1); }
+constexpr bool _ok    (Square s) { return (s & ~i08(SQ_H8)) == 0; }
+constexpr File _file  (Square s) { return File(s & i08(F_H)); }
+constexpr Rank _rank  (Square s) { return Rank(s >> 3); }
+constexpr Color color (Square s) { return Color(((s ^ (s >> 3)) & 1) != 1); }
 
-inline Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
-inline Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
+constexpr Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
+constexpr Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
 
-//inline Rank rel_rank (Color c, Rank r) { return Rank(r ^ (c*i08(R_8))); }
-inline Rank rel_rank (Color c, Square s) { return Rank(_rank (s) ^ (c*i08(R_8))); }
-inline Square rel_sq (Color c, Square s) { return Square(s ^ (c*i08(SQ_A8))); }
+constexpr Rank rel_rank (Color c, Square s) { return Rank(_rank (s) ^ (c*i08(R_8))); }
+constexpr Square rel_sq (Color c, Square s) { return Square(s ^ (c*i08(SQ_A8))); }
 
 inline bool opposite_colors (Square s1, Square s2)
 {
@@ -494,17 +496,17 @@ inline bool opposite_colors (Square s1, Square s2)
     return 0 != (((s >> 3) ^ s) & BLACK);
 }
 
-inline Delta pawn_push (Color c)
+constexpr Delta pawn_push (Color c)
 {
     return WHITE == c ? DEL_N : DEL_S;
 }
 
-inline CastleRight castle_right (Color c)
+constexpr CastleRight castle_right (Color c)
 {
     //return CastleRight(CR_WHITE << ((c << BLACK)));
     return WHITE == c ? CR_WHITE : CR_BLACK;
 }
-inline CastleRight castle_right (Color c, CastleSide cs)
+constexpr CastleRight castle_right (Color c, CastleSide cs)
 {
     //return CastleRight(CR_WKING << ((c << BLACK) + cs));
     return WHITE == c ? 
@@ -512,25 +514,25 @@ inline CastleRight castle_right (Color c, CastleSide cs)
                CS_KING == cs ? CR_BKING : CR_BQUEN;
 }
 
-inline Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
+constexpr Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
 
-inline bool _ok (Piece p)
+constexpr bool _ok (Piece p)
 {
     return (W_PAWN <= p && p <= W_KING)
         || (B_PAWN <= p && p <= B_KING);
 }
-inline PieceType ptype (Piece p) { return PieceType(p & MAX_PTYPE); }
-inline Color     color (Piece p) { return Color(p >> 3); }
-inline Piece operator~ (Piece p) { return Piece(p ^ 8); }
+constexpr PieceType ptype (Piece p) { return PieceType(p & MAX_PTYPE); }
+constexpr Color     color (Piece p) { return Color(p >> 3); }
+constexpr Piece operator~ (Piece p) { return Piece(p ^ 8); }
 
-inline Square    org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
-inline Square    dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
-inline bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
-inline PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
-inline MoveType  mtype   (Move m) { return MoveType(m & PROMOTE); }
-inline i16       move_pp (Move m) { return m & 0x0FFF; }
-inline void      promote (Move &m, PieceType pt) { m = Move((m & 0x0FFF) + (PROMOTE + ((pt - 1) << 12))); }
-inline Square fix_dst_sq (Move m, bool chess960 = false)
+constexpr Square    org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
+constexpr Square    dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
+constexpr bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
+constexpr PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
+constexpr MoveType  mtype   (Move m) { return MoveType(m & PROMOTE); }
+constexpr i16       move_pp (Move m) { return m & 0x0FFF; }
+inline    void      promote (Move &m, PieceType pt) { m = Move((m & 0x0FFF) + (PROMOTE + ((pt - 1) << 12))); }
+constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 {
     return mtype (m) != CASTLE
         || chess960 ?
@@ -539,16 +541,17 @@ inline Square fix_dst_sq (Move m, bool chess960 = false)
 }
 
 template<MoveType MT>
-inline Move mk_move (Square org, Square dst)               { return Move(MT + (org << 6) + dst); }
-inline Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst); }
+constexpr Move mk_move (Square org, Square dst)               { return Move(MT + (org << 6) + dst); }
+constexpr Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst); }
 
-inline i16   value_to_cp (Value v) { return i16(v*100/i32(VALUE_EG_PAWN)); }
-inline Value cp_to_value (i16  cp) { return Value(cp*i32(VALUE_EG_PAWN)/100); }
+constexpr i16   value_to_cp (Value v) { return i16(v*100/i32(VALUE_EG_PAWN)); }
+constexpr Value cp_to_value (i16  cp) { return Value(cp*i32(VALUE_EG_PAWN)/100); }
 
-inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
-inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
+constexpr Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
+constexpr Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
+
 inline TimePoint now ()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>
@@ -579,8 +582,8 @@ public:
 
     // Inhibit unwanted implicit conversions to Move
     // with an ambiguity that yields to a compile error.
-    operator float () const;
-    operator double () const;
+    operator float () const = delete;
+    operator double () const = delete;
 
     bool operator<  (const ValMove &vm) const { return value <  vm.value; }
     bool operator>  (const ValMove &vm) const { return value >  vm.value; }
@@ -705,8 +708,7 @@ inline void remove_extension (std::string &filename)
 
 inline std::string append_path (const std::string &base_path, const std::string &file_path)
 {
-    return
-        base_path[base_path.length ()] != '/' ?
+    return base_path[base_path.length () - 1] != '/' ?
             base_path + '/' + file_path :
             base_path + file_path;
 }
@@ -716,7 +718,7 @@ inline void convert_path (std::string &path)
     std::replace (path.begin (), path.end (), '\\', '/'); // Replace all '\' to '/'
 }
 
-const Square SQ[SQ_NO] =
+constexpr Square SQ[SQ_NO] =
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
@@ -728,7 +730,7 @@ const Square SQ[SQ_NO] =
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
 };
 
-const Value PieceValues[][MAX_PTYPE] =
+constexpr Value PieceValues[][MAX_PTYPE] =
 {
     { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }

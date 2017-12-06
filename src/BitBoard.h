@@ -63,7 +63,7 @@ namespace BitBoard {
         R7_bb|R6_bb|R5_bb
     };
 
-    const Bitboard Square_bb[] =
+    constexpr Bitboard Square_bb[] =
     {
 #define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
 #define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
@@ -186,10 +186,10 @@ namespace BitBoard {
     template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
     template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
-    inline bool contains (Bitboard bb, Square s) { return 0 != (bb & Square_bb[s]); }
+    constexpr bool contains (Bitboard bb, Square s) { return 0 != (bb & Square_bb[s]); }
 
-    inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
-    inline Bitboard  operator^  (Bitboard  bb, Square s) { return bb ^  Square_bb[s]; }
+    constexpr Bitboard operator| (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
+    constexpr Bitboard operator^ (Bitboard  bb, Square s) { return bb ^  Square_bb[s]; }
 
     inline Bitboard& operator|= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
     inline Bitboard& operator^= (Bitboard &bb, Square s) { return bb ^= Square_bb[s]; }
@@ -219,28 +219,28 @@ namespace BitBoard {
     // Check the squares s1, s2 and s3 are aligned on a straight line.
     inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return contains (StrLine_bb[s1][s2], s3); }
 
-    inline bool more_than_one (Bitboard bb)
+    constexpr bool more_than_one (Bitboard bb)
     {
-#   if defined(BM2)
-        return 0 != BLSR(bb);
-#   else
+//#   if defined(BM2)
+//        return 0 != BLSR(bb);
+//#   else
         return 0 != (bb & (bb - 1));
-#   endif
+//#   endif
     }
 
     // Shift the bitboard using delta
-    template<Delta DEL> inline Bitboard shift (Bitboard bb);
+    template<Delta DEL> Bitboard shift (Bitboard bb);
 
-    template<> inline Bitboard shift<DEL_N > (Bitboard bb) { return (bb         ) << 010; }
-    template<> inline Bitboard shift<DEL_S > (Bitboard bb) { return (bb         ) >> 010; }
-    template<> inline Bitboard shift<DEL_NN> (Bitboard bb) { return (bb         ) << 020; }
-    template<> inline Bitboard shift<DEL_SS> (Bitboard bb) { return (bb         ) >> 020; }
-    template<> inline Bitboard shift<DEL_E > (Bitboard bb) { return (bb & ~FH_bb) << 001; }
-    template<> inline Bitboard shift<DEL_W > (Bitboard bb) { return (bb & ~FA_bb) >> 001; }
-    template<> inline Bitboard shift<DEL_NE> (Bitboard bb) { return (bb & ~FH_bb) << 011; }
-    template<> inline Bitboard shift<DEL_SE> (Bitboard bb) { return (bb & ~FH_bb) >> 007; }
-    template<> inline Bitboard shift<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) << 007; }
-    template<> inline Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> 011; }
+    template<> constexpr Bitboard shift<DEL_N > (Bitboard bb) { return (bb         ) << 010; }
+    template<> constexpr Bitboard shift<DEL_S > (Bitboard bb) { return (bb         ) >> 010; }
+    template<> constexpr Bitboard shift<DEL_NN> (Bitboard bb) { return (bb         ) << 020; }
+    template<> constexpr Bitboard shift<DEL_SS> (Bitboard bb) { return (bb         ) >> 020; }
+    template<> constexpr Bitboard shift<DEL_E > (Bitboard bb) { return (bb & ~FH_bb) << 001; }
+    template<> constexpr Bitboard shift<DEL_W > (Bitboard bb) { return (bb & ~FA_bb) >> 001; }
+    template<> constexpr Bitboard shift<DEL_NE> (Bitboard bb) { return (bb & ~FH_bb) << 011; }
+    template<> constexpr Bitboard shift<DEL_SE> (Bitboard bb) { return (bb & ~FH_bb) >> 007; }
+    template<> constexpr Bitboard shift<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) << 007; }
+    template<> constexpr Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> 011; }
 
     //// Rotate Right (toward LSB)
     //inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08(SQ_NO) - k)); }
@@ -272,23 +272,12 @@ namespace BitBoard {
     template<PieceType PT> Bitboard attacks_bb (Square, Bitboard);
     
     // Attacks of the Bishop with occupancy
-    template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ)
-    {
-        return BMagics[s].attacks_bb (occ);
-    }
+    template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BMagics[s].attacks_bb (occ); }
     // Attacks of the Rook with occupancy
-    template<> inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ)
-    {
-        return RMagics[s].attacks_bb (occ);
-    }
+    template<> inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RMagics[s].attacks_bb (occ); }
     // Attacks of the Queen with occupancy
-    template<> inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ)
-    {
-        assert((BMagics[s].attacks_bb (occ)
-              & RMagics[s].attacks_bb (occ)) == 0);
-        return BMagics[s].attacks_bb (occ)
-             | RMagics[s].attacks_bb (occ);
-    }
+    template<> inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ) { return BMagics[s].attacks_bb (occ)
+                                                                                | RMagics[s].attacks_bb (occ); }
     
 #if !defined(ABM) // PopCount Table
 

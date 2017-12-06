@@ -103,7 +103,7 @@ namespace Threading {
         Pawns::Table pawn_table;
         Material::Table matl_table;
 
-        explicit Thread (size_t n);
+        explicit Thread (size_t);
         Thread () = delete;
         Thread (const Thread&) = delete;
         Thread& operator= (const Thread&) = delete;
@@ -138,7 +138,7 @@ namespace Threading {
         TimeManager  time_mgr;
         SkillManager skill_mgr;
 
-        explicit MainThread (size_t n);
+        explicit MainThread (size_t);
         MainThread () = delete;
         MainThread (const MainThread&) = delete;
         MainThread& operator= (const MainThread&) = delete;
@@ -172,10 +172,9 @@ namespace Threading {
     public:
         size_t pv_limit;
 
-        std::atomic<bool>
-                stop                // Stop search
-            ,   stop_on_ponderhit   // Stop search on ponderhit
-            ,   ponder;             // Search on ponder move until the "stop"/"ponderhit" command
+        std::atomic<bool> stop                // Stop search
+            ,             stop_on_ponderhit   // Stop search on ponderhit
+            ,             ponder;             // Search on ponder move until the "stop"/"ponderhit" command
 
         ThreadPool () = default;
         ThreadPool (const ThreadPool&) = delete;

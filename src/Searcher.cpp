@@ -608,24 +608,17 @@ namespace Searcher {
 
     namespace {
 
-        const u08 MaxRazorDepth = 4;
         // RazorMargins[depth]
-        Value RazorMargins[MaxRazorDepth] = { Value(0), Value(570), Value(602), Value(554) };
+        const Value RazorMargins[4] = { Value(0), Value(570), Value(602), Value(554) };
 
-        const u08 MaxFutilityDepth = 16;
         // FutilityMoveCounts[improving][depth]
-        u08 FutilityMoveCounts[2][MaxFutilityDepth];
+        u08 FutilityMoveCounts[2][16];
 
-        const u08 MaxReductionDepth = 64;
-        const u08 MaxReductionMoveCount = 64;
         // ReductionDepths[pv][improving][depth][move_count]
-        i16 ReductionDepths[2][2][MaxReductionDepth][MaxReductionMoveCount];
+        i16 ReductionDepths[2][2][64][64];
         i16 reduction_depth (bool pv, bool imp, i16 d, u08 mc)
         {
-            return ReductionDepths[pv ? 1 : 0]
-                                  [imp ? 1 : 0]
-                                  [std::min (d, i16(MaxReductionDepth-1))]
-                                  [std::min (mc, u08(MaxReductionMoveCount-1))];
+            return ReductionDepths[pv ? 1 : 0][imp ? 1 : 0][d <= 63 ? d : 63][mc <= 63 ? mc : 63];
         }
 
         Value DrawValue[CLR_NO]
@@ -704,7 +697,11 @@ namespace Searcher {
             const auto &root_moves = th->root_moves;
 
             auto total_nodes = Threadpool.nodes ();
-            auto tb_hits = Threadpool.tb_hits () + (TBHasRoot ? root_moves.size () : 0);
+            auto tb_hits = Threadpool.tb_hits ();
+            if (TBHasRoot)
+            {
+                tb_hits += root_moves.size ();
+            }
 
             ostringstream oss;
             for (size_t i = 0; i < Threadpool.pv_limit; ++i)
@@ -712,30 +709,36 @@ namespace Searcher {
                 bool updated = i <= th->pv_index
                             && -VALUE_INFINITE != root_moves[i].new_value;
 
-                i16 d = updated ?
-                            depth :
-                            depth - 1;
-                if (d <= 0)
+                if (   !updated
+                    && 1 == depth)
                 {
                     continue;
                 }
 
+                i16 d = updated ?
+                            depth :
+                            depth - 1;
                 auto v = updated ?
                             root_moves[i].new_value :
                             root_moves[i].old_value;
                 bool tb = TBHasRoot
                        && abs (v) < +VALUE_MATE - i32(MaxPlies);
+                if (tb)
+                {
+                    v = TBValue;
+                }
 
                 oss << "info"
                     << " multipv " << i + 1
                     << " depth " << d
                     << " seldepth " << root_moves[i].sel_depth
-                    << " score " << to_string (tb ? TBValue : v)
-                    << (   !tb
-                        && i == th->pv_index ?
-                            beta <= v ? " lowerbound" :
-                                v <= alfa ? " upperbound" : "" : "")
-                    << " nodes " << total_nodes
+                    << " score " << to_string (v);
+                if (   !tb
+                    && i == th->pv_index)
+                {
+                    oss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
+                }
+                oss << " nodes " << total_nodes
                     << " time " << elapsed_time
                     << " nps " << total_nodes * 1000 / elapsed_time
                     << " tbhits " << tb_hits;
@@ -834,11 +837,13 @@ namespace Searcher {
                     // Never assume anything on values stored in TT.
                     if (VALUE_NONE != tte->eval ())
                     {
-                        ss->static_eval = tt_eval = tte->eval ();
+                        ss->static_eval =
+                        tt_eval = tte->eval ();
                     }
                     else
                     {
-                        ss->static_eval = tt_eval = evaluate (pos);
+                        ss->static_eval =
+                        tt_eval = evaluate (pos);
                     }
 
                     // Can tt_value be used as a better position evaluation?
@@ -850,9 +855,10 @@ namespace Searcher {
                 }
                 else
                 {
-                    ss->static_eval = tt_eval = MOVE_NULL != (ss-1)->played_move ?
-                                                    evaluate (pos) :
-                                                    -(ss-1)->static_eval + Tempo*2;
+                    ss->static_eval =
+                    tt_eval = MOVE_NULL != (ss-1)->played_move ?
+                                evaluate (pos) :
+                                -(ss-1)->static_eval + Tempo*2;
                 }
 
                 if (alfa < tt_eval)
@@ -1195,11 +1201,13 @@ namespace Searcher {
                     // Never assume anything on values stored in TT.
                     if (VALUE_NONE != tte->eval ())
                     {
-                        ss->static_eval = tt_eval = tte->eval ();
+                        ss->static_eval =
+                        tt_eval = tte->eval ();
                     }
                     else
                     {
-                        ss->static_eval = tt_eval = evaluate (pos);
+                        ss->static_eval =
+                        tt_eval = evaluate (pos);
                     }
 
                     // Can tt_value be used as a better position evaluation?
@@ -1211,9 +1219,10 @@ namespace Searcher {
                 }
                 else
                 {
-                    ss->static_eval = tt_eval = MOVE_NULL != (ss-1)->played_move ?
-                                                    evaluate (pos) :
-                                                    -(ss-1)->static_eval + Tempo*2;
+                    ss->static_eval =
+                    tt_eval = MOVE_NULL != (ss-1)->played_move ?
+                                evaluate (pos) :
+                                -(ss-1)->static_eval + Tempo*2;
 
                     tte->save (key,
                                MOVE_NONE,
@@ -1223,14 +1232,15 @@ namespace Searcher {
                                BOUND_NONE);
                 }
 
-                if (prun_node)
+                if (   prun_node
+                    && VALUE_ZERO != pos.si->non_pawn_material (pos.active))
                 {
                     assert(MOVE_NONE == ss->excluded_move);
 
                     // Step 6. Razoring sort of forward pruning where rather than
                     // skipping an entire subtree, search it to a reduced depth.
                     if (   !PVNode
-                        && MaxRazorDepth > depth
+                        && 4 > depth
                         //&& 0 == Limits.mate
                         && tt_eval + RazorMargins[depth] <= alfa)
                     {
@@ -1253,20 +1263,18 @@ namespace Searcher {
                     // the score by more than futility margins [depth] if do a null move.
                     if (   !root_node
                         && 7 > depth
-                        && tt_eval - 150*depth >= beta
-                        && tt_eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
                         //&& 0 == Limits.mate
-                        && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
+                        && tt_eval - 150*depth >= beta
+                        && tt_eval < +VALUE_KNOWN_WIN) // Don't return unproven wins.
                     {
                         return tt_eval;
                     }
 
                     // Step 8. Null move search with verification search.
                     if (   !PVNode
-                        && tt_eval >= beta
                         //&& 0 == Limits.mate
-                        && ss->static_eval + 36*depth - 225 >= beta
-                        && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
+                        && tt_eval >= beta
+                        && ss->static_eval + 36*depth - 225 >= beta)
                     {
                         ss->played_move = MOVE_NULL;
                         ss->piece_destiny_history = &pos.thread->continuation_history[NO_PIECE][0];
@@ -1349,7 +1357,7 @@ namespace Searcher {
 
                     // Step 10. Internal iterative deepening (IID).
                     if (   MOVE_NONE == tt_move
-                        && 4 < depth
+                        && 5 < depth
                         && (   PVNode
                             || ss->static_eval + 256 >= beta))
                     {
@@ -1379,8 +1387,8 @@ namespace Searcher {
                                   && VALUE_NONE != (tt_value = value_of_tt (tte->value (), ss->ply))
                                   && BOUND_NONE != (tte->bound () & BOUND_LOWER);
 
-            bool improving = (ss-2)->static_eval <= (ss-0)->static_eval
-                          || (ss-2)->static_eval == VALUE_NONE;
+            bool improving = (ss-0)->static_eval >= (ss-2)->static_eval
+                          || VALUE_NONE == (ss-2)->static_eval;
 
             bool pv_exact = PVNode
                          && tt_hit
@@ -1391,7 +1399,7 @@ namespace Searcher {
             u08 move_count = 0;
 
             vector<Move> quiet_moves
-                       , capture_moves;
+                ,        capture_moves;
 
             const PieceDestinyHistory *piece_destiny_history[4] = { (ss-1)->piece_destiny_history, (ss-2)->piece_destiny_history, (ss-3)->piece_destiny_history, (ss-4)->piece_destiny_history };
             auto counter_move = _ok ((ss-1)->played_move) ?
@@ -1422,8 +1430,8 @@ namespace Searcher {
                 bool gives_check = pos.gives_check (move);
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
-                bool move_count_pruning = MaxFutilityDepth > depth
-                                       && FutilityMoveCounts[improving][depth] <= move_count;
+                bool move_count_pruning = 16 > depth
+                                       && FutilityMoveCounts[improving ? 1 : 0][depth] <= move_count;
 
                 auto org = org_sq (move);
                 auto dst = dst_sq (move);
@@ -1836,7 +1844,7 @@ namespace Searcher {
     /// initialize() initializes lookup tables at startup.
     void initialize ()
     {
-        for (i08 d = 0; d < MaxFutilityDepth; ++d)
+        for (i08 d = 0; d < 16; ++d)
         {
             FutilityMoveCounts[0][d] = u08(0.74 * std::pow (d, 1.78) + 2.4);
             FutilityMoveCounts[1][d] = u08(1.00 * std::pow (d, 2.00) + 5.0);
@@ -1845,9 +1853,9 @@ namespace Searcher {
         {
             ReductionDepths[0][imp][0][0] = 0;
             ReductionDepths[1][imp][0][0] = 0;
-            for (i08 d = 1; d < MaxReductionDepth; ++d)
+            for (i08 d = 1; d < 64; ++d)
             {
-                for (i08 mc = 1; mc < MaxReductionMoveCount; ++mc)
+                for (i08 mc = 1; mc < 64; ++mc)
                 {
                     auto r = log (d) * log (mc) / 1.95;
                     ReductionDepths[0][imp][d][mc] = i16(std::round (r));
