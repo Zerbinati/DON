@@ -34,7 +34,7 @@ namespace BitBoard {
 
     const Bitboard Side_bb[] =
     {
-        FH_bb|FG_bb|FF_bb|FE_bb,
+        FE_bb|FF_bb|FG_bb|FH_bb,
         FA_bb|FB_bb|FC_bb|FD_bb,
         FC_bb|FD_bb|FE_bb|FF_bb
     };
@@ -65,7 +65,7 @@ namespace BitBoard {
 
     constexpr Bitboard Square_bb[] =
     {
-#define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
+#define S_02(n)  u64(1)<<(2*(n)),  u64(1)<<(2*(n)+1)
 #define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
 #define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
 #define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)

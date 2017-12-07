@@ -15,6 +15,8 @@ namespace Evaluator {
     using namespace MoveGen;
     using namespace EndGame;
 
+    Score Contempt = SCORE_ZERO;
+
     namespace {
 
         namespace Tracer {
@@ -383,9 +385,7 @@ namespace Evaluator {
                     attacks &= strline_bb (pos.square<KING> (Own), s);
                     pins_weight[Own] += PinsWeight[PT];
                 }
-                pin_attacked_by[Own][NONE] |=
-                pin_attacked_by[Own][PT]   |= attacks;
-
+                
                 if (BSHP == PT)
                 {
                     Bitboard att = attacks & ~pos.abs_blockers (Own);
@@ -411,14 +411,14 @@ namespace Evaluator {
 
                     pin_attacked_queen[Own][0] |= attacks & PieceAttacks[BSHP][s];
                     pin_attacked_queen[Own][1] |= attacks & PieceAttacks[ROOK][s];
-
-                    assert(pin_attacked_by[Own][QUEN] == (pin_attacked_queen[Own][0] | pin_attacked_queen[Own][1]));
                 }
                 else
                 {
                     dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                        & attacks;
                 }
+                pin_attacked_by[Own][NONE] |=
+                pin_attacked_by[Own][PT]   |= attacks;
 
                 if (0 != (king_ring[Opp] & attacks))
                 {
@@ -616,9 +616,9 @@ namespace Evaluator {
 
                 // Initialize the king danger, which will be transformed later into a score.
                 // The initial value is based on the
-                // - the number and types of the enemy's attacking pieces,
-                // - the number of attacked and undefended squares around our king,
-                // - the quality of the pawn shelter ('mg score' value).
+                // - number and types of the enemy's attacking pieces,
+                // - number of attacked and undefended squares around our king,
+                // - quality of the pawn shelter ('mg score' value).
                 i32 king_danger =   1 * king_ring_attackers_count[Opp]*king_ring_attackers_weight[Opp]
                                 + 102 * king_zone_attacks_count[Opp]
                                 + 191 * pop_count (king_ring[Own] & weak_area)
@@ -627,10 +627,8 @@ namespace Evaluator {
                                 -   9 * value / 8
                                 +  40;
 
-                Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces ());
-                Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces ());
-                assert(0 == (rook_attack & pos.pieces (Opp, ROOK, QUEN)));
-                assert(0 == (bshp_attack & pos.pieces (Opp, BSHP, QUEN)));
+                Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
+                Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
 
                 // For safe enemy's checks on the safe square which are possible on next move ...
                 Bitboard safe_area = ~pos.pieces (Opp)
@@ -644,7 +642,8 @@ namespace Evaluator {
                                           & shift<WHITE == Own ? DEL_N : DEL_S> (pos.pieces (PAWN))));
 
                 // Enemy queens safe checks
-                b = (rook_attack | bshp_attack)
+                b = (  rook_attack
+                     | bshp_attack)
                   &  pin_attacked_by[Opp][QUEN]
                   & ~pin_attacked_by[Own][QUEN];
                 if (0 != (b & safe_area))
@@ -689,9 +688,9 @@ namespace Evaluator {
                     score -= ProbChecked;
                 }
 
+                // Transform the king_danger into a score
                 if (king_danger > 0)
                 {
-                    // Transform the king_danger into a score
                     score -= mk_score (king_danger*king_danger / 0x1000, king_danger / 0x10);
                 }
             }
@@ -757,14 +756,14 @@ namespace Evaluator {
             // Add a bonus according to the type of attacking pieces
 
             // Enemies attacked by minors
-            b = (  weak_pieces
-                   // Rooks or Queens
-                 | pos.pieces (Opp, ROOK, QUEN)
-                   // Enemy defended non-pawns
-                 | (  nonpawns
-                    & defended_area))
-              & (  pin_attacked_by[Own][NIHT]
-                 | pin_attacked_by[Own][BSHP]);
+            b =  (  weak_pieces
+                    // Rooks or Queens
+                  | pos.pieces (Opp, ROOK, QUEN)
+                    // Enemy defended non-pawns
+                  | (  nonpawns
+                     & defended_area))
+              &  (  pin_attacked_by[Own][NIHT]
+                  | pin_attacked_by[Own][BSHP]);
             while (0 != b)
             {
                 auto s = pop_lsq (b);
@@ -776,10 +775,10 @@ namespace Evaluator {
                 }
             }
             // Enemies attacked by majors
-            b = (  weak_pieces
-                   // Queens
-                 | pos.pieces (Opp, QUEN))
-              & pin_attacked_by[Own][ROOK];
+            b =  (  weak_pieces
+                    // Queens
+                  | pos.pieces (Opp, QUEN))
+              &  pin_attacked_by[Own][ROOK];
             while (0 != b)
             {
                 auto s = pop_lsq (b);
@@ -825,14 +824,6 @@ namespace Evaluator {
                 }
             }
 
-            b = (pin_attacked_by[Own][BSHP] & pin_attacked_queen[Opp][0])
-              | (pin_attacked_by[Own][ROOK] & pin_attacked_queen[Opp][1]);
-            // Bonus for safe slider attack threats on enemy queen
-            score += QueenAttackThreat * pop_count (   b
-                                                    & ~pos.pieces (Own)
-                                                    &  dbl_attacked[Own]
-                                                    & ~dbl_attacked[Opp]);
-
             // Friend pawns can push on the next move
             b =  pos.pieces (Own, PAWN)
               & ~pos.abs_blockers (Own);
@@ -851,6 +842,14 @@ namespace Evaluator {
               & ~pin_attacked_by[Own][PAWN];
             // Bonus for friend pawns push safely can attack an enemy piece not already attacked by pawn
             score += PawnPushThreat * pop_count (b);
+
+            b = (pin_attacked_by[Own][BSHP] & pin_attacked_queen[Opp][0])
+              | (pin_attacked_by[Own][ROOK] & pin_attacked_queen[Opp][1]);
+            // Bonus for safe slider attack threats on enemy queen
+            score += QueenAttackThreat * pop_count (   b
+                                                    & ~pos.pieces (Own)
+                                                    &  dbl_attacked[Own]
+                                                    & ~dbl_attacked[Opp]);
 
             if (Trace)
             {
@@ -1113,7 +1112,8 @@ namespace Evaluator {
             // - the pawn score
             auto score = pos.si->psq_score
                        + me->imbalance
-                       + pe->score;
+                       + pe->score
+                       + Contempt;
 
             // Early exit if score is high
             Value v = (mg_value (score) + eg_value (score)) / 2;

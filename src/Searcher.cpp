@@ -621,9 +621,6 @@ namespace Searcher {
             return ReductionDepths[pv ? 1 : 0][imp ? 1 : 0][d <= 63 ? d : 63][mc <= 63 ? mc : 63];
         }
 
-        Value DrawValue[CLR_NO]
-            , BaseContempt[CLR_NO];
-
         ofstream OutputStream;
 
         /// stat_bonus() is the bonus, based on depth
@@ -783,8 +780,8 @@ namespace Searcher {
             {
                 return ss->ply >= MaxPlies
                     && !in_check ?
-                        evaluate (pos) :
-                        DrawValue[pos.active];
+                            evaluate (pos) :
+                            VALUE_DRAW;
             }
 
             Move move;
@@ -1056,8 +1053,8 @@ namespace Searcher {
                 {
                     return ss->ply >= MaxPlies
                         && !in_check ?
-                            evaluate (pos) :
-                            DrawValue[pos.active];
+                                evaluate (pos) :
+                                VALUE_DRAW;
                 }
 
                 // Step 3. Mate distance pruning.
@@ -1768,7 +1765,7 @@ namespace Searcher {
                                 alfa :
                                 in_check ?
                                     mated_in (ss->ply) :
-                                    DrawValue[pos.active];
+                                    VALUE_DRAW;
             }
             else
             {
@@ -2109,13 +2106,6 @@ namespace Threading {
                 finished_depth = running_depth;
             }
 
-            //if (0 != ContemptValue)
-            //{
-            //    auto valued_contempt = Value(i32(best_value)/ContemptValue);
-            //    DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] - valued_contempt;
-            //    DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] + valued_contempt;
-            //}
-
             // Has any of the threads found a "mate in <x>"?
             if (   !Threadpool.stop
                 && !Threadpool.stop_on_ponderhit
@@ -2148,7 +2138,7 @@ namespace Threading {
                             main_thread->last_best_move_depth = running_depth;
                         }
 
-                        bool hard_think = DrawValue[root_pos.active] == best_value
+                        bool hard_think = VALUE_DRAW == best_value
                                        && (  Limits.clock[ root_pos.active].time
                                            - Limits.clock[~root_pos.active].time) > main_thread->time_mgr.elapsed_time ()
                                        && root_move.draw (root_pos);
@@ -2313,8 +2303,9 @@ namespace Threading {
                 }
 
                 auto contempt = cp_to_value (FixedContempt + timed_contempt);
-                DrawValue[ root_pos.active] = BaseContempt[ root_pos.active] = VALUE_DRAW - contempt;
-                DrawValue[~root_pos.active] = BaseContempt[~root_pos.active] = VALUE_DRAW + contempt;
+                Contempt = WHITE == root_pos.active ?
+                            +mk_score (contempt, contempt / 2) :
+                            -mk_score (contempt, contempt / 2);
 
                 if (Limits.use_time_management ())
                 {

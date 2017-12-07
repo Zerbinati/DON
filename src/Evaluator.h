@@ -8,6 +8,8 @@ namespace Evaluator {
 
     // Tempo bonus
     const Value Tempo = Value(20);
+    
+    extern Score Contempt;
 
     extern Value evaluate (const Position&);
     
