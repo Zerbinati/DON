@@ -102,7 +102,6 @@ namespace Evaluator {
             // Penalty for queen weaken
             static const Score QueenWeaken =        S(50,10);
 
-            static const Score ProbChecked =        S(10,10);
             // King tropism
             static const Score EnemyInFlank =       S( 7, 0);
             static const Score PawnlessFlank =      S(20,80);
@@ -161,9 +160,6 @@ namespace Evaluator {
             // Bonus for king attack by piece type
             static const i32 PieceAttackWeights[NONE];
 
-            static const i32 PinsWeight[NONE];
-
-
             const Position &pos;
 
             Pawns::Entry *pe = nullptr;
@@ -180,8 +176,6 @@ namespace Evaluator {
             Bitboard dbl_attacked[CLR_NO];
 
             Bitboard pin_attacked_queen[CLR_NO][2];
-
-            i32      pins_weight[CLR_NO];
 
             // Zone around the king which is considered by the king safety evaluation.
             // This consists of the squares directly adjacent to the king, and the three (or two, for a king on an edge file) squares two ranks in front of the king.
@@ -290,9 +284,6 @@ namespace Evaluator {
         template<bool Trace>
         const i32 Evaluation<Trace>::PieceAttackWeights[NONE] = { 0, 78, 56, 45, 11, 0 };
         
-        template<bool Trace>
-        const i32 Evaluation<Trace>::PinsWeight[NONE] = { 1, 3, 3, 5, 9, 0 };
-
         /// initialize() computes king and pawn attacks, and the king ring bitboard for the color.
         template<bool Trace>
         template<Color Own>
@@ -323,8 +314,6 @@ namespace Evaluator {
             dbl_attacked[Own]          = (  pin_attacked_by[Own][KING]
                                           | pe->dbl_attacks[Own])
                                        & pin_attacked_by[Own][PAWN];
-
-            pins_weight[Own] = pop_count (pos.abs_blockers (Own) & pos.pieces (Own, PAWN)) * PinsWeight[PAWN];
 
             for (auto pt : { NIHT, BSHP, ROOK, QUEN })
             {
@@ -392,9 +381,8 @@ namespace Evaluator {
                 if (contains (pos.abs_blockers (Own), s))
                 {
                     attacks &= strline_bb (pos.square<KING> (Own), s);
-                    pins_weight[Own] += PinsWeight[PT];
                 }
-                
+
                 if (BSHP == PT)
                 {
                     Bitboard att = attacks & ~pos.abs_blockers (Own);
@@ -426,6 +414,7 @@ namespace Evaluator {
                     dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                        & attacks;
                 }
+
                 pin_attacked_by[Own][NONE] |=
                 pin_attacked_by[Own][PT]   |= attacks;
 
@@ -616,6 +605,9 @@ namespace Evaluator {
             // Main king safety evaluation
             if (king_ring_attackers_count[Opp] + pos.count (Opp, QUEN) > 1)
             {
+                i32 king_danger = 0;
+                Bitboard unsafe_check = 0;
+
                 // Find the attacked squares which are defended only by the king in the king zone...
                 Bitboard weak_area =  pin_attacked_by[Opp][NONE]
                                    & ~dbl_attacked[Own]
@@ -623,32 +615,14 @@ namespace Evaluator {
                                       |  pin_attacked_by[Own][QUEN]
                                       | ~pin_attacked_by[Own][NONE]);
 
-                // Initialize the king danger, which will be transformed later into a score.
-                // The initial value is based on the
-                // - number and types of the enemy's attacking pieces,
-                // - number of attacked and undefended squares around our king,
-                // - quality of the pawn shelter ('mg score' value).
-                i32 king_danger =   1 * king_ring_attackers_count[Opp]*king_ring_attackers_weight[Opp]
-                                + 102 * king_zone_attacks_count[Opp]
-                                + 191 * pop_count (king_ring[Own] & weak_area)
-                                +  24 * pins_weight[Own]
-                                - 848 * (0 == pos.count (Opp, QUEN))
-                                -   9 * value / 8
-                                +  40;
-
-                Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
-                Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
-
                 // For safe enemy's checks on the safe square which are possible on next move ...
                 Bitboard safe_area = ~pos.pieces (Opp)
                                    & (  ~pin_attacked_by[Own][NONE]
                                       | (  weak_area
                                          & dbl_attacked[Opp]));
-                // ... and for some other probable potential checks, 
-                // the square to be safe from pawn-attacks and not being occupied by a blocked pawns.
-                Bitboard prob_area = ~(  pin_attacked_by[Own][PAWN]
-                                       | (  pos.pieces (Opp, PAWN)
-                                          & shift<WHITE == Own ? DEL_N : DEL_S> (pos.pieces (PAWN))));
+
+                Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
+                Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
 
                 // Enemy queens safe checks
                 b = (  rook_attack
@@ -660,42 +634,55 @@ namespace Evaluator {
                     king_danger += 780;
                 }
 
-                // Enemy rooks safe and other checks
-                b =  rook_attack
-                  &  pin_attacked_by[Opp][ROOK];
+                b = rook_attack
+                  & pin_attacked_by[Opp][ROOK];
                 if (0 != (b & safe_area))
                 {
                     king_danger += 880;
                 }
                 else
-                if (0 != (b & prob_area))
                 {
-                    score -= ProbChecked;
+                    unsafe_check |= b;
                 }
-                // Enemy bishops safe and other checks
-                b =  bshp_attack
-                  &  pin_attacked_by[Opp][BSHP];
+
+                b = bshp_attack
+                  & pin_attacked_by[Opp][BSHP];
                 if (0 != (b & safe_area))
                 {
                     king_danger += 435;
                 }
                 else
-                if (0 != (b & prob_area))
                 {
-                    score -= ProbChecked;
+                    unsafe_check |= b;
                 }
-                // Enemy knights safe and other checks
-                b =  PieceAttacks[NIHT][fk_sq]
-                  &  pin_attacked_by[Opp][NIHT];
+
+                b = PieceAttacks[NIHT][fk_sq]
+                  & pin_attacked_by[Opp][NIHT];
                 if (0 != (b & safe_area))
                 {
                     king_danger += 790;
                 }
                 else
-                if (0 != (b & prob_area))
                 {
-                    score -= ProbChecked;
+                    unsafe_check |= b;
                 }
+
+                unsafe_check &= ~(  pin_attacked_by[Own][PAWN]
+                                  | (  pos.pieces (Opp, PAWN)
+                                     & shift<WHITE == Own ? DEL_N : DEL_S> (pos.pieces (PAWN))));
+
+                // Initialize the king danger, which will be transformed later into a score.
+                // The initial value is based on the
+                // - number and types of the enemy's attacking pieces,
+                // - number of attacked and undefended squares around our king,
+                // - quality of the pawn shelter ('mg score' value).
+                king_danger +=  1 * king_ring_attackers_count[Opp]*king_ring_attackers_weight[Opp]
+                            + 102 * king_zone_attacks_count[Opp]
+                            + 191 * pop_count (king_ring[Own] & weak_area)
+                            + 143 * pop_count (pos.abs_blockers (Own) | unsafe_check)
+                            - 848 * (0 == pos.count (Opp, QUEN) ? 1 : 0)
+                            -   9 * value / 8
+                            +  40;
 
                 // Transform the king_danger into a score
                 if (king_danger > 0)
