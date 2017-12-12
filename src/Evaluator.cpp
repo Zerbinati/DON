@@ -196,12 +196,18 @@ namespace Evaluator {
             // Pieces which attack more than one square are counted multiple times.
             u08      king_zone_attacks_count[CLR_NO];
 
-            template<Color Own> void initialize ();
-            template<Color Own, PieceType PT> Score evaluate_pieces ();
-            template<Color Own> Score evaluate_king ();
-            template<Color Own> Score evaluate_threats ();
-            template<Color Own> Score evaluate_passers ();
-            template<Color Own> Score evaluate_space ();
+            template<Color Own>
+            void initialize ();
+            template<Color Own, PieceType PT>
+            Score evaluate_pieces ();
+            template<Color Own>
+            Score evaluate_king ();
+            template<Color Own>
+            Score evaluate_threats ();
+            template<Color Own>
+            Score evaluate_passers ();
+            template<Color Own>
+            Score evaluate_space ();
 
             Score evaluate_initiative (Value eg);
             Scale evaluate_scale (Value eg);
@@ -310,10 +316,13 @@ namespace Evaluator {
             }
 
             pin_attacked_by[Own][KING] = PieceAttacks[KING][pos.square<KING> (Own)];
-            ful_attacked_by[Own]       = pin_attacked_by[Own][KING] | pe->any_attacks[Own];
-            pin_attacked_by[Own][NONE] = pin_attacked_by[Own][KING] | pin_attacked_by[Own][PAWN];
-            dbl_attacked[Own]          = pe->dbl_attacks[Own]
-                                       | (pin_attacked_by[Own][KING] & pin_attacked_by[Own][PAWN]);
+            ful_attacked_by[Own]       = pin_attacked_by[Own][KING]
+                                       | pe->any_attacks[Own];
+            pin_attacked_by[Own][NONE] = pin_attacked_by[Own][KING]
+                                       | pin_attacked_by[Own][PAWN];
+            dbl_attacked[Own]          = (  pin_attacked_by[Own][KING]
+                                          | pe->dbl_attacks[Own])
+                                       & pin_attacked_by[Own][PAWN];
 
             pins_weight[Own] = pop_count (pos.abs_blockers (Own) & pos.pieces (Own, PAWN)) * PinsWeight[PAWN];
 
@@ -355,7 +364,7 @@ namespace Evaluator {
             }
         }
 
-        /// evaluate_pieces() evaluates bonuses and penalties of the pieces of the color and type
+        /// evaluate_pieces() evaluates the pieces of the color and type
         template<bool Trace>
         template<Color Own, PieceType PT>
         Score Evaluation<Trace>::evaluate_pieces ()
@@ -570,7 +579,7 @@ namespace Evaluator {
             return score;
         }
 
-        /// evaluate_king() evaluates bonuses and penalties of the king of the color
+        /// evaluate_king() evaluates the king of the color
         template<bool Trace>
         template<Color Own>
         Score Evaluation<Trace>::evaluate_king ()
@@ -1149,24 +1158,25 @@ namespace Evaluator {
             score += evaluate_passers<WHITE> ()
                   -  evaluate_passers<BLACK> ();
 
-            // Evaluate space, if in the opening phase
+            // In the opening phase
             if (pos.si->non_pawn_material () >= SpaceThreshold)
             {
+                // Evaluate space
                 score += evaluate_space<WHITE> ()
                       -  evaluate_space<BLACK> ();
             }
 
-            // Evaluate potential for the position
+            // Evaluate potential
             score += evaluate_initiative (eg_value (score));
 
             assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
             assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
             assert(0 <= me->phase && me->phase <= PhaseResolution);
 
-            // Interpolates between midgame and scaled endgame score.
-            v = Value((  mg_value (score) * (me->phase)
-                       + eg_value (score) * (PhaseResolution - me->phase) * evaluate_scale (eg_value (score)) / SCALE_NORMAL)
-                     / PhaseResolution);
+            // Interpolates between midgame and scaled endgame values.
+            v = Value(  (  mg_value (score) * (me->phase)
+                         + eg_value (score) * (PhaseResolution - me->phase) * evaluate_scale (eg_value (score)) / SCALE_NORMAL)
+                      / PhaseResolution);
 
             if (Trace)
             {

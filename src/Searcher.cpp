@@ -798,7 +798,18 @@ namespace Searcher {
             assert(MOVE_NONE == tt_move
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
-            Value tt_value = VALUE_NONE;
+            auto tt_value = tt_hit ?
+                            value_of_tt (tte->value (), ss->ply) :
+                            VALUE_NONE;
+            auto tt_depth = tt_hit ?
+                            tte->depth () :
+                            DepthNone;
+            auto tt_bound = tt_hit ?
+                            tte->bound () :
+                            BOUND_NONE;
+            auto tt_eval = tt_hit ?
+                            tte->eval () :
+                            VALUE_NONE;
 
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
@@ -809,9 +820,9 @@ namespace Searcher {
 
             if (   !PVNode
                 && tt_hit
-                && qs_depth <= tte->depth ()
-                && VALUE_NONE != (tt_value = value_of_tt (tte->value (), ss->ply)) // Only in case of TT access race
-                && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
+                && qs_depth <= tt_depth
+                && VALUE_NONE != tt_value // Only in case of TT access race
+                && BOUND_NONE != (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
                 return tt_value;
             }
@@ -828,34 +839,31 @@ namespace Searcher {
             }
             else
             {
-                Value tt_eval;
                 if (tt_hit)
                 {
                     // Never assume anything on values stored in TT.
-                    if (VALUE_NONE != tte->eval ())
+                    if (VALUE_NONE != tt_eval)
                     {
-                        ss->static_eval =
-                        tt_eval = tte->eval ();
+                        ss->static_eval = tt_eval;
                     }
                     else
                     {
-                        ss->static_eval =
-                        tt_eval = evaluate (pos);
+                        ss->static_eval = tt_eval = evaluate (pos);
                     }
 
                     // Can tt_value be used as a better position evaluation?
-                    if (   VALUE_NONE != (tt_value = value_of_tt (tte->value (), ss->ply))
-                        && BOUND_NONE != (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
+                    if (   VALUE_NONE != tt_value
+                        && BOUND_NONE != (tt_bound & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
                     {
                         tt_eval = tt_value;
                     }
                 }
                 else
                 {
-                    ss->static_eval =
-                    tt_eval = MOVE_NULL != (ss-1)->played_move ?
-                                evaluate (pos) :
-                                -(ss-1)->static_eval + Tempo*2;
+                    ss->static_eval = tt_eval =
+                        MOVE_NULL != (ss-1)->played_move ?
+                            evaluate (pos) :
+                            -(ss-1)->static_eval + Tempo*2;
                 }
 
                 if (alfa < tt_eval)
@@ -976,7 +984,6 @@ namespace Searcher {
                         // Update pv even in fail-high case
                         if (PVNode)
                         {
-                            best_move = move;
                             update_pv (ss->pv, move, (ss+1)->pv);
                         }
                         // Fail high
@@ -992,12 +999,14 @@ namespace Searcher {
                             assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
                             return value;
                         }
-                        assert(value < beta);
-
-                        // Update alfa! Always alfa < beta
-                        if (PVNode)
+                        else
                         {
-                            alfa = value;
+                            // Update alfa! Always alfa < beta
+                            if (PVNode)
+                            {
+                                alfa = value;
+                                best_move = move;
+                            }
                         }
                     }
                 }
@@ -1099,14 +1108,25 @@ namespace Searcher {
             assert(MOVE_NONE == tt_move
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
-            Value tt_value = VALUE_NONE;
+            auto tt_value = tt_hit ?
+                            value_of_tt (tte->value (), ss->ply) :
+                            VALUE_NONE;
+            auto tt_depth = tt_hit ?
+                            tte->depth () :
+                            DepthNone;
+            auto tt_bound = tt_hit ?
+                            tte->bound () :
+                            BOUND_NONE;
+            auto tt_eval = tt_hit ?
+                            tte->eval () :
+                            VALUE_NONE;
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
                 && tt_hit
-                && depth <= tte->depth ()
-                && VALUE_NONE != (tt_value = value_of_tt (tte->value (), ss->ply)) // Only in case of TT access race.
-                && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
+                && depth <= tt_depth
+                && VALUE_NONE != tt_value // Only in case of TT access race.
+                && BOUND_NONE != (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
                 // Update move sorting heuristics on tt_move.
                 if (MOVE_NONE != tt_move)
@@ -1192,34 +1212,31 @@ namespace Searcher {
             }
             else
             {
-                Value tt_eval;
                 if (tt_hit)
                 {
                     // Never assume anything on values stored in TT.
-                    if (VALUE_NONE != tte->eval ())
+                    if (VALUE_NONE != tt_eval)
                     {
-                        ss->static_eval =
-                        tt_eval = tte->eval ();
+                        ss->static_eval = tt_eval;
                     }
                     else
                     {
-                        ss->static_eval =
-                        tt_eval = evaluate (pos);
+                        ss->static_eval = tt_eval = evaluate (pos);
                     }
 
                     // Can tt_value be used as a better position evaluation?
-                    if (   VALUE_NONE != (tt_value = value_of_tt (tte->value (), ss->ply))
-                        && BOUND_NONE != (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
+                    if (   VALUE_NONE != tt_value
+                        && BOUND_NONE != (tt_bound & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
                     {
                         tt_eval = tt_value;
                     }
                 }
                 else
                 {
-                    ss->static_eval =
-                    tt_eval = MOVE_NULL != (ss-1)->played_move ?
-                                evaluate (pos) :
-                                -(ss-1)->static_eval + Tempo*2;
+                    ss->static_eval = tt_eval =
+                        MOVE_NULL != (ss-1)->played_move ?
+                            evaluate (pos) :
+                            -(ss-1)->static_eval + Tempo*2;
 
                     tte->save (key,
                                MOVE_NONE,
@@ -1367,6 +1384,12 @@ namespace Searcher {
                                && pos.legal (move) ?
                                     move :
                                     MOVE_NONE;
+                        tt_depth = tt_hit ?
+                                    tte->depth () :
+                                    DepthNone;
+                        tt_bound = tt_hit ?
+                                    tte->bound () :
+                                    BOUND_NONE;
                     }
                 }
             }
@@ -1380,16 +1403,15 @@ namespace Searcher {
                                   && tt_hit
                                   && MOVE_NONE != tt_move
                                   && MOVE_NONE == ss->excluded_move // Recursive singular search is not allowed.
-                                  && 7 < depth && depth < tte->depth () + 4
-                                  && VALUE_NONE != (tt_value = value_of_tt (tte->value (), ss->ply))
-                                  && BOUND_NONE != (tte->bound () & BOUND_LOWER);
+                                  && 7 < depth && depth < tt_depth + 4
+                                  && VALUE_NONE != tt_value
+                                  && BOUND_NONE != (tt_bound & BOUND_LOWER);
 
             bool improving = (ss-0)->static_eval >= (ss-2)->static_eval
                           || VALUE_NONE == (ss-2)->static_eval;
 
-            bool pv_exact = PVNode
-                         && tt_hit
-                         && BOUND_EXACT == tte->bound ();
+            bool exact = tt_hit
+                      && BOUND_EXACT == tt_bound;
 
             bool ttm_capture = false;
 
@@ -1583,7 +1605,7 @@ namespace Searcher {
                             reduce_depth -= 1;
                         }
                         // Decrease reduction for exact PV nodes
-                        if (pv_exact)
+                        if (exact)
                         {
                             reduce_depth -= 1;
                         }
@@ -1727,12 +1749,13 @@ namespace Searcher {
                         {
                             break;
                         }
-                        assert(value < beta);
-
-                        // Update alfa! Always alfa < beta.
-                        if (PVNode)
+                        else
                         {
-                            alfa = value;
+                            // Update alfa! Always alfa < beta.
+                            if (PVNode)
+                            {
+                                alfa = value;
+                            }
                         }
                     }
                 }

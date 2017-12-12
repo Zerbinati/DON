@@ -231,7 +231,7 @@ inline Piece Position::operator[] (Square s) const
 inline bool Position::empty  (Square s)  const
 {
     assert(_ok (s));
-    return board[s] == NO_PIECE;
+    return NO_PIECE == board[s];
 }
 
 inline Bitboard Position::pieces () const
@@ -481,8 +481,8 @@ inline void Position::move_piece (Square s1, Square s2)
 
     std::replace (squares[c][pt].begin (), squares[c][pt].end (), s1, s2);
 }
-/// do_castling() is a helper used to do/undo a castling move.
-/// This is a bit tricky, especially in Chess960.
+
+/// do_castling()
 inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
     rook_org = king_dst; // Castling is always encoded as "King captures friendly Rook"
@@ -496,7 +496,7 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     place_piece (king_dst, active, KING);
     place_piece (rook_dst, active, ROOK);
 }
-
+/// undo_castling()
 inline void Position::undo_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
     rook_org = king_dst; // Castling is always encoded as "King captures friendly Rook"

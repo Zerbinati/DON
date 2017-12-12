@@ -934,6 +934,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     if (CASTLE == mtype (m))
     {
         assert(KING == mpt
+            && R_1 == rel_rank (active, org)
+            && R_1 == rel_rank (active, dst)
             && contains (pieces (active, KING), org)
             && contains (pieces (active, ROOK), dst));
 
@@ -1043,7 +1045,9 @@ void Position::undo_move (Move m)
     else
     if (CASTLE == mtype (m))
     {
-        assert(NONE == si->capture);
+        assert(R_1 == rel_rank (active, org)
+            && R_1 == rel_rank (active, dst)
+            && NONE == si->capture);
 
         Square rook_org, rook_dst;
         undo_castling (org, dst, rook_org, rook_dst);
@@ -1334,7 +1338,8 @@ bool Position::ok () const
     const bool Fast = true;
 
     // BASIC
-    if (   (active != WHITE && active != BLACK)
+    if (   (   active != WHITE
+            && active != BLACK)
         || (   32 < count ()
             || count () != pop_count (pieces ())))
     {
