@@ -148,7 +148,7 @@ namespace BitBoard {
         Bitboard  mask;
 
     #if !defined(BM2)
-        Bitboard  multiply;
+        Bitboard  number;
         u08       shift;
     #endif
 
@@ -159,10 +159,10 @@ namespace BitBoard {
 #       if defined(BM2)
             return u16(PEXT(occ, mask));
 #       elif defined(BIT64)
-            return u16(((occ & mask) * multiply) >> shift);
+            return u16(((occ & mask) * number) >> shift);
 #       else
-            return u16((u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(multiply >> 0x00))
-                      ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(multiply >> 0x20))) >> shift);
+            return u16((u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(number >> 0x00))
+                      ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(number >> 0x20))) >> shift);
 #       endif
         }
 

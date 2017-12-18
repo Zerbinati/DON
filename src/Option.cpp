@@ -166,6 +166,17 @@ namespace UCI {
             RetainHash = bool(Options["Retain Hash"]);
         }
 
+        void on_hash_file ()
+        {
+            auto filename = string(Options["Hash File"]);
+            trim (filename);
+            if (!white_spaces (filename))
+            {
+                convert_path (filename);
+                HashFile = filename;
+            }
+        }
+
         void on_save_hash ()
         {
             string hash_fn = string(Options["Hash File"]);
@@ -203,17 +214,6 @@ namespace UCI {
             Position::DrawClockPly = u08(2 * i32(Options["Draw Move Dist"]));
         }
 
-        void on_hash_file ()
-        {
-            auto filename = string(Options["Hash File"]);
-            trim (filename);
-            if (!white_spaces (filename))
-            {
-                convert_path (filename);
-                HashFile = filename;
-            }
-        }
-
         void on_contempt_opt ()
         {
             FixedContempt = i16(i32(Options["Fixed Contempt"]));
@@ -237,7 +237,7 @@ namespace UCI {
             if (!white_spaces (filename))
             {
                 convert_path (filename);
-                OutputFile = filename;
+                BookFile = filename;
             }
         }
 

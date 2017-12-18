@@ -573,10 +573,7 @@ namespace TBSyzygy {
                 return;
             }
 
-            if (MaxLimitPiece < i32(pieces.size ()))
-            {
-                MaxLimitPiece = i32(pieces.size ());
-            }
+            MaxLimitPiece = std::max (i32(pieces.size ()), MaxLimitPiece);
 
             wdl_table.emplace_back (code);
             dtz_table.emplace_back (wdl_table.back ());
@@ -613,15 +610,15 @@ namespace TBSyzygy {
             // Because each block n stores block_length[n] + 1 values, the index i of the block
             // that contains the value at position idx is:
             //
-            //                    for (i = -1, sum = 0; sum <= idx; ++i)
-            //                        sum += block_length[i + 1] + 1;
+            //     for (i = -1, sum = 0; sum <= idx; ++i)
+            //         sum += block_length[i + 1] + 1;
             //
             // This can be slow, so we use SparseIndex[] populated with a set of SparseEntry that
             // point to known indices into block_length[]. Namely SparseIndex[k] is a SparseEntry
             // that stores the block_length[] index and the offset within that block of the value
             // with index I(k), where:
             //
-            //       I(k) = k * d->span + d->span / 2      (1)
+            //     I(k) = k * d->span + d->span / 2      (1)
 
             // First step is to get the 'k' of the I(k) nearest to our idx, using definition (1)
             u32 k = u32(idx / d->span);
@@ -632,7 +629,7 @@ namespace TBSyzygy {
 
             // Now compute the difference idx - I(k). From definition of k we know that
             //
-            //       idx = k * d->span + idx % d->span    (2)
+            //     idx = k * d->span + idx % d->span    (2)
             //
             // So from (1) and (2) we can compute idx - I(K):
             i32 diff = i32(idx % d->span - d->span / 2);

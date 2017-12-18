@@ -2367,10 +2367,10 @@ namespace Threading {
             }
         }
 
-        // When we reach the maximum depth, we can arrive here without a raise of Threads.stop.
-        // However, if we are pondering or in an infinite search, the UCI protocol states that
-        // we shouldn't print the best move before the GUI sends a "stop"/"ponderhit" command.
-        // We therefore simply wait here until the GUI sends one of those commands (which also raises Threads.stop).
+        // When reach the maximum depth, can arrive here without a raise of Threads.stop.
+        // However, if in an infinite search or pondering, shouldn't print the best move
+        // before receiving a "stop"/"ponderhit" command. Therefore simply wait here until
+        // receives one of those commands (which also raises Threads.stop).
         if (Threadpool.ponder)
         {
             Threadpool.stop_on_ponderhit = true;

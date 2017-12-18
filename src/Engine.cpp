@@ -1,6 +1,8 @@
 #include "Engine.h"
 
 #include <cstdarg>
+#include <iostream>
+#include <fstream>
 
 #include "BitBases.h"
 #include "Endgame.h"

@@ -133,7 +133,7 @@ namespace BitBoard {
                 // apply to the 64 or 32 bits word to get the index.
                 magic.mask = sliding_attacks (deltas, s)
                             // Board edges are not considered in the relevant occupancies
-                            & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
+                           & ~(((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)));
 
 #           if !defined(BM2)
                 magic.shift =
@@ -173,10 +173,10 @@ namespace BitBoard {
                 // until found the one that passes the verification test.
                 while (i < size)
                 {
-                    magic.multiply = 0;
-                    while (pop_count ((magic.mask * magic.multiply) >> 0x38) < 6)
+                    magic.number = 0;
+                    while (pop_count ((magic.mask * magic.number) >> 0x38) < 6)
                     {
-                        magic.multiply = rng.sparse_rand<Bitboard> ();
+                        magic.number = rng.sparse_rand<Bitboard> ();
                     }
 
                     // A good magic must map every possible occupancy to an index that

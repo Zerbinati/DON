@@ -20,7 +20,7 @@ namespace Material {
             { +255,   -3,    0,    0,    0,   +32 }, // N
             { +104,   +4,    0,    0,    0,     0 }, // B     Own Pieces
             {   -2,  +47, +105, -149,    0,   -26 }, // R
-            {  +24, +122, +137, -134,    0,  -185 }, // Q
+            {  +24, +117, +133, -134,    0,  -189 }, // Q
             {    0,    0,    0,    0,    0, +1667 }  // BP
         };
 
@@ -32,22 +32,18 @@ namespace Material {
             {  +63,    0,    0,    0,    0,   +9 }, // N
             {  +65,  +42,    0,    0,    0,  +59 }, // B     Own Pieces
             {  +39,  +24,  -24,    0,    0,  +46 }, // R
-            { +100,  -37, +141, +268,    0, +101 }, // Q
+            { +100,  -42, +137, +268,    0,  +97 }, // Q
             {    0,    0,    0,    0,    0,    0 }  // BP
         };
 
-        // QueenMinors[opp_minor_count] is applied when only one side has a queen.
-        // It contains a bonus/malus for the side with the queen.
-        const i32 QueenMinors[13] = { +31, -8, -15, -25, -5 };
-
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
-        Endgame<KXK>     ValueKXK    [CLR_NO] = { Endgame<KXK>     (WHITE), Endgame<KXK>     (BLACK) };
+        Endgame<KXK>     ValueKXK[CLR_NO] =     { Endgame<KXK> (WHITE)      , Endgame<KXK> (BLACK)     };
 
-        Endgame<KPKP>    ScaleKPKP   [CLR_NO] = { Endgame<KPKP>    (WHITE), Endgame<KPKP>    (BLACK) };
-        Endgame<KPsK>    ScaleKPsK   [CLR_NO] = { Endgame<KPsK>    (WHITE), Endgame<KPsK>    (BLACK) };
-        Endgame<KBPsKPs> ScaleKBPsKPs[CLR_NO] = { Endgame<KBPsKPs> (WHITE), Endgame<KBPsKPs> (BLACK) };
-        Endgame<KQKRPs>  ScaleKQKRPs [CLR_NO] = { Endgame<KQKRPs>  (WHITE), Endgame<KQKRPs>  (BLACK) };
+        Endgame<KPKP>    ScaleKPKP[CLR_NO] =    { Endgame<KPKP> (WHITE)     , Endgame<KPKP> (BLACK)    };
+        Endgame<KPsK>    ScaleKPsK[CLR_NO] =    { Endgame<KPsK> (WHITE)     , Endgame<KPsK> (BLACK)    };
+        Endgame<KBPsKPs> ScaleKBPsKPs[CLR_NO] = { Endgame<KBPsKPs> (WHITE)  , Endgame<KBPsKPs> (BLACK) };
+        Endgame<KQKRPs>  ScaleKQKRPs[CLR_NO] =  { Endgame<KQKRPs> (WHITE)   , Endgame<KQKRPs> (BLACK)  } ;
 
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
@@ -80,12 +76,6 @@ namespace Material {
             {
                 value += count[Own][KING] * OwnQuadratic[KING][KING]
                        + count[Opp][KING] * OppQuadratic[KING][KING];
-            }
-            // Special handling of Queen vs Minors
-            if (   1 == count[Own][QUEN]
-                && 0 == count[Opp][QUEN])
-            {
-                value += QueenMinors[count[Opp][NIHT] + count[Opp][BSHP]];
             }
 
             return value;
@@ -167,25 +157,6 @@ namespace Material {
             {
                 e->scale_func[c] = &ScaleKQKRPs[c];
             }
-            else
-            // Only pawns on the board
-            if (   pos.si->non_pawn_material () == VALUE_ZERO
-                && pos.pieces (PAWN) != 0)
-            {
-                switch (pos.count (~c, PAWN))
-                {
-                case 0:
-                    assert(pos.count ( c, PAWN) > 1);
-                    e->scale_func[c] = &ScaleKPsK[c];
-                    break;
-                case 1:
-                    if (pos.count ( c, PAWN) == 1)
-                    {
-                        e->scale_func[c] = &ScaleKPKP[c];
-                    }
-                    break;
-                }
-            }
 
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
@@ -193,21 +164,46 @@ namespace Material {
             if (abs (  pos.si->non_pawn_material ( c)
                      - pos.si->non_pawn_material (~c)) <= VALUE_MG_BSHP)
             {
-                switch (pos.count ( c, PAWN))
+                if (0 == pos.count ( c, PAWN))
                 {
-                case 0:
                     e->scale[c] = pos.si->non_pawn_material ( c) <  VALUE_MG_ROOK ?
                                     SCALE_DRAW :
                                     pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ?
                                         Scale(4) :
                                         Scale(14);
-                    break;
-                case 1:
+                }
+                else
+                if (1 == pos.count ( c, PAWN))
+                {
                     e->scale[c] = SCALE_ONEPAWN;
-                    break;
                 }
             }
         }
+
+        // Only pawns left
+        if (   pos.si->non_pawn_material () == VALUE_ZERO
+            && pos.pieces (PAWN) != 0)
+        {
+            if (0 == pos.pieces (BLACK, PAWN))
+            {
+                assert(pos.count (WHITE, PAWN) >= 2);
+                e->scale_func[WHITE] = &ScaleKPsK[WHITE];
+            }
+            else
+            if (0 == pos.pieces (WHITE, PAWN))
+            {
+                assert(pos.count (BLACK, PAWN) >= 2);
+                e->scale_func[BLACK] = &ScaleKPsK[BLACK];
+            }
+            else 
+            if (   1 == pos.count (WHITE, PAWN)
+                && 1 == pos.count (BLACK, PAWN))
+            {
+                e->scale_func[WHITE] = &ScaleKPKP[WHITE];
+                e->scale_func[BLACK] = &ScaleKPKP[BLACK];
+            }
+        }
+
         // Evaluate the material imbalance.
         // Use KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.

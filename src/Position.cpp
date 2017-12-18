@@ -226,7 +226,6 @@ Bitboard Position::slider_blockers (Color c, Square s, Bitboard ex_attackers, Bi
             && !more_than_one (b))
         {
             blockers |= b;
-            
             if (0 != (b & defenders))
             {
                 pinners |= sniper_sq;

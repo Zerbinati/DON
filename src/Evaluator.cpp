@@ -667,9 +667,8 @@ namespace Evaluator {
                     unsafe_check |= b;
                 }
 
-                unsafe_check &= ~(  pin_attacked_by[Own][PAWN]
-                                  | (  pos.pieces (Opp, PAWN)
-                                     & shift<WHITE == Own ? DEL_N : DEL_S> (pos.pieces (PAWN))));
+                // Unsafe check must be in mobility area.
+                unsafe_check &= mob_area[Opp];
 
                 // Initialize the king danger, which will be transformed later into a score.
                 // The initial value is based on the
@@ -684,7 +683,7 @@ namespace Evaluator {
                             -   9 * value / 8
                             +  40;
 
-                // Transform the king_danger into a score
+                // Transform the king danger into a score
                 if (king_danger > 0)
                 {
                     score -= mk_score (king_danger*king_danger / 0x1000, king_danger / 0x10);
@@ -705,7 +704,7 @@ namespace Evaluator {
               | (WHITE == Own ? b << 4 : b >> 4);
             score -= EnemyInFlank * pop_count (b);
 
-            // Penalty when our king is on a pawnless flank
+            // Penalty for king on a pawnless flank
             if (0 == (KingFlank_bb[kf] & pos.pieces (PAWN)))
             {
                 score -= PawnlessFlank;
@@ -1118,6 +1117,11 @@ namespace Evaluator {
                 return WHITE == pos.active ? +v : -v;
             }
 
+            if (Trace)
+            {
+                std::memset (Tracer::cp, 0x00, sizeof (Tracer::cp));
+            }
+
             initialize<WHITE> ();
             initialize<BLACK> ();
 
@@ -1175,25 +1179,22 @@ namespace Evaluator {
                 Tracer::write (TOTAL, score);
             }
 
-            return (WHITE == pos.active ? +v : -v) + Tempo; // Side to move point of view
+            return WHITE == pos.active ? +v : -v; // Side to move point of view
         }
     }
 
     /// evaluate() returns a static evaluation of the position from the point of view of the side to move.
     Value evaluate (const Position &pos)
     {
-        return Evaluation<false> (pos).value ();
+        return Evaluation<false> (pos).value () + Tempo;
     }
 
     /// trace_eval() returns a string (suitable for outputting to stdout) that contains
     /// the detailed descriptions and values of each evaluation term.
     string trace_eval (const Position &pos)
     {
-        std::memset (Tracer::cp, 0x00, sizeof (Tracer::cp));
-        // White's point of view
-        auto value = WHITE == pos.active ?
-                        +Evaluation<true> (pos).value () :
-                        -Evaluation<true> (pos).value ();
+        auto value = Evaluation<true> (pos).value () + Tempo;
+        value = WHITE == pos.active ? +value : -value; // White's point of view
 
         ostringstream oss;
         oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed
