@@ -169,7 +169,7 @@ namespace Polyglot {
     /// otherwise randomly chooses one, based on the move score.
     Move Book::probe_move (const Position &pos, bool pick_best)
     {
-        static PRNG pr (now ());
+        static PRNG prng (now ());
         if (!is_open ())
         {
             return MOVE_NONE;
@@ -191,12 +191,12 @@ namespace Polyglot {
         while (   *this >> pe
                && pe.key == key)
         {
-            if (MOVE_NONE == pe.move) continue; // Skip MOVE_NONE
-
-            if (max_weight < pe.weight)
+            if (MOVE_NONE == pe.move)
             {
-                max_weight = pe.weight;
+                continue;
             }
+
+            max_weight = std::max (pe.weight, max_weight);
             weight_sum += pe.weight;
 
             if (pick_best)
@@ -210,19 +210,21 @@ namespace Polyglot {
             // If a move has a very high score it has a higher probability
             // of being choosen than a move with a lower score.
             else
-            if (0 != weight_sum)
             {
-                u16 rand = pr.rand<u16> () % weight_sum;
-                if (pe.weight > rand)
+                if (0 != weight_sum)
+                {
+                    u16 rand = prng.rand<u16> () % weight_sum;
+                    if (pe.weight > rand)
+                    {
+                        move = Move(pe.move);
+                    }
+                }
+                else
+                // Note that first entry is always chosen if sum of weight = 0
+                if (MOVE_NONE == move)
                 {
                     move = Move(pe.move);
                 }
-            }
-            // Note that first entry is always chosen if not pick best and sum of weight = 0
-            else
-            if (MOVE_NONE == move)
-            {
-                move = Move(pe.move);
             }
         }
 

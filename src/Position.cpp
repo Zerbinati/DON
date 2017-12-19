@@ -19,6 +19,45 @@ using namespace Transposition;
 bool Position::Chess960 = false;
 u08  Position::DrawClockPly = 100;
 
+namespace {
+
+    /// Preloads the given address in L1/L2 cache.
+    /// This is a non-blocking function that doesn't stall
+    /// the CPU waiting for data to be loaded from memory,
+    /// which can be quite slow.
+#if defined(PREFETCH)
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
+#       include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+
+    inline void prefetch (const void *addr)
+    {
+#       if defined(__INTEL_COMPILER)
+        // This hack prevents prefetches from being optimized away by
+        // Intel compiler. Both MSVC and gcc seem not be affected by this.
+        __asm__ ("");
+#       endif
+        _mm_prefetch (reinterpret_cast<const char*> (addr), _MM_HINT_T0);
+    }
+
+#   else
+    inline void prefetch (const void *addr)
+    {
+        __builtin_prefetch (addr);
+    }
+#   endif
+#else
+    inline void prefetch (const void *)
+    {}
+#endif
+
+    inline void prefetch2 (const void *addr)
+    {
+        prefetch (addr);
+        prefetch ((const uint8_t*) addr + 64);
+    }
+}
+
 /// Position::draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
 /// It does not detect Insufficient materials and Stalemate.
 bool Position::draw (i16 pp) const

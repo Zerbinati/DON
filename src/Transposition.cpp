@@ -86,12 +86,7 @@ namespace Transposition {
     {
         mem_size = std::min (std::max (mem_size, MinHashSize), MaxHashSize);
         size_t msize = size_t(mem_size) << 20;
-        u08 hash_bit = BitBoard::scan_msq (msize / sizeof (Cluster));
-        assert(hash_bit <= MaxHashBit);
-
-        size_t new_cluster_count = size_t(1) << hash_bit;
-
-        msize = new_cluster_count * sizeof (Cluster);
+        size_t new_cluster_count = msize / sizeof (Cluster);
         if (   force
             || cluster_count != new_cluster_count)
         {
@@ -108,7 +103,7 @@ namespace Transposition {
         {
             cluster_count = new_cluster_count;
             clear ();
-            return u32(msize >> 20);
+            return mem_size;
         }
     }
     u32 Table::resize ()
@@ -141,7 +136,7 @@ namespace Transposition {
         std::memset (clusters, 0x00, sizeof (*clusters));
         for (auto *ite = clusters->entries; ite < clusters->entries + Cluster::EntryCount; ++ite)
         {
-            ite->d08 = Entry::Empty;
+            ite->d08 = DepthEmpty;
         }
         // Clear other cluster using first cluster as template
         for (auto *itc = clusters + 1; itc < clusters + cluster_count; ++itc)

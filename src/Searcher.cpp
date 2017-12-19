@@ -902,9 +902,9 @@ namespace Searcher {
             u08 move_count = 0;
             StateInfo si;
 
-            // Initialize move picker (2) for the current position.
+            // Initialize move picker (2) for the current position
             MovePicker move_picker (pos, tt_move, depth, dst_sq ((ss-1)->played_move));
-            // Loop through the moves until no moves remain or a beta cutoff occurs.
+            // Loop through the moves until no moves remain or a beta cutoff occurs
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
                 assert(pos.pseudo_legal (move)
@@ -1094,7 +1094,7 @@ namespace Searcher {
             // Step 4. Transposition table lookup
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
-            Key  key = pos.si->posi_key ^ Key(ss->excluded_move);
+            Key  key = pos.si->posi_key ^ Key(ss->excluded_move << 16);
             bool tt_hit;
             auto *tte = TT.probe (key, tt_hit);
             auto tt_move = root_node ?
@@ -1288,19 +1288,21 @@ namespace Searcher {
                     if (   !PVNode
                         //&& 0 == Limits.mate
                         && tt_eval >= beta
-                        && ss->static_eval + 36*depth - 225 >= beta)
+                        && ss->static_eval + 36*depth - 225 >= beta
+                        && (   ss->ply >= pos.thread->nmp_ply
+                            || ss->ply % 2 == pos.thread->nmp_pair))
                     {
+                        // Null move dynamic reduction based on depth and static evaluation.
+                        auto R = i16((67*depth + 823) / 256 + std::min (i32((tt_eval - beta)/VALUE_MG_PAWN), 3));
+
                         ss->played_move = MOVE_NULL;
                         ss->piece_destiny_history = &pos.thread->continuation_history[NO_PIECE][0];
 
                         pos.do_null_move (si);
 
-                        // Null move dynamic reduction based on depth and static evaluation.
-                        auto reduced_depth = i16(depth - (67*depth + 823) / 256 + std::min (i16(tt_eval - beta)/VALUE_MG_PAWN, 3));
-
-                        auto null_value = reduced_depth <= 0 ?
+                        auto null_value = depth-R <= 0 ?
                                             -quien_search<false> (pos, ss+1, -beta, -beta+1) :
-                                            -depth_search<false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node, false);
+                                            -depth_search<false> (pos, ss+1, -beta, -beta+1, depth-R, !cut_node, false);
 
                         pos.undo_null_move ();
 
@@ -1308,24 +1310,35 @@ namespace Searcher {
                         {
                             bool unproven = null_value >= +VALUE_MATE_MAX_PLY;
 
-                            // Don't do verification search at low depths.
+                            // Don't do verification search at low depths
                             if (   12 > depth
                                 && abs (beta) < +VALUE_KNOWN_WIN)
                             {
-                                // Don't return unproven wins.
+                                // Don't return unproven wins
                                 return unproven ?
                                         beta :
                                         null_value;
                             }
 
-                            // Do verification search at high depths.
-                            auto value = reduced_depth <= 0 ?
+                            // Do verification search at high depths
+
+                            R += 1;
+                            // Disable null move pruning for side to move for the first part of the remaining search tree
+                            auto nmp_ply = pos.thread->nmp_ply;
+                            auto nmp_pair = pos.thread->nmp_pair;
+                            pos.thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
+                            pos.thread->nmp_pair = ((ss->ply + 1) % 2);
+
+                            auto value = depth-R <= 0 ?
                                             quien_search<false> (pos, ss, beta-1, beta) :
-                                            depth_search<false> (pos, ss, beta-1, beta, reduced_depth, false, false);
+                                            depth_search<false> (pos, ss, beta-1, beta, depth-R, false, false);
+
+                            pos.thread->nmp_ply = nmp_ply;
+                            pos.thread->nmp_pair = nmp_pair;
 
                             if (value >= beta)
                             {
-                                // Don't return unproven wins.
+                                // Don't return unproven wins
                                 return unproven ?
                                         beta :
                                         null_value;
@@ -1344,9 +1357,9 @@ namespace Searcher {
                         auto beta_margin = std::min (beta + 200, +VALUE_INFINITE);
                         assert(_ok ((ss-1)->played_move));
 
-                        // Initialize move picker (3) for the current position.
+                        // Initialize move picker (3) for the current position
                         MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
-                        // Loop through all legal moves until no moves remain or a beta cutoff occurs.
+                        // Loop through all legal moves until no moves remain or a beta cutoff occurs
                         while (MOVE_NONE != (move = move_picker.next_move ()))
                         {
                             assert(pos.pseudo_legal (move)
@@ -1369,7 +1382,7 @@ namespace Searcher {
                         }
                     }
 
-                    // Step 10. Internal iterative deepening (IID).
+                    // Step 10. Internal iterative deepening (IID)
                     if (   MOVE_NONE == tt_move
                         && 5 < depth
                         && (   PVNode
@@ -1424,10 +1437,9 @@ namespace Searcher {
             auto counter_move = _ok ((ss-1)->played_move) ?
                                     pos.thread->counter_moves[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
                                     MOVE_NONE;
-            // Initialize move picker (1) for the current position.
+            // Initialize move picker (1) for the current position
             MovePicker move_picker (pos, tt_move, depth, piece_destiny_history, ss->killer_moves, counter_move);
-            // Step 11. Loop through moves
-            // Loop through all legal moves until no moves remain or a beta cutoff occurs.
+            // Step 11. Loop through all legal moves until no moves remain or a beta cutoff occurs
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
                 assert(pos.pseudo_legal (move)

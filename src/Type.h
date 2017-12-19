@@ -117,41 +117,7 @@ const i16 DepthQSCheck      =  0;
 const i16 DepthQSNoCheck    = -1;
 const i16 DepthQSRecapture  = -5;
 const i16 DepthNone         = -6;
-
-/// Preloads the given address in L1/L2 cache.
-/// This is a non-blocking function that doesn't stall
-/// the CPU waiting for data to be loaded from memory,
-/// which can be quite slow.
-#if defined(PREFETCH)
-#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
-#       include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
-        inline void prefetch (const void *addr)
-        {
-#       if defined(__INTEL_COMPILER)
-            // This hack prevents prefetches from being optimized away by
-            // Intel compiler. Both MSVC and gcc seem not be affected by this.
-            __asm__ ("");
-#       endif
-            _mm_prefetch (reinterpret_cast<const char*> (addr), _MM_HINT_T0);
-        }
-
-#   else
-        inline void prefetch (const void *addr)
-        {
-            __builtin_prefetch (addr);
-        }
-#   endif
-#else
-        inline void prefetch (const void *)
-        {}
-#endif
-
-        inline void prefetch2 (const void *addr)
-        {
-            prefetch (addr);
-            prefetch ((const uint8_t*) addr + 64);
-        }
+const i16 DepthEmpty        = -7;
 
 enum File : i08
 {

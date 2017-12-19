@@ -327,7 +327,8 @@ namespace Threading {
     {
         nodes = 0;
         tb_hits = 0;
-
+        nmp_ply = 0;
+        nmp_pair = -1;
         counter_moves.fill (MOVE_NONE);
         butterfly_history.fill (0);
         capture_history.fill (0);
@@ -485,6 +486,8 @@ namespace Threading {
             th->finished_depth = 0;
             th->nodes = 0;
             th->tb_hits = 0;
+            th->nmp_ply = 0;
+            th->nmp_pair = -1;
         }
         setup_states->back () = back_si;
 

@@ -88,7 +88,9 @@ namespace Threading {
 
         i16   running_depth
             , finished_depth
-            , sel_depth;
+            , sel_depth
+            , nmp_ply
+            , nmp_pair;
 
         size_t pv_index;
         

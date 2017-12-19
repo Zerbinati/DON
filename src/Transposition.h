@@ -35,7 +35,6 @@ namespace Transposition {
         friend class Table;
 
     public:
-        static const i08 Empty = DepthNone-1;
 
         // "Generation" variable distinguish transposition table entries from different searches.
         static u08 Generation;
@@ -47,7 +46,7 @@ namespace Transposition {
         i16   depth () const { return i16(d08); }
         Bound bound () const { return Bound(gb08 & 0x03); }
         u08   generation () const { return u08(gb08 & 0xFC); }
-        bool  empty () const { return d08 == Empty; }
+        bool  empty () const { return d08 == DepthEmpty; }
 
         // The worth of an entry is calculated as its depth minus 2 times its relative age.
         // Due to packed storage format for generation and its cyclic nature
@@ -128,8 +127,8 @@ namespace Transposition {
         u32 size () const { return u32((cluster_count * sizeof (Cluster)) >> 20); }
 
         /// cluster_entry() returns a pointer to the first entry of a cluster given a position.
-        /// The lower order bits of the key are used to get the index of the cluster inside the table.
-        Entry* cluster_entry (const Key key) const { return clusters[size_t(key) & cluster_mask ()].entries; }
+        /// The lower 32 order bits of the key are used to get the index of the cluster inside the table.
+        Entry* cluster_entry (const Key key) const { return clusters[(u32(key) * u64(cluster_count)) >> 32].entries; }
 
         u32 resize (u32, bool = false);
         u32 resize ();
@@ -145,16 +144,14 @@ namespace Transposition {
         void save (const std::string&) const;
         void load (const std::string&);
 
-        // Maximum bit of hash for cluster
-        static const u08 MaxHashBit = 35;
         // Minimum size of Transposition::Table (4 MB)
         static const u32 MinHashSize = 4;
-        // Maximum size of Transposition::Table (1048576 MB = 1048 GB = 1 TB)
+        // Maximum size of Transposition::Table (131072 MB = 128 GB)
         static const u32 MaxHashSize =
 #       if defined(BIT64)
-            (u64 (1) << (MaxHashBit - 20)) * sizeof (Cluster);
+            128 * 1024;
 #       else
-            2048;
+            2 * 1024;
 #       endif
 
         static const u32 BufferSize = 0x10000;
