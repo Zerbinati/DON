@@ -305,7 +305,7 @@ namespace Searcher {
 
     extern Limit Limits;
 
-    extern size_t MultiPV;
+    extern i32 MultiPV;
     //extern i32    MultiPV_cp;
 
     extern i16 FixedContempt

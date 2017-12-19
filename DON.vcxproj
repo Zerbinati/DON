@@ -616,13 +616,10 @@
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
     <ClInclude Include="src\functor.h" />
-    <ClInclude Include="src\manipulator.h" />
     <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\MemoryHandler.h" />
     <ClInclude Include="src\MoveGenerator.h" />
-    <ClInclude Include="src\noncopyable.h" />
     <ClInclude Include="src\Notation.h" />
-    <ClInclude Include="src\nullstream.h" />
     <ClInclude Include="src\Pawns.h" />
     <ClInclude Include="src\PSQT.h" />
     <ClInclude Include="src\Polyglot.h" />

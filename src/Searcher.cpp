@@ -583,7 +583,7 @@ namespace Searcher {
 
     Limit Limits;
 
-    size_t MultiPV =       1;
+    i32 MultiPV =         1;
     //i32    MultiPV_cp =    0;
 
     i16   FixedContempt = 0
@@ -2346,7 +2346,7 @@ namespace Threading {
                 // Have to play with skill handicap?
                 // In this case enable MultiPV search by skill pv size
                 // that will use behind the scenes to get a set of possible moves.
-                Threadpool.pv_limit = std::min (std::max (MultiPV, size_t(skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
+                Threadpool.pv_limit = std::min (size_t(std::max (MultiPV, skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
 
                 for (auto *th : Threadpool)
                 {

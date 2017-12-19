@@ -1,6 +1,5 @@
 #include "Polyglot.h"
 
-#include "manipulator.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
 #include "PRNG.h"
@@ -48,9 +47,7 @@ namespace Polyglot {
         , book_fn ("")
         , mode (ios_base::openmode(0))
         , size (size_t(0))
-    {
-
-    }
+    {}
     Book::Book (const string &bk_fn, ios_base::openmode m)
         : fstream (bk_fn, m|ios_base::binary)
         , book_fn (bk_fn)
@@ -269,42 +266,46 @@ namespace Polyglot {
 
     string Book::read_entries (const Position &pos)
     {
-        ostringstream oss;
-        if (is_open ())
+        if (!is_open ())
         {
-            Key key = pos.pg_key ();
-
-            auto index = find_index (key);
-
-            seekg (OFFSET(index));
-
-            Entry pe;
-            vector<Entry> pes;
-            u32 weight_sum = 0;
-            while (   *this >> pe
-                   && pe.key == key)
-            {
-                if (MOVE_NONE == pe.move)
-                {
-                    continue;
-                }
-                pes.push_back (pe);
-                weight_sum += pe.weight;
-            }
-
-            if (pes.empty ())
-            {
-                std::cerr << "ERROR: Position not found... "
-                          << std::hex << std::uppercase << key << std::nouppercase << std::dec << std::endl;
-            }
-            else
-            {
-                for_each (pes.begin (), pes.end (), [&oss, &weight_sum] (Entry e)
-                {
-                    oss << e << " prob: " << std::setfill ('0') << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0) << std::setfill (' ') << std::endl;
-                });
-            }
+            return "";
         }
+
+        ostringstream oss;
+
+        Key key = pos.pg_key ();
+
+        auto index = find_index (key);
+
+        seekg (OFFSET(index));
+
+        Entry pe;
+        vector<Entry> pes;
+        u32 weight_sum = 0;
+        while (   *this >> pe
+               && pe.key == key)
+        {
+            if (MOVE_NONE == pe.move)
+            {
+                continue;
+            }
+            pes.push_back (pe);
+            weight_sum += pe.weight;
+        }
+
+        if (pes.empty ())
+        {
+            std::cerr << "ERROR: Position not found... "
+                        << std::hex << std::uppercase << key << std::nouppercase << std::dec << std::endl;
+        }
+        else
+        {
+            for_each (pes.begin (), pes.end (), [&oss, &weight_sum] (Entry e)
+            {
+                oss << e << " prob: " << std::setfill ('0') << std::setw (6) << std::setprecision (2) << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0) << std::setfill (' ') << std::endl;
+            });
+        }
+
         return oss.str ();
     }
 }

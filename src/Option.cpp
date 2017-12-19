@@ -209,9 +209,9 @@ namespace UCI {
             Threadpool.configure (threads);
         }
 
-        void on_draw_move_dist ()
+        void on_draw_movecount ()
         {
-            Position::DrawClockPly = u08(2 * i32(Options["Draw Move Dist"]));
+            Position::DrawClockPly = 2 * u08(i32(Options["Draw MoveCount"]));
         }
 
         void on_contempt_opt ()
@@ -224,7 +224,7 @@ namespace UCI {
         void on_multipv ()
         {
             MultiPV = i32(Options["MultiPV"]);
-            //MultiPV_cp =  i32(Options["MultiPV_cp"]);
+            //MultiPV_cp = i32(Options["MultiPV_cp"]);
         }
 
         void on_book_opt ()
@@ -346,14 +346,14 @@ namespace UCI {
 
         Options["Skill Level"]        << Option (SkillManager::MaxLevel,  0, SkillManager::MaxLevel, on_skill_level);
 
-        Options["MultiPV"]            << Option (i32(MultiPV), 1, 255, on_multipv);
+        Options["MultiPV"]            << Option (MultiPV, 1, 255, on_multipv);
         //Options["MultiPV_cp"]         << Option (MultiPV_cp, 0, 1000, on_multipv);
 
         Options["Fixed Contempt"]     << Option (FixedContempt, -100, 100, on_contempt_opt);
         Options["Timed Contempt"]     << Option (ContemptTime , 0, 1000, on_contempt_opt);
         Options["Valued Contempt"]    << Option (ContemptValue, 0, 1000, on_contempt_opt);
 
-        Options["Draw Move Dist"]     << Option (Position::DrawClockPly/2, 5, 50, on_draw_move_dist);
+        Options["Draw MoveCount"]     << Option (Position::DrawClockPly/2, 5, 50, on_draw_movecount);
 
         Options["Overhead Move Time"] << Option (OverheadMoveTime, 0, 5000, on_time_opt);
         Options["Nodes Time"]         << Option (NodesTime, 0, 10000, on_time_opt);

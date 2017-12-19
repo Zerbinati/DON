@@ -10,14 +10,14 @@ namespace std {
     // Taken from boost/serialization/shared_ptr.hpp
 
     template<typename T>
-    struct unary_nullfunctor
+    struct null_unary_functor
         : public unary_function<T*, void>
     {
         void operator() (const T *) const {}
     };
 
     template<typename T>
-    struct binary_nullfunctor
+    struct null_binary_functor
         : public binary_function<T*, T*, void>
     {
         void operator() (const T *, const T *) const {}
@@ -51,16 +51,6 @@ namespace std {
     {
         bool operator() (const string &s1, const string &s2) const
         {
-            //auto itr1 = s1.begin ();
-            //auto itr2 = s2.begin ();
-            //while (itr1 != s1.end () && itr2 != s2.end ()
-            //    && toupper (*itr1) == toupper (*itr2))
-            //{
-            //    ++itr1;
-            //    ++itr2;
-            //}
-            //return (itr1 == s1.end ()) ? itr2 != s2.end () : toupper (*itr1) < toupper (*itr2);
-
             //return stricmp (s1.c_str (), s2.c_str ()) < 0;
             return lexicographical_compare (s1.begin (), s1.end (), s2.begin (), s2.end (), no_case_less);
         }

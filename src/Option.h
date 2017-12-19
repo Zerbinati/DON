@@ -73,7 +73,7 @@ namespace UCI {
         {
             for (const auto &pair : optmap)
             {
-                const Option &option = pair.second;
+                const auto &option = pair.second;
                 if (idx == option.index)
                 {
                     os  << "option name "

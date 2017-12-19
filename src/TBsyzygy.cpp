@@ -1669,6 +1669,8 @@ namespace TBSyzygy {
         }
 
         StateInfo si;
+        si.ptr = nullptr;
+
         // Probe each move
         for (auto &root_move : root_moves)
         {
@@ -1718,23 +1720,23 @@ namespace TBSyzygy {
         }
 
         // Obtain 50-move counter for the root position.
-        i32 clock_ply = nullptr != root_pos.si->ptr ?
-                        root_pos.si->ptr->clock_ply :
+        i32 clock_ply = nullptr != si.ptr ?
+                        si.ptr->clock_ply :
                         0;
         // Use 50-move counter to determine whether the root position is won, lost or drawn.
         WDLScore wdl;
         if (dtz > 0)
         {
             wdl = +dtz + clock_ply <= 100 ?
-                WDLScore::WIN :
-                WDLScore::CURSED_WIN;
+                    WDLScore::WIN :
+                    WDLScore::CURSED_WIN;
         }
         else
         if (dtz < 0)
         {
             wdl = -dtz + clock_ply <= 100 ?
-                WDLScore::LOSS :
-                WDLScore::BLESSED_LOSS;
+                    WDLScore::LOSS :
+                    WDLScore::BLESSED_LOSS;
         }
         else
         {
@@ -1771,8 +1773,7 @@ namespace TBSyzygy {
             // Probe each move
             for (const auto &root_move : root_moves)
             {
-                if (   0 < root_move.new_value
-                    && best > root_move.new_value)
+                if (0 < root_move.new_value && root_move.new_value < best)
                 {
                     best = root_move.new_value;
                 }
@@ -1783,15 +1784,14 @@ namespace TBSyzygy {
             // If the current phase has not seen repetitions, then try all moves
             // that stay safely within the 50-move budget, if there are any.
             if (   best + clock_ply <= 99
-                && !has_repeated (root_pos.si->ptr))
+                && !has_repeated (si.ptr))
             {
                 max = 99 - clock_ply;
             }
 
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
-                if (   0 < root_moves[i].new_value
-                    && max >= root_moves[i].new_value)
+                if (0 < root_moves[i].new_value && root_moves[i].new_value <= max)
                 {
                     root_moves[size++] = root_moves[i];
                 }
