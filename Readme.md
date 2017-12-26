@@ -16,12 +16,10 @@ DON supports up to 512 cores. The engine defaults to one search thread,
 so it is therefore recommended to inspect the value of the 'Threads'
 UCI parameter, to make sure it equals the # of CPU cores on your computer.
 
-DON supports up to 131072 MB or 128 GB of hash memory.
-
 DON has support for Large Memory Pages when user has permission of using it
 other-wise use Default Memory.
 
-DON has support for 32 or 64-bit CPUs, the hardware ABM/BMI instruction,
+DON has support for 32/64-bit CPUs, the hardware ABM/BMI instruction,
 big-endian machines such as Power PC, and other platforms.
 
 DON has support for Polyglot book.

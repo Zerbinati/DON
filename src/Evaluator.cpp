@@ -283,7 +283,7 @@ namespace Evaluator {
 
         template<bool Trace>
         const i32 Evaluation<Trace>::PieceAttackWeights[NONE] = { 0, 78, 56, 45, 11, 0 };
-        
+
         /// initialize() computes king and pawn attacks, and the king ring bitboard for the color.
         template<bool Trace>
         template<Color Own>
@@ -372,9 +372,9 @@ namespace Evaluator {
                 assert(pos[s] == (Own|PT));
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks = NIHT == PT ? PieceAttacks[NIHT][s] :
-                                   BSHP == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ (pos.pieces (Own, BSHP, QUEN) & ~pos.abs_blockers (Own))) :
-                                   ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces () ^ (pos.pieces (Own, ROOK, QUEN) & ~pos.abs_blockers (Own))) :
-                                   QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces () ^ (pos.pieces (Own, QUEN) & ~pos.abs_blockers (Own))) : (assert(false), 0);
+                                   BSHP == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ ((pos.pieces (QUEN) | pos.pieces (Own, BSHP)) & ~pos.abs_blockers (Own))) :
+                                   ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces () ^ ((pos.pieces (QUEN) | pos.pieces (Own, ROOK)) & ~pos.abs_blockers (Own))) :
+                                   QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces () ^ ((                    pos.pieces (Own, QUEN)) & ~pos.abs_blockers (Own))) : (assert(false), 0);
 
                 ful_attacked_by[Own] |= attacks;
 
@@ -608,14 +608,14 @@ namespace Evaluator {
                 i32 king_danger = 0;
                 Bitboard unsafe_check = 0;
 
-                // Find the attacked squares which are defended only by the king in the king zone...
+                // Attacked squares defended at most once by our queen or king
                 Bitboard weak_area =  pin_attacked_by[Opp][NONE]
                                    & ~dbl_attacked[Own]
                                    & (   pin_attacked_by[Own][KING]
                                       |  pin_attacked_by[Own][QUEN]
                                       | ~pin_attacked_by[Own][NONE]);
 
-                // For safe enemy's checks on the safe square which are possible on next move ...
+                // Safe squares where enemy's safe checks are possible on next move
                 Bitboard safe_area = ~pos.pieces (Opp)
                                    & (  ~pin_attacked_by[Own][NONE]
                                       | (  weak_area
@@ -982,7 +982,7 @@ namespace Evaluator {
         Score Evaluation<Trace>::evaluate_space ()
         {
             const auto Opp = WHITE == Own ? BLACK : WHITE;
-            
+
             // Find the safe squares for our pieces inside the area defined by SpaceMask.
             // A square is safe:
             // - if not occupied by friend pawns

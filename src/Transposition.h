@@ -128,7 +128,7 @@ namespace Transposition {
 
         /// cluster_entry() returns a pointer to the first entry of a cluster given a position.
         /// The lower 32 order bits of the key are used to get the index of the cluster inside the table.
-        Entry* cluster_entry (const Key key) const { return clusters[(u32(key) * u64(cluster_count)) >> 32].entries; }
+        Entry* cluster_entry (Key key) const { return clusters[(u32(key) * u64(cluster_count)) >> 32].entries; }
 
         u32 resize (u32, bool = false);
         u32 resize ();
@@ -137,7 +137,7 @@ namespace Transposition {
 
         void clear ();
 
-        Entry* probe (const Key, bool&) const;
+        Entry* probe (Key, bool&) const;
 
         u32 hash_full () const;
 

@@ -149,7 +149,7 @@ namespace Transposition {
     /// Table::probe() looks up the entry in the transposition table.
     /// If the position is found, it returns true and a pointer to the found entry.
     /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
-    Entry* Table::probe (const Key key, bool &tt_hit) const
+    Entry* Table::probe (Key key, bool &tt_hit) const
     {
         auto *const fte = cluster_entry (key);
         assert(nullptr != fte);

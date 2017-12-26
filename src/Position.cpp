@@ -28,9 +28,9 @@ namespace {
 #if defined(PREFETCH)
 #   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
-#       include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
-    inline void prefetch (const void *addr)
+    void prefetch (const void *addr)
     {
 #       if defined(__INTEL_COMPILER)
         // This hack prevents prefetches from being optimized away by
@@ -41,20 +41,24 @@ namespace {
     }
 
 #   else
-    inline void prefetch (const void *addr)
+
+    void prefetch (const void *addr)
     {
         __builtin_prefetch (addr);
     }
+
 #   endif
 #else
-    inline void prefetch (const void *)
+
+    void prefetch (const void *)
     {}
+
 #endif
 
     inline void prefetch2 (const void *addr)
     {
         prefetch (addr);
-        prefetch ((const uint8_t*) addr + 64);
+        prefetch ((const char*) addr + 64);
     }
 }
 
@@ -291,10 +295,10 @@ bool Position::pseudo_legal (Move m) const
     {
         return false;
     }
-    
+
     auto mpt = ptype (board[org_sq (m)]);
     assert(NONE != mpt);
-    
+
     if (NORMAL == mtype (m))
     {
         // Is not a promotion, so promotion piece must be empty.
@@ -515,7 +519,7 @@ bool Position::gives_check (Move m) const
 {
     assert(_ok (m));
     assert(contains (pieces (active), org_sq (m)));
-    
+
     if (    // Direct check ?
            contains (si->checks[ptype (board[org_sq (m)])], dst_sq (m))
             // Discovered check ?
@@ -638,7 +642,7 @@ bool Position::can_en_passant (Color c, Square ep_sq) const
     {
         return false;
     }
-    
+
     // En-passant attackers
     Bitboard attackers = pieces (c, PAWN) & PawnAttacks[~c][ep_sq];
     assert(2 >= pop_count (attackers));
@@ -802,7 +806,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             continue;
         }
     }
-    
+
     // 4. En-passant square. Ignore if no pawn capture is possible.
     si->en_passant_sq = SQ_NO;
     u08 file, rank;
@@ -876,7 +880,7 @@ Position& Position::setup (const string &code, StateInfo &nsi, Color c)
     to_lower (sides[c]);
     string fen = "8/" + sides[WHITE] + char('0' + 8 - sides[WHITE].length ()) + "/8/8/8/8/"
                       + sides[BLACK] + char('0' + 8 - sides[BLACK].length ()) + "/8 w - -";
-    
+
     setup (fen, nsi, nullptr, false);
     
     return *this;
@@ -961,8 +965,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
                 auto ep_sq = org + (dst - org) / 2;
                 if (can_en_passant (pasive, ep_sq))
                 {
-                    si->posi_key ^= RandZob.en_passant_keys[_file (ep_sq)];
                     si->en_passant_sq = ep_sq;
+                    si->posi_key ^= RandZob.en_passant_keys[_file (ep_sq)];
                 }
             }
             si->clock_ply = 0;

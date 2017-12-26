@@ -185,7 +185,7 @@ private:
     const ValMove& next_max_move ();
 
 public:
-    bool skip_quiets;
+    bool pick_quiets;
 
     MovePicker () = delete;
     MovePicker (const MovePicker&) = delete;

@@ -230,7 +230,7 @@ namespace UCI {
         void on_book_opt ()
         {
             OwnBook = bool(Options["OwnBook"]);
-            BookPickBest = bool(Options["Book Move Best"]);
+            BookPickBest = bool(Options["Book Pick Best"]);
             BookUptoMove = i16(i32(Options["Book Upto Move"]));
             auto filename = string(Options["Book File"]);
             trim (filename);

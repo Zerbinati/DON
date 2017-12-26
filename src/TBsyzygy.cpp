@@ -1720,9 +1720,7 @@ namespace TBSyzygy {
         }
 
         // Obtain 50-move counter for the root position.
-        i32 clock_ply = nullptr != si.ptr ?
-                        si.ptr->clock_ply :
-                        0;
+        i32 clock_ply = nullptr != si.ptr ? si.ptr->clock_ply : 0;
         // Use 50-move counter to determine whether the root position is won, lost or drawn.
         WDLScore wdl;
         if (dtz > 0)

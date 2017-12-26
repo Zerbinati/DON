@@ -127,7 +127,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     , recap_sq (SQ_NO)
     , piece_destiny_history (pdh)
     , killers_moves (km, km + MaxKillers)
-    , skip_quiets (false)
+    , pick_quiets (true)
 {
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
@@ -176,7 +176,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     , threshold (VALUE_ZERO)
     , recap_sq (SQ_NO)
     , piece_destiny_history (nullptr)
-    , skip_quiets (false)
+    , pick_quiets (true)
 {
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
@@ -201,6 +201,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     {
         stage = Stage::QS_RECAPTURE_TT;
         recap_sq = rs;
+        tt_move = MOVE_NONE;
     }
 
     if (MOVE_NONE == tt_move)
@@ -215,7 +216,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     , threshold (thr)
     , recap_sq (SQ_NO)
     , piece_destiny_history (nullptr)
-    , skip_quiets (false)
+    , pick_quiets (true)
 {
     assert(0 == pos.si->checkers);
     assert(MOVE_NONE == tt_move
@@ -223,7 +224,6 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
          && pos.legal (tt_move)));
 
     stage = Stage::PROBCUT_CAPTURE_TT;
-    // In ProbCut we generate captures with SEE greater than or equal to the given threshold
     if (   MOVE_NONE != tt_move
         && !(   pos.capture (tt_move)
              && pos.see_ge (tt_move, threshold)))
@@ -376,7 +376,7 @@ Move MovePicker::next_move ()
         {
             auto beg = moves.begin () + i;
             auto max = std::max_element (beg, moves.end ());
-            if (   !skip_quiets
+            if (   pick_quiets
                 || max->value >= 0)
             {
                 if (max->value >= threshold)
@@ -401,8 +401,8 @@ Move MovePicker::next_move ()
         i = 0;
         goto START;
     case Stage::QUIETS_2:
-        if (   i < moves.size ()
-            && !skip_quiets)
+        if (   pick_quiets
+            && i < moves.size ())
         {
             return moves[i++].move;
         }
@@ -464,6 +464,7 @@ Move MovePicker::next_move ()
         while (i < moves.size ())
         {
             auto move = next_max_move ().move;
+            // In ProbCut captures with SEE greater than or equal to the given threshold
             if (pos.see_ge (move, threshold))
             {
                 return move;
@@ -545,14 +546,14 @@ Move MovePicker::next_move ()
     case Stage::QS_RECAPTURE_INIT:
         generate<GenType::CAPTURE> (moves, pos);
         filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
-        {
-            auto itr = std::find (moves.begin (), moves.end (), tt_move);
-            if (itr != moves.end ())
-            {
-                moves.erase (itr);
-            }
-        }
+        //if (MOVE_NONE != tt_move)
+        //{
+        //    auto itr = std::find (moves.begin (), moves.end (), tt_move);
+        //    if (itr != moves.end ())
+        //    {
+        //        moves.erase (itr);
+        //    }
+        //}
         if (1 < moves.size ())
         {
             value<GenType::CAPTURE> ();
@@ -690,7 +691,6 @@ namespace Searcher {
         string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
         {
             auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), 1ULL);
-            
             const auto &root_moves = th->root_moves;
 
             auto total_nodes = Threadpool.nodes ();
@@ -1011,7 +1011,7 @@ namespace Searcher {
                     }
                 }
             }
-            
+
             tte->save (key,
                        best_move,
                        value_to_tt (best_value, ss->ply),
@@ -1543,7 +1543,7 @@ namespace Searcher {
                         // Move count based pruning.
                         if (move_count_pruning)
                         {
-                            move_picker.skip_quiets = true;
+                            move_picker.pick_quiets = false;
                             continue;
                         }
 

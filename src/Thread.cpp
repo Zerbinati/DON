@@ -121,8 +121,6 @@ namespace Threading {
     namespace { 
 
         /// bind_thread() set the group affinity for the thread index.
-        void bind_thread (size_t index);
-
     #if defined(_WIN32)
         
         /// The needed Windows API for processor groups could be missed from old Windows versions,
@@ -262,9 +260,12 @@ namespace Threading {
                 SetThreadGroupAffinity (GetCurrentThread (), &affinity, nullptr);
             }
         }
+
     #else
-        void bind_thread (size_t index)
+
+        void bind_thread (size_t)
         {}
+
     #endif
 
     }
