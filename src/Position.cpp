@@ -470,8 +470,8 @@ bool Position::legal (Move m) const
             return 0 == attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m));
         }
         // A non-king move is legal if and only if
-        // it is not pinned or
-        // it is moving along the ray towards or away from the king
+        // - not pinned
+        // - moving along the ray from the king
         return !contains (abs_blockers (active), org_sq (m))
             || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
     }
@@ -480,8 +480,8 @@ bool Position::legal (Move m) const
     {
         assert(contains (pieces (PAWN), org_sq (m)));
         // A non-king move is legal if and only if
-        // it is not pinned or
-        // it is moving along the ray towards or away from the king
+        // - not pinned
+        // - moving along the ray from the king
         return !contains (abs_blockers (active), org_sq (m))
             || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
     }
@@ -836,7 +836,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         // Rule 50 draw case.
         assert(clock_ply <= 100);
 
-        // Handle common problem move-num = 0.
+        // Handle common problem Fullmove number = 0.
         if (moves <= 0)
         {
             moves = 1;
@@ -912,6 +912,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     auto cap = ENPASSANT != mtype (m) ?
                 dst :
                 dst - pawn_push (active);
+    ++ply;
     ++si->clock_ply;
     ++si->null_ply;
 
@@ -1049,12 +1050,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     assert(0 == attackers_to (square<KING> (active), pasive));
 
-    // Calculate checkers bitboard (if move is check).
+    // Calculate checkers.
     si->checkers = is_check ? attackers_to (square<KING> (pasive), active) : 0;
     assert(!is_check
         || 0 != si->checkers);
-
-    ++ply;
 
     // Switch sides.
     active = pasive;
@@ -1136,8 +1135,8 @@ void Position::undo_move (Move m)
 // It flips the side to move without executing any move on the board.
 void Position::do_null_move (StateInfo &nsi)
 {
-    assert(&nsi != si);
-    assert(0 == si->checkers);
+    assert(&nsi != si
+        && 0 == si->checkers);
 
     std::memcpy (&nsi, si, sizeof (nsi));
     nsi.ptr = si;
@@ -1153,8 +1152,8 @@ void Position::do_null_move (StateInfo &nsi)
     si->capture = NONE;
     assert(0 == si->checkers);
 
-    active = ~active;
     si->posi_key ^= RandZob.color_key;
+    active = ~active;
 
     prefetch (TT.cluster_entry (si->posi_key));
 
@@ -1165,9 +1164,9 @@ void Position::do_null_move (StateInfo &nsi)
 /// Position::undo_null_move() unmakes a 'null move'.
 void Position::undo_null_move ()
 {
-    assert(nullptr != si->ptr);
-    assert(NONE == si->capture);
-    assert(0 == si->checkers);
+    assert(nullptr != si->ptr
+        && NONE == si->capture
+        && 0 == si->checkers);
 
     active = ~active;
     si = si->ptr;

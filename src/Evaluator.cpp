@@ -86,9 +86,9 @@ namespace Evaluator {
         #define S(mg, eg) mk_score (mg, eg)
 
             // Bonus for knight behind a pawn
-            static const Score KnightBehindPawn =   S(21, 3);
+            static const Score KnightBehindPawn =   S(16, 0);
             // Bonus for bishop behind a pawn
-            static const Score BishopBehindPawn =   S(16, 4);
+            static const Score BishopBehindPawn =   S(16, 0);
             // Bonus for bishop long range
             static const Score BishopOnDiagonal =   S(22, 0);
             // Penalty for bishop with pawns on same color

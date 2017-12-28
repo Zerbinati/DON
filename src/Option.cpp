@@ -179,27 +179,17 @@ namespace UCI {
 
         void on_save_hash ()
         {
-            string hash_fn = string(Options["Hash File"]);
-            trim (hash_fn);
-            if (!white_spaces (hash_fn))
-            {
-                convert_path (hash_fn);
-                TT.save (hash_fn);
-            }
+            on_hash_file ();
+            TT.save (HashFile);
         }
 
         void on_load_hash ()
         {
-            string hash_fn = string(Options["Hash File"]);
-            trim (hash_fn);
-            if (!white_spaces (hash_fn))
-            {
-                convert_path (hash_fn);
-                TT.load (hash_fn);
-            }
+            on_hash_file ();
+            TT.load (HashFile);
         }
 
-        void on_thread_count ()
+        void on_threads ()
         {
             auto threads = i32(Options["Threads"]);
             if (0 == threads)
@@ -342,7 +332,7 @@ namespace UCI {
         Options["Book Pick Best"]     << Option (BookPickBest, on_book_opt);
         Options["Book Upto Move"]     << Option (BookUptoMove, 0, 50, on_book_opt);
 
-        Options["Threads"]            << Option ( 1, 0, 512, on_thread_count);
+        Options["Threads"]            << Option ( 1, 0, 512, on_threads);
 
         Options["Skill Level"]        << Option (SkillManager::MaxLevel,  0, SkillManager::MaxLevel, on_skill_level);
 

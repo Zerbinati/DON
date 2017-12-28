@@ -221,16 +221,6 @@ namespace Threading {
 
         void bind_thread (size_t index)
         {
-            // If OS already scheduled us on a different group than 0 then don't overwrite
-            // the choice, eventually we are one of many one-threaded processes running on
-            // some Windows NUMA hardware, for instance in fishtest.
-            // To make it simple, just check if running threads are below a threshold,
-            // in this case all this NUMA machinery is not needed.
-            if (Threadpool.size () < 8)
-            {
-                return;
-            }
-
             // Use only local variables to be thread-safe
             auto group = get_group (index);
             if (-1 == group)
@@ -277,7 +267,6 @@ namespace Threading {
         , std_thread (&Thread::idle_loop, this)
     {
         wait_while_busy ();
-        clear (); // Init
     }
     /// Thread destructor wakes up the thread in idle_loop() and
     /// waits for its termination.
@@ -306,7 +295,15 @@ namespace Threading {
     /// Blocked on the condition variable, when it has no work to do.
     void Thread::idle_loop ()
     {
-        bind_thread (index);
+        // If OS already scheduled us on a different group than 0 then don't overwrite
+        // the choice, eventually we are one of many one-threaded processes running on
+        // some Windows NUMA hardware, for instance in fishtest. To make it simple,
+        // just check if running threads are below a threshold, in this case all this
+        // NUMA machinery is not needed.
+        if (i32(Options["Threads"]) >= 8)
+        {
+            bind_thread (index);
+        }
 
         while (true)
         {
@@ -361,10 +358,10 @@ namespace Threading {
     void MainThread::clear ()
     {
         Thread::clear();
-        if (Limits.use_time_management ())
-        {
-            last_value = VALUE_NONE;
-        }
+
+        time_mgr.available_nodes = 0;
+        last_value = VALUE_NONE;
+        last_time_reduction = 1.0;
     }
 
     /// ThreadPool::best_thread()
@@ -391,16 +388,31 @@ namespace Threading {
         }
     }
     /// ThreadPool::configure() creates/destroys threads to match the requested number.
+    /// Created and launced threads wil go immediately to sleep in idle_loop.
+    /// Upon resizing, threads are recreated to allow for binding if necessary.
     void ThreadPool::configure (u32 threads)
     {
-        while (size () < threads)
+        // Destroy any existing thread(s)
+        if (size () > 0)
         {
-            push_back (new Thread (size ()));
+            main_thread ()->wait_while_busy ();
+            while (size () > 0)
+            {
+                delete back ();
+                pop_back ();
+            }
         }
-        while (size () > threads)
+        assert(0 == size ());
+        // Create new thread(s)
+        if (threads > 0)
         {
-            delete back ();
-            pop_back (); // Get rid of stale pointer
+            push_back (new MainThread (size ()));
+            while (size () < threads)
+            {
+                push_back (new Thread (size ()));
+            }
+            
+            clear ();
         }
         sync_cout << "info string Thread(s) used " << threads << sync_endl;
     }
@@ -507,20 +519,6 @@ namespace Threading {
         {
             stop = true;
         }
-    }
-    /// ThreadPool::initialize() creates and launches requested threads, that will go immediately to sleep.
-    /// Cannot use a constructor because threadpool is a static object and require a fully initialized engine (due to allocation of Tables in the Thread).
-    void ThreadPool::initialize (u32 threads)
-    {
-        push_back (new MainThread (0));
-        configure (threads);
-    }
-    /// ThreadPool::deinitialize() cleanly terminates the threads before the program exits.
-    /// Cannot use a destructor because threads must be terminated before deleting any static objects.
-    void ThreadPool::deinitialize ()
-    {
-        main_thread ()->wait_while_busy ();
-        configure (0);
     }
 
 }

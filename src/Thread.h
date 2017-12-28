@@ -194,10 +194,6 @@ namespace Threading {
         void start_thinking (Position&, StateListPtr&, const Limit&, const std::vector<Move>&, bool = false);
         void stop_thinking ();
 
-        // No constructor and destructor, threads rely on globals that should
-        // be initialized and valid during the whole thread lifetime.
-        void initialize (u32);
-        void deinitialize ();
     };
 
 }

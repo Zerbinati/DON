@@ -530,11 +530,7 @@ public:
     Move move;
     i32  value;
     
-    ValMove ()
-        : move (MOVE_NONE)
-        , value (0)
-    {}
-    explicit ValMove (Move m)
+    explicit ValMove (Move m = MOVE_NONE)
         : move (m)
         , value (0)
     {}

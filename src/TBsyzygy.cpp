@@ -38,8 +38,8 @@ namespace TBSyzygy {
     using namespace Threading;
     using namespace Searcher;
 
-    string  PathString = Empty;
-    i32     MaxLimitPiece = 0;
+    string PathString = Empty;
+    i32    MaxLimitPiece = 0;
 
     namespace {
 
@@ -1457,7 +1457,7 @@ namespace TBSyzygy {
                     return WDLScore::DRAW;
                 }
 
-                if (wdl > best_wdl)
+                if (best_wdl < wdl)
                 {
                     best_wdl = wdl;
 
@@ -1593,7 +1593,7 @@ namespace TBSyzygy {
         // DTZ stores results for the other side, so we need to do a 1-ply search and
         // find the winning move that minimizes DTZ.
         StateInfo si;
-        i32 minDTZ = 0xFFFF;
+        i32 min_dtz = 0xFFFF;
 
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {
@@ -1607,8 +1607,8 @@ namespace TBSyzygy {
             // position after the move to get the score sign (because even in a
             // winning position we could make a losing capture or going for a draw).
             dtz = zeroing ?
-                -dtz_before_zeroing (search (pos, state, false)) :
-                -probe_dtz (pos, state);
+                    -dtz_before_zeroing (search (pos, state, false)) :
+                    -probe_dtz (pos, state);
 
             pos.undo_move (vm.move);
 
@@ -1625,17 +1625,16 @@ namespace TBSyzygy {
             }
 
             // Skip the draws and if we are winning only pick positive dtz
-            if (   minDTZ > dtz
-                && sign (dtz) == sign (wdl))
+            if (sign (dtz) == sign (wdl))
             {
-                minDTZ = dtz;
+                min_dtz = std::min (dtz, min_dtz);
             }
         }
 
         // Special handle a mate position, when there are no legal moves, in this
         // case return value is somewhat arbitrary, so stick to the original TB code
         // that returns -1 in this case.
-        return minDTZ == 0xFFFF ? -1 : minDTZ;
+        return min_dtz == 0xFFFF ? -1 : min_dtz;
     }
 
     /// Probe the WDL table for a particular position.

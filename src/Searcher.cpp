@@ -1497,6 +1497,7 @@ namespace Searcher {
 
                 // Check extension (CE)
                 if (   gives_check
+                    && !move_count_pruning
                     && pos.see_ge (move))
                 {
                     extension = 1;
@@ -1906,13 +1907,10 @@ namespace Searcher {
     {
         Threadpool.stop = true;
         Threadpool.main_thread ()->wait_while_busy ();
-        Threadpool.main_thread ()->time_mgr.available_nodes = 0;
-        Threadpool.main_thread ()->last_value = VALUE_NONE;
-        Threadpool.main_thread ()->last_time_reduction = 1.0;
+        Threadpool.clear ();
         if (!RetainHash)
         {
             TT.clear ();
-            Threadpool.clear ();
         }
     }
 

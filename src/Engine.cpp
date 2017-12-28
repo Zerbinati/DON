@@ -472,12 +472,10 @@ namespace Engine {
                 else
                 if (token == "uci")
                 {
-                    sync_cout
-                        << "id name " << Name << " " << info () << "\n"
-                        << "id author " << Author << "\n"
-                        << Options
-                        << "uciok"
-                        << sync_endl;
+                    sync_cout << "id name " << Name << " " << info () << "\n"
+                              << "id author " << Author << "\n"
+                              << Options
+                              << "uciok" << sync_endl;
                 }
                 else
                 if (token == "ucinewgame")
@@ -531,15 +529,13 @@ namespace Engine {
                     else
                     if (token == "keys")
                     {
-                        sync_cout
-                            << std::hex << std::uppercase << std::setfill ('0')
-                            << "FEN: "                        << pos.fen ()       << "\n"
-                            << "Posi key: " << std::setw (16) << pos.si->posi_key << "\n"
-                            << "Matl key: " << std::setw (16) << pos.si->matl_key << "\n"
-                            << "Pawn key: " << std::setw (16) << pos.si->pawn_key << "\n"
-                            << "PG key: " << std::setw (16) << pos.pg_key ()
-                            << std::setfill (' ') << std::nouppercase << std::dec
-                            << sync_endl;
+                        sync_cout << std::hex << std::uppercase << std::setfill ('0')
+                                  << "FEN: "                        << pos.fen ()       << "\n"
+                                  << "Posi key: " << std::setw (16) << pos.si->posi_key << "\n"
+                                  << "Matl key: " << std::setw (16) << pos.si->matl_key << "\n"
+                                  << "Pawn key: " << std::setw (16) << pos.si->pawn_key << "\n"
+                                  << "PG key: " << std::setw (16) << pos.pg_key ()
+                                  << std::setfill (' ') << std::nouppercase << std::dec << sync_endl;
                     }
                     else
                     if (token == "moves")
@@ -704,7 +700,7 @@ namespace Engine {
         Pawns::initialize ();
         EndGame::initialize ();
         TT.auto_resize (i32(Options["Hash"]), true);
-        Threadpool.initialize (i32(Options["Threads"]));
+        Threadpool.configure (i32(Options["Threads"]));
         Searcher::initialize ();
         TBSyzygy::initialize ();
 
@@ -717,7 +713,7 @@ namespace Engine {
     void stop (i32 code)
     {
         Threadpool.stop = true;
-        Threadpool.deinitialize ();
+        Threadpool.configure (0);
         EndGame::deinitialize ();
         UCI::deinitialize ();
 #if defined(LPAGES)

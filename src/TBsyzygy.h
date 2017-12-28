@@ -26,8 +26,8 @@ namespace TBSyzygy {
         ZEROING_BEST_MOVE = +2  // Best move zeroes DTZ (capture or pawn move)
     };
 
-    extern std::string  PathString;
-    extern i32          MaxLimitPiece;
+    extern std::string PathString;
+    extern i32         MaxLimitPiece;
 
     extern i32      probe_dtz (Position&, ProbeState&);
     extern WDLScore probe_wdl (Position&, ProbeState&);

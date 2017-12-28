@@ -298,7 +298,7 @@ namespace Polyglot {
         if (pes.empty ())
         {
             std::cerr << "ERROR: Position not found... "
-                        << std::hex << std::uppercase << key << std::nouppercase << std::dec << std::endl;
+                      << std::hex << std::uppercase << key << std::nouppercase << std::dec << std::endl;
         }
         else
         {
