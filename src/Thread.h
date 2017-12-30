@@ -13,6 +13,7 @@
 #include "Type.h"
 
 extern u16  OverheadMoveTime;
+extern double MoveSlowness;
 extern u16  NodesTime;
 extern bool Ponder;
 
@@ -133,8 +134,6 @@ namespace Threading {
         double best_move_change;
 
         Value  last_value;
-        Move   last_best_move;
-        i16    last_best_move_depth;
         double last_time_reduction;
 
         TimeManager  time_mgr;

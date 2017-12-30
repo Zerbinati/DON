@@ -10,6 +10,7 @@ using namespace Searcher;
 using namespace TBSyzygy;
 
 u16  OverheadMoveTime = 100;// Attempt to keep at least this much time for each remaining move, in milli-seconds.
+double MoveSlowness = 1.0; // Move Slowness, in %age.
 u16  NodesTime = 0;         // 'Nodes as Time' mode.
 bool Ponder = true;         // Whether or not the engine should analyze when it is the opponent's turn.
 
@@ -29,7 +30,7 @@ namespace {
                      // quadratic function with the maximum around move 25 
                    * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0);
         // Ratio of time
-        double ratio = std::min (0 == Limits.movestogo ?
+        double ratio = std::min ((0 == Limits.movestogo ?
                                       // y+z
                                       (optimum ? 0.017 : 0.07)
                                     * ((1 + 0.04 * move_num / (1 + 0.002 * move_num)) + inc / Limits.clock[c].time) :
@@ -42,7 +43,8 @@ namespace {
                                                     1.5)
                                                 / std::min (Limits.movestogo, u08(50)),
                                                 1 < Limits.movestogo ? 0.75 : 1.5)
-                                    * (1 + inc / (Limits.clock[c].time * 8.5)),
+                                    * (1 + inc / (Limits.clock[c].time * 8.5)))
+                                 * MoveSlowness,
                                  1.0);
         if (   Ponder
             && optimum)
@@ -350,8 +352,6 @@ namespace Threading {
         , failed_low (false)
         , best_move_change (0.0)
         , last_value (VALUE_NONE)
-        , last_best_move (MOVE_NONE)
-        , last_best_move_depth (0)
         , last_time_reduction (1.0)
     {}
     /// MainThread::clear()

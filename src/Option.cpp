@@ -239,6 +239,7 @@ namespace UCI {
         void on_time_opt ()
         {
             OverheadMoveTime = u16(i32(Options["Overhead Move Time"]));
+            MoveSlowness = i32(Options["Move Slowness"])/100.0;
             NodesTime = u16(i32(Options["Nodes Time"]));
             Ponder = bool(Options["Ponder"]);
         }
@@ -269,11 +270,8 @@ namespace UCI {
         {
             auto filename = string(Options["SyzygyPath"]);
             trim (filename);
-            if (!white_spaces (filename))
-            {
-                PathString = filename;
-                TBSyzygy::initialize ();
-            }
+            PathString = filename;
+            TBSyzygy::initialize ();
         }
 
         void on_uci_chess960 ()
@@ -346,6 +344,7 @@ namespace UCI {
         Options["Draw MoveCount"]     << Option (Position::DrawClockPly/2, 5, 50, on_draw_movecount);
 
         Options["Overhead Move Time"] << Option (OverheadMoveTime, 0, 5000, on_time_opt);
+        Options["Move Slowness"]      << Option (i32(MoveSlowness*100), 10, 1000, on_time_opt);
         Options["Nodes Time"]         << Option (NodesTime, 0, 10000, on_time_opt);
         Options["Ponder"]             << Option (Ponder, on_time_opt);
 

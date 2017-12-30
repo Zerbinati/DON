@@ -2006,6 +2006,8 @@ namespace Threading {
                             Threadpool.main_thread () :
                             nullptr;
 
+        auto last_best_move = MOVE_NONE;
+        i16  last_best_move_depth = 0;
         auto best_value = VALUE_ZERO
            , window = VALUE_ZERO
            , alfa = -VALUE_INFINITE
@@ -2106,7 +2108,8 @@ namespace Threading {
                     }
                     else
                     // If fail high set new bounds.
-                    if (beta <= best_value)
+                    if (   beta <= best_value
+                        && last_best_move != root_moves[0][0])
                     {
                         // NOTE:: Don't change alfa = (alfa + beta) / 2;
                         beta = std::min (best_value + window, +VALUE_INFINITE);
@@ -2138,6 +2141,12 @@ namespace Threading {
             {
                 finished_depth = running_depth;
             }
+            
+            if (last_best_move != root_moves[0][0])
+            {
+                last_best_move = root_moves[0][0];
+                last_best_move_depth = running_depth;
+            }
 
             // Has any of the threads found a "mate in <x>"?
             if (   !Threadpool.stop
@@ -2165,12 +2174,6 @@ namespace Threading {
                     if (   !Threadpool.stop
                         && !Threadpool.stop_on_ponderhit)
                     {
-                        if (main_thread->last_best_move != root_move[0])
-                        {
-                            main_thread->last_best_move = root_move[0];
-                            main_thread->last_best_move_depth = running_depth;
-                        }
-
                         bool hard_think = VALUE_DRAW == best_value
                                        && (  Limits.clock[ root_pos.active].time
                                            - Limits.clock[~root_pos.active].time) > main_thread->time_mgr.elapsed_time ()
@@ -2184,7 +2187,7 @@ namespace Threading {
                         {
                             for (auto i : { 3, 4, 5 })
                             {
-                                if (main_thread->last_best_move_depth * i < finished_depth)
+                                if (last_best_move_depth * i < finished_depth)
                                 {
                                     time_reduction *= 1.3;
                                 }
@@ -2205,7 +2208,7 @@ namespace Threading {
                                   std::max (229,
                                             357
                                           + 119 * (main_thread->failed_low ? 1 : 0)
-                                          -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 628)))
+                                          -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 600)))
                         {
                             Threadpool.stop_thinking ();
                         }
@@ -2344,8 +2347,6 @@ namespace Threading {
                 {
                     failed_low = false;
                     best_move_change = 0.0;
-                    last_best_move = MOVE_NONE;
-                    last_best_move_depth = 0;
                 }
 
                 if (skill_mgr.enabled ())
