@@ -252,6 +252,7 @@ namespace Polyglot {
         // Set new type for promotion piece
         if (0 != pt)
         {
+            assert(NIHT <= pt && pt <= QUEN);
             promote (move, PieceType(pt));
         }
         // Add special move flags and verify it is legal

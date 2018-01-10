@@ -247,10 +247,10 @@ public:
 
     bool operator<  (const RootMove &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value >  rm.old_value; }
     bool operator>  (const RootMove &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value <  rm.old_value; }
-    bool operator<= (const RootMove &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value >= rm.old_value; }
-    bool operator>= (const RootMove &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value <= rm.old_value; }
-    bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
-    bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
+    //bool operator<= (const RootMove &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value >= rm.old_value; }
+    //bool operator>= (const RootMove &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value <= rm.old_value; }
+    //bool operator== (const RootMove &rm) const { return front () == rm.front (); }
+    //bool operator!= (const RootMove &rm) const { return front () != rm.front (); }
 
     bool operator== (Move m) const { return front () == m; }
     bool operator!= (Move m) const { return front () != m; }
@@ -306,7 +306,7 @@ namespace Searcher {
     extern Limit Limits;
 
     extern i32 MultiPV;
-    //extern i32    MultiPV_cp;
+    //extern i32 MultiPV_cp;
 
     extern i16 FixedContempt
         ,      ContemptTime 

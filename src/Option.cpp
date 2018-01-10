@@ -83,12 +83,13 @@ namespace UCI {
 
         if (type != "button")
         {
-            if (value.empty ())
-            {
-                return *this;
-            }
+            //if (value.empty ())
+            //{
+            //    return *this;
+            //}
 
             auto val = value;
+
             if (type == "check")
             {
                 to_lower (val);
@@ -102,6 +103,14 @@ namespace UCI {
             if (type == "spin")
             {
                 val = std::to_string (std::min (std::max (stoi (val), minimum), maximum));
+            }
+            else
+            if (type == "string")
+            {
+                if (white_spaces (val))
+                {
+                    val = Empty;
+                }
             }
 
             current_value = val;
@@ -130,6 +139,7 @@ namespace UCI {
         if (type != "button")
         {
             oss << " default " << default_value;
+            
             if (type == "spin")
             {
                 oss << " min " << minimum << " max " << maximum;
@@ -170,23 +180,26 @@ namespace UCI {
         {
             auto filename = string(Options["Hash File"]);
             trim (filename);
-            if (!white_spaces (filename))
-            {
-                convert_path (filename);
-                HashFile = filename;
-            }
+            convert_path (filename);
+            HashFile = filename;
         }
 
         void on_save_hash ()
         {
             on_hash_file ();
-            TT.save (HashFile);
+            if (!white_spaces (HashFile))
+            {
+                TT.save (HashFile);
+            }
         }
 
         void on_load_hash ()
         {
             on_hash_file ();
-            TT.load (HashFile);
+            if (!white_spaces (HashFile))
+            {
+                TT.load (HashFile);
+            }
         }
 
         void on_threads ()
@@ -224,11 +237,8 @@ namespace UCI {
             BookUptoMove = i16(i32(Options["Book Upto Move"]));
             auto filename = string(Options["Book File"]);
             trim (filename);
-            if (!white_spaces (filename))
-            {
-                convert_path (filename);
-                BookFile = filename;
-            }
+            convert_path (filename);
+            BookFile = filename;
         }
 
         void on_skill_level ()
@@ -248,22 +258,16 @@ namespace UCI {
         {
             auto filename = string(Options["Debug File"]);
             trim (filename);
-            if (!white_spaces (filename))
-            {
-                convert_path (filename);
-                Logger::log (filename);
-            }
+            convert_path (filename);
+            Logger::log (filename);
         }
 
         void on_output_file ()
         {
             auto filename = string(Options["Output File"]);
             trim (filename);
-            if (!white_spaces (filename))
-            {
-                convert_path (filename);
-                OutputFile = filename;
-            }
+            convert_path (filename);
+            OutputFile = filename;
         }
 
         void on_syzygy_path ()

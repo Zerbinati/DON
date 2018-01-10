@@ -523,7 +523,7 @@ namespace Engine {
                     else
                     if (token == "eval")
                     {
-                        sync_cout << trace_eval (pos) << sync_endl;
+                        sync_cout << trace (pos) << sync_endl;
                     }
                     // Print the root fen and keys
                     else

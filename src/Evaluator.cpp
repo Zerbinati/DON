@@ -75,8 +75,7 @@ namespace Evaluator {
 
         using namespace Tracer;
 
-        // Evaluation class contains various information computed and collected
-        // by the evaluation functions.
+        // Evaluation class contains various evaluation functions.
         template<bool Trace>
         class Evaluation
         {
@@ -112,7 +111,6 @@ namespace Evaluator {
             static const Score PieceHanged =        S(48,27);
 
             static const Score SafePawnThreat =     S(192,175);
-            static const Score HangPawnThreat =     S(71,61);
 
             static const Score PawnPushThreat =     S(38,22);
 
@@ -307,6 +305,7 @@ namespace Evaluator {
             }
 
             pin_attacked_by[Own][KING] = PieceAttacks[KING][pos.square<KING> (Own)];
+
             ful_attacked_by[Own]       = pin_attacked_by[Own][KING]
                                        | pe->any_attacks[Own];
             pin_attacked_by[Own][NONE] = pin_attacked_by[Own][KING]
@@ -389,8 +388,9 @@ namespace Evaluator {
                     Bitboard bp = pos.pieces (Own, PAWN) & att & front_rank_bb (Own, s);
                     dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                        & (  attacks
-                                          | ((  shift<WHITE == Own ? DEL_NW : DEL_SE> (bp)
-                                              | shift<WHITE == Own ? DEL_NE : DEL_SW> (bp)) & PieceAttacks[BSHP][s]));
+                                          | (  (  shift<WHITE == Own ? DEL_NW : DEL_SE> (bp)
+                                                | shift<WHITE == Own ? DEL_NE : DEL_SW> (bp))
+                                             & PieceAttacks[BSHP][s]));
                 }
                 else
                 if (QUEN == PT)
@@ -401,8 +401,9 @@ namespace Evaluator {
                     Bitboard qr = pos.pieces (Own, ROOK) & att & PieceAttacks[ROOK][s];
                     dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                        & (  attacks
-                                          | ((  shift<WHITE == Own ? DEL_NW : DEL_SE> (qp)
-                                              | shift<WHITE == Own ? DEL_NE : DEL_SW> (qp)) & PieceAttacks[BSHP][s])
+                                          | (  (  shift<WHITE == Own ? DEL_NW : DEL_SE> (qp)
+                                                | shift<WHITE == Own ? DEL_NE : DEL_SW> (qp))
+                                             & PieceAttacks[BSHP][s])
                                           | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                           | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
 
@@ -443,9 +444,9 @@ namespace Evaluator {
                     {
                         score += KnightBehindPawn;
                     }
-                    
+
                     b = Outposts_bb[Own]
-                      & ~pin_attacked_by[Opp][PAWN];
+                      & ~pe->attack_span[Opp];
                     // Bonus for knight outpost squares
                     if (contains (b, s))
                     {
@@ -472,7 +473,7 @@ namespace Evaluator {
                     }
 
                     b = Outposts_bb[Own]
-                      & ~pin_attacked_by[Opp][PAWN];
+                      & ~pe->attack_span[Opp];
                     // Bonus for bishop outpost squares
                     if (contains (b, s))
                     {
@@ -548,8 +549,8 @@ namespace Evaluator {
                 else
                 if (QUEN == PT)
                 {
-                    b = 0;
                     // Penalty for pin or discover attack on the queen
+                    b = 0;
                     if (0 != (  pos.slider_blockers (Own, s, pos.pieces (Opp, QUEN), b, b)
                               & ~(  (pos.pieces (Opp, PAWN) & file_bb (s) & ~(  shift<WHITE == Own ? DEL_NW : DEL_SE> (pos.pieces (Own))
                                                                               | shift<WHITE == Own ? DEL_NE : DEL_SW> (pos.pieces (Own))))
@@ -641,6 +642,7 @@ namespace Evaluator {
                     king_danger += 880;
                 }
                 else
+                if (0 != b)
                 {
                     unsafe_check |= b;
                 }
@@ -652,6 +654,7 @@ namespace Evaluator {
                     king_danger += 435;
                 }
                 else
+                if (0 != b)
                 {
                     unsafe_check |= b;
                 }
@@ -663,6 +666,7 @@ namespace Evaluator {
                     king_danger += 790;
                 }
                 else
+                if (0 != b)
                 {
                     unsafe_check |= b;
                 }
@@ -812,11 +816,6 @@ namespace Evaluator {
                   & weak_nonpawns;
 
                 score += SafePawnThreat * pop_count (b);
-                
-                if (0 != (weak_nonpawns ^ b))
-                {
-                    score += HangPawnThreat;
-                }
             }
 
             // Friend pawns can push on the next move
@@ -872,8 +871,8 @@ namespace Evaluator {
 
                 auto rank = rel_rank (Own, s);
                 // Base bonus depending on rank.
-                auto mg_value = PawnPassRank[MG][rank];
-                auto eg_value = PawnPassRank[EG][rank];
+                auto mg_value = PawnPassRank[MG][rank],
+                     eg_value = PawnPassRank[EG][rank];
 
                 i32 r  = rank - R_2;
                 i32 rr = r*(r-1);
@@ -1189,9 +1188,9 @@ namespace Evaluator {
         return Evaluation<false> (pos).value () + Tempo;
     }
 
-    /// trace_eval() returns a string (suitable for outputting to stdout) that contains
+    /// trace() returns a string (suitable for outputting to stdout) that contains
     /// the detailed descriptions and values of each evaluation term.
-    string trace_eval (const Position &pos)
+    string trace (const Position &pos)
     {
         auto value = Evaluation<true> (pos).value () + Tempo;
         value = WHITE == pos.active ? +value : -value; // White's point of view

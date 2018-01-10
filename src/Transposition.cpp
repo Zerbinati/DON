@@ -99,12 +99,10 @@ namespace Transposition {
             cluster_count = 0;
             return 0;
         }
-        else
-        {
-            cluster_count = new_cluster_count;
-            clear ();
-            return mem_size;
-        }
+
+        cluster_count = new_cluster_count;
+        clear ();
+        return mem_size;
     }
     u32 Table::resize ()
     {

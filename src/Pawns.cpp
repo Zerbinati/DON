@@ -92,7 +92,7 @@ namespace Pawns {
 
             e->any_attacks[Own] = l_cap | r_cap;
             e->dbl_attacks[Own] = l_cap & r_cap;
-
+            e->attack_span[Own] = 0;
             e->passers[Own] = 0;
             e->weak_unopposed[Own] = 0;
             e->semiopens[Own] = u08(0xFF);
@@ -117,6 +117,7 @@ namespace Pawns {
 
                 f = _file (s);
                 e->semiopens[Own] &= u08(~(1 << f));
+                e->attack_span[Own] |= pawn_attack_span (Own, s);
 
                 neighbours = own_pawns & adj_file_bb (f);
                 supporters = neighbours & rank_bb (s-Push);
@@ -208,10 +209,9 @@ namespace Pawns {
         const auto Opp = WHITE == Own ? BLACK : WHITE;
         // Max Safety corresponds to start position with all the pawns in front of the king and no enemy pawn on the horizon.
         auto value = Value(258);
-        Bitboard front_pawns =
-              pos.pieces (PAWN)
-            & (  rank_bb (fk_sq)
-               | front_rank_bb (Own, fk_sq));
+        Bitboard front_pawns = pos.pieces (PAWN)
+                             & (  rank_bb (fk_sq)
+                                | front_rank_bb (Own, fk_sq));
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 

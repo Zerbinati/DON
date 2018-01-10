@@ -497,7 +497,7 @@ constexpr bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
 constexpr PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
 constexpr MoveType  mtype   (Move m) { return MoveType(m & PROMOTE); }
 constexpr i16       move_pp (Move m) { return m & 0x0FFF; }
-inline    void      promote (Move &m, PieceType pt) { m = Move((m & 0x0FFF) + (PROMOTE + ((pt - 1) << 12))); }
+inline    void      promote (Move &m, PieceType pt) { m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (m & 0x0FFF)); }
 constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 {
     return mtype (m) != CASTLE
@@ -516,7 +516,7 @@ constexpr Value cp_to_value (i16  cp) { return Value(cp*i32(VALUE_EG_PAWN)/100);
 constexpr Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 constexpr Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
-typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
+typedef std::chrono::milliseconds::rep TimePoint; // Time in milli-seconds
 
 inline TimePoint now ()
 {
@@ -549,10 +549,10 @@ public:
 
     bool operator<  (const ValMove &vm) const { return value <  vm.value; }
     bool operator>  (const ValMove &vm) const { return value >  vm.value; }
-    bool operator<= (const ValMove &vm) const { return value <= vm.value; }
-    bool operator>= (const ValMove &vm) const { return value >= vm.value; }
-    bool operator== (const ValMove &vm) const { return value == vm.value; }
-    bool operator!= (const ValMove &vm) const { return value != vm.value; }
+    //bool operator<= (const ValMove &vm) const { return value <= vm.value; }
+    //bool operator>= (const ValMove &vm) const { return value >= vm.value; }
+    bool operator== (const ValMove &vm) const { return move == vm.move; }
+    bool operator!= (const ValMove &vm) const { return move != vm.move; }
 };
 
 class ValMoves

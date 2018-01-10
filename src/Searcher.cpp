@@ -332,7 +332,7 @@ Move MovePicker::next_move ()
         while (i < moves.size ())
         {
             auto &vm = next_max_move ();
-            if (pos.see_ge (vm.move, Value(-(55 * vm.value) / 1024)))
+            if (pos.see_ge (vm.move, Value(-vm.value * 55 / 1024)))
             {
                 return vm.move;
             }
@@ -585,7 +585,7 @@ namespace Searcher {
     Limit Limits;
 
     i32 MultiPV =         1;
-    //i32    MultiPV_cp =    0;
+    //i32 MultiPV_cp =      0;
 
     i16   FixedContempt = 0
         , ContemptTime =  30
@@ -2108,8 +2108,7 @@ namespace Threading {
                     }
                     else
                     // If fail high set new bounds.
-                    if (   beta <= best_value
-                        && last_best_move != root_moves[0][0])
+                    if (beta <= best_value)
                     {
                         // NOTE:: Don't change alfa = (alfa + beta) / 2;
                         beta = std::min (best_value + window, +VALUE_INFINITE);
@@ -2141,7 +2140,7 @@ namespace Threading {
             {
                 finished_depth = running_depth;
             }
-            
+
             if (last_best_move != root_moves[0][0])
             {
                 last_best_move = root_moves[0][0];
@@ -2208,7 +2207,7 @@ namespace Threading {
                                   std::max (229,
                                             357
                                           + 119 * (main_thread->failed_low ? 1 : 0)
-                                          -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 600)))
+                                          -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 628)))
                         {
                             Threadpool.stop_thinking ();
                         }
@@ -2259,7 +2258,7 @@ namespace Threading {
         if (Limits.use_time_management ())
         {
             // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
-            // WARNING: Given NodesTime (nodes per millisecond) must be much lower then the real engine speed to avoid time losses.
+            // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
             if (0 != NodesTime)
             {
                 // Only once at after ucinewgame
@@ -2267,7 +2266,7 @@ namespace Threading {
                 {
                     time_mgr.available_nodes = Limits.clock[root_pos.active].time * NodesTime;
                 }
-                // Convert from millisecs to nodes
+                // Convert from milli-seconds to nodes
                 Limits.clock[root_pos.active].time = time_mgr.available_nodes;
                 Limits.clock[root_pos.active].inc *= NodesTime;
             }
@@ -2296,11 +2295,12 @@ namespace Threading {
 
             // Check if can play with own book.
             if (   OwnBook
+                && !Position::Chess960
+                && !Limits.infinite
+                && 0 == Limits.mate
                 && !white_spaces (BookFile)
                 && (   0 == BookUptoMove
-                    || root_pos.move_num () <= BookUptoMove)
-                && 0 == Limits.mate
-                && !Limits.infinite)
+                    || root_pos.move_num () <= BookUptoMove))
             {
                 book.open (BookFile, ios_base::in);
                 auto book_best_move = book.probe_move (root_pos, BookPickBest);

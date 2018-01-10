@@ -207,7 +207,7 @@ bool Position::see_ge (Move m, Value threshold) const
             }
         }
 
-        // If have no more attackers must give up
+        // If have no more attackers we must give up
         if (0 == c_attackers)
         {
             break;
@@ -882,7 +882,7 @@ Position& Position::setup (const string &code, StateInfo &nsi, Color c)
                       + sides[BLACK] + char('0' + 8 - sides[BLACK].length ()) + "/8 w - -";
 
     setup (fen, nsi, nullptr, false);
-    
+
     return *this;
 }
 
@@ -1190,7 +1190,7 @@ void Position::flip ()
     }
     // 2. Active color
     iss >> token;
-    ff += ColorChar[~Color(ColorChar.find (token))];
+    ff += (token == "w" ? "b" : "w");
     ff += " ";
     // 3. Castling availability
     iss >> token;
@@ -1373,7 +1373,7 @@ Position::operator string () const
 
 #if !defined(NDEBUG)
 /// Position::ok() performs some consistency checks for the position,
-/// and raises an asserts if something wrong is detected.
+/// and raises an assert if something wrong is detected.
 bool Position::ok () const
 {
     const bool Fast = true;

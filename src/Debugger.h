@@ -82,8 +82,8 @@ namespace Debugger {
                 logger._ofs << "[" << std::chrono::system_clock::now () << "] <-" << std::endl;
                 logger._ofs.close ();
             }
-            assert(!white_spaces (filename));
-            if (!logger._ofs.is_open ())
+            if (   !white_spaces (filename)
+                && !logger._ofs.is_open ())
             {
                 logger._ofs.open (filename, std::ios_base::out|std::ios_base::app);
                 logger._ofs << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
