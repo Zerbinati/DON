@@ -64,7 +64,7 @@ namespace MoveGen {
             }
             if (   GenType::NATURAL == GT
                 || GenType::EVASION == GT
-                || GenType::QUIET   == GT
+                || GenType::QUIET == GT
                 || (   GenType::CHECK == GT
                     && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - Del)), pos.square<KING> (~pos.active))))
             {
@@ -72,7 +72,7 @@ namespace MoveGen {
             }
             if (   GenType::NATURAL == GT
                 || GenType::EVASION == GT
-                || GenType::QUIET   == GT
+                || GenType::QUIET == GT
                 || (   GenType::CHECK == GT
                     && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - Del)), pos.square<KING> (~pos.active))))
             {
@@ -80,8 +80,8 @@ namespace MoveGen {
             }
             if (   GenType::NATURAL == GT
                 || GenType::EVASION == GT
-                || GenType::QUIET   == GT
-                || (   (   GenType::CHECK       == GT
+                || GenType::QUIET == GT
+                || (   (   GenType::CHECK == GT
                         || GenType::QUIET_CHECK == GT)
                     && contains (PieceAttacks[NIHT][dst], pos.square<KING> (~pos.active))))
             {
@@ -105,15 +105,15 @@ namespace MoveGen {
             Bitboard empties = ~pos.pieces ();
             Bitboard enemies =  pos.pieces (Opp) & targets;
             // Pawn single-push and double-push, no promotions
-            if (   GenType::NATURAL     == GT
-                || GenType::EVASION     == GT
-                || GenType::QUIET       == GT
-                || GenType::CHECK       == GT
+            if (   GenType::NATURAL == GT
+                || GenType::EVASION == GT
+                || GenType::QUIET == GT
+                || GenType::CHECK == GT
                 || GenType::QUIET_CHECK == GT)
             {
                 Bitboard push_1 = empties & shift<Push> (Rx_pawns);
                 Bitboard push_2 = empties & shift<Push> (push_1 & rank_bb (WHITE == Own ? R_3 : R_6));
-                if (   GenType::CHECK       == GT
+                if (   GenType::CHECK == GT
                     || GenType::QUIET_CHECK == GT)
                 {
                     push_1 &= pos.si->checks[PAWN];
@@ -140,7 +140,7 @@ namespace MoveGen {
             if (   GenType::NATURAL == GT
                 || GenType::EVASION == GT
                 || GenType::CAPTURE == GT
-                || GenType::CHECK   == GT)
+                || GenType::CHECK == GT)
             {
                 Bitboard l_attack = enemies & shift<LCap> (Rx_pawns);
                 Bitboard r_attack = enemies & shift<RCap> (Rx_pawns);
@@ -245,8 +245,8 @@ namespace MoveGen {
 
             auto m = mk_move<CASTLE> (king_org, rook_org);
             if (   GenType::NATURAL == GT
-                || GenType::QUIET   == GT
-                || ((   GenType::CHECK       == GT
+                || GenType::QUIET == GT
+                || ((   GenType::CHECK == GT
                      || GenType::QUIET_CHECK == GT)
                     && pos.gives_check (m)))
             {
@@ -263,7 +263,7 @@ namespace MoveGen {
 
             if (   GenType::NATURAL == GT
                 || GenType::CAPTURE == GT
-                || GenType::QUIET   == GT)
+                || GenType::QUIET == GT)
             {
                 auto fk_sq = pos.square<KING> (Own);
                 Bitboard attacks = targets
@@ -272,9 +272,9 @@ namespace MoveGen {
                 while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
             }
 
-            if (   (   GenType::NATURAL     == GT
-                    || GenType::QUIET       == GT
-                    || GenType::CHECK       == GT
+            if (   (   GenType::NATURAL == GT
+                    || GenType::QUIET == GT
+                    || GenType::CHECK == GT
                     || GenType::QUIET_CHECK == GT)
                 && 0 == pos.si->checkers
                 && pos.si->can_castle (Own))
@@ -302,10 +302,10 @@ namespace MoveGen {
             generate_piece_moves<GT, Own, BSHP> (moves, pos, targets);
             generate_piece_moves<GT, Own, ROOK> (moves, pos, targets);
             generate_piece_moves<GT, Own, QUEN> (moves, pos, targets);
-            if (   GenType::NATURAL     == GT
-                || GenType::CAPTURE     == GT
-                || GenType::QUIET       == GT
-                || GenType::CHECK       == GT
+            if (   GenType::NATURAL == GT
+                || GenType::CAPTURE == GT
+                || GenType::QUIET == GT
+                || GenType::CHECK == GT
                 || GenType::QUIET_CHECK == GT)
             {
                 generate_king_moves<GT, Own> (moves, pos, targets);
@@ -321,7 +321,7 @@ namespace MoveGen {
         assert(0 == pos.si->checkers);
         static_assert (GenType::NATURAL == GT
                     || GenType::CAPTURE == GT
-                    || GenType::QUIET   == GT, "GT incorrect");
+                    || GenType::QUIET == GT, "GT incorrect");
         moves.clear ();
         Bitboard targets = GenType::NATURAL == GT ? ~pos.pieces ( pos.active) :
                            GenType::CAPTURE == GT ?  pos.pieces (~pos.active) :

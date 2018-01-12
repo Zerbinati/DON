@@ -282,11 +282,7 @@ void MovePicker::value ()
 const ValMove& MovePicker::next_max_move ()
 {
     auto beg = moves.begin () + i++;
-    auto max = std::max_element (beg, moves.end ());
-    if (beg != max)
-    {
-        std::swap (*beg, *max);
-    }
+    std::swap (*beg, *std::max_element (beg, moves.end ()));
     return *beg;
 }
 
@@ -321,10 +317,8 @@ Move MovePicker::next_move ()
                 moves.erase (itr);
             }
         }
-        if (1 < moves.size ())
-        {
-            value<GenType::CAPTURE> ();
-        }
+        value<GenType::CAPTURE> ();
+
         ++stage;
         i = 0;
         /* fallthrough */
@@ -352,10 +346,7 @@ Move MovePicker::next_move ()
                 moves.erase (itr);
             }
         }
-        if (1 < moves.size ())
-        {
-            value<GenType::QUIET> ();
-        }
+        value<GenType::QUIET> ();
         // Killers to top of quiet move
         {
             i32 k = 0;
@@ -381,18 +372,12 @@ Move MovePicker::next_move ()
             {
                 if (max->value >= threshold)
                 {
-                    if (beg != max)
-                    {
-                        auto tmp = *max;
-                        for (; max != beg; --max)
-                        {
-                            *max = *(max - 1);
-                        }
-                        *max = tmp;
-                    }
+                    std::swap (*beg, *max);
                     ++i;
                     return beg->move;
                 }
+                
+                std::stable_sort (moves.begin () + i, moves.end (), [](const ValMove &vm1, const ValMove &vm2) { return vm1.value > vm2.value; });
                 ++stage;
                 goto START;
             }
@@ -428,10 +413,8 @@ Move MovePicker::next_move ()
                 moves.erase (itr);
             }
         }
-        if (1 < moves.size ())
-        {
-            value<GenType::EVASION> ();
-        }
+        value<GenType::EVASION> ();
+
         ++stage;
         i = 0;
         /* fallthrough */
@@ -453,10 +436,8 @@ Move MovePicker::next_move ()
                 moves.erase (itr);
             }
         }
-        if (1 < moves.size ())
-        {
-            value<GenType::CAPTURE> ();
-        }
+        value<GenType::CAPTURE> ();
+
         ++stage;
         i = 0;
         /* fallthrough */
@@ -483,10 +464,8 @@ Move MovePicker::next_move ()
                 moves.erase (itr);
             }
         }
-        if (1 < moves.size ())
-        {
-            value<GenType::CAPTURE> ();
-        }
+        value<GenType::CAPTURE> ();
+
         ++stage;
         i = 0;
         /* fallthrough */
@@ -529,10 +508,8 @@ Move MovePicker::next_move ()
                 moves.erase (itr);
             }
         }
-        if (1 < moves.size ())
-        {
-            value<GenType::CAPTURE> ();
-        }
+        value<GenType::CAPTURE> ();
+
         ++stage;
         i = 0;
         /* fallthrough */
@@ -554,10 +531,8 @@ Move MovePicker::next_move ()
         //        moves.erase (itr);
         //    }
         //}
-        if (1 < moves.size ())
-        {
-            value<GenType::CAPTURE> ();
-        }
+        value<GenType::CAPTURE> ();
+
         ++stage;
         i = 0;
         /* fallthrough */
@@ -903,7 +878,7 @@ namespace Searcher {
             StateInfo si;
 
             // Initialize move picker (2) for the current position
-            MovePicker move_picker (pos, tt_move, depth, dst_sq ((ss-1)->played_move));
+            auto move_picker = MovePicker(pos, tt_move, depth, dst_sq ((ss-1)->played_move));
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
@@ -1358,7 +1333,7 @@ namespace Searcher {
                         assert(_ok ((ss-1)->played_move));
 
                         // Initialize move picker (3) for the current position
-                        MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
+                        auto move_picker = MovePicker(pos, tt_move, beta_margin - ss->static_eval);
                         // Loop through all legal moves until no moves remain or a beta cutoff occurs
                         while (MOVE_NONE != (move = move_picker.next_move ()))
                         {
@@ -1438,7 +1413,7 @@ namespace Searcher {
                                     pos.thread->counter_moves[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
                                     MOVE_NONE;
             // Initialize move picker (1) for the current position
-            MovePicker move_picker (pos, tt_move, depth, piece_destiny_history, ss->killer_moves, counter_move);
+            auto move_picker = MovePicker(pos, tt_move, depth, piece_destiny_history, ss->killer_moves, counter_move);
             // Step 11. Loop through all legal moves until no moves remain or a beta cutoff occurs
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {

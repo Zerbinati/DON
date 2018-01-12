@@ -188,7 +188,7 @@ public:
     bool pick_quiets;
 
     MovePicker () = delete;
-    MovePicker (const MovePicker&) = delete;
+    //MovePicker (const MovePicker&) = delete;
     MovePicker& operator= (const MovePicker&) = delete;
 
     MovePicker (const Position&, Move, i16, const PieceDestinyHistory**, const Move*, Move);

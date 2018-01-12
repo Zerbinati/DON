@@ -642,7 +642,6 @@ namespace Evaluator {
                     king_danger += 880;
                 }
                 else
-                if (0 != b)
                 {
                     unsafe_check |= b;
                 }
@@ -654,7 +653,6 @@ namespace Evaluator {
                     king_danger += 435;
                 }
                 else
-                if (0 != b)
                 {
                     unsafe_check |= b;
                 }
@@ -666,7 +664,6 @@ namespace Evaluator {
                     king_danger += 790;
                 }
                 else
-                if (0 != b)
                 {
                     unsafe_check |= b;
                 }
@@ -690,6 +687,8 @@ namespace Evaluator {
                 // Transform the king danger into a score
                 if (king_danger > 0)
                 {
+                    king_danger = std::max (king_danger + mg_value (mobility[Opp] - mobility[Own]), 0);
+
                     score -= mk_score (king_danger*king_danger / 0x1000, king_danger / 0x10);
                 }
             }

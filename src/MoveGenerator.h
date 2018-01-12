@@ -27,7 +27,10 @@ namespace MoveGen {
         : public ValMoves
     {
     public:
+
         MoveList () = delete;
+        //MoveList (const MoveList&) = delete;
+
         explicit MoveList (const Position &pos)
         {
             generate<GT> (*this, pos);

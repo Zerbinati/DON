@@ -240,6 +240,24 @@ namespace Engine {
                     }
                 }
                 else
+                if (token == "ignoremoves")
+                {
+                    for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+                    {
+                        search_moves.push_back (vm.move);
+                    }
+                    while (iss >> token)
+                    {
+                        auto m = move_from_can (token, pos);
+                        if (MOVE_NONE == m)
+                        {
+                            std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
+                            continue;
+                        }
+                        search_moves.erase (std::remove (search_moves.begin (), search_moves.end (), m), search_moves.end ());
+                    }
+                }
+                else
                 {
                     std::cerr << "ERROR: Illegal token : " << token << std::endl;
                     return;

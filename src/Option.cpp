@@ -221,7 +221,7 @@ namespace UCI {
         {
             FixedContempt = i16(i32(Options["Fixed Contempt"]));
             ContemptTime = i16(i32(Options["Timed Contempt"]));
-            ContemptValue = i16(i32(Options["Valued Contempt"]));
+            //ContemptValue = i16(i32(Options["Valued Contempt"]));
         }
 
         void on_multipv ()
@@ -343,7 +343,7 @@ namespace UCI {
 
         Options["Fixed Contempt"]     << Option (FixedContempt, -100, 100, on_contempt_opt);
         Options["Timed Contempt"]     << Option (ContemptTime , 0, 1000, on_contempt_opt);
-        Options["Valued Contempt"]    << Option (ContemptValue, 0, 1000, on_contempt_opt);
+        //Options["Valued Contempt"]    << Option (ContemptValue, 0, 1000, on_contempt_opt);
 
         Options["Draw MoveCount"]     << Option (Position::DrawClockPly/2, 5, 50, on_draw_movecount);
 
