@@ -12,9 +12,11 @@
 #include "thread_win32.h"
 #include "Type.h"
 
-extern u16  OverheadMoveTime;
+extern u16 OverheadMoveTime;
+extern u16 MinimumMoveTime;
+
 extern double MoveSlowness;
-extern u16  NodesTime;
+extern u16 NodesTime;
 extern bool Ponder;
 
 /// TimeManager class is used to computes the optimal time to think depending on the
@@ -89,9 +91,10 @@ namespace Threading {
 
         i16   running_depth
             , finished_depth
-            , sel_depth
-            , nmp_ply
-            , nmp_pair;
+            , sel_depth;
+
+        i16  nmp_ply;
+        bool nmp_odd;
 
         size_t pv_index;
         

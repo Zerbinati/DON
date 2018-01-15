@@ -1264,8 +1264,8 @@ namespace Searcher {
                         //&& 0 == Limits.mate
                         && tt_eval >= beta
                         && ss->static_eval + 36*depth - 225 >= beta
-                        && (   ss->ply >= pos.thread->nmp_ply
-                            || ss->ply % 2 == pos.thread->nmp_pair))
+                        && (   pos.thread->nmp_ply <= ss->ply
+                            || pos.thread->nmp_odd == ((ss->ply % 2) != 0)))
                     {
                         // Null move dynamic reduction based on depth and static evaluation.
                         auto R = i16((67*depth + 823) / 256 + std::min (i32((tt_eval - beta)/VALUE_MG_PAWN), 3));
@@ -1286,8 +1286,9 @@ namespace Searcher {
                             bool unproven = null_value >= +VALUE_MATE_MAX_PLY;
 
                             // Don't do verification search at low depths
-                            if (   12 > depth
-                                && abs (beta) < +VALUE_KNOWN_WIN)
+                            if (   abs (beta) < +VALUE_KNOWN_WIN
+                                && (   12 > depth
+                                    || pos.thread->nmp_ply != 0))
                             {
                                 // Don't return unproven wins
                                 return unproven ?
@@ -1296,20 +1297,16 @@ namespace Searcher {
                             }
 
                             // Do verification search at high depths
-
-                            R += 1;
                             // Disable null move pruning for side to move for the first part of the remaining search tree
-                            auto nmp_ply = pos.thread->nmp_ply;
-                            auto nmp_pair = pos.thread->nmp_pair;
                             pos.thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
-                            pos.thread->nmp_pair = ((ss->ply + 1) % 2);
+                            pos.thread->nmp_odd = (ss->ply % 2) != 0;
 
                             auto value = depth-R <= 0 ?
                                             quien_search<false> (pos, ss, beta-1, beta) :
                                             depth_search<false> (pos, ss, beta-1, beta, depth-R, false, false);
 
-                            pos.thread->nmp_ply = nmp_ply;
-                            pos.thread->nmp_pair = nmp_pair;
+                            pos.thread->nmp_ply = 0;
+                            pos.thread->nmp_odd = false;
 
                             if (value >= beta)
                             {
@@ -1598,7 +1595,7 @@ namespace Searcher {
                             reduce_depth -= 1;
                         }
 
-                        // Increase reduction if tt_move is a capture
+                        // Increase reduction if TT move is a capture
                         if (ttm_capture)
                         {
                             reduce_depth += 1;
@@ -2482,7 +2479,7 @@ namespace Threading {
         }
 
         if (   (   Limits.use_time_management ()
-                && elapsed_time > time_mgr.maximum_time)
+                && elapsed_time > time_mgr.maximum_time - 10)
             || (   0 != Limits.movetime
                 && elapsed_time >= Limits.movetime)
             || (   0 != Limits.nodes

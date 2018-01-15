@@ -1,6 +1,7 @@
 #include "Thread.h"
 
 #include <cfloat>
+#include <cmath>
 #include "Option.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
@@ -9,51 +10,48 @@ using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-u16  OverheadMoveTime = 100;// Attempt to keep at least this much time for each remaining move, in milli-seconds.
-double MoveSlowness = 1.0; // Move Slowness, in %age.
-u16  NodesTime = 0;         // 'Nodes as Time' mode.
+u16 OverheadMoveTime = 30;  // Attempt to keep at least this much time for each remaining move, in milli-seconds.
+u16 MinimumMoveTime = 20;   // No matter what, use at least this much time before doing the move, in milli-seconds.
+
+double MoveSlowness = 0.89; // Move Slowness, in %age.
+u16 NodesTime = 0;          // 'Nodes as Time' mode.
 bool Ponder = true;         // Whether or not the engine should analyze when it is the opponent's turn.
 
 Threading::ThreadPool Threadpool;
 
 namespace {
 
-    /// remaining_time()
-    u64 remaining_time (Color c, i16 move_num, bool optimum)
+    u16 OverheadClockTime = 2*OverheadMoveTime; // Attempt to keep at least this much time at clock, in milli-seconds.
+    u08 MaximumMoveHorizon = 50;                // Plan time management at most this many moves ahead, in num of moves.
+    u08 ReadyMoveHorizon = 40;                  // Be prepared to always play at least this many moves, in num of moves.
+
+    // Skew-logistic function based on naive statistical analysis of
+    // "how many games are still undecided after n half-moves".
+    // Game is considered "undecided" as long as neither side has >275cp advantage.
+    // Data was extracted from the CCRL game database with some simple filtering criteria.
+    double move_importance (i16 ply)
     {
-        if (Limits.clock[c].time <= OverheadMoveTime)
-        {
-            return 0;
-        }
-        // Increment of time
-        double inc = Limits.clock[c].inc
-                     // quadratic function with the maximum around move 25 
-                   * std::max (120.0 - 0.12 * std::pow (move_num - 25, 2), 55.0);
-        // Ratio of time
-        double ratio = std::min ((0 == Limits.movestogo ?
-                                      // y+z
-                                      (optimum ? 0.017 : 0.07)
-                                    * ((1 + 0.04 * move_num / (1 + 0.002 * move_num)) + inc / Limits.clock[c].time) :
-                                      // x/y+z
-                                      std::min (  (optimum ? 1.0 : 6.0)
-                                                * (move_num <= 40 ?
-                                                    // quadratic function with the maximum around move 20 for case less then 40 moves in y time.
-                                                    1.1 - 0.001 * std::pow (move_num - 20, 2) :
-                                                    // constant function.
-                                                    1.5)
-                                                / std::min (Limits.movestogo, u08(50)),
-                                                1 < Limits.movestogo ? 0.75 : 1.5)
-                                    * (1 + inc / (Limits.clock[c].time * 8.5)))
-                                 * MoveSlowness,
-                                 1.0);
-        if (   Ponder
-            && optimum)
-        {
-            ratio *= 1.25;
-        }
-        return u64((Limits.clock[c].time - OverheadMoveTime) * ratio);
+        //                                      Shift    Scale   Skew
+        return std::pow (1.0 + std::exp ((ply - 58.40) / 7.64), -0.183) + DBL_MIN; // Ensure non-zero
     }
 
+    u64 remaining_time (u64 time, u08 movestogo, i16 ply, bool optimum)
+    {
+        auto  step_ratio = optimum ? 1.00 : 7.09; // When in trouble, can step over reserved time with this ratio
+        auto steal_ratio = optimum ? 0.00 : 0.35; // However must not steal time from remaining moves over this ratio
+
+        auto move_imp1 = move_importance (ply) * MoveSlowness;
+        auto move_imp2 = 0.0;
+        for (u08 i = 1; i < movestogo; ++i)
+        {
+            move_imp2 += move_importance (ply + 2 * i);
+        }
+
+        auto time_ratio1 = (move_imp1 * step_ratio /*+ move_imp2 * 0.00*/   ) / (move_imp1 * step_ratio + move_imp2 /** 1.00*/);
+        auto time_ratio2 = (move_imp1 /** 1.00*/   + move_imp2 * steal_ratio) / (move_imp1 /** 1.00*/   + move_imp2 /** 1.00*/);
+
+        return u64(time * std::min (time_ratio1, time_ratio2));
+    }
 }
 
 /// TimeManager::elapsed_time()
@@ -72,9 +70,31 @@ u64 TimeManager::elapsed_time () const
 /// increment != 0, moves to go != 0 => x moves in y basetime + z increment
 void TimeManager::initialize (Color c, i16 ply)
 {
-    i16 move_num = (ply + 1) / 2;
-    optimum_time = remaining_time (c, move_num, true);
-    maximum_time = remaining_time (c, move_num, false);
+    optimum_time =
+    maximum_time = std::max (Limits.clock[c].time, u64(MinimumMoveTime));
+
+    auto max_movestogo = 0 == Limits.movestogo ?
+                            MaximumMoveHorizon :
+                            std::min (Limits.movestogo, MaximumMoveHorizon);
+    // Calculate optimum time usage for different hypothetic "moves to go" and choose the
+    // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
+    for (u08 hyp_movestogo = 1; hyp_movestogo <= max_movestogo; ++hyp_movestogo)
+    {
+        // Calculate thinking time for hypothetic "moves to go"
+        auto hyp_time = std::max (
+                        + Limits.clock[c].time
+                        + Limits.clock[c].inc * (hyp_movestogo-1)
+                        - OverheadClockTime
+                        - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), 0ULL);
+
+        optimum_time = std::min (optimum_time, MinimumMoveTime + remaining_time (hyp_time, hyp_movestogo, ply, true));
+        maximum_time = std::min (maximum_time, MinimumMoveTime + remaining_time (hyp_time, hyp_movestogo, ply, false));
+    }
+
+    if (Ponder)
+    {
+        optimum_time += optimum_time / 4;
+    }
 }
 
 /// SkillManager::pick_best_move() chooses best move among a set of RootMoves when playing with a strength handicap,
@@ -325,10 +345,12 @@ namespace Threading {
     /// Thread::clear() clears all the thread related stuff.
     void Thread::clear ()
     {
+        running_depth = 0;
+        finished_depth = 0;
         nodes = 0;
         tb_hits = 0;
         nmp_ply = 0;
-        nmp_pair = -1;
+        nmp_odd = false;
         counter_moves.fill (MOVE_NONE);
         butterfly_history.fill (0);
         capture_history.fill (0);
@@ -492,15 +514,15 @@ namespace Threading {
         const auto back_si = setup_states->back ();
         for (auto *th : *this)
         {
-            th->root_pos.setup (pos.fen (), setup_states->back (), th);
-            th->root_moves = root_moves;
-
             th->running_depth = 0;
             th->finished_depth = 0;
             th->nodes = 0;
             th->tb_hits = 0;
             th->nmp_ply = 0;
-            th->nmp_pair = -1;
+            th->nmp_odd = false;
+
+            th->root_pos.setup (pos.fen (), setup_states->back (), th);
+            th->root_moves = root_moves;
         }
         setup_states->back () = back_si;
 
