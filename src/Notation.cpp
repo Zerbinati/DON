@@ -1,5 +1,6 @@
 #include "Notation.h"
 
+#include <cmath>
 #include "MoveGenerator.h"
 #include "Position.h"
 

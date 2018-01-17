@@ -150,6 +150,7 @@ namespace Transposition {
     Entry* Table::probe (Key key, bool &tt_hit) const
     {
         auto *const fte = cluster_entry (key);
+        u16 key16 = (key >> 0x30);
         assert(nullptr != fte);
         // Find an entry to be replaced according to the replacement strategy.
         auto *rte = fte; // Default first
@@ -157,7 +158,7 @@ namespace Transposition {
         for (auto *ite = fte; ite < fte + Cluster::EntryCount; ++ite)
         {
             if (   ite->empty ()
-                || ite->k16 == (key >> 0x30))
+                || ite->k16 == key16)
             {
                 tt_hit = !ite->empty ();
                 // Refresh entry.

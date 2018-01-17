@@ -1,5 +1,6 @@
 ﻿#include "Searcher.h"
 
+#include <cmath>
 #include "Debugger.h"
 #include "Evaluator.h"
 #include "Notation.h"
@@ -930,7 +931,6 @@ namespace Searcher {
                                 || 2 < move_count)
                             && best_value > -VALUE_MATE_MAX_PLY
                             && !pos.capture (move)))
-                    && PROMOTE != mtype (move)
                     //&& 0 == Limits.mate
                     && !pos.see_ge (move))
                 {
