@@ -3,7 +3,6 @@
 
 #include <cstdlib>
 #include <iostream>
-
 #include "Type.h"
 #include "Zobrist.h"
 #include "MemoryHandler.h"
@@ -180,16 +179,14 @@ namespace Transposition {
             operator>> (std::basic_istream<CharT, Traits> &is,       Table &tt)
         {
             u32 mem_size;
-            u08 generation;
             u08 dummy;
             is.read (reinterpret_cast<CharT*> (&mem_size), sizeof (mem_size));
             is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
             is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
             is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-            is.read (reinterpret_cast<CharT*> (&generation), sizeof (generation));
+            is.read (reinterpret_cast<CharT*> (&Entry::Generation), sizeof (Entry::Generation));
             is.read (reinterpret_cast<CharT*> (&tt.cluster_count), sizeof (tt.cluster_count));
             tt.resize (mem_size);
-            Entry::Generation = generation;
             for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
             {
                 is.read (reinterpret_cast<CharT*> (tt.clusters+i*BufferSize), sizeof (Cluster)*BufferSize);

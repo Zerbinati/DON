@@ -4,7 +4,6 @@
 #include <array>
 #include <vector>
 #include <limits>
-
 #include "MoveGenerator.h"
 #include "Position.h"
 #include "Type.h"

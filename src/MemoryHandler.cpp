@@ -3,7 +3,6 @@
 #include "MemoryHandler.h"
 
 #include <cstdlib>
-
 #include "Thread.h"
 #include "Option.h"
 

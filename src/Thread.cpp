@@ -118,10 +118,9 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
         for (u08 i = 0; i < Threadpool.pv_limit; ++i)
         {
             auto &root_move = root_moves[i];
-            auto cur_value = root_move.new_value;
-            auto value = cur_value
+            auto value = root_move.new_value
                         // This is magic formula for push
-                       + (  weakness  * i32(max_value - cur_value)
+                       + (  weakness  * i32(max_value - root_move.new_value)
                           + diversion * i32(prng.rand<u32> () % weakness)) / MaxPlies;
 
             if (best_value <= value)
@@ -290,8 +289,7 @@ namespace Threading {
     {
         wait_while_busy ();
     }
-    /// Thread destructor wakes up the thread in idle_loop() and
-    /// waits for its termination.
+    /// Thread destructor wakes up the thread in idle_loop() and waits for its termination.
     /// Thread should be already waiting.
     Thread::~Thread ()
     {

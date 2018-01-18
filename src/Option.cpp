@@ -1,7 +1,6 @@
 #include "Option.h"
 
 #include <fstream>
-
 #include "Thread.h"
 #include "Transposition.h"
 #include "Searcher.h"

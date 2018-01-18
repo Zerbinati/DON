@@ -1,7 +1,6 @@
 #include "Evaluator.h"
 
 #include <ostream>
-
 #include "Material.h"
 #include "MoveGenerator.h"
 #include "Pawns.h"

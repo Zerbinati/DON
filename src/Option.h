@@ -3,7 +3,6 @@
 
 #include <iostream>
 #include <map>
-
 #include "functor.h"
 #include "Position.h"
 #include "Type.h"

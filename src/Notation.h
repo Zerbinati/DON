@@ -2,7 +2,6 @@
 #define _NOTATION_H_INC_
 
 #include <iostream>
-
 #include "Thread.h"
 #include "Type.h"
 

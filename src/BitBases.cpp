@@ -1,7 +1,6 @@
 #include "BitBases.h"
 
 #include <vector>
-
 #include "BitBoard.h"
 
 namespace BitBases {

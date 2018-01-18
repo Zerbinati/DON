@@ -3,7 +3,6 @@
 
 #include <thread>
 #include <atomic>
-
 #include "Material.h"
 #include "Pawns.h"
 #include "Position.h"

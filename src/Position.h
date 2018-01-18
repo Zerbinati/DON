@@ -6,7 +6,6 @@
 #include <memory> // For std::unique_ptr
 #include <string>
 #include <list>
-
 #include "BitBoard.h"
 #include "Zobrist.h"
 #include "Type.h"

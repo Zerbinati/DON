@@ -373,12 +373,18 @@ Move MovePicker::next_move ()
             {
                 if (max->value >= threshold)
                 {
-                    std::swap (*beg, *max);
+                    auto tmp = *max;
+                    for (; max != beg; --max)
+                    {
+                        *max = *(max - 1);
+                    }
+                    *max = tmp;
+
                     ++i;
                     return beg->move;
                 }
-                
-                std::stable_sort (moves.begin () + i, moves.end (), [](const ValMove &vm1, const ValMove &vm2) { return vm1.value > vm2.value; });
+
+                //std::stable_sort (moves.begin () + i, moves.end (), [](const ValMove &vm1, const ValMove &vm2) { return vm1.value > vm2.value; });
                 ++stage;
                 goto START;
             }

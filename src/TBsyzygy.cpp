@@ -8,7 +8,6 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-
 #include "BitBoard.h"
 #include "Engine.h"
 #include "MoveGenerator.h"

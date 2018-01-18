@@ -2,7 +2,6 @@
 #define _POLYGLOT_H_INC_
 
 #include <fstream>
-
 #include "Position.h"
 #include "Type.h"
 
