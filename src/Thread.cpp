@@ -134,16 +134,17 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
 
 namespace Threading {
 
-    /// Win Processors Group
-    /// Under Windows it is not possible for a process to run on more than one logical processor group.
-    /// This usually means to be limited to use max 64 cores.
-    /// To overcome this, some special platform specific API should be called to set group affinity for each thread.
-    /// Original code from Texel by Peter Österlund.
+
     namespace { 
 
-        /// bind_thread() set the group affinity for the thread index.
     #if defined(_WIN32)
         
+        /// Win Processors Group
+        /// Under Windows it is not possible for a process to run on more than one logical processor group.
+        /// This usually means to be limited to use max 64 cores.
+        /// To overcome this, some special platform specific API should be called to set group affinity for each thread.
+        /// Original code from Texel by Peter Österlund.
+
         /// The needed Windows API for processor groups could be missed from old Windows versions,
         /// so instead of calling them directly (forcing the linker to resolve the calls at compile time),
         /// try to load them at runtime. To do this first define the corresponding function pointers.
@@ -153,129 +154,9 @@ namespace Threading {
             typedef bool (*GNNPME)(USHORT Node, PGROUP_AFFINITY PtrGroupAffinity);
             typedef bool (*STGA)(HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
         }
-
-        /// get_group() retrieves logical processor information using Windows specific
-        /// API and returns the best group id for the thread index.
-        i32 get_group (size_t index)
-        {
-            // Early exit if the needed API is not available at runtime
-            auto kernel32 = GetModuleHandle("Kernel32.dll");
-            if (nullptr == kernel32)
-            {
-                return -1;
-            }
-            auto GetLogicalProcessorInformationEx = (GLPIE) GetProcAddress (kernel32, "GetLogicalProcessorInformationEx");
-            if (nullptr == GetLogicalProcessorInformationEx)
-            {
-                return -1;
-            }
-
-            DWORD length = 0;
-            // First call to get length. We expect it to fail due to null buffer
-            if (GetLogicalProcessorInformationEx (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length))
-            {
-                return -1;
-            }
-
-            // Once we know length, allocate the buffer
-            auto *ptrSysLogicalProcInfoBase = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *> (malloc (length));
-            if (nullptr == ptrSysLogicalProcInfoBase)
-            {
-                return -1;
-            }
-
-            // Second call, now we expect to succeed
-            if (!GetLogicalProcessorInformationEx (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, ptrSysLogicalProcInfoBase, &length))
-            {
-                free (ptrSysLogicalProcInfoBase);
-                return -1;
-            }
-
-            auto *ptrSysLogicalProcInfoCurr = ptrSysLogicalProcInfoBase;
-            DWORD offset = 0;
-            u16 nodes = 0;
-            u16 cores = 0;
-            u16 threads = 0;
-            while (   ptrSysLogicalProcInfoCurr->Size > 0
-                   && ptrSysLogicalProcInfoCurr->Size + offset <= length)
-            {
-                switch (ptrSysLogicalProcInfoCurr->Relationship)
-                {
-                case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
-                    ++cores;
-                    threads += ptrSysLogicalProcInfoCurr->Processor.Flags == LTP_PC_SMT ? 2 : 1;
-                    break;
-                case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
-                    ++nodes;
-                    break;
-                default:
-                    break;
-                }
-
-                offset += ptrSysLogicalProcInfoCurr->Size;
-                ptrSysLogicalProcInfoCurr = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *> (reinterpret_cast<BYTE *> (ptrSysLogicalProcInfoCurr) + ptrSysLogicalProcInfoCurr->Size);
-            }
-            free (ptrSysLogicalProcInfoBase);
-
-            vector<u16> groups;
-            // Run as many threads as possible on the same node until core limit is
-            // reached, then move on filling the next node.
-            for (u16 n = 0; n < nodes; ++n)
-            {
-                for (u16 i = 0; i < cores / nodes; ++i)
-                {
-                    groups.push_back (n);
-                }
-            }
-            // In case a core has more than one logical processor (we assume 2) and we
-            // have still threads to allocate, then spread them evenly across available
-            // nodes.
-            for (u16 t = 0; t < threads - cores; ++t)
-            {
-                groups.push_back (t % nodes);
-            }
-
-            // If we still have more threads than the total number of logical processors
-            // then return -1 and let the OS to decide what to do.
-            return index < groups.size () ? groups[index] : -1;
-        }
-
-        void bind_thread (size_t index)
-        {
-            // Use only local variables to be thread-safe
-            auto group = get_group (index);
-            if (-1 == group)
-            {
-                return;
-            }
-            // Early exit if the needed API are not available at runtime
-            auto kernel32 = GetModuleHandle("Kernel32.dll");
-            if (nullptr == kernel32)
-            {
-                return;
-            }
-
-            auto GetNumaNodeProcessorMaskEx = (GNNPME) GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx");
-            if (nullptr == GetNumaNodeProcessorMaskEx)
-            {
-                return;
-            }
-            GROUP_AFFINITY affinity;
-            if (GetNumaNodeProcessorMaskEx (USHORT(group), &affinity))
-            {
-                auto SetThreadGroupAffinity = (STGA) GetProcAddress (kernel32, "SetThreadGroupAffinity");
-                if (nullptr == SetThreadGroupAffinity)
-                {
-                    return;
-                }
-                SetThreadGroupAffinity (GetCurrentThread (), &affinity, nullptr);
-            }
-        }
-
+        
     #else
 
-        void bind_thread (size_t)
-        {}
 
     #endif
 
@@ -322,7 +203,7 @@ namespace Threading {
         // NUMA machinery is not needed.
         if (i32(Options["Threads"]) >= 8)
         {
-            bind_thread (index);
+            Threadpool.bind_thread (index);
         }
 
         while (true)
@@ -382,6 +263,145 @@ namespace Threading {
         time_mgr.available_nodes = 0;
         last_value = VALUE_NONE;
         last_time_reduction = 1.0;
+    }
+
+    /// init_group() retrieves logical processor information using specific API
+    void ThreadPool::init_group ()
+    {
+    #if defined(_WIN32)
+        // Early exit if the needed API is not available at runtime
+        auto kernel32 = GetModuleHandle ("Kernel32.dll");
+        if (nullptr == kernel32)
+        {
+            groups.push_back (-1);
+            return;
+        }
+        auto GetLogicalProcessorInformationEx = (GLPIE) GetProcAddress (kernel32, "GetLogicalProcessorInformationEx");
+        if (nullptr == GetLogicalProcessorInformationEx)
+        {
+            groups.push_back (-1);
+            return;
+        }
+
+        DWORD length = 0;
+        // First call to get length. We expect it to fail due to null buffer
+        if (GetLogicalProcessorInformationEx (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length))
+        {
+            groups.push_back (-1);
+            return;
+        }
+
+        // Once we know length, allocate the buffer
+        auto *ptrSysLogicalProcInfoBase = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *> (malloc (length));
+        if (nullptr == ptrSysLogicalProcInfoBase)
+        {
+            groups.push_back (-1);
+            return;
+        }
+
+        // Second call, now we expect to succeed
+        if (!GetLogicalProcessorInformationEx (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, ptrSysLogicalProcInfoBase, &length))
+        {
+            free (ptrSysLogicalProcInfoBase);
+            groups.push_back (-1);
+            return;
+        }
+
+        auto *ptrSysLogicalProcInfoCurr = ptrSysLogicalProcInfoBase;
+        DWORD offset = 0;
+        u16 nodes = 0;
+        u16 cores = 0;
+        u16 threads = 0;
+        while (   ptrSysLogicalProcInfoCurr->Size > 0
+               && ptrSysLogicalProcInfoCurr->Size + offset <= length)
+        {
+            switch (ptrSysLogicalProcInfoCurr->Relationship)
+            {
+            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
+                ++cores;
+                threads += ptrSysLogicalProcInfoCurr->Processor.Flags == LTP_PC_SMT ? 2 : 1;
+                break;
+            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
+                ++nodes;
+                break;
+            default:
+                break;
+            }
+
+            offset += ptrSysLogicalProcInfoCurr->Size;
+            ptrSysLogicalProcInfoCurr = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *> (reinterpret_cast<BYTE *> (ptrSysLogicalProcInfoCurr) + ptrSysLogicalProcInfoCurr->Size);
+        }
+        free (ptrSysLogicalProcInfoBase);
+
+
+        // Run as many threads as possible on the same node until core limit is
+        // reached, then move on filling the next node.
+        for (u16 n = 0; n < nodes; ++n)
+        {
+            for (u16 i = 0; i < cores / nodes; ++i)
+            {
+                groups.push_back (n);
+            }
+        }
+        // In case a core has more than one logical processor (we assume 2) and we
+        // have still threads to allocate, then spread them evenly across available
+        // nodes.
+        for (u16 t = 0; t < threads - cores; ++t)
+        {
+            groups.push_back (t % nodes);
+        }
+
+    #else
+
+
+    #endif
+    }
+
+    /// bind_thread() set the group affinity for the thread index.
+    void ThreadPool::bind_thread (size_t index)
+    {
+        // If we still have more threads than the total number of logical processors
+        // then return -1 and let the OS to decide what to do.
+        auto group = index < groups.size () ? groups[index] : -1;
+        if (-1 == group)
+        {
+            return;
+        }
+
+    #if defined(_WIN32)
+
+        // Early exit if the needed API are not available at runtime
+        auto kernel32 = GetModuleHandle ("Kernel32.dll");
+        if (nullptr == kernel32)
+        {
+            return;
+        }
+
+        auto GetNumaNodeProcessorMaskEx = (GNNPME) GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx");
+        if (nullptr == GetNumaNodeProcessorMaskEx)
+        {
+            return;
+        }
+        GROUP_AFFINITY affinity;
+        if (GetNumaNodeProcessorMaskEx (USHORT (group), &affinity))
+        {
+            auto SetThreadGroupAffinity = (STGA) GetProcAddress (kernel32, "SetThreadGroupAffinity");
+            if (nullptr == SetThreadGroupAffinity)
+            {
+                return;
+            }
+            SetThreadGroupAffinity (GetCurrentThread (), &affinity, nullptr);
+        }
+
+    #else
+
+
+    #endif
+    }
+
+    ThreadPool::ThreadPool ()
+    {
+        init_group ();
     }
 
     /// ThreadPool::best_thread()

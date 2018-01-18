@@ -160,7 +160,11 @@ namespace Threading {
     {
 
     private:
+        std::vector<i16> groups;
+
         StateListPtr setup_states;
+
+        void init_group ();
 
         u64 accumulate (std::atomic<u64> Thread::*member) const
         {
@@ -179,7 +183,7 @@ namespace Threading {
             ,             stop_on_ponderhit   // Stop search on ponderhit
             ,             ponder;             // Search on ponder move until the "stop"/"ponderhit" command
 
-        ThreadPool () = default;
+        ThreadPool ();
         ThreadPool (const ThreadPool&) = delete;
         ThreadPool& operator= (const ThreadPool&) = delete;
 
@@ -188,6 +192,8 @@ namespace Threading {
         u64 tb_hits () const { return accumulate (&Thread::tb_hits); }
 
         Thread* best_thread () const;
+
+        void bind_thread (size_t index);
 
         void clear ();
         void configure (u32);
