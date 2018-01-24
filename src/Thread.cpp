@@ -357,7 +357,7 @@ namespace Threading {
         {
             return;
         }
-        auto group = groups[index];
+        u16 group = groups[index];
 
     #if defined(_WIN32)
 
@@ -373,7 +373,7 @@ namespace Threading {
             return;
         }
         GROUP_AFFINITY affinity;
-        if (GetNumaNodeProcessorMaskEx (USHORT(group), &affinity))
+        if (GetNumaNodeProcessorMaskEx (group, &affinity))
         {
             auto SetThreadGroupAffinity = (STGA) GetProcAddress (kernel32, "SetThreadGroupAffinity");
             if (nullptr == SetThreadGroupAffinity)

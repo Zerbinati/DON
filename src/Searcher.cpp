@@ -293,7 +293,6 @@ const ValMove& MovePicker::next_max_move ()
 /// taking care not to return the tt_move if it has already been searched.
 Move MovePicker::next_move ()
 {
-    START:
     switch (stage)
     {
 
@@ -383,15 +382,11 @@ Move MovePicker::next_move ()
                     ++i;
                     return beg->move;
                 }
-
                 //std::stable_sort (moves.begin () + i, moves.end (), [](const ValMove &vm1, const ValMove &vm2) { return vm1.value > vm2.value; });
-                ++stage;
-                goto START;
             }
         }
-        stage += 2;
-        i = 0;
-        goto START;
+        ++stage;
+        /* fallthrough */
     case Stage::QUIETS_2:
         if (   pick_quiets
             && i < moves.size ())
