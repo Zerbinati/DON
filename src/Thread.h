@@ -64,7 +64,7 @@ public:
         return depth == level + 1;
     }
 
-    void pick_best_move (const RootMoves &root_moves);
+    void pick_best_move (const RootMoves&);
 };
 
 namespace Threading {
@@ -193,7 +193,7 @@ namespace Threading {
 
         Thread* best_thread () const;
 
-        void bind_thread (size_t index);
+        void bind_thread (size_t);
 
         void clear ();
         void configure (u32);

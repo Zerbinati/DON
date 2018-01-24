@@ -63,9 +63,8 @@ namespace Memory {
                 {
                     token_priv.PrivilegeCount = 1;
                     token_priv.Privileges[0].Attributes = enable ?
-                                            SE_PRIVILEGE_ENABLED :
-                                            SE_PRIVILEGE_DISABLED;
-                    
+                                                            SE_PRIVILEGE_ENABLED :
+                                                            SE_PRIVILEGE_DISABLED;
                     if (AdjustTokenPrivileges (token_handle, false, &token_priv, 0, nullptr, 0))
                     {
                         if (GetLastError () != ERROR_NOT_ALL_ASSIGNED)
@@ -82,6 +81,7 @@ namespace Memory {
 #   else
 
         i32 SHM; // Shared Memory Identifier
+        extern int errno;
 
 #   endif
 
@@ -131,10 +131,10 @@ namespace Memory {
                     sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB, error# = " << errno << std::endl;
                 if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
-                    std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
+                    std::cerr << "ERROR: shmctl(IPC_RMID) failed, error# = " << errno << std::endl;
                 }
                 return;
             }
@@ -148,14 +148,14 @@ namespace Memory {
                     sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB, error# = " << errno << std::endl;
                 if (shmctl (SHM, IPC_RMID, nullptr) == -1)
                 {
-                    std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
+                    std::cerr << "ERROR: shmctl(IPC_RMID) failed, error# = " << errno << std::endl;
                 }
                 return;
             }
-            std::cerr << "ERROR: shmget() shared memory alloc failed " << (mem_size >> 20) << " MB" << std::endl;
+            std::cerr << "ERROR: shmget() shared memory alloc failed " << (mem_size >> 20) << " MB, error# = " << errno << std::endl;
 
 #   endif
         }
@@ -187,11 +187,11 @@ namespace Memory {
 #   else
             if (shmdt (mem) == -1)
             {
-                std::cerr << "ERROR: shmdt() shared memory detach failed" << std::endl;
+                std::cerr << "ERROR: shmdt() shared memory detach failed, error# = " << errno << std::endl;
             }
             if (shmctl (SHM, IPC_RMID, nullptr) == -1)
             {
-                std::cerr << "ERROR: shmctl(IPC_RMID) failed" << std::endl;
+                std::cerr << "ERROR: shmctl(IPC_RMID) failed, error# = " << errno << std::endl;
             }
 #   endif
             return;
@@ -212,7 +212,7 @@ namespace Memory {
     void deinitialize ()
     {
 #   if defined(_WIN32)
-        
+        setup_privilege (SE_LOCK_MEMORY_NAME, false);
 #   else
 
 #   endif

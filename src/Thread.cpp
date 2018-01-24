@@ -134,7 +134,6 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
 
 namespace Threading {
 
-
     namespace { 
 
     #if defined(_WIN32)
@@ -164,8 +163,8 @@ namespace Threading {
 
     /// Thread constructor launches the thread and waits until it goes to sleep in idle_loop().
     /// Note that 'searching' and 'dead' should be already set.
-    Thread::Thread (size_t n)
-        : index (n)
+    Thread::Thread (size_t idx)
+        : index (idx)
         , std_thread (&Thread::idle_loop, this)
     {
         wait_while_busy ();
@@ -247,8 +246,8 @@ namespace Threading {
     }
 
     /// MainThread constructor
-    MainThread::MainThread (size_t n)
-        : Thread (n)
+    MainThread::MainThread (size_t idx)
+        : Thread (idx)
         , check_count (0)
         , failed_low (false)
         , best_move_change (0.0)
@@ -273,13 +272,11 @@ namespace Threading {
         auto kernel32 = GetModuleHandle ("Kernel32.dll");
         if (nullptr == kernel32)
         {
-            groups.push_back (-1);
             return;
         }
         auto GetLogicalProcessorInformationEx = (GLPIE) GetProcAddress (kernel32, "GetLogicalProcessorInformationEx");
         if (nullptr == GetLogicalProcessorInformationEx)
         {
-            groups.push_back (-1);
             return;
         }
 
@@ -287,7 +284,6 @@ namespace Threading {
         // First call to get length. We expect it to fail due to null buffer
         if (GetLogicalProcessorInformationEx (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length))
         {
-            groups.push_back (-1);
             return;
         }
 
@@ -295,7 +291,6 @@ namespace Threading {
         auto *ptrSysLogicalProcInfoBase = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *> (malloc (length));
         if (nullptr == ptrSysLogicalProcInfoBase)
         {
-            groups.push_back (-1);
             return;
         }
 
@@ -303,7 +298,6 @@ namespace Threading {
         if (!GetLogicalProcessorInformationEx (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, ptrSysLogicalProcInfoBase, &length))
         {
             free (ptrSysLogicalProcInfoBase);
-            groups.push_back (-1);
             return;
         }
 
@@ -333,7 +327,6 @@ namespace Threading {
         }
         free (ptrSysLogicalProcInfoBase);
 
-
         // Run as many threads as possible on the same node until core limit is
         // reached, then move on filling the next node.
         for (u16 n = 0; n < nodes; ++n)
@@ -356,21 +349,18 @@ namespace Threading {
 
     #endif
     }
-
     /// bind_thread() set the group affinity for the thread index.
     void ThreadPool::bind_thread (size_t index)
     {
-        // If we still have more threads than the total number of logical processors
-        // then return -1 and let the OS to decide what to do.
-        auto group = index < groups.size () ? groups[index] : -1;
-        if (-1 == group)
+        // If we still have more threads than the total number of logical processors then let the OS to decide what to do.
+        if (index >= groups.size ())
         {
             return;
         }
+        auto group = groups[index];
 
     #if defined(_WIN32)
 
-        // Early exit if the needed API are not available at runtime
         auto kernel32 = GetModuleHandle ("Kernel32.dll");
         if (nullptr == kernel32)
         {
@@ -383,7 +373,7 @@ namespace Threading {
             return;
         }
         GROUP_AFFINITY affinity;
-        if (GetNumaNodeProcessorMaskEx (USHORT (group), &affinity))
+        if (GetNumaNodeProcessorMaskEx (USHORT(group), &affinity))
         {
             auto SetThreadGroupAffinity = (STGA) GetProcAddress (kernel32, "SetThreadGroupAffinity");
             if (nullptr == SetThreadGroupAffinity)
@@ -398,12 +388,11 @@ namespace Threading {
 
     #endif
     }
-
+    /// ThreadPool() constructor
     ThreadPool::ThreadPool ()
     {
         init_group ();
     }
-
     /// ThreadPool::best_thread()
     Thread* ThreadPool::best_thread () const
     {

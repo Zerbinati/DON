@@ -127,7 +127,7 @@ struct PieceDestinyMoveHistory
 };
 
 /// Table3D is a Generic 3-dimensional array used to store various statistics
-template<int Size1, int Size2, int Size3, typename T>
+template<u32 Size1, u32 Size2, u32 Size3, typename T>
 struct Table3D
     : public std::array<std::array<std::array<T, Size3>, Size2>, Size1>
 {

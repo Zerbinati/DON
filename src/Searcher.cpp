@@ -566,33 +566,33 @@ namespace Searcher {
 
     Limit Limits;
 
-    i32 MultiPV =         1;
-    //i32 MultiPV_cp =      0;
+    i32 MultiPV = 1;
+    //i32 MultiPV_cp = 0;
 
-    i16   FixedContempt = 0
-        , ContemptTime =  30
-        , ContemptValue = 50;
+    i16 FixedContempt = 20
+      , ContemptTime = 30
+      , ContemptValue = 50;
 
-    string HashFile =     "Hash.dat";
-    bool RetainHash =     false;
+    string HashFile = "Hash.dat";
+    bool RetainHash = false;
 
-    bool OwnBook =        false;
-    string BookFile =     "Book.bin";
-    bool BookPickBest =   true;
-    i16 BookUptoMove =    20;
+    bool OwnBook = false;
+    string BookFile = "Book.bin";
+    bool BookPickBest = true;
+    i16 BookUptoMove = 20;
 
-    i16 TBProbeDepth =    1;
-    i32 TBLimitPiece =    6;
-    bool TBUseRule50 =    true;
-    bool TBHasRoot =      false;
-    Value TBValue =       VALUE_ZERO;
+    i16 TBProbeDepth = 1;
+    i32 TBLimitPiece = 6;
+    bool TBUseRule50 = true;
+    bool TBHasRoot = false;
+    Value TBValue = VALUE_ZERO;
 
-    string OutputFile =   Empty;
+    string OutputFile = Empty;
 
     namespace {
 
-        // RazorMargins[depth]
-        const Value RazorMargins[4] = { Value(0), Value(570), Value(602), Value(554) };
+        // RazorMargin
+        const Value RazorMargin = Value(600);
 
         // FutilityMoveCounts[improving][depth]
         u08 FutilityMoveCounts[2][16];
@@ -1237,14 +1237,14 @@ namespace Searcher {
                     if (   !PVNode
                         && 4 > depth
                         //&& 0 == Limits.mate
-                        && tt_eval + RazorMargins[depth] <= alfa)
+                        && tt_eval + RazorMargin <= alfa)
                     {
                         if (1 >= depth)
                         {
                             return quien_search<false> (pos, ss, alfa, alfa+1);
                         }
 
-                        auto alfa_margin = alfa - RazorMargins[depth];
+                        auto alfa_margin = alfa - RazorMargin;
                         assert(alfa_margin >= -VALUE_INFINITE);
                         auto value = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
                         if (value <= alfa_margin)
@@ -1958,7 +1958,7 @@ namespace Threading {
     using namespace Searcher;
 
     const u08 SkipIndex = 20;
-    const u08 SkipSize [SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
+    const u08 SkipSize[SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
     const u08 SkipPhase[SkipIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
     /// Thread::search() is thread iterative deepening loop function.
@@ -2011,7 +2011,7 @@ namespace Threading {
             {
                 // Distribute search depths across the threads.
                 assert(0 != index);
-                int i = (index - 1) % SkipIndex;
+                i32 i = (index - 1) % SkipIndex;
                 if (0 != ((running_depth + root_pos.ply + SkipPhase[i]) / SkipSize[i]) % 2)
                 {
                     continue;
