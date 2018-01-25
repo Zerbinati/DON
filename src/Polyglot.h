@@ -16,10 +16,10 @@ namespace Polyglot {
     {
         static const Entry NullEntry;
 
-        u64 key   ;
-        u16 move  ;
+        u64 key;
+        u16 move;
         u16 weight;
-        u32 learn ;
+        u32 learn;
 
         Entry () = default;
         Entry (u64 k, u16 m, u16 w, u32 l)

@@ -107,6 +107,39 @@ typedef        uint64_t    u64;
 
 #endif
 
+/// Preloads the given address in L1/L2 cache.
+/// This is a non-blocking function that doesn't stall the CPU
+/// waiting for data to be loaded from memory, which can be quite slow.
+#if defined(PREFETCH)
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
+#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+
+inline void prefetch (const void *addr)
+{
+#   if defined(__INTEL_COMPILER)
+    // This hack prevents prefetches from being optimized away by
+    // Intel compiler. Both MSVC and gcc seem not be affected by this.
+    __asm__ ("");
+#   endif
+    _mm_prefetch (reinterpret_cast<const char*> (addr), _MM_HINT_T0);
+}
+
+#   else
+
+inline void prefetch (const void *addr)
+{
+    __builtin_prefetch (addr);
+}
+
+#   endif
+#else
+
+inline void prefetch (const void *)
+{}
+
+#endif
+
 typedef u64 Key;
 typedef u64 Bitboard;
 

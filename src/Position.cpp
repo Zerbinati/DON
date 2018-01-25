@@ -19,49 +19,6 @@ using namespace Transposition;
 bool Position::Chess960 = false;
 u08  Position::DrawClockPly = 100;
 
-namespace {
-
-    /// Preloads the given address in L1/L2 cache.
-    /// This is a non-blocking function that doesn't stall
-    /// the CPU waiting for data to be loaded from memory,
-    /// which can be quite slow.
-#if defined(PREFETCH)
-#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
-#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
-
-    void prefetch (const void *addr)
-    {
-#       if defined(__INTEL_COMPILER)
-        // This hack prevents prefetches from being optimized away by
-        // Intel compiler. Both MSVC and gcc seem not be affected by this.
-        __asm__ ("");
-#       endif
-        _mm_prefetch (reinterpret_cast<const char*> (addr), _MM_HINT_T0);
-    }
-
-#   else
-
-    void prefetch (const void *addr)
-    {
-        __builtin_prefetch (addr);
-    }
-
-#   endif
-#else
-
-    void prefetch (const void *)
-    {}
-
-#endif
-
-    inline void prefetch2 (const void *addr)
-    {
-        prefetch (addr);
-        prefetch ((const char*) addr + 64);
-    }
-}
-
 /// Position::draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
 /// It does not detect Insufficient materials and Stalemate.
 bool Position::draw (i16 pp) const
@@ -633,12 +590,14 @@ void Position::set_castle (Color c, CastleSide cs)
     }
 }
 /// Position::can_en_passant() Can the en-passant possible.
-bool Position::can_en_passant (Color c, Square ep_sq) const
+bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
 {
     assert(ep_sq != SQ_NO);
     assert(R_6 == rel_rank (c, ep_sq));
-
-    if (!contains (pieces (~c, PAWN), ep_sq - pawn_push (c)))
+    auto cap = move_done ?
+                ep_sq - pawn_push (c) :
+                ep_sq + pawn_push (c);
+    if (!contains (pieces (~c, PAWN), cap))
     {
         return false;
     }
@@ -646,7 +605,7 @@ bool Position::can_en_passant (Color c, Square ep_sq) const
     // En-passant attackers
     Bitboard attackers = pieces (c, PAWN) & PawnAttacks[~c][ep_sq];
     assert(2 >= pop_count (attackers));
-    Bitboard mocc = (pieces () ^ (ep_sq - pawn_push (c))) | ep_sq;
+    Bitboard mocc = (pieces () ^ cap) | ep_sq;
     Bitboard bq = pieces (~c, BSHP, QUEN) & PieceAttacks[BSHP][square<KING> (c)];
     Bitboard rq = pieces (~c, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (c)];
     if (   0 != attackers
@@ -894,7 +853,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     assert(&nsi != si);
 
     thread->nodes.fetch_add (1, std::memory_order::memory_order_relaxed);
-    // Copy some fields of old state info to new state info object.
+    // Copy some fields of old state info to new state info object
     std::memcpy (&nsi, si, offsetof(StateInfo, capture));
     nsi.ptr = si;
     si = &nsi;
@@ -926,7 +885,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         if (PAWN == si->capture)
         {
             si->pawn_key ^= RandZob.piece_square_keys[pasive][PAWN][cap];
-            prefetch2 (thread->pawn_table.get (si->pawn_key));
+            prefetch (thread->pawn_table.get (si->pawn_key));
         }
         else
         {
@@ -939,7 +898,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->psq_score -= PSQ[pasive][si->capture][cap];
         si->clock_ply = 0;
     }
-    // Reset en-passant square.
+    // Reset en-passant square
     if (SQ_NO != si->en_passant_sq)
     {
         assert(si->clock_ply <= 1);
@@ -958,7 +917,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         {
             si->pawn_key ^= RandZob.piece_square_keys[active][PAWN][dst]
                           ^ RandZob.piece_square_keys[active][PAWN][org];
-            prefetch2 (thread->pawn_table.get (si->pawn_key));
+            prefetch (thread->pawn_table.get (si->pawn_key));
             // Double push pawn
             if (16 == (u08(dst) ^ u08(org)))
             {
@@ -993,7 +952,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     else
     if (ENPASSANT == mtype (m))
     {
-        // NOTE:: some condition already set so may not work.
+        // NOTE:: some condition already set so may not work
         assert(PAWN == mpt
             && R_5 == rel_rank (active, org)
             && R_6 == rel_rank (active, dst)
@@ -1006,7 +965,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         move_piece (org, dst);
         si->pawn_key ^= RandZob.piece_square_keys[active][PAWN][dst]
                       ^ RandZob.piece_square_keys[active][PAWN][org];
-        prefetch2 (thread->pawn_table.get (si->pawn_key));
+        prefetch (thread->pawn_table.get (si->pawn_key));
     }
     else
     if (PROMOTE == mtype (m))
@@ -1019,7 +978,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         ppt = promote (m);
         si->clock_ply = 0;
         si->promotion = true;
-        // Replace the pawn with the promoted piece.
+        // Replace the pawn with the promoted piece
         remove_piece (org);
         board[org] = NO_PIECE; // Not done by remove_piece()
         place_piece (dst, active, ppt);
@@ -1028,7 +987,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         prefetch (thread->matl_table.get (si->matl_key));
 
         si->pawn_key ^= RandZob.piece_square_keys[active][PAWN][org];
-        prefetch2 (thread->pawn_table.get (si->pawn_key));
+        prefetch (thread->pawn_table.get (si->pawn_key));
         si->non_pawn_matl[active] += PieceValues[MG][ppt];
     }
 
@@ -1037,7 +996,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     si->psq_score += PSQ[active][ppt][dst]
                    - PSQ[active][mpt][org];
 
-    // Update castling rights.
+    // Update castling rights
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
     if (CR_NONE != b)
     {
@@ -1050,16 +1009,16 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     assert(0 == attackers_to (square<KING> (active), pasive));
 
-    // Calculate checkers.
+    // Calculate checkers
     si->checkers = is_check ? attackers_to (square<KING> (pasive), active) : 0;
     assert(!is_check
         || 0 != si->checkers);
 
-    // Switch sides.
+    // Switch sides
     active = pasive;
     si->posi_key ^= RandZob.color_key;
 
-    prefetch (TT.cluster_entry (si->posi_key));
+    //prefetch (TT.cluster_entry (si->posi_key)); // No need due to Speculative prefetch
 
     si->set_check_info (*this);
 
