@@ -16,8 +16,6 @@ namespace Polyglot {
     // Size of Book entry (16 bytes)
     static_assert (sizeof (Entry) == 16, "Entry size incorrect");
 
-    const Entry Entry::NullEntry = { 0 , 0 , 0 , 0 };
-
     Entry::operator string () const
     {
         ostringstream oss;
@@ -41,6 +39,46 @@ namespace Polyglot {
 
     const u08 Book::HeaderSize = 96;
     static_assert (Book::HeaderSize == 96, "Book header size incorrect");
+
+    namespace {
+
+        Move move_convert (const Position &pos, Move pg_move)
+        {
+            // Polyglot book move is encoded as follows:
+            //
+            // bit 00-05: destiny square    (0...63)
+            // bit 06-11: origin square     (0...63)
+            // bit 12-14: promotion piece   (None = 0, Knight = 1 ... Queen = 4)
+            // bit    15: empty
+            // Move is "0" (a1a1) then it should simply be ignored.
+            // It seems to me that in that case one might as well delete the entry from the book.
+
+            // Castling moves follow "king captures rook" representation.
+            // Promotion moves have promotion piece different then our structure of move
+            // So in case book move is a promotion have to convert to our representation,
+            // in all the other cases can directly compare with a Move after having masked out
+            // the special Move's flags (bit 14-15) that are not supported by Polyglot.
+            // Polyglot use 3 bits while engine use 2 bits.
+            i08 pt = (pg_move >> 12) & MAX_PTYPE;
+            // Set new type for promotion piece
+            if (0 != pt)
+            {
+                assert (NIHT <= pt && pt <= QUEN);
+                promote (pg_move, PieceType (pt));
+            }
+            // Add special move flags and verify it is legal
+            for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+            {
+                if ((vm.move & ~PROMOTE) == pg_move)
+                {
+                    return vm.move;
+                }
+            }
+
+            return MOVE_NONE;
+        }
+
+    }
 
     Book::Book ()
         : fstream ()
@@ -233,38 +271,7 @@ namespace Polyglot {
             return MOVE_NONE;
         }
 
-        // Polyglot book move is encoded as follows:
-        //
-        // bit 00-05: destiny square    (0...63)
-        // bit 06-11: origin square     (0...63)
-        // bit 12-14: promotion piece   (None = 0, Knight = 1 ... Queen = 4)
-        // bit    15: empty
-        // Move is "0" (a1a1) then it should simply be ignored.
-        // It seems to me that in that case one might as well delete the entry from the book.
-
-        // Castling moves follow "king captures rook" representation.
-        // Promotion moves have promotion piece different then our structure of move
-        // So in case book move is a promotion have to convert to our representation,
-        // in all the other cases can directly compare with a Move after having masked out
-        // the special Move's flags (bit 14-15) that are not supported by Polyglot.
-        // Polyglot use 3 bits while engine use 2 bits.
-        i08 pt = (move >> 12) & MAX_PTYPE;
-        // Set new type for promotion piece
-        if (0 != pt)
-        {
-            assert(NIHT <= pt && pt <= QUEN);
-            promote (move, PieceType(pt));
-        }
-        // Add special move flags and verify it is legal
-        for (const auto &vm : MoveList<GenType::LEGAL> (pos))
-        {
-            if ((vm.move & ~PROMOTE) == move)
-            {
-                return vm.move;
-            }
-        }
-
-        return MOVE_NONE;
+        return move_convert (pos, move);
     }
 
     string Book::read_entries (const Position &pos)

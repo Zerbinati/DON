@@ -14,12 +14,10 @@ namespace Polyglot {
     ///  - Learn     4 bytes
     struct Entry
     {
-        static const Entry NullEntry;
-
-        u64 key   ;
-        u16 move  ;
+        u64 key;
+        u16 move;
         u16 weight;
-        u32 learn ;
+        u32 learn;
 
         Entry () = default;
         Entry (u64 k, u16 m, u16 w, u32 l)
@@ -41,7 +39,6 @@ namespace Polyglot {
         }
         bool operator!= (const Entry &pe)
         {
-            //return !(*this == pe);
             return key != pe.key
                 || move != pe.move
                 || weight != pe.weight;

@@ -114,7 +114,7 @@ private:
 
     void set_castle (Color, CastleSide);
 
-    bool can_en_passant (Color, Square) const;
+    bool can_en_passant (Color, Square, bool = true) const;
 
     void do_castling (Square, Square&, Square&, Square&);
     void undo_castling (Square, Square&, Square&, Square&);
@@ -165,6 +165,7 @@ public:
     template<PieceType PT> Square square (Color, i08 = 0) const;
 
     Key pg_key () const;
+    Key posi_move_key (Move) const;
 
     bool expeded_castle (Color, CastleSide) const;
 
@@ -309,6 +310,60 @@ inline Key Position::pg_key () const
 {
     return PolyZob.compute_posi_key (*this);
 }
+/// Position::move_posi_key() computes the new hash key after the given moven.
+/// Needed for speculative prefetch.
+inline Key Position::posi_move_key (Move m) const
+{
+    auto org = org_sq (m);
+    auto dst = dst_sq (m);
+    auto mpt = ptype (board[org]);
+    assert(!empty (org)
+        && color (board[org]) == active
+        && NONE != mpt);
+    
+    auto key = si->posi_key;
+    auto mt = mtype (m);
+    auto ppt = PROMOTE != mt ? mpt : promote (m);
+    if (CASTLE == mt)
+    {
+        key ^=
+              RandZob.piece_square_keys[active][ROOK][dst]
+            ^ RandZob.piece_square_keys[active][ROOK][rel_sq (active, dst > org ? SQ_F1 : SQ_D1)];
+    }
+    else
+    {
+        if (   NORMAL == mt
+            && PAWN == mpt
+            && 16 == (u08(dst) ^ u08(org)))
+        {
+            auto ep_sq = org + (dst - org) / 2;
+            if (can_en_passant (~active, ep_sq, false))
+            {
+                key ^= RandZob.en_passant_keys[_file (ep_sq)];
+            }
+        }
+        auto cpt = ENPASSANT != mt ? ptype (board[dst]) : PAWN;
+        if (NONE != cpt)
+        {
+            key ^= RandZob.piece_square_keys[~active][cpt][ENPASSANT != mt ?
+                                                                dst :
+                                                                dst - pawn_push (active)];
+        }
+    }
+    auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
+    if (CR_NONE != b)
+    {
+        if (CR_NONE != (b & CR_WKING)) key ^= RandZob.castle_right_keys[WHITE][CS_KING];
+        if (CR_NONE != (b & CR_WQUEN)) key ^= RandZob.castle_right_keys[WHITE][CS_QUEN];
+        if (CR_NONE != (b & CR_BKING)) key ^= RandZob.castle_right_keys[BLACK][CS_KING];
+        if (CR_NONE != (b & CR_BQUEN)) key ^= RandZob.castle_right_keys[BLACK][CS_QUEN];
+    }
+    return key
+         ^ RandZob.color_key
+         ^ RandZob.piece_square_keys[active][ppt][mt != CASTLE ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
+         ^ RandZob.piece_square_keys[active][mpt][org]
+         ^ (SQ_NO != si->en_passant_sq ? RandZob.en_passant_keys[_file (si->en_passant_sq)] : 0);
+}
 
 inline bool Position::expeded_castle (Color c, CastleSide cs) const
 {
@@ -436,7 +491,10 @@ inline PieceType Position::cap_type (Move m) const
 
 inline void Position::do_move (Move m, StateInfo &nsi)
 {
-    do_move (m, nsi, gives_check (m));
+    do_move (m, nsi, NORMAL == mtype (m)
+                  && 0 == dsc_blockers (active) ?
+                        contains (si->checks[ptype (board[org_sq (m)])], dst_sq (m)) :
+                        gives_check (m));
 }
 
 inline void Position::place_piece (Square s, Color c, PieceType pt)

@@ -890,9 +890,18 @@ namespace Searcher {
                 ++move_count;
 
                 auto org = org_sq (move);
+                auto dst = dst_sq (move);
+
                 auto mpc = pos[org];
                 assert(NO_PIECE != mpc);
-                bool gives_check = pos.gives_check (move);
+
+                bool gives_check = NORMAL == mtype (move)
+                                && 0 == pos.dsc_blockers (pos.active) ?
+                                    contains (pos.si->checks[ptype (mpc)], dst) :
+                                    pos.gives_check (move);
+
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                 // Futility pruning
                 if (   !in_check
@@ -938,19 +947,20 @@ namespace Searcher {
                     continue;
                 }
 
+                // Update the current move.
                 ss->played_move = move;
 
-                // Make the move
+                // Make the move.
                 pos.do_move (move, si, gives_check);
 
                 auto value = -quien_search<PVNode> (pos, ss+1, -beta, -alfa, depth - 1);
 
-                // Undo the move
+                // Undo the move.
                 pos.undo_move (move);
 
                 assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
-                // Check for new best move
+                // Check for new best move.
                 if (best_value < value)
                 {
                     best_value = value;
@@ -1067,7 +1077,7 @@ namespace Searcher {
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
 
             Move move;
-            // Step 4. Transposition table lookup
+            // Step 4. Transposition table lookup.
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
             Key  key = pos.si->posi_key ^ Key(ss->excluded_move << 16);
@@ -1142,7 +1152,7 @@ namespace Searcher {
                 return tt_value;
             }
 
-            // Step 4A. Tablebase probe
+            // Step 4A. Tablebase probe.
             if (   !root_node
                 && 0 != TBLimitPiece)
             {
@@ -1248,7 +1258,7 @@ namespace Searcher {
                         }
                     }
 
-                    // Step 7. Futility pruning: child node
+                    // Step 7. Futility pruning: child node.
                     // Betting that the opponent doesn't have a move that will reduce
                     // the score by more than futility margins [depth] if do a null move.
                     if (   !root_node
@@ -1319,7 +1329,7 @@ namespace Searcher {
                         }
                     }
 
-                    // Step 9. ProbCut
+                    // Step 9. ProbCut.
                     // If good enough capture and a reduced search returns a value much above beta,
                     // then can (almost) safely prune the previous move.
                     if (   !PVNode
@@ -1355,7 +1365,7 @@ namespace Searcher {
                         }
                     }
 
-                    // Step 10. Internal iterative deepening (IID)
+                    // Step 10. Internal iterative deepening (IID).
                     if (   MOVE_NONE == tt_move
                         && 5 < depth
                         && (   PVNode
@@ -1412,7 +1422,7 @@ namespace Searcher {
                                     MOVE_NONE;
             // Initialize move picker (1) for the current position
             auto move_picker = MovePicker(pos, tt_move, depth, piece_destiny_history, ss->killer_moves, counter_move);
-            // Step 11. Loop through all legal moves until no moves remain or a beta cutoff occurs
+            // Step 11. Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
                 assert(pos.pseudo_legal (move)
@@ -1431,16 +1441,20 @@ namespace Searcher {
 
                 ss->move_count = ++move_count;
 
-                bool gives_check = pos.gives_check (move);
-                bool capture_or_promotion = pos.capture_or_promotion (move);
-
                 bool move_count_pruning = 16 > depth
                                        && FutilityMoveCounts[improving ? 1 : 0][depth] <= move_count;
 
                 auto org = org_sq (move);
                 auto dst = dst_sq (move);
+
                 auto mpc = pos[org];
-                assert(NO_PIECE != mpc);
+                assert (NO_PIECE != mpc);
+
+                bool gives_check = NORMAL == mtype (move)
+                                && 0 == pos.dsc_blockers (pos.active) ?
+                                    contains (pos.si->checks[ptype (mpc)], dst) :
+                                    pos.gives_check (move);
+                bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 if (   root_node
                     && Threadpool.main_thread () == pos.thread)
@@ -1501,6 +1515,9 @@ namespace Searcher {
                 // Calculate new depth for this move
                 i16 new_depth = depth - 1 + extension;
 
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
+
                 // Step 13. Pruning at shallow depth.
                 if (   !root_node
                     //&& 0 == Limits.mate
@@ -1554,15 +1571,15 @@ namespace Searcher {
                     ttm_capture = true;
                 }
 
-                // Update the current move (this must be done after singular extension search).
-                ss->played_move = move;
-                ss->piece_destiny_history = &pos.thread->continuation_history[mpc][dst];
-
                 i32 own_stats = pos.thread->butterfly_history[pos.active][move_pp (move)]
                               + (*piece_destiny_history[0])[mpc][dst]
                               + (*piece_destiny_history[1])[mpc][dst]
                               + (*piece_destiny_history[3])[mpc][dst]
                               - 4000;
+
+                // Update the current move.
+                ss->played_move = move;
+                ss->piece_destiny_history = &pos.thread->continuation_history[mpc][dst];
 
                 // Step 14. Make the move.
                 pos.do_move (move, si, gives_check);
