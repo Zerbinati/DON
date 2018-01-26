@@ -2284,7 +2284,6 @@ namespace Threading {
                 && (   0 == Book.move_upto
                     || root_pos.move_num () <= Book.move_upto))
             {
-                sync_cout << Book.show (root_pos) << sync_endl;
                 auto book_best_move = Book.probe (root_pos);
                 if (MOVE_NONE != book_best_move)
                 {

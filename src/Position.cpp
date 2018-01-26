@@ -2,6 +2,7 @@
 
 #include "MoveGenerator.h"
 #include "Notation.h"
+#include "Polyglot.h"
 #include "PSQT.h"
 #include "TBsyzygy.h"
 #include "Thread.h"
@@ -11,6 +12,7 @@ using namespace std;
 using namespace BitBoard;
 using namespace MoveGen;
 using namespace Notation;
+using namespace Polyglot;
 using namespace PSQT;
 using namespace TBSyzygy;
 using namespace Threading;
@@ -1320,6 +1322,13 @@ Position::operator string () const
     for (Bitboard b = si->checkers; 0 != b; )
     {
         oss << pop_lsq (b) << " ";
+    }
+    if (Book.enabled)
+    {
+        StateInfo st;
+        Position pos;
+        pos.setup (fen (), st, thread);
+        oss << "\n" << Book.show (pos);
     }
     if (   MaxLimitPiece >= count ()
         && !si->can_castle (CR_ANY))
