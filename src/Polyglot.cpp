@@ -203,15 +203,15 @@ namespace Polyglot {
 
         return -1;
     }
-    i64 PolyBook::find_index (const Position &pos)
-    {
-        return find_index (pos.pg_key ());
-    }
-    i64 PolyBook::find_index (const string &fen, bool c960)
-    {
-        StateInfo si;
-        return find_index (Position ().setup (fen, si, nullptr, c960).pg_key ());
-    }
+    //i64 PolyBook::find_index (const Position &pos)
+    //{
+    //    return find_index (pos.pg_key ());
+    //}
+    //i64 PolyBook::find_index (const string &fen, bool c960)
+    //{
+    //    StateInfo si;
+    //    return find_index (Position ().setup (fen, si, nullptr, c960).pg_key ());
+    //}
 
     bool PolyBook::check_do_probe (const Position & pos)
     {
@@ -291,8 +291,8 @@ namespace Polyglot {
     {
         auto move = MOVE_NONE;
 
-        if (   nullptr == entries
-            || !enabled
+        if (   !enabled
+            || nullptr == entries
             || (   0 != move_count
                 && pos.move_num () > move_count)
             || !check_do_probe (pos))

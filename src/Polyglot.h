@@ -112,8 +112,8 @@ namespace Polyglot {
         void clear ();
 
         i64 find_index (const Key);
-        i64 find_index (const Position&);
-        i64 find_index (const std::string&, bool = false);
+        //i64 find_index (const Position&);
+        //i64 find_index (const std::string&, bool = false);
 
         bool check_do_probe (const Position&);
 
