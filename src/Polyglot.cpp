@@ -57,7 +57,7 @@ namespace Polyglot {
         //}
 
 
-        Move convert_move (const Position &pos, Move pg_move)
+        Move convert_move (const Position &pos, Move move)
         {
             // Polyglot book move is encoded as follows:
             //
@@ -74,17 +74,17 @@ namespace Polyglot {
             // in all the other cases can directly compare with a Move after having masked out
             // the special Move's flags (bit 14-15) that are not supported by Polyglot.
             // Polyglot use 3 bits while engine use 2 bits.
-            i08 pt = (pg_move >> 12) & MAX_PTYPE;
+            i08 pt = (move >> 12) & MAX_PTYPE;
             // Set new type for promotion piece
             if (0 != pt)
             {
                 assert (NIHT <= pt && pt <= QUEN);
-                promote (pg_move, PieceType (pt));
+                promote (move, PieceType(pt));
             }
             // Add special move flags and verify it is legal
             for (const auto &vm : MoveList<GenType::LEGAL> (pos))
             {
-                if ((vm.move & ~PROMOTE) == pg_move)
+                if ((vm.move & ~PROMOTE) == move)
                 {
                     return vm.move;
                 }
@@ -117,11 +117,12 @@ namespace Polyglot {
         if (pt != PAWN)
         {
             promote (m, pt);
+            m = Move(m + PROMOTE);
         }
         // TODO:: Add special move flags and verify it is legal
         oss << " key: "    << std::setw (16) << std::setfill ('0') << std::hex << std::uppercase << key << std::nouppercase
             << " move: "   << std::setw ( 5) << std::setfill (' ') << std::left << move_to_can (m) << std::right
-            << " weight: " << std::setw ( 4) << std::setfill ('0') << std::dec << weight
+            << " weight: " << std::setw ( 5) << std::setfill ('0') << std::dec << weight
             << " learn: "  << std::setw ( 2) << std::setfill ('0') << std::dec << learn
             << std::setfill (' ');
 
@@ -143,7 +144,7 @@ namespace Polyglot {
         , enabled (false)
         , filename ("Book.bin")
         , pick_best (true)
-        , move_upto (20)
+        , move_count (20)
     {
     }
 
@@ -163,26 +164,26 @@ namespace Polyglot {
 
     i64 PolyBook::find_index (const Key key)
     {
-        size_t beg = 0;
-        size_t end = entry_count;
+        i64 beg = i64(0);
+        i64 end = i64(entry_count);
 
-        while (beg + 9 <= end)
+        while (beg + 8 < end)
         {
-            size_t mid = (end + beg) / 2;
+            i64 mid = (beg + end) / 2;
 
-            if (entries[mid].key < key)
+            if (key > entries[mid].key)
             {
                 beg = mid;
             }
             else
-            if (entries[mid].key > key)
+            if (key < entries[mid].key)
             {
                 end = mid;
             }
             else
             {
-                beg = std::max (mid - 4, 0ULL);
-                end = std::min (mid + 4, entry_count);
+                beg = std::max (mid - 4, i64(0));
+                end = std::min (mid + 4, i64(entry_count));
             }
         }
 
@@ -214,22 +215,15 @@ namespace Polyglot {
 
     bool PolyBook::check_do_probe (const Position & pos)
     {
-        bool pos_changed = false;
-
         Bitboard pieces = pos.pieces ();
         i32 piece_count = pop_count (pieces);
         
-        if (   pop_count (pieces ^ last_pieces) > 6
-            || pieces != last_pieces
+        if (   pieces != last_pieces
+            //|| pop_count (pieces ^ last_pieces) > 6
             || piece_count > last_piece_count
             || piece_count < last_piece_count - 2
             || U64(0x3DE128A923B62420) == pos.si->posi_key
             || U64(0x463B96181691FC9C) == pos.pg_key ())
-        {
-            pos_changed = true;
-        }
-
-        if (pos_changed)
         {
             do_probe = true;
         }
@@ -239,7 +233,6 @@ namespace Polyglot {
 
         return do_probe;
     }
-
 
     void PolyBook::initialize (const string &book_fn)
     {
@@ -290,7 +283,6 @@ namespace Polyglot {
         sync_cout << "info string Book entries found " << entry_count << " from file \'" << book_fn << "\'" << sync_endl;
         enabled = true;
     }
-
     /// PolyBook::probe() tries to find a book move for the given position.
     /// If no move is found returns MOVE_NONE.
     /// If pick_best is true returns always the highest rated move,
@@ -299,13 +291,14 @@ namespace Polyglot {
     {
         auto move = MOVE_NONE;
 
-        if (nullptr == entries)
+        if (   nullptr == entries
+            || !enabled
+            || (   0 != move_count
+                && pos.move_num () > move_count)
+            || !check_do_probe (pos))
         {
             return move;
         }
-
-        if (   !enabled
-            || !check_do_probe (pos)) return move;
 
         auto key = pos.pg_key ();
 
@@ -355,12 +348,6 @@ namespace Polyglot {
                     pick_index1 = i;
                 }
             }
-            else
-            // Note that first entry is always chosen if sum of weight = 0
-            if (MOVE_NONE == move)
-            {
-                pick_index1 = i;
-            }
         }
 
         move = Move(entries[pick_index1].move);
@@ -368,10 +355,13 @@ namespace Polyglot {
 
         move = convert_move (pos, move);
        
-        if (!pos.draw (64)) return move;
-        if (1 >= count) return move;
+        if (   !pos.draw (64)
+            || 1 >= count)
+        {
+            return move;
+        }
 
-        // Special case draw position and more than 1 moves available
+        // Special case draw position and more than one moves available
 
         if (!check_draw (pos, move))
         {
@@ -397,10 +387,12 @@ namespace Polyglot {
         return MOVE_NONE;
     }
 
-    string PolyBook::show (Position &pos)
+    string PolyBook::show (const Position &pos)
     {
         ostringstream oss;
-        if (nullptr == entries)
+
+        if (   nullptr == entries
+            || !enabled)
         {
             return oss.str ();
         }
@@ -418,8 +410,6 @@ namespace Polyglot {
 
         for (size_t i = index; i < entry_count && key == entries[i].key; ++i)
         {
-            if (MOVE_NONE == entries[i].move) continue;
-
             ++count;
             sum_weight += entries[i].weight;
         }

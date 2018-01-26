@@ -564,7 +564,7 @@ namespace Searcher {
     i32 MultiPV = 1;
     //i32 MultiPV_cp = 0;
 
-    i16 FixedContempt = 20
+    i16 FixedContempt = 0
       , ContemptTime = 30
       , ContemptValue = 50;
 
@@ -1765,6 +1765,7 @@ namespace Searcher {
                         quiet_moves.push_back (move);
                     }
                     else
+                    //if (pos.capture (move))
                     {
                         capture_moves.push_back (move);
                     }
@@ -1807,6 +1808,7 @@ namespace Searcher {
                         }
                     }
                     else
+                    //if (pos.capture (best_move))
                     {
                         auto bonus = stat_bonus (depth);
                         pos.thread->capture_history.update (pos[org_sq (best_move)], best_move, pos.cap_type (best_move), bonus);
@@ -2277,12 +2279,8 @@ namespace Threading {
         {
             bool think = true;
 
-            // Check if can play with own book.
-            if (   Book.enabled
-                && !Limits.infinite
-                && 0 == Limits.mate
-                && (   0 == Book.move_upto
-                    || root_pos.move_num () <= Book.move_upto))
+            if (   !Limits.infinite
+                && 0 == Limits.mate)
             {
                 auto book_best_move = Book.probe (root_pos);
                 if (MOVE_NONE != book_best_move)

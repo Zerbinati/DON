@@ -85,7 +85,7 @@ void TimeManager::initialize (Color c, i16 ply)
                         + Limits.clock[c].time
                         + Limits.clock[c].inc * (hyp_movestogo-1)
                         - OverheadClockTime
-                        - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), 0ULL);
+                        - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), u64(0));
 
         optimum_time = std::min (optimum_time, MinimumMoveTime + remaining_time (hyp_time, hyp_movestogo, ply, true));
         maximum_time = std::min (maximum_time, MinimumMoveTime + remaining_time (hyp_time, hyp_movestogo, ply, false));

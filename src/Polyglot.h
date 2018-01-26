@@ -125,15 +125,15 @@ namespace Polyglot {
         bool enabled;
         std::string filename;
         bool pick_best;
-        i16 move_upto;
+        i16 move_count;
 
         PolyBook ();
-        ~PolyBook ();
+       ~PolyBook ();
 
-        void initialize (const std::string& bookfile);
+        void initialize (const std::string&);
 
         Move probe (Position&);
-        std::string show (Position&);
+        std::string show (const Position&);
     };
 
 }

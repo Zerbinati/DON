@@ -1325,10 +1325,7 @@ Position::operator string () const
     }
     if (Book.enabled)
     {
-        StateInfo st;
-        Position pos;
-        pos.setup (fen (), st, thread);
-        oss << "\n" << Book.show (pos);
+        oss << "\n" << Book.show (*this);
     }
     if (   MaxLimitPiece >= count ()
         && !si->can_castle (CR_ANY))
