@@ -3,7 +3,7 @@
   <Class Name="Position">
     <Position X="6.25" Y="3.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>IEgAEAAKCQQACA2xRYKoIBRngBEEEAVgIgAgYDBgIQA=</HashCode>
+      <HashCode>IEgAEAAKCQQACA2xRYKoIBRngDEEEAVgIgAgYDBgIQA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -61,20 +61,6 @@
       <FileName>src\noncopyable.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="std::basic_null_buffer&lt;CharT, Traits&gt;" Collapsed="true">
-    <Position X="23.75" Y="10.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAgAAAAAAA=</HashCode>
-      <FileName>src\nullstream.h</FileName>
-    </TypeIdentifier>
-  </Class>
-  <Class Name="std::basic_null_stream&lt;CharT, Traits&gt;" Collapsed="true">
-    <Position X="23.75" Y="12.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAIAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\nullstream.h</FileName>
-    </TypeIdentifier>
-  </Class>
   <Class Name="std::basic_tie_buf&lt;Elem, Traits&gt;" Collapsed="true">
     <Position X="19.75" Y="9" Width="1.5" />
     <TypeIdentifier>
@@ -95,7 +81,7 @@
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>gsACCAAACICAAAIAAIAAQQAAAAAAJAAAAQAiAAwAAAA=</HashCode>
+      <HashCode>gMACCAAACICAAAIAAIAAQQAAAAAAJAAAAQAiAAwAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -113,7 +99,7 @@
       <FileName>src\Option.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Threading::Thread">
+  <Class Name="Thread">
     <Position X="0.5" Y="6.5" Width="1.5" />
     <AssociationLine Name="pawn_table" Type="Pawns::Table" FixedFromPoint="true" FixedToPoint="true">
       <Path>
@@ -130,7 +116,7 @@
       </Path>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AEAEESKgCQAAAAAggAAAAABBBAAAEACIACDgAAABoRA=</HashCode>
+      <HashCode>AEAEESKgCQAAAAAggAAIAABBBAAAEACIACDgCAABoRA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -138,10 +124,10 @@
       <Field Name="matl_table" />
     </ShowAsAssociation>
   </Class>
-  <Class Name="Threading::MainThread">
+  <Class Name="MainThread">
     <Position X="0.5" Y="12.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gEAAQAAAEAAAAAACgAAIAACAAQgAAAAAACEgAQAAAAA=</HashCode>
+      <HashCode>gEAAAAAAEAAAAAACgAAIAAAAAQgAAAAAACEgAQAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -149,10 +135,10 @@
       <Field Name="skill_mgr" />
     </ShowAsAssociation>
   </Class>
-  <Class Name="Threading::ThreadPool">
+  <Class Name="ThreadPool">
     <Position X="11.5" Y="5.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEABAQACQAAAACAAAAEAAAACQAAgAMAAAAAgEgAAIQE=</HashCode>
+      <HashCode>SEABAQICQAAAACAAAAAAAAAAQAAgAMAAAAAgEgAAIQE=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -205,7 +191,7 @@
   <Class Name="MovePicker">
     <Position X="16.5" Y="13.25" Width="1.75" />
     <TypeIdentifier>
-      <HashCode>AAQAAAgACgABAABAAAAAEIAAQgAACCAAIAAgAAAAAEA=</HashCode>
+      <HashCode>AAQAAAgACgABAABAAAAAEIAAQgAAGCAAIAAgAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -216,7 +202,7 @@
   <Class Name="Evaluator::`anonymous-namespace'::Evaluation&lt;Trace&gt;">
     <Position X="26.5" Y="10.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>QQiAigAAQYAAcQAQAxlAAYkMkIAAAGIBQSgzkE8QYAI=</HashCode>
+      <HashCode>QAiAigAAQYAAcQAQAxlAAYkMkIAAAGIBQSgzkE8QYAI=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Class>
@@ -319,7 +305,7 @@
   <Struct Name="Pawns::Entry">
     <Position X="28.5" Y="12.5" Width="1.75" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAABAAAACEAAMoAAgQAEIAAAAAAGADIABAAA=</HashCode>
+      <HashCode>AAAAAAAAAABAAAACEAAMoAAgQAEIAAAAQAGADIABAAA=</HashCode>
       <FileName>src\Pawns.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -338,14 +324,14 @@
   <Struct Name="Transposition::Entry">
     <Position X="21" Y="14" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAgAAAAAACAAACAAAIAAAAGAAAAACAgAEISMAAAARA=</HashCode>
+      <HashCode>AAAgAAAAAACAAACAAAAAAAAGAAAAACAgAEISMAAAARA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="Polyglot::Entry">
     <Position X="26.25" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAQAAAAAAAAAACAAAAkAQAEAAAAAACgAAAgAAAAAAA=</HashCode>
+      <HashCode>AAAQAAAAAAAAgACAAAAkAQAAAAAAAACgAAAgAAAAAAA=</HashCode>
       <FileName>src\Polyglot.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -425,7 +411,7 @@
   <Struct Name="BitBoard::Magic">
     <Position X="23" Y="14.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAACAAAAAEAAAAAAAAAAQAAACAAAAAAAAABgAA=</HashCode>
+      <HashCode>AAAAAAAACAAAQAEAAAAAAAAAAAAAACAAAAAAAAABgAA=</HashCode>
       <FileName>src\BitBoard.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -434,20 +420,6 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Material.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="std::null_stream" Collapsed="true">
-    <Position X="24.75" Y="13.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\nullstream.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="std::null_wstream" Collapsed="true">
-    <Position X="23" Y="13.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\nullstream.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="Pawns::Table" Collapsed="true">

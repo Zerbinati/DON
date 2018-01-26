@@ -10,7 +10,6 @@ namespace Notation {
 
     using namespace BitBoard;
     using namespace MoveGen;
-    using namespace Threading;
 
     namespace {
 

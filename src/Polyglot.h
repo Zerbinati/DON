@@ -111,9 +111,9 @@ namespace Polyglot {
 
         void clear ();
 
-        i64 find_index (const Key);
-        //i64 find_index (const Position&);
-        //i64 find_index (const std::string&, bool = false);
+        i64 find_index (const Key) const;
+        //i64 find_index (const Position&) const;
+        //i64 find_index (const std::string&, bool = false) const;
 
         bool can_probe (const Position&);
 
@@ -134,7 +134,7 @@ namespace Polyglot {
 
         Move probe (Position&);
 
-        std::string show (const Position&);
+        std::string show (const Position&) const;
     };
 
 }
