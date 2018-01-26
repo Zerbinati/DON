@@ -139,7 +139,7 @@ namespace Polyglot {
         , do_probe (true)
         , last_pieces (0)
         , last_piece_count (0)
-        , use (true)
+        , use (false)
         , enabled (false)
         , filename ("Book.bin")
         , pick_best (true)
