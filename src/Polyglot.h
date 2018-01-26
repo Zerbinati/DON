@@ -14,7 +14,7 @@ namespace Polyglot {
     ///  - Learn     4 bytes
     struct Entry
     {
-        static const Entry NullEntry;
+        static const u08 Size;
 
         u64 key;
         u16 move;
@@ -41,7 +41,6 @@ namespace Polyglot {
         }
         bool operator!= (const Entry &pe)
         {
-            //return !(*this == pe);
             return key != pe.key
                 || move != pe.move
                 || weight != pe.weight;
@@ -98,60 +97,48 @@ namespace Polyglot {
         return os;
     }
 
-    /// Polyglot::Book is a file containing series of Polyglot::Entry.
-    /// All integers are stored in big-endian format,
-    /// with the highest byte first (regardless of size).
-    /// The entries are ordered according to the key in ascending order.
-    /// Polyglot::Book file has *.bin extension.
-    class Book
-        : public std::fstream
+    class PolyBook
     {
+    private:
+
+        Entry *entries;
+        size_t entry_count;
+
+        u08 fail_counter;
+        bool do_probe;
+        Bitboard last_pieces;
+        i32 last_piece_count;
+
+        void clear ();
+
+        i64 find_index (const Key);
+        i64 find_index (const Position&);
+        i64 find_index (const std::string&, bool = false);
+
+        bool check_do_probe (const Position&);
+
     public:
 
-        std::string book_fn = "";
-        std::ios_base::openmode mode;
-        size_t size;
+        static const size_t HeaderSize;
 
-        static const u08 HeaderSize;
+        bool use;
+        bool enabled;
+        std::string filename;
+        bool pick_best;
+        i16 move_upto;
 
-        Book ();
-        Book (const std::string&, std::ios_base::openmode);
-        Book (const Book&) = delete;
-        Book& operator= (const Book&) = delete;
+        PolyBook ();
+        ~PolyBook ();
 
-        ~Book ();
+        void initialize (const std::string& bookfile);
 
-        size_t get_size ()
-        {
-            if (size == size_t(0))
-            {
-                auto cur_pos = tellg ();
-                seekg (0L, ios_base::end);
-                size = size_t(tellg ());
-                seekg (cur_pos, ios_base::beg);
-                clear ();
-            }
-            return size;
-        }
-
-        bool open (const std::string&, std::ios_base::openmode);
-        void close ();
-
-        template<typename T>
-        Book& operator>> (      T&);
-        template<typename T>
-        Book& operator<< (const T&);
-
-        size_t find_index (const Key);
-        size_t find_index (const Position&);
-        size_t find_index (const std::string&, bool = false);
-
-        Move probe_move (const Position&, bool = true);
-
-        std::string read_entries (const Position&);
-
+        Move probe (Position&);
+        std::string show (Position&);
     };
 
 }
+
+// Global Book
+extern Polyglot::PolyBook Book;
 
 #endif // _POLYGLOT_H_INC_

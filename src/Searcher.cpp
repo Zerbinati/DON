@@ -571,11 +571,6 @@ namespace Searcher {
     string HashFile = "Hash.dat";
     bool RetainHash = false;
 
-    bool OwnBook = false;
-    string BookFile = "Book.bin";
-    bool BookPickBest = true;
-    i16 BookUptoMove = 20;
-
     i16 TBProbeDepth = 1;
     i32 TBLimitPiece = 6;
     bool TBUseRule50 = true;
@@ -900,9 +895,6 @@ namespace Searcher {
                                     contains (pos.si->checks[ptype (mpc)], dst) :
                                     pos.gives_check (move);
 
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
-
                 // Futility pruning
                 if (   !in_check
                     && futility_base <= alfa
@@ -946,6 +938,9 @@ namespace Searcher {
                 {
                     continue;
                 }
+
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                 // Update the current move.
                 ss->played_move = move;
@@ -1515,9 +1510,6 @@ namespace Searcher {
                 // Calculate new depth for this move
                 i16 new_depth = depth - 1 + extension;
 
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
-
                 // Step 13. Pruning at shallow depth.
                 if (   !root_node
                     //&& 0 == Limits.mate
@@ -1570,6 +1562,9 @@ namespace Searcher {
                 {
                     ttm_capture = true;
                 }
+
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                 i32 own_stats = pos.thread->butterfly_history[pos.active][move_pp (move)]
                               + (*piece_destiny_history[0])[mpc][dst]
@@ -2218,7 +2213,6 @@ namespace Threading {
     /// It searches from root position and outputs the "bestmove"/"ponder".
     void MainThread::search ()
     {
-        static Book book; // Defined static to initialize the PRNG only once
         assert(Threadpool.main_thread () == this
             && 0 == index);
 
@@ -2284,34 +2278,33 @@ namespace Threading {
             bool think = true;
 
             // Check if can play with own book.
-            if (   OwnBook
-                && !Position::Chess960
+            if (   Book.enabled
                 && !Limits.infinite
                 && 0 == Limits.mate
-                && !white_spaces (BookFile)
-                && (   0 == BookUptoMove
-                    || root_pos.move_num () <= BookUptoMove))
+                && (   0 == Book.move_upto
+                    || root_pos.move_num () <= Book.move_upto))
             {
-                book.open (BookFile, ios_base::in);
-                auto book_best_move = book.probe_move (root_pos, BookPickBest);
+                sync_cout << Book.show (root_pos) << sync_endl;
+                auto book_best_move = Book.probe (root_pos);
                 if (MOVE_NONE != book_best_move)
                 {
                     auto itr = std::find (root_moves.begin (), root_moves.end (), book_best_move);
                     if (itr != root_moves.end ())
                     {
                         think = false;
-                        std::swap (root_moves[0], *itr);
+                        auto &root_move = root_moves[0];
+                        std::swap (root_move, *itr);
+                        root_move.new_value = VALUE_NONE;
                         StateInfo si;
                         root_pos.do_move (book_best_move, si);
-                        auto book_ponder_move = book.probe_move (root_pos, BookPickBest);
+                        auto book_ponder_move = Book.probe (root_pos);
                         if (MOVE_NONE != book_ponder_move)
                         {
-                            root_moves[0] += book_ponder_move;
+                            root_move += book_ponder_move;
                         }
                         root_pos.undo_move (book_best_move);
                     }
                 }
-                book.close ();
             }
 
             if (think)

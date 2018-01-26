@@ -2120,6 +2120,6 @@ namespace TBSyzygy {
             }
         }
 
-        sync_cout << "info string found " << EntryTable.size () << " tablebases" << sync_endl;
+        sync_cout << "info string Tablebases found " << EntryTable.size () << sync_endl;
     }
 }

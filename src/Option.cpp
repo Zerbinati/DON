@@ -1,6 +1,7 @@
 #include "Option.h"
 
 #include <fstream>
+#include "Polyglot.h"
 #include "Thread.h"
 #include "Transposition.h"
 #include "Searcher.h"
@@ -13,6 +14,7 @@ UCI::OptionMap Options;
 namespace UCI {
 
     using namespace std;
+    using namespace Polyglot;
     using namespace Transposition;
     using namespace Searcher;
     using namespace TBSyzygy;
@@ -231,13 +233,10 @@ namespace UCI {
 
         void on_book_opt ()
         {
-            OwnBook = bool(Options["OwnBook"]);
-            BookPickBest = bool(Options["Book Pick Best"]);
-            BookUptoMove = i16(i32(Options["Book Upto Move"]));
-            auto filename = string(Options["Book File"]);
-            trim (filename);
-            convert_path (filename);
-            BookFile = filename;
+            Book.use = bool(Options["Use Book"]);
+            Book.initialize (string(Options["Book File"]));
+            Book.pick_best = bool(Options["Book Pick Best"]);
+            Book.move_upto = i16(i32(Options["Book Upto Move"]));
         }
 
         void on_skill_level ()
@@ -332,10 +331,10 @@ namespace UCI {
         Options["Save Hash"]          << Option (on_save_hash);
         Options["Load Hash"]          << Option (on_load_hash);
 
-        Options["OwnBook"]            << Option (OwnBook, on_book_opt);
-        Options["Book File"]          << Option (BookFile, on_book_opt);
-        Options["Book Pick Best"]     << Option (BookPickBest, on_book_opt);
-        Options["Book Upto Move"]     << Option (BookUptoMove, 0, 50, on_book_opt);
+        Options["Use Book"]           << Option (Book.use, on_book_opt);
+        Options["Book File"]          << Option (Book.filename, on_book_opt);
+        Options["Book Pick Best"]     << Option (Book.pick_best, on_book_opt);
+        Options["Book Upto Move"]     << Option (Book.move_upto, 0, 100, on_book_opt);
 
         Options["Threads"]            << Option ( 1, 0, 512, on_threads);
 

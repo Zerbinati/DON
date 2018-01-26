@@ -32,10 +32,16 @@ bool Position::draw (i16 pp) const
         return true;
     }
 
+    u08 end = std::min (si->clock_ply, si->null_ply);
+    if (end < 4)
+    {
+        return false;
+    }
+
     // Draw by Repetition?
     const auto *psi = si->ptr->ptr;
     bool repeated = false;
-    for (u08 p = 4; p <= std::min (si->clock_ply, si->null_ply); p += 2)
+    for (u08 p = 4; p <= end; p += 2)
     {
         psi = psi->ptr->ptr;
         if (psi->posi_key == si->posi_key)
