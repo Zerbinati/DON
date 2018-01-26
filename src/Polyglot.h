@@ -115,7 +115,7 @@ namespace Polyglot {
         //i64 find_index (const Position&);
         //i64 find_index (const std::string&, bool = false);
 
-        bool check_do_probe (const Position&);
+        bool can_probe (const Position&);
 
     public:
 
@@ -133,6 +133,7 @@ namespace Polyglot {
         void initialize (const std::string&);
 
         Move probe (Position&);
+
         std::string show (const Position&);
     };
 

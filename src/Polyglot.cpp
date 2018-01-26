@@ -93,7 +93,7 @@ namespace Polyglot {
             return MOVE_NONE;
         }
 
-        bool check_draw (Position &pos, Move m)
+        bool is_draw (Position &pos, Move m)
         {
             StateInfo si;
             pos.do_move (m, si);
@@ -213,7 +213,7 @@ namespace Polyglot {
     //    return find_index (Position ().setup (fen, si, nullptr, c960).pg_key ());
     //}
 
-    bool PolyBook::check_do_probe (const Position & pos)
+    bool PolyBook::can_probe (const Position &pos)
     {
         Bitboard pieces = pos.pieces ();
         i32 piece_count = pop_count (pieces);
@@ -238,7 +238,7 @@ namespace Polyglot {
     {
         clear ();
 
-        if (!Book.use)
+        if (!use)
         {
             enabled = false;
             return;
@@ -270,7 +270,7 @@ namespace Polyglot {
         entries = new Entry[entry_count];
 
         Entry dummy;
-        for (size_t i = 0; i < HeaderSize/Entry::Size; ++i)
+        for (size_t i = 0; i < HeaderSize / Entry::Size; ++i)
         {
             polyglot >> dummy;
         }
@@ -295,7 +295,7 @@ namespace Polyglot {
             || nullptr == entries
             || (   0 != move_count
                 && pos.move_num () > move_count)
-            || !check_do_probe (pos))
+            || !can_probe (pos))
         {
             return move;
         }
@@ -307,7 +307,7 @@ namespace Polyglot {
         {
             if (++fail_counter > 4)
             {
-                // Stop probe after 4 times not in the book till position changes according to check_do_probe()
+                // Stop probe after 4 times not in the book till position changes according to can_probe()
                 do_probe = false;
                 fail_counter = 0;
             }
@@ -361,12 +361,12 @@ namespace Polyglot {
             return move;
         }
 
-        // Special case draw position and more than one moves available
-
-        if (!check_draw (pos, move))
+        if (!is_draw (pos, move))
         {
             return move;
         }
+
+        // Special case draw position and more than one moves available
 
         size_t pick_index2 = index;
         if (pick_index2 == pick_index1)
@@ -379,7 +379,7 @@ namespace Polyglot {
 
         move = convert_move (pos, move);
 
-        if (!check_draw (pos, move))
+        if (!is_draw (pos, move))
         {
             return move;
         }
@@ -416,12 +416,13 @@ namespace Polyglot {
 
         for (u08 i = 0; i < count; ++i)
         {
-            oss << entries[index + i]
-                << " probability: "
+            oss << "\n"
+                << entries[index + i]
+                << " prob: "
                 << std::setw (7)
                 << std::setfill ('0')
                 << std::fixed << std::setprecision (4) << (sum_weight != 0 ? 100.0 * entries[index + i].weight / sum_weight : 0.0)
-                << std::setfill (' ') << std::endl;
+                << std::setfill (' ');
         }
         return oss.str ();
     }

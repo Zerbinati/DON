@@ -12,11 +12,11 @@ using namespace std;
 using namespace BitBoard;
 using namespace MoveGen;
 using namespace Notation;
-using namespace Polyglot;
+//using namespace Polyglot;
 using namespace PSQT;
 using namespace TBSyzygy;
 using namespace Threading;
-using namespace Transposition;
+//using namespace Transposition;
 
 bool Position::Chess960 = false;
 u08  Position::DrawClockPly = 100;

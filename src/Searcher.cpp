@@ -18,10 +18,10 @@ using namespace Debugger;
 using namespace Evaluator;
 using namespace MoveGen;
 using namespace Notation;
-using namespace Polyglot;
+//using namespace Polyglot;
 using namespace TBSyzygy;
 using namespace Threading;
-using namespace Transposition;
+//using namespace Transposition;
 using namespace Zobrists;
 
 /// RootMove::extract_ponder_move_from_tt() extract ponder move from TT is called in case have no ponder move before exiting the search,

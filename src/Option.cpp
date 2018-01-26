@@ -14,8 +14,8 @@ UCI::OptionMap Options;
 namespace UCI {
 
     using namespace std;
-    using namespace Polyglot;
-    using namespace Transposition;
+    //using namespace Polyglot;
+    //using namespace Transposition;
     using namespace Searcher;
     using namespace TBSyzygy;
     using namespace Debugger;
@@ -318,7 +318,7 @@ namespace UCI {
     void initialize ()
     {
 
-        Options["Hash"]               << Option (16, 0, Table::MaxHashSize, on_hash_size);
+        Options["Hash"]               << Option (16, 0, Transposition::Table::MaxHashSize, on_hash_size);
 
 #if defined(LPAGES)
         Options["Large Pages"]        << Option (Memory::LargePages, on_memory_type);
