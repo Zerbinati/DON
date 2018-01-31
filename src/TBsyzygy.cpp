@@ -34,7 +34,6 @@ namespace TBSyzygy {
     using namespace std;
     using namespace BitBoard;
     using namespace MoveGen;
-    using namespace Threading;
     using namespace Searcher;
 
     string PathString = Empty;
@@ -248,9 +247,9 @@ namespace TBSyzygy {
         const Value WDL_To_Value[] =
         {
             -VALUE_MATE + i32(MaxPlies) + 1,
-            VALUE_DRAW - 2,
-            VALUE_DRAW,
-            VALUE_DRAW + 2,
+             VALUE_DRAW - 2,
+             VALUE_DRAW,
+             VALUE_DRAW + 2,
             +VALUE_MATE - i32(MaxPlies) - 1
         };
 
@@ -353,7 +352,9 @@ namespace TBSyzygy {
                 wdl_table.clear ();
                 dtz_table.clear ();
             }
+
             size_t size () const { return wdl_table.size (); }
+            
             void insert (const vector<PieceType>& pieces);
         };
 
@@ -1944,7 +1945,7 @@ namespace TBSyzygy {
                                  SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
                 {
                     if (   MapA1D1D4[s1] == idx
-                        && (0 != idx || s1 == SQ_B1)) // SQ_B1 is mapped to 0
+                        && (0 != idx || SQ_B1 == s1)) // SQ_B1 is mapped to 0
                     {
                         for (auto s2 : SQ)
                         {
@@ -1985,9 +1986,8 @@ namespace TBSyzygy {
             {
                 for (i32 k = 0; k < 6 && k <= n; ++k) // Pieces
                 {
-                    Binomial[k][n] =
-                          (k > 0 ? Binomial[k - 1][n - 1] : 0)
-                        + (k < n ? Binomial[k][n - 1] : 0);
+                    Binomial[k][n] = (k > 0 ? Binomial[k - 1][n - 1] : 0)
+                                   + (k < n ? Binomial[k][n - 1] : 0);
                 }
             }
 
@@ -2120,6 +2120,6 @@ namespace TBSyzygy {
             }
         }
 
-        sync_cout << "info string found " << EntryTable.size () << " tablebases" << sync_endl;
+        sync_cout << "info string Tablebases found " << EntryTable.size () << sync_endl;
     }
 }

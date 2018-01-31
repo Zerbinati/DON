@@ -18,10 +18,9 @@ using namespace Debugger;
 using namespace Evaluator;
 using namespace MoveGen;
 using namespace Notation;
-using namespace Polyglot;
+//using namespace Polyglot;
 using namespace TBSyzygy;
-using namespace Threading;
-using namespace Transposition;
+//using namespace Transposition;
 using namespace Zobrists;
 
 /// RootMove::extract_ponder_move_from_tt() extract ponder move from TT is called in case have no ponder move before exiting the search,
@@ -564,17 +563,12 @@ namespace Searcher {
     i32 MultiPV = 1;
     //i32 MultiPV_cp = 0;
 
-    i16 FixedContempt = 20
+    i16 FixedContempt = 0
       , ContemptTime = 30
       , ContemptValue = 50;
 
     string HashFile = "Hash.dat";
     bool RetainHash = false;
-
-    bool OwnBook = false;
-    string BookFile = "Book.bin";
-    bool BookPickBest = true;
-    i16 BookUptoMove = 20;
 
     i16 TBProbeDepth = 1;
     i32 TBLimitPiece = 6;
@@ -598,6 +592,10 @@ namespace Searcher {
         {
             return ReductionDepths[pv ? 1 : 0][imp ? 1 : 0][d <= 63 ? d : 63][mc <= 63 ? mc : 63];
         }
+
+        const u08 SkipIndex = 20;
+        const u08 SkipSize[SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
+        const u08 SkipPhase[SkipIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
         ofstream OutputStream;
 
@@ -900,9 +898,6 @@ namespace Searcher {
                                     contains (pos.si->checks[ptype (mpc)], dst) :
                                     pos.gives_check (move);
 
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
-
                 // Futility pruning
                 if (   !in_check
                     && futility_base <= alfa
@@ -946,6 +941,9 @@ namespace Searcher {
                 {
                     continue;
                 }
+
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                 // Update the current move.
                 ss->played_move = move;
@@ -1515,9 +1513,6 @@ namespace Searcher {
                 // Calculate new depth for this move
                 i16 new_depth = depth - 1 + extension;
 
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
-
                 // Step 13. Pruning at shallow depth.
                 if (   !root_node
                     //&& 0 == Limits.mate
@@ -1570,6 +1565,9 @@ namespace Searcher {
                 {
                     ttm_capture = true;
                 }
+
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                 i32 own_stats = pos.thread->butterfly_history[pos.active][move_pp (move)]
                               + (*piece_destiny_history[0])[mpc][dst]
@@ -1770,6 +1768,7 @@ namespace Searcher {
                         quiet_moves.push_back (move);
                     }
                     else
+                    //if (pos.capture (move))
                     {
                         capture_moves.push_back (move);
                     }
@@ -1812,6 +1811,7 @@ namespace Searcher {
                         }
                     }
                     else
+                    //if (pos.capture (best_move))
                     {
                         auto bonus = stat_bonus (depth);
                         pos.thread->capture_history.update (pos[org_sq (best_move)], best_move, pos.cap_type (best_move), bonus);
@@ -1965,545 +1965,531 @@ namespace Searcher {
     template u64 perft<false> (Position&, i16);
 }
 
-namespace Threading {
+using namespace Searcher;
 
-    using namespace Searcher;
-
-    const u08 SkipIndex = 20;
-    const u08 SkipSize[SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
-    const u08 SkipPhase[SkipIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
-
-    /// Thread::search() is thread iterative deepening loop function.
-    /// It calls depth_search() repeatedly with increasing depth until
-    /// - Force stop requested.
-    /// - Allocated thinking time has been consumed.
-    /// - Maximum search depth is reached.
-    void Thread::search ()
+/// Thread::search() is thread iterative deepening loop function.
+/// It calls depth_search() repeatedly with increasing depth until
+/// - Force stop requested.
+/// - Allocated thinking time has been consumed.
+/// - Maximum search depth is reached.
+void Thread::search ()
+{
+    Stack stacks[MaxPlies + 7]; // To allow referencing (ss-4) and (ss+2)
+    for (auto ss = stacks; ss < stacks + MaxPlies + 7; ++ss)
     {
-        Stack stacks[MaxPlies + 7]; // To allow referencing (ss-4) and (ss+2)
-        for (auto ss = stacks; ss < stacks + MaxPlies + 7; ++ss)
-        {
-            ss->ply = i16(ss - (stacks + 4));
-            ss->played_move = MOVE_NONE;
-            ss->excluded_move = MOVE_NONE;
-            std::fill_n (ss->killer_moves, MaxKillers, MOVE_NONE);
-            ss->move_count = 0;
-            ss->static_eval = VALUE_ZERO;
-            ss->piece_destiny_history = &continuation_history[NO_PIECE][0];
-        }
-
-        auto *main_thread = Threadpool.main_thread () == this ?
-                            Threadpool.main_thread () :
-                            nullptr;
-
-        auto last_best_move = MOVE_NONE;
-        i16  last_best_move_depth = 0;
-        auto best_value = VALUE_ZERO
-           , window = VALUE_ZERO
-           , alfa = -VALUE_INFINITE
-           , beta = +VALUE_INFINITE;
-
-        // Iterative deepening loop until requested to stop or the target depth is reached.
-        while (   ++running_depth < MaxPlies
-               && !Threadpool.stop
-               && (   nullptr == main_thread
-                   || 0 == Limits.depth
-                   || running_depth <= Limits.depth))
-        {
-            if (nullptr != main_thread)
-            {
-                if (Limits.use_time_management ())
-                {
-                    main_thread->failed_low = false;
-                    // Age out PV variability metric
-                    main_thread->best_move_change *= 0.505;
-                }
-            }
-            else
-            {
-                // Distribute search depths across the threads.
-                assert(0 != index);
-                i32 i = (index - 1) % SkipIndex;
-                if (0 != ((running_depth + root_pos.ply + SkipPhase[i]) / SkipSize[i]) % 2)
-                {
-                    continue;
-                }
-            }
-
-            // Save the last iteration's values before first PV line is searched.
-            for (auto &rm : root_moves)
-            {
-                rm.old_value = rm.new_value;
-            }
-
-            // MultiPV loop. Perform a full root search for each PV line.
-            for (pv_index = 0; !Threadpool.stop && pv_index < Threadpool.pv_limit; ++pv_index)
-            {
-                // Reset UCI info sel_depth for each depth and each PV line
-                sel_depth = 0;
-
-                // Reset aspiration window starting size.
-                if (running_depth > 4)
-                {
-                    window = Value(18);
-                    alfa = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
-                    beta = std::min (root_moves[pv_index].old_value + window, +VALUE_INFINITE);
-                }
-
-                // Start with a small aspiration window and, in case of fail high/low,
-                // research with bigger window until not failing high/low anymore.
-                while (true)
-                {
-                    best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, running_depth, false, true);
-
-                    // Bring the best move to the front. It is critical that sorting is
-                    // done with a stable algorithm because all the values but the first
-                    // and eventually the new best one are set to -VALUE_INFINITE and
-                    // want to keep the same order for all the moves but the new PV
-                    // that goes to the front. Note that in case of MultiPV search
-                    // the already searched PV lines are preserved.
-                    std::stable_sort (root_moves.begin () + pv_index, root_moves.end ());
-
-                    // If search has been stopped, break immediately.
-                    // Sorting and writing PV back to TT is safe becuase
-                    // root moves is still valid, although refers to the previous iteration.
-                    if (Threadpool.stop)
-                    {
-                        break;
-                    }
-
-                    // Give some update before to re-search.
-                    if (   nullptr != main_thread
-                        && 1 == Threadpool.pv_limit
-                        && (best_value <= alfa || beta <= best_value)
-                        && main_thread->time_mgr.elapsed_time () > 3000)
-                    {
-                        sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
-                    }
-
-                    // If fail low set new bounds.
-                    if (best_value <= alfa)
-                    {
-                        beta = (alfa + beta) / 2;
-                        alfa = std::max (best_value - window, -VALUE_INFINITE);
-
-                        if (nullptr != main_thread)
-                        {
-                            if (Limits.use_time_management ())
-                            {
-                                main_thread->failed_low = true;
-                            }
-                            Threadpool.stop_on_ponderhit = false;
-                        }
-                    }
-                    else
-                    // If fail high set new bounds.
-                    if (beta <= best_value)
-                    {
-                        // NOTE:: Don't change alfa = (alfa + beta) / 2;
-                        beta = std::min (best_value + window, +VALUE_INFINITE);
-                    }
-                    // Otherwise exit the loop
-                    else
-                    {
-                        break;
-                    }
-
-                    window += window / 4 + 5;
-
-                    assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
-                }
-
-                // Sort the PV lines searched so far and update the GUI.
-                std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
-
-                if (   nullptr != main_thread
-                    && (   Threadpool.stop
-                        || Threadpool.pv_limit - 1 == pv_index
-                        || main_thread->time_mgr.elapsed_time () > 3000))
-                {
-                    sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
-                }
-            }
-
-            if (!Threadpool.stop)
-            {
-                finished_depth = running_depth;
-            }
-
-            if (last_best_move != root_moves[0][0])
-            {
-                last_best_move = root_moves[0][0];
-                last_best_move_depth = running_depth;
-            }
-
-            // Has any of the threads found a "mate in <x>"?
-            if (   !Threadpool.stop
-                && !Threadpool.stop_on_ponderhit
-                && 0 != Limits.mate
-                && best_value >= +VALUE_MATE - 2*Limits.mate)
-            {
-                Threadpool.stop_thinking ();
-            }
-
-            if (nullptr != main_thread)
-            {
-                // If skill level is enabled and can pick move, pick a sub-optimal best move.
-                if (   main_thread->skill_mgr.enabled ()
-                    && main_thread->skill_mgr.can_pick (running_depth))
-                {
-                    main_thread->skill_mgr.best_move = MOVE_NONE;
-                    main_thread->skill_mgr.pick_best_move (main_thread->root_moves);
-                }
-
-                if (Limits.use_time_management ())
-                {
-                    auto &root_move = root_moves[0];
-                    
-                    if (   !Threadpool.stop
-                        && !Threadpool.stop_on_ponderhit)
-                    {
-                        bool hard_think = VALUE_DRAW == best_value
-                                       && (  Limits.clock[ root_pos.active].time
-                                           - Limits.clock[~root_pos.active].time) > main_thread->time_mgr.elapsed_time ()
-                                       && root_move.draw (root_pos);
-
-                        // If the best_move is stable over several iterations, reduce time for this move,
-                        // the longer the move has been stable, the more.
-                        // Use part of the gained time from a previous stable move for the current move.
-                        double time_reduction = 1.0;
-                        if (!hard_think)
-                        {
-                            for (auto i : { 3, 4, 5 })
-                            {
-                                if (last_best_move_depth * i < finished_depth)
-                                {
-                                    time_reduction *= 1.3;
-                                }
-                            }
-                        }
-                        // Stop the search
-                        // -If there is only one legal move available
-                        // -If all of the available time has been used
-                        if (   1 == root_moves.size ()
-                            || (  main_thread->time_mgr.elapsed_time () >
-                              u64(main_thread->time_mgr.optimum_time
-                                // Unstable factor
-                                * (main_thread->best_move_change + (hard_think ? 2 : 1))
-                                // Time reduction factor
-                                * std::pow (main_thread->last_time_reduction, 0.51) / time_reduction
-                                // Improving factor
-                                * std::min (715,
-                                  std::max (229,
-                                            357
-                                          + 119 * (main_thread->failed_low ? 1 : 0)
-                                          -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 628)))
-                        {
-                            Threadpool.stop_thinking ();
-                        }
-
-                        main_thread->last_time_reduction = time_reduction;
-                    }
-                }
-
-                if (OutputStream.is_open ())
-                {
-                    OutputStream << pretty_pv_info (this) << std::endl;
-                }
-            }
-        }
+        ss->ply = i16(ss - (stacks + 4));
+        ss->played_move = MOVE_NONE;
+        ss->excluded_move = MOVE_NONE;
+        std::fill_n (ss->killer_moves, MaxKillers, MOVE_NONE);
+        ss->move_count = 0;
+        ss->static_eval = VALUE_ZERO;
+        ss->piece_destiny_history = &continuation_history[NO_PIECE][0];
     }
 
-    /// MainThread::search() is main thread search function.
-    /// It searches from root position and outputs the "bestmove"/"ponder".
-    void MainThread::search ()
+    auto *main_thread = Threadpool.main_thread () == this ?
+                        Threadpool.main_thread () :
+                        nullptr;
+
+    auto last_best_move = MOVE_NONE;
+    i16  last_best_move_depth = 0;
+    auto best_value = VALUE_ZERO
+        , window = VALUE_ZERO
+        , alfa = -VALUE_INFINITE
+        , beta = +VALUE_INFINITE;
+
+    // Iterative deepening loop until requested to stop or the target depth is reached.
+    while (   ++running_depth < MaxPlies
+            && !Threadpool.stop
+            && (   nullptr == main_thread
+                || 0 == Limits.depth
+                || running_depth <= Limits.depth))
     {
-        static Book book; // Defined static to initialize the PRNG only once
-        assert(Threadpool.main_thread () == this
-            && 0 == index);
-
-        check_count = 0;
-
-        if (!white_spaces (OutputFile))
+        if (nullptr != main_thread)
         {
-            OutputStream.open (OutputFile, ios_base::out|ios_base::app);
-            if (OutputStream.is_open ())
+            if (Limits.use_time_management ())
             {
-                OutputStream << std::boolalpha
-                             << "RootPos  : " << root_pos.fen () << "\n"
-                             << "MaxMoves : " << root_moves.size () << "\n"
-                             << "ClockTime: " << Limits.clock[root_pos.active].time << " ms\n"
-                             << "ClockInc : " << Limits.clock[root_pos.active].inc << " ms\n"
-                             << "MovesToGo: " << Limits.movestogo+0 << "\n"
-                             << "MoveTime : " << Limits.movetime << " ms\n"
-                             << "Depth    : " << Limits.depth << "\n"
-                             << "Infinite : " << Limits.infinite << "\n"
-                             << "Ponder   : " << Threadpool.ponder << "\n"
-                             << " Depth Score    Time       Nodes PV\n"
-                             << "-----------------------------------------------------------"
-                             << std::noboolalpha << std::endl;
+                main_thread->failed_low = false;
+                // Age out PV variability metric
+                main_thread->best_move_change *= 0.505;
             }
-        }
-
-        if (Limits.use_time_management ())
-        {
-            // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
-            // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
-            if (0 != NodesTime)
-            {
-                // Only once at after ucinewgame
-                if (0 == time_mgr.available_nodes)
-                {
-                    time_mgr.available_nodes = Limits.clock[root_pos.active].time * NodesTime;
-                }
-                // Convert from milli-seconds to nodes
-                Limits.clock[root_pos.active].time = time_mgr.available_nodes;
-                Limits.clock[root_pos.active].inc *= NodesTime;
-            }
-
-            // Initialize the time manager before searching.
-            time_mgr.initialize (root_pos.active, root_pos.ply);
-        }
-
-        Transposition::Entry::Generation = u08((root_pos.ply + 1) << 2);
-        assert(0 == (Transposition::Entry::Generation & 0x03));
-
-        bool voting = false;
-
-        if (root_moves.empty ())
-        {
-            root_moves += MOVE_NONE;
-
-            sync_cout << "info"
-                      << " depth " << 0
-                      << " score " << to_string (0 != root_pos.si->checkers ? -VALUE_MATE : VALUE_DRAW)
-                      << " time " << 0 << sync_endl;
         }
         else
         {
-            bool think = true;
-
-            // Check if can play with own book.
-            if (   OwnBook
-                && !Position::Chess960
-                && !Limits.infinite
-                && 0 == Limits.mate
-                && !white_spaces (BookFile)
-                && (   0 == BookUptoMove
-                    || root_pos.move_num () <= BookUptoMove))
+            // Distribute search depths across the threads.
+            assert(0 != index);
+            i32 i = (index - 1) % SkipIndex;
+            if (0 != ((running_depth + root_pos.ply + SkipPhase[i]) / SkipSize[i]) % 2)
             {
-                book.open (BookFile, ios_base::in);
-                auto book_best_move = book.probe_move (root_pos, BookPickBest);
-                if (MOVE_NONE != book_best_move)
+                continue;
+            }
+        }
+
+        // Save the last iteration's values before first PV line is searched.
+        for (auto &rm : root_moves)
+        {
+            rm.old_value = rm.new_value;
+        }
+
+        // MultiPV loop. Perform a full root search for each PV line.
+        for (pv_index = 0; !Threadpool.stop && pv_index < Threadpool.pv_limit; ++pv_index)
+        {
+            // Reset UCI info sel_depth for each depth and each PV line
+            sel_depth = 0;
+
+            // Reset aspiration window starting size.
+            if (running_depth > 4)
+            {
+                window = Value(18);
+                alfa = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
+                beta = std::min (root_moves[pv_index].old_value + window, +VALUE_INFINITE);
+            }
+
+            // Start with a small aspiration window and, in case of fail high/low,
+            // research with bigger window until not failing high/low anymore.
+            while (true)
+            {
+                best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, running_depth, false, true);
+
+                // Bring the best move to the front. It is critical that sorting is
+                // done with a stable algorithm because all the values but the first
+                // and eventually the new best one are set to -VALUE_INFINITE and
+                // want to keep the same order for all the moves but the new PV
+                // that goes to the front. Note that in case of MultiPV search
+                // the already searched PV lines are preserved.
+                std::stable_sort (root_moves.begin () + pv_index, root_moves.end ());
+
+                // If search has been stopped, break immediately.
+                // Sorting and writing PV back to TT is safe becuase
+                // root moves is still valid, although refers to the previous iteration.
+                if (Threadpool.stop)
                 {
-                    auto itr = std::find (root_moves.begin (), root_moves.end (), book_best_move);
-                    if (itr != root_moves.end ())
+                    break;
+                }
+
+                // Give some update before to re-search.
+                if (   nullptr != main_thread
+                    && 1 == Threadpool.pv_limit
+                    && (best_value <= alfa || beta <= best_value)
+                    && main_thread->time_mgr.elapsed_time () > 3000)
+                {
+                    sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
+                }
+
+                // If fail low set new bounds.
+                if (best_value <= alfa)
+                {
+                    beta = (alfa + beta) / 2;
+                    alfa = std::max (best_value - window, -VALUE_INFINITE);
+
+                    if (nullptr != main_thread)
                     {
-                        think = false;
-                        std::swap (root_moves[0], *itr);
-                        StateInfo si;
-                        root_pos.do_move (book_best_move, si);
-                        auto book_ponder_move = book.probe_move (root_pos, BookPickBest);
-                        if (MOVE_NONE != book_ponder_move)
+                        if (Limits.use_time_management ())
                         {
-                            root_moves[0] += book_ponder_move;
+                            main_thread->failed_low = true;
                         }
-                        root_pos.undo_move (book_best_move);
+                        Threadpool.stop_on_ponderhit = false;
                     }
                 }
-                book.close ();
+                else
+                // If fail high set new bounds.
+                if (beta <= best_value)
+                {
+                    // NOTE:: Don't change alfa = (alfa + beta) / 2;
+                    beta = std::min (best_value + window, +VALUE_INFINITE);
+                }
+                // Otherwise exit the loop
+                else
+                {
+                    break;
+                }
+
+                window += window / 4 + 5;
+
+                assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             }
 
-            if (think)
+            // Sort the PV lines searched so far and update the GUI.
+            std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
+
+            if (   nullptr != main_thread
+                && (   Threadpool.stop
+                    || Threadpool.pv_limit - 1 == pv_index
+                    || main_thread->time_mgr.elapsed_time () > 3000))
             {
-                voting = true;
+                sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
+            }
+        }
 
-                i16 timed_contempt = 0;
-                i64 diff_time;
-                if (   0 != ContemptTime
-                    && Limits.use_time_management ()
-                    && 0 != (diff_time = i64(  Limits.clock[ root_pos.active].time
-                                             - Limits.clock[~root_pos.active].time) / 1000))
+        if (!Threadpool.stop)
+        {
+            finished_depth = running_depth;
+        }
+
+        if (last_best_move != root_moves[0][0])
+        {
+            last_best_move = root_moves[0][0];
+            last_best_move_depth = running_depth;
+        }
+
+        // Has any of the threads found a "mate in <x>"?
+        if (   !Threadpool.stop
+            && !Threadpool.stop_on_ponderhit
+            && 0 != Limits.mate
+            && best_value >= +VALUE_MATE - 2*Limits.mate)
+        {
+            Threadpool.stop_thinking ();
+        }
+
+        if (nullptr != main_thread)
+        {
+            // If skill level is enabled and can pick move, pick a sub-optimal best move.
+            if (   main_thread->skill_mgr.enabled ()
+                && main_thread->skill_mgr.can_pick (running_depth))
+            {
+                main_thread->skill_mgr.best_move = MOVE_NONE;
+                main_thread->skill_mgr.pick_best_move (main_thread->root_moves);
+            }
+
+            if (Limits.use_time_management ())
+            {
+                auto &root_move = root_moves[0];
+                    
+                if (   !Threadpool.stop
+                    && !Threadpool.stop_on_ponderhit)
                 {
-                    timed_contempt = i16(diff_time/ContemptTime);
-                }
+                    bool hard_think = VALUE_DRAW == best_value
+                                    && (  Limits.clock[ root_pos.active].time
+                                        - Limits.clock[~root_pos.active].time) > main_thread->time_mgr.elapsed_time ()
+                                    && root_move.draw (root_pos);
 
-                auto contempt = cp_to_value (FixedContempt + timed_contempt);
-                Contempt = WHITE == root_pos.active ?
-                            +mk_score (contempt, contempt / 2) :
-                            -mk_score (contempt, contempt / 2);
-
-                if (Limits.use_time_management ())
-                {
-                    failed_low = false;
-                    best_move_change = 0.0;
-                }
-
-                if (skill_mgr.enabled ())
-                {
-                    skill_mgr.best_move = MOVE_NONE;
-                }
-
-                // Have to play with skill handicap?
-                // In this case enable MultiPV search by skill pv size
-                // that will use behind the scenes to get a set of possible moves.
-                Threadpool.pv_limit = std::min (size_t(std::max (MultiPV, skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
-
-                for (auto *th : Threadpool)
-                {
-                    if (th != this)
+                    // If the best_move is stable over several iterations, reduce time for this move,
+                    // the longer the move has been stable, the more.
+                    // Use part of the gained time from a previous stable move for the current move.
+                    double time_reduction = 1.0;
+                    if (!hard_think)
                     {
-                        th->start_searching ();
+                        for (auto i : { 3, 4, 5 })
+                        {
+                            if (last_best_move_depth * i < finished_depth)
+                            {
+                                time_reduction *= 1.3;
+                            }
+                        }
                     }
+                    // Stop the search
+                    // -If there is only one legal move available
+                    // -If all of the available time has been used
+                    if (   1 == root_moves.size ()
+                        || (  main_thread->time_mgr.elapsed_time () >
+                            u64(main_thread->time_mgr.optimum_time
+                            // Unstable factor
+                            * (main_thread->best_move_change + (hard_think ? 2 : 1))
+                            // Time reduction factor
+                            * std::pow (main_thread->last_time_reduction, 0.51) / time_reduction
+                            // Improving factor
+                            * std::min (715,
+                                std::max (229,
+                                        357
+                                        + 119 * (main_thread->failed_low ? 1 : 0)
+                                        -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 628)))
+                    {
+                        Threadpool.stop_thinking ();
+                    }
+
+                    main_thread->last_time_reduction = time_reduction;
                 }
+            }
 
-                Thread::search (); // Let's start searching !
+            if (OutputStream.is_open ())
+            {
+                OutputStream << pretty_pv_info (this) << std::endl;
+            }
+        }
+    }
+}
 
-                // Swap best PV line with the sub-optimal one if skill level is enabled
-                if (skill_mgr.enabled ())
+/// MainThread::search() is main thread search function.
+/// It searches from root position and outputs the "bestmove"/"ponder".
+void MainThread::search ()
+{
+    assert(Threadpool.main_thread () == this
+        && 0 == index);
+
+    check_count = 0;
+
+    if (!white_spaces (OutputFile))
+    {
+        OutputStream.open (OutputFile, ios_base::out|ios_base::app);
+        if (OutputStream.is_open ())
+        {
+            OutputStream << std::boolalpha
+                            << "RootPos  : " << root_pos.fen () << "\n"
+                            << "MaxMoves : " << root_moves.size () << "\n"
+                            << "ClockTime: " << Limits.clock[root_pos.active].time << " ms\n"
+                            << "ClockInc : " << Limits.clock[root_pos.active].inc << " ms\n"
+                            << "MovesToGo: " << Limits.movestogo+0 << "\n"
+                            << "MoveTime : " << Limits.movetime << " ms\n"
+                            << "Depth    : " << Limits.depth << "\n"
+                            << "Infinite : " << Limits.infinite << "\n"
+                            << "Ponder   : " << Threadpool.ponder << "\n"
+                            << " Depth Score    Time       Nodes PV\n"
+                            << "-----------------------------------------------------------"
+                            << std::noboolalpha << std::endl;
+        }
+    }
+
+    if (Limits.use_time_management ())
+    {
+        // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
+        // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
+        if (0 != NodesTime)
+        {
+            // Only once at after ucinewgame
+            if (0 == time_mgr.available_nodes)
+            {
+                time_mgr.available_nodes = Limits.clock[root_pos.active].time * NodesTime;
+            }
+            // Convert from milli-seconds to nodes
+            Limits.clock[root_pos.active].time = time_mgr.available_nodes;
+            Limits.clock[root_pos.active].inc *= NodesTime;
+        }
+
+        // Initialize the time manager before searching.
+        time_mgr.initialize (root_pos.active, root_pos.ply);
+    }
+
+    Transposition::Entry::Generation = u08((root_pos.ply + 1) << 2);
+    assert(0 == (Transposition::Entry::Generation & 0x03));
+
+    bool voting = false;
+
+    if (root_moves.empty ())
+    {
+        root_moves += MOVE_NONE;
+
+        sync_cout << "info"
+                  << " depth " << 0
+                  << " score " << to_string (0 != root_pos.si->checkers ? -VALUE_MATE : VALUE_DRAW)
+                  << " time " << 0 << sync_endl;
+    }
+    else
+    {
+        bool think = true;
+
+        if (   !Limits.infinite
+            && 0 == Limits.mate)
+        {
+            auto book_best_move = Book.probe (root_pos);
+            if (MOVE_NONE != book_best_move)
+            {
+                auto itr = std::find (root_moves.begin (), root_moves.end (), book_best_move);
+                if (itr != root_moves.end ())
                 {
-                    skill_mgr.pick_best_move (root_moves);
-                    std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move));
+                    think = false;
+                    auto &root_move = root_moves[0];
+                    std::swap (root_move, *itr);
+                    root_move.new_value = VALUE_NONE;
+                    StateInfo si;
+                    root_pos.do_move (book_best_move, si);
+                    auto book_ponder_move = Book.probe (root_pos);
+                    if (MOVE_NONE != book_ponder_move)
+                    {
+                        root_move += book_ponder_move;
+                    }
+                    root_pos.undo_move (book_best_move);
                 }
             }
         }
 
-        // When reach the maximum depth, can arrive here without a raise of Threads.stop.
-        // However, if in an infinite search or pondering, shouldn't print the best move
-        // before receiving a "stop"/"ponderhit" command. Therefore simply wait here until
-        // receives one of those commands (which also raises Threads.stop).
-        if (Threadpool.ponder)
+        if (think)
         {
-            Threadpool.stop_on_ponderhit = true;
-        }
+            voting = true;
 
-        // Busy wait for a "stop"/"ponderhit" command.
-        while (   (   Limits.infinite
-                   || Threadpool.ponder)
-               && !Threadpool.stop)
-        {}
+            i16 timed_contempt = 0;
+            i64 diff_time;
+            if (   0 != ContemptTime
+                && Limits.use_time_management ()
+                && 0 != (diff_time = i64(  Limits.clock[ root_pos.active].time
+                                            - Limits.clock[~root_pos.active].time) / 1000))
+            {
+                timed_contempt = i16(diff_time/ContemptTime);
+            }
 
-        Thread *best_thread = this;
-        if (voting)
-        {
-            // Stop the threads if not already stopped.
-            // Also raise the stop if "ponderhit" just reset Threads.ponder
-            Threadpool.stop = true;
-            // Wait until all threads have finished.
+            auto contempt = cp_to_value (FixedContempt + timed_contempt);
+            Contempt = WHITE == root_pos.active ?
+                        +mk_score (contempt, contempt / 2) :
+                        -mk_score (contempt, contempt / 2);
+
+            if (Limits.use_time_management ())
+            {
+                failed_low = false;
+                best_move_change = 0.0;
+            }
+
+            if (skill_mgr.enabled ())
+            {
+                skill_mgr.best_move = MOVE_NONE;
+            }
+
+            // Have to play with skill handicap?
+            // In this case enable MultiPV search by skill pv size
+            // that will use behind the scenes to get a set of possible moves.
+            Threadpool.pv_limit = std::min (size_t(std::max (MultiPV, skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
+
             for (auto *th : Threadpool)
             {
                 if (th != this)
                 {
-                    th->wait_while_busy ();
+                    th->start_searching ();
                 }
             }
-            // Check if there is better thread than main thread.
-            if (   1 == Threadpool.pv_limit
-                && 0 == Limits.depth // Depth limit search don't use deeper thread
-                && MOVE_NONE != root_moves[0][0]
-                && !skill_mgr.enabled ())
+
+            Thread::search (); // Let's start searching !
+
+            // Swap best PV line with the sub-optimal one if skill level is enabled
+            if (skill_mgr.enabled ())
             {
-                best_thread = Threadpool.best_thread ();
-                // If best thread is not main thread send new PV.
-                if (best_thread != this)
-                {
-                    sync_cout << multipv_info (best_thread, best_thread->finished_depth, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
-                }
+                skill_mgr.pick_best_move (root_moves);
+                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move));
             }
         }
-
-        assert(!best_thread->root_moves.empty ()
-            && !best_thread->root_moves[0].empty ());
-
-        auto &root_move = best_thread->root_moves[0];
-
-        if (Limits.use_time_management ())
-        {
-            // When playing in 'Nodes as Time' mode, update the time manager after searching.
-            if (0 != NodesTime)
-            {
-                time_mgr.available_nodes += Limits.clock[root_pos.active].inc - Threadpool.nodes ();
-            }
-            last_value = root_move.new_value;
-        }
-
-        auto best_move = root_move[0];
-        auto ponder_move = MOVE_NONE != best_move
-                        && (   root_move.size () > 1
-                            || root_move.extract_ponder_move_from_tt (root_pos)) ?
-                               root_move[1] :
-                               MOVE_NONE;
-        assert(MOVE_NONE != best_move
-            || (MOVE_NONE == best_move
-             && MOVE_NONE == ponder_move));
-
-        if (OutputStream.is_open ())
-        {
-            auto total_nodes = Threadpool.nodes ();
-            auto elapsed_time = std::max (time_mgr.elapsed_time (), 1ULL);
-            OutputStream << "Nodes      : " << total_nodes << " N\n"
-                         << "Time       : " << elapsed_time << " ms\n"
-                         << "Speed      : " << total_nodes * 1000 / elapsed_time << " N/s\n"
-                         << "Hash-full  : " << TT.hash_full () << "\n"
-                         << "Best Move  : " << move_to_san (best_move, root_pos) << "\n"
-                         << "Ponder Move: ";
-            if (MOVE_NONE != best_move)
-            {
-                StateInfo si;
-                root_pos.do_move (best_move, si);
-                OutputStream << move_to_san (ponder_move, root_pos);
-                root_pos.undo_move (best_move);
-            }
-            else
-            {
-                OutputStream << "(none)";
-            }
-            OutputStream << std::endl;
-            OutputStream.close ();
-        }
-
-        // Best move could be MOVE_NONE when searching on a stalemate position.
-        sync_cout << "bestmove " << move_to_can (best_move)
-                  << " ponder " << move_to_can (ponder_move) << sync_endl;
     }
-    /// MainThread::check_limits() is used to detect when out of available limits and thus stop the search, also print debug info.
-    void MainThread::check_limits ()
+
+    // When reach the maximum depth, can arrive here without a raise of Threads.stop.
+    // However, if in an infinite search or pondering, shouldn't print the best move
+    // before receiving a "stop"/"ponderhit" command. Therefore simply wait here until
+    // receives one of those commands (which also raises Threads.stop).
+    if (Threadpool.ponder)
     {
-        static TimePoint last_time = now ();
+        Threadpool.stop_on_ponderhit = true;
+    }
 
-        if (--check_count >= 0)
+    // Busy wait for a "stop"/"ponderhit" command.
+    while (   (   Limits.infinite
+                || Threadpool.ponder)
+            && !Threadpool.stop)
+    {}
+
+    Thread *best_thread = this;
+    if (voting)
+    {
+        // Stop the threads if not already stopped.
+        // Also raise the stop if "ponderhit" just reset Threads.ponder
+        Threadpool.stop = true;
+        // Wait until all threads have finished.
+        for (auto *th : Threadpool)
         {
-            return;
+            if (th != this)
+            {
+                th->wait_while_busy ();
+            }
         }
-        // At low node count increase the checking rate otherwise use a default value.
-        check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
-        assert(0 != check_count);
-
-        auto elapsed_time = time_mgr.elapsed_time ();
-        TimePoint tick = Limits.start_time + elapsed_time;
-
-        if (last_time <= tick - 1000)
+        // Check if there is better thread than main thread.
+        if (   1 == Threadpool.pv_limit
+            && 0 == Limits.depth // Depth limit search don't use deeper thread
+            && MOVE_NONE != root_moves[0][0]
+            && !skill_mgr.enabled ())
         {
-            last_time = tick;
-
-            dbg_print ();
+            best_thread = Threadpool.best_thread ();
+            // If best thread is not main thread send new PV.
+            if (best_thread != this)
+            {
+                sync_cout << multipv_info (best_thread, best_thread->finished_depth, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
+            }
         }
+    }
 
-        // Do not stop until told so by the GUI.
-        if (   Limits.infinite
-            || Threadpool.ponder)
+    assert(!best_thread->root_moves.empty ()
+        && !best_thread->root_moves[0].empty ());
+
+    auto &root_move = best_thread->root_moves[0];
+
+    if (Limits.use_time_management ())
+    {
+        // When playing in 'Nodes as Time' mode, update the time manager after searching.
+        if (0 != NodesTime)
         {
-            return;
+            time_mgr.available_nodes += Limits.clock[root_pos.active].inc - Threadpool.nodes ();
         }
+        last_value = root_move.new_value;
+    }
 
-        if (   (   Limits.use_time_management ()
-                && elapsed_time > time_mgr.maximum_time - 10)
-            || (   0 != Limits.movetime
-                && elapsed_time >= Limits.movetime)
-            || (   0 != Limits.nodes
-                && Threadpool.nodes () >= Limits.nodes))
+    auto best_move = root_move[0];
+    auto ponder_move = MOVE_NONE != best_move
+                    && (   root_move.size () > 1
+                        || root_move.extract_ponder_move_from_tt (root_pos)) ?
+                            root_move[1] :
+                            MOVE_NONE;
+    assert(MOVE_NONE != best_move
+        || (MOVE_NONE == best_move
+            && MOVE_NONE == ponder_move));
+
+    if (OutputStream.is_open ())
+    {
+        auto total_nodes = Threadpool.nodes ();
+        auto elapsed_time = std::max (time_mgr.elapsed_time (), 1ULL);
+        OutputStream << "Nodes      : " << total_nodes << " N\n"
+                     << "Time       : " << elapsed_time << " ms\n"
+                     << "Speed      : " << total_nodes * 1000 / elapsed_time << " N/s\n"
+                     << "Hash-full  : " << TT.hash_full () << "\n"
+                     << "Best Move  : " << move_to_san (best_move, root_pos) << "\n"
+                     << "Ponder Move: ";
+        if (MOVE_NONE != best_move)
         {
-            Threadpool.stop = true;
+            StateInfo si;
+            root_pos.do_move (best_move, si);
+            OutputStream << move_to_san (ponder_move, root_pos);
+            root_pos.undo_move (best_move);
         }
+        else
+        {
+            OutputStream << "(none)";
+        }
+        OutputStream << std::endl;
+        OutputStream.close ();
+    }
+
+    // Best move could be MOVE_NONE when searching on a stalemate position.
+    sync_cout << "bestmove " << move_to_can (best_move)
+              << " ponder " << move_to_can (ponder_move) << sync_endl;
+}
+/// MainThread::check_limits() is used to detect when out of available limits and thus stop the search, also print debug info.
+void MainThread::check_limits ()
+{
+    static TimePoint last_time = now ();
+
+    if (--check_count >= 0)
+    {
+        return;
+    }
+    // At low node count increase the checking rate otherwise use a default value.
+    check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
+    assert(0 != check_count);
+
+    auto elapsed_time = time_mgr.elapsed_time ();
+    TimePoint tick = Limits.start_time + elapsed_time;
+
+    if (last_time <= tick - 1000)
+    {
+        last_time = tick;
+
+        dbg_print ();
+    }
+
+    // Do not stop until told so by the GUI.
+    if (   Limits.infinite
+        || Threadpool.ponder)
+    {
+        return;
+    }
+
+    if (   (   Limits.use_time_management ()
+            && elapsed_time > time_mgr.maximum_time - 10)
+        || (   0 != Limits.movetime
+            && elapsed_time >= Limits.movetime)
+        || (   0 != Limits.nodes
+            && Threadpool.nodes () >= Limits.nodes))
+    {
+        Threadpool.stop = true;
     }
 }

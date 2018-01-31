@@ -10,6 +10,7 @@
 #include "MemoryHandler.h"
 #include "Notation.h"
 #include "Pawns.h"
+#include "Polyglot.h"
 #include "PSQT.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
@@ -25,14 +26,13 @@ namespace Engine {
 
     namespace {
 
-        using namespace std;
         using namespace Engine;
         using namespace Evaluator;
         using namespace MoveGen;
         using namespace Notation;
+        using namespace Polyglot;
         using namespace Searcher;
         using namespace TBSyzygy;
-        using namespace Threading;
 
         /// Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
         /// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
@@ -719,6 +719,7 @@ namespace Engine {
         TT.auto_resize (i32(Options["Hash"]), true);
         Threadpool.configure (i32(Options["Threads"]));
         Searcher::initialize ();
+        Book.initialize (string(Options["Book File"]));
         TBSyzygy::initialize ();
 
         Searcher::clear ();

@@ -62,7 +62,7 @@ namespace Debugger {
         Logger (const Logger&) = delete;
         Logger& operator= (const Logger&) = delete;
         
-        ~Logger ()
+       ~Logger ()
         {
             log (Empty);
         }

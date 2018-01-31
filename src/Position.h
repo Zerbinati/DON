@@ -88,10 +88,7 @@ public:
 /// Use a std::deque because pointers to elements are not invalidated upon list resizing.
 typedef std::unique_ptr<std::deque<StateInfo>> StateListPtr;
 
-namespace Threading {
-    class Thread;
-}
-using namespace Threading;
+class Thread;
 
 /// Position class stores information regarding the board representation:
 ///  - 64-entry array of pieces, indexed by the square.

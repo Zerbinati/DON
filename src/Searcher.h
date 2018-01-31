@@ -314,11 +314,6 @@ namespace Searcher {
     extern std::string HashFile;
     extern bool RetainHash;
 
-    extern bool OwnBook;
-    extern std::string BookFile;
-    extern bool BookPickBest;
-    extern i16 BookUptoMove;
-
     extern i16 TBProbeDepth;
     extern i32 TBLimitPiece;
     extern bool TBUseRule50;

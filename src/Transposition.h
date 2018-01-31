@@ -114,7 +114,7 @@ namespace Transposition {
         Table (const Table&) = delete;
         Table& operator= (const Table&) = delete;
         
-        ~Table ()
+       ~Table ()
         {
             free_aligned_memory ();
         }
