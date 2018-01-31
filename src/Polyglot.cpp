@@ -405,26 +405,28 @@ namespace Polyglot {
             return oss.str ();
         }
 
-        u08 count = 0;
+        list<Entry> pes;
         u32 weight_sum = 0;
-
         for (size_t i = index; i < entry_count && key == entries[i].key; ++i)
         {
-            ++count;
+            pes.push_back (entries[i]);
             weight_sum += entries[i].weight;
         }
-
-        for (u08 i = 0; i < count; ++i)
+        if (!pes.empty ())
         {
-            oss << "\n"
-                << entries[index + i]
-                << " prob: "
-                << std::setw (7)
-                << std::setfill ('0')
-                << std::fixed << std::setprecision (4) << (weight_sum != 0 ? 100.0 * entries[index + i].weight / weight_sum : 0.0)
-                << std::setfill (' ');
+            pes.sort ();
+            pes.reverse ();
+            for (auto pe : pes)
+            {
+                oss << "\n"
+                    << pe
+                    << " prob: "
+                    << std::setw (7)
+                    << std::setfill ('0')
+                    << std::fixed << std::setprecision (4) << (0 != weight_sum ? 100.0 * pe.weight / weight_sum : 0.0)
+                    << std::setfill (' ');
+            }
         }
-
         return oss.str ();
     }
 
