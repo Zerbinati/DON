@@ -1037,6 +1037,10 @@ namespace Searcher {
             bool root_node = PVNode && 0 == ss->ply;
             bool in_check = 0 != pos.si->checkers;
 
+            auto value = VALUE_ZERO
+               , best_value = -VALUE_INFINITE
+               , min_value = +VALUE_INFINITE;
+
             if (!root_node)
             {
                 // Step 2. Check for aborted search, immediate draw or maximum ply reached.
@@ -1171,18 +1175,40 @@ namespace Searcher {
 
                         auto draw = TBUseRule50 ? 1 : 0;
 
-                        auto value = wdl < -draw ? -VALUE_MATE + i32(MaxPlies + ss->ply + 1) :
-                                     wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply + 1) :
-                                                    VALUE_ZERO + 2 * wdl * draw;
+                        value = wdl < -draw ? -VALUE_MATE + i32(MaxPlies + ss->ply + 1) :
+                                wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply + 1) :
+                                               VALUE_ZERO + 2 * wdl * draw;
 
-                        tte->save (key,
-                                   MOVE_NONE,
-                                   value_to_tt (value, ss->ply),
-                                   VALUE_NONE,
-                                   std::min<i16> (depth + 6, MaxPlies - 1),
-                                   BOUND_EXACT);
+                        auto bound = wdl < -draw ? BOUND_UPPER :
+                                     wdl >  draw ? BOUND_LOWER :
+                                                   BOUND_EXACT;
 
-                        return value;
+                        if (   BOUND_EXACT == bound
+                            || (BOUND_LOWER == bound ? value >= beta : value <= alfa))
+                        {
+                            tte->save (key,
+                                       MOVE_NONE,
+                                       value_to_tt (value, ss->ply),
+                                       VALUE_NONE,
+                                       std::min<i16> (depth + 6, MaxPlies - 1),
+                                       bound);
+
+                            return value;
+                        }
+
+                        if (PVNode)
+                        {
+                            if (BOUND_LOWER == bound)
+                            {
+                                best_value = value;
+                                alfa = std::max (best_value, alfa);
+                            }
+                            else
+                            {
+                                min_value = value;
+                            }
+                        }
+
                     }
                 }
             }
@@ -1249,7 +1275,7 @@ namespace Searcher {
 
                         auto alfa_margin = alfa - RazorMargin;
                         assert(alfa_margin >= -VALUE_INFINITE);
-                        auto value = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
+                        value = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
                         if (value <= alfa_margin)
                         {
                             return value;
@@ -1310,9 +1336,9 @@ namespace Searcher {
                             pos.thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
                             pos.thread->nmp_odd = (ss->ply % 2) != 0;
 
-                            auto value = depth-R <= 0 ?
-                                            quien_search<false> (pos, ss, beta-1, beta) :
-                                            depth_search<false> (pos, ss, beta-1, beta, depth-R, false, false);
+                            value = depth-R <= 0 ?
+                                        quien_search<false> (pos, ss, beta-1, beta) :
+                                        depth_search<false> (pos, ss, beta-1, beta, depth-R, false, false);
 
                             pos.thread->nmp_ply = 0;
                             pos.thread->nmp_odd = false;
@@ -1352,7 +1378,7 @@ namespace Searcher {
 
                             pos.do_move (move, si);
 
-                            auto value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, depth - 4, !cut_node, true);
+                            value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, depth - 4, !cut_node, true);
 
                             pos.undo_move (move);
 
@@ -1388,9 +1414,6 @@ namespace Searcher {
                 }
             }
 
-            auto best_value = -VALUE_INFINITE;
-            auto value = -VALUE_INFINITE;
-
             auto best_move = MOVE_NONE;
 
             bool singular_ext_node = !root_node
@@ -1413,6 +1436,8 @@ namespace Searcher {
 
             vector<Move> quiet_moves
                 ,        capture_moves;
+
+            value = best_value;
 
             const PieceDestinyHistory *piece_destiny_history[4] = { (ss-1)->piece_destiny_history, (ss-2)->piece_destiny_history, (ss-3)->piece_destiny_history, (ss-4)->piece_destiny_history };
             auto counter_move = _ok ((ss-1)->played_move) ?
@@ -1844,6 +1869,11 @@ namespace Searcher {
                 }
             }
 
+            if (PVNode)
+            {
+                best_value = std::min (min_value, best_value);
+            }
+
             if (MOVE_NONE == ss->excluded_move)
             {
                 tte->save (key,
@@ -2024,7 +2054,8 @@ void Thread::search ()
             }
         }
 
-        // Save the last iteration's values before first PV line is searched.
+        // Save the last iteration's values before first PV line is searched and
+        // all the move scores except the (new) PV are set to -VALUE_INFINITE.
         for (auto &rm : root_moves)
         {
             rm.old_value = rm.new_value;

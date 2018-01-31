@@ -497,6 +497,12 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
             TBValue = TBValue > VALUE_DRAW ? +VALUE_MATE - i32(MaxPlies - 1) :
                         TBValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPlies + 1) : VALUE_DRAW;
         }
+
+        // Reset root move scores to -VALUE_INFINITE, Since root_probe_dtz() and root_probe_wdl() dirty them.
+        for (auto &rm : root_moves)
+        {
+            rm.new_value = -VALUE_INFINITE;
+        }
     }
 
     // After ownership transfer 'states' becomes empty, so if we stop the search
