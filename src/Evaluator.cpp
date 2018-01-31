@@ -154,6 +154,8 @@ namespace Evaluator {
             // PawnPassRank[rank] contains bonus for passed pawns according to the rank of the pawn
             static const Value PawnPassRank[2][R_NO];
 
+            static const i32 RankFactor[R_NO];
+
             // Bonus for king attack by piece type
             static const i32 PieceAttackWeights[NONE];
 
@@ -196,12 +198,14 @@ namespace Evaluator {
             template<Color Own>
             Score evaluate_threats ();
             template<Color Own>
+            i32 limit_king_dist (Square);
+            template<Color Own>
             Score evaluate_passers ();
             template<Color Own>
             Score evaluate_space ();
 
-            Score evaluate_initiative (Value eg);
-            Scale evaluate_scale (Value eg);
+            Score evaluate_initiative (Value);
+            Scale evaluate_scale (Value);
 
         public:
             Evaluation () = delete;
@@ -274,6 +278,9 @@ namespace Evaluator {
             { V(0), V(5), V( 5), V(31), V(73), V(166), V(252), V(0) },
             { V(0), V(7), V(14), V(38), V(73), V(166), V(252), V(0) }
         };
+
+        template<bool Trace>
+        const i32 Evaluation<Trace>::RankFactor[R_NO] = { 0, 0, 0, 2, 6, 11, 16 };
 
     #undef S
     #undef V
@@ -683,11 +690,10 @@ namespace Evaluator {
                             -   9 * value / 8
                             +  40;
 
-                // Transform the king danger into a score
                 if (king_danger > 0)
                 {
+                    // Transform the king danger into a score, and subtract it from the score
                     king_danger = std::max (king_danger + mg_value (mobility[Opp] - mobility[Own]), 0);
-
                     score -= mk_score (king_danger*king_danger / 0x1000, king_danger / 0x10);
                 }
             }
@@ -851,6 +857,13 @@ namespace Evaluator {
             return score;
         }
 
+        template<bool Trace>
+        template<Color Own>
+        i32 Evaluation<Trace>::limit_king_dist (Square s)
+        {
+            return std::min (dist (pos.square<KING> (Own), s), 5);
+        }
+
         /// evaluate_passers() evaluates the passed pawns of the color
         template<bool Trace>
         template<Color Own>
@@ -867,28 +880,28 @@ namespace Evaluator {
                 assert(0 == (pos.pieces (Own, PAWN) & front_line_bb (Own, s))
                     && 0 == (pos.pieces (Opp, PAWN) & front_line_bb (Own, s+pawn_push (Own))));
 
-                auto rank = rel_rank (Own, s);
-                // Base bonus depending on rank.
-                auto mg_value = PawnPassRank[MG][rank],
-                     eg_value = PawnPassRank[EG][rank];
+                i32 r  = rel_rank (Own, s);
+                i32 rr = RankFactor[r];
 
-                i32 r  = rank - R_2;
-                i32 rr = r*(r-1);
+                // Base bonus depending on rank.
+                auto mg_value = PawnPassRank[MG][r],
+                     eg_value = PawnPassRank[EG][r];
 
                 if (0 != rr)
                 {
                     auto push_sq = s+pawn_push (Own);
 
-                    // Adjust bonus based on kings proximity.
+                    // Adjust bonus based on the king's proximity
                     if (!contains (pawn_pass_span (Own, s), pos.square<KING> (Opp)))
                     {
-                        eg_value += 5*rr*dist (pos.square<KING> (Opp), push_sq);
+                        eg_value += 5 * rr * limit_king_dist<Opp> (push_sq);
                     }
-                    eg_value -= 2*rr*dist (pos.square<KING> (Own), push_sq);
+                    eg_value -= 2 * rr * limit_king_dist<Own> (push_sq);
+
                     // If block square is not the queening square then consider also a second push.
-                    if (R_8 != rel_rank (Own, push_sq))
+                    if (R_7 != r)
                     {
-                        eg_value -= 1*rr*dist (pos.square<KING> (Own), push_sq+pawn_push (Own));
+                        eg_value -= 1 * rr * limit_king_dist<Own> (push_sq + pawn_push (Own));
                     }
                     
                     // If the pawn is free to advance.

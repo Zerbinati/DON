@@ -67,8 +67,6 @@ namespace Pawns {
         const Score Isolated = S(13,18);
         // Backward pawn penalty
         const Score Backward = S(24,12);
-        // Levered pawn bonus indexed by [rank]
-        const Score Levered[R_NO] = { S( 0, 0), S( 0, 0), S( 0, 0), S( 0, 0), S(17,16), S(33,32), S( 0, 0), S( 0, 0) };
         // Blocked pawn penalty
         const Score Blocked = S(18,38);
 
@@ -186,11 +184,6 @@ namespace Pawns {
                     && 0 == supporters)
                 {
                     score -= Blocked;
-                }
-
-                if (0 != levers)
-                {
-                    score += Levered[rel_rank (Own, s)];
                 }
             }
 
