@@ -34,7 +34,9 @@ namespace Notation {
     inline std::string to_string (Value v)
     {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
+        
         std::ostringstream oss;
+
         if (abs (v) < +VALUE_MATE - i32(MaxPlies))
         {
             oss << "cp " << value_to_cp (v);

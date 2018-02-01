@@ -1371,7 +1371,7 @@ bool Position::ok () const
                 + std::max (count (c, ROOK)-2, 0)
                 + std::max (count (c, QUEN)-1, 0)) > 8))
         {
-            assert (false && "Position OK: BASIC");
+            assert(false && "Position OK: BASIC");
             return false;
         }
     }

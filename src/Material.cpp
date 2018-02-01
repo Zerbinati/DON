@@ -38,12 +38,12 @@ namespace Material {
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
-        Endgame<KXK>     ValueKXK[CLR_NO] =     { Endgame<KXK> (WHITE)      , Endgame<KXK> (BLACK)     };
+        Endgame<KXK>     ValueKXK[CLR_NO] = { Endgame<KXK> (WHITE), Endgame<KXK> (BLACK) };
 
-        Endgame<KPKP>    ScaleKPKP[CLR_NO] =    { Endgame<KPKP> (WHITE)     , Endgame<KPKP> (BLACK)    };
-        Endgame<KPsK>    ScaleKPsK[CLR_NO] =    { Endgame<KPsK> (WHITE)     , Endgame<KPsK> (BLACK)    };
-        Endgame<KBPsKPs> ScaleKBPsKPs[CLR_NO] = { Endgame<KBPsKPs> (WHITE)  , Endgame<KBPsKPs> (BLACK) };
-        Endgame<KQKRPs>  ScaleKQKRPs[CLR_NO] =  { Endgame<KQKRPs> (WHITE)   , Endgame<KQKRPs> (BLACK)  } ;
+        Endgame<KPKP>    ScaleKPKP[CLR_NO] = { Endgame<KPKP> (WHITE), Endgame<KPKP> (BLACK) };
+        Endgame<KPsK>    ScaleKPsK[CLR_NO] = { Endgame<KPsK> (WHITE), Endgame<KPsK> (BLACK) };
+        Endgame<KBPsKPs> ScaleKBPsKPs[CLR_NO] = { Endgame<KBPsKPs> (WHITE), Endgame<KBPsKPs> (BLACK) };
+        Endgame<KQKRPs>  ScaleKQKRPs[CLR_NO] = { Endgame<KQKRPs> (WHITE), Endgame<KQKRPs> (BLACK) } ;
 
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR

@@ -700,9 +700,9 @@ namespace Evaluator {
 
             // King tropism: Find squares that enemy attacks in the friend king flank
             auto kf = _file (fk_sq);
-            b =  Camp_bb[Own]
-              &  KingFlank_bb[kf]
-              &  pin_attacked_by[Opp][NONE];
+            b = Camp_bb[Own]
+              & KingFlank_bb[kf]
+              & pin_attacked_by[Opp][NONE];
             assert(0 == ((WHITE == Own ? b << 4 : b >> 4) & b));
             assert(pop_count (WHITE == Own ? b << 4 : b >> 4) == pop_count (b));
             // Add the squares which are attacked twice in that flank and are not protected by a friend pawn.

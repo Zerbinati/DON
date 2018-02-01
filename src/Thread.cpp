@@ -196,7 +196,7 @@ void Thread::idle_loop ()
     // NUMA machinery is not needed.
     if (i32(Options["Threads"]) >= 8)
     {
-        Threadpool.bind_thread (index);
+        ThreadPool::bind (index);
     }
 
     while (true)
@@ -258,8 +258,9 @@ void MainThread::clear ()
     last_time_reduction = 1.0;
 }
 
-/// init_group() retrieves logical processor information using specific API
-void ThreadPool::init_group ()
+vector<i16> ThreadPool::Groups;
+/// initialize() retrieves logical processor information using specific API
+void ThreadPool::initialize ()
 {
 #if defined(_WIN32)
     // Early exit if the needed API is not available at runtime
@@ -327,7 +328,7 @@ void ThreadPool::init_group ()
     {
         for (u16 i = 0; i < cores / nodes; ++i)
         {
-            groups.push_back (n);
+            Groups.push_back (n);
         }
     }
     // In case a core has more than one logical processor (we assume 2) and we
@@ -335,7 +336,7 @@ void ThreadPool::init_group ()
     // nodes.
     for (u16 t = 0; t < threads - cores; ++t)
     {
-        groups.push_back (t % nodes);
+        Groups.push_back (t % nodes);
     }
 
 #else
@@ -343,15 +344,15 @@ void ThreadPool::init_group ()
 
 #endif
 }
-/// bind_thread() set the group affinity for the thread index.
-void ThreadPool::bind_thread (size_t index)
+/// bind() set the group affinity for the thread index.
+void ThreadPool::bind (size_t index)
 {
     // If we still have more threads than the total number of logical processors then let the OS to decide what to do.
-    if (index >= groups.size ())
+    if (index >= Groups.size ())
     {
         return;
     }
-    u16 group = groups[index];
+    u16 group = Groups[index];
 
 #if defined(_WIN32)
 
@@ -382,11 +383,7 @@ void ThreadPool::bind_thread (size_t index)
 
 #endif
 }
-/// ThreadPool() constructor
-ThreadPool::ThreadPool ()
-{
-    init_group ();
-}
+
 /// ThreadPool::best_thread()
 Thread* ThreadPool::best_thread () const
 {
@@ -416,27 +413,28 @@ void ThreadPool::clear ()
 void ThreadPool::configure (u32 threads)
 {
     // Destroy any existing thread(s)
-    if (size () > 0)
+    if (!empty ())
     {
         main_thread ()->wait_while_busy ();
-        while (size () > 0)
+        while (!empty ())
         {
             delete back ();
             pop_back ();
         }
     }
-    assert(0 == size ());
     // Create new thread(s)
     if (threads > 0)
     {
+        assert(empty ());
         push_back (new MainThread (size ()));
-        while (size () < threads)
+        while (threads > size ())
         {
             push_back (new Thread (size ()));
         }
-            
+        assert(!empty ());
         clear ();
     }
+
     sync_cout << "info string Thread(s) used " << threads << sync_endl;
 }
 /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and returns immediately.
@@ -460,7 +458,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
     if (TBLimitPiece > MaxLimitPiece)
     {
         TBLimitPiece = MaxLimitPiece;
-        TBProbeDepth = 0;
+        TBProbeDepth = DepthZero;
     }
     // Filter root moves.
     if (   !root_moves.empty ()
@@ -495,7 +493,8 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
             && !TBUseRule50)
         {
             TBValue = TBValue > VALUE_DRAW ? +VALUE_MATE - i32(MaxPlies - 1) :
-                        TBValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPlies + 1) : VALUE_DRAW;
+                      TBValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPlies + 1) :
+                                              VALUE_DRAW;
         }
 
         // Reset root move scores to -VALUE_INFINITE, Since root_probe_dtz() and root_probe_wdl() dirty them.
@@ -518,6 +517,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
     // We use setup() to set root position across threads.
     // So we need to save and later to restore last stateinfo, cleared by setup().
     // Note that states is shared by threads but is accessed in read-only mode.
+    const auto fen = pos.fen ();
     const auto back_si = setup_states->back ();
     for (auto *th : *this)
     {
@@ -528,7 +528,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
         th->nmp_ply = 0;
         th->nmp_odd = false;
 
-        th->root_pos.setup (pos.fen (), setup_states->back (), th);
+        th->root_pos.setup (fen, setup_states->back (), th);
         th->root_moves = root_moves;
     }
     setup_states->back () = back_si;

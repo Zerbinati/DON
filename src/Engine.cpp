@@ -378,9 +378,15 @@ namespace Engine {
             u64 total_nodes = 0;
             for (const auto &cmd : uci_cmds)
             {
-                string token;
                 istringstream is (cmd);
+                string token;
+                token.clear ();
                 is >> skipws >> token;
+
+                if (white_spaces (token))
+                {
+                    continue;
+                }
 
                 if (token == "go")
                 {
@@ -445,7 +451,6 @@ namespace Engine {
             Position pos;
             pos.setup (StartFEN, states->back (), ui_thread.get ());
 
-            string token;
             do
             {
                 // Block here waiting for input or EOF
@@ -456,6 +461,7 @@ namespace Engine {
                 }
 
                 istringstream iss (cmd);
+                string token;
                 token.clear (); // Avoid a stale if getline() returns empty or blank line
                 iss >> skipws >> token;
 
@@ -717,6 +723,7 @@ namespace Engine {
         Pawns::initialize ();
         EndGame::initialize ();
         TT.auto_resize (i32(Options["Hash"]), true);
+        ThreadPool::initialize ();
         Threadpool.configure (i32(Options["Threads"]));
         Searcher::initialize ();
         Book.initialize (string(Options["Book File"]));

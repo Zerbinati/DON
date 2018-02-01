@@ -23,6 +23,7 @@ extern bool Ponder;
 class TimeManager
 {
 public:
+
     u64 optimum_time;
     u64 maximum_time;
     // Used in 'Nodes as Time' mode
@@ -74,6 +75,7 @@ public:
 class Thread
 {
 protected:
+
     Mutex mutex;
     ConditionVariable condition_var;
     bool dead = false
@@ -83,6 +85,7 @@ protected:
     std::thread std_thread;
 
 public:
+
     Position root_pos;
     RootMoves root_moves;
 
@@ -127,6 +130,7 @@ class MainThread
     : public Thread
 {
 public:
+
     i16    check_count;
 
     bool   failed_low;
@@ -156,13 +160,11 @@ public:
 class ThreadPool
     : public std::vector<Thread*>
 {
-
 private:
-    std::vector<i16> groups;
+
+    static std::vector<i16> Groups;
 
     StateListPtr setup_states;
-
-    void init_group ();
 
     u64 accumulate (std::atomic<u64> Thread::*member) const
     {
@@ -175,23 +177,25 @@ private:
     }
 
 public:
+
     size_t pv_limit;
 
     std::atomic<bool> stop                // Stop search
         ,             stop_on_ponderhit   // Stop search on ponderhit
         ,             ponder;             // Search on ponder move until the "stop"/"ponderhit" command
 
-    ThreadPool ();
+    ThreadPool () = default;
     ThreadPool (const ThreadPool&) = delete;
     ThreadPool& operator= (const ThreadPool&) = delete;
+
+    static void initialize ();
+    static void bind (size_t);
 
     MainThread* main_thread () const { return static_cast<MainThread*> (front ()); }
     u64 nodes () const { return accumulate (&Thread::nodes); }
     u64 tb_hits () const { return accumulate (&Thread::tb_hits); }
 
     Thread* best_thread () const;
-
-    void bind_thread (size_t);
 
     void clear ();
     void configure (u32);

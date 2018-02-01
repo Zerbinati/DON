@@ -139,10 +139,10 @@ struct Table3D
 
     void update (T &entry, i32 bonus, const i16 D, const i16 W)
     {
-        assert (abs (W*D) < (std::numeric_limits<T>::max)()); // Ensure range is [-W * D, +W * D]
-        assert (abs (bonus) <= D); // Ensure we don't overflow
+        assert(abs (W*D) < (std::numeric_limits<T>::max)()); // Ensure range is [-W * D, +W * D]
+        assert(abs (bonus) <= D); // Ensure we don't overflow
         entry += T(W*bonus - entry*abs (bonus) / D);
-        assert (abs (entry) <= W*D);
+        assert(abs (entry) <= W*D);
     }
 };
 

@@ -82,10 +82,10 @@ typedef unsigned __int32    u32;
 typedef   signed __int64    i64;
 typedef unsigned __int64    u64;
 
-#   define  S32(X) (X ##  i32)
-#   define  U32(X) (X ## ui32)
-#   define  S64(X) (X ##  i64)
-#   define  U64(X) (X ## ui64)
+#   define S32(X) (X ##  i32)
+#   define U32(X) (X ## ui32)
+#   define S64(X) (X ##  i64)
+#   define U64(X) (X ## ui64)
 
 #else
 
@@ -145,6 +145,7 @@ typedef u64 Bitboard;
 
 const u16 MaxPlies = 128; // Maximum Plies
 
+const i16 DepthZero         =  0;
 const i16 DepthQSCheck      =  0;
 const i16 DepthQSNoCheck    = -1;
 const i16 DepthQSRecapture  = -5;
