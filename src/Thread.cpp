@@ -194,7 +194,7 @@ void Thread::idle_loop ()
     // some Windows NUMA hardware, for instance in fishtest. To make it simple,
     // just check if running threads are below a threshold, in this case all this
     // NUMA machinery is not needed.
-    if (i32(Options["Threads"]) >= 8)
+    if (8 <= i32(Options["Threads"]))
     {
         ThreadPool::bind (index);
     }
@@ -432,10 +432,11 @@ void ThreadPool::configure (u32 threads)
             push_back (new Thread (size ()));
         }
         assert(!empty ());
+        
+        sync_cout << "info string Thread(s) used " << threads << sync_endl;
+
         clear ();
     }
-
-    sync_cout << "info string Thread(s) used " << threads << sync_endl;
 }
 /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and returns immediately.
 /// Main thread will wake up other threads and start the search.
