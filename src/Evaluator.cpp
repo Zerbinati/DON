@@ -181,13 +181,13 @@ namespace Evaluator {
             // For instance, if black's king is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8, f7, g7, h7, f6, g6 and h6.
             Bitboard king_ring[CLR_NO];
             // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
-            u08      king_ring_attackers_count[CLR_NO];
+            u08 king_ring_attackers_count[CLR_NO];
             // Sum of the "weight" of the pieces of the color which attack a square in the king_ring of the enemy king.
             // The weights of the individual piece types are given by the PieceAttackWeights[piece-type]
-            i32      king_ring_attackers_weight[CLR_NO];
+            i32 king_ring_attackers_weight[CLR_NO];
             // Number of attacks by the color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
-            u08      king_zone_attacks_count[CLR_NO];
+            u08 king_zone_attacks_count[CLR_NO];
 
             template<Color Own>
             void initialize ();
@@ -870,7 +870,7 @@ namespace Evaluator {
         Score Evaluation<Trace>::evaluate_passers ()
         {
             const auto Opp = WHITE == Own ? BLACK : WHITE;
-            
+
             auto score = SCORE_ZERO;
 
             Bitboard passers = pe->passers[Own];
@@ -894,16 +894,16 @@ namespace Evaluator {
                     // Adjust bonus based on the king's proximity
                     if (!contains (pawn_pass_span (Own, s), pos.square<KING> (Opp)))
                     {
-                        eg_value += 5 * rr * limit_king_dist<Opp> (push_sq);
+                        eg_value += 5*rr*limit_king_dist<Opp> (push_sq);
                     }
-                    eg_value -= 2 * rr * limit_king_dist<Own> (push_sq);
+                    eg_value -= 2*rr*limit_king_dist<Own> (push_sq);
 
                     // If block square is not the queening square then consider also a second push.
                     if (R_7 != r)
                     {
-                        eg_value -= 1 * rr * limit_king_dist<Own> (push_sq + pawn_push (Own));
+                        eg_value -= 1*rr*limit_king_dist<Own> (push_sq + pawn_push (Own));
                     }
-                    
+
                     // If the pawn is free to advance.
                     if (pos.empty (push_sq))
                     {

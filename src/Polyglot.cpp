@@ -15,8 +15,6 @@ namespace Polyglot {
 
     namespace {
 
-        PRNG prng (now ());
-
         template<typename T>
         ifstream& operator>> (ifstream &ifs, T &t)
         {
@@ -39,20 +37,20 @@ namespace Polyglot {
         //    return ofs;
         //}
 
-        ifstream& operator>> (ifstream &ifs, Entry &pe)
+        ifstream& operator>> (ifstream &ifs, Entry &entry)
         {
-            ifs >> pe.key
-                >> pe.move
-                >> pe.weight
-                >> pe.learn;
+            ifs >> entry.key
+                >> entry.move
+                >> entry.weight
+                >> entry.learn;
             return ifs;
         }
-        //ofstream& operator<< (ofstream &ofs, const Entry &pe)
+        //ofstream& operator<< (ofstream &ofs, const Entry &entry)
         //{
-        //    ofs << pe.key
-        //        << pe.move
-        //        << pe.weight
-        //        << pe.learn;
+        //    ofs << entry.key
+        //        << entry.move
+        //        << entry.weight
+        //        << entry.learn;
         //    return ofs;
         //}
 
@@ -110,22 +108,11 @@ namespace Polyglot {
     Entry::operator string () const
     {
         ostringstream oss;
-
-        auto m = Move(move);
-        // Set new type for promotion piece
-        auto pt = PieceType((m >> 12) & MAX_PTYPE);
-        if (pt != PAWN)
-        {
-            promote (m, pt);
-            m = Move(m + PROMOTE);
-        }
-        // TODO:: Add special move flags and verify it is legal
         oss << " key: "    << std::setw (16) << std::setfill ('0') << std::hex << std::uppercase << key << std::nouppercase
-            << " move: "   << std::setw ( 5) << std::setfill (' ') << std::left << move_to_can (m) << std::right
+            << " move: "   << std::setw ( 5) << std::setfill (' ') << std::left << move_to_can (Move(move)) << std::right
             << " weight: " << std::setw ( 5) << std::setfill ('0') << std::dec << weight
             << " learn: "  << std::setw ( 2) << std::setfill ('0') << std::dec << learn
             << std::setfill (' ');
-
         return oss.str ();
     }
 
@@ -262,9 +249,9 @@ namespace Polyglot {
             return;
         }
 
-        polyglot.seekg (0LL, ios_base::end);
+        polyglot.seekg (size_t(0), ios_base::end);
         size_t filesize = polyglot.tellg ();
-        polyglot.seekg (0LL, ios_base::beg);
+        polyglot.seekg (size_t(0), ios_base::beg);
 
         entry_count = (filesize - HeaderSize) / Entry::Size;
         entries = new Entry[entry_count];
@@ -280,7 +267,7 @@ namespace Polyglot {
         }
         polyglot.close ();
 
-        sync_cout << "info string Book entries found " << entry_count << " from file \'" << book_fn << "\'" << sync_endl;
+        sync_cout << "info string Book entries found " << entry_count << " from file \'" << filename << "\'" << sync_endl;
         enabled = true;
     }
     /// PolyBook::probe() tries to find a book move for the given position.
@@ -289,6 +276,8 @@ namespace Polyglot {
     /// otherwise randomly chooses one, based on the move score.
     Move PolyBook::probe (Position &pos)
     {
+        static PRNG prng (now ());
+
         auto move = MOVE_NONE;
 
         if (   !enabled
@@ -320,7 +309,9 @@ namespace Polyglot {
         u32 weight_sum = 0;
 
         size_t pick_index1 = index;
-        for (size_t i = index; i < entry_count && key == entries[i].key; ++i)
+        size_t i = index;
+        while (   i < entry_count
+               && key == entries[i].key)
         {
             if (MOVE_NONE == entries[i].move) continue;
 
@@ -328,26 +319,25 @@ namespace Polyglot {
             max_weight = std::max (entries[i].weight, max_weight);
             weight_sum += entries[i].weight;
 
-            // Choose book move
+            // Choose the move
 
             if (pick_best)
             {
-                if (entries[i].weight == max_weight)
+                if (max_weight == entries[i].weight)
                 {
                     pick_index1 = i;
                 }
             }
-            // If a move has a very high score it has a higher probability
-            // of being choosen than a move with a lower score.
             else
-            if (0 != weight_sum)
             {
-                u16 rand = prng.rand<u16> () % weight_sum;
-                if (entries[i].weight > rand)
+                // Move with a very high score, has a higher probability of being choosen.
+                if (   0 != weight_sum
+                    && (prng.rand<u32> () % weight_sum) < entries[i].weight)
                 {
                     pick_index1 = i;
                 }
             }
+            ++i;
         }
 
         move = Move(entries[pick_index1].move);
@@ -405,25 +395,29 @@ namespace Polyglot {
             return oss.str ();
         }
 
-        list<Entry> pes;
+        list<Entry> list_entries;
         u32 weight_sum = 0;
-        for (size_t i = index; i < entry_count && key == entries[i].key; ++i)
+        while (   size_t(index) < entry_count
+               && key == entries[index].key)
         {
-            pes.push_back (entries[i]);
-            weight_sum += entries[i].weight;
+            list_entries.push_back (entries[index]);
+            weight_sum += entries[index].weight;
+            ++index;
         }
-        if (!pes.empty ())
+        if (!list_entries.empty ())
         {
-            pes.sort ();
-            pes.reverse ();
-            for (auto pe : pes)
+            list_entries.sort ();
+            list_entries.reverse ();
+            oss << "\nBook entries: " << list_entries.size ();
+            for (auto entry : list_entries)
             {
+                entry.move = convert_move (pos, Move(entry.move));
                 oss << "\n"
-                    << pe
+                    << entry
                     << " prob: "
                     << std::setw (7)
                     << std::setfill ('0')
-                    << std::fixed << std::setprecision (4) << (0 != weight_sum ? 100.0 * pe.weight / weight_sum : 0.0)
+                    << std::fixed << std::setprecision (4) << (0 != weight_sum ? 100.0 * entry.weight / weight_sum : 0.0)
                     << std::setfill (' ');
             }
         }

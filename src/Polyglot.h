@@ -33,53 +33,49 @@ namespace Polyglot {
 
         explicit operator Move () const { return Move(move); }
 
-        bool operator== (const Entry &pe)
+        bool operator== (const Entry &entry)
         {
-            return key == pe.key
-                && move == pe.move
-                && weight == pe.weight;
+            return key == entry.key
+                && move == entry.move
+                && weight == entry.weight;
         }
-        bool operator!= (const Entry &pe)
+        bool operator!= (const Entry &entry)
         {
-            return key != pe.key
-                || move != pe.move
-                || weight != pe.weight;
+            return key != entry.key
+                || move != entry.move
+                || weight != entry.weight;
         }
-        bool operator>  (const Entry &pe)
+        bool operator>  (const Entry &entry)
         {
-            return
-                key != pe.key ?
-                    key > pe.key :
-                    weight != pe.weight ?
-                        weight > pe.weight :
-                        move > pe.move;
+            return key != entry.key ?
+                        key > entry.key :
+                        weight != entry.weight ?
+                            weight > entry.weight :
+                            move > entry.move;
         }
-        bool operator<  (const Entry &pe)
+        bool operator<  (const Entry &entry)
         {
-            return
-                key != pe.key ?
-                    key < pe.key :
-                    weight != pe.weight ?
-                        weight < pe.weight :
-                        move < pe.move;
+            return key != entry.key ?
+                        key < entry.key :
+                        weight != entry.weight ?
+                            weight < entry.weight :
+                            move < entry.move;
         }
-        bool operator>= (const Entry &pe)
+        bool operator>= (const Entry &entry)
         {
-            return
-                key != pe.key ?
-                    key >= pe.key :
-                    weight != pe.weight ?
-                        weight >= pe.weight :
-                        move >= pe.move;
+            return key != entry.key ?
+                        key >= entry.key :
+                        weight != entry.weight ?
+                            weight >= entry.weight :
+                            move >= entry.move;
         }
-        bool operator<= (const Entry &pe)
+        bool operator<= (const Entry &entry)
         {
-            return
-                key != pe.key ?
-                    key <= pe.key :
-                    weight != pe.weight ?
-                        weight <= pe.weight :
-                        move <= pe.move;
+            return key != entry.key ?
+                        key <= entry.key :
+                        weight != entry.weight ?
+                            weight <= entry.weight :
+                            move <= entry.move;
         }
 
         bool operator== (Move m) { return move == m; }
@@ -91,9 +87,9 @@ namespace Polyglot {
 
     template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const Entry &pe)
+        operator<< (std::basic_ostream<CharT, Traits> &os, const Entry &entry)
     {
-        os << std::string(pe);
+        os << std::string(entry);
         return os;
     }
 
