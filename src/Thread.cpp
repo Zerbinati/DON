@@ -156,7 +156,7 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
 }
 
 /// Thread constructor launches the thread and waits until it goes to sleep in idle_loop().
-/// Note that 'searching' and 'dead' should be already set.
+/// Note that 'busy' and 'dead' should be already set.
 Thread::Thread (size_t idx)
     : index (idx)
     , std_thread (&Thread::idle_loop, this)
@@ -194,7 +194,12 @@ void Thread::idle_loop ()
     // some Windows NUMA hardware, for instance in fishtest. To make it simple,
     // just check if running threads are below a threshold, in this case all this
     // NUMA machinery is not needed.
-    if (8 <= i32(Options["Threads"]))
+    auto threads = i32(Options["Threads"]);
+    if (0 == threads)
+    {
+        threads = thread::hardware_concurrency ();
+    }
+    if (8 <= threads)
     {
         ThreadPool::bind (index);
     }
@@ -283,7 +288,7 @@ void ThreadPool::initialize ()
     }
 
     // Once we know length, allocate the buffer
-    auto *ptrSysLogicalProcInfoBase = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *> (malloc (length));
+    auto *ptrSysLogicalProcInfoBase = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*> (malloc (length));
     if (nullptr == ptrSysLogicalProcInfoBase)
     {
         return;
@@ -318,7 +323,7 @@ void ThreadPool::initialize ()
         }
 
         offset += ptrSysLogicalProcInfoCurr->Size;
-        ptrSysLogicalProcInfoCurr = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX *> (reinterpret_cast<BYTE *> (ptrSysLogicalProcInfoCurr) + ptrSysLogicalProcInfoCurr->Size);
+        ptrSysLogicalProcInfoCurr = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*> (reinterpret_cast<BYTE*> (ptrSysLogicalProcInfoCurr) + ptrSysLogicalProcInfoCurr->Size);
     }
     free (ptrSysLogicalProcInfoBase);
 
@@ -340,8 +345,7 @@ void ThreadPool::initialize ()
     }
 
 #else
-
-
+    
 #endif
 }
 /// bind() set the group affinity for the thread index.
@@ -367,20 +371,19 @@ void ThreadPool::bind (size_t index)
     {
         return;
     }
-    GROUP_AFFINITY affinity;
-    if (GetNumaNodeProcessorMaskEx (group, &affinity))
+    GROUP_AFFINITY group_affinity;
+    if (GetNumaNodeProcessorMaskEx (group, &group_affinity))
     {
         auto SetThreadGroupAffinity = (STGA) GetProcAddress (kernel32, "SetThreadGroupAffinity");
         if (nullptr == SetThreadGroupAffinity)
         {
             return;
         }
-        SetThreadGroupAffinity (GetCurrentThread (), &affinity, nullptr);
+        SetThreadGroupAffinity (GetCurrentThread (), &group_affinity, nullptr);
     }
 
 #else
-
-
+    
 #endif
 }
 

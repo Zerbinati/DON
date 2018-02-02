@@ -2497,7 +2497,7 @@ void MainThread::check_limits ()
     auto elapsed_time = time_mgr.elapsed_time ();
     TimePoint tick = Limits.start_time + elapsed_time;
 
-    if (last_time <= tick - 1000)
+    if (last_time + 1000 <= tick)
     {
         last_time = tick;
 

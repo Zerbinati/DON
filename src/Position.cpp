@@ -908,7 +908,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     // Reset en-passant square
     if (SQ_NO != si->en_passant_sq)
     {
-        assert(si->clock_ply <= 1);
+        assert(1 >= si->clock_ply);
         si->posi_key ^= RandZob.en_passant_keys[_file (si->en_passant_sq)];
         si->en_passant_sq = SQ_NO;
     }
@@ -964,7 +964,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             && R_5 == rel_rank (active, org)
             && R_6 == rel_rank (active, dst)
             && empty (dst)
-            && si->clock_ply <= 1);
+            && 1 >= si->clock_ply);
 
         board[cap] = NO_PIECE; // Not done by remove_piece()
         si->clock_ply = 0;
@@ -1045,6 +1045,7 @@ void Position::undo_move (Move m)
         || CASTLE == mtype (m));
 
     active = ~active;
+
     if (NORMAL == mtype (m))
     {
         move_piece (dst, org);

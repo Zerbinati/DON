@@ -77,16 +77,16 @@ namespace Notation {
         // Time to string
         string pretty_time (u64 time)
         {
-            const u32 MilliSec       = 1000;
-            const u32 MinuteMilliSec = 60*MilliSec;
+            const u32 SecondMilliSec = 1000;
+            const u32 MinuteMilliSec = 60*SecondMilliSec;
             const u32 HourMilliSec   = 60*MinuteMilliSec;
 
             u32 hours  = u32(time / HourMilliSec);
             time      %= HourMilliSec;
             u32 minutes= u32(time / MinuteMilliSec);
             time      %= MinuteMilliSec;
-            u32 seconds= u32(time / MilliSec);
-            time      %= MilliSec;
+            u32 seconds= u32(time / SecondMilliSec);
+            time      %= SecondMilliSec;
             time      /= 10;
 
             ostringstream oss;
@@ -122,10 +122,11 @@ namespace Notation {
     /// to the corresponding legal move, if any.
     Move move_from_can (const string &can, const Position &pos)
     {
+        //// If promotion piece in uppercase, convert to lowercase
         //if (   5 == can.length ()
         //    && isupper (can[4]))
         //{
-        //    can[4] = char(tolower (can[4])); // Promotion piece in lowercase
+        //    can[4] = char(tolower (can[4]));
         //}
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {

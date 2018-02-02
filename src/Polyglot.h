@@ -135,7 +135,7 @@ namespace Polyglot {
 
 }
 
-// Global Book
+// Global PolyBook
 extern Polyglot::PolyBook Book;
 
 #endif // _POLYGLOT_H_INC_

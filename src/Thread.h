@@ -89,9 +89,9 @@ public:
     Position root_pos;
     RootMoves root_moves;
 
-    i16   running_depth
-        , finished_depth
-        , sel_depth;
+    i16 running_depth
+      , finished_depth
+      , sel_depth;
 
     i16  nmp_ply;
     bool nmp_odd;
@@ -131,9 +131,9 @@ class MainThread
 {
 public:
 
-    i16    check_count;
+    i16 check_count;
 
-    bool   failed_low;
+    bool failed_low;
 
     double best_move_change;
 
