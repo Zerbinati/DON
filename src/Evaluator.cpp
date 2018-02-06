@@ -857,6 +857,7 @@ namespace Evaluator {
             return score;
         }
 
+        // limit_king_dist() returns a limit of the distance that the king of the color has to run to reach square s.
         template<bool Trace>
         template<Color Own>
         i32 Evaluation<Trace>::limit_king_dist (Square s)

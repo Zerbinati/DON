@@ -1454,9 +1454,11 @@ namespace Searcher {
                        (move == ss->excluded_move)
                        // At root obey following rules:
                        // In "searchmoves" mode, skip moves not listed in RootMoves, as a consequence any illegal move is also skipped.
-                       // In MultiPV mode, skip PV moves which have been already searched.
+                       // In MultiPV mode we not only skip PV moves which have already been searched, but also any other move except we have reached the last PV line.
                     || (   root_node
-                        && std::find (pos.thread->root_moves.begin () + pos.thread->pv_index, pos.thread->root_moves.end (), move) == pos.thread->root_moves.end ()))
+                        && (   std::find (pos.thread->root_moves.begin () + pos.thread->pv_index, pos.thread->root_moves.end (), move) == pos.thread->root_moves.end ()
+                            /*|| (   pos.thread->pv_index < Threadpool.pv_limit - 1
+                                && move != tt_move)*/)))
                 {
                     continue;
                 }
@@ -2363,6 +2365,7 @@ void MainThread::search ()
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
             Threadpool.pv_limit = std::min (size_t(std::max (MultiPV, skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
+            assert(0 < Threadpool.pv_limit);
 
             for (auto *th : Threadpool)
             {
