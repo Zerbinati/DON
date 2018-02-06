@@ -166,6 +166,7 @@ private:
     const Position &pos;
 
     Move tt_move;
+    i16 depth;
     Value threshold;
     Square recap_sq;
 

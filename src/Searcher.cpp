@@ -107,9 +107,8 @@ namespace {
     {
         NATURAL_TT, CAPTURE_INIT, GOOD_CAPTURES, QUIET_INIT, QUIETS_1, QUIETS_2, BAD_CAPTURES,
         EVASION_TT, EVASION_INIT, EVASIONS,
-        PROBCUT_CAPTURE_TT, PROBCUT_CAPTURE_INIT, PROBCUT_CAPTURES,
-        QS_CHECK_TT, QS_CHECK_CAPTURE_INIT, QS_CHECK_CAPTURES, QS_CHECK_QUIET_INIT, QS_CHECK_QUIETS,
-        QS_NO_CHECK_TT, QS_NO_CHECK_CAPTURE_INIT, QS_NO_CHECK_CAPTURES,
+        PROBCUT_TT, PROBCUT_CAPTURE_INIT, PROBCUT_CAPTURES,
+        QS_TT, QS_CAPTURE_INIT, QS_CAPTURES, QS_CHECK_INIT, QS_CHECKS,
         QS_RECAPTURE_TT, QS_RECAPTURE_INIT, QS_RECAPTURES,
     };
 }
@@ -123,6 +122,7 @@ namespace {
 MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pdh, const Move *km, Move cm)
     : pos (p)
     , tt_move (ttm)
+    , depth (d)
     , threshold (Value(-4000*d))
     , recap_sq (SQ_NO)
     , piece_destiny_history (pdh)
@@ -132,7 +132,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
          && pos.legal (tt_move)));
-    assert(d > 0);
+    assert(depth > 0);
     assert(threshold < VALUE_ZERO);
 
     if (0 != pos.si->checkers)
@@ -173,6 +173,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
 MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     : pos (p)
     , tt_move (ttm)
+    , depth (d)
     , threshold (VALUE_ZERO)
     , recap_sq (SQ_NO)
     , piece_destiny_history (nullptr)
@@ -181,21 +182,16 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     assert(MOVE_NONE == tt_move
         || (pos.pseudo_legal (tt_move)
          && pos.legal (tt_move)));
-    assert(d <= 0);
+    assert(depth <= 0);
 
     if (0 != pos.si->checkers)
     {
         stage = Stage::EVASION_TT;
     }
     else
-    if (d > DepthQSNoCheck)
+    if (depth > DepthQSRecapture)
     {
-        stage = Stage::QS_CHECK_TT;
-    }
-    else
-    if (d > DepthQSRecapture)
-    {
-        stage = Stage::QS_NO_CHECK_TT;
+        stage = Stage::QS_TT;
     }
     else
     {
@@ -213,6 +209,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
 MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     : pos (p)
     , tt_move (ttm)
+    , depth (0)
     , threshold (thr)
     , recap_sq (SQ_NO)
     , piece_destiny_history (nullptr)
@@ -223,7 +220,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
         || (pos.pseudo_legal (tt_move)
          && pos.legal (tt_move)));
 
-    stage = Stage::PROBCUT_CAPTURE_TT;
+    stage = Stage::PROBCUT_TT;
     if (   MOVE_NONE != tt_move
         && !(   pos.capture (tt_move)
              && pos.see_ge (tt_move, threshold)))
@@ -297,9 +294,8 @@ Move MovePicker::next_move ()
 
     case Stage::NATURAL_TT:
     case Stage::EVASION_TT:
-    case Stage::PROBCUT_CAPTURE_TT:
-    case Stage::QS_CHECK_TT:
-    case Stage::QS_NO_CHECK_TT:
+    case Stage::PROBCUT_TT:
+    case Stage::QS_TT:
     case Stage::QS_RECAPTURE_TT:
         ++stage;
         return tt_move;
@@ -317,7 +313,6 @@ Move MovePicker::next_move ()
             }
         }
         value<GenType::CAPTURE> ();
-
         ++stage;
         i = 0;
         /* fallthrough */
@@ -415,7 +410,6 @@ Move MovePicker::next_move ()
             }
         }
         value<GenType::EVASION> ();
-
         ++stage;
         i = 0;
         /* fallthrough */
@@ -438,7 +432,6 @@ Move MovePicker::next_move ()
             }
         }
         value<GenType::CAPTURE> ();
-
         ++stage;
         i = 0;
         /* fallthrough */
@@ -454,7 +447,7 @@ Move MovePicker::next_move ()
         }
         break;
 
-    case Stage::QS_CHECK_CAPTURE_INIT:
+    case Stage::QS_CAPTURE_INIT:
         generate<GenType::CAPTURE> (moves, pos);
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
@@ -466,18 +459,21 @@ Move MovePicker::next_move ()
             }
         }
         value<GenType::CAPTURE> ();
-
         ++stage;
         i = 0;
         /* fallthrough */
-    case Stage::QS_CHECK_CAPTURES:
+    case Stage::QS_CAPTURES:
         if (i < moves.size ())
         {
             return next_max_move ().move;
         }
+        if (depth <= DepthQSNoCheck)
+        {
+            break;
+        }
         ++stage;
         /* fallthrough */
-    case Stage::QS_CHECK_QUIET_INIT:
+    case Stage::QS_CHECK_INIT:
         generate<GenType::QUIET_CHECK> (moves, pos);
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
@@ -491,33 +487,10 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         /* fallthrough */
-    case Stage::QS_CHECK_QUIETS:
+    case Stage::QS_CHECKS:
         if (i < moves.size ())
         {
             return moves[i++].move;
-        }
-        break;
-
-    case Stage::QS_NO_CHECK_CAPTURE_INIT:
-        generate<GenType::CAPTURE> (moves, pos);
-        filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
-        {
-            auto itr = std::find (moves.begin (), moves.end (), tt_move);
-            if (itr != moves.end ())
-            {
-                moves.erase (itr);
-            }
-        }
-        value<GenType::CAPTURE> ();
-
-        ++stage;
-        i = 0;
-        /* fallthrough */
-    case Stage::QS_NO_CHECK_CAPTURES:
-        if (i < moves.size ())
-        {
-            return next_max_move ().move;
         }
         break;
 
@@ -532,8 +505,6 @@ Move MovePicker::next_move ()
         //        moves.erase (itr);
         //    }
         //}
-        value<GenType::CAPTURE> ();
-
         ++stage;
         i = 0;
         /* fallthrough */
@@ -541,7 +512,7 @@ Move MovePicker::next_move ()
         assert(SQ_NO != recap_sq);
         while (i < moves.size ())
         {
-            auto move = next_max_move ().move;
+            auto move = moves[i++].move;
             if (dst_sq (move) == recap_sq)
             {
                 return move;
@@ -1453,11 +1424,11 @@ namespace Searcher {
                 if (   // Skip exclusion move
                        (move == ss->excluded_move)
                        // At root obey following rules:
-                       // In "searchmoves" mode, skip moves not listed in RootMoves, as a consequence any illegal move is also skipped.
-                       // In MultiPV mode we not only skip PV moves which have already been searched, but also any other move except we have reached the last PV line.
                     || (   root_node
-                        && (   std::find (pos.thread->root_moves.begin () + pos.thread->pv_index, pos.thread->root_moves.end (), move) == pos.thread->root_moves.end ()
-                            /*|| (   pos.thread->pv_index < Threadpool.pv_limit - 1
+                        && (   // In "searchmoves" mode, skip moves not listed in RootMoves, as a consequence any illegal move is also skipped.
+                               std::find (pos.thread->root_moves.begin () + pos.thread->pv_index, pos.thread->root_moves.end (), move) == pos.thread->root_moves.end ()
+                             /*// In MultiPV mode we not only skip PV moves which have already been searched, but also any other move except we have reached the last PV line.
+                            || (   pos.thread->pv_index < Threadpool.pv_limit - 1
                                 && move != tt_move)*/)))
                 {
                     continue;

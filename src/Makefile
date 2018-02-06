@@ -298,8 +298,6 @@ ifeq ($(optimize), yes)
 
 	ifeq ($(comp), clang)
 		ifeq ($(KERNEL), Darwin)
-			CXXFLAGS += -flto
-			LDFLAGS += $(CXXFLAGS)
 			ifeq ($(arch), i386)
 				CXXFLAGS += -mdynamic-no-pic
 			endif
@@ -350,19 +348,15 @@ endif
 ### 3.9 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
-ifeq ($(comp), gcc)
-	ifeq ($(optimize), yes)
-		ifeq ($(debug), no)
+ifeq ($(optimize), yes)
+	ifeq ($(debug), no)
+		ifeq ($(comp), $(filter $(comp), gcc clang))
 			CXXFLAGS += -flto
 			LDFLAGS += $(CXXFLAGS)
 		endif
-	endif
-endif
 
-ifeq ($(comp), mingw)
-	ifeq ($(KERNEL), Linux)
-		ifeq ($(optimize), yes)
-			ifeq ($(debug), no)
+		ifeq ($(comp), mingw)
+			ifeq ($(KERNEL), Linux)
 				CXXFLAGS += -flto
 				LDFLAGS += $(CXXFLAGS)
 			endif
