@@ -11,7 +11,6 @@ namespace Evaluator {
     using namespace std;
     using namespace BitBoard;
     using namespace Material;
-    using namespace MoveGen;
     using namespace EndGame;
 
     Score Contempt = SCORE_ZERO;

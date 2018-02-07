@@ -10,7 +10,6 @@ namespace EndGame {
     using namespace std;
     using namespace BitBoard;
     using namespace BitBases;
-    using namespace MoveGen;
 
     namespace {
 

@@ -28,8 +28,6 @@ namespace Engine {
 
         using namespace Engine;
         using namespace Evaluator;
-        using namespace MoveGen;
-        using namespace Notation;
         using namespace Polyglot;
         using namespace Searcher;
         using namespace TBSyzygy;

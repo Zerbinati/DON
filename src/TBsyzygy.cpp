@@ -33,7 +33,6 @@ namespace TBSyzygy {
 
     using namespace std;
     using namespace BitBoard;
-    using namespace MoveGen;
     using namespace Searcher;
 
     string PathString = Empty;

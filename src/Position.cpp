@@ -10,8 +10,6 @@
 
 using namespace std;
 using namespace BitBoard;
-using namespace MoveGen;
-using namespace Notation;
 //using namespace Polyglot;
 using namespace PSQT;
 using namespace TBSyzygy;
@@ -1313,7 +1311,7 @@ Position::operator string () const
     }
     for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
     {
-        oss << "   " << Notation::to_char (f, false);
+        oss << "   " << to_char (f, false);
     }
 
     oss << "\nFEN: " << fen ()

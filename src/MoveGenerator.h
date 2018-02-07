@@ -15,42 +15,40 @@ enum GenType : u08
     LEGAL,
 };
 
-namespace MoveGen {
+template<GenType GT>
+extern void generate (ValMoves&, const Position&);
 
-    template<GenType GT>
-    extern void generate (ValMoves&, const Position&);
+extern void filter_illegal (ValMoves&, const Position&);
 
-    extern void filter_illegal (ValMoves&, const Position&);
+template<GenType GT, PieceType PT = NONE>
+class MoveList
+    : public ValMoves
+{
+public:
 
-    template<GenType GT, PieceType PT = NONE>
-    class MoveList
-        : public ValMoves
+    MoveList () = delete;
+    //MoveList (const MoveList&) = delete;
+
+    explicit MoveList (const Position &pos)
     {
-    public:
-
-        MoveList () = delete;
-        //MoveList (const MoveList&) = delete;
-
-        explicit MoveList (const Position &pos)
+        generate<GT> (*this, pos);
+        if (NONE != PT)
         {
-            generate<GT> (*this, pos);
-            if (NONE != PT)
-            {
-                erase (std::remove_if (begin (),
-                                       end (),
-                                       [&pos] (const ValMove &vm)
-                                       {
-                                            return PT != ptype (pos[org_sq (vm.move)]);
-                                       }),
-                       end ());
-            }
+            erase (std::remove_if (begin (),
+                                   end (),
+                                   [&pos] (const ValMove &vm)
+                                   {
+                                       return PT != ptype (pos[org_sq (vm.move)]);
+                                   }),
+                    end ());
         }
+    }
 
-        bool contains (Move move) const
-        {
-            return std::find (begin (), end (), move) != end ();
-        }
-    };
-}
+    bool contains (Move move) const
+    {
+        return std::find (begin (), end (), move) != end ();
+    }
+};
+
 
 #endif // _MOVE_GENERATOR_H_INC_

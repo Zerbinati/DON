@@ -16,8 +16,6 @@ using namespace std;
 using namespace BitBoard;
 using namespace Debugger;
 using namespace Evaluator;
-using namespace MoveGen;
-using namespace Notation;
 //using namespace Polyglot;
 using namespace TBSyzygy;
 //using namespace Transposition;

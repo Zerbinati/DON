@@ -10,8 +10,6 @@ Polyglot::PolyBook Book;
 namespace Polyglot {
 
     using namespace std;
-    using namespace MoveGen;
-    using namespace Notation;
 
     namespace {
 

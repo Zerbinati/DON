@@ -338,7 +338,7 @@ namespace BitBoard {
         oss << " /---------------\\\n";
         for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
         {
-            oss << Notation::to_char (r) << "|";
+            oss << to_char (r) << "|";
             for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
             {
                 oss << (contains (bb, f|r) ? "+" : "-");
@@ -352,7 +352,7 @@ namespace BitBoard {
         oss << " \\---------------/\n ";
         for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
-            oss << " " << Notation::to_char (f, false);
+            oss << " " << to_char (f, false);
         }
         oss << "\n";
         return oss.str ();
