@@ -5,8 +5,8 @@
 #include <memory>
 #include <type_traits>
 #include <utility>
-#include "Type.h"
 #include "Position.h"
+#include "Type.h"
 
 namespace EndGame {
 

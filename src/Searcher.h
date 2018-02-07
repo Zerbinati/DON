@@ -163,6 +163,17 @@ struct CapturePieceDestinyHistory
 class MovePicker
 {
 private:
+    enum Stage : u08
+    {
+        NAT_TT, NAT_CAPTURE_INIT, NAT_GOOD_CAPTURES, NAT_QUIET_INIT, NAT_QUIETS_1, NAT_QUIETS_2, NAT_BAD_CAPTURES,
+        EVA_TT, EVA_MOVE_INIT, EVA_MOVES,
+        PC_TT, PC_CAPTURE_INIT, PC_GOOD_CAPTURES, PC_BAD_CAPTURES,
+        QS_TT, QS_CAPTURE_INIT, QS_CAPTURES, QS_CHECK_INIT, QS_CHECKS,
+        QS_RECAP_TT, QS_RECAP_MOVE_INIT, QS_RECAP_MOVES,
+    };
+
+    const i32 MaxValue = 1 << 28;
+
     const Position &pos;
 
     Move tt_move;

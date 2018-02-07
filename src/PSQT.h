@@ -1,9 +1,8 @@
 #ifndef _PIECE_SQUARE_H_INC_
 #define _PIECE_SQUARE_H_INC_
 
+#include "Position.h"
 #include "Type.h"
-
-class Position;
 
 namespace PSQT {
 

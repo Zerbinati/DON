@@ -568,9 +568,9 @@ void Position::set_castle (Color c, CastleSide cs)
     assert(contains (pieces (c, ROOK), rook_org)
         && R_1 == rel_rank (c, rook_org));
 
+    auto cr = castle_right (c, cs);
     auto king_dst = rel_sq (c, rook_org > king_org ? SQ_G1 : SQ_C1);
     auto rook_dst = rel_sq (c, rook_org > king_org ? SQ_F1 : SQ_D1);
-    auto cr = castle_right (c, cs);
     si->castle_rights     |= cr;
     castle_mask[king_org] |= cr;
     castle_mask[rook_org] |= cr;
@@ -787,8 +787,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     }
 
     // 5-6. Halfmove clock and Fullmove number.
-    i16   clock_ply = 0
-        , moves = 1;
+    i16 clock_ply = 0
+      , moves = 1;
     if (full)
     {
         iss >> std::skipws

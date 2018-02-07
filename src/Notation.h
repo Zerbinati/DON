@@ -2,10 +2,9 @@
 #define _NOTATION_H_INC_
 
 #include <iostream>
+#include "Position.h"
 #include "Thread.h"
 #include "Type.h"
-
-class Position;
 
 const std::string PieceChar ("PNBRQK  pnbrqk");
 const std::string ColorChar ("wb-");

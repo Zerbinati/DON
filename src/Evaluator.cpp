@@ -1007,7 +1007,7 @@ namespace Evaluator {
                                    | ~pin_attacked_by[Opp][NONE]);
 
             // Since SpaceMask is fully on our half of the board
-            assert(u32(safe_space >> (WHITE == Own ? 0x20 : 0x00)) == 0);
+            assert(0 == u32(safe_space >> (WHITE == Own ? 0x20 : 0x00)));
             // Find all squares which are at most three squares behind some friend pawn
             Bitboard behind = pos.pieces (Own, PAWN);
             behind |= shift<WHITE == Own ? DEL_S  : DEL_N > (behind);

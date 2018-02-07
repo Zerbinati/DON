@@ -2,7 +2,6 @@
 
 #include <cmath>
 #include "MoveGenerator.h"
-#include "Position.h"
 
 using namespace std;
 

@@ -137,10 +137,10 @@ public:
 
     double best_move_change;
 
-    Value  last_value;
+    Value last_value;
     double last_time_reduction;
 
-    TimeManager  time_mgr;
+    TimeManager time_mgr;
     SkillManager skill_mgr;
 
     explicit MainThread (size_t);
@@ -184,12 +184,12 @@ public:
         ,             stop_on_ponderhit   // Stop search on ponderhit
         ,             ponder;             // Search on ponder move until the "stop"/"ponderhit" command
 
+    static void initialize ();
+    static void bind (size_t);
+
     ThreadPool () = default;
     ThreadPool (const ThreadPool&) = delete;
     ThreadPool& operator= (const ThreadPool&) = delete;
-
-    static void initialize ();
-    static void bind (size_t);
 
     MainThread* main_thread () const { return static_cast<MainThread*> (front ()); }
     u64 nodes () const { return accumulate (&Thread::nodes); }

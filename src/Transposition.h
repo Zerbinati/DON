@@ -71,6 +71,7 @@ namespace Transposition {
                 v16 = i16(v);
                 e16 = i16(e);
             }
+            assert(!empty ());
         }
     };
 

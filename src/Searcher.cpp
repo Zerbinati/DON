@@ -29,8 +29,8 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     assert(1 == size ());
     assert(MOVE_NONE != front ());
 
-    auto best_move = front ();
     StateInfo si;
+    auto best_move = front ();
     pos.do_move (best_move, si);
     bool tt_hit;
     auto *tte = TT.probe (pos.si->posi_key, tt_hit);
@@ -99,20 +99,6 @@ RootMoves::operator string () const
     return oss.str ();
 }
 
-namespace {
-
-    const i32 MaxValue = 1 << 28;
-
-    enum Stage : u08
-    {
-        NATURAL_TT, CAPTURE_INIT, GOOD_CAPTURES, QUIET_INIT, QUIETS_1, QUIETS_2, BAD_CAPTURES,
-        EVASION_TT, EVASION_INIT, EVASIONS,
-        PROBCUT_TT, PROBCUT_CAPTURE_INIT, PROBCUT_CAPTURES,
-        QS_TT, QS_CAPTURE_INIT, QS_CAPTURES, QS_CHECK_INIT, QS_CHECKS,
-        QS_RECAPTURE_TT, QS_RECAPTURE_INIT, QS_RECAPTURES,
-    };
-}
-
 /// MovePicker class constructors. As arguments pass information to help
 /// it to return the (presumably) good moves first, to decide which moves to return
 /// (in the quiescence search, for instance, only want to search captures, promotions, and some checks)
@@ -137,11 +123,11 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
 
     if (0 != pos.si->checkers)
     {
-        stage = Stage::EVASION_TT;
+        stage = Stage::EVA_TT;
     }
     else
     {
-        stage = Stage::NATURAL_TT;
+        stage = Stage::NAT_TT;
 
         if (   MOVE_NONE != cm
             && tt_move != cm
@@ -186,7 +172,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
 
     if (0 != pos.si->checkers)
     {
-        stage = Stage::EVASION_TT;
+        stage = Stage::EVA_TT;
     }
     else
     if (depth > DepthQSRecapture)
@@ -195,9 +181,14 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     }
     else
     {
-        stage = Stage::QS_RECAPTURE_TT;
+        stage = Stage::QS_RECAP_TT;
         recap_sq = rs;
-        tt_move = MOVE_NONE;
+        if (   MOVE_NONE != tt_move
+            && !(   pos.capture (tt_move)
+                 && dst_sq (tt_move) == recap_sq))
+        {
+            tt_move = MOVE_NONE;
+        }
     }
 
     if (MOVE_NONE == tt_move)
@@ -205,7 +196,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
         ++stage;
     }
 }
-/// MovePicker constructor for probCut search
+/// MovePicker constructor for ProbCut search
 MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     : pos (p)
     , tt_move (ttm)
@@ -220,7 +211,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
         || (pos.pseudo_legal (tt_move)
          && pos.legal (tt_move)));
 
-    stage = Stage::PROBCUT_TT;
+    stage = Stage::PC_TT;
     if (   MOVE_NONE != tt_move
         && !(   pos.capture (tt_move)
              && pos.see_ge (tt_move, threshold)))
@@ -292,16 +283,16 @@ Move MovePicker::next_move ()
     switch (stage)
     {
 
-    case Stage::NATURAL_TT:
-    case Stage::EVASION_TT:
-    case Stage::PROBCUT_TT:
+    case Stage::NAT_TT:
+    case Stage::EVA_TT:
+    case Stage::PC_TT:
     case Stage::QS_TT:
-    case Stage::QS_RECAPTURE_TT:
+    case Stage::QS_RECAP_TT:
         ++stage;
         return tt_move;
         break;
 
-    case Stage::CAPTURE_INIT:
+    case Stage::NAT_CAPTURE_INIT:
         generate<GenType::CAPTURE> (moves, pos);
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
@@ -316,7 +307,7 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         /* fallthrough */
-    case Stage::GOOD_CAPTURES:
+    case Stage::NAT_GOOD_CAPTURES:
         while (i < moves.size ())
         {
             auto &vm = next_max_move ();
@@ -324,12 +315,11 @@ Move MovePicker::next_move ()
             {
                 return vm.move;
             }
-            // Losing capture: Add it to the capture moves
             bad_capture_moves.push_back (vm.move);
         }
         ++stage;
         /* fallthrough */
-    case Stage::QUIET_INIT:
+    case Stage::NAT_QUIET_INIT:
         generate<GenType::QUIET> (moves, pos);
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
@@ -356,7 +346,7 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         /* fallthrough */
-    case Stage::QUIETS_1:
+    case Stage::NAT_QUIETS_1:
         if (i < moves.size ())
         {
             auto beg = moves.begin () + i;
@@ -381,7 +371,7 @@ Move MovePicker::next_move ()
         }
         ++stage;
         /* fallthrough */
-    case Stage::QUIETS_2:
+    case Stage::NAT_QUIETS_2:
         if (   pick_quiets
             && i < moves.size ())
         {
@@ -390,14 +380,14 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         /* fallthrough */
-    case Stage::BAD_CAPTURES:
+    case Stage::NAT_BAD_CAPTURES:
         if (i < bad_capture_moves.size ())
         {
             return bad_capture_moves[i++];
         }
         break;
 
-    case Stage::EVASION_INIT:
+    case Stage::EVA_MOVE_INIT:
         assert(0 != pos.si->checkers);
         generate<GenType::EVASION> (moves, pos);
         filter_illegal (moves, pos);
@@ -413,14 +403,14 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         /* fallthrough */
-    case Stage::EVASIONS:
+    case Stage::EVA_MOVES:
         if (i < moves.size ())
         {
             return next_max_move ().move;
         }
         break;
 
-    case Stage::PROBCUT_CAPTURE_INIT:
+    case Stage::PC_CAPTURE_INIT:
         generate<GenType::CAPTURE> (moves, pos);
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
@@ -435,7 +425,7 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         /* fallthrough */
-    case Stage::PROBCUT_CAPTURES:
+    case Stage::PC_GOOD_CAPTURES:
         while (i < moves.size ())
         {
             auto move = next_max_move ().move;
@@ -444,7 +434,16 @@ Move MovePicker::next_move ()
             {
                 return move;
             }
+            //bad_capture_moves.push_back (move);
         }
+    //    ++stage;
+    //    i = 0;
+    //    /* fallthrough */
+    //case Stage::PC_BAD_CAPTURES:
+    //    if (i < bad_capture_moves.size ())
+    //    {
+    //        return bad_capture_moves[i++];
+    //    }
         break;
 
     case Stage::QS_CAPTURE_INIT:
@@ -494,21 +493,21 @@ Move MovePicker::next_move ()
         }
         break;
 
-    case Stage::QS_RECAPTURE_INIT:
+    case Stage::QS_RECAP_MOVE_INIT:
         generate<GenType::CAPTURE> (moves, pos);
         filter_illegal (moves, pos);
-        //if (MOVE_NONE != tt_move)
-        //{
-        //    auto itr = std::find (moves.begin (), moves.end (), tt_move);
-        //    if (itr != moves.end ())
-        //    {
-        //        moves.erase (itr);
-        //    }
-        //}
+        if (MOVE_NONE != tt_move)
+        {
+            auto itr = std::find (moves.begin (), moves.end (), tt_move);
+            if (itr != moves.end ())
+            {
+                moves.erase (itr);
+            }
+        }
         ++stage;
         i = 0;
         /* fallthrough */
-    case Stage::QS_RECAPTURES:
+    case Stage::QS_RECAP_MOVES:
         assert(SQ_NO != recap_sq);
         while (i < moves.size ())
         {
@@ -557,7 +556,7 @@ namespace Searcher {
         // FutilityMoveCounts[improving][depth]
         u08 FutilityMoveCounts[2][16];
 
-        // ReductionDepths[pv][improving][depth][move_count]
+        // ReductionDepths[pv][improving][depth][movecount]
         i16 ReductionDepths[2][2][64][64];
         i16 reduction_depth (bool pv, bool imp, i16 d, u08 mc)
         {
@@ -2279,7 +2278,8 @@ void MainThread::search ()
     }
     else
     {
-        if (   !Limits.infinite
+        if (   Book.use
+            && !Limits.infinite
             && 0 == Limits.mate)
         {
             auto book_best_move = Book.probe (root_pos);
@@ -2420,8 +2420,8 @@ void MainThread::search ()
     auto ponder_move = MOVE_NONE != best_move
                     && (   root_move.size () > 1
                         || root_move.extract_ponder_move_from_tt (root_pos)) ?
-                            root_move[1] :
-                            MOVE_NONE;
+                           root_move[1] :
+                           MOVE_NONE;
     assert(MOVE_NONE != best_move
         || (MOVE_NONE == best_move
             && MOVE_NONE == ponder_move));

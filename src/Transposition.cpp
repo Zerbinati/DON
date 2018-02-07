@@ -21,8 +21,8 @@ namespace Transposition {
     /// Table::alloc_aligned_memory() allocates the aligned memory
     void Table::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
-        assert((alignment & (alignment-1)) == 0);
-        assert((mem_size  & (alignment-1)) == 0);
+        assert(0 == (alignment & (alignment-1)));
+        assert(0 == (mem_size  & (alignment-1)));
 
     #if defined(LPAGES)
 
@@ -32,7 +32,7 @@ namespace Transposition {
             return;
         }
         clusters = reinterpret_cast<Cluster*> ((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
-        assert((uintptr_t(clusters) & (alignment-1)) == 0);
+        assert(0 == (uintptr_t(clusters) & (alignment-1)));
 
     #else
 
@@ -60,7 +60,7 @@ namespace Transposition {
         }
         sync_cout << "info string Hash " << (mem_size >> 20) << " MB" << sync_endl;
         clusters = reinterpret_cast<Cluster*> ((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
-        assert((uintptr_t(clusters) & (alignment-1)) == 0);
+        assert(0 == (uintptr_t(clusters) & (alignment-1)));
 
     #endif
 
@@ -148,9 +148,8 @@ namespace Transposition {
     /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
     Entry* Table::probe (Key key, bool &tt_hit) const
     {
+        auto key16 = u16(key >> 0x30);
         auto *const fte = cluster_entry (key);
-        u16 key16 = (key >> 0x30);
-        assert(nullptr != fte);
         // Find an entry to be replaced according to the replacement strategy.
         auto *rte = fte; // Default first
         auto rworth = rte->worth ();

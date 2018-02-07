@@ -3,14 +3,13 @@
 
 #include <cassert>
 #include <deque>
+#include <list>
 #include <memory> // For std::unique_ptr
 #include <string>
-#include <list>
 #include "BitBoard.h"
-#include "Zobrist.h"
 #include "Type.h"
+#include "Zobrist.h"
 
-class Position;
 using namespace BitBoard;
 
 /// StateInfo stores information needed to restore a Position object to its previous state
