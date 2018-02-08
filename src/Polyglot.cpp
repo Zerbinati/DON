@@ -287,9 +287,9 @@ Move PolyBook::probe (Position &pos)
     auto key = pos.pg_key ();
 
     auto index = find_index (key);
-    if (index < 1)
+    if (1 > index)
     {
-        if (++fail_counter > 4)
+        if (4 < ++fail_counter)
         {
             // Stop probe after 4 times not in the book till position changes according to can_probe()
             do_probe = false;
@@ -385,7 +385,7 @@ string PolyBook::show (const Position &pos) const
     auto key = pos.pg_key ();
 
     auto index = find_index (key);
-    if (index < 1)
+    if (1 > index)
     {
         return oss.str ();
     }

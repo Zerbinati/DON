@@ -1854,6 +1854,7 @@ namespace Searcher {
                                    BOUND_EXACT :
                                    BOUND_UPPER);
             }
+
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
         }

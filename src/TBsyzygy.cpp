@@ -326,7 +326,7 @@ namespace TBSyzygy {
                     }
                 }
                 std::cerr << "HSHMAX too low!" << std::endl;
-                Engine::stop (EXIT_FAILURE);
+                stop (EXIT_FAILURE);
             }
 
         public:
@@ -424,7 +424,7 @@ namespace TBSyzygy {
                 if (mmap == 0)
                 {
                     std::cerr << "CreateFileMapping() failed, name = " << filename << ", error = " << GetLastError () << std::endl;
-                    Engine::stop (EXIT_FAILURE);
+                    stop (EXIT_FAILURE);
                 }
 
                 *mapping = u64(mmap);

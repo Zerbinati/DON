@@ -1,75 +1,76 @@
 #include "Evaluator.h"
 
 #include <ostream>
+#include "BitBoard.h"
 #include "Material.h"
 #include "MoveGenerator.h"
 #include "Pawns.h"
-#include "Thread.h"
 
 using namespace std;
 using namespace BitBoard;
-using namespace Material;
-using namespace EndGame;
 
 Score Contempt = SCORE_ZERO;
 
 namespace {
 
-    namespace Tracer {
+	class Tracer
+	{
+	public:
 
-        enum Term : u08
+		enum Term : u08
+		{
+			// The first 6 entries are for PieceType
+			MATERIAL = NONE,
+			IMBALANCE,
+			MOBILITY,
+			THREAT,
+			PASSER,
+			SPACE,
+			INITIATIVE,
+			TOTAL,
+		};
+
+		static double cp[TOTAL + 1][CLR_NO][2];
+
+		static void write (u08 term, Color c, Score score)
+		{
+			cp[term][c][MG] = value_to_cp (mg_value (score)) / 100.0;
+			cp[term][c][EG] = value_to_cp (eg_value (score)) / 100.0;
+		}
+		static void write (u08 term, Score wscore, Score bscore = SCORE_ZERO)
+		{
+			write (term, WHITE, wscore);
+			write (term, BLACK, bscore);
+		}
+
+	};
+
+	double Tracer::cp[TOTAL + 1][CLR_NO][2];
+
+    ostream& operator<< (ostream &os, Tracer::Term term)
+    {
+        switch (u08(term))
         {
-            // The first 6 entries are for PieceType
-            MATERIAL = NONE,
-            IMBALANCE,
-            MOBILITY,
-            THREAT,
-            PASSER,
-            SPACE,
-            INITIATIVE,
-            TOTAL,
-        };
-
-        double cp[TOTAL+1][CLR_NO][2];
-
-        void write (u08 term, Color c, Score score)
-        {
-            cp[term][c][MG] = value_to_cp (mg_value (score)) / 100.0;
-            cp[term][c][EG] = value_to_cp (eg_value (score)) / 100.0;
+        case PAWN:
+		case Tracer::Term::MATERIAL:
+        case Tracer::Term::IMBALANCE:
+        case Tracer::Term::INITIATIVE:
+        case Tracer::Term::TOTAL:
+            os << " | ----- ----- | ----- ----- | ";
+            break;
+        default:
+            os << " | " << std::setw (5) << Tracer::cp[term][WHITE][MG]
+               << " "   << std::setw (5) << Tracer::cp[term][WHITE][EG]
+               << " | " << std::setw (5) << Tracer::cp[term][BLACK][MG]
+               << " "   << std::setw (5) << Tracer::cp[term][BLACK][EG]
+               << " | ";
+            break;
         }
-        void write (u08 term, Score wscore, Score bscore = SCORE_ZERO)
-        {
-            write (term, WHITE, wscore);
-            write (term, BLACK, bscore);
-        }
-
-        ostream& operator<< (ostream &os, Term term)
-        {
-            switch (u08(term))
-            {
-            case PAWN:
-            case MATERIAL:
-            case IMBALANCE:
-            case INITIATIVE:
-            case TOTAL:
-                os << " | ----- ----- | ----- ----- | ";
-                break;
-            default:
-                os << " | " << std::setw (5) << cp[term][WHITE][MG]
-                   << " "   << std::setw (5) << cp[term][WHITE][EG]
-                   << " | " << std::setw (5) << cp[term][BLACK][MG]
-                   << " "   << std::setw (5) << cp[term][BLACK][EG]
-                   << " | ";
-                break;
-            }
-            os << std::setw (5) << cp[term][WHITE][MG] - cp[term][BLACK][MG] << " "
-               << std::setw (5) << cp[term][WHITE][EG] - cp[term][BLACK][EG]
-               << std::endl;
-            return os;
-        }
+        os << std::setw (5) << Tracer::cp[term][WHITE][MG] - Tracer::cp[term][BLACK][MG] << " "
+           << std::setw (5) << Tracer::cp[term][WHITE][EG] - Tracer::cp[term][BLACK][EG]
+           << std::endl;
+        return os;
     }
-
-    using namespace Tracer;
 
     // Evaluator class contains various evaluation functions.
     template<bool Trace>
@@ -851,7 +852,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (THREAT, Own, score);
+            Tracer::write (Tracer::Term::THREAT, Own, score);
         }
 
         return score;
@@ -977,7 +978,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (PASSER, Own, score);
+            Tracer::write (Tracer::Term::PASSER, Own, score);
         }
 
         return score;
@@ -1019,7 +1020,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (SPACE, Own, score);
+            Tracer::write (Tracer::Term::SPACE, Own, score);
         }
 
         return score;
@@ -1046,7 +1047,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (INITIATIVE, score);
+            Tracer::write (Tracer::Term::INITIATIVE, score);
         }
 
         return score;
@@ -1173,21 +1174,21 @@ namespace {
 
         assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
-        assert(0 <= me->phase && me->phase <= PhaseResolution);
+        assert(0 <= me->phase && me->phase <= Material::PhaseResolution);
 
         // Interpolates between midgame and scaled endgame values.
         v = Value(  (  mg_value (score) * (me->phase)
-                     + eg_value (score) * (PhaseResolution - me->phase) * evaluate_scale (eg_value (score)) / SCALE_NORMAL)
-                  / PhaseResolution);
+                     + eg_value (score) * (Material::PhaseResolution - me->phase) * evaluate_scale (eg_value (score)) / SCALE_NORMAL)
+                  / Material::PhaseResolution);
 
         if (Trace)
         {
             // Write remaining evaluation terms
             Tracer::write (PAWN, pe->score);
-            Tracer::write (MATERIAL, pos.si->psq_score);
-            Tracer::write (IMBALANCE, me->imbalance);
-            Tracer::write (MOBILITY, mobility[WHITE], mobility[BLACK]);
-            Tracer::write (TOTAL, score);
+            Tracer::write (Tracer::Term::MATERIAL, pos.si->psq_score);
+            Tracer::write (Tracer::Term::IMBALANCE, me->imbalance);
+            Tracer::write (Tracer::Term::MOBILITY, mobility[WHITE], mobility[BLACK]);
+            Tracer::write (Tracer::Term::TOTAL, score);
         }
 
         return WHITE == pos.active ? +v : -v; // Side to move point of view
@@ -1212,21 +1213,21 @@ string trace (const Position &pos)
         << "      Eval Term |    White    |    Black    |     Total    \n"
         << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
         << "----------------+-------------+-------------+--------------\n"
-        << "       Material" << Term(MATERIAL)
-        << "      Imbalance" << Term(IMBALANCE)
-        << "           Pawn" << Term(PAWN)
-        << "         Knight" << Term(NIHT)
-        << "         Bishop" << Term(BSHP)
-        << "           Rook" << Term(ROOK)
-        << "          Queen" << Term(QUEN)
-        << "       Mobility" << Term(MOBILITY)
-        << "           King" << Term(KING)
-        << "         Threat" << Term(THREAT)
-        << "    Pawn Passer" << Term(PASSER)
-        << "          Space" << Term(SPACE)
-        << "     Initiative" << Term(INITIATIVE)
+        << "       Material" << Tracer::Term::MATERIAL
+        << "      Imbalance" << Tracer::Term::IMBALANCE
+        << "           Pawn" << Tracer::Term(PAWN)
+        << "         Knight" << Tracer::Term(NIHT)
+        << "         Bishop" << Tracer::Term(BSHP)
+        << "           Rook" << Tracer::Term(ROOK)
+        << "          Queen" << Tracer::Term(QUEN)
+        << "       Mobility" << Tracer::Term::MOBILITY
+        << "           King" << Tracer::Term(KING)
+        << "         Threat" << Tracer::Term::THREAT
+        << "    Pawn Passer" << Tracer::Term::PASSER
+        << "          Space" << Tracer::Term::SPACE
+        << "     Initiative" << Tracer::Term::INITIATIVE
         << "----------------+-------------+-------------+--------------\n"
-        << "          Total" << Term(TOTAL)
+        << "          Total" << Tracer::Term::TOTAL
         << "\nEvaluation: " << value_to_cp (value) / 100.0 << " (white side)\n"
         << std::noshowpoint << std::noshowpos;
     return oss.str ();

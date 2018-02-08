@@ -3,8 +3,8 @@
 #include "MemoryHandler.h"
 
 #include <cstdlib>
+#include <iostream>
 #include "Thread.h"
-#include "Option.h"
 
 #if defined(_WIN32)
 

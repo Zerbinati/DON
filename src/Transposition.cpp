@@ -121,7 +121,7 @@ void TTable::auto_resize (u32 mem_size, bool force)
             return;
         }
     }
-    Engine::stop (EXIT_FAILURE);
+    stop (EXIT_FAILURE);
 }
 /// TTable::clear() clear the entire transposition table.
 void TTable::clear ()
