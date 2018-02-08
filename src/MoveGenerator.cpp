@@ -220,7 +220,7 @@ namespace {
         auto king_org = pos.square<KING> (Own);
         auto rook_org = pos.castle_rook[Own][CS];
         assert(contains (pos.pieces (Own, ROOK), rook_org));
-            
+
         Bitboard b = pos.king_path[Own][CS];
         // Check king's path for attackers
         while (0 != b)
@@ -244,7 +244,7 @@ namespace {
         auto m = mk_move<CASTLE> (king_org, rook_org);
         if (   GenType::NATURAL == GT
             || GenType::QUIET == GT
-            || ((   GenType::CHECK == GT
+            || (   (   GenType::CHECK == GT
                     || GenType::QUIET_CHECK == GT)
                 && pos.gives_check (m)))
         {
@@ -265,8 +265,8 @@ namespace {
         {
             auto fk_sq = pos.square<KING> (Own);
             Bitboard attacks = targets
-                                &  PieceAttacks[KING][fk_sq]
-                                & ~PieceAttacks[KING][pos.square<KING> (Opp)];
+                             &  PieceAttacks[KING][fk_sq]
+                             & ~PieceAttacks[KING][pos.square<KING> (Opp)];
             while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
         }
 
@@ -322,8 +322,8 @@ void generate (ValMoves &moves, const Position &pos)
                 || GenType::QUIET == GT, "GT incorrect");
     moves.clear ();
     Bitboard targets = GenType::NATURAL == GT ? ~pos.pieces ( pos.active) :
-                        GenType::CAPTURE == GT ?  pos.pieces (~pos.active) :
-                        GenType::QUIET   == GT ? ~pos.pieces () : (assert(false), 0);
+                       GenType::CAPTURE == GT ?  pos.pieces (~pos.active) :
+                       GenType::QUIET   == GT ? ~pos.pieces () : (assert(false), 0);
 
     WHITE == pos.active ?
         generate_moves<GT, WHITE> (moves, pos, targets) :
@@ -446,7 +446,7 @@ template<> void generate<GenType::LEGAL      > (ValMoves &moves, const Position 
         generate<GenType::EVASION> (moves, pos);
     filter_illegal (moves, pos);
 }
-    
+
 /// Filter illegal moves
 void filter_illegal (ValMoves &moves, const Position &pos)
 {

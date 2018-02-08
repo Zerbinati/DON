@@ -10,10 +10,8 @@
 
 using namespace std;
 using namespace BitBoard;
-//using namespace Polyglot;
 using namespace PSQT;
 using namespace TBSyzygy;
-//using namespace Transposition;
 
 bool Position::Chess960 = false;
 u08  Position::DrawClockPly = 100;

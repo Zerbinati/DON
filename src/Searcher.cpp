@@ -15,10 +15,7 @@
 using namespace std;
 using namespace BitBoard;
 using namespace Debugger;
-using namespace Evaluator;
-//using namespace Polyglot;
 using namespace TBSyzygy;
-//using namespace Transposition;
 using namespace Zobrists;
 
 /// RootMove::extract_ponder_move_from_tt() extract ponder move from TT is called in case have no ponder move before exiting the search,
@@ -1998,10 +1995,10 @@ void Thread::search ()
 
     // Iterative deepening loop until requested to stop or the target depth is reached.
     while (   ++running_depth < MaxPlies
-            && !Threadpool.stop
-            && (   nullptr == main_thread
-                || DepthZero == Limits.depth
-                || running_depth <= Limits.depth))
+           && !Threadpool.stop
+           && (   nullptr == main_thread
+               || DepthZero == Limits.depth
+               || running_depth <= Limits.depth))
     {
         if (nullptr != main_thread)
         {
@@ -2258,8 +2255,8 @@ void MainThread::search ()
         time_mgr.initialize (root_pos.active, root_pos.ply);
     }
 
-    Transposition::Entry::Generation = u08((root_pos.ply + 1) << 2);
-    assert(0 == (Transposition::Entry::Generation & 0x03));
+    TEntry::Generation = u08((root_pos.ply + 1) << 2);
+    assert(0 == (TEntry::Generation & 0x03));
 
     bool think = true;
 

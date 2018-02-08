@@ -41,7 +41,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="EndGame::Endgames">
-    <Position X="18.75" Y="14.5" Width="1.5" />
+    <Position X="18.75" Y="15.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AIAAEAAAAIAAAAAAAAAAAAAAAAAAAAAAAAAgAAACAAA=</HashCode>
       <FileName>src\Endgame.h</FileName>
@@ -61,13 +61,13 @@
       <FileName>src\MoveGenerator.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Transposition::Table">
-    <Position X="21" Y="11.5" Width="1.5" />
+  <Class Name="TTable">
+    <Position X="23" Y="11.25" Width="1.5" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>gMACCAAACICAAAIAAIAAQQAAAAAAJAAAAQAiAAwAAAA=</HashCode>
+      <HashCode>gMACCAAACICAAAIAAIAAAQAAAAAEIAAAEQAiAAwAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -171,10 +171,10 @@
       <Field Name="bad_capture_moves" />
     </ShowAsAssociation>
   </Class>
-  <Class Name="Evaluator::`anonymous-namespace'::Evaluation&lt;Trace&gt;">
-    <Position X="26.5" Y="10.5" Width="1.5" />
+  <Class Name="`anonymous-namespace'::Evaluator&lt;Trace&gt;">
+    <Position X="24.75" Y="10.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>QAiAigAAQYAAcQAQIxlAAYkMkIAAAGIBQSgzkE8QYAI=</HashCode>
+      <HashCode>QAiACgAAQYAAcQAQIxlAAYkMkIAAAGIBQSgzkG8QYAI=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Class>
@@ -192,7 +192,7 @@
       <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\array</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Polyglot::PolyBook" Collapsed="true">
+  <Class Name="PolyBook" Collapsed="true">
     <Position X="24.25" Y="0.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AMAAAABAAAAgAAQIAAWgAgAAAAAACAAQBBAEEAAAABA=</HashCode>
@@ -274,7 +274,7 @@
     </TypeIdentifier>
   </Struct>
   <Struct Name="Pawns::Entry">
-    <Position X="28.5" Y="12.5" Width="1.75" />
+    <Position X="26.5" Y="12.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAABAAAACEAAMoAAgQAEIAAAAQAGADIABAAA=</HashCode>
       <FileName>src\Pawns.h</FileName>
@@ -292,14 +292,14 @@
       <Field Name="pv" />
     </ShowAsAssociation>
   </Struct>
-  <Struct Name="Transposition::Entry">
-    <Position X="21" Y="14" Width="1.5" />
+  <Struct Name="TEntry">
+    <Position X="21.25" Y="12.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAgAAAAAACAAACAAAAAAAAGAAAAACAgAEISMAAAARA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Polyglot::Entry">
+  <Struct Name="Entry">
     <Position X="26" Y="0.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAQAAAAAAAAgACAAAAkAQAAAAAAAACgAAAgAAAAAAA=</HashCode>
@@ -323,8 +323,8 @@
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Transposition::Cluster">
-    <Position X="18.75" Y="12" Width="1.5" />
+  <Struct Name="TCluster">
+    <Position X="21.25" Y="11.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAEAAAAAAgAAAAAAAAAAAAAAAAAAACAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
@@ -373,14 +373,14 @@
     </TypeIdentifier>
   </Struct>
   <Struct Name="Material::Entry">
-    <Position X="28.5" Y="10.5" Width="1.5" />
+    <Position X="26.5" Y="10.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAEAAAEAgACAAAAAAAAAAAEAAAACAA=</HashCode>
       <FileName>src\Material.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="BitBoard::Magic">
-    <Position X="23" Y="14.75" Width="1.5" />
+    <Position X="19" Y="11.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAACAAAQAEAAAAAAAAAAAAAACAAAAAAAAABgAA=</HashCode>
       <FileName>src\BitBoard.h</FileName>
@@ -673,7 +673,7 @@
       <FileName>src\MoveGenerator.h</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="Evaluator::`anonymous-namespace'::Tracer::Term" Collapsed="true">
+  <Enum Name="`anonymous-namespace'::Tracer::Term" Collapsed="true">
     <Position X="27.75" Y="7" Width="1.5" />
     <TypeIdentifier>
       <HashCode>IQAAAEAAIQAAAAEAAEAAAABAAAAAAAAAAAAAAAAAAAA=</HashCode>

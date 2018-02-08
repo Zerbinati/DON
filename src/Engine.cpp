@@ -27,8 +27,6 @@ namespace Engine {
     namespace {
 
         using namespace Engine;
-        using namespace Evaluator;
-        using namespace Polyglot;
         using namespace Searcher;
         using namespace TBSyzygy;
 

@@ -4,16 +4,13 @@
 #include "Position.h"
 #include "Type.h"
 
-namespace Evaluator {
+// Tempo bonus
+const Value Tempo = Value(20);
 
-    // Tempo bonus
-    const Value Tempo = Value(20);
-    
-    extern Score Contempt;
+extern Score Contempt;
 
-    extern Value evaluate (const Position&);
-    
-    extern std::string trace (const Position&);
-}
+extern Value evaluate (const Position&);
+
+extern std::string trace (const Position&);
 
 #endif // _EVALUATOR_H_INC_
