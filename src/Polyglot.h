@@ -10,7 +10,7 @@
 ///  - Move      2 bytes
 ///  - Weight    2 bytes
 ///  - Learn     4 bytes
-struct Entry
+struct PolyEntry
 {
     static const u08 Size;
 
@@ -19,31 +19,31 @@ struct Entry
     u16 weight;
     u32 learn;
 
-    Entry () = default;
-    Entry (u64 k, u16 m, u16 w, u32 l)
+    PolyEntry () = default;
+    PolyEntry (u64 k, u16 m, u16 w, u32 l)
         : key (k)
         , move (m)
         , weight (w)
         , learn (l)
     {}
 
-    Entry& operator= (const Entry&) = default;
+    PolyEntry& operator= (const PolyEntry&) = default;
 
     explicit operator Move () const { return Move(move); }
 
-    bool operator== (const Entry &entry)
+    bool operator== (const PolyEntry &entry)
     {
         return key == entry.key
             && move == entry.move
             && weight == entry.weight;
     }
-    bool operator!= (const Entry &entry)
+    bool operator!= (const PolyEntry &entry)
     {
         return key != entry.key
             || move != entry.move
             || weight != entry.weight;
     }
-    bool operator>  (const Entry &entry)
+    bool operator>  (const PolyEntry &entry)
     {
         return key != entry.key ?
                     key > entry.key :
@@ -51,7 +51,7 @@ struct Entry
                         weight > entry.weight :
                         move > entry.move;
     }
-    bool operator<  (const Entry &entry)
+    bool operator<  (const PolyEntry &entry)
     {
         return key != entry.key ?
                     key < entry.key :
@@ -59,7 +59,7 @@ struct Entry
                         weight < entry.weight :
                         move < entry.move;
     }
-    bool operator>= (const Entry &entry)
+    bool operator>= (const PolyEntry &entry)
     {
         return key != entry.key ?
                     key >= entry.key :
@@ -67,7 +67,7 @@ struct Entry
                         weight >= entry.weight :
                         move >= entry.move;
     }
-    bool operator<= (const Entry &entry)
+    bool operator<= (const PolyEntry &entry)
     {
         return key != entry.key ?
                     key <= entry.key :
@@ -85,7 +85,7 @@ struct Entry
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<< (std::basic_ostream<CharT, Traits> &os, const Entry &entry)
+    operator<< (std::basic_ostream<CharT, Traits> &os, const PolyEntry &entry)
 {
     os << std::string(entry);
     return os;
@@ -95,7 +95,7 @@ class PolyBook
 {
 private:
 
-    Entry *entries;
+    PolyEntry *entries;
     size_t entry_count;
 
     u08 fail_counter;
@@ -131,7 +131,7 @@ public:
     std::string show (const Position&) const;
 };
 
-// Global PolyBook
+// Global Polyglot Book
 extern PolyBook Book;
 
 #endif // _POLYGLOT_H_INC_

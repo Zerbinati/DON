@@ -31,7 +31,7 @@ namespace {
     //    return ofs;
     //}
 
-    ifstream& operator>> (ifstream &ifs, Entry &entry)
+    ifstream& operator>> (ifstream &ifs, PolyEntry &entry)
     {
         ifs >> entry.key
             >> entry.move
@@ -39,7 +39,7 @@ namespace {
             >> entry.learn;
         return ifs;
     }
-    //ofstream& operator<< (ofstream &ofs, const Entry &entry)
+    //ofstream& operator<< (ofstream &ofs, const PolyEntry &entry)
     //{
     //    ofs << entry.key
     //        << entry.move
@@ -96,10 +96,10 @@ namespace {
 
 }
 
-const u08 Entry::Size = sizeof (Entry);
-static_assert (Entry::Size == 16, "Entry size incorrect");
+const u08 PolyEntry::Size = sizeof (PolyEntry);
+static_assert (PolyEntry::Size == 16, "Entry size incorrect");
 
-Entry::operator string () const
+PolyEntry::operator string () const
 {
     ostringstream oss;
     oss << " key: " << std::setw (16) << std::setfill ('0') << std::hex << std::uppercase << key << std::nouppercase << std::dec
@@ -245,13 +245,13 @@ void PolyBook::initialize (const string &book_fn)
     size_t filesize = polyglot.tellg ();
     polyglot.seekg (size_t(0), ios_base::beg);
 
-    entry_count = (filesize - HeaderSize) / Entry::Size;
-    entries = new Entry[entry_count];
+    entry_count = (filesize - HeaderSize) / PolyEntry::Size;
+    entries = new PolyEntry[entry_count];
 
     if (0 != HeaderSize)
     {
-        Entry dummy;
-        for (size_t i = 0; i < HeaderSize / Entry::Size; ++i)
+        PolyEntry dummy;
+        for (size_t i = 0; i < HeaderSize / PolyEntry::Size; ++i)
         {
             polyglot >> dummy;
         }
@@ -390,7 +390,7 @@ string PolyBook::show (const Position &pos) const
         return oss.str ();
     }
 
-    list<Entry> list_entries;
+    list<PolyEntry> list_entries;
     u32 weight_sum = 0;
     while (   size_t(index) < entry_count
            && key == entries[index].key)
