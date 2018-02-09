@@ -7,9 +7,11 @@
 #include "BitBases.h"
 #include "Endgame.h"
 #include "Evaluator.h"
+#include "Logger.h"
 #include "Material.h"
 #include "MemoryHandler.h"
 #include "Notation.h"
+#include "Option.h"
 #include "Pawns.h"
 #include "Polyglot.h"
 #include "PSQT.h"
@@ -17,9 +19,7 @@
 #include "TBsyzygy.h"
 #include "Thread.h"
 #include "Transposition.h"
-#include "Option.h"
 #include "Zobrist.h"
-#include "Debugger.h"
 
 using namespace std;
 
@@ -367,7 +367,9 @@ namespace {
         auto uci_cmds = setup_bench (iss, pos);
         u16 total = u16(count_if (uci_cmds.begin (), uci_cmds.end (), [](string s) { return s.find ("go ") == 0; }));
         u16 count = 0;
-            
+        
+        dbg_init ();
+
         auto elapsed_time = now ();
         u64 total_nodes = 0;
         for (const auto &cmd : uci_cmds)
@@ -412,7 +414,7 @@ namespace {
 
         elapsed_time = std::max (now () - elapsed_time, 1LL);
 
-        Debugger::dbg_print (); // Just before exiting
+        dbg_print (); // Just before exiting
 
         std::cerr << std::right
                     << "\n=================================\n"
@@ -435,6 +437,8 @@ namespace {
         {
             cmd += string(argv[i]) + " ";
         }
+
+        dbg_init ();
 
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).

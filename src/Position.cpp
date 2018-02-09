@@ -595,7 +595,7 @@ void Position::set_castle (Color c, CastleSide cs)
 /// Position::can_en_passant() Can the en-passant possible.
 bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
 {
-    assert(ep_sq != SQ_NO);
+    assert(SQ_NO != ep_sq);
     assert(R_6 == rel_rank (c, ep_sq));
     auto cap = move_done ?
                 ep_sq - pawn_push (c) :
@@ -796,10 +796,10 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             clock_ply = 0;
         }
         // Rule 50 draw case.
-        assert(clock_ply <= 100);
+        assert(100 >= clock_ply);
 
         // Handle common problem Fullmove number = 0.
-        if (moves <= 0)
+        if (0 >= moves)
         {
             moves = 1;
         }

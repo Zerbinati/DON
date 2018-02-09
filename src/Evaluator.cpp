@@ -1071,17 +1071,17 @@ namespace {
         if (   SCALE_NORMAL == scale
             || SCALE_ONEPAWN == scale)
         {
+            // Endings with opposite-colored bishops
             if (pos.opposite_bishops ())
             {
-                return
-                    // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
-                       VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE)
+                // With no other pieces (ignoring pawns)
+                // or
+                // With some other pieces is still a bit drawish, but not as drawish as with only the two bishops.
+                return VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE)
                     && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) ?
                         1 >= pos.count (PAWN) ?
                             Scale( 9) :
                             Scale(31) :
-                    // Endgame with opposite-colored bishops but also other pieces
-                    // is still a bit drawish, but not as drawish as with only the two bishops. 
                         Scale(46);
             }
             // Endings where weaker side can place his king in front of the strong side pawns are drawish.

@@ -39,7 +39,6 @@
 
 #endif
 
-
 namespace Memory {
 
     using namespace std;

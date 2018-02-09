@@ -1,5 +1,6 @@
 #include "Polyglot.h"
 
+#include "BitBoard.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
 #include "PRNG.h"
@@ -198,7 +199,7 @@ i64 PolyBook::find_index (const Key key) const
 bool PolyBook::can_probe (const Position &pos)
 {
     Bitboard pieces = pos.pieces ();
-    i32 piece_count = pop_count (pieces);
+    i32 piece_count = BitBoard::pop_count (pieces);
         
     if (   pieces != last_pieces
         //|| pop_count (pieces ^ last_pieces) > 6
@@ -273,15 +274,13 @@ Move PolyBook::probe (Position &pos)
 {
     static PRNG prng (now ());
 
-    auto move = MOVE_NONE;
-
     if (   !enabled
         || nullptr == entries
         || (   0 != move_count
             && pos.move_num () > move_count)
         || !can_probe (pos))
     {
-        return move;
+        return MOVE_NONE;
     }
 
     auto key = pos.pg_key ();
@@ -296,7 +295,7 @@ Move PolyBook::probe (Position &pos)
             fail_counter = 0;
         }
 
-        return move;
+        return MOVE_NONE;
     }
 
     u08 count = 0;
@@ -335,7 +334,7 @@ Move PolyBook::probe (Position &pos)
         ++i;
     }
 
-    move = Move(entries[pick1_index].move);
+    auto move = Move(entries[pick1_index].move);
     if (MOVE_NONE == move) return move;
 
     move = convert_move (pos, move);
@@ -374,12 +373,10 @@ Move PolyBook::probe (Position &pos)
 
 string PolyBook::show (const Position &pos) const
 {
-    ostringstream oss;
-
     if (   nullptr == entries
         || !enabled)
     {
-        return oss.str ();
+        return "";
     }
 
     auto key = pos.pg_key ();
@@ -387,9 +384,10 @@ string PolyBook::show (const Position &pos) const
     auto index = find_index (key);
     if (1 > index)
     {
-        return oss.str ();
+        return "";
     }
 
+    ostringstream oss;
     list<PolyEntry> list_entries;
     u32 weight_sum = 0;
     while (   size_t(index) < entry_count

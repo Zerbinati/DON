@@ -24,9 +24,9 @@ BINDIR = $(PREFIX)/bin
 PGOBENCH = ./$(EXE) bench
 
 ### Object files
-OBJS = BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
-    MoveGenerator.o Notation.o Pawns.o PSQT.o Polyglot.o Position.o Searcher.o TBsyzygy.o \
-    Thread.o Transposition.o Option.o Zobrist.o MemoryHandler.o Debugger.o
+OBJS = BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Logger.o Main.o Material.o \
+    MemoryHandler.o MoveGenerator.o Notation.o Option.o Pawns.o PSQT.o Polyglot.o Position.o \
+    Searcher.o TBsyzygy.o Thread.o Transposition.o Zobrist.o
 
 ### ==========================================================================
 ### Section 2. High-level Configuration

@@ -14,11 +14,11 @@
       <FileName>src\PRNG.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Debugger::Logger">
+  <Class Name="Logger">
     <Position X="22.25" Y="7.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAQQAAAAAAIAAAAAAAAACAAAAAAAAAAAAAAwAAAAAAg=</HashCode>
-      <FileName>src\Debugger.h</FileName>
+      <FileName>src\Logger.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="_ofs" />
@@ -299,11 +299,11 @@
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Entry">
+  <Struct Name="Material::Entry">
     <Position X="26" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAQAAAAAAAAgACAAAAkAQAAAAAAAACgAAAgAAAAAAA=</HashCode>
-      <FileName>src\Polyglot.h</FileName>
+      <HashCode>AAAAAAAAAAAAAAAEAAAEAgACAAAAAAAAAAAEAAAACAA=</HashCode>
+      <FileName>src\Material.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="Limit">
@@ -370,13 +370,6 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Struct>
-  <Struct Name="Material::Entry">
-    <Position X="26.5" Y="10.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAEAAAEAgACAAAAAAAAAAAEAAAACAA=</HashCode>
-      <FileName>src\Material.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="BitBoard::Magic">
@@ -671,13 +664,6 @@
     <TypeIdentifier>
       <HashCode>CBAAABEAEAAAAAAAAAAAAAAAAIAAAAAAAAAAACAAAAA=</HashCode>
       <FileName>src\MoveGenerator.h</FileName>
-    </TypeIdentifier>
-  </Enum>
-  <Enum Name="`anonymous-namespace'::Tracer::Term" Collapsed="true">
-    <Position X="27.75" Y="7" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>IQAAAEAAIQAAAAEAAEAAAABAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="`anonymous-namespace'::Ambiguity" Collapsed="true">

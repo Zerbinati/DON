@@ -5,7 +5,6 @@
 namespace Material {
 
     using namespace std;
-    using namespace BitBoard;
     using namespace EndGame;
 
     namespace {

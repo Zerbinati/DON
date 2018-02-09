@@ -1,7 +1,7 @@
 ﻿#include "Searcher.h"
 
 #include <cmath>
-#include "Debugger.h"
+#include "Logger.h"
 #include "Evaluator.h"
 #include "Notation.h"
 #include "Option.h"
@@ -14,7 +14,6 @@
 
 using namespace std;
 using namespace BitBoard;
-using namespace Debugger;
 using namespace TBSyzygy;
 using namespace Zobrists;
 
@@ -2035,7 +2034,7 @@ void Thread::search ()
             sel_depth = 0;
 
             // Reset aspiration window starting size.
-            if (running_depth > 4)
+            if (4 < running_depth)
             {
                 window = Value(18);
                 alfa = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
@@ -2156,9 +2155,9 @@ void Thread::search ()
                     && !Threadpool.stop_on_ponderhit)
                 {
                     bool hard_think = VALUE_DRAW == best_value
-                                    && (  Limits.clock[ root_pos.active].time
-                                        - Limits.clock[~root_pos.active].time) > main_thread->time_mgr.elapsed_time ()
-                                    && root_move.draw (root_pos);
+                                   && (  Limits.clock[ root_pos.active].time
+                                       - Limits.clock[~root_pos.active].time) > main_thread->time_mgr.elapsed_time ()
+                                   && root_move.draw (root_pos);
 
                     // If the best_move is stable over several iterations, reduce time for this move,
                     // the longer the move has been stable, the more.
@@ -2179,7 +2178,7 @@ void Thread::search ()
                     // -If all of the available time has been used
                     if (   1 == root_moves.size ()
                         || (  main_thread->time_mgr.elapsed_time () >
-                            u64(main_thread->time_mgr.optimum_time
+                           u64(main_thread->time_mgr.optimum_time
                             // Unstable factor
                             * (main_thread->best_move_change + (hard_think ? 2 : 1))
                             // Time reduction factor

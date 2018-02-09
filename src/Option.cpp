@@ -2,11 +2,11 @@
 
 #include <fstream>
 #include "Polyglot.h"
+#include "Logger.h"
 #include "Thread.h"
 #include "Transposition.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
-#include "Debugger.h"
 #include "MemoryHandler.h"
 
 UCI::OptionMap Options;
@@ -16,7 +16,6 @@ namespace UCI {
     using namespace std;
     using namespace Searcher;
     using namespace TBSyzygy;
-    using namespace Debugger;
 
     Option::Option (OnChange on_cng)
         : type ("button")

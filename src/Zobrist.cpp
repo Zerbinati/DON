@@ -4,7 +4,6 @@
 #include "Notation.h"
 
 using namespace std;
-using namespace BitBoard;
 
 namespace Zobrists {
 
