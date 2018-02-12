@@ -13,46 +13,46 @@ Score Contempt = SCORE_ZERO;
 
 namespace {
 
-	class Tracer
-	{
-	public:
+    class Tracer
+    {
+    public:
 
-		enum Term : u08
-		{
-			// The first 6 entries are for PieceType
-			MATERIAL = NONE,
-			IMBALANCE,
-			MOBILITY,
-			THREAT,
-			PASSER,
-			SPACE,
-			INITIATIVE,
-			TOTAL,
-		};
+        enum Term : u08
+        {
+            // The first 6 entries are for PieceType
+            MATERIAL = NONE,
+            IMBALANCE,
+            MOBILITY,
+            THREAT,
+            PASSER,
+            SPACE,
+            INITIATIVE,
+            TOTAL,
+        };
 
-		static double cp[TOTAL + 1][CLR_NO][2];
+        static double cp[TOTAL + 1][CLR_NO][2];
 
-		static void write (u08 term, Color c, Score score)
-		{
-			cp[term][c][MG] = value_to_cp (mg_value (score)) / 100.0;
-			cp[term][c][EG] = value_to_cp (eg_value (score)) / 100.0;
-		}
-		static void write (u08 term, Score wscore, Score bscore = SCORE_ZERO)
-		{
-			write (term, WHITE, wscore);
-			write (term, BLACK, bscore);
-		}
+        static void write (u08 term, Color c, Score score)
+        {
+            cp[term][c][MG] = value_to_cp (mg_value (score)) / 100.0;
+            cp[term][c][EG] = value_to_cp (eg_value (score)) / 100.0;
+        }
+        static void write (u08 term, Score wscore, Score bscore = SCORE_ZERO)
+        {
+            write (term, WHITE, wscore);
+            write (term, BLACK, bscore);
+        }
 
-	};
+    };
 
-	double Tracer::cp[TOTAL + 1][CLR_NO][2];
+    double Tracer::cp[TOTAL + 1][CLR_NO][2];
 
     ostream& operator<< (ostream &os, Tracer::Term term)
     {
         switch (u08(term))
         {
         case PAWN:
-		case Tracer::Term::MATERIAL:
+        case Tracer::Term::MATERIAL:
         case Tracer::Term::IMBALANCE:
         case Tracer::Term::INITIATIVE:
         case Tracer::Term::TOTAL:

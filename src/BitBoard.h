@@ -126,7 +126,6 @@ namespace BitBoard {
     };
 
 
-
     extern u08      SquareDist[SQ_NO][SQ_NO];
 
     extern Bitboard FrontLine_bb[CLR_NO][SQ_NO];
