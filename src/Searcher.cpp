@@ -2455,7 +2455,7 @@ void MainThread::check_limits ()
 {
     static TimePoint last_time = now ();
 
-    if (--check_count >= 0)
+    if (0 <= --check_count)
     {
         return;
     }

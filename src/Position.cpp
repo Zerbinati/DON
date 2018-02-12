@@ -1027,8 +1027,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     assert(ok ());
 }
-/// Position::undo_move() unmakes a move. When it returns, the position should
-/// be restored to exactly the same state as before the move was made.
+/// Position::undo_move() unmakes a move, and restores the position to exactly the same state as before the move was made.
+/// The move is assumed to be legal.
 void Position::undo_move (Move m)
 {
     assert(_ok (m));

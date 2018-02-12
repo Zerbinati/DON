@@ -356,6 +356,7 @@ Move PolyBook::probe (Position &pos)
     if (pick2_index == pick1_index)
     {
         ++pick2_index;
+        assert(pick2_index < i);
     }
 
     move = Move(entries[pick2_index].move);
