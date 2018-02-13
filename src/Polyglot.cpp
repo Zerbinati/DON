@@ -286,7 +286,7 @@ Move PolyBook::probe (Position &pos)
     auto key = pos.pg_key ();
 
     auto index = find_index (key);
-    if (1 > index)
+    if (0 > index)
     {
         if (4 < ++fail_counter)
         {
@@ -334,7 +334,8 @@ Move PolyBook::probe (Position &pos)
         ++i;
     }
 
-    auto move = Move(entries[pick1_index].move);
+    Move move;
+    move = Move(entries[pick1_index].move);
     if (MOVE_NONE == move) return move;
 
     move = convert_move (pos, move);
@@ -383,9 +384,9 @@ string PolyBook::show (const Position &pos) const
     auto key = pos.pg_key ();
 
     auto index = find_index (key);
-    if (1 > index)
+    if (0 > index)
     {
-        return "";
+        return "Book entries not found.";
     }
 
     ostringstream oss;

@@ -9,7 +9,7 @@
 using namespace std;
 using namespace BitBoard;
 
-Score Contempt = SCORE_ZERO;
+atomic<Score> Contempt;
 
 namespace {
 

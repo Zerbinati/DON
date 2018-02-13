@@ -185,13 +185,13 @@ namespace Material {
         {
             if (0 == pos.pieces (BLACK, PAWN))
             {
-                assert(pos.count (WHITE, PAWN) >= 2);
+                assert(2 <= pos.count (WHITE, PAWN));
                 e->scale_func[WHITE] = &ScaleKPsK[WHITE];
             }
             else
             if (0 == pos.pieces (WHITE, PAWN))
             {
-                assert(pos.count (BLACK, PAWN) >= 2);
+                assert(2 <= pos.count (BLACK, PAWN));
                 e->scale_func[BLACK] = &ScaleKPsK[BLACK];
             }
             else 

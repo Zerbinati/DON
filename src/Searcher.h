@@ -276,9 +276,9 @@ public:
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &root_move)
+    operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
 {
-    os << std::string(root_move);
+    os << std::string(rm);
     return os;
 }
 
@@ -302,9 +302,9 @@ public:
 
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoves &root_moves)
+    operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoves &rms)
 {
-    os << std::string(root_moves);
+    os << std::string(rms);
     return os;
 }
 
@@ -337,8 +337,6 @@ namespace Searcher {
 
     extern void clear ();
 
-    template<bool RootNode>
-    extern u64 perft (Position&, i16);
 }
 
 #endif // _SEARCHER_H_INC_

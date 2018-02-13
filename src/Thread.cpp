@@ -140,16 +140,16 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
         auto best_value = -VALUE_INFINITE;
         for (u08 i = 0; i < Threadpool.pv_limit; ++i)
         {
-            auto &root_move = root_moves[i];
-            auto value = root_move.new_value
+            auto &rm = root_moves[i];
+            auto value = rm.new_value
                         // This is magic formula for push
-                       + (  weakness  * i32(max_value - root_move.new_value)
+                       + (  weakness  * i32(max_value - rm.new_value)
                           + diversion * i32(prng.rand<u32> () % weakness)) / MaxPlies;
 
             if (best_value <= value)
             {
                 best_value = value;
-                best_move = root_move[0];
+                best_move = rm[0];
             }
         }
     }

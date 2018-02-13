@@ -1,6 +1,9 @@
 #include "MoveGenerator.h"
 
+#include <iostream>
 #include "BitBoard.h"
+#include "Notation.h"
+#include "Thread.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -461,3 +464,63 @@ void filter_illegal (ValMoves &moves, const Position &pos)
                                  }),
                  moves.end ());
 }
+
+/// perft() is utility to verify move generation.
+/// All the leaf nodes up to the given depth are generated, and the sum is returned.
+template<bool RootNode>
+u64 perft (Position &pos, i16 depth)
+{
+    u64 leaf_nodes = 0;
+    i16 move_count = 0;
+
+    const bool LeafNode = 2 >= depth;
+
+    for (const auto &vm : MoveList<GenType::LEGAL> (pos))
+    {
+        u64 inter_nodes;
+        if (   RootNode
+            && 1 >= depth)
+        {
+            inter_nodes = 1;
+        }
+        else
+        {
+            StateInfo si;
+            pos.do_move (vm.move, si);
+
+            inter_nodes = LeafNode ?
+                            MoveList<GenType::LEGAL> (pos).size () :
+                            perft<false> (pos, depth - 1);
+
+            pos.undo_move (vm.move);
+        }
+
+        if (RootNode)
+        {
+            sync_cout << std::right
+                      << std::setfill ('0')
+                      << std::setw (2)
+                      << ++move_count
+                      << " "
+                      << std::left
+                      << std::setfill (' ')
+                      << std::setw (7)
+                      <<
+                         //move_to_can (vm.move)
+                         move_to_san (vm.move, pos)
+                      << std::right
+                      << std::setfill ('.')
+                      << std::setw (16)
+                      << inter_nodes
+                      << std::setfill (' ')
+                      << std::left << sync_endl;
+        }
+
+        leaf_nodes += inter_nodes;
+    }
+    return leaf_nodes;
+}
+/// Explicit template instantiations
+/// --------------------------------
+template u64 perft<true > (Position&, i16);
+template u64 perft<false> (Position&, i16);

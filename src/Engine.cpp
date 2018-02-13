@@ -114,7 +114,7 @@ namespace {
         while (   iss >> token
                && token != "value") // Consume "value" token if any
         {
-            name += string(" ", !white_spaces (name) ? 1 : 0) + token;
+            name += (white_spaces (name) ? "" : " ") + token;
         }
 
         //if (token != "value") return;
@@ -122,7 +122,7 @@ namespace {
         // Read option-value (can contain spaces)
         while (iss >> token)
         {
-            value += string(" ", !white_spaces (value) ? 1 : 0) + token;
+            value += (white_spaces (value) ? "" : " ") + token;
         }
 
         if (Options.find (name) != Options.end ())

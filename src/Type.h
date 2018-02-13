@@ -710,7 +710,7 @@ inline std::string append_path (const std::string &base_path, const std::string 
 
 inline void convert_path (std::string &path)
 {
-    std::replace (path.begin (), path.end (), '\\', '/'); // Replace all '\' to '/'
+    std::replace (path.begin (), path.end (), '\\', '/'); // Replace all '\\' to '/'
 }
 
 constexpr Square SQ[SQ_NO] =

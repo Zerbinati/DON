@@ -191,7 +191,7 @@ string move_to_san (Move m, Position &pos)
     }
     else
     {
-        san = dst > org ? "O-O" : "O-O-O";
+        san = (dst > org ? "O-O" : "O-O-O");
     }
 
     // Move marker for check & checkmate
@@ -199,7 +199,7 @@ string move_to_san (Move m, Position &pos)
     {
         StateInfo si;
         pos.do_move (m, si, true);
-        san += 0 != MoveList<GenType::LEGAL> (pos).size () ? "+" : "#";
+        san += (0 != MoveList<GenType::LEGAL> (pos).size () ? "+" : "#");
         pos.undo_move (m);
     }
 
@@ -276,7 +276,7 @@ string pretty_pv_info (Thread *const &th)
     StateListPtr states (new deque<StateInfo> (0));
     for (size_t i = 0; i < th->root_moves[0].size (); ++i)
     {
-        oss << //move_to_can (m)
+        oss << //move_to_can (th->root_moves[0][i])
                move_to_san (th->root_moves[0][i], th->root_pos)
             << " ";
         states->emplace_back ();

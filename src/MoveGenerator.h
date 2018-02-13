@@ -50,5 +50,7 @@ public:
     }
 };
 
+template<bool RootNode>
+extern u64 perft (Position&, i16);
 
 #endif // _MOVE_GENERATOR_H_INC_

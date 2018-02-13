@@ -487,7 +487,7 @@ namespace Searcher {
 
     i16 FixedContempt = 0
       , ContemptTime = 30
-      , ContemptValue = 50;
+      , ContemptValue = 10;
 
     string HashFile = "Hash.dat";
     bool RetainHash = false;
@@ -502,7 +502,7 @@ namespace Searcher {
 
     namespace {
 
-        // RazorMargin
+        // Razoring and futility margin
         const Value RazorMargin = Value(600);
 
         // FutilityMoveCounts[improving][depth]
@@ -514,6 +514,8 @@ namespace Searcher {
         {
             return ReductionDepths[pv ? 1 : 0][imp ? 1 : 0][d <= 63 ? d : 63][mc <= 63 ? mc : 63];
         }
+
+        Value BaseContempt = VALUE_ZERO;
 
         const u08 SkipIndex = 20;
         const u08 SkipSize[SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
@@ -588,20 +590,20 @@ namespace Searcher {
         string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
         {
             auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), 1ULL);
-            const auto &root_moves = th->root_moves;
+            const auto &rms = th->root_moves;
 
             auto total_nodes = Threadpool.nodes ();
             auto tb_hits = Threadpool.tb_hits ();
             if (TBHasRoot)
             {
-                tb_hits += root_moves.size ();
+                tb_hits += rms.size ();
             }
 
             ostringstream oss;
             for (size_t i = 0; i < Threadpool.pv_limit; ++i)
             {
                 bool updated = i <= th->pv_index
-                            && -VALUE_INFINITE != root_moves[i].new_value;
+                            && -VALUE_INFINITE != rms[i].new_value;
 
                 if (   !updated
                     && 1 == depth)
@@ -613,8 +615,8 @@ namespace Searcher {
                             depth :
                             depth - 1;
                 auto v = updated ?
-                            root_moves[i].new_value :
-                            root_moves[i].old_value;
+                            rms[i].new_value :
+                            rms[i].old_value;
                 bool tb = TBHasRoot
                        && abs (v) < +VALUE_MATE - i32(MaxPlies);
                 if (tb)
@@ -625,7 +627,7 @@ namespace Searcher {
                 oss << "info"
                     << " multipv " << i + 1
                     << " depth " << d
-                    << " seldepth " << root_moves[i].sel_depth
+                    << " seldepth " << rms[i].sel_depth
                     << " score " << to_string (v);
                 if (   !tb
                     && i == th->pv_index)
@@ -640,7 +642,7 @@ namespace Searcher {
                 {
                     oss << " hashfull " << TT.hash_full ();
                 }
-                oss << " pv" << root_moves[i];
+                oss << " pv" << rms[i];
                 if (i < Threadpool.pv_limit - 1)
                 {
                     oss << "\n";
@@ -1374,13 +1376,11 @@ namespace Searcher {
 
                 if (   // Skip exclusion move
                        (move == ss->excluded_move)
-                       // At root obey following rules:
+                       // Skip at root node:
                     || (   root_node
-                        && (   // In "searchmoves" mode, skip moves not listed in RootMoves, as a consequence any illegal move is also skipped.
-                               std::find (pos.thread->root_moves.begin () + pos.thread->pv_index, pos.thread->root_moves.end (), move) == pos.thread->root_moves.end ()
-                             /*// In MultiPV mode we not only skip PV moves which have already been searched, but also any other move except we have reached the last PV line.
-                            || (   pos.thread->pv_index < Threadpool.pv_limit - 1
-                                && move != tt_move)*/)))
+                           // In "searchmoves" mode, skip moves not listed in RootMoves, as a consequence any illegal move is also skipped.
+                           // In MultiPV mode we not only skip PV moves which have already been searched.
+                        && std::find (pos.thread->root_moves.begin () + pos.thread->pv_index, pos.thread->root_moves.end (), move) == pos.thread->root_moves.end ()))
                 {
                     continue;
                 }
@@ -1408,13 +1408,13 @@ namespace Searcher {
                     auto elapsed_time = Threadpool.main_thread ()->time_mgr.elapsed_time ();
                     if (elapsed_time > 3000)
                     {
-                        auto &root_move = *std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move);
+                        auto &rm = *std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move);
                         sync_cout << "info"
                                   << " currmove " << move_to_can (move)
                                   << " currmovenumber " << pos.thread->pv_index + move_count
                                   << " maxmoves " << pos.thread->root_moves.size ()
                                   << " depth " << depth
-                                  << " seldepth " << root_move.sel_depth
+                                  << " seldepth " << rm.sel_depth
                                   << " time " << elapsed_time << sync_endl;
                     }
                 }
@@ -1647,15 +1647,15 @@ namespace Searcher {
                 if (root_node)
                 {
                     assert(std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move) != pos.thread->root_moves.end ());
-                    auto &root_move = *std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move);
+                    auto &rm = *std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move);
                     // First PV move or new best move?
                     if (   1 == move_count
                         || alfa < value)
                     {
-                        root_move.resize (1);
-                        root_move.insert (root_move.end (), (ss+1)->pv.begin (), (ss+1)->pv.end ());
-                        root_move.new_value = value;
-                        root_move.sel_depth = pos.thread->sel_depth;
+                        rm.resize (1);
+                        rm.insert (rm.end (), (ss+1)->pv.begin (), (ss+1)->pv.end ());
+                        rm.new_value = value;
+                        rm.sel_depth = pos.thread->sel_depth;
 
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
@@ -1672,7 +1672,7 @@ namespace Searcher {
                         // All other moves but the PV are set to the lowest value, this
                         // is not a problem when sorting becuase sort is stable and move
                         // position in the list is preserved, just the PV is pushed up.
-                        root_move.new_value = -VALUE_INFINITE;
+                        rm.new_value = -VALUE_INFINITE;
                     }
                 }
 
@@ -1858,65 +1858,6 @@ namespace Searcher {
         }
     }
 
-    /// perft() is utility to verify move generation.
-    /// All the leaf nodes up to the given depth are generated, and the sum is returned.
-    template<bool RootNode>
-    u64 perft (Position &pos, i16 depth)
-    {
-        u64 leaf_nodes = 0;
-        i16 move_count = 0;
-
-        const bool LeafNode = 2 >= depth;
-
-        for (const auto &vm : MoveList<GenType::LEGAL> (pos))
-        {
-            u64 inter_nodes;
-            if (   RootNode
-                && 1 >= depth)
-            {
-                inter_nodes = 1;
-            }
-            else
-            {
-                StateInfo si;
-                pos.do_move (vm.move, si);
-
-                inter_nodes = LeafNode ?
-                                MoveList<GenType::LEGAL> (pos).size () :
-                                perft<false> (pos, depth - 1);
-
-                pos.undo_move (vm.move);
-            }
-
-            if (RootNode)
-            {
-                sync_cout << std::right
-                          << std::setfill ('0')
-                          << std::setw (2)
-                          << ++move_count
-                          << " "
-                          << std::left
-                          << std::setfill (' ')
-                          << std::setw (7)
-                          <<
-                             //move_to_can (vm.move)
-                             move_to_san (vm.move, pos)
-                          << std::right
-                          << std::setfill ('.')
-                          << std::setw (16)
-                          << inter_nodes
-                          << std::setfill (' ')
-                          << std::left << sync_endl;
-            }
-
-            leaf_nodes += inter_nodes;
-        }
-        return leaf_nodes;
-    }
-    /// Explicit template instantiations
-    /// --------------------------------
-    template u64 perft<true > (Position&, i16);
-    template u64 perft<false> (Position&, i16);
 }
 
 using namespace Searcher;
@@ -1997,6 +1938,16 @@ void Thread::search ()
                 window = Value(18);
                 alfa = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
                 beta = std::min (root_moves[pv_index].old_value + window, +VALUE_INFINITE);
+
+                // Dynamic contempt
+                if (0 != ContemptValue)
+                {
+                    auto contempt = BaseContempt + std::min (+50, std::max (-50, i32(best_value) / ContemptValue));
+
+                    Contempt = WHITE == root_pos.active ?
+                                +mk_score (contempt, contempt / 2) :
+                                -mk_score (contempt, contempt / 2);
+                }
             }
 
             // Start with a small aspiration window and, in case of fail high/low,
@@ -2233,15 +2184,15 @@ void MainThread::search ()
                 if (itr != root_moves.end ())
                 {
                     think = false;
-                    auto &root_move = root_moves[0];
-                    std::swap (root_move, *itr);
-                    root_move.new_value = VALUE_NONE;
+                    auto &rm = root_moves[0];
+                    std::swap (rm, *itr);
+                    rm.new_value = VALUE_NONE;
                     StateInfo si;
                     root_pos.do_move (book_best_move, si);
                     auto book_ponder_move = Book.probe (root_pos);
                     if (MOVE_NONE != book_ponder_move)
                     {
-                        root_move += book_ponder_move;
+                        rm += book_ponder_move;
                     }
                     root_pos.undo_move (book_best_move);
                 }
@@ -2260,10 +2211,10 @@ void MainThread::search ()
                 timed_contempt = i16(diff_time/ContemptTime);
             }
 
-            auto contempt = cp_to_value (FixedContempt + timed_contempt);
+            BaseContempt = cp_to_value (FixedContempt + timed_contempt);
             Contempt = WHITE == root_pos.active ?
-                        +mk_score (contempt, contempt / 2) :
-                        -mk_score (contempt, contempt / 2);
+                        +mk_score (BaseContempt, BaseContempt / 2) :
+                        -mk_score (BaseContempt, BaseContempt / 2);
 
             if (Limits.use_time_management ())
             {
@@ -2337,7 +2288,7 @@ void MainThread::search ()
             && !skill_mgr.enabled ())
         {
             best_thread = Threadpool.best_thread ();
-            // If best thread is not main thread send new PV.
+            // If new best thread then send PV info again.
             if (best_thread != this)
             {
                 sync_cout << multipv_info (best_thread, best_thread->finished_depth, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
@@ -2348,7 +2299,7 @@ void MainThread::search ()
     assert(!best_thread->root_moves.empty ()
         && !best_thread->root_moves[0].empty ());
 
-    auto &root_move = best_thread->root_moves[0];
+    auto &rm = best_thread->root_moves[0];
 
     if (Limits.use_time_management ())
     {
@@ -2357,14 +2308,14 @@ void MainThread::search ()
         {
             time_mgr.available_nodes += Limits.clock[root_pos.active].inc - Threadpool.nodes ();
         }
-        last_value = root_move.new_value;
+        last_value = rm.new_value;
     }
 
-    auto best_move = root_move[0];
+    auto best_move = rm[0];
     auto ponder_move = MOVE_NONE != best_move
-                    && (   root_move.size () > 1
-                        || root_move.extract_ponder_move_from_tt (root_pos)) ?
-                           root_move[1] :
+                    && (   rm.size () > 1
+                        || rm.extract_ponder_move_from_tt (root_pos)) ?
+                           rm[1] :
                            MOVE_NONE;
     assert(MOVE_NONE != best_move
         || (MOVE_NONE == best_move

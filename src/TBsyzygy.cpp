@@ -1670,9 +1670,9 @@ namespace TBSyzygy {
         si.ptr = nullptr;
 
         // Probe each move
-        for (auto &root_move : root_moves)
+        for (auto &rm : root_moves)
         {
-            auto move = root_move[0];
+            auto move = rm[0];
             root_pos.do_move (move, si);
 
             i32 v = 0;
@@ -1714,7 +1714,7 @@ namespace TBSyzygy {
                 return false;
             }
 
-            root_move.new_value = Value(v);
+            rm.new_value = Value(v);
         }
 
         // Obtain 50-move counter for the root position.
@@ -1767,11 +1767,11 @@ namespace TBSyzygy {
         {
             i32 best = 0xFFFF;
             // Probe each move
-            for (const auto &root_move : root_moves)
+            for (const auto &rm : root_moves)
             {
-                if (0 < root_move.new_value && root_move.new_value < best)
+                if (0 < rm.new_value && rm.new_value < best)
                 {
-                    best = root_move.new_value;
+                    best = rm.new_value;
                 }
             }
 
@@ -1799,11 +1799,11 @@ namespace TBSyzygy {
         {
             i32 best = 0;
             // Probe each move
-            for (const auto &root_move : root_moves)
+            for (const auto &rm : root_moves)
             {
-                if (best > root_move.new_value)
+                if (best > rm.new_value)
                 {
-                    best = root_move.new_value;
+                    best = rm.new_value;
                 }
             }
 
@@ -1861,9 +1861,9 @@ namespace TBSyzygy {
         i32 best = WDLScore::LOSS;
 
         // Probe each move
-        for (auto &root_move : root_moves)
+        for (auto &rm : root_moves)
         {
-            auto move = root_move[0];
+            auto move = rm[0];
             root_pos.do_move (move, si);
             i32 v = -probe_wdl (root_pos, state);
             root_pos.undo_move (move);
@@ -1873,7 +1873,7 @@ namespace TBSyzygy {
                 return false;
             }
 
-            root_move.new_value = Value(v);
+            rm.new_value = Value(v);
 
             if (best < v)
             {
