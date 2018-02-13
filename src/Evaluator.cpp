@@ -105,17 +105,17 @@ namespace {
         static const Score PawnWeakUnopposed =  S( 5,25);
 
         // Bonus for each hanged piece
-        static const Score PieceHanged =        S(48,27);
+        static const Score PieceHanged =        S(52,30);
 
-        static const Score SafePawnThreat =     S(192,175);
+        static const Score SafePawnThreat =     S(175,168);
 
-        static const Score PawnPushThreat =     S(38,22);
+        static const Score PawnPushThreat =     S(47,26);
 
         static const Score PieceRankThreat =    S(16, 3);
 
-        static const Score QueenAttackThreat =  S(38,22);
+        static const Score QueenAttackThreat =  S(42,21);
 
-        static const Score PawnPassHinder =     S( 7, 0);
+        static const Score PawnPassHinder =     S( 8, 1);
 
         static const Value LazyThreshold =      V(1500);
         static const Value SpaceThreshold =     V(12222);
@@ -259,13 +259,13 @@ namespace {
     const Score Evaluator<Trace>::RookOnFile[2] = { S(20, 7), S(45,20) };
 
     template<bool Trace>
-    const Score Evaluator<Trace>::MinorPieceThreat[NONE] = { S( 0,33), S(45,43), S(46,47), S(72,107), S(48,118), S( 0, 0) };
+    const Score Evaluator<Trace>::MinorPieceThreat[NONE] = { S( 0,31), S(39,42), S(57,44), S(68,112), S(47,120), S( 0, 0) };
 
     template<bool Trace>
-    const Score Evaluator<Trace>::MajorPieceThreat[NONE] = { S( 0,25), S(40,62), S(40,59), S( 0, 34), S(35, 48), S( 0, 0) };
+    const Score Evaluator<Trace>::MajorPieceThreat[NONE] = { S( 0,24), S(38,71), S(38,61), S( 0, 38), S(36, 38), S( 0, 0) };
 
     template<bool Trace>
-    const Score Evaluator<Trace>::KingThreat[2] = { S( 3, 62), S( 9,138) };
+    const Score Evaluator<Trace>::KingThreat[2] = { S( 3, 65), S( 9,145) };
 
     template<bool Trace>
     const Score Evaluator<Trace>::PawnPassFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
@@ -273,12 +273,12 @@ namespace {
     template<bool Trace>
     const Value Evaluator<Trace>::PawnPassRank[2][R_NO] =
     {
-        { V(0), V(5), V( 5), V(31), V(73), V(166), V(252), V(0) },
-        { V(0), V(7), V(14), V(38), V(73), V(166), V(252), V(0) }
+        { V(0), V(5), V( 5), V(32), V(70), V(172), V(217), V(0) },
+        { V(0), V(7), V(13), V(42), V(70), V(170), V(269), V(0) }
     };
 
     template<bool Trace>
-    const i32 Evaluator<Trace>::RankFactor[R_NO] = { 0, 0, 0, 2, 6, 11, 16 };
+    const i32 Evaluator<Trace>::RankFactor[R_NO] = { 0, 0, 0, 2, 7, 12, 19 };
 
 #undef S
 #undef V
@@ -943,7 +943,7 @@ namespace {
                     // a smaller bonus if the block square is not attacked.
                     i32 k = 0 != unsafe_front_line ?
                                 contains (unsafe_front_line, push_sq) ?
-                                    0 : 8 : 18;
+                                    0 : 9 : 20;
                     // Give a big bonus if the path to the queen is fully defended,
                     // a smaller bonus if the block square is defended.
                     k += safe_front_line != front_line ?
@@ -1205,6 +1205,7 @@ Value evaluate (const Position &pos)
 /// the detailed descriptions and values of each evaluation term.
 string trace (const Position &pos)
 {
+    Contempt = SCORE_ZERO;
     auto value = Evaluator<true> (pos).value () + Tempo;
     value = WHITE == pos.active ? +value : -value; // White's point of view
 

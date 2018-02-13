@@ -165,7 +165,7 @@ class MovePicker
 private:
     enum Stage : u08
     {
-        NAT_TT, NAT_CAPTURE_INIT, NAT_GOOD_CAPTURES, NAT_QUIET_INIT, NAT_QUIETS_1, NAT_QUIETS_2, NAT_BAD_CAPTURES,
+        NAT_TT, NAT_CAPTURE_INIT, NAT_GOOD_CAPTURES, NAT_QUIET_INIT, NAT_QUIETS, NAT_BAD_CAPTURES,
         EVA_TT, EVA_MOVE_INIT, EVA_MOVES,
         PC_TT, PC_CAPTURE_INIT, PC_GOOD_CAPTURES, PC_BAD_CAPTURES,
         QS_TT, QS_CAPTURE_INIT, QS_CAPTURES, QS_CHECK_INIT, QS_CHECKS,
@@ -270,7 +270,6 @@ public:
     //void operator-= (Move m) { erase (std::remove (begin (), end (), m), end ()); }
 
     bool extract_ponder_move_from_tt (Position&);
-    bool draw (Position&) const;
 
     explicit operator std::string () const;
 };

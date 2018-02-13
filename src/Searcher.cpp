@@ -40,23 +40,6 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     pos.undo_move (best_move);
     return 1 < size ();
 }
-/// RootMove::draw()
-bool RootMove::draw (Position &pos) const
-{
-    StateListPtr states (new deque<StateInfo> (0));
-    for (size_t i = 0; i < size (); ++i)
-    {
-        states->emplace_back ();
-        pos.do_move (at (i), states->back ());
-    }
-    bool dr = pos.draw (i16(size ()));
-    for (size_t i = size (); i > 0; --i)
-    {
-        pos.undo_move (at (i-1));
-        states->pop_back ();
-    }
-    return dr;
-}
 /// RootMove::operator string()
 RootMove::operator string () const
 {
@@ -340,36 +323,11 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         /* fallthrough */
-    case Stage::NAT_QUIETS_1:
-        if (i < moves.size ())
-        {
-            auto beg = moves.begin () + i;
-            auto max = std::max_element (beg, moves.end ());
-            if (   pick_quiets
-                || max->value >= 0)
-            {
-                if (max->value >= threshold)
-                {
-                    auto tmp = *max;
-                    for (; max != beg; --max)
-                    {
-                        *max = *(max - 1);
-                    }
-                    *max = tmp;
-
-                    ++i;
-                    return beg->move;
-                }
-                //std::stable_sort (moves.begin () + i, moves.end (), [](const ValMove &vm1, const ValMove &vm2) { return vm1.value > vm2.value; });
-            }
-        }
-        ++stage;
-        /* fallthrough */
-    case Stage::NAT_QUIETS_2:
+    case Stage::NAT_QUIETS:
         if (   pick_quiets
             && i < moves.size ())
         {
-            return moves[i++].move;
+            return next_max_move ().move;
         }
         ++stage;
         i = 0;
@@ -2149,30 +2107,21 @@ void Thread::search ()
 
             if (Limits.use_time_management ())
             {
-                auto &root_move = root_moves[0];
-                    
                 if (   !Threadpool.stop
                     && !Threadpool.stop_on_ponderhit)
                 {
-                    bool hard_think = VALUE_DRAW == best_value
-                                   && (  Limits.clock[ root_pos.active].time
-                                       - Limits.clock[~root_pos.active].time) > main_thread->time_mgr.elapsed_time ()
-                                   && root_move.draw (root_pos);
-
                     // If the best_move is stable over several iterations, reduce time for this move,
                     // the longer the move has been stable, the more.
                     // Use part of the gained time from a previous stable move for the current move.
                     double time_reduction = 1.0;
-                    if (!hard_think)
+                    for (auto i : { 3, 4, 5 })
                     {
-                        for (auto i : { 3, 4, 5 })
+                        if (last_best_move_depth * i < finished_depth)
                         {
-                            if (last_best_move_depth * i < finished_depth)
-                            {
-                                time_reduction *= 1.3;
-                            }
+                            time_reduction *= 1.3;
                         }
                     }
+
                     // Stop the search
                     // -If there is only one legal move available
                     // -If all of the available time has been used
@@ -2180,7 +2129,7 @@ void Thread::search ()
                         || (  main_thread->time_mgr.elapsed_time () >
                            u64(main_thread->time_mgr.optimum_time
                             // Unstable factor
-                            * (main_thread->best_move_change + (hard_think ? 2 : 1))
+                            * (main_thread->best_move_change + 1)
                             // Time reduction factor
                             * std::pow (main_thread->last_time_reduction, 0.51) / time_reduction
                             // Improving factor
@@ -2188,7 +2137,7 @@ void Thread::search ()
                               std::max (229,
                                         357
                                       + 119 * (main_thread->failed_low ? 1 : 0)
-                                      -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 628)))
+                                      -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 605)))
                     {
                         Threadpool.stop_thinking ();
                     }
