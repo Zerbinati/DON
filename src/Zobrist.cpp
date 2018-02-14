@@ -5,7 +5,6 @@
 
 using namespace std;
 
-
 /// Zobrist::compute_matl_key() computes hash key of the material situation.
 Key Zobrist::compute_matl_key (const Position &pos) const
 {
@@ -25,7 +24,7 @@ Key Zobrist::compute_matl_key (const Position &pos) const
 /// Zobrist::compute_pawn_key() computes hash key of the pawn structure.
 Key Zobrist::compute_pawn_key (const Position &pos) const
 {
-    Key pawn_key = no_pawn_key;
+    Key pawn_key = piece_square_keys[WHITE][KING][0] ^ piece_square_keys[BLACK][KING][0]; // Zero Pawn key
     for (auto c : { WHITE, BLACK })
     {
         for (auto s : pos.squares[c][PAWN])
@@ -187,8 +186,6 @@ void zobrist_initialize ()
         RandZob.en_passant_keys[f] = prng.rand<Key> ();
     }
     RandZob.color_key = prng.rand<Key> ();
-
-    RandZob.no_pawn_key = prng.rand<Key> ();
 }
 
 // Random numbers from PRNG, used to compute position key
@@ -450,6 +447,5 @@ const Zobrist PolyZob =
     U64(0xCF3145DE0ADD4289), U64(0xD0E4427A5514FB72), U64(0x77C621CC9FB3A483), U64(0x67A34DAC4356550B),
     },
     // ActiveSide
-    U64(0xF8D626AAAF278509),
-    U64(0x0000000000000000)
+    U64(0xF8D626AAAF278509)
 };
