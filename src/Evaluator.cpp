@@ -82,43 +82,43 @@ namespace {
     #define S(mg, eg) mk_score (mg, eg)
 
         // Bonus for knight behind a pawn
-        static const Score KnightBehindPawn =   S(16, 0);
+        const Score KnightBehindPawn =  S(16, 0);
         // Bonus for bishop behind a pawn
-        static const Score BishopBehindPawn =   S(16, 0);
+        const Score BishopBehindPawn =  S(16, 0);
         // Bonus for bishop long range
-        static const Score BishopOnDiagonal =   S(22, 0);
+        const Score BishopOnDiagonal =  S(22, 0);
         // Penalty for bishop with pawns on same color
-        static const Score BishopPawns =        S( 8,12);
+        const Score BishopPawns =       S( 8,12);
         // Penalty for bishop trapped with pawns (Chess960)
-        static const Score BishopTrapped =      S(50,50);
+        const Score BishopTrapped =     S(50,50);
         // Bonus for rook on pawns
-        static const Score RookOnPawns =        S( 8,24);
+        const Score RookOnPawns =       S( 8,24);
         // Penalty for rook trapped
-        static const Score RookTrapped =        S(92, 0);
+        const Score RookTrapped =       S(92, 0);
         // Penalty for queen weaken
-        static const Score QueenWeaken =        S(50,10);
+        const Score QueenWeaken =       S(50,10);
 
         // King tropism
-        static const Score EnemyInFlank =       S( 7, 0);
-        static const Score PawnlessFlank =      S(20,80);
+        const Score EnemyInFlank =      S( 7, 0);
+        const Score PawnlessFlank =     S(20,80);
 
-        static const Score PawnWeakUnopposed =  S( 5,25);
+        const Score PawnWeakUnopposed = S( 5,25);
 
         // Bonus for each hanged piece
-        static const Score PieceHanged =        S(52,30);
+        const Score PieceHanged =       S(52,30);
 
-        static const Score SafePawnThreat =     S(175,168);
+        const Score SafePawnThreat =    S(175,168);
 
-        static const Score PawnPushThreat =     S(47,26);
+        const Score PawnPushThreat =    S(47,26);
 
-        static const Score PieceRankThreat =    S(16, 3);
+        const Score PieceRankThreat =   S(16, 3);
 
-        static const Score QueenAttackThreat =  S(42,21);
+        const Score QueenAttackThreat = S(42,21);
 
-        static const Score PawnPassHinder =     S( 8, 1);
+        const Score PawnPassHinder =    S( 8, 1);
 
-        static const Value LazyThreshold =      V(1500);
-        static const Value SpaceThreshold =     V(12222);
+        const Value LazyThreshold =     V(1500);
+        const Value SpaceThreshold =    V(12222);
 
     #undef S
     #undef V

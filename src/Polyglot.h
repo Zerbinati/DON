@@ -113,7 +113,7 @@ private:
 
 public:
 
-    static const size_t HeaderSize = 0;
+    const size_t HeaderSize = 0;
 
     bool use;
     bool enabled;
@@ -130,8 +130,6 @@ public:
 
     std::string show (const Position&) const;
 };
-
-static_assert (PolyBook::HeaderSize == 0, "Book header size incorrect");
 
 // Global Polyglot Book
 extern PolyBook Book;

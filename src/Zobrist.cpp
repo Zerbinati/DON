@@ -24,7 +24,8 @@ Key Zobrist::compute_matl_key (const Position &pos) const
 /// Zobrist::compute_pawn_key() computes hash key of the pawn structure.
 Key Zobrist::compute_pawn_key (const Position &pos) const
 {
-    Key pawn_key = piece_square_keys[WHITE][KING][0] ^ piece_square_keys[BLACK][KING][0]; // Zero Pawn key
+    Key pawn_key = piece_square_keys[WHITE][KING][0]
+                 ^ piece_square_keys[BLACK][KING][0]; // Zero Pawn key
     for (auto c : { WHITE, BLACK })
     {
         for (auto s : pos.squares[c][PAWN])
