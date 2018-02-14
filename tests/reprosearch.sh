@@ -3,8 +3,9 @@
 
 error()
 {
-  echo "reprosearch testing failed on line $1"
-  exit 1
+    echo "reprosearch testing failed on line $1"
+    rm reprosearch.exp
+    exit 1
 }
 trap 'error ${LINENO}' ERR
 
@@ -13,7 +14,7 @@ echo "reprosearch testing started"
 # repeat two short games, separated by ucinewgame. 
 # with go nodes $nodes they should result in exactly
 # the same node count for each iteration.
-cat << EOF > repeat.exp
+cat << EOF > reprosearch.exp
  set timeout 10
  spawn ./DON
  lassign \$argv nodes
@@ -48,14 +49,14 @@ EOF
 for i in `seq 1 20`
 do
 
-  nodes=$((100*3**i/2**i))
-  echo "reprosearch testing with $nodes nodes"
+    nodes=$((100*3**i/2**i))
+    echo "reprosearch testing with $nodes nodes"
 
-  # each line should appear exactly an even number of times
-  expect repeat.exp $nodes 2>&1 | grep -o "nodes [0-9]*" | sort | uniq -c | awk '{if ($1%2!=0) exit(1)}'
+    # each line should appear exactly an even number of times
+    expect reprosearch.exp $nodes 2>&1 | grep -o "nodes [0-9]*" | sort | uniq -c | awk '{if ($1%2!=0) exit(1)}'
 
 done
 
-rm repeat.exp
+rm reprosearch.exp
 
 echo "reprosearch testing OK"

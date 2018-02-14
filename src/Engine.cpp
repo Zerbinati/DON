@@ -337,7 +337,7 @@ namespace {
         uci_cmds.emplace_back ("setoption name Hash value " + hash);
         uci_cmds.emplace_back ("setoption name Clear Hash");
 
-        string go = string("go") + " " + mode + " " + value;
+        string go = "go " + mode + " " + value;
 
         for (const auto &cmd : cmds)
         {

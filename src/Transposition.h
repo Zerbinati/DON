@@ -112,7 +112,7 @@ public:
 
     TTable (const TTable&) = delete;
     TTable& operator= (const TTable&) = delete;
-        
+
    ~TTable ()
     {
         free_aligned_memory ();

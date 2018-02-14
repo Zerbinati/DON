@@ -3,8 +3,9 @@
 
 error()
 {
-  echo "instrumented testing failed on line $1"
-  exit 1
+    echo "instrumented testing failed on line $1"
+    rm instrumented.exp
+    exit 1
 }
 trap 'error ${LINENO}' ERR
 
@@ -39,19 +40,19 @@ case $1 in
     threads="2"
 
 cat << EOF > tsan.supp
-race:TEntry::move
-race:TEntry::depth
-race:TEntry::bound
-race:TEntry::save
-race:TEntry::value
-race:TEntry::eval
+ race:TEntry::move
+ race:TEntry::depth
+ race:TEntry::bound
+ race:TEntry::save
+ race:TEntry::value
+ race:TEntry::eval
 
-race:TTable::probe
-race:TTable::hash_full
+ race:TTable::probe
+ race:TTable::hash_full
 
 EOF
 
-    export TSAN_OPTIONS="suppressions=./tsan.supp"
+export TSAN_OPTIONS="suppressions=./tsan.supp"
 
   ;;
   *)
@@ -72,13 +73,13 @@ for args in "eval" \
             "bench 128 $threads 10 depth default"
 do
 
-   echo "$prefix $exeprefix ./DON $args $postfix"
-   eval "$prefix $exeprefix ./DON $args $postfix"
+    echo "$prefix $exeprefix ./DON $args $postfix"
+    eval "$prefix $exeprefix ./DON $args $postfix"
 
 done
 
 # more general testing, following an uci protocol exchange
-cat << EOF > game.exp
+cat << EOF > instrumented.exp
  set timeout 10
  spawn $exeprefix ./DON
 
@@ -108,16 +109,19 @@ cat << EOF > game.exp
  exit \$value
 EOF
 
-for exps in game.exp
+echo "instrumented testing started"
+
+for exps in instrumented.exp
 do
 
-  echo "$prefix expect $exps $postfix"
-  eval "$prefix expect $exps $postfix"
+    echo "$prefix expect $exps $postfix"
+    eval "$prefix expect $exps $postfix"
 
-  rm $exps
+    rm $exps
 
 done
 
 rm -f tsan.supp
+rm instrumented.exp
 
 echo "instrumented testing OK"

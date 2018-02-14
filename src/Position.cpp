@@ -44,8 +44,8 @@ bool Position::draw (i16 pp) const
         if (psi->posi_key == si->posi_key)
         {
             // Return a draw score
-            // If repeats once earlier but strictly after the root, or
-            // If repeats twice before or at the root.
+            // - If repeats once earlier but strictly after the root, or
+            // - If repeats twice before or at the root.
             if (   repeated
                 || pp > p)
             {
@@ -1313,7 +1313,13 @@ Position::operator string () const
     }
 
     oss << "\nFEN: " << fen ()
-        << "\nKey: " << std::setfill ('0') << std::hex << std::uppercase << std::setw (16) << si->posi_key << std::nouppercase << std::dec << std::setfill (' ');
+        << "\nKey: " << std::setfill ('0')
+                     << std::hex
+                     << std::uppercase
+                     << std::setw (16) << si->posi_key
+                     << std::nouppercase
+                     << std::dec
+                     << std::setfill (' ');
     oss << "\nCheckers: ";
     for (Bitboard b = si->checkers; 0 != b; )
     {
@@ -1326,11 +1332,8 @@ Position::operator string () const
     if (   MaxLimitPiece >= count ()
         && !si->can_castle (CR_ANY))
     {
-        StateInfo st;
-        Position pos;
-        pos.setup (fen (), st, thread);
-        ProbeState wdl_state; auto wdl = probe_wdl (pos, wdl_state);
-        ProbeState dtz_state; auto dtz = probe_dtz (pos, dtz_state);
+        ProbeState wdl_state; auto wdl = probe_wdl (*const_cast<Position*> (this), wdl_state);
+        ProbeState dtz_state; auto dtz = probe_dtz (*const_cast<Position*> (this), dtz_state);
         oss << "\nTablebases WDL: " << std::setw (4) << wdl << " (" << wdl_state << ")"
             << "\nTablebases DTZ: " << std::setw (4) << dtz << " (" << dtz_state << ")";
     }

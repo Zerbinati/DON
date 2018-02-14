@@ -2000,10 +2000,10 @@ void Thread::search ()
                 // If fail high set new bounds.
                 if (beta <= best_value)
                 {
-                    // NOTE:: Don't change alfa = (alfa + beta) / 2;
+                    // NOTE:: Don't change alfa = (alfa + beta) / 2
                     beta = std::min (best_value + window, +VALUE_INFINITE);
                 }
-                // Otherwise exit the loop
+                // Otherwise exit the loop.
                 else
                 {
                     break;

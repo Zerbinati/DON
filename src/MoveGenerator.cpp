@@ -326,7 +326,7 @@ void generate (ValMoves &moves, const Position &pos)
     moves.clear ();
     Bitboard targets = GenType::NATURAL == GT ? ~pos.pieces ( pos.active) :
                        GenType::CAPTURE == GT ?  pos.pieces (~pos.active) :
-                       GenType::QUIET   == GT ? ~pos.pieces () : (assert(false), 0);
+                       GenType::QUIET == GT ? ~pos.pieces () : (assert(false), 0);
 
     WHITE == pos.active ?
         generate_moves<GT, WHITE> (moves, pos, targets) :

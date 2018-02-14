@@ -32,12 +32,12 @@ namespace {
 
         static double cp[TOTAL + 1][CLR_NO][2];
 
-        static void write (u08 term, Color c, Score score)
+        static void write (Tracer::Term term, Color c, Score score)
         {
             cp[term][c][MG] = value_to_cp (mg_value (score)) / 100.0;
             cp[term][c][EG] = value_to_cp (eg_value (score)) / 100.0;
         }
-        static void write (u08 term, Score wscore, Score bscore = SCORE_ZERO)
+        static void write (Tracer::Term term, Score wscore, Score bscore = SCORE_ZERO)
         {
             write (term, WHITE, wscore);
             write (term, BLACK, bscore);
@@ -248,7 +248,7 @@ namespace {
     };
 
     template<bool Trace>
-    const Score Evaluator<Trace>::PieceCloseness[NONE] = { S( 0, 0), S(-3, -5), S(-4, -3), S(-3, 0), S(-1, 1) };
+    const Score Evaluator<Trace>::PieceCloseness[NONE] = { S( 0, 0), S(-3,-5), S(-4,-3), S(-3, 0), S(-1,+1) };
 
     template<bool Trace>
     const Score Evaluator<Trace>::KnightOutpost[2] = { S(22, 6), S(36,12) };
@@ -570,7 +570,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (PT, Own, score);
+            Tracer::write (Tracer::Term(PT), Own, score);
         }
 
         return score;
@@ -721,7 +721,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (KING, Own, score);
+            Tracer::write (Tracer::Term(KING), Own, score);
         }
 
         return score;
@@ -1184,7 +1184,7 @@ namespace {
         if (Trace)
         {
             // Write remaining evaluation terms
-            Tracer::write (PAWN, pe->score);
+            Tracer::write (Tracer::Term(PAWN), pe->score);
             Tracer::write (Tracer::Term::MATERIAL, pos.si->psq_score);
             Tracer::write (Tracer::Term::IMBALANCE, me->imbalance);
             Tracer::write (Tracer::Term::MOBILITY, mobility[WHITE], mobility[BLACK]);
