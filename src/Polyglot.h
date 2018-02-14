@@ -12,8 +12,6 @@
 ///  - Learn     4 bytes
 struct PolyEntry
 {
-    static const u08 Size;
-
     u64 key;
     u16 move;
     u16 weight;
@@ -83,6 +81,8 @@ struct PolyEntry
 
 };
 
+static_assert (sizeof (PolyEntry) == 16, "Entry size incorrect");
+
 template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, const PolyEntry &entry)
@@ -105,7 +105,7 @@ private:
 
     void clear ();
 
-    i64 find_index (const Key) const;
+    i64 find_index (Key) const;
     //i64 find_index (const Position&) const;
     //i64 find_index (const std::string&, bool = false) const;
 
@@ -113,7 +113,7 @@ private:
 
 public:
 
-    static const size_t HeaderSize;
+    static const size_t HeaderSize = 0;
 
     bool use;
     bool enabled;
@@ -130,6 +130,8 @@ public:
 
     std::string show (const Position&) const;
 };
+
+static_assert (PolyBook::HeaderSize == 0, "Book header size incorrect");
 
 // Global Polyglot Book
 extern PolyBook Book;

@@ -11,11 +11,6 @@ using namespace std;
 
 u08 TEntry::Generation;
 
-/// Size of Transposition entry (10 bytes)
-static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
-/// Size of Transposition cluster (32 bytes)
-static_assert (CacheLineSize % sizeof (TCluster) == 0, "Cluster size incorrect");
-
 /// TTable::alloc_aligned_memory() allocates the aligned memory
 void TTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
 {

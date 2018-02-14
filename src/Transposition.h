@@ -73,6 +73,9 @@ public:
     }
 };
 
+/// Size of Transposition entry (10 bytes)
+static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
+
 const u08 CacheLineSize = 64;
 /// Transposition::Cluster needs 32 bytes to be stored
 /// 10 x 3 + 2 x 1 = 32
@@ -85,6 +88,9 @@ public:
     TEntry entries[EntryCount];
     char padding[2]; // Align to a divisor of the cache line size
 };
+
+/// Size of Transposition cluster (32 bytes)
+static_assert (CacheLineSize % sizeof (TCluster) == 0, "Cluster size incorrect");
 
 /// Transposition::Table consists of a power of 2 number of clusters
 /// and each cluster consists of Cluster::EntryCount number of entry.

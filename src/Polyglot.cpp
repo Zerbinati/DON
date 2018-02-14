@@ -97,9 +97,6 @@ namespace {
 
 }
 
-const u08 PolyEntry::Size = sizeof (PolyEntry);
-static_assert (PolyEntry::Size == 16, "Entry size incorrect");
-
 PolyEntry::operator string () const
 {
     ostringstream oss;
@@ -110,9 +107,6 @@ PolyEntry::operator string () const
         << std::setfill (' ');
     return oss.str ();
 }
-
-const size_t PolyBook::HeaderSize = 0;
-static_assert (PolyBook::HeaderSize == 0, "Book header size incorrect");
 
 PolyBook::PolyBook ()
     : entries (nullptr)
@@ -145,7 +139,7 @@ void PolyBook::clear ()
     }
 }
 
-i64 PolyBook::find_index (const Key key) const
+i64 PolyBook::find_index (Key key) const
 {
     i64 beg = i64(0);
     i64 end = i64(entry_count);
@@ -163,7 +157,7 @@ i64 PolyBook::find_index (const Key key) const
         {
             end = mid;
         }
-        else //if (key == entries[beg].key)
+        else // key == entries[mid].key
         {
             beg = std::max (mid - 4, i64(0));
             end = std::min (mid + 4, i64(entry_count));
@@ -246,13 +240,13 @@ void PolyBook::initialize (const string &book_fn)
     size_t filesize = polyglot.tellg ();
     polyglot.seekg (size_t(0), ios_base::beg);
 
-    entry_count = (filesize - HeaderSize) / PolyEntry::Size;
+    entry_count = (filesize - HeaderSize) / sizeof (PolyEntry);
     entries = new PolyEntry[entry_count];
 
     if (0 != HeaderSize)
     {
         PolyEntry dummy;
-        for (size_t i = 0; i < HeaderSize / PolyEntry::Size; ++i)
+        for (size_t i = 0; i < HeaderSize / sizeof (PolyEntry); ++i)
         {
             polyglot >> dummy;
         }
@@ -378,7 +372,7 @@ string PolyBook::show (const Position &pos) const
     if (   nullptr == entries
         || !enabled)
     {
-        return "";
+        return "Book entries empty.";
     }
 
     auto key = pos.pg_key ();

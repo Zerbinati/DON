@@ -15,7 +15,6 @@
 using namespace std;
 using namespace BitBoard;
 using namespace TBSyzygy;
-using namespace Zobrists;
 
 /// RootMove::extract_ponder_move_from_tt() extract ponder move from TT is called in case have no ponder move before exiting the search,
 bool RootMove::extract_ponder_move_from_tt (Position &pos)
