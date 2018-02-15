@@ -5,11 +5,11 @@
 namespace {
 
     #define S(mg, eg) mk_score (mg, eg)
-    // HalfPSQ[piece-type][rank][file/2] contains half Piece-Square scores.
+    // HalfPST[piece-type][rank][file/2] contains half Piece-Square scores.
     // Table is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
     // For each piece type on a given square a (midgame, endgame) score pair is assigned.
-    const Score HalfPSQ[NONE][R_NO][F_NO/2] =
+    const Score HalfPST[NONE][R_NO][F_NO/2] =
     {
         { // Pawn
             { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) },
@@ -75,57 +75,54 @@ namespace {
     #undef S
 }
 
-namespace PSQT
+// PST[color][piece-type][square] scores.
+Score PST[CLR_NO][NONE][SQ_NO];
+
+/// Computes the scores for the middle game and the endgame.
+/// These functions are used to initialize the scores when a new position is set up,
+/// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
+Score compute_psq (const Position &pos)
 {
-    // PSQ[color][piece-type][square] scores.
-    Score PSQ[CLR_NO][NONE][SQ_NO];
-
-    /// Computes the scores for the middle game and the endgame.
-    /// These functions are used to initialize the scores when a new position is set up,
-    /// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
-    Score compute_psq (const Position &pos)
-    {
-        auto psq = SCORE_ZERO;
-        for (auto c : { WHITE, BLACK })
-        {
-            for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
-            {
-                for (auto s : pos.squares[c][pt])
-                {
-                    psq += PSQ[c][pt][s];
-                }
-            }
-        }
-        return psq;
-    }
-
-    /// Computes the non-pawn middle game material value for the given side.
-    /// Material values are updated incrementally during the search.
-    template<Color Own>
-    Value compute_npm (const Position &pos)
-    {
-        auto npm = VALUE_ZERO;
-        for (auto pt : { NIHT, BSHP, ROOK, QUEN })
-        {
-            npm += PieceValues[MG][pt] * pos.count (Own, pt);
-        }
-        return npm;
-    }
-    template Value compute_npm<WHITE> (const Position&);
-    template Value compute_npm<BLACK> (const Position&);
-
-    /// PSQT::initialize() initializes lookup tables at startup
-    void initialize ()
+    auto psq = SCORE_ZERO;
+    for (auto c : { WHITE, BLACK })
     {
         for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            auto p = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
-            for (auto s : SQ)
+            for (auto s : pos.squares[c][pt])
             {
-                auto psq = p + HalfPSQ[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
-                PSQ[WHITE][pt][ s] = +psq;
-                PSQ[BLACK][pt][~s] = -psq;
+                psq += PST[c][pt][s];
             }
+        }
+    }
+    return psq;
+}
+
+/// Computes the non-pawn middle game material value for the given side.
+/// Material values are updated incrementally during the search.
+template<Color Own>
+Value compute_npm (const Position &pos)
+{
+    auto npm = VALUE_ZERO;
+    for (auto pt : { NIHT, BSHP, ROOK, QUEN })
+    {
+        npm += PieceValues[MG][pt] * pos.count (Own, pt);
+    }
+    return npm;
+}
+template Value compute_npm<WHITE> (const Position&);
+template Value compute_npm<BLACK> (const Position&);
+
+/// psqt_initialize() initializes lookup tables at startup
+void psqt_initialize ()
+{
+    for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+    {
+        auto p = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
+        for (auto s : SQ)
+        {
+            auto psq = p + HalfPST[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
+            PST[WHITE][pt][ s] = +psq;
+            PST[BLACK][pt][~s] = -psq;
         }
     }
 }

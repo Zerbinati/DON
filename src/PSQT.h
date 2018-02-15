@@ -1,20 +1,16 @@
-#ifndef _PIECE_SQUARE_H_INC_
-#define _PIECE_SQUARE_H_INC_
+#ifndef _PSQT_H_INC_
+#define _PSQT_H_INC_
 
 #include "Position.h"
 #include "Type.h"
 
-namespace PSQT {
+extern Score PST[CLR_NO][NONE][SQ_NO];
 
-    extern Score PSQ[CLR_NO][NONE][SQ_NO];
+extern Score compute_psq (const Position&);
 
-    extern Score compute_psq (const Position&);
+template<Color Own>
+extern Value compute_npm (const Position&);
 
-    template<Color Own>
-    extern Value compute_npm (const Position&);
+extern void psqt_initialize ();
 
-    extern void initialize ();
-
-}
-
-#endif // _PIECE_SQUARE_H_INC_
+#endif // _PSQT_H_INC_

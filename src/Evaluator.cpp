@@ -51,7 +51,7 @@ namespace {
     {
         switch (u08(term))
         {
-        case PAWN:
+        case PieceType::PAWN:
         case Tracer::Term::MATERIAL:
         case Tracer::Term::IMBALANCE:
         case Tracer::Term::INITIATIVE:
@@ -59,11 +59,11 @@ namespace {
             os << " | ----- ----- | ----- ----- | ";
             break;
         default:
-            os << " | " << std::setw (5) << Tracer::cp[term][WHITE][MG]
-               << " "   << std::setw (5) << Tracer::cp[term][WHITE][EG]
-               << " | " << std::setw (5) << Tracer::cp[term][BLACK][MG]
-               << " "   << std::setw (5) << Tracer::cp[term][BLACK][EG]
-               << " | ";
+            os << " | "
+               << std::setw (5) << Tracer::cp[term][WHITE][MG] << " "
+               << std::setw (5) << Tracer::cp[term][WHITE][EG] << " | "
+               << std::setw (5) << Tracer::cp[term][BLACK][MG] << " "
+               << std::setw (5) << Tracer::cp[term][BLACK][EG] << " | ";
             break;
         }
         os << std::setw (5) << Tracer::cp[term][WHITE][MG] - Tracer::cp[term][BLACK][MG] << " "
@@ -286,7 +286,7 @@ namespace {
     template<bool Trace>
     const i32 Evaluator<Trace>::PieceAttackWeights[NONE] = { 0, 78, 56, 45, 11, 0 };
 
-    /// initialize() computes king and pawn attacks, and the king ring bitboard for the color.
+    /// initialize() computes king and pawn attacks, and the king ring bitboard of the color.
     template<bool Trace>
     template<Color Own>
     void Evaluator<Trace>::initialize ()
@@ -356,7 +356,7 @@ namespace {
         }
     }
 
-    /// evaluate_pieces() evaluates the pieces of the color and type
+    /// evaluate_pieces() evaluates the pieces of the color and type.
     template<bool Trace>
     template<Color Own, PieceType PT>
     Score Evaluator<Trace>::evaluate_pieces ()
@@ -576,7 +576,7 @@ namespace {
         return score;
     }
 
-    /// evaluate_king() evaluates the king of the color
+    /// evaluate_king() evaluates the king of the color.
     template<bool Trace>
     template<Color Own>
     Score Evaluator<Trace>::evaluate_king ()
@@ -727,7 +727,7 @@ namespace {
         return score;
     }
 
-    /// evaluate_threats() evaluates the threats of the color
+    /// evaluate_threats() evaluates the threats of the color.
     template<bool Trace>
     template<Color Own>
     Score Evaluator<Trace>::evaluate_threats ()
@@ -866,7 +866,7 @@ namespace {
         return std::min (dist (pos.square<KING> (Own), s), 5);
     }
 
-    /// evaluate_passers() evaluates the passed pawns of the color
+    /// evaluate_passers() evaluates the passed pawns of the color.
     template<bool Trace>
     template<Color Own>
     Score Evaluator<Trace>::evaluate_passers ()
@@ -984,7 +984,7 @@ namespace {
         return score;
     }
 
-    /// evaluate_space() evaluates the space of the color
+    /// evaluate_space() evaluates the space of the color.
     /// The space evaluation is a simple bonus based on the number of safe squares
     /// available for minor pieces on the central four files on ranks 2-4
     /// Safe squares one, two or three squares behind a friend pawn are counted twice
@@ -1113,14 +1113,15 @@ namespace {
         // Probe the pawn hash table
         pe = Pawns::probe (pos);
 
+        Score score;
         // Score is computed internally from the white point of view, initialize by
         // - the incrementally updated scores (material + piece square tables).
         // - the material imbalance.
         // - the pawn score
-        auto score = pos.si->psq_score
-                   + me->imbalance
-                   + pe->score
-                   + Contempt;
+        score = pos.si->psq_score
+              + me->imbalance
+              + pe->score
+              + Contempt;
 
         // Early exit if score is high
         Value v = (mg_value (score) + eg_value (score)) / 2;
@@ -1211,7 +1212,7 @@ string trace (const Position &pos)
 
     ostringstream oss;
     oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed
-        << "      Eval Term |    White    |    Black    |     Total    \n"
+        << "      Eval Term |    White    |    Black    |    Total     \n"
         << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
         << "----------------+-------------+-------------+--------------\n"
         << "       Material" << Tracer::Term::MATERIAL

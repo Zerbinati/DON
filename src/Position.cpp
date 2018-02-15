@@ -10,7 +10,6 @@
 
 using namespace std;
 using namespace BitBoard;
-using namespace PSQT;
 using namespace TBSyzygy;
 
 bool Position::Chess960 = false;
@@ -898,7 +897,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         prefetch (thread->matl_table.get (si->matl_key));
 
         si->posi_key ^= RandZob.piece_square_keys[pasive][si->capture][cap];
-        si->psq_score -= PSQ[pasive][si->capture][cap];
+        si->psq_score -= PST[pasive][si->capture][cap];
         si->clock_ply = 0;
     }
     // Reset en-passant square
@@ -949,8 +948,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         do_castling (org, dst, rook_org, rook_dst);
         si->posi_key ^= RandZob.piece_square_keys[active][ROOK][rook_dst]
                       ^ RandZob.piece_square_keys[active][ROOK][rook_org];
-        si->psq_score += PSQ[active][ROOK][rook_dst]
-                       - PSQ[active][ROOK][rook_org];
+        si->psq_score += PST[active][ROOK][rook_dst]
+                       - PST[active][ROOK][rook_org];
     }
     else
     if (ENPASSANT == mtype (m))
@@ -996,8 +995,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     si->posi_key ^= RandZob.piece_square_keys[active][ppt][dst]
                   ^ RandZob.piece_square_keys[active][mpt][org];
-    si->psq_score += PSQ[active][ppt][dst]
-                   - PSQ[active][mpt][org];
+    si->psq_score += PST[active][ppt][dst]
+                   - PST[active][mpt][org];
 
     // Update castling rights
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);

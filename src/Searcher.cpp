@@ -1079,7 +1079,7 @@ namespace Searcher {
                 return tt_value;
             }
 
-            // Step 4A. Tablebase probe.
+            // Step 5. Tablebase probe.
             if (   !root_node
                 && 0 != TBLimitPiece)
             {
@@ -1140,7 +1140,7 @@ namespace Searcher {
 
             StateInfo si;
 
-            // Step 5. Evaluate the position statically.
+            // Step 6. Evaluate the position statically.
             if (in_check)
             {
                 ss->static_eval = VALUE_NONE;
@@ -1185,7 +1185,7 @@ namespace Searcher {
                 {
                     assert(MOVE_NONE == ss->excluded_move);
 
-                    // Step 6. Razoring sort of forward pruning where rather than
+                    // Step 7. Razoring sort of forward pruning where rather than
                     // skipping an entire subtree, search it to a reduced depth.
                     if (   !PVNode
                         && 4 > depth
@@ -1206,7 +1206,7 @@ namespace Searcher {
                         }
                     }
 
-                    // Step 7. Futility pruning: child node.
+                    // Step 8. Futility pruning: child node.
                     // Betting that the opponent doesn't have a move that will reduce
                     // the score by more than futility margins [depth] if do a null move.
                     if (   !root_node
@@ -1218,7 +1218,7 @@ namespace Searcher {
                         return tt_eval;
                     }
 
-                    // Step 8. Null move search with verification search.
+                    // Step 9. Null move search with verification search.
                     if (   !PVNode
                         //&& 0 == Limits.mate
                         && tt_eval >= beta
@@ -1277,7 +1277,7 @@ namespace Searcher {
                         }
                     }
 
-                    // Step 9. ProbCut.
+                    // Step 10. ProbCut.
                     // If good enough capture and a reduced search returns a value much above beta,
                     // then can (almost) safely prune the previous move.
                     if (   !PVNode
@@ -1313,7 +1313,7 @@ namespace Searcher {
                         }
                     }
 
-                    // Step 10. Internal iterative deepening (IID).
+                    // Step 11. Internal iterative deepening (IID).
                     if (   MOVE_NONE == tt_move
                         && 5 < depth
                         && (   PVNode
@@ -1367,7 +1367,7 @@ namespace Searcher {
                                     MOVE_NONE;
             // Initialize move picker (1) for the current position
             MovePicker move_picker (pos, tt_move, depth, piece_destiny_history, ss->killer_moves, counter_move);
-            // Step 11. Loop through all legal moves until no moves remain or a beta cutoff occurs.
+            // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
                 assert(pos.pseudo_legal (move)
@@ -1423,7 +1423,7 @@ namespace Searcher {
                     (ss+1)->pv.clear ();
                 }
 
-                // Step 12. Extensions
+                // Step 13. Extensions
 
                 i16 extension = 0;
 
@@ -1460,7 +1460,7 @@ namespace Searcher {
                 // Calculate new depth for this move
                 i16 new_depth = depth - 1 + extension;
 
-                // Step 13. Pruning at shallow depth.
+                // Step 14. Pruning at shallow depth.
                 if (   !root_node
                     //&& 0 == Limits.mate
                     && best_value > -VALUE_MATE_MAX_PLY
@@ -1526,11 +1526,11 @@ namespace Searcher {
                 ss->played_move = move;
                 ss->piece_destiny_history = &pos.thread->continuation_history[mpc][dst];
 
-                // Step 14. Make the move.
+                // Step 15. Make the move.
                 pos.do_move (move, si, gives_check);
 
                 bool fd_search;
-                // Step 15. Reduced depth search (LMR).
+                // Step 16. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
                 if (   2 < depth
                     && 1 < move_count
@@ -1607,7 +1607,7 @@ namespace Searcher {
                              || 1 < move_count;
                 }
 
-                // Step 16. Full depth search when LMR is skipped or fails high.
+                // Step 17. Full depth search when LMR is skipped or fails high.
                 if (fd_search)
                 {
                     value = new_depth <= DepthZero ?
@@ -1629,12 +1629,12 @@ namespace Searcher {
                                 -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false, true);
                 }
 
-                // Step 17. Undo move.
+                // Step 18. Undo move.
                 pos.undo_move (move);
 
                 assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
-                // Step 18. Check for the new best move.
+                // Step 19. Check for the new best move.
                 // Finished searching the move. If a stop or a cutoff occurred,
                 // the return value of the search cannot be trusted,
                 // and return immediately without updating best move, PV and TT.
@@ -1675,7 +1675,7 @@ namespace Searcher {
                     }
                 }
 
-                // Step 19. Check best value.
+                // Step 20. Check best value.
                 if (best_value < value)
                 {
                     best_value = value;
@@ -1727,7 +1727,7 @@ namespace Searcher {
                 || 0 != move_count
                 || 0 == MoveList<GenType::LEGAL> (pos).size ());
 
-            // Step 20. Check for checkmate and stalemate.
+            // Step 21. Check for checkmate and stalemate.
             // If all possible moves have been searched and if there are no legal moves,
             // If in a singular extension search then return a fail low score (alfa).
             // Otherwise it must be a checkmate or a stalemate, so return value accordingly.

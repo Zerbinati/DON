@@ -716,7 +716,7 @@ void run (i32 argc, const char *const *argv)
         
     BitBoard::initialize ();
     BitBases::initialize ();
-    PSQT::initialize ();
+    psqt_initialize ();
     zobrist_initialize ();
     UCI::initialize ();
     Pawns::initialize ();
