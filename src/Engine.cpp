@@ -190,7 +190,7 @@ namespace {
         i16 depth = 0;
         bool ponder = false;
         vector<Move> search_moves; // Restrict search to these root moves only
-            
+
         string token;
         while (iss >> token)
         {

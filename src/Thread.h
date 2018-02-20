@@ -132,6 +132,7 @@ class MainThread
 public:
 
     i16 check_count;
+    TimePoint check_time;
 
     bool failed_low;
 

@@ -2115,6 +2115,7 @@ void MainThread::search ()
         && 0 == index);
 
     check_count = 0;
+    check_time = 0;
 
     if (!white_spaces (OutputFile))
     {
@@ -2354,8 +2355,6 @@ void MainThread::search ()
 /// MainThread::check_limits() is used to detect when out of available limits and thus stop the search, also print debug info.
 void MainThread::check_limits ()
 {
-    static TimePoint last_time = now ();
-
     if (0 <= --check_count)
     {
         return;
@@ -2364,12 +2363,11 @@ void MainThread::check_limits ()
     check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
     assert(0 != check_count);
 
-    auto elapsed_time = time_mgr.elapsed_time ();
-    TimePoint tick = Limits.start_time + elapsed_time;
+    i64 elapsed_time = time_mgr.elapsed_time ();
 
-    if (last_time + 1000 <= tick)
+    if (check_time <= elapsed_time - 1000)
     {
-        last_time = tick;
+        check_time = elapsed_time;
 
         dbg_print ();
     }
@@ -2382,9 +2380,9 @@ void MainThread::check_limits ()
     }
 
     if (   (   Limits.use_time_management ()
-            && elapsed_time > time_mgr.maximum_time - 10)
+            && elapsed_time >  i64(time_mgr.maximum_time - 10))
         || (   0 != Limits.movetime
-            && elapsed_time >= Limits.movetime)
+            && elapsed_time >= i64(Limits.movetime))
         || (   0 != Limits.nodes
             && Threadpool.nodes () >= Limits.nodes))
     {
