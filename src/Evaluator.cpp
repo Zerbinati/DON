@@ -761,7 +761,7 @@ namespace {
                              & ~defended_area
                              &  pin_attacked_by[Own][NONE];
 
-        // Add a bonus according to the type of attacking pieces
+        // Bonus according to the type of attacking pieces
 
         // Enemies attacked by minors
         b =  (  weak_pieces
@@ -971,8 +971,9 @@ namespace {
             if (   !pos.pawn_passed_at (Own, s+pawn_push (Own))
                 || 0 != (pos.pieces (PAWN) & front_line_bb (Own, s)))
             {
-                mg_value /= 2,
-                eg_value /= 2;
+                i32 pp = std::max (pop_count (pos.pieces (PAWN) & front_line_bb (Own, s)) + 1, 2);
+                mg_value /= pp,
+                eg_value /= pp;
             }
 
             score += mk_score (mg_value, eg_value)

@@ -1329,9 +1329,9 @@ namespace Searcher {
                                && pos.legal (move) ?
                                     move :
                                     MOVE_NONE;
-                        tt_value = tt_hit ?
-                                    value_of_tt (tte->value (), ss->ply) :
-                                    VALUE_NONE;
+                        //tt_value = tt_hit ?
+                        //            value_of_tt (tte->value (), ss->ply) :
+                        //            VALUE_NONE;
                         tt_depth = tt_hit ?
                                     tte->depth () :
                                     DepthNone;
