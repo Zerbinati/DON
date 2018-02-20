@@ -75,7 +75,7 @@ namespace {
     #undef S
 }
 
-// PST[color][piece-type][square] scores.
+// PST[color][piece-type][square] table.
 Score PST[CLR_NO][NONE][SQ_NO];
 
 /// Computes the scores for the middle game and the endgame.

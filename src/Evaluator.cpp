@@ -32,6 +32,11 @@ namespace {
 
         static double cp[TOTAL + 1][CLR_NO][2];
 
+        static void initialize ()
+        {
+            std::memset (cp, 0x00, sizeof (cp));
+        }
+
         static void write (Tracer::Term term, Color c, Score score)
         {
             cp[term][c][MG] = value_to_cp (mg_value (score)) / 100.0;
@@ -113,7 +118,7 @@ namespace {
 
         const Score PieceRankThreat =   S(16, 3);
 
-        const Score QueenAttackThreat = S(42,21);
+        const Score QueenThreat =       S(42,21);
 
         const Score PawnPassHinder =    S( 8, 1);
 
@@ -187,19 +192,19 @@ namespace {
         // Pieces which attack more than one square are counted multiple times.
         u08 king_zone_attacks_count[CLR_NO];
 
-        template<Color Own>
+        template<Color>
         void initialize ();
-        template<Color Own, PieceType PT>
+        template<Color, PieceType>
         Score evaluate_pieces ();
-        template<Color Own>
+        template<Color>
         Score evaluate_king ();
-        template<Color Own>
+        template<Color>
         Score evaluate_threats ();
-        template<Color Own>
+        template<Color>
         i32 limit_king_dist (Square);
-        template<Color Own>
+        template<Color>
         Score evaluate_passers ();
-        template<Color Own>
+        template<Color>
         Score evaluate_space ();
 
         Score evaluate_initiative (Value);
@@ -373,11 +378,12 @@ namespace {
         for (auto s : pos.squares[Own][PT])
         {
             assert(pos[s] == (Own|PT));
+            Bitboard attacks;
             // Find attacked squares, including x-ray attacks for bishops and rooks
-            Bitboard attacks = NIHT == PT ? PieceAttacks[NIHT][s] :
-                               BSHP == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ ((pos.pieces (QUEN) | pos.pieces (Own, BSHP)) & ~pos.abs_blockers (Own))) :
-                               ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces () ^ ((pos.pieces (QUEN) | pos.pieces (Own, ROOK)) & ~pos.abs_blockers (Own))) :
-                               QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces () ^ ((                    pos.pieces (Own, QUEN)) & ~pos.abs_blockers (Own))) : (assert(false), 0);
+            attacks = NIHT == PT ? PieceAttacks[NIHT][s] :
+                      BSHP == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ ((pos.pieces (QUEN) | pos.pieces (Own, BSHP)) & ~pos.abs_blockers (Own))) :
+                      ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces () ^ ((pos.pieces (QUEN) | pos.pieces (Own, ROOK)) & ~pos.abs_blockers (Own))) :
+                      QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces () ^ ((                    pos.pieces (Own, QUEN)) & ~pos.abs_blockers (Own))) : (assert(false), 0);
 
             ful_attacked_by[Own] |= attacks;
 
@@ -539,13 +545,11 @@ namespace {
                 else
                 // Penalty for rook when trapped by the king, even more if the king can't castle
                 if (   3 >= mob
-                    && R_5 > rel_rank (Own, s)
-                    && 0 != (front_line_bb (Own, s) & pos.pieces (Own, PAWN))
-                    && 0 == (front_line_bb (Opp, s) & pos.pieces (Own, PAWN)))
+                    && !contains (pos.abs_blockers (Own), s)
+                    && R_5 > rel_rank (Own, s))
                 {
                     auto kf = _file (pos.square<KING> (Own));
-                    if (   ((kf < F_E) == (_file (s) < kf))
-                        && !pe->side_semiopen (Own, kf, kf < F_E))
+                    if ((kf < F_E) == (_file (s) < kf))
                     {
                         score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.si->can_castle (Own) ? 1 : 2);
                     }
@@ -845,10 +849,10 @@ namespace {
         b = (pin_attacked_by[Own][BSHP] & pin_attacked_queen[Opp][0])
           | (pin_attacked_by[Own][ROOK] & pin_attacked_queen[Opp][1]);
         // Bonus for safe slider attack threats on enemy queen
-        score += QueenAttackThreat * pop_count (   b
-                                                & ~pos.pieces (Own)
-                                                &  dbl_attacked[Own]
-                                                & ~dbl_attacked[Opp]);
+        score += QueenThreat * pop_count (   b
+                                          & ~pos.pieces (Own)
+                                          &  dbl_attacked[Own]
+                                          & ~dbl_attacked[Opp]);
 
         if (Trace)
         {
@@ -1132,7 +1136,7 @@ namespace {
 
         if (Trace)
         {
-            std::memset (Tracer::cp, 0x00, sizeof (Tracer::cp));
+            Tracer::initialize ();
         }
 
         initialize<WHITE> ();

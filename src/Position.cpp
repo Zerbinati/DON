@@ -107,7 +107,7 @@ bool Position::see_ge (Move m, Value threshold) const
 
     // The opponent may be able to recapture so this is the best result we can hope for.
     auto balance = PieceValues[MG][ptype (board[dst])] - threshold;
-    if (balance < VALUE_ZERO)
+    if (VALUE_ZERO > balance)
     {
         return false;
     }
@@ -117,7 +117,7 @@ bool Position::see_ge (Move m, Value threshold) const
 
     // Now assume the worst possible result: that the opponent can capture our piece for free.
     balance -= PieceValues[MG][victim];
-    if (balance >= VALUE_ZERO)
+    if (VALUE_ZERO <= balance)
     {
         return true;
     }
@@ -134,7 +134,7 @@ bool Position::see_ge (Move m, Value threshold) const
         // the last piece for free. We are truly winning only if we can
         // win the last piece _cheaply enough_. Test if we can actually
         // do this otherwise "give up".
-        assert(balance < VALUE_ZERO);
+        assert(VALUE_ZERO > balance);
 
         Bitboard c_attackers = attackers & pieces (c);
 
@@ -191,7 +191,7 @@ bool Position::see_ge (Move m, Value threshold) const
         opp_to_move = !opp_to_move;
 
         // If balance is negative after receiving a free piece then give up
-        if (balance < VALUE_ZERO)
+        if (VALUE_ZERO > balance)
         {
             break;
         }
@@ -676,8 +676,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     i08 f = F_A;
     i08 r = R_8;
     while (   iss >> token
-           && f <= F_NO
-           && r >= R_1)
+           && F_NO >= f
+           && R_1 <= r)
     {
         if (isdigit (token))
         {

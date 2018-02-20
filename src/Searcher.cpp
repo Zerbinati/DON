@@ -672,6 +672,7 @@ namespace Searcher {
             ss->played_move = MOVE_NONE;
 
             bool in_check = 0 != pos.si->checkers;
+
             // Check for an immediate draw or maximum ply reached.
             if (   ss->ply >= MaxPlies
                 || pos.draw (ss->ply))
@@ -949,7 +950,7 @@ namespace Searcher {
 
             if (PVNode)
             {
-                // Used to send selDepth info to GUI (selDepth from 1, ply from 0)
+                // Used to send sel_depth info to GUI (sel_depth from 1, ply from 0)
                 if (pos.thread->sel_depth < ss->ply + 1)
                 {
                     pos.thread->sel_depth = ss->ply + 1;
@@ -959,6 +960,9 @@ namespace Searcher {
             // Step 1. Initialize node.
             bool root_node = PVNode && 0 == ss->ply;
             bool in_check = 0 != pos.si->checkers;
+            ss->move_count = 0;
+            ss->played_move = MOVE_NONE;
+            ss->piece_destiny_history = &pos.thread->continuation_history[NO_PIECE][0];
 
             auto value = VALUE_ZERO
                , best_value = -VALUE_INFINITE
@@ -997,9 +1001,6 @@ namespace Searcher {
                 && ss->ply == (ss-1)->ply + 1
                 && ss->ply < MaxPlies);
 
-            ss->move_count = 0;
-            ss->played_move = MOVE_NONE;
-            ss->piece_destiny_history = &pos.thread->continuation_history[NO_PIECE][0];
             assert(MOVE_NONE == (ss+1)->excluded_move);
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
 
@@ -1328,6 +1329,9 @@ namespace Searcher {
                                && pos.legal (move) ?
                                     move :
                                     MOVE_NONE;
+                        tt_value = tt_hit ?
+                                    value_of_tt (tte->value (), ss->ply) :
+                                    VALUE_NONE;
                         tt_depth = tt_hit ?
                                     tte->depth () :
                                     DepthNone;
@@ -1407,13 +1411,12 @@ namespace Searcher {
                     auto elapsed_time = Threadpool.main_thread ()->time_mgr.elapsed_time ();
                     if (elapsed_time > 3000)
                     {
-                        auto &rm = *std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move);
                         sync_cout << "info"
                                   << " currmove " << move_to_can (move)
                                   << " currmovenumber " << pos.thread->pv_index + move_count
                                   << " maxmoves " << pos.thread->root_moves.size ()
                                   << " depth " << depth
-                                  << " seldepth " << rm.sel_depth
+                                  << " seldepth " << (*std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move)).sel_depth
                                   << " time " << elapsed_time << sync_endl;
                     }
                 }
@@ -2183,15 +2186,14 @@ void MainThread::search ()
                 if (itr != root_moves.end ())
                 {
                     think = false;
-                    auto &rm = root_moves[0];
-                    std::swap (rm, *itr);
-                    rm.new_value = VALUE_NONE;
+                    std::swap (root_moves[0], *itr);
+                    root_moves[0].new_value = VALUE_NONE;
                     StateInfo si;
                     root_pos.do_move (book_best_move, si);
                     auto book_ponder_move = Book.probe (root_pos);
                     if (MOVE_NONE != book_ponder_move)
                     {
-                        rm += book_ponder_move;
+                        root_moves[0] += book_ponder_move;
                     }
                     root_pos.undo_move (book_best_move);
                 }
@@ -2262,7 +2264,7 @@ void MainThread::search ()
 
     // Busy wait for a "stop"/"ponderhit" command.
     while (   (   Limits.infinite
-                || Threadpool.ponder)
+               || Threadpool.ponder)
            && !Threadpool.stop)
     {}
 
@@ -2318,7 +2320,7 @@ void MainThread::search ()
                            MOVE_NONE;
     assert(MOVE_NONE != best_move
         || (MOVE_NONE == best_move
-            && MOVE_NONE == ponder_move));
+         && MOVE_NONE == ponder_move));
 
     if (OutputStream.is_open ())
     {

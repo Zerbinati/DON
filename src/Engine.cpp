@@ -494,9 +494,9 @@ namespace {
             if (token == "uci")
             {
                 sync_cout << "id name " << Name << " " << info () << "\n"
-                            << "id author " << Author << "\n"
-                            << Options
-                            << "uciok" << sync_endl;
+                          << "id author " << Author << "\n"
+                          << Options
+                          << "uciok" << sync_endl;
             }
             else
             if (token == "ucinewgame")
@@ -551,12 +551,12 @@ namespace {
                 if (token == "keys")
                 {
                     sync_cout << std::hex << std::uppercase << std::setfill ('0')
-                                << "FEN: "                        << pos.fen ()       << "\n"
-                                << "Posi key: " << std::setw (16) << pos.si->posi_key << "\n"
-                                << "Matl key: " << std::setw (16) << pos.si->matl_key << "\n"
-                                << "Pawn key: " << std::setw (16) << pos.si->pawn_key << "\n"
-                                << "PG key: " << std::setw (16) << pos.pg_key ()
-                                << std::setfill (' ') << std::nouppercase << std::dec << sync_endl;
+                              << "FEN: "                        << pos.fen ()       << "\n"
+                              << "Posi key: " << std::setw (16) << pos.si->posi_key << "\n"
+                              << "Matl key: " << std::setw (16) << pos.si->matl_key << "\n"
+                              << "Pawn key: " << std::setw (16) << pos.si->pawn_key << "\n"
+                              << "PG key: " << std::setw (16) << pos.pg_key ()
+                              << std::setfill (' ') << std::nouppercase << std::dec << sync_endl;
                 }
                 else
                 if (token == "moves")

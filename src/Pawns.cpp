@@ -17,16 +17,16 @@ namespace Pawns {
         const Value ShelterWeak[2][F_NO/2][R_NO] =
         {
             {// Not On King file
-                { V( 98), V(20), V(11), V(42), V( 83), V( 84), V(101) },
-                { V(103), V( 8), V(33), V(86), V( 87), V(105), V(113) },
-                { V(100), V( 2), V(65), V(95), V( 59), V( 89), V(115) },
-                { V( 72), V( 6), V(52), V(74), V( 83), V( 84), V(112) }
+                { V( 98), V(20), V(11), V(42), V( 83), V( 84), V(101), V(0) },
+                { V(103), V( 8), V(33), V(86), V( 87), V(105), V(113), V(0) },
+                { V(100), V( 2), V(65), V(95), V( 59), V( 89), V(115), V(0) },
+                { V( 72), V( 6), V(52), V(74), V( 83), V( 84), V(112), V(0) }
             },
             {// On King file
-                { V(105), V(19), V( 3), V(27), V( 85), V( 93), V( 84) },
-                { V(121), V( 7), V(33), V(95), V(112), V( 86), V( 72) },
-                { V(121), V(26), V(65), V(90), V( 65), V( 76), V(117) },
-                { V( 79), V( 0), V(45), V(65), V( 94), V( 92), V(105) }
+                { V(105), V(19), V( 3), V(27), V( 85), V( 93), V( 84), V(0) },
+                { V(121), V( 7), V(33), V(95), V(112), V( 86), V( 72), V(0) },
+                { V(121), V(26), V(65), V(90), V( 65), V( 76), V(117), V(0) },
+                { V( 79), V( 0), V(45), V(65), V( 94), V( 92), V(105), V(0) }
             }
         };
         // Dangerness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
@@ -68,7 +68,7 @@ namespace Pawns {
         // Backward pawn penalty
         const Score Backward = S(24,12);
         // Blocked pawn penalty
-        const Score Blocked = S(18,38);
+        const Score Blocked =  S(18,38);
 
     #undef S
 
@@ -214,20 +214,20 @@ namespace Pawns {
             assert(F_A <= f && f <= F_H);
             Bitboard file_front_pawns;
             file_front_pawns = own_front_pawns & file_bb (f);
-            auto own_r = file_front_pawns != 0 ? rel_rank (Own, scan_backmost_sq (Own, file_front_pawns)) : R_1;
+            auto own_r = 0 != file_front_pawns ? rel_rank (Own, scan_backmost_sq (Own, file_front_pawns)) : R_1;
             file_front_pawns = opp_front_pawns & file_bb (f);
-            auto opp_r = file_front_pawns != 0 ? rel_rank (Own, scan_frntmost_sq (Opp, file_front_pawns)) : R_1;
-            assert((own_r == R_1
-                 && opp_r == R_1)
+            auto opp_r = 0 != file_front_pawns ? rel_rank (Own, scan_frntmost_sq (Opp, file_front_pawns)) : R_1;
+            assert((R_1 == own_r
+                 && R_1 == opp_r)
                 || (own_r != opp_r));
 
             auto ff = std::min (f, F_H - f);
             value -= ShelterWeak[f == _file (fk_sq) ? 1 : 0][ff][own_r]
-                   + StromDanger[   f == _file (fk_sq)
-                                 && opp_r == rel_rank (Own, fk_sq) + 1 ? 0 : // BlockedByKing
-                                    own_r == R_1                       ? 1 : // Unopposed
-                                    opp_r == own_r + 1                 ? 2 : // BlockedByPawn
-                                                                         3]  // Unblocked
+                   + StromDanger[f == _file (fk_sq)
+                              && opp_r == rel_rank (Own, fk_sq) + 1 ? 0 : // BlockedByKing
+                                 own_r == R_1                       ? 1 : // Unopposed
+                                 opp_r == own_r + 1                 ? 2 : // BlockedByPawn
+                                                                      3]  // Unblocked
                                 [ff][opp_r];
         }
         return value;

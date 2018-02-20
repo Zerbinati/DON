@@ -120,7 +120,10 @@ namespace Memory {
 
 #   else
 
-            SHM = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
+            SHM = shmget 
+                (IPC_PRIVATE,
+                 mem_size,
+                 IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
             if (SHM != -1)
             {
                 mem_ref = shmat (SHM, nullptr, 0x00);
@@ -137,7 +140,10 @@ namespace Memory {
                 }
                 return;
             }
-            SHM = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W);
+            SHM = shmget
+                (IPC_PRIVATE,
+                 mem_size,
+                 IPC_CREAT|SHM_R|SHM_W);
             if (SHM != -1)
             {
                 mem_ref = shmat (SHM, nullptr, 0x00);
