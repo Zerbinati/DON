@@ -248,8 +248,8 @@ namespace Pawns {
         }
 
         e->key = pos.si->pawn_key;
-        e->score = evaluate<WHITE> (pos, e)
-                 - evaluate<BLACK> (pos, e);
+        e->scores[WHITE] = evaluate<WHITE> (pos, e);
+        e->scores[BLACK] = evaluate<BLACK> (pos, e);
         e->asymmetry  = u08(pop_count (  e->semiopens[WHITE]
                                        ^ e->semiopens[BLACK]));
         e->open_count = u08(pop_count (  e->semiopens[WHITE]

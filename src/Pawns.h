@@ -12,7 +12,7 @@ namespace Pawns {
     {
     public:
         Key   key;
-        Score score;
+        Score scores[CLR_NO];
         u08   asymmetry;
         u08   open_count;
 

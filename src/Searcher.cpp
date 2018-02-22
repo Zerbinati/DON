@@ -2380,7 +2380,7 @@ void MainThread::check_limits ()
     }
 
     if (   (   Limits.use_time_management ()
-            && elapsed_time >  i64(time_mgr.maximum_time - 10))
+            && elapsed_time >  i64(time_mgr.maximum_time) - 10)
         || (   0 != Limits.movetime
             && elapsed_time >= i64(Limits.movetime))
         || (   0 != Limits.nodes

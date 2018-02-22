@@ -22,25 +22,24 @@ namespace {
             // The first 6 entries are for PieceType
             MATERIAL = NONE,
             IMBALANCE,
+            INITIATIVE,
             MOBILITY,
             THREAT,
             PASSER,
             SPACE,
-            INITIATIVE,
             TOTAL,
         };
 
-        static double cp[TOTAL + 1][CLR_NO][2];
+        static Score scores[TOTAL + 1][CLR_NO];
 
         static void initialize ()
         {
-            std::memset (cp, 0x00, sizeof (cp));
+            std::memset (scores, 0x00, sizeof (scores));
         }
 
         static void write (Tracer::Term term, Color c, Score score)
         {
-            cp[term][c][MG] = value_to_cp (mg_value (score)) / 100.0;
-            cp[term][c][EG] = value_to_cp (eg_value (score)) / 100.0;
+            scores[term][c] = score;
         }
         static void write (Tracer::Term term, Score wscore, Score bscore = SCORE_ZERO)
         {
@@ -50,13 +49,19 @@ namespace {
 
     };
 
-    double Tracer::cp[TOTAL + 1][CLR_NO][2];
+    Score Tracer::scores[TOTAL + 1][CLR_NO];
+
+    ostream& operator<<(ostream& os, Score s)
+    {
+        os << std::setw (5) << value_to_cp (mg_value (s)) / 100.0 << " "
+           << std::setw (5) << value_to_cp (eg_value (s)) / 100.0;
+        return os;
+    }
 
     ostream& operator<< (ostream &os, Tracer::Term term)
     {
         switch (u08(term))
         {
-        case PieceType::PAWN:
         case Tracer::Term::MATERIAL:
         case Tracer::Term::IMBALANCE:
         case Tracer::Term::INITIATIVE:
@@ -64,16 +69,10 @@ namespace {
             os << " | ----- ----- | ----- ----- | ";
             break;
         default:
-            os << " | "
-               << std::setw (5) << Tracer::cp[term][WHITE][MG] << " "
-               << std::setw (5) << Tracer::cp[term][WHITE][EG] << " | "
-               << std::setw (5) << Tracer::cp[term][BLACK][MG] << " "
-               << std::setw (5) << Tracer::cp[term][BLACK][EG] << " | ";
+            os << " | " << std::setw (5) << Tracer::scores[term][WHITE] << " | " << std::setw (5) << Tracer::scores[term][BLACK] << " | ";
             break;
         }
-        os << std::setw (5) << Tracer::cp[term][WHITE][MG] - Tracer::cp[term][BLACK][MG] << " "
-           << std::setw (5) << Tracer::cp[term][WHITE][EG] - Tracer::cp[term][BLACK][EG]
-           << std::endl;
+        os << std::setw (5) << Tracer::scores[term][WHITE] - Tracer::scores[term][BLACK] << std::endl;
         return os;
     }
 
@@ -83,7 +82,6 @@ namespace {
     {
     private:
 
-    #define V(v) Value(v)
     #define S(mg, eg) mk_score (mg, eg)
 
         // Bonus for knight behind a pawn
@@ -122,18 +120,18 @@ namespace {
 
         const Score PawnPassHinder =    S( 8, 1);
 
-        const Value LazyThreshold =     V(1500);
-        const Value SpaceThreshold =    V(12222);
+#undef S
 
-    #undef S
-    #undef V
+        const Value LazyThreshold =     Value(1500);
+        const Value SpaceThreshold =    Value(12222);
+
 
         // PieceMobility[piece-type][attacks] contains bonuses for mobility,
         // indexed by piece type and number of attacked squares in the mobility area
         static const Score PieceMobility[5][28];
 
-        // PieceCloseness[piece-type] * "distance to own king" determines a bonus for each piece.
-        static const Score PieceCloseness[NONE];
+        // KingProtector[piece-type] contains a penalty according to distance from king.
+        static const Score KingProtector[NONE];
 
         // Outpost[supported by pawn] contains bonuses for outposts
         // indexed by piece type supported by friend pawns
@@ -155,9 +153,9 @@ namespace {
         // PawnPassFile[file] contains bonus for passed pawns according to distance from edge
         static const Score PawnPassFile[F_NO/2];
         // PawnPassRank[rank] contains bonus for passed pawns according to the rank of the pawn
-        static const Value PawnPassRank[2][R_NO];
+        static const Score PawnPassRank[R_NO];
 
-        static const i32 RankFactor[R_NO];
+        static const i32 PawnPassDanger[R_NO];
 
         // Bonus for king attack by piece type
         static const i32 PieceAttackWeights[NONE];
@@ -195,20 +193,18 @@ namespace {
         template<Color>
         void initialize ();
         template<Color, PieceType>
-        Score evaluate_pieces ();
+        Score pieces ();
         template<Color>
-        Score evaluate_king ();
+        Score king ();
         template<Color>
-        Score evaluate_threats ();
+        Score threats ();
         template<Color>
-        i32 limit_king_dist (Square);
+        Score passers ();
         template<Color>
-        Score evaluate_passers ();
-        template<Color>
-        Score evaluate_space ();
+        Score space ();
 
-        Score evaluate_initiative (Value);
-        Scale evaluate_scale (Value);
+        Score initiative (Value) const;
+        Scale scale (Value) const;
 
     public:
         Evaluator () = delete;
@@ -222,7 +218,7 @@ namespace {
         Value value ();
     };
 
-#define V(v) Value(v)
+
 #define S(mg, eg) mk_score (mg, eg)
 
     template<bool Trace>
@@ -253,7 +249,7 @@ namespace {
     };
 
     template<bool Trace>
-    const Score Evaluator<Trace>::PieceCloseness[NONE] = { S( 0, 0), S(-3,-5), S(-4,-3), S(-3, 0), S(-1,+1) };
+    const Score Evaluator<Trace>::KingProtector[NONE] = { S( 0, 0), S(+3,+5), S(+4,+3), S(+3, 0), S(+1,-1) };
 
     template<bool Trace>
     const Score Evaluator<Trace>::KnightOutpost[2] = { S(22, 6), S(36,12) };
@@ -276,17 +272,12 @@ namespace {
     const Score Evaluator<Trace>::PawnPassFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
 
     template<bool Trace>
-    const Value Evaluator<Trace>::PawnPassRank[2][R_NO] =
-    {
-        { V(0), V(5), V( 5), V(32), V(70), V(172), V(217), V(0) },
-        { V(0), V(7), V(13), V(42), V(70), V(170), V(269), V(0) }
-    };
-
-    template<bool Trace>
-    const i32 Evaluator<Trace>::RankFactor[R_NO] = { 0, 0, 0, 2, 7, 12, 19 };
+    const Score Evaluator<Trace>::PawnPassRank[R_NO] = { S(0, 0), S(5, 7), S(5, 13), S(32, 42), S(70, 70), S(172, 170), S(217, 269), S(0, 0) };
 
 #undef S
-#undef V
+
+    template<bool Trace>
+    const i32 Evaluator<Trace>::PawnPassDanger[R_NO] = { 0, 0, 0, 2, 7, 12, 19 };
 
     template<bool Trace>
     const i32 Evaluator<Trace>::PieceAttackWeights[NONE] = { 0, 78, 56, 45, 11, 0 };
@@ -347,12 +338,12 @@ namespace {
         king_zone_attacks_count[Own] = 0;
         if (pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
         {
-            b = king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
+            king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
+            king_ring_attackers_count[Own] = u08 (pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]));
             if (R_1 == rel_rank (Opp, pos.square<KING> (Opp)))
             {
-                king_ring[Opp] |= shift<WHITE == Own ? DEL_S : DEL_N> (b);
+                king_ring[Opp] |= shift<WHITE == Own ? DEL_S : DEL_N> (king_ring[Opp]);
             }
-            king_ring_attackers_count[Own] = u08(pop_count (b & pin_attacked_by[Own][PAWN]));
         }
         else
         {
@@ -361,10 +352,10 @@ namespace {
         }
     }
 
-    /// evaluate_pieces() evaluates the pieces of the color and type.
+    /// pieces() evaluates the pieces of the color and type.
     template<bool Trace>
     template<Color Own, PieceType PT>
-    Score Evaluator<Trace>::evaluate_pieces ()
+    Score Evaluator<Trace>::pieces ()
     {
         static_assert (NIHT == PT
                     || BSHP == PT
@@ -426,7 +417,7 @@ namespace {
                                    & attacks;
             }
 
-            pin_attacked_by[Own][NONE] |=
+            pin_attacked_by[Own][NONE] |= attacks;
             pin_attacked_by[Own][PT]   |= attacks;
 
             if (0 != (king_ring[Opp] & attacks))
@@ -441,8 +432,8 @@ namespace {
             // Bonus for piece mobility
             mobility[Own] += PieceMobility[PT][mob];
 
-            // Bonus for piece closeness to king
-            score += PieceCloseness[PT] * dist (s, pos.square<KING> (Own));
+            // Penalty if the piece is far from the king
+            score += KingProtector[PT] * dist (s, pos.square<KING> (Own));
 
             Bitboard b;
             // Special extra evaluation for pieces
@@ -580,10 +571,10 @@ namespace {
         return score;
     }
 
-    /// evaluate_king() evaluates the king of the color.
+    /// king() evaluates the king of the color.
     template<bool Trace>
     template<Color Own>
-    Score Evaluator<Trace>::evaluate_king ()
+    Score Evaluator<Trace>::king ()
     {
         const auto Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -731,10 +722,10 @@ namespace {
         return score;
     }
 
-    /// evaluate_threats() evaluates the threats of the color.
+    /// threats() evaluates the threats of the color.
     template<bool Trace>
     template<Color Own>
-    Score Evaluator<Trace>::evaluate_threats ()
+    Score Evaluator<Trace>::threats ()
     {
         const auto Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -862,20 +853,17 @@ namespace {
         return score;
     }
 
-    // limit_king_dist() returns a limit of the distance that the king of the color has to run to reach square s.
+    /// passers() evaluates the passed pawns of the color.
     template<bool Trace>
     template<Color Own>
-    i32 Evaluator<Trace>::limit_king_dist (Square s)
-    {
-        return std::min (dist (pos.square<KING> (Own), s), 5);
-    }
-
-    /// evaluate_passers() evaluates the passed pawns of the color.
-    template<bool Trace>
-    template<Color Own>
-    Score Evaluator<Trace>::evaluate_passers ()
+    Score Evaluator<Trace>::passers ()
     {
         const auto Opp = WHITE == Own ? BLACK : WHITE;
+
+        auto king_proximity = [&](Color c, Square s)
+                            {
+                                return std::min (dist (pos.square<KING> (c), s), 5);
+                            };
 
         auto score = SCORE_ZERO;
 
@@ -887,27 +875,26 @@ namespace {
                 && 0 == (pos.pieces (Opp, PAWN) & front_line_bb (Own, s+pawn_push (Own))));
 
             i32 r  = rel_rank (Own, s);
-            i32 rr = RankFactor[r];
+            i32 w = PawnPassDanger[r];
 
             // Base bonus depending on rank.
-            auto mg_value = PawnPassRank[MG][r],
-                 eg_value = PawnPassRank[EG][r];
+            auto bonus = PawnPassRank[r];
 
-            if (0 != rr)
+            if (0 != w)
             {
                 auto push_sq = s+pawn_push (Own);
 
                 // Adjust bonus based on the king's proximity
                 if (!contains (pawn_pass_span (Own, s), pos.square<KING> (Opp)))
                 {
-                    eg_value += 5*rr*limit_king_dist<Opp> (push_sq);
+                    bonus += mk_score(0, 5*w*king_proximity (Opp, push_sq));
                 }
-                eg_value -= 2*rr*limit_king_dist<Own> (push_sq);
+                bonus -= mk_score (0, 2*w*king_proximity (Own, push_sq));
 
                 // If block square is not the queening square then consider also a second push.
                 if (R_7 != r)
                 {
-                    eg_value -= 1*rr*limit_king_dist<Own> (push_sq + pawn_push (Own));
+                    bonus -= mk_score (0, 1*w*king_proximity (Own, push_sq + pawn_push (Own)));
                 }
 
                 // If the pawn is free to advance.
@@ -954,15 +941,13 @@ namespace {
                                 !contains (safe_front_line, push_sq) ?
                                     0 : 4 : 6;
 
-                    mg_value += k*rr,
-                    eg_value += k*rr;
+                    bonus += mk_score (k*w, k*w);
                 }
                 else
                 // If the pawn is blocked by own pieces.
                 if (contains (pos.pieces (Own), push_sq))
                 {
-                    mg_value += 1*rr + 2*r,
-                    eg_value += 1*rr + 2*r;
+                    bonus += mk_score (1*w + 2*r, 1*w + 2*r);
                 }
             }
 
@@ -972,11 +957,10 @@ namespace {
                 || 0 != (pos.pieces (PAWN) & front_line_bb (Own, s)))
             {
                 i32 pp = std::max (pop_count (pos.pieces (PAWN) & front_line_bb (Own, s)) + 1, 2);
-                mg_value /= pp,
-                eg_value /= pp;
+                bonus /= pp;
             }
 
-            score += mk_score (mg_value, eg_value)
+            score += bonus
                    + PawnPassFile[std::min (_file (s), F_H - _file (s))]
                    - PawnPassHinder * pop_count (front_line_bb (Own, s) & (pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
         }
@@ -989,16 +973,22 @@ namespace {
         return score;
     }
 
-    /// evaluate_space() evaluates the space of the color.
+    /// space() evaluates the space of the color.
     /// The space evaluation is a simple bonus based on the number of safe squares
     /// available for minor pieces on the central four files on ranks 2-4
     /// Safe squares one, two or three squares behind a friend pawn are counted twice
     /// The aim is to improve play on opening
     template<bool Trace>
     template<Color Own>
-    Score Evaluator<Trace>::evaluate_space ()
+    Score Evaluator<Trace>::space ()
     {
         const auto Opp = WHITE == Own ? BLACK : WHITE;
+
+        // If in the ending phase
+        if (pos.si->non_pawn_material () < SpaceThreshold)
+        {
+            return SCORE_ZERO;
+        }
 
         // Find the safe squares for our pieces inside the area defined by SpaceMask.
         // A square is safe:
@@ -1031,24 +1021,26 @@ namespace {
         return score;
     }
 
-    /// evaluate_initiative() evaluates the initiative correction value for the position
+    /// initiative() evaluates the initiative correction value for the position
     /// i.e. second order bonus/malus based on the known attacking/defending status of the players
     template<bool Trace>
-    Score Evaluator<Trace>::evaluate_initiative (Value eg)
+    Score Evaluator<Trace>::initiative (Value eg) const
     {
-        i32 king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
+        i32 outflanking = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
                       - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
 
         // Compute the initiative bonus for the attacking side
-        i32 initiative =  8 * (king_dist + pe->asymmetry - 17)
+        i32 complexity =  8 * (outflanking + pe->asymmetry)
                        + 12 * pos.count (PAWN)
                             // Pawn on both flanks
-                      + 16 * (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
-                              && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]) ? 1 : 0);
+                       + 16 * (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
+                               && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]) ? 1 : 0)
+                       - 136;
+
         // Now apply the bonus: note that we find the attacking side by extracting
         // the sign of the endgame value, and that we carefully cap the bonus so
         // that the endgame score will never change sign after the bonus.
-        auto score = mk_score (0, sign (eg) * initiative);
+        auto score = mk_score (0, sign (eg) * complexity);
 
         if (Trace)
         {
@@ -1058,23 +1050,23 @@ namespace {
         return score;
     }
 
-    /// evaluate_scale() evaluates the scale for the position
+    /// scale() evaluates the scale for the position
     template<bool Trace>
-    Scale Evaluator<Trace>::evaluate_scale (Value eg)
+    Scale Evaluator<Trace>::scale (Value eg) const
     {
         auto strong_color = eg >= VALUE_ZERO ? WHITE : BLACK;
 
-        Scale scale;
+        Scale scl;
         if (   nullptr == me->scale_func[strong_color]
-            || SCALE_NONE == (scale = (*me->scale_func[strong_color])(pos)))
+            || SCALE_NONE == (scl = (*me->scale_func[strong_color])(pos)))
         {
-            scale = me->scale[strong_color];
+            scl = me->scale[strong_color];
         }
-        assert(SCALE_NONE != scale);
+        assert(SCALE_NONE != scl);
 
         // If don't already have an unusual scale, check for certain types of endgames.
-        if (   SCALE_NORMAL == scale
-            || SCALE_ONEPAWN == scale)
+        if (   SCALE_NORMAL == scl
+            || SCALE_ONEPAWN == scl)
         {
             // Endings with opposite-colored bishops
             if (pos.opposite_bishops ())
@@ -1097,7 +1089,7 @@ namespace {
                 return Scale(37 + 7 * pos.count (strong_color, PAWN));
             }
         }
-        return scale;
+        return scl;
     }
 
     /// value() computes the various parts of the evaluation and
@@ -1125,7 +1117,8 @@ namespace {
         // - the pawn score
         score = pos.si->psq_score
               + me->imbalance
-              + pe->score
+              + pe->scores[WHITE]
+              - pe->scores[BLACK]
               + Contempt;
 
         // Early exit if score is high
@@ -1143,40 +1136,21 @@ namespace {
         initialize<WHITE> ();
         initialize<BLACK> ();
 
-        // Evaluate all pieces except pawns and king
-        score += evaluate_pieces<WHITE, NIHT> ()
-              -  evaluate_pieces<BLACK, NIHT> ();
-        score += evaluate_pieces<WHITE, BSHP> ()
-              -  evaluate_pieces<BLACK, BSHP> ();
-        score += evaluate_pieces<WHITE, ROOK> ()
-              -  evaluate_pieces<BLACK, ROOK> ();
-        score += evaluate_pieces<WHITE, QUEN> ()
-              -  evaluate_pieces<BLACK, QUEN> ();
-        // Evaluate piece mobility
-        score += mobility[WHITE]
-              -  mobility[BLACK];
+        // Pieces should be evaluated first (populate attack information)
+        score += pieces<WHITE, NIHT> () - pieces<BLACK, NIHT> ()
+              +  pieces<WHITE, BSHP> () - pieces<BLACK, BSHP> ()
+              +  pieces<WHITE, ROOK> () - pieces<BLACK, ROOK> ()
+              +  pieces<WHITE, QUEN> () - pieces<BLACK, QUEN> ();
 
-        // Full attack information needed including king
-        // Evaluate kings
-        score += evaluate_king<WHITE> ()
-              -  evaluate_king<BLACK> ();
-        // Evaluate threats
-        score += evaluate_threats<WHITE> ()
-              -  evaluate_threats<BLACK> ();
-        // Evaluate passers
-        score += evaluate_passers<WHITE> ()
-              -  evaluate_passers<BLACK> ();
+        score += mobility[WHITE] - mobility[BLACK];
 
-        // In the opening phase
-        if (pos.si->non_pawn_material () >= SpaceThreshold)
-        {
-            // Evaluate space
-            score += evaluate_space<WHITE> ()
-                  -  evaluate_space<BLACK> ();
-        }
+        // Rest should be evaluate after (full attack information needed including king)
+        score += king<   WHITE> () - king<   BLACK> ()
+              +  threats<WHITE> () - threats<BLACK> ()
+              +  passers<WHITE> () - passers<BLACK> ()
+              +  space<  WHITE> () - space<  BLACK> ();
 
-        // Evaluate potential
-        score += evaluate_initiative (eg_value (score));
+        score += initiative (eg_value (score));
 
         assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
         assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
@@ -1184,13 +1158,13 @@ namespace {
 
         // Interpolates between midgame and scaled endgame values.
         v = Value(  (  mg_value (score) * (me->phase)
-                     + eg_value (score) * (Material::PhaseResolution - me->phase) * evaluate_scale (eg_value (score)) / SCALE_NORMAL)
+                     + eg_value (score) * (Material::PhaseResolution - me->phase) * scale (eg_value (score)) / SCALE_NORMAL)
                   / Material::PhaseResolution);
 
         if (Trace)
         {
             // Write remaining evaluation terms
-            Tracer::write (Tracer::Term(PAWN), pe->score);
+            Tracer::write (Tracer::Term(PAWN), pe->scores[WHITE], pe->scores[BLACK]);
             Tracer::write (Tracer::Term::MATERIAL, pos.si->psq_score);
             Tracer::write (Tracer::Term::IMBALANCE, me->imbalance);
             Tracer::write (Tracer::Term::MOBILITY, mobility[WHITE], mobility[BLACK]);
@@ -1211,9 +1185,9 @@ Value evaluate (const Position &pos)
 /// the detailed descriptions and values of each evaluation term.
 string trace (const Position &pos)
 {
-    Contempt = SCORE_ZERO;
+    Contempt = SCORE_ZERO; // Reset any dynamic contempt
     auto value = Evaluator<true> (pos).value () + Tempo;
-    value = WHITE == pos.active ? +value : -value; // White's point of view
+    value = WHITE == pos.active ? +value : -value; // Trace scores are from White's point of view
 
     ostringstream oss;
     oss << std::showpos << std::showpoint << std::setprecision (2) << std::fixed
@@ -1222,6 +1196,7 @@ string trace (const Position &pos)
         << "----------------+-------------+-------------+--------------\n"
         << "       Material" << Tracer::Term::MATERIAL
         << "      Imbalance" << Tracer::Term::IMBALANCE
+        << "     Initiative" << Tracer::Term::INITIATIVE
         << "           Pawn" << Tracer::Term(PAWN)
         << "         Knight" << Tracer::Term(NIHT)
         << "         Bishop" << Tracer::Term(BSHP)
@@ -1232,7 +1207,6 @@ string trace (const Position &pos)
         << "         Threat" << Tracer::Term::THREAT
         << "    Pawn Passer" << Tracer::Term::PASSER
         << "          Space" << Tracer::Term::SPACE
-        << "     Initiative" << Tracer::Term::INITIATIVE
         << "----------------+-------------+-------------+--------------\n"
         << "          Total" << Tracer::Term::TOTAL
         << "\nEvaluation: " << value_to_cp (value) / 100.0 << " (white side)\n"
