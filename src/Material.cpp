@@ -96,10 +96,9 @@ namespace Material {
         e->key = pos.si->matl_key;
 
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        e->phase = i32(std::min (
-                       std::max (pos.si->non_pawn_material ()
-                                   , VALUE_ENDGAME)
-                                   , VALUE_MIDGAME) - VALUE_ENDGAME)
+        e->phase = i32(  std::min (VALUE_MIDGAME,
+                         std::max (VALUE_ENDGAME, pos.si->non_pawn_material ()))
+                       - VALUE_ENDGAME)
                  * PhaseResolution
                  / (VALUE_MIDGAME - VALUE_ENDGAME);
         e->scale[WHITE] =
@@ -218,8 +217,13 @@ namespace Material {
             }
         };
 
-        auto value = (  imbalance<WHITE> (piece_count)
-                      - imbalance<BLACK> (piece_count)) / 16; // Imbalance Resolution
+        i32 imb[CLR_NO] =
+        {
+            imbalance<WHITE> (piece_count),
+            imbalance<BLACK> (piece_count)
+        };
+        
+        auto value = (imb[WHITE] - imb[BLACK]) / 16; // Imbalance Resolution
         e->imbalance = mk_score (value, value);
 
         return e;

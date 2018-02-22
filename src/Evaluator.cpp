@@ -34,7 +34,7 @@ namespace {
 
         static void initialize ()
         {
-            std::memset (scores, 0x00, sizeof (scores));
+            std::memset (scores, SCORE_ZERO, sizeof (scores));
         }
 
         static void write (Tracer::Term term, Color c, Score score)
@@ -51,16 +51,16 @@ namespace {
 
     Score Tracer::scores[TOTAL + 1][CLR_NO];
 
-    ostream& operator<<(ostream& os, Score s)
+    ostream& operator<< (ostream &os, Score score)
     {
-        os << std::setw (5) << value_to_cp (mg_value (s)) / 100.0 << " "
-           << std::setw (5) << value_to_cp (eg_value (s)) / 100.0;
+        os << std::setw (5) << value_to_cp (mg_value (score)) / 100.0 << " "
+           << std::setw (5) << value_to_cp (eg_value (score)) / 100.0;
         return os;
     }
 
     ostream& operator<< (ostream &os, Tracer::Term term)
     {
-        switch (u08(term))
+        switch (term)
         {
         case Tracer::Term::MATERIAL:
         case Tracer::Term::IMBALANCE:
@@ -69,7 +69,8 @@ namespace {
             os << " | ----- ----- | ----- ----- | ";
             break;
         default:
-            os << " | " << std::setw (5) << Tracer::scores[term][WHITE] << " | " << std::setw (5) << Tracer::scores[term][BLACK] << " | ";
+            os << " | " << std::setw (5) << Tracer::scores[term][WHITE]
+               << " | " << std::setw (5) << Tracer::scores[term][BLACK] << " | ";
             break;
         }
         os << std::setw (5) << Tracer::scores[term][WHITE] - Tracer::scores[term][BLACK] << std::endl;
@@ -293,8 +294,8 @@ namespace {
         if (0 != pinned_pawns)
         {
             Bitboard loosed_pawns = pos.pieces (Own, PAWN) & ~pinned_pawns;
-            pin_attacked_by[Own][PAWN] = pawn_attacks_bb<Own> (loosed_pawns)
-                                       | (  pawn_attacks_bb<Own> (pinned_pawns)
+            pin_attacked_by[Own][PAWN] = pawn_attacks_bb (Own, loosed_pawns)
+                                       | (  pawn_attacks_bb (Own, pinned_pawns)
                                           & PieceAttacks[BSHP][pos.square<KING> (Own)]);
         }
         else
@@ -387,7 +388,7 @@ namespace {
                 Bitboard bp = pos.pieces (Own, PAWN) & att & front_rank_bb (Own, s);
                 dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                    & (  attacks
-                                      | (  pawn_attacks_bb<Own> (bp)
+                                      | (  pawn_attacks_bb (Own, bp)
                                          & PieceAttacks[BSHP][s]));
             }
             else
@@ -399,7 +400,7 @@ namespace {
                 Bitboard qr = pos.pieces (Own, ROOK) & att & PieceAttacks[ROOK][s];
                 dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                     & (  attacks
-                                       | (  pawn_attacks_bb<Own> (qp)
+                                       | (  pawn_attacks_bb (Own, qp)
                                           & PieceAttacks[BSHP][s])
                                         | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                         | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
@@ -550,7 +551,7 @@ namespace {
                 if (0 != (  pos.slider_blockers (Own, s, pos.pieces (Opp, QUEN), b, b)
                           & ~(  (  pos.pieces (Opp, PAWN)
                                  & file_bb (s)
-                                 & ~pawn_attacks_bb<Own> (pos.pieces (Own)))
+                                 & ~pawn_attacks_bb (Own, pos.pieces (Own)))
                               | pos.abs_blockers (Opp))))
                 {
                     score -= QueenWeaken;
@@ -806,7 +807,7 @@ namespace {
             // Safe friend pawns
             b = safe_area
               & pos.pieces (Own, PAWN);
-            b = pawn_attacks_bb<Own> (b)
+            b = pawn_attacks_bb (Own, b)
               & weak_nonpawns;
 
             score += SafePawnThreat * pop_count (b);
@@ -824,7 +825,7 @@ namespace {
         b &= safe_area
           & ~pin_attacked_by[Opp][PAWN];
         // Friend pawns push safe attacks an enemy piece not already attacked by pawn
-        b =  pawn_attacks_bb<Own> (b)
+        b =  pawn_attacks_bb (Own, b)
           &  pos.pieces (Opp)
           & ~pin_attacked_by[Own][PAWN];
         // Bonus for friend pawns push safely can attack an enemy piece not already attacked by pawn
@@ -976,12 +977,6 @@ namespace {
     Score Evaluator<Trace>::space ()
     {
         const auto Opp = WHITE == Own ? BLACK : WHITE;
-
-        // If in the ending phase
-        if (pos.si->non_pawn_material () < SpaceThreshold)
-        {
-            return SCORE_ZERO;
-        }
 
         // Find the safe squares for our pieces inside the area defined by SpaceMask.
         // A square is safe:
@@ -1137,11 +1132,12 @@ namespace {
 
         score += mobility[WHITE] - mobility[BLACK];
 
-        // Rest should be evaluate after (full attack information needed including king)
+        // Rest should be evaluated after (full attack information needed including king)
         score += king<   WHITE> () - king<   BLACK> ()
               +  threats<WHITE> () - threats<BLACK> ()
               +  passers<WHITE> () - passers<BLACK> ()
-              +  space<  WHITE> () - space<  BLACK> ();
+              +  (pos.si->non_pawn_material () >= SpaceThreshold ?
+                 + space<  WHITE> () - space<  BLACK> () : SCORE_ZERO);
 
         score += initiative (eg_value (score));
 

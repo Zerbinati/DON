@@ -85,11 +85,11 @@ namespace Pawns {
             Bitboard own_pawns = pos.pieces (Own, PAWN);
             Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            Bitboard l_cap = shift<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
-            Bitboard r_cap = shift<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
+            Bitboard ul = shift<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
+            Bitboard ur = shift<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
 
-            e->any_attacks[Own] = l_cap | r_cap;
-            e->dbl_attacks[Own] = l_cap & r_cap;
+            e->any_attacks[Own] = ul | ur;
+            e->dbl_attacks[Own] = ul & ur;
             e->attack_span[Own] = 0;
             e->passers[Own] = 0;
             e->weak_unopposed[Own] = 0;

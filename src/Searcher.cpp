@@ -1967,8 +1967,7 @@ void Thread::search ()
                 std::stable_sort (root_moves.begin () + pv_index, root_moves.end ());
 
                 // If search has been stopped, break immediately.
-                // Sorting and writing PV back to TT is safe becuase
-                // root moves is still valid, although refers to the previous iteration.
+                // Sorting is safe because RootMoves is still valid, although it refers to the previous iteration.
                 if (Threadpool.stop)
                 {
                     break;
@@ -2063,9 +2062,7 @@ void Thread::search ()
                 if (   !Threadpool.stop
                     && !Threadpool.stop_on_ponderhit)
                 {
-                    // If the best_move is stable over several iterations, reduce time for this move,
-                    // the longer the move has been stable, the more.
-                    // Use part of the gained time from a previous stable move for the current move.
+                    // If the best_move is stable over several iterations, reduce time accordingly
                     double time_reduction = 1.0;
                     for (auto i : { 3, 4, 5 })
                     {
@@ -2081,7 +2078,7 @@ void Thread::search ()
                     if (   1 == root_moves.size ()
                         || (  main_thread->time_mgr.elapsed_time () >
                            u64(main_thread->time_mgr.optimum_time
-                            // Unstable factor
+                            // Unstable factor - Use part of the gained time from a previous stable move for the current move
                             * (main_thread->best_move_change + 1)
                             // Time reduction factor
                             * std::pow (main_thread->last_time_reduction, 0.51) / time_reduction
