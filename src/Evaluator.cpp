@@ -293,10 +293,8 @@ namespace {
         if (0 != pinned_pawns)
         {
             Bitboard loosed_pawns = pos.pieces (Own, PAWN) & ~pinned_pawns;
-            pin_attacked_by[Own][PAWN] = (  shift<WHITE == Own ? DEL_NW : DEL_SE> (loosed_pawns)
-                                          | shift<WHITE == Own ? DEL_NE : DEL_SW> (loosed_pawns))
-                                       | (  (  shift<WHITE == Own ? DEL_NW : DEL_SE> (pinned_pawns)
-                                             | shift<WHITE == Own ? DEL_NE : DEL_SW> (pinned_pawns))
+            pin_attacked_by[Own][PAWN] = pawn_attacks_bb<Own> (loosed_pawns)
+                                       | (  pawn_attacks_bb<Own> (pinned_pawns)
                                           & PieceAttacks[BSHP][pos.square<KING> (Own)]);
         }
         else
@@ -389,8 +387,7 @@ namespace {
                 Bitboard bp = pos.pieces (Own, PAWN) & att & front_rank_bb (Own, s);
                 dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                    & (  attacks
-                                      | (  (  shift<WHITE == Own ? DEL_NW : DEL_SE> (bp)
-                                            | shift<WHITE == Own ? DEL_NE : DEL_SW> (bp))
+                                      | (  pawn_attacks_bb<Own> (bp)
                                          & PieceAttacks[BSHP][s]));
             }
             else
@@ -402,8 +399,7 @@ namespace {
                 Bitboard qr = pos.pieces (Own, ROOK) & att & PieceAttacks[ROOK][s];
                 dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                     & (  attacks
-                                       | (  (  shift<WHITE == Own ? DEL_NW : DEL_SE> (qp)
-                                             | shift<WHITE == Own ? DEL_NE : DEL_SW> (qp))
+                                       | (  pawn_attacks_bb<Own> (qp)
                                           & PieceAttacks[BSHP][s])
                                         | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                         | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
@@ -554,8 +550,7 @@ namespace {
                 if (0 != (  pos.slider_blockers (Own, s, pos.pieces (Opp, QUEN), b, b)
                           & ~(  (  pos.pieces (Opp, PAWN)
                                  & file_bb (s)
-                                 & ~(  shift<WHITE == Own ? DEL_NW : DEL_SE> (pos.pieces (Own))
-                                     | shift<WHITE == Own ? DEL_NE : DEL_SW> (pos.pieces (Own))))
+                                 & ~pawn_attacks_bb<Own> (pos.pieces (Own)))
                               | pos.abs_blockers (Opp))))
                 {
                     score -= QueenWeaken;
@@ -811,8 +806,7 @@ namespace {
             // Safe friend pawns
             b = safe_area
               & pos.pieces (Own, PAWN);
-            b = (  shift<WHITE == Own ? DEL_NW : DEL_SE> (b)
-                 | shift<WHITE == Own ? DEL_NE : DEL_SW> (b))
+            b = pawn_attacks_bb<Own> (b)
               & weak_nonpawns;
 
             score += SafePawnThreat * pop_count (b);
@@ -830,8 +824,7 @@ namespace {
         b &= safe_area
           & ~pin_attacked_by[Opp][PAWN];
         // Friend pawns push safe attacks an enemy piece not already attacked by pawn
-        b =  (  shift<WHITE == Own ? DEL_NW : DEL_SE> (b)
-              | shift<WHITE == Own ? DEL_NE : DEL_SW> (b))
+        b =  pawn_attacks_bb (b)
           &  pos.pieces (Opp)
           & ~pin_attacked_by[Own][PAWN];
         // Bonus for friend pawns push safely can attack an enemy piece not already attacked by pawn
