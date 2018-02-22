@@ -824,7 +824,7 @@ namespace {
         b &= safe_area
           & ~pin_attacked_by[Opp][PAWN];
         // Friend pawns push safe attacks an enemy piece not already attacked by pawn
-        b =  pawn_attacks_bb (b)
+        b =  pawn_attacks_bb<Own> (b)
           &  pos.pieces (Opp)
           & ~pin_attacked_by[Own][PAWN];
         // Bonus for friend pawns push safely can attack an enemy piece not already attacked by pawn
@@ -860,14 +860,14 @@ namespace {
 
         auto score = SCORE_ZERO;
 
-        Bitboard passers = pe->passers[Own];
-        while (0 != passers)
+        Bitboard psr = pe->passers[Own];
+        while (0 != psr)
         {
-            auto s = pop_lsq (passers);
+            auto s = pop_lsq (psr);
             assert(0 == (pos.pieces (Own, PAWN) & front_line_bb (Own, s))
                 && 0 == (pos.pieces (Opp, PAWN) & front_line_bb (Own, s+pawn_push (Own))));
 
-            i32 r  = rel_rank (Own, s);
+            i32 r = rel_rank (Own, s);
             i32 w = PawnPassDanger[r];
 
             // Base bonus depending on rank.
