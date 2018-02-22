@@ -377,7 +377,7 @@ namespace {
 
             ful_attacked_by[Own] |= attacks;
 
-            if (contains (pos.abs_blockers (Own), s))
+            if (contains (pos.si->king_blockers[Own], s))
             {
                 attacks &= strline_bb (pos.square<KING> (Own), s);
             }
@@ -533,7 +533,7 @@ namespace {
                 else
                 // Penalty for rook when trapped by the king, even more if the king can't castle
                 if (   3 >= mob
-                    && !contains (pos.abs_blockers (Own), s)
+                    && !contains (pos.si->king_blockers[Own], s)
                     && R_5 > rel_rank (Own, s))
                 {
                     auto kf = _file (pos.square<KING> (Own));

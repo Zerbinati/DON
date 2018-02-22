@@ -563,6 +563,14 @@ namespace Searcher {
             pv.insert (pv.end (), child_pv.begin (), child_pv.end ());
         }
 
+        inline bool _gives_check (const Position &pos, Move move)
+        {
+            return NORMAL == mtype (move)
+                && 0 == pos.dsc_blockers (pos.active) ?
+                    contains (pos.si->checks[ptype (pos[org_sq (move)])], dst_sq (move)) :
+                    pos.gives_check (move);
+        }
+
         /// It adjusts a mate score from "plies to mate from the root" to
         /// "plies to mate from the current position". Non-mate scores are unchanged.
         /// The function is called before storing a value to the transposition table.
@@ -812,15 +820,12 @@ namespace Searcher {
                 ++move_count;
 
                 auto org = org_sq (move);
-                auto dst = dst_sq (move);
+                //auto dst = dst_sq (move);
 
                 auto mpc = pos[org];
                 assert(NO_PIECE != mpc);
 
-                bool gives_check = NORMAL == mtype (move)
-                                && 0 == pos.dsc_blockers (pos.active) ?
-                                    contains (pos.si->checks[ptype (mpc)], dst) :
-                                    pos.gives_check (move);
+                bool gives_check = _gives_check (pos, move);
 
                 // Futility pruning
                 if (   !in_check
@@ -1399,10 +1404,7 @@ namespace Searcher {
                 auto mpc = pos[org];
                 assert(NO_PIECE != mpc);
 
-                bool gives_check = NORMAL == mtype (move)
-                                && 0 == pos.dsc_blockers (pos.active) ?
-                                    contains (pos.si->checks[ptype (mpc)], dst) :
-                                    pos.gives_check (move);
+                bool gives_check = _gives_check (pos, move);
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 if (   root_node

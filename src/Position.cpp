@@ -139,11 +139,10 @@ bool Position::see_ge (Move m, Value threshold) const
         Bitboard c_attackers = attackers & pieces (c);
 
         Bitboard b;
-        // Don't allow pinned pieces to attack pieces except the king
-        // as long all pinners are on their original square.
+        // Don't allow pinned pieces to attack pieces except the king as long all pinners are on their original square.
         // for resolving Bxf2 on fen: r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1
         if (   0 != c_attackers
-            && 0 != (b = abs_checkers (~c) & mocc))
+            && 0 != (b = si->king_checkers[ c] & pieces (~c) & mocc))
         {
             while (0 != b)
             {
@@ -151,14 +150,14 @@ bool Position::see_ge (Move m, Value threshold) const
             }
         }
 
-        // If move is a discovered check, the only possible defensive capture on
-        // the destination square is a capture by the king to evade the check.
+        // If move is a discovered check, the only possible defensive capture on the destination square is capture by the king to evade the check.
         if (   0 != c_attackers
-            && 0 != (b = dsc_checkers (~c) & mocc))
+            && 0 != (b = si->king_checkers[~c] & pieces (~c) & mocc))
         {
+            Bitboard oocc = (mocc | dst);
             while (0 != b)
             {
-                if (0 == (between_bb (pop_lsq (b), square<KING> (c)) & mocc))
+                if (0 == (between_bb (pop_lsq (b), square<KING> (c)) & oocc))
                 {
                     c_attackers &= pieces (c, KING);
                     break;
@@ -431,7 +430,7 @@ bool Position::legal (Move m) const
         // A non-king move is legal if and only if
         // - not pinned
         // - moving along the ray from the king
-        return !contains (abs_blockers (active), org_sq (m))
+        return !contains (si->king_blockers[active], org_sq (m))
             || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
     }
     else
@@ -441,7 +440,7 @@ bool Position::legal (Move m) const
         // A non-king move is legal if and only if
         // - not pinned
         // - moving along the ray from the king
-        return !contains (abs_blockers (active), org_sq (m))
+        return !contains (si->king_blockers[active], org_sq (m))
             || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
     }
     else
@@ -482,7 +481,7 @@ bool Position::gives_check (Move m) const
     if (    // Direct check ?
            contains (si->checks[ptype (board[org_sq (m)])], dst_sq (m))
             // Discovered check ?
-        || (   contains (dsc_blockers (active), org_sq (m))
+        || (   contains (si->king_blockers[~active], org_sq (m))
             && !sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (~active))))
     {
         return true;

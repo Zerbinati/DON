@@ -30,7 +30,7 @@ namespace {
             {
                 if (   (   GenType::CHECK == GT
                         || GenType::QUIET_CHECK == GT)
-                    && contains (pos.dsc_blockers (pos.active), s))
+                    && contains (pos.si->king_blockers[~pos.active], s))
                 {
                     continue;
                 }
@@ -123,7 +123,7 @@ namespace {
                 // Add pawn pushes which give discovered check.
                 // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
                 // Note that a possible discovery check promotion has been already generated among captures.
-                Bitboard dsc_pawns = Rx_pawns & pos.dsc_blockers (pos.active) & ~file_bb (pos.square<KING> (Opp));
+                Bitboard dsc_pawns = Rx_pawns & pos.si->king_blockers[~pos.active] & ~file_bb (pos.square<KING> (Opp));
                 if (0 != dsc_pawns)
                 {
                     Bitboard dc_push_1 = empties & shift<Push> (dsc_pawns);
@@ -151,7 +151,7 @@ namespace {
                 r_attack &= pos.si->checks[PAWN];
                 // Pawns which give discovered check
                 // Add pawn captures which give discovered check.
-                Bitboard dsc_pawns = Rx_pawns & pos.dsc_blockers (pos.active);
+                Bitboard dsc_pawns = Rx_pawns & pos.si->king_blockers[~pos.active];
                 if (0 != dsc_pawns)
                 {
                     l_attack |= enemies & shift<LCap> (dsc_pawns);
