@@ -117,14 +117,16 @@ bool Position::see_ge (Move m, Value threshold) const
 
     // Now assume the worst possible result: that the opponent can capture our piece for free.
     balance -= PieceValues[MG][victim];
-    if (VALUE_ZERO <= balance)
+    if (VALUE_ZERO <= balance) // Always true if victim == KING
     {
         return true;
     }
 
     bool opp_to_move = true; // True if the opponent is to move
     auto c = ~color (board[org]);
-    Bitboard mocc = pieces () ^ org ^ dst;
+    Bitboard mocc = empty (dst) ?
+                    pieces () ^ org ^ dst :
+                    pieces () ^ org;
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, mocc) & mocc;
@@ -154,10 +156,10 @@ bool Position::see_ge (Move m, Value threshold) const
         if (   0 != c_attackers
             && 0 != (b = si->king_checkers[~c] & pieces (~c) & mocc))
         {
-            Bitboard oocc = (mocc | dst);
+            assert(contains (mocc, dst));
             while (0 != b)
             {
-                if (0 == (between_bb (pop_lsq (b), square<KING> (c)) & oocc))
+                if (0 == (between_bb (pop_lsq (b), square<KING> (c)) & mocc))
                 {
                     c_attackers &= pieces (c, KING);
                     break;
