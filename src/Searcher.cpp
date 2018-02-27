@@ -269,6 +269,9 @@ Move MovePicker::next_move ()
         break;
 
     case Stage::NAT_CAPTURE_INIT:
+    case Stage::PC_CAPTURE_INIT:
+    case Stage::QS_CAPTURE_INIT:
+    case Stage::QS_RECAPTURE_INIT:
         generate<GenType::CAPTURE> (moves, pos);
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
@@ -282,7 +285,10 @@ Move MovePicker::next_move ()
         value<GenType::CAPTURE> ();
         ++stage;
         i = 0;
-        /* fallthrough */
+
+        // Rebranch at the top of the switch via a recursive call
+        return next_move ();
+
     case Stage::NAT_GOOD_CAPTURES:
         while (i < moves.size ())
         {
@@ -361,21 +367,6 @@ Move MovePicker::next_move ()
         }
         break;
 
-    case Stage::PC_CAPTURE_INIT:
-        generate<GenType::CAPTURE> (moves, pos);
-        filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
-        {
-            auto itr = std::find (moves.begin (), moves.end (), tt_move);
-            if (itr != moves.end ())
-            {
-                moves.erase (itr);
-            }
-        }
-        value<GenType::CAPTURE> ();
-        ++stage;
-        i = 0;
-        /* fallthrough */
     case Stage::PC_GOOD_CAPTURES:
         while (i < moves.size ())
         {
@@ -397,21 +388,6 @@ Move MovePicker::next_move ()
     //    }
         break;
 
-    case Stage::QS_CAPTURE_INIT:
-        generate<GenType::CAPTURE> (moves, pos);
-        filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
-        {
-            auto itr = std::find (moves.begin (), moves.end (), tt_move);
-            if (itr != moves.end ())
-            {
-                moves.erase (itr);
-            }
-        }
-        value<GenType::CAPTURE> ();
-        ++stage;
-        i = 0;
-        /* fallthrough */
     case Stage::QS_CAPTURES:
         if (i < moves.size ())
         {
@@ -444,21 +420,7 @@ Move MovePicker::next_move ()
         }
         break;
 
-    case Stage::QS_RECAP_MOVE_INIT:
-        generate<GenType::CAPTURE> (moves, pos);
-        filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
-        {
-            auto itr = std::find (moves.begin (), moves.end (), tt_move);
-            if (itr != moves.end ())
-            {
-                moves.erase (itr);
-            }
-        }
-        ++stage;
-        i = 0;
-        /* fallthrough */
-    case Stage::QS_RECAP_MOVES:
+    case Stage::QS_RECAPTURES:
         assert(SQ_NO != recap_sq);
         while (i < moves.size ())
         {
@@ -502,7 +464,7 @@ namespace Searcher {
     namespace {
 
         // Razoring and futility margin
-        const Value RazorMargin = Value(600);
+        const Value RazorMargin = Value(590);
 
         // FutilityMoveCounts[improving][depth]
         u08 FutilityMoveCounts[2][16];
@@ -1194,22 +1156,11 @@ namespace Searcher {
                     // Step 7. Razoring sort of forward pruning where rather than
                     // skipping an entire subtree, search it to a reduced depth.
                     if (   !PVNode
-                        && 4 > depth
+                        && 1 >= depth
                         //&& 0 == Limits.mate
                         && tt_eval + RazorMargin <= alfa)
                     {
-                        if (1 >= depth)
-                        {
-                            return quien_search<false> (pos, ss, alfa, alfa+1);
-                        }
-
-                        auto alfa_margin = alfa - RazorMargin;
-                        assert(alfa_margin >= -VALUE_INFINITE);
-                        value = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
-                        if (value <= alfa_margin)
-                        {
-                            return value;
-                        }
+                        return quien_search<false> (pos, ss, alfa, alfa+1);
                     }
 
                     // Step 8. Futility pruning: child node.
@@ -1308,7 +1259,19 @@ namespace Searcher {
 
                             pos.do_move (move, si);
 
-                            value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, depth - 4, !cut_node, true);
+                            // Perform a preliminary search at depth 1 to verify that the move holds.
+                            // We will only do this search if the depth is not 5, thus avoiding two searches at depth 1 in a row.
+                            if (5 != depth)
+                            {
+                                value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, 1, !cut_node, false);
+                            }
+
+                            // If the first search was skipped or was performed and held, perform the regular search.
+                            if (   5 == depth
+                                || value >= beta_margin)
+                            {
+                                value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, depth - 4, !cut_node, true);
+                            }
 
                             pos.undo_move (move);
 
@@ -1334,9 +1297,9 @@ namespace Searcher {
                                && pos.legal (move) ?
                                     move :
                                     MOVE_NONE;
-                        //tt_value = tt_hit ?
-                        //            value_of_tt (tte->value (), ss->ply) :
-                        //            VALUE_NONE;
+                        tt_value = tt_hit ?
+                                    value_of_tt (tte->value (), ss->ply) :
+                                    VALUE_NONE;
                         tt_depth = tt_hit ?
                                     tte->depth () :
                                     DepthNone;

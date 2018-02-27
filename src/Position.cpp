@@ -58,10 +58,10 @@ bool Position::draw (i16 pp) const
 
 /// Position::pick_least_val_att() helper function used by see_ge() to locate the least valuable attacker for the side to move,
 /// remove the attacker just found from the bitboards and scan for new X-ray attacks behind it.
-PieceType Position::pick_least_val_att (PieceType pt, Square dst, Bitboard c_attackers, Bitboard &mocc, Bitboard &attackers) const
+PieceType Position::pick_least_val_att (PieceType pt, Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
     assert(KING > pt);
-    Bitboard b = c_attackers & pieces (pt);
+    Bitboard b = stm_attackers & pieces (pt);
     if (0 != b)
     {
         mocc ^= b & ~(b - 1);
@@ -87,7 +87,7 @@ PieceType Position::pick_least_val_att (PieceType pt, Square dst, Bitboard c_att
     }
 
     return QUEN > pt ?
-            pick_least_val_att (++pt, dst, c_attackers, mocc, attackers) :
+            pick_least_val_att (++pt, dst, stm_attackers, mocc, attackers) :
             KING;
 }
 
@@ -117,13 +117,15 @@ bool Position::see_ge (Move m, Value threshold) const
 
     // Now assume the worst possible result: that the opponent can capture our piece for free.
     balance -= PieceValues[MG][victim];
-    if (VALUE_ZERO <= balance) // Always true if victim == KING
+    // If it is enough (like in PxQ) then return immediately.
+    // Note that if victim == KING we always return here, this is ok if the given move is legal.
+    if (VALUE_ZERO <= balance)
     {
         return true;
     }
 
-    bool opp_to_move = true; // True if the opponent is to move
-    auto c = ~color (board[org]);
+    auto own = color (board[org]);
+    auto stm = ~own; // First consider opponent's move
     Bitboard mocc = empty (dst) ?
                     pieces () ^ org ^ dst :
                     pieces () ^ org;
@@ -132,78 +134,70 @@ bool Position::see_ge (Move m, Value threshold) const
     Bitboard attackers = attackers_to (dst, mocc) & mocc;
     while (0 != attackers)
     {
-        // The balance is negative only because we assumed we could win
-        // the last piece for free. We are truly winning only if we can
-        // win the last piece _cheaply enough_. Test if we can actually
-        // do this otherwise "give up".
-        assert(VALUE_ZERO > balance);
-
-        Bitboard c_attackers = attackers & pieces (c);
+        Bitboard stm_attackers = attackers & pieces (stm);
 
         Bitboard b;
         // Don't allow pinned pieces to attack pieces except the king as long all pinners are on their original square.
         // for resolving Bxf2 on fen: r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1
-        if (   0 != c_attackers
-            && 0 != (b = si->king_checkers[ c] & pieces (~c) & mocc))
+        if (   0 != stm_attackers
+            && 0 != (b = si->king_checkers[ stm] & pieces (~stm) & mocc))
         {
             while (0 != b)
             {
-                c_attackers &= ~between_bb (pop_lsq (b), square<KING> (c));
+                stm_attackers &= ~between_bb (pop_lsq (b), square<KING> (stm));
             }
         }
 
         // If move is a discovered check, the only possible defensive capture on the destination square is capture by the king to evade the check.
-        if (   0 != c_attackers
-            && 0 != (b = si->king_checkers[~c] & pieces (~c) & mocc))
+        if (   0 != stm_attackers
+            && 0 != (b = si->king_checkers[~stm] & pieces (~stm) & mocc))
         {
             assert(contains (mocc, dst));
             while (0 != b)
             {
-                if (0 == (between_bb (pop_lsq (b), square<KING> (c)) & mocc))
+                if (0 == (between_bb (pop_lsq (b), square<KING> (stm)) & mocc))
                 {
-                    c_attackers &= pieces (c, KING);
+                    stm_attackers &= pieces (stm, KING);
                     break;
                 }
             }
         }
 
-        // If have no more attackers we must give up
-        if (0 == c_attackers)
+        // If stm has no more attackers then give up: stm loses
+        if (0 == stm_attackers)
         {
             break;
         }
 
-        // Locate and remove the next least valuable attacker.
-        victim = pick_least_val_att (PAWN, dst, c_attackers, mocc, attackers);
+        // Locate and remove the next least valuable attacker, and add to
+        // the bitboard 'attackers' the possibly X-ray attackers behind it.
+        victim = pick_least_val_att (PAWN, dst, stm_attackers, mocc, attackers);
 
-        if (KING == victim)
+        stm = ~stm;
+
+        // Negamax the balance with alpha = balance, beta = balance+1 and add victim's value.
+        //
+        //      (balance, balance+1) -> (-balance-1, -balance)
+        //
+        assert(VALUE_ZERO > balance);
+
+        balance = -balance - 1 - PieceValues[MG][victim];
+
+        // If balance is still non-negative after giving away nextVictim then we
+        // win. The only thing to be careful about it is that we should revert
+        // stm if we captured with the king when the opponent still has attackers.
+        if (VALUE_ZERO <= balance)
         {
-            // Our only attacker is the king. If the opponent still has attackers we must give up.
-            // Otherwise we make the move and (having no more attackers) the opponent must give up.
-            if (0 == (attackers & pieces (~c)))
+            if (   KING == victim
+                && 0 != (attackers & pieces (stm)))
             {
-                opp_to_move = !opp_to_move;
+                stm = ~stm;
             }
             break;
         }
-
-        // Assume the opponent can win the next piece for free
-        balance += PieceValues[MG][victim];
-        opp_to_move = !opp_to_move;
-
-        // If balance is negative after receiving a free piece then give up
-        if (VALUE_ZERO > balance)
-        {
-            break;
-        }
-
-        // The first line swaps all negative numbers with non-negative numbers.
-        // The compiler probably knows that it is just the bitwise negation ~balance.
-        balance = -balance - 1;
-        c = ~c;
+        assert(KING != victim);
     }
-    // If the opponent gave up we win, otherwise we lose.
-    return opp_to_move;
+    return own != stm; // We break the above loop when stm loses
 }
 
 /// Position::slider_blockers() returns a bitboard of all the pieces that are blocking attacks on the square.
