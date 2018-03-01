@@ -902,7 +902,7 @@ namespace Searcher {
         }
         /// depth_search() is main depth limited search function, which is called when the remaining depth > 0.
         template<bool PVNode>
-        Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node, bool prun_node, i32 opp_stats = 0)
+        Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node, bool prun_node)
         {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
@@ -970,6 +970,12 @@ namespace Searcher {
 
             assert(MOVE_NONE == (ss+1)->excluded_move);
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
+
+            // Initialize stat_score to zero for the grandchildren of the current position.
+            // So stat_score is shared between all grandchildren and only the first grandchild starts with stat_score = 0.
+            // Later grandchildren start with the last calculated stat_score of the previous grandchild.
+            // This influences the reduction rules in LMR which are based on the stat_score of parent position.
+            (ss+2)->stat_score = 0;
 
             Move move;
             // Step 4. Transposition table lookup.
@@ -1484,12 +1490,6 @@ namespace Searcher {
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
-                i32 own_stats = pos.thread->butterfly_history[pos.active][move_pp (move)]
-                              + (*piece_destiny_history[0])[mpc][dst]
-                              + (*piece_destiny_history[1])[mpc][dst]
-                              + (*piece_destiny_history[3])[mpc][dst]
-                              - 4000;
-
                 // Update the current move.
                 ss->played_move = move;
                 ss->piece_destiny_history = &pos.thread->continuation_history[mpc][dst];
@@ -1545,26 +1545,32 @@ namespace Searcher {
                             reduce_depth -= 2;
                         }
 
+                        ss->stat_score = pos.thread->butterfly_history[~pos.active][move_pp (move)]
+                                       + (*piece_destiny_history[0])[mpc][dst]
+                                       + (*piece_destiny_history[1])[mpc][dst]
+                                       + (*piece_destiny_history[3])[mpc][dst]
+                                       - 4000;
+
                         // Decrease/Increase reduction by comparing own and opp stats
-                        if (   opp_stats >= 0
-                            && own_stats < 0)
+                        if (   (ss-1)->stat_score >= 0
+                            && ss->stat_score < 0)
                         {
                             reduce_depth += 1;
                         }
                         else
-                        if (   own_stats >= 0
-                            && opp_stats < 0)
+                        if (   ss->stat_score >= 0
+                            && (ss-1)->stat_score < 0)
                         {
                             reduce_depth -= 1;
                         }
 
                         // Decrease/Increase reduction for moves with +/-ve own stats
-                        reduce_depth -= i16(own_stats / 20000);
+                        reduce_depth -= i16(ss->stat_score / 20000);
                     }
 
                     reduce_depth = std::min (std::max (reduce_depth, i16(0)), i16(new_depth - 1));
 
-                    value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true, true, own_stats);
+                    value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true, true);
 
                     fd_search = alfa < value
                              && 0 != reduce_depth;
@@ -1580,7 +1586,7 @@ namespace Searcher {
                 {
                     value = new_depth <= DepthZero ?
                                 -quien_search<false> (pos, ss+1, -alfa-1, -alfa) :
-                                -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node, true, own_stats);
+                                -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node, true);
                 }
 
                 // Full PV search.
@@ -1845,6 +1851,7 @@ void Thread::search ()
         std::fill_n (ss->killer_moves, MaxKillers, MOVE_NONE);
         ss->move_count = 0;
         ss->static_eval = VALUE_ZERO;
+        ss->stat_score = 0;
         ss->piece_destiny_history = &continuation_history[NO_PIECE][0];
     }
 
@@ -1872,7 +1879,7 @@ void Thread::search ()
             {
                 main_thread->failed_low = false;
                 // Age out PV variability metric
-                main_thread->best_move_change *= 0.505;
+                main_thread->best_move_change *= 0.517;
             }
         }
         else
@@ -2033,7 +2040,7 @@ void Thread::search ()
                     {
                         if (last_best_move_depth * i < finished_depth)
                         {
-                            time_reduction *= 1.3;
+                            time_reduction *= 1.25;
                         }
                     }
 
@@ -2046,13 +2053,13 @@ void Thread::search ()
                             // Unstable factor - Use part of the gained time from a previous stable move for the current move
                             * (main_thread->best_move_change + 1)
                             // Time reduction factor
-                            * std::pow (main_thread->last_time_reduction, 0.51) / time_reduction
+                            * std::pow (main_thread->last_time_reduction, 0.528) / time_reduction
                             // Improving factor
-                            * std::min (715,
-                              std::max (229,
-                                        357
+                            * std::min (832,
+                              std::max (246,
+                                        306
                                       + 119 * (main_thread->failed_low ? 1 : 0)
-                                      -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 605)))
+                                      -   6 * (VALUE_NONE != main_thread->last_value ? best_value - main_thread->last_value : 0))) / 581)))
                     {
                         Threadpool.stop_thinking ();
                     }

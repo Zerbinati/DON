@@ -690,25 +690,27 @@ namespace {
             }
         }
 
-        // King tropism: Find squares that enemy attacks in the friend king flank
-        auto kf = _file (fk_sq);
-        b = Camp_bb[Own]
-          & KingFlank_bb[kf]
-          & pin_attacked_by[Opp][NONE];
-        assert(0 == ((WHITE == Own ? b << 4 : b >> 4) & b));
-        assert(pop_count (WHITE == Own ? b << 4 : b >> 4) == pop_count (b));
-        // Add the squares which are attacked twice in that flank and are not protected by a friend pawn.
-        b = (   b
-             &  dbl_attacked[Opp]
-             & ~pin_attacked_by[Own][PAWN])
-          | (WHITE == Own ? b << 4 : b >> 4);
-        score -= EnemyInFlank * pop_count (b);
+        Bitboard kf_bb = KingFlank_bb[_file (fk_sq)];
 
         // Penalty for king on a pawnless flank
-        if (0 == (KingFlank_bb[kf] & pos.pieces (PAWN)))
+        if (0 == (pos.pieces (PAWN) & kf_bb))
         {
             score -= PawnlessFlank;
         }
+
+        Bitboard e;
+
+        // Find the squares that opponent attacks in our king flank, and the squares  
+        // which are attacked twice in that flank but not defended by our pawns.
+        b = Camp_bb[Own]
+          & kf_bb
+          & pin_attacked_by[Opp][NONE];
+        e = b
+          & dbl_attacked[Opp]
+          & ~pin_attacked_by[Own][PAWN];
+
+        // King tropism, to anticipate slow motion attacks on our king
+        score -= EnemyInFlank * (pop_count (b) + pop_count (e));
 
         if (Trace)
         {
@@ -1015,7 +1017,7 @@ namespace {
     Score Evaluator<Trace>::initiative (Value eg) const
     {
         i32 outflanking = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK))
-                      - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
+                        - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
 
         // Compute the initiative bonus for the attacking side
         i32 complexity =  8 * (outflanking + pe->asymmetry)
@@ -1160,14 +1162,14 @@ namespace {
             Tracer::write (Tracer::Term::TOTAL, score);
         }
 
-        return WHITE == pos.active ? +v : -v; // Side to move point of view
+        return (WHITE == pos.active ? +v : -v) + Tempo; // Side to move point of view
     }
 }
 
 /// evaluate() returns a static evaluation of the position from the point of view of the side to move.
 Value evaluate (const Position &pos)
 {
-    return Evaluator<false> (pos).value () + Tempo;
+    return Evaluator<false> (pos).value ();
 }
 
 /// trace() returns a string (suitable for outputting to stdout) that contains
@@ -1175,7 +1177,7 @@ Value evaluate (const Position &pos)
 string trace (const Position &pos)
 {
     Contempt = SCORE_ZERO; // Reset any dynamic contempt
-    auto value = Evaluator<true> (pos).value () + Tempo;
+    auto value = Evaluator<true> (pos).value ();
     value = WHITE == pos.active ? +value : -value; // Trace scores are from White's point of view
 
     ostringstream oss;
