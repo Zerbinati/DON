@@ -201,14 +201,25 @@ namespace Pawns {
     {
         const auto Opp = WHITE == Own ? BLACK : WHITE;
         // Max Safety corresponds to start position with all the pawns in front of the king and no enemy pawn on the horizon.
+        
         auto value = Value(258);
+        
+        auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
+
         Bitboard front_pawns = pos.pieces (PAWN)
                              & (  rank_bb (fk_sq)
-                                | front_rank_bb (Own, fk_sq));
+                                | front_rank_bb (Own, fk_sq))
+                             & (  file_bb (kf)
+                                | adj_file_bb (kf));
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
+        
+        if (5 == pop_count (  (own_front_pawns & ShelterMask_bb[Own])
+                            | (opp_front_pawns & StormMask_bb[Own])))
+        {
+            value += Value(300);
+        }
 
-        auto kf = std::min (std::max (_file (fk_sq), F_B), F_G);
         for (auto f : { kf - File(1), kf, kf + File(1) })
         {
             assert(F_A <= f && f <= F_H);
@@ -230,6 +241,7 @@ namespace Pawns {
                                                                       3]  // Unblocked
                                 [ff][opp_r];
         }
+
         return value;
     }
     // Explicit template instantiations

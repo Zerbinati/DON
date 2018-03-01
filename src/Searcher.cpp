@@ -464,7 +464,7 @@ namespace Searcher {
     namespace {
 
         // Razoring and futility margin
-        const Value RazorMargin = Value(590);
+        const Value RazorMargin[2] = { Value(590), Value(604) };
 
         // FutilityMoveCounts[improving][depth]
         u08 FutilityMoveCounts[2][16];
@@ -1161,12 +1161,28 @@ namespace Searcher {
 
                     // Step 7. Razoring sort of forward pruning where rather than
                     // skipping an entire subtree, search it to a reduced depth.
-                    if (   !PVNode
-                        && 1 >= depth
-                        //&& 0 == Limits.mate
-                        && tt_eval + RazorMargin <= alfa)
+                    if (!PVNode)
                     {
-                        return quien_search<false> (pos, ss, alfa, alfa+1);
+                        if (1 >= depth)
+                        {
+                            if (tt_eval + RazorMargin[0] <= alfa)
+                            {
+                                return quien_search<false> (pos, ss, alfa, alfa+1);
+                            }
+                        }
+                        else
+                        if (2 >= depth)
+                        {
+                            if (tt_eval + RazorMargin[1] <= alfa)
+                            {
+                                Value ralpha = alfa - RazorMargin[1];
+                                Value v = quien_search<false> (pos, ss, ralpha, ralpha+1);
+                                if (v <= ralpha)
+                                {
+                                    return v;
+                                }
+                            }
+                        }
                     }
 
                     // Step 8. Futility pruning: child node.

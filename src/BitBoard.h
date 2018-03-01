@@ -125,6 +125,16 @@ namespace BitBoard {
         }
     };
 
+    const Bitboard ShelterMask_bb[CLR_NO] =
+    {
+        Square_bb[SQ_A2]|Square_bb[SQ_B3]|Square_bb[SQ_C2]|Square_bb[SQ_F2]|Square_bb[SQ_G3]|Square_bb[SQ_H2],
+        Square_bb[SQ_A7]|Square_bb[SQ_B6]|Square_bb[SQ_C7]|Square_bb[SQ_F7]|Square_bb[SQ_G6]|Square_bb[SQ_H7]
+    };
+    const Bitboard StormMask_bb[CLR_NO] =
+    {
+        Square_bb[SQ_A3]|Square_bb[SQ_C3]|Square_bb[SQ_F3]|Square_bb[SQ_H3],
+        Square_bb[SQ_A6]|Square_bb[SQ_C6]|Square_bb[SQ_F6]|Square_bb[SQ_H6],
+    };
 
     extern u08      SquareDist[SQ_NO][SQ_NO];
 
