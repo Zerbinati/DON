@@ -263,7 +263,7 @@ namespace Pawns {
         e->scores[WHITE] = evaluate<WHITE> (pos, e);
         e->scores[BLACK] = evaluate<BLACK> (pos, e);
         e->open_count = u08(pop_count (e->semiopens[WHITE] & e->semiopens[BLACK]));
-        e->asymmetry  = u08(pop_count (  (e->passers[WHITE] | e->passers[BLACK])
+        e->asymmetry  = u08(pop_count (  (e->passers  [WHITE] | e->passers  [BLACK])
                                        | (e->semiopens[WHITE] ^ e->semiopens[BLACK])));
         return e;
     }

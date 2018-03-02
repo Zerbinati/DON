@@ -86,45 +86,44 @@ namespace {
     #define S(mg, eg) mk_score (mg, eg)
 
         // Bonus for knight behind a pawn
-        const Score KnightBehindPawn =  S(16, 0);
+        static const Score KnightBehindPawn =  S(16, 0);
         // Bonus for bishop behind a pawn
-        const Score BishopBehindPawn =  S(16, 0);
+        static const Score BishopBehindPawn =  S(16, 0);
         // Bonus for bishop long range
-        const Score BishopOnDiagonal =  S(22, 0);
+        static const Score BishopOnDiagonal =  S(22, 0);
         // Penalty for bishop with pawns on same color
-        const Score BishopPawns =       S( 8,12);
+        static const Score BishopPawns =       S( 8,12);
         // Penalty for bishop trapped with pawns (Chess960)
-        const Score BishopTrapped =     S(50,50);
+        static const Score BishopTrapped =     S(50,50);
         // Bonus for rook on pawns
-        const Score RookOnPawns =       S( 8,24);
+        static const Score RookOnPawns =       S( 8,24);
         // Penalty for rook trapped
-        const Score RookTrapped =       S(92, 0);
+        static const Score RookTrapped =       S(92, 0);
         // Penalty for queen weaken
-        const Score QueenWeaken =       S(50,10);
+        static const Score QueenWeaken =       S(50,10);
 
-        // King tropism
-        const Score EnemyInFlank =      S( 7, 0);
-        const Score PawnlessFlank =     S(20,80);
+        static const Score PawnlessFlank =     S(20,80);
+        static const Score EnemyAttackKing =  S( 7, 0);
 
-        const Score PawnWeakUnopposed = S( 5,25);
+        static const Score PawnWeakUnopposed = S( 5,25);
 
         // Bonus for each hanged piece
-        const Score PieceHanged =       S(52,30);
+        static const Score PieceHanged =       S(52,30);
 
-        const Score SafePawnThreat =    S(175,168);
+        static const Score SafePawnThreat =    S(175,168);
 
-        const Score PawnPushThreat =    S(47,26);
+        static const Score PawnPushThreat =    S(47,26);
 
-        const Score PieceRankThreat =   S(16, 3);
+        static const Score PieceRankThreat =   S(16, 3);
 
-        const Score QueenThreat =       S(42,21);
+        static const Score QueenThreat =       S(42,21);
 
-        const Score PawnPassHinder =    S( 8, 1);
+        static const Score PawnPassHinder =    S( 8, 1);
 
 #undef S
 
-        const Value LazyThreshold =     Value(1500);
-        const Value SpaceThreshold =    Value(12222);
+        static const Value LazyThreshold =     Value(1500);
+        static const Value SpaceThreshold =    Value(12222);
 
 
         // PieceMobility[piece-type][attacks] contains bonuses for mobility,
@@ -577,28 +576,28 @@ namespace {
         auto fk_sq = pos.square<KING> (Own);
 
         // King Safety: friend pawns shelter and enemy pawns storm
-        auto index = pe->king_safety_on<Own> (pos, fk_sq);
-        auto value = pe->king_safety[Own][index];
+        u08 index = pe->king_safety_on<Own> (pos, fk_sq);
+        Value safety = pe->king_safety[Own][index];
         if (   R_1 == rel_rank (Own, fk_sq)
             && pos.si->can_castle (Own))
         {
-            if (   value < pe->king_safety[Own][0]
+            if (   safety < pe->king_safety[Own][0]
                 && pos.si->can_castle (Own, CS_KING)
                 && pos.expeded_castle (Own, CS_KING)
                 && 0 == (pos.king_path[Own][CS_KING] & ful_attacked_by[Opp]))
             {
-                value = pe->king_safety[Own][0];
+                safety = pe->king_safety[Own][0];
             }
-            if (   value < pe->king_safety[Own][1]
+            if (   safety < pe->king_safety[Own][1]
                 && pos.si->can_castle (Own, CS_QUEN)
                 && pos.expeded_castle (Own, CS_QUEN)
                 && 0 == (pos.king_path[Own][CS_QUEN] & ful_attacked_by[Opp]))
             {
-                value = pe->king_safety[Own][1];
+                safety = pe->king_safety[Own][1];
             }
         }
 
-        auto score = mk_score (value, -16 * pe->king_pawn_dist[Own][index]);
+        Score score = mk_score (safety, -16 * pe->king_pawn_dist[Own][index]);
 
         Bitboard b;
         // Main king safety evaluation
@@ -670,16 +669,15 @@ namespace {
             unsafe_check &= mob_area[Opp];
 
             // Initialize the king danger, which will be transformed later into a score.
-            // The initial value is based on the
             // - number and types of the enemy's attacking pieces,
             // - number of attacked and undefended squares around our king,
-            // - quality of the pawn shelter ('mg score' value).
+            // - quality of the pawn shelter ('mg score' safety).
             king_danger +=  1 * king_ring_attackers_count[Opp]*king_ring_attackers_weight[Opp]
                         + 102 * king_zone_attacks_count[Opp]
                         + 191 * pop_count (king_ring[Own] & weak_area)
                         + 143 * pop_count (pos.abs_blockers (Own) | unsafe_check)
                         - 848 * (0 == pos.count (Opp, QUEN) ? 1 : 0)
-                        -   9 * value / 8
+                        -   9 * safety / 8
                         +  40;
 
             if (king_danger > 0)
@@ -709,8 +707,8 @@ namespace {
           & dbl_attacked[Opp]
           & ~pin_attacked_by[Own][PAWN];
 
-        // King tropism, to anticipate slow motion attacks on our king
-        score -= EnemyInFlank * (pop_count (b) + pop_count (e));
+        // King tropism, to anticipate slow motion attacks on our king zone
+        score -= EnemyAttackKing * (pop_count (b) + pop_count (e));
 
         if (Trace)
         {

@@ -366,6 +366,7 @@ namespace UCI {
         Options["UCI_Chess960"]       << Option (Position::Chess960, on_uci_chess960);
         Options["UCI_LimitStrength"]  << Option (false, on_uci_elo);
         Options["UCI_ELO"]            << Option (3490, 1250, 3490, on_uci_elo);
+        //Options["UCI_AnalyseMode"]    << Option (false);
     }
 
     void deinitialize ()

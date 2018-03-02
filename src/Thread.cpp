@@ -426,11 +426,11 @@ void ThreadPool::configure (u32 threads)
         }
     }
     // Create new thread(s)
-    if (threads > 0)
+    if (0 < threads)
     {
         assert(empty ());
         push_back (new MainThread (size ()));
-        while (threads > size ())
+        while (size () < threads)
         {
             push_back (new Thread (size ()));
         }
