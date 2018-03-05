@@ -64,8 +64,7 @@ public:
     }
 };
 
-
-/// StatsEntry stores the stat table value. It is usually a number but could
+/// StatsEntry stores the stats table value. It is usually a number but could
 /// be a move or even a nested history. We use a class instead of naked value
 /// to directly call history update operator<<() on the entry so to use stats
 /// tables at caller sites as simple multi-dim arrays.
@@ -82,7 +81,7 @@ private:
 public:
 
     T* get () { return &entry; }
-    void operator=(const T &v) { entry = v; }
+    void operator= (const T &v) { entry = v; }
     operator TT() const { return entry; }
 
     void operator<< (i32 bonus)
@@ -101,20 +100,20 @@ public:
 /// is the weight applied to the bonuses when we update values with the << operator,
 /// the D parameter limits the range of updates (range is [-W * D, W * D]), and
 /// the last parameters (Size and Sizes) encode the dimensions of the array.
-template <typename T, int W, int D, int Size, int... Sizes>
+template <typename T, i32 W, i32 D, i32 Size, i32... Sizes>
 struct Stats
     : public std::array<Stats<T, W, D, Sizes...>, Size>
 {
     T* get () { return this->at (0).get (); }
 
-    void fill (const T& v)
+    void fill (const T &v)
     {
-        T* p = get ();
+        T *p = get ();
         std::fill (p, p + sizeof (*this) / sizeof (*p), v);
     }
 };
 
-template <typename T, int W, int D, int Size>
+template <typename T, i32 W, i32 D, i32 Size>
 struct Stats<T, W, D, Size>
     : public std::array<StatsEntry<T, W, D>, Size>
 {
@@ -122,28 +121,26 @@ struct Stats<T, W, D, Size>
 };
 
 /// Different tables use different W/D parameter, name them to ease readibility
-enum StatsParams { W2 = 2, W32 = 32, D324 = 324, D936 = 936, NOT_USED = 0 };
+enum StatsParams { NOT_USED = 0, W2 = 2, W32 = 32, D324 = 324, D936 = 936 };
 
 
 /// ButterflyHistory records how often quiet moves have been successful or unsuccessful
 /// during the current search, and is used for reduction and move ordering decisions.
-/// It uses 2 tables (one for each color) indexed by the move's from and to squares
+/// It is indexed by [color][move].
 typedef Stats<i16, W32, D324, CLR_NO, SQ_NO*SQ_NO> ButterflyHistory;
 
-/// PieceToHistory is like ButterflyHistory but is addressed by a move's [piece][to]
+/// PieceDestinyHistory is like ButterflyHistory but is indexed by [piece][destiny]
 typedef Stats<i16, W32, D936, MAX_PIECE, SQ_NO> PieceDestinyHistory;
 
-/// ContinuationHistory is the combined history of a given pair of moves, usually
-/// the current one given a previous one. The nested history table is based on
-/// PieceToHistory instead of ButterflyBoards.
+/// ContinuationHistory is the combined history of a given pair of moves, usually the current one given a previous one.
+/// The nested history table is based on PieceDestinyHistory instead of ButterflyBoards.
 typedef Stats<PieceDestinyHistory, W32, NOT_USED, MAX_PIECE, SQ_NO> ContinuationHistory;
 
-/// CounterMoveHistory stores counter moves indexed by [piece][move]
+/// PieceDestinyMoveHistory stores counter moves is indexed by [piece][move]
 typedef Stats<Move, NOT_USED, NOT_USED, MAX_PIECE, SQ_NO*SQ_NO> PieceDestinyMoveHistory;
 
-/// CapturePieceDestinyHistory is addressed by a move's [piece][move][captured piece type]
+/// CapturePieceDestinyHistory is indexed by [piece][move][captured piece type]
 typedef Stats<i16, W2, D324, MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE> CapturePieceDestinyHistory;
-
 
 /// MovePicker class is used to pick one legal moves from the current position.
 class MovePicker
@@ -155,7 +152,6 @@ private:
         EVA_TT, EVA_MOVE_INIT, EVA_MOVES,
         PC_TT, PC_CAPTURE_INIT, PC_GOOD_CAPTURES, PC_BAD_CAPTURES,
         QS_TT, QS_CAPTURE_INIT, QS_CAPTURES, QS_CHECK_INIT, QS_CHECKS,
-        QS_RECAP_TT, QS_RECAPTURE_INIT, QS_RECAPTURES,
     };
 
     const i32 MaxValue = 1 << 28;

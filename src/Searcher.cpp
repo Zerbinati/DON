@@ -137,7 +137,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     , tt_move (ttm)
     , depth (d)
     , threshold (VALUE_ZERO)
-    , recap_sq (SQ_NO)
+    , recap_sq (rs)
     , piece_destiny_history (nullptr)
     , pick_quiets (true)
 {
@@ -151,20 +151,15 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
         stage = Stage::EVA_TT;
     }
     else
-    if (depth > DepthQSRecapture)
     {
         stage = Stage::QS_TT;
     }
-    else
+
+    if (   MOVE_NONE != tt_move
+        && !(   depth > DepthQSRecapture
+             || dst_sq (tt_move) == recap_sq))
     {
-        stage = Stage::QS_RECAP_TT;
-        recap_sq = rs;
-        if (   MOVE_NONE != tt_move
-            && !(   pos.capture (tt_move)
-                 && dst_sq (tt_move) == recap_sq))
-        {
-            tt_move = MOVE_NONE;
-        }
+        tt_move = MOVE_NONE;
     }
 
     if (MOVE_NONE == tt_move)
@@ -263,7 +258,6 @@ Move MovePicker::next_move ()
     case Stage::EVA_TT:
     case Stage::PC_TT:
     case Stage::QS_TT:
-    case Stage::QS_RECAP_TT:
         ++stage;
         return tt_move;
         break;
@@ -271,7 +265,6 @@ Move MovePicker::next_move ()
     case Stage::NAT_CAPTURE_INIT:
     case Stage::PC_CAPTURE_INIT:
     case Stage::QS_CAPTURE_INIT:
-    case Stage::QS_RECAPTURE_INIT:
         generate<GenType::CAPTURE> (moves, pos);
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
@@ -389,9 +382,14 @@ Move MovePicker::next_move ()
         break;
 
     case Stage::QS_CAPTURES:
-        if (i < moves.size ())
+        while (i < moves.size ())
         {
-            return next_max_move ().move;
+            auto move = next_max_move ().move;
+            if (   depth > DepthQSRecapture
+                || dst_sq (move) == recap_sq)
+            {
+                return move;
+            }
         }
         if (depth <= DepthQSNoCheck)
         {
@@ -417,18 +415,6 @@ Move MovePicker::next_move ()
         if (i < moves.size ())
         {
             return moves[i++].move;
-        }
-        break;
-
-    case Stage::QS_RECAPTURES:
-        assert(SQ_NO != recap_sq);
-        while (i < moves.size ())
-        {
-            auto move = moves[i++].move;
-            if (dst_sq (move) == recap_sq)
-            {
-                return move;
-            }
         }
         break;
 
@@ -1937,7 +1923,8 @@ void Thread::search ()
                 // Dynamic contempt
                 if (0 != ContemptValue)
                 {
-                    auto contempt = BaseContempt + std::min (+50, std::max (-50, i32(best_value) / ContemptValue));
+                    auto contempt = BaseContempt + std::min (+70, std::max (-70,
+                                  i32(best_value) / ContemptValue + sign (best_value) * i32(std::round (3.22 * log (1 + abs (best_value))))));
 
                     Contempt = WHITE == root_pos.active ?
                                 +mk_score (contempt, contempt / 2) :
