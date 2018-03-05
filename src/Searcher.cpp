@@ -1267,14 +1267,19 @@ namespace Searcher {
                         auto beta_margin = std::min (beta + 200, +VALUE_INFINITE);
                         assert(_ok ((ss-1)->played_move));
 
+                        u08 pc_movecount = 0;
+
                         // Initialize move picker (3) for the current position
                         MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
                         // Loop through all legal moves until no moves remain or a beta cutoff occurs
-                        while (MOVE_NONE != (move = move_picker.next_move ()))
+                        while (   MOVE_NONE != (move = move_picker.next_move ())
+                               && pc_movecount < depth - 3)
                         {
                             assert(pos.pseudo_legal (move)
                                 && pos.legal (move)
                                 && pos.capture_or_promotion (move));
+
+                            ++pc_movecount;
 
                             ss->played_move = move;
                             ss->piece_destiny_history = pos.thread->continuation_history[pos[org_sq (move)]][dst_sq (move)].get ();
