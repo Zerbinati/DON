@@ -4,6 +4,8 @@
 #include <array>
 #include <vector>
 #include <limits>
+#include <type_traits>
+
 #include "MoveGenerator.h"
 #include "Position.h"
 #include "Type.h"
@@ -62,101 +64,85 @@ public:
     }
 };
 
-/// Table2D is a Generic 2-dimensional array used to store various statistics.
-template<u32 Size1, u32 Size2, typename T>
-struct Table2D
-    : public std::array<std::array<T, Size2>, Size1>
-{
-    void fill (const T &val)
-    {
-        T *ptr = &(*this)[0][0];
-        std::fill (ptr, ptr + sizeof (*this) / sizeof (*ptr), val);
-    }
 
-    void update (T &entry, i32 bonus, const i16 D)
+/// StatsEntry stores the stat table value. It is usually a number but could
+/// be a move or even a nested history. We use a class instead of naked value
+/// to directly call history update operator<<() on the entry so to use stats
+/// tables at caller sites as simple multi-dim arrays.
+template<typename T, i32 W, i32 D>
+class StatsEntry
+{
+private:
+
+    static const bool IsInt = std::is_integral<T>::value;
+    typedef typename std::conditional<IsInt, i32, T>::type TT;
+
+    T entry;
+
+public:
+
+    T* get () { return &entry; }
+    void operator=(const T &v) { entry = v; }
+    operator TT() const { return entry; }
+
+    void operator<< (i32 bonus)
     {
-        assert(abs (32*D) < (std::numeric_limits<T>::max)()); // Ensure range is [-32 * D, +32 * D]
-        assert(abs (bonus) <= D); // Ensure bonus don't overflow
-        entry += T(32*bonus - entry*abs (bonus) / D);
-        assert(abs (entry) <= 32*D);
+        assert(abs (bonus) <= D); // Ensure range is [-W * D, W * D]
+        assert(abs (W * D) < std::numeric_limits<T>::max ()); // Ensure we don't overflow
+
+        entry += bonus * W - entry * abs (bonus) / D;
+
+        assert(abs (entry) <= W * D);
     }
 };
 
-/// ButterflyStatTable store stats indexed by [color][move's org and dst squares].
-typedef Table2D<CLR_NO, SQ_NO*SQ_NO, i16> ButterflyStatTable;
+/// Stats is a generic N-dimensional array used to store various statistics.
+/// The first template T parameter is the base type of the array, the W parameter
+/// is the weight applied to the bonuses when we update values with the << operator,
+/// the D parameter limits the range of updates (range is [-W * D, W * D]), and
+/// the last parameters (Size and Sizes) encode the dimensions of the array.
+template <typename T, int W, int D, int Size, int... Sizes>
+struct Stats
+    : public std::array<Stats<T, W, D, Sizes...>, Size>
+{
+    T* get () { return this->at (0).get (); }
+
+    void fill (const T& v)
+    {
+        T* p = get ();
+        std::fill (p, p + sizeof (*this) / sizeof (*p), v);
+    }
+};
+
+template <typename T, int W, int D, int Size>
+struct Stats<T, W, D, Size>
+    : public std::array<StatsEntry<T, W, D>, Size>
+{
+    T* get () { return this->at (0).get (); }
+};
+
+/// Different tables use different W/D parameter, name them to ease readibility
+enum StatsParams { W2 = 2, W32 = 32, D324 = 324, D936 = 936, NOT_USED = 0 };
+
+
 /// ButterflyHistory records how often quiet moves have been successful or unsuccessful
 /// during the current search, and is used for reduction and move ordering decisions.
-struct ButterflyHistory
-    : public ButterflyStatTable
-{
-    // Update by color, move (org-dst), bonus
-    void update (Color c, Move m, i32 bonus)
-    {
-        Table2D::update ((*this)[c][move_pp (m)], bonus, 324);
-    }
-};
+/// It uses 2 tables (one for each color) indexed by the move's from and to squares
+typedef Stats<i16, W32, D324, CLR_NO, SQ_NO*SQ_NO> ButterflyHistory;
 
-/// PieceDestinyStatTable store stats indexed by [piece][destiny].
-typedef Table2D<MAX_PIECE, SQ_NO, i16> PieceDestinyStatTable;
-/// PieceDestinyHistory is based on PieceDestinyStatTable.
-struct PieceDestinyHistory
-    : public PieceDestinyStatTable
-{
-    /// Update by piece, destiny, bonus
-    void update (Piece pc, Square dst, i32 bonus)
-    {
-        Table2D::update ((*this)[pc][dst], bonus, 936);
-    }
-};
+/// PieceToHistory is like ButterflyHistory but is addressed by a move's [piece][to]
+typedef Stats<i16, W32, D936, MAX_PIECE, SQ_NO> PieceDestinyHistory;
 
-/// ContinuationStatTable is the history of a given pair of moves, usually the current one given a previous one.
-/// History table is based on PieceDestinyStatTable instead of ButterflyStatTable.
-typedef Table2D<MAX_PIECE, SQ_NO, PieceDestinyHistory> ContinuationStatTable;
-typedef ContinuationStatTable ContinuationHistory;
+/// ContinuationHistory is the combined history of a given pair of moves, usually
+/// the current one given a previous one. The nested history table is based on
+/// PieceToHistory instead of ButterflyBoards.
+typedef Stats<PieceDestinyHistory, W32, NOT_USED, MAX_PIECE, SQ_NO> ContinuationHistory;
 
-/// PieceDestinyMoveTable stores counter moves indexed by [piece][destiny]
-typedef Table2D<MAX_PIECE, SQ_NO*SQ_NO, Move> PieceDestinyMoveTable;
-/// PieceDestinyMoveHistory is based on PieceDestinyMoveTable
-struct PieceDestinyMoveHistory
-    : public PieceDestinyMoveTable
-{
-    void update (Piece pc, Move lm, Move cm)
-    {
-        (*this)[pc][move_pp (lm)] = cm;
-    }
-};
+/// CounterMoveHistory stores counter moves indexed by [piece][move]
+typedef Stats<Move, NOT_USED, NOT_USED, MAX_PIECE, SQ_NO*SQ_NO> PieceDestinyMoveHistory;
 
-/// Table3D is a Generic 3-dimensional array used to store various statistics
-template<u32 Size1, u32 Size2, u32 Size3, typename T>
-struct Table3D
-    : public std::array<std::array<std::array<T, Size3>, Size2>, Size1>
-{
-    void fill (const T &val)
-    {
-        T *ptr = &(*this)[0][0][0];
-        std::fill (ptr, ptr + sizeof (*this) / sizeof (*ptr), val);
-    }
-
-    void update (T &entry, i32 bonus, const i16 D, const i16 W)
-    {
-        assert(abs (W*D) < (std::numeric_limits<T>::max)()); // Ensure range is [-W * D, +W * D]
-        assert(abs (bonus) <= D); // Ensure we don't overflow
-        entry += T(W*bonus - entry*abs (bonus) / D);
-        assert(abs (entry) <= W*D);
-    }
-};
-
-/// CapturePieceDestinyTable stores stats indexed by [piece][destiny][captured piece type]
-typedef Table3D<MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE, i16> CapturePieceDestinyStatTable;
-/// CapturePieceDestinyHistory is based on CapturePieceDestinyStatTable
-struct CapturePieceDestinyHistory
-    : public CapturePieceDestinyStatTable
-{
-    void update (Piece pc, Move m, PieceType ct, i32 bonus)
-    {
-        Table3D::update ((*this)[pc][move_pp (m)][ct], bonus, 324, 2);
-    }
-};
+/// CapturePieceDestinyHistory is addressed by a move's [piece][move][captured piece type]
+typedef Stats<i16, W2, D324, MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE> CapturePieceDestinyHistory;
 
 
 /// MovePicker class is used to pick one legal moves from the current position.

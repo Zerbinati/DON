@@ -7,12 +7,6 @@
 ### Section 1. General Configuration
 ### ==========================================================================
 
-### Establish the operating system name
-KERNEL = $(shell uname -s)
-ifeq ($(KERNEL),Linux)
-	OS = $(shell uname -o)
-endif
-
 ### Executable name
 EXE = DON
 
@@ -27,6 +21,12 @@ PGOBENCH = ./$(EXE) bench
 OBJS = BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Logger.o Main.o Material.o \
     MemoryHandler.o MoveGenerator.o Notation.o Option.o Pawns.o Polyglot.o Position.o PSQT.o \
     Searcher.o TBsyzygy.o Thread.o Transposition.o Zobrist.o
+
+### Establish the operating system name
+KERNEL = $(shell uname -s)
+ifeq ($(KERNEL),Linux)
+	OS = $(shell uname -o)
+endif
 
 ### ==========================================================================
 ### Section 2. High-level Configuration

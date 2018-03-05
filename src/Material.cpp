@@ -11,7 +11,7 @@ namespace Material {
 
         // Polynomial material imbalance parameters
 
-        const i32 OwnQuadratic[][NONE] =
+        const i32 OwnQuadratic[NONE][NONE] =
         {
             //          Own Pieces
             //  P     N     B     R     Q    BP
@@ -23,7 +23,7 @@ namespace Material {
             {    0,    0,    0,    0,    0, +1667 }  // BP
         };
 
-        const i32 OppQuadratic[][NONE] =
+        const i32 OppQuadratic[NONE][NONE] =
         {
             //          Opp Pieces
             //  P     N     B     R     Q    BP

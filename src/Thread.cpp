@@ -235,10 +235,10 @@ void Thread::clear ()
     {
         for (auto &piece_destiny : pd)
         {
-            piece_destiny.fill (0);
+            piece_destiny.get ()->fill (0);
         }
     }
-    continuation_history[NO_PIECE][0].fill (CounterMovePruneThreshold - 1);
+    continuation_history[NO_PIECE][0].get ()->fill (CounterMovePruneThreshold - 1);
 
     pawn_table.fill (Pawns::Entry ());
     matl_table.fill (Material::Entry ());

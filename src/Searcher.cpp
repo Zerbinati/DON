@@ -497,7 +497,7 @@ namespace Searcher {
             {
                 if (_ok (s->played_move))
                 {
-                    s->piece_destiny_history->update (pc, dst, value);
+                    (*s->piece_destiny_history)[pc][dst] << value;
                 }
             }
         }
@@ -513,7 +513,7 @@ namespace Searcher {
 
             if (_ok ((ss-1)->played_move))
             {
-                pos.thread->counter_moves.update (pos[fix_dst_sq ((ss-1)->played_move)], (ss-1)->played_move, move);
+                pos.thread->counter_moves[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] = move;
             }
         }
 
@@ -929,7 +929,7 @@ namespace Searcher {
             bool in_check = 0 != pos.si->checkers;
             ss->move_count = 0;
             ss->played_move = MOVE_NONE;
-            ss->piece_destiny_history = &pos.thread->continuation_history[NO_PIECE][0];
+            ss->piece_destiny_history = pos.thread->continuation_history[NO_PIECE][0].get ();
 
             auto value = VALUE_ZERO
                , best_value = -VALUE_INFINITE
@@ -1025,7 +1025,7 @@ namespace Searcher {
                         {
                             update_killers (ss, pos, tt_move);
                             auto bonus = stat_bonus (depth);
-                            pos.thread->butterfly_history.update (pos.active, tt_move, bonus);
+                            pos.thread->butterfly_history[pos.active][move_pp (tt_move)] << bonus;
                             update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), bonus);
                         }
 
@@ -1045,7 +1045,7 @@ namespace Searcher {
                         if (!pos.capture_or_promotion (tt_move))
                         {
                             auto bonus = stat_bonus (depth);
-                            pos.thread->butterfly_history.update (pos.active, tt_move, -bonus);
+                            pos.thread->butterfly_history[pos.active][move_pp (tt_move)] << -bonus;
                             update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), -bonus);
                         }
                     }
@@ -1209,7 +1209,7 @@ namespace Searcher {
                         auto R = i16((67*depth + 823) / 256 + std::min (i32((tt_eval - beta)/VALUE_MG_PAWN), 3));
 
                         ss->played_move = MOVE_NULL;
-                        ss->piece_destiny_history = &pos.thread->continuation_history[NO_PIECE][0];
+                        ss->piece_destiny_history = pos.thread->continuation_history[NO_PIECE][0].get ();
 
                         pos.do_null_move (si);
 
@@ -1277,7 +1277,7 @@ namespace Searcher {
                                 && pos.capture_or_promotion (move));
 
                             ss->played_move = move;
-                            ss->piece_destiny_history = &pos.thread->continuation_history[pos[org_sq (move)]][dst_sq (move)];
+                            ss->piece_destiny_history = pos.thread->continuation_history[pos[org_sq (move)]][dst_sq (move)].get ();
 
                             pos.do_move (move, si);
 
@@ -1508,7 +1508,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->played_move = move;
-                ss->piece_destiny_history = &pos.thread->continuation_history[mpc][dst];
+                ss->piece_destiny_history = pos.thread->continuation_history[mpc][dst].get ();
 
                 // Step 15. Make the move.
                 pos.do_move (move, si, gives_check);
@@ -1738,12 +1738,12 @@ namespace Searcher {
                     {
                         update_killers (ss, pos, best_move);
                         auto bonus = stat_bonus (depth);
-                        pos.thread->butterfly_history.update (pos.active, best_move, bonus);
+                        pos.thread->butterfly_history[pos.active][move_pp (best_move)] << bonus;
                         update_stacks_continuation (ss, pos[org_sq (best_move)], dst_sq (best_move), bonus);
                         // Decrease all the other played quiet moves.
                         for (auto qm : quiet_moves)
                         {
-                            pos.thread->butterfly_history.update (pos.active, qm, -bonus);
+                            pos.thread->butterfly_history[pos.active][move_pp (qm)] << -bonus;
                             update_stacks_continuation (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                         }
                     }
@@ -1751,15 +1751,15 @@ namespace Searcher {
                     //if (pos.capture (best_move))
                     {
                         auto bonus = stat_bonus (depth);
-                        pos.thread->capture_history.update (pos[org_sq (best_move)], best_move, pos.cap_type (best_move), bonus);
+                        pos.thread->capture_history[pos[org_sq (best_move)]][move_pp (best_move)][pos.cap_type (best_move)] << bonus;
                         // Decrease all the other played capture moves.
                         for (auto cm : capture_moves)
                         {
-                            pos.thread->capture_history.update (pos[org_sq (cm)], cm, pos.cap_type (cm), -bonus);
+                            pos.thread->capture_history[pos[org_sq (cm)]][move_pp (cm)][pos.cap_type (cm)] << -bonus;
                         }
                     }
 
-                    // Penalty for a quiet best move in previous ply when it gets refuted.
+                    // Extra penalty for a quiet best move in previous ply when it gets refuted.
                     if (   1 == (ss-1)->move_count
                         && _ok ((ss-1)->played_move)
                         && !pos.si->promotion
@@ -1868,7 +1868,7 @@ void Thread::search ()
         ss->move_count = 0;
         ss->static_eval = VALUE_ZERO;
         ss->stat_score = 0;
-        ss->piece_destiny_history = &continuation_history[NO_PIECE][0];
+        ss->piece_destiny_history = continuation_history[NO_PIECE][0].get ();
     }
 
     auto *main_thread = Threadpool.main_thread () == this ?
