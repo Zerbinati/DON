@@ -3,7 +3,7 @@
   <Class Name="Position">
     <Position X="6.25" Y="3.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>IEgAEAAKCQQACA2xRYKoIBRngDEEEAVgIgAgYDBgIQA=</HashCode>
+      <HashCode>IEgAEAAKCQQACA2xRYKoIBQngDEEEAVgIgAgYCBgIQA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -17,7 +17,7 @@
   <Class Name="Logger">
     <Position X="22.25" Y="7.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAQQAAAAAAIAAAAAAAAACAAAAAAAAAAAAAAwAAAAAAg=</HashCode>
+      <HashCode>AAQQAABAAAIAAAAAAAAACAAAAAAAAAAAAAAwAAAAAAg=</HashCode>
       <FileName>src\Logger.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -99,7 +99,7 @@
   <Class Name="MainThread">
     <Position X="0.5" Y="12.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gEAAAAAAEAAAAAACgAAIAAAAAQgAAAAAACEgAQAAAAA=</HashCode>
+      <HashCode>gEAAAAAAEAAAAAACgAAIgAAAAQgAAAAAACEgAQAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -117,7 +117,7 @@
   <Class Name="RootMove">
     <Position X="15.25" Y="5.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAIAAAAAAAAAAAAAAIggQAIAAAAAAAAgACgAAAAAAA=</HashCode>
+      <HashCode>AAAIAAAAAAAAAAAAAAAggQAIAAAAAAAAgACgAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -174,7 +174,7 @@
   <Class Name="`anonymous-namespace'::Evaluator&lt;Trace&gt;">
     <Position X="24.75" Y="10.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>QAiACgAAQYAAcQAQIxlAAYkMkIAAAGIBQSgzkG8QYAI=</HashCode>
+      <HashCode>AACBCggAQYBgMQAAJxkAAYkOgIAAACIhQQg7kG8QYAI=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Class>
@@ -197,6 +197,13 @@
     <TypeIdentifier>
       <HashCode>AMAAAABAAAAgAAQIAAWgAgAAAAAACAAQBBAEEAAAABA=</HashCode>
       <FileName>src\Polyglot.h</FileName>
+    </TypeIdentifier>
+  </Class>
+  <Class Name="StatsEntry&lt;T, W, D&gt;" Collapsed="true">
+    <Position X="27.5" Y="1.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAACAQAAAAAAAAAAAAAAwAAgAEAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Class>
   <Struct Name="BitBases::`anonymous-namespace'::KPK_Position">
@@ -276,14 +283,14 @@
   <Struct Name="Pawns::Entry">
     <Position X="26.5" Y="12.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAABAAAACEAAMoAAgQAEIAAAAQAGADIABAAA=</HashCode>
+      <HashCode>AAAAAAAAAABAAAACEAAMgAAgQAEIAAAAQAGADIABAAA=</HashCode>
       <FileName>src\Pawns.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="Stack">
     <Position X="14.75" Y="10.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAIBAAAAAAQBAAAAAwAAAAAAAAAAQAAQAAA=</HashCode>
+      <HashCode>AAAAAAAAAAIBAAAAAAQBAAAAgwAAAAAAAAAAQAAQAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -351,32 +358,25 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="ButterflyHistory">
-    <Position X="17" Y="4.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Struct>
-  <Struct Name="Table2D&lt;Size1, Size2, T&gt;" Collapsed="true">
-    <Position X="19" Y="1.75" Width="2.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAEAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Struct>
-  <Struct Name="PieceDestinyHistory">
-    <Position X="18.75" Y="4.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Struct>
   <Struct Name="BitBoard::Magic">
     <Position X="19" Y="11.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAACAAAQAEAAAAAAAAAAAAAACAAAAAAAAABgAA=</HashCode>
       <FileName>src\BitBoard.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Stats&lt;T, W, D, Size, ...Sizes&gt;" Collapsed="true">
+    <Position X="22" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAgAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Stats&lt;T, W, D, Size&gt;" Collapsed="true">
+    <Position X="11.25" Y="1.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Typedef Name="Material::Table" Collapsed="true">
@@ -498,39 +498,46 @@
       <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\iosfwd</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="PieceDestinyMoveTable" Collapsed="true">
-    <Position X="22.25" Y="3.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="ContinuationStatTable" Collapsed="true">
-    <Position X="20.5" Y="3.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="PieceDestinyStatTable" Collapsed="true">
-    <Position X="18.75" Y="3.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="ButterflyStatTable" Collapsed="true">
-    <Position X="17" Y="3.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
-    </TypeIdentifier>
-  </Typedef>
   <Typedef Name="StateListPtr" Collapsed="true">
     <Position X="26" Y="9.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Position.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="ButterflyHistory" Collapsed="true">
+    <Position X="21.25" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="PieceDestinyHistory" Collapsed="true">
+    <Position X="19.5" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="ContinuationHistory" Collapsed="true">
+    <Position X="23" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="PieceDestinyMove" Collapsed="true">
+    <Position X="25" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Typedef>
+  <Typedef Name="CapturePieceDestinyHistory" Collapsed="true">
+    <Position X="17.75" Y="3" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Typedef>
   <Enum Name="OutputState" Collapsed="true">

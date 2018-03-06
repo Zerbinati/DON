@@ -112,7 +112,6 @@ struct Stats
         std::fill (p, p + sizeof (*this) / sizeof (*p), v);
     }
 };
-
 template <typename T, i32 W, i32 D, i32 Size>
 struct Stats<T, W, D, Size>
     : public std::array<StatsEntry<T, W, D>, Size>
@@ -120,27 +119,23 @@ struct Stats<T, W, D, Size>
     T* get () { return this->at (0).get (); }
 };
 
-/// Different tables use different W/D parameter, name them to ease readibility
-enum StatsParams { NOT_USED = 0, W2 = 2, W32 = 32, D324 = 324, D936 = 936 };
-
-
 /// ButterflyHistory records how often quiet moves have been successful or unsuccessful
 /// during the current search, and is used for reduction and move ordering decisions.
 /// It is indexed by [color][move].
-typedef Stats<i16, W32, D324, CLR_NO, SQ_NO*SQ_NO> ButterflyHistory;
+typedef Stats<i16, 32, 324, CLR_NO, SQ_NO*SQ_NO> ButterflyHistory;
 
 /// PieceDestinyHistory is like ButterflyHistory but is indexed by [piece][destiny]
-typedef Stats<i16, W32, D936, MAX_PIECE, SQ_NO> PieceDestinyHistory;
+typedef Stats<i16, 32, 936, MAX_PIECE, SQ_NO> PieceDestinyHistory;
 
 /// ContinuationHistory is the combined history of a given pair of moves, usually the current one given a previous one.
 /// The nested history table is based on PieceDestinyHistory instead of ButterflyBoards.
-typedef Stats<PieceDestinyHistory, W32, NOT_USED, MAX_PIECE, SQ_NO> ContinuationHistory;
-
-/// PieceDestinyMoveHistory stores counter moves is indexed by [piece][move]
-typedef Stats<Move, NOT_USED, NOT_USED, MAX_PIECE, SQ_NO*SQ_NO> PieceDestinyMoveHistory;
+typedef Stats<PieceDestinyHistory, 32, 0, MAX_PIECE, SQ_NO> ContinuationHistory;
 
 /// CapturePieceDestinyHistory is indexed by [piece][move][captured piece type]
-typedef Stats<i16, W2, D324, MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE> CapturePieceDestinyHistory;
+typedef Stats<i16, 2, 324, MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE> CapturePieceDestinyHistory;
+
+/// PieceDestinyMove stores counter moves is indexed by [piece][move]
+typedef Stats<Move, 0, 0, MAX_PIECE, SQ_NO*SQ_NO> PieceDestinyMove;
 
 /// MovePicker class is used to pick one legal moves from the current position.
 class MovePicker
@@ -149,7 +144,7 @@ private:
     enum Stage : u08
     {
         NAT_TT, NAT_CAPTURE_INIT, NAT_GOOD_CAPTURES, NAT_QUIET_INIT, NAT_QUIETS, NAT_BAD_CAPTURES,
-        EVA_TT, EVA_MOVE_INIT, EVA_MOVES,
+        EVA_TT, EVA_EVASION_INIT, EVA_EVASIONS,
         PC_TT, PC_CAPTURE_INIT, PC_GOOD_CAPTURES, PC_BAD_CAPTURES,
         QS_TT, QS_CAPTURE_INIT, QS_CAPTURES, QS_CHECK_INIT, QS_CHECKS,
     };
@@ -172,7 +167,7 @@ private:
 
     u08 stage;
 
-    template<GenType GT>
+    template<GenType>
     void value ();
 
     const ValMove& next_max_move ();

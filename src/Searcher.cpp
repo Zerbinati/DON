@@ -337,7 +337,7 @@ Move MovePicker::next_move ()
         }
         break;
 
-    case Stage::EVA_MOVE_INIT:
+    case Stage::EVA_EVASION_INIT:
         assert(0 != pos.si->checkers);
         generate<GenType::EVASION> (moves, pos);
         filter_illegal (moves, pos);
@@ -353,7 +353,7 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         /* fallthrough */
-    case Stage::EVA_MOVES:
+    case Stage::EVA_EVASIONS:
         if (i < moves.size ())
         {
             return next_max_move ().move;
@@ -477,13 +477,13 @@ namespace Searcher {
         }
 
         /// update_stacks_continuation() updates tables of the move pairs with current move.
-        void update_stacks_continuation (Stack *const &ss, Piece pc, Square dst, i32 value)
+        void update_stacks_continuation (Stack *const &ss, Piece pc, Square dst, i32 bonus)
         {
             for (auto s : { ss-1, ss-2, ss-4 })
             {
                 if (_ok (s->played_move))
                 {
-                    (*s->piece_destiny_history)[pc][dst] << value;
+                    (*s->piece_destiny_history)[pc][dst] << bonus;
                 }
             }
         }
@@ -777,9 +777,8 @@ namespace Searcher {
 
                 // Futility pruning
                 if (   !in_check
-                    && futility_base <= alfa
-                    && futility_base > -VALUE_KNOWN_WIN
                     && !gives_check
+                    && futility_base > -VALUE_KNOWN_WIN
                     //&& 0 == Limits.mate
                         // Advance pawn push
                     && !(   PAWN == ptype (mpc)
@@ -796,7 +795,8 @@ namespace Searcher {
                         continue;
                     }
                     // Prune moves with negative or zero SEE
-                    if (!pos.see_ge (move, Value(1)))
+                    if (   futility_base <= alfa
+                        && !pos.see_ge (move, Value(1)))
                     {
                         if (best_value < futility_base)
                         {
@@ -2043,7 +2043,7 @@ void Thread::search ()
                     && !Threadpool.stop_on_ponderhit)
                 {
                     // If the best_move is stable over several iterations, reduce time accordingly
-                    double time_reduction = 1.0;
+                    double time_reduction = 1.00;
                     for (auto i : { 3, 4, 5 })
                     {
                         if (last_best_move_depth * i < finished_depth)

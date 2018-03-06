@@ -101,7 +101,7 @@ public:
     std::atomic<u64> nodes
         ,            tb_hits;
 
-    PieceDestinyMoveHistory counter_moves;
+    PieceDestinyMove counter_moves;
     ButterflyHistory butterfly_history;
     CapturePieceDestinyHistory capture_history;
     ContinuationHistory continuation_history;

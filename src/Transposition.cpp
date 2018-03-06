@@ -5,9 +5,9 @@
 #include "BitBoard.h"
 #include "Engine.h"
 
-TTable TT;
-
 using namespace std;
+
+TTable TT;
 
 u08 TEntry::Generation;
 

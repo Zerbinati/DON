@@ -15,7 +15,7 @@ enum GenType : u08
     LEGAL,
 };
 
-template<GenType GT>
+template<GenType>
 extern void generate (ValMoves&, const Position&);
 
 extern void filter_illegal (ValMoves&, const Position&);

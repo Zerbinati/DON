@@ -4,6 +4,8 @@
 
 using namespace std;
 
+Logger Loger;
+
 namespace {
 
     i64 CondCount;

@@ -55,7 +55,7 @@ namespace {
     double move_importance (i16 ply)
     {
         //                                      Shift    Scale   Skew
-        return std::pow (1.0 + std::exp ((ply - 64.50) / 6.85), -0.171) + DBL_MIN; // Ensure non-zero
+        return std::pow (1.00 + std::exp ((ply - 64.50) / 6.85), -0.171) + DBL_MIN; // Ensure non-zero
     }
 
     u64 remaining_time (u64 time, u08 movestogo, i16 ply, bool optimum)
@@ -70,8 +70,8 @@ namespace {
             move_imp2 += move_importance (ply + 2 * i);
         }
 
-        auto time_ratio1 = (move_imp1 * step_ratio /*+ move_imp2 * 0.00*/   ) / (move_imp1 * step_ratio + move_imp2 /** 1.00*/);
-        auto time_ratio2 = (move_imp1 /** 1.00*/   + move_imp2 * steal_ratio) / (move_imp1 /** 1.00*/   + move_imp2 /** 1.00*/);
+        auto time_ratio1 = (move_imp1 * step_ratio /* + move_imp2 * 0.00*/ ) / (move_imp1 * step_ratio + move_imp2 /* * 1.00*/);
+        auto time_ratio2 = (move_imp1 /* * 1.00*/ + move_imp2 * steal_ratio) / (move_imp1 /* * 1.00*/  + move_imp2 /* * 1.00*/);
 
         return u64(time * std::min (time_ratio1, time_ratio2));
     }
@@ -251,7 +251,7 @@ MainThread::MainThread (size_t idx)
     , failed_low (false)
     , best_move_change (0.0)
     , last_value (VALUE_NONE)
-    , last_time_reduction (1.0)
+    , last_time_reduction (1.00)
 {}
 /// MainThread::clear()
 void MainThread::clear ()
@@ -260,7 +260,7 @@ void MainThread::clear ()
 
     time_mgr.available_nodes = 0;
     last_value = VALUE_NONE;
-    last_time_reduction = 1.0;
+    last_time_reduction = 1.00;
 }
 
 vector<i16> ThreadPool::Groups;

@@ -258,7 +258,7 @@ namespace UCI {
             auto filename = string(Options["Debug File"]);
             trim (filename);
             convert_path (filename);
-            Logger::log (filename);
+            Loger.log (filename);
         }
 
         void on_output_file ()
@@ -360,7 +360,7 @@ namespace UCI {
         Options["SyzygyLimitPiece"]   << Option (TBLimitPiece, 0, 6);
         Options["SyzygyUseRule50"]    << Option (TBUseRule50);
 
-        Options["Debug File"]         << Option (Empty, on_debug_file);
+        Options["Debug File"]         << Option (Loger.filename, on_debug_file);
         Options["Output File"]        << Option (OutputFile, on_output_file);
 
         Options["UCI_Chess960"]       << Option (Position::Chess960, on_uci_chess960);

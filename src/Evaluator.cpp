@@ -401,8 +401,8 @@ namespace {
                                     & (  attacks
                                        | (  pawn_attacks_bb (Own, qp)
                                           & PieceAttacks[BSHP][s])
-                                        | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
-                                        | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
+                                       | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
+                                       | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
 
                 pin_attacked_queen[Own][0] |= attacks & PieceAttacks[BSHP][s];
                 pin_attacked_queen[Own][1] |= attacks & PieceAttacks[ROOK][s];

@@ -51,8 +51,8 @@ private:
     std::tie_buf  _inb; // Input
     std::tie_buf  _otb; // Output
 
-protected:
-    // Constructor should be protected !!!
+public:
+
     Logger ()
         : _inb (std::cin.rdbuf (), _ofs.rdbuf ())
         , _otb (std::cout.rdbuf (), _ofs.rdbuf ())
@@ -65,32 +65,34 @@ protected:
         log (Empty);
     }
 
-public:
+    std::string filename;
 
-    static void log (const std::string &filename)
+    void log (const std::string &fn)
     {
-        static Logger logger;
-
-        if (logger._ofs.is_open ())
+        if (_ofs.is_open ())
         {
-            std::cout.rdbuf (logger._otb.streambuf ());
-            std::cin.rdbuf (logger._inb.streambuf ());
+            std::cout.rdbuf (_otb.streambuf ());
+            std::cin.rdbuf (_inb.streambuf ());
 
-            logger._ofs << "[" << std::chrono::system_clock::now () << "] <-" << std::endl;
-            logger._ofs.close ();
+            _ofs << "[" << std::chrono::system_clock::now () << "] <-" << std::endl;
+            _ofs.close ();
         }
-        if (   !white_spaces (filename)
-            && !logger._ofs.is_open ())
+        if (   !white_spaces (fn)
+            && !_ofs.is_open ())
         {
-            logger._ofs.open (filename, std::ios_base::out|std::ios_base::app);
-            logger._ofs << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
+            filename = fn;
+            _ofs.open (filename, std::ios_base::out|std::ios_base::app);
+            _ofs << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
 
-            std::cin.rdbuf (&logger._inb);
-            std::cout.rdbuf (&logger._otb);
+            std::cin.rdbuf (&_inb);
+            std::cout.rdbuf (&_otb);
         }
     }
 
 };
+
+// Global Logger
+extern Logger Loger;
 
 // Debug functions used mainly to collect run-time statistics
 extern void dbg_init ();
