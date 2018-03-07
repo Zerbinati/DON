@@ -292,7 +292,7 @@ namespace {
         Bitboard pinned_pawns = pos.abs_blockers (Own) & pos.pieces (Own, PAWN);
         if (0 != pinned_pawns)
         {
-            Bitboard loosed_pawns = pos.pieces (Own, PAWN) & ~pinned_pawns;
+            Bitboard loosed_pawns = pos.pieces (Own, PAWN) ^ pinned_pawns;
             pin_attacked_by[Own][PAWN] = pawn_attacks_bb (Own, loosed_pawns)
                                        | (  pawn_attacks_bb (Own, pinned_pawns)
                                           & PieceAttacks[BSHP][pos.square<KING> (Own)]);
@@ -428,7 +428,7 @@ namespace {
             // Bonus for piece mobility
             mobility[Own] += PieceMobility[PT][mob];
 
-            // Penalty if the piece is far from the king
+            // Penalty for distance from the friend king
             score += KingProtector[PT] * dist (s, pos.square<KING> (Own));
 
             Bitboard b;

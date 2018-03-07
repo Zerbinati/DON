@@ -256,7 +256,7 @@ bool Position::pseudo_legal (Move m) const
     if (NORMAL == mtype (m))
     {
         // Is not a promotion, so promotion piece must be empty.
-        assert(0 == (promote (m) - NIHT));
+        assert(NIHT == promote (m));
     }
     else
     if (CASTLE == mtype (m))
@@ -415,6 +415,7 @@ bool Position::legal (Move m) const
 
     if (NORMAL == mtype (m))
     {
+        assert(NIHT == promote (m));
         // Only king moves to non attacked squares, sliding check x-rays the king
         // In case of king moves under check have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
@@ -432,7 +433,10 @@ bool Position::legal (Move m) const
     else
     if (PROMOTE == mtype (m))
     {
-        assert(contains (pieces (PAWN), org_sq (m)));
+        assert(PAWN == ptype (board[org_sq (m)])
+            && R_7 == rel_rank (active, org_sq (m))
+            && R_8 == rel_rank (active, dst_sq (m))
+            && NIHT <= promote (m) && promote (m) <= QUEN);
         // A non-king move is legal if and only if
         // - not pinned
         // - moving along the ray from the king
@@ -443,8 +447,12 @@ bool Position::legal (Move m) const
     if (CASTLE == mtype (m))
     {
         // Castling moves are checked for legality during move generation.
-        assert(contains (pieces (active, KING), org_sq (m))
-            && contains (pieces (active, ROOK), dst_sq (m)));
+        assert(KING == ptype (board[org_sq (m)])
+            && R_1 == rel_rank (active, org_sq (m))
+            && R_1 == rel_rank (active, dst_sq (m))
+            && contains (pieces (active, KING), org_sq (m))
+            && contains (pieces (active, ROOK), dst_sq (m))
+            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN));
         return true;
     }
     else
@@ -485,11 +493,18 @@ bool Position::gives_check (Move m) const
 
     if (NORMAL == mtype (m))
     {
+        assert(NIHT == promote (m));
         return false;
     }
     else
     if (CASTLE == mtype (m))
     {
+        assert(KING == ptype (board[org_sq (m)])
+            && R_1 == rel_rank (active, org_sq (m))
+            && R_1 == rel_rank (active, dst_sq (m))
+            && contains (pieces (active, KING), org_sq (m))
+            && contains (pieces (active, ROOK), dst_sq (m))
+            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN));
         // Castling with check?
         auto king_dst = rel_sq (active, dst_sq (m) > org_sq (m) ? SQ_G1 : SQ_C1);
         auto rook_dst = rel_sq (active, dst_sq (m) > org_sq (m) ? SQ_F1 : SQ_D1);
@@ -499,6 +514,11 @@ bool Position::gives_check (Move m) const
     else
     if (ENPASSANT == mtype (m))
     {
+        assert(PAWN == ptype (board[org_sq (m)])
+            && R_5 == rel_rank (active, org_sq (m))
+            && R_6 == rel_rank (active, dst_sq (m))
+            && empty (dst_sq (m))
+            && 1 >= si->clock_ply);
         // En-passant capture with check?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
@@ -511,6 +531,10 @@ bool Position::gives_check (Move m) const
     else
     if (PROMOTE == mtype (m))
     {
+        assert(PAWN == ptype (board[org_sq (m)])
+            && R_7 == rel_rank (active, org_sq (m))
+            && R_8 == rel_rank (active, dst_sq (m))
+            && NIHT <= promote (m) && promote (m) <= QUEN);
         // Promotion with check?
         return NIHT == promote (m) ? contains (PieceAttacks[NIHT][dst_sq (m)], square<KING> (~active)) :
                BSHP == promote (m) ? contains (PieceAttacks[BSHP][dst_sq (m)], square<KING> (~active))
@@ -875,6 +899,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     si->capture = CASTLE != mtype (m) ?
                     ptype (board[cap]) :
                     NONE;
+    assert(KING != si->capture);
+
     if (NONE != si->capture)
     {
         assert(capture (m));
@@ -905,8 +931,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     if (NORMAL == mtype (m))
     {
-        assert(0 == (promote (m) - NIHT)
-            && KING != si->capture);
+        assert(NIHT == promote (m));
 
         si->promotion = false;
         move_piece (org, dst);
@@ -936,7 +961,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             && R_1 == rel_rank (active, org)
             && R_1 == rel_rank (active, dst)
             && contains (pieces (active, KING), org)
-            && contains (pieces (active, ROOK), dst));
+            && contains (pieces (active, ROOK), dst)
+            && expeded_castle (active, dst > org ? CS_KING : CS_QUEN));
 
         si->promotion = false;
         Square rook_org, rook_dst;

@@ -188,10 +188,12 @@ namespace BitBoard {
     extern u08 PopCount16[1 << 16];
 #endif
 
-    template<typename T> inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
+    template<typename T>
+    inline i32 dist (T t1, T t2) { return t1 != t2 ? t1 < t2 ? t2 - t1 : t1 - t2 : 0; }
     template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
 
-    template<typename T1, typename T2> inline i32 dist (T2, T2) { return i32 (); }
+    template<typename T1, typename T2>
+    inline i32 dist (T2, T2) { return 0; }
     template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
     template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
@@ -225,7 +227,7 @@ namespace BitBoard {
     inline Bitboard pawn_attack_span (Color c, Square s) { return PawnAttackSpan[c][s]; }
     inline Bitboard pawn_pass_span (Color c, Square s) { return PawnPassSpan[c][s]; }
 
-    // Check the squares s1, s2 and s3 are aligned on a straight line.
+    /// Check the squares s1, s2 and s3 are aligned on a straight line.
     inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return contains (StrLine_bb[s1][s2], s3); }
 
     constexpr bool more_than_one (Bitboard bb)
@@ -237,8 +239,17 @@ namespace BitBoard {
 //#   endif
     }
 
-    // Shift the bitboard using delta
-    template<Delta DEL> Bitboard shift (Bitboard bb);
+    /// mk_bitboard() returns a bitboard from a list of squares
+    constexpr Bitboard mk_bitboard () { return 0; }
+    template<typename ...Squares>
+    constexpr Bitboard mk_bitboard (Square s, Squares... squares)
+    {
+        return (U64(1) << s) | mk_bitboard (squares...);
+    }
+
+    /// Shift the bitboard using delta
+    template<Delta DEL>
+    constexpr Bitboard shift (Bitboard bb);
 
     template<> constexpr Bitboard shift<DEL_N > (Bitboard bb) { return (bb         ) << 010; }
     template<> constexpr Bitboard shift<DEL_S > (Bitboard bb) { return (bb         ) >> 010; }
@@ -284,15 +295,15 @@ namespace BitBoard {
         return slide_attacks;
     }
     
-    // attacks_bb(s, occ) takes a square and a bitboard of occupied squares,
-    // and returns a bitboard representing all squares attacked by PT (Bishop or Rook or Queen) on the given square.
+    /// attacks_bb(s, occ) takes a square and a bitboard of occupied squares,
+    /// and returns a bitboard representing all squares attacked by PT (Bishop or Rook or Queen) on the given square.
     template<PieceType PT> Bitboard attacks_bb (Square, Bitboard);
     
-    // Attacks of the Bishop with occupancy
+    /// Attacks of the Bishop with occupancy
     template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BMagics[s].attacks_bb (occ); }
-    // Attacks of the Rook with occupancy
+    /// Attacks of the Rook with occupancy
     template<> inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RMagics[s].attacks_bb (occ); }
-    // Attacks of the Queen with occupancy
+    /// Attacks of the Queen with occupancy
     template<> inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ) { return BMagics[s].attacks_bb (occ)
                                                                                 | RMagics[s].attacks_bb (occ); }
     

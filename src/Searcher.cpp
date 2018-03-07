@@ -719,9 +719,12 @@ namespace Searcher {
                 }
                 else
                 {
-                    ss->static_eval = tt_eval = MOVE_NULL != (ss-1)->played_move ?
-                                                    evaluate (pos) :
-                                                    -(ss-1)->static_eval + Tempo*2;
+                    assert(MOVE_NULL != (ss-1)->played_move
+                        || VALUE_NONE != (ss-1)->static_eval);
+                    ss->static_eval =
+                    tt_eval = MOVE_NULL != (ss-1)->played_move ?
+                                evaluate (pos) :
+                                -(ss-1)->static_eval + Tempo*2;
                 }
 
                 if (alfa < tt_eval)
@@ -1128,9 +1131,12 @@ namespace Searcher {
                 }
                 else
                 {
-                    ss->static_eval = tt_eval = MOVE_NULL != (ss-1)->played_move ?
-                                                    evaluate (pos) :
-                                                    -(ss-1)->static_eval + Tempo*2;
+                    assert(MOVE_NULL != (ss-1)->played_move
+                        || VALUE_NONE != (ss-1)->static_eval);
+                    ss->static_eval =
+                    tt_eval = MOVE_NULL != (ss-1)->played_move ?
+                                evaluate (pos) :
+                                -(ss-1)->static_eval + Tempo*2;
 
                     tte->save (key,
                                MOVE_NONE,
@@ -1147,26 +1153,23 @@ namespace Searcher {
 
                     // Step 7. Razoring sort of forward pruning where rather than
                     // skipping an entire subtree, search it to a reduced depth.
-                    if (!PVNode)
+                    if (   !PVNode
+                        && 2 >= depth)
                     {
-                        if (1 >= depth)
+                        if (   1 >= depth
+                            && tt_eval + RazorMargin[0] <= alfa)
                         {
-                            if (tt_eval + RazorMargin[0] <= alfa)
-                            {
-                                return quien_search<false> (pos, ss, alfa, alfa+1);
-                            }
+                            return quien_search<false> (pos, ss, alfa, alfa+1);
                         }
-                        else
-                        if (2 >= depth)
+                        
+                        if (tt_eval + RazorMargin[1] <= alfa)
                         {
-                            if (tt_eval + RazorMargin[1] <= alfa)
+                            auto alfa_margin = alfa - RazorMargin[1];
+                            assert(-VALUE_INFINITE < alfa_margin);
+                            auto v = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
+                            if (v <= alfa_margin)
                             {
-                                Value ralpha = alfa - RazorMargin[1];
-                                Value v = quien_search<false> (pos, ss, ralpha, ralpha+1);
-                                if (v <= ralpha)
-                                {
-                                    return v;
-                                }
+                                return v;
                             }
                         }
                     }
@@ -1814,8 +1817,7 @@ namespace Searcher {
             {
                 for (i08 mc = 1; mc < 64; ++mc)
                 {
-                    auto r = log (d) * log (mc) / 1.95;
-                    ReductionDepths[0][imp][d][mc] = i16(std::round (r));
+                    ReductionDepths[0][imp][d][mc] = i16(std::round (std::log (double(d)) * std::log (double(mc)) / 1.95));
                     ReductionDepths[1][imp][d][mc] = i16(std::max (ReductionDepths[0][imp][d][mc] - 1, 0));
                     if (   0 == imp
                         && ReductionDepths[0][imp][d][mc] >= 2)
@@ -1923,9 +1925,7 @@ void Thread::search ()
                 // Dynamic contempt
                 if (0 != ContemptValue)
                 {
-                    auto contempt = BaseContempt + std::min (+70, std::max (-70,
-                                  i32(best_value) / ContemptValue + sign (best_value) * i32(std::round (3.22 * log (1 + abs (best_value))))));
-
+                    auto contempt = i32(std::round (48 * std::atan (i32(best_value) / (12.8 * ContemptValue))));
                     Contempt = WHITE == root_pos.active ?
                                 +mk_score (contempt, contempt / 2) :
                                 -mk_score (contempt, contempt / 2);
