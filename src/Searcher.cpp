@@ -996,6 +996,7 @@ namespace Searcher {
             auto tt_eval = tt_hit ?
                             tte->eval () :
                             VALUE_NONE;
+            bool improving;
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
@@ -1146,6 +1147,9 @@ namespace Searcher {
                                BOUND_NONE);
                 }
 
+                improving = (ss-0)->static_eval >= (ss-2)->static_eval
+                         || VALUE_NONE == (ss-2)->static_eval;
+
                 if (   prun_node
                     && VALUE_ZERO != pos.si->non_pawn_material (pos.active))
                 {
@@ -1180,7 +1184,7 @@ namespace Searcher {
                     if (   !root_node
                         && 7 > depth
                         //&& 0 == Limits.mate
-                        && tt_eval - 150*depth >= beta
+                        && tt_eval - (improving ? 125 : 175) * depth >= beta
                         && tt_eval < +VALUE_KNOWN_WIN) // Don't return unproven wins.
                     {
                         return tt_eval;
@@ -1334,8 +1338,8 @@ namespace Searcher {
                                   && VALUE_NONE != tt_value
                                   && BOUND_NONE != (tt_bound & BOUND_LOWER);
 
-            bool improving = (ss-0)->static_eval >= (ss-2)->static_eval
-                          || VALUE_NONE == (ss-2)->static_eval;
+            improving = (ss-0)->static_eval >= (ss-2)->static_eval
+                     || VALUE_NONE == (ss-2)->static_eval;
 
             bool exact = tt_hit
                       && BOUND_EXACT == tt_bound;

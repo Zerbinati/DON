@@ -116,7 +116,8 @@ namespace {
 
         static const Score PieceRankThreat =   S(16, 3);
 
-        static const Score QueenThreat =       S(42,21);
+        static const Score KnightQueenThreat = S(21,11);
+        static const Score SliderQueenThreat = S(42,21);
 
         static const Score PawnPassHinder =    S( 8, 1);
 
@@ -175,7 +176,7 @@ namespace {
         // Contains all squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
         Bitboard dbl_attacked[CLR_NO];
 
-        Bitboard pin_attacked_queen[CLR_NO][2];
+        Bitboard pin_attacked_queen[CLR_NO][3];
 
         // Zone around the king which is considered by the king safety evaluation.
         // This consists of the squares directly adjacent to the king, and the three (or two, for a king on an edge file) squares two ranks in front of the king.
@@ -316,7 +317,7 @@ namespace {
         {
             pin_attacked_by[Own][pt] = 0;
         }
-        for (auto x : { 0, 1 })
+        for (auto x : { 0, 1, 2 })
         {
             pin_attacked_queen[Own][x] = 0;
         }
@@ -404,8 +405,9 @@ namespace {
                                        | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                        | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
 
-                pin_attacked_queen[Own][0] |= attacks & PieceAttacks[BSHP][s];
-                pin_attacked_queen[Own][1] |= attacks & PieceAttacks[ROOK][s];
+                pin_attacked_queen[Own][0] |= PieceAttacks[NIHT][s];
+                pin_attacked_queen[Own][1] |= attacks & PieceAttacks[BSHP][s];
+                pin_attacked_queen[Own][2] |= attacks & PieceAttacks[ROOK][s];
             }
             else
             {
@@ -831,13 +833,18 @@ namespace {
         // Bonus for friend pawns push safely can attack an enemy piece not already attacked by pawn
         score += PawnPushThreat * pop_count (b);
 
-        b = (pin_attacked_by[Own][BSHP] & pin_attacked_queen[Opp][0])
-          | (pin_attacked_by[Own][ROOK] & pin_attacked_queen[Opp][1]);
+        b =  (pin_attacked_by[Own][NIHT] & pin_attacked_queen[Opp][0]);
+        score += KnightQueenThreat * pop_count (   b
+                                                & ~pos.pieces (Own, PAWN, KING)
+                                                & ~defended_area);
+
+        b = (pin_attacked_by[Own][BSHP] & pin_attacked_queen[Opp][1])
+          | (pin_attacked_by[Own][ROOK] & pin_attacked_queen[Opp][2]);
         // Bonus for safe slider attack threats on enemy queen
-        score += QueenThreat * pop_count (   b
-                                          & ~pos.pieces (Own)
-                                          &  dbl_attacked[Own]
-                                          & ~dbl_attacked[Opp]);
+        score += SliderQueenThreat * pop_count (   b
+                                                & ~pos.pieces (Own)
+                                                &  dbl_attacked[Own]
+                                                & ~dbl_attacked[Opp]);
 
         if (Trace)
         {
@@ -990,16 +997,13 @@ namespace {
                             & (   pin_attacked_by[Own][NONE]
                                | ~pin_attacked_by[Opp][NONE]);
 
-        // Since SpaceMask is fully on our half of the board
-        assert(0 == u32(safe_space >> (WHITE == Own ? 0x20 : 0x00)));
         // Find all squares which are at most three squares behind some friend pawn
         Bitboard behind = pos.pieces (Own, PAWN);
         behind |= shift<WHITE == Own ? DEL_S  : DEL_N > (behind);
         behind |= shift<WHITE == Own ? DEL_SS : DEL_NN> (behind);
-        i32 count = pop_count (  (behind & safe_space)
-                               | (WHITE == Own ? safe_space << 0x20 : safe_space >> 0x20));
+        i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
         i32 weight = pos.count (Own) - 2 * pe->open_count;
-        auto score = mk_score (count * weight * weight / 16, 0);
+        auto score = mk_score (bonus * weight * weight / 16, 0);
 
         if (Trace)
         {
