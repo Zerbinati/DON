@@ -88,7 +88,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     , threshold (Value(-4000*d))
     , recap_sq (SQ_NO)
     , piece_destiny_history (pdh)
-    , killers_moves (km, km + MaxKillers)
+    , refutation_moves (km, km + MaxKillers)
     , pick_quiets (true)
 {
     assert(MOVE_NONE == tt_move
@@ -107,21 +107,21 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
 
         if (   MOVE_NONE != cm
             && tt_move != cm
-            && std::find (killers_moves.begin (), killers_moves.end (), cm) == killers_moves.end ())
+            && std::find (refutation_moves.begin (), refutation_moves.end (), cm) == refutation_moves.end ())
         {
-            killers_moves.push_back (cm);
+            refutation_moves.push_back (cm);
         }
-        killers_moves.erase (std::remove_if (killers_moves.begin (),
-                                             killers_moves.end (),
-                                             [&](Move mm)
-                                             {
-                                                 return MOVE_NONE == mm
-                                                     || tt_move == mm
-                                                     || !pos.pseudo_legal (mm)
-                                                     || !pos.legal (mm)
-                                                     ||  pos.capture (mm);
-                                             }),
-                             killers_moves.end ());
+        refutation_moves.erase (std::remove_if (refutation_moves.begin (),
+                                                refutation_moves.end (),
+                                                [&](Move mm)
+                                                {
+                                                    return MOVE_NONE == mm
+                                                        || tt_move == mm
+                                                        || !pos.pseudo_legal (mm)
+                                                        || !pos.legal (mm)
+                                                        ||  pos.capture (mm);
+                                                }),
+                             refutation_moves.end ());
     }
 
     if (MOVE_NONE == tt_move)
@@ -157,7 +157,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
 
     if (   MOVE_NONE != tt_move
         && !(   depth > DepthQSRecapture
-             || dst_sq (tt_move) == recap_sq))
+             || recap_sq == dst_sq (tt_move)))
     {
         tt_move = MOVE_NONE;
     }
@@ -251,6 +251,7 @@ const ValMove& MovePicker::next_max_move ()
 /// taking care not to return the tt_move if it has already been searched.
 Move MovePicker::next_move ()
 {
+    beg_switch:
     switch (stage)
     {
 
@@ -279,8 +280,8 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
 
-        // Rebranch at the top of the switch via a recursive call
-        return next_move ();
+        // Rebranch at the top of the switch
+        goto beg_switch;
 
     case Stage::NAT_GOOD_CAPTURES:
         while (i < moves.size ())
@@ -306,12 +307,12 @@ Move MovePicker::next_move ()
             }
         }
         value<GenType::QUIET> ();
-        // Killers to top of quiet move
+        // Refutation: Killers, Counter to top of quiet move
         {
             i32 k = 0;
-            for (auto km : killers_moves)
+            for (auto rfm : refutation_moves)
             {
-                auto itr = std::find (moves.begin (), moves.end (), km);
+                auto itr = std::find (moves.begin (), moves.end (), rfm);
                 if (itr != moves.end ())
                 {
                     itr->value = MaxValue - k++;
@@ -386,7 +387,7 @@ Move MovePicker::next_move ()
         {
             auto move = next_max_move ().move;
             if (   depth > DepthQSRecapture
-                || dst_sq (move) == recap_sq)
+                || recap_sq == dst_sq (move))
             {
                 return move;
             }
@@ -1108,6 +1109,7 @@ namespace Searcher {
             if (in_check)
             {
                 ss->static_eval = VALUE_NONE;
+                improving = true;
             }
             else
             {
@@ -1337,9 +1339,6 @@ namespace Searcher {
                                   && 7 < depth && depth < tt_depth + 4
                                   && VALUE_NONE != tt_value
                                   && BOUND_NONE != (tt_bound & BOUND_LOWER);
-
-            improving = (ss-0)->static_eval >= (ss-2)->static_eval
-                     || VALUE_NONE == (ss-2)->static_eval;
 
             bool exact = tt_hit
                       && BOUND_EXACT == tt_bound;
@@ -2344,9 +2343,9 @@ void MainThread::check_limits ()
     check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
     assert(0 != check_count);
 
-    i64 elapsed_time = time_mgr.elapsed_time ();
+    u64 elapsed_time = time_mgr.elapsed_time ();
 
-    if (check_time <= elapsed_time - 1000)
+    if (check_time + 1000 <= elapsed_time)
     {
         check_time = elapsed_time;
 
@@ -2361,9 +2360,9 @@ void MainThread::check_limits ()
     }
 
     if (   (   Limits.use_time_management ()
-            && elapsed_time >  i64(time_mgr.maximum_time) - 10)
+            && elapsed_time + 10 >  time_mgr.maximum_time)
         || (   0 != Limits.movetime
-            && elapsed_time >= i64(Limits.movetime))
+            && elapsed_time >= Limits.movetime)
         || (   0 != Limits.nodes
             && Threadpool.nodes () >= Limits.nodes))
     {

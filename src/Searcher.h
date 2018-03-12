@@ -162,7 +162,7 @@ private:
 
     size_t i;
     ValMoves moves;
-    std::vector<Move> killers_moves
+    std::vector<Move> refutation_moves
         ,             bad_capture_moves;
 
     u08 stage;

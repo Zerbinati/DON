@@ -1721,14 +1721,14 @@ namespace TBSyzygy {
         i32 clock_ply = nullptr != si.ptr ? si.ptr->clock_ply : 0;
         // Use 50-move counter to determine whether the root position is won, lost or drawn.
         WDLScore wdl;
-        if (dtz > 0)
+        if (0 < dtz)
         {
             wdl = +dtz + clock_ply <= 100 ?
                     WDLScore::WIN :
                     WDLScore::CURSED_WIN;
         }
         else
-        if (dtz < 0)
+        if (0 > dtz)
         {
             wdl = -dtz + clock_ply <= 100 ?
                     WDLScore::LOSS :
@@ -1745,15 +1745,15 @@ namespace TBSyzygy {
         // score to show how close it is to winning or losing.
         // NOTE: i32(VALUE_EG_PAWN) is used as scaling factor in score_to_uci().
         if (   WDLScore::CURSED_WIN == wdl
-            && dtz <= +100)
+            && +100 >= dtz)
         {
-            value = +Value(((200 - dtz - clock_ply) * i32(VALUE_EG_PAWN)) / 200);
+            value = Value(+((200 - dtz - clock_ply) * i32(VALUE_EG_PAWN)) / 200);
         }
         else
         if (   WDLScore::BLESSED_LOSS == wdl
-            && dtz >= -100)
+            && -100 <= dtz)
         {
-            value = -Value(((200 + dtz - clock_ply) * i32(VALUE_EG_PAWN)) / 200);
+            value = Value(-((200 + dtz - clock_ply) * i32(VALUE_EG_PAWN)) / 200);
         }
         else
         {
@@ -1763,7 +1763,7 @@ namespace TBSyzygy {
         // Now be a bit smart about filtering out moves.
         size_t size = 0;
         // Winning (or 50-move rule draw)
-        if (dtz > 0)
+        if (0 < dtz)
         {
             i32 best = 0xFFFF;
             // Probe each move
@@ -1795,7 +1795,7 @@ namespace TBSyzygy {
         }
         else
         // Losing (or 50-move rule draw)
-        if (dtz < 0)
+        if (0 > dtz)
         {
             i32 best = 0;
             // Probe each move

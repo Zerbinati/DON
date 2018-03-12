@@ -117,7 +117,10 @@ namespace {
         static const Score PieceRankThreat =   S(16, 3);
 
         static const Score KnightQueenThreat = S(21,11);
+
         static const Score SliderQueenThreat = S(42,21);
+
+        static const Score Connectivity =      S( 3, 1);
 
         static const Score PawnPassHinder =    S( 8, 1);
 
@@ -290,7 +293,7 @@ namespace {
     {
         const auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        Bitboard pinned_pawns = pos.abs_blockers (Own) & pos.pieces (Own, PAWN);
+        Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
         if (0 != pinned_pawns)
         {
             Bitboard loosed_pawns = pos.pieces (Own, PAWN) ^ pinned_pawns;
@@ -338,7 +341,7 @@ namespace {
         if (pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
         {
             king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
-            king_ring_attackers_count[Own] = u08 (pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]));
+            king_ring_attackers_count[Own] = u08(pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]));
             if (R_1 == rel_rank (Opp, pos.square<KING> (Opp)))
             {
                 king_ring[Opp] |= shift<WHITE == Own ? DEL_S : DEL_N> (king_ring[Opp]);
@@ -377,6 +380,13 @@ namespace {
 
             ful_attacked_by[Own] |= attacks;
 
+            if (QUEN == PT)
+            {
+                pin_attacked_queen[Own][0] |= PieceAttacks[NIHT][s];
+                pin_attacked_queen[Own][1] |= attacks & PieceAttacks[BSHP][s];
+                pin_attacked_queen[Own][2] |= attacks & PieceAttacks[ROOK][s];
+            }
+
             if (contains (pos.si->king_blockers[Own], s))
             {
                 attacks &= strline_bb (pos.square<KING> (Own), s);
@@ -399,15 +409,11 @@ namespace {
                 Bitboard qb = pos.pieces (Own, BSHP) & att & PieceAttacks[BSHP][s];
                 Bitboard qr = pos.pieces (Own, ROOK) & att & PieceAttacks[ROOK][s];
                 dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
-                                    & (  attacks
-                                       | (  pawn_attacks_bb (Own, qp)
-                                          & PieceAttacks[BSHP][s])
-                                       | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
-                                       | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
-
-                pin_attacked_queen[Own][0] |= PieceAttacks[NIHT][s];
-                pin_attacked_queen[Own][1] |= attacks & PieceAttacks[BSHP][s];
-                pin_attacked_queen[Own][2] |= attacks & PieceAttacks[ROOK][s];
+                                   & (  attacks
+                                      | (  pawn_attacks_bb (Own, qp)
+                                         & PieceAttacks[BSHP][s])
+                                      | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
+                                      | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
             }
             else
             {
@@ -833,18 +839,24 @@ namespace {
         // Bonus for friend pawns push safely can attack an enemy piece not already attacked by pawn
         score += PawnPushThreat * pop_count (b);
 
-        b =  (pin_attacked_by[Own][NIHT] & pin_attacked_queen[Opp][0]);
-        score += KnightQueenThreat * pop_count (   b
-                                                & ~pos.pieces (Own, PAWN, KING)
-                                                & ~defended_area);
+        Bitboard safe_threat = mob_area[Own] & ~defended_area;
 
-        b = (pin_attacked_by[Own][BSHP] & pin_attacked_queen[Opp][1])
-          | (pin_attacked_by[Own][ROOK] & pin_attacked_queen[Opp][2]);
+        b = (pin_attacked_by[Own][NIHT] & pin_attacked_queen[Opp][0])
+          & safe_threat;
+        score += KnightQueenThreat * pop_count (b);
+
+        b = (  (pin_attacked_by[Own][BSHP] & pin_attacked_queen[Opp][1])
+             | (pin_attacked_by[Own][ROOK] & pin_attacked_queen[Opp][2]))
+          & safe_threat
+          & dbl_attacked[Own];
         // Bonus for safe slider attack threats on enemy queen
-        score += SliderQueenThreat * pop_count (   b
-                                                & ~pos.pieces (Own)
-                                                &  dbl_attacked[Own]
-                                                & ~dbl_attacked[Opp]);
+        score += SliderQueenThreat * pop_count (b);
+
+        // Connectivity: ensure that knights, bishops, rooks, and queens are protected
+        b = (  pos.pieces (Own)
+             ^ pos.pieces (Own, PAWN, KING))
+          & pin_attacked_by[Own][NONE];
+        score += Connectivity * pop_count (b);
 
         if (Trace)
         {
