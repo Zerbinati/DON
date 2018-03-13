@@ -1284,16 +1284,11 @@ namespace Searcher {
 
                             pos.do_move (move, si);
 
-                            // Perform a preliminary search at depth 1 to verify that the move holds.
-                            // We will only do this search if the depth is not 5, thus avoiding two searches at depth 1 in a row.
-                            if (5 != depth)
-                            {
-                                value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, 1, !cut_node, false);
-                            }
+                            // Perform a preliminary qsearch to verify that the move holds
+                            value = -quien_search<false> (pos, ss+1, -beta_margin, -beta_margin+1);
 
-                            // If the first search was skipped or was performed and held, perform the regular search.
-                            if (   5 == depth
-                                || value >= beta_margin)
+                            // If the qsearch held perform the regular search
+                            if (value >= beta_margin)
                             {
                                 value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, depth - 4, !cut_node, true);
                             }
