@@ -248,7 +248,7 @@ namespace UCI {
             //OverheadClockTime = u16(i32(Options["Overhead Clock Time"]));
             //MaximumMoveHorizon = u08(i32(Options["Maximum Move Horizon"]));
             //ReadyMoveHorizon = u08(i32(Options["Ready Move Horizon"]));
-            MoveSlowness = i32(Options["Move Slowness"])/100.0;
+            MoveSlowness = i32(Options["Move Slowness"]);
             NodesTime = u16(i32(Options["Nodes Time"]));
             Ponder = bool(Options["Ponder"]);
         }
@@ -351,13 +351,13 @@ namespace UCI {
         //Options["Maximum Move Horizon"] << Option (MaximumMoveHorizon, 0, 100, on_time_opt);
         //Options["Ready Move Horizon"] << Option (ReadyMoveHorizon, 0, 100, on_time_opt);
         //Options["Overhead Clock Time"] << Option (OverheadClockTime, 0, 30000, on_time_opt);
-        Options["Move Slowness"]      << Option (i32(MoveSlowness*100), 10, 1000, on_time_opt);
+        Options["Move Slowness"]      << Option (MoveSlowness, 10, 1000, on_time_opt);
         Options["Nodes Time"]         << Option (NodesTime, 0, 10000, on_time_opt);
         Options["Ponder"]             << Option (Ponder, on_time_opt);
 
         Options["SyzygyPath"]         << Option (PathString, on_syzygy_path);
         Options["SyzygyProbeDepth"]   << Option (TBProbeDepth, 1, 100);
-        Options["SyzygyLimitPiece"]   << Option (TBLimitPiece, 0, 6);
+        Options["SyzygyLimitPiece"]   << Option (TBLimitPiece, 0, 7);
         Options["SyzygyUseRule50"]    << Option (TBUseRule50);
 
         Options["Debug File"]         << Option (Loger.filename, on_debug_file);

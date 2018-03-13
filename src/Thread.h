@@ -14,7 +14,7 @@
 extern u16 OverheadMoveTime;
 extern u16 MinimumMoveTime;
 
-extern double MoveSlowness;
+extern i32 MoveSlowness;
 extern u16 NodesTime;
 extern bool Ponder;
 

@@ -13,7 +13,7 @@ using namespace TBSyzygy;
 u16 OverheadMoveTime = 30;  // Attempt to keep at least this much time for each remaining move, in milli-seconds.
 u16 MinimumMoveTime = 20;   // No matter what, use at least this much time before doing the move, in milli-seconds.
 
-double MoveSlowness = 0.84; // Move Slowness, in %age.
+i32 MoveSlowness = 84;      // Move Slowness, in %age.
 u16 NodesTime = 0;          // 'Nodes as Time' mode.
 bool Ponder = true;         // Whether or not the engine should analyze when it is the opponent's turn.
 
@@ -63,7 +63,7 @@ namespace {
         auto  step_ratio = optimum ? 1.00 : 7.30; // When in trouble, can step over reserved time with this ratio
         auto steal_ratio = optimum ? 0.00 : 0.34; // However must not steal time from remaining moves over this ratio
 
-        auto move_imp1 = move_importance (ply) * MoveSlowness;
+        auto move_imp1 = move_importance (ply) * MoveSlowness / 100.0;
         auto move_imp2 = 0.0;
         for (u08 i = 1; i < movestogo; ++i)
         {

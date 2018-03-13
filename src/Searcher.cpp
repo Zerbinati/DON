@@ -441,7 +441,7 @@ namespace Searcher {
     bool RetainHash = false;
 
     i16 TBProbeDepth = 1;
-    i32 TBLimitPiece = 6;
+    i32 TBLimitPiece = 7;
     bool TBUseRule50 = true;
     bool TBHasRoot = false;
     Value TBValue = VALUE_ZERO;
@@ -630,7 +630,7 @@ namespace Searcher {
 
             bool in_check = 0 != pos.si->checkers;
 
-            // Check for an immediate draw or maximum ply reached.
+            // Check for maximum ply reached or immediate draw.
             if (   ss->ply >= MaxPlies
                 || pos.draw (ss->ply))
             {
@@ -915,8 +915,11 @@ namespace Searcher {
             }
 
             // Step 1. Initialize node.
-            bool root_node = PVNode && 0 == ss->ply;
+            bool root_node = PVNode
+                          && 0 == ss->ply;
+
             bool in_check = 0 != pos.si->checkers;
+
             ss->move_count = 0;
             ss->played_move = MOVE_NONE;
             ss->piece_destiny_history = pos.thread->continuation_history[NO_PIECE][0].get ();
@@ -929,7 +932,7 @@ namespace Searcher {
 
             if (!root_node)
             {
-                // Step 2. Check for aborted search, immediate draw or maximum ply reached.
+                // Step 2. Check for aborted search, maximum ply reached or immediate draw.
                 if (   Threadpool.stop.load (std::memory_order::memory_order_relaxed)
                     || ss->ply >= MaxPlies
                     || pos.draw (ss->ply))
@@ -2340,7 +2343,7 @@ void MainThread::check_limits ()
         return;
     }
     // At low node count increase the checking rate otherwise use a default value.
-    check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 0x1000)), 1), 0x1000) : 0x1000);
+    check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 1024)), 1), 1024) : 1024);
     assert(0 != check_count);
 
     u64 elapsed_time = time_mgr.elapsed_time ();

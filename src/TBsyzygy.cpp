@@ -104,7 +104,7 @@ namespace TBSyzygy {
 
         static_assert (sizeof (LR) == 3, "LR size incorrect");
 
-        const i32 TBPIECES = 6;
+        const i32 TBPIECES = 7;
 
         struct PairsData
         {
