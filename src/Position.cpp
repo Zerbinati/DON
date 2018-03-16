@@ -43,8 +43,8 @@ bool Position::draw (i16 pp) const
         if (psi->posi_key == si->posi_key)
         {
             // Return a draw score
-            // - If repeats once earlier but strictly after the root, or
-            // - If repeats twice before or at the root.
+            // - Repeats once earlier but strictly after the root, or
+            // - Repeats twice before or at the root.
             if (   repeated
                 || pp > p)
             {

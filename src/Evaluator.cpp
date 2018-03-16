@@ -103,7 +103,7 @@ namespace {
         static const Score QueenWeaken =       S(50,10);
 
         static const Score PawnlessFlank =     S(20,80);
-        static const Score EnemyAttackKing =  S( 7, 0);
+        static const Score EnemyAttackKing =   S( 7, 0);
 
         static const Score PawnWeakUnopposed = S( 5,25);
 
@@ -186,13 +186,13 @@ namespace {
         // For instance, if black's king is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8, f7, g7, h7, f6, g6 and h6.
         Bitboard king_ring[CLR_NO];
         // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
-        u08 king_ring_attackers_count[CLR_NO];
+        u08 king_attackers_count[CLR_NO];
         // Sum of the "weight" of the pieces of the color which attack a square in the king_ring of the enemy king.
         // The weights of the individual piece types are given by the PieceAttackWeights[piece-type]
-        i32 king_ring_attackers_weight[CLR_NO];
+        i32 king_attackers_weight[CLR_NO];
         // Number of attacks by the color to squares directly adjacent to the enemy king.
         // Pieces which attack more than one square are counted multiple times.
-        u08 king_zone_attacks_count[CLR_NO];
+        u08 king_attacks_count[CLR_NO];
 
         template<Color>
         void initialize ();
@@ -336,12 +336,12 @@ namespace {
         mob_area[Opp] = ~(b | pos.square<KING> (Opp));
         mobility[Opp] = SCORE_ZERO;
 
-        king_ring_attackers_weight[Own] = 0;
-        king_zone_attacks_count[Own] = 0;
+        king_attackers_weight[Own] = 0;
+        king_attacks_count[Own] = 0;
         if (pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
         {
             king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
-            king_ring_attackers_count[Own] = u08(pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]));
+            king_attackers_count[Own] = u08(pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]));
             if (R_1 == rel_rank (Opp, pos.square<KING> (Opp)))
             {
                 king_ring[Opp] |= shift<WHITE == Own ? DEL_S : DEL_N> (king_ring[Opp]);
@@ -350,7 +350,7 @@ namespace {
         else
         {
             king_ring[Opp] = 0;
-            king_ring_attackers_count[Own] = 0;
+            king_attackers_count[Own] = 0;
         }
     }
 
@@ -426,9 +426,9 @@ namespace {
 
             if (0 != (king_ring[Opp] & attacks))
             {
-                king_ring_attackers_count[Own]++;
-                king_ring_attackers_weight[Own] += PieceAttackWeights[PT];
-                king_zone_attacks_count[Own] += u08(pop_count (pin_attacked_by[Opp][KING] & attacks));
+                king_attackers_count[Own]++;
+                king_attackers_weight[Own] += PieceAttackWeights[PT];
+                king_attacks_count[Own] += u08(pop_count (pin_attacked_by[Opp][KING] & attacks));
             }
 
             auto mob = pop_count (mob_area[Own] & attacks);
@@ -609,7 +609,7 @@ namespace {
 
         Bitboard b;
         // Main king safety evaluation
-        if (king_ring_attackers_count[Opp] + pos.count (Opp, QUEN) > 1)
+        if (king_attackers_count[Opp] + pos.count (Opp, QUEN) > 1)
         {
             i32 king_danger = 0;
             Bitboard unsafe_check = 0;
@@ -680,8 +680,8 @@ namespace {
             // - number and types of the enemy's attacking pieces,
             // - number of attacked and undefended squares around our king,
             // - quality of the pawn shelter ('mg score' safety).
-            king_danger +=  1 * king_ring_attackers_count[Opp]*king_ring_attackers_weight[Opp]
-                        + 102 * king_zone_attacks_count[Opp]
+            king_danger +=  1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
+                        + 102 * king_attacks_count[Opp]
                         + 191 * pop_count (king_ring[Own] & weak_area)
                         + 143 * pop_count (pos.abs_blockers (Own) | unsafe_check)
                         - 848 * (0 == pos.count (Opp, QUEN) ? 1 : 0)

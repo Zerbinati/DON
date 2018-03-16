@@ -670,7 +670,8 @@ namespace Searcher {
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
             // Note that in quien_search use only 2 types of depth: DepthQSCheck or DepthQSNoCheck.
-            i16 qs_depth = in_check || DepthQSCheck <= depth ?
+            i16 qs_depth = in_check
+                        || DepthQSCheck <= depth ?
                             DepthQSCheck :
                             DepthQSNoCheck;
 
@@ -894,6 +895,12 @@ namespace Searcher {
         template<bool PVNode>
         Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node, bool prun_node)
         {
+            // Use quiescence search when needed
+            if (DepthZero >= depth)
+            {
+                return quien_search<PVNode> (pos, ss, alfa, beta);
+            }
+
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(!(PVNode && cut_node));
@@ -1112,7 +1119,7 @@ namespace Searcher {
             if (in_check)
             {
                 ss->static_eval = VALUE_NONE;
-                improving = true;
+                improving = false;
             }
             else
             {
@@ -1211,9 +1218,7 @@ namespace Searcher {
 
                         pos.do_null_move (si);
 
-                        auto null_value = depth-R <= DepthZero ?
-                                            -quien_search<false> (pos, ss+1, -beta, -beta+1) :
-                                            -depth_search<false> (pos, ss+1, -beta, -beta+1, depth-R, !cut_node, false);
+                        auto null_value = -depth_search<false> (pos, ss+1, -beta, -beta+1, depth-R, !cut_node, false);
 
                         pos.undo_null_move ();
 
@@ -1237,9 +1242,7 @@ namespace Searcher {
                             pos.thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
                             pos.thread->nmp_odd = (ss->ply % 2) != 0;
 
-                            value = depth-R <= DepthZero ?
-                                        quien_search<false> (pos, ss, beta-1, beta) :
-                                        depth_search<false> (pos, ss, beta-1, beta, depth-R, false, false);
+                            value = depth_search<false> (pos, ss, beta-1, beta, depth-R, false, false);
 
                             pos.thread->nmp_ply = 0;
                             pos.thread->nmp_odd = false;
@@ -1262,7 +1265,7 @@ namespace Searcher {
                         //&& 0 == Limits.mate
                         && abs (beta) < +VALUE_MATE_MAX_PLY)
                     {
-                        auto beta_margin = std::min (beta + 200, +VALUE_INFINITE);
+                        auto beta_margin = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
                         assert(_ok ((ss-1)->played_move));
 
                         u08 pc_movecount = 0;
@@ -1271,7 +1274,7 @@ namespace Searcher {
                         MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
                         // Loop through all legal moves until no moves remain or a beta cutoff occurs
                         while (   MOVE_NONE != (move = move_picker.next_move ())
-                               && pc_movecount < depth - 3)
+                               && 3 > pc_movecount)
                         {
                             assert(pos.pseudo_legal (move)
                                 && pos.legal (move)
@@ -1284,10 +1287,10 @@ namespace Searcher {
 
                             pos.do_move (move, si);
 
-                            // Perform a preliminary qsearch to verify that the move holds
+                            // Perform a preliminary quien_search to verify that the move holds
                             value = -quien_search<false> (pos, ss+1, -beta_margin, -beta_margin+1);
 
-                            // If the qsearch held perform the regular search
+                            // If the quien_search held perform the regular search
                             if (value >= beta_margin)
                             {
                                 value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, depth - 4, !cut_node, true);
@@ -1595,9 +1598,7 @@ namespace Searcher {
                 // Step 17. Full depth search when LMR is skipped or fails high.
                 if (fd_search)
                 {
-                    value = new_depth <= DepthZero ?
-                                -quien_search<false> (pos, ss+1, -alfa-1, -alfa) :
-                                -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node, true);
+                    value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node, true);
                 }
 
                 // Full PV search.
@@ -1609,9 +1610,7 @@ namespace Searcher {
                 {
                     (ss+1)->pv.clear ();
 
-                    value = new_depth <= DepthZero ?
-                                -quien_search<true> (pos, ss+1, -beta, -alfa) :
-                                -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false, true);
+                    value = -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false, true);
                 }
 
                 // Step 18. Undo move.
@@ -2059,7 +2058,8 @@ void Thread::search ()
                     if (   1 == root_moves.size ()
                         || (  main_thread->time_mgr.elapsed_time () >
                            u64(main_thread->time_mgr.optimum_time
-                            // Unstable factor - Use part of the gained time from a previous stable move for the current move
+                            // Best Move Instability - Use part of the gained time from a previous stable move for the current move
+                            // Unstable factor
                             * (main_thread->best_move_change + 1)
                             // Time reduction factor
                             * std::pow (main_thread->last_time_reduction, 0.528) / time_reduction

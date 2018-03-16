@@ -773,7 +773,7 @@ namespace EndGame {
     /// It checks for draws with rook pawns and a bishop of the wrong color.
     /// If such a draw is detected, SCALE_DRAW is returned.
     /// If not, the return value is SCALE_NONE, i.e. no scaling will be used.
-    template<> Scale Endgame<KBPsKPs>::operator() (const Position &pos) const
+    template<> Scale Endgame<KBPsKP>::operator() (const Position &pos) const
     {
         assert(pos.si->non_pawn_material (strong_color) == VALUE_MG_BSHP);
         assert(1 == pos.count (strong_color, BSHP));

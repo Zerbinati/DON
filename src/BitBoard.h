@@ -324,7 +324,7 @@ namespace BitBoard {
 
 #else
 
-#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER) // MSVC or Intel compiler
 //#       include <intrin.h> // Microsoft header for pop count instrinsics __popcnt64() & __popcnt()
 #       include <nmmintrin.h> // Microsoft or Intel header for pop count intrinsics _mm_popcnt_u64() & _mm_popcnt_u32()
     inline i32 pop_count (Bitboard bb)
@@ -340,7 +340,7 @@ namespace BitBoard {
 #   endif
     }
 
-#   else // GCC or compatible compiler
+#   else // GCC, Clang, ICC or compatible compiler
 
     inline i32 pop_count (Bitboard bb)
     {
@@ -359,7 +359,7 @@ namespace BitBoard {
 
 #endif
 
-#if defined(_MSC_VER)
+#if defined(_MSC_VER) // MSVC compiler
 
 #   include <intrin.h> // Microsoft header for instrinsics _BitScanForward64() & _BitScanReverse64()
 
@@ -368,7 +368,7 @@ namespace BitBoard {
         assert(0 != bb);
 
         unsigned long index;
-#   if defined(BIT64)
+#   if defined(_WIN64)
         _BitScanForward64 (&index, bb);
 #   else
         if (0 != u32(bb >> 0))
@@ -389,7 +389,7 @@ namespace BitBoard {
         assert(0 != bb);
 
         unsigned long index;
-#   if defined(BIT64)
+#   if defined(_WIN64)
         _BitScanReverse64 (&index, bb);
 #   else
         if (0 != u32(bb >> 0x20))
@@ -405,7 +405,7 @@ namespace BitBoard {
         return Square(index);
     }
 
-#elif defined(__GNUC__)
+#elif defined(__GNUC__) // GCC, Clang, ICC compiler
 
     inline Square scan_lsq (Bitboard bb)
     {
@@ -451,13 +451,7 @@ namespace BitBoard {
     //    return Square(index);
     //}
 
-#else
-
-#   define NO_BSFQ
-
-#endif
-
-#if defined(NO_BSFQ)
+#else // Compiler is neither GCC nor MSVC compatible
 
 #   if defined(BIT64)
 

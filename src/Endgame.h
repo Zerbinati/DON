@@ -37,7 +37,7 @@ namespace EndGame {
         // Generic Scale functions
         KPKP,    // KP vs KP
         KPsK,    // KPs vs K
-        KBPsKPs, // KBPs vs KPs
+        KBPsKP,  // KBPs vs KP
         KQKRPs,  // KQ vs KRPs
     };
 

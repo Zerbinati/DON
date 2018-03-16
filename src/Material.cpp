@@ -41,7 +41,7 @@ namespace Material {
 
         Endgame<KPKP>    ScaleKPKP[CLR_NO] = { Endgame<KPKP> (WHITE), Endgame<KPKP> (BLACK) };
         Endgame<KPsK>    ScaleKPsK[CLR_NO] = { Endgame<KPsK> (WHITE), Endgame<KPsK> (BLACK) };
-        Endgame<KBPsKPs> ScaleKBPsKPs[CLR_NO] = { Endgame<KBPsKPs> (WHITE), Endgame<KBPsKPs> (BLACK) };
+        Endgame<KBPsKP> ScaleKBPsKP[CLR_NO] = { Endgame<KBPsKP> (WHITE), Endgame<KBPsKP> (BLACK) };
         Endgame<KQKRPs>  ScaleKQKRPs[CLR_NO] = { Endgame<KQKRPs> (WHITE), Endgame<KQKRPs> (BLACK) } ;
 
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
@@ -143,7 +143,7 @@ namespace Material {
                 && pos.count ( c, BSHP) == 1
                 && pos.count ( c, PAWN) != 0)
             {
-                e->scale_func[c] = &ScaleKBPsKPs[c];
+                e->scale_func[c] = &ScaleKBPsKP[c];
             }
             else
             if (   pos.si->non_pawn_material ( c) == VALUE_MG_QUEN
