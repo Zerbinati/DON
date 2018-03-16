@@ -761,7 +761,7 @@ namespace EndGame {
         if (   0 == (spawns & ~front_rank_bb (weak_color, wk_sq))
             && (   0 == (spawns & ~FA_bb)
                 || 0 == (spawns & ~FH_bb))
-            && 1 >= dist<File> (wk_sq, scan_frntmost_sq (strong_color, spawns)))
+            && 1 >= dist<File> (wk_sq, scan_lsq (spawns)))
         {
             return SCALE_DRAW;
         }
@@ -782,8 +782,7 @@ namespace EndGame {
         // be detected even when the weak side has some materials or pawns.
 
         auto spawns = pos.pieces (strong_color, PAWN);
-        auto sp_sq = scan_frntmost_sq (strong_color, spawns);
-        auto sp_f  = _file (sp_sq);
+        auto sp_f = _file (scan_lsq (spawns));
 
         // All pawns on same A or H file? (rook file)
         // Then potential draw
