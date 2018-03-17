@@ -50,7 +50,7 @@ public:
 
     explicit SkillManager (u08 lvl = MaxLevel)
         : level (lvl)
-        , best_move (MOVE_NONE)
+        , best_move (Move::NONE)
     {}
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;

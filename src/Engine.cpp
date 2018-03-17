@@ -169,7 +169,7 @@ namespace {
         {
             ++count;
             auto m = move_from_can (token, pos);
-            if (MOVE_NONE == m)
+            if (Move::NONE == m)
             {
                 std::cerr << "ERROR: Illegal Move '" << token << "' at " << count << std::endl;
                 break;
@@ -224,7 +224,7 @@ namespace {
                 while (iss >> token)
                 {
                     auto m = move_from_can (token, pos);
-                    if (MOVE_NONE == m)
+                    if (Move::NONE == m)
                     {
                         std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                         continue;
@@ -242,7 +242,7 @@ namespace {
                 while (iss >> token)
                 {
                     auto m = move_from_can (token, pos);
-                    if (MOVE_NONE == m)
+                    if (Move::NONE == m)
                     {
                         std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                         continue;

@@ -74,8 +74,8 @@ struct PolyEntry
                         move <= entry.move;
     }
 
-    bool operator== (Move m) { return move == m; }
-    bool operator!= (Move m) { return move != m; }
+    bool operator== (Move m) { return move == +m; }
+    bool operator!= (Move m) { return move != +m; }
 
     explicit operator std::string () const;
 

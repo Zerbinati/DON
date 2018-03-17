@@ -102,8 +102,8 @@ namespace {
 /// Internally castle moves are always coded as "king captures rook".
 string move_to_can (Move m)
 {
-    if (MOVE_NONE == m) return "(none)";
-    if (MOVE_NULL == m) return "(null)";
+    if (Move::NONE == m) return "(none)";
+    if (Move::NULL_ == m) return "(null)";
 
     auto can = to_string (org_sq (m))
              + to_string (fix_dst_sq (m, Position::Chess960));
@@ -130,14 +130,14 @@ Move move_from_can (const string &can, const Position &pos)
             return vm.move;
         }
     }
-    return MOVE_NONE;
+    return Move::NONE;
 }
 
 /// Converts a move to a string in short algebraic notation.
 string move_to_san (Move m, Position &pos)
 {
-    if (MOVE_NONE == m) return "(none)";
-    if (MOVE_NULL == m) return "(null)";
+    if (Move::NONE == m) return "(none)";
+    if (Move::NULL_ == m) return "(null)";
     assert(MoveList<GenType::LEGAL> (pos).contains (m));
 
     string san;
@@ -216,14 +216,14 @@ Move move_from_san (const string &san, Position &pos)
             return vm.move;
         }
     }
-    return MOVE_NONE;
+    return Move::NONE;
 }
 
 ///// Converts a move to a string in long algebraic notation.
 //string move_to_lan (Move m, Position &pos)
 //{
-//    if (MOVE_NONE == m) return "(none)";
-//    if (MOVE_NULL == m) return "(null)";
+//    if (Move::NONE == m) return "(none)";
+//    if (Move::NULL_ == m) return "(null)";
 //    assert(MoveList<GenType::LEGAL> (pos).contains (m));
 //    string lan;
 //    return lan;
@@ -239,7 +239,7 @@ Move move_from_san (const string &san, Position &pos)
 //            return vm.move;
 //        }
 //    }
-//    return MOVE_NONE;
+//    return Move::NONE;
 //}
 
 /// Returns formated human-readable search information.

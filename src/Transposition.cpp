@@ -156,7 +156,7 @@ TEntry* TTable::probe (Key key, bool &tt_hit) const
             if (   tt_hit
                 && ite->generation () != TEntry::Generation)
             {
-                ite->gb08 = u08(TEntry::Generation + ite->bound ());
+                ite->gb08 = u08(TEntry::Generation + +ite->bound ());
             }
             return ite;
         }

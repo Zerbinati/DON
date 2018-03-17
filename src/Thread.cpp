@@ -127,7 +127,7 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
     static PRNG prng (now ()); // PRNG sequence should be non-deterministic.
 
     assert(!root_moves.empty ());
-    if (MOVE_NONE == best_move)
+    if (Move::NONE == best_move)
     {
         // RootMoves are already sorted by value in descending order
         auto max_value = root_moves[0].new_value;
@@ -228,7 +228,7 @@ void Thread::clear ()
     tb_hits = 0;
     nmp_ply = 0;
     nmp_odd = false;
-    counter_moves.fill (MOVE_NONE);
+    counter_moves.fill (Move::NONE);
     butterfly_history.fill (0);
     capture_history.fill (0);
     for (auto &pd : continuation_history)

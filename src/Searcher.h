@@ -226,7 +226,7 @@ public:
     
     i16 sel_depth;
 
-    explicit RootMove (Move m = MOVE_NONE)
+    explicit RootMove (Move m = Move::NONE)
         : std::vector<Move> (1, m)
         , old_value (-Value::INFINITE_)
         , new_value (-Value::INFINITE_)

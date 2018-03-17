@@ -67,7 +67,7 @@ namespace {
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
         // Polyglot use 3 bits while engine use 2 bits.
-        u08 pt = (m >> 12) & MAX_PTYPE;
+        u08 pt = (+m >> 12) & MAX_PTYPE;
         // Set new type for promotion piece
         if (0 != pt)
         {
@@ -77,13 +77,13 @@ namespace {
         // Add special move flags and verify it is legal
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {
-            if ((vm.move & ~PROMOTE) == m)
+            if ((+vm.move & ~PROMOTE) == +m)
             {
                 return vm.move;
             }
         }
 
-        return MOVE_NONE;
+        return Move::NONE;
     }
 
     bool move_draw (Position &pos, Move m)
@@ -261,7 +261,7 @@ void PolyBook::initialize (const string &book_fn)
     enabled = true;
 }
 /// PolyBook::probe() tries to find a book move for the given position.
-/// If no move is found returns MOVE_NONE.
+/// If no move is found returns Move::NONE.
 /// If pick_best is true returns always the highest rated move,
 /// otherwise randomly chooses one, based on the move score.
 Move PolyBook::probe (Position &pos)
@@ -274,7 +274,7 @@ Move PolyBook::probe (Position &pos)
             && pos.move_num () > move_count)
         || !can_probe (pos))
     {
-        return MOVE_NONE;
+        return Move::NONE;
     }
 
     auto key = pos.pg_key ();
@@ -289,7 +289,7 @@ Move PolyBook::probe (Position &pos)
             fail_counter = 0;
         }
 
-        return MOVE_NONE;
+        return Move::NONE;
     }
 
     u08 count = 0;
@@ -301,7 +301,7 @@ Move PolyBook::probe (Position &pos)
     while (   i < entry_count
            && key == entries[i].key)
     {
-        if (MOVE_NONE == entries[i].move) continue;
+        if (+Move::NONE == entries[i].move) continue;
 
         ++count;
         max_weight = std::max (entries[i].weight, max_weight);
@@ -330,7 +330,7 @@ Move PolyBook::probe (Position &pos)
 
     Move move;
     move = Move(entries[pick1_index].move);
-    if (MOVE_NONE == move) return move;
+    if (Move::NONE == move) return move;
 
     move = convert_move (pos, move);
 
@@ -355,7 +355,7 @@ Move PolyBook::probe (Position &pos)
     }
 
     move = Move(entries[pick2_index].move);
-    if (MOVE_NONE == move) return move;
+    if (Move::NONE == move) return move;
 
     move = convert_move (pos, move);
 
@@ -364,7 +364,7 @@ Move PolyBook::probe (Position &pos)
         return move;
     }
 
-    return MOVE_NONE;
+    return Move::NONE;
 }
 
 string PolyBook::show (const Position &pos) const
@@ -400,7 +400,7 @@ string PolyBook::show (const Position &pos) const
         oss << "\nBook entries: " << list_entries.size ();
         for (auto entry : list_entries)
         {
-            entry.move = convert_move (pos, Move(entry.move));
+            entry.move = +convert_move (pos, Move(entry.move));
             oss << "\n"
                 << entry
                 << " prob: "

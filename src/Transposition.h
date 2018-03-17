@@ -47,7 +47,7 @@ public:
 
     // The worth of an entry is calculated as its depth minus 2 times its relative age.
     // Due to packed storage format for generation and its cyclic nature
-    // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
+    // add 0x103 (0x100 + 0x003 (Bound::EXACT) to keep the lowest two bound bits from affecting the result)
     // to calculate the entry age correctly even after generation overflows into the next cycle.
     i16   worth () const { return d08 - ((Generation + 0x103 - gb08) & 0xFC) * 2; }
 
@@ -55,17 +55,17 @@ public:
     {
         // Preserve more valuable entries
         if (   k16 != (k >> 0x30)   // Use the high 16 bits as key inside the cluster
-            || MOVE_NONE != m)
+            || Move::NONE != m)
         {
             m16 = u16(m);
         }
         if (   k16 != (k >> 0x30)
             || d08 - 4 < d
-            || BOUND_EXACT == b)
+            || Bound::EXACT == b)
         {
             k16 = u16(k >> 0x30);
             d08 = i08(d);
-            gb08 = u08(Generation + b);
+            gb08 = u08(Generation + +b);
             v16 = i16(v);
             e16 = i16(e);
         }

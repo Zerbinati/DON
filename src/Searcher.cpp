@@ -20,7 +20,7 @@ using namespace TBSyzygy;
 bool RootMove::extract_ponder_move_from_tt (Position &pos)
 {
     assert(1 == size ());
-    assert(MOVE_NONE != front ());
+    assert(Move::NONE != front ());
 
     StateInfo si;
     auto best_move = front ();
@@ -29,7 +29,7 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     auto *tte = TT.probe (pos.si->posi_key, tt_hit);
     Move ponder_move;
     if (   tt_hit
-        && MOVE_NONE != (ponder_move = tte->move ()) // Local copy to be SMP safe
+        && Move::NONE != (ponder_move = tte->move ()) // Local copy to be SMP safe
         && pos.pseudo_legal (ponder_move)
         && pos.legal (ponder_move))
     {
@@ -45,7 +45,7 @@ RootMove::operator string () const
     ostringstream oss;
     for (auto move : *this)
     {
-        assert(MOVE_NONE != move);
+        assert(Move::NONE != move);
         oss << " " << move_to_can (move);
     }
     return oss.str ();
@@ -91,7 +91,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     , refutation_moves (km, km + MaxKillers)
     , pick_quiets (true)
 {
-    assert(MOVE_NONE == tt_move
+    assert(Move::NONE == tt_move
         || (pos.pseudo_legal (tt_move)
          && pos.legal (tt_move)));
     assert(depth > 0);
@@ -105,7 +105,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     {
         stage = Stage::NAT_TT;
 
-        if (   MOVE_NONE != cm
+        if (   Move::NONE != cm
             && tt_move != cm
             && std::find (refutation_moves.begin (), refutation_moves.end (), cm) == refutation_moves.end ())
         {
@@ -115,7 +115,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
                                                 refutation_moves.end (),
                                                 [&](Move mm)
                                                 {
-                                                    return MOVE_NONE == mm
+                                                    return Move::NONE == mm
                                                         || tt_move == mm
                                                         || !pos.pseudo_legal (mm)
                                                         || !pos.legal (mm)
@@ -124,7 +124,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
                              refutation_moves.end ());
     }
 
-    if (MOVE_NONE == tt_move)
+    if (Move::NONE == tt_move)
     {
         ++stage;
     }
@@ -141,7 +141,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     , piece_destiny_history (nullptr)
     , pick_quiets (true)
 {
-    assert(MOVE_NONE == tt_move
+    assert(Move::NONE == tt_move
         || (pos.pseudo_legal (tt_move)
          && pos.legal (tt_move)));
     assert(depth <= 0);
@@ -155,14 +155,14 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
         stage = Stage::QS_TT;
     }
 
-    if (   MOVE_NONE != tt_move
+    if (   Move::NONE != tt_move
         && !(   depth > DepthQSRecapture
              || recap_sq == dst_sq (tt_move)))
     {
-        tt_move = MOVE_NONE;
+        tt_move = Move::NONE;
     }
 
-    if (MOVE_NONE == tt_move)
+    if (Move::NONE == tt_move)
     {
         ++stage;
     }
@@ -178,19 +178,19 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     , pick_quiets (true)
 {
     assert(0 == pos.si->checkers);
-    assert(MOVE_NONE == tt_move
+    assert(Move::NONE == tt_move
         || (pos.pseudo_legal (tt_move)
          && pos.legal (tt_move)));
 
     stage = Stage::PC_TT;
-    if (   MOVE_NONE != tt_move
+    if (   Move::NONE != tt_move
         && !(   pos.capture (tt_move)
              && pos.see_ge (tt_move, threshold)))
     {
-        tt_move = MOVE_NONE;
+        tt_move = Move::NONE;
     }
 
-    if (MOVE_NONE == tt_move)
+    if (Move::NONE == tt_move)
     {
         ++stage;
     }
@@ -268,7 +268,7 @@ Move MovePicker::next_move ()
     case Stage::QS_CAPTURE_INIT:
         generate<GenType::CAPTURE> (moves, pos);
         filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
+        if (Move::NONE != tt_move)
         {
             auto itr = std::find (moves.begin (), moves.end (), tt_move);
             if (itr != moves.end ())
@@ -298,7 +298,7 @@ Move MovePicker::next_move ()
     case Stage::NAT_QUIET_INIT:
         generate<GenType::QUIET> (moves, pos);
         filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
+        if (Move::NONE != tt_move)
         {
             auto itr = std::find (moves.begin (), moves.end (), tt_move);
             if (itr != moves.end ())
@@ -342,7 +342,7 @@ Move MovePicker::next_move ()
         assert(0 != pos.si->checkers);
         generate<GenType::EVASION> (moves, pos);
         filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
+        if (Move::NONE != tt_move)
         {
             auto itr = std::find (moves.begin (), moves.end (), tt_move);
             if (itr != moves.end ())
@@ -401,7 +401,7 @@ Move MovePicker::next_move ()
     case Stage::QS_CHECK_INIT:
         generate<GenType::QUIET_CHECK> (moves, pos);
         filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
+        if (Move::NONE != tt_move)
         {
             auto itr = std::find (moves.begin (), moves.end (), tt_move);
             if (itr != moves.end ())
@@ -423,7 +423,7 @@ Move MovePicker::next_move ()
         assert(false);
         break;
     }
-    return MOVE_NONE;
+    return Move::NONE;
 }
 
 namespace Searcher {
@@ -622,11 +622,11 @@ namespace Searcher {
 
             if (PVNode)
             {
-                prev_alfa = alfa; // To flag BOUND_EXACT when eval above alpha and no available moves
+                prev_alfa = alfa; // To flag Bound::EXACT when eval above alpha and no available moves
                 ss->pv.clear ();
             }
 
-            ss->played_move = MOVE_NONE;
+            ss->played_move = Move::NONE;
 
             bool in_check = 0 != pos.si->checkers;
 
@@ -646,12 +646,12 @@ namespace Searcher {
             bool tt_hit;
             auto *tte = TT.probe (key, tt_hit);
             auto tt_move = tt_hit
-                        && MOVE_NONE != (move = tte->move ())
+                        && Move::NONE != (move = tte->move ())
                         && pos.pseudo_legal (move)
                         && pos.legal (move) ?
                             move :
-                            MOVE_NONE;
-            assert(MOVE_NONE == tt_move
+                            Move::NONE;
+            assert(Move::NONE == tt_move
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
             auto tt_value = tt_hit ?
@@ -662,7 +662,7 @@ namespace Searcher {
                             DepthNone;
             auto tt_bound = tt_hit ?
                             tte->bound () :
-                            BOUND_NONE;
+                            Bound::NONE;
             auto tt_eval = tt_hit ?
                             tte->eval () :
                             Value::NONE;
@@ -679,7 +679,7 @@ namespace Searcher {
                 && tt_hit
                 && qs_depth <= tt_depth
                 && Value::NONE != tt_value // Only in case of TT access race
-                && BOUND_NONE != (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
+                && Bound::NONE != (tt_bound & (tt_value >= beta ? Bound::LOWER : Bound::UPPER)))
             {
                 return tt_value;
             }
@@ -687,7 +687,7 @@ namespace Searcher {
             Value best_value
                 , futility_base;
 
-            auto best_move = MOVE_NONE;
+            auto best_move = Move::NONE;
 
             StateInfo si;
 
@@ -714,17 +714,17 @@ namespace Searcher {
 
                     // Can tt_value be used as a better position evaluation?
                     if (   Value::NONE != tt_value
-                        && BOUND_NONE != (tt_bound & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
+                        && Bound::NONE != (tt_bound & (tt_value > tt_eval ? Bound::LOWER : Bound::UPPER)))
                     {
                         tt_eval = tt_value;
                     }
                 }
                 else
                 {
-                    assert(MOVE_NULL != (ss-1)->played_move
+                    assert(Move::NULL_ != (ss-1)->played_move
                         || Value::NONE != (ss-1)->static_eval);
                     ss->static_eval =
-                    tt_eval = MOVE_NULL != (ss-1)->played_move ?
+                    tt_eval = Move::NULL_ != (ss-1)->played_move ?
                                 evaluate (pos) :
                                 -(ss-1)->static_eval + Tempo*2;
                 }
@@ -737,11 +737,11 @@ namespace Searcher {
                         if (!tt_hit)
                         {
                             tte->save (key,
-                                       MOVE_NONE,
+                                       Move::NONE,
                                        value_to_tt (tt_eval, ss->ply),
                                        ss->static_eval,
                                        DepthNone,
-                                       BOUND_LOWER);
+                                       Bound::LOWER);
                         }
 
                         assert(-Value::INFINITE_ < tt_eval && tt_eval <  Value::INFINITE_);
@@ -765,7 +765,7 @@ namespace Searcher {
             // Initialize move picker (2) for the current position
             MovePicker move_picker (pos, tt_move, depth, dst_sq ((ss-1)->played_move));
             // Loop through the moves until no moves remain or a beta cutoff occurs
-            while (MOVE_NONE != (move = move_picker.next_move ()))
+            while (Move::NONE != (move = move_picker.next_move ()))
             {
                 assert(pos.pseudo_legal (move)
                     && pos.legal (move));
@@ -860,7 +860,7 @@ namespace Searcher {
                                        value_to_tt (value, ss->ply),
                                        ss->static_eval,
                                        qs_depth,
-                                       BOUND_LOWER);
+                                       Bound::LOWER);
 
                             assert(-Value::INFINITE_ < value && value <  Value::INFINITE_);
                             return value;
@@ -885,8 +885,8 @@ namespace Searcher {
                        qs_depth,
                           PVNode
                        && best_value > prev_alfa ?
-                           BOUND_EXACT :
-                           BOUND_UPPER);
+                           Bound::EXACT :
+                           Bound::UPPER);
 
             assert(-Value::INFINITE_ < best_value && best_value <  Value::INFINITE_);
             return best_value;
@@ -928,14 +928,14 @@ namespace Searcher {
             bool in_check = 0 != pos.si->checkers;
 
             ss->move_count = 0;
-            ss->played_move = MOVE_NONE;
+            ss->played_move = Move::NONE;
             ss->piece_destiny_history = pos.thread->continuation_history[+Piece::NONE][0].get ();
 
             auto value = Value::ZERO
                , best_value = -Value::INFINITE_
                , min_value =  Value::INFINITE_;
 
-            auto best_move = MOVE_NONE;
+            auto best_move = Move::NONE;
 
             if (!root_node)
             {
@@ -968,8 +968,8 @@ namespace Searcher {
                 && ss->ply == (ss-1)->ply + 1
                 && ss->ply < MaxPlies);
 
-            assert(MOVE_NONE == (ss+1)->excluded_move);
-            std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
+            assert(Move::NONE == (ss+1)->excluded_move);
+            std::fill_n ((ss+2)->killer_moves, MaxKillers, Move::NONE);
 
             // Initialize stat_score to zero for the grandchildren of the current position.
             // So stat_score is shared between all grandchildren and only the first grandchild starts with stat_score = 0.
@@ -981,18 +981,18 @@ namespace Searcher {
             // Step 4. Transposition table lookup.
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
-            Key  key = pos.si->posi_key ^ Key(ss->excluded_move << 16);
+            Key  key = pos.si->posi_key ^ Key(+ss->excluded_move << 16);
             bool tt_hit;
             auto *tte = TT.probe (key, tt_hit);
             auto tt_move = root_node ?
                             pos.thread->root_moves[pos.thread->pv_index][0] :
                                tt_hit
-                            && MOVE_NONE != (move = tte->move ())
+                            && Move::NONE != (move = tte->move ())
                             && pos.pseudo_legal (move)
                             && pos.legal (move) ?
                                 move :
-                                MOVE_NONE;
-            assert(MOVE_NONE == tt_move
+                                Move::NONE;
+            assert(Move::NONE == tt_move
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
             auto tt_value = tt_hit ?
@@ -1003,7 +1003,7 @@ namespace Searcher {
                             DepthNone;
             auto tt_bound = tt_hit ?
                             tte->bound () :
-                            BOUND_NONE;
+                            Bound::NONE;
             auto tt_eval = tt_hit ?
                             tte->eval () :
                             Value::NONE;
@@ -1014,10 +1014,10 @@ namespace Searcher {
                 && tt_hit
                 && depth <= tt_depth
                 && Value::NONE != tt_value // Only in case of TT access race.
-                && BOUND_NONE != (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
+                && Bound::NONE != (tt_bound & (tt_value >= beta ? Bound::LOWER : Bound::UPPER)))
             {
                 // Update move sorting heuristics on tt_move.
-                if (MOVE_NONE != tt_move)
+                if (Move::NONE != tt_move)
                 {
                     if (tt_value >= beta)
                     {
@@ -1079,15 +1079,15 @@ namespace Searcher {
                                 wdl > +draw ? Value( +Value::MATE - (MaxPlies + ss->ply + 1)) :
                                               Value::ZERO + 2 * wdl * draw;
 
-                        auto bound = wdl < -draw ? BOUND_UPPER :
-                                     wdl >  draw ? BOUND_LOWER :
-                                                   BOUND_EXACT;
+                        auto bound = wdl < -draw ? Bound::UPPER :
+                                     wdl >  draw ? Bound::LOWER :
+                                                   Bound::EXACT;
 
-                        if (   BOUND_EXACT == bound
-                            || (BOUND_LOWER == bound ? value >= beta : value <= alfa))
+                        if (   Bound::EXACT == bound
+                            || (Bound::LOWER == bound ? value >= beta : value <= alfa))
                         {
                             tte->save (key,
-                                       MOVE_NONE,
+                                       Move::NONE,
                                        value_to_tt (value, ss->ply),
                                        Value::NONE,
                                        std::min<i16> (depth + 6, MaxPlies - 1),
@@ -1098,7 +1098,7 @@ namespace Searcher {
 
                         if (PVNode)
                         {
-                            if (BOUND_LOWER == bound)
+                            if (Bound::LOWER == bound)
                             {
                                 best_value = value;
                                 alfa = std::max (best_value, alfa);
@@ -1137,26 +1137,26 @@ namespace Searcher {
 
                     // Can tt_value be used as a better position evaluation?
                     if (   Value::NONE != tt_value
-                        && BOUND_NONE != (tt_bound & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
+                        && Bound::NONE != (tt_bound & (tt_value > tt_eval ? Bound::LOWER : Bound::UPPER)))
                     {
                         tt_eval = tt_value;
                     }
                 }
                 else
                 {
-                    assert(MOVE_NULL != (ss-1)->played_move
+                    assert(Move::NULL_ != (ss-1)->played_move
                         || Value::NONE != (ss-1)->static_eval);
                     ss->static_eval =
-                    tt_eval = MOVE_NULL != (ss-1)->played_move ?
+                    tt_eval = Move::NULL_ != (ss-1)->played_move ?
                                 evaluate (pos) :
                                 -(ss-1)->static_eval + Tempo*2;
 
                     tte->save (key,
-                               MOVE_NONE,
+                               Move::NONE,
                                Value::NONE,
                                ss->static_eval,
                                DepthNone,
-                               BOUND_NONE);
+                               Bound::NONE);
                 }
 
                 improving = (ss-0)->static_eval >= (ss-2)->static_eval
@@ -1165,7 +1165,7 @@ namespace Searcher {
                 if (   prun_node
                     && Value::ZERO != pos.si->non_pawn_material (pos.active))
                 {
-                    assert(MOVE_NONE == ss->excluded_move);
+                    assert(Move::NONE == ss->excluded_move);
 
                     // Step 7. Razoring sort of forward pruning where rather than
                     // skipping an entire subtree, search it to a reduced depth.
@@ -1213,7 +1213,7 @@ namespace Searcher {
                         // Null move dynamic reduction based on depth and static evaluation.
                         auto R = i16((67*depth + 823) / 256 + std::min (+(tt_eval - beta)/+Value::MG_PAWN, 3));
 
-                        ss->played_move = MOVE_NULL;
+                        ss->played_move = Move::NULL_;
                         ss->piece_destiny_history = pos.thread->continuation_history[+Piece::NONE][0].get ();
 
                         pos.do_null_move (si);
@@ -1273,7 +1273,7 @@ namespace Searcher {
                         // Initialize move picker (3) for the current position
                         MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
                         // Loop through all legal moves until no moves remain or a beta cutoff occurs
-                        while (   MOVE_NONE != (move = move_picker.next_move ())
+                        while (   Move::NONE != (move = move_picker.next_move ())
                                && 3 > pc_movecount)
                         {
                             assert(pos.pseudo_legal (move)
@@ -1306,7 +1306,7 @@ namespace Searcher {
                     }
 
                     // Step 11. Internal iterative deepening (IID).
-                    if (   MOVE_NONE == tt_move
+                    if (   Move::NONE == tt_move
                         && 5 < depth
                         && (   PVNode
                             || ss->static_eval + 256 >= beta))
@@ -1315,11 +1315,11 @@ namespace Searcher {
 
                         tte = TT.probe (key, tt_hit);
                         tt_move = tt_hit
-                               && MOVE_NONE != (move = tte->move ())
+                               && Move::NONE != (move = tte->move ())
                                && pos.pseudo_legal (move)
                                && pos.legal (move) ?
                                     move :
-                                    MOVE_NONE;
+                                    Move::NONE;
                         tt_value = tt_hit ?
                                     value_of_tt (tte->value (), ss->ply) :
                                     Value::NONE;
@@ -1328,21 +1328,21 @@ namespace Searcher {
                                     DepthNone;
                         tt_bound = tt_hit ?
                                     tte->bound () :
-                                    BOUND_NONE;
+                                    Bound::NONE;
                     }
                 }
             }
 
             bool singular_ext_node = !root_node
                                   && tt_hit
-                                  && MOVE_NONE != tt_move
-                                  && MOVE_NONE == ss->excluded_move // Recursive singular search is not allowed.
+                                  && Move::NONE != tt_move
+                                  && Move::NONE == ss->excluded_move // Recursive singular search is not allowed.
                                   && 7 < depth && depth < tt_depth + 4
                                   && Value::NONE != tt_value
-                                  && BOUND_NONE != (tt_bound & BOUND_LOWER);
+                                  && Bound::NONE != (tt_bound & Bound::LOWER);
 
             bool exact = tt_hit
-                      && BOUND_EXACT == tt_bound;
+                      && Bound::EXACT == tt_bound;
 
             bool ttm_capture = false;
 
@@ -1356,11 +1356,11 @@ namespace Searcher {
             const PieceDestinyHistory *piece_destiny_history[4] = { (ss-1)->piece_destiny_history, (ss-2)->piece_destiny_history, (ss-3)->piece_destiny_history, (ss-4)->piece_destiny_history };
             auto counter_move = _ok ((ss-1)->played_move) ?
                                     pos.thread->counter_moves[+pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
-                                    MOVE_NONE;
+                                    Move::NONE;
             // Initialize move picker (1) for the current position
             MovePicker move_picker (pos, tt_move, depth, piece_destiny_history, ss->killer_moves, counter_move);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
-            while (MOVE_NONE != (move = move_picker.next_move ()))
+            while (Move::NONE != (move = move_picker.next_move ()))
             {
                 assert(pos.pseudo_legal (move)
                     && pos.legal (move));
@@ -1437,7 +1437,7 @@ namespace Searcher {
 
                     ss->excluded_move = move;
                     value = depth_search<false> (pos, ss, beta_margin-1, beta_margin, depth/2, cut_node, false);
-                    ss->excluded_move = MOVE_NONE;
+                    ss->excluded_move = Move::NONE;
 
                     if (value < beta_margin)
                     {
@@ -1707,7 +1707,7 @@ namespace Searcher {
             }
 
             assert(!in_check
-                || MOVE_NONE != ss->excluded_move
+                || Move::NONE != ss->excluded_move
                 || 0 != move_count
                 || 0 == MoveList<GenType::LEGAL> (pos).size ());
 
@@ -1717,7 +1717,7 @@ namespace Searcher {
             // Otherwise it must be a checkmate or a stalemate, so return value accordingly.
             if (0 == move_count)
             {
-                best_value = MOVE_NONE != ss->excluded_move ?
+                best_value = Move::NONE != ss->excluded_move ?
                                 alfa :
                                 in_check ?
                                     mated_in (ss->ply) :
@@ -1726,7 +1726,7 @@ namespace Searcher {
             else
             {
                 // Quiet best move: update move sorting heuristics.
-                if (MOVE_NONE != best_move)
+                if (Move::NONE != best_move)
                 {
                     if (!pos.capture_or_promotion (best_move))
                     {
@@ -1780,7 +1780,7 @@ namespace Searcher {
                 best_value = std::min (min_value, best_value);
             }
 
-            if (MOVE_NONE == ss->excluded_move)
+            if (Move::NONE == ss->excluded_move)
             {
                 tte->save (key,
                            best_move,
@@ -1788,11 +1788,11 @@ namespace Searcher {
                            ss->static_eval,
                            depth,
                            best_value >= beta ?
-                               BOUND_LOWER :
+                               Bound::LOWER :
                                   PVNode
-                               && MOVE_NONE != best_move ?
-                                   BOUND_EXACT :
-                                   BOUND_UPPER);
+                               && Move::NONE != best_move ?
+                                   Bound::EXACT :
+                                   Bound::UPPER);
             }
 
             assert(-Value::INFINITE_ < best_value && best_value <  Value::INFINITE_);
@@ -1855,9 +1855,9 @@ void Thread::search ()
     for (auto ss = stacks; ss < stacks + MaxPlies + 7; ++ss)
     {
         ss->ply = i16(ss - (stacks + 4));
-        ss->played_move = MOVE_NONE;
-        ss->excluded_move = MOVE_NONE;
-        std::fill_n (ss->killer_moves, MaxKillers, MOVE_NONE);
+        ss->played_move = Move::NONE;
+        ss->excluded_move = Move::NONE;
+        std::fill_n (ss->killer_moves, MaxKillers, Move::NONE);
         ss->move_count = 0;
         ss->static_eval = Value::ZERO;
         ss->stat_score = 0;
@@ -1868,7 +1868,7 @@ void Thread::search ()
                             Threadpool.main_thread () :
                             nullptr;
 
-    auto last_best_move = MOVE_NONE;
+    auto last_best_move = Move::NONE;
     i16  last_best_move_depth = 0;
     auto best_value = Value::ZERO
         , window = Value::ZERO
@@ -2033,7 +2033,7 @@ void Thread::search ()
             if (   main_thread->skill_mgr.enabled ()
                 && main_thread->skill_mgr.can_pick (running_depth))
             {
-                main_thread->skill_mgr.best_move = MOVE_NONE;
+                main_thread->skill_mgr.best_move = Move::NONE;
                 main_thread->skill_mgr.pick_best_move (main_thread->root_moves);
             }
 
@@ -2145,7 +2145,7 @@ void MainThread::search ()
     {
         think = false;
 
-        root_moves += MOVE_NONE;
+        root_moves += Move::NONE;
 
         sync_cout << "info"
                   << " depth " << 0
@@ -2159,7 +2159,7 @@ void MainThread::search ()
             && 0 == Limits.mate)
         {
             auto book_best_move = Book.probe (root_pos);
-            if (MOVE_NONE != book_best_move)
+            if (Move::NONE != book_best_move)
             {
                 auto itr = std::find (root_moves.begin (), root_moves.end (), book_best_move);
                 if (itr != root_moves.end ())
@@ -2170,7 +2170,7 @@ void MainThread::search ()
                     StateInfo si;
                     root_pos.do_move (book_best_move, si);
                     auto book_ponder_move = Book.probe (root_pos);
-                    if (MOVE_NONE != book_ponder_move)
+                    if (Move::NONE != book_ponder_move)
                     {
                         root_moves[0] += book_ponder_move;
                     }
@@ -2204,7 +2204,7 @@ void MainThread::search ()
 
             if (skill_mgr.enabled ())
             {
-                skill_mgr.best_move = MOVE_NONE;
+                skill_mgr.best_move = Move::NONE;
             }
 
             // Have to play with skill handicap?
@@ -2264,7 +2264,7 @@ void MainThread::search ()
         // Check if there is better thread than main thread.
         if (   1 == Threadpool.pv_limit
             && 0 == Limits.depth // Depth limit search don't use deeper thread
-            && MOVE_NONE != root_moves[0][0]
+            && Move::NONE != root_moves[0][0]
             && !skill_mgr.enabled ())
         {
             best_thread = Threadpool.best_thread ();
@@ -2292,14 +2292,14 @@ void MainThread::search ()
     }
 
     auto best_move = rm[0];
-    auto ponder_move = MOVE_NONE != best_move
+    auto ponder_move = Move::NONE != best_move
                     && (   rm.size () > 1
                         || rm.extract_ponder_move_from_tt (root_pos)) ?
                            rm[1] :
-                           MOVE_NONE;
-    assert(MOVE_NONE != best_move
-        || (MOVE_NONE == best_move
-         && MOVE_NONE == ponder_move));
+                           Move::NONE;
+    assert(Move::NONE != best_move
+        || (Move::NONE == best_move
+         && Move::NONE == ponder_move));
 
     if (OutputStream.is_open ())
     {
@@ -2311,7 +2311,7 @@ void MainThread::search ()
                      << "Hash-full  : " << TT.hash_full () << "\n"
                      << "Best Move  : " << move_to_san (best_move, root_pos) << "\n"
                      << "Ponder Move: ";
-        if (MOVE_NONE != best_move)
+        if (Move::NONE != best_move)
         {
             StateInfo si;
             root_pos.do_move (best_move, si);
@@ -2326,7 +2326,7 @@ void MainThread::search ()
         OutputStream.close ();
     }
 
-    // Best move could be MOVE_NONE when searching on a stalemate position.
+    // Best move could be Move::NONE when searching on a stalemate position.
     sync_cout << "bestmove " << move_to_can (best_move)
               << " ponder " << move_to_can (ponder_move) << sync_endl;
 }

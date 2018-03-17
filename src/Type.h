@@ -314,11 +314,11 @@ enum MoveType : u16
 /// bit 12-13: Promotion piece: (Knight...Queen) - 1
 /// bit 14-15: Move flag: (0) Normal (1) Castle (2) En-Passant (3) Promotion
 ///
-/// Special cases are MOVE_NONE and MOVE_NULL.
-enum Move : u16
+/// Special cases are Move::NONE and Move::NULL_.
+enum class Move : u16
 {
-    MOVE_NONE = 0x00,
-    MOVE_NULL = 0x41,
+    NONE  = 0x00,
+    NULL_ = 0x41,
 };
 
 enum class Value : i32
@@ -354,12 +354,12 @@ enum class Score : u32
     ZERO = 0,
 };
 
-enum Bound : u08
+enum class Bound : u08
 {
-    BOUND_NONE  = 0,
-    BOUND_UPPER = 1,
-    BOUND_LOWER = 2,
-    BOUND_EXACT = 3,
+    NONE  = 0,
+    UPPER = 1,
+    LOWER = 2,
+    EXACT = 3,
 };
 
 enum Phase : u08
@@ -398,6 +398,15 @@ enum Scale : u08
     inline T& operator++ (T &t) { t = T(+t + 1); return t; } \
     inline T& operator-- (T &t) { t = T(+t - 1); return t; }
 
+#define BINARY_OPERATORS(T)                                       \
+    constexpr T operator~ (T t) { return T(~+t); }                \
+    constexpr T operator| (T t1, T t2) { return T(+t1 | +t2); }   \
+    constexpr T operator& (T t1, T t2) { return T(+t1 & +t2); }   \
+    constexpr T operator^ (T t1, T t2) { return T(+t1 ^ +t2); }   \
+    inline T operator|= (T t1, T t2) { t1 = t1 | t2; return t1; } \
+    inline T operator&= (T t1, T t2) { t1 = t1 & t2; return t1; } \
+    inline T operator^= (T t1, T t2) { t1 = t1 ^ t2; return t1; } \
+
 BASIC_OPERATORS(File)
 //ARTHMAT_OPERATORS(File)
 INC_DEC_OPERATORS(File)
@@ -422,15 +431,7 @@ INC_DEC_OPERATORS(Square)
 
 INC_DEC_OPERATORS(CastleSide)
 
-inline CastleRight operator~ (CastleRight cr) { return CastleRight(~+cr); }
-
-inline CastleRight operator| (CastleRight cr1, CastleRight cr2) { return CastleRight(+cr1 | +cr2); }
-inline CastleRight operator& (CastleRight cr1, CastleRight cr2) { return CastleRight(+cr1 & +cr2); }
-inline CastleRight operator^ (CastleRight cr1, CastleRight cr2) { return CastleRight(+cr1 ^ +cr2); }
-
-inline CastleRight& operator|= (CastleRight &cr1, CastleRight cr2) { cr1 = cr1 | cr2; return cr1; }
-inline CastleRight& operator&= (CastleRight &cr1, CastleRight cr2) { cr1 = cr1 & cr2; return cr1; }
-inline CastleRight& operator^= (CastleRight &cr1, CastleRight cr2) { cr1 = cr1 ^ cr2; return cr1; }
+BINARY_OPERATORS(CastleRight)
 
 INC_DEC_OPERATORS(PieceType)
 
@@ -471,6 +472,9 @@ inline Score& operator/= (Score &s, i32 i) { s = mk_score (+mg_value (+s) / i, +
 Score operator* (Score, Score) = delete;
 Score operator/ (Score, Score) = delete;
 
+BINARY_OPERATORS(Bound)
+
+#undef BINARY_OPERATORS
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
@@ -535,13 +539,13 @@ constexpr PieceType ptype (Piece p) { return PieceType(+p & MAX_PTYPE); }
 constexpr Color     color (Piece p) { return Color(+p >> 3); }
 constexpr Piece operator~ (Piece p) { return Piece(+p ^ 8); }
 
-constexpr Square    org_sq  (Move m) { return Square((m >> 6) & +Square::H8); }
-constexpr Square    dst_sq  (Move m) { return Square((m >> 0) & +Square::H8); }
+constexpr Square    org_sq  (Move m) { return Square((+m >> 6) & +Square::H8); }
+constexpr Square    dst_sq  (Move m) { return Square((+m >> 0) & +Square::H8); }
 constexpr bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
-constexpr PieceType promote (Move m) { return PieceType(((m >> 12) & 3) + NIHT); }
-constexpr MoveType  mtype   (Move m) { return MoveType(m & PROMOTE); }
-constexpr i16       move_pp (Move m) { return m & 0x0FFF; }
-inline    void      promote (Move &m, PieceType pt) { m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (m & 0x0FFF)); }
+constexpr PieceType promote (Move m) { return PieceType(((+m >> 12) & 3) + NIHT); }
+constexpr MoveType  mtype   (Move m) { return MoveType(+m & PROMOTE); }
+constexpr i16       move_pp (Move m) { return +m & 0x0FFF; }
+inline    void      promote (Move &m, PieceType pt) { m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (+m & 0x0FFF)); }
 constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 {
     return mtype (m) != CASTLE
@@ -574,7 +578,7 @@ public:
     Move move;
     i32  value;
     
-    explicit ValMove (Move m = MOVE_NONE)
+    explicit ValMove (Move m = Move::NONE)
         : move (m)
         , value (0)
     {}
