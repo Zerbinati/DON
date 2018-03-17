@@ -76,7 +76,7 @@ namespace {
 }
 
 // PST[color][piece-type][square] table.
-Score PST[CLR_NO][NONE][+Square::NO];
+Score PST[+Color::NO][NONE][+Square::NO];
 
 /// Computes the scores for the middle game and the endgame.
 /// These functions are used to initialize the scores when a new position is set up,
@@ -84,13 +84,13 @@ Score PST[CLR_NO][NONE][+Square::NO];
 Score compute_psq (const Position &pos)
 {
     auto psq = SCORE_ZERO;
-    for (auto c : { WHITE, BLACK })
+    for (auto c : { Color::WHITE, Color::BLACK })
     {
         for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (auto s : pos.squares[c][pt])
+            for (auto s : pos.squares[+c][pt])
             {
-                psq += PST[c][pt][+s];
+                psq += PST[+c][pt][+s];
             }
         }
     }
@@ -109,8 +109,8 @@ Value compute_npm (const Position &pos)
     }
     return npm;
 }
-template Value compute_npm<WHITE> (const Position&);
-template Value compute_npm<BLACK> (const Position&);
+template Value compute_npm<Color::WHITE> (const Position&);
+template Value compute_npm<Color::BLACK> (const Position&);
 
 /// psqt_initialize() initializes lookup tables at startup
 void psqt_initialize ()
@@ -121,8 +121,8 @@ void psqt_initialize ()
         for (auto s : SQ)
         {
             auto psq = p + HalfPST[pt][+_rank (s)][+std::min (_file (s), File::fH - _file (s))];
-            PST[WHITE][pt][+ s] =  psq;
-            PST[BLACK][pt][+~s] = -psq;
+            PST[+Color::WHITE][pt][+ s] =  psq;
+            PST[+Color::BLACK][pt][+~s] = -psq;
         }
     }
 }

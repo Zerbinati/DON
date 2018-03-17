@@ -28,7 +28,7 @@ public:
     {
         u64 time;
         u32 inc;
-    } clock[CLR_NO];    // Search with Clock
+    } clock[+Color::NO];    // Search with Clock
     u08  movestogo;     // Search <x> moves to the next time control
 
     u64  movetime;      // Search <x> exact time in milli-seconds
@@ -41,10 +41,10 @@ public:
 
     Limit ()
     {
-        clock[WHITE].time =
-        clock[BLACK].time = 0;
-        clock[WHITE].inc =
-        clock[BLACK].inc = 0;
+        clock[+Color::WHITE].time =
+        clock[+Color::BLACK].time = 0;
+        clock[+Color::WHITE].inc =
+        clock[+Color::BLACK].inc = 0;
         movestogo = 0;
 
         movetime = 0;
@@ -122,7 +122,7 @@ struct Stats<T, W, D, Size>
 /// ButterflyHistory records how often quiet moves have been successful or unsuccessful
 /// during the current search, and is used for reduction and move ordering decisions.
 /// It is indexed by [color][move].
-typedef Stats<i16, 32, 324, CLR_NO, +Square::NO*+Square::NO> ButterflyHistory;
+typedef Stats<i16, 32, 324, +Color::NO, +Square::NO*+Square::NO> ButterflyHistory;
 
 /// PieceDestinyHistory is like ButterflyHistory but is indexed by [piece][destiny]
 typedef Stats<i16, 32, 936, MAX_PIECE, +Square::NO> PieceDestinyHistory;

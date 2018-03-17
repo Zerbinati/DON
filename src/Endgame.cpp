@@ -52,7 +52,7 @@ namespace EndGame {
             {
                 sq = !sq;
             }
-            if (c == BLACK)
+            if (c == Color::BLACK)
             {
                 sq = ~sq;
             }
@@ -141,7 +141,7 @@ namespace EndGame {
         auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
         auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
 
-        if (!probe (strong_color == pos.active ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+        if (!probe (strong_color == pos.active ? Color::WHITE : Color::BLACK, sk_sq, sp_sq, wk_sq))
         {
             return VALUE_DRAW;
         }
@@ -736,7 +736,7 @@ namespace EndGame {
         {
             // Probe the KPK bitbase with the weakest side's pawn removed.
             // If it's a draw, it's probably at least a draw even with the pawn.
-            if (!probe (strong_color == pos.active ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+            if (!probe (strong_color == pos.active ? Color::WHITE : Color::BLACK, sk_sq, sp_sq, wk_sq))
             {
                 return SCALE_DRAW;
             }
@@ -862,7 +862,7 @@ namespace EndGame {
             && Rank::r3 == rel_rank (weak_color, wr_sq)
             && 0 != (  pos.pieces (weak_color, PAWN)
                      & PieceAttacks[KING][+wk_sq]
-                     & PawnAttacks[strong_color][+wr_sq]))
+                     & PawnAttacks[+strong_color][+wr_sq]))
         {
             return SCALE_DRAW;
         }

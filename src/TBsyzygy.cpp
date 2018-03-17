@@ -155,8 +155,8 @@ namespace TBSyzygy {
         struct WDLEntryPawn
         {
         public:
-            u08 pawn_count[CLR_NO];        // [Lead color / other color]
-            WDLEntryPiece file[CLR_NO][4]; // [wtm / btm][FILE_A..FILE_D]
+            u08 pawn_count[+Color::NO];        // [Lead color / other color]
+            WDLEntryPiece file[+Color::NO][4]; // [wtm / btm][FILE_A..FILE_D]
         };
 
         struct DTZEntryPiece
@@ -170,7 +170,7 @@ namespace TBSyzygy {
         struct DTZEntryPawn
         {
         public:
-            u08 pawn_count[CLR_NO];
+            u08 pawn_count[+Color::NO];
             DTZEntryPiece file[4];
             u08 *map;
         };
@@ -197,7 +197,7 @@ namespace TBSyzygy {
            ~WDLEntry ();
             union
             {
-                WDLEntryPiece piece_table[CLR_NO]; // [wtm / btm]
+                WDLEntryPiece piece_table[+Color::NO]; // [wtm / btm]
                 WDLEntryPawn  pawn_table;
             };
         };
@@ -220,10 +220,10 @@ namespace TBSyzygy {
         typedef decltype(WDLEntry::pawn_table) WDLPawnTable;
         typedef decltype(DTZEntry::pawn_table) DTZPawnTable;
 
-        auto item (WDLPieceTable &e, i32 stm, i32) -> decltype(e[stm])& { return e[stm]; }
-        auto item (DTZPieceTable &e, i32, i32) -> decltype(e)& { return e; }
-        auto item (WDLPawnTable  &e, i32 stm, i32 f) -> decltype(e.file[stm][f])& { return e.file[stm][f]; }
-        auto item (DTZPawnTable  &e, i32, i32 f) -> decltype(e.file[f])& { return e.file[f]; }
+        auto item (WDLPieceTable &e, Color stm, i32) -> decltype(e[+stm])& { return e[+stm]; }
+        auto item (DTZPieceTable &e, Color, i32) -> decltype(e)& { return e; }
+        auto item (WDLPawnTable  &e, Color stm, i32 f) -> decltype(e.file[+stm][f])& { return e.file[+stm][f]; }
+        auto item (DTZPawnTable  &e, Color, i32 f) -> decltype(e.file[f])& { return e.file[f]; }
 
         template<typename E> struct Ret { typedef i32 type; };
         template<> struct Ret<WDLEntry> { typedef WDLScore type; };
@@ -471,10 +471,10 @@ namespace TBSyzygy {
             Position pos;
             StateInfo si;
             std::memset (&si, 0, sizeof (si));
-            key1 = pos.setup (code, si, WHITE).si->matl_key;
+            key1 = pos.setup (code, si, Color::WHITE).si->matl_key;
             piece_count = pos.count ();
             has_pawns = 0 != pos.count (PAWN);
-            for (auto c : { WHITE, BLACK })
+            for (auto c : { Color::WHITE, Color::BLACK })
             {    
                 for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
                 {
@@ -490,14 +490,14 @@ namespace TBSyzygy {
             {
                 // Set the leading color. In case both sides have pawns the leading color
                 // is the side with less pawns because this leads to better compression.
-                auto lead_color =  pos.count (BLACK, PAWN) == 0
-                                || (   pos.count (WHITE, PAWN)
-                                    && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
+                auto lead_color =  pos.count (Color::BLACK, PAWN) == 0
+                                || (   pos.count (Color::WHITE, PAWN)
+                                    && pos.count (Color::BLACK, PAWN) >= pos.count (Color::WHITE, PAWN)) ? Color::WHITE : Color::BLACK;
 
                 pawn_table.pawn_count[0] = u08(pos.count ( lead_color, PAWN));
                 pawn_table.pawn_count[1] = u08(pos.count (~lead_color, PAWN));
             }
-            key2 = pos.setup (code, si, BLACK).si->matl_key;
+            key2 = pos.setup (code, si, Color::BLACK).si->matl_key;
         }
 
         WDLEntry::~WDLEntry ()
@@ -506,18 +506,18 @@ namespace TBSyzygy {
             {
                 TBFile::unmap (base_address, mapping);
             }
-            for (auto c : { WHITE , BLACK })
+            for (auto c : { Color::WHITE , Color::BLACK })
             {
                 if (has_pawns)
                 {
                     for (auto f : {File::fA, File::fB, File::fC, File::fD })
                     {
-                        delete pawn_table.file[c][+f].precomp;
+                        delete pawn_table.file[+c][+f].precomp;
                     }
                 }
                 else
                 {
-                    delete piece_table[c].precomp;
+                    delete piece_table[+c].precomp;
                 }
             }
         }
@@ -725,7 +725,7 @@ namespace TBSyzygy {
             return d->btree[sym].get<LR::Center> ();
         }
 
-        bool check_dtz_stm (WDLEntry *entry, i32 stm, File f)
+        bool check_dtz_stm (WDLEntry *entry, Color stm, File f)
         {
             (void) entry;
             (void) stm;
@@ -733,13 +733,13 @@ namespace TBSyzygy {
             return true;
         }
 
-        bool check_dtz_stm (DTZEntry *entry, i32 stm, File f)
+        bool check_dtz_stm (DTZEntry *entry, Color stm, File f)
         {
             i32 flags = entry->has_pawns ?
                 entry->pawn_table.file[+f].precomp->flags :
                 entry->piece_table.precomp->flags;
 
-            return (flags & STM) == stm
+            return (flags & STM) == +stm
                 || ((entry->key1 == entry->key2) && !entry->has_pawns);
         }
 
@@ -813,7 +813,7 @@ namespace TBSyzygy {
                 // If both sides have the same pieces keys are equal. In this case TB tables
                 // only store the 'white to move' case, so if the position to lookup has black
                 // to move, we need to switch the color and flip the squares before to lookup.
-                        (   pos.active == BLACK
+                        (   pos.active == Color::BLACK
                          && entry->key1 == entry->key2)
                 // Black Stronger
                 // TB files are calculated for white as stronger side. For instance we have
@@ -830,8 +830,8 @@ namespace TBSyzygy {
                 // In all the 4 tables, pawns are at the beginning of the piece sequence and
                 // their color is the reference one. So we just pick the first one.
                 Piece pc = flip ?
-                    ~item (entry->pawn_table, 0, 0).precomp->pieces[0] :
-                     item (entry->pawn_table, 0, 0).precomp->pieces[0];
+                    ~item (entry->pawn_table, Color::WHITE, 0).precomp->pieces[0] :
+                     item (entry->pawn_table, Color::WHITE, 0).precomp->pieces[0];
 
                 assert(ptype (pc) == PAWN);
 
@@ -1244,11 +1244,11 @@ namespace TBSyzygy {
             p.map = data;
             for (auto f = File::fA; f <= max_file; ++f)
             {
-                if (0 != (item (p, 0, +f).precomp->flags & MAPPED))
+                if (0 != (item (p, Color::WHITE, +f).precomp->flags & MAPPED))
                 {
                     for (i32 i = 0; i < 4; ++i)
                     { // Sequence like 3,x,x,x,1,x,0,2,x,x
-                        item (p, 0, +f).map_idx[i] = u16(data - p.map + 1);
+                        item (p, Color::WHITE, +f).map_idx[i] = u16(data - p.map + 1);
                         data += *data + 1;
                     }
                 }
@@ -1271,7 +1271,7 @@ namespace TBSyzygy {
 
             data++; // First byte stores flags
 
-            const i32  Sides = IsWDL && (e.key1 != e.key2) ? 2 : 1;
+            const Color Sides = IsWDL && (e.key1 != e.key2) ? Color::BLACK : Color::WHITE;
             const File MaxFile = e.has_pawns ? File::fD : File::fA;
 
             bool pp = e.has_pawns && e.pawn_table.pawn_count[1]; // Pawns on both sides
@@ -1280,7 +1280,7 @@ namespace TBSyzygy {
 
             for (auto f = File::fA; f <= MaxFile; ++f)
             {
-                for (i32 i = 0; i < Sides; ++i)
+                for (auto i = Color::WHITE; i <= Sides; ++i)
                 {
                     item (p, i, +f).precomp = new PairsData ();
                 }
@@ -1294,15 +1294,15 @@ namespace TBSyzygy {
 
                 for (i32 k = 0; k < e.piece_count; ++k, ++data)
                 {
-                    for (i32 i = 0; i < Sides; ++i)
+                    for (auto i = Color::WHITE; i <= Sides; ++i)
                     {
-                        item (p, i, +f).precomp->pieces[k] = tb_piece (i ? *data >>  4 : *data & 0xF);
+                        item (p, i, +f).precomp->pieces[k] = tb_piece (i == Color::BLACK ? *data >>  4 : *data & 0xF);
                     }
                 }
 
-                for (i32 i = 0; i < Sides; ++i)
+                for (auto i = Color::WHITE; i <= Sides; ++i)
                 {
-                    set_groups (e, item (p, i, +f).precomp, order[i], f);
+                    set_groups (e, item (p, i, +f).precomp, order[+i], f);
                 }
             }
 
@@ -1310,7 +1310,7 @@ namespace TBSyzygy {
 
             for (auto f = File::fA; f <= MaxFile; ++f)
             {
-                for (i32 i = 0; i < Sides; ++i)
+                for (auto i = Color::WHITE; i <= Sides; ++i)
                 {
                     data = set_sizes (item (p, i, +f).precomp, data);
                 }
@@ -1323,7 +1323,7 @@ namespace TBSyzygy {
             PairsData *d;
             for (auto f = File::fA; f <= MaxFile; ++f)
             {
-                for (i32 i = 0; i < Sides; ++i)
+                for (auto i = Color::WHITE; i <= Sides; ++i)
                 {
                     (d = item (p, i, +f).precomp)->sparseIndex = (SparseEntry*) data;
                     data += d->sparse_index_size * sizeof (SparseEntry);
@@ -1331,7 +1331,7 @@ namespace TBSyzygy {
             }
             for (auto f = File::fA; f <= MaxFile; ++f)
             {
-                for (i32 i = 0; i < Sides; ++i)
+                for (auto i = Color::WHITE; i <= Sides; ++i)
                 {
                     (d = item (p, i, +f).precomp)->block_length = (u16*) data;
                     data += d->block_length_size * sizeof (u16);
@@ -1339,7 +1339,7 @@ namespace TBSyzygy {
             }
             for (auto f = File::fA; f <= MaxFile; ++f)
             {
-                for (i32 i = 0; i < Sides; ++i)
+                for (auto i = Color::WHITE; i <= Sides; ++i)
                 {
                     data = (u08*)(((uintptr_t) data + 0x3F) & ~0x3F); // 64 byte alignment
                     (d = item (p, i, +f).precomp)->data = data;
@@ -1373,8 +1373,8 @@ namespace TBSyzygy {
             string w, b;
             for (auto pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
             {
-                w += string(pos.count (WHITE, pt), PieceToChar[pt]);
-                b += string(pos.count (BLACK, pt), PieceToChar[pt]);
+                w += string(pos.count (Color::WHITE, pt), PieceToChar[pt]);
+                b += string(pos.count (Color::BLACK, pt), PieceToChar[pt]);
             }
 
             const u08 TB_MAGIC[][4] =

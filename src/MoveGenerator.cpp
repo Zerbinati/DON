@@ -26,11 +26,11 @@ namespace {
         }
         if (0 != targets)
         {
-            for (auto s : pos.squares[Own][PT])
+            for (auto s : pos.squares[+Own][PT])
             {
                 if (   (   GenType::CHECK == GT
                         || GenType::QUIET_CHECK == GT)
-                    && contains (pos.si->king_blockers[~pos.active], s))
+                    && contains (pos.si->king_blockers[+~pos.active], s))
                 {
                     continue;
                 }
@@ -93,15 +93,15 @@ namespace {
     template<GenType GT, Color Own>
     void generate_pawn_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
-        const auto Push = WHITE == Own ? DEL_N : DEL_S;
-        const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
-        const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
+        const auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
+        const auto Push = Color::WHITE == Own ? DEL_N : DEL_S;
+        const auto LCap = Color::WHITE == Own ? DEL_NW : DEL_SE;
+        const auto RCap = Color::WHITE == Own ? DEL_NE : DEL_SW;
 
         // Pawns on 7th Rank
-        Bitboard R7_pawns = pos.pieces (Own, PAWN) &  rank_bb (WHITE == Own ? Rank::r7 : Rank::r2);
+        Bitboard R7_pawns = pos.pieces (Own, PAWN) &  rank_bb (Color::WHITE == Own ? Rank::r7 : Rank::r2);
         // Pawns not on 7th Rank
-        Bitboard Rx_pawns = pos.pieces (Own, PAWN) & ~rank_bb (WHITE == Own ? Rank::r7 : Rank::r2);
+        Bitboard Rx_pawns = pos.pieces (Own, PAWN) & ~rank_bb (Color::WHITE == Own ? Rank::r7 : Rank::r2);
 
         Bitboard empties = ~pos.pieces ();
         Bitboard enemies =  pos.pieces (Opp) & targets;
@@ -113,7 +113,7 @@ namespace {
             || GenType::QUIET_CHECK == GT)
         {
             Bitboard push_1 = empties & shift<Push> (Rx_pawns);
-            Bitboard push_2 = empties & shift<Push> (push_1 & rank_bb (WHITE == Own ? Rank::r3 : Rank::r6));
+            Bitboard push_2 = empties & shift<Push> (push_1 & rank_bb (Color::WHITE == Own ? Rank::r3 : Rank::r6));
             if (   GenType::CHECK == GT
                 || GenType::QUIET_CHECK == GT)
             {
@@ -123,11 +123,11 @@ namespace {
                 // Add pawn pushes which give discovered check.
                 // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
                 // Note that a possible discovery check promotion has been already generated among captures.
-                Bitboard dsc_pawns = Rx_pawns & pos.si->king_blockers[~pos.active] & ~file_bb (pos.square<KING> (Opp));
+                Bitboard dsc_pawns = Rx_pawns & pos.si->king_blockers[+~pos.active] & ~file_bb (pos.square<KING> (Opp));
                 if (0 != dsc_pawns)
                 {
                     Bitboard dc_push_1 = empties & shift<Push> (dsc_pawns);
-                    Bitboard dc_push_2 = empties & shift<Push> (dc_push_1 & rank_bb (WHITE == Own ? Rank::r3 : Rank::r6));
+                    Bitboard dc_push_2 = empties & shift<Push> (dc_push_1 & rank_bb (Color::WHITE == Own ? Rank::r3 : Rank::r6));
                     push_1 |= dc_push_1;
                     push_2 |= dc_push_2;
                 }
@@ -151,7 +151,7 @@ namespace {
                 r_attack &= pos.si->checks[PAWN];
                 // Pawns which give discovered check
                 // Add pawn captures which give discovered check.
-                Bitboard dsc_pawns = Rx_pawns & pos.si->king_blockers[~pos.active];
+                Bitboard dsc_pawns = Rx_pawns & pos.si->king_blockers[+~pos.active];
                 if (0 != dsc_pawns)
                 {
                     l_attack |= enemies & shift<LCap> (dsc_pawns);
@@ -164,7 +164,7 @@ namespace {
             if (Square::NO != pos.si->en_passant_sq)
             {
                 assert(Rank::r6 == rel_rank (Own, pos.si->en_passant_sq));
-                Bitboard ep_captures = Rx_pawns & rank_bb (WHITE == Own ? Rank::r5 : Rank::r4);
+                Bitboard ep_captures = Rx_pawns & rank_bb (Color::WHITE == Own ? Rank::r5 : Rank::r4);
                 if (0 != ep_captures)
                 {
                     // If the checking piece is the double pushed pawn and also is in the target.
@@ -174,7 +174,7 @@ namespace {
                         ep_captures &= (  shift<DEL_E> (targets)
                                         | shift<DEL_W> (targets));
                     }
-                    ep_captures &= PawnAttacks[Opp][+pos.si->en_passant_sq];
+                    ep_captures &= PawnAttacks[+Opp][+pos.si->en_passant_sq];
                     assert(0 != ep_captures
                         && 2 >= pop_count (ep_captures));
                     while (0 != ep_captures) { moves += mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->en_passant_sq); }
@@ -213,7 +213,7 @@ namespace {
     template<GenType GT, Color Own, CastleSide CS>
     void generate_castling_moves (ValMoves &moves, const Position &pos)
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        const auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
 
         assert(GenType::EVASION != GT
             && pos.si->can_castle (Own, CS)
@@ -221,10 +221,10 @@ namespace {
             && 0 == pos.si->checkers);
 
         auto king_org = pos.square<KING> (Own);
-        auto rook_org = pos.castle_rook[Own][CS];
+        auto rook_org = pos.castle_rook[+Own][CS];
         assert(contains (pos.pieces (Own, ROOK), rook_org));
 
-        Bitboard b = pos.king_path[Own][CS];
+        Bitboard b = pos.king_path[+Own][CS];
         // Check king's path for attackers
         while (0 != b)
         {
@@ -258,7 +258,7 @@ namespace {
     template<GenType GT, Color Own>
     void generate_king_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        const auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
 
         assert(GenType::EVASION != GT);
 
@@ -328,9 +328,9 @@ void generate (ValMoves &moves, const Position &pos)
                        GenType::CAPTURE == GT ?  pos.pieces (~pos.active) :
                        GenType::QUIET == GT ? ~pos.pieces () : (assert(false), 0);
 
-    WHITE == pos.active ?
-        generate_moves<GT, WHITE> (moves, pos, targets) :
-        generate_moves<GT, BLACK> (moves, pos, targets);
+    Color::WHITE == pos.active ?
+        generate_moves<GT, Color::WHITE> (moves, pos, targets) :
+        generate_moves<GT, Color::BLACK> (moves, pos, targets);
 }
     
 /// Explicit template instantiations
@@ -362,9 +362,9 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
         while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
     }
 
-    WHITE == pos.active ?
-        generate_moves<GenType::QUIET_CHECK, WHITE> (moves, pos, targets) :
-        generate_moves<GenType::QUIET_CHECK, BLACK> (moves, pos, targets);
+    Color::WHITE == pos.active ?
+        generate_moves<GenType::QUIET_CHECK, Color::WHITE> (moves, pos, targets) :
+        generate_moves<GenType::QUIET_CHECK, Color::BLACK> (moves, pos, targets);
 }
 /// Generates all pseudo-legal check giving moves.
 template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position &pos)
@@ -386,9 +386,9 @@ template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position 
         while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
     }
 
-    WHITE == pos.active ?
-        generate_moves<GenType::CHECK, WHITE> (moves, pos, targets) :
-        generate_moves<GenType::CHECK, BLACK> (moves, pos, targets);
+    Color::WHITE == pos.active ?
+        generate_moves<GenType::CHECK, Color::WHITE> (moves, pos, targets) :
+        generate_moves<GenType::CHECK, Color::BLACK> (moves, pos, targets);
 }
 /// Generates all pseudo-legal check evasions moves when the side to move is in check.
 template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position &pos)
@@ -437,9 +437,9 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
                         square_bb (scan_lsq (pos.si->checkers)) :
                         between_bb (checker_sq, fk_sq) | checker_sq;
 
-    WHITE == pos.active ?
-        generate_moves<GenType::EVASION, WHITE> (moves, pos, targets) :
-        generate_moves<GenType::EVASION, BLACK> (moves, pos, targets);
+    Color::WHITE == pos.active ?
+        generate_moves<GenType::EVASION, Color::WHITE> (moves, pos, targets) :
+        generate_moves<GenType::EVASION, Color::BLACK> (moves, pos, targets);
 }
 /// Generates all legal moves.
 template<> void generate<GenType::LEGAL      > (ValMoves &moves, const Position &pos)

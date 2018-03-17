@@ -96,10 +96,10 @@ namespace EndGame {
         template<EndgameCode EC, typename ET = EndgameType<EC>, typename EP = Ptr<ET>>
         void add (const std::string &code)
         {
-            StateInfo si[CLR_NO];
+            StateInfo si[+Color::NO];
             std::memset (si, 0, sizeof (si));
-            map<ET> ()[Position ().setup (code, si[WHITE], WHITE).si->matl_key] = EP (new Endgame<EC> (WHITE));
-            map<ET> ()[Position ().setup (code, si[BLACK], BLACK).si->matl_key] = EP (new Endgame<EC> (BLACK));
+            map<ET> ()[Position ().setup (code, si[+Color::WHITE], Color::WHITE).si->matl_key] = EP (new Endgame<EC> (Color::WHITE));
+            map<ET> ()[Position ().setup (code, si[+Color::BLACK], Color::BLACK).si->matl_key] = EP (new Endgame<EC> (Color::BLACK));
         }
 
     public:

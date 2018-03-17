@@ -16,10 +16,10 @@ namespace Material {
         Key   key;
         i32   phase;
         Score imbalance;
-        Scale scale[CLR_NO];
+        Scale scale[+Color::NO];
 
         EndGame::EndgameBase<Value> *value_func;
-        EndGame::EndgameBase<Scale> *scale_func[CLR_NO];
+        EndGame::EndgameBase<Scale> *scale_func[+Color::NO];
     };
 
     typedef HashTable<Entry, 0x2000> Table;

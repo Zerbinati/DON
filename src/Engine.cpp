@@ -194,13 +194,13 @@ namespace {
         string token;
         while (iss >> token)
         {
-            if (token == "wtime")     iss >> limits.clock[WHITE].time;
+            if (token == "wtime")     iss >> limits.clock[+Color::WHITE].time;
             else
-            if (token == "btime")     iss >> limits.clock[BLACK].time;
+            if (token == "btime")     iss >> limits.clock[+Color::BLACK].time;
             else
-            if (token == "winc")      iss >> limits.clock[WHITE].inc;
+            if (token == "winc")      iss >> limits.clock[+Color::WHITE].inc;
             else
-            if (token == "binc")      iss >> limits.clock[BLACK].inc;
+            if (token == "binc")      iss >> limits.clock[+Color::BLACK].inc;
             else
             if (token == "movestogo") iss >> limits.movestogo;
             else

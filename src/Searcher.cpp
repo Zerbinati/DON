@@ -220,7 +220,7 @@ void MovePicker::value ()
         else
         if (GenType::QUIET == GT)
         {
-            vm.value = pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
+            vm.value = pos.thread->butterfly_history[+pos.active][move_pp (vm.move)]
                      + (*piece_destiny_history[0])[pos[org_sq (vm.move)]][+dst_sq (vm.move)]
                      + (*piece_destiny_history[1])[pos[org_sq (vm.move)]][+dst_sq (vm.move)]
                      + (*piece_destiny_history[3])[pos[org_sq (vm.move)]][+dst_sq (vm.move)];
@@ -230,7 +230,7 @@ void MovePicker::value ()
             vm.value = pos.capture (vm.move) ?
                           i32(PieceValues[MG][pos.cap_type (vm.move)])
                         - ptype (pos[org_sq (vm.move)]) :
-                          pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
+                          pos.thread->butterfly_history[+pos.active][move_pp (vm.move)]
                         - MaxValue;
         }
     }
@@ -1026,7 +1026,7 @@ namespace Searcher {
                         {
                             update_killers (ss, pos, tt_move);
                             auto bonus = stat_bonus (depth);
-                            pos.thread->butterfly_history[pos.active][move_pp (tt_move)] << bonus;
+                            pos.thread->butterfly_history[+pos.active][move_pp (tt_move)] << bonus;
                             update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), bonus);
                         }
 
@@ -1046,7 +1046,7 @@ namespace Searcher {
                         if (!pos.capture_or_promotion (tt_move))
                         {
                             auto bonus = stat_bonus (depth);
-                            pos.thread->butterfly_history[pos.active][move_pp (tt_move)] << -bonus;
+                            pos.thread->butterfly_history[+pos.active][move_pp (tt_move)] << -bonus;
                             update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), -bonus);
                         }
                     }
@@ -1559,7 +1559,7 @@ namespace Searcher {
                             reduce_depth -= 2;
                         }
 
-                        ss->stat_score = pos.thread->butterfly_history[~pos.active][move_pp (move)]
+                        ss->stat_score = pos.thread->butterfly_history[+~pos.active][move_pp (move)]
                                        + (*piece_destiny_history[0])[mpc][+dst]
                                        + (*piece_destiny_history[1])[mpc][+dst]
                                        + (*piece_destiny_history[3])[mpc][+dst]
@@ -1732,12 +1732,12 @@ namespace Searcher {
                     {
                         update_killers (ss, pos, best_move);
                         auto bonus = stat_bonus (depth);
-                        pos.thread->butterfly_history[pos.active][move_pp (best_move)] << bonus;
+                        pos.thread->butterfly_history[+pos.active][move_pp (best_move)] << bonus;
                         update_stacks_continuation (ss, pos[org_sq (best_move)], dst_sq (best_move), bonus);
                         // Decrease all the other played quiet moves.
                         for (auto qm : quiet_moves)
                         {
-                            pos.thread->butterfly_history[pos.active][move_pp (qm)] << -bonus;
+                            pos.thread->butterfly_history[+pos.active][move_pp (qm)] << -bonus;
                             update_stacks_continuation (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                         }
                     }
@@ -1926,7 +1926,7 @@ void Thread::search ()
                 if (0 != ContemptValue)
                 {
                     auto contempt = i32(std::round (48 * std::atan (i32(best_value) / (12.8 * ContemptValue))));
-                    Contempt = WHITE == root_pos.active ?
+                    Contempt = Color::WHITE == root_pos.active ?
                                  mk_score (contempt, contempt / 2) :
                                 -mk_score (contempt, contempt / 2);
                 }
@@ -2103,8 +2103,8 @@ void MainThread::search ()
             OutputStream << std::boolalpha
                          << "RootPos  : " << root_pos.fen () << "\n"
                          << "MaxMoves : " << root_moves.size () << "\n"
-                         << "ClockTime: " << Limits.clock[root_pos.active].time << " ms\n"
-                         << "ClockInc : " << Limits.clock[root_pos.active].inc << " ms\n"
+                         << "ClockTime: " << Limits.clock[+root_pos.active].time << " ms\n"
+                         << "ClockInc : " << Limits.clock[+root_pos.active].inc << " ms\n"
                          << "MovesToGo: " << Limits.movestogo+0 << "\n"
                          << "MoveTime : " << Limits.movetime << " ms\n"
                          << "Depth    : " << Limits.depth << "\n"
@@ -2125,11 +2125,11 @@ void MainThread::search ()
             // Only once at after ucinewgame
             if (0 == time_mgr.available_nodes)
             {
-                time_mgr.available_nodes = Limits.clock[root_pos.active].time * NodesTime;
+                time_mgr.available_nodes = Limits.clock[+root_pos.active].time * NodesTime;
             }
             // Convert from milli-seconds to nodes
-            Limits.clock[root_pos.active].time = time_mgr.available_nodes;
-            Limits.clock[root_pos.active].inc *= NodesTime;
+            Limits.clock[+root_pos.active].time = time_mgr.available_nodes;
+            Limits.clock[+root_pos.active].inc *= NodesTime;
         }
 
         // Initialize the time manager before searching.
@@ -2185,14 +2185,14 @@ void MainThread::search ()
             i64 diff_time;
             if (   0 != ContemptTime
                 && Limits.use_time_management ()
-                && 0 != (diff_time = i64(  Limits.clock[ root_pos.active].time
-                                         - Limits.clock[~root_pos.active].time) / 1000))
+                && 0 != (diff_time = i64(  Limits.clock[+ root_pos.active].time
+                                         - Limits.clock[+~root_pos.active].time) / 1000))
             {
                 timed_contempt = i16(diff_time/ContemptTime);
             }
 
             BaseContempt = cp_to_value (FixedContempt + timed_contempt);
-            Contempt = WHITE == root_pos.active ?
+            Contempt = Color::WHITE == root_pos.active ?
                          mk_score (BaseContempt, BaseContempt / 2) :
                         -mk_score (BaseContempt, BaseContempt / 2);
 
@@ -2286,7 +2286,7 @@ void MainThread::search ()
         // When playing in 'Nodes as Time' mode, update the time manager after searching.
         if (0 != NodesTime)
         {
-            time_mgr.available_nodes += Limits.clock[root_pos.active].inc - Threadpool.nodes ();
+            time_mgr.available_nodes += Limits.clock[+root_pos.active].inc - Threadpool.nodes ();
         }
         last_value = rm.new_value;
     }

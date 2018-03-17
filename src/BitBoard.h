@@ -101,7 +101,7 @@ namespace BitBoard {
         R6_bb|R8_bb,
         R7_bb
     };
-    const Bitboard FrontRank_bb[CLR_NO][+Rank::NO] =
+    const Bitboard FrontRank_bb[+Color::NO][+Rank::NO] =
     {
         {
             R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
@@ -125,12 +125,12 @@ namespace BitBoard {
         }
     };
 
-    const Bitboard ShelterMask_bb[CLR_NO] =
+    const Bitboard ShelterMask_bb[+Color::NO] =
     {
         Square_bb[+Square::A2]|Square_bb[+Square::B3]|Square_bb[+Square::C2]|Square_bb[+Square::F2]|Square_bb[+Square::G3]|Square_bb[+Square::H2],
         Square_bb[+Square::A7]|Square_bb[+Square::B6]|Square_bb[+Square::C7]|Square_bb[+Square::F7]|Square_bb[+Square::G6]|Square_bb[+Square::H7]
     };
-    const Bitboard StormMask_bb[CLR_NO] =
+    const Bitboard StormMask_bb[+Color::NO] =
     {
         Square_bb[+Square::A3]|Square_bb[+Square::C3]|Square_bb[+Square::F3]|Square_bb[+Square::H3],
         Square_bb[+Square::A6]|Square_bb[+Square::C6]|Square_bb[+Square::F6]|Square_bb[+Square::H6],
@@ -138,17 +138,17 @@ namespace BitBoard {
 
     extern u08      SquareDist[+Square::NO][+Square::NO];
 
-    extern Bitboard FrontLine_bb[CLR_NO][+Square::NO];
+    extern Bitboard FrontLine_bb[+Color::NO][+Square::NO];
 
     extern Bitboard Between_bb[+Square::NO][+Square::NO];
     extern Bitboard StrLine_bb[+Square::NO][+Square::NO];
 
     extern Bitboard DistRings_bb[+Square::NO][8];
 
-    extern Bitboard PawnAttackSpan[CLR_NO][+Square::NO];
-    extern Bitboard PawnPassSpan[CLR_NO][+Square::NO];
+    extern Bitboard PawnAttackSpan[+Color::NO][+Square::NO];
+    extern Bitboard PawnPassSpan[+Color::NO][+Square::NO];
 
-    extern Bitboard PawnAttacks[CLR_NO][+Square::NO];
+    extern Bitboard PawnAttacks[+Color::NO][+Square::NO];
     extern Bitboard PieceAttacks[NONE][+Square::NO];
 
     // Magic holds all magic relevant data for a single square
@@ -216,16 +216,16 @@ namespace BitBoard {
     inline Bitboard adj_file_bb (File f) { return AdjFile_bb[+f]; }
     inline Bitboard adj_rank_bb (Rank r) { return AdjRank_bb[+r]; }
 
-    inline Bitboard front_rank_bb (Color c, Square s) { return FrontRank_bb[c][+_rank (s)]; }
-    inline Bitboard front_line_bb (Color c, Square s) { return FrontLine_bb[c][+s]; }
+    inline Bitboard front_rank_bb (Color c, Square s) { return FrontRank_bb[+c][+_rank (s)]; }
+    inline Bitboard front_line_bb (Color c, Square s) { return FrontLine_bb[+c][+s]; }
 
     inline Bitboard between_bb (Square s1, Square s2) { return Between_bb[+s1][+s2]; }
     inline Bitboard strline_bb (Square s1, Square s2) { return StrLine_bb[+s1][+s2]; }
 
     inline Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[+s][d]; }
 
-    inline Bitboard pawn_attack_span (Color c, Square s) { return PawnAttackSpan[c][+s]; }
-    inline Bitboard pawn_pass_span (Color c, Square s) { return PawnPassSpan[c][+s]; }
+    inline Bitboard pawn_attack_span (Color c, Square s) { return PawnAttackSpan[+c][+s]; }
+    inline Bitboard pawn_pass_span (Color c, Square s) { return PawnPassSpan[+c][+s]; }
 
     /// Check the squares s1, s2 and s3 are aligned on a straight line.
     inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return contains (StrLine_bb[+s1][+s2], s3); }
@@ -244,7 +244,7 @@ namespace BitBoard {
     template<typename ...Squares>
     constexpr Bitboard mk_bitboard (Square s, Squares... squares)
     {
-        return (U64(1) << s) | mk_bitboard (squares...);
+        return (U64(1) << +s) | mk_bitboard (squares...);
     }
 
     /// Shift the bitboard using delta
@@ -270,7 +270,7 @@ namespace BitBoard {
     /// pawn_attacks_bb() returns the pawn attacks for the given color from the given bitboard.
     constexpr Bitboard pawn_attacks_bb (Color c, Bitboard b)
     {
-        return WHITE == c ?
+        return Color::WHITE == c ?
                 shift<DEL_NE> (b) | shift<DEL_NW> (b) :
                 shift<DEL_SE> (b) | shift<DEL_SW> (b);
     }
@@ -563,8 +563,8 @@ namespace BitBoard {
 
     // Find the square corresponding to the most/least advanced bit relative to the given color.
 
-    inline Square scan_frntmost_sq (Color c, Bitboard bb) { return WHITE == c ? scan_msq (bb) : scan_lsq (bb); }
-    inline Square scan_backmost_sq (Color c, Bitboard bb) { return WHITE == c ? scan_lsq (bb) : scan_msq (bb); }
+    inline Square scan_frntmost_sq (Color c, Bitboard bb) { return Color::WHITE == c ? scan_msq (bb) : scan_lsq (bb); }
+    inline Square scan_backmost_sq (Color c, Bitboard bb) { return Color::WHITE == c ? scan_lsq (bb) : scan_msq (bb); }
 
     inline Square pop_lsq (Bitboard &bb)
     {

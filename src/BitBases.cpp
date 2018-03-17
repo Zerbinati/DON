@@ -22,12 +22,12 @@ namespace BitBases {
         //
         // bit  0- 5: white king square (from Square::A1 to Square::H8)
         // bit  6-11: black king square (from Square::A1 to Square::H8)
-        // bit    12: color (WHITE or BLACK)
+        // bit    12: color (Color::WHITE or Color::BLACK)
         // bit 13-14: white pawn file (from fA to fD)
         // bit 15-17: white pawn Rank::r7 - rank (from Rank::r7 to Rank::r2)
         u32 index (Color c, Square wk_sq, Square bk_sq, Square wp_sq)
         {
-            return +wk_sq | (+bk_sq << 6) | (c << 12) | (+_file (wp_sq) << 13) | ((+Rank::r7 - +_rank (wp_sq)) << 15);
+            return +wk_sq | (+bk_sq << 6) | (+c << 12) | (+_file (wp_sq) << 13) | ((+Rank::r7 - +_rank (wp_sq)) << 15);
         }
 
         enum Result : u08
@@ -46,7 +46,7 @@ namespace BitBases {
         {
         private:
             Color  active;
-            Square k_sq[CLR_NO]
+            Square k_sq[+Color::NO]
                 ,  p_sq;
 
             template<Color Own>
@@ -62,34 +62,34 @@ namespace BitBases {
                 // If all moves lead to positions classified as WIN, the result of the current position is WIN
                 // otherwise the current position is classified as UNKNOWN.
 
-                const auto Opp  = WHITE == Own ? BLACK : WHITE;
-                const auto Good = WHITE == Own ? Result::WIN : Result::DRAW;
-                const auto Bad  = WHITE == Own ? Result::DRAW : Result::WIN;
+                const auto Opp  = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
+                const auto Good = Color::WHITE == Own ? Result::WIN : Result::DRAW;
+                const auto Bad  = Color::WHITE == Own ? Result::DRAW : Result::WIN;
 
                 Result r = Result::INVALID;
-                Bitboard b = PieceAttacks[KING][+k_sq[Own]];
+                Bitboard b = PieceAttacks[KING][+k_sq[+Own]];
                 while (0 != b)
                 {
-                    r |= WHITE == Own ?
-                            db[index (Opp, pop_lsq (b), k_sq[Opp], p_sq)].result :
-                            db[index (Opp, k_sq[Opp], pop_lsq (b), p_sq)].result;
+                    r |= Color::WHITE == Own ?
+                            db[index (Opp, pop_lsq (b), k_sq[+Opp], p_sq)].result :
+                            db[index (Opp, k_sq[+Opp], pop_lsq (b), p_sq)].result;
                 }
 
-                if (WHITE == Own)
+                if (Color::WHITE == Own)
                 {
                     // Single push
                     if (_rank (p_sq) < Rank::r7)
                     {
-                        r |= db[index (Opp, k_sq[Own], k_sq[Opp], p_sq + DEL_N)].result;
+                        r |= db[index (Opp, k_sq[+Own], k_sq[+Opp], p_sq + DEL_N)].result;
                     }
                     // Double push
                     if (   _rank (p_sq) == Rank::r2
                         // Front is not own king
-                        && k_sq[Own] != (p_sq + DEL_N)
+                        && k_sq[+Own] != (p_sq + DEL_N)
                         // Front is not opp king
-                        && k_sq[Opp] != (p_sq + DEL_N))
+                        && k_sq[+Opp] != (p_sq + DEL_N))
                     {
-                        r |= db[index (Opp, k_sq[Own], k_sq[Opp], p_sq + DEL_N + DEL_N)].result;
+                        r |= db[index (Opp, k_sq[+Own], k_sq[+Opp], p_sq + DEL_N + DEL_N)].result;
                     }
                 }
 
@@ -107,36 +107,36 @@ namespace BitBases {
             KPK_Position () = default;
             explicit KPK_Position (u32 idx)
             {
-                k_sq[WHITE] = Square(         (idx >>  0) & +Square::H8);
-                k_sq[BLACK] = Square(         (idx >>  6) & +Square::H8);
-                active      = Color (         (idx >> 12) & i08(BLACK));
+                k_sq[+Color::WHITE] = Square(         (idx >>  0) & +Square::H8);
+                k_sq[+Color::BLACK] = Square(         (idx >>  6) & +Square::H8);
+                active      = Color (         (idx >> 12) & +Color::BLACK);
                 p_sq        = File  (         (idx >> 13) & 0x03)
                             | Rank  (Rank::r7-Rank((idx >> 15) & 0x07));
 
                 // Check if two pieces are on the same square or if a king can be captured
-                if (   dist (k_sq[WHITE], k_sq[BLACK]) <= 1
-                    || k_sq[WHITE] == p_sq
-                    || k_sq[BLACK] == p_sq
-                    || (   WHITE == active
-                        && contains (PawnAttacks[WHITE][+p_sq], k_sq[BLACK])))
+                if (   dist (k_sq[+Color::WHITE], k_sq[+Color::BLACK]) <= 1
+                    || k_sq[+Color::WHITE] == p_sq
+                    || k_sq[+Color::BLACK] == p_sq
+                    || (   Color::WHITE == active
+                        && contains (PawnAttacks[+Color::WHITE][+p_sq], k_sq[+Color::BLACK])))
                 {
                     result = Result::INVALID;
                 }
                 else
                 // Immediate win if a pawn can be promoted without getting captured
-                if (   WHITE == active
+                if (   Color::WHITE == active
                     && _rank (p_sq) == Rank::r7
-                    && k_sq[WHITE] != (p_sq + DEL_N)
-                    && (   dist (k_sq[BLACK], p_sq + DEL_N) > 1
-                        || contains (PieceAttacks[KING][+k_sq[WHITE]], p_sq + DEL_N)))
+                    && k_sq[+Color::WHITE] != (p_sq + DEL_N)
+                    && (   dist (k_sq[+Color::BLACK], p_sq + DEL_N) > 1
+                        || contains (PieceAttacks[KING][+k_sq[+Color::WHITE]], p_sq + DEL_N)))
                 {
                     result = Result::WIN;
                 }
                 else
                 // Immediate draw if is a stalemate or king captures undefended pawn
-                if (   BLACK == active
-                    && (   0 == (PieceAttacks[KING][+k_sq[BLACK]] & ~(PieceAttacks[KING][+k_sq[WHITE]] | PawnAttacks[WHITE][+p_sq]))
-                        || contains (PieceAttacks[KING][+k_sq[BLACK]] & ~PieceAttacks[KING][+k_sq[WHITE]], p_sq)))
+                if (   Color::BLACK == active
+                    && (   0 == (PieceAttacks[KING][+k_sq[+Color::BLACK]] & ~(PieceAttacks[KING][+k_sq[+Color::WHITE]] | PawnAttacks[+Color::WHITE][+p_sq]))
+                        || contains (PieceAttacks[KING][+k_sq[+Color::BLACK]] & ~PieceAttacks[KING][+k_sq[+Color::WHITE]], p_sq)))
                 {
                     result = Result::DRAW;
                 }
@@ -149,9 +149,9 @@ namespace BitBases {
 
             Result classify (const vector<KPK_Position> &db)
             {
-                return WHITE == active ?
-                        classify<WHITE> (db) :
-                        classify<BLACK> (db);
+                return Color::WHITE == active ?
+                        classify<Color::WHITE> (db) :
+                        classify<Color::BLACK> (db);
             }
         };
     }

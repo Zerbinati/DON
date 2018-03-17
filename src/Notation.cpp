@@ -109,7 +109,7 @@ string move_to_can (Move m)
              + to_string (fix_dst_sq (m, Position::Chess960));
     if (PROMOTE == mtype (m))
     {
-        can += PieceChar[BLACK|promote (m)];
+        can += PieceChar[(Color::BLACK|promote (m))];
     }
     return can;
 }
@@ -148,7 +148,7 @@ string move_to_san (Move m, Position &pos)
     {
         if (PAWN != ptype (pos[org]))
         {
-            san = PieceChar[WHITE|ptype (pos[org])];
+            san = PieceChar[(Color::WHITE|ptype (pos[org]))];
             if (KING != ptype (pos[org]))
             {
                 // Disambiguation if have more then one piece of type 'pt'
@@ -186,7 +186,7 @@ string move_to_san (Move m, Position &pos)
             && PROMOTE == mtype (m))
         {
             san += "=";
-            san += PieceChar[WHITE|promote (m)];
+            san += PieceChar[(Color::WHITE|promote (m))];
         }
     }
     else

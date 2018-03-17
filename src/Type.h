@@ -179,11 +179,11 @@ enum class Rank : i08
     NO,
 };
 
-enum Color : i08
+enum class Color : i08
 {
     WHITE,
     BLACK,
-    CLR_NO,
+    NO,
 };
 
 /// Square needs 6-bits to be stored
@@ -476,7 +476,7 @@ Score operator/ (Score, Score) = delete;
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
-constexpr Color operator~ (Color c) { return Color(c ^ i08(BLACK)); }
+constexpr Color operator~ (Color c) { return Color(+c ^ +Color::BLACK); }
 
 constexpr File operator~ (File f) { return File(+f ^ +File::fH); }
 constexpr File to_file   (char f) { return File(f - 'a'); }
@@ -498,34 +498,34 @@ constexpr Square operator~ (Square s) { return Square(+s ^ +Square::A8); }
 // Mirror -> Square::A1 -> Square::H1
 constexpr Square operator! (Square s) { return Square(+s ^ +Square::H1); }
 
-constexpr Rank rel_rank (Color c, Square s) { return Rank(+_rank (s) ^ (c*+Rank::r8)); }
-constexpr Square rel_sq (Color c, Square s) { return Square(+s ^ (c*+Square::A8)); }
+constexpr Rank rel_rank (Color c, Square s) { return Rank(+_rank (s) ^ (+c*+Rank::r8)); }
+constexpr Square rel_sq (Color c, Square s) { return Square(+s ^ (+c*+Square::A8)); }
 
 inline bool opposite_colors (Square s1, Square s2)
 {
     i08 s = +s1 ^ +s2;
-    return 0 != (((s >> 3) ^ s) & BLACK);
+    return 0 != (((s >> 3) ^ s) & +Color::BLACK);
 }
 
 constexpr Delta pawn_push (Color c)
 {
-    return WHITE == c ? DEL_N : DEL_S;
+    return Color::WHITE == c ? DEL_N : DEL_S;
 }
 
 constexpr CastleRight castle_right (Color c)
 {
-    //return CastleRight(CR_WHITE << ((c << BLACK)));
-    return WHITE == c ? CR_WHITE : CR_BLACK;
+    //return CastleRight(CR_WHITE << ((+c << +Color::BLACK)));
+    return Color::WHITE == c ? CR_WHITE : CR_BLACK;
 }
 constexpr CastleRight castle_right (Color c, CastleSide cs)
 {
-    //return CastleRight(CR_WKING << ((c << BLACK) + cs));
-    return WHITE == c ? 
+    //return CastleRight(CR_WKING << ((+c << +Color::BLACK) + cs));
+    return Color::WHITE == c ? 
                CS_KING == cs ? CR_WKING : CR_WQUEN :
                CS_KING == cs ? CR_BKING : CR_BQUEN;
 }
 
-constexpr Piece operator| (Color c, PieceType pt) { return Piece((c << 3) + pt); }
+constexpr Piece operator| (Color c, PieceType pt) { return Piece((+c << 3) + pt); }
 
 constexpr bool _ok (Piece p)
 {

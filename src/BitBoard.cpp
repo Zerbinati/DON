@@ -9,17 +9,17 @@ namespace BitBoard {
 
     u08      SquareDist[+Square::NO][+Square::NO];
 
-    Bitboard FrontLine_bb[CLR_NO][+Square::NO];
+    Bitboard FrontLine_bb[+Color::NO][+Square::NO];
 
     Bitboard Between_bb[+Square::NO][+Square::NO];
     Bitboard StrLine_bb[+Square::NO][+Square::NO];
 
     Bitboard DistRings_bb[+Square::NO][8];
 
-    Bitboard PawnAttackSpan[CLR_NO][+Square::NO];
-    Bitboard PawnPassSpan[CLR_NO][+Square::NO];
+    Bitboard PawnAttackSpan[+Color::NO][+Square::NO];
+    Bitboard PawnPassSpan[+Color::NO][+Square::NO];
 
-    Bitboard PawnAttacks[CLR_NO][+Square::NO];
+    Bitboard PawnAttacks[+Color::NO][+Square::NO];
     Bitboard PieceAttacks[NONE][+Square::NO];
 
     Magic BMagics[+Square::NO]
@@ -31,7 +31,7 @@ namespace BitBoard {
 
     namespace {
 
-        const Delta PawnDeltas[CLR_NO][3] =
+        const Delta PawnDeltas[+Color::NO][3] =
         {
             { DEL_NW, DEL_NE, DEL_O },
             { DEL_SE, DEL_SW, DEL_O },
@@ -210,8 +210,8 @@ namespace BitBoard {
 
     void initialize ()
     {
-        assert((Color_bb[WHITE] & Color_bb[BLACK]) == 0
-            && (Color_bb[WHITE] | Color_bb[BLACK]) == (Color_bb[WHITE] ^ Color_bb[BLACK]));
+        assert((Color_bb[+Color::WHITE] & Color_bb[+Color::BLACK]) == 0
+            && (Color_bb[+Color::WHITE] | Color_bb[+Color::BLACK]) == (Color_bb[+Color::WHITE] ^ Color_bb[+Color::BLACK]));
 
         //for (auto s : SQ)
         //{
@@ -242,13 +242,13 @@ namespace BitBoard {
             }
         }
 
-        for (auto c : { WHITE, BLACK })
+        for (auto c : { Color::WHITE, Color::BLACK })
         {
             for (auto s : SQ)
             {
-                FrontLine_bb  [c][+s] = FrontRank_bb[c][+_rank (s)] &    File_bb[+_file (s)];
-                PawnAttackSpan[c][+s] = FrontRank_bb[c][+_rank (s)] & AdjFile_bb[+_file (s)];
-                PawnPassSpan  [c][+s] = FrontLine_bb[c][+s] | PawnAttackSpan[c][+s];
+                FrontLine_bb  [+c][+s] = FrontRank_bb[+c][+_rank (s)] &    File_bb[+_file (s)];
+                PawnAttackSpan[+c][+s] = FrontRank_bb[+c][+_rank (s)] & AdjFile_bb[+_file (s)];
+                PawnPassSpan  [+c][+s] = FrontLine_bb[+c][+s] | PawnAttackSpan[+c][+s];
             }
         }
 
@@ -257,16 +257,16 @@ namespace BitBoard {
             u08 k;
             Delta del;
 
-            for (auto c : { WHITE, BLACK })
+            for (auto c : { Color::WHITE, Color::BLACK })
             {
                 k = 0;
-                while (DEL_O != (del = PawnDeltas[c][k++]))
+                while (DEL_O != (del = PawnDeltas[+c][k++]))
                 {
                     auto sq = s + del;
                     if (   _ok (sq)
                         && dist (s, sq) == 1)
                     {
-                        PawnAttacks[c][+s] |= sq;
+                        PawnAttacks[+c][+s] |= sq;
                     }
                 }
             }

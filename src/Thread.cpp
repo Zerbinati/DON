@@ -94,7 +94,7 @@ u64 TimeManager::elapsed_time () const
 void TimeManager::initialize (Color c, i16 ply)
 {
     optimum_time =
-    maximum_time = std::max (Limits.clock[c].time, u64(MinimumMoveTime));
+    maximum_time = std::max (Limits.clock[+c].time, u64(MinimumMoveTime));
 
     auto max_movestogo = 0 == Limits.movestogo ?
                             MaximumMoveHorizon :
@@ -105,8 +105,8 @@ void TimeManager::initialize (Color c, i16 ply)
     {
         // Calculate thinking time for hypothetic "moves to go"
         auto hyp_time = std::max (
-                        + Limits.clock[c].time
-                        + Limits.clock[c].inc * (hyp_movestogo-1)
+                        + Limits.clock[+c].time
+                        + Limits.clock[+c].inc * (hyp_movestogo-1)
                         - OverheadClockTime
                         - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), u64(0));
 

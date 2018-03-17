@@ -12,8 +12,8 @@ public:
     // 2*6*64 + 2*2 + 8 + 1
     //    768 +   4 + 8 + 1
     //                  781
-    Key piece_square_keys[CLR_NO][NONE][+Square::NO];	// [color][piece-type][square]
-    Key castle_right_keys[CLR_NO][CS_NO];				// [color][castle-side]
+    Key piece_square_keys[+Color::NO][NONE][+Square::NO];	// [color][piece-type][square]
+    Key castle_right_keys[+Color::NO][CS_NO];				// [color][castle-side]
     Key en_passant_keys  [+File::NO];					// [enpassant file]
     Key color_key;										// color
 

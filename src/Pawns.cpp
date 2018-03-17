@@ -78,28 +78,28 @@ namespace Pawns {
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
         {
-            const auto Opp = WHITE == Own ? BLACK : WHITE;
-            const auto Push = WHITE == Own ? DEL_N : DEL_S;
-            const auto PawnAtt = PawnAttacks[Own];
+            const auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
+            const auto Push = Color::WHITE == Own ? DEL_N : DEL_S;
+            const auto PawnAtt = PawnAttacks[+Own];
 
             Bitboard own_pawns = pos.pieces (Own, PAWN);
             Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            Bitboard ul = shift<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
-            Bitboard ur = shift<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
+            Bitboard ul = shift<Color::WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
+            Bitboard ur = shift<Color::WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
 
-            e->any_attacks[Own] = ul | ur;
-            e->dbl_attacks[Own] = ul & ur;
-            e->attack_span[Own] = 0;
-            e->passers[Own] = 0;
-            e->weak_unopposed[Own] = 0;
-            e->semiopens[Own] = u08(0xFF);
-            e->color_count[Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
-            e->color_count[Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
-            e->index[Own] = 0;
-            std::fill_n (e->king_square[Own], MaxCache, Square::NO);
-            std::fill_n (e->king_safety[Own], MaxCache, VALUE_ZERO);
-            std::fill_n (e->king_pawn_dist[Own], MaxCache, 0);
+            e->any_attacks[+Own] = ul | ur;
+            e->dbl_attacks[+Own] = ul & ur;
+            e->attack_span[+Own] = 0;
+            e->passers[+Own] = 0;
+            e->weak_unopposed[+Own] = 0;
+            e->semiopens[+Own] = u08(0xFF);
+            e->color_count[+Own][+Color::WHITE] = u08(pop_count (own_pawns & Color_bb[+Color::WHITE]));
+            e->color_count[+Own][+Color::BLACK] = u08(pop_count (own_pawns & Color_bb[+Color::BLACK]));
+            e->index[+Own] = 0;
+            std::fill_n (e->king_square[+Own], MaxCache, Square::NO);
+            std::fill_n (e->king_safety[+Own], MaxCache, VALUE_ZERO);
+            std::fill_n (e->king_pawn_dist[+Own], MaxCache, 0);
 
             e->king_safety_on<Own> (pos, rel_sq (Own, Square::G1));
             e->king_safety_on<Own> (pos, rel_sq (Own, Square::C1));
@@ -109,13 +109,13 @@ namespace Pawns {
             File f;
             Bitboard b, neighbours, supporters, phalanxes, stoppers, levers, escapes;
             bool blocked, opposed, backward;
-            for (auto s : pos.squares[Own][PAWN])
+            for (auto s : pos.squares[+Own][PAWN])
             {
                 assert(pos[s] == (Own|PAWN));
 
                 f = _file (s);
-                e->semiopens[Own] &= u08(~(1 << +f));
-                e->attack_span[Own] |= pawn_attack_span (Own, s);
+                e->semiopens[+Own] &= u08(~(1 << +f));
+                e->attack_span[+Own] |= pawn_attack_span (Own, s);
 
                 neighbours = own_pawns & adj_file_bb (f);
                 supporters = neighbours & rank_bb (s-Push);
@@ -155,10 +155,10 @@ namespace Pawns {
                             && Rank::r4 < rel_rank (Own, s)
                             && 0 != (b = shift<Push> (supporters) & ~opp_pawns)
                             && pop_count (b) > pop_count (  (opp_pawns ^ stoppers)
-                                                          & (  shift<WHITE == Own ? DEL_NW : DEL_SE> (b)
-                                                             | shift<WHITE == Own ? DEL_NE : DEL_SW> (b))))))
+                                                          & (  shift<Color::WHITE == Own ? DEL_NW : DEL_SE> (b)
+                                                             | shift<Color::WHITE == Own ? DEL_NE : DEL_SW> (b))))))
                 {
-                    e->passers[Own] |= s;
+                    e->passers[+Own] |= s;
                 }
 
                 if (   0 != supporters
@@ -176,7 +176,7 @@ namespace Pawns {
                     score -= 0 == neighbours ? Isolated : Backward;
                     if (!opposed)
                     {
-                        e->weak_unopposed[Own] |= s;
+                        e->weak_unopposed[+Own] |= s;
                     }
                 }
 
@@ -190,8 +190,8 @@ namespace Pawns {
             return score;
         }
         // Explicit template instantiations
-        template Score evaluate<WHITE> (const Position&, Entry*);
-        template Score evaluate<BLACK> (const Position&, Entry*);
+        template Score evaluate<Color::WHITE> (const Position&, Entry*);
+        template Score evaluate<Color::BLACK> (const Position&, Entry*);
     }
 
     /// Calculates shelter and storm penalties.
@@ -199,7 +199,7 @@ namespace Pawns {
     template<Color Own>
     Value Entry::pawn_shelter_storm (const Position &pos, Square fk_sq) const
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        const auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
 
         // Max Safety corresponds to start position with all the pawns in front of the king and no enemy pawn on the horizon.
         auto value = Value(258);
@@ -214,8 +214,8 @@ namespace Pawns {
         Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
         
-        if (5 == pop_count (  (own_front_pawns & ShelterMask_bb[Own])
-                            | (opp_front_pawns & StormMask_bb[Own])))
+        if (5 == pop_count (  (own_front_pawns & ShelterMask_bb[+Own])
+                            | (opp_front_pawns & StormMask_bb[+Own])))
         {
             value += Value(300);
         }
@@ -245,8 +245,8 @@ namespace Pawns {
         return value;
     }
     // Explicit template instantiations
-    template Value Entry::pawn_shelter_storm<WHITE> (const Position&, Square) const;
-    template Value Entry::pawn_shelter_storm<BLACK> (const Position&, Square) const;
+    template Value Entry::pawn_shelter_storm<Color::WHITE> (const Position&, Square) const;
+    template Value Entry::pawn_shelter_storm<Color::BLACK> (const Position&, Square) const;
 
     /// Pawns::probe() looks up a current position's pawn configuration in the pawn hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
@@ -260,11 +260,11 @@ namespace Pawns {
         }
 
         e->key = pos.si->pawn_key;
-        e->scores[WHITE] = evaluate<WHITE> (pos, e);
-        e->scores[BLACK] = evaluate<BLACK> (pos, e);
-        e->open_count = u08(pop_count (e->semiopens[WHITE] & e->semiopens[BLACK]));
-        e->asymmetry  = u08(pop_count (  (e->passers  [WHITE] | e->passers  [BLACK])
-                                       | (e->semiopens[WHITE] ^ e->semiopens[BLACK])));
+        e->scores[+Color::WHITE] = evaluate<Color::WHITE> (pos, e);
+        e->scores[+Color::BLACK] = evaluate<Color::BLACK> (pos, e);
+        e->open_count = u08(pop_count (e->semiopens[+Color::WHITE] & e->semiopens[+Color::BLACK]));
+        e->asymmetry  = u08(pop_count (  (e->passers  [+Color::WHITE] | e->passers  [+Color::BLACK])
+                                       | (e->semiopens[+Color::WHITE] ^ e->semiopens[+Color::BLACK])));
         return e;
     }
 
