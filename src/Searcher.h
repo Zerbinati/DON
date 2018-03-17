@@ -125,17 +125,17 @@ struct Stats<T, W, D, Size>
 typedef Stats<i16, 32, 324, +Color::NO, +Square::NO*+Square::NO> ButterflyHistory;
 
 /// PieceDestinyHistory is like ButterflyHistory but is indexed by [piece][destiny]
-typedef Stats<i16, 32, 936, MAX_PIECE, +Square::NO> PieceDestinyHistory;
+typedef Stats<i16, 32, 936, +Piece::NO, +Square::NO> PieceDestinyHistory;
 
 /// ContinuationHistory is the combined history of a given pair of moves, usually the current one given a previous one.
 /// The nested history table is based on PieceDestinyHistory instead of ButterflyBoards.
-typedef Stats<PieceDestinyHistory, 32, 0, MAX_PIECE, +Square::NO> ContinuationHistory;
+typedef Stats<PieceDestinyHistory, 32, 0, +Piece::NO, +Square::NO> ContinuationHistory;
 
 /// CapturePieceDestinyHistory is indexed by [piece][move][captured piece type]
-typedef Stats<i16, 2, 324, MAX_PIECE, +Square::NO*+Square::NO, MAX_PTYPE> CapturePieceDestinyHistory;
+typedef Stats<i16, 2, 324, +Piece::NO, +Square::NO*+Square::NO, MAX_PTYPE> CapturePieceDestinyHistory;
 
 /// PieceDestinyMove stores counter moves is indexed by [piece][move]
-typedef Stats<Move, 0, 0, MAX_PIECE, +Square::NO*+Square::NO> PieceDestinyMove;
+typedef Stats<Move, 0, 0, +Piece::NO, +Square::NO*+Square::NO> PieceDestinyMove;
 
 /// MovePicker class is used to pick one legal moves from the current position.
 class MovePicker
@@ -216,7 +216,7 @@ public:
 ///  - New/Old values
 ///  - SelDepth
 ///  - PV (really a refutation table in the case of moves which fail low)
-/// Value is normally set at -VALUE_INFINITE for all non-pv moves.
+/// Value is normally set at -Value::INFINITE_ for all non-pv moves.
 class RootMove
     : public std::vector<Move>
 {
@@ -228,8 +228,8 @@ public:
 
     explicit RootMove (Move m = MOVE_NONE)
         : std::vector<Move> (1, m)
-        , old_value (-VALUE_INFINITE)
-        , new_value (-VALUE_INFINITE)
+        , old_value (-Value::INFINITE_)
+        , new_value (-Value::INFINITE_)
         , sel_depth (0)
     {}
     RootMove& operator= (const RootMove&) = default;

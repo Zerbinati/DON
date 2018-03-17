@@ -50,7 +50,7 @@ namespace TBSyzygy {
             SINGLE_VALUE = 128
         };
 
-        Piece tb_piece (i32 pc) { return 0 != pc ? Piece(pc - 1) : NO_PIECE; }
+        Piece tb_piece (i32 pc) { return 0 != pc ? Piece(pc - 1) : Piece::NONE; }
 
         // DTZ tables don't store valid scores for moves that reset the rule50 counter
         // like captures and pawn moves but we can easily recover the correct dtz of the
@@ -245,11 +245,11 @@ namespace TBSyzygy {
 
         const Value WDL_To_Value[] =
         {
-            -VALUE_MATE + i32(MaxPlies) + 1,
-             VALUE_DRAW - 2,
-             VALUE_DRAW,
-             VALUE_DRAW + 2,
-             VALUE_MATE - i32(MaxPlies) - 1
+            -Value::MATE + i32(MaxPlies) + 1,
+             Value::DRAW - 2,
+             Value::DRAW,
+             Value::DRAW + 2,
+             Value::MATE - i32(MaxPlies) - 1
         };
 
         const string PieceToChar = "PNBRQK  pnbrqk";
@@ -1742,17 +1742,17 @@ namespace TBSyzygy {
 
         // If the position is winning or losing, but too few moves left, adjust the
         // score to show how close it is to winning or losing.
-        // NOTE: i32(VALUE_EG_PAWN) is used as scaling factor in score_to_uci().
+        // NOTE: i32(Value::EG_PAWN) is used as scaling factor in score_to_uci().
         if (   WDLScore::CURSED_WIN == wdl
             && +100 >= dtz)
         {
-            value = Value(+((200 - dtz - clock_ply) * i32(VALUE_EG_PAWN)) / 200);
+            value = Value(+((200 - dtz - clock_ply) * i32(Value::EG_PAWN)) / 200);
         }
         else
         if (   WDLScore::BLESSED_LOSS == wdl
             && -100 <= dtz)
         {
-            value = Value(-((200 + dtz - clock_ply) * i32(VALUE_EG_PAWN)) / 200);
+            value = Value(-((200 + dtz - clock_ply) * i32(Value::EG_PAWN)) / 200);
         }
         else
         {
@@ -1768,9 +1768,9 @@ namespace TBSyzygy {
             // Probe each move
             for (const auto &rm : root_moves)
             {
-                if (0 < rm.new_value && rm.new_value < best)
+                if (0 < +rm.new_value && +rm.new_value < best)
                 {
-                    best = rm.new_value;
+                    best = +rm.new_value;
                 }
             }
 
@@ -1786,7 +1786,7 @@ namespace TBSyzygy {
 
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
-                if (0 < root_moves[i].new_value && root_moves[i].new_value <= max)
+                if (0 < +root_moves[i].new_value && +root_moves[i].new_value <= max)
                 {
                     root_moves[size++] = root_moves[i];
                 }
@@ -1800,9 +1800,9 @@ namespace TBSyzygy {
             // Probe each move
             for (const auto &rm : root_moves)
             {
-                if (best > rm.new_value)
+                if (best > +rm.new_value)
                 {
-                    best = rm.new_value;
+                    best = +rm.new_value;
                 }
             }
 
@@ -1814,7 +1814,7 @@ namespace TBSyzygy {
 
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
-                if (best == root_moves[i].new_value)
+                if (best == +root_moves[i].new_value)
                 {
                     root_moves[size++] = root_moves[i];
                 }
@@ -1826,7 +1826,7 @@ namespace TBSyzygy {
             // Try all moves that preserve the draw.
             for (size_t i = 0; i < root_moves.size (); ++i)
             {
-                if (0 == root_moves[i].new_value)
+                if (0 == +root_moves[i].new_value)
                 {
                     root_moves[size++] = root_moves[i];
                 }
@@ -1883,7 +1883,7 @@ namespace TBSyzygy {
         size_t size = 0;
         for (size_t i = 0; i < root_moves.size (); ++i)
         {
-            if (best == root_moves[i].new_value)
+            if (best == +root_moves[i].new_value)
             {
                 root_moves[size++] = root_moves[i];
             }

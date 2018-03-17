@@ -55,17 +55,17 @@ namespace {
     // Value to string
     string pretty_value (Value v)
     {
-        assert(-VALUE_MATE <= v && v <=  VALUE_MATE);
+        assert(-Value::MATE <= v && v <=  Value::MATE);
         ostringstream oss;
-        if (abs (v) <  VALUE_MATE - i32(MaxPlies))
+        if (abs (+v) < +Value::MATE - MaxPlies)
         {
             oss << std::showpos << std::setprecision (2) << std::fixed << value_to_cp (v) / 100.0 << std::noshowpos;
         }
         else
         {
-            oss << std::showpos << "#" << i32(v > VALUE_ZERO ?
-                                                +(VALUE_MATE - v + 1) :
-                                                -(VALUE_MATE + v + 0)) / 2 << std::noshowpos;
+            oss << std::showpos << "#" << +(v > Value::ZERO ?
+                                                 (Value::MATE - v + 1) :
+                                                -(Value::MATE + v + 0)) / 2 << std::noshowpos;
         }
         return oss.str ();
     }
@@ -109,7 +109,7 @@ string move_to_can (Move m)
              + to_string (fix_dst_sq (m, Position::Chess960));
     if (PROMOTE == mtype (m))
     {
-        can += PieceChar[(Color::BLACK|promote (m))];
+        can += PieceChar[+(Color::BLACK|promote (m))];
     }
     return can;
 }
@@ -148,7 +148,7 @@ string move_to_san (Move m, Position &pos)
     {
         if (PAWN != ptype (pos[org]))
         {
-            san = PieceChar[(Color::WHITE|ptype (pos[org]))];
+            san = PieceChar[+(Color::WHITE|ptype (pos[org]))];
             if (KING != ptype (pos[org]))
             {
                 // Disambiguation if have more then one piece of type 'pt'
@@ -186,7 +186,7 @@ string move_to_san (Move m, Position &pos)
             && PROMOTE == mtype (m))
         {
             san += "=";
-            san += PieceChar[(Color::WHITE|promote (m))];
+            san += PieceChar[+(Color::WHITE|promote (m))];
         }
     }
     else

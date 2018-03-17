@@ -96,11 +96,11 @@ namespace Material {
         e->key = pos.si->matl_key;
 
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        e->phase = i32(  std::min (VALUE_MIDGAME,
-                         std::max (VALUE_ENDGAME, pos.si->non_pawn_material ()))
-                       - VALUE_ENDGAME)
+        e->phase = +(  std::min (Value::MIDGAME,
+                       std::max (Value::ENDGAME, pos.si->non_pawn_material ()))
+                     - Value::ENDGAME)
                  * PhaseResolution
-                 / (VALUE_MIDGAME - VALUE_ENDGAME);
+                 / +(Value::MIDGAME - Value::ENDGAME);
         e->scale[+Color::WHITE] =
         e->scale[+Color::BLACK] = SCALE_NORMAL;
 
@@ -114,7 +114,7 @@ namespace Material {
         // Generic evaluation
         for (auto c : { Color::WHITE, Color::BLACK })
         {
-            if (   pos.si->non_pawn_material ( c) >= VALUE_MG_ROOK
+            if (   pos.si->non_pawn_material ( c) >= Value::MG_ROOK
                 && pos.count (~c) == 1)
             {
                 e->value_func = &ValueKXK[+c];
@@ -139,17 +139,17 @@ namespace Material {
         // Note that these ones don't return after setting the function.
         for (auto c : { Color::WHITE, Color::BLACK })
         {
-            if (   pos.si->non_pawn_material ( c) == VALUE_MG_BSHP
+            if (   pos.si->non_pawn_material ( c) == Value::MG_BSHP
                 && pos.count ( c, BSHP) == 1
                 && pos.count ( c, PAWN) != 0)
             {
                 e->scale_func[+c] = &ScaleKBPsKP[+c];
             }
             else
-            if (   pos.si->non_pawn_material ( c) == VALUE_MG_QUEN
+            if (   pos.si->non_pawn_material ( c) == Value::MG_QUEN
                 && pos.count ( c, QUEN) == 1
                 && pos.count ( c, PAWN) == 0
-                && pos.si->non_pawn_material (~c) == VALUE_MG_ROOK
+                && pos.si->non_pawn_material (~c) == Value::MG_ROOK
                 && pos.count (~c, ROOK) == 1
                 && pos.count (~c, PAWN) != 0)
             {
@@ -159,14 +159,14 @@ namespace Material {
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
-            if (abs (  pos.si->non_pawn_material ( c)
-                     - pos.si->non_pawn_material (~c)) <= VALUE_MG_BSHP)
+            if (abs (+(  pos.si->non_pawn_material ( c)
+                       - pos.si->non_pawn_material (~c))) <= +Value::MG_BSHP)
             {
                 if (0 == pos.count ( c, PAWN))
                 {
-                    e->scale[+c] = pos.si->non_pawn_material ( c) <  VALUE_MG_ROOK ?
+                    e->scale[+c] = pos.si->non_pawn_material ( c) <  Value::MG_ROOK ?
                                     SCALE_DRAW :
-                                    pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ?
+                                    pos.si->non_pawn_material (~c) <= Value::MG_BSHP ?
                                         Scale(4) :
                                         Scale(14);
                 }
@@ -179,7 +179,7 @@ namespace Material {
         }
 
         // Only pawns left
-        if (   pos.si->non_pawn_material () == VALUE_ZERO
+        if (   pos.si->non_pawn_material () == Value::ZERO
             && pos.pieces (PAWN) != 0)
         {
             if (0 == pos.pieces (Color::BLACK, PAWN))

@@ -30,19 +30,19 @@ inline std::string to_string (Square s)
 ///            If the engine is getting mated use negative values for y.
 inline std::string to_string (Value v)
 {
-    assert(-VALUE_MATE <= v && v <=  VALUE_MATE);
+    assert(-Value::MATE <= v && v <=  Value::MATE);
         
     std::ostringstream oss;
 
-    if (abs (v) <  VALUE_MATE - i32(MaxPlies))
+    if (abs (+v) < +Value::MATE - MaxPlies)
     {
         oss << "cp " << value_to_cp (v);
     }
     else
     {
-        oss << "mate " << i32(v > VALUE_ZERO ?
-                             (VALUE_MATE - v + 1) :
-                            -(VALUE_MATE + v + 0)) / 2;
+        oss << "mate " << +(v > Value::ZERO ?
+                             (Value::MATE - v + 1) :
+                            -(Value::MATE + v + 0)) / 2;
     }
     return oss.str ();
 }
@@ -103,7 +103,7 @@ template<typename CharT, typename Traits>
 inline std::basic_ostream<CharT, Traits>&
     operator<< (std::basic_ostream<CharT, Traits> &os, Piece p)
 {
-    os << PieceChar[p];
+    os << PieceChar[+p];
     return os;
 }
 

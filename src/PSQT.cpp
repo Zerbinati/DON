@@ -83,7 +83,7 @@ Score PST[+Color::NO][NONE][+Square::NO];
 /// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
 Score compute_psq (const Position &pos)
 {
-    auto psq = SCORE_ZERO;
+    auto psq = Score::ZERO;
     for (auto c : { Color::WHITE, Color::BLACK })
     {
         for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
@@ -102,7 +102,7 @@ Score compute_psq (const Position &pos)
 template<Color Own>
 Value compute_npm (const Position &pos)
 {
-    auto npm = VALUE_ZERO;
+    auto npm = Value::ZERO;
     for (auto pt : { NIHT, BSHP, ROOK, QUEN })
     {
         npm += PieceValues[MG][pt] * pos.count (Own, pt);
@@ -117,7 +117,7 @@ void psqt_initialize ()
 {
     for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
-        auto p = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
+        auto p = mk_score (+PieceValues[MG][pt], +PieceValues[EG][pt]);
         for (auto s : SQ)
         {
             auto psq = p + HalfPST[pt][+_rank (s)][+std::min (_file (s), File::fH - _file (s))];

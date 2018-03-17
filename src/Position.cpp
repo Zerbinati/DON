@@ -99,7 +99,7 @@ bool Position::see_ge (Move m, Value threshold) const
     // Only deal with normal moves, assume others pass a simple see
     if (NORMAL != mtype (m))
     {
-        return VALUE_ZERO >= threshold;
+        return Value::ZERO >= threshold;
     }
 
     auto org = org_sq (m);
@@ -107,7 +107,7 @@ bool Position::see_ge (Move m, Value threshold) const
 
     // The opponent may be able to recapture so this is the best result we can hope for.
     auto balance = PieceValues[MG][ptype (board[+dst])] - threshold;
-    if (VALUE_ZERO > balance)
+    if (Value::ZERO > balance)
     {
         return false;
     }
@@ -119,7 +119,7 @@ bool Position::see_ge (Move m, Value threshold) const
     balance -= PieceValues[MG][victim];
     // If it is enough (like in PxQ) then return immediately.
     // Note that if victim == KING we always return here, this is ok if the given move is legal.
-    if (VALUE_ZERO <= balance)
+    if (Value::ZERO <= balance)
     {
         return true;
     }
@@ -179,14 +179,14 @@ bool Position::see_ge (Move m, Value threshold) const
         //
         //      (balance, balance+1) -> (-balance-1, -balance)
         //
-        assert(VALUE_ZERO > balance);
+        assert(Value::ZERO > balance);
 
         balance = -balance - 1 - PieceValues[MG][victim];
 
         // If balance is still non-negative after giving away nextVictim then we
         // win. The only thing to be careful about it is that we should revert
         // stm if we captured with the king when the opponent still has attackers.
-        if (VALUE_ZERO <= balance)
+        if (Value::ZERO <= balance)
         {
             if (   KING == victim
                 && 0 != (attackers & pieces (stm)))
@@ -261,7 +261,7 @@ bool Position::pseudo_legal (Move m) const
     else
     if (CASTLE == mtype (m))
     {
-        auto cs = dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN;
+        auto cs = dst_sq (m) > org_sq (m) ? CastleSide::KING : CastleSide::QUEN;
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
         if (!(   KING == mpt
@@ -275,8 +275,8 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
         // Castle is always encoded as "King captures friendly Rook".
-        assert(dst_sq (m) == castle_rook[+active][cs]);
-        Bitboard b = king_path[+active][cs];
+        assert(dst_sq (m) == castle_rook[+active][+cs]);
+        Bitboard b = king_path[+active][+cs];
         // Check king's path for attackers.
         while (0 != b)
         {
@@ -452,7 +452,7 @@ bool Position::legal (Move m) const
             && Rank::r1 == rel_rank (active, dst_sq (m))
             && contains (pieces (active, KING), org_sq (m))
             && contains (pieces (active, ROOK), dst_sq (m))
-            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN));
+            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CastleSide::KING : CastleSide::QUEN));
         return true;
     }
     else
@@ -503,7 +503,7 @@ bool Position::gives_check (Move m) const
             && Rank::r1 == rel_rank (active, dst_sq (m))
             && contains (pieces (active, KING), org_sq (m))
             && contains (pieces (active, ROOK), dst_sq (m))
-            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN));
+            && expeded_castle (active, dst_sq (m) > org_sq (m) ? CastleSide::KING : CastleSide::QUEN));
         // Castling with check?
         auto king_dst = rel_sq (active, dst_sq (m) > org_sq (m) ? Square::G1 : Square::C1);
         auto rook_dst = rel_sq (active, dst_sq (m) > org_sq (m) ? Square::F1 : Square::D1);
@@ -550,8 +550,8 @@ void Position::clear ()
 {
     for (auto s : SQ)
     {
-        board[+s] = NO_PIECE;
-        castle_mask[+s] = CR_NONE;
+        board[+s] = Piece::NONE;
+        castle_mask[+s] = CastleRight::NONE;
     }
     for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING, NONE })
     {
@@ -564,11 +564,11 @@ void Position::clear ()
         {
             squares[+c][pt].clear ();
         }
-        for (auto cs : { CS_KING, CS_QUEN })
+        for (auto cs : { CastleSide::KING, CastleSide::QUEN })
         {
-            castle_rook[+c][cs] = Square::NO;
-            castle_path[+c][cs] = 0;
-            king_path  [+c][cs] = 0;
+            castle_rook[+c][+cs] = Square::NO;
+            castle_path[+c][+cs] = 0;
+            king_path  [+c][+cs] = 0;
         }
     }
 }
@@ -577,7 +577,7 @@ void Position::set_castle (Color c, CastleSide cs)
 {
     auto king_org = square<KING> (c);
     assert(Rank::r1 == rel_rank (c, king_org));
-    auto rook_org = castle_rook[+c][cs];
+    auto rook_org = castle_rook[+c][+cs];
     assert(contains (pieces (c, ROOK), rook_org)
         && Rank::r1 == rel_rank (c, rook_org));
 
@@ -592,12 +592,12 @@ void Position::set_castle (Color c, CastleSide cs)
     {
         if (s != king_org)
         {
-            king_path[+c][cs] |= s;
+            king_path[+c][+cs] |= s;
         }
         if (   s != king_org
             && s != rook_org)
         {
-            castle_path[+c][cs] |= s;
+            castle_path[+c][+cs] |= s;
         }
     }
     for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
@@ -605,7 +605,7 @@ void Position::set_castle (Color c, CastleSide cs)
         if (   s != king_org
             && s != rook_org)
         {
-            castle_path[+c][cs] |= s;
+            castle_path[+c][+cs] |= s;
         }
     }
 }
@@ -727,7 +727,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     iss >> token;
     active = Color(ColorChar.find (token));
 
-    si->castle_rights = CR_NONE;
+    si->castle_rights = CastleRight::NONE;
     // 3. Castling availability
     iss >> token;
     while (   iss >> token
@@ -749,8 +749,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             }
             assert(contains (pieces (c, ROOK), rook_org)
                 && rook_org > square<KING> (c));
-            castle_rook[+c][CS_KING] = rook_org;
-            set_castle (c, CS_KING);
+            castle_rook[+c][+CastleSide::KING] = rook_org;
+            set_castle (c, CastleSide::KING);
         }
         else
         if ('q' == token)
@@ -766,8 +766,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             }
             assert(contains (pieces (c, ROOK), rook_org)
                 && rook_org < square<KING> (c));
-            castle_rook[+c][CS_QUEN] = rook_org;
-            set_castle (c, CS_QUEN);
+            castle_rook[+c][+CastleSide::QUEN] = rook_org;
+            set_castle (c, CastleSide::QUEN);
         }
         else
         // Chess960
@@ -775,8 +775,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         {
             assert(Rank::r1 == rel_rank (c, square<KING> (c)));
             rook_org = to_file (token)|_rank (square<KING> (c));
-            auto cs = rook_org > square<KING> (c) ? CS_KING : CS_QUEN;
-            castle_rook[+c][cs] = rook_org;
+            auto cs = rook_org > square<KING> (c) ? CastleSide::KING : CastleSide::QUEN;
+            castle_rook[+c][+cs] = rook_org;
             set_castle (c, cs);
         }
         else
@@ -961,7 +961,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             && Rank::r1 == rel_rank (active, dst)
             && contains (pieces (active, KING), org)
             && contains (pieces (active, ROOK), dst)
-            && expeded_castle (active, dst > org ? CS_KING : CS_QUEN));
+            && expeded_castle (active, dst > org ? CastleSide::KING : CastleSide::QUEN));
 
         si->promotion = false;
         Square rook_org, rook_dst;
@@ -981,7 +981,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             && empty (dst)
             && 1 >= si->clock_ply);
 
-        board[+cap] = NO_PIECE; // Not done by remove_piece()
+        board[+cap] = Piece::NONE; // Not done by remove_piece()
         si->clock_ply = 0;
         si->promotion = false;
         move_piece (org, dst);
@@ -1002,7 +1002,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->promotion = true;
         // Replace the pawn with the promoted piece
         remove_piece (org);
-        board[+org] = NO_PIECE; // Not done by remove_piece()
+        board[+org] = Piece::NONE; // Not done by remove_piece()
         place_piece (dst, active, ppt);
         si->matl_key ^= RandZob.piece_square_keys[+active][PAWN][count (active, mpt)]
                       ^ RandZob.piece_square_keys[+active][ppt][count (active, ppt) - 1];
@@ -1020,12 +1020,12 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
     // Update castling rights
     auto b = si->castle_rights & (castle_mask[+org]|castle_mask[+dst]);
-    if (CR_NONE != b)
+    if (CastleRight::NONE != b)
     {
-        if (CR_NONE != (b & CR_WKING)) si->posi_key ^= RandZob.castle_right_keys[+Color::WHITE][CS_KING];
-        if (CR_NONE != (b & CR_WQUEN)) si->posi_key ^= RandZob.castle_right_keys[+Color::WHITE][CS_QUEN];
-        if (CR_NONE != (b & CR_BKING)) si->posi_key ^= RandZob.castle_right_keys[+Color::BLACK][CS_KING];
-        if (CR_NONE != (b & CR_BQUEN)) si->posi_key ^= RandZob.castle_right_keys[+Color::BLACK][CS_QUEN];
+        if (CastleRight::NONE != (b & CastleRight::WKING)) si->posi_key ^= RandZob.castle_right_keys[+Color::WHITE][+CastleSide::KING];
+        if (CastleRight::NONE != (b & CastleRight::WQUEN)) si->posi_key ^= RandZob.castle_right_keys[+Color::WHITE][+CastleSide::QUEN];
+        if (CastleRight::NONE != (b & CastleRight::BKING)) si->posi_key ^= RandZob.castle_right_keys[+Color::BLACK][+CastleSide::KING];
+        if (CastleRight::NONE != (b & CastleRight::BQUEN)) si->posi_key ^= RandZob.castle_right_keys[+Color::BLACK][+CastleSide::QUEN];
         si->castle_rights &= ~b;
     }
 
@@ -1096,7 +1096,7 @@ void Position::undo_move (Move m)
             && contains (pieces (active, promote (m)), dst));
 
         remove_piece (dst);
-        board[+dst] = NO_PIECE; // Not done by remove_piece()
+        board[+dst] = Piece::NONE; // Not done by remove_piece()
         place_piece (org, active, PAWN);
     }
 
@@ -1291,12 +1291,12 @@ string Position::fen (bool full) const
 
     oss << " " << active << " ";
 
-    if (si->can_castle (CR_ANY))
+    if (si->can_castle (CastleRight::ANY))
     {
-        if (si->can_castle (CR_WKING)) oss << (Chess960 ? to_char (_file (castle_rook[+Color::WHITE][CS_KING]), false) : 'K');
-        if (si->can_castle (CR_WQUEN)) oss << (Chess960 ? to_char (_file (castle_rook[+Color::WHITE][CS_QUEN]), false) : 'Q');
-        if (si->can_castle (CR_BKING)) oss << (Chess960 ? to_char (_file (castle_rook[+Color::BLACK][CS_KING]),  true) : 'k');
-        if (si->can_castle (CR_BQUEN)) oss << (Chess960 ? to_char (_file (castle_rook[+Color::BLACK][CS_QUEN]),  true) : 'q');
+        if (si->can_castle (CastleRight::WKING)) oss << (Chess960 ? to_char (_file (castle_rook[+Color::WHITE][+CastleSide::KING]), false) : 'K');
+        if (si->can_castle (CastleRight::WQUEN)) oss << (Chess960 ? to_char (_file (castle_rook[+Color::WHITE][+CastleSide::QUEN]), false) : 'Q');
+        if (si->can_castle (CastleRight::BKING)) oss << (Chess960 ? to_char (_file (castle_rook[+Color::BLACK][+CastleSide::KING]),  true) : 'k');
+        if (si->can_castle (CastleRight::BQUEN)) oss << (Chess960 ? to_char (_file (castle_rook[+Color::BLACK][+CastleSide::QUEN]),  true) : 'q');
     }
     else
     {
@@ -1349,7 +1349,7 @@ Position::operator string () const
         oss << "\n" << Book.show (*this);
     }
     if (   MaxLimitPiece >= count ()
-        && !si->can_castle (CR_ANY))
+        && !si->can_castle (CastleRight::ANY))
     {
         ProbeState wdl_state; auto wdl = probe_wdl (*const_cast<Position*> (this), wdl_state);
         ProbeState dtz_state; auto dtz = probe_dtz (*const_cast<Position*> (this), dtz_state);
@@ -1465,12 +1465,12 @@ bool Position::ok () const
     // CASTLING
     for (auto c : { Color::WHITE, Color::BLACK })
     {
-        for (auto cs : { CS_KING, CS_QUEN })
+        for (auto cs : { CastleSide::KING, CastleSide::QUEN })
         {
             auto cr = castle_right (c, cs);
             if (   si->can_castle (cr)
-                && (   board[+castle_rook[+c][cs]] != (c|ROOK)
-                    || castle_mask[+castle_rook[+c][cs]] != cr
+                && (   board[+castle_rook[+c][+cs]] != (c|ROOK)
+                    || castle_mask[+castle_rook[+c][+cs]] != cr
                     || (castle_mask[+square<KING> (c)] & cr) != cr))
             {
                 assert(false && "Position OK: CASTLING");

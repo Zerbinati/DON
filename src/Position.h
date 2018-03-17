@@ -67,15 +67,15 @@ public:
 
     bool can_castle (Color c) const
     {
-        return CR_NONE != (castle_rights & castle_right (c));
+        return CastleRight::NONE != (castle_rights & castle_right (c));
     }
     bool can_castle (Color c, CastleSide cs) const
     {
-        return CR_NONE != (castle_rights & castle_right (c, cs));
+        return CastleRight::NONE != (castle_rights & castle_right (c, cs));
     }
     bool can_castle (CastleRight cr) const
     {
-        return CR_NONE != (castle_rights & cr);
+        return CastleRight::NONE != (castle_rights & cr);
     }
 
     void set_check_info (const Position &pos);
@@ -128,9 +128,9 @@ public:
 
     CastleRight castle_mask[+Square::NO];
 
-    Square   castle_rook[+Color::NO][CS_NO];
-    Bitboard castle_path[+Color::NO][CS_NO];
-    Bitboard king_path  [+Color::NO][CS_NO];
+    Square   castle_rook[+Color::NO][+CastleSide::NO];
+    Bitboard castle_path[+Color::NO][+CastleSide::NO];
+    Bitboard king_path  [+Color::NO][+CastleSide::NO];
 
     Color active;
     i16   ply;
@@ -168,7 +168,7 @@ public:
     i16  move_num () const;
     bool draw (i16) const;
 
-    bool see_ge (Move, Value = VALUE_ZERO) const;
+    bool see_ge (Move, Value = Value::ZERO) const;
 
     Bitboard attackers_to (Square, Color, Bitboard) const;
     Bitboard attackers_to (Square, Color) const;
@@ -227,7 +227,7 @@ inline Piece Position::operator[] (Square s) const
 inline bool Position::empty  (Square s)  const
 {
     assert(_ok (s));
-    return NO_PIECE == board[+s];
+    return Piece::NONE == board[+s];
 }
 
 inline Bitboard Position::pieces () const
@@ -345,12 +345,12 @@ inline Key Position::posi_move_key (Move m) const
         }
     }
     auto b = si->castle_rights & (castle_mask[+org]|castle_mask[+dst]);
-    if (CR_NONE != b)
+    if (CastleRight::NONE != b)
     {
-        if (CR_NONE != (b & CR_WKING)) key ^= RandZob.castle_right_keys[+Color::WHITE][CS_KING];
-        if (CR_NONE != (b & CR_WQUEN)) key ^= RandZob.castle_right_keys[+Color::WHITE][CS_QUEN];
-        if (CR_NONE != (b & CR_BKING)) key ^= RandZob.castle_right_keys[+Color::BLACK][CS_KING];
-        if (CR_NONE != (b & CR_BQUEN)) key ^= RandZob.castle_right_keys[+Color::BLACK][CS_QUEN];
+        if (CastleRight::NONE != (b & CastleRight::WKING)) key ^= RandZob.castle_right_keys[+Color::WHITE][+CastleSide::KING];
+        if (CastleRight::NONE != (b & CastleRight::WQUEN)) key ^= RandZob.castle_right_keys[+Color::WHITE][+CastleSide::QUEN];
+        if (CastleRight::NONE != (b & CastleRight::BKING)) key ^= RandZob.castle_right_keys[+Color::BLACK][+CastleSide::KING];
+        if (CastleRight::NONE != (b & CastleRight::BQUEN)) key ^= RandZob.castle_right_keys[+Color::BLACK][+CastleSide::QUEN];
     }
     return key
          ^ RandZob.color_key
@@ -361,7 +361,7 @@ inline Key Position::posi_move_key (Move m) const
 
 inline bool Position::expeded_castle (Color c, CastleSide cs) const
 {
-    return 0 == (castle_path[+c][cs] & pieces ());
+    return 0 == (castle_path[+c][+cs] & pieces ());
 }
 /// Position::move_num() starts at 1, and is incremented after Color::BLACK's move.
 inline i16  Position::move_num () const
@@ -511,7 +511,7 @@ inline void Position::remove_piece (Square s)
     assert(!empty (s));
     auto c  = color (board[+s]);
     auto pt = ptype (board[+s]);
-    //board[+s] = NO_PIECE; // Not needed, overwritten by the capturing one
+    //board[+s] = Piece::NONE; // Not needed, overwritten by the capturing one
     color_bb[+c] ^= s;
     types_bb[pt] ^= s;
     types_bb[NONE] ^= s;
@@ -524,7 +524,7 @@ inline void Position::move_piece (Square s1, Square s2)
     auto c  = color (board[+s1]);
     auto pt = ptype (board[+s1]);
     board[+s2] = board[+s1];
-    board[+s1] = NO_PIECE;
+    board[+s1] = Piece::NONE;
     Bitboard bb = square_bb (s1) ^ square_bb (s2);
     color_bb[+c] ^= bb;
     types_bb[pt] ^= bb;
@@ -543,7 +543,7 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     remove_piece (king_org);
     remove_piece (rook_org);
     board[+king_org] =
-    board[+rook_org] = NO_PIECE; // Not done by remove_piece()
+    board[+rook_org] = Piece::NONE; // Not done by remove_piece()
     place_piece (king_dst, active, KING);
     place_piece (rook_dst, active, ROOK);
 }
@@ -557,7 +557,7 @@ inline void Position::undo_castling (Square king_org, Square &king_dst, Square &
     remove_piece (king_dst);
     remove_piece (rook_dst);
     board[+king_dst] =
-    board[+rook_dst] = NO_PIECE; // Not done by remove_piece()
+    board[+rook_dst] = Piece::NONE; // Not done by remove_piece()
     place_piece (king_org, active, KING);
     place_piece (rook_org, active, ROOK);
 }

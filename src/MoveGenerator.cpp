@@ -221,10 +221,10 @@ namespace {
             && 0 == pos.si->checkers);
 
         auto king_org = pos.square<KING> (Own);
-        auto rook_org = pos.castle_rook[+Own][CS];
+        auto rook_org = pos.castle_rook[+Own][+CS];
         assert(contains (pos.pieces (Own, ROOK), rook_org));
 
-        Bitboard b = pos.king_path[+Own][CS];
+        Bitboard b = pos.king_path[+Own][+CS];
         // Check king's path for attackers
         while (0 != b)
         {
@@ -280,15 +280,15 @@ namespace {
             && 0 == pos.si->checkers
             && pos.si->can_castle (Own))
         {
-            if (   pos.expeded_castle (Own, CS_KING)
-                && pos.si->can_castle (Own, CS_KING))
+            if (   pos.expeded_castle (Own, CastleSide::KING)
+                && pos.si->can_castle (Own, CastleSide::KING))
             {
-                generate_castling_moves<GT, Own, CS_KING> (moves, pos);
+                generate_castling_moves<GT, Own, CastleSide::KING> (moves, pos);
             }
-            if (   pos.expeded_castle (Own, CS_QUEN)
-                && pos.si->can_castle (Own, CS_QUEN))
+            if (   pos.expeded_castle (Own, CastleSide::QUEN)
+                && pos.si->can_castle (Own, CastleSide::QUEN))
             {
-                generate_castling_moves<GT, Own, CS_QUEN> (moves, pos);
+                generate_castling_moves<GT, Own, CastleSide::QUEN> (moves, pos);
             }
         }
     }

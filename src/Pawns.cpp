@@ -98,13 +98,13 @@ namespace Pawns {
             e->color_count[+Own][+Color::BLACK] = u08(pop_count (own_pawns & Color_bb[+Color::BLACK]));
             e->index[+Own] = 0;
             std::fill_n (e->king_square[+Own], MaxCache, Square::NO);
-            std::fill_n (e->king_safety[+Own], MaxCache, VALUE_ZERO);
+            std::fill_n (e->king_safety[+Own], MaxCache, Value::ZERO);
             std::fill_n (e->king_pawn_dist[+Own], MaxCache, 0);
 
             e->king_safety_on<Own> (pos, rel_sq (Own, Square::G1));
             e->king_safety_on<Own> (pos, rel_sq (Own, Square::C1));
 
-            auto score = SCORE_ZERO;
+            auto score = Score::ZERO;
 
             File f;
             Bitboard b, neighbours, supporters, phalanxes, stoppers, levers, escapes;

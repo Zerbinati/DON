@@ -13,7 +13,7 @@ public:
     //    768 +   4 + 8 + 1
     //                  781
     Key piece_square_keys[+Color::NO][NONE][+Square::NO];	// [color][piece-type][square]
-    Key castle_right_keys[+Color::NO][CS_NO];				// [color][castle-side]
+    Key castle_right_keys[+Color::NO][+CastleSide::NO];				// [color][castle-side]
     Key en_passant_keys  [+File::NO];					// [enpassant file]
     Key color_key;										// color
 

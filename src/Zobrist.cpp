@@ -53,12 +53,12 @@ Key Zobrist::compute_posi_key (const Position &pos) const
     {
         posi_key ^= color_key;
     }
-    if (pos.si->can_castle (CR_ANY))
+    if (pos.si->can_castle (CastleRight::ANY))
     {
-        if (pos.si->can_castle (CR_WKING)) posi_key ^= castle_right_keys[+Color::WHITE][CS_KING];
-        if (pos.si->can_castle (CR_WQUEN)) posi_key ^= castle_right_keys[+Color::WHITE][CS_QUEN];
-        if (pos.si->can_castle (CR_BKING)) posi_key ^= castle_right_keys[+Color::BLACK][CS_KING];
-        if (pos.si->can_castle (CR_BQUEN)) posi_key ^= castle_right_keys[+Color::BLACK][CS_QUEN];
+        if (pos.si->can_castle (CastleRight::WKING)) posi_key ^= castle_right_keys[+Color::WHITE][+CastleSide::KING];
+        if (pos.si->can_castle (CastleRight::WQUEN)) posi_key ^= castle_right_keys[+Color::WHITE][+CastleSide::QUEN];
+        if (pos.si->can_castle (CastleRight::BKING)) posi_key ^= castle_right_keys[+Color::BLACK][+CastleSide::KING];
+        if (pos.si->can_castle (CastleRight::BQUEN)) posi_key ^= castle_right_keys[+Color::BLACK][+CastleSide::QUEN];
     }
     if (Square::NO != pos.si->en_passant_sq)
     {
@@ -128,18 +128,18 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //        token = char(tolower (token));
 //        if ('k' == token)
 //        {
-//            fen_key ^= castle_right_keys[+c][CS_KING];
+//            fen_key ^= castle_right_keys[+c][+CastleSide::KING];
 //        }
 //        else
 //        if ('q' == token)
 //        {
-//            fen_key ^= castle_right_keys[+c][CS_QUEN];
+//            fen_key ^= castle_right_keys[+c][+CastleSide::QUEN];
 //        }
 //        else
 //        // Chess960
 //        if ('a' <= token && token <= 'h')
 //        {
-//            fen_key ^= castle_right_keys[+c][kf[+c] < to_file (token) ? CS_KING : CS_QUEN];
+//            fen_key ^= castle_right_keys[+c][kf[+c] < to_file (token) ? CastleSide::KING : CastleSide::QUEN];
 //        }
 //        else
 //        {
@@ -177,9 +177,9 @@ void zobrist_initialize ()
     }
     for (auto c : { Color::WHITE, Color::BLACK })
     {
-        for (auto cs : { CS_KING, CS_QUEN })
+        for (auto cs : { CastleSide::KING, CastleSide::QUEN })
         {
-            RandZob.castle_right_keys[+c][cs] = prng.rand<Key> ();
+            RandZob.castle_right_keys[+c][+cs] = prng.rand<Key> ();
         }
     }
     for (auto f : {File::fA, File::fB, File::fC, File::fD, File::fE, File::fF, File::fG, File::fH })

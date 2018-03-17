@@ -40,7 +40,7 @@ namespace BitBoard {
     };
     const Bitboard KingFlank_bb[] =
     {
-        Side_bb[CS_QUEN], Side_bb[CS_QUEN], Side_bb[CS_QUEN], Side_bb[CS_NO], Side_bb[CS_NO], Side_bb[CS_KING], Side_bb[CS_KING], Side_bb[CS_KING]
+        Side_bb[+CastleSide::QUEN], Side_bb[+CastleSide::QUEN], Side_bb[+CastleSide::QUEN], Side_bb[+CastleSide::NO], Side_bb[+CastleSide::NO], Side_bb[+CastleSide::KING], Side_bb[+CastleSide::KING], Side_bb[+CastleSide::KING]
     };
     const Bitboard Outposts_bb[] =
     {

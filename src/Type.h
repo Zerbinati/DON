@@ -153,6 +153,13 @@ const i16 DepthQSRecapture  = -5;
 const i16 DepthNone         = -6;
 const i16 DepthEmpty        = -7;
 
+template <typename T>
+constexpr auto operator+(T t) noexcept
+    -> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>>
+{
+    return static_cast<std::underlying_type_t<T>>(t);
+}
+
 enum class File : i08
 {
     fA,
@@ -235,27 +242,27 @@ enum Delta : i08
     DEL_WWS = i08(DEL_WW) + i08(DEL_S),
 };
 
-enum CastleSide : i08
+enum class CastleSide : i08
 {
-    CS_KING,    // King  Side (Short Castle)
-    CS_QUEN,    // Queen Side (Long  Castle)
-    CS_NO,
+    KING, // King  Side (Short Castle)
+    QUEN, // Queen Side (Long  Castle)
+    NO,
 };
 /// Castle Right defined as in Polyglot book hash key
-enum CastleRight : u08
+enum class CastleRight : u08
 {
-    CR_NONE  = 0,                   // 0000
-    CR_WKING = 1,                   // 0001
-    CR_WQUEN = u08(CR_WKING) << 1,  // 0010
-    CR_BKING = u08(CR_WKING) << 2,  // 0100
-    CR_BQUEN = u08(CR_WKING) << 3,  // 1000
+    NONE  = 0,              // 0000
+    WKING = 1,              // 0001
+    WQUEN = +WKING << 1,    // 0010
+    BKING = +WKING << 2,    // 0100
+    BQUEN = +WKING << 3,    // 1000
 
-    CR_WHITE = u08(CR_WKING) + u08(CR_WQUEN),   // 0011
-    CR_BLACK = u08(CR_BKING) + u08(CR_BQUEN),   // 1100
-    CR_KING  = u08(CR_WKING) + u08(CR_BKING),   // 0101
-    CR_QUEN  = u08(CR_WQUEN) + u08(CR_BQUEN),   // 1010
-    CR_ANY   = u08(CR_WHITE) + u08(CR_BLACK),   // 1111
-    CR_NO,
+    WHITE = +WKING + +WQUEN,// 0011
+    BLACK = +BKING + +BQUEN,// 1100
+    KING  = +WKING + +BKING,// 0101
+    QUEN  = +WQUEN + +BQUEN,// 1010
+    ANY   = +WHITE + +BLACK,// 1111
+    NO,
 };
 
 enum PieceType : i08
@@ -272,7 +279,7 @@ enum PieceType : i08
 /// Piece needs 4-bits to be stored
 /// bit 0-2: Type of piece
 /// bit   3: Color of piece { White = 0..., Black = 1... }
-enum Piece : u08
+enum class Piece : u08
 {
     W_PAWN   = 0, //  0000
     W_NIHT      , //  0001
@@ -281,7 +288,7 @@ enum Piece : u08
     W_QUEN      , //  0100
     W_KING      , //  0101
 
-    NO_PIECE = 6, //  0110
+    NONE = 6, //  0110
 
     B_PAWN   = 8, //  1000
     B_NIHT      , //  1001
@@ -290,7 +297,7 @@ enum Piece : u08
     B_QUEN      , //  1100
     B_KING      , //  1101
 
-    MAX_PIECE   , //  1110
+    NO            //  1110
 };
 
 enum MoveType : u16
@@ -314,37 +321,37 @@ enum Move : u16
     MOVE_NULL = 0x41,
 };
 
-enum Value : i32
+enum class Value : i32
 {
-    VALUE_ZERO      = 0,
-    VALUE_DRAW      = 0,
+    ZERO      = 0,
+    DRAW      = 0,
 
-    VALUE_NONE      = SHRT_MAX,
-    VALUE_INFINITE  = i32(VALUE_NONE) - 1,
-    VALUE_MATE      = i32(VALUE_INFINITE) - 1,
+    NONE      = SHRT_MAX,
+    INFINITE_ = +NONE - 1,
+    MATE      = +INFINITE_ - 1,
     
-    VALUE_MATE_MAX_PLY = i32(VALUE_MATE) - 2*MaxPlies,
+    MATE_MAX_PLY = +MATE - 2*MaxPlies,
     
-    VALUE_KNOWN_WIN = 10000,
+    KNOWN_WIN = 10000,
 
-    VALUE_MG_PAWN =  171,  VALUE_EG_PAWN =  240,
-    VALUE_MG_NIHT =  764,  VALUE_EG_NIHT =  848,
-    VALUE_MG_BSHP =  826,  VALUE_EG_BSHP =  891,
-    VALUE_MG_ROOK = 1282,  VALUE_EG_ROOK = 1373,
-    VALUE_MG_QUEN = 2526,  VALUE_EG_QUEN = 2646,
+    MG_PAWN =  171,  EG_PAWN =  240,
+    MG_NIHT =  764,  EG_NIHT =  848,
+    MG_BSHP =  826,  EG_BSHP =  891,
+    MG_ROOK = 1282,  EG_ROOK = 1373,
+    MG_QUEN = 2526,  EG_QUEN = 2646,
 
-    VALUE_MIDGAME = 15258, VALUE_ENDGAME = 3915,
+    MIDGAME = 15258, ENDGAME = 3915,
 
-    //VALUE_MG_FULL = VALUE_MG_NIHT * 4 + VALUE_MG_BSHP * 4 + VALUE_MG_ROOK * 4 + VALUE_MG_QUEN * 2,
-    //VALUE_EG_FULL = VALUE_EG_NIHT * 4 + VALUE_EG_BSHP * 4 + VALUE_EG_ROOK * 4 + VALUE_EG_QUEN * 2,
+    //MG_FULL = MG_NIHT * 4 + MG_BSHP * 4 + MG_ROOK * 4 + MG_QUEN * 2,
+    //EG_FULL = EG_NIHT * 4 + EG_BSHP * 4 + EG_ROOK * 4 + EG_QUEN * 2,
 };
 /// Score needs 32-bits to be stored
 /// the lower 16-bits are used to store the midgame value
 /// the upper 16-bits are used to store the endgame value
 /// Take some care to avoid left-shifting a signed int to avoid undefined behavior.
-enum Score : u32
+enum class Score : u32
 {
-    SCORE_ZERO = 0,
+    ZERO = 0,
 };
 
 enum Bound : u08
@@ -369,14 +376,6 @@ enum Scale : u08
     SCALE_MAX     = 128,
     SCALE_NONE    = 255,
 };
-
-
-template <typename T>
-constexpr auto operator+(T t) noexcept
-	-> std::enable_if_t<std::is_enum<T>::value, std::underlying_type_t<T>>
-{
-	return static_cast<std::underlying_type_t<T>>(t);
-}
 
 #define BASIC_OPERATORS(T)                                          \
     constexpr T operator- (T t) { return T(- +t); }                 \
@@ -461,11 +460,11 @@ inline Value eg_value (u32 s)
 
 BASIC_OPERATORS(Score)
 /// Multiplication & Division of a Score must be handled separately for each term
-inline Score operator* (Score s, i32 i) { return mk_score (mg_value (s) * i, eg_value (s) * i); }
-inline Score operator/ (Score s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+inline Score operator* (Score s, i32 i) { return mk_score (+mg_value (+s) * i, +eg_value (+s) * i); }
+inline Score operator/ (Score s, i32 i) { return mk_score (+mg_value (+s) / i, +eg_value (+s) / i); }
 
-inline Score& operator*= (Score &s, i32 i) { s = mk_score (mg_value (s) * i, eg_value (s) * i); return s; }
-inline Score& operator/= (Score &s, i32 i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
+inline Score& operator*= (Score &s, i32 i) { s = mk_score (+mg_value (+s) * i, +eg_value (+s) * i); return s; }
+inline Score& operator/= (Score &s, i32 i) { s = mk_score (+mg_value (+s) / i, +eg_value (+s) / i); return s; }
 
 /// Don't want to multiply two scores due to a very high risk of overflow.
 /// So user should explicitly convert to integer.
@@ -514,27 +513,27 @@ constexpr Delta pawn_push (Color c)
 
 constexpr CastleRight castle_right (Color c)
 {
-    //return CastleRight(CR_WHITE << ((+c << +Color::BLACK)));
-    return Color::WHITE == c ? CR_WHITE : CR_BLACK;
+    //return CastleRight(CastleRight::WHITE << ((+c << +Color::BLACK)));
+    return Color::WHITE == c ? CastleRight::WHITE : CastleRight::BLACK;
 }
 constexpr CastleRight castle_right (Color c, CastleSide cs)
 {
-    //return CastleRight(CR_WKING << ((+c << +Color::BLACK) + cs));
+    //return CastleRight(CastleRight::WKING << ((+c << +Color::BLACK) + cs));
     return Color::WHITE == c ? 
-               CS_KING == cs ? CR_WKING : CR_WQUEN :
-               CS_KING == cs ? CR_BKING : CR_BQUEN;
+               CastleSide::KING == cs ? CastleRight::WKING : CastleRight::WQUEN :
+               CastleSide::KING == cs ? CastleRight::BKING : CastleRight::BQUEN;
 }
 
 constexpr Piece operator| (Color c, PieceType pt) { return Piece((+c << 3) + pt); }
 
 constexpr bool _ok (Piece p)
 {
-    return (W_PAWN <= p && p <= W_KING)
-        || (B_PAWN <= p && p <= B_KING);
+    return (Piece::W_PAWN <= p && p <= Piece::W_KING)
+        || (Piece::B_PAWN <= p && p <= Piece::B_KING);
 }
-constexpr PieceType ptype (Piece p) { return PieceType(p & MAX_PTYPE); }
-constexpr Color     color (Piece p) { return Color(p >> 3); }
-constexpr Piece operator~ (Piece p) { return Piece(p ^ 8); }
+constexpr PieceType ptype (Piece p) { return PieceType(+p & MAX_PTYPE); }
+constexpr Color     color (Piece p) { return Color(+p >> 3); }
+constexpr Piece operator~ (Piece p) { return Piece(+p ^ 8); }
 
 constexpr Square    org_sq  (Move m) { return Square((m >> 6) & +Square::H8); }
 constexpr Square    dst_sq  (Move m) { return Square((m >> 0) & +Square::H8); }
@@ -555,11 +554,11 @@ template<MoveType MT>
 constexpr Move mk_move (Square org, Square dst)               { return Move(MT + (+org << 6) + +dst); }
 constexpr Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + ((pt - NIHT) << 12) + (+org << 6) + +dst); }
 
-constexpr i16   value_to_cp (Value v) { return i16(v*100/i32(VALUE_EG_PAWN)); }
-constexpr Value cp_to_value (i16  cp) { return Value(cp*i32(VALUE_EG_PAWN)/100); }
+constexpr i16   value_to_cp (Value v) { return i16(v*100/i32(Value::EG_PAWN)); }
+constexpr Value cp_to_value (i16  cp) { return Value(cp*i32(Value::EG_PAWN)/100); }
 
-constexpr Value mates_in (i32 ply) { return  VALUE_MATE - ply; }
-constexpr Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
+constexpr Value mates_in (i32 ply) { return  Value::MATE - ply; }
+constexpr Value mated_in (i32 ply) { return -Value::MATE + ply; }
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milli-seconds
 
@@ -739,8 +738,8 @@ constexpr Square SQ[+Square::NO] =
 
 constexpr Value PieceValues[][MAX_PTYPE] =
 {
-    { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
-    { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
+    { Value::MG_PAWN, Value::MG_NIHT, Value::MG_BSHP, Value::MG_ROOK, Value::MG_QUEN, Value::ZERO, Value::ZERO },
+    { Value::EG_PAWN, Value::EG_NIHT, Value::EG_BSHP, Value::EG_ROOK, Value::EG_QUEN, Value::ZERO, Value::ZERO }
 };
 
 #endif // _TYPE_H_INC_

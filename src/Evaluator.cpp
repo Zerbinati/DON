@@ -34,14 +34,14 @@ namespace {
 
         static void initialize ()
         {
-            std::memset (scores, SCORE_ZERO, sizeof (scores));
+            std::memset (scores, +Score::ZERO, sizeof (scores));
         }
 
         static void write (Tracer::Term term, Color c, Score score)
         {
             scores[term][+c] = score;
         }
-        static void write (Tracer::Term term, Score wscore, Score bscore = SCORE_ZERO)
+        static void write (Tracer::Term term, Score wscore, Score bscore = Score::ZERO)
         {
             write (term, Color::WHITE, wscore);
             write (term, Color::BLACK, bscore);
@@ -53,8 +53,8 @@ namespace {
 
     ostream& operator<< (ostream &os, Score score)
     {
-        os << std::setw (5) << value_to_cp (mg_value (score)) / 100.0 << " "
-           << std::setw (5) << value_to_cp (eg_value (score)) / 100.0;
+        os << std::setw (5) << value_to_cp (mg_value (+score)) / 100.0 << " "
+           << std::setw (5) << value_to_cp (eg_value (+score)) / 100.0;
         return os;
     }
 
@@ -334,11 +334,11 @@ namespace {
                       & (  LowRanks_bb[+Opp]
                          | shift<Color::WHITE == Own ? DEL_N : DEL_S> (pos.pieces ())));
         mob_area[+Opp] = ~(b | pos.square<KING> (Opp));
-        mobility[+Opp] = SCORE_ZERO;
+        mobility[+Opp] = Score::ZERO;
 
         king_attackers_weight[+Own] = 0;
         king_attacks_count[+Own] = 0;
-        if (pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
+        if (pos.si->non_pawn_material (Own) >= Value::MG_ROOK + Value::MG_NIHT)
         {
             king_ring[+Opp] = PieceAttacks[KING][+pos.square<KING> (Opp)];
             king_attackers_count[+Own] = u08(pop_count (king_ring[+Opp] & pin_attacked_by[+Own][PAWN]));
@@ -366,7 +366,7 @@ namespace {
 
         const auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
 
-        auto score = SCORE_ZERO;
+        auto score = Score::ZERO;
 
         for (auto s : pos.squares[+Own][PT])
         {
@@ -590,22 +590,22 @@ namespace {
             && pos.si->can_castle (Own))
         {
             if (   safety < pe->king_safety[+Own][0]
-                && pos.si->can_castle (Own, CS_KING)
-                && pos.expeded_castle (Own, CS_KING)
-                && 0 == (pos.king_path[+Own][CS_KING] & ful_attacked_by[+Opp]))
+                && pos.si->can_castle (Own, CastleSide::KING)
+                && pos.expeded_castle (Own, CastleSide::KING)
+                && 0 == (pos.king_path[+Own][+CastleSide::KING] & ful_attacked_by[+Opp]))
             {
                 safety = pe->king_safety[+Own][0];
             }
             if (   safety < pe->king_safety[+Own][1]
-                && pos.si->can_castle (Own, CS_QUEN)
-                && pos.expeded_castle (Own, CS_QUEN)
-                && 0 == (pos.king_path[+Own][CS_QUEN] & ful_attacked_by[+Opp]))
+                && pos.si->can_castle (Own, CastleSide::QUEN)
+                && pos.expeded_castle (Own, CastleSide::QUEN)
+                && 0 == (pos.king_path[+Own][+CastleSide::QUEN] & ful_attacked_by[+Opp]))
             {
                 safety = pe->king_safety[+Own][1];
             }
         }
 
-        Score score = mk_score (safety, -16 * pe->king_pawn_dist[+Own][index]);
+        Score score = mk_score (+safety, -16 * pe->king_pawn_dist[+Own][index]);
 
         Bitboard b;
         // Main king safety evaluation
@@ -685,13 +685,13 @@ namespace {
                         + 191 * pop_count (king_ring[+Own] & weak_area)
                         + 143 * pop_count (pos.abs_blockers (Own) | unsafe_check)
                         - 848 * (0 == pos.count (Opp, QUEN) ? 1 : 0)
-                        -   9 * safety / 8
+                        -   9 * +safety / 8
                         +  40;
 
             if (king_danger > 0)
             {
                 // Transform the king danger into a score, and subtract it from the score
-                king_danger = std::max (king_danger + mg_value (mobility[+Opp] - mobility[+Own]), 0);
+                king_danger = std::max (king_danger + +mg_value (+(mobility[+Opp] - mobility[+Own])), 0);
                 score -= mk_score (king_danger*king_danger / 0x1000, king_danger / 0x10);
             }
         }
@@ -733,7 +733,7 @@ namespace {
     {
         const auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
 
-        auto score = SCORE_ZERO;
+        auto score = Score::ZERO;
 
         Bitboard b;
 
@@ -878,7 +878,7 @@ namespace {
                                 return std::min (dist (pos.square<KING> (c), s), 5);
                             };
 
-        auto score = SCORE_ZERO;
+        auto score = Score::ZERO;
 
         Bitboard psr = pe->passers[+Own];
         while (0 != psr)
@@ -1003,7 +1003,7 @@ namespace {
         // - if not attacked by an enemy pawns
         // - if defended by friend pieces or not attacked by enemy pieces.
         Bitboard safe_space = Space_bb[+Own]
-                            & Side_bb[CS_NO]
+                            & Side_bb[+CastleSide::NO]
                             & ~pos.pieces (Own, PAWN)
                             & ~pin_attacked_by[+Opp][PAWN]
                             & (   pin_attacked_by[+Own][NONE]
@@ -1037,9 +1037,9 @@ namespace {
         i32 complexity =   8 * (outflanking + pe->asymmetry)
                        +  12 * pos.count (PAWN)
                           // Pawn on both flanks
-                       +  16 * (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
-                                && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]) ? 1 : 0)
-                       +  48 * (VALUE_ZERO == pos.si->non_pawn_material () ? 1 : 0)
+                       +  16 * (   0 != (pos.pieces (PAWN) & Side_bb[+CastleSide::KING])
+                                && 0 != (pos.pieces (PAWN) & Side_bb[+CastleSide::QUEN]) ? 1 : 0)
+                       +  48 * (Value::ZERO == pos.si->non_pawn_material () ? 1 : 0)
                        - 136;
 
         // Now apply the bonus: note that we find the attacking side by extracting
@@ -1059,7 +1059,7 @@ namespace {
     template<bool Trace>
     Scale Evaluator<Trace>::scale (Value eg) const
     {
-        auto strong_color = eg >= VALUE_ZERO ? Color::WHITE : Color::BLACK;
+        auto strong_color = eg >= Value::ZERO ? Color::WHITE : Color::BLACK;
 
         Scale scl;
         if (   nullptr == me->scale_func[+strong_color]
@@ -1079,15 +1079,15 @@ namespace {
                 // With no other pieces (ignoring pawns)
                 // or
                 // With some other pieces is still a bit drawish, but not as drawish as with only the two bishops.
-                return VALUE_MG_BSHP == pos.si->non_pawn_material (Color::WHITE)
-                    && VALUE_MG_BSHP == pos.si->non_pawn_material (Color::BLACK) ?
+                return Value::MG_BSHP == pos.si->non_pawn_material (Color::WHITE)
+                    && Value::MG_BSHP == pos.si->non_pawn_material (Color::BLACK) ?
                         1 >= pos.count (PAWN) ?
                             Scale( 9) :
                             Scale(31) :
                         Scale(46);
             }
             // Endings where weaker side can place his king in front of the strong side pawns are drawish.
-            if (   VALUE_EG_BSHP >= abs (eg)
+            if (   +Value::EG_BSHP >= abs (+eg)
                 && 2 >= pos.count (strong_color, PAWN)
                 && !pos.pawn_passed_at (~strong_color, pos.square<KING> (~strong_color)))
             {
@@ -1127,8 +1127,8 @@ namespace {
               + Contempt;
 
         // Early exit if score is high
-        Value v = (mg_value (score) + eg_value (score)) / 2;
-        if (abs (v) > LazyThreshold)
+        Value v = (mg_value (+score) + eg_value (+score)) / 2;
+        if (abs (+v) > +LazyThreshold)
         {
             return Color::WHITE == pos.active ?  v : -v;
         }
@@ -1154,17 +1154,17 @@ namespace {
               +  threats<Color::WHITE> () - threats<Color::BLACK> ()
               +  passers<Color::WHITE> () - passers<Color::BLACK> ()
               +  (pos.si->non_pawn_material () >= SpaceThreshold ?
-                  space<  Color::WHITE> () - space<  Color::BLACK> () : SCORE_ZERO);
+                  space<  Color::WHITE> () - space<  Color::BLACK> () : Score::ZERO);
 
-        score += initiative (eg_value (score));
+        score += initiative (eg_value (+score));
 
-        assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) <  VALUE_INFINITE);
-        assert(-VALUE_INFINITE < eg_value (score) && eg_value (score) <  VALUE_INFINITE);
+        assert(-Value::INFINITE_ < mg_value (+score) && mg_value (+score) <  Value::INFINITE_);
+        assert(-Value::INFINITE_ < eg_value (+score) && eg_value (+score) <  Value::INFINITE_);
         assert(0 <= me->phase && me->phase <= Material::PhaseResolution);
 
         // Interpolates between midgame and scaled endgame values.
-        v = Value(  (  mg_value (score) * (me->phase)
-                     + eg_value (score) * (Material::PhaseResolution - me->phase) * scale (eg_value (score)) / SCALE_NORMAL)
+        v = Value(  (  mg_value (+score) * (me->phase)
+                     + eg_value (+score) * (Material::PhaseResolution - me->phase) * scale (eg_value (+score)) / SCALE_NORMAL)
                   / Material::PhaseResolution);
 
         if (Trace)
@@ -1191,7 +1191,7 @@ Value evaluate (const Position &pos)
 /// the detailed descriptions and values of each evaluation term.
 string trace (const Position &pos)
 {
-    Contempt = SCORE_ZERO; // Reset any dynamic contempt
+    Contempt = Score::ZERO; // Reset any dynamic contempt
     auto value = Evaluator<true> (pos).value ();
     value = Color::WHITE == pos.active ?  value : -value; // Trace scores are from White's point of view
 

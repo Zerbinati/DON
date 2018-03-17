@@ -133,11 +133,11 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
         auto max_value = root_moves[0].new_value;
         auto min_value = root_moves[Threadpool.pv_limit - 1].new_value;
         i32  weakness = MaxPlies - 8 * level;
-        i32  diversion = std::min (max_value - min_value, VALUE_MG_PAWN);
+        i32  diversion = +std::min (max_value - min_value, Value::MG_PAWN);
         // First for each move score add two terms, both dependent on weakness.
         // One is deterministic with weakness, and one is random with weakness.
         // Then choose the move with the highest value.
-        auto best_value = -VALUE_INFINITE;
+        auto best_value = -Value::INFINITE_;
         for (u08 i = 0; i < Threadpool.pv_limit; ++i)
         {
             auto &rm = root_moves[i];
@@ -238,7 +238,7 @@ void Thread::clear ()
             piece_destiny.get ()->fill (0);
         }
     }
-    continuation_history[NO_PIECE][0].get ()->fill (CounterMovePruneThreshold - 1);
+    continuation_history[+Piece::NONE][0].get ()->fill (CounterMovePruneThreshold - 1);
 
     pawn_table.fill (Pawns::Entry ());
     matl_table.fill (Material::Entry ());
@@ -250,7 +250,7 @@ MainThread::MainThread (size_t idx)
     , check_count (0)
     , failed_low (false)
     , best_move_change (0.0)
-    , last_value (VALUE_NONE)
+    , last_value (Value::NONE)
     , last_time_reduction (1.00)
 {}
 /// MainThread::clear()
@@ -259,7 +259,7 @@ void MainThread::clear ()
     Thread::clear();
 
     time_mgr.available_nodes = 0;
-    last_value = VALUE_NONE;
+    last_value = Value::NONE;
     last_time_reduction = 1.00;
 }
 
@@ -395,7 +395,7 @@ Thread* ThreadPool::best_thread () const
     {
         if (   best_th->root_moves[0].new_value < th->root_moves[0].new_value
             && (   best_th->finished_depth <= th->finished_depth
-                || VALUE_MATE_MAX_PLY <= th->root_moves[0].new_value))
+                || Value::MATE_MAX_PLY <= th->root_moves[0].new_value))
         {
             best_th = th;
         }
@@ -469,7 +469,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
         && 1 == MultiPV
         && 0 != TBLimitPiece
         && TBLimitPiece >= pos.count ()
-        && !pos.si->can_castle (CR_ANY))
+        && !pos.si->can_castle (CastleRight::ANY))
     {
         // If the current root position is in the tablebases,
         // then RootMoves contains only moves that preserve the draw or the win.
@@ -487,7 +487,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
             TBHasRoot = root_probe_wdl (pos, root_moves, TBValue);
             // Only probe during search if winning.
             if (   TBHasRoot
-                && TBValue <= VALUE_DRAW)
+                && TBValue <= Value::DRAW)
             {
                 TBLimitPiece = 0;
             }
@@ -496,15 +496,15 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
         if (   TBHasRoot
             && !TBUseRule50)
         {
-            TBValue = TBValue > VALUE_DRAW ?  VALUE_MATE - i32(MaxPlies - 1) :
-                      TBValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPlies + 1) :
-                                              VALUE_DRAW;
+            TBValue = TBValue > Value::DRAW ?  Value::MATE - i32(MaxPlies - 1) :
+                      TBValue < Value::DRAW ? -Value::MATE + i32(MaxPlies + 1) :
+                                              Value::DRAW;
         }
 
-        // Reset root move scores to -VALUE_INFINITE, Since root_probe_dtz() and root_probe_wdl() dirty them.
+        // Reset root move scores to -Value::INFINITE_, Since root_probe_dtz() and root_probe_wdl() dirty them.
         for (auto &rm : root_moves)
         {
-            rm.new_value = -VALUE_INFINITE;
+            rm.new_value = -Value::INFINITE_;
         }
     }
 
