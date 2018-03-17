@@ -220,23 +220,23 @@ namespace TBSyzygy {
         typedef decltype(WDLEntry::pawn_table) WDLPawnTable;
         typedef decltype(DTZEntry::pawn_table) DTZPawnTable;
 
-        auto item (WDLPieceTable& e, i32 stm, i32) -> decltype(e[stm])& { return e[stm]; }
-        auto item (DTZPieceTable& e, i32, i32) -> decltype(e)& { return e; }
-        auto item (WDLPawnTable&  e, i32 stm, i32 f) -> decltype(e.file[stm][f])& { return e.file[stm][f]; }
-        auto item (DTZPawnTable&  e, i32, i32 f) -> decltype(e.file[f])& { return e.file[f]; }
+        auto item (WDLPieceTable &e, i32 stm, i32) -> decltype(e[stm])& { return e[stm]; }
+        auto item (DTZPieceTable &e, i32, i32) -> decltype(e)& { return e; }
+        auto item (WDLPawnTable  &e, i32 stm, i32 f) -> decltype(e.file[stm][f])& { return e.file[stm][f]; }
+        auto item (DTZPawnTable  &e, i32, i32 f) -> decltype(e.file[f])& { return e.file[f]; }
 
         template<typename E> struct Ret { typedef i32 type; };
         template<> struct Ret<WDLEntry> { typedef WDLScore type; };
 
-        i32 MapPawns[SQ_NO];
-        i32 MapB1H1H7[SQ_NO];
-        i32 MapA1D1D4[SQ_NO];
-        i32 MapKK[10][SQ_NO]; // [MapA1D1D4][SQ_NO]
+        i32 MapPawns[+Square::NO];
+        i32 MapB1H1H7[+Square::NO];
+        i32 MapA1D1D4[+Square::NO];
+        i32 MapKK[10][+Square::NO]; // [MapA1D1D4][+Square::NO]
 
         /// Comparison function to sort leading pawns in ascending MapPawns[] order
         bool pawns_comp (Square i, Square j)
         {
-            return MapPawns[i] < MapPawns[j];
+            return MapPawns[+i] < MapPawns[+j];
         }
         i32 off_A1H8 (Square sq)
         {
@@ -249,14 +249,14 @@ namespace TBSyzygy {
              VALUE_DRAW - 2,
              VALUE_DRAW,
              VALUE_DRAW + 2,
-            +VALUE_MATE - i32(MaxPlies) - 1
+             VALUE_MATE - i32(MaxPlies) - 1
         };
 
         const string PieceToChar = "PNBRQK  pnbrqk";
 
-        i32 Binomial[6][SQ_NO];    // [k][n] k elements from a set of n elements
-        i32 LeadPawnIdx[5][SQ_NO]; // [lead_pawn_count][SQ_NO]
-        i32 LeadPawnsSize[5][4];   // [lead_pawn_count][F_A..F_D]
+        i32 Binomial[6][+Square::NO];    // [k][n] k elements from a set of n elements
+        i32 LeadPawnIdx[5][+Square::NO]; // [lead_pawn_count][+Square::NO]
+        i32 LeadPawnsSize[5][4];   // [lead_pawn_count][fA..fD]
 
         enum
         { 
@@ -510,9 +510,9 @@ namespace TBSyzygy {
             {
                 if (has_pawns)
                 {
-                    for (auto f : { F_A, F_B, F_C, F_D })
+                    for (auto f : {File::fA, File::fB, File::fC, File::fD })
                     {
-                        delete pawn_table.file[c][f].precomp;
+                        delete pawn_table.file[c][+f].precomp;
                     }
                 }
                 else
@@ -548,9 +548,9 @@ namespace TBSyzygy {
             }
             if (has_pawns)
             {
-                for (auto f : { F_A, F_B, F_C, F_D })
+                for (auto f : {File::fA, File::fB, File::fC, File::fD })
                 {
-                    delete pawn_table.file[f].precomp;
+                    delete pawn_table.file[+f].precomp;
                 }
             }
             else
@@ -736,7 +736,7 @@ namespace TBSyzygy {
         bool check_dtz_stm (DTZEntry *entry, i32 stm, File f)
         {
             i32 flags = entry->has_pawns ?
-                entry->pawn_table.file[f].precomp->flags :
+                entry->pawn_table.file[+f].precomp->flags :
                 entry->piece_table.precomp->flags;
 
             return (flags & STM) == stm
@@ -760,7 +760,7 @@ namespace TBSyzygy {
             const i32 WDLMap[] = { 1, 3, 0, 2, 0 };
 
             i32 flags = entry->has_pawns ?
-                entry->pawn_table.file[f].precomp->flags :
+                entry->pawn_table.file[+f].precomp->flags :
                 entry->piece_table.precomp->flags;
 
             u08 *map = entry->has_pawns ?
@@ -768,7 +768,7 @@ namespace TBSyzygy {
                 entry->piece_table.map;
 
             u16* idx = entry->has_pawns ?
-                entry->pawn_table.file[f].map_idx :
+                entry->pawn_table.file[+f].map_idx :
                 entry->piece_table.map_idx;
             if (0 != (flags & MAPPED))
             {
@@ -792,7 +792,7 @@ namespace TBSyzygy {
         /// encode k pieces of same type and color, first sort the pieces by square in
         /// ascending order s1 <= s2 <= ... <= sk then compute the unique index as:
         ///
-        ///      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
+        ///      idx = Binomial[1][+s1] + Binomial[2][+s2] + ... + Binomial[k][sk]
         ///
         template<typename Entry, typename T = typename Ret<Entry>::type>
         T do_probe_table (const Position &pos, Entry *entry, WDLScore wdl, ProbeState &state)
@@ -805,7 +805,7 @@ namespace TBSyzygy {
             i32 next = 0, size = 0, lead_pawn_count = 0;
             PairsData *d;
             Bitboard b, lead_pawns = 0;
-            File tbFile = F_A;
+            auto tbFile = File::fA;
 
             bool flip =
                 // Black Symmetric
@@ -846,16 +846,16 @@ namespace TBSyzygy {
                 std::swap (squares[0], *std::max_element (squares, squares + lead_pawn_count, pawns_comp));
 
                 tbFile = _file (squares[0]);
-                if (tbFile > F_D)
+                if (tbFile > File::fD)
                 {
-                    tbFile = _file (!squares[0]); // Horizontal flip: SQ_H1 -> SQ_A1
+                    tbFile = _file (!squares[0]);
                 }
 
-                d = item (entry->pawn_table, flip ? ~pos.active : pos.active, tbFile).precomp;
+                d = item (entry->pawn_table, flip ? ~pos.active : pos.active, +tbFile).precomp;
             }
             else
             {
-                d = item (entry->piece_table, flip ? ~pos.active : pos.active, tbFile).precomp;
+                d = item (entry->piece_table, flip ? ~pos.active : pos.active, +tbFile).precomp;
             }
 
             // DTZ tables are one-sided, i.e. they store positions only for white to
@@ -898,11 +898,11 @@ namespace TBSyzygy {
 
             // Now we map again the squares so that the square of the lead piece is in
             // the triangle A1-D1-D4.
-            if (_file (squares[0]) > F_D)
+            if (_file (squares[0]) > File::fD)
             {
                 for (i32 i = 0; i < size; ++i)
                 {
-                    squares[i] = !squares[i]; // Horizontal flip: SQ_H1 -> SQ_A1
+                    squares[i] = !squares[i];
                 }
             }
 
@@ -910,25 +910,25 @@ namespace TBSyzygy {
             // proceeding in ascending order.
             if (entry->has_pawns)
             {
-                idx = LeadPawnIdx[lead_pawn_count][squares[0]];
+                idx = LeadPawnIdx[lead_pawn_count][+squares[0]];
 
                 std::sort (squares + 1, squares + lead_pawn_count, pawns_comp);
 
                 for (i32 i = 1; i < lead_pawn_count; ++i)
                 {
-                    idx += Binomial[i][MapPawns[squares[i]]];
+                    idx += Binomial[i][MapPawns[+squares[i]]];
                 }
 
                 goto encode_remaining; // With pawns we have finished special treatments
             }
 
-            // In positions withouth pawns, we further flip the squares to ensure leading
+            // In positions without pawns, we further flip the squares to ensure leading
             // piece is below RANK_5.
-            if (_rank (squares[0]) > R_4)
+            if (_rank (squares[0]) > Rank::r4)
             {
                 for (i32 i = 0; i < size; ++i)
                 {
-                    squares[i] = ~squares[i]; // Vertical flip: SQ_A8 -> SQ_A1
+                    squares[i] = ~squares[i]; // Vertical flip: Square::A8 -> Square::A1
                 }
             }
             // Look for the first piece of the leading group not on the A1-D4 diagonal
@@ -940,11 +940,11 @@ namespace TBSyzygy {
                     continue;
                 }
 
-                if (off_A1H8 (squares[i]) > 0) // A1-H8 diagonal flip: SQ_A3 -> SQ_C3
+                if (off_A1H8 (squares[i]) > 0) // A1-H8 diagonal flip: Square::A3 -> Square::C3
                 {
                     for (i32 j = i; j < size; ++j)
                     {
-                        squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 63);
+                        squares[j] = Square(((+squares[j] >> 3) | (+squares[j] << 3)) & 63);
                     }
                 }
                 break;
@@ -987,51 +987,51 @@ namespace TBSyzygy {
                 // (mapped to 0...61) for the third.
                 if (off_A1H8 (squares[0]))
                 {
-                    idx = MapA1D1D4[squares[0]]  * 63 * 62
-                        + (squares[1] - adjust1) * 62
-                        +  squares[2] - adjust2;
+                    idx = MapA1D1D4[+squares[0]]  * 63 * 62
+                        + (+squares[1] - adjust1) * 62
+                        +  +squares[2] - adjust2;
                 }
-                // First piece is on a1-h8 diagonal, second below: map this occurence to
+                // First piece is on a1-h8 diagonal, second below: map this occurrence to
                 // 6 to differentiate from the above case, rank() maps a1-d4 diagonal
                 // to 0...3 and finally MapB1H1H7[] maps the b1-h1-h7 triangle to 0..27.
                 else
                 if (off_A1H8 (squares[1]))
                 {
                     idx = 6 * 63 * 62
-                        + _rank (squares[0]) * 28 * 62
-                        + MapB1H1H7[squares[1]] * 62
-                        + squares[2] - adjust2;
+                        + +_rank (squares[0]) * 28 * 62
+                        + MapB1H1H7[+squares[1]] * 62
+                        + +squares[2] - adjust2;
                 }
                 // First two pieces are on a1-h8 diagonal, third below
                 else
                 if (off_A1H8 (squares[2]))
                 {
                     idx =  6 * 63 * 62 + 4 * 28 * 62
-                        +  _rank (squares[0]) * 7 * 28
-                        + (_rank (squares[1]) - adjust1) * 28
-                        +  MapB1H1H7[squares[2]];
+                        +  +_rank (squares[0]) * 7 * 28
+                        + (+_rank (squares[1]) - adjust1) * 28
+                        +  MapB1H1H7[+squares[2]];
                 }
                 // All 3 pieces on the diagonal a1-h8
                 else
                 {
                     idx = 6 * 63 * 62 + 4 * 28 * 62 + 4 * 7 * 28
-                        +  _rank (squares[0]) * 7 * 6
-                        + (_rank (squares[1]) - adjust1) * 6
-                        + (_rank (squares[2]) - adjust2);
+                        +  +_rank (squares[0]) * 7 * 6
+                        + (+_rank (squares[1]) - adjust1) * 6
+                        + (+_rank (squares[2]) - adjust2);
                 }
             }
             else
             {
                 // We don't have at least 3 unique pieces, like in KRRvKBB, just map
                 // the kings.
-                idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
+                idx = MapKK[MapA1D1D4[+squares[0]]][+squares[1]];
             }
 
         encode_remaining:
             idx *= d->group_idx[0];
             auto *group_sq = squares + d->group_len[0];
 
-            // Encode remainig pawns then pieces according to square, in ascending order
+            // Encode remaining pawns then pieces according to square, in ascending order
             bool pawn_remain = entry->has_pawns && entry->pawn_table.pawn_count[1];
 
             while (0 != d->group_len[++next])
@@ -1043,9 +1043,8 @@ namespace TBSyzygy {
                 // groups (similar to what done earlier for leading group pieces).
                 for (i32 i = 0; i < d->group_len[next]; ++i)
                 {
-                    auto f = [&](Square s) { return group_sq[i] > s; };
-                    auto adjust = std::count_if (squares, group_sq, f);
-                    n += Binomial[i + 1][group_sq[i] - adjust - 8 * (pawn_remain ? 1 : 0)];
+                    auto adjust = std::count_if (squares, group_sq, [&](Square s) { return group_sq[i] > s; });
+                    n += Binomial[i + 1][+group_sq[i] - adjust - 8 * (pawn_remain ? 1 : 0)];
                 }
 
                 pawn_remain = false;
@@ -1059,7 +1058,7 @@ namespace TBSyzygy {
 
         /// Group together pieces that will be encoded together. The general rule is that
         /// a group contains pieces of same type and color. The exception is the leading
-        /// group that, in case of positions withouth pawns, can be formed by 3 different
+        /// group that, in case of positions without pawns, can be formed by 3 different
         /// pieces (default) or by the king pair when there is not a unique piece apart
         /// from the kings. When there are pawns, pawns are always first in pieces[].
         ///
@@ -1110,7 +1109,7 @@ namespace TBSyzygy {
                 {
                     d->group_idx[0] = idx;
                     idx *= e.has_pawns ?
-                        LeadPawnsSize[d->group_len[0]][f] :
+                        LeadPawnsSize[d->group_len[0]][+f] :
                         e.has_unique_pieces ? 31332 : 462;
                 }
                 else
@@ -1132,17 +1131,17 @@ namespace TBSyzygy {
         /// In Recursive Pairing each symbol represents a pair of childern symbols. So
         /// read d->btree[] symbols data and expand each one in his left and right child
         /// symbol until reaching the leafs that represent the symbol value.
-        u08 set_symlen (PairsData *d, Sym s, vector<bool> &visited)
+        u08 set_symlen (PairsData *d, Sym sym, vector<bool> &visited)
         {
-            visited[s] = true; // We can set it now because tree is acyclic
-            Sym sr = d->btree[s].get<LR::Right> ();
+            visited[sym] = true; // We can set it now because tree is acyclic
+            Sym sr = d->btree[sym].get<LR::Right> ();
 
             if (sr == 0xFFF)
             {
                 return 0;
             }
 
-            Sym sl = d->btree[s].get<LR::Left> ();
+            Sym sl = d->btree[sym].get<LR::Left> ();
 
             if (!visited[sl])
             {
@@ -1243,13 +1242,13 @@ namespace TBSyzygy {
         u08* set_dtz_map (DTZEntry &, T &p, u08 *data, File max_file)
         {
             p.map = data;
-            for (auto f = F_A; f <= max_file; ++f)
+            for (auto f = File::fA; f <= max_file; ++f)
             {
-                if (0 != (item (p, 0, f).precomp->flags & MAPPED))
+                if (0 != (item (p, 0, +f).precomp->flags & MAPPED))
                 {
                     for (i32 i = 0; i < 4; ++i)
                     { // Sequence like 3,x,x,x,1,x,0,2,x,x
-                        item (p, 0, f).map_idx[i] = u16(data - p.map + 1);
+                        item (p, 0, +f).map_idx[i] = u16(data - p.map + 1);
                         data += *data + 1;
                     }
                 }
@@ -1273,17 +1272,17 @@ namespace TBSyzygy {
             data++; // First byte stores flags
 
             const i32  Sides = IsWDL && (e.key1 != e.key2) ? 2 : 1;
-            const File MaxFile = e.has_pawns ? F_D : F_A;
+            const File MaxFile = e.has_pawns ? File::fD : File::fA;
 
             bool pp = e.has_pawns && e.pawn_table.pawn_count[1]; // Pawns on both sides
 
             assert(!pp || e.pawn_table.pawn_count[0]);
 
-            for (auto f = F_A; f <= MaxFile; ++f)
+            for (auto f = File::fA; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    item (p, i, f).precomp = new PairsData ();
+                    item (p, i, +f).precomp = new PairsData ();
                 }
 
                 i32 order[][2] = 
@@ -1297,23 +1296,23 @@ namespace TBSyzygy {
                 {
                     for (i32 i = 0; i < Sides; ++i)
                     {
-                        item (p, i, f).precomp->pieces[k] = tb_piece (i ? *data >>  4 : *data & 0xF);
+                        item (p, i, +f).precomp->pieces[k] = tb_piece (i ? *data >>  4 : *data & 0xF);
                     }
                 }
 
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    set_groups (e, item (p, i, f).precomp, order[i], f);
+                    set_groups (e, item (p, i, +f).precomp, order[i], f);
                 }
             }
 
             data += (uintptr_t) data & 1; // Word alignment
 
-            for (auto f = F_A; f <= MaxFile; ++f)
+            for (auto f = File::fA; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    data = set_sizes (item (p, i, f).precomp, data);
+                    data = set_sizes (item (p, i, +f).precomp, data);
                 }
             }
             if (!IsWDL)
@@ -1322,28 +1321,28 @@ namespace TBSyzygy {
             }
 
             PairsData *d;
-            for (auto f = F_A; f <= MaxFile; ++f)
+            for (auto f = File::fA; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    (d = item (p, i, f).precomp)->sparseIndex = (SparseEntry*) data;
+                    (d = item (p, i, +f).precomp)->sparseIndex = (SparseEntry*) data;
                     data += d->sparse_index_size * sizeof (SparseEntry);
                 }
             }
-            for (auto f = F_A; f <= MaxFile; ++f)
+            for (auto f = File::fA; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    (d = item (p, i, f).precomp)->block_length = (u16*) data;
+                    (d = item (p, i, +f).precomp)->block_length = (u16*) data;
                     data += d->block_length_size * sizeof (u16);
                 }
             }
-            for (auto f = F_A; f <= MaxFile; ++f)
+            for (auto f = File::fA; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
                     data = (u08*)(((uintptr_t) data + 0x3F) & ~0x3F); // 64 byte alignment
-                    (d = item (p, i, f).precomp)->data = data;
+                    (d = item (p, i, +f).precomp)->data = data;
                     data += d->num_blocks * d->block_size;
                 }
             }
@@ -1906,20 +1905,20 @@ namespace TBSyzygy {
             {
                 if (off_A1H8 (s) < 0)
                 {
-                    MapB1H1H7[s] = code++;
+                    MapB1H1H7[+s] = code++;
                 }
             }
             // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
             code = 0;
             vector<Square> diagonal;
-            for (auto s : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
-                            SQ_A2, SQ_B2, SQ_C2, SQ_D2,
-                            SQ_A3, SQ_B3, SQ_C3, SQ_D3,
-                            SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
+            for (auto s : { Square::A1, Square::B1, Square::C1, Square::D1,
+                            Square::A2, Square::B2, Square::C2, Square::D2,
+                            Square::A3, Square::B3, Square::C3, Square::D3,
+                            Square::A4, Square::B4, Square::C4, Square::D4 })
             {
                 if (off_A1H8 (s) < 0)
                 {
-                    MapA1D1D4[s] = code++;
+                    MapA1D1D4[+s] = code++;
                 }
                 else
                 if (off_A1H8 (s) == 0)
@@ -1930,7 +1929,7 @@ namespace TBSyzygy {
             // Diagonal squares are encoded as last ones
             for (auto s : diagonal)
             {
-                MapA1D1D4[s] = code++;
+                MapA1D1D4[+s] = code++;
             }
             // MapKK[] encodes all the 461 possible legal positions of two kings where the first is in the a1-d1-d4 triangle.
             // If the first king is on the a1-d4 diagonal, the other one shall not to be above the a1-h8 diagonal.
@@ -1938,17 +1937,17 @@ namespace TBSyzygy {
             code = 0;
             for (i32 idx = 0; idx < 10; ++idx)
             {
-                for (auto s1 : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
-                                 SQ_A2, SQ_B2, SQ_C2, SQ_D2,
-                                 SQ_A3, SQ_B3, SQ_C3, SQ_D3,
-                                 SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
+                for (auto s1 : { Square::A1, Square::B1, Square::C1, Square::D1,
+                                 Square::A2, Square::B2, Square::C2, Square::D2,
+                                 Square::A3, Square::B3, Square::C3, Square::D3,
+                                 Square::A4, Square::B4, Square::C4, Square::D4 })
                 {
-                    if (   MapA1D1D4[s1] == idx
-                        && (0 != idx || SQ_B1 == s1)) // SQ_B1 is mapped to 0
+                    if (   MapA1D1D4[+s1] == idx
+                        && (0 != idx || Square::B1 == s1)) // Square::B1 is mapped to 0
                     {
                         for (auto s2 : SQ)
                         {
-                            if (contains (PieceAttacks[KING][s1] | s1, s2))
+                            if (contains (PieceAttacks[KING][+s1] | s1, s2))
                             {
                                 continue; // Illegal position
                             }
@@ -1964,7 +1963,7 @@ namespace TBSyzygy {
                             }
                             else
                             {
-                                MapKK[idx][s2] = code++;
+                                MapKK[idx][+s2] = code++;
                             }
                         }
                     }
@@ -1974,10 +1973,10 @@ namespace TBSyzygy {
             // Legal positions with both kings on diagonal are encoded as last ones
             for (auto p : both_on_diagonal)
             {
-                MapKK[p.first][p.second] = code++;
+                MapKK[p.first][+p.second] = code++;
             }
 
-            // Binomial[] stores the Binomial Coefficents using Pascal rule. There
+            // Binomial[] stores the Binomial Coefficients using Pascal rule. There
             // are Binomial[k][n] ways to choose k elements from a set of n elements.
             Binomial[0][0] = 1;
 
@@ -1990,7 +1989,7 @@ namespace TBSyzygy {
                 }
             }
 
-            // MapPawns[s] encodes squares a2-h7 to 0..47. This is the number of possible
+            // MapPawns[+s] encodes squares a2-h7 to 0..47. This is the number of possible
             // available squares when the leading one is in square. Moreover the pawn with
             // highest MapPawns[] is the leading pawn, the one nearest the edge and,
             // among pawns with same file, the one with lowest rank.
@@ -2000,15 +1999,15 @@ namespace TBSyzygy {
             // with 6-men TB can have up to 4 leading pawns (KPPPPK).
             for (i32 lead_pawn_count = 1; lead_pawn_count <= 4; ++lead_pawn_count)
             {
-                for (auto f : { F_A, F_B, F_C, F_D })
+                for (auto f : { File::fA, File::fB, File::fC, File::fD })
                 {
-                    // Restart the index at every file because TB table is splitted
-                    // by file, so we can reuse the same index for different files.
+                    // Restart the index at every file because TB table is splitted by file,
+                    // so we can reuse the same index for different files.
                     i32 idx = 0;
 
                     // Sum all possible combinations for a given file, starting with
                     // the leading pawn on rank 2 and increasing the rank.
-                    for (auto r : { R_2, R_3, R_4, R_5, R_6, R_7 })
+                    for (auto r : { Rank::r2, Rank::r3, Rank::r4, Rank::r5, Rank::r6, Rank::r7 })
                     {
                         auto sq = f|r;
 
@@ -2019,14 +2018,14 @@ namespace TBSyzygy {
                         // due to mirroring: sq == a3 -> no a2, h2, so MapPawns[a3] = 45
                         if (lead_pawn_count == 1)
                         {
-                            MapPawns[ sq] = available_squares--;
-                            MapPawns[!sq] = available_squares--; // Horizontal flip
+                            MapPawns[+ sq] = available_squares--;
+                            MapPawns[+!sq] = available_squares--;
                         }
-                        LeadPawnIdx[lead_pawn_count][sq] = idx;
-                        idx += Binomial[lead_pawn_count - 1][MapPawns[sq]];
+                        LeadPawnIdx[lead_pawn_count][+sq] = idx;
+                        idx += Binomial[lead_pawn_count - 1][MapPawns[+sq]];
                     }
                     // After a file is traversed, store the cumulated per-file index
-                    LeadPawnsSize[lead_pawn_count][f] = idx;
+                    LeadPawnsSize[lead_pawn_count][+f] = idx;
                 }
             }
             initialized = true;

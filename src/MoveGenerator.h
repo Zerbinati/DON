@@ -4,7 +4,7 @@
 #include "Position.h"
 #include "Type.h"
 
-enum GenType : u08
+enum class GenType : u08
 {
     NATURAL,
     EVASION,

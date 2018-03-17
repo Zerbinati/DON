@@ -33,7 +33,7 @@ namespace Pawns {
         bool file_semiopen (Color c, File f) const
         {
             return 0 != (  semiopens[c]
-                         & (1 << f));
+                         & (1 << +f));
         }
 
         template<Color Own>

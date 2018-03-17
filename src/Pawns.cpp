@@ -13,8 +13,8 @@ namespace Pawns {
     #define V(v) Value(v)
 
         // Weakness of friend pawn shelter in front of the friend king, indexed by [is king-file][distance from edge][rank]
-        // R_1 = 0 is used for files where we have no pawns or pawn is behind our king.
-        const Value ShelterWeak[2][F_NO/2][R_NO] =
+        // Rank::r1 = 0 is used for files where we have no pawns or pawn is behind our king.
+        const Value ShelterWeak[2][+File::NO/2][+Rank::NO] =
         {
             {// Not On King file
                 { V( 98), V(20), V(11), V(42), V( 83), V( 84), V(101), V(0) },
@@ -30,8 +30,8 @@ namespace Pawns {
             }
         };
         // Dangerness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
-        // For the unopposed and unblocked cases, R_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
-        const Value StromDanger[4][F_NO/2][R_NO] =
+        // For the unopposed and unblocked cases, Rank::r1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
+        const Value StromDanger[4][+File::NO/2][+Rank::NO] =
         {
             {// BlockedByKing
                 { V( 0), V(-290), V(-274), V(57), V(41), V(0), V(0), V(0) },
@@ -73,7 +73,7 @@ namespace Pawns {
     #undef S
 
         // Connected pawn bonus indexed by [opposed][phalanx][twice supported][rank]
-        Score Connected[2][2][3][R_NO];
+        Score Connected[2][2][3][+Rank::NO];
 
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
@@ -97,12 +97,12 @@ namespace Pawns {
             e->color_count[Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
             e->color_count[Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
             e->index[Own] = 0;
-            std::fill_n (e->king_square[Own], MaxCache, SQ_NO);
+            std::fill_n (e->king_square[Own], MaxCache, Square::NO);
             std::fill_n (e->king_safety[Own], MaxCache, VALUE_ZERO);
             std::fill_n (e->king_pawn_dist[Own], MaxCache, 0);
 
-            e->king_safety_on<Own> (pos, rel_sq (Own, SQ_G1));
-            e->king_safety_on<Own> (pos, rel_sq (Own, SQ_C1));
+            e->king_safety_on<Own> (pos, rel_sq (Own, Square::G1));
+            e->king_safety_on<Own> (pos, rel_sq (Own, Square::C1));
 
             auto score = SCORE_ZERO;
 
@@ -114,15 +114,15 @@ namespace Pawns {
                 assert(pos[s] == (Own|PAWN));
 
                 f = _file (s);
-                e->semiopens[Own] &= u08(~(1 << f));
+                e->semiopens[Own] &= u08(~(1 << +f));
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
 
                 neighbours = own_pawns & adj_file_bb (f);
                 supporters = neighbours & rank_bb (s-Push);
                 phalanxes  = neighbours & rank_bb (s);
                 stoppers   = opp_pawns & pawn_pass_span (Own, s);
-                levers     = opp_pawns & PawnAtt[s];
-                escapes    = opp_pawns & PawnAtt[s+Push];
+                levers     = opp_pawns & PawnAtt[+s];
+                escapes    = opp_pawns & PawnAtt[+(s+Push)];
 
                 blocked    = contains (own_pawns, s-Push);
                 opposed    = 0 != (opp_pawns & front_line_bb (Own, s));
@@ -134,7 +134,7 @@ namespace Pawns {
                 backward   = 0 == levers
                           && 0 != stoppers
                           && 0 != neighbours
-                          && R_6 > rel_rank (Own, s)
+                          && Rank::r6 > rel_rank (Own, s)
                             // Find the backmost rank with neighbours or stoppers
                           && 0 != (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers)))
                             // If have an enemy pawn in the same or next rank, the pawn is
@@ -152,7 +152,7 @@ namespace Pawns {
                             && pop_count (supporters) >= pop_count (levers)
                             && pop_count (phalanxes) >= pop_count (escapes))
                         || (   stoppers == square_bb (s+Push)
-                            && R_4 < rel_rank (Own, s)
+                            && Rank::r4 < rel_rank (Own, s)
                             && 0 != (b = shift<Push> (supporters) & ~opp_pawns)
                             && pop_count (b) > pop_count (  (opp_pawns ^ stoppers)
                                                           & (  shift<WHITE == Own ? DEL_NW : DEL_SE> (b)
@@ -167,7 +167,7 @@ namespace Pawns {
                     score += Connected[opposed ? 1 : 0]
                                       [0 != phalanxes ? 1 : 0]
                                       [pop_count (supporters)]
-                                      [rel_rank (Own, s)];
+                                      [+rel_rank (Own, s)];
                 }
                 else
                 if (   0 == neighbours
@@ -200,11 +200,11 @@ namespace Pawns {
     Value Entry::pawn_shelter_storm (const Position &pos, Square fk_sq) const
     {
         const auto Opp = WHITE == Own ? BLACK : WHITE;
+
         // Max Safety corresponds to start position with all the pawns in front of the king and no enemy pawn on the horizon.
-        
         auto value = Value(258);
         
-        auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
+        auto kf = std::min (File::fG, std::max (File::fB, _file (fk_sq)));
 
         Bitboard front_pawns = pos.pieces (PAWN)
                              & (  rank_bb (fk_sq)
@@ -222,24 +222,24 @@ namespace Pawns {
 
         for (auto f : { kf - File(1), kf, kf + File(1) })
         {
-            assert(F_A <= f && f <= F_H);
+            assert(File::fA <= f && f <= File::fH);
             Bitboard file_front_pawns;
             file_front_pawns = own_front_pawns & file_bb (f);
-            auto own_r = 0 != file_front_pawns ? rel_rank (Own, scan_backmost_sq (Own, file_front_pawns)) : R_1;
+			auto own_r = 0 != file_front_pawns ? rel_rank (Own, scan_backmost_sq (Own, file_front_pawns)) : Rank::r1;
             file_front_pawns = opp_front_pawns & file_bb (f);
-            auto opp_r = 0 != file_front_pawns ? rel_rank (Own, scan_frntmost_sq (Opp, file_front_pawns)) : R_1;
-            assert((R_1 == own_r
-                 && R_1 == opp_r)
+			auto opp_r = 0 != file_front_pawns ? rel_rank (Own, scan_frntmost_sq (Opp, file_front_pawns)) : Rank::r1;
+            assert((Rank::r1 == own_r
+                 && Rank::r1 == opp_r)
                 || (own_r != opp_r));
 
-            auto ff = std::min (f, F_H - f);
-            value -= ShelterWeak[f == _file (fk_sq) ? 1 : 0][ff][own_r]
+            auto ff = std::min (f, File::fH - f);
+            value -= ShelterWeak[f == _file (fk_sq) ? 1 : 0][+ff][+own_r]
                    + StromDanger[f == _file (fk_sq)
-                              && opp_r == rel_rank (Own, fk_sq) + 1 ? 0 : // BlockedByKing
-                                 own_r == R_1                       ? 1 : // Unopposed
-                                 opp_r == own_r + 1                 ? 2 : // BlockedByPawn
-                                                                      3]  // Unblocked
-                                [ff][opp_r];
+                              && opp_r == Rank(+rel_rank (Own, fk_sq) + 1) ? 0 : // BlockedByKing
+                                 own_r == Rank::r1                         ? 1 : // Unopposed
+                                 opp_r == Rank(+own_r + 1)                 ? 2 : // BlockedByPawn
+                                                                             3]  // Unblocked
+                                [+ff][+opp_r];
         }
 
         return value;
@@ -271,7 +271,7 @@ namespace Pawns {
     /// Pawns::initialize() initializes lookup tables at startup.
     void initialize ()
     {
-        const i32 Seeds[R_NO] = { 0, 13, 24, 18, 76, 100, 175, 330 };
+        const i32 Seeds[+Rank::NO] = { 0, 13, 24, 18, 76, 100, 175, 330 };
 
         for (auto opposed : { 0, 1 })
         {
@@ -279,10 +279,10 @@ namespace Pawns {
             {
                 for (auto support : { 0, 1, 2 })
                 {
-                    for (auto r : { R_2, R_3, R_4, R_5, R_6, R_7 })
+                    for (auto r : { Rank::r2, Rank::r3, Rank::r4, Rank::r5, Rank::r6, Rank::r7 })
                     {
-                        i32 v = 17 * support + ((Seeds[r] + (phalanx ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed);
-                        Connected[opposed][phalanx][support][r] = mk_score (v, v * (r-2) / 4);
+                        i32 v = 17 * support + ((Seeds[+r] + (phalanx ? (Seeds[+r + 1] - Seeds[+r]) / 2 : 0)) >> opposed);
+                        Connected[opposed][phalanx][support][+r] = mk_score (v, v * (+r-2) / 4);
                     }
                 }
             }

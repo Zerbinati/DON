@@ -79,7 +79,7 @@ namespace BitBoard {
     const Bitboard File_bb[] = { FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb };
     const Bitboard Rank_bb[] = { R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb };
 
-    const Bitboard AdjFile_bb[] =
+    const Bitboard AdjFile_bb[+File::NO] =
     {
         FB_bb,
         FA_bb|FC_bb,
@@ -90,7 +90,7 @@ namespace BitBoard {
         FF_bb|FH_bb,
         FG_bb
     };
-    const Bitboard AdjRank_bb[] =
+    const Bitboard AdjRank_bb[+Rank::NO] =
     {
         R2_bb,
         R1_bb|R3_bb,
@@ -101,7 +101,7 @@ namespace BitBoard {
         R6_bb|R8_bb,
         R7_bb
     };
-    const Bitboard FrontRank_bb[][R_NO] =
+    const Bitboard FrontRank_bb[CLR_NO][+Rank::NO] =
     {
         {
             R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
@@ -127,29 +127,29 @@ namespace BitBoard {
 
     const Bitboard ShelterMask_bb[CLR_NO] =
     {
-        Square_bb[SQ_A2]|Square_bb[SQ_B3]|Square_bb[SQ_C2]|Square_bb[SQ_F2]|Square_bb[SQ_G3]|Square_bb[SQ_H2],
-        Square_bb[SQ_A7]|Square_bb[SQ_B6]|Square_bb[SQ_C7]|Square_bb[SQ_F7]|Square_bb[SQ_G6]|Square_bb[SQ_H7]
+        Square_bb[+Square::A2]|Square_bb[+Square::B3]|Square_bb[+Square::C2]|Square_bb[+Square::F2]|Square_bb[+Square::G3]|Square_bb[+Square::H2],
+        Square_bb[+Square::A7]|Square_bb[+Square::B6]|Square_bb[+Square::C7]|Square_bb[+Square::F7]|Square_bb[+Square::G6]|Square_bb[+Square::H7]
     };
     const Bitboard StormMask_bb[CLR_NO] =
     {
-        Square_bb[SQ_A3]|Square_bb[SQ_C3]|Square_bb[SQ_F3]|Square_bb[SQ_H3],
-        Square_bb[SQ_A6]|Square_bb[SQ_C6]|Square_bb[SQ_F6]|Square_bb[SQ_H6],
+        Square_bb[+Square::A3]|Square_bb[+Square::C3]|Square_bb[+Square::F3]|Square_bb[+Square::H3],
+        Square_bb[+Square::A6]|Square_bb[+Square::C6]|Square_bb[+Square::F6]|Square_bb[+Square::H6],
     };
 
-    extern u08      SquareDist[SQ_NO][SQ_NO];
+    extern u08      SquareDist[+Square::NO][+Square::NO];
 
-    extern Bitboard FrontLine_bb[CLR_NO][SQ_NO];
+    extern Bitboard FrontLine_bb[CLR_NO][+Square::NO];
 
-    extern Bitboard Between_bb[SQ_NO][SQ_NO];
-    extern Bitboard StrLine_bb[SQ_NO][SQ_NO];
+    extern Bitboard Between_bb[+Square::NO][+Square::NO];
+    extern Bitboard StrLine_bb[+Square::NO][+Square::NO];
 
-    extern Bitboard DistRings_bb[SQ_NO][8];
+    extern Bitboard DistRings_bb[+Square::NO][8];
 
-    extern Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
-    extern Bitboard PawnPassSpan[CLR_NO][SQ_NO];
+    extern Bitboard PawnAttackSpan[CLR_NO][+Square::NO];
+    extern Bitboard PawnPassSpan[CLR_NO][+Square::NO];
 
-    extern Bitboard PawnAttacks[CLR_NO][SQ_NO];
-    extern Bitboard PieceAttacks[NONE][SQ_NO];
+    extern Bitboard PawnAttacks[CLR_NO][+Square::NO];
+    extern Bitboard PieceAttacks[NONE][+Square::NO];
 
     // Magic holds all magic relevant data for a single square
     struct Magic
@@ -181,54 +181,54 @@ namespace BitBoard {
         }
     };
 
-    extern Magic BMagics[SQ_NO]
-        ,        RMagics[SQ_NO];
+    extern Magic BMagics[+Square::NO]
+        ,        RMagics[+Square::NO];
 
 #if !defined(ABM)
     extern u08 PopCount16[1 << 16];
 #endif
 
     template<typename T>
-    inline i32 dist (T t1, T t2) { return t1 != t2 ? t1 < t2 ? t2 - t1 : t1 - t2 : 0; }
-    template<> inline i32 dist (Square s1, Square s2) { return SquareDist[s1][s2]; }
+    inline i32 dist (T t1, T t2) { return t1 != t2 ? t1 < t2 ? +t2 - +t1 : +t1 - +t2 : 0; }
+    template<> inline i32 dist (Square s1, Square s2) { return SquareDist[+s1][+s2]; }
 
     template<typename T1, typename T2>
     inline i32 dist (T2, T2) { return 0; }
     template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
     template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
-    constexpr bool contains (Bitboard bb, Square s) { return 0 != (bb & Square_bb[s]); }
+    constexpr bool contains (Bitboard bb, Square s) { return 0 != (bb & Square_bb[+s]); }
 
-    constexpr Bitboard operator| (Bitboard  bb, Square s) { return bb |  Square_bb[s]; }
-    constexpr Bitboard operator^ (Bitboard  bb, Square s) { return bb ^  Square_bb[s]; }
+    constexpr Bitboard operator| (Bitboard  bb, Square s) { return bb |  Square_bb[+s]; }
+    constexpr Bitboard operator^ (Bitboard  bb, Square s) { return bb ^  Square_bb[+s]; }
 
-    inline Bitboard& operator|= (Bitboard &bb, Square s) { return bb |= Square_bb[s]; }
-    inline Bitboard& operator^= (Bitboard &bb, Square s) { return bb ^= Square_bb[s]; }
+    inline Bitboard& operator|= (Bitboard &bb, Square s) { return bb |= Square_bb[+s]; }
+    inline Bitboard& operator^= (Bitboard &bb, Square s) { return bb ^= Square_bb[+s]; }
 
-    inline Bitboard square_bb (Square s) { return Square_bb[s]; }
+    inline Bitboard square_bb (Square s) { return Square_bb[+s]; }
 
-    inline Bitboard file_bb (File f) { return File_bb[f]; }
-    inline Bitboard file_bb (Square s) { return File_bb[_file (s)]; }
+    inline Bitboard file_bb (File f) { return File_bb[+f]; }
+    inline Bitboard file_bb (Square s) { return File_bb[+_file (s)]; }
 
-    inline Bitboard rank_bb (Rank r) { return Rank_bb[r]; }
-    inline Bitboard rank_bb (Square s) { return Rank_bb[_rank (s)]; }
+    inline Bitboard rank_bb (Rank r) { return Rank_bb[+r]; }
+    inline Bitboard rank_bb (Square s) { return Rank_bb[+_rank (s)]; }
 
-    inline Bitboard adj_file_bb (File f) { return AdjFile_bb[f]; }
-    inline Bitboard adj_rank_bb (Rank r) { return AdjRank_bb[r]; }
+    inline Bitboard adj_file_bb (File f) { return AdjFile_bb[+f]; }
+    inline Bitboard adj_rank_bb (Rank r) { return AdjRank_bb[+r]; }
 
-    inline Bitboard front_rank_bb (Color c, Square s) { return FrontRank_bb[c][_rank (s)]; }
-    inline Bitboard front_line_bb (Color c, Square s) { return FrontLine_bb[c][s]; }
+    inline Bitboard front_rank_bb (Color c, Square s) { return FrontRank_bb[c][+_rank (s)]; }
+    inline Bitboard front_line_bb (Color c, Square s) { return FrontLine_bb[c][+s]; }
 
-    inline Bitboard between_bb (Square s1, Square s2) { return Between_bb[s1][s2]; }
-    inline Bitboard strline_bb (Square s1, Square s2) { return StrLine_bb[s1][s2]; }
+    inline Bitboard between_bb (Square s1, Square s2) { return Between_bb[+s1][+s2]; }
+    inline Bitboard strline_bb (Square s1, Square s2) { return StrLine_bb[+s1][+s2]; }
 
-    inline Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[s][d]; }
+    inline Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[+s][d]; }
 
-    inline Bitboard pawn_attack_span (Color c, Square s) { return PawnAttackSpan[c][s]; }
-    inline Bitboard pawn_pass_span (Color c, Square s) { return PawnPassSpan[c][s]; }
+    inline Bitboard pawn_attack_span (Color c, Square s) { return PawnAttackSpan[c][+s]; }
+    inline Bitboard pawn_pass_span (Color c, Square s) { return PawnPassSpan[c][+s]; }
 
     /// Check the squares s1, s2 and s3 are aligned on a straight line.
-    inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return contains (StrLine_bb[s1][s2], s3); }
+    inline bool sqrs_aligned (Square s1, Square s2, Square s3) { return contains (StrLine_bb[+s1][+s2], s3); }
 
     constexpr bool more_than_one (Bitboard bb)
     {
@@ -263,9 +263,9 @@ namespace BitBoard {
     template<> constexpr Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> 011; }
 
     //// Rotate Right (toward LSB)
-    //inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08(SQ_NO) - k)); }
+    //inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (+Square::NO - k)); }
     //// Rotate Left  (toward MSB)
-    //inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08(SQ_NO) - k)); }
+    //inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (+Square::NO - k)); }
 
     /// pawn_attacks_bb() returns the pawn attacks for the given color from the given bitboard.
     constexpr Bitboard pawn_attacks_bb (Color c, Bitboard b)
@@ -300,12 +300,12 @@ namespace BitBoard {
     template<PieceType PT> Bitboard attacks_bb (Square, Bitboard);
     
     /// Attacks of the Bishop with occupancy
-    template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BMagics[s].attacks_bb (occ); }
+    template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BMagics[+s].attacks_bb (occ); }
     /// Attacks of the Rook with occupancy
-    template<> inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RMagics[s].attacks_bb (occ); }
+    template<> inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RMagics[+s].attacks_bb (occ); }
     /// Attacks of the Queen with occupancy
-    template<> inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ) { return BMagics[s].attacks_bb (occ)
-                                                                                | RMagics[s].attacks_bb (occ); }
+    template<> inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ) { return BMagics[+s].attacks_bb (occ)
+                                                                                | RMagics[+s].attacks_bb (occ); }
     
 #if !defined(ABM) // PopCount Table
 
@@ -424,9 +424,9 @@ namespace BitBoard {
         assert(0 != bb);
 
 #   if defined(BIT64)
-        return Square(i08(SQ_H8) ^ __builtin_clzll (bb));
+        return Square(+Square::H8 ^ __builtin_clzll (bb));
 #   else
-        return Square(0 != (i08(SQ_H8) ^ (u32(bb >> 0x20)) ?
+        return Square(0 != (+Square::H8 ^ (u32(bb >> 0x20)) ?
                 __builtin_clz (bb >> 0x20) :
                 __builtin_clz (bb >> 0x00) + 0x20));
 #   endif
@@ -457,7 +457,7 @@ namespace BitBoard {
 
     // * @author Kim Walisch (2012)
     const u64 DeBruijn_64 = U64(0x03F79D71B4CB0A89);
-    const u08 BSF_Table[SQ_NO] =
+    const u08 BSF_Table[+Square::NO] =
     {
          0, 47,  1, 56, 48, 27,  2, 60,
         57, 49, 41, 37, 28, 16,  3, 61,
@@ -472,7 +472,7 @@ namespace BitBoard {
 #   else
 
     const u32 DeBruijn_32 = U32(0x783A9B23);
-    const u08 BSF_Table[SQ_NO] =
+    const u08 BSF_Table[+Square::NO] =
     {
         63, 30,  3, 32, 25, 41, 22, 33,
         15, 50, 42, 13, 11, 53, 19, 34,

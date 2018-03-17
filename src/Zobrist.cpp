@@ -30,7 +30,7 @@ Key Zobrist::compute_pawn_key (const Position &pos) const
     {
         for (auto s : pos.squares[c][PAWN])
         {
-            pawn_key ^= piece_square_keys[c][PAWN][s];
+            pawn_key ^= piece_square_keys[c][PAWN][+s];
         }
     }
     return pawn_key;
@@ -45,7 +45,7 @@ Key Zobrist::compute_posi_key (const Position &pos) const
         {
             for (auto s : pos.squares[c][pt])
             {
-                posi_key ^= piece_square_keys[c][pt][s];
+                posi_key ^= piece_square_keys[c][pt][+s];
             }
         }
     }
@@ -60,9 +60,9 @@ Key Zobrist::compute_posi_key (const Position &pos) const
         if (pos.si->can_castle (CR_BKING)) posi_key ^= castle_right_keys[BLACK][CS_KING];
         if (pos.si->can_castle (CR_BQUEN)) posi_key ^= castle_right_keys[BLACK][CS_QUEN];
     }
-    if (SQ_NO != pos.si->en_passant_sq)
+    if (Square::NO != pos.si->en_passant_sq)
     {
-        posi_key ^= en_passant_keys[_file (pos.si->en_passant_sq)];
+        posi_key ^= en_passant_keys[+_file (pos.si->en_passant_sq)];
     }
     return posi_key;
 }
@@ -74,14 +74,14 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //    Key fen_key = 0;
 //    istringstream iss (fen);
 //    iss >> std::noskipws;
-//    File kf[CLR_NO] = { F_NO, F_NO };
+//    File kf[CLR_NO] = { File::NO, File::NO };
 //    u08 token;
 //    size_t idx;
-//    i08 f = F_A;
-//    i08 r = R_8;
+//    i08 f = +File::fA;
+//    i08 r = +Rank::r8;
 //    while (   iss >> token
-//           && f <= F_NO
-//           && r >= R_1)
+//           && +File::NO >= f
+//           && +Rank::r1 <= r)
 //    {
 //        if (isdigit (token))
 //        {
@@ -107,12 +107,12 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //        else
 //        {
 //            assert('/' == token);
-//            f = F_A;
+//            f = +File::fA;
 //            --r;
 //        }
 //    }
-//    assert(F_NO != kf[WHITE]
-//        && F_NO != kf[BLACK]);
+//    assert(File::NO != kf[WHITE]
+//        && File::NO != kf[BLACK]);
 //
 //    iss >> token;
 //    if (WHITE == Color(ColorChar.find (token)))
@@ -171,7 +171,7 @@ void zobrist_initialize ()
         {
             for (auto s : SQ)
             {
-                RandZob.piece_square_keys[c][pt][s] = prng.rand<Key> ();
+                RandZob.piece_square_keys[c][pt][+s] = prng.rand<Key> ();
             }
         }
     }
@@ -182,9 +182,9 @@ void zobrist_initialize ()
             RandZob.castle_right_keys[c][cs] = prng.rand<Key> ();
         }
     }
-    for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+    for (auto f : {File::fA, File::fB, File::fC, File::fD, File::fE, File::fF, File::fG, File::fH })
     {
-        RandZob.en_passant_keys[f] = prng.rand<Key> ();
+        RandZob.en_passant_keys[+f] = prng.rand<Key> ();
     }
     RandZob.color_key = prng.rand<Key> ();
 }

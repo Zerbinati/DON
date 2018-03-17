@@ -9,17 +9,17 @@ namespace {
     // Table is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
     // For each piece type on a given square a (midgame, endgame) score pair is assigned.
-    const Score HalfPST[NONE][R_NO][F_NO/2] =
+    const Score HalfPST[NONE][+Rank::NO][+File::NO/2] =
     {
         { // Pawn
-            { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) },
-            { S(-11,  7), S(  6, -4), S(  7,  8), S(  3, -2) },
-            { S(-18, -4), S( -2, -5), S( 19,  5), S( 24,  4) },
-            { S(-17,  3), S( -9,  3), S( 20, -8), S( 35, -3) },
-            { S( -6,  8), S(  5,  9), S(  3,  7), S( 21, -6) },
-            { S( -6,  8), S( -8, -5), S( -6,  2), S( -2,  4) },
-            { S( -4,  3), S( 20, -9), S( -8,  1), S( -4, 18) },
-            { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) }
+            { S(   0,   0), S(  0,  0), S(  0,  0), S(  0,  0) },
+            { S( -11,   7), S(  6, -4), S(  7,  8), S(  3, -2) },
+            { S( -18,  -4), S( -2, -5), S( 19,  5), S( 24,  4) },
+            { S( -17,   3), S( -9,  3), S( 20, -8), S( 35, -3) },
+            { S(  -6,   8), S(  5,  9), S(  3,  7), S( 21, -6) },
+            { S(  -6,   8), S( -8, -5), S( -6,  2), S( -2,  4) },
+            { S(  -4,   3), S( 20, -9), S( -8,  1), S( -4, 18) },
+            { S(   0,   0), S(  0,  0), S(  0,  0), S(  0,  0) }
         },
         { // Knight
             { S(-161,-105), S(-96,-82), S(-80,-46), S(-73,-14) },
@@ -76,7 +76,7 @@ namespace {
 }
 
 // PST[color][piece-type][square] table.
-Score PST[CLR_NO][NONE][SQ_NO];
+Score PST[CLR_NO][NONE][+Square::NO];
 
 /// Computes the scores for the middle game and the endgame.
 /// These functions are used to initialize the scores when a new position is set up,
@@ -90,7 +90,7 @@ Score compute_psq (const Position &pos)
         {
             for (auto s : pos.squares[c][pt])
             {
-                psq += PST[c][pt][s];
+                psq += PST[c][pt][+s];
             }
         }
     }
@@ -120,9 +120,9 @@ void psqt_initialize ()
         auto p = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
         for (auto s : SQ)
         {
-            auto psq = p + HalfPST[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
-            PST[WHITE][pt][ s] = +psq;
-            PST[BLACK][pt][~s] = -psq;
+            auto psq = p + HalfPST[pt][+_rank (s)][+std::min (_file (s), File::fH - _file (s))];
+            PST[WHITE][pt][+ s] =  psq;
+            PST[BLACK][pt][+~s] = -psq;
         }
     }
 }

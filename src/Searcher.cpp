@@ -86,7 +86,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     , tt_move (ttm)
     , depth (d)
     , threshold (Value(-4000*d))
-    , recap_sq (SQ_NO)
+    , recap_sq (Square::NO)
     , piece_destiny_history (pdh)
     , refutation_moves (km, km + MaxKillers)
     , pick_quiets (true)
@@ -173,7 +173,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     , tt_move (ttm)
     , depth (0)
     , threshold (thr)
-    , recap_sq (SQ_NO)
+    , recap_sq (Square::NO)
     , piece_destiny_history (nullptr)
     , pick_quiets (true)
 {
@@ -221,9 +221,9 @@ void MovePicker::value ()
         if (GenType::QUIET == GT)
         {
             vm.value = pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
-                     + (*piece_destiny_history[0])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-                     + (*piece_destiny_history[1])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-                     + (*piece_destiny_history[3])[pos[org_sq (vm.move)]][dst_sq (vm.move)];
+                     + (*piece_destiny_history[0])[pos[org_sq (vm.move)]][+dst_sq (vm.move)]
+                     + (*piece_destiny_history[1])[pos[org_sq (vm.move)]][+dst_sq (vm.move)]
+                     + (*piece_destiny_history[3])[pos[org_sq (vm.move)]][+dst_sq (vm.move)];
         }
         else // GenType::EVASION == GT
         {
@@ -484,7 +484,7 @@ namespace Searcher {
             {
                 if (_ok (s->played_move))
                 {
-                    (*s->piece_destiny_history)[pc][dst] << bonus;
+                    (*s->piece_destiny_history)[pc][+dst] << bonus;
                 }
             }
         }
@@ -526,7 +526,7 @@ namespace Searcher {
         Value value_to_tt (Value v, i32 ply)
         {
             assert(VALUE_NONE != v);
-            return v >= +VALUE_MATE_MAX_PLY ? v + ply :
+            return v >=  VALUE_MATE_MAX_PLY ? v + ply :
                    v <= -VALUE_MATE_MAX_PLY ? v - ply :
                    v;
         }
@@ -536,7 +536,7 @@ namespace Searcher {
         Value value_of_tt (Value v, i32 ply)
         {
             return v ==  VALUE_NONE         ? VALUE_NONE :
-                   v >= +VALUE_MATE_MAX_PLY ? v - ply :
+                   v >=  VALUE_MATE_MAX_PLY ? v - ply :
                    v <= -VALUE_MATE_MAX_PLY ? v + ply :
                    v;
         }
@@ -574,7 +574,7 @@ namespace Searcher {
                             rms[i].new_value :
                             rms[i].old_value;
                 bool tb = TBHasRoot
-                       && abs (v) < +VALUE_MATE - i32(MaxPlies);
+                       && abs (v) <  VALUE_MATE - i32(MaxPlies);
                 if (tb)
                 {
                     v = TBValue;
@@ -611,7 +611,7 @@ namespace Searcher {
         template<bool PVNode>
         Value quien_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth = DepthZero)
         {
-            assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
+            assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <=  VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(DepthZero >= depth);
             assert(ss->ply >= 1
@@ -744,7 +744,7 @@ namespace Searcher {
                                        BOUND_LOWER);
                         }
 
-                        assert(-VALUE_INFINITE < tt_eval && tt_eval < +VALUE_INFINITE);
+                        assert(-VALUE_INFINITE < tt_eval && tt_eval <  VALUE_INFINITE);
                         return tt_eval;
                     }
 
@@ -787,7 +787,7 @@ namespace Searcher {
                     //&& 0 == Limits.mate
                         // Advance pawn push
                     && !(   PAWN == ptype (mpc)
-                         && R_4 < rel_rank (pos.active, org)))
+                         && Rank::r4 < rel_rank (pos.active, org)))
                 {
                     // Futility pruning parent node
                     auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst_sq (move)])];
@@ -838,7 +838,7 @@ namespace Searcher {
                 // Undo the move.
                 pos.undo_move (move);
 
-                assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
+                assert(-VALUE_INFINITE < value && value <  VALUE_INFINITE);
 
                 // Check for new best move.
                 if (best_value < value)
@@ -862,7 +862,7 @@ namespace Searcher {
                                        qs_depth,
                                        BOUND_LOWER);
 
-                            assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
+                            assert(-VALUE_INFINITE < value && value <  VALUE_INFINITE);
                             return value;
                         }
                         else
@@ -888,7 +888,7 @@ namespace Searcher {
                            BOUND_EXACT :
                            BOUND_UPPER);
 
-            assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+            assert(-VALUE_INFINITE < best_value && best_value <  VALUE_INFINITE);
             return best_value;
         }
         /// depth_search() is main depth limited search function, which is called when the remaining depth > 0.
@@ -901,7 +901,7 @@ namespace Searcher {
                 return quien_search<PVNode> (pos, ss, alfa, beta);
             }
 
-            assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
+            assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <=  VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(!(PVNode && cut_node));
             assert(DepthZero < depth && depth < MaxPlies);
@@ -933,7 +933,7 @@ namespace Searcher {
 
             auto value = VALUE_ZERO
                , best_value = -VALUE_INFINITE
-               , min_value = +VALUE_INFINITE;
+               , min_value =  VALUE_INFINITE;
 
             auto best_move = MOVE_NONE;
 
@@ -1076,7 +1076,7 @@ namespace Searcher {
                         auto draw = TBUseRule50 ? 1 : 0;
 
                         value = wdl < -draw ? -VALUE_MATE + i32(MaxPlies + ss->ply + 1) :
-                                wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply + 1) :
+                                wdl > +draw ?  VALUE_MATE - i32(MaxPlies + ss->ply + 1) :
                                                VALUE_ZERO + 2 * wdl * draw;
 
                         auto bound = wdl < -draw ? BOUND_UPPER :
@@ -1197,7 +1197,7 @@ namespace Searcher {
                         && 7 > depth
                         //&& 0 == Limits.mate
                         && tt_eval - (improving ? 125 : 175) * depth >= beta
-                        && tt_eval < +VALUE_KNOWN_WIN) // Don't return unproven wins.
+                        && tt_eval <  VALUE_KNOWN_WIN) // Don't return unproven wins.
                     {
                         return tt_eval;
                     }
@@ -1224,10 +1224,10 @@ namespace Searcher {
 
                         if (null_value >= beta)
                         {
-                            bool unproven = null_value >= +VALUE_MATE_MAX_PLY;
+                            bool unproven = null_value >=  VALUE_MATE_MAX_PLY;
 
                             // Skip verification search
-                            if (   abs (beta) < +VALUE_KNOWN_WIN
+                            if (   abs (beta) <  VALUE_KNOWN_WIN
                                 && (   12 > depth
                                     || pos.thread->nmp_ply != 0))
                             {
@@ -1263,9 +1263,9 @@ namespace Searcher {
                     if (   !PVNode
                         && 4 < depth
                         //&& 0 == Limits.mate
-                        && abs (beta) < +VALUE_MATE_MAX_PLY)
+                        && abs (beta) <  VALUE_MATE_MAX_PLY)
                     {
-                        auto beta_margin = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
+                        auto beta_margin = std::min (beta + (improving ? 168 : 216),  VALUE_INFINITE);
                         assert(_ok ((ss-1)->played_move));
 
                         u08 pc_movecount = 0;
@@ -1283,7 +1283,7 @@ namespace Searcher {
                             ++pc_movecount;
 
                             ss->played_move = move;
-                            ss->piece_destiny_history = pos.thread->continuation_history[pos[org_sq (move)]][dst_sq (move)].get ();
+                            ss->piece_destiny_history = pos.thread->continuation_history[pos[org_sq (move)]][+dst_sq (move)].get ();
 
                             pos.do_move (move, si);
 
@@ -1458,7 +1458,7 @@ namespace Searcher {
                         && !gives_check
                             // Advance pawn push.
                         && !(   PAWN == ptype (mpc)
-                             && R_4 < rel_rank (pos.active, org)
+                             && Rank::r4 < rel_rank (pos.active, org)
                              && Value(5000) > pos.si->non_pawn_material ()))
                     {
                         // Move count based pruning.
@@ -1472,8 +1472,8 @@ namespace Searcher {
                         i16 lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Countermoves based pruning.
                                (   3 > lmr_depth
-                                && (*piece_destiny_history[0])[mpc][dst] < CounterMovePruneThreshold
-                                && (*piece_destiny_history[1])[mpc][dst] < CounterMovePruneThreshold)
+                                && (*piece_destiny_history[0])[mpc][+dst] < CounterMovePruneThreshold
+                                && (*piece_destiny_history[1])[mpc][+dst] < CounterMovePruneThreshold)
                                 // Futility pruning: parent node.
                             || (   7 > lmr_depth
                                 && !in_check
@@ -1506,7 +1506,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->played_move = move;
-                ss->piece_destiny_history = pos.thread->continuation_history[mpc][dst].get ();
+                ss->piece_destiny_history = pos.thread->continuation_history[mpc][+dst].get ();
 
                 // Step 15. Make the move.
                 pos.do_move (move, si, gives_check);
@@ -1560,9 +1560,9 @@ namespace Searcher {
                         }
 
                         ss->stat_score = pos.thread->butterfly_history[~pos.active][move_pp (move)]
-                                       + (*piece_destiny_history[0])[mpc][dst]
-                                       + (*piece_destiny_history[1])[mpc][dst]
-                                       + (*piece_destiny_history[3])[mpc][dst]
+                                       + (*piece_destiny_history[0])[mpc][+dst]
+                                       + (*piece_destiny_history[1])[mpc][+dst]
+                                       + (*piece_destiny_history[3])[mpc][+dst]
                                        - 4000;
 
                         // Decrease/Increase reduction by comparing own and opp stats
@@ -1616,7 +1616,7 @@ namespace Searcher {
                 // Step 18. Undo move.
                 pos.undo_move (move);
 
-                assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
+                assert(-VALUE_INFINITE < value && value <  VALUE_INFINITE);
 
                 // Step 19. Check for the new best move.
                 // Finished searching the move. If a stop or a cutoff occurred,
@@ -1795,7 +1795,7 @@ namespace Searcher {
                                    BOUND_UPPER);
             }
 
-            assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+            assert(-VALUE_INFINITE < best_value && best_value <  VALUE_INFINITE);
             return best_value;
         }
 
@@ -1873,7 +1873,7 @@ void Thread::search ()
     auto best_value = VALUE_ZERO
         , window = VALUE_ZERO
         , alfa = -VALUE_INFINITE
-        , beta = +VALUE_INFINITE;
+        , beta =  VALUE_INFINITE;
 
     // Iterative deepening loop until requested to stop or the target depth is reached.
     while (   ++running_depth < MaxPlies
@@ -1920,14 +1920,14 @@ void Thread::search ()
             {
                 window = Value(18);
                 alfa = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
-                beta = std::min (root_moves[pv_index].old_value + window, +VALUE_INFINITE);
+                beta = std::min (root_moves[pv_index].old_value + window,  VALUE_INFINITE);
 
                 // Dynamic contempt
                 if (0 != ContemptValue)
                 {
                     auto contempt = i32(std::round (48 * std::atan (i32(best_value) / (12.8 * ContemptValue))));
                     Contempt = WHITE == root_pos.active ?
-                                +mk_score (contempt, contempt / 2) :
+                                 mk_score (contempt, contempt / 2) :
                                 -mk_score (contempt, contempt / 2);
                 }
             }
@@ -1982,7 +1982,7 @@ void Thread::search ()
                 if (beta <= best_value)
                 {
                     // NOTE:: Don't change alfa = (alfa + beta) / 2
-                    beta = std::min (best_value + window, +VALUE_INFINITE);
+                    beta = std::min (best_value + window,  VALUE_INFINITE);
                 }
                 // Otherwise exit the loop.
                 else
@@ -1992,7 +1992,7 @@ void Thread::search ()
 
                 window += window / 4 + 5;
 
-                assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
+                assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <=  VALUE_INFINITE);
             }
 
             // Sort the PV lines searched so far and update the GUI.
@@ -2022,7 +2022,7 @@ void Thread::search ()
         if (   !Threadpool.stop
             && !Threadpool.stop_on_ponderhit
             && 0 != Limits.mate
-            && best_value >= +VALUE_MATE - 2*Limits.mate)
+            && best_value >=  VALUE_MATE - 2*Limits.mate)
         {
             Threadpool.stop_thinking ();
         }
@@ -2193,7 +2193,7 @@ void MainThread::search ()
 
             BaseContempt = cp_to_value (FixedContempt + timed_contempt);
             Contempt = WHITE == root_pos.active ?
-                        +mk_score (BaseContempt, BaseContempt / 2) :
+                         mk_score (BaseContempt, BaseContempt / 2) :
                         -mk_score (BaseContempt, BaseContempt / 2);
 
             if (Limits.use_time_management ())
@@ -2271,7 +2271,7 @@ void MainThread::search ()
             // If new best thread then send PV info again.
             if (best_thread != this)
             {
-                sync_cout << multipv_info (best_thread, best_thread->finished_depth, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
+                sync_cout << multipv_info (best_thread, best_thread->finished_depth, -VALUE_INFINITE,  VALUE_INFINITE) << sync_endl;
             }
         }
     }

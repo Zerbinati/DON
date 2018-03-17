@@ -35,7 +35,7 @@ namespace {
                     continue;
                 }
                 Bitboard attacks = targets
-                                    & (NIHT == PT ? PieceAttacks[NIHT][s] :
+                                    & (NIHT == PT ? PieceAttacks[NIHT][+s] :
                                     BSHP == PT ? attacks_bb<BSHP> (s, pos.pieces ()) :
                                     ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces ()) :
                                     QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces ()) : (assert(false), 0));
@@ -84,7 +84,7 @@ namespace {
             || GenType::QUIET == GT
             || (   (   GenType::CHECK == GT
                     || GenType::QUIET_CHECK == GT)
-                && contains (PieceAttacks[NIHT][dst], pos.square<KING> (~pos.active))))
+                && contains (PieceAttacks[NIHT][+dst], pos.square<KING> (~pos.active))))
         {
             moves += mk_move (dst - Del, dst, NIHT);
         }
@@ -99,9 +99,9 @@ namespace {
         const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 
         // Pawns on 7th Rank
-        Bitboard R7_pawns = pos.pieces (Own, PAWN) &  rank_bb (WHITE == Own ? R_7 : R_2);
+        Bitboard R7_pawns = pos.pieces (Own, PAWN) &  rank_bb (WHITE == Own ? Rank::r7 : Rank::r2);
         // Pawns not on 7th Rank
-        Bitboard Rx_pawns = pos.pieces (Own, PAWN) & ~rank_bb (WHITE == Own ? R_7 : R_2);
+        Bitboard Rx_pawns = pos.pieces (Own, PAWN) & ~rank_bb (WHITE == Own ? Rank::r7 : Rank::r2);
 
         Bitboard empties = ~pos.pieces ();
         Bitboard enemies =  pos.pieces (Opp) & targets;
@@ -113,7 +113,7 @@ namespace {
             || GenType::QUIET_CHECK == GT)
         {
             Bitboard push_1 = empties & shift<Push> (Rx_pawns);
-            Bitboard push_2 = empties & shift<Push> (push_1 & rank_bb (WHITE == Own ? R_3 : R_6));
+            Bitboard push_2 = empties & shift<Push> (push_1 & rank_bb (WHITE == Own ? Rank::r3 : Rank::r6));
             if (   GenType::CHECK == GT
                 || GenType::QUIET_CHECK == GT)
             {
@@ -127,7 +127,7 @@ namespace {
                 if (0 != dsc_pawns)
                 {
                     Bitboard dc_push_1 = empties & shift<Push> (dsc_pawns);
-                    Bitboard dc_push_2 = empties & shift<Push> (dc_push_1 & rank_bb (WHITE == Own ? R_3 : R_6));
+                    Bitboard dc_push_2 = empties & shift<Push> (dc_push_1 & rank_bb (WHITE == Own ? Rank::r3 : Rank::r6));
                     push_1 |= dc_push_1;
                     push_2 |= dc_push_2;
                 }
@@ -137,7 +137,7 @@ namespace {
             while (0 != push_1) { auto dst = pop_lsq (push_1); moves += mk_move<NORMAL> (dst - Push  , dst); }
             while (0 != push_2) { auto dst = pop_lsq (push_2); moves += mk_move<NORMAL> (dst - Push*2, dst); }
         }
-        // Pawn normal and en-passant captures, no promotions
+        // Pawn normal and Enpassant captures, no promotions
         if (   GenType::NATURAL == GT
             || GenType::EVASION == GT
             || GenType::CAPTURE == GT
@@ -161,10 +161,10 @@ namespace {
             while (0 != l_attack) { auto dst = pop_lsq (l_attack); moves += mk_move<NORMAL> (dst - LCap, dst); }
             while (0 != r_attack) { auto dst = pop_lsq (r_attack); moves += mk_move<NORMAL> (dst - RCap, dst); }
 
-            if (SQ_NO != pos.si->en_passant_sq)
+            if (Square::NO != pos.si->en_passant_sq)
             {
-                assert(R_6 == rel_rank (Own, pos.si->en_passant_sq));
-                Bitboard ep_captures = Rx_pawns & rank_bb (WHITE == Own ? R_5 : R_4);
+                assert(Rank::r6 == rel_rank (Own, pos.si->en_passant_sq));
+                Bitboard ep_captures = Rx_pawns & rank_bb (WHITE == Own ? Rank::r5 : Rank::r4);
                 if (0 != ep_captures)
                 {
                     // If the checking piece is the double pushed pawn and also is in the target.
@@ -174,7 +174,7 @@ namespace {
                         ep_captures &= (  shift<DEL_E> (targets)
                                         | shift<DEL_W> (targets));
                     }
-                    ep_captures &= PawnAttacks[Opp][pos.si->en_passant_sq];
+                    ep_captures &= PawnAttacks[Opp][+pos.si->en_passant_sq];
                     assert(0 != ep_captures
                         && 2 >= pop_count (ep_captures));
                     while (0 != ep_captures) { moves += mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->en_passant_sq); }
@@ -233,11 +233,11 @@ namespace {
                 return;
             }
         }
-        auto king_dst = rel_sq (Own, rook_org > king_org ? SQ_G1 : SQ_C1);
+        auto king_dst = rel_sq (Own, rook_org > king_org ? Square::G1 : Square::C1);
         // Chess960
         // Because generate only legal castling moves needed to verify that
         // when moving the castling rook do not discover some hidden checker.
-        // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
+        // For instance an enemy queen in Square::A1 when castling rook is in Square::B1.
         if (   0 != (b = pos.pieces (Opp, ROOK, QUEN) & rank_bb (king_dst))
             && 0 != (b & attacks_bb<ROOK> (king_dst, pos.pieces () ^ rook_org)))
         {
@@ -268,8 +268,8 @@ namespace {
         {
             auto fk_sq = pos.square<KING> (Own);
             Bitboard attacks = targets
-                             &  PieceAttacks[KING][fk_sq]
-                             & ~PieceAttacks[KING][pos.square<KING> (Opp)];
+                             &  PieceAttacks[KING][+fk_sq]
+                             & ~PieceAttacks[KING][+pos.square<KING> (Opp)];
             while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
         }
 
@@ -354,11 +354,11 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
     {
         auto org = pop_lsq (dsc_blockers);
         auto pt = ptype (pos[org]);
-        Bitboard attacks = NIHT == pt ? targets & PieceAttacks[NIHT][org] :
+        Bitboard attacks = NIHT == pt ? targets & PieceAttacks[NIHT][+org] :
                            BSHP == pt ? targets & attacks_bb<BSHP> (org, pos.pieces ()) :
                            ROOK == pt ? targets & attacks_bb<ROOK> (org, pos.pieces ()) :
                            QUEN == pt ? targets & attacks_bb<QUEN> (org, pos.pieces ()) :
-                           KING == pt ? targets & PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)] : (assert(false), 0);
+                           KING == pt ? targets & PieceAttacks[KING][+org] & ~PieceAttacks[QUEN][+pos.square<KING> (~pos.active)] : (assert(false), 0);
         while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
     }
 
@@ -378,11 +378,11 @@ template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position 
     {
         auto org = pop_lsq (dsc_blockers);
         auto pt = ptype (pos[org]);
-        Bitboard attacks = NIHT == pt ? targets & PieceAttacks[NIHT][org] :
+        Bitboard attacks = NIHT == pt ? targets & PieceAttacks[NIHT][+org] :
                            BSHP == pt ? targets & attacks_bb<BSHP> (org, pos.pieces ()) :
                            ROOK == pt ? targets & attacks_bb<ROOK> (org, pos.pieces ()) :
                            QUEN == pt ? targets & attacks_bb<QUEN> (org, pos.pieces ()) :
-                           KING == pt ? targets & PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)] : (assert(false), 0);
+                           KING == pt ? targets & PieceAttacks[KING][+org] & ~PieceAttacks[QUEN][+pos.square<KING> (~pos.active)] : (assert(false), 0);
         while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
     }
 
@@ -395,13 +395,13 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
 {
     assert(0 != pos.si->checkers);
     moves.clear ();
-    auto checker_sq = SQ_NO;
+    auto checker_sq = Square::NO;
     Bitboard checker_attacks = 0;
     Bitboard jumpers = pos.si->checkers & pos.pieces (NIHT);
     if (0 != jumpers)
     {
         checker_sq = scan_lsq (jumpers);
-        checker_attacks |= PieceAttacks[NIHT][checker_sq];
+        checker_attacks |= PieceAttacks[NIHT][+checker_sq];
     }
     auto fk_sq = pos.square<KING> (pos.active);
     Bitboard mocc = pos.pieces () ^ fk_sq;
@@ -419,10 +419,10 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
     }
 
     // Generate evasions for king, capture and non capture moves
-    Bitboard attacks = PieceAttacks[KING][fk_sq]
+    Bitboard attacks = PieceAttacks[KING][+fk_sq]
                         & ~(  checker_attacks
                             | pos.pieces (pos.active)
-                            | PieceAttacks[KING][pos.square<KING> (~pos.active)]);
+                            | PieceAttacks[KING][+pos.square<KING> (~pos.active)]);
     while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
 
     // If double-check or only king, then only king move can save the day
@@ -433,7 +433,7 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
     }
 
     // Generates blocking or captures of the checking piece
-    Bitboard targets = SQ_NO == checker_sq ?
+    Bitboard targets = Square::NO == checker_sq ?
                         square_bb (scan_lsq (pos.si->checkers)) :
                         between_bb (checker_sq, fk_sq) | checker_sq;
 

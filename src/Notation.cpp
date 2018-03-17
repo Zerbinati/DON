@@ -28,10 +28,10 @@ namespace {
         auto dst = dst_sq (m);
         // Disambiguation if have more then one piece with destination 'dst'
         // note that for pawns is not needed because starting file is explicit.
-        Bitboard attacks = NIHT == ptype (pos[org]) ? PieceAttacks[NIHT][dst] :
-                            BSHP == ptype (pos[org]) ? attacks_bb<BSHP> (dst, pos.pieces ()) :
-                            ROOK == ptype (pos[org]) ? attacks_bb<ROOK> (dst, pos.pieces ()) :
-                            QUEN == ptype (pos[org]) ? attacks_bb<QUEN> (dst, pos.pieces ()) : (assert(false), 0);
+        Bitboard attacks = NIHT == ptype (pos[org]) ? PieceAttacks[NIHT][+dst] :
+                           BSHP == ptype (pos[org]) ? attacks_bb<BSHP> (dst, pos.pieces ()) :
+                           ROOK == ptype (pos[org]) ? attacks_bb<ROOK> (dst, pos.pieces ()) :
+                           QUEN == ptype (pos[org]) ? attacks_bb<QUEN> (dst, pos.pieces ()) : (assert(false), 0);
 
         Bitboard amb = (attacks & pos.pieces (pos.active, ptype (pos[org]))) ^ org;
         Bitboard pcs = amb; // & ~pos.abs_blockers (pos.active); // If pinned piece is considered as ambiguous
@@ -55,9 +55,9 @@ namespace {
     // Value to string
     string pretty_value (Value v)
     {
-        assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
+        assert(-VALUE_MATE <= v && v <=  VALUE_MATE);
         ostringstream oss;
-        if (abs (v) < +VALUE_MATE - i32(MaxPlies))
+        if (abs (v) <  VALUE_MATE - i32(MaxPlies))
         {
             oss << std::showpos << std::setprecision (2) << std::fixed << value_to_cp (v) / 100.0 << std::noshowpos;
         }

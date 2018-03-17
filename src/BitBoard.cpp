@@ -7,23 +7,23 @@ namespace BitBoard {
 
     using namespace std;
 
-    u08      SquareDist[SQ_NO][SQ_NO];
+    u08      SquareDist[+Square::NO][+Square::NO];
 
-    Bitboard FrontLine_bb[CLR_NO][SQ_NO];
+    Bitboard FrontLine_bb[CLR_NO][+Square::NO];
 
-    Bitboard Between_bb[SQ_NO][SQ_NO];
-    Bitboard StrLine_bb[SQ_NO][SQ_NO];
+    Bitboard Between_bb[+Square::NO][+Square::NO];
+    Bitboard StrLine_bb[+Square::NO][+Square::NO];
 
-    Bitboard DistRings_bb[SQ_NO][8];
+    Bitboard DistRings_bb[+Square::NO][8];
 
-    Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
-    Bitboard PawnPassSpan[CLR_NO][SQ_NO];
+    Bitboard PawnAttackSpan[CLR_NO][+Square::NO];
+    Bitboard PawnPassSpan[CLR_NO][+Square::NO];
 
-    Bitboard PawnAttacks[CLR_NO][SQ_NO];
-    Bitboard PieceAttacks[NONE][SQ_NO];
+    Bitboard PawnAttacks[CLR_NO][+Square::NO];
+    Bitboard PieceAttacks[NONE][+Square::NO];
 
-    Magic BMagics[SQ_NO]
-        , RMagics[SQ_NO];
+    Magic BMagics[+Square::NO]
+        , RMagics[+Square::NO];
 
 #if !defined(ABM)
     u08 PopCount16[1 << 16];
@@ -53,7 +53,7 @@ namespace BitBoard {
 //        const u32 DeBruijn_32 = U32(0x783A9B23);
 //#   endif
 //
-//        Square BSF_Table[SQ_NO];
+//        Square BSF_Table[+Square::NO];
 //        unsigned bsf_index (Bitboard bb)
 //        {
 //            assert(0 != bb);
@@ -109,7 +109,7 @@ namespace BitBoard {
             Bitboard occupancy[MaxIndex]
                 ,    reference[MaxIndex];
 
-            const u32 Seeds[R_NO] =
+            const u32 Seeds[+Rank::NO] =
 #           if defined(BIT64)
                 { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
 #           else
@@ -121,9 +121,9 @@ namespace BitBoard {
             u32 offset = 0;
             for (auto s : SQ)
             {
-                auto &magic = magics[s];
+                auto &magic = magics[+s];
 
-                // attacks_bb[s] is a pointer to the beginning of the attacks table for square
+                // attacks_bb[+s] is a pointer to the beginning of the attacks table for square
                 magic.attacks = &table[offset];
 
                 // Given a square, the mask is the bitboard of sliding attacks from
@@ -145,7 +145,7 @@ namespace BitBoard {
                     - u08(pop_count (magic.mask));
 #           endif
 
-                // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
+                // Use Carry-Rippler trick to enumerate all subsets of masks_bb[+s] and
                 // store the corresponding sliding attack bitboard in reference[].
                 // Have individual table sizes for each square with "Fancy Magic Bitboards".
                 u32 size = 0;
@@ -166,7 +166,7 @@ namespace BitBoard {
 
 #           if !defined(BM2)
                 
-                PRNG rng (Seeds[_rank (s)]);
+                PRNG rng (Seeds[+_rank (s)]);
                 
                 u32 i = 0;
                 // Find a magic for square picking up an (almost) random number
@@ -180,7 +180,7 @@ namespace BitBoard {
                     }
 
                     // A good magic must map every possible occupancy to an index that
-                    // looks up the correct sliding attack in the attacks_bb[s] database.
+                    // looks up the correct sliding attack in the attacks_bb[+s] database.
                     // Note that build up the database for square as a side
                     // effect of verifying the magic.
                     bool used[MaxIndex] = {false};
@@ -215,8 +215,8 @@ namespace BitBoard {
 
         //for (auto s : SQ)
         //{
-        //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;
-        //    BSF_Table[bsf_index (Square_bb[s])] = s;
+        //    BSF_Table[bsf_index (Square_bb[+s] = 1ULL << s)] = s;
+        //    BSF_Table[bsf_index (Square_bb[+s])] = s;
         //}
         //for (u32 b = 2; b < (1 << 8); ++b)
         //{
@@ -236,8 +236,8 @@ namespace BitBoard {
             {
                 if (s1 != s2)
                 {
-                    SquareDist[s1][s2] = u08(std::max (dist<File> (s1, s2), dist<Rank> (s1, s2)));
-                    DistRings_bb[s1][SquareDist[s1][s2] - 1] |= s2;
+                    SquareDist[+s1][+s2] = u08(std::max (dist<File> (s1, s2), dist<Rank> (s1, s2)));
+                    DistRings_bb[+s1][SquareDist[+s1][+s2] - 1] |= s2;
                 }
             }
         }
@@ -246,9 +246,9 @@ namespace BitBoard {
         {
             for (auto s : SQ)
             {
-                FrontLine_bb  [c][s] = FrontRank_bb[c][_rank (s)] &    File_bb[_file (s)];
-                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (s)] & AdjFile_bb[_file (s)];
-                PawnPassSpan  [c][s] = FrontLine_bb[c][s] | PawnAttackSpan[c][s];
+                FrontLine_bb  [c][+s] = FrontRank_bb[c][+_rank (s)] &    File_bb[+_file (s)];
+                PawnAttackSpan[c][+s] = FrontRank_bb[c][+_rank (s)] & AdjFile_bb[+_file (s)];
+                PawnPassSpan  [c][+s] = FrontLine_bb[c][+s] | PawnAttackSpan[c][+s];
             }
         }
 
@@ -266,7 +266,7 @@ namespace BitBoard {
                     if (   _ok (sq)
                         && dist (s, sq) == 1)
                     {
-                        PawnAttacks[c][s] |= sq;
+                        PawnAttacks[c][+s] |= sq;
                     }
                 }
             }
@@ -281,7 +281,7 @@ namespace BitBoard {
                 if (   _ok (sq)
                     && dist (s, sq) == 2)
                 {
-                    PieceAttacks[pt][s] |= sq;
+                    PieceAttacks[pt][+s] |= sq;
                 }
             }
 
@@ -293,13 +293,13 @@ namespace BitBoard {
                 if (   _ok (sq)
                     && dist (s, sq) == 1)
                 {
-                    PieceAttacks[pt][s] |= sq;
+                    PieceAttacks[pt][+s] |= sq;
                 }
             }
 
-            PieceAttacks[BSHP][s] = sliding_attacks (PieceDeltas[BSHP], s);
-            PieceAttacks[ROOK][s] = sliding_attacks (PieceDeltas[ROOK], s);
-            PieceAttacks[QUEN][s] = PieceAttacks[BSHP][s] | PieceAttacks[ROOK][s];
+            PieceAttacks[BSHP][+s] = sliding_attacks (PieceDeltas[BSHP], s);
+            PieceAttacks[ROOK][+s] = sliding_attacks (PieceDeltas[ROOK], s);
+            PieceAttacks[QUEN][+s] = PieceAttacks[BSHP][+s] | PieceAttacks[ROOK][+s];
         }
 
         // Initialize Sliding
@@ -313,14 +313,14 @@ namespace BitBoard {
             {
                 for (auto pt : { BSHP, ROOK })
                 {
-                    if (contains (PieceAttacks[pt][s1], s2))
+                    if (contains (PieceAttacks[pt][+s1], s2))
                     {
-                        Between_bb[s1][s2] = (BSHP == pt ? attacks_bb<BSHP> (s1, Square_bb[s2]) :
-                                                           attacks_bb<ROOK> (s1, Square_bb[s2]))
-                                           & (BSHP == pt ? attacks_bb<BSHP> (s2, Square_bb[s1]) :
-                                                           attacks_bb<ROOK> (s2, Square_bb[s1]));
+                        Between_bb[+s1][+s2] = (BSHP == pt ? attacks_bb<BSHP> (s1, Square_bb[+s2]) :
+                                                           attacks_bb<ROOK> (s1, Square_bb[+s2]))
+                                           & (BSHP == pt ? attacks_bb<BSHP> (s2, Square_bb[+s1]) :
+                                                           attacks_bb<ROOK> (s2, Square_bb[+s1]));
 
-                        StrLine_bb[s1][s2] = (PieceAttacks[pt][s1] & PieceAttacks[pt][s2]) | s1 | s2;
+                        StrLine_bb[+s1][+s2] = (PieceAttacks[pt][+s1] & PieceAttacks[pt][+s2]) | s1 | s2;
                     }
                 }
             }
@@ -336,13 +336,13 @@ namespace BitBoard {
     {
         ostringstream oss;
         oss << " /---------------\\\n";
-        for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+        for (auto r : { Rank::r8, Rank::r7, Rank::r6, Rank::r5, Rank::r4, Rank::r3, Rank::r2, Rank::r1 })
         {
             oss << to_char (r) << "|";
-            for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+            for (auto f : { File::fA, File::fB, File::fC, File::fD, File::fE, File::fF, File::fG, File::fH })
             {
                 oss << (contains (bb, f|r) ? "+" : "-");
-                if (f < F_H)
+                if (f < File::fH)
                 {
                     oss << " ";
                 }
@@ -350,7 +350,7 @@ namespace BitBoard {
             oss << "|\n";
         }
         oss << " \\---------------/\n ";
-        for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+        for (auto f : { File::fA, File::fB, File::fC, File::fD, File::fE, File::fF, File::fG, File::fH })
         {
             oss << " " << to_char (f, false);
         }

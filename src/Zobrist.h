@@ -12,10 +12,10 @@ public:
     // 2*6*64 + 2*2 + 8 + 1
     //    768 +   4 + 8 + 1
     //                  781
-    Key piece_square_keys[CLR_NO][NONE][SQ_NO];  // [color][piece-type][square]
-    Key castle_right_keys[CLR_NO][CS_NO];        // [color][castle-side]
-    Key en_passant_keys  [F_NO];                 // [enpassant file]
-    Key color_key;                               // color
+    Key piece_square_keys[CLR_NO][NONE][+Square::NO];	// [color][piece-type][square]
+    Key castle_right_keys[CLR_NO][CS_NO];				// [color][castle-side]
+    Key en_passant_keys  [+File::NO];					// [enpassant file]
+    Key color_key;										// color
 
     Zobrist () = default;
     Zobrist (const Zobrist&) = delete;

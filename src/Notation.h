@@ -11,12 +11,12 @@ const std::string ColorChar ("wb-");
 
 inline char to_char (File f, bool lower = true)
 {
-    return char((lower ? 'a' : 'A') + i08(f) - i08(F_A));
+    return char((lower ? 'a' : 'A') + +f - +File::fA);
 }
 
 inline char to_char (Rank r)
 {
-    return char('1' + i08(r) - i08(R_1));
+    return char('1' + i08(r) - i08(Rank::r1));
 }
 
 inline std::string to_string (Square s)
@@ -30,18 +30,18 @@ inline std::string to_string (Square s)
 ///            If the engine is getting mated use negative values for y.
 inline std::string to_string (Value v)
 {
-    assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
+    assert(-VALUE_MATE <= v && v <=  VALUE_MATE);
         
     std::ostringstream oss;
 
-    if (abs (v) < +VALUE_MATE - i32(MaxPlies))
+    if (abs (v) <  VALUE_MATE - i32(MaxPlies))
     {
         oss << "cp " << value_to_cp (v);
     }
     else
     {
         oss << "mate " << i32(v > VALUE_ZERO ?
-                            +(VALUE_MATE - v + 1) :
+                             (VALUE_MATE - v + 1) :
                             -(VALUE_MATE + v + 0)) / 2;
     }
     return oss.str ();
