@@ -4,6 +4,7 @@
 #include <algorithm>
 #include <array>
 #include <cassert>
+#include <type_traits>
 #include <cctype>
 #include <chrono>
 #include <climits>
