@@ -20,7 +20,7 @@ namespace BitBoard {
     Bitboard PawnPassSpan[+Color::NO][+Square::NO];
 
     Bitboard PawnAttacks[+Color::NO][+Square::NO];
-    Bitboard PieceAttacks[NONE][+Square::NO];
+    Bitboard PieceAttacks[+PieceType::NONE][+Square::NO];
 
     Magic BMagics[+Square::NO]
         , RMagics[+Square::NO];
@@ -36,7 +36,7 @@ namespace BitBoard {
             { DEL_NW, DEL_NE, DEL_O },
             { DEL_SE, DEL_SW, DEL_O },
         };
-        const Delta PieceDeltas[NONE][9] =
+        const Delta PieceDeltas[+PieceType::NONE][9] =
         {
             { DEL_O },
             { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE, DEL_O },
@@ -273,54 +273,57 @@ namespace BitBoard {
 
             PieceType pt;
 
-            pt = NIHT;
+            pt = PieceType::NIHT;
             k = 0;
-            while (DEL_O != (del = PieceDeltas[pt][k++]))
+            while (DEL_O != (del = PieceDeltas[+pt][k++]))
             {
                 auto sq = s + del;
                 if (   _ok (sq)
                     && dist (s, sq) == 2)
                 {
-                    PieceAttacks[pt][+s] |= sq;
+                    PieceAttacks[+pt][+s] |= sq;
                 }
             }
 
-            pt = KING;
+            pt = PieceType::KING;
             k = 0;
-            while (DEL_O != (del = PieceDeltas[pt][k++]))
+            while (DEL_O != (del = PieceDeltas[+pt][k++]))
             {
                 auto sq = s + del;
                 if (   _ok (sq)
                     && dist (s, sq) == 1)
                 {
-                    PieceAttacks[pt][+s] |= sq;
+                    PieceAttacks[+pt][+s] |= sq;
                 }
             }
 
-            PieceAttacks[BSHP][+s] = sliding_attacks (PieceDeltas[BSHP], s);
-            PieceAttacks[ROOK][+s] = sliding_attacks (PieceDeltas[ROOK], s);
-            PieceAttacks[QUEN][+s] = PieceAttacks[BSHP][+s] | PieceAttacks[ROOK][+s];
+            PieceAttacks[+PieceType::BSHP][+s] = sliding_attacks (PieceDeltas[+PieceType::BSHP], s);
+            PieceAttacks[+PieceType::ROOK][+s] = sliding_attacks (PieceDeltas[+PieceType::ROOK], s);
+            PieceAttacks[+PieceType::QUEN][+s] = PieceAttacks[+PieceType::BSHP][+s]
+        									   | PieceAttacks[+PieceType::ROOK][+s];
         }
 
         // Initialize Sliding
-        initialize_table (BTable, BMagics, PieceDeltas[BSHP]);
-        initialize_table (RTable, RMagics, PieceDeltas[ROOK]);
+        initialize_table (BTable, BMagics, PieceDeltas[+PieceType::BSHP]);
+        initialize_table (RTable, RMagics, PieceDeltas[+PieceType::ROOK]);
 
         // NOTE:: must be after Initialize Sliding
         for (auto s1 : SQ)
         {
             for (auto s2 : SQ)
             {
-                for (auto pt : { BSHP, ROOK })
+                for (auto pt : { PieceType::BSHP, PieceType::ROOK })
                 {
-                    if (contains (PieceAttacks[pt][+s1], s2))
+                    if (contains (PieceAttacks[+pt][+s1], s2))
                     {
-                        Between_bb[+s1][+s2] = (BSHP == pt ? attacks_bb<BSHP> (s1, Square_bb[+s2]) :
-                                                           attacks_bb<ROOK> (s1, Square_bb[+s2]))
-                                           & (BSHP == pt ? attacks_bb<BSHP> (s2, Square_bb[+s1]) :
-                                                           attacks_bb<ROOK> (s2, Square_bb[+s1]));
+                        Between_bb[+s1][+s2] = (PieceType::BSHP == pt ?
+													attacks_bb<PieceType::BSHP> (s1, Square_bb[+s2]) :
+                                                    attacks_bb<PieceType::ROOK> (s1, Square_bb[+s2]))
+                                             & (PieceType::BSHP == pt ?
+													attacks_bb<PieceType::BSHP> (s2, Square_bb[+s1]) :
+                                                    attacks_bb<PieceType::ROOK> (s2, Square_bb[+s1]));
 
-                        StrLine_bb[+s1][+s2] = (PieceAttacks[pt][+s1] & PieceAttacks[pt][+s2]) | s1 | s2;
+                        StrLine_bb[+s1][+s2] = (PieceAttacks[+pt][+s1] & PieceAttacks[+pt][+s2]) | s1 | s2;
                     }
                 }
             }

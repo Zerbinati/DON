@@ -149,7 +149,7 @@ namespace BitBoard {
     extern Bitboard PawnPassSpan[+Color::NO][+Square::NO];
 
     extern Bitboard PawnAttacks[+Color::NO][+Square::NO];
-    extern Bitboard PieceAttacks[NONE][+Square::NO];
+    extern Bitboard PieceAttacks[+PieceType::NONE][+Square::NO];
 
     // Magic holds all magic relevant data for a single square
     struct Magic
@@ -300,11 +300,11 @@ namespace BitBoard {
     template<PieceType PT> Bitboard attacks_bb (Square, Bitboard);
     
     /// Attacks of the Bishop with occupancy
-    template<> inline Bitboard attacks_bb<BSHP> (Square s, Bitboard occ) { return BMagics[+s].attacks_bb (occ); }
+    template<> inline Bitboard attacks_bb<PieceType::BSHP> (Square s, Bitboard occ) { return BMagics[+s].attacks_bb (occ); }
     /// Attacks of the Rook with occupancy
-    template<> inline Bitboard attacks_bb<ROOK> (Square s, Bitboard occ) { return RMagics[+s].attacks_bb (occ); }
+    template<> inline Bitboard attacks_bb<PieceType::ROOK> (Square s, Bitboard occ) { return RMagics[+s].attacks_bb (occ); }
     /// Attacks of the Queen with occupancy
-    template<> inline Bitboard attacks_bb<QUEN> (Square s, Bitboard occ) { return BMagics[+s].attacks_bb (occ)
+    template<> inline Bitboard attacks_bb<PieceType::QUEN> (Square s, Bitboard occ) { return BMagics[+s].attacks_bb (occ)
                                                                                 | RMagics[+s].attacks_bb (occ); }
     
 #if !defined(ABM) // PopCount Table

@@ -51,7 +51,7 @@ public:
     // Check info
     Bitboard    king_blockers[+Color::NO];// Absolute and Discover Blockers
     Bitboard    king_checkers[+Color::NO];// Absolute and Discover Checkers
-    Bitboard    checks[NONE];
+    Bitboard    checks[+PieceType::NONE];
 
     StateInfo  *ptr;            // Previous StateInfo pointer.
 
@@ -123,8 +123,8 @@ public:
     
     Piece    board[+Square::NO];
     Bitboard color_bb[+Color::NO];
-    Bitboard types_bb[MAX_PTYPE];
-    std::list<Square> squares[+Color::NO][NONE];
+    Bitboard types_bb[+PieceType::NO];
+    std::list<Square> squares[+Color::NO][+PieceType::NONE];
 
     CastleRight castle_mask[+Square::NO];
 
@@ -232,7 +232,7 @@ inline bool Position::empty  (Square s)  const
 
 inline Bitboard Position::pieces () const
 {
-    return types_bb[NONE];
+    return types_bb[+PieceType::NONE];
 }
 inline Bitboard Position::pieces (Color c) const
 {
@@ -240,66 +240,66 @@ inline Bitboard Position::pieces (Color c) const
 }
 inline Bitboard Position::pieces (PieceType pt) const
 {
-    assert(PAWN <= pt && pt <= KING);
-    return types_bb[pt];
+    assert(PieceType::PAWN <= pt && pt <= PieceType::KING);
+    return types_bb[+pt];
 }
 inline Bitboard Position::pieces (Color c, PieceType pt) const
 {
-    assert(PAWN <= pt && pt <= KING);
-    return color_bb[+c]&types_bb[pt];
+    assert(PieceType::PAWN <= pt && pt <= PieceType::KING);
+    return color_bb[+c]&types_bb[+pt];
 }
 inline Bitboard Position::pieces (PieceType pt1, PieceType pt2) const
 {
-    assert(PAWN <= pt1 && pt1 <= KING);
-    assert(PAWN <= pt2 && pt2 <= KING);
-    return types_bb[pt1]|types_bb[pt2];
+    assert(PieceType::PAWN <= pt1 && pt1 <= PieceType::KING);
+    assert(PieceType::PAWN <= pt2 && pt2 <= PieceType::KING);
+    return types_bb[+pt1]|types_bb[+pt2];
 }
 inline Bitboard Position::pieces (Color c, PieceType pt1, PieceType pt2) const
 {
-    assert(PAWN <= pt1 && pt1 <= KING);
-    assert(PAWN <= pt2 && pt2 <= KING);
-    return color_bb[+c]&(types_bb[pt1]|types_bb[pt2]);
+    assert(PieceType::PAWN <= pt1 && pt1 <= PieceType::KING);
+    assert(PieceType::PAWN <= pt2 && pt2 <= PieceType::KING);
+    return color_bb[+c]&(types_bb[+pt1]|types_bb[+pt2]);
 }
 /// Position::count() counts all
 inline i32 Position::count () const
 {
-    return i32(squares[+Color::WHITE][PAWN].size () + squares[+Color::BLACK][PAWN].size ()
-             + squares[+Color::WHITE][NIHT].size () + squares[+Color::BLACK][NIHT].size ()
-             + squares[+Color::WHITE][BSHP].size () + squares[+Color::BLACK][BSHP].size ()
-             + squares[+Color::WHITE][ROOK].size () + squares[+Color::BLACK][ROOK].size ()
-             + squares[+Color::WHITE][QUEN].size () + squares[+Color::BLACK][QUEN].size ()
-             + squares[+Color::WHITE][KING].size () + squares[+Color::BLACK][KING].size ());
+    return i32(squares[+Color::WHITE][+PieceType::PAWN].size () + squares[+Color::BLACK][+PieceType::PAWN].size ()
+             + squares[+Color::WHITE][+PieceType::NIHT].size () + squares[+Color::BLACK][+PieceType::NIHT].size ()
+             + squares[+Color::WHITE][+PieceType::BSHP].size () + squares[+Color::BLACK][+PieceType::BSHP].size ()
+             + squares[+Color::WHITE][+PieceType::ROOK].size () + squares[+Color::BLACK][+PieceType::ROOK].size ()
+             + squares[+Color::WHITE][+PieceType::QUEN].size () + squares[+Color::BLACK][+PieceType::QUEN].size ()
+             + squares[+Color::WHITE][+PieceType::KING].size () + squares[+Color::BLACK][+PieceType::KING].size ());
 }
 /// Position::count() counts specific color
 inline i32 Position::count (Color c) const
 {
-    return i32(squares[+c][PAWN].size ()
-             + squares[+c][NIHT].size ()
-             + squares[+c][BSHP].size ()
-             + squares[+c][ROOK].size ()
-             + squares[+c][QUEN].size ()
-             + squares[+c][KING].size ());
+    return i32(squares[+c][+PieceType::PAWN].size ()
+             + squares[+c][+PieceType::NIHT].size ()
+             + squares[+c][+PieceType::BSHP].size ()
+             + squares[+c][+PieceType::ROOK].size ()
+             + squares[+c][+PieceType::QUEN].size ()
+             + squares[+c][+PieceType::KING].size ());
 }
 /// Position::count() counts specific type
 inline i32 Position::count (PieceType pt) const
 {
-    assert(PAWN <= pt && pt <= KING);
-    return i32(squares[+Color::WHITE][pt].size () + squares[+Color::BLACK][pt].size ());
+    assert(PieceType::PAWN <= pt && pt <= PieceType::KING);
+    return i32(squares[+Color::WHITE][+pt].size () + squares[+Color::BLACK][+pt].size ());
 }
 /// Position::count() counts specific color and type
 inline i32 Position::count (Color c, PieceType pt) const
 {
-    assert(PAWN <= pt && pt <= KING);
-    return i32(squares[+c][pt].size ());
+    assert(PieceType::PAWN <= pt && pt <= PieceType::KING);
+    return i32(squares[+c][+pt].size ());
 }
 
 template<PieceType PT> inline Square Position::square (Color c, i08 index) const
 {
-    static_assert (PAWN <= PT && PT <= KING, "PT incorrect");
-    assert(i08(squares[+c][PT].size ()) > index);
+    static_assert (PieceType::PAWN <= PT && PT <= PieceType::KING, "PT incorrect");
+    assert(i08(squares[+c][+PT].size ()) > index);
     return index == 0 ?
-             *squares[+c][PT].begin () : 
-             *std::next (squares[+c][PT].begin (), index);
+             *squares[+c][+PT].begin () : 
+             *std::next (squares[+c][+PT].begin (), index);
 }
 
 inline Key Position::pg_key () const
@@ -321,13 +321,13 @@ inline Key Position::posi_move_key (Move m) const
     if (MoveType::CASTLE == mtype (m))
     {
         key ^=
-              RandZob.piece_square_keys[+active][ROOK][+dst]
-            ^ RandZob.piece_square_keys[+active][ROOK][+rel_sq (active, dst > org ? Square::F1 : Square::D1)];
+              RandZob.piece_square_keys[+active][+PieceType::ROOK][+dst]
+            ^ RandZob.piece_square_keys[+active][+PieceType::ROOK][+rel_sq (active, dst > org ? Square::F1 : Square::D1)];
     }
     else
     {
         if (   MoveType::NORMAL == mtype (m)
-            && PAWN == ptype (board[+org])
+            && PieceType::PAWN == ptype (board[+org])
             && 16 == (+dst ^ +org))
         {
             auto ep_sq = org + (dst - org) / 2;
@@ -338,10 +338,10 @@ inline Key Position::posi_move_key (Move m) const
         }
         auto cpt = MoveType::ENPASSANT != mtype (m) ?
                     ptype (board[+dst]) :
-                    PAWN;
-        if (NONE != cpt)
+                    PieceType::PAWN;
+        if (PieceType::NONE != cpt)
         {
-            key ^= RandZob.piece_square_keys[+~active][cpt][+(MoveType::ENPASSANT != mtype (m) ? dst : dst - pawn_push (active))];
+            key ^= RandZob.piece_square_keys[+~active][+cpt][+(MoveType::ENPASSANT != mtype (m) ? dst : dst - pawn_push (active))];
         }
     }
     auto b = si->castle_rights & (castle_mask[+org]|castle_mask[+dst]);
@@ -354,8 +354,8 @@ inline Key Position::posi_move_key (Move m) const
     }
     return key
          ^ RandZob.color_key
-         ^ RandZob.piece_square_keys[+active][ppt][+(MoveType::CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? Square::G1 : Square::C1))]
-         ^ RandZob.piece_square_keys[+active][ptype (board[+org])][+org]
+         ^ RandZob.piece_square_keys[+active][+ppt][+(MoveType::CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? Square::G1 : Square::C1))]
+         ^ RandZob.piece_square_keys[+active][+ptype (board[+org])][+org]
          ^ (Square::NO != si->en_passant_sq ? RandZob.en_passant_keys[+_file (si->en_passant_sq)] : 0);
 }
 
@@ -371,11 +371,11 @@ inline i16  Position::move_num () const
 /// Position::attackers_to() finds attackers to the square by color on occupancy.
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
-    return (pieces (c, PAWN) & PawnAttacks[+~c][+s])
-         | (pieces (c, NIHT) & PieceAttacks[NIHT][+s])
-         | (0 != (pieces (c, BSHP, QUEN) & PieceAttacks[BSHP][+s]) ? pieces (c, BSHP, QUEN) & attacks_bb<BSHP> (s, occ) : 0)
-         | (0 != (pieces (c, ROOK, QUEN) & PieceAttacks[ROOK][+s]) ? pieces (c, ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
-         | (pieces (c, KING) & PieceAttacks[KING][+s]);
+    return (pieces (c, PieceType::PAWN) & PawnAttacks[+~c][+s])
+         | (pieces (c, PieceType::NIHT) & PieceAttacks[+PieceType::NIHT][+s])
+         | (0 != (pieces (c, PieceType::BSHP, PieceType::QUEN) & PieceAttacks[+PieceType::BSHP][+s]) ? pieces (c, PieceType::BSHP, PieceType::QUEN) & attacks_bb<PieceType::BSHP> (s, occ) : 0)
+         | (0 != (pieces (c, PieceType::ROOK, PieceType::QUEN) & PieceAttacks[+PieceType::ROOK][+s]) ? pieces (c, PieceType::ROOK, PieceType::QUEN) & attacks_bb<PieceType::ROOK> (s, occ) : 0)
+         | (pieces (c, PieceType::KING) & PieceAttacks[+PieceType::KING][+s]);
 }
 /// Position::attackers_to() finds attackers to the square by color.
 inline Bitboard Position::attackers_to (Square s, Color c) const
@@ -385,12 +385,12 @@ inline Bitboard Position::attackers_to (Square s, Color c) const
 /// Position::attackers_to() finds attackers to the square on occupancy.
 inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
 {
-    return (pieces (Color::BLACK, PAWN) & PawnAttacks[+Color::WHITE][+s])
-         | (pieces (Color::WHITE, PAWN) & PawnAttacks[+Color::BLACK][+s])
-         | (pieces (NIHT)        & PieceAttacks[NIHT][+s])
-         | (0 != (pieces (BSHP, QUEN) & PieceAttacks[BSHP][+s]) ? pieces (BSHP, QUEN) & attacks_bb<BSHP> (s, occ) : 0)
-         | (0 != (pieces (ROOK, QUEN) & PieceAttacks[ROOK][+s]) ? pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, occ) : 0)
-         | (pieces (KING)        & PieceAttacks[KING][+s]);
+    return (pieces (Color::BLACK, PieceType::PAWN) & PawnAttacks[+Color::WHITE][+s])
+         | (pieces (Color::WHITE, PieceType::PAWN) & PawnAttacks[+Color::BLACK][+s])
+         | (pieces (PieceType::NIHT)        & PieceAttacks[+PieceType::NIHT][+s])
+         | (0 != (pieces (PieceType::BSHP, PieceType::QUEN) & PieceAttacks[+PieceType::BSHP][+s]) ? pieces (PieceType::BSHP, PieceType::QUEN) & attacks_bb<PieceType::BSHP> (s, occ) : 0)
+         | (0 != (pieces (PieceType::ROOK, PieceType::QUEN) & PieceAttacks[+PieceType::ROOK][+s]) ? pieces (PieceType::ROOK, PieceType::QUEN) & attacks_bb<PieceType::ROOK> (s, occ) : 0)
+         | (pieces (PieceType::KING)        & PieceAttacks[+PieceType::KING][+s]);
 }
 /// Position::attackers_to() finds attackers to the square.
 inline Bitboard Position::attackers_to (Square s) const
@@ -422,36 +422,36 @@ inline Bitboard Position::dsc_blockers (Color c) const
 /// Position::pawn_passed_at() check if pawn passed at the given square.
 inline bool Position::pawn_passed_at (Color c, Square s) const
 {
-    return 0 == (pawn_pass_span (c, s) & pieces (~c, PAWN));
+    return 0 == (pawn_pass_span (c, s) & pieces (~c, PieceType::PAWN));
 }
 /// Position::paired_bishop() check the side has pair of opposite color bishops.
 inline bool Position::paired_bishop (Color c) const
 {
-    //for (u08 pc = 1; pc < count (c, BSHP); ++pc)
+    //for (u08 pc = 1; pc < count (c, PieceType::BSHP); ++pc)
     //{
-    //    if (opposite_colors (square<BSHP> (c, pc-1), square<BSHP> (c, pc)))
+    //    if (opposite_colors (square<PieceType::BSHP> (c, pc-1), square<PieceType::BSHP> (c, pc)))
     //    {
     //        return true;
     //    }
     //}
     //return false;
-    return 0 != (pieces (c, BSHP) & Color_bb[+Color::WHITE])
-        && 0 != (pieces (c, BSHP) & Color_bb[+Color::BLACK]);
+    return 0 != (pieces (c, PieceType::BSHP) & Color_bb[+Color::WHITE])
+        && 0 != (pieces (c, PieceType::BSHP) & Color_bb[+Color::BLACK]);
 }
 inline bool Position::opposite_bishops () const
 {
-    return 1 == count (Color::WHITE, BSHP)
-        && 1 == count (Color::BLACK, BSHP)
-        //&& opposite_colors (square<BSHP> (Color::WHITE), square<BSHP> (Color::BLACK));
-        && (   (   0 != (pieces (Color::WHITE, BSHP) & Color_bb[+Color::WHITE])
-                && 0 != (pieces (Color::BLACK, BSHP) & Color_bb[+Color::BLACK]))
-            || (   0 != (pieces (Color::WHITE, BSHP) & Color_bb[+Color::BLACK])
-                && 0 != (pieces (Color::BLACK, BSHP) & Color_bb[+Color::WHITE])));
+    return 1 == count (Color::WHITE, PieceType::BSHP)
+        && 1 == count (Color::BLACK, PieceType::BSHP)
+        //&& opposite_colors (square<PieceType::BSHP> (Color::WHITE), square<PieceType::BSHP> (Color::BLACK));
+        && (   (   0 != (pieces (Color::WHITE, PieceType::BSHP) & Color_bb[+Color::WHITE])
+                && 0 != (pieces (Color::BLACK, PieceType::BSHP) & Color_bb[+Color::BLACK]))
+            || (   0 != (pieces (Color::WHITE, PieceType::BSHP) & Color_bb[+Color::BLACK])
+                && 0 != (pieces (Color::BLACK, PieceType::BSHP) & Color_bb[+Color::WHITE])));
 }
 inline bool Position::en_passant (Move m) const
 {
     return MoveType::ENPASSANT == mtype (m)
-        && contains (pieces (active, PAWN), org_sq (m))
+        && contains (pieces (active, PieceType::PAWN), org_sq (m))
         && empty (dst_sq (m))
         && si->en_passant_sq == dst_sq (m);
 }
@@ -466,7 +466,7 @@ inline bool Position::capture (Move m) const
 inline bool Position::promotion (Move m) const
 {
     return MoveType::PROMOTE == mtype (m)
-        && contains (pieces (active, PAWN), org_sq (m))
+        && contains (pieces (active, PieceType::PAWN), org_sq (m))
         && Rank::r7 == rel_rank (active, org_sq (m));
 }
 inline bool Position::capture_or_promotion (Move m) const
@@ -480,14 +480,14 @@ inline PieceType Position::cap_type (Move m) const
 {
     return MoveType::ENPASSANT != mtype (m) ?
                ptype (board[+dst_sq (m)]) :
-               PAWN;
+               PieceType::PAWN;
 }
 
 inline void Position::do_move (Move m, StateInfo &nsi)
 {
     do_move (m, nsi, MoveType::NORMAL == mtype (m)
                   && 0 == dsc_blockers (active) ?
-                        contains (si->checks[ptype (board[+org_sq (m)])], dst_sq (m)) :
+                        contains (si->checks[+ptype (board[+org_sq (m)])], dst_sq (m)) :
                         gives_check (m));
 }
 
@@ -496,10 +496,10 @@ inline void Position::place_piece (Square s, Color c, PieceType pt)
     //assert(empty (s)); // Not needed, in case of remove_piece()
     board[+s] = (c|pt);
     color_bb[+c] |= s;
-    types_bb[pt] |= s;
-    types_bb[NONE] |= s;
+    types_bb[+pt] |= s;
+    types_bb[+PieceType::NONE] |= s;
 
-    squares[+c][pt].push_back (s);
+    squares[+c][+pt].push_back (s);
 }
 inline void Position::place_piece (Square s, Piece p)
 {
@@ -513,10 +513,10 @@ inline void Position::remove_piece (Square s)
     auto pt = ptype (board[+s]);
     //board[+s] = Piece::NONE; // Not needed, overwritten by the capturing one
     color_bb[+c] ^= s;
-    types_bb[pt] ^= s;
-    types_bb[NONE] ^= s;
+    types_bb[+pt] ^= s;
+    types_bb[+PieceType::NONE] ^= s;
 
-    squares[+c][pt].remove (s);
+    squares[+c][+pt].remove (s);
 }
 inline void Position::move_piece (Square s1, Square s2)
 {
@@ -527,10 +527,10 @@ inline void Position::move_piece (Square s1, Square s2)
     board[+s1] = Piece::NONE;
     Bitboard bb = square_bb (s1) ^ square_bb (s2);
     color_bb[+c] ^= bb;
-    types_bb[pt] ^= bb;
-    types_bb[NONE] ^= bb;
+    types_bb[+pt] ^= bb;
+    types_bb[+PieceType::NONE] ^= bb;
 
-    std::replace (squares[+c][pt].begin (), squares[+c][pt].end (), s1, s2);
+    std::replace (squares[+c][+pt].begin (), squares[+c][+pt].end (), s1, s2);
 }
 
 /// do_castling()
@@ -544,8 +544,8 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     remove_piece (rook_org);
     board[+king_org] =
     board[+rook_org] = Piece::NONE; // Not done by remove_piece()
-    place_piece (king_dst, active, KING);
-    place_piece (rook_dst, active, ROOK);
+    place_piece (king_dst, active, PieceType::KING);
+    place_piece (rook_dst, active, PieceType::ROOK);
 }
 /// undo_castling()
 inline void Position::undo_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
@@ -558,8 +558,8 @@ inline void Position::undo_castling (Square king_org, Square &king_dst, Square &
     remove_piece (rook_dst);
     board[+king_dst] =
     board[+rook_dst] = Piece::NONE; // Not done by remove_piece()
-    place_piece (king_org, active, KING);
-    place_piece (rook_org, active, ROOK);
+    place_piece (king_org, active, PieceType::KING);
+    place_piece (rook_org, active, PieceType::ROOK);
 }
 
 
@@ -576,15 +576,15 @@ inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[+Color::WHITE] = 0;
     king_checkers[+Color::BLACK] = 0;
-    king_blockers[+Color::WHITE] = pos.slider_blockers (Color::WHITE, pos.square<KING> (Color::WHITE), 0, king_checkers[+Color::WHITE], king_checkers[+Color::BLACK]);
-    king_blockers[+Color::BLACK] = pos.slider_blockers (Color::BLACK, pos.square<KING> (Color::BLACK), 0, king_checkers[+Color::BLACK], king_checkers[+Color::WHITE]);
+    king_blockers[+Color::WHITE] = pos.slider_blockers (Color::WHITE, pos.square<PieceType::KING> (Color::WHITE), 0, king_checkers[+Color::WHITE], king_checkers[+Color::BLACK]);
+    king_blockers[+Color::BLACK] = pos.slider_blockers (Color::BLACK, pos.square<PieceType::KING> (Color::BLACK), 0, king_checkers[+Color::BLACK], king_checkers[+Color::WHITE]);
 
-    checks[PAWN] = PawnAttacks[+~pos.active][+pos.square<KING> (~pos.active)];
-    checks[NIHT] = PieceAttacks[NIHT][+pos.square<KING> (~pos.active)];
-    checks[BSHP] = attacks_bb<BSHP> (pos.square<KING> (~pos.active), pos.pieces ());
-    checks[ROOK] = attacks_bb<ROOK> (pos.square<KING> (~pos.active), pos.pieces ());
-    checks[QUEN] = checks[BSHP] | checks[ROOK];
-    checks[KING] = 0;
+    checks[+PieceType::PAWN] = PawnAttacks[+~pos.active][+pos.square<PieceType::KING> (~pos.active)];
+    checks[+PieceType::NIHT] = PieceAttacks[+PieceType::NIHT][+pos.square<PieceType::KING> (~pos.active)];
+    checks[+PieceType::BSHP] = attacks_bb<PieceType::BSHP> (pos.square<PieceType::KING> (~pos.active), pos.pieces ());
+    checks[+PieceType::ROOK] = attacks_bb<PieceType::ROOK> (pos.square<PieceType::KING> (~pos.active), pos.pieces ());
+    checks[+PieceType::QUEN] = checks[+PieceType::BSHP] | checks[+PieceType::ROOK];
+    checks[+PieceType::KING] = 0;
 }
 
 #if !defined(NDEBUG)

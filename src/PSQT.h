@@ -4,7 +4,7 @@
 #include "Position.h"
 #include "Type.h"
 
-extern Score PST[+Color::NO][NONE][+Square::NO];
+extern Score PST[+Color::NO][+PieceType::NONE][+Square::NO];
 
 extern Score compute_psq (const Position&);
 

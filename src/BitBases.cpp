@@ -67,7 +67,7 @@ namespace BitBases {
                 const auto Bad  = Color::WHITE == Own ? Result::DRAW : Result::WIN;
 
                 Result r = Result::INVALID;
-                Bitboard b = PieceAttacks[KING][+k_sq[+Own]];
+                Bitboard b = PieceAttacks[+PieceType::KING][+k_sq[+Own]];
                 while (0 != b)
                 {
                     r |= Color::WHITE == Own ?
@@ -128,15 +128,15 @@ namespace BitBases {
                     && _rank (p_sq) == Rank::r7
                     && k_sq[+Color::WHITE] != (p_sq + DEL_N)
                     && (   dist (k_sq[+Color::BLACK], p_sq + DEL_N) > 1
-                        || contains (PieceAttacks[KING][+k_sq[+Color::WHITE]], p_sq + DEL_N)))
+                        || contains (PieceAttacks[+PieceType::KING][+k_sq[+Color::WHITE]], p_sq + DEL_N)))
                 {
                     result = Result::WIN;
                 }
                 else
                 // Immediate draw if is a stalemate or king captures undefended pawn
                 if (   Color::BLACK == active
-                    && (   0 == (PieceAttacks[KING][+k_sq[+Color::BLACK]] & ~(PieceAttacks[KING][+k_sq[+Color::WHITE]] | PawnAttacks[+Color::WHITE][+p_sq]))
-                        || contains (PieceAttacks[KING][+k_sq[+Color::BLACK]] & ~PieceAttacks[KING][+k_sq[+Color::WHITE]], p_sq)))
+                    && (   0 == (PieceAttacks[+PieceType::KING][+k_sq[+Color::BLACK]] & ~(PieceAttacks[+PieceType::KING][+k_sq[+Color::WHITE]] | PawnAttacks[+Color::WHITE][+p_sq]))
+                        || contains (PieceAttacks[+PieceType::KING][+k_sq[+Color::BLACK]] & ~PieceAttacks[+PieceType::KING][+k_sq[+Color::WHITE]], p_sq)))
                 {
                     result = Result::DRAW;
                 }

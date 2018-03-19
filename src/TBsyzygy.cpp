@@ -473,10 +473,10 @@ namespace TBSyzygy {
             std::memset (&si, 0, sizeof (si));
             key1 = pos.setup (code, si, Color::WHITE).si->matl_key;
             piece_count = pos.count ();
-            has_pawns = 0 != pos.count (PAWN);
+            has_pawns = 0 != pos.count (PieceType::PAWN);
             for (auto c : { Color::WHITE, Color::BLACK })
             {    
-                for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
+                for (auto pt : { PieceType::PAWN, PieceType::NIHT, PieceType::BSHP, PieceType::ROOK, PieceType::QUEN })
                 {
                     if (1 == pos.count (c, pt))
                     {
@@ -490,12 +490,12 @@ namespace TBSyzygy {
             {
                 // Set the leading color. In case both sides have pawns the leading color
                 // is the side with less pawns because this leads to better compression.
-                auto lead_color =  pos.count (Color::BLACK, PAWN) == 0
-                                || (   pos.count (Color::WHITE, PAWN)
-                                    && pos.count (Color::BLACK, PAWN) >= pos.count (Color::WHITE, PAWN)) ? Color::WHITE : Color::BLACK;
+                auto lead_color =  pos.count (Color::BLACK, PieceType::PAWN) == 0
+                                || (   pos.count (Color::WHITE, PieceType::PAWN)
+                                    && pos.count (Color::BLACK, PieceType::PAWN) >= pos.count (Color::WHITE, PieceType::PAWN)) ? Color::WHITE : Color::BLACK;
 
-                pawn_table.pawn_count[0] = u08(pos.count ( lead_color, PAWN));
-                pawn_table.pawn_count[1] = u08(pos.count (~lead_color, PAWN));
+                pawn_table.pawn_count[0] = u08(pos.count ( lead_color, PieceType::PAWN));
+                pawn_table.pawn_count[1] = u08(pos.count (~lead_color, PieceType::PAWN));
             }
             key2 = pos.setup (code, si, Color::BLACK).si->matl_key;
         }
@@ -564,7 +564,7 @@ namespace TBSyzygy {
             string code;
             for (auto pt : pieces)
             {
-                code += PieceToChar[pt];
+                code += PieceToChar[+pt];
             }
             TBFile file (code, ".rtbw");
             if (file.filename.empty ()) // Only WDL file is checked
@@ -833,9 +833,9 @@ namespace TBSyzygy {
                     ~item (entry->pawn_table, Color::WHITE, 0).precomp->pieces[0] :
                      item (entry->pawn_table, Color::WHITE, 0).precomp->pieces[0];
 
-                assert(ptype (pc) == PAWN);
+                assert(ptype (pc) == PieceType::PAWN);
 
-                lead_pawns = b = pos.pieces (color (pc), PAWN);
+                lead_pawns = b = pos.pieces (color (pc), PieceType::PAWN);
                 do
                 {
                     squares[size++] = flip ? ~pop_lsq (b) : pop_lsq (b);
@@ -1371,10 +1371,10 @@ namespace TBSyzygy {
 
             // Pieces strings in decreasing order for each color, like ("KPP","KR")
             string w, b;
-            for (auto pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
+            for (auto pt : { PieceType::KING, PieceType::QUEN, PieceType::ROOK, PieceType::BSHP, PieceType::NIHT, PieceType::PAWN })
             {
-                w += string(pos.count (Color::WHITE, pt), PieceToChar[pt]);
-                b += string(pos.count (Color::BLACK, pt), PieceToChar[pt]);
+                w += string(pos.count (Color::WHITE, pt), PieceToChar[+pt]);
+                b += string(pos.count (Color::BLACK, pt), PieceToChar[+pt]);
             }
 
             const u08 TB_MAGIC[][4] =
@@ -1398,7 +1398,7 @@ namespace TBSyzygy {
         template<typename E, typename T = typename Ret<E>::type>
         T probe_table (const Position &pos, ProbeState &state, WDLScore wdl = WDLScore::DRAW)
         {
-            if (0 == (pos.pieces () ^ pos.pieces (KING)))
+            if (0 == (pos.pieces () ^ pos.pieces (PieceType::KING)))
             {
                 return T(WDLScore::DRAW); // KvK
             }
@@ -1439,7 +1439,7 @@ namespace TBSyzygy {
             {
                 if (   !pos.capture (move)
                     && (   !chech_zeroing
-                        || PAWN != ptype (pos[org_sq (move)])))
+                        || PieceType::PAWN != ptype (pos[org_sq (move)])))
                 {
                     continue;
                 }
@@ -1596,7 +1596,7 @@ namespace TBSyzygy {
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {
             bool zeroing = pos.capture (vm.move)
-                        || PAWN == ptype (pos[org_sq (vm.move)]);
+                        || PieceType::PAWN == ptype (pos[org_sq (vm.move)]);
 
             pos.do_move (vm.move, si);
 
@@ -1947,7 +1947,7 @@ namespace TBSyzygy {
                     {
                         for (auto s2 : SQ)
                         {
-                            if (contains (PieceAttacks[KING][+s1] | s1, s2))
+                            if (contains (PieceAttacks[+PieceType::KING][+s1] | s1, s2))
                             {
                                 continue; // Illegal position
                             }
@@ -2063,56 +2063,56 @@ namespace TBSyzygy {
             }
         }
 
-        for (auto wp1 = PAWN; wp1 < KING; ++wp1)
+        for (auto wp1 = PieceType::PAWN; wp1 < PieceType::KING; ++wp1)
         {
-            EntryTable.insert ({ KING, wp1, KING });
+            EntryTable.insert ({ PieceType::KING, wp1, PieceType::KING });
 
-            for (auto bp1 = PAWN; bp1 < KING; ++bp1)
+            for (auto bp1 = PieceType::PAWN; bp1 < PieceType::KING; ++bp1)
             {
-                EntryTable.insert ({ KING, wp1, KING, bp1 });
+                EntryTable.insert ({ PieceType::KING, wp1, PieceType::KING, bp1 });
             }
-            for (auto wp2 = PAWN; wp2 <= wp1; ++wp2)
+            for (auto wp2 = PieceType::PAWN; wp2 <= wp1; ++wp2)
             {
-                EntryTable.insert ({ KING, wp1, wp2, KING });
+                EntryTable.insert ({ PieceType::KING, wp1, wp2, PieceType::KING });
 
-                for (auto bp1 = PAWN; bp1 < KING; ++bp1)
+                for (auto bp1 = PieceType::PAWN; bp1 < PieceType::KING; ++bp1)
                 {
-                    EntryTable.insert ({ KING, wp1, wp2, KING, bp1 });
+                    EntryTable.insert ({ PieceType::KING, wp1, wp2, PieceType::KING, bp1 });
                 }
-                for (auto wp3 = PAWN; wp3 <= wp2; ++wp3)
+                for (auto wp3 = PieceType::PAWN; wp3 <= wp2; ++wp3)
                 {
-                    EntryTable.insert ({ KING, wp1, wp2, wp3, KING });
+                    EntryTable.insert ({ PieceType::KING, wp1, wp2, wp3, PieceType::KING });
 
-                    for (auto bp1 = PAWN; bp1 < KING; ++bp1)
+                    for (auto bp1 = PieceType::PAWN; bp1 < PieceType::KING; ++bp1)
                     {
-                        EntryTable.insert ({ KING, wp1, wp2, wp3, KING, bp1 });
+                        EntryTable.insert ({ PieceType::KING, wp1, wp2, wp3, PieceType::KING, bp1 });
                     }
-                    for (auto wp4 = PAWN; wp4 <= wp3; ++wp4)
+                    for (auto wp4 = PieceType::PAWN; wp4 <= wp3; ++wp4)
                     {
-                        EntryTable.insert ({ KING, wp1, wp2, wp3, wp4, KING });
+                        EntryTable.insert ({ PieceType::KING, wp1, wp2, wp3, wp4, PieceType::KING });
 
-                        for (auto bp1 = PAWN; bp1 < KING; ++bp1)
+                        for (auto bp1 = PieceType::PAWN; bp1 < PieceType::KING; ++bp1)
                         {
-                            EntryTable.insert ({ KING, wp1, wp2, wp3, wp4, KING, bp1 });
+                            EntryTable.insert ({ PieceType::KING, wp1, wp2, wp3, wp4, PieceType::KING, bp1 });
                         }
-                        for (auto wp5 = PAWN; wp5 <= wp4; ++wp5)
+                        for (auto wp5 = PieceType::PAWN; wp5 <= wp4; ++wp5)
                         {
-                            EntryTable.insert ({ KING, wp1, wp2, wp3, wp4, wp5, KING });
+                            EntryTable.insert ({ PieceType::KING, wp1, wp2, wp3, wp4, wp5, PieceType::KING });
                         }
                     }
-                    for (auto bp1 = PAWN; bp1 < KING; ++bp1)
+                    for (auto bp1 = PieceType::PAWN; bp1 < PieceType::KING; ++bp1)
                     {
-                        for (auto bp2 = PAWN; bp2 <= bp1; ++bp2)
+                        for (auto bp2 = PieceType::PAWN; bp2 <= bp1; ++bp2)
                         {
-                            EntryTable.insert ({ KING, wp1, wp2, wp3, KING, bp1, bp2 });
+                            EntryTable.insert ({ PieceType::KING, wp1, wp2, wp3, PieceType::KING, bp1, bp2 });
                         }
                     }
                 }
-                for (auto bp1 = PAWN; bp1 <= wp1; ++bp1)
+                for (auto bp1 = PieceType::PAWN; bp1 <= wp1; ++bp1)
                 {
-                    for (auto bp2 = PAWN; bp2 <= (wp1 == bp1 ? wp2 : bp1); ++bp2)
+                    for (auto bp2 = PieceType::PAWN; bp2 <= (wp1 == bp1 ? wp2 : bp1); ++bp2)
                     {
-                        EntryTable.insert ({ KING, wp1, wp2, KING, bp1, bp2 });
+                        EntryTable.insert ({ PieceType::KING, wp1, wp2, PieceType::KING, bp1, bp2 });
                     }
                 }
             }

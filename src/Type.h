@@ -265,37 +265,37 @@ enum class CastleRight : u08
     NO,
 };
 
-enum PieceType : i08
+enum class PieceType : i08
 {
-    PAWN     , // 000
-    NIHT     , // 001
-    BSHP     , // 010
-    ROOK     , // 011
-    QUEN     , // 100
-    KING     , // 101
-    NONE     , // 110
-    MAX_PTYPE, // 111
+    PAWN, // 000
+    NIHT, // 001
+    BSHP, // 010
+    ROOK, // 011
+    QUEN, // 100
+    KING, // 101
+    NONE, // 110
+    NO,   // 111
 };
 /// Piece needs 4-bits to be stored
 /// bit 0-2: Type of piece
 /// bit   3: Color of piece { White = 0..., Black = 1... }
 enum class Piece : u08
 {
-    W_PAWN   = 0, //  0000
-    W_NIHT      , //  0001
-    W_BSHP      , //  0010
-    W_ROOK      , //  0011
-    W_QUEN      , //  0100
-    W_KING      , //  0101
+    W_PAWN = 0, //  0000
+    W_NIHT    , //  0001
+    W_BSHP    , //  0010
+    W_ROOK    , //  0011
+    W_QUEN    , //  0100
+    W_KING    , //  0101
 
-    NONE	 = 6, //  0110
+    NONE   = 6, //  0110
 
-    B_PAWN   = 8, //  1000
-    B_NIHT      , //  1001
-    B_BSHP      , //  1010
-    B_ROOK      , //  1011
-    B_QUEN      , //  1100
-    B_KING      , //  1101
+    B_PAWN = 8, //  1000
+    B_NIHT    , //  1001
+    B_BSHP    , //  1010
+    B_ROOK    , //  1011
+    B_QUEN    , //  1100
+    B_KING    , //  1101
 
     NO            //  1110
 };
@@ -528,24 +528,24 @@ constexpr CastleRight castle_right (Color c, CastleSide cs)
                CastleSide::KING == cs ? CastleRight::BKING : CastleRight::BQUEN;
 }
 
-constexpr Piece operator| (Color c, PieceType pt) { return Piece((+c << 3) + pt); }
+constexpr Piece operator| (Color c, PieceType pt) { return Piece((+c << 3) + +pt); }
 
 constexpr bool _ok (Piece p)
 {
     return (Piece::W_PAWN <= p && p <= Piece::W_KING)
         || (Piece::B_PAWN <= p && p <= Piece::B_KING);
 }
-constexpr PieceType ptype (Piece p) { return PieceType(+p & MAX_PTYPE); }
+constexpr PieceType ptype (Piece p) { return PieceType(+p & +PieceType::NO); }
 constexpr Color     color (Piece p) { return Color(+p >> 3); }
 constexpr Piece operator~ (Piece p) { return Piece(+p ^ 8); }
 
 constexpr Square    org_sq  (Move m) { return Square((+m >> 6) & +Square::H8); }
 constexpr Square    dst_sq  (Move m) { return Square((+m >> 0) & +Square::H8); }
 constexpr bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
-constexpr PieceType promote (Move m) { return PieceType(((+m >> 12) & 3) + NIHT); }
+constexpr PieceType promote (Move m) { return PieceType(((+m >> 12) & 3) + +PieceType::NIHT); }
 constexpr MoveType  mtype   (Move m) { return MoveType(+m & +MoveType::PROMOTE); }
 constexpr i16       move_pp (Move m) { return +m & 0x0FFF; }
-inline    void      promote (Move &m, PieceType pt) { m = Move(/*+MoveType::PROMOTE +*/ ((pt - 1) << 12) + (+m & 0x0FFF)); }
+inline    void      promote (Move &m, PieceType pt) { m = Move(/*+MoveType::PROMOTE +*/ ((+pt - 1) << 12) + (+m & 0x0FFF)); }
 constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 {
     return MoveType::CASTLE != mtype (m)
@@ -556,7 +556,7 @@ constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 
 template<MoveType MT>
 constexpr Move mk_move (Square org, Square dst)               { return Move(+MT + (+org << 6) + +dst); }
-constexpr Move mk_move (Square org, Square dst, PieceType pt) { return Move(+MoveType::PROMOTE + ((pt - NIHT) << 12) + (+org << 6) + +dst); }
+constexpr Move mk_move (Square org, Square dst, PieceType pt) { return Move(+MoveType::PROMOTE + ((+pt - +PieceType::NIHT) << 12) + (+org << 6) + +dst); }
 
 constexpr i16   value_to_cp (Value v) { return i16(v*100/i32(Value::EG_PAWN)); }
 constexpr Value cp_to_value (i16  cp) { return Value(cp*i32(Value::EG_PAWN)/100); }
@@ -740,7 +740,7 @@ constexpr Square SQ[+Square::NO] =
     Square::A8, Square::B8, Square::C8, Square::D8, Square::E8, Square::F8, Square::G8, Square::H8,
 };
 
-constexpr Value PieceValues[][MAX_PTYPE] =
+constexpr Value PieceValues[][+PieceType::NO] =
 {
     { Value::MG_PAWN, Value::MG_NIHT, Value::MG_BSHP, Value::MG_ROOK, Value::MG_QUEN, Value::ZERO, Value::ZERO },
     { Value::EG_PAWN, Value::EG_NIHT, Value::EG_BSHP, Value::EG_ROOK, Value::EG_QUEN, Value::ZERO, Value::ZERO }

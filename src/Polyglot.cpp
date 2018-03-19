@@ -65,13 +65,13 @@ namespace {
         // Promotion moves have promotion piece different then our structure of move
         // So in case book move is a promotion have to convert to our representation,
         // in all the other cases can directly compare with a Move after having masked out
-        // the special Move's flags (bit 14-15) that are not supported by Polyglot.
+        // the special Move flags (bit 14-15) that are not supported by Polyglot.
         // Polyglot use 3 bits while engine use 2 bits.
-        u08 pt = (+m >> 12) & MAX_PTYPE;
+        u08 pt = (+m >> 12) & +PieceType::NO;
         // Set new type for promotion piece
         if (0 != pt)
         {
-            assert(NIHT <= pt && pt <= QUEN);
+            assert(+PieceType::NIHT <= pt && pt <= +PieceType::QUEN);
             promote (m, PieceType(pt));
         }
         // Add special move flags and verify it is legal

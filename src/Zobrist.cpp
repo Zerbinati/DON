@@ -11,11 +11,11 @@ Key Zobrist::compute_matl_key (const Position &pos) const
     Key matl_key = 0;
     for (auto c : { Color::WHITE, Color::BLACK })
     {
-        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (auto pt : { PieceType::PAWN, PieceType::NIHT, PieceType::BSHP, PieceType::ROOK, PieceType::QUEN, PieceType::KING })
         {
             for (u08 pc = 0; pc < pos.count (c, pt); ++pc)
             {
-                matl_key ^= piece_square_keys[+c][pt][pc];
+                matl_key ^= piece_square_keys[+c][+pt][pc];
             }
         }
     }
@@ -24,13 +24,13 @@ Key Zobrist::compute_matl_key (const Position &pos) const
 /// Zobrist::compute_pawn_key() computes hash key of the pawn structure.
 Key Zobrist::compute_pawn_key (const Position &pos) const
 {
-    Key pawn_key = piece_square_keys[+Color::WHITE][KING][0]
-                 ^ piece_square_keys[+Color::BLACK][KING][0]; // Zero Pawn key
+    Key pawn_key = piece_square_keys[+Color::WHITE][+PieceType::KING][0]
+                 ^ piece_square_keys[+Color::BLACK][+PieceType::KING][0]; // Zero Pawn key
     for (auto c : { Color::WHITE, Color::BLACK })
     {
-        for (auto s : pos.squares[+c][PAWN])
+        for (auto s : pos.squares[+c][+PieceType::PAWN])
         {
-            pawn_key ^= piece_square_keys[+c][PAWN][+s];
+            pawn_key ^= piece_square_keys[+c][+PieceType::PAWN][+s];
         }
     }
     return pawn_key;
@@ -41,11 +41,11 @@ Key Zobrist::compute_posi_key (const Position &pos) const
     Key posi_key = 0;
     for (auto c : { Color::WHITE, Color::BLACK })
     {
-        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (auto pt : { PieceType::PAWN, PieceType::NIHT, PieceType::BSHP, PieceType::ROOK, PieceType::QUEN, PieceType::KING })
         {
-            for (auto s : pos.squares[+c][pt])
+            for (auto s : pos.squares[+c][+pt])
             {
-                posi_key ^= piece_square_keys[+c][pt][+s];
+                posi_key ^= piece_square_keys[+c][+pt][+s];
             }
         }
     }
@@ -92,11 +92,11 @@ Key Zobrist::compute_posi_key (const Position &pos) const
 //            && (idx = PieceChar.find (token)) != string::npos)
 //        {
 //            auto p = Piece(idx);
-//            if (KING == ptype (p))
+//            if (PieceType::KING == ptype (p))
 //            {
 //                kf[color (p)] = File(f);
 //            }
-//            fen_key ^= piece_square_keys[color (p)][ptype (p)][File(f)|Rank(r)];
+//            fen_key ^= piece_square_keys[color (p)][+ptype (p)][File(f)|Rank(r)];
 //            ++f;
 //        }
 //        else
@@ -167,11 +167,11 @@ void zobrist_initialize ()
     // Initialize Random Zobrist
     for (auto c : { Color::WHITE, Color::BLACK })
     {
-        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (auto pt : { PieceType::PAWN, PieceType::NIHT, PieceType::BSHP, PieceType::ROOK, PieceType::QUEN, PieceType::KING })
         {
             for (auto s : SQ)
             {
-                RandZob.piece_square_keys[+c][pt][+s] = prng.rand<Key> ();
+                RandZob.piece_square_keys[+c][+pt][+s] = prng.rand<Key> ();
             }
         }
     }

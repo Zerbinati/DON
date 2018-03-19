@@ -11,7 +11,7 @@ namespace Material {
 
         // Polynomial material imbalance parameters
 
-        const i32 OwnQuadratic[NONE][NONE] =
+        const i32 OwnQuadratic[+PieceType::NONE][+PieceType::NONE] =
         {
             //          Own Pieces
             //  P     N     B     R     Q    BP
@@ -23,7 +23,7 @@ namespace Material {
             {    0,    0,    0,    0,    0, +1667 }  // BP
         };
 
-        const i32 OppQuadratic[NONE][NONE] =
+        const i32 OppQuadratic[+PieceType::NONE][+PieceType::NONE] =
         {
             //          Opp Pieces
             //  P     N     B     R     Q    BP
@@ -45,36 +45,36 @@ namespace Material {
         Endgame<KQKRPs>  ScaleKQKRPs[+Color::NO] = { Endgame<KQKRPs> (Color::WHITE), Endgame<KQKRPs> (Color::BLACK) } ;
 
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
-        /// NOTE:: KING == BISHOP PAIR
+        /// NOTE:: PieceType::KING == BISHOP PAIR
         template<Color Own>
-        i32 imbalance (const i32 (*count)[NONE])
+        i32 imbalance (const i32 (*count)[6])
         {
             const auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
 
             i32 value = 0;
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
-            for (auto pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN })
+            for (auto pt1 : { PieceType::PAWN, PieceType::NIHT, PieceType::BSHP, PieceType::ROOK, PieceType::QUEN })
             {
-                if (0 != count[+Own][pt1])
+                if (0 != count[+Own][+pt1])
                 {
                     i32 v = 0;
 
-                    for (auto pt2 = PAWN; pt2 <= pt1; ++pt2)
+                    for (auto pt2 = PieceType::PAWN; pt2 <= pt1; ++pt2)
                     {
-                        v += count[+Own][pt2] * OwnQuadratic[pt1][pt2]
-                           + count[+Opp][pt2] * OppQuadratic[pt1][pt2];
+                        v += count[+Own][+pt2] * OwnQuadratic[+pt1][+pt2]
+                           + count[+Opp][+pt2] * OppQuadratic[+pt1][+pt2];
                     }
-                    v += count[+Own][KING] * OwnQuadratic[pt1][KING]
-                       + count[+Opp][KING] * OppQuadratic[pt1][KING];
+                    v += count[+Own][+PieceType::KING] * OwnQuadratic[+pt1][+PieceType::KING]
+                       + count[+Opp][+PieceType::KING] * OppQuadratic[+pt1][+PieceType::KING];
 
-                    value += count[+Own][pt1] * v;
+                    value += count[+Own][+pt1] * v;
                 }
             }
-            if (0 != count[+Own][KING])
+            if (0 != count[+Own][+PieceType::KING])
             {
-                value += count[+Own][KING] * OwnQuadratic[KING][KING]
-                       + count[+Opp][KING] * OppQuadratic[KING][KING];
+                value += count[+Own][+PieceType::KING] * OwnQuadratic[+PieceType::KING][+PieceType::KING]
+                       + count[+Opp][+PieceType::KING] * OppQuadratic[+PieceType::KING][+PieceType::KING];
             }
 
             return value;
@@ -140,18 +140,18 @@ namespace Material {
         for (auto c : { Color::WHITE, Color::BLACK })
         {
             if (   pos.si->non_pawn_material ( c) == Value::MG_BSHP
-                && pos.count ( c, BSHP) == 1
-                && pos.count ( c, PAWN) != 0)
+                && pos.count ( c, PieceType::BSHP) == 1
+                && pos.count ( c, PieceType::PAWN) != 0)
             {
                 e->scale_func[+c] = &ScaleKBPsKP[+c];
             }
             else
             if (   pos.si->non_pawn_material ( c) == Value::MG_QUEN
-                && pos.count ( c, QUEN) == 1
-                && pos.count ( c, PAWN) == 0
+                && pos.count ( c, PieceType::QUEN) == 1
+                && pos.count ( c, PieceType::PAWN) == 0
                 && pos.si->non_pawn_material (~c) == Value::MG_ROOK
-                && pos.count (~c, ROOK) == 1
-                && pos.count (~c, PAWN) != 0)
+                && pos.count (~c, PieceType::ROOK) == 1
+                && pos.count (~c, PieceType::PAWN) != 0)
             {
                 e->scale_func[+c] = &ScaleKQKRPs[+c];
             }
@@ -162,7 +162,7 @@ namespace Material {
             if (abs (+(  pos.si->non_pawn_material ( c)
                        - pos.si->non_pawn_material (~c))) <= +Value::MG_BSHP)
             {
-                if (0 == pos.count ( c, PAWN))
+                if (0 == pos.count ( c, PieceType::PAWN))
                 {
                     e->scale[+c] = pos.si->non_pawn_material ( c) <  Value::MG_ROOK ?
                                     SCALE_DRAW :
@@ -171,7 +171,7 @@ namespace Material {
                                         Scale(14);
                 }
                 else
-                if (1 == pos.count ( c, PAWN))
+                if (1 == pos.count ( c, PieceType::PAWN))
                 {
                     e->scale[+c] = SCALE_ONEPAWN;
                 }
@@ -180,22 +180,22 @@ namespace Material {
 
         // Only pawns left
         if (   pos.si->non_pawn_material () == Value::ZERO
-            && pos.pieces (PAWN) != 0)
+            && pos.pieces (PieceType::PAWN) != 0)
         {
-            if (0 == pos.pieces (Color::BLACK, PAWN))
+            if (0 == pos.pieces (Color::BLACK, PieceType::PAWN))
             {
-                assert(2 <= pos.count (Color::WHITE, PAWN));
+                assert(2 <= pos.count (Color::WHITE, PieceType::PAWN));
                 e->scale_func[+Color::WHITE] = &ScaleKPsK[+Color::WHITE];
             }
             else
-            if (0 == pos.pieces (Color::WHITE, PAWN))
+            if (0 == pos.pieces (Color::WHITE, PieceType::PAWN))
             {
-                assert(2 <= pos.count (Color::BLACK, PAWN));
+                assert(2 <= pos.count (Color::BLACK, PieceType::PAWN));
                 e->scale_func[+Color::BLACK] = &ScaleKPsK[+Color::BLACK];
             }
             else 
-            if (   1 == pos.count (Color::WHITE, PAWN)
-                && 1 == pos.count (Color::BLACK, PAWN))
+            if (   1 == pos.count (Color::WHITE, PieceType::PAWN)
+                && 1 == pos.count (Color::BLACK, PieceType::PAWN))
             {
                 e->scale_func[+Color::WHITE] = &ScaleKPKP[+Color::WHITE];
                 e->scale_func[+Color::BLACK] = &ScaleKPKP[+Color::BLACK];
@@ -203,17 +203,17 @@ namespace Material {
         }
 
         // Evaluate the material imbalance.
-        // Use KING as a place holder for the bishop pair "extended piece",
+        // Use PieceType::KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.
-        const i32 piece_count[+Color::NO][NONE] =
+        const i32 piece_count[+Color::NO][+PieceType::NONE] =
         {
             {
-                pos.count (Color::WHITE, PAWN), pos.count (Color::WHITE, NIHT), pos.count (Color::WHITE, BSHP),
-                pos.count (Color::WHITE, ROOK), pos.count (Color::WHITE, QUEN), pos.paired_bishop (Color::WHITE) ? 1 : 0
+                pos.count (Color::WHITE, PieceType::PAWN), pos.count (Color::WHITE, PieceType::NIHT), pos.count (Color::WHITE, PieceType::BSHP),
+                pos.count (Color::WHITE, PieceType::ROOK), pos.count (Color::WHITE, PieceType::QUEN), pos.paired_bishop (Color::WHITE) ? 1 : 0
             },
             {
-                pos.count (Color::BLACK, PAWN), pos.count (Color::BLACK, NIHT), pos.count (Color::BLACK, BSHP),
-                pos.count (Color::BLACK, ROOK), pos.count (Color::BLACK, QUEN), pos.paired_bishop (Color::BLACK) ? 1 : 0
+                pos.count (Color::BLACK, PieceType::PAWN), pos.count (Color::BLACK, PieceType::NIHT), pos.count (Color::BLACK, PieceType::BSHP),
+                pos.count (Color::BLACK, PieceType::ROOK), pos.count (Color::BLACK, PieceType::QUEN), pos.paired_bishop (Color::BLACK) ? 1 : 0
             }
         };
 

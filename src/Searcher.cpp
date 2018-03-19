@@ -214,8 +214,8 @@ void MovePicker::value ()
         if (GenType::CAPTURE == GT)
         {
             assert(pos.capture_or_promotion (vm.move));
-            vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
-                     + pos.thread->capture_history[+pos[org_sq (vm.move)]][move_pp (vm.move)][pos.cap_type (vm.move)];
+            vm.value = i32(PieceValues[MG][+pos.cap_type (vm.move)])
+                     + pos.thread->capture_history[+pos[org_sq (vm.move)]][move_pp (vm.move)][+pos.cap_type (vm.move)];
         }
         else
         if (GenType::QUIET == GT)
@@ -228,8 +228,8 @@ void MovePicker::value ()
         else // GenType::EVASION == GT
         {
             vm.value = pos.capture (vm.move) ?
-                          i32(PieceValues[MG][pos.cap_type (vm.move)])
-                        - ptype (pos[org_sq (vm.move)]) :
+                          i32(PieceValues[MG][+pos.cap_type (vm.move)])
+                        - +ptype (pos[org_sq (vm.move)]) :
                           pos.thread->butterfly_history[+pos.active][move_pp (vm.move)]
                         - MaxValue;
         }
@@ -516,7 +516,7 @@ namespace Searcher {
         {
             return MoveType::NORMAL == mtype (move)
                 && 0 == pos.dsc_blockers (pos.active) ?
-                    contains (pos.si->checks[ptype (pos[org_sq (move)])], dst_sq (move)) :
+                    contains (pos.si->checks[+ptype (pos[org_sq (move)])], dst_sq (move)) :
                     pos.gives_check (move);
         }
 
@@ -786,11 +786,11 @@ namespace Searcher {
                     && futility_base > -Value::KNOWN_WIN
                     //&& 0 == Limits.mate
                         // Advance pawn push
-                    && !(   PAWN == ptype (mpc)
+                    && !(   PieceType::PAWN == ptype (mpc)
                          && Rank::r4 < rel_rank (pos.active, org)))
                 {
                     // Futility pruning parent node
-                    auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst_sq (move)])];
+                    auto futility_value = futility_base + PieceValues[EG][+ptype (pos[dst_sq (move)])];
                     if (futility_value <= alfa)
                     {
                         if (best_value < futility_value)
@@ -1034,7 +1034,7 @@ namespace Searcher {
                         if (   1 == (ss-1)->move_count
                             && _ok ((ss-1)->played_move)
                             && !pos.si->promotion
-                            && NONE == pos.si->capture)
+                            && PieceType::NONE == pos.si->capture)
                         {
                             auto bonus = stat_bonus (depth + 1);
                             update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -bonus);
@@ -1457,7 +1457,7 @@ namespace Searcher {
                     if (   !capture_or_promotion
                         && !gives_check
                             // Advance pawn push.
-                        && !(   PAWN == ptype (mpc)
+                        && !(   PieceType::PAWN == ptype (mpc)
                              && Rank::r4 < rel_rank (pos.active, org)
                              && Value(5000) > pos.si->non_pawn_material ()))
                     {
@@ -1745,11 +1745,11 @@ namespace Searcher {
                     //if (pos.capture (best_move))
                     {
                         auto bonus = stat_bonus (depth);
-                        pos.thread->capture_history[+pos[org_sq (best_move)]][move_pp (best_move)][pos.cap_type (best_move)] << bonus;
+                        pos.thread->capture_history[+pos[org_sq (best_move)]][move_pp (best_move)][+pos.cap_type (best_move)] << bonus;
                         // Decrease all the other played capture moves.
                         for (auto cm : capture_moves)
                         {
-                            pos.thread->capture_history[+pos[org_sq (cm)]][move_pp (cm)][pos.cap_type (cm)] << -bonus;
+                            pos.thread->capture_history[+pos[org_sq (cm)]][move_pp (cm)][+pos.cap_type (cm)] << -bonus;
                         }
                     }
 
@@ -1757,7 +1757,7 @@ namespace Searcher {
                     if (   1 == (ss-1)->move_count
                         && _ok ((ss-1)->played_move)
                         && !pos.si->promotion
-                        && NONE == pos.si->capture)
+                        && PieceType::NONE == pos.si->capture)
                     {
                         auto bonus = stat_bonus (depth + 1);
                         update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -bonus);
@@ -1768,7 +1768,7 @@ namespace Searcher {
                 if (   2 < depth
                     && _ok ((ss-1)->played_move)
                     && !pos.si->promotion
-                    && NONE == pos.si->capture)
+                    && PieceType::NONE == pos.si->capture)
                 {
                     auto bonus = stat_bonus (depth);
                     update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), bonus);

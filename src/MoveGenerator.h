@@ -20,7 +20,7 @@ extern void generate (ValMoves&, const Position&);
 
 extern void filter_illegal (ValMoves&, const Position&);
 
-template<GenType GT, PieceType PT = NONE>
+template<GenType GT, PieceType PT = PieceType::NONE>
 class MoveList
     : public ValMoves
 {
@@ -32,7 +32,7 @@ public:
     explicit MoveList (const Position &pos)
     {
         generate<GT> (*this, pos);
-        if (NONE != PT)
+        if (PieceType::NONE != PT)
         {
             erase (std::remove_if (begin (),
                                    end (),

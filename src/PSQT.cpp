@@ -9,7 +9,7 @@ namespace {
     // Table is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
     // For each piece type on a given square a (midgame, endgame) score pair is assigned.
-    const Score HalfPST[NONE][+Rank::NO][+File::NO/2] =
+    const Score HalfPST[+PieceType::NONE][+Rank::NO][+File::NO/2] =
     {
         { // Pawn
             { S(   0,   0), S(  0,  0), S(  0,  0), S(  0,  0) },
@@ -76,7 +76,7 @@ namespace {
 }
 
 // PST[color][piece-type][square] table.
-Score PST[+Color::NO][NONE][+Square::NO];
+Score PST[+Color::NO][+PieceType::NONE][+Square::NO];
 
 /// Computes the scores for the middle game and the endgame.
 /// These functions are used to initialize the scores when a new position is set up,
@@ -86,11 +86,11 @@ Score compute_psq (const Position &pos)
     auto psq = Score::ZERO;
     for (auto c : { Color::WHITE, Color::BLACK })
     {
-        for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (auto pt : { PieceType::PAWN, PieceType::NIHT, PieceType::BSHP, PieceType::ROOK, PieceType::QUEN, PieceType::KING })
         {
-            for (auto s : pos.squares[+c][pt])
+            for (auto s : pos.squares[+c][+pt])
             {
-                psq += PST[+c][pt][+s];
+                psq += PST[+c][+pt][+s];
             }
         }
     }
@@ -103,9 +103,9 @@ template<Color Own>
 Value compute_npm (const Position &pos)
 {
     auto npm = Value::ZERO;
-    for (auto pt : { NIHT, BSHP, ROOK, QUEN })
+    for (auto pt : { PieceType::NIHT, PieceType::BSHP, PieceType::ROOK, PieceType::QUEN })
     {
-        npm += PieceValues[MG][pt] * pos.count (Own, pt);
+        npm += PieceValues[MG][+pt] * pos.count (Own, pt);
     }
     return npm;
 }
@@ -115,14 +115,14 @@ template Value compute_npm<Color::BLACK> (const Position&);
 /// psqt_initialize() initializes lookup tables at startup
 void psqt_initialize ()
 {
-    for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+    for (auto pt : { PieceType::PAWN, PieceType::NIHT, PieceType::BSHP, PieceType::ROOK, PieceType::QUEN, PieceType::KING })
     {
-        auto p = mk_score (+PieceValues[MG][pt], +PieceValues[EG][pt]);
+        auto p = mk_score (+PieceValues[MG][+pt], +PieceValues[EG][+pt]);
         for (auto s : SQ)
         {
-            auto psq = p + HalfPST[pt][+_rank (s)][+std::min (_file (s), File::fH - _file (s))];
-            PST[+Color::WHITE][pt][+ s] =  psq;
-            PST[+Color::BLACK][pt][+~s] = -psq;
+            auto psq = p + HalfPST[+pt][+_rank (s)][+std::min (_file (s), File::fH - _file (s))];
+            PST[+Color::WHITE][+pt][+ s] =  psq;
+            PST[+Color::BLACK][+pt][+~s] = -psq;
         }
     }
 }

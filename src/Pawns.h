@@ -49,7 +49,7 @@ namespace Pawns {
             }
 
             u08 kp_dist = 0;
-            Bitboard pawns = pos.pieces (Own, PAWN);
+            Bitboard pawns = pos.pieces (Own, PieceType::PAWN);
             if (0 != pawns)
             {
                 while (0 == (pawns & BitBoard::dist_rings_bb (fk_sq, kp_dist++))) {}

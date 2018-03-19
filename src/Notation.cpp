@@ -28,10 +28,10 @@ namespace {
         auto dst = dst_sq (m);
         // Disambiguation if have more then one piece with destination 'dst'
         // note that for pawns is not needed because starting file is explicit.
-        Bitboard attacks = NIHT == ptype (pos[org]) ? PieceAttacks[NIHT][+dst] :
-                           BSHP == ptype (pos[org]) ? attacks_bb<BSHP> (dst, pos.pieces ()) :
-                           ROOK == ptype (pos[org]) ? attacks_bb<ROOK> (dst, pos.pieces ()) :
-                           QUEN == ptype (pos[org]) ? attacks_bb<QUEN> (dst, pos.pieces ()) : (assert(false), 0);
+        Bitboard attacks = PieceType::NIHT == ptype (pos[org]) ? PieceAttacks[+PieceType::NIHT][+dst] :
+                           PieceType::BSHP == ptype (pos[org]) ? attacks_bb<PieceType::BSHP> (dst, pos.pieces ()) :
+                           PieceType::ROOK == ptype (pos[org]) ? attacks_bb<PieceType::ROOK> (dst, pos.pieces ()) :
+                           PieceType::QUEN == ptype (pos[org]) ? attacks_bb<PieceType::QUEN> (dst, pos.pieces ()) : (assert(false), 0);
 
         Bitboard amb = (attacks & pos.pieces (pos.active, ptype (pos[org]))) ^ org;
         Bitboard pcs = amb; // & ~pos.abs_blockers (pos.active); // If pinned piece is considered as ambiguous
@@ -146,10 +146,10 @@ string move_to_san (Move m, Position &pos)
 
     if (MoveType::CASTLE != mtype (m))
     {
-        if (PAWN != ptype (pos[org]))
+        if (PieceType::PAWN != ptype (pos[org]))
         {
             san = PieceChar[+(Color::WHITE|ptype (pos[org]))];
-            if (KING != ptype (pos[org]))
+            if (PieceType::KING != ptype (pos[org]))
             {
                 // Disambiguation if have more then one piece of type 'pt'
                 // that can reach 'dst' with a legal move.
@@ -173,7 +173,7 @@ string move_to_san (Move m, Position &pos)
 
         if (pos.capture (m))
         {
-            if (PAWN == ptype (pos[org]))
+            if (PieceType::PAWN == ptype (pos[org]))
             {
                 san += to_char (_file (org));
             }
@@ -182,7 +182,7 @@ string move_to_san (Move m, Position &pos)
 
         san += to_string (dst);
 
-        if (   PAWN == ptype (pos[org])
+        if (   PieceType::PAWN == ptype (pos[org])
             && MoveType::PROMOTE == mtype (m))
         {
             san += "=";

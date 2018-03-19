@@ -82,8 +82,8 @@ namespace Pawns {
             const auto Push = Color::WHITE == Own ? DEL_N : DEL_S;
             const auto PawnAtt = PawnAttacks[+Own];
 
-            Bitboard own_pawns = pos.pieces (Own, PAWN);
-            Bitboard opp_pawns = pos.pieces (Opp, PAWN);
+            Bitboard own_pawns = pos.pieces (Own, PieceType::PAWN);
+            Bitboard opp_pawns = pos.pieces (Opp, PieceType::PAWN);
 
             Bitboard ul = shift<Color::WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
             Bitboard ur = shift<Color::WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
@@ -109,9 +109,9 @@ namespace Pawns {
             File f;
             Bitboard b, neighbours, supporters, phalanxes, stoppers, levers, escapes;
             bool blocked, opposed, backward;
-            for (auto s : pos.squares[+Own][PAWN])
+            for (auto s : pos.squares[+Own][+PieceType::PAWN])
             {
-                assert(pos[s] == (Own|PAWN));
+                assert(pos[s] == (Own|PieceType::PAWN));
 
                 f = _file (s);
                 e->semiopens[+Own] &= u08(~(1 << +f));
@@ -206,7 +206,7 @@ namespace Pawns {
         
         auto kf = std::min (File::fG, std::max (File::fB, _file (fk_sq)));
 
-        Bitboard front_pawns = pos.pieces (PAWN)
+        Bitboard front_pawns = pos.pieces (PieceType::PAWN)
                              & (  rank_bb (fk_sq)
                                 | front_rank_bb (Own, fk_sq))
                              & (  file_bb (kf)

@@ -132,7 +132,7 @@ typedef Stats<i16, 32, 936, +Piece::NO, +Square::NO> PieceDestinyHistory;
 typedef Stats<PieceDestinyHistory, 32, 0, +Piece::NO, +Square::NO> ContinuationHistory;
 
 /// CapturePieceDestinyHistory is indexed by [piece][move][captured piece type]
-typedef Stats<i16, 2, 324, +Piece::NO, +Square::NO*+Square::NO, MAX_PTYPE> CapturePieceDestinyHistory;
+typedef Stats<i16, 2, 324, +Piece::NO, +Square::NO*+Square::NO, +PieceType::NO> CapturePieceDestinyHistory;
 
 /// PieceDestinyMove stores counter moves is indexed by [piece][move]
 typedef Stats<Move, 0, 0, +Piece::NO, +Square::NO*+Square::NO> PieceDestinyMove;
