@@ -1,11 +1,7 @@
 #ifndef _TRANSPOSITION_H_INC_
 #define _TRANSPOSITION_H_INC_
 
-#include <cstdlib>
-#include <iostream>
 #include "Type.h"
-#include "Zobrist.h"
-#include "MemoryHandler.h"
 #include "Thread.h"
 
 /// Transposition::Entry needs 16 byte to be stored

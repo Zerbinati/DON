@@ -3,6 +3,7 @@
 
 #include <thread>
 #include <atomic>
+#include <iostream>
 #include "Material.h"
 #include "Pawns.h"
 #include "Position.h"
@@ -97,7 +98,7 @@ public:
     bool nmp_odd;
 
     size_t pv_index;
-        
+
     std::atomic<u64> nodes
         ,            tb_hits;
 

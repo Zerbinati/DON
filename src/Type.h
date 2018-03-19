@@ -8,7 +8,6 @@
 #include <cctype>
 #include <chrono>
 #include <climits>
-#include <cstring>
 #include <functional>
 #include <iomanip>
 #include <iosfwd>

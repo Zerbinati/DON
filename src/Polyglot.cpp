@@ -4,6 +4,7 @@
 #include "MoveGenerator.h"
 #include "Notation.h"
 #include "PRNG.h"
+#include "Thread.h"
 #include "Zobrist.h"
 
 PolyBook Book;

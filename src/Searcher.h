@@ -40,19 +40,15 @@ public:
     TimePoint start_time;
 
     Limit ()
-    {
-        clock[+Color::WHITE].time =
-        clock[+Color::BLACK].time = 0;
-        clock[+Color::WHITE].inc =
-        clock[+Color::BLACK].inc = 0;
-        movestogo = 0;
-
-        movetime = 0;
-        depth = 0;
-        nodes = 0;
-        mate = 0;
-        infinite = false;
-    }
+        : clock {0,0}
+        , movestogo (0)
+        , movetime (0)
+        , depth (0)
+        , nodes (0)
+        , mate (0)
+        , infinite (false)
+        , start_time (0)
+    {}
 
     bool use_time_management () const
     {

@@ -2,8 +2,8 @@
 
 #include <string>
 #include <fstream>
-#include "BitBoard.h"
 #include "Engine.h"
+#include "MemoryHandler.h"
 
 using namespace std;
 

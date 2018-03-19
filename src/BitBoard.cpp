@@ -300,7 +300,7 @@ namespace BitBoard {
             PieceAttacks[+PieceType::BSHP][+s] = sliding_attacks (PieceDeltas[+PieceType::BSHP], s);
             PieceAttacks[+PieceType::ROOK][+s] = sliding_attacks (PieceDeltas[+PieceType::ROOK], s);
             PieceAttacks[+PieceType::QUEN][+s] = PieceAttacks[+PieceType::BSHP][+s]
-        									   | PieceAttacks[+PieceType::ROOK][+s];
+                                               | PieceAttacks[+PieceType::ROOK][+s];
         }
 
         // Initialize Sliding
@@ -317,10 +317,10 @@ namespace BitBoard {
                     if (contains (PieceAttacks[+pt][+s1], s2))
                     {
                         Between_bb[+s1][+s2] = (PieceType::BSHP == pt ?
-													attacks_bb<PieceType::BSHP> (s1, Square_bb[+s2]) :
+                                                    attacks_bb<PieceType::BSHP> (s1, Square_bb[+s2]) :
                                                     attacks_bb<PieceType::ROOK> (s1, Square_bb[+s2]))
                                              & (PieceType::BSHP == pt ?
-													attacks_bb<PieceType::BSHP> (s2, Square_bb[+s1]) :
+                                                    attacks_bb<PieceType::BSHP> (s2, Square_bb[+s1]) :
                                                     attacks_bb<PieceType::ROOK> (s2, Square_bb[+s1]));
 
                         StrLine_bb[+s1][+s2] = (PieceAttacks[+pt][+s1] & PieceAttacks[+pt][+s2]) | s1 | s2;

@@ -224,9 +224,9 @@ namespace Pawns {
             assert(File::fA <= f && f <= File::fH);
             Bitboard file_front_pawns;
             file_front_pawns = own_front_pawns & file_bb (f);
-			auto own_r = 0 != file_front_pawns ? rel_rank (Own, scan_backmost_sq (Own, file_front_pawns)) : Rank::r1;
+            auto own_r = 0 != file_front_pawns ? rel_rank (Own, scan_backmost_sq (Own, file_front_pawns)) : Rank::r1;
             file_front_pawns = opp_front_pawns & file_bb (f);
-			auto opp_r = 0 != file_front_pawns ? rel_rank (Own, scan_frntmost_sq (Opp, file_front_pawns)) : Rank::r1;
+            auto opp_r = 0 != file_front_pawns ? rel_rank (Own, scan_frntmost_sq (Opp, file_front_pawns)) : Rank::r1;
             assert((Rank::r1 == own_r
                  && Rank::r1 == opp_r)
                 || (own_r != opp_r));

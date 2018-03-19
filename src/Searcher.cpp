@@ -6,11 +6,9 @@
 #include "Notation.h"
 #include "Option.h"
 #include "Polyglot.h"
-#include "PRNG.h"
 #include "TBsyzygy.h"
 #include "Thread.h"
 #include "Transposition.h"
-#include "Zobrist.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -88,6 +86,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     , threshold (Value(-4000*d))
     , recap_sq (Square::NO)
     , piece_destiny_history (pdh)
+    , i (0)
     , refutation_moves (km, km + MaxKillers)
     , pick_quiets (true)
 {
@@ -121,7 +120,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
                                                         || !pos.legal (mm)
                                                         ||  pos.capture (mm);
                                                 }),
-                             refutation_moves.end ());
+                                refutation_moves.end ());
     }
 
     if (Move::NONE == tt_move)
@@ -129,6 +128,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
         ++stage;
     }
 }
+
 /// MovePicker constructor for quiescence search
 /// Because the depth <= DepthZero here, only captures, queen promotions
 /// and checks (only if depth >= DepthQSCheck) will be generated.
@@ -139,6 +139,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     , threshold (Value::ZERO)
     , recap_sq (rs)
     , piece_destiny_history (nullptr)
+    , i (0)
     , pick_quiets (true)
 {
     assert(Move::NONE == tt_move
@@ -167,6 +168,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
         ++stage;
     }
 }
+
 /// MovePicker constructor for ProbCut search
 MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     : pos (p)
@@ -175,6 +177,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     , threshold (thr)
     , recap_sq (Square::NO)
     , piece_destiny_history (nullptr)
+    , i (0)
     , pick_quiets (true)
 {
     assert(0 == pos.si->checkers);
@@ -261,7 +264,6 @@ Move MovePicker::next_move ()
     case Stage::QS_TT:
         ++stage;
         return tt_move;
-        break;
 
     case Stage::NAT_CAPTURE_INIT:
     case Stage::PC_CAPTURE_INIT:
@@ -280,7 +282,7 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
 
-        // Rebranch at the top of the switch
+        // Re-branch at the top of the switch
         goto beg_switch;
 
     case Stage::NAT_GOOD_CAPTURES:
@@ -294,7 +296,7 @@ Move MovePicker::next_move ()
             bad_capture_moves.push_back (vm.move);
         }
         ++stage;
-        /* fallthrough */
+        /* fall through */
     case Stage::NAT_QUIET_INIT:
         generate<GenType::QUIET> (moves, pos);
         filter_illegal (moves, pos);
@@ -321,7 +323,7 @@ Move MovePicker::next_move ()
         }
         ++stage;
         i = 0;
-        /* fallthrough */
+        /* fall through */
     case Stage::NAT_QUIETS:
         if (   pick_quiets
             && i < moves.size ())
@@ -330,7 +332,7 @@ Move MovePicker::next_move ()
         }
         ++stage;
         i = 0;
-        /* fallthrough */
+        /* fall through */
     case Stage::NAT_BAD_CAPTURES:
         if (i < bad_capture_moves.size ())
         {
@@ -353,7 +355,7 @@ Move MovePicker::next_move ()
         value<GenType::EVASION> ();
         ++stage;
         i = 0;
-        /* fallthrough */
+        /* fall through */
     case Stage::EVA_EVASIONS:
         if (i < moves.size ())
         {
@@ -374,7 +376,7 @@ Move MovePicker::next_move ()
         }
     //    ++stage;
     //    i = 0;
-    //    /* fallthrough */
+    //    /* fall through */
     //case Stage::PC_BAD_CAPTURES:
     //    if (i < bad_capture_moves.size ())
     //    {
@@ -397,7 +399,7 @@ Move MovePicker::next_move ()
             break;
         }
         ++stage;
-        /* fallthrough */
+        /* fall through */
     case Stage::QS_CHECK_INIT:
         generate<GenType::QUIET_CHECK> (moves, pos);
         filter_illegal (moves, pos);
@@ -411,7 +413,7 @@ Move MovePicker::next_move ()
         }
         ++stage;
         i = 0;
-        /* fallthrough */
+        /* fall through */
     case Stage::QS_CHECKS:
         if (i < moves.size ())
         {

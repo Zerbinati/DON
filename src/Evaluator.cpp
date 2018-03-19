@@ -3,7 +3,6 @@
 #include <ostream>
 #include "BitBoard.h"
 #include "Material.h"
-#include "MoveGenerator.h"
 #include "Pawns.h"
 
 using namespace std;

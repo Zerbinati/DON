@@ -4,6 +4,7 @@
 #include <atomic>
 #include <cstdint>
 #include <cstring>   // For std::memset
+#include <string>
 #include <deque>
 #include <fstream>
 #include <iostream>
@@ -1431,7 +1432,7 @@ namespace TBSyzygy {
         {
             auto move_list = MoveList<GenType::LEGAL> (pos);
             size_t move_count = 0
-                ,  total_count = move_list.size ();
+                ,  total_move_count = move_list.size ();
 
             auto best_wdl = WDLScore::LOSS;
             StateInfo si;
@@ -1473,8 +1474,8 @@ namespace TBSyzygy {
             // the state of probe_wdl_table is wrong. Also in case of only capture
             // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, we have to
             // return with ZEROING_BEST_MOVE set.
-            bool all_searched = (   0 != total_count
-                                  && move_count == total_count);
+            bool all_searched = (   0 != total_move_count
+                                 && move_count == total_move_count);
 
             WDLScore wdl;
             if (all_searched)
@@ -1498,7 +1499,6 @@ namespace TBSyzygy {
                             ProbeState::ZEROING_BEST_MOVE : ProbeState::SUCCESS;
                 return best_wdl;
             }
-            
             state = ProbeState::SUCCESS;
             return wdl;
         }
@@ -1554,7 +1554,7 @@ namespace TBSyzygy {
     /// If n = 100 immediately after a capture or pawn move, then the position
     /// is also certainly a win, and during the whole phase until the next
     /// capture or pawn move, the inequality to be preserved is
-    /// dtz + 50-movecounter <= 100.
+    /// dtz + 50-move counter <= 100.
     ///
     /// In short, if a move is available resulting in dtz + 50-move-counter <= 99,
     /// then do not accept moves leading to dtz + 50-move-counter == 100.

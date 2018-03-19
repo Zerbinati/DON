@@ -30,7 +30,7 @@ namespace BitBases {
             return +wk_sq | (+bk_sq << 6) | (+c << 12) | (+_file (wp_sq) << 13) | ((+Rank::r7 - +_rank (wp_sq)) << 15);
         }
 
-        enum Result : u08
+        enum class Result : u08
         {
             INVALID = 0,
             UNKNOWN = 1,
@@ -39,8 +39,8 @@ namespace BitBases {
             LOSE    = 8,
         };
 
-        Result& operator|= (Result &r1, Result r2) { return r1 = Result(r1|r2); }
-        //Result& operator&= (Result &r1, Result r2) { return r1 = Result(r1&r2); }
+        Result& operator|= (Result &r1, Result r2) { return r1 = Result(+r1|+r2); }
+        //Result& operator&= (Result &r1, Result r2) { return r1 = Result(+r1&+r2); }
 
         struct KPK_Position
         {
@@ -93,11 +93,11 @@ namespace BitBases {
                     }
                 }
 
-                return result = r & Good  ?
-                                    Good  :
-                                    r & Result::UNKNOWN ?
-                                        Result::UNKNOWN :
-                                        Bad;
+                return result = +r & +Good  ?
+                                      Good  :
+                                      +r & +Result::UNKNOWN ?
+                                            Result::UNKNOWN :
+                                            Bad;
             }
 
         public:

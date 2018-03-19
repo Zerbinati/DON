@@ -628,7 +628,7 @@ namespace EndGame {
             switch (dist<File> (sp1_sq, sp2_sq))
             {
             // Both pawns are on the same file. It's an easy draw if the defender firmly
-            // controls some square in the frontmost pawn's path.
+            // controls some square in the front most pawn's path.
             case 0:
                 if (   _file (wk_sq) == _file (block1_sq)
                     && rel_rank (strong_color, wk_sq) >= rel_rank (strong_color, block1_sq)
@@ -638,7 +638,7 @@ namespace EndGame {
                 }
                 break;
             // Pawns on adjacent files. It's a draw if the defender firmly controls the
-            // square in front of the frontmost pawn's path, and the square diagonally
+            // square in front of the front most pawn's path, and the square diagonally
             // behind this square on the file of the other pawn.
             case 1:
                 if (opposite_colors (wk_sq, sb_sq))

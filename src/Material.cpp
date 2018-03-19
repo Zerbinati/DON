@@ -35,7 +35,7 @@ namespace Material {
             {    0,    0,    0,    0,    0,    0 }  // BP
         };
 
-        // Endgame evaluation and scaling functions are accessed direcly and not through
+        // Endgame evaluation and scaling functions are accessed directly and not through
         // the function maps because they correspond to more than one material hash key.
         Endgame<KXK>     ValueKXK[+Color::NO] = { Endgame<KXK> (Color::WHITE), Endgame<KXK> (Color::BLACK) };
 
@@ -205,15 +205,17 @@ namespace Material {
         // Evaluate the material imbalance.
         // Use PieceType::KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.
-        const i32 piece_count[+Color::NO][+PieceType::NONE] =
+        const i32 piece_count[2][6] =
         {
             {
-                pos.count (Color::WHITE, PieceType::PAWN), pos.count (Color::WHITE, PieceType::NIHT), pos.count (Color::WHITE, PieceType::BSHP),
-                pos.count (Color::WHITE, PieceType::ROOK), pos.count (Color::WHITE, PieceType::QUEN), pos.paired_bishop (Color::WHITE) ? 1 : 0
+                pos.count (Color::WHITE, PieceType::PAWN), pos.count (Color::WHITE, PieceType::NIHT),
+                pos.count (Color::WHITE, PieceType::BSHP), pos.count (Color::WHITE, PieceType::ROOK),
+                pos.count (Color::WHITE, PieceType::QUEN), pos.paired_bishop (Color::WHITE) ? 1 : 0
             },
             {
-                pos.count (Color::BLACK, PieceType::PAWN), pos.count (Color::BLACK, PieceType::NIHT), pos.count (Color::BLACK, PieceType::BSHP),
-                pos.count (Color::BLACK, PieceType::ROOK), pos.count (Color::BLACK, PieceType::QUEN), pos.paired_bishop (Color::BLACK) ? 1 : 0
+                pos.count (Color::BLACK, PieceType::PAWN), pos.count (Color::BLACK, PieceType::NIHT),
+                pos.count (Color::BLACK, PieceType::BSHP), pos.count (Color::BLACK, PieceType::ROOK),
+                pos.count (Color::BLACK, PieceType::QUEN), pos.paired_bishop (Color::BLACK) ? 1 : 0
             }
         };
 
