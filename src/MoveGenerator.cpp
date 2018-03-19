@@ -39,7 +39,7 @@ namespace {
                                     BSHP == PT ? attacks_bb<BSHP> (s, pos.pieces ()) :
                                     ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces ()) :
                                     QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces ()) : (assert(false), 0));
-                while (0 != attacks) { moves += mk_move<NORMAL> (s, pop_lsq (attacks)); }
+                while (0 != attacks) { moves += mk_move<MoveType::NORMAL> (s, pop_lsq (attacks)); }
             }
         }
     }
@@ -134,8 +134,8 @@ namespace {
             }
             push_1 &= targets;
             push_2 &= targets;
-            while (0 != push_1) { auto dst = pop_lsq (push_1); moves += mk_move<NORMAL> (dst - Push  , dst); }
-            while (0 != push_2) { auto dst = pop_lsq (push_2); moves += mk_move<NORMAL> (dst - Push*2, dst); }
+            while (0 != push_1) { auto dst = pop_lsq (push_1); moves += mk_move<MoveType::NORMAL> (dst - Push  , dst); }
+            while (0 != push_2) { auto dst = pop_lsq (push_2); moves += mk_move<MoveType::NORMAL> (dst - Push*2, dst); }
         }
         // Pawn normal and Enpassant captures, no promotions
         if (   GenType::NATURAL == GT
@@ -158,8 +158,8 @@ namespace {
                     r_attack |= enemies & shift<RCap> (dsc_pawns);
                 }
             }
-            while (0 != l_attack) { auto dst = pop_lsq (l_attack); moves += mk_move<NORMAL> (dst - LCap, dst); }
-            while (0 != r_attack) { auto dst = pop_lsq (r_attack); moves += mk_move<NORMAL> (dst - RCap, dst); }
+            while (0 != l_attack) { auto dst = pop_lsq (l_attack); moves += mk_move<MoveType::NORMAL> (dst - LCap, dst); }
+            while (0 != r_attack) { auto dst = pop_lsq (r_attack); moves += mk_move<MoveType::NORMAL> (dst - RCap, dst); }
 
             if (Square::NO != pos.si->en_passant_sq)
             {
@@ -177,7 +177,7 @@ namespace {
                     ep_captures &= PawnAttacks[+Opp][+pos.si->en_passant_sq];
                     assert(0 != ep_captures
                         && 2 >= pop_count (ep_captures));
-                    while (0 != ep_captures) { moves += mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->en_passant_sq); }
+                    while (0 != ep_captures) { moves += mk_move<MoveType::ENPASSANT> (pop_lsq (ep_captures), pos.si->en_passant_sq); }
                 }
             }
         }
@@ -244,7 +244,7 @@ namespace {
             return;
         }
 
-        auto m = mk_move<CASTLE> (king_org, rook_org);
+        auto m = mk_move<MoveType::CASTLE> (king_org, rook_org);
         if (   GenType::NATURAL == GT
             || GenType::QUIET == GT
             || (   (   GenType::CHECK == GT
@@ -270,7 +270,7 @@ namespace {
             Bitboard attacks = targets
                              &  PieceAttacks[KING][+fk_sq]
                              & ~PieceAttacks[KING][+pos.square<KING> (Opp)];
-            while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
+            while (0 != attacks) { moves += mk_move<MoveType::NORMAL> (fk_sq, pop_lsq (attacks)); }
         }
 
         if (   (   GenType::NATURAL == GT
@@ -359,7 +359,7 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
                            ROOK == pt ? targets & attacks_bb<ROOK> (org, pos.pieces ()) :
                            QUEN == pt ? targets & attacks_bb<QUEN> (org, pos.pieces ()) :
                            KING == pt ? targets & PieceAttacks[KING][+org] & ~PieceAttacks[QUEN][+pos.square<KING> (~pos.active)] : (assert(false), 0);
-        while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
+        while (0 != attacks) { moves += mk_move<MoveType::NORMAL> (org, pop_lsq (attacks)); }
     }
 
     Color::WHITE == pos.active ?
@@ -383,7 +383,7 @@ template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position 
                            ROOK == pt ? targets & attacks_bb<ROOK> (org, pos.pieces ()) :
                            QUEN == pt ? targets & attacks_bb<QUEN> (org, pos.pieces ()) :
                            KING == pt ? targets & PieceAttacks[KING][+org] & ~PieceAttacks[QUEN][+pos.square<KING> (~pos.active)] : (assert(false), 0);
-        while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
+        while (0 != attacks) { moves += mk_move<MoveType::NORMAL> (org, pop_lsq (attacks)); }
     }
 
     Color::WHITE == pos.active ?
@@ -423,7 +423,7 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
                         & ~(  checker_attacks
                             | pos.pieces (pos.active)
                             | PieceAttacks[KING][+pos.square<KING> (~pos.active)]);
-    while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
+    while (0 != attacks) { moves += mk_move<MoveType::NORMAL> (fk_sq, pop_lsq (attacks)); }
 
     // If double-check or only king, then only king move can save the day
     if (   more_than_one (pos.si->checkers)
@@ -458,7 +458,7 @@ void filter_illegal (ValMoves &moves, const Position &pos)
                                  [&pos] (const ValMove &vm)
                                  {
                                      return (   0 != pos.abs_blockers (pos.active)
-                                             || ENPASSANT == mtype (vm.move)
+                                             || MoveType::ENPASSANT == mtype (vm.move)
                                              || pos.square<KING> (pos.active) == org_sq (vm.move))
                                          && !pos.legal (vm.move);
                                  }),

@@ -514,7 +514,7 @@ namespace Searcher {
 
         inline bool _gives_check (const Position &pos, Move move)
         {
-            return NORMAL == mtype (move)
+            return MoveType::NORMAL == mtype (move)
                 && 0 == pos.dsc_blockers (pos.active) ?
                     contains (pos.si->checks[ptype (pos[org_sq (move)])], dst_sq (move)) :
                     pos.gives_check (move);
@@ -1527,7 +1527,7 @@ namespace Searcher {
                     }
                     else
                     {
-                        assert(PROMOTE != mtype (move));
+                        assert(MoveType::PROMOTE != mtype (move));
 
                         // Decrease reduction if opponent's move count is high
                         if ((ss-1)->move_count >= 16)
@@ -1553,8 +1553,8 @@ namespace Searcher {
                         }
                         else
                         // Decrease reduction for moves that escape a capture in no-cut nodes.
-                        if (   NORMAL == mtype (move)
-                            && !pos.see_ge (mk_move<NORMAL> (dst, org)))
+                        if (   MoveType::NORMAL == mtype (move)
+                            && !pos.see_ge (mk_move<MoveType::NORMAL> (dst, org)))
                         {
                             reduce_depth -= 2;
                         }

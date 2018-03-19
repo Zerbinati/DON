@@ -288,7 +288,7 @@ enum class Piece : u08
     W_QUEN      , //  0100
     W_KING      , //  0101
 
-    NONE = 6, //  0110
+    NONE	 = 6, //  0110
 
     B_PAWN   = 8, //  1000
     B_NIHT      , //  1001
@@ -300,7 +300,7 @@ enum class Piece : u08
     NO            //  1110
 };
 
-enum MoveType : u16
+enum class MoveType : u16
 {
     NORMAL    = 0x0000, // 0000
     CASTLE    = 0x4000, // 0100
@@ -312,7 +312,7 @@ enum MoveType : u16
 /// bit 00-05: Destiny square: (0...63)
 /// bit 06-11: Origin square: (0...63)
 /// bit 12-13: Promotion piece: (Knight...Queen) - 1
-/// bit 14-15: Move flag: (0) Normal (1) Castle (2) En-Passant (3) Promotion
+/// bit 14-15: Move flag: (0) Normal (1) Castle (2) EnPassant (3) Promotion
 ///
 /// Special cases are Move::NONE and Move::NULL_.
 enum class Move : u16
@@ -543,20 +543,20 @@ constexpr Square    org_sq  (Move m) { return Square((+m >> 6) & +Square::H8); }
 constexpr Square    dst_sq  (Move m) { return Square((+m >> 0) & +Square::H8); }
 constexpr bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
 constexpr PieceType promote (Move m) { return PieceType(((+m >> 12) & 3) + NIHT); }
-constexpr MoveType  mtype   (Move m) { return MoveType(+m & PROMOTE); }
+constexpr MoveType  mtype   (Move m) { return MoveType(+m & +MoveType::PROMOTE); }
 constexpr i16       move_pp (Move m) { return +m & 0x0FFF; }
-inline    void      promote (Move &m, PieceType pt) { m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (+m & 0x0FFF)); }
+inline    void      promote (Move &m, PieceType pt) { m = Move(/*+MoveType::PROMOTE +*/ ((pt - 1) << 12) + (+m & 0x0FFF)); }
 constexpr Square fix_dst_sq (Move m, bool chess960 = false)
 {
-    return mtype (m) != CASTLE
+    return MoveType::CASTLE != mtype (m)
         || chess960 ?
         dst_sq (m) :
         (dst_sq (m) > org_sq (m) ? File::fG : File::fC) | _rank (dst_sq (m));
 }
 
 template<MoveType MT>
-constexpr Move mk_move (Square org, Square dst)               { return Move(MT + (+org << 6) + +dst); }
-constexpr Move mk_move (Square org, Square dst, PieceType pt) { return Move(PROMOTE + ((pt - NIHT) << 12) + (+org << 6) + +dst); }
+constexpr Move mk_move (Square org, Square dst)               { return Move(+MT + (+org << 6) + +dst); }
+constexpr Move mk_move (Square org, Square dst, PieceType pt) { return Move(+MoveType::PROMOTE + ((pt - NIHT) << 12) + (+org << 6) + +dst); }
 
 constexpr i16   value_to_cp (Value v) { return i16(v*100/i32(Value::EG_PAWN)); }
 constexpr Value cp_to_value (i16  cp) { return Value(cp*i32(Value::EG_PAWN)/100); }

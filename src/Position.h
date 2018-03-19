@@ -315,10 +315,10 @@ inline Key Position::posi_move_key (Move m) const
     assert(contains (pieces (active), org));
     
     auto key = si->posi_key;
-    auto ppt = PROMOTE != mtype (m) ?
+    auto ppt = MoveType::PROMOTE != mtype (m) ?
                 ptype (board[+org]) :
                 promote (m);
-    if (CASTLE == mtype (m))
+    if (MoveType::CASTLE == mtype (m))
     {
         key ^=
               RandZob.piece_square_keys[+active][ROOK][+dst]
@@ -326,7 +326,7 @@ inline Key Position::posi_move_key (Move m) const
     }
     else
     {
-        if (   NORMAL == mtype (m)
+        if (   MoveType::NORMAL == mtype (m)
             && PAWN == ptype (board[+org])
             && 16 == (+dst ^ +org))
         {
@@ -336,12 +336,12 @@ inline Key Position::posi_move_key (Move m) const
                 key ^= RandZob.en_passant_keys[+_file (ep_sq)];
             }
         }
-        auto cpt = ENPASSANT != mtype (m) ?
+        auto cpt = MoveType::ENPASSANT != mtype (m) ?
                     ptype (board[+dst]) :
                     PAWN;
         if (NONE != cpt)
         {
-            key ^= RandZob.piece_square_keys[+~active][cpt][+(ENPASSANT != mtype (m) ? dst : dst - pawn_push (active))];
+            key ^= RandZob.piece_square_keys[+~active][cpt][+(MoveType::ENPASSANT != mtype (m) ? dst : dst - pawn_push (active))];
         }
     }
     auto b = si->castle_rights & (castle_mask[+org]|castle_mask[+dst]);
@@ -354,7 +354,7 @@ inline Key Position::posi_move_key (Move m) const
     }
     return key
          ^ RandZob.color_key
-         ^ RandZob.piece_square_keys[+active][ppt][+(CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? Square::G1 : Square::C1))]
+         ^ RandZob.piece_square_keys[+active][ppt][+(MoveType::CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? Square::G1 : Square::C1))]
          ^ RandZob.piece_square_keys[+active][ptype (board[+org])][+org]
          ^ (Square::NO != si->en_passant_sq ? RandZob.en_passant_keys[+_file (si->en_passant_sq)] : 0);
 }
@@ -450,7 +450,7 @@ inline bool Position::opposite_bishops () const
 }
 inline bool Position::en_passant (Move m) const
 {
-    return ENPASSANT == mtype (m)
+    return MoveType::ENPASSANT == mtype (m)
         && contains (pieces (active, PAWN), org_sq (m))
         && empty (dst_sq (m))
         && si->en_passant_sq == dst_sq (m);
@@ -458,34 +458,34 @@ inline bool Position::en_passant (Move m) const
 inline bool Position::capture (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return (   (   NORMAL == mtype (m)
+    return (   (   MoveType::NORMAL == mtype (m)
                 || promotion (m))
             && contains (pieces (~active), dst_sq (m)))
         || en_passant (m);
 }
 inline bool Position::promotion (Move m) const
 {
-    return PROMOTE == mtype (m)
+    return MoveType::PROMOTE == mtype (m)
         && contains (pieces (active, PAWN), org_sq (m))
         && Rank::r7 == rel_rank (active, org_sq (m));
 }
 inline bool Position::capture_or_promotion (Move m) const
 {
-    return (   NORMAL == mtype (m)
+    return (   MoveType::NORMAL == mtype (m)
             && contains (pieces (~active), dst_sq (m)))
         || en_passant (m)
         || promotion (m);
 }
 inline PieceType Position::cap_type (Move m) const
 {
-    return ENPASSANT != mtype (m) ?
+    return MoveType::ENPASSANT != mtype (m) ?
                ptype (board[+dst_sq (m)]) :
                PAWN;
 }
 
 inline void Position::do_move (Move m, StateInfo &nsi)
 {
-    do_move (m, nsi, NORMAL == mtype (m)
+    do_move (m, nsi, MoveType::NORMAL == mtype (m)
                   && 0 == dsc_blockers (active) ?
                         contains (si->checks[ptype (board[+org_sq (m)])], dst_sq (m)) :
                         gives_check (m));

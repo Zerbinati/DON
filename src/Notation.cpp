@@ -9,7 +9,7 @@ using namespace BitBoard;
 namespace {
 
     /// Ambiguity
-    enum Ambiguity : u08
+    enum class Ambiguity : u08
     {
         AMB_NONE,
         AMB_RANK,
@@ -38,7 +38,7 @@ namespace {
         while (0 != pcs)
         {
             auto sq = pop_lsq (pcs);
-            if (!pos.legal (mk_move<NORMAL> (sq, dst)))
+            if (!pos.legal (mk_move<MoveType::NORMAL> (sq, dst)))
             {
                 amb ^= sq;
             }
@@ -107,7 +107,7 @@ string move_to_can (Move m)
 
     auto can = to_string (org_sq (m))
              + to_string (fix_dst_sq (m, Position::Chess960));
-    if (PROMOTE == mtype (m))
+    if (MoveType::PROMOTE == mtype (m))
     {
         can += PieceChar[+(Color::BLACK|promote (m))];
     }
@@ -144,7 +144,7 @@ string move_to_san (Move m, Position &pos)
     auto org = org_sq (m);
     auto dst = dst_sq (m);
 
-    if (CASTLE != mtype (m))
+    if (MoveType::CASTLE != mtype (m))
     {
         if (PAWN != ptype (pos[org]))
         {
@@ -183,7 +183,7 @@ string move_to_san (Move m, Position &pos)
         san += to_string (dst);
 
         if (   PAWN == ptype (pos[org])
-            && PROMOTE == mtype (m))
+            && MoveType::PROMOTE == mtype (m))
         {
             san += "=";
             san += PieceChar[+(Color::WHITE|promote (m))];
