@@ -251,16 +251,16 @@ namespace BitBoard {
     template<Delta DEL>
     constexpr Bitboard shift (Bitboard bb);
 
-    template<> constexpr Bitboard shift<DEL_N > (Bitboard bb) { return (bb         ) << 010; }
-    template<> constexpr Bitboard shift<DEL_S > (Bitboard bb) { return (bb         ) >> 010; }
-    template<> constexpr Bitboard shift<DEL_NN> (Bitboard bb) { return (bb         ) << 020; }
-    template<> constexpr Bitboard shift<DEL_SS> (Bitboard bb) { return (bb         ) >> 020; }
-    template<> constexpr Bitboard shift<DEL_E > (Bitboard bb) { return (bb & ~FH_bb) << 001; }
-    template<> constexpr Bitboard shift<DEL_W > (Bitboard bb) { return (bb & ~FA_bb) >> 001; }
-    template<> constexpr Bitboard shift<DEL_NE> (Bitboard bb) { return (bb & ~FH_bb) << 011; }
-    template<> constexpr Bitboard shift<DEL_SE> (Bitboard bb) { return (bb & ~FH_bb) >> 007; }
-    template<> constexpr Bitboard shift<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) << 007; }
-    template<> constexpr Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> 011; }
+    template<> constexpr Bitboard shift<Delta::NORTH > (Bitboard bb) { return (bb         ) << 010; }
+    template<> constexpr Bitboard shift<Delta::SOUTH > (Bitboard bb) { return (bb         ) >> 010; }
+    template<> constexpr Bitboard shift<Delta::NORTH2> (Bitboard bb) { return (bb         ) << 020; }
+    template<> constexpr Bitboard shift<Delta::SOUTH2> (Bitboard bb) { return (bb         ) >> 020; }
+    template<> constexpr Bitboard shift<Delta::EAST  > (Bitboard bb) { return (bb & ~FH_bb) << 001; }
+    template<> constexpr Bitboard shift<Delta::WEST  > (Bitboard bb) { return (bb & ~FA_bb) >> 001; }
+    template<> constexpr Bitboard shift<Delta::NORTHEAST> (Bitboard bb) { return (bb & ~FH_bb) << 011; }
+    template<> constexpr Bitboard shift<Delta::SOUTHEAST> (Bitboard bb) { return (bb & ~FH_bb) >> 007; }
+    template<> constexpr Bitboard shift<Delta::NORTHWEST> (Bitboard bb) { return (bb & ~FA_bb) << 007; }
+    template<> constexpr Bitboard shift<Delta::SOUTHWEST> (Bitboard bb) { return (bb & ~FA_bb) >> 011; }
 
     //// Rotate Right (toward LSB)
     //inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (+Square::NO - k)); }
@@ -271,14 +271,14 @@ namespace BitBoard {
     constexpr Bitboard pawn_attacks_bb (Color c, Bitboard b)
     {
         return Color::WHITE == c ?
-                shift<DEL_NE> (b) | shift<DEL_NW> (b) :
-                shift<DEL_SE> (b) | shift<DEL_SW> (b);
+                shift<Delta::NORTHEAST> (b) | shift<Delta::NORTHWEST> (b) :
+                shift<Delta::SOUTHEAST> (b) | shift<Delta::SOUTHWEST> (b);
     }
 
     inline Bitboard sliding_attacks (const Delta *deltas, Square s, Bitboard occ = 0)
     {
         Bitboard slide_attacks = 0;
-        while (DEL_O != *deltas)
+        while (Delta::NONE != *deltas)
         {
             for (auto sq = s + *deltas;
                  _ok (sq) && 1 == dist (sq, sq - *deltas);
@@ -305,7 +305,7 @@ namespace BitBoard {
     template<> inline Bitboard attacks_bb<PieceType::ROOK> (Square s, Bitboard occ) { return RMagics[+s].attacks_bb (occ); }
     /// Attacks of the Queen with occupancy
     template<> inline Bitboard attacks_bb<PieceType::QUEN> (Square s, Bitboard occ) { return BMagics[+s].attacks_bb (occ)
-                                                                                | RMagics[+s].attacks_bb (occ); }
+                                                                                           | RMagics[+s].attacks_bb (occ); }
     
 #if !defined(ABM) // PopCount Table
 

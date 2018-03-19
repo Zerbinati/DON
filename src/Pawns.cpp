@@ -79,14 +79,14 @@ namespace Pawns {
         Score evaluate (const Position &pos, Entry *e)
         {
             const auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
-            const auto Push = Color::WHITE == Own ? DEL_N : DEL_S;
+            const auto Push = Color::WHITE == Own ? Delta::NORTH : Delta::SOUTH;
             const auto PawnAtt = PawnAttacks[+Own];
 
             Bitboard own_pawns = pos.pieces (Own, PieceType::PAWN);
             Bitboard opp_pawns = pos.pieces (Opp, PieceType::PAWN);
 
-            Bitboard ul = shift<Color::WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
-            Bitboard ur = shift<Color::WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
+            Bitboard ul = shift<Color::WHITE == Own ? Delta::NORTHWEST : Delta::SOUTHEAST> (own_pawns);
+            Bitboard ur = shift<Color::WHITE == Own ? Delta::NORTHEAST : Delta::SOUTHWEST> (own_pawns);
 
             e->any_attacks[+Own] = ul | ur;
             e->dbl_attacks[+Own] = ul & ur;
@@ -135,7 +135,7 @@ namespace Pawns {
                           && 0 != stoppers
                           && 0 != neighbours
                           && Rank::r6 > rel_rank (Own, s)
-                            // Find the backmost rank with neighbours or stoppers
+                            // Find the back most rank with neighbours or stoppers
                           && 0 != (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers)))
                             // If have an enemy pawn in the same or next rank, the pawn is
                             // backward because it cannot advance without being captured.
@@ -155,8 +155,7 @@ namespace Pawns {
                             && Rank::r4 < rel_rank (Own, s)
                             && 0 != (b = shift<Push> (supporters) & ~opp_pawns)
                             && pop_count (b) > pop_count (  (opp_pawns ^ stoppers)
-                                                          & (  shift<Color::WHITE == Own ? DEL_NW : DEL_SE> (b)
-                                                             | shift<Color::WHITE == Own ? DEL_NE : DEL_SW> (b))))))
+                                                          & pawn_attacks_bb (Own, b)))))
                 {
                     e->passers[+Own] |= s;
                 }

@@ -332,7 +332,7 @@ namespace {
         Bitboard b = pin_attacked_by[+Own][+PieceType::PAWN]
                    | (  pos.pieces (Opp, PieceType::PAWN)
                       & (  LowRanks_bb[+Opp]
-                         | shift<Color::WHITE == Own ? DEL_N : DEL_S> (pos.pieces ())));
+                         | shift<Color::WHITE == Own ? Delta::NORTH : Delta::SOUTH> (pos.pieces ())));
         mob_area[+Opp] = ~(b | pos.square<PieceType::KING> (Opp));
         mobility[+Opp] = Score::ZERO;
 
@@ -344,7 +344,7 @@ namespace {
             king_attackers_count[+Own] = u08(pop_count (king_ring[+Opp] & pin_attacked_by[+Own][+PieceType::PAWN]));
             if (Rank::r1 == rel_rank (Opp, pos.square<PieceType::KING> (Opp)))
             {
-                king_ring[+Opp] |= shift<Color::WHITE == Own ? DEL_S : DEL_N> (king_ring[+Opp]);
+                king_ring[+Opp] |= shift<Color::WHITE == Own ? Delta::SOUTH : Delta::NORTH> (king_ring[+Opp]);
             }
         }
         else
@@ -825,9 +825,9 @@ namespace {
         b =  pos.pieces (Own, PieceType::PAWN)
           & ~pos.abs_blockers (Own);
         // Friend pawns push
-        b =  shift<Color::WHITE == Own ? DEL_N : DEL_S> (b)
+        b =  shift<Color::WHITE == Own ? Delta::NORTH : Delta::SOUTH> (b)
           & ~pos.pieces ();
-        b |= shift<Color::WHITE == Own ? DEL_N : DEL_S> (b & rank_bb (Color::WHITE == Own ? Rank::r3 : Rank::r6))
+        b |= shift<Color::WHITE == Own ? Delta::NORTH : Delta::SOUTH> (b & rank_bb (Color::WHITE == Own ? Rank::r3 : Rank::r6))
           & ~pos.pieces ();
         // Friend pawns push safe
         b &= safe_area
@@ -1011,8 +1011,8 @@ namespace {
 
         // Find all squares which are at most three squares behind some friend pawn
         Bitboard behind = pos.pieces (Own, PieceType::PAWN);
-        behind |= shift<Color::WHITE == Own ? DEL_S  : DEL_N > (behind);
-        behind |= shift<Color::WHITE == Own ? DEL_SS : DEL_NN> (behind);
+        behind |= shift<Color::WHITE == Own ? Delta::SOUTH  : Delta::NORTH > (behind);
+        behind |= shift<Color::WHITE == Own ? Delta::SOUTH2 : Delta::NORTH2> (behind);
         i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
         i32 weight = pos.count (Own) - 2 * pe->open_count;
         auto score = mk_score (bonus * weight * weight / 16, 0);

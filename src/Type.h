@@ -209,37 +209,37 @@ enum class Square : i08
     NO,
 };
 
-enum Delta : i08
+enum class Delta : i08
 {
-    DEL_O =  000,
+    NONE =  000,
 
-    DEL_E =  001,
-    DEL_N =  010,
+    EAST  =  001,
+    NORTH =  010,
     
-    DEL_W = -i08(DEL_E),
-    DEL_S = -i08(DEL_N),
+    WEST  = -+EAST,
+    SOUTH = -+NORTH,
 
-    DEL_NN = i08(DEL_N) + i08(DEL_N),
-    DEL_EE = i08(DEL_E) + i08(DEL_E),
-    DEL_SS = i08(DEL_S) + i08(DEL_S),
-    DEL_WW = i08(DEL_W) + i08(DEL_W),
+    NORTH2 = +NORTH + +NORTH,
+    EAST2  = +EAST + +EAST,
+    SOUTH2 = +SOUTH + +SOUTH,
+    WEST2  = +WEST + +WEST,
 
-    DEL_NE = i08(DEL_N) + i08(DEL_E),
-    DEL_SE = i08(DEL_S) + i08(DEL_E),
-    DEL_SW = i08(DEL_S) + i08(DEL_W),
-    DEL_NW = i08(DEL_N) + i08(DEL_W),
+    NORTHEAST = +NORTH + +EAST,
+    SOUTHEAST = +SOUTH + +EAST,
+    SOUTHWEST = +SOUTH + +WEST,
+    NORTHWEST = +NORTH + +WEST,
 
-    DEL_NNE = i08(DEL_NN) + i08(DEL_E),
-    DEL_NNW = i08(DEL_NN) + i08(DEL_W),
+    N2E = +NORTH2 + +EAST,
+    N2W = +NORTH2 + +WEST,
 
-    DEL_EEN = i08(DEL_EE) + i08(DEL_N),
-    DEL_EES = i08(DEL_EE) + i08(DEL_S),
+    E2N = +EAST2 + +NORTH,
+    E2S = +EAST2 + +SOUTH,
 
-    DEL_SSE = i08(DEL_SS) + i08(DEL_E),
-    DEL_SSW = i08(DEL_SS) + i08(DEL_W),
+    S2E = +SOUTH2 + +EAST,
+    S2W = +SOUTH2 + +WEST,
 
-    DEL_WWN = i08(DEL_WW) + i08(DEL_N),
-    DEL_WWS = i08(DEL_WW) + i08(DEL_S),
+    W2N = +WEST2 + +NORTH,
+    W2S = +WEST2 + +SOUTH,
 };
 
 enum class CastleSide : i08
@@ -512,7 +512,7 @@ inline bool opposite_colors (Square s1, Square s2)
 
 constexpr Delta pawn_push (Color c)
 {
-    return Color::WHITE == c ? DEL_N : DEL_S;
+    return Color::WHITE == c ? Delta::NORTH : Delta::SOUTH;
 }
 
 constexpr CastleRight castle_right (Color c)

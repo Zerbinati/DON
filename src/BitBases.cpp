@@ -80,16 +80,16 @@ namespace BitBases {
                     // Single push
                     if (_rank (p_sq) < Rank::r7)
                     {
-                        r |= db[index (Opp, k_sq[+Own], k_sq[+Opp], p_sq + DEL_N)].result;
+                        r |= db[index (Opp, k_sq[+Own], k_sq[+Opp], p_sq + Delta::NORTH)].result;
                     }
                     // Double push
                     if (   _rank (p_sq) == Rank::r2
                         // Front is not own king
-                        && k_sq[+Own] != (p_sq + DEL_N)
+                        && k_sq[+Own] != (p_sq + Delta::NORTH)
                         // Front is not opp king
-                        && k_sq[+Opp] != (p_sq + DEL_N))
+                        && k_sq[+Opp] != (p_sq + Delta::NORTH))
                     {
-                        r |= db[index (Opp, k_sq[+Own], k_sq[+Opp], p_sq + DEL_N + DEL_N)].result;
+                        r |= db[index (Opp, k_sq[+Own], k_sq[+Opp], p_sq + Delta::NORTH + Delta::NORTH)].result;
                     }
                 }
 
@@ -126,9 +126,9 @@ namespace BitBases {
                 // Immediate win if a pawn can be promoted without getting captured
                 if (   Color::WHITE == active
                     && _rank (p_sq) == Rank::r7
-                    && k_sq[+Color::WHITE] != (p_sq + DEL_N)
-                    && (   dist (k_sq[+Color::BLACK], p_sq + DEL_N) > 1
-                        || contains (PieceAttacks[+PieceType::KING][+k_sq[+Color::WHITE]], p_sq + DEL_N)))
+                    && k_sq[+Color::WHITE] != (p_sq + Delta::NORTH)
+                    && (   dist (k_sq[+Color::BLACK], p_sq + Delta::NORTH) > 1
+                        || contains (PieceAttacks[+PieceType::KING][+k_sq[+Color::WHITE]], p_sq + Delta::NORTH)))
                 {
                     result = Result::WIN;
                 }

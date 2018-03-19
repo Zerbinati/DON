@@ -222,8 +222,8 @@ namespace EndGame {
         }
         else
         {
-            value = Value(- 8 * (  dist (sk_sq, wp_sq+DEL_S)
-                                 - dist (wk_sq, wp_sq+DEL_S)
+            value = Value(- 8 * (  dist (sk_sq, wp_sq+Delta::SOUTH)
+                                 - dist (wk_sq, wp_sq+Delta::SOUTH)
                                  - dist (wp_sq, promote_sq)) + 200);
         }
 
@@ -395,7 +395,7 @@ namespace EndGame {
         }
         // If the defending king blocks the pawn and the attacking king is too far away, it's a draw.
         if (   Rank::r5 >= r
-            && wk_sq == sp_sq+DEL_N
+            && wk_sq == sp_sq+Delta::NORTH
             && 2 <= dist (sk_sq, sp_sq) - tempo
             && 2 <= dist (sk_sq, wr_sq) - tempo)
         {
@@ -419,10 +419,10 @@ namespace EndGame {
             && f == _file (sr_sq)
             && sr_sq < sp_sq
             && dist (sk_sq, promote_sq) < dist (wk_sq, promote_sq) - 2 + tempo
-            && dist (sk_sq, sp_sq+DEL_N) < dist (wk_sq, sp_sq+DEL_N) - 2 + tempo
+            && dist (sk_sq, sp_sq+Delta::NORTH) < dist (wk_sq, sp_sq+Delta::NORTH) - 2 + tempo
             && (   3 <= dist (wk_sq, sr_sq) + tempo
                 || (   dist (sk_sq, promote_sq) < dist (wk_sq, sr_sq) + tempo
-                    && dist (sk_sq, sp_sq+DEL_N) < dist (wk_sq, sr_sq) + tempo)))
+                    && dist (sk_sq, sp_sq+Delta::NORTH) < dist (wk_sq, sr_sq) + tempo)))
         {
             return Scale(SCALE_MAX
                             - 8 * dist (sp_sq, promote_sq)

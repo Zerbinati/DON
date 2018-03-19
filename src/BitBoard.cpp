@@ -33,17 +33,17 @@ namespace BitBoard {
 
         const Delta PawnDeltas[+Color::NO][3] =
         {
-            { DEL_NW, DEL_NE, DEL_O },
-            { DEL_SE, DEL_SW, DEL_O },
+            { Delta::NORTHWEST, Delta::NORTHEAST, Delta::NONE },
+            { Delta::SOUTHEAST, Delta::SOUTHWEST, Delta::NONE },
         };
         const Delta PieceDeltas[+PieceType::NONE][9] =
         {
-            { DEL_O },
-            { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE, DEL_O },
-            { DEL_SW, DEL_SE, DEL_NW, DEL_NE, DEL_O },
-            { DEL_S, DEL_W, DEL_E, DEL_N, DEL_O },
-            { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
-            { DEL_SW, DEL_S, DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE, DEL_O },
+            { Delta::NONE },
+            { Delta::S2W, Delta::S2E, Delta::W2S, Delta::E2S, Delta::W2N, Delta::E2N, Delta::N2W, Delta::N2E, Delta::NONE },
+            { Delta::SOUTHWEST, Delta::SOUTHEAST, Delta::NORTHWEST, Delta::NORTHEAST, Delta::NONE },
+            { Delta::SOUTH, Delta::WEST, Delta::EAST, Delta::NORTH, Delta::NONE },
+            { Delta::SOUTHWEST, Delta::SOUTH, Delta::SOUTHEAST, Delta::WEST, Delta::EAST, Delta::NORTHWEST, Delta::NORTH, Delta::NORTHEAST, Delta::NONE },
+            { Delta::SOUTHWEST, Delta::SOUTH, Delta::SOUTHEAST, Delta::WEST, Delta::EAST, Delta::NORTHWEST, Delta::NORTH, Delta::NORTHEAST, Delta::NONE },
         };
 
 //        // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
@@ -260,7 +260,7 @@ namespace BitBoard {
             for (auto c : { Color::WHITE, Color::BLACK })
             {
                 k = 0;
-                while (DEL_O != (del = PawnDeltas[+c][k++]))
+                while (Delta::NONE != (del = PawnDeltas[+c][k++]))
                 {
                     auto sq = s + del;
                     if (   _ok (sq)
@@ -275,7 +275,7 @@ namespace BitBoard {
 
             pt = PieceType::NIHT;
             k = 0;
-            while (DEL_O != (del = PieceDeltas[+pt][k++]))
+            while (Delta::NONE != (del = PieceDeltas[+pt][k++]))
             {
                 auto sq = s + del;
                 if (   _ok (sq)
@@ -287,7 +287,7 @@ namespace BitBoard {
 
             pt = PieceType::KING;
             k = 0;
-            while (DEL_O != (del = PieceDeltas[+pt][k++]))
+            while (Delta::NONE != (del = PieceDeltas[+pt][k++]))
             {
                 auto sq = s + del;
                 if (   _ok (sq)

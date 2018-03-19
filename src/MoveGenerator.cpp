@@ -48,12 +48,12 @@ namespace {
     template<GenType GT, Delta Del>
     void generate_promotion_moves (ValMoves &moves, const Position &pos, Square dst)
     {
-        static_assert (DEL_N  == Del
-                    || DEL_NE == Del
-                    || DEL_NW == Del
-                    || DEL_S  == Del
-                    || DEL_SE == Del
-                    || DEL_SW == Del, "Del incorrect");
+        static_assert (Delta::NORTH  == Del
+                    || Delta::NORTHEAST == Del
+                    || Delta::NORTHWEST == Del
+                    || Delta::SOUTH  == Del
+                    || Delta::SOUTHEAST == Del
+                    || Delta::SOUTHWEST == Del, "Del incorrect");
 
         if (   GenType::NATURAL == GT
             || GenType::EVASION == GT
@@ -94,9 +94,9 @@ namespace {
     void generate_pawn_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
         const auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
-        const auto Push = Color::WHITE == Own ? DEL_N : DEL_S;
-        const auto LCap = Color::WHITE == Own ? DEL_NW : DEL_SE;
-        const auto RCap = Color::WHITE == Own ? DEL_NE : DEL_SW;
+        const auto Push = Color::WHITE == Own ? Delta::NORTH : Delta::SOUTH;
+        const auto LCap = Color::WHITE == Own ? Delta::NORTHWEST : Delta::SOUTHEAST;
+        const auto RCap = Color::WHITE == Own ? Delta::NORTHEAST : Delta::SOUTHWEST;
 
         // Pawns on 7th Rank
         Bitboard R7_pawns = pos.pieces (Own, PieceType::PAWN) &  rank_bb (Color::WHITE == Own ? Rank::r7 : Rank::r2);
@@ -171,8 +171,8 @@ namespace {
                     // Otherwise this is a discovery check and are forced to do otherwise.
                     if (GenType::EVASION == GT)
                     {
-                        ep_captures &= (  shift<DEL_E> (targets)
-                                        | shift<DEL_W> (targets));
+                        ep_captures &= (  shift<Delta::EAST> (targets)
+                                        | shift<Delta::WEST> (targets));
                     }
                     ep_captures &= PawnAttacks[+Opp][+pos.si->en_passant_sq];
                     assert(0 != ep_captures
