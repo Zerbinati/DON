@@ -344,11 +344,7 @@ Move MovePicker::next_move ()
         i = 0;
         /* fall through */
     case Stage::NAT_BAD_CAPTURES:
-        if (i < bad_capture_moves.size ())
-        {
-            return bad_capture_moves[i++];
-        }
-        break;
+        return i < bad_capture_moves.size () ? bad_capture_moves[i++] : Move::NONE;
 
     case Stage::EVA_EVASION_INIT:
         assert(0 != pos.si->checkers);
@@ -381,7 +377,7 @@ Move MovePicker::next_move ()
 
         if (depth <= DepthQSNoCheck)
         {
-            break;
+            return Move::NONE;
         }
         ++stage;
         /* fall through */
