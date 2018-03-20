@@ -280,7 +280,7 @@ namespace TBSyzygy {
         template<typename T, i32 LE> T number (void* addr)
         {
             constexpr union { u32 i; char c[4]; } Le = { 0x01020304 };
-            constexpr bool IsLittleEndian = (Le.c[0] == 4);
+            const bool IsLittleEndian = (Le.c[0] == 4);
 
             T v;
             if ((uintptr_t) addr & (alignof(T) -1)) // Unaligned pointer (very rare)

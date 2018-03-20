@@ -88,6 +88,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     , threshold (Value(-4000*d))
     , recap_sq (SQ_NO)
     , piece_destiny_history (pdh)
+	, i (0)
     , refutation_moves (km, km + MaxKillers)
     , pick_quiets (true)
 {
@@ -139,6 +140,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     , threshold (VALUE_ZERO)
     , recap_sq (rs)
     , piece_destiny_history (nullptr)
+    , i (0)
     , pick_quiets (true)
 {
     assert(MOVE_NONE == tt_move
@@ -175,6 +177,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     , threshold (thr)
     , recap_sq (SQ_NO)
     , piece_destiny_history (nullptr)
+    , i (0)
     , pick_quiets (true)
 {
     assert(0 == pos.si->checkers);
@@ -295,10 +298,10 @@ Move MovePicker::next_move ()
         goto top;
 
     case Stage::NAT_GOOD_CAPTURES:
-        if (select_move<BEST> ([&]() { return pos.see_ge (move, Value(-moves[i-1].value * 55 / 1024)) ?
-                                            true :
-                                            // Move losing capture to bad_capture_moves to be tried later
-                                            (bad_capture_moves.push_back (move), false); }))
+        if (MOVE_NONE != select_move<BEST> ([&]() { return pos.see_ge (move, Value(-moves[i-1].value * 55 / 1024)) ?
+                                                               true :
+                                                               // Move losing capture to bad_capture_moves to be tried later
+                                                               (bad_capture_moves.push_back (move), false); }))
         {
             return move;
         }
@@ -333,7 +336,7 @@ Move MovePicker::next_move ()
         /* fallthrough */
     case Stage::NAT_QUIETS:
         if (   pick_quiets
-            && select_move<NEXT> ([]() { return true; }))
+            && MOVE_NONE != select_move<NEXT> ([]() { return true; }))
         {
             return move;
         }
@@ -341,11 +344,7 @@ Move MovePicker::next_move ()
         i = 0;
         /* fallthrough */
     case Stage::NAT_BAD_CAPTURES:
-        if (i < bad_capture_moves.size ())
-        {
-            return bad_capture_moves[i++];
-        }
-        break;
+        return i < bad_capture_moves.size () ? bad_capture_moves[i++] : MOVE_NONE;
 
     case Stage::EVA_EVASION_INIT:
         assert(0 != pos.si->checkers);
@@ -370,7 +369,7 @@ Move MovePicker::next_move ()
         return select_move<BEST> ([&]() { return pos.see_ge (move, threshold); });
 
     case Stage::QS_CAPTURES:
-        if (select_move<BEST> ([&]() { return depth > DepthQSRecapture
+        if (MOVE_NONE != select_move<BEST> ([&]() { return depth > DepthQSRecapture
                                            || recap_sq == dst_sq (move); }))
         {
             return move;
@@ -378,7 +377,7 @@ Move MovePicker::next_move ()
 
         if (depth <= DepthQSNoCheck)
         {
-            break;
+            return MOVE_NONE;
         }
         ++stage;
         /* fallthrough */

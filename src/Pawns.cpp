@@ -155,7 +155,7 @@ namespace Pawns {
                             && R_4 < rel_rank (Own, s)
                             && 0 != (b = shift<Push> (supporters) & ~opp_pawns)
                             && pop_count (b) > pop_count (  (opp_pawns ^ stoppers)
-                                                          & pawn_attacks_bb (Own, b))))
+                                                          & pawn_attacks_bb (Own, b)))))
                 {
                     e->passers[Own] |= s;
                 }
