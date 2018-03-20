@@ -497,9 +497,9 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
         if (   TBHasRoot
             && !TBUseRule50)
         {
-            TBValue = TBValue > Value::DRAW ?  Value::MATE - i32(MaxPlies - 1) :
-                      TBValue < Value::DRAW ? -Value::MATE + i32(MaxPlies + 1) :
-                                              Value::DRAW;
+            TBValue = TBValue > Value::DRAW ?  Value::MATE - (MaxPlies - 1) :
+                      TBValue < Value::DRAW ? -Value::MATE + (MaxPlies + 1) :
+                                               Value::DRAW;
         }
 
         // Reset root move scores to -Value::INFINITE_, Since root_probe_dtz() and root_probe_wdl() dirty them.
