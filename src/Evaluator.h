@@ -6,7 +6,7 @@
 #include "Type.h"
 
 // Tempo bonus
-const Value Tempo = Value(20);
+constexpr Value Tempo = Value(20);
 
 extern std::atomic<Score> Contempt;
 

@@ -143,14 +143,14 @@ inline void prefetch (const void *)
 typedef u64 Key;
 typedef u64 Bitboard;
 
-const u16 MaxPlies = 128; // Maximum Plies
+constexpr u16 MaxPlies = 128; // Maximum Plies
 
-const i16 DepthZero         =  0;
-const i16 DepthQSCheck      =  0;
-const i16 DepthQSNoCheck    = -1;
-const i16 DepthQSRecapture  = -5;
-const i16 DepthNone         = -6;
-const i16 DepthEmpty        = -7;
+constexpr i16 DepthZero         =  0;
+constexpr i16 DepthQSCheck      =  0;
+constexpr i16 DepthQSNoCheck    = -1;
+constexpr i16 DepthQSRecapture  = -5;
+constexpr i16 DepthNone         = -6;
+constexpr i16 DepthEmpty        = -7;
 
 enum File : i08
 {

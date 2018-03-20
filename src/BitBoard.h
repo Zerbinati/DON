@@ -5,59 +5,59 @@
 
 namespace BitBoard {
 
-    const Bitboard FA_bb = U64(0x0101010101010101);
-    const Bitboard FB_bb = FA_bb << 1;
-    const Bitboard FC_bb = FA_bb << 2;
-    const Bitboard FD_bb = FA_bb << 3;
-    const Bitboard FE_bb = FA_bb << 4;
-    const Bitboard FF_bb = FA_bb << 5;
-    const Bitboard FG_bb = FA_bb << 6;
-    const Bitboard FH_bb = FA_bb << 7;
+    constexpr Bitboard FA_bb = U64(0x0101010101010101);
+    constexpr Bitboard FB_bb = FA_bb << 1;
+    constexpr Bitboard FC_bb = FA_bb << 2;
+    constexpr Bitboard FD_bb = FA_bb << 3;
+    constexpr Bitboard FE_bb = FA_bb << 4;
+    constexpr Bitboard FF_bb = FA_bb << 5;
+    constexpr Bitboard FG_bb = FA_bb << 6;
+    constexpr Bitboard FH_bb = FA_bb << 7;
 
-    const Bitboard R1_bb = U64(0x00000000000000FF);
-    const Bitboard R2_bb = R1_bb << (8 * 1);
-    const Bitboard R3_bb = R1_bb << (8 * 2);
-    const Bitboard R4_bb = R1_bb << (8 * 3);
-    const Bitboard R5_bb = R1_bb << (8 * 4);
-    const Bitboard R6_bb = R1_bb << (8 * 5);
-    const Bitboard R7_bb = R1_bb << (8 * 6);
-    const Bitboard R8_bb = R1_bb << (8 * 7);
+    constexpr Bitboard R1_bb = U64(0x00000000000000FF);
+    constexpr Bitboard R2_bb = R1_bb << (8 * 1);
+    constexpr Bitboard R3_bb = R1_bb << (8 * 2);
+    constexpr Bitboard R4_bb = R1_bb << (8 * 3);
+    constexpr Bitboard R5_bb = R1_bb << (8 * 4);
+    constexpr Bitboard R6_bb = R1_bb << (8 * 5);
+    constexpr Bitboard R7_bb = R1_bb << (8 * 6);
+    constexpr Bitboard R8_bb = R1_bb << (8 * 7);
 
-    const Bitboard Diagonals_bb = U64(0x8142241818244281); // A1..H8 | H1..A8
-    const Bitboard Center_bb = (FD_bb|FE_bb) & (R4_bb|R5_bb);
+    constexpr Bitboard Diagonals_bb = U64(0x8142241818244281); // A1..H8 | H1..A8
+    constexpr Bitboard Center_bb = (FD_bb|FE_bb) & (R4_bb|R5_bb);
 
-    const Bitboard Color_bb[] =
+    constexpr Bitboard Color_bb[] =
     {
         U64(0x55AA55AA55AA55AA),
         U64(0xAA55AA55AA55AA55)
     };
 
-    const Bitboard Side_bb[] =
+    constexpr Bitboard Side_bb[] =
     {
         FE_bb|FF_bb|FG_bb|FH_bb,
         FA_bb|FB_bb|FC_bb|FD_bb,
         FC_bb|FD_bb|FE_bb|FF_bb
     };
-    const Bitboard KingFlank_bb[] =
+    constexpr Bitboard KingFlank_bb[] =
     {
         Side_bb[CS_QUEN], Side_bb[CS_QUEN], Side_bb[CS_QUEN], Side_bb[CS_NO], Side_bb[CS_NO], Side_bb[CS_KING], Side_bb[CS_KING], Side_bb[CS_KING]
     };
-    const Bitboard Outposts_bb[] =
+    constexpr Bitboard Outposts_bb[] =
     {
         R4_bb|R5_bb|R6_bb,
         R5_bb|R4_bb|R3_bb
     };
-    const Bitboard Camp_bb[] =
+    constexpr Bitboard Camp_bb[] =
     {
         R1_bb|R2_bb|R3_bb|R4_bb|R5_bb,
         R8_bb|R7_bb|R6_bb|R5_bb|R4_bb
     };
-    const Bitboard LowRanks_bb[] =
+    constexpr Bitboard LowRanks_bb[] =
     {
         R2_bb|R3_bb,
         R7_bb|R6_bb
     };
-    const Bitboard Space_bb[] =
+    constexpr Bitboard Space_bb[] =
     {
         R2_bb|R3_bb|R4_bb,
         R7_bb|R6_bb|R5_bb
@@ -76,10 +76,10 @@ namespace BitBoard {
 #undef S_02
     };
 
-    const Bitboard File_bb[] = { FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb };
-    const Bitboard Rank_bb[] = { R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb };
+    constexpr Bitboard File_bb[] = { FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb };
+    constexpr Bitboard Rank_bb[] = { R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb };
 
-    const Bitboard AdjFile_bb[] =
+    constexpr Bitboard AdjFile_bb[] =
     {
         FB_bb,
         FA_bb|FC_bb,
@@ -90,7 +90,7 @@ namespace BitBoard {
         FF_bb|FH_bb,
         FG_bb
     };
-    const Bitboard AdjRank_bb[] =
+    constexpr Bitboard AdjRank_bb[] =
     {
         R2_bb,
         R1_bb|R3_bb,
@@ -101,7 +101,7 @@ namespace BitBoard {
         R6_bb|R8_bb,
         R7_bb
     };
-    const Bitboard FrontRank_bb[][R_NO] =
+    constexpr Bitboard FrontRank_bb[][R_NO] =
     {
         {
             R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
@@ -125,12 +125,12 @@ namespace BitBoard {
         }
     };
 
-    const Bitboard ShelterMask_bb[CLR_NO] =
+    constexpr Bitboard ShelterMask_bb[CLR_NO] =
     {
         Square_bb[SQ_A2]|Square_bb[SQ_B3]|Square_bb[SQ_C2]|Square_bb[SQ_F2]|Square_bb[SQ_G3]|Square_bb[SQ_H2],
         Square_bb[SQ_A7]|Square_bb[SQ_B6]|Square_bb[SQ_C7]|Square_bb[SQ_F7]|Square_bb[SQ_G6]|Square_bb[SQ_H7]
     };
-    const Bitboard StormMask_bb[CLR_NO] =
+    constexpr Bitboard StormMask_bb[CLR_NO] =
     {
         Square_bb[SQ_A3]|Square_bb[SQ_C3]|Square_bb[SQ_F3]|Square_bb[SQ_H3],
         Square_bb[SQ_A6]|Square_bb[SQ_C6]|Square_bb[SQ_F6]|Square_bb[SQ_H6],

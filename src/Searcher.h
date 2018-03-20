@@ -87,7 +87,7 @@ public:
     void operator<< (i32 bonus)
     {
         assert(abs (bonus) <= D); // Ensure range is [-W * D, W * D]
-        assert(abs (W * D) < std::numeric_limits<T>::max ()); // Ensure we don't overflow
+        assert(W * D < std::numeric_limits<T>::max ()); // Ensure we don't overflow
 
         entry += bonus * W - entry * abs (bonus) / D;
 
@@ -137,6 +137,8 @@ typedef Stats<i16, 2, 324, MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE> CapturePieceDestin
 /// PieceDestinyMove stores counter moves is indexed by [piece][move]
 typedef Stats<Move, 0, 0, MAX_PIECE, SQ_NO*SQ_NO> PieceDestinyMove;
 
+enum PickType { NEXT, BEST };
+
 /// MovePicker class is used to pick one legal moves from the current position.
 class MovePicker
 {
@@ -145,7 +147,7 @@ private:
     {
         NAT_TT, NAT_CAPTURE_INIT, NAT_GOOD_CAPTURES, NAT_QUIET_INIT, NAT_QUIETS, NAT_BAD_CAPTURES,
         EVA_TT, EVA_EVASION_INIT, EVA_EVASIONS,
-        PC_TT, PC_CAPTURE_INIT, PC_GOOD_CAPTURES, PC_BAD_CAPTURES,
+        PC_TT, PC_CAPTURE_INIT, PC_GOOD_CAPTURES,
         QS_TT, QS_CAPTURE_INIT, QS_CAPTURES, QS_CHECK_INIT, QS_CHECKS,
     };
 
@@ -166,11 +168,13 @@ private:
         ,             bad_capture_moves;
 
     u08 stage;
+    Move move;
 
     template<GenType>
     void value ();
 
-    const ValMove& next_max_move ();
+    template<PickType, typename Pred>
+    Move select_move (Pred);
 
 public:
     bool pick_quiets;
@@ -289,7 +293,7 @@ inline std::basic_ostream<CharT, Traits>&
 namespace Searcher {
 
     // Threshold for countermoves based pruning
-    const i32 CounterMovePruneThreshold = 0;
+    constexpr i32 CounterMovePruneThreshold = 0;
 
     extern Limit Limits;
 

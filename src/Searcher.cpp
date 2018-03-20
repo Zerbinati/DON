@@ -236,13 +236,25 @@ void MovePicker::value ()
     }
 }
 
-/// MovePicker::next_max_move() finds the max move in the range [beg, end) and moves it to front.
-/// It is faster than sorting all the moves in advance when there are few moves.
-const ValMove& MovePicker::next_max_move ()
+/// MovePicker::select_move() returns the next move satisfying a predicate function
+template<PickType PT, typename Pred>
+Move MovePicker::select_move (Pred filter)
 {
-    auto beg = moves.begin () + i++;
-    std::swap (*beg, *std::max_element (beg, moves.end ()));
-    return *beg;
+    while (i < moves.size ())
+    {
+        auto beg = moves.begin () + i++;
+        if (PT == BEST)
+        {
+            std::swap (*beg, *std::max_element (beg, moves.end ()));
+        }
+
+        move = *beg;
+        if (filter ())
+        {
+            return move;
+        }
+    }
+    return move = MOVE_NONE;
 }
 
 /// MovePicker::next_move() is the most important method of the MovePicker class.
@@ -251,7 +263,7 @@ const ValMove& MovePicker::next_max_move ()
 /// taking care not to return the tt_move if it has already been searched.
 Move MovePicker::next_move ()
 {
-    beg_switch:
+    top:
     switch (stage)
     {
 
@@ -261,7 +273,6 @@ Move MovePicker::next_move ()
     case Stage::QS_TT:
         ++stage;
         return tt_move;
-        break;
 
     case Stage::NAT_CAPTURE_INIT:
     case Stage::PC_CAPTURE_INIT:
@@ -281,17 +292,15 @@ Move MovePicker::next_move ()
         i = 0;
 
         // Rebranch at the top of the switch
-        goto beg_switch;
+        goto top;
 
     case Stage::NAT_GOOD_CAPTURES:
-        while (i < moves.size ())
+        if (select_move<BEST> ([&]() { return pos.see_ge (move, Value(-moves[i-1].value * 55 / 1024)) ?
+                                            true :
+                                            // Move losing capture to bad_capture_moves to be tried later
+                                            (bad_capture_moves.push_back (move), false); }))
         {
-            auto &vm = next_max_move ();
-            if (pos.see_ge (vm.move, Value(-vm.value * 55 / 1024)))
-            {
-                return vm.move;
-            }
-            bad_capture_moves.push_back (vm.move);
+            return move;
         }
         ++stage;
         /* fallthrough */
@@ -324,9 +333,9 @@ Move MovePicker::next_move ()
         /* fallthrough */
     case Stage::NAT_QUIETS:
         if (   pick_quiets
-            && i < moves.size ())
+            && select_move<NEXT> ([]() { return true; }))
         {
-            return next_max_move ().move;
+            return move;
         }
         ++stage;
         i = 0;
@@ -355,43 +364,18 @@ Move MovePicker::next_move ()
         i = 0;
         /* fallthrough */
     case Stage::EVA_EVASIONS:
-        if (i < moves.size ())
-        {
-            return next_max_move ().move;
-        }
-        break;
+        return select_move<NEXT> ([]() { return true; });
 
     case Stage::PC_GOOD_CAPTURES:
-        while (i < moves.size ())
-        {
-            auto move = next_max_move ().move;
-            // In ProbCut captures with SEE greater than or equal to the given threshold
-            if (pos.see_ge (move, threshold))
-            {
-                return move;
-            }
-            //bad_capture_moves.push_back (move);
-        }
-    //    ++stage;
-    //    i = 0;
-    //    /* fallthrough */
-    //case Stage::PC_BAD_CAPTURES:
-    //    if (i < bad_capture_moves.size ())
-    //    {
-    //        return bad_capture_moves[i++];
-    //    }
-        break;
+        return select_move<BEST> ([&]() { return pos.see_ge (move, threshold); });
 
     case Stage::QS_CAPTURES:
-        while (i < moves.size ())
+        if (select_move<BEST> ([&]() { return depth > DepthQSRecapture
+                                           || recap_sq == dst_sq (move); }))
         {
-            auto move = next_max_move ().move;
-            if (   depth > DepthQSRecapture
-                || recap_sq == dst_sq (move))
-            {
-                return move;
-            }
+            return move;
         }
+
         if (depth <= DepthQSNoCheck)
         {
             break;
@@ -413,16 +397,9 @@ Move MovePicker::next_move ()
         i = 0;
         /* fallthrough */
     case Stage::QS_CHECKS:
-        if (i < moves.size ())
-        {
-            return moves[i++].move;
-        }
-        break;
-
-    default:
-        assert(false);
-        break;
+        return select_move<NEXT> ([]() { return true; });
     }
+    assert(false);
     return MOVE_NONE;
 }
 
@@ -451,7 +428,7 @@ namespace Searcher {
     namespace {
 
         // Razoring and futility margin
-        const Value RazorMargin[2] = { Value(590), Value(604) };
+        constexpr Value RazorMargin[] = { Value(0), Value(590), Value(604) };
 
         // FutilityMoveCounts[improving][depth]
         u08 FutilityMoveCounts[2][16];
@@ -465,9 +442,9 @@ namespace Searcher {
 
         Value BaseContempt = VALUE_ZERO;
 
-        const u08 SkipIndex = 20;
-        const u08 SkipSize[SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
-        const u08 SkipPhase[SkipIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
+        constexpr u08 SkipIndex = 20;
+        constexpr u08 SkipSize[SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
+        constexpr u08 SkipPhase[SkipIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
         ofstream OutputStream;
 
@@ -1170,23 +1147,15 @@ namespace Searcher {
                     // Step 7. Razoring sort of forward pruning where rather than
                     // skipping an entire subtree, search it to a reduced depth.
                     if (   !PVNode
-                        && 2 >= depth)
+                        && 2 >= depth
+                        && tt_eval + RazorMargin[depth] <= alfa)
                     {
-                        if (   1 >= depth
-                            && tt_eval + RazorMargin[0] <= alfa)
+                        auto alfa_margin = alfa - RazorMargin[depth] * (1 != depth ? 1 : 0);
+                        auto v = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
+                        if (   1 == depth
+                            || v <= alfa_margin)
                         {
-                            return quien_search<false> (pos, ss, alfa, alfa+1);
-                        }
-                        
-                        if (tt_eval + RazorMargin[1] <= alfa)
-                        {
-                            auto alfa_margin = alfa - RazorMargin[1];
-                            assert(-VALUE_INFINITE < alfa_margin);
-                            auto v = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
-                            if (v <= alfa_margin)
-                            {
-                                return v;
-                            }
+                            return v;
                         }
                     }
 

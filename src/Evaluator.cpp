@@ -86,48 +86,48 @@ namespace {
     #define S(mg, eg) mk_score (mg, eg)
 
         // Bonus for knight behind a pawn
-        static const Score KnightBehindPawn =  S(16, 0);
+        static constexpr Score KnightBehindPawn =  S(16, 0);
         // Bonus for bishop behind a pawn
-        static const Score BishopBehindPawn =  S(16, 0);
+        static constexpr Score BishopBehindPawn =  S(16, 0);
         // Bonus for bishop long range
-        static const Score BishopOnDiagonal =  S(22, 0);
+        static constexpr Score BishopOnDiagonal =  S(22, 0);
         // Penalty for bishop with pawns on same color
-        static const Score BishopPawns =       S( 8,12);
+        static constexpr Score BishopPawns =       S( 8,12);
         // Penalty for bishop trapped with pawns (Chess960)
-        static const Score BishopTrapped =     S(50,50);
+        static constexpr Score BishopTrapped =     S(50,50);
         // Bonus for rook on pawns
-        static const Score RookOnPawns =       S( 8,24);
+        static constexpr Score RookOnPawns =       S( 8,24);
         // Penalty for rook trapped
-        static const Score RookTrapped =       S(92, 0);
+        static constexpr Score RookTrapped =       S(92, 0);
         // Penalty for queen weaken
-        static const Score QueenWeaken =       S(50,10);
+        static constexpr Score QueenWeaken =       S(50,10);
 
-        static const Score PawnlessFlank =     S(20,80);
-        static const Score EnemyAttackKing =   S( 7, 0);
+        static constexpr Score PawnlessFlank =     S(20,80);
+        static constexpr Score EnemyAttackKing =   S( 7, 0);
 
-        static const Score PawnWeakUnopposed = S( 5,25);
+        static constexpr Score PawnWeakUnopposed = S( 5,25);
 
         // Bonus for each hanged piece
-        static const Score PieceHanged =       S(52,30);
+        static constexpr Score PieceHanged =       S(52,30);
 
-        static const Score SafePawnThreat =    S(175,168);
+        static constexpr Score SafePawnThreat =    S(175,168);
 
-        static const Score PawnPushThreat =    S(47,26);
+        static constexpr Score PawnPushThreat =    S(47,26);
 
-        static const Score PieceRankThreat =   S(16, 3);
+        static constexpr Score PieceRankThreat =   S(16, 3);
 
-        static const Score KnightQueenThreat = S(21,11);
+        static constexpr Score KnightQueenThreat = S(21,11);
 
-        static const Score SliderQueenThreat = S(42,21);
+        static constexpr Score SliderQueenThreat = S(42,21);
 
-        static const Score Connectivity =      S( 3, 1);
+        static constexpr Score Connectivity =      S( 3, 1);
 
-        static const Score PawnPassHinder =    S( 8, 1);
+        static constexpr Score PawnPassHinder =    S( 8, 1);
 
 #undef S
 
-        static const Value LazyThreshold =     Value(1500);
-        static const Value SpaceThreshold =    Value(12222);
+        static constexpr Value LazyThreshold =     Value(1500);
+        static constexpr Value SpaceThreshold =    Value(12222);
 
 
         // PieceMobility[piece-type][attacks] contains bonuses for mobility,
@@ -291,7 +291,7 @@ namespace {
     template<Color Own>
     void Evaluator<Trace>::initialize ()
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
         Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
         if (0 != pinned_pawns)

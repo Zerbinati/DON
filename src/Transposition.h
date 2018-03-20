@@ -76,14 +76,14 @@ public:
 /// Size of Transposition entry (10 bytes)
 static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
 
-const u08 CacheLineSize = 64;
+constexpr u08 CacheLineSize = 64;
 /// Transposition::Cluster needs 32 bytes to be stored
 /// 10 x 3 + 2 x 1 = 32
 struct TCluster
 {
 public:
     // Cluster entry count
-    static const u08 EntryCount = 3;
+    static constexpr u08 EntryCount = 3;
 
     TEntry entries[EntryCount];
     char padding[2]; // Align to a divisor of the cache line size

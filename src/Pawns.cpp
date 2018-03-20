@@ -64,11 +64,11 @@ namespace Pawns {
     #define S(mg, eg) mk_score(mg, eg)
 
         // Isolated pawn penalty
-        const Score Isolated = S(13,18);
+        constexpr Score Isolated = S(13,18);
         // Backward pawn penalty
-        const Score Backward = S(24,12);
+        constexpr Score Backward = S(24,12);
         // Blocked pawn penalty
-        const Score Blocked =  S(18,38);
+        constexpr Score Blocked =  S(18,38);
 
     #undef S
 
@@ -78,8 +78,8 @@ namespace Pawns {
         template<Color Own>
         Score evaluate (const Position &pos, Entry *e)
         {
-            const auto Opp = WHITE == Own ? BLACK : WHITE;
-            const auto Push = WHITE == Own ? DEL_N : DEL_S;
+            constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+            constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto PawnAtt = PawnAttacks[Own];
 
             Bitboard own_pawns = pos.pieces (Own, PAWN);
@@ -155,8 +155,7 @@ namespace Pawns {
                             && R_4 < rel_rank (Own, s)
                             && 0 != (b = shift<Push> (supporters) & ~opp_pawns)
                             && pop_count (b) > pop_count (  (opp_pawns ^ stoppers)
-                                                          & (  shift<WHITE == Own ? DEL_NW : DEL_SE> (b)
-                                                             | shift<WHITE == Own ? DEL_NE : DEL_SW> (b))))))
+                                                          & pawn_attacks_bb (Own, bb))))
                 {
                     e->passers[Own] |= s;
                 }

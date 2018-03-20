@@ -11,7 +11,7 @@ namespace Material {
 
         // Polynomial material imbalance parameters
 
-        const i32 OwnQuadratic[NONE][NONE] =
+        constexpr i32 OwnQuadratic[NONE][NONE] =
         {
             //          Own Pieces
             //  P     N     B     R     Q    BP
@@ -23,7 +23,7 @@ namespace Material {
             {    0,    0,    0,    0,    0, +1667 }  // BP
         };
 
-        const i32 OppQuadratic[NONE][NONE] =
+        constexpr i32 OppQuadratic[NONE][NONE] =
         {
             //          Opp Pieces
             //  P     N     B     R     Q    BP
@@ -49,7 +49,7 @@ namespace Material {
         template<Color Own>
         i32 imbalance (const i32 (*count)[NONE])
         {
-            const auto Opp = WHITE == Own ? BLACK : WHITE;
+            constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
             i32 value = 0;
             // "The Evaluation of Material Imbalances in Chess"
@@ -208,12 +208,14 @@ namespace Material {
         const i32 piece_count[CLR_NO][NONE] =
         {
             {
-                pos.count (WHITE, PAWN), pos.count (WHITE, NIHT), pos.count (WHITE, BSHP),
-                pos.count (WHITE, ROOK), pos.count (WHITE, QUEN), pos.paired_bishop (WHITE) ? 1 : 0
+                pos.count (WHITE, PAWN), pos.count (WHITE, NIHT),
+                pos.count (WHITE, BSHP), pos.count (WHITE, ROOK),
+                pos.count (WHITE, QUEN), pos.paired_bishop (WHITE) ? 1 : 0
             },
             {
-                pos.count (BLACK, PAWN), pos.count (BLACK, NIHT), pos.count (BLACK, BSHP),
-                pos.count (BLACK, ROOK), pos.count (BLACK, QUEN), pos.paired_bishop (BLACK) ? 1 : 0
+                pos.count (BLACK, PAWN), pos.count (BLACK, NIHT),
+                pos.count (BLACK, BSHP), pos.count (BLACK, ROOK),
+                pos.count (BLACK, QUEN), pos.paired_bishop (BLACK) ? 1 : 0
             }
         };
 
@@ -222,7 +224,7 @@ namespace Material {
             imbalance<WHITE> (piece_count),
             imbalance<BLACK> (piece_count)
         };
-        
+
         auto value = (imb[WHITE] - imb[BLACK]) / 16; // Imbalance Resolution
         e->imbalance = mk_score (value, value);
 

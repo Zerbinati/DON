@@ -58,10 +58,11 @@ namespace {
         return std::pow (1.00 + std::exp ((ply - 64.50) / 6.85), -0.171) + DBL_MIN; // Ensure non-zero
     }
 
-    u64 remaining_time (u64 time, u08 movestogo, i16 ply, bool optimum)
+    template<bool Optimum>
+    u64 remaining_time (u64 time, u08 movestogo, i16 ply)
     {
-        auto  step_ratio = optimum ? 1.00 : 7.30; // When in trouble, can step over reserved time with this ratio
-        auto steal_ratio = optimum ? 0.00 : 0.34; // However must not steal time from remaining moves over this ratio
+        constexpr auto  step_ratio = Optimum ? 1.00 : 7.30; // When in trouble, can step over reserved time with this ratio
+        constexpr auto steal_ratio = Optimum ? 0.00 : 0.34; // However must not steal time from remaining moves over this ratio
 
         auto move_imp1 = move_importance (ply) * MoveSlowness / 100.0;
         auto move_imp2 = 0.0;
@@ -96,12 +97,12 @@ void TimeManager::initialize (Color c, i16 ply)
     optimum_time =
     maximum_time = std::max (Limits.clock[c].time, u64(MinimumMoveTime));
 
-    auto max_movestogo = 0 == Limits.movestogo ?
-                            MaximumMoveHorizon :
-                            std::min (Limits.movestogo, MaximumMoveHorizon);
+    const auto Max_movestogo = 0 == Limits.movestogo ?
+                                MaximumMoveHorizon :
+                                std::min (Limits.movestogo, MaximumMoveHorizon);
     // Calculate optimum time usage for different hypothetic "moves to go" and choose the
     // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
-    for (u08 hyp_movestogo = 1; hyp_movestogo <= max_movestogo; ++hyp_movestogo)
+    for (u08 hyp_movestogo = 1; hyp_movestogo <= Max_movestogo; ++hyp_movestogo)
     {
         // Calculate thinking time for hypothetic "moves to go"
         auto hyp_time = std::max (
@@ -110,8 +111,8 @@ void TimeManager::initialize (Color c, i16 ply)
                         - OverheadClockTime
                         - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), u64(0));
 
-        optimum_time = std::min (optimum_time, MinimumMoveTime + remaining_time (hyp_time, hyp_movestogo, ply, true));
-        maximum_time = std::min (maximum_time, MinimumMoveTime + remaining_time (hyp_time, hyp_movestogo, ply, false));
+        optimum_time = std::min (optimum_time, MinimumMoveTime + remaining_time<true > (hyp_time, hyp_movestogo, ply));
+        maximum_time = std::min (maximum_time, MinimumMoveTime + remaining_time<false> (hyp_time, hyp_movestogo, ply));
     }
 
     if (Ponder)

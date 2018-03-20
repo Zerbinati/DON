@@ -93,10 +93,10 @@ namespace {
     template<GenType GT, Color Own>
     void generate_pawn_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
-        const auto Push = WHITE == Own ? DEL_N : DEL_S;
-        const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
-        const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
+        constexpr auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
+        constexpr auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 
         // Pawns on 7th Rank
         Bitboard R7_pawns = pos.pieces (Own, PAWN) &  rank_bb (WHITE == Own ? R_7 : R_2);
@@ -213,7 +213,7 @@ namespace {
     template<GenType GT, Color Own, CastleSide CS>
     void generate_castling_moves (ValMoves &moves, const Position &pos)
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
         assert(GenType::EVASION != GT
             && pos.si->can_castle (Own, CS)
@@ -258,7 +258,7 @@ namespace {
     template<GenType GT, Color Own>
     void generate_king_moves (ValMoves &moves, const Position &pos, Bitboard targets)
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
         assert(GenType::EVASION != GT);
 

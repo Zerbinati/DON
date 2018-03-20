@@ -14,7 +14,7 @@ namespace EndGame {
     namespace {
 
         // Table used to drive the weak king towards the edge of the board.
-        const i32 PushToEdge[SQ_NO] =
+        constexpr i32 PushToEdge[SQ_NO] =
         {
             100, 90, 80, 70, 70, 80, 90, 100,
             90,  70, 60, 50, 50, 60, 70,  90,
@@ -27,7 +27,7 @@ namespace EndGame {
         };
 
         // Table used to drive the weak king towards a corner square of the right color.
-        const i32 PushToCorner[SQ_NO] =
+        constexpr i32 PushToCorner[SQ_NO] =
         {
             200, 190, 180, 170, 160, 150, 140, 130,
             190, 180, 170, 160, 150, 140, 130, 140,
@@ -40,8 +40,8 @@ namespace EndGame {
         };
 
         // Tables used to drive a piece towards or away from another piece
-        const i32 PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
-        const i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
+        constexpr i32 PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
+        constexpr i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
         // Map the square as if color is white and sqaure only pawn is on the left half of the board.
         Square normalize (const Position &pos, Color c, Square sq)
@@ -497,7 +497,7 @@ namespace EndGame {
         assert(verify_material (pos,   weak_color, VALUE_MG_ROOK, 1));
 
         // Pawn Rank based scaling.
-        const Scale Scales[R_NO] =
+        constexpr Scale Scales[R_NO] =
         {
             Scale(0),
             Scale(9),
