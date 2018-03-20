@@ -35,7 +35,7 @@ namespace {
                     continue;
                 }
                 Bitboard attacks = targets
-                                    & (PieceType::NIHT == PT ? PieceAttacks[+PieceType::NIHT][+s] :
+                                 & (PieceType::NIHT == PT ? PieceAttacks[+PieceType::NIHT][+s] :
                                     PieceType::BSHP == PT ? attacks_bb<PieceType::BSHP> (s, pos.pieces ()) :
                                     PieceType::ROOK == PT ? attacks_bb<PieceType::ROOK> (s, pos.pieces ()) :
                                     PieceType::QUEN == PT ? attacks_bb<PieceType::QUEN> (s, pos.pieces ()) : (assert(false), 0));
@@ -164,20 +164,21 @@ namespace {
             if (Square::NO != pos.si->en_passant_sq)
             {
                 assert(Rank::r6 == rel_rank (Own, pos.si->en_passant_sq));
-                Bitboard ep_captures = Rx_pawns & rank_bb (Color::WHITE == Own ? Rank::r5 : Rank::r4);
-                if (0 != ep_captures)
+                Bitboard ep_capturers = Rx_pawns
+                                      & rank_bb (Color::WHITE == Own ? Rank::r5 : Rank::r4)
+                                      & PawnAttacks[+Opp][+pos.si->en_passant_sq];
+                if (0 != ep_capturers)
                 {
                     // If the checking piece is the double pushed pawn and also is in the target.
                     // Otherwise this is a discovery check and are forced to do otherwise.
                     if (GenType::EVASION == GT)
                     {
-                        ep_captures &= (  shift<Delta::EAST> (targets)
-                                        | shift<Delta::WEST> (targets));
+                        ep_capturers &= (  shift<Delta::EAST> (targets)
+                                         | shift<Delta::WEST> (targets));
                     }
-                    ep_captures &= PawnAttacks[+Opp][+pos.si->en_passant_sq];
-                    assert(0 != ep_captures
-                        && 2 >= pop_count (ep_captures));
-                    while (0 != ep_captures) { moves += mk_move<MoveType::ENPASSANT> (pop_lsq (ep_captures), pos.si->en_passant_sq); }
+                    assert(0 != ep_capturers
+                        && 2 >= pop_count (ep_capturers));
+                    while (0 != ep_capturers) { moves += mk_move<MoveType::ENPASSANT> (pop_lsq (ep_capturers), pos.si->en_passant_sq); }
                 }
             }
         }

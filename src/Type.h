@@ -397,14 +397,14 @@ enum Scale : u08
     inline T& operator++ (T &t) { t = T(+t + 1); return t; } \
     inline T& operator-- (T &t) { t = T(+t - 1); return t; }
 
-#define BINARY_OPERATORS(T)                                       \
-    constexpr T operator~ (T t) { return T(~+t); }                \
-    constexpr T operator| (T t1, T t2) { return T(+t1 | +t2); }   \
-    constexpr T operator& (T t1, T t2) { return T(+t1 & +t2); }   \
-    constexpr T operator^ (T t1, T t2) { return T(+t1 ^ +t2); }   \
-    inline T operator|= (T t1, T t2) { t1 = t1 | t2; return t1; } \
-    inline T operator&= (T t1, T t2) { t1 = t1 & t2; return t1; } \
-    inline T operator^= (T t1, T t2) { t1 = t1 ^ t2; return t1; } \
+#define BITWISE_OPERATORS(T)                                        \
+    constexpr T operator~ (T t) { return T(~+t); }                  \
+    constexpr T operator| (T t1, T t2) { return T(+t1 | +t2); }     \
+    constexpr T operator& (T t1, T t2) { return T(+t1 & +t2); }     \
+    constexpr T operator^ (T t1, T t2) { return T(+t1 ^ +t2); }     \
+    inline T& operator|= (T &t1, T t2) { t1 = t1 | t2; return t1; } \
+    inline T& operator&= (T &t1, T t2) { t1 = t1 & t2; return t1; } \
+    inline T& operator^= (T &t1, T t2) { t1 = t1 ^ t2; return t1; } \
 
 BASIC_OPERATORS(File)
 //ARTHMAT_OPERATORS(File)
@@ -430,7 +430,7 @@ INC_DEC_OPERATORS(Square)
 
 INC_DEC_OPERATORS(CastleSide)
 
-BINARY_OPERATORS(CastleRight)
+BITWISE_OPERATORS(CastleRight)
 
 INC_DEC_OPERATORS(PieceType)
 
@@ -471,9 +471,9 @@ inline Score& operator/= (Score &s, i32 i) { s = mk_score (+mg_value (+s) / i, +
 Score operator* (Score, Score) = delete;
 Score operator/ (Score, Score) = delete;
 
-BINARY_OPERATORS(Bound)
+BITWISE_OPERATORS(Bound)
 
-#undef BINARY_OPERATORS
+#undef BITWISE_OPERATORS
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS

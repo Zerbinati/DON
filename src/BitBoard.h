@@ -305,7 +305,7 @@ namespace BitBoard {
     template<> inline Bitboard attacks_bb<PieceType::ROOK> (Square s, Bitboard occ) { return RMagics[+s].attacks_bb (occ); }
     /// Attacks of the Queen with occupancy
     template<> inline Bitboard attacks_bb<PieceType::QUEN> (Square s, Bitboard occ) { return BMagics[+s].attacks_bb (occ)
-                                                                                           | RMagics[+s].attacks_bb (occ); }
+                                                                                | RMagics[+s].attacks_bb (occ); }
     
 #if !defined(ABM) // PopCount Table
 

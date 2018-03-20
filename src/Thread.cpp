@@ -143,8 +143,8 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
             auto &rm = root_moves[i];
             auto value = rm.new_value
                         // This is magic formula for push
-                       + (  weakness  * i32(max_value - rm.new_value)
-                          + diversion * i32(prng.rand<u32> () % weakness)) / MaxPlies;
+                       + (  weakness  * +(max_value - rm.new_value)
+                          + diversion *  (prng.rand<u32> () % weakness)) / MaxPlies;
 
             if (best_value <= value)
             {
