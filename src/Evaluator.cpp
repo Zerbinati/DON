@@ -174,7 +174,7 @@ namespace {
         // Contains all squares attacked by the color and piece type.
         Bitboard ful_attacked_by[+Color::NO];
         // Contains all squares attacked by the color and piece type with pinned removed.
-        Bitboard pin_attacked_by[+Color::NO][PieceType::NO];
+        Bitboard pin_attacked_by[+Color::NO][+PieceType::NO];
         // Contains all squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
         Bitboard dbl_attacked[+Color::NO];
 
