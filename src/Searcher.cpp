@@ -122,7 +122,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
                                                         || !pos.legal (mm)
                                                         ||  pos.capture (mm);
                                                 }),
-                             refutation_moves.end ());
+                                refutation_moves.end ());
     }
 
     if (MOVE_NONE == tt_move)
@@ -240,7 +240,7 @@ void MovePicker::value ()
 }
 
 /// MovePicker::select_move() returns the next move satisfying a predicate function
-template<PickType PT, typename Pred>
+template<MovePicker::PickType PT, typename Pred>
 Move MovePicker::select_move (Pred filter)
 {
     while (i < moves.size ())

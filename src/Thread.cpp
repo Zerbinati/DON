@@ -497,8 +497,8 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
         if (   TBHasRoot
             && !TBUseRule50)
         {
-            TBValue = TBValue > VALUE_DRAW ? +VALUE_MATE - i32(MaxPlies - 1) :
-                      TBValue < VALUE_DRAW ? -VALUE_MATE + i32(MaxPlies + 1) :
+            TBValue = TBValue > VALUE_DRAW ? +VALUE_MATE - (MaxPlies - 1) :
+                      TBValue < VALUE_DRAW ? -VALUE_MATE + (MaxPlies + 1) :
                                               VALUE_DRAW;
         }
 
