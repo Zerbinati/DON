@@ -133,7 +133,7 @@ typedef Stats<i16, 2, 324, +Piece::NO, +Square::NO*+Square::NO, +PieceType::NO> 
 /// PieceDestinyMove stores counter moves is indexed by [piece][move]
 typedef Stats<Move, 0, 0, +Piece::NO, +Square::NO*+Square::NO> PieceDestinyMove;
 
-enum PickType { NEXT, BEST };
+
 
 /// MovePicker class is used to pick one legal moves from the current position.
 class MovePicker
@@ -146,6 +146,8 @@ private:
         PC_TT, PC_CAPTURE_INIT, PC_GOOD_CAPTURES,
         QS_TT, QS_CAPTURE_INIT, QS_CAPTURES, QS_CHECK_INIT, QS_CHECKS,
     };
+
+	enum PickType : u08 { NEXT, BEST };
 
     const i32 MaxValue = 1 << 28;
 

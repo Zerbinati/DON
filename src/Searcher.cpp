@@ -240,7 +240,7 @@ void MovePicker::value ()
 }
 
 /// MovePicker::select_move() returns the next move satisfying a predicate function
-template<PickType PT, typename Pred>
+template<MovePicker::PickType PT, typename Pred>
 Move MovePicker::select_move (Pred filter)
 {
     while (i < moves.size ())
