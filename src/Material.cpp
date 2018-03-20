@@ -11,7 +11,7 @@ namespace Material {
 
         // Polynomial material imbalance parameters
 
-        const i32 OwnQuadratic[+PieceType::NONE][+PieceType::NONE] =
+        constexpr i32 OwnQuadratic[+PieceType::NONE][+PieceType::NONE] =
         {
             //          Own Pieces
             //  P     N     B     R     Q    BP
@@ -23,7 +23,7 @@ namespace Material {
             {    0,    0,    0,    0,    0, +1667 }  // BP
         };
 
-        const i32 OppQuadratic[+PieceType::NONE][+PieceType::NONE] =
+        constexpr i32 OppQuadratic[+PieceType::NONE][+PieceType::NONE] =
         {
             //          Opp Pieces
             //  P     N     B     R     Q    BP
@@ -49,7 +49,7 @@ namespace Material {
         template<Color Own>
         i32 imbalance (const i32 (*count)[6])
         {
-            const auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
+            constexpr auto Opp = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
 
             i32 value = 0;
             // "The Evaluation of Material Imbalances in Chess"

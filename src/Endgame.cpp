@@ -14,7 +14,7 @@ namespace EndGame {
     namespace {
 
         // Table used to drive the weak king towards the edge of the board.
-        const i32 PushToEdge[+Square::NO] =
+        constexpr i32 PushToEdge[+Square::NO] =
         {
             100, 90, 80, 70, 70, 80, 90, 100,
             90,  70, 60, 50, 50, 60, 70,  90,
@@ -27,7 +27,7 @@ namespace EndGame {
         };
 
         // Table used to drive the weak king towards a corner square of the right color.
-        const i32 PushToCorner[+Square::NO] =
+        constexpr i32 PushToCorner[+Square::NO] =
         {
             200, 190, 180, 170, 160, 150, 140, 130,
             190, 180, 170, 160, 150, 140, 130, 140,
@@ -40,8 +40,8 @@ namespace EndGame {
         };
 
         // Tables used to drive a piece towards or away from another piece
-        const i32 PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
-        const i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
+        constexpr i32 PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
+        constexpr i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
         // Map the square as if color is white and square only pawn is on the left half of the board.
         Square normalize (const Position &pos, Color c, Square sq)
@@ -497,7 +497,7 @@ namespace EndGame {
         assert(verify_material (pos,   weak_color, Value::MG_ROOK, 1));
 
         // Pawn Rank based scaling.
-        const Scale Scales[+Rank::NO] =
+        constexpr Scale Scales[+Rank::NO] =
         {
             Scale(0),
             Scale(9),
@@ -761,7 +761,7 @@ namespace EndGame {
         if (   0 == (spawns & ~front_rank_bb (weak_color, wk_sq))
             && (   0 == (spawns & ~FA_bb)
                 || 0 == (spawns & ~FH_bb))
-            && 1 >= dist<File> (wk_sq, scan_frntmost_sq (strong_color, spawns)))
+            && 1 >= dist<File> (wk_sq, scan_lsq (spawns)))
         {
             return SCALE_DRAW;
         }
@@ -782,8 +782,7 @@ namespace EndGame {
         // be detected even when the weak side has some materials or pawns.
 
         auto spawns = pos.pieces (strong_color, PieceType::PAWN);
-        auto sp_sq = scan_frntmost_sq (strong_color, spawns);
-        auto sp_f  = _file (sp_sq);
+        auto sp_f = _file (scan_lsq (spawns));
 
         // All pawns on same A or H file? (rook file)
         // Then potential draw

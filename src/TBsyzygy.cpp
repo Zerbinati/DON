@@ -105,7 +105,7 @@ namespace TBSyzygy {
 
         static_assert (sizeof (LR) == 3, "LR size incorrect");
 
-        const i32 TBPIECES = 7;
+        constexpr i32 TBPIECES = 7;
 
         struct PairsData
         {
@@ -244,7 +244,7 @@ namespace TBSyzygy {
             return i32(_rank (sq)) - i32(_file (sq));
         }
 
-        const Value WDL_To_Value[] =
+        constexpr Value WDL_To_Value[] =
         {
             -Value::MATE + i32(MaxPlies) + 1,
              Value::DRAW - 2,
@@ -280,8 +280,8 @@ namespace TBSyzygy {
 
         template<typename T, i32 LE> T number (void* addr)
         {
-            const union { u32 i; char c[4]; } Le = { 0x01020304 };
-            const bool IsLittleEndian = (Le.c[0] == 4);
+            constexpr union { u32 i; char c[4]; } Le = { 0x01020304 };
+            constexpr bool IsLittleEndian = (Le.c[0] == 4);
 
             T v;
             if ((uintptr_t) addr & (alignof(T) -1)) // Unaligned pointer (very rare)
@@ -305,8 +305,8 @@ namespace TBSyzygy {
             typedef pair<WDLEntry*, DTZEntry*> EntryPair;
             typedef pair<Key, EntryPair> Entry;
 
-            static const i32 TBHASHBITS = 10;
-            static const i32 HSHMAX = 5;
+            static constexpr i32 TBHASHBITS = 10;
+            static constexpr i32 HSHMAX = 5;
 
             Entry table[1 << TBHASHBITS][HSHMAX];
 
@@ -758,7 +758,7 @@ namespace TBSyzygy {
 
         i32 map_score (DTZEntry *entry, File f, i32 value, WDLScore wdl)
         {
-            const i32 WDLMap[] = { 1, 3, 0, 2, 0 };
+            constexpr i32 WDLMap[] = { 1, 3, 0, 2, 0 };
 
             i32 flags = entry->has_pawns ?
                 entry->pawn_table.file[+f].precomp->flags :
@@ -798,7 +798,7 @@ namespace TBSyzygy {
         template<typename Entry, typename T = typename Ret<Entry>::type>
         T do_probe_table (const Position &pos, Entry *entry, WDLScore wdl, ProbeState &state)
         {
-            const bool IsWDL = is_same<Entry, WDLEntry>::value;
+            constexpr bool IsWDL = is_same<Entry, WDLEntry>::value;
 
             Square squares[TBPIECES];
             Piece pieces[TBPIECES];
@@ -1266,7 +1266,7 @@ namespace TBSyzygy {
                 HasPawns = 2
             };
 
-            const bool IsWDL = is_same<Entry, WDLEntry>::value;
+            constexpr bool IsWDL = is_same<Entry, WDLEntry>::value;
             assert(e.has_pawns        == !!(*data & HasPawns));
             assert((e.key1 != e.key2) == !!(*data & Split));
 
@@ -1352,7 +1352,7 @@ namespace TBSyzygy {
         template<typename Entry>
         void* init (Entry &e, const Position &pos)
         {
-            const bool IsWDL = is_same<Entry, WDLEntry>::value;
+            constexpr bool IsWDL = is_same<Entry, WDLEntry>::value;
 
             static Mutex mutex;
 
@@ -1378,7 +1378,7 @@ namespace TBSyzygy {
                 b += string(pos.count (Color::BLACK, pt), PieceToChar[+pt]);
             }
 
-            const u08 TB_MAGIC[][4] =
+            constexpr u08 TB_MAGIC[][4] =
             {
                 { 0xD7, 0x66, 0x0C, 0xA5 },
                 { 0x71, 0xE8, 0x23, 0x5D }
@@ -2043,7 +2043,7 @@ namespace TBSyzygy {
         // (Windows)= D:\tb\wdl345;D:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
         // (Unix-based OS)= .\tb\wdl345:.\tb\wdl6:.\tb\dtz345:.\tb\dtz6
 
-        const char SepChar =
+        constexpr char SepChar =
 #       if defined(_WIN32)
             ';';
 #       else

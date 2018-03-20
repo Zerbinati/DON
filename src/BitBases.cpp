@@ -11,7 +11,7 @@ namespace BitBases {
     namespace {
 
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
-        const u32 MaxIndex = 2*24*+Square::NO*+Square::NO; // stm * p_sq * wk_sq * bk_sq = 196608
+        constexpr u32 MaxIndex = 2*24*+Square::NO*+Square::NO; // stm * p_sq * wk_sq * bk_sq = 196608
 
         // Each u32 entity stores results of 32 positions, one per bit
         u32 KPK_Bitbase[MaxIndex / 32];
@@ -62,9 +62,9 @@ namespace BitBases {
                 // If all moves lead to positions classified as WIN, the result of the current position is WIN
                 // otherwise the current position is classified as UNKNOWN.
 
-                const auto Opp  = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
-                const auto Good = Color::WHITE == Own ? Result::WIN : Result::DRAW;
-                const auto Bad  = Color::WHITE == Own ? Result::DRAW : Result::WIN;
+                constexpr auto Opp  = Color::WHITE == Own ? Color::BLACK : Color::WHITE;
+                constexpr auto Good = Color::WHITE == Own ? Result::WIN : Result::DRAW;
+                constexpr auto Bad  = Color::WHITE == Own ? Result::DRAW : Result::WIN;
 
                 Result r = Result::INVALID;
                 Bitboard b = PieceAttacks[+PieceType::KING][+k_sq[+Own]];
