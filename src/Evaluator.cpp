@@ -1153,7 +1153,7 @@ namespace {
               +  threats<WHITE> () - threats<BLACK> ()
               +  passers<WHITE> () - passers<BLACK> ()
               +  (pos.si->non_pawn_material () >= SpaceThreshold ?
-                 + space<  WHITE> () - space<  BLACK> () : SCORE_ZERO);
+                  space<  WHITE> () - space<  BLACK> () : SCORE_ZERO);
 
         score += initiative (eg_value (score));
 

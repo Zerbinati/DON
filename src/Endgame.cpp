@@ -43,7 +43,7 @@ namespace EndGame {
         constexpr i32 PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
         constexpr i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
-        // Map the square as if color is white and sqaure only pawn is on the left half of the board.
+        // Map the square as if color is white and square only pawn is on the left half of the board.
         Square normalize (const Position &pos, Color c, Square sq)
         {
             assert(1 == pos.count (c, PAWN));
@@ -107,8 +107,8 @@ namespace EndGame {
             return VALUE_DRAW;
         }
 
-        auto sk_sq = pos.square<KING> (strong_color);
-        auto wk_sq = pos.square<KING> (  weak_color);
+        const auto sk_sq = pos.square<KING> (strong_color);
+        const auto wk_sq = pos.square<KING> (  weak_color);
 
         auto value = std::min (
                              VALUE_EG_PAWN*pos.count (strong_color, PAWN)
@@ -137,16 +137,18 @@ namespace EndGame {
         assert(verify_material (pos,   weak_color, VALUE_ZERO, 0));
 
         // Assume strong_color is white and the pawn is on files A-D
-        auto sk_sq = normalize (pos, strong_color, pos.square<KING> (strong_color));
-        auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
-        auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
+        const auto sk_sq = normalize (pos, strong_color, pos.square<KING> (strong_color));
+        const auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
+        const auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
 
         if (!probe (strong_color == pos.active ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
         {
             return VALUE_DRAW;
         }
 
-        auto value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + Value(_rank (sp_sq));
+        const auto value = VALUE_KNOWN_WIN
+                         + VALUE_EG_PAWN
+                         + Value(_rank (sp_sq));
 
         return strong_color == pos.active ? +value : -value;
     }
@@ -160,9 +162,9 @@ namespace EndGame {
 
         auto sk_sq = pos.square<KING> (strong_color);
         auto wk_sq = pos.square<KING> (  weak_color);
-        auto sb_sq = pos.square<BSHP> (strong_color);
+        const auto sb_sq = pos.square<BSHP> (strong_color);
 
-        // kbnk mate table tries to drive toward corners of square of bishop.
+        // KBNK mate table tries to drive toward corners of square of bishop.
         // Drive enemy king toward corners A1 or H8, otherwise
         // Drive enemy king toward corners A8 or H1 by flipping the kings.
         if (opposite_colors (sb_sq, SQ_A1))
@@ -171,9 +173,9 @@ namespace EndGame {
             wk_sq = ~wk_sq;
         }
 
-        auto value = VALUE_KNOWN_WIN
-                   + PushClose[dist (sk_sq, wk_sq)]
-                   + PushToCorner[wk_sq];
+        const auto value = VALUE_KNOWN_WIN
+                         + PushClose[dist (sk_sq, wk_sq)]
+                         + PushToCorner[wk_sq];
 
         return strong_color == pos.active ? +value : -value;
     }
@@ -193,12 +195,12 @@ namespace EndGame {
         assert(verify_material (pos, strong_color, VALUE_MG_ROOK, 0));
         assert(verify_material (pos,   weak_color, VALUE_ZERO   , 1));
 
-        auto sk_sq = rel_sq (strong_color, pos.square<KING> (strong_color));
-        auto wk_sq = rel_sq (strong_color, pos.square<KING> (  weak_color));
-        auto sr_sq = rel_sq (strong_color, pos.square<ROOK> (strong_color));
-        auto wp_sq = rel_sq (strong_color, pos.square<PAWN> (  weak_color));
+        const auto sk_sq = rel_sq (strong_color, pos.square<KING> (strong_color));
+        const auto wk_sq = rel_sq (strong_color, pos.square<KING> (  weak_color));
+        const auto sr_sq = rel_sq (strong_color, pos.square<ROOK> (strong_color));
+        const auto wp_sq = rel_sq (strong_color, pos.square<PAWN> (  weak_color));
 
-        auto promote_sq = _file (wp_sq)|R_1;
+        const auto promote_sq = _file (wp_sq)|R_1;
 
         Value value;
 
@@ -237,9 +239,9 @@ namespace EndGame {
         assert(verify_material (pos, strong_color, VALUE_MG_ROOK, 0));
         assert(verify_material (pos,   weak_color, VALUE_MG_BSHP, 0));
 
-        auto sk_sq = pos.square<KING> (strong_color);
-        auto wk_sq = pos.square<KING> (  weak_color);
-        auto wb_sq = pos.square<BSHP> (  weak_color);
+        const auto sk_sq = pos.square<KING> (strong_color);
+        const auto wk_sq = pos.square<KING> (  weak_color);
+        const auto wb_sq = pos.square<BSHP> (  weak_color);
 
         // To draw, the weak side's king should run towards the corner.
         // And not just any corner! Only a corner that's not the same color as the bishop will do.
@@ -252,7 +254,7 @@ namespace EndGame {
         }
 
         // When the weak side ended up in the same corner as bishop.
-        auto value = Value(PushToEdge[wk_sq]);
+        const auto value = Value(PushToEdge[wk_sq]);
 
         return strong_color == pos.active ? +value : -value;
     }
@@ -264,9 +266,9 @@ namespace EndGame {
         assert(verify_material (pos, strong_color, VALUE_MG_ROOK, 0));
         assert(verify_material (pos,   weak_color, VALUE_MG_NIHT, 0));
 
-        auto sk_sq = pos.square<KING> (strong_color);
-        auto wk_sq = pos.square<KING> (  weak_color);
-        auto wn_sq = pos.square<NIHT> (  weak_color);
+        const auto sk_sq = pos.square<KING> (strong_color);
+        const auto wk_sq = pos.square<KING> (  weak_color);
+        const auto wn_sq = pos.square<NIHT> (  weak_color);
 
         // If weak king is near the knight, it's a draw.
         if (   dist (wk_sq, wn_sq) + (strong_color == pos.active ? 1 : 0) <= 3
@@ -275,7 +277,9 @@ namespace EndGame {
             return VALUE_DRAW;
         }
 
-        auto value = Value(PushAway[dist (wk_sq, wn_sq)] + PushToEdge[wk_sq]);
+        const auto value = VALUE_ZERO
+                         + PushAway[dist (wk_sq, wn_sq)]
+                         + PushToEdge[wk_sq];
 
         return strong_color == pos.active ? +value : -value;
     }
@@ -289,18 +293,16 @@ namespace EndGame {
         assert(verify_material (pos, strong_color, VALUE_MG_QUEN, 0));
         assert(verify_material (pos,   weak_color, VALUE_ZERO   , 1));
 
-        auto sk_sq = pos.square<KING> (strong_color);
-        auto wk_sq = pos.square<KING> (  weak_color);
-        auto wp_sq = pos.square<PAWN> (  weak_color);
+        const auto sk_sq = pos.square<KING> (strong_color);
+        const auto wk_sq = pos.square<KING> (  weak_color);
+        const auto wp_sq = pos.square<PAWN> (  weak_color);
 
-        auto value = Value(PushClose[dist (sk_sq, wk_sq)]);
-
-        if (   R_7 > rel_rank (weak_color, wp_sq)
-            || !contains (FA_bb|FC_bb|FF_bb|FH_bb, wp_sq)
-            || 1 != dist (wk_sq, wp_sq))
-        {
-            value += VALUE_EG_QUEN - VALUE_EG_PAWN;
-        }
+        const auto value = VALUE_ZERO
+                         + PushClose[dist (sk_sq, wk_sq)]
+                         + (   R_7 > rel_rank (weak_color, wp_sq)
+                            || !contains (FA_bb|FC_bb|FF_bb|FH_bb, wp_sq)
+                            || 1 != dist (wk_sq, wp_sq) ?
+                                VALUE_EG_QUEN - VALUE_EG_PAWN : VALUE_ZERO);
 
         return strong_color == pos.active ? +value : -value;
     }
@@ -314,12 +316,12 @@ namespace EndGame {
         assert(verify_material (pos, strong_color, VALUE_MG_QUEN, 0));
         assert(verify_material (pos,   weak_color, VALUE_MG_ROOK, 0));
 
-        auto sk_sq = pos.square<KING> (strong_color);
-        auto wk_sq = pos.square<KING> (  weak_color);
+        const auto sk_sq = pos.square<KING> (strong_color);
+        const auto wk_sq = pos.square<KING> (  weak_color);
 
-        auto value = VALUE_EG_QUEN - VALUE_EG_ROOK
-                   + PushClose[dist (sk_sq, wk_sq)]
-                   + PushToEdge[wk_sq];
+        const auto value = VALUE_EG_QUEN - VALUE_EG_ROOK
+                         + PushClose[dist (sk_sq, wk_sq)]
+                         + PushToEdge[wk_sq];
 
         return strong_color == pos.active ? +value : -value;
     }
@@ -338,19 +340,19 @@ namespace EndGame {
         assert(verify_material (pos,   weak_color, VALUE_MG_ROOK, 0));
 
         // Assume strong_color is white and the pawn is on files A-D
-        auto sk_sq = normalize (pos, strong_color, pos.square<KING> (strong_color));
-        auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
-        auto sr_sq = normalize (pos, strong_color, pos.square<ROOK> (strong_color));
-        auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
-        auto wr_sq = normalize (pos, strong_color, pos.square<ROOK> (  weak_color));
+        const auto sk_sq = normalize (pos, strong_color, pos.square<KING> (strong_color));
+        const auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
+        const auto sr_sq = normalize (pos, strong_color, pos.square<ROOK> (strong_color));
+        const auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
+        const auto wr_sq = normalize (pos, strong_color, pos.square<ROOK> (  weak_color));
 
-        auto f = _file (sp_sq);
-        auto r = _rank (sp_sq);
-        auto promote_sq = f|R_8;
-        i32 tempo = strong_color == pos.active ? 1 : 0;
+        const auto f = _file (sp_sq);
+        const auto r = _rank (sp_sq);
+        const auto promote_sq = f|R_8;
+        const i32 tempo = strong_color == pos.active ? 1 : 0;
 
         // If the pawn is not too far advanced and the defending king defends the
-        // queening square, use the third-rank defence.
+        // queening square, use the third-rank defense.
         if (   R_5 >= r
             && SQ_H5 >= sk_sq
             && 1 >= dist (wk_sq, promote_sq)
@@ -380,7 +382,7 @@ namespace EndGame {
         {
             return SCALE_DRAW;
         }
-        // White pawn on a7 and rook on a8 is a draw if black's king is on g7 or h7
+        // White pawn on a7 and rook on a8 is a draw if black king is on g7 or h7
         // and the black rook is behind the pawn.
         if (   SQ_A7 == sp_sq
             && SQ_A8 == sr_sq
@@ -403,7 +405,7 @@ namespace EndGame {
         }
         // Pawn on the 7th rank supported by the rook from behind usually wins if the
         // attacking king is closer to the queening square than the defending king,
-        // and the defending king cannot gain tempi by threatening the attacking rook.
+        // and the defending king cannot gain tempo by threatening the attacking rook.
         if (   R_7 == r
             && F_A != f
             && f == _file (sr_sq)
@@ -456,11 +458,11 @@ namespace EndGame {
         // If rook pawns
         if (0 != ((FA_bb|FH_bb) & pos.pieces (PAWN)))
         {
-            auto wk_sq = pos.square<KING> (  weak_color);
-            auto wb_sq = pos.square<BSHP> (  weak_color);
-            auto sp_sq = pos.square<PAWN> (strong_color);
-            auto r     = rel_rank (strong_color, sp_sq);
-            auto push  = pawn_push (strong_color);
+            const auto wk_sq = pos.square<KING> (  weak_color);
+            const auto wb_sq = pos.square<BSHP> (  weak_color);
+            const auto sp_sq = pos.square<PAWN> (strong_color);
+            const auto r     = rel_rank (strong_color, sp_sq);
+            const auto push  = pawn_push (strong_color);
 
             // If the pawn is on the 5th rank and the pawn (currently) is on the 
             // same color square as the bishop then there is a chance of a fortress.
@@ -509,9 +511,9 @@ namespace EndGame {
             Scale(0)
         };
 
-        auto wk_sq  = pos.square<KING> (  weak_color);
-        auto sp1_sq = pos.square<PAWN> (strong_color, 0);
-        auto sp2_sq = pos.square<PAWN> (strong_color, 1);
+        const auto wk_sq  = pos.square<KING> (  weak_color);
+        const auto sp1_sq = pos.square<PAWN> (strong_color, 0);
+        const auto sp2_sq = pos.square<PAWN> (strong_color, 1);
 
         // Does the stronger side have a passed pawn?
         if (   pos.pawn_passed_at (strong_color, sp1_sq)
@@ -540,8 +542,8 @@ namespace EndGame {
         assert(verify_material (pos,   weak_color, VALUE_ZERO   , 0));
 
         // Assume strong_color is white and the pawn is on files A-D
-        auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
-        auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
+        const auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
+        const auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
 
         if (   SQ_A7 == sp_sq
             && 1 >= dist (wk_sq, SQ_A8))
@@ -561,10 +563,10 @@ namespace EndGame {
         assert(verify_material (pos, strong_color, VALUE_MG_BSHP, 1));
         assert(verify_material (pos,   weak_color, VALUE_MG_BSHP, 0));
 
-        auto sp_sq = pos.square<PAWN> (strong_color);
-        auto sb_sq = pos.square<BSHP> (strong_color);
-        auto wb_sq = pos.square<BSHP> (  weak_color);
-        auto wk_sq = pos.square<KING> (  weak_color);
+        const auto sp_sq = pos.square<PAWN> (strong_color);
+        const auto sb_sq = pos.square<BSHP> (strong_color);
+        const auto wb_sq = pos.square<BSHP> (  weak_color);
+        const auto wk_sq = pos.square<KING> (  weak_color);
 
         // Case 1: Defending king blocks the pawn, and cannot be driven away
         if (   _file (wk_sq) == _file (sp_sq)
@@ -602,14 +604,14 @@ namespace EndGame {
         assert(verify_material (pos, strong_color, VALUE_MG_BSHP, 2));
         assert(verify_material (pos,   weak_color, VALUE_MG_BSHP, 0));
 
-        auto sb_sq = pos.square<BSHP> (strong_color);
-        auto wb_sq = pos.square<BSHP> (  weak_color);
+        const auto sb_sq = pos.square<BSHP> (strong_color);
+        const auto wb_sq = pos.square<BSHP> (  weak_color);
 
         if (opposite_colors (sb_sq, wb_sq))
         {
-            auto wk_sq  = pos.square<KING> (  weak_color);
-            auto sp1_sq = pos.square<PAWN> (strong_color, 0);
-            auto sp2_sq = pos.square<PAWN> (strong_color, 1);
+            const auto wk_sq  = pos.square<KING> (  weak_color);
+            const auto sp1_sq = pos.square<PAWN> (strong_color, 0);
+            const auto sp2_sq = pos.square<PAWN> (strong_color, 1);
 
             Square block1_sq
                  , block2_sq;
@@ -677,9 +679,9 @@ namespace EndGame {
         assert(verify_material (pos, strong_color, VALUE_MG_BSHP, 1));
         assert(verify_material (pos,   weak_color, VALUE_MG_NIHT, 0));
 
-        auto sp_sq = pos.square<PAWN> (strong_color);
-        auto sb_sq = pos.square<BSHP> (strong_color);
-        auto wk_sq = pos.square<KING> (  weak_color);
+        const auto sp_sq = pos.square<PAWN> (strong_color);
+        const auto sb_sq = pos.square<BSHP> (strong_color);
+        const auto wk_sq = pos.square<KING> (  weak_color);
 
         if (   _file (wk_sq) == _file (sp_sq)
             && rel_rank (strong_color, sp_sq) < rel_rank (strong_color, wk_sq)
@@ -699,9 +701,9 @@ namespace EndGame {
         assert(verify_material (pos, strong_color, VALUE_MG_NIHT, 1));
         assert(verify_material (pos,   weak_color, VALUE_MG_BSHP, 0));
 
-        auto sp_sq = pos.square<PAWN> (strong_color);
-        auto sb_sq = pos.square<BSHP> (  weak_color);
-        auto wk_sq = pos.square<KING> (  weak_color);
+        const auto sp_sq = pos.square<PAWN> (strong_color);
+        const auto sb_sq = pos.square<BSHP> (  weak_color);
+        const auto wk_sq = pos.square<KING> (  weak_color);
 
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
@@ -727,9 +729,9 @@ namespace EndGame {
         assert(verify_material (pos,   weak_color, VALUE_ZERO, 1));
 
         // Assume strong_color is white and the pawn is on files A-D
-        auto sk_sq = normalize (pos, strong_color, pos.square<KING> (strong_color));
-        auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
-        auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
+        const auto sk_sq = normalize (pos, strong_color, pos.square<KING> (strong_color));
+        const auto wk_sq = normalize (pos, strong_color, pos.square<KING> (  weak_color));
+        const auto sp_sq = normalize (pos, strong_color, pos.square<PAWN> (strong_color));
 
         // If the pawn has advanced to the fifth rank or further, and is not a rook pawn,
         // then it's too dangerous to assume that it's at least a draw.
@@ -755,8 +757,8 @@ namespace EndGame {
         assert(2 <= pos.count (strong_color, PAWN));
         assert(verify_material (pos, weak_color, VALUE_ZERO, 0));
 
-        auto wk_sq  = pos.square<KING> (  weak_color);
-        auto spawns = pos.pieces (strong_color, PAWN);
+        const auto wk_sq  = pos.square<KING> (  weak_color);
+        const auto spawns = pos.pieces (strong_color, PAWN);
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
@@ -783,8 +785,8 @@ namespace EndGame {
         // No assertions about the material of weak side, because we want draws to
         // be detected even when the weak side has some materials or pawns.
 
-        auto spawns = pos.pieces (strong_color, PAWN);
-        auto sp_f = _file (scan_lsq (spawns));
+        const auto spawns = pos.pieces (strong_color, PAWN);
+        const auto sp_f = _file (scan_lsq (spawns));
 
         // All pawns on same A or H file? (rook file)
         // Then potential draw
@@ -792,9 +794,9 @@ namespace EndGame {
                 || F_H == sp_f)
             && 0 == (spawns & ~file_bb (sp_f)))
         {
-            auto sb_sq = pos.square<BSHP> (strong_color);
-            auto promote_sq = rel_sq (strong_color, sp_f|R_8);
-            auto wk_sq = pos.square<KING> (  weak_color);
+            const auto sb_sq = pos.square<BSHP> (strong_color);
+            const auto promote_sq = rel_sq (strong_color, sp_f|R_8);
+            const auto wk_sq = pos.square<KING> (  weak_color);
 
             // The bishop has the wrong color and the defending king defends the queening square.
             if (   opposite_colors (promote_sq, sb_sq)
@@ -811,14 +813,14 @@ namespace EndGame {
             && 0 == (pos.pieces (PAWN) & ~file_bb (sp_f))
             && VALUE_ZERO == pos.si->non_pawn_material (weak_color))
         {
-            auto sk_sq = pos.square<KING> (strong_color);
-            auto wk_sq = pos.square<KING> (  weak_color);
-            auto sb_sq = pos.square<BSHP> (strong_color);
+            const auto sk_sq = pos.square<KING> (strong_color);
+            const auto wk_sq = pos.square<KING> (  weak_color);
+            const auto sb_sq = pos.square<BSHP> (strong_color);
 
             if (0 != pos.count (weak_color, PAWN))
             {
                 // Get weak side pawn that is closest to home rank
-                auto wp_sq = scan_backmost_sq (weak_color, pos.pieces (weak_color, PAWN));
+                const auto wp_sq = scan_backmost_sq (weak_color, pos.pieces (weak_color, PAWN));
 
                 // There's potential for a draw if weak pawn is blocked on the 7th rank
                 // and the bishop cannot attack it or they only have one pawn left
@@ -831,7 +833,7 @@ namespace EndGame {
                     // squares of the blocking pawn and the strong king is not closer.
                     // This rule only fails in practically unreachable
                     // positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w and
-                    // where qsearch will immediately correct the problem
+                    // where Q-search will immediately correct the problem
                     // positions such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w
                     if (   R_7 <= rel_rank (strong_color, wk_sq)
                         && 2 >= dist (wk_sq, wp_sq)
@@ -854,9 +856,9 @@ namespace EndGame {
         assert(1 == pos.count (weak_color, ROOK));
         assert(0 != pos.count (weak_color, PAWN));
 
-        auto sk_sq = pos.square<KING> (strong_color);
-        auto wk_sq = pos.square<KING> (  weak_color);
-        auto wr_sq = pos.square<ROOK> (  weak_color);
+        const auto sk_sq = pos.square<KING> (strong_color);
+        const auto wk_sq = pos.square<KING> (  weak_color);
+        const auto wr_sq = pos.square<ROOK> (  weak_color);
 
         if (   R_2 >= rel_rank (weak_color, wk_sq)
             && R_4 <= rel_rank (weak_color, sk_sq)

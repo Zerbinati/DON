@@ -7,7 +7,6 @@
 #include <cctype>
 #include <chrono>
 #include <climits>
-#include <cstring>
 #include <functional>
 #include <iomanip>
 #include <iosfwd>
@@ -107,7 +106,7 @@ typedef        uint64_t    u64;
 
 #endif
 
-/// Preloads the given address in L1/L2 cache.
+/// Pre-loads the given address in L1/L2 cache.
 /// This is a non-blocking function that doesn't stall the CPU
 /// waiting for data to be loaded from memory, which can be quite slow.
 #if defined(PREFETCH)
@@ -662,7 +661,7 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
     do
     {
         std::string token;
-        bool fail = !std::getline (iss, token, delimiter);
+        const bool fail = !std::getline (iss, token, delimiter);
         if (do_trim)
         {
             token = trim (token);

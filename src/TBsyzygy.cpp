@@ -1431,12 +1431,10 @@ namespace TBSyzygy {
         WDLScore search (Position &pos, ProbeState &state, bool chech_zeroing)
         {
             auto move_list = MoveList<GenType::LEGAL> (pos);
-            size_t move_count = 0
-                ,  total_count = move_list.size ();
-
+            size_t move_count = 0;
             auto best_wdl = WDLScore::LOSS;
             StateInfo si;
-            for (const Move &move : move_list)
+            for (const auto &move : move_list)
             {
                 if (   !pos.capture (move)
                     && (   !chech_zeroing
@@ -1474,8 +1472,8 @@ namespace TBSyzygy {
             // the state of probe_wdl_table is wrong. Also in case of only capture
             // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, we have to
             // return with ZEROING_BEST_MOVE set.
-            bool all_searched = (   0 != total_count
-                                  && move_count == total_count);
+            bool all_searched = (   0 != move_list.size ()
+                                 && move_count == move_list.size ());
 
             WDLScore wdl;
             if (all_searched)
@@ -1496,7 +1494,8 @@ namespace TBSyzygy {
             {
                 state = best_wdl > WDLScore::DRAW
                      || all_searched ?
-                            ProbeState::ZEROING_BEST_MOVE : ProbeState::SUCCESS;
+                            ProbeState::ZEROING_BEST_MOVE :
+                            ProbeState::SUCCESS;
                 return best_wdl;
             }
             
@@ -1555,7 +1554,7 @@ namespace TBSyzygy {
     /// If n = 100 immediately after a capture or pawn move, then the position
     /// is also certainly a win, and during the whole phase until the next
     /// capture or pawn move, the inequality to be preserved is
-    /// dtz + 50-movecounter <= 100.
+    /// dtz + 50-move counter <= 100.
     ///
     /// In short, if a move is available resulting in dtz + 50-move-counter <= 99,
     /// then do not accept moves leading to dtz + 50-move-counter == 100.
@@ -1651,7 +1650,7 @@ namespace TBSyzygy {
 
     /// Use the DTZ tables to filter out moves that don't preserve the win or draw.
     /// If the position is lost, but DTZ is fairly high, only keep moves that
-    /// maximise DTZ.
+    /// maximize DTZ.
     ///
     /// A return value false indicates that not all probes were successful and that
     /// no moves were filtered out.
@@ -1839,7 +1838,7 @@ namespace TBSyzygy {
     }
 
     /// Use the WDL tables to filter out moves that don't preserve the win or draw.
-    /// This is a fallback for the case that some or all DTZ tables are missing.
+    /// This is a fall back for the case that some or all DTZ tables are missing.
     ///
     /// A return value false indicates that not all probes were successful and that
     /// no moves were filtered out.

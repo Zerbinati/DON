@@ -271,12 +271,12 @@ void ThreadPool::initialize ()
 {
 #if defined(_WIN32)
     // Early exit if the needed API is not available at runtime
-    auto kernel32 = GetModuleHandle ("Kernel32.dll");
+    const auto kernel32 = GetModuleHandle ("Kernel32.dll");
     if (nullptr == kernel32)
     {
         return;
     }
-    auto GetLogicalProcessorInformationEx = (GLPIE) GetProcAddress (kernel32, "GetLogicalProcessorInformationEx");
+    const auto GetLogicalProcessorInformationEx = (GLPIE) GetProcAddress (kernel32, "GetLogicalProcessorInformationEx");
     if (nullptr == GetLogicalProcessorInformationEx)
     {
         return;
@@ -362,13 +362,13 @@ void ThreadPool::bind (size_t index)
 
 #if defined(_WIN32)
 
-    auto kernel32 = GetModuleHandle ("Kernel32.dll");
+    const auto kernel32 = GetModuleHandle ("Kernel32.dll");
     if (nullptr == kernel32)
     {
         return;
     }
 
-    auto GetNumaNodeProcessorMaskEx = (GNNPME) GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx");
+    const auto GetNumaNodeProcessorMaskEx = (GNNPME) GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx");
     if (nullptr == GetNumaNodeProcessorMaskEx)
     {
         return;
@@ -376,7 +376,7 @@ void ThreadPool::bind (size_t index)
     GROUP_AFFINITY group_affinity;
     if (GetNumaNodeProcessorMaskEx (group, &group_affinity))
     {
-        auto SetThreadGroupAffinity = (STGA) GetProcAddress (kernel32, "SetThreadGroupAffinity");
+        const auto SetThreadGroupAffinity = (STGA) GetProcAddress (kernel32, "SetThreadGroupAffinity");
         if (nullptr == SetThreadGroupAffinity)
         {
             return;
@@ -413,7 +413,7 @@ void ThreadPool::clear ()
     }
 }
 /// ThreadPool::configure() creates/destroys threads to match the requested number.
-/// Created and launced threads wil go immediately to sleep in idle_loop.
+/// Created and launched threads will go immediately to sleep in idle_loop.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
 void ThreadPool::configure (u32 threads)
 {
@@ -482,7 +482,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
             // Do not probe tablebases during the search
             TBLimitPiece = 0;
         }
-        // If DTZ tables are missing, use WDL tables as a fallback.
+        // If DTZ tables are missing, use WDL tables as a fall back.
         else
         {
             // Filter out moves that do not preserve the draw or the win.
