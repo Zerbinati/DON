@@ -390,10 +390,21 @@ enum Scale : u08
     inline T& operator++ (T &t) { t = T(i32(t) + 1); return t; } \
     inline T& operator-- (T &t) { t = T(i32(t) - 1); return t; }
 
+#define BITWISE_OPERATORS(T)                                            \
+    constexpr T operator~ (T t) { return T(~i32(t)); }                  \
+    constexpr T operator| (T t1, T t2) { return T(i32(t1) | i32(t2)); } \
+    constexpr T operator& (T t1, T t2) { return T(i32(t1) & i32(t2)); } \
+    constexpr T operator^ (T t1, T t2) { return T(i32(t1) ^ i32(t2)); } \
+    inline T& operator|= (T &t1, T t2) { t1 = t1 | t2; return t1; }     \
+    inline T& operator&= (T &t1, T t2) { t1 = t1 & t2; return t1; }     \
+    inline T& operator^= (T &t1, T t2) { t1 = t1 ^ t2; return t1; }     \
+
 BASIC_OPERATORS(File)
+//ARTHMAT_OPERATORS(File)
 INC_DEC_OPERATORS(File)
 
 BASIC_OPERATORS(Rank)
+//ARTHMAT_OPERATORS(Rank)
 INC_DEC_OPERATORS(Rank)
 
 INC_DEC_OPERATORS(Color)
@@ -412,15 +423,7 @@ INC_DEC_OPERATORS(Square)
 
 INC_DEC_OPERATORS(CastleSide)
 
-inline CastleRight operator~ (CastleRight cr) { return CastleRight(~i32(cr)); }
-
-inline CastleRight operator| (CastleRight cr1, CastleRight cr2) { return CastleRight(i32(cr1) | i32(cr2)); }
-inline CastleRight operator& (CastleRight cr1, CastleRight cr2) { return CastleRight(i32(cr1) & i32(cr2)); }
-inline CastleRight operator^ (CastleRight cr1, CastleRight cr2) { return CastleRight(i32(cr1) ^ i32(cr2)); }
-
-inline CastleRight& operator|= (CastleRight &cr1, CastleRight cr2) { cr1 = CastleRight(i32(cr1) | i32(cr2)); return cr1; }
-inline CastleRight& operator&= (CastleRight &cr1, CastleRight cr2) { cr1 = CastleRight(i32(cr1) & i32(cr2)); return cr1; }
-inline CastleRight& operator^= (CastleRight &cr1, CastleRight cr2) { cr1 = CastleRight(i32(cr1) ^ i32(cr2)); return cr1; }
+BITWISE_OPERATORS(CastleRight)
 
 INC_DEC_OPERATORS(PieceType)
 
@@ -461,6 +464,9 @@ inline Score& operator/= (Score &s, i32 i) { s = mk_score (mg_value (s) / i, eg_
 Score operator* (Score, Score) = delete;
 Score operator/ (Score, Score) = delete;
 
+BITWISE_OPERATORS(Bound)
+
+#undef BITWISE_OPERATORS
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
@@ -482,7 +488,9 @@ constexpr File _file  (Square s) { return File(s & i08(F_H)); }
 constexpr Rank _rank  (Square s) { return Rank(s >> 3); }
 constexpr Color color (Square s) { return Color(((s ^ (s >> 3)) & 1) != 1); }
 
+// Flip   -> Square::A1 -> Square::A8
 constexpr Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
+// Mirror -> Square::A1 -> Square::H1
 constexpr Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
 
 constexpr Rank rel_rank (Color c, Square s) { return Rank(_rank (s) ^ (c*i08(R_8))); }

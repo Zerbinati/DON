@@ -50,11 +50,11 @@ namespace EndGame {
 
             if (_file (pos.square<PAWN> (c)) >= F_E)
             {
-                sq = !sq; // MIRROR- SQ_A1 -> SQ_H1
+                sq = !sq;
             }
             if (c == BLACK)
             {
-                sq = ~sq; // FLIP  - SQ_A1 -> SQ_A8
+                sq = ~sq;
             }
             return sq;
         }

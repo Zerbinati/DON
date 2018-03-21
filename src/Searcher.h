@@ -85,7 +85,7 @@ public:
         assert(abs (bonus) <= D); // Ensure range is [-W * D, W * D]
         assert(W * D < std::numeric_limits<T>::max ()); // Ensure we don't overflow
 
-        entry += bonus * W - entry * abs (bonus) / D;
+        entry += T(bonus * W - entry * abs (bonus) / D);
 
         assert(abs (entry) <= W * D);
     }

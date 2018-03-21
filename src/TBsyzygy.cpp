@@ -283,7 +283,7 @@ namespace TBSyzygy {
             const bool IsLittleEndian = (Le.c[0] == 4);
 
             T v;
-            if ((uintptr_t) addr & (alignof(T) -1)) // Unaligned pointer (very rare)
+            if (0 != ((uintptr_t) addr & (alignof(T) -1))) // Unaligned pointer (very rare)
             {
                 std::memcpy (&v, addr, sizeof (v));
             }
@@ -427,6 +427,10 @@ namespace TBSyzygy {
                     stop (EXIT_FAILURE);
                 }
 
+                //if (0 == mmap)
+                //{
+                //    return nullptr;
+                //}
                 *mapping = u64(mmap);
                 *base_address = MapViewOfFile (mmap, FILE_MAP_READ, 0, 0, 0);
 
@@ -902,7 +906,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < size; ++i)
                 {
-                    squares[i] = !squares[i]; // Horizontal flip: SQ_H1 -> SQ_A1
+                    squares[i] = !squares[i];
                 }
             }
 
@@ -922,13 +926,14 @@ namespace TBSyzygy {
                 goto encode_remaining; // With pawns we have finished special treatments
             }
 
-            // In positions withouth pawns, we further flip the squares to ensure leading
-            // piece is below RANK_5.
+            // In positions withouth pawns:
+            
+            // Flip the squares to ensure leading piece is below R_5.
             if (_rank (squares[0]) > R_4)
             {
                 for (i32 i = 0; i < size; ++i)
                 {
-                    squares[i] = ~squares[i]; // Vertical flip: SQ_A8 -> SQ_A1
+                    squares[i] = ~squares[i];
                 }
             }
             // Look for the first piece of the leading group not on the A1-D4 diagonal

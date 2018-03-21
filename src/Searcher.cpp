@@ -345,7 +345,9 @@ Move MovePicker::next_move ()
         i = 0;
         /* fall through */
     case Stage::NAT_BAD_CAPTURES:
-        return i < bad_capture_moves.size () ? bad_capture_moves[i++] : MOVE_NONE;
+        return i < bad_capture_moves.size () ?
+                    bad_capture_moves[i++] :
+                    MOVE_NONE;
 
     case Stage::EVA_EVASION_INIT:
         assert(0 != pos.si->checkers);
@@ -1151,12 +1153,12 @@ namespace Searcher {
                     // Step 7. Razoring sort of forward pruning where rather than
                     // skipping an entire subtree, search it to a reduced depth.
                     if (   !PVNode
-                        && 2 >= depth
+                        && 3 > depth
                         && tt_eval + RazorMargin[depth] <= alfa)
                     {
-                        auto alfa_margin = alfa - RazorMargin[depth] * (1 != depth ? 1 : 0);
+                        auto alfa_margin = alfa - RazorMargin[depth] * (1 < depth ? 1 : 0);
                         auto v = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
-                        if (   1 == depth
+                        if (   2 > depth
                             || v <= alfa_margin)
                         {
                             return v;
