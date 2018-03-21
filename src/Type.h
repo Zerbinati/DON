@@ -373,31 +373,31 @@ enum Scale : u08
     constexpr T operator- (T t) { return T(-i32(t)); }                  \
     constexpr T operator+ (T t1, T t2) { return T(i32(t1) + i32(t2)); } \
     constexpr T operator- (T t1, T t2) { return T(i32(t1) - i32(t2)); } \
-    inline T& operator+= (T &t1, T t2) { t1 = t1 + t2; return t1; }     \
-    inline T& operator-= (T &t1, T t2) { t1 = t1 - t2; return t1; }
+    inline T& operator+= (T &t1, T t2) { return t1 = t1 + t2; }         \
+    inline T& operator-= (T &t1, T t2) { return t1 = t1 - t2; }
 
 #define ARTHMAT_OPERATORS(T)                                     \
     constexpr T operator+ (T t, i32 i) { return T(i32(t) + i); } \
     constexpr T operator- (T t, i32 i) { return T(i32(t) - i); } \
     constexpr T operator* (T t, i32 i) { return T(i32(t) * i); } \
     constexpr T operator/ (T t, i32 i) { return T(i32(t) / i); } \
-    inline T& operator+= (T &t, i32 i) { t = t + i; return t; }  \
-    inline T& operator-= (T &t, i32 i) { t = t - i; return t; }  \
-    inline T& operator*= (T &t, i32 i) { t = t * i; return t; }  \
-    inline T& operator/= (T &t, i32 i) { t = t / i; return t; }
+    inline T& operator+= (T &t, i32 i) { return t = t + i; }     \
+    inline T& operator-= (T &t, i32 i) { return t = t - i; }     \
+    inline T& operator*= (T &t, i32 i) { return t = t * i; }     \
+    inline T& operator/= (T &t, i32 i) { return t = t / i; }
 
-#define INC_DEC_OPERATORS(T)                                     \
-    inline T& operator++ (T &t) { t = T(i32(t) + 1); return t; } \
-    inline T& operator-- (T &t) { t = T(i32(t) - 1); return t; }
+#define INC_DEC_OPERATORS(T)                                  \
+    inline T& operator++ (T &t) { return t = T(i32(t) + 1); } \
+    inline T& operator-- (T &t) { return t = T(i32(t) - 1); }
 
 #define BITWISE_OPERATORS(T)                                            \
     constexpr T operator~ (T t) { return T(~i32(t)); }                  \
     constexpr T operator| (T t1, T t2) { return T(i32(t1) | i32(t2)); } \
     constexpr T operator& (T t1, T t2) { return T(i32(t1) & i32(t2)); } \
     constexpr T operator^ (T t1, T t2) { return T(i32(t1) ^ i32(t2)); } \
-    inline T& operator|= (T &t1, T t2) { t1 = t1 | t2; return t1; }     \
-    inline T& operator&= (T &t1, T t2) { t1 = t1 & t2; return t1; }     \
-    inline T& operator^= (T &t1, T t2) { t1 = t1 ^ t2; return t1; }     \
+    inline T& operator|= (T &t1, T t2) { return t1 = t1 | t2; }         \
+    inline T& operator&= (T &t1, T t2) { return t1 = t1 & t2; }         \
+    inline T& operator^= (T &t1, T t2) { return t1 = t1 ^ t2; }
 
 BASIC_OPERATORS(File)
 //ARTHMAT_OPERATORS(File)
