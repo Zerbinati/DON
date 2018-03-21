@@ -63,7 +63,7 @@ void dbg_print ()
                     << "---------------------------\n"
                     << "Cond  :" << std::setw (20) << CondCount << "\n"
                     << "Hit   :" << std::setw (20) << HitCount  << "\n"
-                    << "Rate  :" << std::setw (20) << std::fixed << std::setprecision (2) << (double) HitCount / CondCount * 100.0
+                    << "Rate  :" << std::setw (20) << std::fixed << std::setprecision (2) << double(HitCount) / CondCount * 100.0
                     << std::left << std::endl;
     }
 
@@ -73,7 +73,7 @@ void dbg_print ()
                     << "---------------------------\n"
                     << "Count :" << std::setw (20) << ItemCount << "\n"
                     << "Sum   :" << std::setw (20) << ItemSum << "\n"
-                    << "Mean  :" << std::setw (20) << std::fixed << std::setprecision (2) << (double) ItemSum / ItemCount
+                    << "Mean  :" << std::setw (20) << std::fixed << std::setprecision (2) << double(ItemSum) / ItemCount
                     << std::left << std::endl;
     }
 }

@@ -262,9 +262,9 @@ namespace BitBoard {
                 k = 0;
                 while (DEL_O != (del = PawnDeltas[c][k++]))
                 {
-                    auto sq = s + del;
+                    const auto sq = s + del;
                     if (   _ok (sq)
-                        && dist (s, sq) == 1)
+                        && 1 == dist (s, sq))
                     {
                         PawnAttacks[c][s] |= sq;
                     }
@@ -277,9 +277,9 @@ namespace BitBoard {
             k = 0;
             while (DEL_O != (del = PieceDeltas[pt][k++]))
             {
-                auto sq = s + del;
+                const auto sq = s + del;
                 if (   _ok (sq)
-                    && dist (s, sq) == 2)
+                    && 2 == dist (s, sq))
                 {
                     PieceAttacks[pt][s] |= sq;
                 }
@@ -289,9 +289,9 @@ namespace BitBoard {
             k = 0;
             while (DEL_O != (del = PieceDeltas[pt][k++]))
             {
-                auto sq = s + del;
+                const auto sq = s + del;
                 if (   _ok (sq)
-                    && dist (s, sq) == 1)
+                    && 1 == dist (s, sq))
                 {
                     PieceAttacks[pt][s] |= sq;
                 }
@@ -299,7 +299,8 @@ namespace BitBoard {
 
             PieceAttacks[BSHP][s] = sliding_attacks (PieceDeltas[BSHP], s);
             PieceAttacks[ROOK][s] = sliding_attacks (PieceDeltas[ROOK], s);
-            PieceAttacks[QUEN][s] = PieceAttacks[BSHP][s] | PieceAttacks[ROOK][s];
+            PieceAttacks[QUEN][s] = PieceAttacks[BSHP][s]
+                                  | PieceAttacks[ROOK][s];
         }
 
         // Initialize Sliding

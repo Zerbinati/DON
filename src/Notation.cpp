@@ -24,9 +24,9 @@ namespace {
         assert(pos.pseudo_legal (m)
             && pos.legal (m));
 
-        auto org = org_sq (m);
-        auto dst = dst_sq (m);
-        // Disambiguation if have more then one piece with destination 'dst'
+        const auto org = org_sq (m);
+        const auto dst = dst_sq (m);
+        // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
         Bitboard attacks = NIHT == ptype (pos[org]) ? PieceAttacks[NIHT][dst] :
                             BSHP == ptype (pos[org]) ? attacks_bb<BSHP> (dst, pos.pieces ()) :
@@ -141,8 +141,8 @@ string move_to_san (Move m, Position &pos)
     assert(MoveList<GenType::LEGAL> (pos).contains (m));
 
     string san;
-    auto org = org_sq (m);
-    auto dst = dst_sq (m);
+    const auto org = org_sq (m);
+    const auto dst = dst_sq (m);
 
     if (CASTLE != mtype (m))
     {
@@ -151,8 +151,7 @@ string move_to_san (Move m, Position &pos)
             san = PieceChar[WHITE|ptype (pos[org])];
             if (KING != ptype (pos[org]))
             {
-                // Disambiguation if have more then one piece of type 'pt'
-                // that can reach 'dst' with a legal move.
+                // Disambiguation if have more then one piece of type 'pt' that can reach 'dst' with a legal move.
                 switch (ambiguity (m, pos))
                 {
                 case Ambiguity::AMB_RANK:

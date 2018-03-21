@@ -2,8 +2,9 @@
 
 #include <string>
 #include <fstream>
-#include "BitBoard.h"
+#include <iostream>
 #include "Engine.h"
+#include "MemoryHandler.h"
 
 using namespace std;
 
@@ -77,8 +78,8 @@ void TTable::free_aligned_memory ()
 u32 TTable::resize (u32 mem_size, bool force)
 {
     mem_size = std::min (std::max (mem_size, MinHashSize), MaxHashSize);
-    size_t msize = size_t(mem_size) << 20;
-    size_t new_cluster_count = msize / sizeof (TCluster);
+    const size_t msize = size_t(mem_size) << 20;
+    const size_t new_cluster_count = msize / sizeof (TCluster);
     if (   force
         || cluster_count != new_cluster_count)
     {
@@ -119,7 +120,7 @@ void TTable::auto_resize (u32 mem_size, bool force)
     stop (EXIT_FAILURE);
 }
 /// TTable::clear() clear the entire transposition table.
-void TTable::clear ()
+void TTable::clear () const
 {
     assert(nullptr != clusters);
     // Clear first cluster
@@ -141,11 +142,10 @@ void TTable::clear ()
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
 TEntry* TTable::probe (Key key, bool &tt_hit) const
 {
-    auto key16 = u16(key >> 0x30);
+    const auto key16 = u16(key >> 0x30);
     auto *const fte = cluster_entry (key);
     // Find an entry to be replaced according to the replacement strategy.
     auto *rte = fte; // Default first
-    auto rworth = rte->worth ();
     for (auto *ite = fte; ite < fte + TCluster::EntryCount; ++ite)
     {
         if (   ite->empty ()
@@ -160,12 +160,9 @@ TEntry* TTable::probe (Key key, bool &tt_hit) const
             }
             return ite;
         }
-
         // Replacement strategy.
-        auto iworth = ite->worth ();
-        if (rworth > iworth)
+        if (rte->worth () > ite->worth ())
         {
-            rworth = iworth;
             rte = ite;
         }
     }
@@ -181,7 +178,7 @@ TEntry* TTable::probe (Key key, bool &tt_hit) const
 u32 TTable::hash_full () const
 {
     u32 entry_count = 0;
-    auto cluster_limit = std::min (size_t(1000 / TCluster::EntryCount), cluster_count);
+    const auto cluster_limit = std::min (size_t(1000 / TCluster::EntryCount), cluster_count);
     for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
     {
         for (const auto *ite = itc->entries; ite < itc->entries + TCluster::EntryCount; ++ite)

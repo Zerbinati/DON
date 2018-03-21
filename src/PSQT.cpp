@@ -117,10 +117,10 @@ void psqt_initialize ()
 {
     for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
-        auto p = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
+        const auto p = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
         for (auto s : SQ)
         {
-            auto psq = p + HalfPST[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
+            const auto psq = p + HalfPST[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
             PST[WHITE][pt][ s] = +psq;
             PST[BLACK][pt][~s] = -psq;
         }

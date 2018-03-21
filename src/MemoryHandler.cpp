@@ -2,7 +2,6 @@
 
 #include "MemoryHandler.h"
 
-#include <cstdlib>
 #include <iostream>
 #include "Thread.h"
 

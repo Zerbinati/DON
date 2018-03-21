@@ -200,7 +200,7 @@ namespace EndGame {
 
         auto promote_sq = _file (wp_sq)|R_1;
 
-        auto value = VALUE_ZERO;
+        Value value;
 
         // If the strong side's king is in front of the pawn, it's a win. or
         // If the weak side's king is too far from the pawn and the rook, it's a win.
@@ -510,8 +510,8 @@ namespace EndGame {
         };
 
         auto wk_sq  = pos.square<KING> (  weak_color);
-        auto sp1_sq = pos.square<PAWN> (strong_color, PAWN);
-        auto sp2_sq = pos.square<PAWN> (strong_color, PAWN);
+        auto sp1_sq = pos.square<PAWN> (strong_color, 0);
+        auto sp2_sq = pos.square<PAWN> (strong_color, 1);
 
         // Does the stronger side have a passed pawn?
         if (   pos.pawn_passed_at (strong_color, sp1_sq)
@@ -611,8 +611,8 @@ namespace EndGame {
             auto sp1_sq = pos.square<PAWN> (strong_color, 0);
             auto sp2_sq = pos.square<PAWN> (strong_color, 1);
 
-            auto block1_sq = SQ_NO;
-            auto block2_sq = SQ_NO;
+            Square block1_sq
+                 , block2_sq;
 
             if (rel_rank (strong_color, sp1_sq) > rel_rank (strong_color, sp2_sq))
             {
@@ -628,7 +628,7 @@ namespace EndGame {
             switch (dist<File> (sp1_sq, sp2_sq))
             {
             // Both pawns are on the same file. It's an easy draw if the defender firmly
-            // controls some square in the frontmost pawn's path.
+            // controls some square in the front most pawn's path.
             case 0:
                 if (   _file (wk_sq) == _file (block1_sq)
                     && rel_rank (strong_color, wk_sq) >= rel_rank (strong_color, block1_sq)
@@ -638,7 +638,7 @@ namespace EndGame {
                 }
                 break;
             // Pawns on adjacent files. It's a draw if the defender firmly controls the
-            // square in front of the frontmost pawn's path, and the square diagonally
+            // square in front of the front most pawn's path, and the square diagonally
             // behind this square on the file of the other pawn.
             case 1:
                 if (opposite_colors (wk_sq, sb_sq))
@@ -661,6 +661,8 @@ namespace EndGame {
                 }
                 break;
             // The pawns are not on the same file or adjacent files. No scaling.
+            default:
+                return SCALE_NONE;
             }
         }
 

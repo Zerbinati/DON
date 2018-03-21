@@ -1,16 +1,14 @@
 ﻿#include "Searcher.h"
 
 #include <cmath>
-#include "Logger.h"
 #include "Evaluator.h"
+#include "Logger.h"
 #include "Notation.h"
 #include "Option.h"
 #include "Polyglot.h"
-#include "PRNG.h"
 #include "TBsyzygy.h"
 #include "Thread.h"
 #include "Transposition.h"
-#include "Zobrist.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -88,8 +86,8 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     , threshold (Value(-4000*d))
     , recap_sq (SQ_NO)
     , piece_destiny_history (pdh)
-	, i (0)
     , refutation_moves (km, km + MaxKillers)
+    , i (0)
     , pick_quiets (true)
 {
     assert(MOVE_NONE == tt_move
@@ -234,30 +232,30 @@ void MovePicker::value ()
                           i32(PieceValues[MG][pos.cap_type (vm.move)])
                         - ptype (pos[org_sq (vm.move)]) :
                           pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
-                        - MaxValue;
+                        - (1 << 28);
         }
     }
 }
 
-/// MovePicker::select_move() returns the next move satisfying a predicate function
+/// MovePicker::pick_move() returns the next move satisfying a predicate function
 template<MovePicker::PickType PT, typename Pred>
-Move MovePicker::select_move (Pred filter)
+Move MovePicker::pick_move (Pred filter)
 {
     while (i < moves.size ())
     {
         auto beg = moves.begin () + i++;
-        if (PT == BEST)
+        if (BEST == PT)
         {
             std::swap (*beg, *std::max_element (beg, moves.end ()));
         }
-
-        move = *beg;
+        vmove = *beg;
         if (filter ())
         {
-            return move;
+            return vmove.move;
         }
     }
-    return move = MOVE_NONE;
+    vmove = { MOVE_NONE, VALUE_NONE };
+    return vmove.move;
 }
 
 /// MovePicker::next_move() is the most important method of the MovePicker class.
@@ -294,19 +292,31 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
 
-        // Rebranch at the top of the switch
+        // Re-branch at the top of the switch
         goto top;
 
     case Stage::NAT_GOOD_CAPTURES:
-        if (MOVE_NONE != select_move<BEST> ([&]() { return pos.see_ge (move, Value(-moves[i-1].value * 55 / 1024)) ?
-                                                               true :
-                                                               // Move losing capture to bad_capture_moves to be tried later
-                                                               (bad_capture_moves.push_back (move), false); }))
+        if (MOVE_NONE != pick_move<BEST> ([&]()
+                                          {
+                                              return pos.see_ge (vmove.move, Value(vmove.value * 55 / 1024)) ?
+                                                        true :
+                                                        // Put losing capture to bad_capture_moves to be tried later
+                                                        (bad_capture_moves.push_back (vmove.move), false);
+                                          }))
         {
-            return move;
+            return vmove.move;
         }
         ++stage;
-        /* fallthrough */
+        i = 0;
+        /* fall through */
+    case NAT_REFUTATIONS:
+        // Refutation: Killers, Counter
+        if (i < refutation_moves.size ())
+        {
+            return refutation_moves[i++];
+        }
+        ++stage;
+        /* fall through */
     case Stage::NAT_QUIET_INIT:
         generate<GenType::QUIET> (moves, pos);
         filter_illegal (moves, pos);
@@ -319,30 +329,21 @@ Move MovePicker::next_move ()
             }
         }
         value<GenType::QUIET> ();
-        // Refutation: Killers, Counter to top of quiet move
-        {
-            i32 k = 0;
-            for (auto rfm : refutation_moves)
-            {
-                auto itr = std::find (moves.begin (), moves.end (), rfm);
-                if (itr != moves.end ())
-                {
-                    itr->value = MaxValue - k++;
-                }
-            }
-        }
         ++stage;
         i = 0;
-        /* fallthrough */
+        /* fall through */
     case Stage::NAT_QUIETS:
         if (   pick_quiets
-            && MOVE_NONE != select_move<NEXT> ([]() { return true; }))
+            && MOVE_NONE != pick_move<BEST> ([&]()
+                                             {
+                                                 return std::find (refutation_moves.begin (), refutation_moves.end (), vmove.move) == refutation_moves.end ();
+                                             }))
         {
-            return move;
+            return vmove.move;
         }
         ++stage;
         i = 0;
-        /* fallthrough */
+        /* fall through */
     case Stage::NAT_BAD_CAPTURES:
         return i < bad_capture_moves.size () ? bad_capture_moves[i++] : MOVE_NONE;
 
@@ -361,18 +362,21 @@ Move MovePicker::next_move ()
         value<GenType::EVASION> ();
         ++stage;
         i = 0;
-        /* fallthrough */
+        /* fall through */
     case Stage::EVA_EVASIONS:
-        return select_move<NEXT> ([]() { return true; });
+        return pick_move<NEXT> ([]() { return true; });
 
-    case Stage::PC_GOOD_CAPTURES:
-        return select_move<BEST> ([&]() { return pos.see_ge (move, threshold); });
+    case Stage::PC_CAPTURES:
+        return pick_move<BEST> ([&]() { return pos.see_ge (vmove.move, threshold); });
 
     case Stage::QS_CAPTURES:
-        if (MOVE_NONE != select_move<BEST> ([&]() { return depth > DepthQSRecapture
-                                           || recap_sq == dst_sq (move); }))
+        if (MOVE_NONE != pick_move<BEST> ([&]()
+                                          {
+                                              return depth > DepthQSRecapture
+                                                  || recap_sq == dst_sq (vmove.move);
+                                          }))
         {
-            return move;
+            return vmove.move;
         }
 
         if (depth <= DepthQSNoCheck)
@@ -380,7 +384,7 @@ Move MovePicker::next_move ()
             return MOVE_NONE;
         }
         ++stage;
-        /* fallthrough */
+        /* fall through */
     case Stage::QS_CHECK_INIT:
         generate<GenType::QUIET_CHECK> (moves, pos);
         filter_illegal (moves, pos);
@@ -394,9 +398,10 @@ Move MovePicker::next_move ()
         }
         ++stage;
         i = 0;
-        /* fallthrough */
+        /* fall through */
     case Stage::QS_CHECKS:
-        return select_move<NEXT> ([]() { return true; });
+        return pick_move<NEXT> ([]() { return true; });
+
     }
     assert(false);
     return MOVE_NONE;

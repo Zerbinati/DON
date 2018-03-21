@@ -1,11 +1,7 @@
 #ifndef _TRANSPOSITION_H_INC_
 #define _TRANSPOSITION_H_INC_
 
-#include <cstdlib>
-#include <iostream>
 #include "Type.h"
-#include "Zobrist.h"
-#include "MemoryHandler.h"
 #include "Thread.h"
 
 /// Transposition::Entry needs 16 byte to be stored
@@ -98,7 +94,7 @@ static_assert (CacheLineSize % sizeof (TCluster) == 0, "Cluster size incorrect")
 /// Size of a cluster should divide the size of a cache line size,
 /// to ensure that clusters never cross cache lines.
 /// In case it is less, it should be padded to guarantee always aligned accesses.
-/// This ensures best cache performance, as the cacheline is prefetched.
+/// This ensures best cache performance, as the cache line is pre-fetched.
 class TTable
 {
 private:
@@ -139,7 +135,7 @@ public:
 
     void auto_resize (u32, bool = false);
 
-    void clear ();
+    void clear () const;
 
     TEntry* probe (Key, bool&) const;
 
@@ -149,16 +145,16 @@ public:
     void load (const std::string&);
 
     // Minimum size of Transposition::Table (4 MB)
-    static const u32 MinHashSize = 4;
+    static constexpr u32 MinHashSize = 4;
     // Maximum size of Transposition::Table (131072 MB = 128 GB)
-    static const u32 MaxHashSize =
+    static constexpr u32 MaxHashSize =
 #       if defined(BIT64)
         128 * 1024;
 #       else
         2 * 1024;
 #       endif
 
-    static const u32 BufferSize = 0x10000;
+    static constexpr u32 BufferSize = 0x10000;
 
     template<typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits>&

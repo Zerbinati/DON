@@ -40,19 +40,15 @@ public:
     TimePoint start_time;
 
     Limit ()
-    {
-        clock[WHITE].time =
-        clock[BLACK].time = 0;
-        clock[WHITE].inc =
-        clock[BLACK].inc = 0;
-        movestogo = 0;
-
-        movetime = 0;
-        depth = 0;
-        nodes = 0;
-        mate = 0;
-        infinite = false;
-    }
+        : clock { 0, 0 }
+        , movestogo (0)
+        , movetime (0)
+        , depth (0)
+        , nodes (0)
+        , mate (0)
+        , infinite (false)
+        , start_time (0)
+    {}
 
     bool use_time_management () const
     {
@@ -138,22 +134,23 @@ typedef Stats<i16, 2, 324, MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE> CapturePieceDestin
 typedef Stats<Move, 0, 0, MAX_PIECE, SQ_NO*SQ_NO> PieceDestinyMove;
 
 
-
 /// MovePicker class is used to pick one legal moves from the current position.
 class MovePicker
 {
 private:
     enum Stage : u08
     {
-        NAT_TT, NAT_CAPTURE_INIT, NAT_GOOD_CAPTURES, NAT_QUIET_INIT, NAT_QUIETS, NAT_BAD_CAPTURES,
+        NAT_TT, NAT_CAPTURE_INIT, NAT_GOOD_CAPTURES, NAT_REFUTATIONS, NAT_QUIET_INIT, NAT_QUIETS, NAT_BAD_CAPTURES,
         EVA_TT, EVA_EVASION_INIT, EVA_EVASIONS,
-        PC_TT, PC_CAPTURE_INIT, PC_GOOD_CAPTURES,
+        PC_TT, PC_CAPTURE_INIT, PC_CAPTURES,
         QS_TT, QS_CAPTURE_INIT, QS_CAPTURES, QS_CHECK_INIT, QS_CHECKS,
     };
 
-	enum PickType : u08 { NEXT, BEST };
-
-    const i32 MaxValue = 1 << 28;
+    enum PickType : u08
+    {
+        NEXT,
+        BEST
+    };
 
     const Position &pos;
 
@@ -164,25 +161,25 @@ private:
 
     const PieceDestinyHistory **piece_destiny_history;
 
-    size_t i;
     ValMoves moves;
     std::vector<Move> refutation_moves
         ,             bad_capture_moves;
 
     u08 stage;
-    Move move;
+    size_t i;
+    ValMove vmove;
 
     template<GenType>
     void value ();
 
     template<PickType, typename Pred>
-    Move select_move (Pred);
+    Move pick_move (Pred);
 
 public:
     bool pick_quiets;
 
     MovePicker () = delete;
-    //MovePicker (const MovePicker&) = delete;
+    MovePicker (const MovePicker&) = delete;
     MovePicker& operator= (const MovePicker&) = delete;
 
     MovePicker (const Position&, Move, i16, const PieceDestinyHistory**, const Move*, Move);

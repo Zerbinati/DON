@@ -168,7 +168,7 @@ namespace {
         while (iss >> token)
         {
             ++count;
-            auto m = move_from_can (token, pos);
+            const auto m = move_from_can (token, pos);
             if (MOVE_NONE == m)
             {
                 std::cerr << "ERROR: Illegal Move '" << token << "' at " << count << std::endl;
@@ -259,8 +259,8 @@ namespace {
 
         if (0 != depth)
         {
-            auto nodes = perft<true> (pos, depth);
-            sync_cout << "\nTotal Nodes: " << nodes << sync_endl;
+            sync_cout << "\nTotal Nodes: "
+                      << perft<true> (pos, depth) << sync_endl;
         }
         else
         {
@@ -294,11 +294,11 @@ namespace {
         string token;
 
         // Assign default values to missing arguments
-        string hash    = (iss >> token) && !white_spaces (token) ? token : "16";
-        string threads = (iss >> token) && !white_spaces (token) ? token : "1";
-        string value   = (iss >> token) && !white_spaces (token) ? token : "13";
-        string mode    = (iss >> token) && !white_spaces (token) ? token : "depth";
-        string pos_fn  = (iss >> token) && !white_spaces (token) ? token : "default";
+        const string hash    = (iss >> token) && !white_spaces (token) ? token : "16";
+        const string threads = (iss >> token) && !white_spaces (token) ? token : "1";
+        const string value   = (iss >> token) && !white_spaces (token) ? token : "13";
+        const string mode    = (iss >> token) && !white_spaces (token) ? token : "depth";
+        const string pos_fn  = (iss >> token) && !white_spaces (token) ? token : "default";
 
         vector<string> cmds;
         vector<string> uci_cmds;
@@ -331,7 +331,7 @@ namespace {
             ifs.close ();
         }
 
-        bool chess960 = Position::Chess960;
+        const bool chess960 = Position::Chess960;
 
         uci_cmds.emplace_back ("setoption name Threads value " + threads);
         uci_cmds.emplace_back ("setoption name Hash value " + hash);

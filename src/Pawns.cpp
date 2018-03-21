@@ -29,7 +29,7 @@ namespace Pawns {
                 { V( 79), V( 0), V(45), V(65), V( 94), V( 92), V(105), V(0) }
             }
         };
-        // Dangerness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
+        // Dangerousness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
         // For the unopposed and unblocked cases, R_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
         const Value StromDanger[4][F_NO/2][R_NO] =
         {
@@ -82,11 +82,11 @@ namespace Pawns {
             constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto PawnAtt = PawnAttacks[Own];
 
-            Bitboard own_pawns = pos.pieces (Own, PAWN);
-            Bitboard opp_pawns = pos.pieces (Opp, PAWN);
+            const Bitboard own_pawns = pos.pieces (Own, PAWN);
+            const Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            Bitboard ul = shift<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
-            Bitboard ur = shift<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
+            const Bitboard ul = shift<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
+            const Bitboard ur = shift<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
 
             e->any_attacks[Own] = ul | ur;
             e->dbl_attacks[Own] = ul & ur;
@@ -106,14 +106,13 @@ namespace Pawns {
 
             auto score = SCORE_ZERO;
 
-            File f;
             Bitboard b, neighbours, supporters, phalanxes, stoppers, levers, escapes;
             bool blocked, opposed, backward;
             for (auto s : pos.squares[Own][PAWN])
             {
                 assert(pos[s] == (Own|PAWN));
 
-                f = _file (s);
+                auto f = _file (s);
                 e->semiopens[Own] &= u08(~(1 << f));
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
 
@@ -135,7 +134,7 @@ namespace Pawns {
                           && 0 != stoppers
                           && 0 != neighbours
                           && R_6 > rel_rank (Own, s)
-                            // Find the backmost rank with neighbours or stoppers
+                            // Find the back most rank with neighbours or stoppers
                           && 0 != (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers)))
                             // If have an enemy pawn in the same or next rank, the pawn is
                             // backward because it cannot advance without being captured.
@@ -205,13 +204,13 @@ namespace Pawns {
         
         auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
 
-        Bitboard front_pawns = pos.pieces (PAWN)
+        const Bitboard front_pawns = pos.pieces (PAWN)
                              & (  rank_bb (fk_sq)
                                 | front_rank_bb (Own, fk_sq))
                              & (  file_bb (kf)
                                 | adj_file_bb (kf));
-        Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
-        Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
+        const Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
+        const Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
         
         if (5 == pop_count (  (own_front_pawns & ShelterMask_bb[Own])
                             | (opp_front_pawns & StormMask_bb[Own])))
@@ -280,7 +279,7 @@ namespace Pawns {
                 {
                     for (auto r : { R_2, R_3, R_4, R_5, R_6, R_7 })
                     {
-                        i32 v = 17 * support + ((Seeds[r] + (phalanx ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed);
+                        const i32 v = 17 * support + ((Seeds[r] + (phalanx ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed);
                         Connected[opposed][phalanx][support][r] = mk_score (v, v * (r-2) / 4);
                     }
                 }

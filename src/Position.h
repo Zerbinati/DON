@@ -158,7 +158,8 @@ public:
     i32 count (PieceType) const;
     i32 count (Color, PieceType) const;
 
-    template<PieceType PT> Square square (Color, i08 = 0) const;
+    template<PieceType>
+    Square square (Color, i08 = 0) const;
 
     Key pg_key () const;
     Key posi_move_key (Move) const;
@@ -293,11 +294,12 @@ inline i32 Position::count (Color c, PieceType pt) const
     return i32(squares[c][pt].size ());
 }
 
-template<PieceType PT> inline Square Position::square (Color c, i08 index) const
+template<PieceType PT>
+inline Square Position::square (Color c, i08 index) const
 {
     static_assert (PAWN <= PT && PT <= KING, "PT incorrect");
     assert(i08(squares[c][PT].size ()) > index);
-    return index == 0 ?
+    return 0 == index ?
              *squares[c][PT].begin () : 
              *std::next (squares[c][PT].begin (), index);
 }
@@ -310,8 +312,8 @@ inline Key Position::pg_key () const
 /// Needed for speculative prefetch.
 inline Key Position::posi_move_key (Move m) const
 {
-    auto org = org_sq (m);
-    auto dst = dst_sq (m);
+    const auto org = org_sq (m);
+    const auto dst = dst_sq (m);
     assert(contains (pieces (active), org));
     
     auto key = si->posi_key;
@@ -330,7 +332,7 @@ inline Key Position::posi_move_key (Move m) const
             && PAWN == ptype (board[org])
             && 16 == (u08(dst) ^ u08(org)))
         {
-            auto ep_sq = org + (dst - org) / 2;
+            const auto ep_sq = org + (dst - org) / 2;
             if (can_en_passant (~active, ep_sq, false))
             {
                 key ^= RandZob.en_passant_keys[_file (ep_sq)];

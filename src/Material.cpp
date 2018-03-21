@@ -225,7 +225,7 @@ namespace Material {
             imbalance<BLACK> (piece_count)
         };
 
-        auto value = (imb[WHITE] - imb[BLACK]) / 16; // Imbalance Resolution
+        const auto value = (imb[WHITE] - imb[BLACK]) / 16; // Imbalance Resolution
         e->imbalance = mk_score (value, value);
 
         return e;

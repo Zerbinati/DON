@@ -3,7 +3,6 @@
 #include <ostream>
 #include "BitBoard.h"
 #include "Material.h"
-#include "MoveGenerator.h"
 #include "Pawns.h"
 
 using namespace std;
@@ -102,7 +101,7 @@ namespace {
         // Penalty for queen weaken
         static constexpr Score QueenWeaken =       S(50,10);
 
-        static constexpr Score PawnlessFlank =     S(20,80);
+        static constexpr Score PawnLessFlank =     S(20,80);
         static constexpr Score EnemyAttackKing =   S( 7, 0);
 
         static constexpr Score PawnWeakUnopposed = S( 5,25);
@@ -183,7 +182,7 @@ namespace {
 
         // Zone around the king which is considered by the king safety evaluation.
         // This consists of the squares directly adjacent to the king, and the three (or two, for a king on an edge file) squares two ranks in front of the king.
-        // For instance, if black's king is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8, f7, g7, h7, f6, g6 and h6.
+        // For instance, if black king is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8, f7, g7, h7, f6, g6 and h6.
         Bitboard king_ring[CLR_NO];
         // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
         u08 king_attackers_count[CLR_NO];
@@ -293,10 +292,10 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
+        const Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
         if (0 != pinned_pawns)
         {
-            Bitboard loosed_pawns = pos.pieces (Own, PAWN) ^ pinned_pawns;
+            const Bitboard loosed_pawns = pos.pieces (Own, PAWN) ^ pinned_pawns;
             pin_attacked_by[Own][PAWN] = pawn_attacks_bb (Own, loosed_pawns)
                                        | (  pawn_attacks_bb (Own, pinned_pawns)
                                           & PieceAttacks[BSHP][pos.square<KING> (Own)]);
@@ -426,7 +425,7 @@ namespace {
 
             if (0 != (king_ring[Opp] & attacks))
             {
-                king_attackers_count[Own]++;
+                ++king_attackers_count[Own];
                 king_attackers_weight[Own] += PieceAttackWeights[PT];
                 king_attacks_count[Own] += u08(pop_count (pin_attacked_by[Opp][KING] & attacks));
             }
@@ -627,8 +626,8 @@ namespace {
                                   | (  weak_area
                                      & dbl_attacked[Opp]));
 
-            Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
-            Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
+            const Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
+            const Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
 
             // Enemy queens safe checks
             b = (  rook_attack
@@ -698,10 +697,10 @@ namespace {
 
         Bitboard kf_bb = KingFlank_bb[_file (fk_sq)];
 
-        // Penalty for king on a pawnless flank
+        // Penalty for king on a pawn less flank
         if (0 == (pos.pieces (PAWN) & kf_bb))
         {
-            score -= PawnlessFlank;
+            score -= PawnLessFlank;
         }
 
         Bitboard e;

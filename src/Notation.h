@@ -1,7 +1,6 @@
 #ifndef _NOTATION_H_INC_
 #define _NOTATION_H_INC_
 
-#include <iostream>
 #include "Position.h"
 #include "Thread.h"
 #include "Type.h"

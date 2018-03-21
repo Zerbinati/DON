@@ -32,7 +32,7 @@ namespace BitBases {
 
         enum Result : u08
         {
-            INVALID = 0,
+            NONE    = 0,
             UNKNOWN = 1,
             DRAW    = 2,
             WIN     = 4,
@@ -66,7 +66,7 @@ namespace BitBases {
                 constexpr auto Good = WHITE == Own ? Result::WIN : Result::DRAW;
                 constexpr auto Bad  = WHITE == Own ? Result::DRAW : Result::WIN;
 
-                Result r = Result::INVALID;
+                Result r = Result::NONE;
                 Bitboard b = PieceAttacks[KING][k_sq[Own]];
                 while (0 != b)
                 {
@@ -114,20 +114,20 @@ namespace BitBases {
                             | Rank  (R_7-Rank((idx >> 15) & 0x07));
 
                 // Check if two pieces are on the same square or if a king can be captured
-                if (   dist (k_sq[WHITE], k_sq[BLACK]) <= 1
+                if (   1 >= dist (k_sq[WHITE], k_sq[BLACK])
                     || k_sq[WHITE] == p_sq
                     || k_sq[BLACK] == p_sq
                     || (   WHITE == active
                         && contains (PawnAttacks[WHITE][p_sq], k_sq[BLACK])))
                 {
-                    result = Result::INVALID;
+                    result = Result::NONE;
                 }
                 else
                 // Immediate win if a pawn can be promoted without getting captured
                 if (   WHITE == active
                     && _rank (p_sq) == R_7
                     && k_sq[WHITE] != (p_sq + DEL_N)
-                    && (   dist (k_sq[BLACK], p_sq + DEL_N) > 1
+                    && (   1 < dist (k_sq[BLACK], p_sq + DEL_N)
                         || contains (PieceAttacks[KING][k_sq[WHITE]], p_sq + DEL_N)))
                 {
                     result = Result::WIN;
@@ -194,7 +194,7 @@ namespace BitBases {
     {
         assert(_file (wp_sq) <= F_D);
 
-        u32 idx = index (c, wk_sq, bk_sq, wp_sq);
+        const u32 idx = index (c, wk_sq, bk_sq, wp_sq);
         return KPK_Bitbase[idx / 32] & (1 << (idx & 0x1F));
     }
 

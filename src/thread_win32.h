@@ -13,7 +13,6 @@
 
 #include <condition_variable>
 #include <mutex>
-#include <vector>
 
 #if defined(_WIN32)
 
