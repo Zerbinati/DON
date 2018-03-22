@@ -249,22 +249,14 @@ bool Position::pseudo_legal (Move m) const
     {
         return false;
     }
+    assert(NONE != ptype (board[org_sq (m)]));
 
-    auto mpt = ptype (board[org_sq (m)]);
-    assert(NONE != mpt);
-
-    if (NORMAL == mtype (m))
-    {
-        // Is not a promotion, so promotion piece must be empty.
-        assert(NIHT == promote (m));
-    }
-    else
     if (CASTLE == mtype (m))
     {
         auto cs = dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN;
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
-        if (!(   KING == mpt
+        if (!(   KING == ptype (board[org_sq (m)])
               && R_1 == rel_rank (active, org_sq (m))
               && R_1 == rel_rank (active, dst_sq (m))
               && contains (pieces (active, ROOK), dst_sq (m))
@@ -295,30 +287,6 @@ bool Position::pseudo_legal (Move m) const
         }
         return true; // No capture
     }
-    else
-    if (ENPASSANT == mtype (m))
-    {
-        if (!(   PAWN == mpt
-              && R_5 == rel_rank (active, org_sq (m))
-              && R_6 == rel_rank (active, dst_sq (m))
-              && si->en_passant_sq == dst_sq (m)
-              && empty (dst_sq (m))
-              && contains (pieces (~active, PAWN), dst_sq (m) - pawn_push (active))))
-        {
-            return false;
-        }
-    }
-    else
-    if (PROMOTE == mtype (m))
-    {
-        assert(NIHT <= promote (m) && promote (m) <= QUEN);
-        if (!(   PAWN == mpt
-              && R_7 == rel_rank (active, org_sq (m))
-              && R_8 == rel_rank (active, dst_sq (m))))
-        {
-            return false;
-        }
-    }
 
     // The captured square cannot be occupied by a friendly piece
     if (contains (pieces (active), ENPASSANT != mtype (m) ? dst_sq (m) : dst_sq (m) - pawn_push (active)))
@@ -327,20 +295,24 @@ bool Position::pseudo_legal (Move m) const
     }
 
     // Handle the special case of a piece move
-    if (PAWN == mpt)
+    if (PAWN == ptype (board[org_sq (m)]))
     {
         if (    // Single push
                !(   (   (   NORMAL == mtype (m)
-                         && R_6 >= rel_rank (active, org_sq (m)))
+                         && R_6 >= rel_rank (active, org_sq (m))
+                         && R_7 >= rel_rank (active, dst_sq (m)))
                      || (   PROMOTE == mtype (m)
-                         && R_7 == rel_rank (active, org_sq (m))))
+                         && R_7 == rel_rank (active, org_sq (m))
+                         && R_8 == rel_rank (active, dst_sq (m))))
                  && empty (dst_sq (m))
                  && org_sq (m) + pawn_push (active) == dst_sq (m))
                 // Normal capture
             && !(   (   (   NORMAL == mtype (m)
-                         && R_6 >= rel_rank (active, org_sq (m)))
+                         && R_6 >= rel_rank (active, org_sq (m))
+                         && R_7 >= rel_rank (active, dst_sq (m)))
                      || (   PROMOTE == mtype (m)
-                         && R_7 == rel_rank (active, org_sq (m))))
+                         && R_7 == rel_rank (active, org_sq (m))
+                         && R_8 == rel_rank (active, dst_sq (m))))
                  && contains (pieces (~active) & PawnAttacks[active][org_sq (m)], dst_sq (m)))
                 // Enpassant capture
             && !(   ENPASSANT == mtype (m)
@@ -361,32 +333,37 @@ bool Position::pseudo_legal (Move m) const
         }
     }
     else
-    if (NIHT == mpt)
+    if (NIHT == ptype (board[org_sq (m)]))
     {
-        if (   !contains (PieceAttacks[NIHT][org_sq (m)], dst_sq (m))) { return false; }
+        if (   NORMAL != mtype (m)
+            || !contains (PieceAttacks[NIHT][org_sq (m)], dst_sq (m))) { return false; }
     }
     else
-    if (BSHP == mpt)
+    if (BSHP == ptype (board[org_sq (m)]))
     {
-        if (   !contains (PieceAttacks[BSHP][org_sq (m)], dst_sq (m))
+        if (   NORMAL != mtype (m)
+            || !contains (PieceAttacks[BSHP][org_sq (m)], dst_sq (m))
             || !contains (attacks_bb<BSHP> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
     }
     else
-    if (ROOK == mpt)
+    if (ROOK == ptype (board[org_sq (m)]))
     {
-        if (   !contains (PieceAttacks[ROOK][org_sq (m)], dst_sq (m))
+        if (   NORMAL != mtype (m)
+            || !contains (PieceAttacks[ROOK][org_sq (m)], dst_sq (m))
             || !contains (attacks_bb<ROOK> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
     }
     else
-    if (QUEN == mpt)
+    if (QUEN == ptype (board[org_sq (m)]))
     {
-        if (   !contains (PieceAttacks[QUEN][org_sq (m)], dst_sq (m))
+        if (   NORMAL != mtype (m)
+            || !contains (PieceAttacks[QUEN][org_sq (m)], dst_sq (m))
             || !contains (attacks_bb<QUEN> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
     }
     else
-    if (KING == mpt)
+    if (KING == ptype (board[org_sq (m)]))
     {
-        if (   !contains (PieceAttacks[KING][org_sq (m)], dst_sq (m))) { return false; }
+        if (   NORMAL != mtype (m)
+            || !contains (PieceAttacks[KING][org_sq (m)], dst_sq (m))) { return false; }
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
@@ -395,7 +372,7 @@ bool Position::pseudo_legal (Move m) const
     {
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
-        if (KING == mpt)
+        if (KING == ptype (board[org_sq (m)]))
         {
             return 0 == attackers_to (dst_sq (m), ~active, pieces () ^ org_sq (m));
         }
@@ -405,7 +382,7 @@ bool Position::pseudo_legal (Move m) const
             return ENPASSANT != mtype (m) ?
                 // Move must be a capture of the checking piece or a blocking evasion of the checking piece
                    contains (si->checkers | between_bb (scan_lsq (si->checkers), square<KING> (active)), dst_sq (m)) :
-                // Move must be a capture of the checking en-passant pawn or a blocking evasion of the checking piece
+                // Move must be a capture of the checking Enpassant pawn or a blocking evasion of the checking piece
                    (0 != (si->checkers & pieces (~active, PAWN)) && contains (si->checkers, dst_sq (m) - pawn_push (active)))
                 || contains (between_bb (scan_lsq (si->checkers), square<KING> (active)), dst_sq (m));
         }
@@ -464,7 +441,7 @@ bool Position::legal (Move m) const
     else
     if (ENPASSANT == mtype (m))
     {
-        // En-passant captures are a tricky special case. Because they are rather uncommon,
+        // Enpassant captures are a tricky special case. Because they are rather uncommon,
         // do it simply by testing whether the king is attacked after the move is made.
         assert(contains (pieces (active, PAWN), org_sq (m))
             && R_5 == rel_rank (active, org_sq (m))
@@ -525,7 +502,7 @@ bool Position::gives_check (Move m) const
             && R_6 == rel_rank (active, dst_sq (m))
             && empty (dst_sq (m))
             && 1 >= si->clock_ply);
-        // En-passant capture with check?
+        // Enpassant capture with check?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
         Bitboard mocc = (pieces () ^ org_sq (m) ^ (_file (dst_sq (m))|_rank (org_sq (m)))) | dst_sq (m);
@@ -629,7 +606,7 @@ bool Position::can_en_passant (Color c, Square ep_sq, bool move_done) const
         return false;
     }
 
-    // En-passant attackers
+    // Enpassant attackers
     Bitboard attackers = pieces (c, PAWN) & PawnAttacks[~c][ep_sq];
     assert(2 >= pop_count (attackers));
     Bitboard mocc = (pieces () ^ cap) | ep_sq;
@@ -793,7 +770,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         }
     }
 
-    // 4. En-passant square. Ignore if no pawn capture is possible.
+    // 4. Enpassant square. Ignore if no pawn capture is possible.
     si->en_passant_sq = SQ_NO;
     u08 file, rank;
     if (   (iss >> file && ('a' <= file && file <= 'h'))
@@ -1189,7 +1166,7 @@ void Position::flip ()
     }
     ff += token;
     ff += " ";
-    // 4. En-passant square
+    // 4. Enpassant square
     iss >> token;
     if (token != "-")
     {
@@ -1247,7 +1224,7 @@ void Position::mirror ()
     }
     ff += token;
     ff += " ";
-    // 4. En-passant square
+    // 4. Enpassant square
     iss >> token;
     if (token != "-")
     {

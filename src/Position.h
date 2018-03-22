@@ -17,7 +17,7 @@ using namespace BitBoard;
 /// a StateInfo object must be passed as a parameter.
 ///
 ///  - Castling-rights information.
-///  - En-passant square (SQ_NO if no en passant capture is possible).
+///  - Enpassant square (SQ_NO if no en passant capture is possible).
 ///  - Counter (clock) for detecting 50 move rule draws.
 ///  - Hash key of the material situation.
 ///  - Hash key of the pawn structure.
@@ -39,8 +39,8 @@ public:
     Score       psq_score;
 
     CastleRight castle_rights;  // Castling-rights information
-    Square      en_passant_sq;  // En-passant -> "In passing"
-    u08         clock_ply;      // Number of halfmoves clock since the last pawn advance or any capture
+    Square      en_passant_sq;  // Enpassant -> "In passing"
+    u08         clock_ply;      // Number of half moves clock since the last pawn advance or any capture
                                 // Used to determine if a draw can be claimed under the clock-move rule
     u08         null_ply;
     
