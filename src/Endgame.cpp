@@ -43,16 +43,29 @@ namespace EndGame {
         constexpr i32 PushClose[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
         constexpr i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
+        // Pawn Rank based scaling.
+        constexpr Scale Scales[R_NO] =
+        {
+            Scale (0),
+            Scale (9),
+            Scale (10),
+            Scale (14),
+            Scale (21),
+            Scale (44),
+            Scale (0),
+            Scale (0)
+        };
+
         // Map the square as if color is white and square only pawn is on the left half of the board.
         Square normalize (const Position &pos, Color c, Square sq)
         {
             assert(1 == pos.count (c, PAWN));
 
-            if (_file (pos.square<PAWN> (c)) >= F_E)
+            if (F_E <= _file (pos.square<PAWN> (c)))
             {
                 sq = !sq;
             }
-            if (c == BLACK)
+            if (BLACK == c)
             {
                 sq = ~sq;
             }
@@ -414,7 +427,7 @@ namespace EndGame {
             && dist (sk_sq, promote_sq) < dist (wk_sq, sr_sq) + tempo)
         {
             return Scale(SCALE_MAX
-                            - 2 * dist (sk_sq, promote_sq));
+                         - 2 * dist (sk_sq, promote_sq));
         }
         // Similar to the above, but with the pawn further back
         if (   F_A != f
@@ -427,8 +440,8 @@ namespace EndGame {
                     && dist (sk_sq, sp_sq+DEL_N) < dist (wk_sq, sr_sq) + tempo)))
         {
             return Scale(SCALE_MAX
-                            - 8 * dist (sp_sq, promote_sq)
-                            - 2 * dist (sk_sq, promote_sq));
+                         - 8 * dist (sp_sq, promote_sq)
+                         - 2 * dist (sk_sq, promote_sq));
         }
         // If the pawn is not far advanced, and the defending king is somewhere in
         // the pawn's path, it's probably a draw.
@@ -471,11 +484,12 @@ namespace EndGame {
             if (   R_5 == r
                 && !opposite_colors (wb_sq, sp_sq))
             {
-                i32 d = dist (sp_sq + push*3, wk_sq);
+                const auto d = dist (sp_sq + push*3, wk_sq);
                 return d <= 2
                     && (   0 != d
                         || wk_sq != pos.square<KING> (strong_color) + push*2) ?
-                            Scale(24) : Scale(48);
+                            Scale(24) :
+                            Scale(48);
             }
             // When the pawn has moved to the 6th rank can be fairly sure it's drawn
             // if the bishop attacks the square in front of the pawn from a reasonable distance
@@ -497,19 +511,6 @@ namespace EndGame {
     {
         assert(verify_material (pos, strong_color, VALUE_MG_ROOK, 2));
         assert(verify_material (pos,   weak_color, VALUE_MG_ROOK, 1));
-
-        // Pawn Rank based scaling.
-        constexpr Scale Scales[R_NO] =
-        {
-            Scale(0),
-            Scale(9),
-            Scale(10),
-            Scale(14),
-            Scale(21),
-            Scale(44),
-            Scale(0),
-            Scale(0)
-        };
 
         const auto wk_sq  = pos.square<KING> (  weak_color);
         const auto sp1_sq = pos.square<PAWN> (strong_color, 0);

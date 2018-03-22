@@ -330,16 +330,22 @@ bool Position::pseudo_legal (Move m) const
     if (PAWN == mpt)
     {
         if (    // Single push
-               !(   (   NORMAL == mtype (m)
-                     || PROMOTE == mtype (m))
+               !(   (   (   NORMAL == mtype (m)
+                         && R_6 >= rel_rank (active, org_sq (m)))
+                     || (   PROMOTE == mtype (m)
+                         && R_7 == rel_rank (active, org_sq (m))))
                  && empty (dst_sq (m))
                  && org_sq (m) + pawn_push (active) == dst_sq (m))
                 // Normal capture
-            && !(   (   NORMAL == mtype (m)
-                     || PROMOTE == mtype (m))
+            && !(   (   (   NORMAL == mtype (m)
+                         && R_6 >= rel_rank (active, org_sq (m)))
+                     || (   PROMOTE == mtype (m)
+                         && R_7 == rel_rank (active, org_sq (m))))
                  && contains (pieces (~active) & PawnAttacks[active][org_sq (m)], dst_sq (m)))
                 // Enpassant capture
             && !(   ENPASSANT == mtype (m)
+                 && R_5 == rel_rank (active, org_sq (m))
+                 && R_6 == rel_rank (active, dst_sq (m))
                  && si->en_passant_sq == dst_sq (m)
                  && empty (dst_sq (m))
                  && contains (pieces (~active, PAWN), dst_sq (m) - pawn_push (active)))

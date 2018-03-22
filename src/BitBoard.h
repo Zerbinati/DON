@@ -5,6 +5,25 @@
 
 namespace BitBoard {
 
+    /// mk_bitboard() returns a bitboard compile-time constructed from a list of squares, files, ranks
+    constexpr Bitboard mk_bitboard () { return 0; }
+
+    template<typename ...Squares>
+    constexpr Bitboard mk_bitboard (Square s, Squares... squares)
+    {
+        return U64(0x0000000000000001) << s | mk_bitboard (squares...);
+    }
+    template<typename ...Files>
+    constexpr Bitboard make_bitboard (File f, Files... files)
+    {
+        return U64(0x0101010101010101) << f | make_bitboard (files...);
+    }
+    template<typename ...Ranks>
+    constexpr Bitboard make_bitboard (Rank r, Ranks... ranks)
+    {
+        return U64(0x00000000000000FF) << (r * 8) | make_bitboard (ranks...);
+    }
+
     constexpr Bitboard FA_bb = U64(0x0101010101010101);
     constexpr Bitboard FB_bb = FA_bb << 1;
     constexpr Bitboard FC_bb = FA_bb << 2;
@@ -244,14 +263,6 @@ namespace BitBoard {
 //#   else
         return 0 != (bb & (bb - 1));
 //#   endif
-    }
-
-    /// mk_bitboard() returns a bitboard from a list of squares
-    constexpr Bitboard mk_bitboard () { return 0; }
-    template<typename ...Squares>
-    constexpr Bitboard mk_bitboard (Square s, Squares... squares)
-    {
-        return (U64(1) << s) | mk_bitboard (squares...);
     }
 
     /// Shift the bitboard using delta

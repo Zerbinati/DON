@@ -131,7 +131,7 @@ class MainThread
 {
 public:
 
-    i16 check_count;
+    u64 check_count;
     u64 check_time;
 
     bool failed_low;

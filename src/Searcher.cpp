@@ -110,17 +110,6 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
         {
             refutation_moves.push_back (cm);
         }
-        refutation_moves.erase (std::remove_if (refutation_moves.begin (),
-                                                refutation_moves.end (),
-                                                [&](Move mm)
-                                                {
-                                                    return MOVE_NONE == mm
-                                                        || tt_move == mm
-                                                        || !pos.pseudo_legal (mm)
-                                                        || !pos.legal (mm)
-                                                        ||  pos.capture (mm);
-                                                }),
-                                refutation_moves.end ());
     }
 
     if (MOVE_NONE == tt_move)
@@ -251,6 +240,7 @@ Move MovePicker::pick_move (Pred filter)
         vmove = *beg;
         if (filter ())
         {
+            assert(vmove.move != tt_move);
             return vmove.move;
         }
     }
@@ -306,6 +296,17 @@ Move MovePicker::next_move ()
         {
             return vmove.move;
         }
+        refutation_moves.erase (std::remove_if (refutation_moves.begin (),
+                                                refutation_moves.end (),
+                                                [&](Move m)
+                                                {
+                                                    return MOVE_NONE == m
+                                                        || tt_move == m
+                                                        || !pos.pseudo_legal (m)
+                                                        || !pos.legal (m)
+                                                        ||  pos.capture (m);
+                                                }),
+                                refutation_moves.end ());
         ++stage;
         i = 0;
         /* fall through */
@@ -366,7 +367,7 @@ Move MovePicker::next_move ()
         i = 0;
         /* fall through */
     case Stage::EVA_EVASIONS:
-        return pick_move<NEXT> ([]() { return true; });
+        return pick_move<BEST> ([]() { return true; });
 
     case Stage::PC_CAPTURES:
         return pick_move<BEST> ([&]() { return pos.see_ge (vmove.move, threshold); });
@@ -2308,12 +2309,16 @@ void MainThread::search ()
 /// MainThread::check_limits() is used to detect when out of available limits and thus stop the search, also print debug info.
 void MainThread::check_limits ()
 {
-    if (0 <= --check_count)
+    if (1 <= check_count--)
     {
         return;
     }
     // At low node count increase the checking rate otherwise use a default value.
-    check_count = i16(0 != Limits.nodes ? std::min (std::max (i32(std::round ((double) Limits.nodes / 1024)), 1), 1024) : 1024);
+    check_count = 1024;
+    if (0 != Limits.nodes)
+    {
+        check_count = std::min (std::max (Limits.nodes / 1024, u64(1)), check_count);
+    }
     assert(0 != check_count);
 
     u64 elapsed_time = time_mgr.elapsed_time ();
