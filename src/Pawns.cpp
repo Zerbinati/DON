@@ -106,8 +106,7 @@ namespace Pawns {
 
             auto score = SCORE_ZERO;
 
-            Bitboard b, neighbours, supporters, phalanxes, stoppers, levers, escapes;
-            bool blocked, opposed, backward;
+            Bitboard b;
             for (auto s : pos.squares[Own][PAWN])
             {
                 assert(pos[s] == (Own|PAWN));
@@ -116,29 +115,29 @@ namespace Pawns {
                 e->semiopens[Own] &= u08(~(1 << f));
                 e->attack_span[Own] |= pawn_attack_span (Own, s);
 
-                neighbours = own_pawns & adj_file_bb (f);
-                supporters = neighbours & rank_bb (s-Push);
-                phalanxes  = neighbours & rank_bb (s);
-                stoppers   = opp_pawns & pawn_pass_span (Own, s);
-                levers     = opp_pawns & PawnAtt[s];
-                escapes    = opp_pawns & PawnAtt[s+Push];
+                Bitboard neighbours = own_pawns & adj_file_bb (f);
+                Bitboard supporters = neighbours & rank_bb (s-Push);
+                Bitboard phalanxes  = neighbours & rank_bb (s);
+                Bitboard stoppers   = opp_pawns & pawn_pass_span (Own, s);
+                Bitboard levers     = opp_pawns & PawnAtt[s];
+                Bitboard escapes    = opp_pawns & PawnAtt[s+Push];
 
-                blocked    = contains (own_pawns, s-Push);
-                opposed    = 0 != (opp_pawns & front_line_bb (Own, s));
+                bool blocked = contains (own_pawns, s-Push);
+                bool opposed = 0 != (opp_pawns & front_line_bb (Own, s));
 
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
                 // The pawn is backward when it cannot safely progress to next rank:
                 // either there is a stoppers in the way on next rank
                 // or there is a stoppers on adjacent file which controls the way to next rank.
-                backward   = 0 == levers
-                          && 0 != stoppers
-                          && 0 != neighbours
-                          && R_6 > rel_rank (Own, s)
-                            // Find the back most rank with neighbours or stoppers
-                          && 0 != (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers)))
-                            // If have an enemy pawn in the same or next rank, the pawn is
-                            // backward because it cannot advance without being captured.
-                          && 0 != (stoppers & (b | shift<Push> (b & adj_file_bb (f))));
+                bool backward = 0 == levers
+                             && 0 != stoppers
+                             && 0 != neighbours
+                             && R_6 > rel_rank (Own, s)
+                                // Find the back most rank with neighbours or stoppers
+                             && 0 != (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers)))
+                                // If have an enemy pawn in the same or next rank, the pawn is
+                                // backward because it cannot advance without being captured.
+                             && 0 != (stoppers & (b | shift<Push> (b & adj_file_bb (f))));
 
                 assert(!backward
                     || 0 == (pawn_attack_span (Opp, s+Push) & neighbours));

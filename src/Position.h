@@ -17,7 +17,7 @@ using namespace BitBoard;
 /// a StateInfo object must be passed as a parameter.
 ///
 ///  - Castling-rights information.
-///  - Enpassant square (SQ_NO if no en passant capture is possible).
+///  - Enpassant square (SQ_NO if no Enpassant capture is possible).
 ///  - Counter (clock) for detecting 50 move rule draws.
 ///  - Hash key of the material situation.
 ///  - Hash key of the pawn structure.
