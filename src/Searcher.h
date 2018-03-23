@@ -226,7 +226,7 @@ class RootMove
 public:
     Value old_value
         , new_value;
-    
+
     i16 sel_depth;
 
     explicit RootMove (Move m = MOVE_NONE)

@@ -1155,7 +1155,7 @@ namespace Searcher {
                     // skipping an entire subtree, search it to a reduced depth.
                     if (   !PVNode
                         && 3 > depth
-                        && tt_eval + RazorMargin[depth] <= alfa)
+                        && tt_eval <= alfa - RazorMargin[depth])
                     {
                         auto alfa_margin = alfa - RazorMargin[depth] * (1 < depth ? 1 : 0);
                         auto v = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
@@ -2309,7 +2309,7 @@ void MainThread::search ()
 /// MainThread::check_limits() is used to detect when out of available limits and thus stop the search, also print debug info.
 void MainThread::check_limits ()
 {
-    if (1 <= check_count--)
+    if (0 < check_count--)
     {
         return;
     }

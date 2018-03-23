@@ -196,11 +196,11 @@ namespace Pawns {
     template<Color Own>
     Value Entry::pawn_shelter_storm (const Position &pos, Square fk_sq) const
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         // Max Safety corresponds to start position with all the pawns in front of the king and no enemy pawn on the horizon.
-        
+
         auto value = Value(258);
-        
+
         auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
 
         const Bitboard front_pawns = pos.pieces (PAWN)

@@ -363,7 +363,7 @@ namespace {
                     || ROOK == PT
                     || QUEN == PT, "PT incorrect");
 
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
         auto score = SCORE_ZERO;
 
@@ -578,7 +578,7 @@ namespace {
     template<Color Own>
     Score Evaluator<Trace>::king ()
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
         auto fk_sq = pos.square<KING> (Own);
 
@@ -730,7 +730,7 @@ namespace {
     template<Color Own>
     Score Evaluator<Trace>::threats ()
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
         auto score = SCORE_ZERO;
 
@@ -870,7 +870,7 @@ namespace {
     template<Color Own>
     Score Evaluator<Trace>::passers ()
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
         auto king_proximity = [&](Color c, Square s)
                             {
@@ -994,7 +994,7 @@ namespace {
     template<Color Own>
     Score Evaluator<Trace>::space ()
     {
-        const auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
         // Find the safe squares for our pieces inside the area defined by SpaceMask.
         // A square is safe:
