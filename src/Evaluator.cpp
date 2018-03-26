@@ -341,9 +341,20 @@ namespace {
         {
             king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
             king_attackers_count[Own] = u08(pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]));
+            
             if (R_1 == rel_rank (Opp, pos.square<KING> (Opp)))
             {
                 king_ring[Opp] |= shift<WHITE == Own ? DEL_S : DEL_N> (king_ring[Opp]);
+            }
+
+            if (F_H == _file (pos.square<KING> (Opp)))
+            {
+                king_ring[Opp] |= shift<DEL_W> (king_ring[Opp]);
+            }
+            else
+            if (F_A == _file (pos.square<KING> (Opp)))
+            {
+                king_ring[Opp] |= shift<DEL_E> (king_ring[Opp]);
             }
         }
         else
@@ -1116,9 +1127,9 @@ namespace {
 
         Score score;
         // Score is computed internally from the white point of view, initialize by
-        // - the incrementally updated scores (material + piece square tables).
-        // - the material imbalance.
-        // - the pawn score
+        // - incrementally updated scores (material + piece square tables).
+        // - material imbalance.
+        // - pawn score
         score = pos.si->psq_score
               + me->imbalance
               + pe->scores[WHITE]

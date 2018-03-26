@@ -1285,7 +1285,7 @@ namespace Searcher {
                     if (   MOVE_NONE == tt_move
                         && 5 < depth
                         && (   PVNode
-                            || ss->static_eval + 256 >= beta))
+                            || ss->static_eval + 128 >= beta))
                     {
                         depth_search<PVNode> (pos, ss, alfa, beta, 3*depth/4 - 2, cut_node, false);
 
