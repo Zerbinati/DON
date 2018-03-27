@@ -46,10 +46,10 @@ namespace Pawns {
                 { V( 0), V(  72), V(127), V(50), V(31), V(0), V(0), V(0) }
             },
             {// BlockedByPawn
-                { V( 0), V(   0), V( 79), V(23), V( 1), V(0), V(0), V(0) },
-                { V( 0), V(   0), V(148), V(27), V( 2), V(0), V(0), V(0) },
-                { V( 0), V(   0), V(161), V(16), V( 1), V(0), V(0), V(0) },
-                { V( 0), V(   0), V(171), V(22), V(15), V(0), V(0), V(0) }
+                { V( 0), V(   0), V( 19), V(23), V( 1), V(0), V(0), V(0) },
+                { V( 0), V(   0), V( 88), V(27), V( 2), V(0), V(0), V(0) },
+                { V( 0), V(   0), V(101), V(16), V( 1), V(0), V(0), V(0) },
+                { V( 0), V(   0), V(111), V(22), V(15), V(0), V(0), V(0) }
             },
             {// Unblocked
                 { V(22), V(  45), V(104), V(62), V( 6), V(0), V(0), V(0) },
@@ -204,18 +204,12 @@ namespace Pawns {
         auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
 
         const Bitboard front_pawns = pos.pieces (PAWN)
-                             & (  rank_bb (fk_sq)
-                                | front_rank_bb (Own, fk_sq))
-                             & (  file_bb (kf)
-                                | adj_file_bb (kf));
+                                   & (  rank_bb (fk_sq)
+                                      | front_rank_bb (Own, fk_sq))
+                                   & (  file_bb (kf)
+                                      | adj_file_bb (kf));
         const Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         const Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
-        
-        if (5 == pop_count (  (own_front_pawns & ShelterMask_bb[Own])
-                            | (opp_front_pawns & StormMask_bb[Own])))
-        {
-            value += Value(300);
-        }
 
         for (auto f : { kf - File(1), kf, kf + File(1) })
         {

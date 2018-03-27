@@ -156,7 +156,8 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
         ++stage;
     }
 }
-/// MovePicker constructor for ProbCut search
+/// MovePicker constructor for ProbCut search.
+/// Generate captures with SEE greater than or equal to the given threshold.
 MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     : pos (p)
     , tt_move (ttm)
@@ -1894,14 +1895,15 @@ void Thread::search ()
             // Reset aspiration window starting size.
             if (4 < running_depth)
             {
+                const auto old_value = root_moves[pv_index].old_value;
                 window = Value(18);
-                alfa = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
-                beta = std::min (root_moves[pv_index].old_value + window, +VALUE_INFINITE);
+                alfa = std::max (old_value - window, -VALUE_INFINITE);
+                beta = std::min (old_value + window, +VALUE_INFINITE);
 
                 // Dynamic contempt
                 if (0 != ContemptValue)
                 {
-                    auto contempt = i32(std::round (48 * std::atan (i32(best_value) / (12.8 * ContemptValue))));
+                    auto contempt = i32(std::round (48 * std::atan (i32(old_value) / (12.8 * ContemptValue))));
                     Contempt = WHITE == root_pos.active ?
                                 +mk_score (contempt, contempt / 2) :
                                 -mk_score (contempt, contempt / 2);
