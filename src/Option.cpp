@@ -243,9 +243,9 @@ namespace UCI {
 
         void on_time_opt ()
         {
-            OverheadMoveTime = u16(i32(Options["Overhead Move Time"]));
-            MinimumMoveTime = u16(i32(Options["Minimum Move Time"]));
-            //OverheadClockTime = u16(i32(Options["Overhead Clock Time"]));
+            OverheadMoveTime = TimePoint(i32(Options["Overhead Move Time"]));
+            MinimumMoveTime = TimePoint(i32(Options["Minimum Move Time"]));
+            //OverheadClockTime = TimePoint(i32(Options["Overhead Clock Time"]));
             //MaximumMoveHorizon = u08(i32(Options["Maximum Move Horizon"]));
             //ReadyMoveHorizon = u08(i32(Options["Ready Move Horizon"]));
             MoveSlowness = i32(Options["Move Slowness"]);
@@ -348,8 +348,8 @@ namespace UCI {
 
         Options["Overhead Move Time"] << Option (OverheadMoveTime, 0, 5000, on_time_opt);
         Options["Minimum Move Time"]  << Option (MinimumMoveTime, 0, 5000, on_time_opt);
-        //Options["Maximum Move Horizon"] << Option (MaximumMoveHorizon, 0, 100, on_time_opt);
-        //Options["Ready Move Horizon"] << Option (ReadyMoveHorizon, 0, 100, on_time_opt);
+        //Options["Maximum Move Horizon"]<< Option (MaximumMoveHorizon, 0, 100, on_time_opt);
+        //Options["Ready Move Horizon"]  << Option (ReadyMoveHorizon, 0, 100, on_time_opt);
         //Options["Overhead Clock Time"] << Option (OverheadClockTime, 0, 30000, on_time_opt);
         Options["Move Slowness"]      << Option (MoveSlowness, 10, 1000, on_time_opt);
         Options["Nodes Time"]         << Option (NodesTime, 0, 10000, on_time_opt);

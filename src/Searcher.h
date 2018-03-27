@@ -26,16 +26,16 @@ public:
     // Clock struct stores the time and inc per move in milli-seconds.
     struct Clock
     {
-        u64 time;
-        u32 inc;
-    } clock[CLR_NO];    // Search with Clock
-    u08  movestogo;     // Search <x> moves to the next time control
+        TimePoint time;
+        TimePoint inc;
+    } clock[CLR_NO];        // Search with Clock
+    u08       movestogo;    // Search <x> moves to the next time control
 
-    u64  movetime;      // Search <x> exact time in milli-seconds
-    i16  depth;         // Search <x> depth (plies) only
-    u64  nodes;         // Search <x> nodes only
-    u08  mate;          // Search mate in <x> moves
-    bool infinite;      // Search until the "stop" command
+    TimePoint movetime;    // Search <x> exact time in milli-seconds
+    i16       depth;       // Search <x> depth (plies) only
+    u64       nodes;       // Search <x> nodes only
+    u08       mate;        // Search mate in <x> moves
+    bool      infinite;    // Search until the "stop" command
 
     TimePoint start_time;
 

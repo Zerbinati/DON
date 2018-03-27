@@ -11,8 +11,8 @@ using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-u16 OverheadMoveTime = 30;  // Attempt to keep at least this much time for each remaining move, in milli-seconds.
-u16 MinimumMoveTime = 20;   // No matter what, use at least this much time before doing the move, in milli-seconds.
+TimePoint OverheadMoveTime = 30;  // Attempt to keep at least this much time for each remaining move, in milli-seconds.
+TimePoint MinimumMoveTime = 20;   // No matter what, use at least this much time before doing the move, in milli-seconds.
 
 i32 MoveSlowness = 84;      // Move Slowness, in %age.
 u16 NodesTime = 0;          // 'Nodes as Time' mode.
@@ -45,9 +45,9 @@ namespace {
 
 #endif
 
-    u16 OverheadClockTime = 2*OverheadMoveTime; // Attempt to keep at least this much time at clock, in milli-seconds.
-    u08 MaximumMoveHorizon = 50;                // Plan time management at most this many moves ahead, in num of moves.
-    u08 ReadyMoveHorizon = 40;                  // Be prepared to always play at least this many moves, in num of moves.
+    TimePoint OverheadClockTime = 2*OverheadMoveTime; // Attempt to keep at least this much time at clock, in milli-seconds.
+    u08 MaximumMoveHorizon = 50;                      // Plan time management at most this many moves ahead, in num of moves.
+    u08 ReadyMoveHorizon = 40;                        // Be prepared to always play at least this many moves, in num of moves.
 
     // Skew-logistic function based on naive statistical analysis of
     // "how many games are still undecided after n half-moves".
@@ -55,12 +55,12 @@ namespace {
     // Data was extracted from the CCRL game database with some simple filtering criteria.
     double move_importance (i16 ply)
     {
-        //                                      Shift    Scale   Skew
+        //                                       Shift    Scale   Skew
         return std::pow (1.00 + std::exp ((ply - 64.50) / 6.85), -0.171) + DBL_MIN; // Ensure non-zero
     }
 
     template<bool Optimum>
-    u64 remaining_time (u64 time, u08 movestogo, i16 ply)
+    TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
     {
         constexpr auto  step_ratio = Optimum ? 1.00 : 7.30; // When in trouble, can step over reserved time with this ratio
         constexpr auto steal_ratio = Optimum ? 0.00 : 0.34; // However must not steal time from remaining moves over this ratio
@@ -75,16 +75,16 @@ namespace {
         auto time_ratio1 = (move_imp1 * step_ratio /* + move_imp2 * 0.00*/ ) / (move_imp1 * step_ratio + move_imp2 /* * 1.00*/);
         auto time_ratio2 = (move_imp1 /* * 1.00*/ + move_imp2 * steal_ratio) / (move_imp1 /* * 1.00*/  + move_imp2 /* * 1.00*/);
 
-        return u64(time * std::min (time_ratio1, time_ratio2));
+        return TimePoint(time * std::min (time_ratio1, time_ratio2));
     }
 }
 
 /// TimeManager::elapsed_time()
-u64 TimeManager::elapsed_time () const
+TimePoint TimeManager::elapsed_time () const
 {
-    return 0 != NodesTime ?
-            Threadpool.nodes () :
-            now () - Limits.start_time;
+    return TimePoint(0 != NodesTime ?
+                        Threadpool.nodes () :
+                        now () - Limits.start_time);
 }
 /// TimeManager::initialize() calculates the allowed thinking time out of the time control and current game ply.
 /// Support four different kind of time controls, passed in 'limits':
@@ -96,21 +96,22 @@ u64 TimeManager::elapsed_time () const
 void TimeManager::initialize (Color c, i16 ply)
 {
     optimum_time =
-    maximum_time = std::max (Limits.clock[c].time, u64(MinimumMoveTime));
+    maximum_time = std::max (Limits.clock[c].time, MinimumMoveTime);
 
     const auto Max_movestogo = 0 == Limits.movestogo ?
                                 MaximumMoveHorizon :
                                 std::min (Limits.movestogo, MaximumMoveHorizon);
+    TimePoint hyp_time;
     // Calculate optimum time usage for different hypothetic "moves to go" and choose the
     // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
     for (u08 hyp_movestogo = 1; hyp_movestogo <= Max_movestogo; ++hyp_movestogo)
     {
         // Calculate thinking time for hypothetic "moves to go"
-        auto hyp_time = std::max (
+        hyp_time = std::max (
                         + Limits.clock[c].time
                         + Limits.clock[c].inc * (hyp_movestogo-1)
                         - OverheadClockTime
-                        - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), u64(0));
+                        - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
 
         optimum_time = std::min (optimum_time, MinimumMoveTime + remaining_time<true > (hyp_time, hyp_movestogo, ply));
         maximum_time = std::min (maximum_time, MinimumMoveTime + remaining_time<false> (hyp_time, hyp_movestogo, ply));

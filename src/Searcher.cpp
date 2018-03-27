@@ -526,10 +526,10 @@ namespace Searcher {
         }
 
         /// multipv_info() formats PV information according to UCI protocol.
-        /// UCI requires that all (if any) unsearched PV lines are sent using a previous search score.
+        /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
         string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
         {
-            auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), 1ULL);
+            auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), TimePoint(1));
             const auto &rms = th->root_moves;
 
             auto total_nodes = Threadpool.nodes ();
@@ -2033,7 +2033,7 @@ void Thread::search ()
                     // -If all of the available time has been used
                     if (   1 == root_moves.size ()
                         || (  main_thread->time_mgr.elapsed_time () >
-                           u64(main_thread->time_mgr.optimum_time
+                     TimePoint(main_thread->time_mgr.optimum_time
                             // Best Move Instability - Use part of the gained time from a previous stable move for the current move
                             // Unstable factor
                             * (main_thread->best_move_change + 1)
@@ -2104,7 +2104,7 @@ void MainThread::search ()
                 time_mgr.available_nodes = Limits.clock[root_pos.active].time * NodesTime;
             }
             // Convert from milli-seconds to nodes
-            Limits.clock[root_pos.active].time = time_mgr.available_nodes;
+            Limits.clock[root_pos.active].time = TimePoint(time_mgr.available_nodes);
             Limits.clock[root_pos.active].inc *= NodesTime;
         }
 
@@ -2280,7 +2280,7 @@ void MainThread::search ()
     if (OutputStream.is_open ())
     {
         auto total_nodes = Threadpool.nodes ();
-        auto elapsed_time = std::max (time_mgr.elapsed_time (), 1ULL);
+        auto elapsed_time = std::max (time_mgr.elapsed_time (), TimePoint(1));
         OutputStream << "Nodes      : " << total_nodes << " N\n"
                      << "Time       : " << elapsed_time << " ms\n"
                      << "Speed      : " << total_nodes * 1000 / elapsed_time << " N/s\n"
@@ -2321,9 +2321,9 @@ void MainThread::check_limits ()
     }
     assert(0 != check_count);
 
-    u64 elapsed_time = time_mgr.elapsed_time ();
+    auto elapsed_time = time_mgr.elapsed_time ();
 
-    if (check_time + 1000 <= elapsed_time)
+    if (1000 <= elapsed_time - check_time)
     {
         check_time = elapsed_time;
 

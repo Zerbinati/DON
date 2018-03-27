@@ -11,8 +11,8 @@
 #include "thread_win32.h"
 #include "Type.h"
 
-extern u16 OverheadMoveTime;
-extern u16 MinimumMoveTime;
+extern TimePoint OverheadMoveTime;
+extern TimePoint MinimumMoveTime;
 
 extern i32 MoveSlowness;
 extern u16 NodesTime;
@@ -24,8 +24,8 @@ class TimeManager
 {
 public:
 
-    u64 optimum_time;
-    u64 maximum_time;
+    TimePoint optimum_time;
+    TimePoint maximum_time;
     // Used in 'Nodes as Time' mode
     u64 available_nodes;
 
@@ -33,7 +33,7 @@ public:
     TimeManager (const TimeManager&) = delete;
     TimeManager& operator= (const TimeManager&) = delete;
 
-    u64 elapsed_time () const;
+    TimePoint elapsed_time () const;
 
     void initialize (Color, i16);
 };
@@ -132,7 +132,7 @@ class MainThread
 public:
 
     u64 check_count;
-    u64 check_time;
+    TimePoint check_time;
 
     bool failed_low;
 
