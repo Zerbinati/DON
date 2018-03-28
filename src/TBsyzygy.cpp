@@ -158,8 +158,14 @@ namespace TBSyzygy {
 
             TBEntry ()
                 : ready (false)
-                , baseAddress (nullptr)
-            {}
+                , base_address (nullptr)
+                , map (nullptr)
+                , mapping (0)
+                , key1 (0)
+                , key2 (0)
+            {
+            }
+
             explicit TBEntry (const std::string&);
             explicit TBEntry (const TBEntry<WDL>&);
             ~TBEntry ();
@@ -361,7 +367,7 @@ namespace TBSyzygy {
                 for (const auto &path : Paths)
                 {
                     auto fname = append_path (path, file);
-                    open (fname);
+                    std::ifstream::open (fname);
                     if (is_open ())
                     {
                         filename = fname;
@@ -461,49 +467,6 @@ namespace TBSyzygy {
                 TBFile::unmap (base_address, mapping);
             }
         }
-
-        /*
-        WDLEntry::~WDLEntry ()
-        {
-            if (nullptr != base_address)
-            {
-                TBFile::unmap (base_address, mapping);
-            }
-            for (auto c : { WHITE , BLACK })
-            {
-                if (has_pawns)
-                {
-                    for (auto f : { F_A, F_B, F_C, F_D })
-                    {
-                        delete pawn_table.file[c][f].precomp;
-                    }
-                }
-                else
-                {
-                    delete piece_table[c].precomp;
-                }
-            }
-        }
-
-        DTZEntry::~DTZEntry ()
-        {
-            if (nullptr != base_address)
-            {
-                TBFile::unmap (base_address, mapping);
-            }
-            if (has_pawns)
-            {
-                for (auto f : { F_A, F_B, F_C, F_D })
-                {
-                    delete pawn_table.file[f].precomp;
-                }
-            }
-            else
-            {
-                delete piece_table.precomp;
-            }
-        }
-        */
 
         void HashTable::insert (const vector<PieceType> &pieces)
         {
@@ -671,7 +634,7 @@ namespace TBSyzygy {
             return d->btree[sym].get<LR::Center> ();
         }
 
-        bool check_dtz_stm (WDLEntry *entry, i32 stm, File f)
+        bool check_dtz_stm (TBEntry<WDL> *entry, i32 stm, File f)
         {
             (void) entry;
             (void) stm;
@@ -679,13 +642,10 @@ namespace TBSyzygy {
             return true;
         }
 
-        bool check_dtz_stm (DTZEntry *entry, i32 stm, File f)
+        bool check_dtz_stm (TBEntry<DTZ> *entry, i32 stm, File f)
         {
-            i32 flags = entry->has_pawns ?
-                entry->pawn_table.file[f].precomp->flags :
-                entry->piece_table.precomp->flags;
-
-            return (flags & STM) == stm
+            i32 flags = entry->get (stm, f)->flags;
+            return (flags & TBFlag::STM) == stm
                 || ((entry->key1 == entry->key2) && !entry->has_pawns);
         }
 
@@ -693,7 +653,7 @@ namespace TBSyzygy {
         /// values 0, 1, 2, ... in order of decreasing frequency. This is done for each
         //// of the four WDLScore values. The mapping information necessary to reconstruct
         /// the original values is stored in the TB file and read during map[] init.
-        WDLScore map_score (WDLEntry *entry, File f, i32 value, WDLScore wdl)
+        WDLScore map_score (TBEntry<WDL> *entry, File f, i32 value, WDLScore wdl)
         {
             (void) entry;
             (void) f;
@@ -701,21 +661,13 @@ namespace TBSyzygy {
             return WDLScore(value - 2);
         }
 
-        i32 map_score (DTZEntry *entry, File f, i32 value, WDLScore wdl)
+        i32 map_score (TBEntry<DTZ> *entry, File f, i32 value, WDLScore wdl)
         {
             constexpr i32 WDLMap[] = { 1, 3, 0, 2, 0 };
 
-            i32 flags = entry->has_pawns ?
-                entry->pawn_table.file[f].precomp->flags :
-                entry->piece_table.precomp->flags;
-
-            u08 *map = entry->has_pawns ?
-                entry->pawn_table.map :
-                entry->piece_table.map;
-
-            u16* idx = entry->has_pawns ?
-                entry->pawn_table.file[f].map_idx :
-                entry->piece_table.map_idx;
+            i32 flags = entry->get (0, f)->flags;
+            u08 *map = entry->map;
+            u16* idx = entry->get (0, f)->map_idx;
             if (0 != (flags & MAPPED))
             {
                 value = map[idx[WDLMap[wdl + 2]] + value];
@@ -740,11 +692,9 @@ namespace TBSyzygy {
         ///
         ///      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
         ///
-        template<typename Entry, typename T = typename Ret<Entry>::type>
-        T do_probe_table (const Position &pos, Entry *entry, WDLScore wdl, ProbeState &state)
+        template<TBType Type, typename T = typename TBEntry<Type>::Result>
+        T do_probe_table (const Position &pos, TBEntry<Type> *entry, WDLScore wdl, ProbeState &state)
         {
-            constexpr bool IsWDL = is_same<Entry, WDLEntry>::value;
-
             Square squares[TBPIECES];
             Piece pieces[TBPIECES];
             u64 idx;
@@ -776,8 +726,8 @@ namespace TBSyzygy {
                 // In all the 4 tables, pawns are at the beginning of the piece sequence and
                 // their color is the reference one. So we just pick the first one.
                 Piece pc = flip ?
-                    ~item (entry->pawn_table, 0, 0).precomp->pieces[0] :
-                     item (entry->pawn_table, 0, 0).precomp->pieces[0];
+                    ~Piece(entry->get (0, 0)->pieces[0]) :
+                     Piece(entry->get (0, 0)->pieces[0]);
 
                 assert(ptype (pc) == PAWN);
 
@@ -796,18 +746,13 @@ namespace TBSyzygy {
                 {
                     tbFile = _file (!squares[0]); // Horizontal flip: SQ_H1 -> SQ_A1
                 }
-
-                d = item (entry->pawn_table, flip ? ~pos.active : pos.active, tbFile).precomp;
-            }
-            else
-            {
-                d = item (entry->piece_table, flip ? ~pos.active : pos.active, tbFile).precomp;
             }
 
             // DTZ tables are one-sided, i.e. they store positions only for white to
             // move or only for black to move, so check for side to move to be color,
             // early exit otherwise.
-            if (!IsWDL && !check_dtz_stm (entry, flip ? ~pos.active : pos.active, tbFile))
+            if (   Type == DTZ
+                && !check_dtz_stm (entry, flip ? ~pos.active : pos.active, tbFile))
             {
                 state = ProbeState::CHANGE_STM;
                 return T ();
@@ -827,8 +772,10 @@ namespace TBSyzygy {
 
             assert(size >= 2);
 
+            d = entry->get (pos.active, tbFile);
+
             // Then we reorder the pieces to have the same sequence as the one stored
-            // in precomp->pieces[i]: the sequence that ensures the best compression.
+            // in pieces[i]: the sequence that ensures the best compression.
             for (i32 i = lead_pawn_count; i < size; ++i)
             {
                 for (i32 j = i; j < size; ++j)
@@ -978,8 +925,8 @@ namespace TBSyzygy {
             idx *= d->group_idx[0];
             auto *group_sq = squares + d->group_len[0];
 
-            // Encode remainig pawns then pieces according to square, in ascending order
-            bool pawn_remain = entry->has_pawns && entry->pawn_table.pawn_count[1];
+            // Encode remaining pawns then pieces according to square, in ascending order
+            bool pawn_remain = entry->has_pawns && entry->pawn_count[1];
 
             while (0 != d->group_len[++next])
             {
@@ -1046,7 +993,7 @@ namespace TBSyzygy {
             // pawns/pieces -> remainig pawns -> remaining pieces. In particular the
             // first group is at order[0] position and the remaining pawns, when present,
             // are at order[1] position.
-            bool pp = e.has_pawns && e.pawn_table.pawn_count[1]; // Pawns on both sides
+            bool pp = e.has_pawns && e.pawn_count[1]; // Pawns on both sides
             i32 next = pp ? 2 : 1;
             i32 free_squares = 64 - d->group_len[0] - (pp ? d->group_len[1] : 0);
             u64 idx = 1;
@@ -1177,26 +1124,21 @@ namespace TBSyzygy {
             return data + d->sym_len.size () * sizeof (LR) + (d->sym_len.size () & 1);
         }
 
-        template<typename T>
-        u08* set_dtz_map (WDLEntry &, T &p, u08 *data, File max_file)
+        u08* set_dtz_map (TBEntry<WDL> &, u08 *, File)
         {
-            (void) p;
-            (void) data;
-            (void) max_file;
             return nullptr;
         }
 
-        template<typename T>
-        u08* set_dtz_map (DTZEntry &, T &p, u08 *data, File max_file)
+        u08* set_dtz_map (TBEntry<DTZ> &e, u08 *data, File max_file)
         {
-            p.map = data;
+            e.map = data;
             for (auto f = F_A; f <= max_file; ++f)
             {
-                if (0 != (item (p, 0, f).precomp->flags & MAPPED))
+                if (0 != (e.get (0, f)->flags & TBFlag::MAPPED))
                 {
                     for (i32 i = 0; i < 4; ++i)
                     { // Sequence like 3,x,x,x,1,x,0,2,x,x
-                        item (p, 0, f).map_idx[i] = u16(data - p.map + 1);
+                        e.get (0, f)->map_idx[i] = u16(data - e.map + 1);
                         data += *data + 1;
                     }
                 }
@@ -1204,8 +1146,8 @@ namespace TBSyzygy {
             return data += (uintptr_t) data & 1; // Word alignment
         }
 
-        template<typename Entry, typename T>
-        void do_init (Entry &e, T &p, u08 *data)
+        template<TBType Type>
+        void do_init (TBEntry<Type> &e,  u08 *data)
         {
             enum
             {
@@ -1213,24 +1155,23 @@ namespace TBSyzygy {
                 HasPawns = 2
             };
 
-            constexpr bool IsWDL = is_same<Entry, WDLEntry>::value;
             assert(e.has_pawns        == !!(*data & HasPawns));
             assert((e.key1 != e.key2) == !!(*data & Split));
 
             data++; // First byte stores flags
 
-            const i32  Sides = IsWDL && (e.key1 != e.key2) ? 2 : 1;
+            const i32  Sides = Type == WDL && (e.key1 != e.key2) ? 2 : 1;
             const File MaxFile = e.has_pawns ? F_D : F_A;
 
-            bool pp = e.has_pawns && e.pawn_table.pawn_count[1]; // Pawns on both sides
+            bool pp = e.has_pawns && e.pawn_count[1]; // Pawns on both sides
 
-            assert(!pp || e.pawn_table.pawn_count[0]);
+            assert(!pp || e.pawn_count[0]);
 
             for (auto f = F_A; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    item (p, i, f).precomp = new PairsData ();
+                    *e.get (i, f) = PairsData ();
                 }
 
                 i32 order[][2] = 
@@ -1244,28 +1185,28 @@ namespace TBSyzygy {
                 {
                     for (i32 i = 0; i < Sides; ++i)
                     {
-                        item (p, i, f).precomp->pieces[k] = tb_piece (i ? *data >>  4 : *data & 0xF);
+                        e.get (i, f)->pieces[k] = tb_piece (i ? *data >>  4 : *data & 0xF);
                     }
                 }
 
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    set_groups (e, item (p, i, f).precomp, order[i], f);
+                    set_groups (e, e.get (i, f), order[i], f);
                 }
             }
 
-            data += (uintptr_t) data & 1; // Word alignment
+            data += reinterpret_cast<uintptr_t> (data) & 1; // Word alignment
 
             for (auto f = F_A; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    data = set_sizes (item (p, i, f).precomp, data);
+                    data = set_sizes (e.get (i, f), data);
                 }
             }
-            if (!IsWDL)
+            if (Type == DTZ)
             {
-                data = set_dtz_map (e, p, data, MaxFile);
+                data = set_dtz_map (e, data, MaxFile);
             }
 
             PairsData *d;
@@ -1273,7 +1214,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    (d = item (p, i, f).precomp)->sparseIndex = (SparseEntry*) data;
+                    (d = e.get (i, f))->sparseIndex = reinterpret_cast<SparseEntry*> (data);
                     data += d->sparse_index_size * sizeof (SparseEntry);
                 }
             }
@@ -1281,7 +1222,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    (d = item (p, i, f).precomp)->block_length = (u16*) data;
+                    (d = e.get (i, f))->block_length = (u16*) data;
                     data += d->block_length_size * sizeof (u16);
                 }
             }
@@ -1289,18 +1230,16 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    data = (u08*)(((uintptr_t) data + 0x3F) & ~0x3F); // 64 byte alignment
-                    (d = item (p, i, f).precomp)->data = data;
+                    data = reinterpret_cast<u08*> ((reinterpret_cast<uintptr_t> (data) + 0x3F) & ~0x3F); // 64 byte alignment
+                    (d = e.get (i, f))->data = data;
                     data += d->num_blocks * d->block_size;
                 }
             }
         }
 
-        template<typename Entry>
-        void* init (Entry &e, const Position &pos)
+        template<TBType Type>
+        void* init (TBEntry<Type> &e, const Position &pos)
         {
-            constexpr bool IsWDL = is_same<Entry, WDLEntry>::value;
-
             static Mutex mutex;
 
             // Avoid a thread reads 'ready' == true while another is still in do_init(),
@@ -1331,19 +1270,17 @@ namespace TBSyzygy {
                 { 0x71, 0xE8, 0x23, 0x5D }
             };
 
-            u08 *data = TBFile ((e.key1 == pos.si->matl_key ? w + b : b + w), IsWDL ? ".rtbw" : ".rtbz").map (&e.base_address, &e.mapping, TB_MAGIC[IsWDL]);
+            u08 *data = TBFile ((e.key1 == pos.si->matl_key ? w + b : b + w), Type == WDL ? ".rtbw" : ".rtbz").map (&e.base_address, &e.mapping, TB_MAGIC[Type == WDL ? 1 : 0]);
             if (nullptr != data)
             {
-                e.has_pawns ?
-                    do_init (e, e.pawn_table, data) :
-                    do_init (e, e.piece_table, data);
+                do_init (e, data);
             }
 
             e.ready.store (true, std::memory_order::memory_order_release);
             return e.base_address;
         }
 
-        template<typename E, typename T = typename Ret<E>::type>
+        template<TBType Type, typename T = typename TBEntry<Type>::Result>
         T probe_table (const Position &pos, ProbeState &state, WDLScore wdl = WDLScore::DRAW)
         {
             if (0 == (pos.pieces () ^ pos.pieces (KING)))
@@ -1351,7 +1288,7 @@ namespace TBSyzygy {
                 return T(WDLScore::DRAW); // KvK
             }
 
-            E *entry = EntryTable.get<E> (pos.si->matl_key);
+            TBEntry<Type> *entry = EntryTable.get<Type> (pos.si->matl_key);
 
             if (   nullptr == entry
                 || nullptr == init (*entry, pos))
@@ -1429,7 +1366,7 @@ namespace TBSyzygy {
             }
             else
             {
-                wdl = probe_table<WDLEntry> (pos, state);
+                wdl = probe_table<WDL> (pos, state);
                 if (ProbeState::FAILURE == state)
                 {
                     return WDLScore::DRAW;
@@ -1522,7 +1459,7 @@ namespace TBSyzygy {
             return dtz_before_zeroing (wdl);
         }
 
-        i32 dtz = probe_table<DTZEntry> (pos, state, wdl);
+        i32 dtz = probe_table<DTZ> (pos, state, wdl);
 
         if (ProbeState::FAILURE == state)
         {
