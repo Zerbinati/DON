@@ -1349,7 +1349,7 @@ Position::operator string () const
 /// and raises an assert if something wrong is detected.
 bool Position::ok () const
 {
-    const bool Fast = true;
+    constexpr bool Fast = true;
 
     // BASIC
     if (   (   active != WHITE
