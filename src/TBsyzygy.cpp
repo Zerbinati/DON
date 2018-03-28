@@ -101,9 +101,9 @@ namespace TBSyzygy {
             template<Side S>
             Sym get ()
             {
-                return S == Left  ? ((lr[1] & 0xF) << 8) | lr[0] :
-                       S == Right ?  (lr[2] << 4) | (lr[1] >> 4) :
-                       S == Center ?  lr[0] : (assert(false), -1);
+                return S == Side::Left  ? ((lr[1] & 0xF) << 8) | lr[0] :
+                       S == Side::Right ?  (lr[2] << 4) | (lr[1] >> 4) :
+                       S == Side::Center ?  lr[0] : (assert(false), -1);
             }
         };
 
@@ -610,7 +610,7 @@ namespace TBSyzygy {
             // that will store the value we need.
             while (0 != d->sym_len[sym])
             {
-                Sym left = d->btree[sym].get<LR::Left> ();
+                Sym left = d->btree[sym].get<LR::Side::Left> ();
 
                 // If a symbol contains 36 sub-symbols (d->sym_len[sym] + 1 = 36) and
                 // expands in a pair (d->sym_len[left] = 23, d->sym_len[right] = 11), then
@@ -627,7 +627,7 @@ namespace TBSyzygy {
                 }
             }
 
-            return d->btree[sym].get<LR::Center> ();
+            return d->btree[sym].get<LR::Side::Center> ();
         }
 
         bool check_dtz_stm (TBEntry<WDL>*, i32, File)
@@ -1019,14 +1019,14 @@ namespace TBSyzygy {
         u08 set_symlen (PairsData *d, Sym s, vector<bool> &visited)
         {
             visited[s] = true; // We can set it now because tree is acyclic
-            Sym sr = d->btree[s].get<LR::Right> ();
+            Sym sr = d->btree[s].get<LR::Side::Right> ();
 
             if (sr == 0xFFF)
             {
                 return 0;
             }
 
-            Sym sl = d->btree[s].get<LR::Left> ();
+            Sym sl = d->btree[s].get<LR::Side::Left> ();
 
             if (!visited[sl])
             {
@@ -1850,7 +1850,7 @@ namespace TBSyzygy {
                 MapKK[p.first][p.second] = code++;
             }
 
-            // Binomial[] stores the Binomial Coefficents using Pascal rule. There
+            // Binomial[] stores the Binomial Coefficients using Pascal rule. There
             // are Binomial[k][n] ways to choose k elements from a set of n elements.
             Binomial[0][0] = 1;
 
