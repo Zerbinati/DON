@@ -1794,10 +1794,11 @@ namespace Searcher {
             {
                 for (i08 mc = 1; mc < 64; ++mc)
                 {
-                    ReductionDepths[0][imp][d][mc] = i16(std::round (std::log (double(d)) * std::log (double(mc)) / 1.95));
+                    double r = std::log (double (d)) * std::log (double (mc)) / 1.95;
+                    ReductionDepths[0][imp][d][mc] = i16(std::round (r));
                     ReductionDepths[1][imp][d][mc] = i16(std::max (ReductionDepths[0][imp][d][mc] - 1, 0));
                     if (   0 == imp
-                        && ReductionDepths[0][imp][d][mc] >= 2)
+                        && 1.0 < r)
                     {
                         ReductionDepths[0][imp][d][mc] += 1;
                     }
