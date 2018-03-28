@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <atomic>
 #include <cstdint>
-#include <cstring>   // For std::memset
+#include <cstring>   // For std::memset and std::memcpy
 #include <deque>
 #include <fstream>
 #include <iostream>
@@ -39,6 +39,10 @@ namespace TBSyzygy {
     i32    MaxLimitPiece = 0;
 
     namespace {
+
+        constexpr i32 TBPIECES = 7;
+
+        enum TBType { WDL, DTZ }; // Used as template parameter
 
         // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
         enum TBFlag : u08
@@ -104,8 +108,6 @@ namespace TBSyzygy {
 
         static_assert (sizeof (LR) == 3, "LR size incorrect");
 
-        constexpr i32 TBPIECES = 7;
-
         struct PairsData
         {
         public:
@@ -127,106 +129,93 @@ namespace TBSyzygy {
             Piece pieces[TBPIECES];         // Position pieces: the order of pieces defines the groups
             u64 group_idx[TBPIECES+1];      // Start index used for the encoding of the group's pieces
             i32 group_len[TBPIECES+1];      // Number of pieces in a given group: KRKN -> (3, 1)
+            u16 map_idx[4];                 // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
         };
 
-        // Helper struct to avoid to manually define entry copy constructor,
-        // because default one is not compatible with std::atomic<bool>.
-        struct Atomic
-        {
-        public:
-            atomic<bool> ready;
-
-            Atomic () = default;
-            Atomic (const Atomic &atomic)
-            {
-                ready = atomic.ready.load (); // MSVC 2013 wants assignment within body
-            }
-        };
-
-        // We define types for the different parts of the WDLEntry and DTZEntry with
-        // corresponding specializations for pieces or pawns.
-
-        struct WDLEntryPiece
-        {
-        public:
-            PairsData *precomp;
-        };
-
-        struct WDLEntryPawn
-        {
-        public:
-            u08 pawn_count[CLR_NO];        // [Lead color / other color]
-            WDLEntryPiece file[CLR_NO][4]; // [wtm / btm][FILE_A..FILE_D]
-        };
-
-        struct DTZEntryPiece
-        {
-        public:
-            PairsData *precomp;
-            u16 map_idx[4]; // WIN, LOSS, CURSED_WIN, BLESSED_LOSS
-            u08 *map;
-        };
-
-        struct DTZEntryPawn
-        {
-        public:
-            u08 pawn_count[CLR_NO];
-            DTZEntryPiece file[4];
-            u08 *map;
-        };
-
+        template<TBType Type>
         struct TBEntry
-            : public Atomic
         {
-        public:
+            typedef typename std::conditional<Type == WDL, WDLScore, int>::type Result;
+
+            static constexpr int Sides = Type == WDL ? 2 : 1;
+
+            std::atomic<bool> ready;
             void* base_address;
-            u64 mapping;
+            uint8_t* map;
+            uint64_t mapping;
             Key key1;
             Key key2;
-            i32 piece_count;
+            int piece_count;
             bool has_pawns;
             bool has_unique_pieces;
-        };
+            uint8_t pawn_count[CLR_NO]; // [Lead color / other color]
+            PairsData items[Sides][4]; // [wtm / btm][FILE_A..FILE_D or 0]
 
-        // Now the main types: WDLEntry and DTZEntry
-        struct WDLEntry
-            : public TBEntry
-        {
-        public:
-            WDLEntry (const std::string &code);
-           ~WDLEntry ();
-            union
+            PairsData* get (int stm, int f)
             {
-                WDLEntryPiece piece_table[CLR_NO]; // [wtm / btm]
-                WDLEntryPawn  pawn_table;
-            };
+                return &items[stm % Sides][has_pawns ? f : 0];
+            }
+
+            TBEntry ()
+                : ready (false)
+                , baseAddress (nullptr)
+            {}
+            explicit TBEntry (const std::string&);
+            explicit TBEntry (const TBEntry<WDL>&);
+            ~TBEntry ();
         };
 
-        struct DTZEntry
-            : public TBEntry
+        template<>
+        TBEntry<WDL>::TBEntry (const std::string &code)
+            : TBEntry ()
         {
-        public:
-            DTZEntry (const WDLEntry &wdl);
-           ~DTZEntry ();
-            union
+            StateInfo si;
+            Position pos;
+            key1 = pos.setup (code, si, WHITE).si->matl_key;
+            piece_count = pos.count ();
+            has_pawns = 0 != pos.count (PAWN);
+            for (auto c : { WHITE, BLACK })
+            {    
+                for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
+                {
+                    if (1 == pos.count (c, pt))
+                    {
+                        has_unique_pieces = true;
+                        goto after_unique_pieces;
+                    }
+                }
+            }
+            after_unique_pieces:
+            if (has_pawns)
             {
-                DTZEntryPiece piece_table;
-                DTZEntryPawn  pawn_table;
-            };
-        };
+                // Set the leading color. In case both sides have pawns the leading color
+                // is the side with less pawns because this leads to better compression.
+                auto lead_color =  pos.count (BLACK, PAWN) == 0
+                                || (   pos.count (WHITE, PAWN)
+                                    && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
 
-        typedef decltype(WDLEntry::piece_table) WDLPieceTable;
-        typedef decltype(DTZEntry::piece_table) DTZPieceTable;
-        typedef decltype(WDLEntry::pawn_table) WDLPawnTable;
-        typedef decltype(DTZEntry::pawn_table) DTZPawnTable;
+                pawn_count[0] = u08(pos.count ( lead_color, PAWN));
+                pawn_count[1] = u08(pos.count (~lead_color, PAWN));
+            }
+            key2 = pos.setup (code, si, BLACK).si->matl_key;
+        }
 
-        auto item (WDLPieceTable& e, i32 stm, i32) -> decltype(e[stm])& { return e[stm]; }
-        auto item (DTZPieceTable& e, i32, i32) -> decltype(e)& { return e; }
-        auto item (WDLPawnTable&  e, i32 stm, i32 f) -> decltype(e.file[stm][f])& { return e.file[stm][f]; }
-        auto item (DTZPawnTable&  e, i32, i32 f) -> decltype(e.file[f])& { return e.file[f]; }
+        template<>
+        TBEntry<DTZ>::TBEntry (const TBEntry<WDL> &wdl)
+            : TBEntry ()
+        {
+            key1 = wdl.key1;
+            key2 = wdl.key2;
+            piece_count = wdl.piece_count;
+            has_pawns = wdl.has_pawns;
+            has_unique_pieces = wdl.has_unique_pieces;
 
-        template<typename E> struct Ret { typedef i32 type; };
-        template<> struct Ret<WDLEntry> { typedef WDLScore type; };
+            if (has_pawns)
+            {
+                pawn_count[0] = wdl.pawn_count[0];
+                pawn_count[1] = wdl.pawn_count[1];
+            }
+        }
 
         i32 MapPawns[SQ_NO];
         i32 MapB1H1H7[SQ_NO];
@@ -258,10 +247,10 @@ namespace TBSyzygy {
         i32 LeadPawnIdx[5][SQ_NO]; // [lead_pawn_count][SQ_NO]
         i32 LeadPawnsSize[5][4];   // [lead_pawn_count][F_A..F_D]
 
-        enum
+        enum Endian
         { 
-            BigEndian,
-            LittleEndian
+            BIG,
+            LITTLE
         };
 
         template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
@@ -301,7 +290,7 @@ namespace TBSyzygy {
         class HashTable
         {
         private:
-            typedef pair<WDLEntry*, DTZEntry*> EntryPair;
+            typedef pair<TBEntry<WDL>*, TBEntry<DTZ>*> EntryPair;
             typedef pair<Key, EntryPair> Entry;
 
             static constexpr i32 TBHASHBITS = 10;
@@ -309,19 +298,17 @@ namespace TBSyzygy {
 
             Entry table[1 << TBHASHBITS][HSHMAX];
 
-            deque<WDLEntry> wdl_table;
-            deque<DTZEntry> dtz_table;
+            deque<TBEntry<WDL>> wdl_table;
+            deque<TBEntry<DTZ>> dtz_table;
 
-            void insert (Key key, WDLEntry *wdl, DTZEntry *dtz)
+            void insert (Key key, TBEntry<WDL> *wdl, TBEntry<DTZ> *dtz)
             {
-                Entry *entry = table[key >> (64 - TBHASHBITS)];
-
-                for (i32 i = 0; i < HSHMAX; ++i, ++entry)
+                for (Entry &entry : table[key >> (64 - TBHASHBITS)])
                 {
-                    if (   nullptr == entry->second.first
-                        || entry->first == key)
+                    if (   nullptr == entry.second.first
+                        || entry.first == key)
                     {
-                        *entry = std::make_pair (key, std::make_pair (wdl, dtz));
+                        entry = std::make_pair (key, std::make_pair (wdl, dtz));
                         return;
                     }
                 }
@@ -330,17 +317,16 @@ namespace TBSyzygy {
             }
 
         public:
-            template<typename E, i32 I = is_same<E, WDLEntry>::value ? 0 : 1>
-            E* get (Key key)
+
+            template<TBType Type>
+            TBEntry<Type>* get (Key key)
             {
-                auto *entry = table[key >> (64 - TBHASHBITS)];
-                for (i32 i = 0; i < HSHMAX; ++i)
+                for (Entry &entry : table[key >> (64 - TBHASHBITS)])
                 {
-                    if (entry->first == key)
+                    if (entry.first == key)
                     {
-                        return std::get<I> (entry->second);
+                        return std::get<Type> (entry.second);
                     }
-                    ++entry;
                 }
                 return nullptr;
             }
@@ -353,8 +339,7 @@ namespace TBSyzygy {
             }
 
             size_t size () const { return wdl_table.size (); }
-            
-            void insert (const vector<PieceType>& pieces);
+            void insert (const vector<PieceType>&);
         };
 
         HashTable EntryTable;
@@ -392,7 +377,7 @@ namespace TBSyzygy {
             {
                 assert(!white_spaces (filename));
 
-#ifndef _WIN32
+#           ifndef _WIN32
                 struct stat statbuf;
                 i32 fd = ::open (filename.c_str (), O_RDONLY);
                 if (fd == -1)
@@ -410,7 +395,7 @@ namespace TBSyzygy {
                     std::cerr << "Could not mmap() " << filename << std::endl;
                     Engine::stop (EXIT_FAILURE);
                 }
-#else
+#           else
                 HANDLE fd = CreateFile (filename.c_str (), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
                 if (fd == INVALID_HANDLE_VALUE)
                 {
@@ -439,7 +424,7 @@ namespace TBSyzygy {
                     std::cerr << "MapViewOfFile() failed, name = " << filename << ", error = " << GetLastError () << std::endl;
                     return nullptr;
                 }
-#endif
+#           endif
                 u08 *data = (u08*) *base_address;
 
                 if (   *data++ != *TB_MAGIC++
@@ -468,42 +453,16 @@ namespace TBSyzygy {
 
         vector<string> TBFile::Paths;
 
-        WDLEntry::WDLEntry (const string &code)
+        template<TBType Type>
+        TBEntry<Type>::~TBEntry ()
         {
-            memset (this, 0, sizeof (*this));
-            ready = false;
-            Position pos;
-            StateInfo si;
-            std::memset (&si, 0, sizeof (si));
-            key1 = pos.setup (code, si, WHITE).si->matl_key;
-            piece_count = pos.count ();
-            has_pawns = 0 != pos.count (PAWN);
-            for (auto c : { WHITE, BLACK })
-            {    
-                for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
-                {
-                    if (1 == pos.count (c, pt))
-                    {
-                        has_unique_pieces = true;
-                        goto done;
-                    }
-                }
-            }
-            done:
-            if (has_pawns)
+            if (nullptr != base_address)
             {
-                // Set the leading color. In case both sides have pawns the leading color
-                // is the side with less pawns because this leads to better compression.
-                auto lead_color =  pos.count (BLACK, PAWN) == 0
-                                || (   pos.count (WHITE, PAWN)
-                                    && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
-
-                pawn_table.pawn_count[0] = u08(pos.count ( lead_color, PAWN));
-                pawn_table.pawn_count[1] = u08(pos.count (~lead_color, PAWN));
+                TBFile::unmap (base_address, mapping);
             }
-            key2 = pos.setup (code, si, BLACK).si->matl_key;
         }
 
+        /*
         WDLEntry::~WDLEntry ()
         {
             if (nullptr != base_address)
@@ -526,24 +485,6 @@ namespace TBSyzygy {
             }
         }
 
-        DTZEntry::DTZEntry (const WDLEntry& wdl)
-        {
-            memset (this, 0, sizeof (*this));
-
-            ready = false;
-            key1 = wdl.key1;
-            key2 = wdl.key2;
-            piece_count = wdl.piece_count;
-            has_pawns = wdl.has_pawns;
-            has_unique_pieces = wdl.has_unique_pieces;
-
-            if (has_pawns)
-            {
-                pawn_table.pawn_count[0] = wdl.pawn_table.pawn_count[0];
-                pawn_table.pawn_count[1] = wdl.pawn_table.pawn_count[1];
-            }
-        }
-
         DTZEntry::~DTZEntry ()
         {
             if (nullptr != base_address)
@@ -562,6 +503,7 @@ namespace TBSyzygy {
                 delete piece_table.precomp;
             }
         }
+        */
 
         void HashTable::insert (const vector<PieceType> &pieces)
         {
@@ -627,8 +569,8 @@ namespace TBSyzygy {
             u32 k = u32(idx / d->span);
 
             // Then we read the corresponding SparseIndex[] entry
-            u32 block = number<u32, LittleEndian> (&d->sparseIndex[k].block);
-            i32 offset = number<u16, LittleEndian> (&d->sparseIndex[k].offset);
+            u32 block = number<u32, LITTLE> (&d->sparseIndex[k].block);
+            i32 offset = number<u16, LITTLE> (&d->sparseIndex[k].offset);
 
             // Now compute the difference idx - I(k). From definition of k we know that
             //
@@ -658,7 +600,7 @@ namespace TBSyzygy {
             // Read the first 64 bits in our block, this is a (truncated) sequence of
             // unknown number of symbols of unknown length but we know the first one
             // is at the beginning of this 64 bits sequence.
-            u64 buf64 = number<u64, BigEndian> (ptr);
+            u64 buf64 = number<u64, BIG> (ptr);
             ptr += 2;
             i32 buf64Size = 64;
             Sym sym;
@@ -681,7 +623,7 @@ namespace TBSyzygy {
                 sym = Sym((buf64 - d->base64[len]) >> (64 - len - d->min_sym_len));
 
                 // Now add the value of the lowest symbol of length len to get our symbol
-                sym += number<Sym, LittleEndian> (&d->lowest_sym[len]);
+                sym += number<Sym, LITTLE> (&d->lowest_sym[len]);
 
                 // If our offset is within the number of values represented by symbol sym
                 if (offset < d->sym_len[sym] + 1)
@@ -699,7 +641,7 @@ namespace TBSyzygy {
                 { 
                     // Refill the buffer
                     buf64Size += 32;
-                    buf64 |= u64(number<u32, BigEndian> (ptr++)) << (64 - buf64Size);
+                    buf64 |= u64(number<u32, BIG> (ptr++)) << (64 - buf64Size);
                 }
             }
 
@@ -1182,8 +1124,8 @@ namespace TBSyzygy {
             d->block_size = 1ULL << *data++;
             d->span = 1ULL << *data++;
             d->sparse_index_size = (tb_size + d->span - 1) / d->span; // Round up
-            i32 padding = number<u08, LittleEndian> (data++);
-            d->num_blocks = number<u32, LittleEndian> (data); data += sizeof (u32);
+            i32 padding = number<u08, LITTLE> (data++);
+            d->num_blocks = number<u32, LITTLE> (data); data += sizeof (u32);
             d->block_length_size = d->num_blocks + padding; // Padded to ensure SparseIndex[]
                                                          // does not point out of range.
             d->max_sym_len = *data++;
@@ -1200,8 +1142,8 @@ namespace TBSyzygy {
             for (i32 i = i32(d->base64.size () - 2); i >= 0; --i)
             {
                 d->base64[i] = (  d->base64[i + 1]
-                                + number<Sym, LittleEndian> (&d->lowest_sym[i])
-                                - number<Sym, LittleEndian> (&d->lowest_sym[i + 1])) / 2;
+                                + number<Sym, LITTLE> (&d->lowest_sym[i])
+                                - number<Sym, LITTLE> (&d->lowest_sym[i + 1])) / 2;
 
                 assert(d->base64[i] * 2 >= d->base64[i+1]);
             }
@@ -1215,7 +1157,7 @@ namespace TBSyzygy {
                 d->base64[i] <<= 64 - i - d->min_sym_len; // Right-padding to 64 bits
             }
             data += d->base64.size () * sizeof (Sym);
-            d->sym_len.resize (number<u16, LittleEndian> (data)); data += sizeof (u16);
+            d->sym_len.resize (number<u16, LITTLE> (data)); data += sizeof (u16);
             d->btree = (LR*) data;
 
             // The comrpession scheme used is "Recursive Pairing", that replaces the most
