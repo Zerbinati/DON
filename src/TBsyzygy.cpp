@@ -43,7 +43,7 @@ namespace TBSyzygy {
 
         constexpr i32 TBPIECES = 7;
 
-        enum TBType { WDL, DTZ }; // Used as template parameter
+        enum TBType : u08 { WDL, DTZ }; // Used as template parameter
 
         // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
         enum TBFlag : u08
@@ -73,7 +73,7 @@ namespace TBSyzygy {
             }
         }
 
-        // Numbers in little endian used by sparseIndex[] to point into block_length[]
+        // Numbers in little endian used by sparse_index[] to point into block_length[]
         struct SparseEntry
         {
             char block[4];   // Number of block
@@ -118,12 +118,12 @@ namespace TBSyzygy {
             i32 num_blocks;                 // Number of blocks in the TB file
             i32 max_sym_len;                // Maximum length in bits of the Huffman symbols
             i32 min_sym_len;                // Minimum length in bits of the Huffman symbols
-            Sym* lowest_sym;                // lowest_sym[l] is the symbol of length l with the lowest value
-            LR* btree;                      // btree[sym] stores the left and right symbols that expand sym
-            u16* block_length;              // Number of stored positions (minus one) for each block: 1..65536
+            Sym *lowest_sym;                // lowest_sym[l] is the symbol of length l with the lowest value
+            LR *btree;                      // btree[sym] stores the left and right symbols that expand sym
+            u16 *block_length;              // Number of stored positions (minus one) for each block: 1..65536
             i32 block_length_size;          // Size of block_length[] table: padded so it's bigger than num_blocks
-            SparseEntry* sparseIndex;       // Partial indices into block_length[]
-            size_t sparse_index_size;       // Size of SparseIndex[] table
+            SparseEntry *sparse_index;      // Partial indices into block_length[]
+            size_t sparse_index_size;       // Size of sparse_index[] table
             u08 *data;                      // Start of Huffman compressed data
             vector<u64> base64;             // base64[l - min_sym_len] is the 64bit-padded lowest symbol of length l
             vector<u08> sym_len;            // Number of values (-1) represented by a given Huffman symbol: 1..256
@@ -165,8 +165,7 @@ namespace TBSyzygy {
                 , key1 (0)
                 , key2 (0)
                 , piece_count (0)
-            {
-            }
+            {}
 
             explicit TBEntry (const std::string&);
             explicit TBEntry (const TBEntry<WDL>&);
@@ -198,9 +197,9 @@ namespace TBSyzygy {
             {
                 // Set the leading color. In case both sides have pawns the leading color
                 // is the side with less pawns because this leads to better compression.
-                auto lead_color =  pos.count (BLACK, PAWN) == 0
-                                || (   pos.count (WHITE, PAWN)
-                                    && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
+                auto lead_color = pos.count (BLACK, PAWN) == 0
+                               || (   pos.count (WHITE, PAWN)
+                                   && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
 
                 pawn_count[0] = u08(pos.count ( lead_color, PAWN));
                 pawn_count[1] = u08(pos.count (~lead_color, PAWN));
@@ -270,7 +269,8 @@ namespace TBSyzygy {
                 c[End - i] = tmp;
             }
         }
-        template<> inline void swap_byte<u08, 0, 0> (u08 &) {}
+        template<>
+        inline void swap_byte<u08, 0, 0> (u08 &) {}
 
         template<typename T, i32 LE>
         T number (void *addr)
@@ -530,8 +530,8 @@ namespace TBSyzygy {
             u32 k = u32(idx / d->span);
 
             // Then we read the corresponding SparseIndex[] entry
-            u32 block  = number<u32, Endian::LITTLE> (&d->sparseIndex[k].block);
-            i32 offset = number<u16, Endian::LITTLE> (&d->sparseIndex[k].offset);
+            u32 block  = number<u32, Endian::LITTLE> (&d->sparse_index[k].block);
+            i32 offset = number<u16, Endian::LITTLE> (&d->sparse_index[k].offset);
 
             // Now compute the difference idx - I(k). From definition of k we know that
             //
@@ -918,10 +918,11 @@ namespace TBSyzygy {
             auto *group_sq = squares + d->group_len[0];
 
             // Encode remaining pawns then pieces according to square, in ascending order
-            bool pawn_remain = entry->has_pawns && entry->pawn_count[1];
+            bool pawn_remain = entry->has_pawns && 0 != entry->pawn_count[1];
 
             while (0 != d->group_len[++next])
             {
+                assert(d->group_len[next] <= 6);
                 std::sort (group_sq, group_sq + d->group_len[next]);
                 u64 n = 0;
 
@@ -1140,23 +1141,17 @@ namespace TBSyzygy {
         template<TBType Type>
         void do_init (TBEntry<Type> &e,  u08 *data)
         {
-            enum
-            {
-                Split = 1,
-                HasPawns = 2
-            };
-
-            assert(e.has_pawns        == !!(*data & HasPawns));
-            assert((e.key1 != e.key2) == !!(*data & Split));
+            assert(e.has_pawns        == !!(*data & 2)); // HasPawns
+            assert((e.key1 != e.key2) == !!(*data & 1)); // Split
 
             data++; // First byte stores flags
 
             const i32  Sides = Type == WDL && (e.key1 != e.key2) ? 2 : 1;
             const File MaxFile = e.has_pawns ? F_D : F_A;
 
-            bool pp = e.has_pawns && e.pawn_count[1]; // Pawns on both sides
+            bool pp = e.has_pawns && 0 != e.pawn_count[1]; // Pawns on both sides
 
-            assert(!pp || e.pawn_count[0]);
+            assert(!pp || 0 != e.pawn_count[0]);
 
             for (auto f = F_A; f <= MaxFile; ++f)
             {
@@ -1205,7 +1200,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    (d = e.get (i, f))->sparseIndex = reinterpret_cast<SparseEntry*> (data);
+                    (d = e.get (i, f))->sparse_index = reinterpret_cast<SparseEntry*> (data);
                     data += d->sparse_index_size * sizeof (SparseEntry);
                 }
             }
