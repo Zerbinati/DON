@@ -301,7 +301,7 @@ namespace TBSyzygy {
             typedef pair<Key, EntryPair> Entry;
 
             static constexpr i32 TBHASHBITS = 10;
-            static constexpr i32 HSHMAX = 5;
+            static constexpr i32 HSHMAX = 6;
 
             Entry table[1 << TBHASHBITS][HSHMAX];
 
@@ -369,10 +369,9 @@ namespace TBSyzygy {
                 {
                     const auto fname = append_path (path, file);
                     std::ifstream::open (fname);
-                    if (is_open ())
+                    if (std::ifstream::is_open ())
                     {
                         filename = fname;
-                        close ();
                         break;
                     }
                 }
@@ -382,7 +381,9 @@ namespace TBSyzygy {
             // closed after mapping.
             u08* map (void **base_address, u64 *mapping, const u08 *TB_MAGIC)
             {
-                assert(!white_spaces (filename));
+                assert(!white_spaces (filename) && std::ifstream::is_open ());
+                
+                std::ifstream::close (); // Need to re-open to get native file descriptor
 
 #           ifndef _WIN32
                 struct stat statbuf;
@@ -403,14 +404,16 @@ namespace TBSyzygy {
                     Engine::stop (EXIT_FAILURE);
                 }
 #           else
-                auto fd = CreateFile (filename.c_str (), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
+                HANDLE fd = CreateFile (filename.c_str (), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
                 if (fd == INVALID_HANDLE_VALUE)
                 {
-                    return *base_address = nullptr, nullptr;
+                    *base_address = nullptr;
+                    return nullptr;
                 }
+
                 DWORD size_high;
                 DWORD size_low = GetFileSize (fd, &size_high);
-                auto mmap = CreateFileMapping (fd, nullptr, PAGE_READONLY, size_high, size_low, nullptr);
+                HANDLE mmap = CreateFileMapping (fd, nullptr, PAGE_READONLY, size_high, size_low, nullptr);
                 CloseHandle (fd);
 
                 if (0 == mmap)
@@ -474,19 +477,20 @@ namespace TBSyzygy {
             {
                 code += PieceChar[pt];
             }
+
             TBFile file (code, ".rtbw");
-            if (file.filename.empty ()) // Only WDL file is checked
+            if (file.is_open ()) // Only WDL file is checked
             {
-                return;
+                file.close ();
+
+                MaxLimitPiece = std::max (i32(pieces.size ()), MaxLimitPiece);
+
+                wdl_table.emplace_back (code);
+                dtz_table.emplace_back (wdl_table.back ());
+
+                insert (wdl_table.back ().key1, &wdl_table.back (), &dtz_table.back ());
+                insert (wdl_table.back ().key2, &wdl_table.back (), &dtz_table.back ());
             }
-
-            MaxLimitPiece = std::max (i32(pieces.size ()), MaxLimitPiece);
-
-            wdl_table.emplace_back (code);
-            dtz_table.emplace_back (wdl_table.back ());
-
-            insert (wdl_table.back ().key1, &wdl_table.back (), &dtz_table.back ());
-            insert (wdl_table.back ().key2, &wdl_table.back (), &dtz_table.back ());
         }
 
         /// TB tables are compressed with canonical Huffman code. The compressed data is divided into
@@ -920,9 +924,9 @@ namespace TBSyzygy {
             // Encode remaining pawns then pieces according to square, in ascending order
             bool pawn_remain = entry->has_pawns && 0 != entry->pawn_count[1];
 
-            while (0 != d->group_len[++next])
+            while (0 < d->group_len[++next])
             {
-                assert(d->group_len[next] <= 6);
+                assert(0 <= d->group_len[next] && d->group_len[next] <= 6);
                 std::sort (group_sq, group_sq + d->group_len[next]);
                 u64 n = 0;
 
@@ -956,14 +960,16 @@ namespace TBSyzygy {
         template<TBType Type>
         void set_groups (TBEntry<Type> &e, PairsData *d, i32 *order, File f)
         {
-            i32 n = 0, firstLen = e.has_pawns ? 0 : e.has_unique_pieces ? 3 : 2;
+            i32 n = 0;
+            i32 firstLen = e.has_pawns ? 0 : e.has_unique_pieces ? 3 : 2;
             d->group_len[n] = 1;
 
             // Number of pieces per group is stored in group_len[], for instance in KRKN
             // the encoder will default on '111', so group_len[] will be (3, 1).
             for (i32 i = 1; i < e.piece_count; ++i)
             {
-                if (--firstLen > 0 || d->pieces[i] == d->pieces[i - 1])
+                if (   --firstLen > 0
+                    || d->pieces[i] == d->pieces[i - 1])
                 {
                     d->group_len[n]++;
                 }
@@ -1256,12 +1262,12 @@ namespace TBSyzygy {
                 { 0x71, 0xE8, 0x23, 0x5D }
             };
 
-            u08 *data = TBFile ((e.key1 == pos.si->matl_key ? w + b : b + w), Type == WDL ? ".rtbw" : ".rtbz").map (&e.base_address, &e.mapping, TB_MAGIC[Type == WDL ? 1 : 0]);
+            TBFile file ((e.key1 == pos.si->matl_key ? w + b : b + w), Type == WDL ? ".rtbw" : ".rtbz");
+            u08 *data = file.map (&e.base_address, &e.mapping, TB_MAGIC[Type == WDL ? 1 : 0]);
             if (nullptr != data)
             {
                 do_init (e, data);
             }
-
             e.ready.store (true, std::memory_order::memory_order_release);
             return e.base_address;
         }
