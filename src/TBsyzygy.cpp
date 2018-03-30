@@ -386,26 +386,34 @@ namespace TBSyzygy {
                 std::ifstream::close (); // Need to re-open to get native file descriptor
 
 #           ifndef _WIN32
-                struct stat statbuf;
                 i32 fd = ::open (filename.c_str (), O_RDONLY);
-                if (fd == -1)
+                if (-1 == fd)
                 {
-                    return *base_address = nullptr, nullptr;
+                    *base_address = nullptr;
+                    return nullptr;
                 }
 
+                stat statbuf;
                 fstat (fd, &statbuf);
+                if (0 == statbuf.st_size)
+                {
+                    std::cerr << "fstat() failed, name = " << filename << std::endl;
+                    ::close (fd);
+                    stop (EXIT_FAILURE);
+                    return nullptr;
+                }
+
                 *mapping = statbuf.st_size;
                 *base_address = mmap (nullptr, statbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
                 ::close (fd);
-
-                if (*base_address == MAP_FAILED)
+                if (MAP_FAILED == *base_address)
                 {
                     std::cerr << "Could not mmap() " << filename << std::endl;
                     Engine::stop (EXIT_FAILURE);
                 }
 #           else
                 HANDLE fd = CreateFile (filename.c_str (), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-                if (fd == INVALID_HANDLE_VALUE)
+                if (INVALID_HANDLE_VALUE == fd)
                 {
                     *base_address = nullptr;
                     return nullptr;
@@ -415,7 +423,6 @@ namespace TBSyzygy {
                 DWORD size_low = GetFileSize (fd, &size_high);
                 HANDLE mmap = CreateFileMapping (fd, nullptr, PAGE_READONLY, size_high, size_low, nullptr);
                 CloseHandle (fd);
-
                 if (0 == mmap)
                 {
                     std::cerr << "CreateFileMapping() failed, name = " << filename << ", error = " << GetLastError () << std::endl;
@@ -425,7 +432,6 @@ namespace TBSyzygy {
 
                 *mapping = u64(mmap);
                 *base_address = MapViewOfFile (mmap, FILE_MAP_READ, 0, 0, 0);
-
                 if (nullptr == *base_address)
                 {
                     std::cerr << "MapViewOfFile() failed, name = " << filename << ", error = " << GetLastError () << std::endl;
@@ -442,7 +448,8 @@ namespace TBSyzygy {
                 {
                     std::cerr << "Corrupted table in file " << filename << std::endl;
                     unmap (*base_address, *mapping);
-                    return *base_address = nullptr, nullptr;
+                    *base_address = nullptr;
+                    return nullptr;
                 }
 
                 return data;
