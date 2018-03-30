@@ -272,12 +272,10 @@ namespace TBSyzygy {
         template<>
         inline void swap_byte<u08, 0, 0> (u08 &) {}
 
-        template<typename T, i32 LE>
+        template<typename T, Endian E>
         T number (void *addr)
         {
-            constexpr union { u32 i; char c[4]; } Le = { 0x01020304 };
-            const bool IsLittleEndian = (Le.c[0] == 4);
-
+            constexpr union { u32 i; char c[4]; } e = { 0x01020304 };
             T v;
             if (0 != (reinterpret_cast<uintptr_t> (addr) & (alignof(T) -1))) // Unaligned pointer (very rare)
             {
@@ -287,7 +285,7 @@ namespace TBSyzygy {
             {
                 v = *static_cast<T*> (addr);
             }
-            if (LE != IsLittleEndian)
+            if (E != (e.c[0] == 4 ? Endian::LITTLE : Endian::BIG))
             {
                 swap_byte (v);
             }
@@ -1013,8 +1011,10 @@ namespace TBSyzygy {
                 {
                     d->group_idx[0] = idx;
                     idx *= e.has_pawns ?
-                        LeadPawnsSize[d->group_len[0]][f] :
-                        e.has_unique_pieces ? 31332 : 462;
+                            LeadPawnsSize[d->group_len[0]][f] :
+                            e.has_unique_pieces ?
+                                31332 :
+                                462;
                 }
                 else
                 if (k == order[1]) // Remaining pawns
@@ -1098,8 +1098,8 @@ namespace TBSyzygy {
             for (i32 i = i32(d->base64.size () - 2); i >= 0; --i)
             {
                 d->base64[i] = (  d->base64[i + 1]
-                                + number<Sym, LITTLE> (&d->lowest_sym[i])
-                                - number<Sym, LITTLE> (&d->lowest_sym[i + 1])) / 2;
+                                + number<Sym, Endian::LITTLE> (&d->lowest_sym[i])
+                                - number<Sym, Endian::LITTLE> (&d->lowest_sym[i + 1])) / 2;
 
                 assert(d->base64[i] * 2 >= d->base64[i+1]);
             }
