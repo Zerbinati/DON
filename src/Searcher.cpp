@@ -648,7 +648,7 @@ namespace Searcher {
             auto tt_bound = tt_hit ?
                             tte->bound () :
                             BOUND_NONE;
-            auto tt_eval = tt_hit ?
+            auto tt_eval =  tt_hit ?
                             tte->eval () :
                             VALUE_NONE;
 
@@ -989,7 +989,7 @@ namespace Searcher {
             auto tt_bound = tt_hit ?
                             tte->bound () :
                             BOUND_NONE;
-            auto tt_eval = tt_hit ?
+            auto tt_eval =  tt_hit ?
                             tte->eval () :
                             VALUE_NONE;
             bool improving;
@@ -1039,11 +1039,11 @@ namespace Searcher {
                 return tt_value;
             }
 
-            // Step 5. Tablebase probe.
+            // Step 5. Tablebases probe.
             if (   !root_node
                 && 0 != TBLimitPiece)
             {
-                auto piece_count = pos.count ();
+                const auto piece_count = pos.count ();
 
                 if (   (   piece_count < TBLimitPiece
                         || (   piece_count == TBLimitPiece
@@ -1052,7 +1052,7 @@ namespace Searcher {
                     && !pos.si->can_castle (CR_ANY))
                 {
                     ProbeState state;
-                    WDLScore wdl = probe_wdl (pos, state);
+                    const auto wdl = probe_wdl (pos, state);
 
                     if (ProbeState::FAILURE != state)
                     {
@@ -1068,8 +1068,7 @@ namespace Searcher {
                                      wdl >  draw ? BOUND_LOWER :
                                                    BOUND_EXACT;
 
-                        if (   BOUND_EXACT == bound
-                            || (BOUND_LOWER == bound ? value >= beta : value <= alfa))
+                        if (BOUND_NONE != (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
                         {
                             tte->save (key,
                                        MOVE_NONE,

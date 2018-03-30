@@ -203,7 +203,6 @@ public:
 
     void start_thinking (Position&, StateListPtr&, const Limit&, const std::vector<Move>&, bool = false);
     void stop_thinking ();
-
 };
 
 
