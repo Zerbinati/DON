@@ -136,9 +136,9 @@ namespace TBSyzygy {
         template<TBType Type>
         struct TBEntry
         {
-            typedef typename std::conditional<Type == WDL, WDLScore, i32>::type Result;
+            typedef typename std::conditional<WDL == Type, WDLScore, i32>::type Result;
 
-            static constexpr i32 Sides = Type == WDL ? 2 : 1;
+            static constexpr i32 Sides = WDL == Type ? 2 : 1;
 
             std::atomic<bool> ready;
             void* base_address;
@@ -650,9 +650,9 @@ namespace TBSyzygy {
 
         bool check_dtz_stm (TBEntry<DTZ> *entry, i32 stm, File f)
         {
-            auto flags = entry->get (stm, f)->flags;
-            return (flags & TBFlag::STM) == stm
-                || ((entry->key1 == entry->key2) && !entry->has_pawns);
+            return (entry->get (stm, f)->flags & TBFlag::STM) == stm
+                || (   entry->key1 == entry->key2
+                    && !entry->has_pawns);
         }
 
         /// DTZ scores are sorted by frequency of occurrence and then assigned the
@@ -754,7 +754,7 @@ namespace TBSyzygy {
             // DTZ tables are one-sided, i.e. they store positions only for white to
             // move or only for black to move, so check for side to move to be color,
             // early exit otherwise.
-            if (   Type == DTZ
+            if (   DTZ == Type
                 && !check_dtz_stm (entry, flip ? ~pos.active : pos.active, tbFile))
             {
                 state = ProbeState::CHANGE_STM;
@@ -1159,7 +1159,7 @@ namespace TBSyzygy {
 
             data++; // First byte stores flags
 
-            const i32  Sides = Type == WDL && (e.key1 != e.key2) ? 2 : 1;
+            const i32  Sides = WDL == Type && (e.key1 != e.key2) ? 2 : 1;
             const File MaxFile = e.has_pawns ? F_D : F_A;
 
             bool pp = e.has_pawns && 0 != e.pawn_count[1]; // Pawns on both sides
@@ -1203,7 +1203,7 @@ namespace TBSyzygy {
                     data = set_sizes (e.get (i, f), data);
                 }
             }
-            if (Type == DTZ)
+            if (DTZ == Type)
             {
                 data = set_dtz_map (e, data, MaxFile);
             }
@@ -1269,8 +1269,8 @@ namespace TBSyzygy {
                 { 0x71, 0xE8, 0x23, 0x5D }
             };
 
-            TBFile file ((e.key1 == pos.si->matl_key ? w + b : b + w), Type == WDL ? ".rtbw" : ".rtbz");
-            u08 *data = file.map (&e.base_address, &e.mapping, TB_MAGIC[Type == WDL ? 1 : 0]);
+            TBFile file ((e.key1 == pos.si->matl_key ? w + b : b + w), WDL == Type ? ".rtbw" : ".rtbz");
+            u08 *data = file.map (&e.base_address, &e.mapping, TB_MAGIC[WDL == Type ? 1 : 0]);
             if (nullptr != data)
             {
                 do_init (e, data);
