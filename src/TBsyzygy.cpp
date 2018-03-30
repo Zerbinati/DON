@@ -198,7 +198,7 @@ namespace TBSyzygy {
                 // Set the leading color. In case both sides have pawns the leading color
                 // is the side with less pawns because this leads to better compression.
                 auto lead_color = pos.count (BLACK, PAWN) == 0
-                               || (   pos.count (WHITE, PAWN)
+                               || (   pos.count (WHITE, PAWN) != 0
                                    && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
 
                 pawn_count[0] = u08(pos.count ( lead_color, PAWN));
@@ -297,11 +297,10 @@ namespace TBSyzygy {
         class HashTable
         {
         private:
-            typedef pair<TBEntry<WDL>*, TBEntry<DTZ>*> EntryPair;
-            typedef pair<Key, EntryPair> Entry;
-
             static constexpr i32 TBHASHBITS = 10;
             static constexpr i32 HSHMAX = 6;
+
+            typedef pair<Key, pair<TBEntry<WDL>*, TBEntry<DTZ>*>> Entry;
 
             Entry table[1 << TBHASHBITS][HSHMAX];
 
@@ -814,117 +813,114 @@ namespace TBSyzygy {
                 {
                     idx += Binomial[i][MapPawns[squares[i]]];
                 }
-
-                goto encode_remaining; // With pawns we have finished special treatments
             }
-
             // In positions withouth pawns:
-            
-            // Flip the squares to ensure leading piece is below R_5.
-            if (_rank (squares[0]) > R_4)
-            {
-                for (i32 i = 0; i < size; ++i)
-                {
-                    squares[i] = ~squares[i];
-                }
-            }
-            // Look for the first piece of the leading group not on the A1-D4 diagonal
-            // and ensure it is mapped below the diagonal.
-            for (i32 i = 0; i < d->group_len[0]; ++i)
-            {
-                if (!off_A1H8 (squares[i]))
-                {
-                    continue;
-                }
-
-                if (off_A1H8 (squares[i]) > 0) // A1-H8 diagonal flip: SQ_A3 -> SQ_C3
-                {
-                    for (i32 j = i; j < size; ++j)
-                    {
-                        squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 63);
-                    }
-                }
-                break;
-            }
-
-            // Encode the leading group.
-            //
-            // Suppose we have KRvK. Let's say the pieces are on square numbers wK, wR
-            // and bK (each 0...63). The simplest way to map this position to an index
-            // is like this:
-            //
-            //   index = wK * 64 * 64 + wR * 64 + bK;
-            //
-            // But this way the TB is going to have 64*64*64 = 262144 positions, with
-            // lots of positions being equivalent (because they are mirrors of each
-            // other) and lots of positions being invalid (two pieces on one square,
-            // adjacent kings, etc.).
-            // Usually the first step is to take the wK and bK together. There are just
-            // 462 ways legal and not-mirrored ways to place the wK and bK on the board.
-            // Once we have placed the wK and bK, there are 62 squares left for the wR
-            // Mapping its square from 0..63 to available squares 0..61 can be done like:
-            //
-            //   wR -= (wR > wK) + (wR > bK);
-            //
-            // In words: if wR "comes later" than wK, we deduct 1, and the same if wR
-            // "comes later" than bK. In case of two same pieces like KRRvK we want to
-            // place the two Rs "together". If we have 62 squares left, we can place two
-            // Rs "together" in 62 * 61 / 2 ways (we divide by 2 because rooks can be
-            // swapped and still get the same position.)
-            //
-            // In case we have at least 3 unique pieces (inlcuded kings) we encode them
-            // together.
-            if (entry->has_unique_pieces)
-            {
-                i32 adjust1 =  squares[1] > squares[0];
-                i32 adjust2 = (squares[2] > squares[0]) + (squares[2] > squares[1]);
-
-                // First piece is below a1-h8 diagonal. MapA1D1D4[] maps the b1-d1-d3
-                // triangle to 0...5. There are 63 squares for second piece and and 62
-                // (mapped to 0...61) for the third.
-                if (off_A1H8 (squares[0]))
-                {
-                    idx = MapA1D1D4[squares[0]]  * 63 * 62
-                        + (squares[1] - adjust1) * 62
-                        +  squares[2] - adjust2;
-                }
-                // First piece is on a1-h8 diagonal, second below: map this occurence to
-                // 6 to differentiate from the above case, rank() maps a1-d4 diagonal
-                // to 0...3 and finally MapB1H1H7[] maps the b1-h1-h7 triangle to 0..27.
-                else
-                if (off_A1H8 (squares[1]))
-                {
-                    idx = 6 * 63 * 62
-                        + _rank (squares[0]) * 28 * 62
-                        + MapB1H1H7[squares[1]] * 62
-                        + squares[2] - adjust2;
-                }
-                // First two pieces are on a1-h8 diagonal, third below
-                else
-                if (off_A1H8 (squares[2]))
-                {
-                    idx =  6 * 63 * 62 + 4 * 28 * 62
-                        +  _rank (squares[0]) * 7 * 28
-                        + (_rank (squares[1]) - adjust1) * 28
-                        +  MapB1H1H7[squares[2]];
-                }
-                // All 3 pieces on the diagonal a1-h8
-                else
-                {
-                    idx = 6 * 63 * 62 + 4 * 28 * 62 + 4 * 7 * 28
-                        +  _rank (squares[0]) * 7 * 6
-                        + (_rank (squares[1]) - adjust1) * 6
-                        + (_rank (squares[2]) - adjust2);
-                }
-            }
             else
             {
-                // We don't have at least 3 unique pieces, like in KRRvKBB, just map
-                // the kings.
-                idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
+                // Flip the squares to ensure leading piece is below R_5.
+                if (_rank (squares[0]) > R_4)
+                {
+                    for (i32 i = 0; i < size; ++i)
+                    {
+                        squares[i] = ~squares[i];
+                    }
+                }
+                // Look for the first piece of the leading group not on the A1-D4 diagonal
+                // and ensure it is mapped below the diagonal.
+                for (i32 i = 0; i < d->group_len[0]; ++i)
+                {
+                    if (!off_A1H8 (squares[i]))
+                    {
+                        continue;
+                    }
+
+                    if (off_A1H8 (squares[i]) > 0) // A1-H8 diagonal flip: SQ_A3 -> SQ_C3
+                    {
+                        for (i32 j = i; j < size; ++j)
+                        {
+                            squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 63);
+                        }
+                    }
+                    break;
+                }
+
+                // Encode the leading group.
+                //
+                // Suppose we have KRvK. Let's say the pieces are on square numbers wK, wR
+                // and bK (each 0...63). The simplest way to map this position to an index
+                // is like this:
+                //
+                //   index = wK * 64 * 64 + wR * 64 + bK;
+                //
+                // But this way the TB is going to have 64*64*64 = 262144 positions, with
+                // lots of positions being equivalent (because they are mirrors of each
+                // other) and lots of positions being invalid (two pieces on one square,
+                // adjacent kings, etc.).
+                // Usually the first step is to take the wK and bK together. There are just
+                // 462 ways legal and not-mirrored ways to place the wK and bK on the board.
+                // Once we have placed the wK and bK, there are 62 squares left for the wR
+                // Mapping its square from 0..63 to available squares 0..61 can be done like:
+                //
+                //   wR -= (wR > wK) + (wR > bK);
+                //
+                // In words: if wR "comes later" than wK, we deduct 1, and the same if wR
+                // "comes later" than bK. In case of two same pieces like KRRvK we want to
+                // place the two Rs "together". If we have 62 squares left, we can place two
+                // Rs "together" in 62 * 61 / 2 ways (we divide by 2 because rooks can be
+                // swapped and still get the same position.)
+                //
+                // In case we have at least 3 unique pieces (inlcuded kings) we encode them
+                // together.
+                if (entry->has_unique_pieces)
+                {
+                    i32 adjust1 =  squares[1] > squares[0];
+                    i32 adjust2 = (squares[2] > squares[0]) + (squares[2] > squares[1]);
+
+                    // First piece is below a1-h8 diagonal. MapA1D1D4[] maps the b1-d1-d3
+                    // triangle to 0...5. There are 63 squares for second piece and and 62
+                    // (mapped to 0...61) for the third.
+                    if (off_A1H8 (squares[0]))
+                    {
+                        idx = MapA1D1D4[squares[0]]  * 63 * 62
+                            + (squares[1] - adjust1) * 62
+                            +  squares[2] - adjust2;
+                    }
+                    // First piece is on a1-h8 diagonal, second below: map this occurence to
+                    // 6 to differentiate from the above case, rank() maps a1-d4 diagonal
+                    // to 0...3 and finally MapB1H1H7[] maps the b1-h1-h7 triangle to 0..27.
+                    else
+                    if (off_A1H8 (squares[1]))
+                    {
+                        idx = 6 * 63 * 62
+                            + _rank (squares[0]) * 28 * 62
+                            + MapB1H1H7[squares[1]] * 62
+                            + squares[2] - adjust2;
+                    }
+                    // First two pieces are on a1-h8 diagonal, third below
+                    else
+                    if (off_A1H8 (squares[2]))
+                    {
+                        idx =  6 * 63 * 62 + 4 * 28 * 62
+                            +  _rank (squares[0]) * 7 * 28
+                            + (_rank (squares[1]) - adjust1) * 28
+                            +  MapB1H1H7[squares[2]];
+                    }
+                    // All 3 pieces on the diagonal a1-h8
+                    else
+                    {
+                        idx = 6 * 63 * 62 + 4 * 28 * 62 + 4 * 7 * 28
+                            +  _rank (squares[0]) * 7 * 6
+                            + (_rank (squares[1]) - adjust1) * 6
+                            + (_rank (squares[2]) - adjust2);
+                    }
+                }
+                else
+                {
+                    // We don't have at least 3 unique pieces, like in KRRvKBB, just map the kings.
+                    idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
+                }
             }
 
-        encode_remaining:
             idx *= d->group_idx[0];
             auto *group_sq = squares + d->group_len[0];
 
