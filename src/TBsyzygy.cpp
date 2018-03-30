@@ -313,7 +313,7 @@ namespace TBSyzygy {
                 for (auto &entry : table[key >> (64 - TBHASHBITS)])
                 {
                     if (   nullptr == entry.second.first
-                        || entry.first == key)
+                        || key == entry.first)
                     {
                         entry = std::make_pair (key, std::make_pair (wdl, dtz));
                         return;
