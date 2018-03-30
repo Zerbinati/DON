@@ -703,7 +703,7 @@ namespace TBSyzygy {
             i32 next = 0, size = 0, lead_pawn_count = 0;
             PairsData *d;
             Bitboard b, lead_pawns = 0;
-            File tbFile = F_A;
+            File tb_file = F_A;
 
             bool flip =
                 // Black Symmetric
@@ -728,25 +728,27 @@ namespace TBSyzygy {
                 // In all the 4 tables, pawns are at the beginning of the piece sequence and
                 // their color is the reference one. So we just pick the first one.
                 Piece pc = flip ?
-                    ~entry->get (0, 0)->pieces[0] :
-                     entry->get (0, 0)->pieces[0];
+                            ~entry->get (0, 0)->pieces[0] :
+                             entry->get (0, 0)->pieces[0];
 
-                assert(ptype (pc) == PAWN);
+                assert(PAWN == ptype (pc));
 
                 lead_pawns = b = pos.pieces (color (pc), PAWN);
                 do
                 {
-                    squares[size++] = flip ? ~pop_lsq (b) : pop_lsq (b);
+                    squares[size++] = flip ?
+                                        ~pop_lsq (b) :
+                                         pop_lsq (b);
                 }
                 while (0 != b);
                 lead_pawn_count = size;
 
                 std::swap (squares[0], *std::max_element (squares, squares + lead_pawn_count, pawns_comp));
 
-                tbFile = _file (squares[0]);
-                if (tbFile > F_D)
+                tb_file = _file (squares[0]);
+                if (tb_file > F_D)
                 {
-                    tbFile = _file (!squares[0]); // Horizontal flip: SQ_H1 -> SQ_A1
+                    tb_file = _file (!squares[0]); // Horizontal flip: SQ_H1 -> SQ_A1
                 }
             }
 
@@ -754,7 +756,9 @@ namespace TBSyzygy {
             // move or only for black to move, so check for side to move to be color,
             // early exit otherwise.
             if (   DTZ == Type
-                && !check_dtz_stm (entry, flip ? ~pos.active : pos.active, tbFile))
+                && !check_dtz_stm (entry, flip ?
+                                            ~pos.active :
+                                             pos.active, tb_file))
             {
                 state = ProbeState::CHANGE_STM;
                 return T();
@@ -766,15 +770,19 @@ namespace TBSyzygy {
             do
             {
                 auto s = pop_lsq (b);
-                squares[size] = flip ? ~s : s;
-                pieces[size] = flip ? ~pos[s] : pos[s];
+                squares[size] = flip ?
+                                ~s :
+                                 s;
+                pieces[size] = flip ?
+                                ~pos[s] :
+                                 pos[s];
                 ++size;
             }
             while (0 != b);
 
             assert(size >= 2);
 
-            d = entry->get (pos.active, tbFile);
+            d = entry->get (pos.active, tb_file);
 
             // Then we reorder the pieces to have the same sequence as the one stored
             // in pieces[i]: the sequence that ensures the best compression.
@@ -947,7 +955,7 @@ namespace TBSyzygy {
             }
 
             // Now that we have the index, decompress the pair and get the score
-            return map_score (entry, tbFile, decompress_pairs (d, idx), wdl);
+            return map_score (entry, tb_file, decompress_pairs (d, idx), wdl);
         }
 
         /// Group together pieces that will be encoded together. The general rule is that
