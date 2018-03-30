@@ -157,15 +157,7 @@ namespace TBSyzygy {
                 return &items[stm % Sides][has_pawns ? f : 0];
             }
 
-            TBEntry ()
-                : ready (false)
-                , base_address (nullptr)
-                , map (nullptr)
-                , mapping (0)
-                , key1 (0)
-                , key2 (0)
-                , piece_count (0)
-            {}
+            TBEntry () = delete;
 
             explicit TBEntry (const std::string&);
             explicit TBEntry (const TBEntry<WDL>&);
@@ -174,7 +166,10 @@ namespace TBSyzygy {
 
         template<>
         TBEntry<WDL>::TBEntry (const std::string &code)
-            : TBEntry ()
+            : ready (false)
+            , base_address (nullptr)
+            , map (nullptr)
+            , mapping (0)
         {
             StateInfo si;
             Position pos;
@@ -209,7 +204,10 @@ namespace TBSyzygy {
 
         template<>
         TBEntry<DTZ>::TBEntry (const TBEntry<WDL> &wdl)
-            : TBEntry ()
+            : ready (false)
+            , base_address (nullptr)
+            , map (nullptr)
+            , mapping (0)
         {
             key1 = wdl.key1;
             key2 = wdl.key2;
@@ -261,7 +259,7 @@ namespace TBSyzygy {
         template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
         inline void swap_byte (T &x)
         {
-            auto *c = reinterpret_cast<char*> (&x);
+            auto *c = (char*)(&x);
             for (i32 i = 0; i < Half; ++i)
             {
                 auto tmp = c[i];
@@ -270,20 +268,21 @@ namespace TBSyzygy {
             }
         }
         template<>
-        inline void swap_byte<u08, 0, 0> (u08 &) {}
+        inline void swap_byte<u08, 0, 0> (u08 &)
+        {}
 
         template<typename T, Endian E>
         T number (void *addr)
         {
             constexpr union { u32 i; char c[4]; } e = { 0x01020304 };
             T v;
-            if (0 != (reinterpret_cast<uintptr_t> (addr) & (alignof(T) -1))) // Unaligned pointer (very rare)
+            if (0 != (uintptr_t(addr) & (alignof(T) -1))) // Unaligned pointer (very rare)
             {
                 std::memcpy (&v, addr, sizeof (v));
             }
             else
             {
-                v = *static_cast<T*> (addr);
+                v = *((T*)addr);
             }
             if (E != (e.c[0] == 4 ? Endian::LITTLE : Endian::BIG))
             {
@@ -349,7 +348,7 @@ namespace TBSyzygy {
         HashTable EntryTable;
 
         class TBFile
-            : public ifstream
+            : public std::ifstream
         {
         public:
             // Look for and open the file among the Paths directories where the .rtbw and .rtbz files can be found.
@@ -436,7 +435,7 @@ namespace TBSyzygy {
                 }
 #           endif
 
-                auto *data = static_cast<u08*> (*base_address);
+                auto *data = (u08*)(*base_address);
 
                 if (   *data++ != *TB_MAGIC++
                     || *data++ != *TB_MAGIC++
@@ -452,7 +451,7 @@ namespace TBSyzygy {
                 return data;
             }
 
-            static void unmap (void* base_address, u64 mapping)
+            static void unmap (void *base_address, u64 mapping)
             {
 #ifndef _WIN32
                 munmap (base_address, mapping);
@@ -564,7 +563,7 @@ namespace TBSyzygy {
             }
 
             // Finally, we find the start address of our block of canonical Huffman symbols
-            u32* ptr = reinterpret_cast<u32*> (d->data + block * d->block_size);
+            u32* ptr = (u32*)(d->data + block * d->block_size);
 
             // Read the first 64 bits in our block, this is a (truncated) sequence of
             // unknown number of symbols of unknown length but we know the first one
@@ -705,7 +704,7 @@ namespace TBSyzygy {
 
             bool flip =
                 // Black Symmetric
-                // A given TB entry like KRK has associated two material keys: KRvk and Kvkr.
+                // A given TB entry like KRK has associated two material keys: KRvK and KvKR.
                 // If both sides have the same pieces keys are equal. In this case TB tables
                 // only store the 'white to move' case, so if the position to lookup has black
                 // to move, we need to switch the color and flip the squares before to lookup.
@@ -714,7 +713,7 @@ namespace TBSyzygy {
                 // Black Stronger
                 // TB files are calculated for white as stronger side. For instance we have
                 // KRvK, not KvKR. A position where stronger side is white will have its
-                // material key == entry->key, otherwise we have to switch the color and
+                // material key == entry->key1, otherwise we have to switch the color and
                 // flip the squares before to lookup.
                     || (pos.si->matl_key != entry->key1);
 
@@ -726,8 +725,8 @@ namespace TBSyzygy {
                 // In all the 4 tables, pawns are at the beginning of the piece sequence and
                 // their color is the reference one. So we just pick the first one.
                 Piece pc = flip ?
-                            ~entry->get (0, 0)->pieces[0] :
-                             entry->get (0, 0)->pieces[0];
+                            ~Piece(entry->get (0, 0)->pieces[0]) :
+                             Piece(entry->get (0, 0)->pieces[0]);
 
                 assert(PAWN == ptype (pc));
 
@@ -735,8 +734,8 @@ namespace TBSyzygy {
                 do
                 {
                     squares[size++] = flip ?
-                                        ~pop_lsq (b) :
-                                         pop_lsq (b);
+                                       ~pop_lsq (b) :
+                                        pop_lsq (b);
                 }
                 while (0 != b);
                 lead_pawn_count = size;
@@ -754,9 +753,7 @@ namespace TBSyzygy {
             // move or only for black to move, so check for side to move to be color,
             // early exit otherwise.
             if (   DTZ == Type
-                && !check_dtz_stm (entry, flip ?
-                                            ~pos.active :
-                                             pos.active, tb_file))
+                && !check_dtz_stm (entry, flip ? ~pos.active : pos.active, tb_file))
             {
                 state = ProbeState::CHANGE_STM;
                 return T();
@@ -769,11 +766,11 @@ namespace TBSyzygy {
             {
                 auto s = pop_lsq (b);
                 squares[size] = flip ?
-                                ~s :
-                                 s;
-                pieces[size] = flip ?
-                                ~pos[s] :
-                                 pos[s];
+                                 ~s :
+                                  s;
+                pieces[size] =  flip ?
+                                 ~pos[s] :
+                                  pos[s];
                 ++size;
             }
             while (0 != b);
@@ -820,7 +817,7 @@ namespace TBSyzygy {
                     idx += Binomial[i][MapPawns[squares[i]]];
                 }
             }
-            // In positions withouth pawns:
+            // In positions without pawns:
             else
             {
                 // Flip the squares to ensure leading piece is below R_5.
@@ -875,8 +872,7 @@ namespace TBSyzygy {
                 // Rs "together" in 62 * 61 / 2 ways (we divide by 2 because rooks can be
                 // swapped and still get the same position.)
                 //
-                // In case we have at least 3 unique pieces (inlcuded kings) we encode them
-                // together.
+                // In case we have at least 3 unique pieces (included kings) we encode them together.
                 if (entry->has_unique_pieces)
                 {
                     i32 adjust1 =  squares[1] > squares[0];
@@ -891,7 +887,7 @@ namespace TBSyzygy {
                             + (squares[1] - adjust1) * 62
                             +  squares[2] - adjust2;
                     }
-                    // First piece is on a1-h8 diagonal, second below: map this occurence to
+                    // First piece is on a1-h8 diagonal, second below: map this occurrence to
                     // 6 to differentiate from the above case, rank() maps a1-d4 diagonal
                     // to 0...3 and finally MapB1H1H7[] maps the b1-h1-h7 triangle to 0..27.
                     else
@@ -1082,11 +1078,10 @@ namespace TBSyzygy {
             d->sparse_index_size = (tb_size + d->span - 1) / d->span; // Round up
             i32 padding = number<u08, Endian::LITTLE> (data++);
             d->num_blocks = number<u32, Endian::LITTLE> (data); data += sizeof (u32);
-            d->block_length_size = d->num_blocks + padding; // Padded to ensure SparseIndex[]
-                                                         // does not point out of range.
+            d->block_length_size = d->num_blocks + padding; // Padded to ensure SparseIndex[] does not point out of range.
             d->max_sym_len = *data++;
             d->min_sym_len = *data++;
-            d->lowest_sym = reinterpret_cast<Sym*> (data);
+            d->lowest_sym = (Sym*)(data);
             d->base64.resize (d->max_sym_len - d->min_sym_len + 1);
 
             // The canonical code is ordered such that longer symbols (in terms of
@@ -1146,13 +1141,14 @@ namespace TBSyzygy {
                 if (0 != (e.get (0, f)->flags & TBFlag::MAPPED))
                 {
                     for (i32 i = 0; i < 4; ++i)
-                    { // Sequence like 3,x,x,x,1,x,0,2,x,x
+                    { 
+                        // Sequence like 3,x,x,x,1,x,0,2,x,x
                         e.get (0, f)->map_idx[i] = u16(data - e.map + 1);
                         data += *data + 1;
                     }
                 }
             }
-            return data += reinterpret_cast<uintptr_t> (data) & 1; // Word alignment
+            return data += uintptr_t(data) & 1; // Word alignment
         }
 
         template<TBType Type>
@@ -1198,7 +1194,7 @@ namespace TBSyzygy {
                 }
             }
 
-            data += reinterpret_cast<uintptr_t> (data) & 1; // Word alignment
+            data += uintptr_t(data) & 1; // Word alignment
 
             for (auto f = F_A; f <= MaxFile; ++f)
             {
@@ -1217,7 +1213,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    (d = e.get (i, f))->sparse_index = reinterpret_cast<SparseEntry*> (data);
+                    (d = e.get (i, f))->sparse_index = (SparseEntry*)(data);
                     data += d->sparse_index_size * sizeof (SparseEntry);
                 }
             }
@@ -1225,7 +1221,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    (d = e.get (i, f))->block_length = reinterpret_cast<u16*> (data);
+                    (d = e.get (i, f))->block_length = (u16*)(data);
                     data += d->block_length_size * sizeof (u16);
                 }
             }
@@ -1233,7 +1229,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    data = reinterpret_cast<u08*> ((reinterpret_cast<uintptr_t> (data) + 0x3F) & ~0x3F); // 64 byte alignment
+                    data = (u08*)((uintptr_t(data) + 0x3F) & ~0x3F); // 64 byte alignment
                     (d = e.get (i, f))->data = data;
                     data += d->num_blocks * d->block_size;
                 }
@@ -1296,7 +1292,8 @@ namespace TBSyzygy {
             if (   nullptr == entry
                 || nullptr == init (*entry, pos))
             {
-                return state = ProbeState::FAILURE, T();
+                state = ProbeState::FAILURE;
+                return T();
             }
 
             return do_probe_table (pos, entry, wdl, state);
