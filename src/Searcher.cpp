@@ -1903,10 +1903,10 @@ void Thread::search ()
                 // Dynamic contempt
                 if (0 != ContemptValue)
                 {
-                    auto contempt = i32(std::round (48 * std::atan (i32(old_value) / (12.8 * ContemptValue))));
-                    Contempt = WHITE == root_pos.active ?
-                                +mk_score (contempt, contempt / 2) :
-                                -mk_score (contempt, contempt / 2);
+                    auto ct = i32(i32(BaseContempt) + std::round (48 * std::atan (i32(old_value) / (12.8 * ContemptValue))));
+                    contempt = WHITE == root_pos.active ?
+                                +mk_score (ct, ct / 2) :
+                                -mk_score (ct, ct / 2);
                 }
             }
 
@@ -2170,7 +2170,7 @@ void MainThread::search ()
             }
 
             BaseContempt = cp_to_value (FixedContempt + timed_contempt);
-            Contempt = WHITE == root_pos.active ?
+            contempt = WHITE == root_pos.active ?
                         +mk_score (BaseContempt, BaseContempt / 2) :
                         -mk_score (BaseContempt, BaseContempt / 2);
 

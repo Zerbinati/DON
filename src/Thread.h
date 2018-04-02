@@ -100,6 +100,7 @@ public:
         
     std::atomic<u64> nodes
         ,            tb_hits;
+    Score contempt;
 
     PieceDestinyMove counter_moves;
     ButterflyHistory butterfly_history;

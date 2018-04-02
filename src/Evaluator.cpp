@@ -4,11 +4,10 @@
 #include "BitBoard.h"
 #include "Material.h"
 #include "Pawns.h"
+#include "Thread.h"
 
 using namespace std;
 using namespace BitBoard;
-
-atomic<Score> Contempt;
 
 namespace {
 
@@ -1134,7 +1133,7 @@ namespace {
               + me->imbalance
               + pe->scores[WHITE]
               - pe->scores[BLACK]
-              + Contempt;
+              + pos.thread->contempt;
 
         // Early exit if score is high
         Value v = (mg_value (score) + eg_value (score)) / 2;
@@ -1201,7 +1200,7 @@ Value evaluate (const Position &pos)
 /// the detailed descriptions and values of each evaluation term.
 string trace (const Position &pos)
 {
-    Contempt = SCORE_ZERO; // Reset any dynamic contempt
+    pos.thread->contempt = SCORE_ZERO; // Reset any dynamic contempt
     auto value = Evaluator<true> (pos).value ();
     value = WHITE == pos.active ? +value : -value; // Trace scores are from White's point of view
 

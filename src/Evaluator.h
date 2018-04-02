@@ -8,8 +8,6 @@
 // Tempo bonus
 constexpr Value Tempo = Value(20);
 
-extern std::atomic<Score> Contempt;
-
 extern Value evaluate (const Position&);
 
 extern std::string trace (const Position&);
