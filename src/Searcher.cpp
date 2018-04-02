@@ -1163,8 +1163,7 @@ namespace Searcher {
                 {
                     assert(MOVE_NONE == ss->excluded_move);
 
-                    // Step 7. Razoring sort of forward pruning where rather than
-                    // skipping an entire subtree, search it to a reduced depth.
+                    // Step 7. Razoring. (~2 ELO)
                     if (   !PVNode
                         && 3 > depth
                         && tt_eval <= alfa - RazorMargin[depth])
@@ -1178,7 +1177,7 @@ namespace Searcher {
                         }
                     }
 
-                    // Step 8. Futility pruning: child node.
+                    // Step 8. Futility pruning: child node. (~30 ELO)
                     // Betting that the opponent doesn't have a move that will reduce
                     // the score by more than futility margins [depth] if do a null move.
                     if (   !root_node
@@ -1190,7 +1189,7 @@ namespace Searcher {
                         return tt_eval;
                     }
 
-                    // Step 9. Null move search with verification search.
+                    // Step 9. Null move search with verification search. (~40 ELO)
                     if (   !PVNode
                         //&& 0 == Limits.mate
                         && tt_eval >= beta
@@ -1245,7 +1244,7 @@ namespace Searcher {
                         }
                     }
 
-                    // Step 10. ProbCut.
+                    // Step 10. ProbCut. (~10 ELO)
                     // If good enough capture and a reduced search returns a value much above beta,
                     // then can (almost) safely prune the previous move.
                     if (   !PVNode
@@ -1293,7 +1292,7 @@ namespace Searcher {
                         }
                     }
 
-                    // Step 11. Internal iterative deepening (IID).
+                    // Step 11. Internal iterative deepening (IID). (~2 ELO)
                     if (   MOVE_NONE == tt_move
                         && 5 < depth
                         && (   PVNode
@@ -1399,19 +1398,11 @@ namespace Searcher {
                     (ss+1)->pv.clear ();
                 }
 
-                // Step 13. Extensions
+                // Step 13. Extensions. (~70 ELO)
 
                 i16 extension = 0;
 
-                // Check extension (CE)
-                if (   gives_check
-                    && !move_count_pruning
-                    && pos.see_ge (move))
-                {
-                    extension = 1;
-                }
-                else
-                // Singular extension (SE)
+                // Singular extension (SE) (~60 ELO)
                 // We extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
                 // and just one fails high on (alfa, beta), then that move is singular and should be extended.
@@ -1432,11 +1423,19 @@ namespace Searcher {
                         extension = 1;
                     }
                 }
+                else
+                // Check extension (CE) (~2 ELO)
+                if (   gives_check
+                    && !move_count_pruning
+                    && pos.see_ge (move))
+                {
+                    extension = 1;
+                }
 
                 // Calculate new depth for this move
                 i16 new_depth = depth - 1 + extension;
 
-                // Step 14. Pruning at shallow depth.
+                // Step 14. Pruning at shallow depth. (~170 ELO)
                 if (   !root_node
                     //&& 0 == Limits.mate
                     && best_value > -VALUE_MATE_MAX_PLY
@@ -1449,7 +1448,7 @@ namespace Searcher {
                              && R_4 < rel_rank (pos.active, org)
                              && Value(5000) > pos.si->non_pawn_material ()))
                     {
-                        // Move count based pruning.
+                        // Move count based pruning. (~30 ELO)
                         if (move_count_pruning)
                         {
                             move_picker.pick_quiets = false;
@@ -1458,15 +1457,15 @@ namespace Searcher {
 
                         // Reduced depth of the next LMR search.
                         i16 lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
-                        if (    // Countermoves based pruning.
+                        if (    // Countermoves based pruning. (~20 ELO)
                                (   3 > lmr_depth
                                 && (*piece_destiny_history[0])[mpc][dst] < CounterMovePruneThreshold
                                 && (*piece_destiny_history[1])[mpc][dst] < CounterMovePruneThreshold)
-                                // Futility pruning: parent node.
+                                // Futility pruning: parent node. (~2 ELO)
                             || (   7 > lmr_depth
                                 && !in_check
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
-                                // SEE based pruning: -ve SEE
+                                // SEE based pruning: -ve SEE (~10 ELO)
                             || (   8 > lmr_depth
                                 && !pos.see_ge (move, Value(-35*lmr_depth*lmr_depth))))
                         {
@@ -1474,7 +1473,7 @@ namespace Searcher {
                         }
                     }
                     else
-                    // SEE based pruning.
+                    // SEE based pruning. (~20 ELO)
                     if (   7 > depth
                         && 0 == extension
                         && !pos.see_ge (move, -CapturePruneMargin[depth]))

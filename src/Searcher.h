@@ -40,9 +40,9 @@ public:
     TimePoint start_time;
 
     Limit ()
-        : clock { 0, 0 }
+        : clock { TimePoint(0), TimePoint(0) }
         , movestogo (0)
-        , movetime (0)
+        , movetime (TimePoint(0))
         , depth (0)
         , nodes (0)
         , mate (0)
