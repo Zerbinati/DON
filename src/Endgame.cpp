@@ -569,31 +569,15 @@ namespace EndGame {
         const auto wb_sq = pos.square<BSHP> (  weak_color);
         const auto wk_sq = pos.square<KING> (  weak_color);
 
-        // Case 1: Defending king blocks the pawn, and cannot be driven away
-        if (   _file (wk_sq) == _file (sp_sq)
-            && rel_rank (strong_color, sp_sq) < rel_rank (strong_color, wk_sq)
-            && (   opposite_colors (wk_sq, sb_sq)
-                || R_6 >= rel_rank (strong_color, wk_sq)))
+        if (// Opposite colored bishops
+               opposite_colors (sb_sq, wb_sq)
+            // Defending king blocks the pawn, and cannot be driven away
+            ||    _file (wk_sq) == _file (sp_sq)
+               && rel_rank (strong_color, sp_sq) < rel_rank (strong_color, wk_sq)
+               && (   opposite_colors (wk_sq, sb_sq)
+                   || R_6 >= rel_rank (strong_color, wk_sq)))
         {
             return SCALE_DRAW;
-        }
-        // Case 2: Opposite colored bishops
-        if (opposite_colors (sb_sq, wb_sq))
-        {
-            // Assume that the position is drawn in the following three situations:
-            //   1. The pawn is on rank 5 or further back.
-            //   2. The defending king is somewhere in the pawn's path.
-            //   3. The defending bishop attacks some square along the pawn's path,
-            //      and is at least three squares away from the pawn.
-            // These rules are probably not perfect, but in practice they work reasonably well.
-            if (   R_5 >= rel_rank (strong_color, sp_sq)
-                || 0 != (front_line_bb (strong_color, sp_sq) & pos.pieces (weak_color, KING))
-                || (   3 <= dist (wb_sq, sp_sq)
-                    && 0 != (front_line_bb (strong_color, sp_sq) & PieceAttacks[BSHP][wb_sq])
-                    && 0 != (front_line_bb (strong_color, sp_sq) & attacks_bb<BSHP> (wb_sq, pos.pieces ()))))
-            {
-                return SCALE_DRAW;
-            }
         }
 
         return SCALE_NONE;

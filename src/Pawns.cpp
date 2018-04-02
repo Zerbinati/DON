@@ -147,7 +147,7 @@ namespace Pawns {
                 // Passed pawns will be properly scored in evaluation because complete attack info needed to evaluate them.
                 if (   0 == (own_pawns & front_line_bb (Own, s))
                     && (   (   stoppers == (levers | escapes)
-                            && pop_count (supporters) >= pop_count (levers)
+                            && pop_count (supporters) > pop_count (levers)
                             && pop_count (phalanxes) >= pop_count (escapes))
                         || (   stoppers == square_bb (s+Push)
                             && R_4 < rel_rank (Own, s)

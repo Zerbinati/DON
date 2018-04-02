@@ -435,13 +435,29 @@ namespace Searcher {
 
     namespace {
 
+        constexpr u08 SkipIndex = 20;
+        constexpr u08 SkipSize[SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
+        constexpr u08 SkipPhase[SkipIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
+
         // Razoring and futility margin
         constexpr Value RazorMargin[] = { Value(0), Value(590), Value(604) };
+
+        // Margin for pruning capturing moves: almost linear in depth
+        constexpr Value CapturePruneMargin[] =
+        { 
+            VALUE_ZERO,
+            VALUE_EG_PAWN * 1 * 1055 / 1000,
+            VALUE_EG_PAWN * 2 * 1042 / 1000,
+            VALUE_EG_PAWN * 3 *  963 / 1000,
+            VALUE_EG_PAWN * 4 * 1038 / 1000,
+            VALUE_EG_PAWN * 5 *  950 / 1000,
+            VALUE_EG_PAWN * 6 *  930 / 1000
+        };
 
         // FutilityMoveCounts[improving][depth]
         u08 FutilityMoveCounts[2][16];
 
-        // ReductionDepths[pv][improving][depth][movecount]
+        // ReductionDepths[pv][improving][depth][move-count]
         i16 ReductionDepths[2][2][64][64];
         i16 reduction_depth (bool pv, bool imp, i16 d, u08 mc)
         {
@@ -449,10 +465,6 @@ namespace Searcher {
         }
 
         Value BaseContempt = VALUE_ZERO;
-
-        constexpr u08 SkipIndex = 20;
-        constexpr u08 SkipSize[SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
-        constexpr u08 SkipPhase[SkipIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
         ofstream OutputStream;
 
@@ -1465,7 +1477,7 @@ namespace Searcher {
                     // SEE based pruning.
                     if (   7 > depth
                         && 0 == extension
-                        && !pos.see_ge (move, Value(-i32(VALUE_EG_PAWN)*depth)))
+                        && !pos.see_ge (move, -CapturePruneMargin[depth]))
                     {
                         continue;
                     }
