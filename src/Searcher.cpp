@@ -312,7 +312,7 @@ Move MovePicker::next_move ()
         i = 0;
         /* fall through */
     case NAT_REFUTATIONS:
-        // Refutation: Killers, Counter
+        // Refutation moves: Killers, Counter moves
         if (i < refutation_moves.size ())
         {
             return refutation_moves[i++];
@@ -654,15 +654,6 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-            auto tt_depth = tt_hit ?
-                            tte->depth () :
-                            DepthNone;
-            auto tt_bound = tt_hit ?
-                            tte->bound () :
-                            BOUND_NONE;
-            auto tt_eval =  tt_hit ?
-                            tte->eval () :
-                            VALUE_NONE;
 
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
@@ -674,9 +665,9 @@ namespace Searcher {
 
             if (   !PVNode
                 && tt_hit
-                && qs_depth <= tt_depth
+                && qs_depth <= tte->depth ()
                 && VALUE_NONE != tt_value // Only in case of TT access race
-                && BOUND_NONE != (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
+                && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
                 return tt_value;
             }
@@ -700,20 +691,17 @@ namespace Searcher {
                 if (tt_hit)
                 {
                     // Never assume anything on values stored in TT.
-                    if (VALUE_NONE != tt_eval)
+                    if (VALUE_NONE == (best_value = tte->eval ()))
                     {
-                        ss->static_eval = tt_eval;
+                        best_value = evaluate (pos);
                     }
-                    else
-                    {
-                        ss->static_eval = tt_eval = evaluate (pos);
-                    }
+                    ss->static_eval = best_value;
 
                     // Can tt_value be used as a better position evaluation?
                     if (   VALUE_NONE != tt_value
-                        && BOUND_NONE != (tt_bound & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
+                        && BOUND_NONE != (tte->bound () & (tt_value > best_value ? BOUND_LOWER : BOUND_UPPER)))
                     {
-                        tt_eval = tt_value;
+                        best_value = tt_value;
                     }
                 }
                 else
@@ -721,39 +709,38 @@ namespace Searcher {
                     assert(MOVE_NULL != (ss-1)->played_move
                         || VALUE_NONE != (ss-1)->static_eval);
                     ss->static_eval =
-                    tt_eval = MOVE_NULL != (ss-1)->played_move ?
+                    best_value = MOVE_NULL != (ss-1)->played_move ?
                                 evaluate (pos) :
                                 -(ss-1)->static_eval + Tempo*2;
                 }
 
-                if (alfa < tt_eval)
+                if (alfa < best_value)
                 {
                     // Stand pat. Return immediately if static value is at least beta.
-                    if (tt_eval >= beta)
+                    if (best_value >= beta)
                     {
                         if (!tt_hit)
                         {
                             tte->save (key,
                                        MOVE_NONE,
-                                       value_to_tt (tt_eval, ss->ply),
+                                       value_to_tt (best_value, ss->ply),
                                        ss->static_eval,
                                        DepthNone,
                                        BOUND_LOWER);
                         }
 
-                        assert(-VALUE_INFINITE < tt_eval && tt_eval < +VALUE_INFINITE);
-                        return tt_eval;
+                        assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+                        return best_value;
                     }
 
-                    assert(tt_eval < beta);
+                    assert(best_value < beta);
                     // Update alfa! Always alfa < beta
                     if (PVNode)
                     {
-                        alfa = tt_eval;
+                        alfa = best_value;
                     }
                 }
 
-                best_value = tt_eval;
                 futility_base = best_value + 128;
             }
 
@@ -995,23 +982,16 @@ namespace Searcher {
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
-            auto tt_depth = tt_hit ?
-                            tte->depth () :
-                            DepthNone;
-            auto tt_bound = tt_hit ?
-                            tte->bound () :
-                            BOUND_NONE;
-            auto tt_eval =  tt_hit ?
-                            tte->eval () :
-                            VALUE_NONE;
+            Value tt_eval;
+
             bool improving;
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
                 && tt_hit
-                && depth <= tt_depth
+                && depth <= tte->depth ()
                 && VALUE_NONE != tt_value // Only in case of TT access race.
-                && BOUND_NONE != (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
+                && BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
             {
                 // Update move sorting heuristics on tt_move.
                 if (MOVE_NONE != tt_move)
@@ -1080,7 +1060,7 @@ namespace Searcher {
                                      wdl >  draw ? BOUND_LOWER :
                                                    BOUND_EXACT;
 
-                        if (BOUND_NONE != (tt_bound & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
+                        if (BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
                         {
                             tte->save (key,
                                        MOVE_NONE,
@@ -1122,18 +1102,15 @@ namespace Searcher {
                 if (tt_hit)
                 {
                     // Never assume anything on values stored in TT.
-                    if (VALUE_NONE != tt_eval)
+                    if (VALUE_NONE == (tt_eval = tte->eval ()))
                     {
-                        ss->static_eval = tt_eval;
+                        tt_eval = evaluate (pos);
                     }
-                    else
-                    {
-                        ss->static_eval = tt_eval = evaluate (pos);
-                    }
+                    ss->static_eval = tt_eval;
 
                     // Can tt_value be used as a better position evaluation?
                     if (   VALUE_NONE != tt_value
-                        && BOUND_NONE != (tt_bound & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
+                        && BOUND_NONE != (tte->bound () & (tt_value > tt_eval ? BOUND_LOWER : BOUND_UPPER)))
                     {
                         tt_eval = tt_value;
                     }
@@ -1310,26 +1287,12 @@ namespace Searcher {
                         tt_value = tt_hit ?
                                     value_of_tt (tte->value (), ss->ply) :
                                     VALUE_NONE;
-                        tt_depth = tt_hit ?
-                                    tte->depth () :
-                                    DepthNone;
-                        tt_bound = tt_hit ?
-                                    tte->bound () :
-                                    BOUND_NONE;
                     }
                 }
             }
 
-            bool singular_ext_node = !root_node
-                                  && tt_hit
-                                  && MOVE_NONE != tt_move
-                                  && MOVE_NONE == ss->excluded_move // Recursive singular search is not allowed.
-                                  && 7 < depth && depth < tt_depth + 4
-                                  && VALUE_NONE != tt_value
-                                  && BOUND_NONE != (tt_bound & BOUND_LOWER);
-
             bool exact = tt_hit
-                      && BOUND_EXACT == tt_bound;
+                      && BOUND_EXACT == tte->bound ();
 
             bool ttm_capture = false;
 
@@ -1408,8 +1371,12 @@ namespace Searcher {
                 // and just one fails high on (alfa, beta), then that move is singular and should be extended.
                 // To verify this do a reduced search on all the other moves but the tt_move,
                 // if result is lower than tt_value minus a margin then extend tt_move.
-                if (   singular_ext_node
-                    && move == tt_move)
+                if (   !root_node
+                    && MOVE_NONE == ss->excluded_move // Recursive singular search is not allowed.
+                    && move == tt_move
+                    && VALUE_NONE != tt_value
+                    && 7 < depth && depth < tte->depth () + 4
+                    && BOUND_NONE != (tte->bound () & BOUND_LOWER))
                 {
                     assert(VALUE_NONE != tt_value);
                     auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
@@ -1640,7 +1607,7 @@ namespace Searcher {
                     else
                     {
                         // All other moves but the PV are set to the lowest value, this
-                        // is not a problem when sorting becuase sort is stable and move
+                        // is not a problem when sorting because sort is stable and move
                         // position in the list is preserved, just the PV is pushed up.
                         rm.new_value = -VALUE_INFINITE;
                     }
@@ -1901,7 +1868,7 @@ void Thread::search ()
         for (pv_index = 0; !Threadpool.stop && pv_index < Threadpool.pv_limit; ++pv_index)
         {
             // Reset UCI info sel_depth for each depth and each PV line
-            sel_depth = 0;
+            sel_depth = DepthZero;
 
             // Reset aspiration window starting size.
             if (4 < running_depth)

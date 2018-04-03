@@ -339,7 +339,7 @@ namespace {
         if (pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
         {
             king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
-            king_attackers_count[Own] = u08(pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]));
+            king_attackers_count[Own] = pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]);
             
             if (R_1 == rel_rank (Opp, pos.square<KING> (Opp)))
             {
@@ -392,8 +392,8 @@ namespace {
             if (QUEN == PT)
             {
                 pin_attacked_queen[Own][0] |= PieceAttacks[NIHT][s];
-                pin_attacked_queen[Own][1] |= attacks & PieceAttacks[BSHP][s];
-                pin_attacked_queen[Own][2] |= attacks & PieceAttacks[ROOK][s];
+                pin_attacked_queen[Own][1] |= PieceAttacks[BSHP][s] & attacks;
+                pin_attacked_queen[Own][2] |= PieceAttacks[ROOK][s] & attacks;
             }
 
             if (contains (pos.si->king_blockers[Own], s))
@@ -437,7 +437,7 @@ namespace {
             {
                 ++king_attackers_count[Own];
                 king_attackers_weight[Own] += PieceAttackWeights[PT];
-                king_attacks_count[Own] += u08(pop_count (pin_attacked_by[Opp][KING] & attacks));
+                king_attacks_count[Own] += pop_count (pin_attacked_by[Opp][KING] & attacks);
             }
 
             auto mob = pop_count (mob_area[Own] & attacks);
@@ -1043,7 +1043,8 @@ namespace {
                         - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
 
         // Compute the initiative bonus for the attacking side
-        i32 complexity =   8 * (outflanking + pe->asymmetry)
+        i32 complexity =   8 * outflanking
+                       +   8 * pe->asymmetry
                        +  12 * pos.count (PAWN)
                           // Pawn on both flanks
                        +  16 * (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
@@ -1085,10 +1086,11 @@ namespace {
             // Endings with opposite-colored bishops
             if (pos.opposite_bishops ())
             {
-                // With no other pieces is almost a draw
                 return VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE)
                     && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) ?
+                        // Endings with no other pieces is almost a draw
                         Scale(31) :
+                        // Endings with also other pieces, still a bit drawish, but not as drawish as with only the two bishops.
                         Scale(46);
             }
             // Endings where weaker side can place his king in front of the strong side pawns are drawish.

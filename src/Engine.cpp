@@ -676,29 +676,29 @@ string info ()
     oss << std::setfill (' ');
 
     oss <<
-#if defined(BIT64)
-    ".64"
-#else
-    ".32"
-#endif
+#   if defined(BIT64)
+        ".64"
+#   else
+        ".32"
+#   endif
     ;
 
     oss <<
-#if defined(BM2)
-    ".BM2"
-#elif defined(ABM)
-    ".ABM"
-#else
-    ""
-#endif
+#   if defined(BM2)
+        ".BM2"
+#   elif defined(ABM)
+        ".ABM"
+#   else
+        ""
+#   endif
     ;
 
     oss <<
-#if defined(LPAGES)
-    ".LP"
-#else
-    ""
-#endif
+#   if defined(LPAGES)
+        ".LP"
+#   else
+        ""
+#   endif
     ;
 
     return oss.str ();
@@ -722,7 +722,7 @@ void run (i32 argc, const char *const *argv)
     Pawns::initialize ();
     EndGame::initialize ();
     TT.auto_resize (i32(Options["Hash"]), true);
-    //ThreadPool::initialize ();
+    ThreadPool::initialize ();
     Threadpool.configure (i32(Options["Threads"]));
     Searcher::initialize ();
     Book.initialize (string(Options["Book File"]));

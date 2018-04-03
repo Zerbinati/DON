@@ -433,7 +433,7 @@ INC_DEC_OPERATORS(Value)
 
 constexpr Score mk_score (i32 mg, i32 eg)
 {
-    return Score(i32((u32(eg) << 0x10)) + mg);
+    return Score(i32(u32(eg) << 0x10) + mg);
 }
 
 /// Extracting the signed lower and upper 16 bits is not so trivial because

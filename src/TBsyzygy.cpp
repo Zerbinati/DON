@@ -196,6 +196,7 @@ namespace TBSyzygy {
         TBEntry<WDL>::TBEntry (const std::string &code)
             : ready (false)
             , base_address (nullptr)
+            , pawn_count {0}
             //, map (nullptr)
             //, mapping (0)
         {
@@ -225,8 +226,8 @@ namespace TBSyzygy {
                                || (   pos.count (WHITE, PAWN) != 0
                                    && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
 
-                pawn_count[0] = u08(pos.count ( lead_color, PAWN));
-                pawn_count[1] = u08(pos.count (~lead_color, PAWN));
+                pawn_count[0] = pos.count ( lead_color, PAWN);
+                pawn_count[1] = pos.count (~lead_color, PAWN);
             }
 
             key2 = pos.setup (code, si, BLACK).si->matl_key;
@@ -236,6 +237,7 @@ namespace TBSyzygy {
         TBEntry<DTZ>::TBEntry (const TBEntry<WDL> &wdl)
             : ready (false)
             , base_address (nullptr)
+            , pawn_count {0}
             //, map (nullptr)
             //, mapping (0)
         {
@@ -435,7 +437,7 @@ namespace TBSyzygy {
                                 low_size,
                                 nullptr);
                 CloseHandle (fd);
-                if (0 == mmap)
+                if (nullptr == mmap)
                 {
                     std::cerr << "CreateFileMapping() failed, name = " << filename
                               << ", error = " << GetLastErrorString () << std::endl;
@@ -1204,7 +1206,7 @@ namespace TBSyzygy {
                     for (i32 i = 0; i < 4; ++i)
                     { 
                         // Sequence like 3,x,x,x,1,x,0,2,x,x
-                        e.get (0, f)->map_idx[i] = u16(data - e.map + 1);
+                        e.get (0, f)->map_idx[i] = (u16)(data - e.map + 1);
                         data += *data + 1;
                     }
                 }
@@ -1239,13 +1241,14 @@ namespace TBSyzygy {
                     { *data & 0xF, pp ? *(data + 1) & 0xF : 0xF },
                     { *data >>  4, pp ? *(data + 1) >>  4 : 0xF }
                 };
+
                 data += 1 + (pp ? 1 : 0);
 
                 for (i32 k = 0; k < e.piece_count; ++k, ++data)
                 {
                     for (i32 i = 0; i < Sides; ++i)
                     {
-                        e.get (i, f)->pieces[k] = tb_piece (i ? *data >>  4 : *data & 0xF);
+                        e.get (i, f)->pieces[k] = tb_piece (i ? *data >> 4 : *data & 0xF);
                     }
                 }
 
@@ -1997,8 +2000,8 @@ namespace TBSyzygy {
 
         //TBFile::Paths = split (PathString, SepChar, false, true);
         TBFile::Paths.clear ();
-        stringstream ss (PathString);
-        string path;
+        std::stringstream ss (PathString);
+        std::string path;
         while (std::getline (ss, path, SepChar))
         {
             if (!white_spaces (path))
