@@ -625,7 +625,7 @@ namespace Searcher {
 
             ss->played_move = MOVE_NONE;
 
-            bool in_check = 0 != pos.si->checkers;
+            const bool in_check = 0 != pos.si->checkers;
 
             // Check for maximum ply reached or immediate draw.
             if (   ss->ply >= MaxPlies
@@ -919,10 +919,10 @@ namespace Searcher {
             }
 
             // Step 1. Initialize node.
-            bool root_node = PVNode
-                          && 0 == ss->ply;
+            const bool root_node = PVNode
+                                && 0 == ss->ply;
 
-            bool in_check = 0 != pos.si->checkers;
+            const bool in_check = 0 != pos.si->checkers;
 
             ss->move_count = 0;
             ss->played_move = MOVE_NONE;
