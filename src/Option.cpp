@@ -357,7 +357,7 @@ namespace UCI {
 
         Options["SyzygyPath"]         << Option (PathString, on_syzygy_path);
         Options["SyzygyProbeDepth"]   << Option (TBProbeDepth, 1, 100);
-        Options["SyzygyLimitPiece"]   << Option (TBLimitPiece, 0, 7);
+        Options["SyzygyLimitPiece"]   << Option (TBLimitPiece, 0, 6);
         Options["SyzygyUseRule50"]    << Option (TBUseRule50);
 
         Options["Debug File"]         << Option (Loger.filename, on_debug_file);

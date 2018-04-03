@@ -7,7 +7,10 @@
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <list>
+#include <sstream>
 #include <vector>
+
 #include "BitBoard.h"
 #include "Engine.h"
 #include "MoveGenerator.h"
@@ -23,6 +26,31 @@
 #       define WIN32_LEAN_AND_MEAN
 #   endif
 #   include <windows.h>
+
+// Create a string with last error message
+std::string GetLastErrorString ()
+{
+    DWORD error = GetLastError ();
+    if (0 != error)
+    {
+        LPTSTR msg_buffer = nullptr;
+        DWORD buf_len = FormatMessage (
+            FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
+            NULL,
+            error,
+            MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
+            (LPTSTR) &msg_buffer,
+            0, NULL);
+        if (0 != buf_len)
+        {
+            std::string message (msg_buffer, buf_len);
+            LocalFree (msg_buffer);
+            return message;
+        }
+    }
+    return std::string ();
+}
+
 #else
 #   include <fcntl.h>
 #   include <unistd.h>
@@ -41,7 +69,7 @@ namespace TBSyzygy {
 
     namespace {
 
-        constexpr i32 TBPIECES = 7;
+        constexpr i32 TBPIECES = 6;
 
         enum TBType : u08 { WDL, DTZ }; // Used as template parameter
 
@@ -141,15 +169,15 @@ namespace TBSyzygy {
             static constexpr i32 Sides = WDL == Type ? 2 : 1;
 
             std::atomic<bool> ready;
-            void* base_address;
-            uint8_t* map;
-            uint64_t mapping;
+            void *base_address;
+            u08 *map;
+            u64 mapping;
             Key key1;
             Key key2;
             i32 piece_count;
             bool has_pawns;
             bool has_unique_pieces;
-            uint8_t pawn_count[CLR_NO]; // [Lead color / other color]
+            u08 pawn_count[CLR_NO]; // [Lead color / other color]
             PairsData items[Sides][4]; // [wtm / btm][FILE_A..FILE_D or 0]
 
             PairsData* get (i32 stm, i32 f)
@@ -168,14 +196,15 @@ namespace TBSyzygy {
         TBEntry<WDL>::TBEntry (const std::string &code)
             : ready (false)
             , base_address (nullptr)
-            , map (nullptr)
-            , mapping (0)
+            //, map (nullptr)
+            //, mapping (0)
         {
             StateInfo si;
             Position pos;
             key1 = pos.setup (code, si, WHITE).si->matl_key;
             piece_count = pos.count ();
             has_pawns = 0 != pos.count (PAWN);
+            has_unique_pieces = false;
             for (auto c : { WHITE, BLACK })
             {    
                 for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
@@ -183,11 +212,11 @@ namespace TBSyzygy {
                     if (1 == pos.count (c, pt))
                     {
                         has_unique_pieces = true;
-                        goto after_unique_pieces;
+                        goto break_unique_pieces;
                     }
                 }
             }
-            after_unique_pieces:
+            break_unique_pieces:
             if (has_pawns)
             {
                 // Set the leading color. In case both sides have pawns the leading color
@@ -199,6 +228,7 @@ namespace TBSyzygy {
                 pawn_count[0] = u08(pos.count ( lead_color, PAWN));
                 pawn_count[1] = u08(pos.count (~lead_color, PAWN));
             }
+
             key2 = pos.setup (code, si, BLACK).si->matl_key;
         }
 
@@ -206,15 +236,14 @@ namespace TBSyzygy {
         TBEntry<DTZ>::TBEntry (const TBEntry<WDL> &wdl)
             : ready (false)
             , base_address (nullptr)
-            , map (nullptr)
-            , mapping (0)
+            //, map (nullptr)
+            //, mapping (0)
         {
             key1 = wdl.key1;
             key2 = wdl.key2;
             piece_count = wdl.piece_count;
             has_pawns = wdl.has_pawns;
             has_unique_pieces = wdl.has_unique_pieces;
-
             if (has_pawns)
             {
                 pawn_count[0] = wdl.pawn_count[0];
@@ -306,7 +335,7 @@ namespace TBSyzygy {
 
             void insert (Key key, TBEntry<WDL> *wdl, TBEntry<DTZ> *dtz)
             {
-                for (auto &entry : table[key >> (64 - TBHASHBITS)])
+                for (Entry &entry : table[key >> (64 - TBHASHBITS)])
                 {
                     if (   nullptr == entry.second.first
                         || key == entry.first)
@@ -324,9 +353,9 @@ namespace TBSyzygy {
             template<TBType Type>
             TBEntry<Type>* get (Key key)
             {
-                for (auto &entry : table[key >> (64 - TBHASHBITS)])
+                for (Entry &entry : table[key >> (64 - TBHASHBITS)])
                 {
-                    if (entry.first == key)
+                    if (key == entry.first)
                     {
                         return std::get<Type> (entry.second);
                     }
@@ -381,8 +410,52 @@ namespace TBSyzygy {
                 
                 std::ifstream::close (); // Need to re-open to get native file descriptor
 
-#           ifndef _WIN32
-                i32 fd = ::open (filename.c_str (), O_RDONLY);
+#           if defined(_WIN32)
+                HANDLE fd = CreateFile (
+                                filename.c_str (),
+                                GENERIC_READ,
+                                FILE_SHARE_READ,
+                                nullptr,
+                                OPEN_EXISTING,
+                                FILE_ATTRIBUTE_NORMAL,
+                                nullptr);
+                if (INVALID_HANDLE_VALUE == fd)
+                {
+                    *base_address = nullptr;
+                    return nullptr;
+                }
+
+                DWORD high_size;
+                DWORD low_size = GetFileSize (fd, &high_size);
+                HANDLE mmap = CreateFileMapping (
+                                fd,
+                                nullptr,
+                                PAGE_READONLY,
+                                high_size,
+                                low_size,
+                                nullptr);
+                CloseHandle (fd);
+                if (0 == mmap)
+                {
+                    std::cerr << "CreateFileMapping() failed, name = " << filename
+                              << ", error = " << GetLastErrorString () << std::endl;
+                    stop (EXIT_FAILURE);
+                    return nullptr;
+                }
+
+                *mapping = (u64)(mmap);
+                *base_address = MapViewOfFile (mmap, FILE_MAP_READ, 0, 0, 0);
+                if (nullptr == *base_address)
+                {
+                    std::cerr << "MapViewOfFile() failed, name = " << filename
+                              << ", error = " << GetLastErrorString () << std::endl;
+                    stop (EXIT_FAILURE);
+                    return nullptr;
+                }
+#           else
+                i32 fd = ::open (
+                            filename.c_str (),
+                            O_RDONLY);
                 if (-1 == fd)
                 {
                     *base_address = nullptr;
@@ -400,42 +473,22 @@ namespace TBSyzygy {
                 }
 
                 *mapping = statbuf.st_size;
-                *base_address = mmap (nullptr, statbuf.st_size, PROT_READ, MAP_SHARED, fd, 0);
+                *base_address = mmap (
+                                nullptr,
+                                statbuf.st_size,
+                                PROT_READ,
+                                MAP_SHARED,
+                                fd,
+                                0);
                 ::close (fd);
                 if (MAP_FAILED == *base_address)
                 {
                     std::cerr << "Could not mmap() " << filename << std::endl;
                     Engine::stop (EXIT_FAILURE);
                 }
-#           else
-                HANDLE fd = CreateFile (filename.c_str (), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
-                if (INVALID_HANDLE_VALUE == fd)
-                {
-                    *base_address = nullptr;
-                    return nullptr;
-                }
-
-                DWORD size_high;
-                DWORD size_low = GetFileSize (fd, &size_high);
-                HANDLE mmap = CreateFileMapping (fd, nullptr, PAGE_READONLY, size_high, size_low, nullptr);
-                CloseHandle (fd);
-                if (0 == mmap)
-                {
-                    std::cerr << "CreateFileMapping() failed, name = " << filename << ", error = " << GetLastError () << std::endl;
-                    stop (EXIT_FAILURE);
-                    return nullptr;
-                }
-
-                *mapping = u64(mmap);
-                *base_address = MapViewOfFile (mmap, FILE_MAP_READ, 0, 0, 0);
-                if (nullptr == *base_address)
-                {
-                    std::cerr << "MapViewOfFile() failed, name = " << filename << ", error = " << GetLastError () << std::endl;
-                    return nullptr;
-                }
 #           endif
 
-                auto *data = (u08*)(*base_address);
+                u08 *data = (u08*)(*base_address);
 
                 if (   *data++ != *TB_MAGIC++
                     || *data++ != *TB_MAGIC++
@@ -453,12 +506,12 @@ namespace TBSyzygy {
 
             static void unmap (void *base_address, u64 mapping)
             {
-#ifndef _WIN32
-                munmap (base_address, mapping);
-#else
+#           if defined(_WIN32)
                 UnmapViewOfFile (base_address);
-                CloseHandle (HANDLE(mapping));
-#endif
+                CloseHandle ((HANDLE)(mapping));
+#           else
+                munmap (base_address, mapping);
+#           endif
             }
         };
 
@@ -486,13 +539,16 @@ namespace TBSyzygy {
             {
                 file.close ();
 
-                MaxLimitPiece = std::max (i32(pieces.size ()), MaxLimitPiece);
-
                 wdl_table.emplace_back (code);
                 dtz_table.emplace_back (wdl_table.back ());
 
                 insert (wdl_table.back ().key1, &wdl_table.back (), &dtz_table.back ());
                 insert (wdl_table.back ().key2, &wdl_table.back (), &dtz_table.back ());
+
+                if (MaxLimitPiece < i32(pieces.size ()))
+                {
+                    MaxLimitPiece = i32(pieces.size ());
+                }
             }
         }
 
@@ -733,11 +789,13 @@ namespace TBSyzygy {
                 lead_pawns = b = pos.pieces (color (pc), PAWN);
                 do
                 {
-                    squares[size++] = flip ?
+                    squares[size] = flip ?
                                        ~pop_lsq (b) :
                                         pop_lsq (b);
+                    ++size;
                 }
                 while (0 != b);
+
                 lead_pawn_count = size;
 
                 std::swap (squares[0], *std::max_element (squares, squares + lead_pawn_count, pawns_comp));
@@ -777,7 +835,7 @@ namespace TBSyzygy {
 
             assert(size >= 2);
 
-            d = entry->get (pos.active, tb_file);
+            d = entry->get (flip ? ~pos.active : pos.active, tb_file);
 
             // Then we reorder the pieces to have the same sequence as the one stored
             // in pieces[i]: the sequence that ensures the best compression.
@@ -883,9 +941,9 @@ namespace TBSyzygy {
                     // (mapped to 0...61) for the third.
                     if (off_A1H8 (squares[0]))
                     {
-                        idx = MapA1D1D4[squares[0]]  * 63 * 62
-                            + (squares[1] - adjust1) * 62
-                            +  squares[2] - adjust2;
+                        idx = (  MapA1D1D4[squares[0]]  * 63
+                               + (squares[1] - adjust1)) * 62
+                            + (squares[2] - adjust2);
                     }
                     // First piece is on a1-h8 diagonal, second below: map this occurrence to
                     // 6 to differentiate from the above case, rank() maps a1-d4 diagonal
@@ -893,16 +951,17 @@ namespace TBSyzygy {
                     else
                     if (off_A1H8 (squares[1]))
                     {
-                        idx = 6 * 63 * 62
-                            + _rank (squares[0]) * 28 * 62
-                            + MapB1H1H7[squares[1]] * 62
-                            + squares[2] - adjust2;
+                        idx = (  6 * 63
+                               + _rank (squares[0]) * 28
+                               + MapB1H1H7[squares[1]]) * 62
+                            + (squares[2] - adjust2);
                     }
                     // First two pieces are on a1-h8 diagonal, third below
                     else
                     if (off_A1H8 (squares[2]))
                     {
-                        idx =  6 * 63 * 62 + 4 * 28 * 62
+                        idx = 6 * 63 * 62
+                            + 4 * 28 * 62
                             +  _rank (squares[0]) * 7 * 28
                             + (_rank (squares[1]) - adjust1) * 28
                             +  MapB1H1H7[squares[2]];
@@ -910,7 +969,9 @@ namespace TBSyzygy {
                     // All 3 pieces on the diagonal a1-h8
                     else
                     {
-                        idx = 6 * 63 * 62 + 4 * 28 * 62 + 4 * 7 * 28
+                        idx = 6 * 63 * 62
+                            + 4 * 28 * 62
+                            + 4 *  7 * 28
                             +  _rank (squares[0]) * 7 * 6
                             + (_rank (squares[1]) - adjust1) * 6
                             + (_rank (squares[2]) - adjust2);
@@ -1947,56 +2008,51 @@ namespace TBSyzygy {
             }
         }
 
-        for (auto wp1 = PAWN; wp1 < KING; ++wp1)
+        for (auto p1 = PAWN; p1 < KING; ++p1)
         {
-            EntryTable.insert ({ KING, wp1, KING });
+            EntryTable.insert ({ KING, p1, KING });
 
-            for (auto bp1 = PAWN; bp1 < KING; ++bp1)
+            for (auto p2 = PAWN; p2 <= p1; ++p2)
             {
-                EntryTable.insert ({ KING, wp1, KING, bp1 });
-            }
-            for (auto wp2 = PAWN; wp2 <= wp1; ++wp2)
-            {
-                EntryTable.insert ({ KING, wp1, wp2, KING });
+                EntryTable.insert ({ KING, p1, p2, KING });
+                EntryTable.insert ({ KING, p1, KING, p2 });
 
-                for (auto bp1 = PAWN; bp1 < KING; ++bp1)
+                for (auto p3 = PAWN; p3 <= p2; ++p3)
                 {
-                    EntryTable.insert ({ KING, wp1, wp2, KING, bp1 });
-                }
-                for (auto wp3 = PAWN; wp3 <= wp2; ++wp3)
-                {
-                    EntryTable.insert ({ KING, wp1, wp2, wp3, KING });
+                    EntryTable.insert ({ KING, p1, p2, p3, KING });
 
-                    for (auto bp1 = PAWN; bp1 < KING; ++bp1)
+                    for (auto p4 = PAWN; p4 <= p3; ++p4)
                     {
-                        EntryTable.insert ({ KING, wp1, wp2, wp3, KING, bp1 });
-                    }
-                    for (auto wp4 = PAWN; wp4 <= wp3; ++wp4)
-                    {
-                        EntryTable.insert ({ KING, wp1, wp2, wp3, wp4, KING });
+                        EntryTable.insert ({ KING, p1, p2, p3, p4, KING });
 
-                        for (auto bp1 = PAWN; bp1 < KING; ++bp1)
-                        {
-                            EntryTable.insert ({ KING, wp1, wp2, wp3, wp4, KING, bp1 });
-                        }
-                        for (auto wp5 = PAWN; wp5 <= wp4; ++wp5)
-                        {
-                            EntryTable.insert ({ KING, wp1, wp2, wp3, wp4, wp5, KING });
-                        }
+                        //for (auto p5 = PAWN; p5 <= p4; ++p5)
+                        //{
+                        //    EntryTable.insert ({ KING, p1, p2, p3, p4, p5, KING });
+                        //}
+                        //for (auto p5 = PAWN; p5 < KING; ++p5)
+                        //{
+                        //    EntryTable.insert ({ KING, p1, p2, p3, p4, KING, p5 });
+                        //}
                     }
-                    for (auto bp1 = PAWN; bp1 < KING; ++bp1)
+                    for (auto p4 = PAWN; p4 < KING; ++p4)
                     {
-                        for (auto bp2 = PAWN; bp2 <= bp1; ++bp2)
-                        {
-                            EntryTable.insert ({ KING, wp1, wp2, wp3, KING, bp1, bp2 });
-                        }
+                        EntryTable.insert ({ KING, p1, p2, p3, KING, p4 });
+
+                        //for (auto p5 = PAWN; p5 <= p4; ++p5)
+                        //{
+                        //    EntryTable.insert ({ KING, p1, p2, p3, KING, p4, p5 });
+                        //}
                     }
                 }
-                for (auto bp1 = PAWN; bp1 <= wp1; ++bp1)
+                for (auto p3 = PAWN; p3 < KING; ++p3)
                 {
-                    for (auto bp2 = PAWN; bp2 <= (wp1 == bp1 ? wp2 : bp1); ++bp2)
+                    EntryTable.insert ({ KING, p1, p2, KING, p3 });
+                }
+                for (auto p3 = PAWN; p3 <= p1; ++p3)
+                {
+                    for (auto p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
                     {
-                        EntryTable.insert ({ KING, wp1, wp2, KING, bp1, bp2 });
+                        EntryTable.insert ({ KING, p1, p2, KING, p3, p4 });
                     }
                 }
             }

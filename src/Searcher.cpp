@@ -426,7 +426,7 @@ namespace Searcher {
     bool RetainHash = false;
 
     i16 TBProbeDepth = 1;
-    i32 TBLimitPiece = 7;
+    i32 TBLimitPiece = 6;
     bool TBUseRule50 = true;
     bool TBHasRoot = false;
     Value TBValue = VALUE_ZERO;

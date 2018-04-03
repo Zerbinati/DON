@@ -572,10 +572,10 @@ namespace EndGame {
         if (// Opposite colored bishops
                opposite_colors (sb_sq, wb_sq)
             // Defending king blocks the pawn, and cannot be driven away
-            ||    _file (wk_sq) == _file (sp_sq)
-               && rel_rank (strong_color, sp_sq) < rel_rank (strong_color, wk_sq)
-               && (   opposite_colors (wk_sq, sb_sq)
-                   || R_6 >= rel_rank (strong_color, wk_sq)))
+            || (   _file (wk_sq) == _file (sp_sq)
+                && rel_rank (strong_color, sp_sq) < rel_rank (strong_color, wk_sq)
+                && (   opposite_colors (wk_sq, sb_sq)
+                    || R_6 >= rel_rank (strong_color, wk_sq))))
         {
             return SCALE_DRAW;
         }
