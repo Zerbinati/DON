@@ -35,9 +35,9 @@ namespace {
     /// try to load them at runtime. To do this first define the corresponding function pointers.
     extern "C"
     {
-        typedef bool (*GLPIE)(LOGICAL_PROCESSOR_RELATIONSHIP LogicalProcRelationship, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX PtrSysLogicalProcInfo, PDWORD PtrLength);
+        typedef bool (*GLPIE) (LOGICAL_PROCESSOR_RELATIONSHIP LogicalProcRelationship, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX PtrSysLogicalProcInfo, PDWORD PtrLength);
         typedef bool (*GNNPME)(USHORT Node, PGROUP_AFFINITY PtrGroupAffinity);
-        typedef bool (*STGA)(HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
+        typedef bool (*STGA)  (HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
     }
 
 #else
@@ -283,7 +283,7 @@ void ThreadPool::initialize ()
         return;
     }
 
-    DWORD length = 0;
+    DWORD length;
     // First call to get length. We expect it to fail due to null buffer
     if (GetLogicalProcessorInformationEx (LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length))
     {
@@ -291,7 +291,7 @@ void ThreadPool::initialize ()
     }
 
     // Once we know length, allocate the buffer
-    auto *ptrSysLogicalProcInfoBase = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*> (malloc (length));
+    auto *ptrSysLogicalProcInfoBase = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)(malloc (length));
     if (nullptr == ptrSysLogicalProcInfoBase)
     {
         return;
@@ -304,49 +304,50 @@ void ThreadPool::initialize ()
         return;
     }
 
-    auto *ptrSysLogicalProcInfoCurr = ptrSysLogicalProcInfoBase;
-    DWORD offset = 0;
     u16 nodes = 0;
     u16 cores = 0;
     u16 threads = 0;
+
+    DWORD offset = 0;
+    auto *ptrSysLogicalProcInfoCurr = ptrSysLogicalProcInfoBase;
     while (   ptrSysLogicalProcInfoCurr->Size > 0
            && ptrSysLogicalProcInfoCurr->Size + offset <= length)
     {
-        switch (ptrSysLogicalProcInfoCurr->Relationship)
+        if (ptrSysLogicalProcInfoCurr->Relationship == LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore)
         {
-        case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
             ++cores;
             threads += ptrSysLogicalProcInfoCurr->Processor.Flags == LTP_PC_SMT ? 2 : 1;
-            break;
-        case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
-            ++nodes;
-            break;
-        default:
-            break;
         }
-
+        else            
+        if (ptrSysLogicalProcInfoCurr->Relationship == LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode)
+        {
+            ++nodes;
+        }
+   
         offset += ptrSysLogicalProcInfoCurr->Size;
-        ptrSysLogicalProcInfoCurr = reinterpret_cast<SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*> (reinterpret_cast<BYTE*> (ptrSysLogicalProcInfoCurr) + ptrSysLogicalProcInfoCurr->Size);
+        ptrSysLogicalProcInfoCurr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)((char*)(ptrSysLogicalProcInfoCurr) + ptrSysLogicalProcInfoCurr->Size);
     }
     free (ptrSysLogicalProcInfoBase);
 
-    // Run as many threads as possible on the same node until core limit is
-    // reached, then move on filling the next node.
-    for (u16 n = 0; n < nodes; ++n)
+    if (0 != nodes)
     {
-        for (u16 i = 0; i < cores / nodes; ++i)
+        // Run as many threads as possible on the same node until core limit is
+        // reached, then move on filling the next node.
+        for (u16 n = 0; n < nodes; ++n)
         {
-            Groups.push_back (n);
+            for (u16 i = 0; i < cores / nodes; ++i)
+            {
+                Groups.push_back (n);
+            }
+        }
+    
+        // In case a core has more than one logical processor (we assume 2) and
+        // have still threads to allocate, then spread them evenly across available nodes.
+        for (u16 t = 0; t < threads - cores; ++t)
+        {
+            Groups.push_back (t % nodes);
         }
     }
-    // In case a core has more than one logical processor (we assume 2) and we
-    // have still threads to allocate, then spread them evenly across available
-    // nodes.
-    for (u16 t = 0; t < threads - cores; ++t)
-    {
-        Groups.push_back (t % nodes);
-    }
-
 #else
     
 #endif

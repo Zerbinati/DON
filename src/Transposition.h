@@ -162,15 +162,15 @@ public:
     {
         u32 mem_size = tt.size ();
         u08 dummy = 0;
-        os.write (reinterpret_cast<const CharT*> (&mem_size), sizeof (mem_size));
-        os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-        os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-        os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-        os.write (reinterpret_cast<const CharT*> (&TEntry::Generation), sizeof (TEntry::Generation));
-        os.write (reinterpret_cast<const CharT*> (&tt.cluster_count), sizeof (tt.cluster_count));
+        os.write ((const CharT*)(&mem_size), sizeof (mem_size));
+        os.write ((const CharT*)(&dummy), sizeof (dummy));
+        os.write ((const CharT*)(&dummy), sizeof (dummy));
+        os.write ((const CharT*)(&dummy), sizeof (dummy));
+        os.write ((const CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
+        os.write ((const CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
         for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
         {
-            os.write (reinterpret_cast<const CharT*> (tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
+            os.write ((const CharT*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
         }
         return os;
     }
@@ -181,16 +181,16 @@ public:
     {
         u32 mem_size;
         u08 dummy;
-        is.read (reinterpret_cast<CharT*> (&mem_size), sizeof (mem_size));
-        is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-        is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-        is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-        is.read (reinterpret_cast<CharT*> (&TEntry::Generation), sizeof (TEntry::Generation));
-        is.read (reinterpret_cast<CharT*> (&tt.cluster_count), sizeof (tt.cluster_count));
+        is.read ((CharT*)(&mem_size), sizeof (mem_size));
+        is.read ((CharT*)(&dummy), sizeof (dummy));
+        is.read ((CharT*)(&dummy), sizeof (dummy));
+        is.read ((CharT*)(&dummy), sizeof (dummy));
+        is.read ((CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
+        is.read ((CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
         tt.resize (mem_size);
         for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
         {
-            is.read (reinterpret_cast<CharT*> (tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
+            is.read ((CharT*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
         }
         return is;
     }

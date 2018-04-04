@@ -25,7 +25,7 @@ void TTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
         return;
     }
-    clusters = reinterpret_cast<TCluster*> ((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
+    clusters = (TCluster*)((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
     assert(0 == (uintptr_t(clusters) & (alignment-1)));
 
 #else
@@ -53,7 +53,7 @@ void TTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
         return;
     }
     sync_cout << "info string Hash " << (mem_size >> 20) << " MB" << sync_endl;
-    clusters = reinterpret_cast<TCluster*> ((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
+    clusters = (TCluster*)((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
     assert(0 == (uintptr_t(clusters) & (alignment-1)));
 
 #endif

@@ -28,6 +28,9 @@
 #   endif
 #   include <windows.h>
 
+#   undef WIN32_LEAN_AND_MEAN
+#   undef NOMINMAX
+
 #endif
 
 #if defined(_WIN32) && !defined(_MSC_VER)
