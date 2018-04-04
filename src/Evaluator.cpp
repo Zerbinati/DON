@@ -130,7 +130,7 @@ namespace {
 
         // PieceMobility[piece-type][attacks] contains bonuses for mobility,
         // indexed by piece type and number of attacked squares in the mobility area
-        static const Score PieceMobility[5][28];
+        static const Score PieceMobility[4][28];
 
         // KingProtector[piece-type] contains a penalty according to distance from king.
         static const Score KingProtector[NONE];
@@ -224,9 +224,8 @@ namespace {
 #define S(mg, eg) mk_score (mg, eg)
 
     template<bool Trace>
-    const Score Evaluator<Trace>::PieceMobility[5][28] =
+    const Score Evaluator<Trace>::PieceMobility[4][28] =
     {
-        {},
         { // Knight
             S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12),
             S( 22, 26), S( 29, 29), S( 36, 29)
@@ -440,10 +439,14 @@ namespace {
                 king_attacks_count[Own] += pop_count (pin_attacked_by[Opp][KING] & attacks);
             }
 
-            auto mob = pop_count (mob_area[Own] & attacks);
+            auto mob = NIHT == PT
+                    || BSHP == PT ?
+                        pop_count (mob_area[Own] & attacks & ~pos.pieces (Own, QUEN)) :
+                        pop_count (mob_area[Own] & attacks);
             assert(0 <= mob && mob <= 27);
+
             // Bonus for piece mobility
-            mobility[Own] += PieceMobility[PT][mob];
+            mobility[Own] += PieceMobility[PT - 1][mob];
 
             // Penalty for distance from the friend king
             score += KingProtector[PT] * dist (s, pos.square<KING> (Own));
@@ -816,19 +819,13 @@ namespace {
         Bitboard safe_area =  pin_attacked_by[Own][NONE]
                            | ~pin_attacked_by[Opp][NONE];
 
-        // Enemy non-pawns attacked by any friend pawn
-        Bitboard weak_nonpawns = nonpawns
-                               & pin_attacked_by[Own][PAWN];
-        if (0 != weak_nonpawns)
-        {
-            // Safe friend pawns
-            b = safe_area
-              & pos.pieces (Own, PAWN);
-            b = pawn_attacks_bb (Own, b)
-              & weak_nonpawns;
-
-            score += SafePawnThreat * pop_count (b);
-        }
+        // Safe friend pawns
+        b = safe_area
+          & pos.pieces (Own, PAWN);
+        b = pawn_attacks_bb (Own, b)
+          & nonpawns
+          & pin_attacked_by[Own][PAWN];
+        score += SafePawnThreat * pop_count (b);
 
         // Friend pawns can push on the next move
         b =  pos.pieces (Own, PAWN)

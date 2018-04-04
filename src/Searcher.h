@@ -47,7 +47,7 @@ public:
         , nodes (0)
         , mate (0)
         , infinite (false)
-        , start_time (0)
+        , start_time (TimePoint(0))
     {}
 
     bool use_time_management () const
