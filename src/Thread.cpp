@@ -55,8 +55,8 @@ namespace {
     // Data was extracted from the CCRL game database with some simple filtering criteria.
     double move_importance (i16 ply)
     {
-        //                                       Shift    Scale   Skew
-        return std::pow (1.00 + std::exp ((ply - 64.50) / 6.85), -0.171) + DBL_MIN; // Ensure non-zero
+        //                                                 Shift    Scale   Skew
+        return std::max (std::pow (1.00 + std::exp ((ply - 64.50) / 6.85), -0.171), DBL_MIN); // Ensure non-zero
     }
 
     template<bool Optimum>
@@ -323,31 +323,29 @@ void ThreadPool::initialize ()
         {
             ++nodes;
         }
-   
+
         offset += ptrSysLogicalProcInfoCurr->Size;
         ptrSysLogicalProcInfoCurr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)((char*)(ptrSysLogicalProcInfoCurr) + ptrSysLogicalProcInfoCurr->Size);
     }
     free (ptrSysLogicalProcInfoBase);
 
-    if (0 != nodes)
+    // Run as many threads as possible on the same node until core limit is
+    // reached, then move on filling the next node.
+    for (u16 n = 0; n < nodes; ++n)
     {
-        // Run as many threads as possible on the same node until core limit is
-        // reached, then move on filling the next node.
-        for (u16 n = 0; n < nodes; ++n)
+        for (u16 i = 0; i < cores / nodes; ++i)
         {
-            for (u16 i = 0; i < cores / nodes; ++i)
-            {
-                Groups.push_back (n);
-            }
-        }
-    
-        // In case a core has more than one logical processor (we assume 2) and
-        // have still threads to allocate, then spread them evenly across available nodes.
-        for (u16 t = 0; t < threads - cores; ++t)
-        {
-            Groups.push_back (t % nodes);
+            Groups.push_back (n);
         }
     }
+
+    // In case a core has more than one logical processor (we assume 2) and
+    // have still threads to allocate, then spread them evenly across available nodes.
+    for (u16 t = 0; t < threads - cores; ++t)
+    {
+        Groups.push_back (t % nodes);
+    }
+
 #else
     
 #endif

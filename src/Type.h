@@ -558,7 +558,7 @@ constexpr Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milli-seconds
 
-static_assert(sizeof (TimePoint) == sizeof (int64_t), "TimePoint should be 64 bits");
+static_assert(sizeof (TimePoint) == sizeof (i64), "TimePoint should be 64 bits");
 
 inline TimePoint now ()
 {

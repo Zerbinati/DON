@@ -145,8 +145,8 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     }
 
     if (   MOVE_NONE != tt_move
-        && !(   depth > DepthQSRecapture
-             || recap_sq == dst_sq (tt_move)))
+        && !(   DepthQSRecapture < depth
+             || dst_sq (tt_move) == recap_sq))
     {
         tt_move = MOVE_NONE;
     }
@@ -229,7 +229,7 @@ void MovePicker::value ()
 
 /// MovePicker::pick_move() returns the next move satisfying a predicate function
 template<MovePicker::PickType PT, typename Pred>
-Move MovePicker::pick_move (Pred filter)
+bool MovePicker::pick_move (Pred filter)
 {
     while (i < moves.size ())
     {
@@ -241,12 +241,10 @@ Move MovePicker::pick_move (Pred filter)
         vmove = *beg;
         if (filter ())
         {
-            assert(vmove.move != tt_move);
-            return vmove.move;
+            return true;
         }
     }
-    vmove = { MOVE_NONE, VALUE_NONE };
-    return vmove.move;
+    return false;
 }
 
 /// MovePicker::next_move() is the most important method of the MovePicker class.
@@ -266,9 +264,9 @@ Move MovePicker::next_move ()
         ++stage;
         return tt_move;
 
-    case Stage::NAT_CAPTURE_INIT:
-    case Stage::PC_CAPTURE_INIT:
-    case Stage::QS_CAPTURE_INIT:
+    case Stage::NAT_INIT:
+    case Stage::PC_INIT:
+    case Stage::QS_INIT:
         generate<GenType::CAPTURE> (moves, pos);
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
@@ -282,21 +280,21 @@ Move MovePicker::next_move ()
         value<GenType::CAPTURE> ();
         ++stage;
         i = 0;
-
         // Re-branch at the top of the switch
         goto top;
 
     case Stage::NAT_GOOD_CAPTURES:
-        if (MOVE_NONE != pick_move<BEST> ([&]()
-                                          {
-                                              return pos.see_ge (vmove.move, Value(vmove.value * 55 / 1024)) ?
-                                                        true :
-                                                        // Put losing capture to bad_capture_moves to be tried later
-                                                        (bad_capture_moves.push_back (vmove.move), false);
-                                          }))
+        if (pick_move<BEST> ([&]()
+                             {
+                                 return pos.see_ge (vmove.move, Value(-vmove.value * 55 / 1024)) ?
+                                        true :
+                                        // Put losing capture to bad_capture_moves to be tried later
+                                        (bad_capture_moves.push_back (vmove.move), false);
+                             }))
         {
             return vmove.move;
         }
+
         refutation_moves.erase (std::remove_if (refutation_moves.begin (),
                                                 refutation_moves.end (),
                                                 [&](Move m)
@@ -317,9 +315,7 @@ Move MovePicker::next_move ()
         {
             return refutation_moves[i++];
         }
-        ++stage;
-        /* fall through */
-    case Stage::NAT_QUIET_INIT:
+
         generate<GenType::QUIET> (moves, pos);
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
@@ -330,16 +326,20 @@ Move MovePicker::next_move ()
                 moves.erase (itr);
             }
         }
+        for (auto m : refutation_moves)
+        {
+            auto itr = std::find (moves.begin (), moves.end (), m);
+            assert(itr != moves.end ());
+            moves.erase (itr);
+        }
+
         value<GenType::QUIET> ();
         ++stage;
         i = 0;
         /* fall through */
     case Stage::NAT_QUIETS:
         if (   pick_quiets
-            && MOVE_NONE != pick_move<BEST> ([&]()
-                                             {
-                                                 return std::find (refutation_moves.begin (), refutation_moves.end (), vmove.move) == refutation_moves.end ();
-                                             }))
+            && pick_move<BEST> ([]() { return true; }))
         {
             return vmove.move;
         }
@@ -351,7 +351,7 @@ Move MovePicker::next_move ()
                     bad_capture_moves[i++] :
                     MOVE_NONE;
 
-    case Stage::EVA_EVASION_INIT:
+    case Stage::EVA_INIT:
         assert(0 != pos.si->checkers);
         generate<GenType::EVASION> (moves, pos);
         filter_illegal (moves, pos);
@@ -368,28 +368,27 @@ Move MovePicker::next_move ()
         i = 0;
         /* fall through */
     case Stage::EVA_EVASIONS:
-        return pick_move<BEST> ([]() { return true; });
+        return pick_move<BEST> ([]() { return true; }) ? vmove.move : MOVE_NONE;
 
     case Stage::PC_CAPTURES:
-        return pick_move<BEST> ([&]() { return pos.see_ge (vmove.move, threshold); });
+        return pick_move<BEST> ([&]() { return pos.see_ge (vmove.move, threshold); }) ? vmove.move : MOVE_NONE;;
 
     case Stage::QS_CAPTURES:
-        if (MOVE_NONE != pick_move<BEST> ([&]()
-                                          {
-                                              return depth > DepthQSRecapture
-                                                  || recap_sq == dst_sq (vmove.move);
-                                          }))
+        if (pick_move<BEST> ([&]()
+                             {
+                                 return DepthQSRecapture < depth
+                                     || dst_sq (vmove.move) == recap_sq;
+                             }))
         {
             return vmove.move;
         }
 
-        if (depth <= DepthQSNoCheck)
+        // If did not find any move then do not try checks, finished.
+        if (DepthQSCheck > depth)
         {
             return MOVE_NONE;
         }
-        ++stage;
-        /* fall through */
-    case Stage::QS_CHECK_INIT:
+
         generate<GenType::QUIET_CHECK> (moves, pos);
         filter_illegal (moves, pos);
         if (MOVE_NONE != tt_move)
@@ -404,7 +403,7 @@ Move MovePicker::next_move ()
         i = 0;
         /* fall through */
     case Stage::QS_CHECKS:
-        return pick_move<NEXT> ([]() { return true; });
+        return pick_move<NEXT> ([]() { return true; }) ? vmove.move : MOVE_NONE;;
 
     }
     assert(false);
@@ -419,7 +418,7 @@ namespace Searcher {
     //i32 MultiPV_cp = 0;
 
     i16 FixedContempt = 0
-      , ContemptTime = 30
+      , ContemptTime = 60
       , ContemptValue = 10;
 
     string HashFile = "Hash.dat";
@@ -463,8 +462,6 @@ namespace Searcher {
         {
             return ReductionDepths[pv ? 1 : 0][imp ? 1 : 0][d <= 63 ? d : 63][mc <= 63 ? mc : 63];
         }
-
-        Value BaseContempt = VALUE_ZERO;
 
         ofstream OutputStream;
 
@@ -1060,7 +1057,8 @@ namespace Searcher {
                                      wdl >  draw ? BOUND_LOWER :
                                                    BOUND_EXACT;
 
-                        if (BOUND_NONE != (tte->bound () & (tt_value >= beta ? BOUND_LOWER : BOUND_UPPER)))
+                        if (   BOUND_EXACT == bound
+                            || (BOUND_LOWER == bound ? value >= beta : value <= alfa))
                         {
                             tte->save (key,
                                        MOVE_NONE,
@@ -1365,6 +1363,14 @@ namespace Searcher {
 
                 i16 extension = 0;
 
+                // Check extension (CE) (~2 ELO)
+                if (   gives_check
+                    && !move_count_pruning
+                    && pos.see_ge (move))
+                {
+                    extension = 1;
+                }
+                else
                 // Singular extension (SE) (~60 ELO)
                 // We extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
@@ -1374,7 +1380,7 @@ namespace Searcher {
                 if (   !root_node
                     && MOVE_NONE == ss->excluded_move // Recursive singular search is not allowed.
                     && move == tt_move
-                    && VALUE_NONE != tt_value
+                    && VALUE_NONE != tt_value // Handle tt_hit
                     && 7 < depth && depth < tte->depth () + 4
                     && BOUND_NONE != (tte->bound () & BOUND_LOWER))
                 {
@@ -1389,14 +1395,6 @@ namespace Searcher {
                     {
                         extension = 1;
                     }
-                }
-                else
-                // Check extension (CE) (~2 ELO)
-                if (   gives_check
-                    && !move_count_pruning
-                    && pos.see_ge (move))
-                {
-                    extension = 1;
                 }
 
                 // Calculate new depth for this move
@@ -1777,7 +1775,7 @@ namespace Searcher {
                     if (   0 == imp
                         && 1.0 < r)
                     {
-                        ReductionDepths[0][imp][d][mc] += 1;
+                        ReductionDepths[0][imp][d][mc]++;
                     }
                 }
             }
@@ -1822,6 +1820,10 @@ void Thread::search ()
     auto *main_thread = Threadpool.main_thread () == this ?
                             Threadpool.main_thread () :
                             nullptr;
+
+    contempt = WHITE == root_pos.active ?
+                +mk_score (Threadpool.main_thread ()->basic_contempt, Threadpool.main_thread ()->basic_contempt / 2) :
+                -mk_score (Threadpool.main_thread ()->basic_contempt, Threadpool.main_thread ()->basic_contempt / 2);
 
     auto last_best_move = MOVE_NONE;
     i16  last_best_move_depth = 0;
@@ -1873,7 +1875,7 @@ void Thread::search ()
             // Reset aspiration window starting size.
             if (4 < running_depth)
             {
-                const auto old_value = root_moves[pv_index].old_value;
+                auto old_value = root_moves[pv_index].old_value;
                 window = Value(18);
                 alfa = std::max (old_value - window, -VALUE_INFINITE);
                 beta = std::min (old_value + window, +VALUE_INFINITE);
@@ -1881,10 +1883,10 @@ void Thread::search ()
                 // Dynamic contempt
                 if (0 != ContemptValue)
                 {
-                    auto ct = i32(i32(BaseContempt) + std::round (48 * std::atan (i32(old_value) / (12.8 * ContemptValue))));
+                    i32 dynamic_contempt = Threadpool.main_thread ()->basic_contempt + i32(std::round (48 * std::atan (double(old_value) / (12.8 * ContemptValue))));
                     contempt = WHITE == root_pos.active ?
-                                +mk_score (ct, ct / 2) :
-                                -mk_score (ct, ct / 2);
+                                +mk_score (dynamic_contempt, dynamic_contempt / 2) :
+                                -mk_score (dynamic_contempt, dynamic_contempt / 2);
                 }
             }
 
@@ -2141,16 +2143,13 @@ void MainThread::search ()
             i64 diff_time;
             if (   0 != ContemptTime
                 && Limits.use_time_management ()
-                && 0 != (diff_time = i64(  Limits.clock[ root_pos.active].time
-                                         - Limits.clock[~root_pos.active].time) / 1000))
+                && 0 != (diff_time = (i64(Limits.clock[ root_pos.active].time)
+                                    - i64(Limits.clock[~root_pos.active].time)) / 1000))
             {
                 timed_contempt = i16(diff_time/ContemptTime);
             }
 
-            BaseContempt = cp_to_value (FixedContempt + timed_contempt);
-            contempt = WHITE == root_pos.active ?
-                        +mk_score (BaseContempt, BaseContempt / 2) :
-                        -mk_score (BaseContempt, BaseContempt / 2);
+            basic_contempt = i32(cp_to_value (FixedContempt + timed_contempt));
 
             if (Limits.use_time_management ())
             {

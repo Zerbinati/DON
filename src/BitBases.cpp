@@ -27,7 +27,11 @@ namespace BitBases {
         // bit 15-17: white pawn R_7 - rank (from R_7 to R_2)
         u32 index (Color c, Square wk_sq, Square bk_sq, Square wp_sq)
         {
-            return wk_sq | (bk_sq << 6) | (c << 12) | (_file (wp_sq) << 13) | ((R_7 - _rank (wp_sq)) << 15);
+            return u32(wk_sq)
+                | (u32(bk_sq) << 6)
+                | (u32(c) << 12)
+                | (u32(_file (wp_sq)) << 13)
+                | (u32(R_7 - _rank (wp_sq)) << 15);
         }
 
         enum Result : u08
@@ -107,11 +111,11 @@ namespace BitBases {
             KPK_Position () = default;
             explicit KPK_Position (u32 idx)
             {
-                k_sq[WHITE] = Square(         (idx >>  0) & i08(SQ_H8));
-                k_sq[BLACK] = Square(         (idx >>  6) & i08(SQ_H8));
-                active      = Color (         (idx >> 12) & i08(BLACK));
-                p_sq        = File  (         (idx >> 13) & 0x03)
-                            | Rank  (R_7-Rank((idx >> 15) & 0x07));
+                k_sq[WHITE] = Square(        (idx >>  0) & i08(SQ_H8));
+                k_sq[BLACK] = Square(        (idx >>  6) & i08(SQ_H8));
+                active      = Color(         (idx >> 12) & i08(BLACK));
+                p_sq        = File(          (idx >> 13) & 3)
+                            | Rank(i08(R_7)-((idx >> 15) & i08(R_8)));
 
                 // Check if two pieces are on the same square or if a king can be captured
                 if (   1 >= dist (k_sq[WHITE], k_sq[BLACK])

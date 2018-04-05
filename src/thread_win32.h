@@ -27,7 +27,6 @@
 #       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
 #   endif
 #   include <windows.h>
-
 #   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
 

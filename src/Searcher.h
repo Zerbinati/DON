@@ -140,10 +140,10 @@ class MovePicker
 private:
     enum Stage : u08
     {
-        NAT_TT, NAT_CAPTURE_INIT, NAT_GOOD_CAPTURES, NAT_REFUTATIONS, NAT_QUIET_INIT, NAT_QUIETS, NAT_BAD_CAPTURES,
-        EVA_TT, EVA_EVASION_INIT, EVA_EVASIONS,
-        PC_TT, PC_CAPTURE_INIT, PC_CAPTURES,
-        QS_TT, QS_CAPTURE_INIT, QS_CAPTURES, QS_CHECK_INIT, QS_CHECKS,
+        NAT_TT, NAT_INIT, NAT_GOOD_CAPTURES, NAT_REFUTATIONS, NAT_QUIETS, NAT_BAD_CAPTURES,
+        EVA_TT, EVA_INIT, EVA_EVASIONS,
+        PC_TT, PC_INIT, PC_CAPTURES,
+        QS_TT, QS_INIT, QS_CAPTURES, QS_CHECKS,
     };
 
     enum PickType : u08
@@ -173,7 +173,7 @@ private:
     void value ();
 
     template<PickType, typename Pred>
-    Move pick_move (Pred);
+    bool pick_move (Pred);
 
 public:
     bool pick_quiets;

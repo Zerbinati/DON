@@ -83,10 +83,8 @@ namespace {
 
     #define S(mg, eg) mk_score (mg, eg)
 
-        // Bonus for knight behind a pawn
-        static constexpr Score KnightBehindPawn =  S(16, 0);
-        // Bonus for bishop behind a pawn
-        static constexpr Score BishopBehindPawn =  S(16, 0);
+        // Bonus for minor behind a pawn
+        static constexpr Score MinorBehindPawn =  S(16, 0);
         // Bonus for bishop long range
         static constexpr Score BishopOnDiagonal =  S(22, 0);
         // Penalty for bishop with pawns on same color
@@ -133,15 +131,12 @@ namespace {
         static const Score PieceMobility[4][28];
 
         // KingProtector[piece-type] contains a penalty according to distance from king.
-        static const Score KingProtector[NONE];
+        static const Score KingProtector[4];
 
-        // Outpost[supported by pawn] contains bonuses for outposts
-        // indexed by piece type supported by friend pawns
-        static const Score KnightOutpost[2];
-        static const Score BishopOutpost[2];
+        // MinorOutpost[knight/bishop][supported by pawn] contains bonuses for minor outposts.
+        static const Score MinorOutpost[2][2];
 
-        // RookOnFile[semiopen/open] contains bonuses for rooks
-        // when there is no friend pawn on the rook file
+        // RookOnFile[semiopen/open] contains bonuses for rooks when there is no friend pawn on the rook file
         static const Score RookOnFile[2];
 
         // MinorPieceThreat[piece-type] contains bonus for minor attacks according to piece type
@@ -250,12 +245,14 @@ namespace {
     };
 
     template<bool Trace>
-    const Score Evaluator<Trace>::KingProtector[NONE] = { S( 0, 0), S(+3,+5), S(+4,+3), S(+3, 0), S(+1,-1) };
+    const Score Evaluator<Trace>::KingProtector[4] = { S(+3,+5), S(+4,+3), S(+3, 0), S(+1,-1) };
 
     template<bool Trace>
-    const Score Evaluator<Trace>::KnightOutpost[2] = { S(22, 6), S(36,12) };
-    template<bool Trace>
-    const Score Evaluator<Trace>::BishopOutpost[2] = { S( 9, 2), S(15, 5) };
+    const Score Evaluator<Trace>::MinorOutpost[2][2] =
+    {
+        { S(22, 6), S(36,12) },
+        { S( 9, 2), S(15, 5) }
+    };
 
     template<bool Trace>
     const Score Evaluator<Trace>::RookOnFile[2] = { S(20, 7), S(45,20) };
@@ -278,7 +275,7 @@ namespace {
 #undef S
 
     template<bool Trace>
-    const i32 Evaluator<Trace>::PawnPassDanger[R_NO] = { 0, 0, 0, 2, 7, 12, 19 };
+    const i32 Evaluator<Trace>::PawnPassDanger[R_NO] = { 0, 0, 0, 2, 7, 12, 19, 0 };
 
     template<bool Trace>
     const i32 Evaluator<Trace>::PieceAttackWeights[NONE] = { 0, 78, 56, 45, 11, 0 };
@@ -449,17 +446,18 @@ namespace {
             mobility[Own] += PieceMobility[PT - 1][mob];
 
             // Penalty for distance from the friend king
-            score += KingProtector[PT] * dist (s, pos.square<KING> (Own));
+            score += KingProtector[PT - 1] * dist (s, pos.square<KING> (Own));
 
             Bitboard b;
             // Special extra evaluation for pieces
-            if (NIHT == PT)
+            if (   NIHT == PT
+                || BSHP == PT)
             {
                 // Bonus for knight behind a pawn
                 if (   R_5 > rel_rank (Own, s)
                     && contains (pos.pieces (PAWN), s+pawn_push (Own)))
                 {
-                    score += KnightBehindPawn;
+                    score += MinorBehindPawn;
                 }
 
                 b = Outposts_bb[Own]
@@ -467,7 +465,7 @@ namespace {
                 // Bonus for knight outpost squares
                 if (contains (b, s))
                 {
-                    score += KnightOutpost[contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
+                    score += MinorOutpost[PT - 1][contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
                 }
                 else
                 {
@@ -475,61 +473,39 @@ namespace {
                       & ~pos.pieces (Own);
                     if (0 != b)
                     {
-                        score += KnightOutpost[0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
+                        score += MinorOutpost[PT - 1][0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
                     }
                 }
-            }
-            else
-            if (BSHP == PT)
-            {
-                // Bonus for bishop when behind a pawn
-                if (   R_5 > rel_rank (Own, s)
-                    && contains (pos.pieces (PAWN), s+pawn_push (Own)))
+            
+            
+                if (BSHP == PT)
                 {
-                    score += BishopBehindPawn;
-                }
+                    // Penalty for pawns on the same color square as the bishop
+                    score -= BishopPawns * i32(pe->color_count[Own][color (s)]);
 
-                b = Outposts_bb[Own]
-                  & ~pe->attack_span[Opp];
-                // Bonus for bishop outpost squares
-                if (contains (b, s))
-                {
-                    score += BishopOutpost[contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
-                }
-                else
-                {
-                    b &= attacks
-                      & ~pos.pieces (Own);
-                    if (0 != b)
+                    // Bonus for bishop on a long diagonal which can "see" both center squares
+                    if (   contains (Diagonals_bb, s)
+                        && 2 == pop_count (Center_bb & (attacks_bb<BSHP> (s, pos.pieces (PAWN)) | s)))
                     {
-                        score += BishopOutpost[0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
+                        score += BishopOnDiagonal;
                     }
-                }
 
-                // Bonus for bishop on a long diagonal which can "see" both center squares
-                if (2 == pop_count (Center_bb & (attacks_bb<BSHP> (s, pos.pieces (PAWN)) | s)))
-                {
-                    score += BishopOnDiagonal;
-                }
-
-                // Penalty for pawns on the same color square as the bishop
-                score -= BishopPawns * i32(pe->color_count[Own][color (s)]);
-
-                if (Position::Chess960)
-                {
-                    // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
-                    // It is a very serious problem, especially when that pawn is also blocked.
-                    // Bishop (white or black) on a1/h1 or a8/h8 which is trapped by own pawn on b2/g2 or b7/g7.
-                    if (   1 >= mob
-                        && contains (FA_bb|FH_bb, s)
-                        && R_1 == rel_rank (Own, s))
+                    if (Position::Chess960)
                     {
-                        auto del = Delta((F_E - _file (s))/3) + pawn_push (Own);
-                        if (contains (pos.pieces (Own, PAWN), s+del))
+                        // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
+                        // It is a very serious problem, especially when that pawn is also blocked.
+                        // Bishop (white or black) on a1/h1 or a8/h8 which is trapped by own pawn on b2/g2 or b7/g7.
+                        if (   1 >= mob
+                            && contains (FA_bb|FH_bb, s)
+                            && R_1 == rel_rank (Own, s))
                         {
-                            score -= BishopTrapped * (!contains (pos.pieces (), s+del+pawn_push (Own)) ?
-                                                          !contains (pos.pieces (Own, PAWN), s+del+del) ?
-                                                              1 : 2 : 4);
+                            auto del = Delta((F_E - _file (s))/3) + pawn_push (Own);
+                            if (contains (pos.pieces (Own, PAWN), s+del))
+                            {
+                                score -= BishopTrapped * (!contains (pos.pieces (), s+del+pawn_push (Own)) ?
+                                                              !contains (pos.pieces (Own, PAWN), s+del+del) ?
+                                                                  1 : 2 : 4);
+                            }
                         }
                     }
                 }
@@ -726,7 +702,6 @@ namespace {
         e = b
           & dbl_attacked[Opp]
           & ~pin_attacked_by[Own][PAWN];
-
         // King tropism, to anticipate slow motion attacks on our king zone
         score -= EnemyAttackKing * (pop_count (b) + pop_count (e));
 
@@ -822,8 +797,8 @@ namespace {
         // Safe friend pawns
         b = safe_area
           & pos.pieces (Own, PAWN);
-        b = pawn_attacks_bb (Own, b)
-          & nonpawns
+        b = nonpawns
+          & pawn_attacks_bb (Own, b)
           & pin_attacked_by[Own][PAWN];
         score += SafePawnThreat * pop_count (b);
 
@@ -878,6 +853,7 @@ namespace {
     Score Evaluator<Trace>::passers ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
 
         auto king_proximity = [&](Color c, Square s)
                             {
@@ -891,7 +867,7 @@ namespace {
         {
             auto s = pop_lsq (psr);
             assert(0 == (pos.pieces (Own, PAWN) & front_line_bb (Own, s))
-                && 0 == (pos.pieces (Opp, PAWN) & front_line_bb (Own, s+pawn_push (Own))));
+                && 0 == (pos.pieces (Opp, PAWN) & front_line_bb (Own, s+Push)));
 
             i32 r = rel_rank (Own, s);
             i32 w = PawnPassDanger[r];
@@ -901,7 +877,7 @@ namespace {
 
             if (0 != w)
             {
-                auto push_sq = s+pawn_push (Own);
+                auto push_sq = s+Push;
 
                 // Adjust bonus based on the king's proximity
                 if (!contains (pawn_pass_span (Own, s), pos.square<KING> (Opp)))
@@ -913,7 +889,7 @@ namespace {
                 // If block square is not the queening square then consider also a second push.
                 if (R_7 != r)
                 {
-                    bonus -= mk_score (0, 1*w*king_proximity (Own, push_sq + pawn_push (Own)));
+                    bonus -= mk_score (0, 1*w*king_proximity (Own, push_sq+Push));
                 }
 
                 // If the pawn is free to advance.
@@ -972,11 +948,10 @@ namespace {
 
             // Scale down bonus for candidate passers which need more than one 
             // pawn push to become passed or have a pawn in front of them.
-            if (   !pos.pawn_passed_at (Own, s+pawn_push (Own))
+            if (   !pos.pawn_passed_at (Own, s+Push)
                 || 0 != (pos.pieces (PAWN) & front_line_bb (Own, s)))
             {
-                i32 pp = std::max (pop_count (pos.pieces (PAWN) & front_line_bb (Own, s)) + 1, 2);
-                bonus /= pp;
+                bonus /= 2;
             }
 
             score += bonus
@@ -1052,7 +1027,7 @@ namespace {
         // Now apply the bonus: note that we find the attacking side by extracting
         // the sign of the endgame value, and that we carefully cap the bonus so
         // that the endgame score will never change sign after the bonus.
-        auto score = mk_score (0, sign (eg) * complexity);
+        auto score = mk_score (0, sign (eg) * std::max (complexity, -abs (eg)));
 
         if (Trace)
         {

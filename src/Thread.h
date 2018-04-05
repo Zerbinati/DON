@@ -142,6 +142,8 @@ public:
     Value last_value;
     double last_time_reduction;
 
+    i32 basic_contempt;
+
     TimeManager time_mgr;
     SkillManager skill_mgr;
 

@@ -1,7 +1,6 @@
 #ifndef _EVALUATOR_H_INC_
 #define _EVALUATOR_H_INC_
 
-#include <atomic>
 #include "Position.h"
 #include "Type.h"
 
