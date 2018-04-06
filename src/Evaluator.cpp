@@ -399,8 +399,8 @@ namespace {
 
             if (BSHP == PT)
             {
-                Bitboard att = attacks & ~pos.abs_blockers (Own);
-                Bitboard bp = pos.pieces (Own, PAWN) & att & front_rank_bb (Own, s);
+                Bitboard att = attacks & pos.pieces (Own) & ~pos.si->king_blockers[Own];
+                Bitboard bp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
                 dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                    & (  attacks
                                       | (  pawn_attacks_bb (Own, bp)
@@ -409,10 +409,10 @@ namespace {
             else
             if (QUEN == PT)
             {
-                Bitboard att = attacks & ~pos.abs_blockers (Own);
-                Bitboard qp = pos.pieces (Own, PAWN) & att & front_rank_bb (Own, s);
-                Bitboard qb = pos.pieces (Own, BSHP) & att & PieceAttacks[BSHP][s];
-                Bitboard qr = pos.pieces (Own, ROOK) & att & PieceAttacks[ROOK][s];
+                Bitboard att = attacks & pos.pieces (Own) & ~pos.si->king_blockers[Own];
+                Bitboard qp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
+                Bitboard qb = att & PieceAttacks[BSHP][s]  & pos.pieces (BSHP);
+                Bitboard qr = att & PieceAttacks[ROOK][s]  & pos.pieces (ROOK);
                 dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                    & (  attacks
                                       | (  pawn_attacks_bb (Own, qp)
@@ -476,8 +476,7 @@ namespace {
                         score += MinorOutpost[PT - 1][0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
                     }
                 }
-            
-            
+
                 if (BSHP == PT)
                 {
                     // Penalty for pawns on the same color square as the bishop
@@ -804,7 +803,7 @@ namespace {
 
         // Friend pawns can push on the next move
         b =  pos.pieces (Own, PAWN)
-          & ~pos.abs_blockers (Own);
+          & ~pos.si->king_blockers[Own];
         // Friend pawns push
         b =  shift<WHITE == Own ? DEL_N : DEL_S> (b)
           & ~pos.pieces ();
@@ -866,8 +865,7 @@ namespace {
         while (0 != psr)
         {
             auto s = pop_lsq (psr);
-            assert(0 == (pos.pieces (Own, PAWN) & front_line_bb (Own, s))
-                && 0 == (pos.pieces (Opp, PAWN) & front_line_bb (Own, s+Push)));
+            assert(0 == (pos.pieces (Opp, PAWN) & front_line_bb (Own, s+Push)));
 
             i32 r = rel_rank (Own, s);
             i32 w = PawnPassDanger[r];
@@ -912,7 +910,7 @@ namespace {
                     // consider only the squares in the pawn's path attacked or occupied by the enemy,
                     // Otherwise add all X-ray attacks by the enemy rook or queen.
                     if (   0 == (b = (behind_major & pos.pieces (Opp)))
-                        || 0 != (b & pos.abs_blockers (Opp)))
+                        || 0 != (b & pos.si->king_blockers[Opp]))
                     {
                         unsafe_front_line &= pin_attacked_by[Opp][NONE] | pos.pieces (Opp);
                     }
@@ -920,7 +918,7 @@ namespace {
                     // consider only the squares in the pawn's path attacked by the friend.
                     // Otherwise add all X-ray attacks by the friend rook or queen.
                     if (   0 == (b = (behind_major & pos.pieces (Own)))
-                        || 0 != (b & pos.abs_blockers (Own)))
+                        || 0 != (b & pos.si->king_blockers[Own]))
                     {
                         safe_front_line &= pin_attacked_by[Own][NONE];
                     }

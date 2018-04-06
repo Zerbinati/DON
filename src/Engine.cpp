@@ -259,8 +259,15 @@ namespace {
 
         if (0 != depth)
         {
-            sync_cout << "\nTotal Nodes: "
-                      << perft<true> (pos, depth) << sync_endl;
+            auto nodes = perft<true> (pos, depth);
+            sync_cout << "\nTotal:    "
+                      << std::right
+                      << std::setfill ('.')
+                      << std::setw (16)
+                      << nodes
+                      << std::setfill (' ')
+                      << std::left 
+                      << sync_endl;
         }
         else
         {

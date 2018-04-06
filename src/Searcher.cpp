@@ -269,14 +269,13 @@ Move MovePicker::next_move ()
     case Stage::QS_INIT:
         generate<GenType::CAPTURE> (moves, pos);
         filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
-        {
-            auto itr = std::find (moves.begin (), moves.end (), tt_move);
-            if (itr != moves.end ())
-            {
-                moves.erase (itr);
-            }
-        }
+        moves.erase (std::remove_if (moves.begin (),
+                                     moves.end (),
+                                     [&](const ValMove &vm)
+                                     {
+                                         return tt_move == vm.move;
+                                     }),
+                     moves.end ());
         value<GenType::CAPTURE> ();
         ++stage;
         i = 0;
@@ -297,7 +296,7 @@ Move MovePicker::next_move ()
 
         refutation_moves.erase (std::remove_if (refutation_moves.begin (),
                                                 refutation_moves.end (),
-                                                [&](Move m)
+                                                [&](const Move m)
                                                 {
                                                     return MOVE_NONE == m
                                                         || tt_move == m
@@ -318,21 +317,14 @@ Move MovePicker::next_move ()
 
         generate<GenType::QUIET> (moves, pos);
         filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
-        {
-            auto itr = std::find (moves.begin (), moves.end (), tt_move);
-            if (itr != moves.end ())
-            {
-                moves.erase (itr);
-            }
-        }
-        for (auto m : refutation_moves)
-        {
-            auto itr = std::find (moves.begin (), moves.end (), m);
-            assert(itr != moves.end ());
-            moves.erase (itr);
-        }
-
+        moves.erase (std::remove_if (moves.begin (),
+                                     moves.end (),
+                                     [&](const ValMove &vm)
+                                     {
+                                         return tt_move == vm.move
+                                             || std::find (refutation_moves.begin (), refutation_moves.end (), vm.move) != refutation_moves.end ();
+                                     }),
+                     moves.end ());
         value<GenType::QUIET> ();
         ++stage;
         i = 0;
@@ -355,14 +347,13 @@ Move MovePicker::next_move ()
         assert(0 != pos.si->checkers);
         generate<GenType::EVASION> (moves, pos);
         filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
-        {
-            auto itr = std::find (moves.begin (), moves.end (), tt_move);
-            if (itr != moves.end ())
-            {
-                moves.erase (itr);
-            }
-        }
+        moves.erase (std::remove_if (moves.begin (),
+                                     moves.end (),
+                                     [&](const ValMove &vm)
+                                     {
+                                         return tt_move == vm.move;
+                                     }),
+                     moves.end ());
         value<GenType::EVASION> ();
         ++stage;
         i = 0;
@@ -382,7 +373,6 @@ Move MovePicker::next_move ()
         {
             return vmove.move;
         }
-
         // If did not find any move then do not try checks, finished.
         if (DepthQSCheck > depth)
         {
@@ -391,14 +381,13 @@ Move MovePicker::next_move ()
 
         generate<GenType::QUIET_CHECK> (moves, pos);
         filter_illegal (moves, pos);
-        if (MOVE_NONE != tt_move)
-        {
-            auto itr = std::find (moves.begin (), moves.end (), tt_move);
-            if (itr != moves.end ())
-            {
-                moves.erase (itr);
-            }
-        }
+        moves.erase (std::remove_if (moves.begin (),
+                                     moves.end (),
+                                     [&](const ValMove &vm)
+                                     {
+                                         return tt_move == vm.move;
+                                     }),
+                     moves.end ());
         ++stage;
         i = 0;
         /* fall through */
@@ -504,14 +493,6 @@ namespace Searcher {
             pv.clear ();
             pv.emplace_back (move);
             pv.insert (pv.end (), child_pv.begin (), child_pv.end ());
-        }
-
-        inline bool _gives_check (const Position &pos, Move move)
-        {
-            return NORMAL == mtype (move)
-                && 0 == pos.dsc_blockers (pos.active) ?
-                    contains (pos.si->checks[ptype (pos[org_sq (move)])], dst_sq (move)) :
-                    pos.gives_check (move);
         }
 
         /// It adjusts a mate score from "plies to mate from the root" to
@@ -759,7 +740,7 @@ namespace Searcher {
                 auto mpc = pos[org];
                 assert(NO_PIECE != mpc);
 
-                bool gives_check = _gives_check (pos, move);
+                bool gives_check = pos.gives_check_s (move);
 
                 // Futility pruning
                 if (   !in_check
@@ -1335,7 +1316,7 @@ namespace Searcher {
                 auto mpc = pos[org];
                 assert(NO_PIECE != mpc);
 
-                bool gives_check = _gives_check (pos, move);
+                bool gives_check = pos.gives_check_s (move);
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 if (   root_node

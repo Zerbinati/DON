@@ -249,7 +249,6 @@ bool Position::pseudo_legal (Move m) const
     {
         return false;
     }
-    assert(NONE != ptype (board[org_sq (m)]));
 
     if (CASTLE == mtype (m))
     {
@@ -295,7 +294,9 @@ bool Position::pseudo_legal (Move m) const
     }
 
     // Handle the special case of a piece move
-    if (PAWN == ptype (board[org_sq (m)]))
+    switch (ptype (board[org_sq (m)]))
+    {
+    case PAWN:
     {
         if (    // Single push
                !(   (   (   NORMAL == mtype (m)
@@ -332,40 +333,44 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
     }
-    else
-    if (NIHT == ptype (board[org_sq (m)]))
+        break;
+    case NIHT:
     {
         if (   NORMAL != mtype (m)
             || !contains (PieceAttacks[NIHT][org_sq (m)], dst_sq (m))) { return false; }
     }
-    else
-    if (BSHP == ptype (board[org_sq (m)]))
+        break;
+    case BSHP:
     {
         if (   NORMAL != mtype (m)
             || !contains (PieceAttacks[BSHP][org_sq (m)], dst_sq (m))
             || !contains (attacks_bb<BSHP> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
     }
-    else
-    if (ROOK == ptype (board[org_sq (m)]))
+        break;
+    case ROOK:
     {
         if (   NORMAL != mtype (m)
             || !contains (PieceAttacks[ROOK][org_sq (m)], dst_sq (m))
             || !contains (attacks_bb<ROOK> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
     }
-    else
-    if (QUEN == ptype (board[org_sq (m)]))
+        break;
+    case QUEN:
     {
         if (   NORMAL != mtype (m)
             || !contains (PieceAttacks[QUEN][org_sq (m)], dst_sq (m))
             || !contains (attacks_bb<QUEN> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
     }
-    else
-    if (KING == ptype (board[org_sq (m)]))
+        break;
+    case KING:
     {
         if (   NORMAL != mtype (m)
             || !contains (PieceAttacks[KING][org_sq (m)], dst_sq (m))) { return false; }
     }
-
+        break;
+    default:
+        assert(false);
+        break;
+    }
     // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
     // So have to take care that the same kind of moves are filtered out here.
     if (0 != si->checkers)
@@ -395,9 +400,9 @@ bool Position::legal (Move m) const
 {
     assert(_ok (m));
     assert(contains (pieces (active), org_sq (m)));
-
-    if (NORMAL == mtype (m))
+    switch (mtype (m))
     {
+    case NORMAL:
         assert(NIHT == promote (m));
         // Only king moves to non attacked squares, sliding check x-rays the king
         // In case of king moves under check have to remove king so to catch
@@ -412,10 +417,7 @@ bool Position::legal (Move m) const
         // - moving along the ray from the king
         return !contains (si->king_blockers[active], org_sq (m))
             || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
-    }
-    else
-    if (PROMOTE == mtype (m))
-    {
+    case PROMOTE:
         assert(PAWN == ptype (board[org_sq (m)])
             && R_7 == rel_rank (active, org_sq (m))
             && R_8 == rel_rank (active, dst_sq (m))
@@ -425,10 +427,7 @@ bool Position::legal (Move m) const
         // - moving along the ray from the king
         return !contains (si->king_blockers[active], org_sq (m))
             || sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (active));
-    }
-    else
-    if (CASTLE == mtype (m))
-    {
+    case CASTLE:
         // Castling moves are checked for legality during move generation.
         assert(KING == ptype (board[org_sq (m)])
             && R_1 == rel_rank (active, org_sq (m))
@@ -437,9 +436,7 @@ bool Position::legal (Move m) const
             && contains (pieces (active, ROOK), dst_sq (m))
             && expeded_castle (active, dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN));
         return true;
-    }
-    else
-    if (ENPASSANT == mtype (m))
+    case ENPASSANT:
     {
         // Enpassant captures are a tricky special case. Because they are rather uncommon,
         // do it simply by testing whether the king is attacked after the move is made.
@@ -456,8 +453,10 @@ bool Position::legal (Move m) const
             && (   0 == (pieces (~active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (active)])
                 || 0 == (pieces (~active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (active), mocc)));
     }
-
-    return false;
+    default:
+        assert(false);
+        return false;
+    }
 }
 /// Position::gives_check() tests whether a pseudo-legal move gives a check.
 bool Position::gives_check (Move m) const
@@ -474,13 +473,12 @@ bool Position::gives_check (Move m) const
         return true;
     }
 
-    if (NORMAL == mtype (m))
+    switch (mtype (m))
     {
+    case NORMAL:
         assert(NIHT == promote (m));
         return false;
-    }
-    else
-    if (CASTLE == mtype (m))
+    case CASTLE:
     {
         assert(KING == ptype (board[org_sq (m)])
             && R_1 == rel_rank (active, org_sq (m))
@@ -494,8 +492,7 @@ bool Position::gives_check (Move m) const
         return contains (PieceAttacks[ROOK][rook_dst], square<KING> (~active))
             && contains (attacks_bb<ROOK> (rook_dst, (pieces () ^ org_sq (m) ^ dst_sq (m)) | king_dst | rook_dst), square<KING> (~active));
     }
-    else
-    if (ENPASSANT == mtype (m))
+    case ENPASSANT:
     {
         assert(PAWN == ptype (board[org_sq (m)])
             && R_5 == rel_rank (active, org_sq (m))
@@ -511,8 +508,7 @@ bool Position::gives_check (Move m) const
             || (   0 != (pieces (active, ROOK, QUEN) & PieceAttacks[ROOK][square<KING> (~active)])
                 && 0 != (pieces (active, ROOK, QUEN) & attacks_bb<ROOK> (square<KING> (~active), mocc)));
     }
-    else
-    if (PROMOTE == mtype (m))
+    case PROMOTE:
     {
         assert(PAWN == ptype (board[org_sq (m)])
             && R_7 == rel_rank (active, org_sq (m))
@@ -527,7 +523,10 @@ bool Position::gives_check (Move m) const
                QUEN == promote (m) ? contains (PieceAttacks[QUEN][dst_sq (m)], square<KING> (~active))
                                   && contains (attacks_bb<QUEN> (dst_sq (m), pieces () ^ org_sq (m)), square<KING> (~active)) : (assert(false), false);
     }
-    return false;
+    default:
+        assert(false);
+        return false;
+    }
 }
 /// Position::clear() clear the position.
 void Position::clear ()

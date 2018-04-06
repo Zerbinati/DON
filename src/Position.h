@@ -189,6 +189,7 @@ public:
     bool promotion (Move) const;
     bool capture_or_promotion (Move) const;
     bool gives_check (Move) const;
+    bool gives_check_s (Move) const;
 
     PieceType cap_type  (Move) const;
 
@@ -480,6 +481,19 @@ inline bool Position::capture_or_promotion (Move m) const
         || en_passant (m)
         || promotion (m);
 }
+inline bool Position::gives_check_s (Move m) const
+{
+    return (// Direct check ?
+               contains (si->checks[ptype (board[org_sq (m)])], dst_sq (m))
+            // Discovered check ?
+            || (   contains (si->king_blockers[~active], org_sq (m))
+                && !sqrs_aligned (org_sq (m), dst_sq (m), square<KING> (~active)))) ?
+            true :
+            NORMAL == mtype (m) ?
+                false :
+                gives_check (m);
+}
+
 inline PieceType Position::cap_type (Move m) const
 {
     return ENPASSANT != mtype (m) ?
@@ -489,10 +503,7 @@ inline PieceType Position::cap_type (Move m) const
 
 inline void Position::do_move (Move m, StateInfo &nsi)
 {
-    do_move (m, nsi, NORMAL == mtype (m)
-                  && 0 == dsc_blockers (active) ?
-                        contains (si->checks[ptype (board[org_sq (m)])], dst_sq (m)) :
-                        gives_check (m));
+    do_move (m, nsi, gives_check_s (m));
 }
 
 inline void Position::place_piece (Square s, Color c, PieceType pt)

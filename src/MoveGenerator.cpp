@@ -19,6 +19,8 @@ namespace {
                     || ROOK == PT
                     || QUEN == PT, "PT incorrect");
 
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+
         if (   GenType::CHECK == GT
             || GenType::QUIET_CHECK == GT)
         {
@@ -30,7 +32,7 @@ namespace {
             {
                 if (   (   GenType::CHECK == GT
                         || GenType::QUIET_CHECK == GT)
-                    && contains (pos.si->king_blockers[~pos.active], s))
+                    && contains (pos.si->king_blockers[Opp], s))
                 {
                     continue;
                 }
@@ -123,7 +125,7 @@ namespace {
                 // Add pawn pushes which give discovered check.
                 // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
                 // Note that a possible discovery check promotion has been already generated among captures.
-                Bitboard dsc_pawns = Rx_pawns & pos.si->king_blockers[~pos.active] & ~file_bb (pos.square<KING> (Opp));
+                Bitboard dsc_pawns = Rx_pawns & pos.si->king_blockers[Opp] & ~file_bb (pos.square<KING> (Opp));
                 if (0 != dsc_pawns)
                 {
                     Bitboard dc_push_1 = empties & shift<Push> (dsc_pawns);
@@ -151,7 +153,7 @@ namespace {
                 r_attack &= pos.si->checks[PAWN];
                 // Pawns which give discovered check
                 // Add pawn captures which give discovered check.
-                Bitboard dsc_pawns = Rx_pawns & pos.si->king_blockers[~pos.active];
+                Bitboard dsc_pawns = Rx_pawns & pos.si->king_blockers[Opp];
                 if (0 != dsc_pawns)
                 {
                     l_attack |= enemies & shift<LCap> (dsc_pawns);
@@ -342,17 +344,17 @@ template void generate<GenType::CAPTURE> (ValMoves&, const Position&);
 /// generate<QUIET> generates all pseudo-legal non-captures and underpromotions.
 template void generate<GenType::QUIET  > (ValMoves&, const Position&);
 
-/// Generates all pseudo-legal non-captures and knight underpromotions moves that give check.
+/// Generates all pseudo-legal non-captures and knight under promotions moves that give check.
 template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position &pos)
 {
     assert(0 == pos.si->checkers);
     moves.clear ();
     Bitboard targets = ~pos.pieces ();
     // Pawns is excluded, will be generated together with direct checks
-    Bitboard dsc_blockers = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
-    while (0 != dsc_blockers)
+    Bitboard dsc_blockers_ex = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
+    while (0 != dsc_blockers_ex)
     {
-        auto org = pop_lsq (dsc_blockers);
+        auto org = pop_lsq (dsc_blockers_ex);
         auto pt = ptype (pos[org]);
         Bitboard attacks = NIHT == pt ? targets & PieceAttacks[NIHT][org] :
                            BSHP == pt ? targets & attacks_bb<BSHP> (org, pos.pieces ()) :
@@ -373,10 +375,10 @@ template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position 
     moves.clear ();
     Bitboard targets = ~pos.pieces (pos.active);
     // Pawns is excluded, will be generated together with direct checks
-    Bitboard dsc_blockers = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
-    while (0 != dsc_blockers)
+    Bitboard dsc_blockers_ex = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
+    while (0 != dsc_blockers_ex)
     {
-        auto org = pop_lsq (dsc_blockers);
+        auto org = pop_lsq (dsc_blockers_ex);
         auto pt = ptype (pos[org]);
         Bitboard attacks = NIHT == pt ? targets & PieceAttacks[NIHT][org] :
                            BSHP == pt ? targets & attacks_bb<BSHP> (org, pos.pieces ()) :
@@ -455,10 +457,10 @@ void filter_illegal (ValMoves &moves, const Position &pos)
 {
     moves.erase (std::remove_if (moves.begin (),
                                  moves.end (),
-                                 [&pos] (const ValMove &vm)
+                                 [&] (const ValMove &vm)
                                  {
                                      return (   0 != pos.abs_blockers (pos.active)
-                                             || ENPASSANT == mtype (vm.move)
+                                             || pos.en_passant (vm.move)
                                              || pos.square<KING> (pos.active) == org_sq (vm.move))
                                          && !pos.legal (vm.move);
                                  }),
