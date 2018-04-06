@@ -923,16 +923,17 @@ namespace {
                         safe_front_line &= pin_attacked_by[Own][NONE];
                     }
 
+                    i32 k;
                     // Give a big bonus if the path to the queen is not attacked,
                     // a smaller bonus if the block square is not attacked.
-                    i32 k = 0 != unsafe_front_line ?
-                                contains (unsafe_front_line, push_sq) ?
-                                    0 : 9 : 20;
+                    k = 0 != unsafe_front_line ?
+                            contains (unsafe_front_line, push_sq) ?
+                                0 : 9 : 20;
                     // Give a big bonus if the path to the queen is fully defended,
                     // a smaller bonus if the block square is defended.
                     k += safe_front_line != front_line ?
-                                !contains (safe_front_line, push_sq) ?
-                                    0 : 4 : 6;
+                            !contains (safe_front_line, push_sq) ?
+                                0 : 4 : 6;
 
                     bonus += mk_score (k*w, k*w);
                 }
