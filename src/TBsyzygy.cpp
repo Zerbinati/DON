@@ -85,6 +85,47 @@ namespace TBSyzygy {
             SINGLE_VALUE = 128
         };
 
+        enum Endian
+        {
+            BIG,
+            LITTLE
+        };
+
+        template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
+        inline void swap_byte (T &x)
+        {
+            auto *c = (char*) (&x);
+            for (i32 i = 0; i < Half; ++i)
+            {
+                auto tmp = c[i];
+                c[i] = c[End - i];
+                c[End - i] = tmp;
+            }
+        }
+        template<>
+        inline void swap_byte<u08, 0, 0> (u08&)
+        {}
+
+        template<typename T, Endian E>
+        T number (void *addr)
+        {
+            constexpr union { u32 i; char c[4]; } e = { 0x01020304 };
+            T v;
+            if (0 != (uintptr_t (addr) & (alignof(T) -1))) // Unaligned pointer (very rare)
+            {
+                std::memcpy (&v, addr, sizeof (v));
+            }
+            else
+            {
+                v = *((T*) addr);
+            }
+            if (E != (e.c[0] == 4 ? Endian::LITTLE : Endian::BIG))
+            {
+                swap_byte (v);
+            }
+            return v;
+        }
+
         Piece tb_piece (i32 pc) { return 0 != pc ? Piece(pc - 1) : NO_PIECE; }
 
         // DTZ tables don't store valid scores for moves that reset the rule50 counter
@@ -283,46 +324,6 @@ namespace TBSyzygy {
         i32 LeadPawnIdx[5][SQ_NO]; // [lead_pawn_count][SQ_NO]
         i32 LeadPawnsSize[5][4];   // [lead_pawn_count][F_A..F_D]
 
-        enum Endian
-        { 
-            BIG,
-            LITTLE
-        };
-
-        template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
-        inline void swap_byte (T &x)
-        {
-            auto *c = (char*)(&x);
-            for (i32 i = 0; i < Half; ++i)
-            {
-                auto tmp = c[i];
-                c[i] = c[End - i];
-                c[End - i] = tmp;
-            }
-        }
-        template<>
-        inline void swap_byte<u08, 0, 0> (u08 &)
-        {}
-
-        template<typename T, Endian E>
-        T number (void *addr)
-        {
-            constexpr union { u32 i; char c[4]; } e = { 0x01020304 };
-            T v;
-            if (0 != (uintptr_t(addr) & (alignof(T) -1))) // Unaligned pointer (very rare)
-            {
-                std::memcpy (&v, addr, sizeof (v));
-            }
-            else
-            {
-                v = *((T*)addr);
-            }
-            if (E != (e.c[0] == 4 ? Endian::LITTLE : Endian::BIG))
-            {
-                swap_byte (v);
-            }
-            return v;
-        }
 
         class HashTable
         {
@@ -630,7 +631,7 @@ namespace TBSyzygy {
             // is at the beginning of this 64 bits sequence.
             u64 buf64 = number<u64, Endian::BIG> (ptr);
             ptr += 2;
-            i32 buf64Size = 64;
+            i32 buf64_size = 64;
             Sym sym;
 
             while (true)
@@ -663,13 +664,13 @@ namespace TBSyzygy {
                 offset -= d->sym_len[sym] + 1;
                 len += d->min_sym_len;  // Get the real length
                 buf64 <<= len;          // Consume the just processed symbol
-                buf64Size -= len;
+                buf64_size -= len;
 
-                if (buf64Size <= 32)
+                if (buf64_size <= 32)
                 { 
                     // Refill the buffer
-                    buf64Size += 32;
-                    buf64 |= u64(number<u32, Endian::BIG> (ptr++)) << (64 - buf64Size);
+                    buf64_size += 32;
+                    buf64 |= u64(number<u32, Endian::BIG> (ptr++)) << (64 - buf64_size);
                 }
             }
 
@@ -699,12 +700,12 @@ namespace TBSyzygy {
             return d->btree[sym].get<LR::Side::Center> ();
         }
 
-        bool check_dtz_stm (TBEntry<WDL>*, i32, File)
+        bool check_dtz_stm (TBEntry<WDL>*, Color, File)
         {
             return true;
         }
 
-        bool check_dtz_stm (TBEntry<DTZ> *entry, i32 stm, File f)
+        bool check_dtz_stm (TBEntry<DTZ> *entry, Color stm, File f)
         {
             return (entry->get (stm, f)->flags & TBFlag::STM) == stm
                 || (   entry->key1 == entry->key2

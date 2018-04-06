@@ -403,8 +403,7 @@ namespace {
                 Bitboard bp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
                 dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                    & (  attacks
-                                      | (  pawn_attacks_bb (Own, bp)
-                                         & PieceAttacks[BSHP][s]));
+                                      | (0 != bp ? pawn_attacks_bb (Own, bp) & PieceAttacks[BSHP][s] : 0));
             }
             else
             if (QUEN == PT)
@@ -415,8 +414,7 @@ namespace {
                 Bitboard qr = att & PieceAttacks[ROOK][s]  & pos.pieces (ROOK);
                 dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
                                    & (  attacks
-                                      | (  pawn_attacks_bb (Own, qp)
-                                         & PieceAttacks[BSHP][s])
+                                      | (0 != qp ? pawn_attacks_bb (Own, qp) & PieceAttacks[BSHP][s] : 0)
                                       | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
                                       | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
             }
@@ -527,7 +525,6 @@ namespace {
                 else
                 // Penalty for rook when trapped by the king, even more if the king can't castle
                 if (   3 >= mob
-                    && !contains (pos.si->king_blockers[Own], s)
                     && R_5 > rel_rank (Own, s))
                 {
                     auto kf = _file (pos.square<KING> (Own));
@@ -927,7 +924,7 @@ namespace {
                     // Give a big bonus if the path to the queen is not attacked,
                     // a smaller bonus if the block square is not attacked.
                     k = 0 != unsafe_front_line ?
-                            contains (unsafe_front_line, push_sq) ?
+                             contains (unsafe_front_line, push_sq) ?
                                 0 : 9 : 20;
                     // Give a big bonus if the path to the queen is fully defended,
                     // a smaller bonus if the block square is defended.

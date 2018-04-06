@@ -484,7 +484,7 @@ namespace EndGame {
             if (   R_5 == r
                 && !opposite_colors (wb_sq, sp_sq))
             {
-                const auto d = dist (sp_sq + push*3, wk_sq);
+                auto d = dist (sp_sq + push*3, wk_sq);
                 return d <= 2
                     && (   0 != d
                         || wk_sq != pos.square<KING> (strong_color) + push*2) ?

@@ -493,8 +493,8 @@ constexpr Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
 // Mirror -> Square::A1 -> Square::H1
 constexpr Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
 
-constexpr Rank rel_rank (Color c, Square s) { return Rank(_rank (s) ^ (c*i08(R_8))); }
-constexpr Square rel_sq (Color c, Square s) { return Square(s ^ (c*i08(SQ_A8))); }
+constexpr Rank rel_rank (Color c, Square s) { return Rank(_rank (s) ^ (i08(c)*i08(R_8))); }
+constexpr Square rel_sq (Color c, Square s) { return Square(s ^ (i08(c)*i08(SQ_A8))); }
 
 inline bool opposite_colors (Square s1, Square s2)
 {

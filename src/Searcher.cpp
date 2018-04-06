@@ -340,8 +340,8 @@ Move MovePicker::next_move ()
         /* fall through */
     case Stage::NAT_BAD_CAPTURES:
         return i < bad_capture_moves.size () ?
-                    bad_capture_moves[i++] :
-                    MOVE_NONE;
+                bad_capture_moves[i++] :
+                MOVE_NONE;
 
     case Stage::EVA_INIT:
         assert(0 != pos.si->checkers);
@@ -359,10 +359,14 @@ Move MovePicker::next_move ()
         i = 0;
         /* fall through */
     case Stage::EVA_EVASIONS:
-        return pick_move<BEST> ([]() { return true; }) ? vmove.move : MOVE_NONE;
+        return pick_move<BEST> ([]() { return true; }) ?
+                vmove.move :
+                MOVE_NONE;
 
     case Stage::PC_CAPTURES:
-        return pick_move<BEST> ([&]() { return pos.see_ge (vmove.move, threshold); }) ? vmove.move : MOVE_NONE;;
+        return pick_move<BEST> ([&]() { return pos.see_ge (vmove.move, threshold); }) ?
+                vmove.move :
+                MOVE_NONE;
 
     case Stage::QS_CAPTURES:
         if (pick_move<BEST> ([&]()
@@ -392,7 +396,9 @@ Move MovePicker::next_move ()
         i = 0;
         /* fall through */
     case Stage::QS_CHECKS:
-        return pick_move<NEXT> ([]() { return true; }) ? vmove.move : MOVE_NONE;;
+        return pick_move<NEXT> ([]() { return true; }) ?
+                vmove.move :
+                MOVE_NONE;
 
     }
     assert(false);
