@@ -45,19 +45,19 @@ namespace BitBoard {
     constexpr Bitboard Diagonals_bb = U64(0x8142241818244281); // A1..H8 | H1..A8
     constexpr Bitboard Center_bb = (FD_bb|FE_bb) & (R4_bb|R5_bb);
 
-    constexpr Bitboard Color_bb[] =
+    constexpr Bitboard Color_bb[CLR_NO] =
     {
         U64(0x55AA55AA55AA55AA),
         U64(0xAA55AA55AA55AA55)
     };
 
-    constexpr Bitboard Side_bb[] =
+    constexpr Bitboard Side_bb[3] =
     {
         FE_bb|FF_bb|FG_bb|FH_bb,
         FA_bb|FB_bb|FC_bb|FD_bb,
         FC_bb|FD_bb|FE_bb|FF_bb
     };
-    constexpr Bitboard KingFlank_bb[] =
+    constexpr Bitboard KingFlank_bb[F_NO] =
     {
         Side_bb[CS_QUEN],
         Side_bb[CS_QUEN],
@@ -68,28 +68,28 @@ namespace BitBoard {
         Side_bb[CS_KING],
         Side_bb[CS_KING]
     };
-    constexpr Bitboard Outposts_bb[] =
+    constexpr Bitboard Outposts_bb[CLR_NO] =
     {
         R4_bb|R5_bb|R6_bb,
         R5_bb|R4_bb|R3_bb
     };
-    constexpr Bitboard Camp_bb[] =
+    constexpr Bitboard Camp_bb[CLR_NO] =
     {
         R1_bb|R2_bb|R3_bb|R4_bb|R5_bb,
         R8_bb|R7_bb|R6_bb|R5_bb|R4_bb
     };
-    constexpr Bitboard LowRanks_bb[] =
+    constexpr Bitboard LowRanks_bb[CLR_NO] =
     {
         R2_bb|R3_bb,
         R7_bb|R6_bb
     };
-    constexpr Bitboard Space_bb[] =
+    constexpr Bitboard Space_bb[CLR_NO] =
     {
         R2_bb|R3_bb|R4_bb,
         R7_bb|R6_bb|R5_bb
     };
 
-    constexpr Bitboard Square_bb[] =
+    constexpr Bitboard Square_bb[SQ_NO] =
     {
 #define S_02(n)  u64(1)<<(2*(n)),  u64(1)<<(2*(n)+1)
 #define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
@@ -102,10 +102,10 @@ namespace BitBoard {
 #undef S_02
     };
 
-    constexpr Bitboard File_bb[] = { FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb };
-    constexpr Bitboard Rank_bb[] = { R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb };
+    constexpr Bitboard File_bb[F_NO] = { FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb };
+    constexpr Bitboard Rank_bb[R_NO] = { R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb };
 
-    constexpr Bitboard AdjFile_bb[] =
+    constexpr Bitboard AdjFile_bb[F_NO] =
     {
         FB_bb,
         FA_bb|FC_bb,
@@ -116,7 +116,7 @@ namespace BitBoard {
         FF_bb|FH_bb,
         FG_bb
     };
-    constexpr Bitboard AdjRank_bb[] =
+    constexpr Bitboard AdjRank_bb[R_NO] =
     {
         R2_bb,
         R1_bb|R3_bb,
@@ -127,7 +127,7 @@ namespace BitBoard {
         R6_bb|R8_bb,
         R7_bb
     };
-    constexpr Bitboard FrontRank_bb[][R_NO] =
+    constexpr Bitboard FrontRank_bb[CLR_NO][R_NO] =
     {
         {
             R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
@@ -275,9 +275,10 @@ namespace BitBoard {
     //inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08(SQ_NO) - k)); }
 
     /// pawn_attacks_bb() returns the pawn attacks for the given color from the given bitboard.
-    constexpr Bitboard pawn_attacks_bb (Color c, Bitboard b)
+    template<Color C>
+    constexpr Bitboard pawn_attacks_bb (Bitboard b)
     {
-        return WHITE == c ?
+        return WHITE == C ?
                 shift<DEL_NE> (b) | shift<DEL_NW> (b) :
                 shift<DEL_SE> (b) | shift<DEL_SW> (b);
     }

@@ -912,7 +912,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     switch (mtype (m))
     {
     case NORMAL:
-    {
         si->promotion = false;
         move_piece (org, dst);
         if (PAWN == mpt)
@@ -933,7 +932,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             }
             si->clock_ply = 0;
         }
-    }
         break;
     case CASTLE:
     {
@@ -954,7 +952,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     }
         break;
     case ENPASSANT:
-    {
         // NOTE:: some condition already set so may not work
         assert(PAWN == mpt
             && R_5 == rel_rank (active, org)
@@ -969,10 +966,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->pawn_key ^= RandZob.piece_square_keys[active][PAWN][dst]
                       ^ RandZob.piece_square_keys[active][PAWN][org];
         prefetch (thread->pawn_table.get (si->pawn_key));
-    }
         break;
     case PROMOTE:
-    {
         assert(PAWN == mpt
             && R_7 == rel_rank (active, org)
             && R_8 == rel_rank (active, dst)
@@ -992,7 +987,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->pawn_key ^= RandZob.piece_square_keys[active][PAWN][org];
         prefetch (thread->pawn_table.get (si->pawn_key));
         si->non_pawn_matl[active] += PieceValues[MG][ppt];
-    }
         break;
     default:
         assert(false);
@@ -1058,22 +1052,17 @@ void Position::undo_move (Move m)
     }
         break;
     case ENPASSANT:
-    {
         assert(R_5 == rel_rank (active, org)
             && R_6 == rel_rank (active, dst)
             && dst == si->ptr->en_passant_sq
             && PAWN == si->capture
             && empty (dst - pawn_push (active))
             && contains (pieces (active, PAWN), dst));
-    }
-    // Note:: No break;
+    // Note:: No break
     case NORMAL:
-    {
         move_piece (dst, org);
-    }
         break;
     case PROMOTE:
-    {
         assert(R_7 == rel_rank (active, org)
             && R_8 == rel_rank (active, dst)
             && si->promotion
@@ -1082,7 +1071,6 @@ void Position::undo_move (Move m)
         remove_piece (dst);
         board[dst] = NO_PIECE; // Not done by remove_piece()
         place_piece (org, active, PAWN);
-    }
         break;
     default:
         assert(false);
@@ -1319,14 +1307,16 @@ Position::operator string () const
         oss << "   " << to_char (f, false);
     }
 
-    oss << "\nFEN: " << fen ()
-        << "\nKey: " << std::setfill ('0')
-                     << std::hex
-                     << std::uppercase
-                     << std::setw (16) << si->posi_key
-                     << std::nouppercase
-                     << std::dec
-                     << std::setfill (' ');
+    oss << "\nFEN: "
+        << fen ()
+        << "\nKey: "
+        << std::setfill ('0')
+        << std::hex
+        << std::uppercase
+        << std::setw (16) << si->posi_key
+        << std::nouppercase
+        << std::dec
+        << std::setfill (' ');
     oss << "\nCheckers: ";
     for (Bitboard b = si->checkers; 0 != b; )
     {
