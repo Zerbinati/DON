@@ -403,7 +403,6 @@ bool Position::legal (Move m) const
     switch (mtype (m))
     {
     case NORMAL:
-        assert(NIHT == promote (m));
         // Only king moves to non attacked squares, sliding check x-rays the king
         // In case of king moves under check have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
@@ -476,7 +475,6 @@ bool Position::gives_check (Move m) const
     switch (mtype (m))
     {
     case NORMAL:
-        assert(NIHT == promote (m));
         return false;
     case CASTLE:
     {
@@ -911,12 +909,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->en_passant_sq = SQ_NO;
     }
 
-    switch(mtype (m))
+    switch (mtype (m))
     {
     case NORMAL:
     {
-        assert(NIHT == promote (m));
-
         si->promotion = false;
         move_piece (org, dst);
         if (PAWN == mpt)
@@ -1051,11 +1047,6 @@ void Position::undo_move (Move m)
 
     switch (mtype (m))
     {
-    case NORMAL:
-    {
-        move_piece (dst, org);
-    }
-        break;
     case CASTLE:
     {
         assert(R_1 == rel_rank (active, org)
@@ -1074,7 +1065,10 @@ void Position::undo_move (Move m)
             && PAWN == si->capture
             && empty (dst - pawn_push (active))
             && contains (pieces (active, PAWN), dst));
-
+    }
+    // Note:: No break;
+    case NORMAL:
+    {
         move_piece (dst, org);
     }
         break;

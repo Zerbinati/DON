@@ -837,7 +837,7 @@ namespace {
           & pin_attacked_by[Own][NONE];
         score += Connectivity * pop_count (b);
 
-        // Bonus for overload (non-pawn enemies attacked and defended exactly once)
+        // Bonus for overloaded: non-pawn enemies attacked and defended exactly once
         b = nonpawns
           & pin_attacked_by[Own][NONE] & ~dbl_attacked[Own]
           & pin_attacked_by[Opp][NONE] & ~dbl_attacked[Opp];
