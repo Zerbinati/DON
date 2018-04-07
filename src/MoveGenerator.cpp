@@ -344,54 +344,6 @@ template void generate<GenType::CAPTURE> (ValMoves&, const Position&);
 /// generate<QUIET> generates all pseudo-legal non-captures and underpromotions.
 template void generate<GenType::QUIET  > (ValMoves&, const Position&);
 
-/// Generates all pseudo-legal non-captures and knight under promotions moves that give check.
-template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position &pos)
-{
-    assert(0 == pos.si->checkers);
-    moves.clear ();
-    Bitboard targets = ~pos.pieces ();
-    // Pawns is excluded, will be generated together with direct checks
-    Bitboard dsc_blockers_ex = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
-    while (0 != dsc_blockers_ex)
-    {
-        auto org = pop_lsq (dsc_blockers_ex);
-        auto pt = ptype (pos[org]);
-        Bitboard attacks = NIHT == pt ? targets & PieceAttacks[NIHT][org] :
-                           BSHP == pt ? targets & attacks_bb<BSHP> (org, pos.pieces ()) :
-                           ROOK == pt ? targets & attacks_bb<ROOK> (org, pos.pieces ()) :
-                           QUEN == pt ? targets & attacks_bb<QUEN> (org, pos.pieces ()) :
-                           KING == pt ? targets & PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)] : (assert(false), 0);
-        while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
-    }
-
-    WHITE == pos.active ?
-        generate_moves<GenType::QUIET_CHECK, WHITE> (moves, pos, targets) :
-        generate_moves<GenType::QUIET_CHECK, BLACK> (moves, pos, targets);
-}
-/// Generates all pseudo-legal check giving moves.
-template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position &pos)
-{
-    assert(0 == pos.si->checkers);
-    moves.clear ();
-    Bitboard targets = ~pos.pieces (pos.active);
-    // Pawns is excluded, will be generated together with direct checks
-    Bitboard dsc_blockers_ex = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
-    while (0 != dsc_blockers_ex)
-    {
-        auto org = pop_lsq (dsc_blockers_ex);
-        auto pt = ptype (pos[org]);
-        Bitboard attacks = NIHT == pt ? targets & PieceAttacks[NIHT][org] :
-                           BSHP == pt ? targets & attacks_bb<BSHP> (org, pos.pieces ()) :
-                           ROOK == pt ? targets & attacks_bb<ROOK> (org, pos.pieces ()) :
-                           QUEN == pt ? targets & attacks_bb<QUEN> (org, pos.pieces ()) :
-                           KING == pt ? targets & PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)] : (assert(false), 0);
-        while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
-    }
-
-    WHITE == pos.active ?
-        generate_moves<GenType::CHECK, WHITE> (moves, pos, targets) :
-        generate_moves<GenType::CHECK, BLACK> (moves, pos, targets);
-}
 /// Generates all pseudo-legal check evasions moves when the side to move is in check.
 template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position &pos)
 {
@@ -443,6 +395,55 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
         generate_moves<GenType::EVASION, WHITE> (moves, pos, targets) :
         generate_moves<GenType::EVASION, BLACK> (moves, pos, targets);
 }
+/// Generates all pseudo-legal check giving moves.
+template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position &pos)
+{
+    assert(0 == pos.si->checkers);
+    moves.clear ();
+    Bitboard targets = ~pos.pieces (pos.active);
+    // Pawns is excluded, will be generated together with direct checks
+    Bitboard dsc_blockers_ex = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
+    while (0 != dsc_blockers_ex)
+    {
+        auto org = pop_lsq (dsc_blockers_ex);
+        auto pt = ptype (pos[org]);
+        Bitboard attacks = NIHT == pt ? targets & PieceAttacks[NIHT][org] :
+                           BSHP == pt ? targets & attacks_bb<BSHP> (org, pos.pieces ()) :
+                           ROOK == pt ? targets & attacks_bb<ROOK> (org, pos.pieces ()) :
+                           QUEN == pt ? targets & attacks_bb<QUEN> (org, pos.pieces ()) :
+                           KING == pt ? targets & PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)] : (assert(false), 0);
+        while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
+    }
+
+    WHITE == pos.active ?
+        generate_moves<GenType::CHECK, WHITE> (moves, pos, targets) :
+        generate_moves<GenType::CHECK, BLACK> (moves, pos, targets);
+}
+/// Generates all pseudo-legal non-captures and knight under promotions moves that give check.
+template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position &pos)
+{
+    assert(0 == pos.si->checkers);
+    moves.clear ();
+    Bitboard targets = ~pos.pieces ();
+    // Pawns is excluded, will be generated together with direct checks
+    Bitboard dsc_blockers_ex = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
+    while (0 != dsc_blockers_ex)
+    {
+        auto org = pop_lsq (dsc_blockers_ex);
+        auto pt = ptype (pos[org]);
+        Bitboard attacks = NIHT == pt ? targets & PieceAttacks[NIHT][org] :
+                           BSHP == pt ? targets & attacks_bb<BSHP> (org, pos.pieces ()) :
+                           ROOK == pt ? targets & attacks_bb<ROOK> (org, pos.pieces ()) :
+                           QUEN == pt ? targets & attacks_bb<QUEN> (org, pos.pieces ()) :
+                           KING == pt ? targets & PieceAttacks[KING][org] & ~PieceAttacks[QUEN][pos.square<KING> (~pos.active)] : (assert(false), 0);
+        while (0 != attacks) { moves += mk_move<NORMAL> (org, pop_lsq (attacks)); }
+    }
+
+    WHITE == pos.active ?
+        generate_moves<GenType::QUIET_CHECK, WHITE> (moves, pos, targets) :
+        generate_moves<GenType::QUIET_CHECK, BLACK> (moves, pos, targets);
+}
+
 /// Generates all legal moves.
 template<> void generate<GenType::LEGAL      > (ValMoves &moves, const Position &pos)
 {

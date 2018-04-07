@@ -118,6 +118,8 @@ namespace {
 
         static constexpr Score Connectivity =      S( 3, 1);
 
+        static constexpr Score Overloaded =        S(10, 5);
+
         static constexpr Score PawnPassHinder =    S( 8, 1);
 
 #undef S
@@ -829,11 +831,17 @@ namespace {
         // Bonus for safe slider attack threats on enemy queen
         score += SliderQueenThreat * pop_count (b);
 
-        // Connectivity: ensure that knights, bishops, rooks, and queens are protected
+        // Bonus for Connectivity: ensure that knights, bishops, rooks, and queens are protected
         b = (  pos.pieces (Own)
              ^ pos.pieces (Own, PAWN, KING))
           & pin_attacked_by[Own][NONE];
         score += Connectivity * pop_count (b);
+
+        // Bonus for overload (non-pawn enemies attacked and defended exactly once)
+        b = nonpawns
+          & pin_attacked_by[Own][NONE] & ~dbl_attacked[Own]
+          & pin_attacked_by[Opp][NONE] & ~dbl_attacked[Opp];
+        score += Overloaded * pop_count (b);
 
         if (Trace)
         {

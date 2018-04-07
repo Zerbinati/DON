@@ -911,7 +911,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->en_passant_sq = SQ_NO;
     }
 
-    if (NORMAL == mtype (m))
+    switch(mtype (m))
+    {
+    case NORMAL:
     {
         assert(NIHT == promote (m));
 
@@ -936,8 +938,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             si->clock_ply = 0;
         }
     }
-    else
-    if (CASTLE == mtype (m))
+        break;
+    case CASTLE:
     {
         assert(KING == mpt
             && R_1 == rel_rank (active, org)
@@ -954,8 +956,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->psq_score += PST[active][ROOK][rook_dst]
                        - PST[active][ROOK][rook_org];
     }
-    else
-    if (ENPASSANT == mtype (m))
+        break;
+    case ENPASSANT:
     {
         // NOTE:: some condition already set so may not work
         assert(PAWN == mpt
@@ -972,8 +974,8 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
                       ^ RandZob.piece_square_keys[active][PAWN][org];
         prefetch (thread->pawn_table.get (si->pawn_key));
     }
-    else
-    if (PROMOTE == mtype (m))
+        break;
+    case PROMOTE:
     {
         assert(PAWN == mpt
             && R_7 == rel_rank (active, org)
@@ -995,7 +997,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         prefetch (thread->pawn_table.get (si->pawn_key));
         si->non_pawn_matl[active] += PieceValues[MG][ppt];
     }
-
+        break;
+    default:
+        assert(false);
+    }
     si->posi_key ^= RandZob.piece_square_keys[active][ppt][dst]
                   ^ RandZob.piece_square_keys[active][mpt][org];
     si->psq_score += PST[active][ppt][dst]
@@ -1044,12 +1049,14 @@ void Position::undo_move (Move m)
 
     active = ~active;
 
-    if (NORMAL == mtype (m))
+    switch (mtype (m))
+    {
+    case NORMAL:
     {
         move_piece (dst, org);
     }
-    else
-    if (CASTLE == mtype (m))
+        break;
+    case CASTLE:
     {
         assert(R_1 == rel_rank (active, org)
             && R_1 == rel_rank (active, dst)
@@ -1058,8 +1065,8 @@ void Position::undo_move (Move m)
         Square rook_org, rook_dst;
         undo_castling (org, dst, rook_org, rook_dst);
     }
-    else
-    if (ENPASSANT == mtype (m))
+        break;
+    case ENPASSANT:
     {
         assert(R_5 == rel_rank (active, org)
             && R_6 == rel_rank (active, dst)
@@ -1070,8 +1077,8 @@ void Position::undo_move (Move m)
 
         move_piece (dst, org);
     }
-    else
-    if (PROMOTE == mtype (m))
+        break;
+    case PROMOTE:
     {
         assert(R_7 == rel_rank (active, org)
             && R_8 == rel_rank (active, dst)
@@ -1081,6 +1088,10 @@ void Position::undo_move (Move m)
         remove_piece (dst);
         board[dst] = NO_PIECE; // Not done by remove_piece()
         place_piece (org, active, PAWN);
+    }
+        break;
+    default:
+        assert(false);
     }
 
     if (NONE != si->capture)
