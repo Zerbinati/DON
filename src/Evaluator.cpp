@@ -337,13 +337,10 @@ namespace {
         if (pos.si->non_pawn_material (Own) >= VALUE_MG_ROOK + VALUE_MG_NIHT)
         {
             king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
-            king_attackers_count[Own] = pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]);
-            
             if (R_1 == rel_rank (Opp, pos.square<KING> (Opp)))
             {
                 king_ring[Opp] |= shift<WHITE == Own ? DEL_S : DEL_N> (king_ring[Opp]);
             }
-
             if (F_H == _file (pos.square<KING> (Opp)))
             {
                 king_ring[Opp] |= shift<DEL_W> (king_ring[Opp]);
@@ -353,6 +350,8 @@ namespace {
             {
                 king_ring[Opp] |= shift<DEL_E> (king_ring[Opp]);
             }
+
+            king_attackers_count[Own] = pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]);
         }
         else
         {
@@ -381,9 +380,9 @@ namespace {
             Bitboard attacks;
             // Find attacked squares, including x-ray attacks for bishops and rooks
             attacks = NIHT == PT ? PieceAttacks[NIHT][s] :
-                      BSHP == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ ((pos.pieces (QUEN) | pos.pieces (Own, BSHP)) & ~pos.abs_blockers (Own))) :
-                      ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces () ^ ((pos.pieces (QUEN) | pos.pieces (Own, ROOK)) & ~pos.abs_blockers (Own))) :
-                      QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces () ^ ((                    pos.pieces (Own, QUEN)) & ~pos.abs_blockers (Own))) : (assert(false), 0);
+                      BSHP == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN, BSHP) & ~pos.si->king_blockers[Own]) | pos.pieces (Opp, QUEN))) :
+                      ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN, ROOK) & ~pos.si->king_blockers[Own]) | pos.pieces (Opp, QUEN))) :
+                      QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN)       & ~pos.si->king_blockers[Own]))) : (assert(false), 0);
 
             ful_attacked_by[Own] |= attacks;
 
@@ -436,10 +435,15 @@ namespace {
                 king_attacks_count[Own] += pop_count (pin_attacked_by[Opp][KING] & attacks);
             }
 
-            auto mob = NIHT == PT
-                    || BSHP == PT ?
-                        pop_count (mob_area[Own] & attacks & ~pos.pieces (Own, QUEN)) :
-                        pop_count (mob_area[Own] & attacks);
+            Bitboard b;
+
+            b = mob_area[Own] & attacks;
+            if (   NIHT == PT
+                || BSHP == PT)
+            {
+                b &= ~pos.pieces (Own, QUEN); // Queen not in mobility
+            }
+            auto mob = pop_count (b);
             assert(0 <= mob && mob <= 27);
 
             // Bonus for piece mobility
@@ -448,7 +452,6 @@ namespace {
             // Penalty for distance from the friend king
             score += KingProtector[PT - 1] * dist (s, pos.square<KING> (Own));
 
-            Bitboard b;
             // Special extra evaluation for pieces
             if (   NIHT == PT
                 || BSHP == PT)
