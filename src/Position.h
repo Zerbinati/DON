@@ -103,7 +103,6 @@ class Thread;
 class Position
 {
 private:
-    void place_piece (Square, Color, PieceType);
     void place_piece (Square, Piece);
     void remove_piece (Square);
     void move_piece (Square, Square);
@@ -493,46 +492,35 @@ inline void Position::do_move (Move m, StateInfo &nsi)
     do_move (m, nsi, gives_check (m));
 }
 
-inline void Position::place_piece (Square s, Color c, PieceType pt)
+inline void Position::place_piece (Square s, Piece pc)
 {
     //assert(empty (s)); // Not needed, in case of remove_piece()
-    board[s] = (c|pt);
-    color_bb[c] |= s;
-    types_bb[pt] |= s;
+    assert(_ok (pc));
+    color_bb[color (pc)] |= s;
+    types_bb[ptype (pc)] |= s;
     types_bb[NONE] |= s;
-
-    squares[c][pt].push_back (s);
-}
-inline void Position::place_piece (Square s, Piece p)
-{
-    assert(_ok (p));
-    place_piece (s, color (p), ptype (p));
+    squares[color (pc)][ptype (pc)].push_back (s);
+    board[s] = pc;
 }
 inline void Position::remove_piece (Square s)
 {
     assert(!empty (s));
-    auto c  = color (board[s]);
-    auto pt = ptype (board[s]);
-    //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
-    color_bb[c] ^= s;
-    types_bb[pt] ^= s;
+    color_bb[color (board[s])] ^= s;
+    types_bb[ptype (board[s])] ^= s;
     types_bb[NONE] ^= s;
-
-    squares[c][pt].remove (s);
+    squares[color (board[s])][ptype (board[s])].remove (s);
+    //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 }
 inline void Position::move_piece (Square s1, Square s2)
 {
     assert(!empty (s1));
-    auto c  = color (board[s1]);
-    auto pt = ptype (board[s1]);
+    Bitboard bb = square_bb (s1) ^ square_bb (s2);
+    color_bb[color (board[s1])] ^= bb;
+    types_bb[ptype (board[s1])] ^= bb;
+    types_bb[NONE] ^= bb;
+    std::replace (squares[color (board[s1])][ptype (board[s1])].begin (), squares[color (board[s1])][ptype (board[s1])].end (), s1, s2);
     board[s2] = board[s1];
     board[s1] = NO_PIECE;
-    Bitboard bb = square_bb (s1) ^ square_bb (s2);
-    color_bb[c] ^= bb;
-    types_bb[pt] ^= bb;
-    types_bb[NONE] ^= bb;
-
-    std::replace (squares[c][pt].begin (), squares[c][pt].end (), s1, s2);
 }
 
 /// do_castling()
@@ -546,8 +534,8 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     remove_piece (rook_org);
     board[king_org] =
     board[rook_org] = NO_PIECE; // Not done by remove_piece()
-    place_piece (king_dst, active, KING);
-    place_piece (rook_dst, active, ROOK);
+    place_piece (king_dst, active|KING);
+    place_piece (rook_dst, active|ROOK);
 }
 /// undo_castling()
 inline void Position::undo_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
@@ -560,8 +548,8 @@ inline void Position::undo_castling (Square king_org, Square &king_dst, Square &
     remove_piece (rook_dst);
     board[king_dst] =
     board[rook_dst] = NO_PIECE; // Not done by remove_piece()
-    place_piece (king_org, active, KING);
-    place_piece (rook_org, active, ROOK);
+    place_piece (king_org, active|KING);
+    place_piece (rook_org, active|ROOK);
 }
 
 
