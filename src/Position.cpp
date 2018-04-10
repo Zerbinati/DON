@@ -636,7 +636,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
 {
     // A FEN string defines a particular position using only the ASCII character set.
     // A FEN string contains six fields separated by a space.
-    // 1) Piece placement (from white's perspective).
+    // 1) Piece placement (from White's perspective).
     //    Each rank is described, starting with rank 8 and ending with rank 1;
     //    within each rank, the contents of each square are described from file A through file H.
     //    Following the Standard Algebraic Notation (SAN),
@@ -648,19 +648,19 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     // 2) Active color. "w" means white, "b" means black - moves next.
     // 3) Castling availability. If neither side can castle, this is "-". 
     //    Otherwise, this has one or more letters:
-    //    "K" (White can castle  Kingside).
-    //    "Q" (White can castle Queenside).
-    //    "k" (Black can castle  Kingside).
-    //    "q" (Black can castle Queenside).
+    //    "K" (White can castle  King side).
+    //    "Q" (White can castle Queen side).
+    //    "k" (Black can castle  King side).
+    //    "q" (Black can castle Queen side).
     //    In Chess 960 file "a-h" is used.
-    // 4) En passant target square (in algebraic notation).
-    //    If there's no en passant target square, this is "-".
+    // 4) Enpassant target square (in algebraic notation).
+    //    If there's no enpassant target square, this is "-".
     //    If a pawn has just made a 2-square move, this is the position "behind" the pawn.
     //    This is recorded only if there really is a pawn that might have advanced two squares
-    //    and if there is a pawn in position to make an en passant capture legally!!!. 
-    // 5) Halfmove clock. This is the number of halfmoves since the last pawn advance or capture.
+    //    and if there is a pawn in position to make an enpassant capture legally!!!. 
+    // 5) Half move clock. This is the number of half moves since the last pawn advance or capture.
     //    This is used to determine if a draw can be claimed under the fifty-move rule.
-    // 6) Fullmove number. The number of the full move.
+    // 6) Full move number. The number of the full move.
     //    It starts at 1, and is incremented after Black's move.
 
     istringstream iss (ff);
@@ -780,7 +780,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         }
     }
 
-    // 5-6. Halfmove clock and Fullmove number.
+    // 5-6. Half move clock and Full move number.
     i16 clock_ply = 0
       , moves = 1;
     if (full)
@@ -796,7 +796,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         // Rule 50 draw case.
         assert(100 >= clock_ply);
 
-        // Handle common problem Fullmove number = 0.
+        // Handle common problem Full move number = 0.
         if (0 >= moves)
         {
             moves = 1;
@@ -822,7 +822,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     return *this;
 }
 /// Position::setup() initializes the position object with the given endgame code string like "KBPKN".
-/// It is manily an helper to get the material key out of an endgame code.
+/// It is mainly an helper to get the material key out of an endgame code.
 Position& Position::setup (const string &code, StateInfo &nsi, Color c)
 {
     assert(0 < code.length () && code.length () <= 8);
@@ -1088,7 +1088,7 @@ void Position::undo_move (Move m)
     assert(ok ());
 }
 /// Position::do_null_move() makes a 'null move'.
-// It flips the side to move without executing any move on the board.
+/// It flips the side to move without executing any move on the board.
 void Position::do_null_move (StateInfo &nsi)
 {
     assert(&nsi != si

@@ -173,7 +173,7 @@ TEntry* TTable::probe (Key key, bool &tt_hit) const
 /// all transposition entries during a search which have received
 /// at least one write during the current search.
 /// It is used to display the "info hashfull ..." information in UCI.
-/// "the hash is <x> permill full", the engine should send this info regularly.
+/// "the hash is <x> per mill full", the engine should send this info regularly.
 /// hash, are using <x>%. of the state of full.
 u32 TTable::hash_full () const
 {

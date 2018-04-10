@@ -69,8 +69,7 @@ class StatsEntry
 {
 private:
 
-    static const bool IsInt = std::is_integral<T>::value;
-    typedef typename std::conditional<IsInt, i32, T>::type TT;
+    typedef typename std::conditional<std::is_integral<T>::value, i32, T>::type TT;
 
     T entry;
 
@@ -291,7 +290,7 @@ inline std::basic_ostream<CharT, Traits>&
 
 namespace Searcher {
 
-    // Threshold for countermoves based pruning
+    // Threshold for counter moves based pruning
     constexpr i32 CounterMovePruneThreshold = 0;
 
     extern Limit Limits;

@@ -746,7 +746,7 @@ namespace Searcher {
                 auto mpc = pos[org];
                 assert(NO_PIECE != mpc);
 
-                bool gives_check = pos.gives_check_s (move);
+                bool gives_check = pos.gives_check (move);
 
                 // Futility pruning
                 if (   !in_check
@@ -1330,7 +1330,7 @@ namespace Searcher {
                 auto mpc = pos[org];
                 assert(NO_PIECE != mpc);
 
-                bool gives_check = pos.gives_check_s (move);
+                bool gives_check = pos.gives_check (move);
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 if (   root_node
