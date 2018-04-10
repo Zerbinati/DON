@@ -231,7 +231,7 @@
       <Field Name="pawn_key" />
       <Field Name="psq_score" />
       <Field Name="castle_rights" />
-      <Field Name="en_passant_sq" />
+      <Field Name="enpassant_sq" />
       <Field Name="capture" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>

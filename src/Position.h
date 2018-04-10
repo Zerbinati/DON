@@ -39,7 +39,7 @@ public:
     Score       psq_score;
 
     CastleRight castle_rights;  // Castling-rights information
-    Square      en_passant_sq;  // Enpassant -> "In passing"
+    Square      enpassant_sq;   // Enpassant -> "In passing"
     u08         clock_ply;      // Number of half moves clock since the last pawn advance or any capture
                                 // Used to determine if a draw can be claimed under the clock-move rule
     u08         null_ply;
@@ -110,7 +110,7 @@ private:
 
     void set_castle (Color, CastleSide);
 
-    bool can_en_passant (Color, Square, bool = true) const;
+    bool can_enpassant (Color, Square, bool = true) const;
 
     void do_castling (Square, Square&, Square&, Square&);
     void undo_castling (Square, Square&, Square&, Square&);
@@ -184,7 +184,7 @@ public:
 
     bool pseudo_legal (Move) const;
     bool legal (Move) const;
-    bool en_passant (Move) const;
+    bool enpassant (Move) const;
     bool capture (Move) const;
     bool promotion (Move) const;
     bool capture_or_promotion (Move) const;
@@ -324,8 +324,8 @@ inline Key Position::posi_move_key (Move m) const
     if (CASTLE == mtype (m))
     {
         key ^=
-              RandZob.piece_square_keys[active][ROOK][dst]
-            ^ RandZob.piece_square_keys[active][ROOK][rel_sq (active, dst > org ? SQ_F1 : SQ_D1)];
+              RandZob.piece_square[active][ROOK][dst]
+            ^ RandZob.piece_square[active][ROOK][rel_sq (active, dst > org ? SQ_F1 : SQ_D1)];
     }
     else
     {
@@ -334,9 +334,9 @@ inline Key Position::posi_move_key (Move m) const
             && 16 == (u08(dst) ^ u08(org)))
         {
             const auto ep_sq = org + (dst - org) / 2;
-            if (can_en_passant (~active, ep_sq, false))
+            if (can_enpassant (~active, ep_sq, false))
             {
-                key ^= RandZob.en_passant_keys[_file (ep_sq)];
+                key ^= RandZob.enpassant[_file (ep_sq)];
             }
         }
         auto cpt = ENPASSANT != mtype (m) ?
@@ -344,7 +344,7 @@ inline Key Position::posi_move_key (Move m) const
                     PAWN;
         if (NONE != cpt)
         {
-            key ^= RandZob.piece_square_keys[~active][cpt][ENPASSANT != mtype (m) ?
+            key ^= RandZob.piece_square[~active][cpt][ENPASSANT != mtype (m) ?
                                                                 dst :
                                                                 dst - pawn_push (active)];
         }
@@ -352,16 +352,16 @@ inline Key Position::posi_move_key (Move m) const
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
     if (CR_NONE != b)
     {
-        if (CR_NONE != (b & CR_WKING)) key ^= RandZob.castle_right_keys[WHITE][CS_KING];
-        if (CR_NONE != (b & CR_WQUEN)) key ^= RandZob.castle_right_keys[WHITE][CS_QUEN];
-        if (CR_NONE != (b & CR_BKING)) key ^= RandZob.castle_right_keys[BLACK][CS_KING];
-        if (CR_NONE != (b & CR_BQUEN)) key ^= RandZob.castle_right_keys[BLACK][CS_QUEN];
+        if (CR_NONE != (b & CR_WKING)) key ^= RandZob.castle_right[WHITE][CS_KING];
+        if (CR_NONE != (b & CR_WQUEN)) key ^= RandZob.castle_right[WHITE][CS_QUEN];
+        if (CR_NONE != (b & CR_BKING)) key ^= RandZob.castle_right[BLACK][CS_KING];
+        if (CR_NONE != (b & CR_BQUEN)) key ^= RandZob.castle_right[BLACK][CS_QUEN];
     }
     return key
-         ^ RandZob.color_key
-         ^ RandZob.piece_square_keys[active][ppt][CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
-         ^ RandZob.piece_square_keys[active][ptype (board[org])][org]
-         ^ (SQ_NO != si->en_passant_sq ? RandZob.en_passant_keys[_file (si->en_passant_sq)] : 0);
+         ^ RandZob.color
+         ^ RandZob.piece_square[active][ppt][CASTLE != mtype (m) ? dst : rel_sq (active, dst > org ? SQ_G1 : SQ_C1)]
+         ^ RandZob.piece_square[active][ptype (board[org])][org]
+         ^ (SQ_NO != si->enpassant_sq ? RandZob.enpassant[_file (si->enpassant_sq)] : 0);
 }
 
 inline bool Position::expeded_castle (Color c, CastleSide cs) const
@@ -453,12 +453,12 @@ inline bool Position::opposite_bishops () const
             || (   0 != (pieces (WHITE, BSHP) & Color_bb[BLACK])
                 && 0 != (pieces (BLACK, BSHP) & Color_bb[WHITE])));
 }
-inline bool Position::en_passant (Move m) const
+inline bool Position::enpassant (Move m) const
 {
     return ENPASSANT == mtype (m)
         && contains (pieces (active, PAWN), org_sq (m))
         && empty (dst_sq (m))
-        && si->en_passant_sq == dst_sq (m);
+        && si->enpassant_sq == dst_sq (m);
 }
 inline bool Position::capture (Move m) const
 {
@@ -466,7 +466,7 @@ inline bool Position::capture (Move m) const
     return (   (   NORMAL == mtype (m)
                 || promotion (m))
             && contains (pieces (~active), dst_sq (m)))
-        || en_passant (m);
+        || enpassant (m);
 }
 inline bool Position::promotion (Move m) const
 {
@@ -478,7 +478,7 @@ inline bool Position::capture_or_promotion (Move m) const
 {
     return (   NORMAL == mtype (m)
             && contains (pieces (~active), dst_sq (m)))
-        || en_passant (m)
+        || enpassant (m)
         || promotion (m);
 }
 inline bool Position::gives_check_s (Move m) const

@@ -1162,6 +1162,11 @@ namespace Searcher {
                         // Null move dynamic reduction based on depth and static evaluation.
                         auto R = i16((67*depth + 823) / 256 + std::min (i32((tt_eval - beta)/VALUE_MG_PAWN), 3));
 
+                        // Speculative prefetch as early as possible
+                        prefetch (TT.cluster_entry (  pos.si->posi_key
+                                                    ^ RandZob.color
+                                                    ^ (SQ_NO != pos.si->enpassant_sq ? RandZob.enpassant[_file (pos.si->enpassant_sq)] : 0)));
+
                         ss->played_move = MOVE_NULL;
                         ss->piece_destiny_history = pos.thread->continuation_history[NO_PIECE][0].get ();
 
@@ -1230,6 +1235,9 @@ namespace Searcher {
                                 && pos.capture_or_promotion (move));
 
                             ++pc_movecount;
+
+                            // Speculative prefetch as early as possible
+                            prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                             ss->played_move = move;
                             ss->piece_destiny_history = pos.thread->continuation_history[pos[org_sq (move)]][dst_sq (move)].get ();

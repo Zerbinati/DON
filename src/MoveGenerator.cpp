@@ -163,9 +163,9 @@ namespace {
             while (0 != l_attack) { auto dst = pop_lsq (l_attack); moves += mk_move<NORMAL> (dst - LCap, dst); }
             while (0 != r_attack) { auto dst = pop_lsq (r_attack); moves += mk_move<NORMAL> (dst - RCap, dst); }
 
-            if (SQ_NO != pos.si->en_passant_sq)
+            if (SQ_NO != pos.si->enpassant_sq)
             {
-                assert(R_6 == rel_rank (Own, pos.si->en_passant_sq));
+                assert(R_6 == rel_rank (Own, pos.si->enpassant_sq));
                 Bitboard ep_captures = Rx_pawns & rank_bb (WHITE == Own ? R_5 : R_4);
                 if (0 != ep_captures)
                 {
@@ -176,10 +176,10 @@ namespace {
                         ep_captures &= (  shift<DEL_E> (targets)
                                         | shift<DEL_W> (targets));
                     }
-                    ep_captures &= PawnAttacks[Opp][pos.si->en_passant_sq];
+                    ep_captures &= PawnAttacks[Opp][pos.si->enpassant_sq];
                     assert(0 != ep_captures
                         && 2 >= pop_count (ep_captures));
-                    while (0 != ep_captures) { moves += mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->en_passant_sq); }
+                    while (0 != ep_captures) { moves += mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->enpassant_sq); }
                 }
             }
         }
@@ -461,7 +461,7 @@ void filter_illegal (ValMoves &moves, const Position &pos)
                                  [&] (const ValMove &vm)
                                  {
                                      return (   0 != pos.abs_blockers (pos.active)
-                                             || pos.en_passant (vm.move)
+                                             || pos.enpassant (vm.move)
                                              || pos.square<KING> (pos.active) == org_sq (vm.move))
                                          && !pos.legal (vm.move);
                                  }),

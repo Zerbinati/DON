@@ -647,7 +647,7 @@ inline void toggle (std::string &str)
 
 inline std::string& trim_beg (std::string &str)
 {
-    str.erase (str.begin (), 
+    str.erase (str.begin (),
                 std::find_if (str.begin (), str.end (), 
                     std::not1 (std::ptr_fun<i32, i32> (std::isspace))));
     return str;
@@ -691,22 +691,27 @@ inline std::vector<std::string> split (const std::string str, char delimiter = '
     return tokens;
 }
 
-inline void remove_substring (std::string &str, const std::string &sub)
+inline void erase_substring (std::string &str, const std::string &sub)
 {
-    size_t pos = str.find (sub);
-    while (pos != std::string::npos)
+    std::string::size_type pos;
+    while ((pos = str.find (sub)) != std::string::npos)
     {
         str.erase (pos, sub.length ());
-        pos = str.find (sub, pos);
     }
 }
 
-inline void remove_extension (std::string &filename)
+inline void erase_substrings (std::string &str, const std::vector<std::string> &sub_list)
 {
-    size_t pos = filename.find_last_of ('.');
+    std::for_each (sub_list.begin (), sub_list.end (), std::bind (erase_substring, std::ref (str), std::placeholders::_1));
+}
+
+inline void erase_extension (std::string &filename)
+{
+    auto pos = filename.find_last_of ('.');
     if (pos != std::string::npos)
     {
-        filename = filename.substr (0, pos);
+        //filename = filename.substr (0, pos);
+        filename.erase (pos, std::string::npos);
     }
 }
 
