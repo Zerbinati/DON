@@ -123,12 +123,10 @@ namespace EndGame {
         const auto sk_sq = pos.square<KING> (strong_color);
         const auto wk_sq = pos.square<KING> (  weak_color);
 
-        auto value = std::min (
-                             VALUE_EG_PAWN*pos.count (strong_color, PAWN)
-                           + pos.si->non_pawn_material (strong_color)
-                           + PushToEdge[wk_sq]
-                           + PushClose[dist (sk_sq, wk_sq)]
-                           , +VALUE_KNOWN_WIN - 1);
+        auto value = std::min (VALUE_EG_PAWN*pos.count (strong_color, PAWN)
+                             + pos.si->non_pawn_material (strong_color)
+                             + PushToEdge[wk_sq]
+                             + PushClose[dist (sk_sq, wk_sq)], +VALUE_KNOWN_WIN - 1);
 
         if (   0 != pos.count (strong_color, QUEN)
             || 0 != pos.count (strong_color, ROOK)
@@ -161,7 +159,7 @@ namespace EndGame {
 
         const auto value = VALUE_KNOWN_WIN
                          + VALUE_EG_PAWN
-                         + Value(_rank (sp_sq));
+                         + i32(_rank (sp_sq));
 
         return strong_color == pos.active ? +value : -value;
     }
@@ -221,25 +219,30 @@ namespace EndGame {
         // If the weak side's king is too far from the pawn and the rook, it's a win.
         if (   (   sk_sq < wp_sq
                 && _file (sk_sq) == _file (wp_sq))
-            || (   dist (wk_sq, wp_sq) >= 3 + (weak_color == pos.active ? 1 : 0)
-                && dist (wk_sq, sr_sq) >= 3))
+            || (   3 <= dist (wk_sq, wp_sq) + (weak_color == pos.active ? 1 : 0)
+                && 3 <= dist (wk_sq, sr_sq)))
         {
-            value = VALUE_EG_ROOK - dist (sk_sq, wp_sq);
+            value = VALUE_EG_ROOK
+                  - dist (sk_sq, wp_sq);
         }
         else
         // If the pawn is far advanced and supported by the defending king, it's a drawish.
-        if (   _rank (wk_sq) <= R_3
-            && dist (wk_sq, wp_sq) == 1
-            && _rank (sk_sq) >= R_4
-            && dist (sk_sq, wp_sq) > 2 + (strong_color == pos.active ? 1 : 0))
+        if (   R_3 >= _rank (wk_sq)
+            && 1 == dist (wk_sq, wp_sq)
+            && R_4 <= _rank (sk_sq)
+            && 2 < dist (sk_sq, wp_sq) + (strong_color == pos.active ? 1 : 0))
         {
-            value = Value(- 8 * dist (sk_sq, wp_sq) + 80);
+            value = VALUE_ZERO
+                  - 8 * dist (sk_sq, wp_sq)
+                  + 80;
         }
         else
         {
-            value = Value(- 8 * (  dist (sk_sq, wp_sq+DEL_S)
-                                 - dist (wk_sq, wp_sq+DEL_S)
-                                 - dist (wp_sq, promote_sq)) + 200);
+            value = VALUE_ZERO
+                  - 8 * (  dist (sk_sq, wp_sq+DEL_S)
+                         - dist (wk_sq, wp_sq+DEL_S)
+                         - dist (wp_sq, promote_sq))
+                  + 200;
         }
 
         return strong_color == pos.active ? +value : -value;
@@ -260,14 +263,15 @@ namespace EndGame {
         // And not just any corner! Only a corner that's not the same color as the bishop will do.
         if (   contains ((FA_bb|FH_bb)&(R1_bb|R8_bb), wk_sq)
             && opposite_colors (wk_sq, wb_sq)
-            && dist (wk_sq, wb_sq) == 1
-            && dist (sk_sq, wb_sq) > 1)
+            && 1 == dist (wk_sq, wb_sq)
+            && 1 < dist (sk_sq, wb_sq))
         {
             return VALUE_DRAW;
         }
 
         // When the weak side ended up in the same corner as bishop.
-        const auto value = Value(PushToEdge[wk_sq]);
+        const auto value = VALUE_ZERO
+                         + PushToEdge[wk_sq];
 
         return strong_color == pos.active ? +value : -value;
     }
@@ -284,8 +288,8 @@ namespace EndGame {
         const auto wn_sq = pos.square<NIHT> (  weak_color);
 
         // If weak king is near the knight, it's a draw.
-        if (   dist (wk_sq, wn_sq) + (strong_color == pos.active ? 1 : 0) <= 3
-            && dist (sk_sq, wn_sq) > 1)
+        if (   3 >= dist (wk_sq, wn_sq) + (strong_color == pos.active ? 1 : 0)
+            && 1 < dist (sk_sq, wn_sq))
         {
             return VALUE_DRAW;
         }
@@ -315,7 +319,8 @@ namespace EndGame {
                          + (   R_7 > rel_rank (weak_color, wp_sq)
                             || !contains (FA_bb|FC_bb|FF_bb|FH_bb, wp_sq)
                             || 1 != dist (wk_sq, wp_sq) ?
-                                VALUE_EG_QUEN - VALUE_EG_PAWN : VALUE_ZERO);
+                                VALUE_EG_QUEN - VALUE_EG_PAWN :
+                                VALUE_ZERO);
 
         return strong_color == pos.active ? +value : -value;
     }
@@ -332,7 +337,8 @@ namespace EndGame {
         const auto sk_sq = pos.square<KING> (strong_color);
         const auto wk_sq = pos.square<KING> (  weak_color);
 
-        const auto value = VALUE_EG_QUEN - VALUE_EG_ROOK
+        const auto value = VALUE_EG_QUEN
+                         - VALUE_EG_ROOK
                          + PushClose[dist (sk_sq, wk_sq)]
                          + PushToEdge[wk_sq];
 
@@ -427,7 +433,7 @@ namespace EndGame {
             && dist (sk_sq, promote_sq) < dist (wk_sq, sr_sq) + tempo)
         {
             return Scale(SCALE_MAX
-                         - 2 * dist (sk_sq, promote_sq));
+                       - 2 * dist (sk_sq, promote_sq));
         }
         // Similar to the above, but with the pawn further back
         if (   F_A != f
@@ -440,8 +446,8 @@ namespace EndGame {
                     && dist (sk_sq, sp_sq+DEL_N) < dist (wk_sq, sr_sq) + tempo)))
         {
             return Scale(SCALE_MAX
-                         - 8 * dist (sp_sq, promote_sq)
-                         - 2 * dist (sk_sq, promote_sq));
+                       - 8 * dist (sp_sq, promote_sq)
+                       - 2 * dist (sk_sq, promote_sq));
         }
         // If the pawn is not far advanced, and the defending king is somewhere in
         // the pawn's path, it's probably a draw.
@@ -455,7 +461,8 @@ namespace EndGame {
             if (   1 == dist<File> (wk_sq, sp_sq)
                 && 2 < dist (sk_sq, wk_sq))
             {
-                return Scale(24 - 2 * dist (sk_sq, wk_sq));
+                return Scale(24
+                           - 2 * dist (sk_sq, wk_sq));
             }
         }
 
