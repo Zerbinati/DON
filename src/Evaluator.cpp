@@ -289,6 +289,9 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
+        std::fill_n (pin_attacked_by[Own], NONE, 0);
+        std::fill_n (pin_attacked_queen[Own], 3, 0);
+
         const Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
         if (0 != pinned_pawns)
         {
@@ -311,15 +314,6 @@ namespace {
         dbl_attacked[Own]          = (  pin_attacked_by[Own][KING]
                                       | pe->dbl_attacks[Own])
                                    & pin_attacked_by[Own][PAWN];
-
-        for (auto pt : { NIHT, BSHP, ROOK, QUEN })
-        {
-            pin_attacked_by[Own][pt] = 0;
-        }
-        for (auto x : { 0, 1, 2 })
-        {
-            pin_attacked_queen[Own][x] = 0;
-        }
 
         // Do not include in mobility area
         // - squares protected by enemy pawns
@@ -425,8 +419,8 @@ namespace {
                                    & attacks;
             }
 
-            pin_attacked_by[Own][NONE] |= attacks;
             pin_attacked_by[Own][PT]   |= attacks;
+            pin_attacked_by[Own][NONE] |= attacks;
 
             if (0 != (king_ring[Opp] & attacks))
             {

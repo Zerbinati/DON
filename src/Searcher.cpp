@@ -458,6 +458,8 @@ namespace Searcher {
             return ReductionDepths[pv ? 1 : 0][imp ? 1 : 0][d <= 63 ? d : 63][mc <= 63 ? mc : 63];
         }
 
+        i32 BasicContempt = 0;
+
         ofstream OutputStream;
 
         /// stat_bonus() is the bonus, based on depth
@@ -1822,8 +1824,8 @@ void Thread::search ()
                             nullptr;
 
     contempt = WHITE == root_pos.active ?
-                +mk_score (Threadpool.main_thread ()->basic_contempt, Threadpool.main_thread ()->basic_contempt / 2) :
-                -mk_score (Threadpool.main_thread ()->basic_contempt, Threadpool.main_thread ()->basic_contempt / 2);
+                +mk_score (BasicContempt, BasicContempt / 2) :
+                -mk_score (BasicContempt, BasicContempt / 2);
 
     auto last_best_move = MOVE_NONE;
     i16  last_best_move_depth = 0;
@@ -1883,7 +1885,7 @@ void Thread::search ()
                 // Dynamic contempt
                 if (0 != ContemptValue)
                 {
-                    i32 dynamic_contempt = Threadpool.main_thread ()->basic_contempt + i32(std::round (48 * std::atan (double(old_value) / (12.8 * ContemptValue))));
+                    i32 dynamic_contempt = BasicContempt + i32(std::round (48 * std::atan (double(old_value) / (12.8 * ContemptValue))));
                     contempt = WHITE == root_pos.active ?
                                 +mk_score (dynamic_contempt, dynamic_contempt / 2) :
                                 -mk_score (dynamic_contempt, dynamic_contempt / 2);
@@ -2149,7 +2151,7 @@ void MainThread::search ()
                 timed_contempt = i16(diff_time/ContemptTime);
             }
 
-            basic_contempt = i32(cp_to_value (FixedContempt + timed_contempt));
+            BasicContempt = i32(cp_to_value (FixedContempt + timed_contempt));
 
             if (Limits.use_time_management ())
             {

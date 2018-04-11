@@ -65,17 +65,17 @@ public:
         return non_pawn_matl[c];
     }
 
-    bool can_castle (Color c) const
-    {
-        return CR_NONE != (castle_rights & castle_right (c));
-    }
-    bool can_castle (Color c, CastleSide cs) const
-    {
-        return CR_NONE != (castle_rights & castle_right (c, cs));
-    }
     bool can_castle (CastleRight cr) const
     {
         return CR_NONE != (castle_rights & cr);
+    }
+    bool can_castle (Color c) const
+    {
+        return can_castle (castle_right (c));
+    }
+    bool can_castle (Color c, CastleSide cs) const
+    {
+        return can_castle (castle_right (c, cs));
     }
 
     void set_check_info (const Position &pos);
@@ -103,9 +103,9 @@ class Thread;
 class Position
 {
 private:
-    void place_piece (Square, Piece);
-    void remove_piece (Square);
-    void move_piece (Square, Square);
+    void place_piece_on (Square, Piece);
+    void remove_piece_on (Square);
+    void move_piece_on_to (Square, Square);
 
     void set_castle (Color, CastleSide);
 
@@ -492,17 +492,17 @@ inline void Position::do_move (Move m, StateInfo &nsi)
     do_move (m, nsi, gives_check (m));
 }
 
-inline void Position::place_piece (Square s, Piece pc)
+inline void Position::place_piece_on (Square s, Piece pc)
 {
-    //assert(empty (s)); // Not needed, in case of remove_piece()
+    //assert(empty (s)); // Not needed, in case of remove_piece_on()
     assert(_ok (pc));
     color_bb[color (pc)] |= s;
     types_bb[ptype (pc)] |= s;
     types_bb[NONE] |= s;
-    squares[color (pc)][ptype (pc)].push_back (s);
+    squares[color (pc)][ptype (pc)].emplace_back (s);
     board[s] = pc;
 }
-inline void Position::remove_piece (Square s)
+inline void Position::remove_piece_on (Square s)
 {
     assert(!empty (s));
     color_bb[color (board[s])] ^= s;
@@ -511,14 +511,17 @@ inline void Position::remove_piece (Square s)
     squares[color (board[s])][ptype (board[s])].remove (s);
     //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 }
-inline void Position::move_piece (Square s1, Square s2)
+inline void Position::move_piece_on_to (Square s1, Square s2)
 {
-    assert(!empty (s1));
+    assert(!empty (s1)
+        && std::count (squares[color (board[s1])][ptype (board[s1])].begin (),
+                       squares[color (board[s1])][ptype (board[s1])].end (), s1) == 1);
     Bitboard bb = square_bb (s1) ^ square_bb (s2);
     color_bb[color (board[s1])] ^= bb;
     types_bb[ptype (board[s1])] ^= bb;
     types_bb[NONE] ^= bb;
-    std::replace (squares[color (board[s1])][ptype (board[s1])].begin (), squares[color (board[s1])][ptype (board[s1])].end (), s1, s2);
+    std::replace (squares[color (board[s1])][ptype (board[s1])].begin (),
+                  squares[color (board[s1])][ptype (board[s1])].end (), s1, s2);
     board[s2] = board[s1];
     board[s1] = NO_PIECE;
 }
@@ -530,12 +533,12 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     king_dst = rel_sq (active, rook_org > king_org ? SQ_G1 : SQ_C1);
     rook_dst = rel_sq (active, rook_org > king_org ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
-    remove_piece (king_org);
-    remove_piece (rook_org);
+    remove_piece_on (king_org);
+    remove_piece_on (rook_org);
     board[king_org] =
-    board[rook_org] = NO_PIECE; // Not done by remove_piece()
-    place_piece (king_dst, active|KING);
-    place_piece (rook_dst, active|ROOK);
+    board[rook_org] = NO_PIECE; // Not done by remove_piece_on()
+    place_piece_on (king_dst, active|KING);
+    place_piece_on (rook_dst, active|ROOK);
 }
 /// undo_castling()
 inline void Position::undo_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
@@ -544,12 +547,12 @@ inline void Position::undo_castling (Square king_org, Square &king_dst, Square &
     king_dst = rel_sq (active, rook_org > king_org ? SQ_G1 : SQ_C1);
     rook_dst = rel_sq (active, rook_org > king_org ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
-    remove_piece (king_dst);
-    remove_piece (rook_dst);
+    remove_piece_on (king_dst);
+    remove_piece_on (rook_dst);
     board[king_dst] =
-    board[rook_dst] = NO_PIECE; // Not done by remove_piece()
-    place_piece (king_org, active|KING);
-    place_piece (rook_org, active|ROOK);
+    board[rook_dst] = NO_PIECE; // Not done by remove_piece_on()
+    place_piece_on (king_org, active|KING);
+    place_piece_on (rook_org, active|ROOK);
 }
 
 

@@ -686,7 +686,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         if (   isalpha (token)
             && (idx = PieceChar.find (token)) != string::npos)
         {
-            place_piece (File(f)|Rank(r), Piece(idx));
+            place_piece_on (File(f)|Rank(r), Piece(idx));
             ++f;
         }
         else
@@ -884,7 +884,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     if (NONE != si->capture)
     {
         assert(capture (m));
-        remove_piece (cap);
+        remove_piece_on (cap);
         if (PAWN == si->capture)
         {
             si->pawn_key ^= RandZob.piece_square[pasive][PAWN][cap];
@@ -913,7 +913,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     {
     case NORMAL:
         si->promotion = false;
-        move_piece (org, dst);
+        move_piece_on_to (org, dst);
         if (PAWN == mpt)
         {
             si->pawn_key ^= RandZob.piece_square[active][PAWN][dst]
@@ -959,10 +959,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
             && empty (dst)
             && 1 >= si->clock_ply);
 
-        board[cap] = NO_PIECE; // Not done by remove_piece()
+        board[cap] = NO_PIECE; // Not done by remove_piece_on()
         si->clock_ply = 0;
         si->promotion = false;
-        move_piece (org, dst);
+        move_piece_on_to (org, dst);
         si->pawn_key ^= RandZob.piece_square[active][PAWN][dst]
                       ^ RandZob.piece_square[active][PAWN][org];
         prefetch (thread->pawn_table.get (si->pawn_key));
@@ -977,9 +977,9 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         si->clock_ply = 0;
         si->promotion = true;
         // Replace the pawn with the promoted piece
-        remove_piece (org);
-        board[org] = NO_PIECE; // Not done by remove_piece()
-        place_piece (dst, active|ppt);
+        remove_piece_on (org);
+        board[org] = NO_PIECE; // Not done by remove_piece_on()
+        place_piece_on (dst, active|ppt);
         si->matl_key ^= RandZob.piece_square[active][PAWN][count (active, mpt)]
                       ^ RandZob.piece_square[active][ppt][count (active, ppt) - 1];
         prefetch (thread->matl_table.get (si->matl_key));
@@ -1058,7 +1058,7 @@ void Position::undo_move (Move m)
             && contains (pieces (active, PAWN), dst));
     // Note:: No break
     case NORMAL:
-        move_piece (dst, org);
+        move_piece_on_to (dst, org);
         break;
     case PROMOTE:
         assert(R_7 == rel_rank (active, org)
@@ -1066,9 +1066,9 @@ void Position::undo_move (Move m)
             && si->promotion
             && contains (pieces (active, promote (m)), dst));
 
-        remove_piece (dst);
-        board[dst] = NO_PIECE; // Not done by remove_piece()
-        place_piece (org, active|PAWN);
+        remove_piece_on (dst);
+        board[dst] = NO_PIECE; // Not done by remove_piece_on()
+        place_piece_on (org, active|PAWN);
         break;
     default:
         assert(false);
@@ -1078,7 +1078,7 @@ void Position::undo_move (Move m)
     {
         // Restore the captured piece.
         assert(empty (ENPASSANT != mtype (m) ? dst : dst - pawn_push (active)));
-        place_piece (ENPASSANT != mtype (m) ? dst : dst - pawn_push (active), (~active)|si->capture);
+        place_piece_on (ENPASSANT != mtype (m) ? dst : dst - pawn_push (active), (~active)|si->capture);
     }
 
     // Point state pointer back to the previous state.

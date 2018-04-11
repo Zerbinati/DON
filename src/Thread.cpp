@@ -256,7 +256,6 @@ MainThread::MainThread (size_t idx)
     , best_move_change (0.0)
     , last_value (VALUE_NONE)
     , last_time_reduction (1.00)
-    , basic_contempt (0)
 {}
 /// MainThread::clear()
 void MainThread::clear ()
