@@ -37,15 +37,15 @@ public:
     Value value () const { return Value(v16); }
     Value eval () const { return Value(e16); }
     i16   depth () const { return i16(d08); }
-    Bound bound () const { return Bound(gb08 & 0x03); }
-    u08   generation () const { return u08(gb08 & 0xFC); }
+    Bound bound () const { return Bound(gb08 & 3); }
+    u08   generation () const { return u08(gb08 & 252); }
     bool  empty () const { return d08 == DepthEmpty; }
 
     // The worth of an entry is calculated as its depth minus 2 times its relative age.
     // Due to packed storage format for generation and its cyclic nature
-    // add 0x103 (0x100 + 0x003 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
+    // add 259 (256 + 3 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
     // to calculate the entry age correctly even after generation overflows into the next cycle.
-    i16   worth () const { return d08 - ((Generation + 0x103 - gb08) & 0xFC) * 2; }
+    i16   worth () const { return d08 - ((Generation + 259 - gb08) & 252) * 2; }
 
     void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
     {
@@ -148,11 +148,11 @@ public:
     static constexpr u32 MinHashSize = 4;
     // Maximum size of Transposition::Table (131072 MB = 128 GB)
     static constexpr u32 MaxHashSize =
-#       if defined(BIT64)
+#   if defined(BIT64)
         128 * 1024;
-#       else
+#   else
         2 * 1024;
-#       endif
+#   endif
 
     static constexpr u32 BufferSize = 0x10000;
 
