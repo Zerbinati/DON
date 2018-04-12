@@ -416,9 +416,6 @@ namespace Searcher {
       , ContemptTime = 60
       , ContemptValue = 10;
 
-    string HashFile = "Hash.dat";
-    bool RetainHash = false;
-
     i16 TBProbeDepth = 1;
     i32 TBLimitPiece = 6;
     bool TBUseRule50 = true;
@@ -951,7 +948,7 @@ namespace Searcher {
             // Step 4. Transposition table lookup.
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
-            Key  key = pos.si->posi_key ^ Key(ss->excluded_move << 16);
+            Key  key = pos.si->posi_key ^ (Key(ss->excluded_move) << 16);
             bool tt_hit;
             auto *tte = TT.probe (key, tt_hit);
             auto tt_move = root_node ?
@@ -1789,10 +1786,7 @@ namespace Searcher {
         Threadpool.stop = true;
         Threadpool.main_thread ()->wait_while_busy ();
         Threadpool.clear ();
-        if (!RetainHash)
-        {
-            TT.clear ();
-        }
+        TT.clear ();
     }
 
 }

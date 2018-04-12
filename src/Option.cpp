@@ -171,33 +171,24 @@ namespace UCI {
 
         void on_retain_hash ()
         {
-            RetainHash = bool(Options["Retain Hash"]);
+            TT.retain_hash = bool(Options["Retain Hash"]);
         }
 
-        void on_hash_file ()
+        void on_hash_fn ()
         {
-            auto filename = string(Options["Hash File"]);
-            trim (filename);
-            convert_path (filename);
-            HashFile = filename;
+            TT.set_hash_fn (string(Options["Hash File"]));
         }
 
         void on_save_hash ()
         {
-            on_hash_file ();
-            if (!white_spaces (HashFile))
-            {
-                TT.save (HashFile);
-            }
+            on_hash_fn ();
+            TT.save ();
         }
 
         void on_load_hash ()
         {
-            on_hash_file ();
-            if (!white_spaces (HashFile))
-            {
-                TT.load (HashFile);
-            }
+            on_hash_fn ();
+            TT.load ();
         }
 
         void on_threads ()
@@ -322,9 +313,9 @@ namespace UCI {
 #endif
 
         Options["Clear Hash"]         << Option (on_clear_hash);
-        Options["Retain Hash"]        << Option (RetainHash, on_retain_hash);
+        Options["Retain Hash"]        << Option (TT.retain_hash, on_retain_hash);
 
-        Options["Hash File"]          << Option (HashFile, on_hash_file);
+        Options["Hash File"]          << Option (TT.hash_fn, on_hash_fn);
         Options["Save Hash"]          << Option (on_save_hash);
         Options["Load Hash"]          << Option (on_load_hash);
 

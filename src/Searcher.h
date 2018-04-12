@@ -302,9 +302,6 @@ namespace Searcher {
         ,      ContemptTime 
         ,      ContemptValue;
 
-    extern std::string HashFile;
-    extern bool RetainHash;
-
     extern i16 TBProbeDepth;
     extern i32 TBLimitPiece;
     extern bool TBUseRule50;

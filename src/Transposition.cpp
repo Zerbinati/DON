@@ -123,6 +123,10 @@ void TTable::auto_resize (u32 mem_size, bool force)
 void TTable::clear () const
 {
     assert(nullptr != clusters);
+    if (retain_hash)
+    {
+        return;
+    }
     // Clear first cluster
     std::memset (clusters, 0x00, sizeof (*clusters));
     for (auto *ite = clusters->entries; ite < clusters->entries + TCluster::EntryCount; ++ite)
@@ -192,8 +196,12 @@ u32 TTable::hash_full () const
     return u32(entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
 }
 /// TTable::save() saves hash to file
-void TTable::save (const string &hash_fn) const
+void TTable::save () const
 {
+    if (white_spaces (hash_fn))
+    {
+        return;
+    }
     ofstream ofs (hash_fn, ios_base::out|ios_base::binary);
     if (ofs.is_open ())
     {
@@ -203,8 +211,12 @@ void TTable::save (const string &hash_fn) const
     }
 }
 /// TTable::load() loads hash from file
-void TTable::load (const string &hash_fn)
+void TTable::load ()
 {
+    if (white_spaces (hash_fn))
+    {
+        return;
+    }
     ifstream ifs (hash_fn, ios_base::in|ios_base::binary);
     if (ifs.is_open ())
     {
