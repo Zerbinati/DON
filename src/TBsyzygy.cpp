@@ -92,7 +92,7 @@ namespace TBSyzygy {
         };
 
         template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
-        inline void swap_byte (T &x)
+        inline void swap_endian (T &x)
         {
             auto *c = (char*) (&x);
             for (i32 i = 0; i < Half; ++i)
@@ -103,7 +103,7 @@ namespace TBSyzygy {
             }
         }
         template<>
-        inline void swap_byte<u08, 0, 0> (u08&)
+        inline void swap_endian<u08> (u08&)
         {}
 
         template<typename T, Endian E>
@@ -121,7 +121,7 @@ namespace TBSyzygy {
             }
             if (E != (e.c[0] == 4 ? Endian::LITTLE : Endian::BIG))
             {
-                swap_byte (v);
+                swap_endian (v);
             }
             return v;
         }

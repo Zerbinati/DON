@@ -948,7 +948,7 @@ namespace Searcher {
             // Step 4. Transposition table lookup.
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
-            Key  key = pos.si->posi_key ^ (Key(ss->excluded_move) << 16);
+            Key  key = pos.si->posi_key ^ (Key(ss->excluded_move) << 0x10);
             bool tt_hit;
             auto *tte = TT.probe (key, tt_hit);
             auto tt_move = root_node ?
