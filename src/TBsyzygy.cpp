@@ -73,7 +73,12 @@ namespace TBSyzygy {
 
         constexpr i32 TBPIECES = 6;
 
-        enum TBType : u08 { WDL, DTZ }; // Used as template parameter
+        // Type of table
+        enum TBType : u08
+        {
+            WDL,
+            DTZ
+        }; 
 
         // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
         enum TBFlag : u08
@@ -1559,11 +1564,12 @@ namespace TBSyzygy {
                     -dtz_before_zeroing (search (pos, state, false)) :
                     -probe_dtz (pos, state);
 
-            pos.undo_move (vm.move);
-
-            if (ProbeState::FAILURE == state)
+            // If the move mates, force minDTZ to 1
+            if (   dtz == 1
+                && 0 != pos.si->checkers
+                && 0 == MoveList<LEGAL> (pos).size ())
             {
-                return 0;
+                min_dtz = 1;
             }
 
             // Convert state from 1-ply search. Zeroing moves are already accounted
@@ -1578,11 +1584,16 @@ namespace TBSyzygy {
             {
                 min_dtz = std::min (dtz, min_dtz);
             }
+
+            pos.undo_move (vm.move);
+
+            if (ProbeState::FAILURE == state)
+            {
+                return 0;
+            }
         }
 
-        // Special handle a mate position, when there are no legal moves, in this
-        // case return value is somewhat arbitrary, so stick to the original TB code
-        // that returns -1 in this case.
+        // When there are no legal moves, the position is mate: return -1
         return min_dtz == 0xFFFF ? -1 : min_dtz;
     }
 
