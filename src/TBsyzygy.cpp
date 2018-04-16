@@ -96,6 +96,34 @@ namespace TBSyzygy {
             LITTLE
         };
 
+        constexpr Value WDL_To_Value[] =
+        {
+            -VALUE_MATE + i32 (MaxPlies) + 1,
+            VALUE_DRAW - 2,
+            VALUE_DRAW,
+            VALUE_DRAW + 2,
+            +VALUE_MATE - i32 (MaxPlies) - 1
+        };
+
+        i32 MapPawns[SQ_NO];
+        i32 MapB1H1H7[SQ_NO];
+        i32 MapA1D1D4[SQ_NO];
+        i32 MapKK[10][SQ_NO]; // [MapA1D1D4][SQ_NO]
+
+        i32 Binomial[6][SQ_NO];    // [k][n] k elements from a set of n elements
+        i32 LeadPawnIdx[5][SQ_NO]; // [lead_pawn_count][SQ_NO]
+        i32 LeadPawnsSize[5][4];   // [lead_pawn_count][F_A..F_D]
+
+        /// Comparison function to sort leading pawns in ascending MapPawns[] order
+        bool pawns_comp (Square i, Square j)
+        {
+            return MapPawns[i] < MapPawns[j];
+        }
+        i32 off_A1H8 (Square sq)
+        {
+            return i32(_rank (sq)) - i32(_file (sq));
+        }
+
         template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
         inline void swap_endian (T &x)
         {
@@ -184,207 +212,6 @@ namespace TBSyzygy {
         };
 
         static_assert (sizeof (LR) == 3, "LR size incorrect");
-
-        struct PairsData
-        {
-        public:
-            i32 flags;
-            size_t block_size;              // Block size in bytes
-            size_t span;                    // About every span values there is a SparseIndex[] entry
-            i32 num_blocks;                 // Number of blocks in the TB file
-            i32 max_sym_len;                // Maximum length in bits of the Huffman symbols
-            i32 min_sym_len;                // Minimum length in bits of the Huffman symbols
-            Sym *lowest_sym;                // lowest_sym[l] is the symbol of length l with the lowest value
-            LR *btree;                      // btree[sym] stores the left and right symbols that expand sym
-            u16 *block_length;              // Number of stored positions (minus one) for each block: 1..65536
-            i32 block_length_size;          // Size of block_length[] table: padded so it's bigger than num_blocks
-            SparseEntry *sparse_index;      // Partial indices into block_length[]
-            size_t sparse_index_size;       // Size of sparse_index[] table
-            u08 *data;                      // Start of Huffman compressed data
-            vector<u64> base64;             // base64[l - min_sym_len] is the 64bit-padded lowest symbol of length l
-            vector<u08> sym_len;            // Number of values (-1) represented by a given Huffman symbol: 1..256
-            Piece pieces[TBPIECES];         // Position pieces: the order of pieces defines the groups
-            u64 group_idx[TBPIECES+1];      // Start index used for the encoding of the group's pieces
-            i32 group_len[TBPIECES+1];      // Number of pieces in a given group: KRKN -> (3, 1)
-            u16 map_idx[4];                 // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
-        };
-
-        template<TBType Type>
-        struct TBEntry
-        {
-            typedef typename std::conditional<WDL == Type, WDLScore, i32>::type Result;
-
-            static constexpr i32 Sides = WDL == Type ? 2 : 1;
-
-            std::atomic<bool> ready;
-            void *base_address;
-            u08 *map;
-            u64 mapping;
-            Key key1;
-            Key key2;
-            i32 piece_count;
-            bool has_pawns;
-            bool has_unique_pieces;
-            u08 pawn_count[CLR_NO]; // [Lead color / other color]
-            PairsData items[Sides][4]; // [wtm / btm][FILE_A..FILE_D or 0]
-
-            PairsData* get (i32 stm, i32 f)
-            {
-                return &items[stm % Sides][has_pawns ? f : 0];
-            }
-
-            TBEntry () = delete;
-
-            explicit TBEntry (const std::string&);
-            explicit TBEntry (const TBEntry<WDL>&);
-            ~TBEntry ();
-        };
-
-        template<>
-        TBEntry<WDL>::TBEntry (const std::string &code)
-            : ready (false)
-            , base_address (nullptr)
-            , pawn_count {0}
-            //, map (nullptr)
-            //, mapping (0)
-        {
-            StateInfo si;
-            Position pos;
-            key1 = pos.setup (code, si, WHITE).si->matl_key;
-            piece_count = pos.count ();
-            has_pawns = 0 != pos.count (PAWN);
-            has_unique_pieces = false;
-            for (auto c : { WHITE, BLACK })
-            {    
-                for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
-                {
-                    if (1 == pos.count (c, pt))
-                    {
-                        has_unique_pieces = true;
-                        goto break_unique_pieces;
-                    }
-                }
-            }
-            break_unique_pieces:
-            if (has_pawns)
-            {
-                // Set the leading color. In case both sides have pawns the leading color
-                // is the side with less pawns because this leads to better compression.
-                auto lead_color = pos.count (BLACK, PAWN) == 0
-                               || (   pos.count (WHITE, PAWN) != 0
-                                   && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
-
-                pawn_count[0] = pos.count ( lead_color, PAWN);
-                pawn_count[1] = pos.count (~lead_color, PAWN);
-            }
-
-            key2 = pos.setup (code, si, BLACK).si->matl_key;
-        }
-
-        template<>
-        TBEntry<DTZ>::TBEntry (const TBEntry<WDL> &wdl)
-            : ready (false)
-            , base_address (nullptr)
-            , pawn_count {0}
-            //, map (nullptr)
-            //, mapping (0)
-        {
-            key1 = wdl.key1;
-            key2 = wdl.key2;
-            piece_count = wdl.piece_count;
-            has_pawns = wdl.has_pawns;
-            has_unique_pieces = wdl.has_unique_pieces;
-            if (has_pawns)
-            {
-                pawn_count[0] = wdl.pawn_count[0];
-                pawn_count[1] = wdl.pawn_count[1];
-            }
-        }
-
-        i32 MapPawns[SQ_NO];
-        i32 MapB1H1H7[SQ_NO];
-        i32 MapA1D1D4[SQ_NO];
-        i32 MapKK[10][SQ_NO]; // [MapA1D1D4][SQ_NO]
-
-        /// Comparison function to sort leading pawns in ascending MapPawns[] order
-        bool pawns_comp (Square i, Square j)
-        {
-            return MapPawns[i] < MapPawns[j];
-        }
-        i32 off_A1H8 (Square sq)
-        {
-            return i32(_rank (sq)) - i32(_file (sq));
-        }
-
-        constexpr Value WDL_To_Value[] =
-        {
-            -VALUE_MATE + i32(MaxPlies) + 1,
-             VALUE_DRAW - 2,
-             VALUE_DRAW,
-             VALUE_DRAW + 2,
-            +VALUE_MATE - i32(MaxPlies) - 1
-        };
-
-        i32 Binomial[6][SQ_NO];    // [k][n] k elements from a set of n elements
-        i32 LeadPawnIdx[5][SQ_NO]; // [lead_pawn_count][SQ_NO]
-        i32 LeadPawnsSize[5][4];   // [lead_pawn_count][F_A..F_D]
-
-
-        class HashTable
-        {
-        private:
-            static constexpr i32 TBHASHBITS = 10;
-            static constexpr i32 HSHMAX = 6;
-
-            typedef pair<Key, pair<TBEntry<WDL>*, TBEntry<DTZ>*>> Entry;
-
-            Entry table[1 << TBHASHBITS][HSHMAX];
-
-            deque<TBEntry<WDL>> wdl_table;
-            deque<TBEntry<DTZ>> dtz_table;
-
-            void insert (Key key, TBEntry<WDL> *wdl, TBEntry<DTZ> *dtz)
-            {
-                for (Entry &entry : table[key >> (64 - TBHASHBITS)])
-                {
-                    if (   nullptr == entry.second.first
-                        || key == entry.first)
-                    {
-                        entry = std::make_pair (key, std::make_pair (wdl, dtz));
-                        return;
-                    }
-                }
-                std::cerr << "HSHMAX too low!" << std::endl;
-                stop (EXIT_FAILURE);
-            }
-
-        public:
-
-            template<TBType Type>
-            TBEntry<Type>* get (Key key)
-            {
-                for (Entry &entry : table[key >> (64 - TBHASHBITS)])
-                {
-                    if (key == entry.first)
-                    {
-                        return std::get<Type> (entry.second);
-                    }
-                }
-                return nullptr;
-            }
-
-            void clear ()
-            {
-                std::memset (table, 0, sizeof (table));
-                wdl_table.clear ();
-                dtz_table.clear ();
-            }
-
-            size_t size () const { return wdl_table.size (); }
-            void insert (const vector<PieceType>&);
-        };
-
-        HashTable EntryTable;
 
         class TBFile
             : public std::ifstream
@@ -527,40 +354,211 @@ namespace TBSyzygy {
 
         vector<string> TBFile::Paths;
 
+        struct PairsData
+        {
+        public:
+            i32 flags;
+            size_t block_size;              // Block size in bytes
+            size_t span;                    // About every span values there is a SparseIndex[] entry
+            i32 num_blocks;                 // Number of blocks in the TB file
+            i32 max_sym_len;                // Maximum length in bits of the Huffman symbols
+            i32 min_sym_len;                // Minimum length in bits of the Huffman symbols
+            Sym *lowest_sym;                // lowest_sym[l] is the symbol of length l with the lowest value
+            LR *btree;                      // btree[sym] stores the left and right symbols that expand sym
+            u16 *block_length;              // Number of stored positions (minus one) for each block: 1..65536
+            i32 block_length_size;          // Size of block_length[] table: padded so it's bigger than num_blocks
+            SparseEntry *sparse_index;      // Partial indices into block_length[]
+            size_t sparse_index_size;       // Size of sparse_index[] table
+            u08 *data;                      // Start of Huffman compressed data
+            vector<u64> base64;             // base64[l - min_sym_len] is the 64bit-padded lowest symbol of length l
+            vector<u08> sym_len;            // Number of values (-1) represented by a given Huffman symbol: 1..256
+            Piece pieces[TBPIECES];         // Position pieces: the order of pieces defines the groups
+            u64 group_idx[TBPIECES+1];      // Start index used for the encoding of the group's pieces
+            i32 group_len[TBPIECES+1];      // Number of pieces in a given group: KRKN -> (3, 1)
+            u16 map_idx[4];                 // WDLWin, WDLLoss, WDLCursedWin, WDLBlessedLoss (used in DTZ)
+        };
+
         template<TBType Type>
-        TBEntry<Type>::~TBEntry ()
+        struct TBTable
         {
-            if (nullptr != base_address)
+            typedef typename std::conditional<WDL == Type, WDLScore, i32>::type Result;
+
+            static constexpr i32 Sides = WDL == Type ? 2 : 1;
+
+            std::atomic<bool> ready;
+            void *base_address;
+            u08 *map;
+            u64 mapping;
+            Key key1;
+            Key key2;
+            i32 piece_count;
+            bool has_pawns;
+            bool has_unique_pieces;
+            u08 pawn_count[CLR_NO]; // [Lead color / other color]
+            PairsData items[Sides][4]; // [wtm / btm][FILE_A..FILE_D or 0]
+
+            PairsData* get (i32 stm, i32 f)
             {
-                TBFile::unmap (base_address, mapping);
+                return &items[stm % Sides][has_pawns ? f : 0];
             }
-        }
 
-        void HashTable::insert (const vector<PieceType> &pieces)
-        {
-            string code;
-            for (auto pt : pieces)
+            TBTable () = delete;
+
+            explicit TBTable (const std::string&);
+            explicit TBTable (const TBTable<WDL>&);
+           ~TBTable ()
             {
-                code += PieceChar[pt];
-            }
-
-            TBFile file (code, ".rtbw");
-            if (file.is_open ()) // Only WDL file is checked
-            {
-                file.close ();
-
-                wdl_table.emplace_back (code);
-                dtz_table.emplace_back (wdl_table.back ());
-
-                insert (wdl_table.back ().key1, &wdl_table.back (), &dtz_table.back ());
-                insert (wdl_table.back ().key2, &wdl_table.back (), &dtz_table.back ());
-
-                if (MaxLimitPiece < i32(pieces.size ()))
+                if (nullptr != base_address)
                 {
-                    MaxLimitPiece = i32(pieces.size ());
+                    TBFile::unmap (base_address, mapping);
                 }
             }
+        };
+
+        template<>
+        TBTable<WDL>::TBTable (const std::string &code)
+            : ready (false)
+            , base_address (nullptr)
+            , pawn_count {0}
+            //, map (nullptr)
+            //, mapping (0)
+        {
+            StateInfo si;
+            Position pos;
+            key1 = pos.setup (code, si, WHITE).si->matl_key;
+            piece_count = pos.count ();
+            has_pawns = 0 != pos.count (PAWN);
+            has_unique_pieces = false;
+            for (auto c : { WHITE, BLACK })
+            {    
+                for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN })
+                {
+                    if (1 == pos.count (c, pt))
+                    {
+                        has_unique_pieces = true;
+                        goto break_unique_pieces;
+                    }
+                }
+            }
+            break_unique_pieces:
+            if (has_pawns)
+            {
+                // Set the leading color. In case both sides have pawns the leading color
+                // is the side with less pawns because this leads to better compression.
+                auto lead_color = pos.count (BLACK, PAWN) == 0
+                               || (   pos.count (WHITE, PAWN) != 0
+                                   && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
+
+                pawn_count[0] = pos.count ( lead_color, PAWN);
+                pawn_count[1] = pos.count (~lead_color, PAWN);
+            }
+
+            key2 = pos.setup (code, si, BLACK).si->matl_key;
         }
+
+        template<>
+        TBTable<DTZ>::TBTable (const TBTable<WDL> &wdl)
+            : ready (false)
+            , base_address (nullptr)
+            , pawn_count {0}
+            //, map (nullptr)
+            //, mapping (0)
+        {
+            key1 = wdl.key1;
+            key2 = wdl.key2;
+            piece_count = wdl.piece_count;
+            has_pawns = wdl.has_pawns;
+            has_unique_pieces = wdl.has_unique_pieces;
+            if (has_pawns)
+            {
+                pawn_count[0] = wdl.pawn_count[0];
+                pawn_count[1] = wdl.pawn_count[1];
+            }
+        }
+
+        class TBTables
+        {
+        private:
+            static constexpr i32 TBHASHBITS = 10;
+            static constexpr i32 HSHMAX = 6;
+
+            typedef pair<Key, pair<TBTable<WDL>*, TBTable<DTZ>*>> Entry;
+
+            Entry entries[1 << TBHASHBITS][HSHMAX];
+
+            deque<TBTable<WDL>> wdl_table;
+            deque<TBTable<DTZ>> dtz_table;
+
+            void insert (Key key, TBTable<WDL> *wdl, TBTable<DTZ> *dtz)
+            {
+                for (Entry &entry : entries[key >> (64 - TBHASHBITS)])
+                {
+                    if (   nullptr == entry.second.first
+                        || key == entry.first)
+                    {
+                        entry = std::make_pair (key, std::make_pair (wdl, dtz));
+                        return;
+                    }
+                }
+                std::cerr << "HSHMAX too low!" << std::endl;
+                stop (EXIT_FAILURE);
+            }
+
+        public:
+
+            template<TBType Type>
+            TBTable<Type>* get (Key key)
+            {
+                for (Entry &entry : entries[key >> (64 - TBHASHBITS)])
+                {
+                    if (key == entry.first)
+                    {
+                        return std::get<Type> (entry.second);
+                    }
+                }
+                return nullptr;
+            }
+
+            void clear ()
+            {
+                std::memset (entries, 0, sizeof (entries));
+                wdl_table.clear ();
+                dtz_table.clear ();
+            }
+
+            size_t size () const
+            {
+                return wdl_table.size ();
+            }
+
+            void add (const vector<PieceType> &pieces)
+            {
+                string code;
+                for (auto pt : pieces)
+                {
+                    code += PieceChar[pt];
+                }
+
+                TBFile file (code, ".rtbw");
+                if (file.is_open ()) // Only WDL file is checked
+                {
+                    file.close ();
+
+                    wdl_table.emplace_back (code);
+                    dtz_table.emplace_back (wdl_table.back ());
+
+                    insert (wdl_table.back ().key1, &wdl_table.back (), &dtz_table.back ());
+                    insert (wdl_table.back ().key2, &wdl_table.back (), &dtz_table.back ());
+
+                    if (MaxLimitPiece < i32(pieces.size ()))
+                    {
+                        MaxLimitPiece = i32(pieces.size ());
+                    }
+                }
+            }
+        };
+
+        TBTables TBTables;
 
         /// TB tables are compressed with canonical Huffman code. The compressed data is divided into
         /// blocks of size d->block_size, and each block stores a variable number of symbols.
@@ -705,12 +703,12 @@ namespace TBSyzygy {
             return d->btree[sym].get<LR::Side::Center> ();
         }
 
-        bool check_dtz_stm (TBEntry<WDL>*, Color, File)
+        bool check_dtz_stm (TBTable<WDL>*, Color, File)
         {
             return true;
         }
 
-        bool check_dtz_stm (TBEntry<DTZ> *entry, Color stm, File f)
+        bool check_dtz_stm (TBTable<DTZ> *entry, Color stm, File f)
         {
             return (entry->get (stm, f)->flags & TBFlag::STM) == stm
                 || (   entry->key1 == entry->key2
@@ -721,12 +719,12 @@ namespace TBSyzygy {
         /// values 0, 1, 2, ... in order of decreasing frequency. This is done for each
         //// of the four WDLScore values. The mapping information necessary to reconstruct
         /// the original values is stored in the TB file and read during map[] init.
-        WDLScore map_score (TBEntry<WDL>*, File, i32 value, WDLScore)
+        WDLScore map_score (TBTable<WDL>*, File, i32 value, WDLScore)
         {
             return WDLScore(value - 2);
         }
 
-        i32 map_score (TBEntry<DTZ> *entry, File f, i32 value, WDLScore wdl)
+        i32 map_score (TBTable<DTZ> *entry, File f, i32 value, WDLScore wdl)
         {
             constexpr i32 WDLMap[] = { 1, 3, 0, 2, 0 };
 
@@ -757,8 +755,8 @@ namespace TBSyzygy {
         ///
         ///      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
         ///
-        template<TBType Type, typename T = typename TBEntry<Type>::Result>
-        T do_probe_table (const Position &pos, TBEntry<Type> *entry, WDLScore wdl, ProbeState &state)
+        template<TBType Type, typename T = typename TBTable<Type>::Result>
+        T do_probe_table (const Position &pos, TBTable<Type> *entry, WDLScore wdl, ProbeState &state)
         {
             Square squares[TBPIECES];
             Piece pieces[TBPIECES];
@@ -1034,7 +1032,7 @@ namespace TBSyzygy {
         /// The actual grouping depends on the TB generator and can be inferred from the
         /// sequence of pieces in piece[] array.
         template<TBType Type>
-        void set_groups (TBEntry<Type> &e, PairsData *d, i32 *order, File f)
+        void set_groups (TBTable<Type> &e, PairsData *d, i32 *order, File f)
         {
             i32 n = 0;
             i32 firstLen = e.has_pawns ? 0 : e.has_unique_pieces ? 3 : 2;
@@ -1199,12 +1197,12 @@ namespace TBSyzygy {
             return data + d->sym_len.size () * sizeof (LR) + (d->sym_len.size () & 1);
         }
 
-        u08* set_dtz_map (TBEntry<WDL> &, u08 *, File)
+        u08* set_dtz_map (TBTable<WDL> &, u08 *, File)
         {
             return nullptr;
         }
 
-        u08* set_dtz_map (TBEntry<DTZ> &e, u08 *data, File max_file)
+        u08* set_dtz_map (TBTable<DTZ> &e, u08 *data, File max_file)
         {
             e.map = data;
             for (auto f = F_A; f <= max_file; ++f)
@@ -1223,7 +1221,7 @@ namespace TBSyzygy {
         }
 
         template<TBType Type>
-        void do_init (TBEntry<Type> &e,  u08 *data)
+        void do_init (TBTable<Type> &e,  u08 *data)
         {
             assert(e.has_pawns        == !!(*data & 2)); // HasPawns
             assert((e.key1 != e.key2) == !!(*data & 1)); // Split
@@ -1309,7 +1307,7 @@ namespace TBSyzygy {
         }
 
         template<TBType Type>
-        void* init (TBEntry<Type> &e, const Position &pos)
+        void* init (TBTable<Type> &e, const Position &pos)
         {
             static Mutex mutex;
 
@@ -1351,7 +1349,7 @@ namespace TBSyzygy {
             return e.base_address;
         }
 
-        template<TBType Type, typename T = typename TBEntry<Type>::Result>
+        template<TBType Type, typename T = typename TBTable<Type>::Result>
         T probe_table (const Position &pos, ProbeState &state, WDLScore wdl = WDLScore::DRAW)
         {
             if (0 == (pos.pieces () ^ pos.pieces (KING)))
@@ -1359,7 +1357,7 @@ namespace TBSyzygy {
                 return T(WDLScore::DRAW); // KvK
             }
 
-            TBEntry<Type> *entry = EntryTable.get<Type> (pos.si->matl_key);
+            TBTable<Type> *entry = TBTables.get<Type> (pos.si->matl_key);
 
             if (   nullptr == entry
                 || nullptr == init (*entry, pos))
@@ -1993,7 +1991,7 @@ namespace TBSyzygy {
             initialized = true;
         }
 
-        EntryTable.clear ();
+        TBTables.clear ();
         MaxLimitPiece = 0;
 
         if (white_spaces (PathString))
@@ -2027,54 +2025,54 @@ namespace TBSyzygy {
 
         for (auto p1 = PAWN; p1 < KING; ++p1)
         {
-            EntryTable.insert ({ KING, p1, KING });
+            TBTables.add ({ KING, p1, KING });
 
             for (auto p2 = PAWN; p2 <= p1; ++p2)
             {
-                EntryTable.insert ({ KING, p1, p2, KING });
-                EntryTable.insert ({ KING, p1, KING, p2 });
+                TBTables.add ({ KING, p1, p2, KING });
+                TBTables.add ({ KING, p1, KING, p2 });
 
                 for (auto p3 = PAWN; p3 <= p2; ++p3)
                 {
-                    EntryTable.insert ({ KING, p1, p2, p3, KING });
+                    TBTables.add ({ KING, p1, p2, p3, KING });
 
                     for (auto p4 = PAWN; p4 <= p3; ++p4)
                     {
-                        EntryTable.insert ({ KING, p1, p2, p3, p4, KING });
+                        TBTables.add ({ KING, p1, p2, p3, p4, KING });
 
                         //for (auto p5 = PAWN; p5 <= p4; ++p5)
                         //{
-                        //    EntryTable.insert ({ KING, p1, p2, p3, p4, p5, KING });
+                        //    TBTables.add ({ KING, p1, p2, p3, p4, p5, KING });
                         //}
                         //for (auto p5 = PAWN; p5 < KING; ++p5)
                         //{
-                        //    EntryTable.insert ({ KING, p1, p2, p3, p4, KING, p5 });
+                        //    TBTables.add ({ KING, p1, p2, p3, p4, KING, p5 });
                         //}
                     }
                     for (auto p4 = PAWN; p4 < KING; ++p4)
                     {
-                        EntryTable.insert ({ KING, p1, p2, p3, KING, p4 });
+                        TBTables.add ({ KING, p1, p2, p3, KING, p4 });
 
                         //for (auto p5 = PAWN; p5 <= p4; ++p5)
                         //{
-                        //    EntryTable.insert ({ KING, p1, p2, p3, KING, p4, p5 });
+                        //    TBTables.add ({ KING, p1, p2, p3, KING, p4, p5 });
                         //}
                     }
                 }
                 for (auto p3 = PAWN; p3 < KING; ++p3)
                 {
-                    EntryTable.insert ({ KING, p1, p2, KING, p3 });
+                    TBTables.add ({ KING, p1, p2, KING, p3 });
                 }
                 for (auto p3 = PAWN; p3 <= p1; ++p3)
                 {
                     for (auto p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
                     {
-                        EntryTable.insert ({ KING, p1, p2, KING, p3, p4 });
+                        TBTables.add ({ KING, p1, p2, KING, p3, p4 });
                     }
                 }
             }
         }
 
-        sync_cout << "info string Tablebases found " << EntryTable.size () << sync_endl;
+        sync_cout << "info string Tablebases found " << TBTables.size () << sync_endl;
     }
 }
