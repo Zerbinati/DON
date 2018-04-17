@@ -98,11 +98,11 @@ namespace TBSyzygy {
 
         constexpr Value WDL_To_Value[] =
         {
-            -VALUE_MATE + i32 (MaxPlies) + 1,
+            -VALUE_MATE + i32(MaxPlies) + 1,
             VALUE_DRAW - 2,
             VALUE_DRAW,
             VALUE_DRAW + 2,
-            +VALUE_MATE - i32 (MaxPlies) - 1
+            +VALUE_MATE - i32(MaxPlies) - 1
         };
 
         i32 MapPawns[SQ_NO];
@@ -127,10 +127,12 @@ namespace TBSyzygy {
         template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
         inline void swap_endian (T &x)
         {
-            auto *c = (char*) (&x);
+            static_assert (std::is_unsigned<T>::value, "Argument of swap_endian not unsigned");
+
+            u08 *c = (u08*) (&x);
             for (i32 i = 0; i < Half; ++i)
             {
-                auto tmp = c[i];
+                u08 tmp = c[i];
                 c[i] = c[End - i];
                 c[End - i] = tmp;
             }
@@ -142,9 +144,9 @@ namespace TBSyzygy {
         template<typename T, Endian E>
         T number (void *addr)
         {
-            constexpr union { u32 i; char c[4]; } e = { 0x01020304 };
+            static constexpr union { u32 i; char c[4]; } EU = { 0x01020304 };
             T v;
-            if (0 != (uintptr_t (addr) & (alignof(T) -1))) // Unaligned pointer (very rare)
+            if (0 != (uintptr_t(addr) & (alignof(T) -1))) // Unaligned pointer (very rare)
             {
                 std::memcpy (&v, addr, sizeof (v));
             }
@@ -152,7 +154,7 @@ namespace TBSyzygy {
             {
                 v = *((T*) addr);
             }
-            if (E != (e.c[0] == 4 ? Endian::LITTLE : Endian::BIG))
+            if (E != (EU.c[0] == 4 ? Endian::LITTLE : Endian::BIG))
             {
                 swap_endian (v);
             }
@@ -202,11 +204,12 @@ namespace TBSyzygy {
             // the 2nd 12 bits is the right-hand symbol.
             // If symbol has length 1, then the first byte is the stored value.
             u08 lr[3];
+
             template<Side S>
             Sym get ()
             {
-                return S == Side::Left  ? ((lr[1] & 0xF) << 8) | lr[0] :
-                       S == Side::Right ?  (lr[2] << 4) | (lr[1] >> 4) :
+                return S == Side::Left   ? ((lr[1] & 0xF) << 8) | lr[0] :
+                       S == Side::Right  ?  (lr[2] << 4) | (lr[1] >> 4) :
                        S == Side::Center ?  lr[0] : (assert(false), -1);
             }
         };
@@ -216,11 +219,12 @@ namespace TBSyzygy {
         class TBFile
             : public std::ifstream
         {
+        private:
+            string filename;
+
         public:
             // Look for and open the file among the Paths directories where the .rtbw and .rtbz files can be found.
             static vector<string> Paths;
-
-            string filename;
 
             TBFile (const string &code, const string &ext)
             {
@@ -381,7 +385,7 @@ namespace TBSyzygy {
         template<TBType Type>
         struct TBTable
         {
-            typedef typename std::conditional<WDL == Type, WDLScore, i32>::type Result;
+            typedef typename std::conditional<WDL == Type, WDLScore, i32>::type Ret;
 
             static constexpr i32 Sides = WDL == Type ? 2 : 1;
 
@@ -402,7 +406,13 @@ namespace TBSyzygy {
                 return &items[stm % Sides][has_pawns ? f : 0];
             }
 
-            TBTable () = delete;
+            TBTable ()
+                : ready (false)
+                , base_address (nullptr)
+                , pawn_count { 0 }
+                //, map (nullptr)
+                //, mapping (0)
+            {}
 
             explicit TBTable (const std::string&);
             explicit TBTable (const TBTable<WDL>&);
@@ -417,11 +427,7 @@ namespace TBSyzygy {
 
         template<>
         TBTable<WDL>::TBTable (const std::string &code)
-            : ready (false)
-            , base_address (nullptr)
-            , pawn_count {0}
-            //, map (nullptr)
-            //, mapping (0)
+            : TBTable ()
         {
             StateInfo si;
             Position pos;
@@ -458,11 +464,7 @@ namespace TBSyzygy {
 
         template<>
         TBTable<DTZ>::TBTable (const TBTable<WDL> &wdl)
-            : ready (false)
-            , base_address (nullptr)
-            , pawn_count {0}
-            //, map (nullptr)
-            //, mapping (0)
+            : TBTable ()
         {
             key1 = wdl.key1;
             key2 = wdl.key2;
@@ -755,17 +757,9 @@ namespace TBSyzygy {
         ///
         ///      idx = Binomial[1][s1] + Binomial[2][s2] + ... + Binomial[k][sk]
         ///
-        template<TBType Type, typename T = typename TBTable<Type>::Result>
-        T do_probe_table (const Position &pos, TBTable<Type> *entry, WDLScore wdl, ProbeState &state)
+        template<typename T, typename Ret = typename T::Ret>
+        Ret do_probe_table (const Position &pos, T *entry, WDLScore wdl, ProbeState &state)
         {
-            Square squares[TBPIECES];
-            Piece pieces[TBPIECES];
-            u64 idx;
-            i32 next = 0, size = 0, lead_pawn_count = 0;
-            PairsData *d;
-            Bitboard b, lead_pawns = 0;
-            File tb_file = F_A;
-
             bool flip =
                 // Black Symmetric
                 // A given TB entry like KRK has associated two material keys: KRvK and KvKR.
@@ -779,7 +773,16 @@ namespace TBSyzygy {
                 // KRvK, not KvKR. A position where stronger side is white will have its
                 // material key == entry->key1, otherwise we have to switch the color and
                 // flip the squares before to lookup.
-                    || (pos.si->matl_key != entry->key1);
+                     || (pos.si->matl_key != entry->key1);
+
+            Bitboard b;
+            Bitboard lead_pawns;
+
+            Square squares[TBPIECES];
+            Piece pieces[TBPIECES];
+            i32 size;
+            i32 lead_pawn_count;
+            File tb_file;
 
             // For pawns, TB files store 4 separate tables according if leading pawn is on
             // file a, b, c or d after reordering. The leading pawn is the one with maximum
@@ -794,7 +797,10 @@ namespace TBSyzygy {
 
                 assert(PAWN == ptype (pc));
 
-                lead_pawns = b = pos.pieces (color (pc), PAWN);
+                lead_pawns = pos.pieces (color (pc), PAWN);
+                size = 0;
+
+                b = lead_pawns;
                 do
                 {
                     squares[size] = flip ?
@@ -814,15 +820,21 @@ namespace TBSyzygy {
                     tb_file = _file (!squares[0]); // Horizontal flip: SQ_H1 -> SQ_A1
                 }
             }
+            else
+            {
+                lead_pawns = 0;
+                size = 0;
+                lead_pawn_count = 0;
+                tb_file = F_A;
+            }
 
             // DTZ tables are one-sided, i.e. they store positions only for white to
             // move or only for black to move, so check for side to move to be color,
             // early exit otherwise.
-            if (   DTZ == Type
-                && !check_dtz_stm (entry, flip ? ~pos.active : pos.active, tb_file))
+            if (!check_dtz_stm (entry, flip ? ~pos.active : pos.active, tb_file))
             {
                 state = ProbeState::CHANGE_STM;
-                return T();
+                return Ret();
             }
 
             // Now we are ready to get all the position pieces (but the lead pawns) and
@@ -843,7 +855,7 @@ namespace TBSyzygy {
 
             assert(size >= 2);
 
-            d = entry->get (flip ? ~pos.active : pos.active, tb_file);
+            auto *d = entry->get (flip ? ~pos.active : pos.active, tb_file);
 
             // Then we reorder the pieces to have the same sequence as the one stored
             // in pieces[i]: the sequence that ensures the best compression.
@@ -870,6 +882,7 @@ namespace TBSyzygy {
                 }
             }
 
+            u64 idx;
             // Encode leading pawns starting with the one with minimum MapPawns[] and
             // proceeding in ascending order.
             if (entry->has_pawns)
@@ -907,7 +920,7 @@ namespace TBSyzygy {
                     {
                         for (i32 j = i; j < size; ++j)
                         {
-                            squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 63);
+                            squares[j] = File(_rank (squares[j])) | Rank(_file (squares[j]));
                         }
                     }
                     break;
@@ -941,9 +954,9 @@ namespace TBSyzygy {
                 // In case we have at least 3 unique pieces (included kings) we encode them together.
                 if (entry->has_unique_pieces)
                 {
-                    i32 adjust1 =  squares[1] > squares[0];
-                    i32 adjust2 = (squares[2] > squares[0]) + (squares[2] > squares[1]);
-
+                    i32 adjust1 = (squares[1] > squares[0] ? 1 : 0);
+                    i32 adjust2 = (squares[2] > squares[0] ? 1 : 0)
+                                + (squares[2] > squares[1] ? 1 : 0);
                     // First piece is below a1-h8 diagonal. MapA1D1D4[] maps the b1-d1-d3
                     // triangle to 0...5. There are 63 squares for second piece and and 62
                     // (mapped to 0...61) for the third.
@@ -998,23 +1011,24 @@ namespace TBSyzygy {
             // Encode remaining pawns then pieces according to square, in ascending order
             bool pawn_remain = entry->has_pawns && 0 != entry->pawn_count[1];
 
-            while (0 < d->group_len[++next])
+            i32 group_idx = 0;
+            while (0 < d->group_len[++group_idx])
             {
-                assert(0 <= d->group_len[next] && d->group_len[next] <= 6);
-                std::sort (group_sq, group_sq + d->group_len[next]);
+                assert(0 <= d->group_len[group_idx] && d->group_len[group_idx] <= 6);
+                std::sort (group_sq, group_sq + d->group_len[group_idx]);
                 u64 n = 0;
 
                 // Map down a square if "comes later" than a square in the previous
                 // groups (similar to what done earlier for leading group pieces).
-                for (i32 i = 0; i < d->group_len[next]; ++i)
+                for (i32 i = 0; i < d->group_len[group_idx]; ++i)
                 {
                     auto adjust = std::count_if (squares, group_sq, [&](Square s) { return group_sq[i] > s; });
                     n += Binomial[i + 1][group_sq[i] - adjust - 8 * (pawn_remain ? 1 : 0)];
                 }
 
                 pawn_remain = false;
-                idx += n * d->group_idx[next];
-                group_sq += d->group_len[next];
+                idx += n * d->group_idx[group_idx];
+                group_sq += d->group_len[group_idx];
             }
 
             // Now that we have the index, decompress the pair and get the score
@@ -1031,11 +1045,11 @@ namespace TBSyzygy {
         ///
         /// The actual grouping depends on the TB generator and can be inferred from the
         /// sequence of pieces in piece[] array.
-        template<TBType Type>
-        void set_groups (TBTable<Type> &e, PairsData *d, i32 *order, File f)
+        template<typename T>
+        void set_groups (T &e, PairsData *d, i32 *order, File f)
         {
-            i32 n = 0;
             i32 firstLen = e.has_pawns ? 0 : e.has_unique_pieces ? 3 : 2;
+            i32 n = 0;
             d->group_len[n] = 1;
 
             // Number of pieces per group is stored in group_len[], for instance in KRKN
@@ -1065,7 +1079,7 @@ namespace TBSyzygy {
             // pawns/pieces -> remainig pawns -> remaining pieces. In particular the
             // first group is at order[0] position and the remaining pawns, when present,
             // are at order[1] position.
-            bool pp = e.has_pawns && e.pawn_count[1]; // Pawns on both sides
+            bool pp = e.has_pawns && 0 != e.pawn_count[1]; // Pawns on both sides
             i32 next = pp ? 2 : 1;
             i32 free_squares = 64 - d->group_len[0] - (pp ? d->group_len[1] : 0);
             u64 idx = 1;
@@ -1220,15 +1234,15 @@ namespace TBSyzygy {
             return data += uintptr_t(data) & 1; // Word alignment
         }
 
-        template<TBType Type>
-        void do_init (TBTable<Type> &e,  u08 *data)
+        template<typename T>
+        void set (T &e,  u08 *data)
         {
             assert(e.has_pawns        == !!(*data & 2)); // HasPawns
             assert((e.key1 != e.key2) == !!(*data & 1)); // Split
 
             data++; // First byte stores flags
 
-            const i32  Sides = WDL == Type && (e.key1 != e.key2) ? 2 : 1;
+            const i32  Sides = 2 == T::Sides && (e.key1 != e.key2) ? 2 : 1;
             const File MaxFile = e.has_pawns ? F_D : F_A;
 
             bool pp = e.has_pawns && 0 != e.pawn_count[1]; // Pawns on both sides
@@ -1273,10 +1287,8 @@ namespace TBSyzygy {
                     data = set_sizes (e.get (i, f), data);
                 }
             }
-            if (DTZ == Type)
-            {
-                data = set_dtz_map (e, data, MaxFile);
-            }
+
+            data = set_dtz_map (e, data, MaxFile);
 
             PairsData *d;
             for (auto f = F_A; f <= MaxFile; ++f)
@@ -1307,11 +1319,11 @@ namespace TBSyzygy {
         }
 
         template<TBType Type>
-        void* init (TBTable<Type> &e, const Position &pos)
+        void* mapped (TBTable<Type> &e, const Position &pos)
         {
             static Mutex mutex;
 
-            // Avoid a thread reads 'ready' == true while another is still in do_init(),
+            // Avoid a thread reads 'ready' == true while another is still in set(),
             // this could happen due to compiler reordering.
             if (e.ready.load (std::memory_order::memory_order_acquire))
             {
@@ -1343,27 +1355,27 @@ namespace TBSyzygy {
             u08 *data = file.map (&e.base_address, &e.mapping, TB_MAGIC[WDL == Type ? 1 : 0]);
             if (nullptr != data)
             {
-                do_init (e, data);
+                set (e, data);
             }
             e.ready.store (true, std::memory_order::memory_order_release);
             return e.base_address;
         }
 
-        template<TBType Type, typename T = typename TBTable<Type>::Result>
-        T probe_table (const Position &pos, ProbeState &state, WDLScore wdl = WDLScore::DRAW)
+        template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
+        Ret probe_table (const Position &pos, ProbeState &state, WDLScore wdl = WDLScore::DRAW)
         {
             if (0 == (pos.pieces () ^ pos.pieces (KING)))
             {
-                return T(WDLScore::DRAW); // KvK
+                return Ret(WDLScore::DRAW); // KvK
             }
 
             TBTable<Type> *entry = TBTables.get<Type> (pos.si->matl_key);
 
             if (   nullptr == entry
-                || nullptr == init (*entry, pos))
+                || nullptr == mapped (*entry, pos))
             {
                 state = ProbeState::FAILURE;
-                return T();
+                return Ret();
             }
 
             return do_probe_table (pos, entry, wdl, state);
@@ -1382,16 +1394,17 @@ namespace TBSyzygy {
         /// (winning capture or winning pawn move). Also DTZ store wrong values for positions
         /// where the best move is an ep-move (even if losing). So in all these cases set
         /// the state to ZEROING_BEST_MOVE.
-        WDLScore search (Position &pos, ProbeState &state, bool chech_zeroing)
+        WDLScore search (Position &pos, ProbeState &state, bool check_zeroing)
         {
+            auto best_wdl = WDLScore::LOSS;
+
+            StateInfo si;
             auto move_list = MoveList<GenType::LEGAL> (pos);
             size_t move_count = 0;
-            auto best_wdl = WDLScore::LOSS;
-            StateInfo si;
             for (const auto &move : move_list)
             {
                 if (   !pos.capture (move)
-                    && (   !chech_zeroing
+                    && (   !check_zeroing
                         || PAWN != ptype (pos[org_sq (move)])))
                 {
                     continue;
@@ -1426,8 +1439,8 @@ namespace TBSyzygy {
             // the state of probe_wdl_table is wrong. Also in case of only capture
             // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, we have to
             // return with ZEROING_BEST_MOVE set.
-            const bool completed = (   0 != move_list.size ()
-                                    && move_count == move_list.size ());
+            bool completed = (   0 != move_list.size ()
+                              && move_count == move_list.size ());
 
             WDLScore wdl;
             if (completed)
@@ -1487,6 +1500,20 @@ namespace TBSyzygy {
 
     } // namespace
 
+
+    /// Probe the WDL table for a particular position.
+    /// If *result != FAILURE, the probe was successful.
+    /// The return value is from the point of view of the side to move:
+    /// -2 : loss
+    /// -1 : loss, but draw under 50-move rule
+    ///  0 : draw
+    ///  1 : win, but draw under 50-move rule
+    ///  2 : win
+    WDLScore probe_wdl (Position &pos, ProbeState &state)
+    {
+        return search (pos, state, false);
+    }
+
     /// Probe the DTZ table for a particular position.
     /// If *result != FAILURE, the probe was successful.
     /// The return value is from the point of view of the side to move:
@@ -1514,6 +1541,7 @@ namespace TBSyzygy {
     /// then do not accept moves leading to dtz + 50-move-counter == 100.
     i32      probe_dtz (Position &pos, ProbeState &state)
     {
+        state = ProbeState::SUCCESS;
         auto wdl = search (pos, state, true);
 
         if (   ProbeState::FAILURE == state
@@ -1595,17 +1623,60 @@ namespace TBSyzygy {
         return min_dtz == 0xFFFF ? -1 : min_dtz;
     }
 
-    /// Probe the WDL table for a particular position.
-    /// If *result != FAILURE, the probe was successful.
-    /// The return value is from the point of view of the side to move:
-    /// -2 : loss
-    /// -1 : loss, but draw under 50-move rule
-    ///  0 : draw
-    ///  1 : win, but draw under 50-move rule
-    ///  2 : win
-    WDLScore probe_wdl (Position &pos, ProbeState &state)
+    /// Use the WDL tables to filter out moves that don't preserve the win or draw.
+    /// This is a fall back for the case that some or all DTZ tables are missing.
+    ///
+    /// A return value false indicates that not all probes were successful and that
+    /// no moves were filtered out.
+    bool root_probe_wdl (Position &root_pos, RootMoves &root_moves, Value &value)
     {
-        return search (pos, state, false);
+        ProbeState state;
+
+        const auto wdl = probe_wdl (root_pos, state);
+
+        if (ProbeState::FAILURE == state)
+        {
+            return false;
+        }
+
+        value = WDL_To_Value[wdl + 2];
+
+        StateInfo si;
+
+        i32 best = WDLScore::LOSS;
+
+        // Probe each move
+        for (auto &rm : root_moves)
+        {
+            const auto move = rm[0];
+            root_pos.do_move (move, si);
+            i32 v = -probe_wdl (root_pos, state);
+            root_pos.undo_move (move);
+
+            if (ProbeState::FAILURE == state)
+            {
+                return false;
+            }
+
+            rm.new_value = Value(v);
+
+            if (best < v)
+            {
+                best = v;
+            }
+        }
+
+        size_t size = 0;
+        for (size_t i = 0; i < root_moves.size (); ++i)
+        {
+            if (best == root_moves[i].new_value)
+            {
+                root_moves[size++] = root_moves[i];
+            }
+        }
+        root_moves.resize (size);
+
+        return true;
     }
 
     /// Use the DTZ tables to filter out moves that don't preserve the win or draw.
@@ -1790,62 +1861,6 @@ namespace TBSyzygy {
                 {
                     root_moves[size++] = root_moves[i];
                 }
-            }
-        }
-        root_moves.resize (size);
-
-        return true;
-    }
-
-    /// Use the WDL tables to filter out moves that don't preserve the win or draw.
-    /// This is a fall back for the case that some or all DTZ tables are missing.
-    ///
-    /// A return value false indicates that not all probes were successful and that
-    /// no moves were filtered out.
-    bool root_probe_wdl (Position &root_pos, RootMoves &root_moves, Value &value)
-    {
-        ProbeState state;
-
-        const auto wdl = probe_wdl (root_pos, state);
-
-        if (ProbeState::FAILURE == state)
-        {
-            return false;
-        }
-
-        value = WDL_To_Value[wdl + 2];
-
-        StateInfo si;
-
-        i32 best = WDLScore::LOSS;
-
-        // Probe each move
-        for (auto &rm : root_moves)
-        {
-            const auto move = rm[0];
-            root_pos.do_move (move, si);
-            i32 v = -probe_wdl (root_pos, state);
-            root_pos.undo_move (move);
-
-            if (ProbeState::FAILURE == state)
-            {
-                return false;
-            }
-
-            rm.new_value = Value(v);
-
-            if (best < v)
-            {
-                best = v;
-            }
-        }
-
-        size_t size = 0;
-        for (size_t i = 0; i < root_moves.size (); ++i)
-        {
-            if (best == root_moves[i].new_value)
-            {
-                root_moves[size++] = root_moves[i];
             }
         }
         root_moves.resize (size);
