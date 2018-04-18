@@ -90,10 +90,11 @@ namespace TBSyzygy {
             SINGLE_VALUE = 128
         };
 
-        enum Endian
+        enum Endian : u08
         {
             BIG,
-            LITTLE
+            LITTLE,
+            UNKNOWN
         };
 
         constexpr Value WDL_To_Value[] =
@@ -115,9 +116,9 @@ namespace TBSyzygy {
         i32 LeadPawnsSize[5][4];   // [lead_pawn_count][F_A..F_D]
 
         /// Comparison function to sort leading pawns in ascending MapPawns[] order
-        bool pawns_comp (Square i, Square j)
+        bool pawns_comp (Square s1, Square s2)
         {
-            return MapPawns[i] < MapPawns[j];
+            return MapPawns[s1] < MapPawns[s2];
         }
         i32 off_A1H8 (Square sq)
         {
@@ -129,7 +130,7 @@ namespace TBSyzygy {
         {
             static_assert (std::is_unsigned<T>::value, "Argument of swap_endian not unsigned");
 
-            u08 *c = (u08*) (&x);
+            u08 *c = (u08*)(&x);
             for (i32 i = 0; i < Half; ++i)
             {
                 u08 tmp = c[i];
@@ -144,9 +145,12 @@ namespace TBSyzygy {
         template<typename T, Endian E>
         T number (void *addr)
         {
-            static constexpr union { u32 i; char c[4]; } EU = { 0x01020304 };
+            static const union { u32 i; char c[4]; } U = { 0x01020304 };
+            static const bool End = (0x04 == U.c[0]) ? Endian::LITTLE :
+                                    (0x01 == U.c[0]) ? Endian::BIG : Endian::UNKNOWN;
+            assert(Endian::UNKNOWN != End);
             T v;
-            if (0 != (uintptr_t(addr) & (alignof(T) -1))) // Unaligned pointer (very rare)
+            if (0 != (uintptr_t(addr) & (alignof (T) -1))) // Unaligned pointer (very rare)
             {
                 std::memcpy (&v, addr, sizeof (v));
             }
@@ -154,7 +158,7 @@ namespace TBSyzygy {
             {
                 v = *((T*) addr);
             }
-            if (E != (EU.c[0] == 4 ? Endian::LITTLE : Endian::BIG))
+            if (E != End)
             {
                 swap_endian (v);
             }
@@ -416,6 +420,7 @@ namespace TBSyzygy {
 
             explicit TBTable (const std::string&);
             explicit TBTable (const TBTable<WDL>&);
+
            ~TBTable ()
             {
                 if (nullptr != base_address)
@@ -493,7 +498,7 @@ namespace TBSyzygy {
 
             void insert (Key key, TBTable<WDL> *wdl, TBTable<DTZ> *dtz)
             {
-                for (Entry &entry : entries[key >> (64 - TBHASHBITS)])
+                for (auto &entry : entries[key >> (64 - TBHASHBITS)])
                 {
                     if (   nullptr == entry.second.first
                         || key == entry.first)
@@ -511,7 +516,7 @@ namespace TBSyzygy {
             template<TBType Type>
             TBTable<Type>* get (Key key)
             {
-                for (Entry &entry : entries[key >> (64 - TBHASHBITS)])
+                for (auto &entry : entries[key >> (64 - TBHASHBITS)])
                 {
                     if (key == entry.first)
                     {
@@ -560,7 +565,7 @@ namespace TBSyzygy {
             }
         };
 
-        TBTables TBTables;
+        TBTables TB_Tables;
 
         /// TB tables are compressed with canonical Huffman code. The compressed data is divided into
         /// blocks of size d->block_size, and each block stores a variable number of symbols.
@@ -916,7 +921,7 @@ namespace TBSyzygy {
                         continue;
                     }
 
-                    if (off_A1H8 (squares[i]) > 0) // A1-H8 diagonal flip: SQ_A3 -> SQ_C3
+                    if (off_A1H8 (squares[i]) > 0) // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
                     {
                         for (i32 j = i; j < size; ++j)
                         {
@@ -1048,7 +1053,10 @@ namespace TBSyzygy {
         template<typename T>
         void set_groups (T &e, PairsData *d, i32 *order, File f)
         {
-            i32 firstLen = e.has_pawns ? 0 : e.has_unique_pieces ? 3 : 2;
+            i32 first_len = e.has_pawns ?
+                                0 :
+                                e.has_unique_pieces ?
+                                    3 : 2;
             i32 n = 0;
             d->group_len[n] = 1;
 
@@ -1056,7 +1064,7 @@ namespace TBSyzygy {
             // the encoder will default on '111', so group_len[] will be (3, 1).
             for (i32 i = 1; i < e.piece_count; ++i)
             {
-                if (   --firstLen > 0
+                if (   --first_len > 0
                     || d->pieces[i] == d->pieces[i - 1])
                 {
                     d->group_len[n]++;
@@ -1366,16 +1374,16 @@ namespace TBSyzygy {
         {
             if (0 == (pos.pieces () ^ pos.pieces (KING)))
             {
-                return Ret(WDLScore::DRAW); // KvK
+                return Ret(0); // KvK
             }
 
-            TBTable<Type> *entry = TBTables.get<Type> (pos.si->matl_key);
+            auto *entry = TB_Tables.get<Type> (pos.si->matl_key);
 
             if (   nullptr == entry
                 || nullptr == mapped (*entry, pos))
             {
                 state = ProbeState::FAILURE;
-                return Ret();
+                return Ret(0);
             }
 
             return do_probe_table (pos, entry, wdl, state);
@@ -2006,7 +2014,7 @@ namespace TBSyzygy {
             initialized = true;
         }
 
-        TBTables.clear ();
+        TB_Tables.clear ();
         MaxLimitPiece = 0;
 
         if (white_spaces (PathString))
@@ -2040,54 +2048,54 @@ namespace TBSyzygy {
 
         for (auto p1 = PAWN; p1 < KING; ++p1)
         {
-            TBTables.add ({ KING, p1, KING });
+            TB_Tables.add ({ KING, p1, KING });
 
             for (auto p2 = PAWN; p2 <= p1; ++p2)
             {
-                TBTables.add ({ KING, p1, p2, KING });
-                TBTables.add ({ KING, p1, KING, p2 });
+                TB_Tables.add ({ KING, p1, p2, KING });
+                TB_Tables.add ({ KING, p1, KING, p2 });
 
                 for (auto p3 = PAWN; p3 <= p2; ++p3)
                 {
-                    TBTables.add ({ KING, p1, p2, p3, KING });
+                    TB_Tables.add ({ KING, p1, p2, p3, KING });
 
                     for (auto p4 = PAWN; p4 <= p3; ++p4)
                     {
-                        TBTables.add ({ KING, p1, p2, p3, p4, KING });
+                        TB_Tables.add ({ KING, p1, p2, p3, p4, KING });
 
                         //for (auto p5 = PAWN; p5 <= p4; ++p5)
                         //{
-                        //    TBTables.add ({ KING, p1, p2, p3, p4, p5, KING });
+                        //    TB_Tables.add ({ KING, p1, p2, p3, p4, p5, KING });
                         //}
                         //for (auto p5 = PAWN; p5 < KING; ++p5)
                         //{
-                        //    TBTables.add ({ KING, p1, p2, p3, p4, KING, p5 });
+                        //    TB_Tables.add ({ KING, p1, p2, p3, p4, KING, p5 });
                         //}
                     }
                     for (auto p4 = PAWN; p4 < KING; ++p4)
                     {
-                        TBTables.add ({ KING, p1, p2, p3, KING, p4 });
+                        TB_Tables.add ({ KING, p1, p2, p3, KING, p4 });
 
                         //for (auto p5 = PAWN; p5 <= p4; ++p5)
                         //{
-                        //    TBTables.add ({ KING, p1, p2, p3, KING, p4, p5 });
+                        //    TB_Tables.add ({ KING, p1, p2, p3, KING, p4, p5 });
                         //}
                     }
                 }
                 for (auto p3 = PAWN; p3 < KING; ++p3)
                 {
-                    TBTables.add ({ KING, p1, p2, KING, p3 });
+                    TB_Tables.add ({ KING, p1, p2, KING, p3 });
                 }
                 for (auto p3 = PAWN; p3 <= p1; ++p3)
                 {
                     for (auto p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4)
                     {
-                        TBTables.add ({ KING, p1, p2, KING, p3, p4 });
+                        TB_Tables.add ({ KING, p1, p2, KING, p3, p4 });
                     }
                 }
             }
         }
 
-        sync_cout << "info string Tablebases found " << TBTables.size () << sync_endl;
+        sync_cout << "info string Tablebases found " << TB_Tables.size () << sync_endl;
     }
 }
