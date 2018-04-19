@@ -52,6 +52,15 @@ namespace UCI {
     {
         default_value = current_value = std::to_string (val);
     }
+    Option::Option (const char* v, const char* cur, OnChange on_cng)
+        : type ("combo")
+        , minimum (0)
+        , maximum (0)
+        , on_change (on_cng)
+    {
+        default_value = v;
+        current_value = cur;
+    }
 
     Option::operator string () const
     {
@@ -67,6 +76,12 @@ namespace UCI {
     {
         assert(type == "spin");
         return stoi (current_value);
+    }
+    bool Option::operator== (const char *val) const
+    {
+        assert(type == "combo");
+        return !no_case_less_comparer ()(current_value, val)
+            && !no_case_less_comparer ()(val, current_value);
     }
 
     /// Option::operator=() updates value and triggers on_change() action.
@@ -273,7 +288,7 @@ namespace UCI {
             Position::Chess960 = bool(Options["UCI_Chess960"]);
         }
 
-        void on_uci_elo ()
+        void on_uci_elo_limit ()
         {
             u08 skill_level;
             if (bool(Options["UCI_LimitStrength"]))
@@ -335,6 +350,9 @@ namespace UCI {
         Options["Timed Contempt"]     << Option (ContemptTime , 0, 1000, on_contempt_opt);
         Options["Valued Contempt"]    << Option (ContemptValue, 0, 1000, on_contempt_opt);
 
+        Options["UCI_AnalyseMode"]    << Option (false);
+        Options["Analysis Contempt"]  << Option ("Both var Off var White var Black var Both", "Both");
+
         Options["Draw MoveCount"]     << Option (Position::DrawClockPly/2, 5, 50, on_draw_movecount);
 
         Options["Overhead Move Time"] << Option (OverheadMoveTime, 0, 5000, on_time_opt);
@@ -355,9 +373,9 @@ namespace UCI {
         Options["Output File"]        << Option (OutputFile, on_output_file);
 
         Options["UCI_Chess960"]       << Option (Position::Chess960, on_uci_chess960);
-        Options["UCI_LimitStrength"]  << Option (false, on_uci_elo);
-        Options["UCI_ELO"]            << Option (3490, 1250, 3490, on_uci_elo);
-        //Options["UCI_AnalyseMode"]    << Option (false);
+        Options["UCI_LimitStrength"]  << Option (false, on_uci_elo_limit);
+        Options["UCI_ELO"]            << Option (3490, 1250, 3490, on_uci_elo_limit);
+
     }
 
     void deinitialize ()

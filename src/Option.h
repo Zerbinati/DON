@@ -31,11 +31,13 @@ namespace UCI {
         Option (const std::string&, OnChange = nullptr);
         Option (const bool, OnChange = nullptr);
         Option (const i32, i32, i32, OnChange = nullptr);
+        Option (const char*, const char*, OnChange = nullptr);
         Option (const Option&) = delete;
 
         explicit operator std::string () const;
         explicit operator bool () const;
         explicit operator i32  () const;
+        bool operator==(const char*) const;
 
         Option& operator=  (const char*);
         Option& operator=  (const std::string&);

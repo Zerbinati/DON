@@ -2146,6 +2146,15 @@ void MainThread::search ()
             }
 
             BasicContempt = i32(cp_to_value (FixedContempt + timed_contempt));
+            // In analysis mode, adjust contempt in accordance with user preference
+            if (   Limits.infinite
+                || Options["UCI_AnalyseMode"])
+            {
+                BasicContempt = Options["Analysis Contempt"] == "Off"  ? 0 :
+                                Options["Analysis Contempt"] == "White" && BLACK == root_pos.active ? -BasicContempt :
+                                Options["Analysis Contempt"] == "Black" && WHITE == root_pos.active ? -BasicContempt :
+                                /*Options["Analysis Contempt"] == "Both" ? BasicContempt :*/ BasicContempt;
+            }
 
             if (Limits.use_time_management ())
             {
