@@ -420,7 +420,6 @@ namespace Searcher {
     i32 TBLimitPiece = 6;
     bool TBUseRule50 = true;
     bool TBHasRoot = false;
-    Value TBValue = VALUE_ZERO;
 
     string OutputFile = Empty;
 
@@ -557,7 +556,7 @@ namespace Searcher {
                        && abs (v) < +VALUE_MATE - i32(MaxPlies);
                 if (tb)
                 {
-                    v = TBValue;
+                    v = rms[i].tb_value;
                 }
 
                 oss << "info"
@@ -1283,8 +1282,9 @@ namespace Searcher {
                 }
             }
 
-            bool exact = tt_hit
-                      && BOUND_EXACT == tte->bound ();
+            bool pv_exact = PVNode
+                         && tt_hit
+                         && BOUND_EXACT == tte->bound ();
 
             bool ttm_capture = false;
 
@@ -1312,8 +1312,9 @@ namespace Searcher {
                        // Skip at root node:
                     || (   root_node
                            // In "searchmoves" mode, skip moves not listed in RootMoves, as a consequence any illegal move is also skipped.
-                           // In MultiPV mode we not only skip PV moves which have already been searched.
-                        && std::find (pos.thread->root_moves.begin () + pos.thread->pv_index, pos.thread->root_moves.end (), move) == pos.thread->root_moves.end ()))
+                           // In MultiPV mode we not only skip PV moves which have already been searched and those of lower "TB rank" if we are in a TB root position.
+                        && std::find (pos.thread->root_moves.begin () + pos.thread->pv_index,
+                                      pos.thread->root_moves.begin () + pos.thread->pv_last, move) == pos.thread->root_moves.end ()))
                 {
                     continue;
                 }
@@ -1467,7 +1468,7 @@ namespace Searcher {
                 {
                     i16 reduce_depth = reduction_depth (PVNode, improving, depth, move_count);
 
-                    if (capture_or_promotion)
+                    if (capture_or_promotion) // (~5 Elo)
                     {
                         reduce_depth -= 1;
                     }
@@ -1475,30 +1476,30 @@ namespace Searcher {
                     {
                         assert(PROMOTE != mtype (move));
 
-                        // Decrease reduction if opponent's move count is high
+                        // Decrease reduction if opponent's move count is high (~5 Elo)
                         if ((ss-1)->move_count >= 16)
                         {
                             reduce_depth -= 1;
                         }
-                        // Decrease reduction for exact PV nodes
-                        if (exact)
+                        // Decrease reduction for exact PV nodes (~0 Elo)
+                        if (pv_exact)
                         {
                             reduce_depth -= 1;
                         }
 
-                        // Increase reduction if TT move is a capture
+                        // Increase reduction if TT move is a capture (~0 Elo)
                         if (ttm_capture)
                         {
                             reduce_depth += 1;
                         }
 
-                        // Increase reduction for cut nodes
+                        // Increase reduction for cut nodes (~5 Elo)
                         if (cut_node)
                         {
                             reduce_depth += 2;
                         }
                         else
-                        // Decrease reduction for moves that escape a capture in no-cut nodes.
+                        // Decrease reduction for moves that escape a capture in no-cut nodes (~5 Elo)
                         if (   NORMAL == mtype (move)
                             && !pos.see_ge (mk_move<NORMAL> (dst, org)))
                         {
@@ -1511,7 +1512,7 @@ namespace Searcher {
                                        + (*piece_destiny_history[3])[mpc][dst]
                                        - 4000;
 
-                        // Decrease/Increase reduction by comparing own and opp stats
+                        // Decrease/Increase reduction by comparing own and opp stats (~10 Elo)
                         if (   (ss-1)->stat_score >= 0
                             && ss->stat_score < 0)
                         {
@@ -1524,7 +1525,7 @@ namespace Searcher {
                             reduce_depth -= 1;
                         }
 
-                        // Decrease/Increase reduction for moves with +/-ve own stats
+                        // Decrease/Increase reduction for moves with +/-ve own stats (~30 Elo)
                         reduce_depth -= i16(ss->stat_score / 20000);
                     }
 
@@ -1862,9 +1863,23 @@ void Thread::search ()
             rm.old_value = rm.new_value;
         }
 
+        size_t pv_first = 0;
+        pv_last = 0;
+
         // MultiPV loop. Perform a full root search for each PV line.
         for (pv_index = 0; !Threadpool.stop && pv_index < Threadpool.pv_limit; ++pv_index)
         {
+            if (pv_index == pv_last)
+            {
+                for (pv_first = pv_last++; pv_last < root_moves.size (); ++pv_last)
+                {
+                    if (root_moves[pv_last].tb_rank != root_moves[pv_first].tb_rank)
+                    {
+                        break;
+                    }
+                }
+            }
+
             // Reset UCI info sel_depth for each depth and each PV line
             sel_depth = DepthZero;
 
@@ -1898,7 +1913,7 @@ void Thread::search ()
                 // want to keep the same order for all the moves but the new PV
                 // that goes to the front. Note that in case of MultiPV search
                 // the already searched PV lines are preserved.
-                std::stable_sort (root_moves.begin () + pv_index, root_moves.end ());
+                std::stable_sort (root_moves.begin () + pv_index, root_moves.begin () + pv_last);
 
                 // If search has been stopped, break immediately.
                 // Sorting is safe because RootMoves is still valid, although it refers to the previous iteration.
@@ -1950,7 +1965,7 @@ void Thread::search ()
             }
 
             // Sort the PV lines searched so far and update the GUI.
-            std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
+            std::stable_sort (root_moves.begin () + pv_first, root_moves.begin () + pv_index + 1);
 
             if (   nullptr != main_thread
                 && (   Threadpool.stop

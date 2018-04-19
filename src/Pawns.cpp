@@ -206,20 +206,18 @@ namespace Pawns {
     Value Entry::pawn_shelter_storm (const Position &pos, Square fk_sq) const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Down = WHITE == Own ? DEL_S : DEL_N;
+
         // Max Safety corresponds to start position with all the pawns in front of the king and no enemy pawn on the horizon.
-
         auto value = Value(258);
-
-        auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
 
         const Bitboard front_pawns = pos.pieces (PAWN)
                                    & (  rank_bb (fk_sq)
-                                      | front_rank_bb (Own, fk_sq))
-                                   & (  file_bb (kf)
-                                      | adj_file_bb (kf));
+                                      | front_rank_bb (Own, fk_sq));
         const Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         const Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
+        auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
         for (auto f : { kf - File(1), kf, kf + File(1) })
         {
             assert(F_A <= f && f <= F_H);
@@ -234,11 +232,10 @@ namespace Pawns {
 
             auto ff = std::min (f, F_H - f);
             value -= ShelterWeak[f == _file (fk_sq) ? 1 : 0][ff][own_r]
-                   + StromDanger[f == _file (fk_sq)
-                              && opp_r == rel_rank (Own, fk_sq) + 1 ? 0 : // BlockedByKing
-                                 own_r == R_1                       ? 1 : // Unopposed
-                                 opp_r == own_r + 1                 ? 2 : // BlockedByPawn
-                                                                      3]  // Unblocked
+                   + StromDanger[0 != (shift<Down> (b) & fk_sq) ? 0 : // BlockedByKing
+                                 own_r == R_1                   ? 1 : // Unopposed
+                                 opp_r == own_r + 1             ? 2 : // BlockedByPawn
+                                                                  3]  // Unblocked
                                 [ff][opp_r];
         }
 

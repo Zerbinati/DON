@@ -227,6 +227,8 @@ public:
         , new_value;
 
     i16 sel_depth;
+    i16 tb_rank;
+    Value tb_value;
 
     explicit RootMove (Move m = MOVE_NONE)
         : std::vector<Move> (1, m)
@@ -306,7 +308,6 @@ namespace Searcher {
     extern i32 TBLimitPiece;
     extern bool TBUseRule50;
     extern bool TBHasRoot;
-    extern Value TBValue;
 
     extern std::string OutputFile;
 

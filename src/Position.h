@@ -167,6 +167,7 @@ public:
 
     i16  move_num () const;
     bool draw (i16) const;
+    bool repeated () const;
 
     bool see_ge (Move, Value = VALUE_ZERO) const;
 

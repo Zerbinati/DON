@@ -33,7 +33,6 @@ bool Position::draw (i16 pp) const
     {
         return false;
     }
-
     // Draw by Repetition?
     const auto *psi = si->ptr->ptr;
     bool repeated = false;
@@ -52,6 +51,35 @@ bool Position::draw (i16 pp) const
             }
             repeated = true;
         }
+    }
+    return false;
+}
+
+/// Position::has_repeated() tests whether there has been at least one repetition of positions since the last capture or pawn move.
+bool Position::repeated () const
+{
+    const auto *csi = si;
+    while (nullptr != csi)
+    {
+        u08 end = std::min (csi->clock_ply, csi->null_ply);
+        if (end < 4)
+        {
+            break;
+        }
+
+        const auto *psi = si->ptr->ptr;
+        do
+        {
+            psi = psi->ptr->ptr;
+            // Check first repetition
+            if (psi->posi_key == si->posi_key)
+            {
+                return true;
+            }
+            end -= 2;
+        }
+        while (end >= 4);
+        csi = csi->ptr;
     }
     return false;
 }

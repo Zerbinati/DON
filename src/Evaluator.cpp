@@ -738,57 +738,71 @@ namespace {
                              & ~defended_area
                              &  pin_attacked_by[Own][NONE];
 
+        Bitboard defended_nonpawns = nonpawns
+                                   & defended_area;
+
         // Bonus according to the type of attacking pieces
 
-        // Enemies attacked by minors
-        b =  (  weak_pieces
-                // Rooks or Queens
-              | pos.pieces (Opp, ROOK, QUEN)
-                // Enemy defended non-pawns
-              | (  nonpawns
-                 & defended_area))
-          &  (  pin_attacked_by[Own][NIHT]
-              | pin_attacked_by[Own][BSHP]);
-        while (0 != b)
+        if (0 != (defended_nonpawns | weak_pieces))
         {
-            auto s = pop_lsq (b);
-            auto pt = ptype (pos[s]);
-            score += MinorPieceThreat[pt];
-            if (PAWN != pt)
+            // Enemies attacked by minors
+            b =  (  weak_pieces
+                    // Rooks or Queens
+                    | pos.pieces (Opp, ROOK, QUEN)
+                    // Enemy defended non-pawns
+                    | defended_nonpawns)
+                &  (  pin_attacked_by[Own][NIHT]
+                    | pin_attacked_by[Own][BSHP]);
+            while (0 != b)
             {
-                score += PieceRankThreat * rel_rank (Opp, s);
+                auto s = pop_lsq (b);
+                auto pt = ptype (pos[s]);
+                score += MinorPieceThreat[pt];
+                if (PAWN != pt)
+                {
+                    score += PieceRankThreat * rel_rank (Opp, s);
+                }
+            }
+
+            // Bonus for overloaded: non-pawn enemies attacked and defended exactly once
+            b = nonpawns
+              & pin_attacked_by[Own][NONE] & ~dbl_attacked[Own]
+              & pin_attacked_by[Opp][NONE] & ~dbl_attacked[Opp];
+            score += Overloaded * pop_count (b);
+
+            if (0 != weak_pieces)
+            {
+                // Enemies attacked by majors
+                b =  (  weak_pieces
+                        // Queens
+                      | pos.pieces (Opp, QUEN))
+                  &  pin_attacked_by[Own][ROOK];
+                while (0 != b)
+                {
+                    auto s = pop_lsq (b);
+                    auto pt = ptype (pos[s]);
+                    score += MajorPieceThreat[pt];
+                    if (PAWN != pt)
+                    {
+                        score += PieceRankThreat * rel_rank (Opp, s);
+                    }
+                }
+                // Enemies attacked by king
+                b =  weak_pieces
+                  &  pin_attacked_by[Own][KING];
+                if (0 != b)
+                {
+                    score += KingThreat[more_than_one (b) ? 1 : 0];
+                }
+                // Enemies attacked by friend are hanging
+                b =  weak_pieces
+                  & ~pin_attacked_by[Opp][NONE];
+                score += PieceHanged * pop_count (b);
             }
         }
-        // Enemies attacked by majors
-        b =  (  weak_pieces
-                // Queens
-              | pos.pieces (Opp, QUEN))
-          &  pin_attacked_by[Own][ROOK];
-        while (0 != b)
-        {
-            auto s = pop_lsq (b);
-            auto pt = ptype (pos[s]);
-            score += MajorPieceThreat[pt];
-            if (PAWN != pt)
-            {
-                score += PieceRankThreat * rel_rank (Opp, s);
-            }
-        }
-        // Enemies attacked by king
-        b =  weak_pieces
-          &  pin_attacked_by[Own][KING];
-        if (0 != b)
-        {
-            score += KingThreat[more_than_one (b) ? 1 : 0];
-        }
-        // Enemies attacked by friend are hanging
-        b =  weak_pieces
-          & ~pin_attacked_by[Opp][NONE];
-        score += PieceHanged * pop_count (b);
 
         Bitboard safe_area =  pin_attacked_by[Own][NONE]
                            | ~pin_attacked_by[Opp][NONE];
-
         // Safe friend pawns
         b = safe_area
           & pos.pieces (Own, PAWN);
@@ -833,12 +847,6 @@ namespace {
              ^ pos.pieces (Own, PAWN, KING))
           & pin_attacked_by[Own][NONE];
         score += Connectivity * pop_count (b);
-
-        // Bonus for overloaded: non-pawn enemies attacked and defended exactly once
-        b = nonpawns
-          & pin_attacked_by[Own][NONE] & ~dbl_attacked[Own]
-          & pin_attacked_by[Opp][NONE] & ~dbl_attacked[Opp];
-        score += Overloaded * pop_count (b);
 
         if (Trace)
         {

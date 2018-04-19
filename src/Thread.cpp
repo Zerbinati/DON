@@ -457,57 +457,58 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
     RootMoves root_moves;
     root_moves.initialize (pos, search_moves);
 
-    TBProbeDepth = i16(i32(Options["SyzygyProbeDepth"]));
-    TBLimitPiece = i32(Options["SyzygyLimitPiece"]);
-    TBUseRule50 = bool(Options["SyzygyUseRule50"]);
-    TBHasRoot = false;
-    // Skip TB probing when no TB found: !MaxLimitPiece -> !TBLimitPiece.
-    if (TBLimitPiece > MaxLimitPiece)
+    if (!root_moves.empty ())
     {
-        TBLimitPiece = MaxLimitPiece;
-        TBProbeDepth = DepthZero;
-    }
-    // Filter root moves.
-    if (   !root_moves.empty ()
-        && 1 == MultiPV
-        && 0 != TBLimitPiece
-        && TBLimitPiece >= pos.count ()
-        && !pos.si->can_castle (CR_ANY))
-    {
-        // If the current root position is in the tablebases,
-        // then RootMoves contains only moves that preserve the draw or the win.
-        TBHasRoot = root_probe_dtz (pos, root_moves, TBValue);
+        TBProbeDepth = i16(i32(Options["SyzygyProbeDepth"]));
+        TBLimitPiece = i32(Options["SyzygyLimitPiece"]);
+        TBUseRule50 = bool(Options["SyzygyUseRule50"]);
+        TBHasRoot = false;
+    
+        bool dtz_available = true;
+
+        // Tables with fewer pieces than SyzygyProbeLimit are searched with ProbeDepth == DEPTH_ZERO
+        if (TBLimitPiece > MaxLimitPiece)
+        {
+            TBLimitPiece = MaxLimitPiece;
+            TBProbeDepth = DepthZero;
+        }
+
+        // Rank moves using DTZ tables
+        if (   0 != TBLimitPiece
+            && TBLimitPiece >= pos.count ()
+            && !pos.si->can_castle (CR_ANY))
+        {
+            // If the current root position is in the tablebases,
+            // then RootMoves contains only moves that preserve the draw or the win.
+            TBHasRoot = root_probe_dtz (pos, root_moves);
+            if (!TBHasRoot)
+            {
+                // DTZ tables are missing; try to rank moves using WDL tables
+                dtz_available = false;
+                TBHasRoot = root_probe_wdl (pos, root_moves);
+            }
+        }
 
         if (TBHasRoot)
         {
-            // Do not probe tablebases during the search
-            TBLimitPiece = 0;
-        }
-        // If DTZ tables are missing, use WDL tables as a fall back.
-        else
-        {
-            // Filter out moves that do not preserve the draw or the win.
-            TBHasRoot = root_probe_wdl (pos, root_moves, TBValue);
-            // Only probe during search if winning.
-            if (   TBHasRoot
-                && TBValue <= VALUE_DRAW)
+            // Sort moves according to TB rank
+            std::sort (root_moves.begin (), root_moves.end (),
+                        [](const RootMove &rm1, const RootMove &rm2) { return rm1.tb_rank > rm2.tb_rank; });
+
+            // Probe during search only if DTZ is not available and we are winning
+            if (   dtz_available
+                || root_moves[0].tb_value <= VALUE_DRAW)
             {
                 TBLimitPiece = 0;
             }
         }
-
-        if (   TBHasRoot
-            && !TBUseRule50)
+        else
         {
-            TBValue = TBValue > VALUE_DRAW ? +VALUE_MATE - (MaxPlies - 1) :
-                      TBValue < VALUE_DRAW ? -VALUE_MATE + (MaxPlies + 1) :
-                                              VALUE_DRAW;
-        }
-
-        // Reset root move scores to -VALUE_INFINITE, Since root_probe_dtz() and root_probe_wdl() dirty them.
-        for (auto &rm : root_moves)
-        {
-            rm.new_value = -VALUE_INFINITE;
+            // Assign the same rank to all moves
+            for (auto &rm : root_moves)
+            {
+                rm.tb_rank = 0;
+            }
         }
     }
 
