@@ -235,6 +235,8 @@ public:
         , old_value (-VALUE_INFINITE)
         , new_value (-VALUE_INFINITE)
         , sel_depth (0)
+        , tb_rank (0)
+        , tb_value (VALUE_ZERO)
     {}
     RootMove& operator= (const RootMove&) = default;
 

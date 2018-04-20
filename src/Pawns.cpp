@@ -232,10 +232,10 @@ namespace Pawns {
 
             auto ff = std::min (f, F_H - f);
             value -= ShelterWeak[f == _file (fk_sq) ? 1 : 0][ff][own_r]
-                   + StromDanger[0 != (shift<Down> (b) & fk_sq) ? 0 : // BlockedByKing
-                                 own_r == R_1                   ? 1 : // Unopposed
-                                 opp_r == own_r + 1             ? 2 : // BlockedByPawn
-                                                                  3]  // Unblocked
+                   + StromDanger[contains (shift<Down> (file_front_pawns), fk_sq) ? 0 : // BlockedByKing
+                                 own_r == R_1                                     ? 1 : // Unopposed
+                                 opp_r == own_r + 1                               ? 2 : // BlockedByPawn
+                                                                                    3]  // Unblocked
                                 [ff][opp_r];
         }
 
