@@ -64,7 +64,7 @@ public:
 /// be a move or even a nested history. We use a class instead of naked value
 /// to directly call history update operator<<() on the entry so to use stats
 /// tables at caller sites as simple multi-dim arrays.
-template<typename T, i32 W, i32 D>
+template<typename T, i32 D>
 class StatsEntry
 {
 private:
@@ -82,22 +82,21 @@ public:
     void operator<< (i32 bonus)
     {
         assert(abs (bonus) <= D); // Ensure range is [-W * D, W * D]
-        assert(W * D < std::numeric_limits<T>::max ()); // Ensure we don't overflow
+        assert(D < std::numeric_limits<T>::max ()); // Ensure we don't overflow
 
-        entry += T(bonus * W - entry * abs (bonus) / D);
+        entry += T(bonus - entry * abs (bonus) / D);
 
-        assert(abs (entry) <= W * D);
+        assert(abs (entry) <= D);
     }
 };
 
 /// Stats is a generic N-dimensional array used to store various statistics.
-/// The first template T parameter is the base type of the array, the W parameter
-/// is the weight applied to the bonuses when we update values with the << operator,
-/// the D parameter limits the range of updates (range is [-W * D, W * D]), and
+/// The first template T parameter is the base type of the array,
+/// the D parameter limits the range of updates (range is [-D, +D]), and
 /// the last parameters (Size and Sizes) encode the dimensions of the array.
-template <typename T, i32 W, i32 D, i32 Size, i32... Sizes>
+template <typename T, i32 D, i32 Size, i32... Sizes>
 struct Stats
-    : public std::array<Stats<T, W, D, Sizes...>, Size>
+    : public std::array<Stats<T, D, Sizes...>, Size>
 {
     T* get () { return this->at (0).get (); }
 
@@ -107,9 +106,9 @@ struct Stats
         std::fill (p, p + sizeof (*this) / sizeof (*p), v);
     }
 };
-template <typename T, i32 W, i32 D, i32 Size>
-struct Stats<T, W, D, Size>
-    : public std::array<StatsEntry<T, W, D>, Size>
+template <typename T, i32 D, i32 Size>
+struct Stats<T, D, Size>
+    : public std::array<StatsEntry<T, D>, Size>
 {
     T* get () { return this->at (0).get (); }
 };
@@ -117,20 +116,20 @@ struct Stats<T, W, D, Size>
 /// ButterflyHistory records how often quiet moves have been successful or unsuccessful
 /// during the current search, and is used for reduction and move ordering decisions.
 /// It is indexed by [color][move].
-typedef Stats<i16, 32, 324, CLR_NO, SQ_NO*SQ_NO> ButterflyHistory;
+typedef Stats<i16, 10368, CLR_NO, SQ_NO*SQ_NO> ButterflyHistory;
 
 /// PieceDestinyHistory is like ButterflyHistory but is indexed by [piece][destiny]
-typedef Stats<i16, 32, 936, MAX_PIECE, SQ_NO> PieceDestinyHistory;
+typedef Stats<i16, 29952, MAX_PIECE, SQ_NO> PieceDestinyHistory;
 
 /// ContinuationHistory is the combined history of a given pair of moves, usually the current one given a previous one.
 /// The nested history table is based on PieceDestinyHistory instead of ButterflyBoards.
-typedef Stats<PieceDestinyHistory, 32, 0, MAX_PIECE, SQ_NO> ContinuationHistory;
+typedef Stats<PieceDestinyHistory, 0, MAX_PIECE, SQ_NO> ContinuationHistory;
 
 /// CapturePieceDestinyHistory is indexed by [piece][move][captured piece type]
-typedef Stats<i16, 2, 324, MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE> CapturePieceDestinyHistory;
+typedef Stats<i16, 10368, MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE> CapturePieceDestinyHistory;
 
 /// PieceDestinyMove stores counter moves is indexed by [piece][move]
-typedef Stats<Move, 0, 0, MAX_PIECE, SQ_NO*SQ_NO> PieceDestinyMove;
+typedef Stats<Move, 0, MAX_PIECE, SQ_NO*SQ_NO> PieceDestinyMove;
 
 
 /// MovePicker class is used to pick one legal moves from the current position.

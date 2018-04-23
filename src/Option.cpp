@@ -149,13 +149,20 @@ namespace UCI {
     {
         ostringstream oss;
         oss << " type " << type;
+
         if (type != "button")
         {
-            oss << " default " << default_value;
-            
+            if (   type == "string"
+                || type == "check"
+                || type == "combo")
+            {
+                oss << " default " << default_value;
+            }
             if (type == "spin")
             {
-                oss << " min " << minimum << " max " << maximum;
+                oss << " default " << default_value
+                    << " min " << minimum
+                    << " max " << maximum;
             }
             //oss << " current " << current_value;
         }
@@ -239,7 +246,7 @@ namespace UCI {
             Book.use = bool(Options["Use Book"]);
             Book.initialize (string(Options["Book File"]));
             Book.pick_best = bool(Options["Book Pick Best"]);
-            Book.move_count = i16(i32(Options["Book Move Count"]));
+            Book.move_num = i16(i32(Options["Book Move Num"]));
         }
 
         void on_skill_level ()
@@ -337,7 +344,7 @@ namespace UCI {
         Options["Use Book"]           << Option (Book.use, on_book_opt);
         Options["Book File"]          << Option (Book.filename, on_book_opt);
         Options["Book Pick Best"]     << Option (Book.pick_best, on_book_opt);
-        Options["Book Move Count"]    << Option (Book.move_count, 0, 100, on_book_opt);
+        Options["Book Move Num"]      << Option (Book.move_num, 0, 100, on_book_opt);
 
         Options["Threads"]            << Option ( 1, 0, 512, on_threads);
 

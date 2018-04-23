@@ -37,7 +37,7 @@ namespace Pawns {
         }
 
         template<Color Own>
-        Value pawn_shelter_storm (const Position&, Square) const;
+        Value evaluate_shelter (const Position&, Square) const;
 
         template<Color Own>
         u08 king_safety_on (const Position &pos, Square fk_sq)
@@ -57,7 +57,7 @@ namespace Pawns {
 
             king_square[Own][index[Own]] = fk_sq;
             king_pawn_dist[Own][index[Own]] = kp_dist;
-            king_safety[Own][index[Own]] = pawn_shelter_storm<Own> (pos, fk_sq);
+            king_safety[Own][index[Own]] = evaluate_shelter<Own> (pos, fk_sq);
             return index[Own] < MaxCache - 1 ? index[Own]++ : index[Own];
         }
 

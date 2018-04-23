@@ -829,7 +829,8 @@ namespace {
         // Bonus for friend pawns push safely can attack an enemy piece not already attacked by pawn
         score += PawnPushThreat * pop_count (b);
 
-        Bitboard safe_threat = mob_area[Own] & ~defended_area;
+        Bitboard safe_threat = mob_area[Own]
+                             & ~defended_area;
 
         b = (pin_attacked_by[Own][NIHT] & pin_attacked_queen[Opp][0])
           & safe_threat;

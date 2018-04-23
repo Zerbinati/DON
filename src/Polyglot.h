@@ -16,12 +16,15 @@ struct PolyEntry
     u16 weight;
     u32 learn;
 
-    PolyEntry () = default;
+
     PolyEntry (u64 k, u16 m, u16 w, u32 l)
         : key (k)
         , move (m)
         , weight (w)
         , learn (l)
+    {}
+    PolyEntry ()
+        : PolyEntry (0, 0, 0, 0)
     {}
 
     PolyEntry& operator= (const PolyEntry&) = default;
@@ -118,7 +121,7 @@ public:
     bool enabled;
     std::string filename;
     bool pick_best;
-    i16 move_count;
+    i16 move_num;
 
     PolyBook ();
     ~PolyBook ();

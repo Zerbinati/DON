@@ -1894,7 +1894,7 @@ void Thread::search ()
                 // Dynamic contempt
                 if (0 != ContemptValue)
                 {
-                    i32 dynamic_contempt = BasicContempt + i32(std::round (48 * std::atan (double(old_value) / (12.8 * ContemptValue))));
+                    i32 dynamic_contempt = BasicContempt + i32(8.8 * ContemptValue * old_value / (abs (old_value) + 200));
                     contempt = WHITE == root_pos.active ?
                                 +mk_score (dynamic_contempt, dynamic_contempt / 2) :
                                 -mk_score (dynamic_contempt, dynamic_contempt / 2);

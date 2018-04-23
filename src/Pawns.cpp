@@ -12,22 +12,14 @@ namespace Pawns {
 
     #define V(v) Value(v)
 
-        // Weakness of friend pawn shelter in front of the friend king, indexed by [is king-file][distance from edge][rank]
-        // R_1 = 0 is used for files where we have no pawns or pawn is behind our king.
-        const Value ShelterWeak[2][F_NO/2][R_NO] =
+        // Strength of pawn shelter for our king by [distance from edge][rank].
+        // RANK_1 = 0 is used for files where we have no pawn, or pawn is behind our king.
+        const Value ShelterStrength[F_NO/2][R_NO] =
         {
-            {// Not On King file
-                { V( 98), V(20), V(11), V(42), V( 83), V( 84), V(101), V(0) },
-                { V(103), V( 8), V(33), V(86), V( 87), V(105), V(113), V(0) },
-                { V(100), V( 2), V(65), V(95), V( 59), V( 89), V(115), V(0) },
-                { V( 72), V( 6), V(52), V(74), V( 83), V( 84), V(112), V(0) }
-            },
-            {// On King file
-                { V(105), V(19), V( 3), V(27), V( 85), V( 93), V( 84), V(0) },
-                { V(121), V( 7), V(33), V(95), V(112), V( 86), V( 72), V(0) },
-                { V(121), V(26), V(65), V(90), V( 65), V( 76), V(117), V(0) },
-                { V( 79), V( 0), V(45), V(65), V( 94), V( 92), V(105), V(0) }
-            }
+            { V( -9), V(64), V(77), V( 44), V( 4), V( -1), V(-11), V(0) },
+            { V(-15), V(83), V(51), V(-10), V( 1), V(-10), V(-28), V(0) },
+            { V(-18), V(84), V(27), V(-12), V(21), V( -7), V(-36), V(0) },
+            { V( 12), V(79), V(25), V( 19), V( 9), V( -6), V(-33), V(0) }
         };
         // Dangerousness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
         // For the unopposed and unblocked cases, R_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
@@ -200,22 +192,21 @@ namespace Pawns {
         template Score evaluate<BLACK> (const Position&, Entry*);
     }
 
-    /// Calculates shelter and storm penalties.
-    /// For the king file, as well as the two closest files.
+    /// Entry::evaluate_shelter() calculates the shelter bonus and the storm
+    /// penalty for a king, looking at the king file and the two closest files.
     template<Color Own>
-    Value Entry::pawn_shelter_storm (const Position &pos, Square fk_sq) const
+    Value Entry::evaluate_shelter (const Position &pos, Square fk_sq) const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-        constexpr auto Down = WHITE == Own ? DEL_S : DEL_N;
-
-        // Max Safety corresponds to start position with all the pawns in front of the king and no enemy pawn on the horizon.
-        auto value = Value(258);
+        constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
         const Bitboard front_pawns = pos.pieces (PAWN)
                                    & (  rank_bb (fk_sq)
                                       | front_rank_bb (Own, fk_sq));
         const Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         const Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
+
+        auto value = Value ((own_front_pawns & file_bb (fk_sq)) ? +5 : -5);
 
         auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
         for (auto f : { kf - File(1), kf, kf + File(1) })
@@ -231,8 +222,8 @@ namespace Pawns {
                 || (own_r != opp_r));
 
             auto ff = std::min (f, F_H - f);
-            value -= ShelterWeak[f == _file (fk_sq) ? 1 : 0][ff][own_r]
-                   + StromDanger[contains (shift<Down> (file_front_pawns), fk_sq) ? 0 : // BlockedByKing
+            value += ShelterStrength[ff][own_r]
+                   - StromDanger[contains (shift<Pull> (file_front_pawns), fk_sq) ? 0 : // BlockedByKing
                                  own_r == R_1                                     ? 1 : // Unopposed
                                  opp_r == own_r + 1                               ? 2 : // BlockedByPawn
                                                                                     3]  // Unblocked
@@ -242,8 +233,8 @@ namespace Pawns {
         return value;
     }
     // Explicit template instantiations
-    template Value Entry::pawn_shelter_storm<WHITE> (const Position&, Square) const;
-    template Value Entry::pawn_shelter_storm<BLACK> (const Position&, Square) const;
+    template Value Entry::evaluate_shelter<WHITE> (const Position&, Square) const;
+    template Value Entry::evaluate_shelter<BLACK> (const Position&, Square) const;
 
     /// Pawns::probe() looks up a current position's pawn configuration in the pawn hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.

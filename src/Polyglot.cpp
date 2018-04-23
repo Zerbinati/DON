@@ -120,7 +120,7 @@ PolyBook::PolyBook ()
     , enabled (false)
     , filename ("Book.bin")
     , pick_best (true)
-    , move_count (20)
+    , move_num (20)
 {
 }
 
@@ -271,8 +271,8 @@ Move PolyBook::probe (Position &pos)
 
     if (   !enabled
         || nullptr == entries
-        || (   0 != move_count
-            && pos.move_num () > move_count)
+        || (   0 != move_num
+            && pos.move_num () > move_num)
         || !can_probe (pos))
     {
         return MOVE_NONE;
@@ -295,7 +295,7 @@ Move PolyBook::probe (Position &pos)
 
     u08 count = 0;
     u16 max_weight = 0;
-    u32 weight_sum = 0;
+    u32 sum_weight = 0;
 
     size_t pick1_index = index;
     size_t i = index;
@@ -306,7 +306,7 @@ Move PolyBook::probe (Position &pos)
 
         ++count;
         max_weight = std::max (entries[i].weight, max_weight);
-        weight_sum += entries[i].weight;
+        sum_weight += entries[i].weight;
 
         // Choose the move
 
@@ -320,8 +320,8 @@ Move PolyBook::probe (Position &pos)
         else
         {
             // Move with a very high score, has a higher probability of being choosen.
-            if (   0 != weight_sum
-                && (prng.rand<u32> () % weight_sum) < entries[i].weight)
+            if (   0 != sum_weight
+                && (prng.rand<u32> () % sum_weight) < entries[i].weight)
             {
                 pick1_index = i;
             }
@@ -386,12 +386,12 @@ string PolyBook::show (const Position &pos) const
 
     ostringstream oss;
     list<PolyEntry> list_entries;
-    u32 weight_sum = 0;
+    u32 sum_weight = 0;
     while (   size_t(index) < entry_count
            && key == entries[index].key)
     {
         list_entries.push_back (entries[index]);
-        weight_sum += entries[index].weight;
+        sum_weight += entries[index].weight;
         ++index;
     }
     if (!list_entries.empty ())
@@ -407,7 +407,7 @@ string PolyBook::show (const Position &pos) const
                 << " prob: "
                 << std::setw (7)
                 << std::setfill ('0')
-                << std::fixed << std::setprecision (4) << (0 != weight_sum ? 100.0 * entry.weight / weight_sum : 0.0)
+                << std::fixed << std::setprecision (4) << (0 != sum_weight ? 100.0 * entry.weight / sum_weight : 0.0)
                 << std::setfill (' ');
         }
     }
