@@ -711,7 +711,7 @@ namespace {
         auto score = SCORE_ZERO;
 
         // Enemy non-pawns
-        Bitboard nonpawns = pos.pieces (Opp) ^ pos.pieces (Opp, PAWN);
+        Bitboard nonpawns_enemies = pos.pieces (Opp) ^ pos.pieces (Opp, PAWN);
         // Squares defended by the opponent,
         // - attack the square with a pawn
         // - attack the square twice and not defended twice.
@@ -719,23 +719,23 @@ namespace {
                                | (   dbl_attacked[Opp]
                                   & ~dbl_attacked[Own]);
         // Enemy not defended and under attacked by any friend piece
-        Bitboard weak_pieces =  pos.pieces (Opp)
-                             & ~defended_area
-                             &  pin_attacked_by[Own][NONE];
+        Bitboard weak_enemies =  pos.pieces (Opp)
+                              & ~defended_area
+                              &  pin_attacked_by[Own][NONE];
         // Non-pawn enemies, defended by enemies
-        Bitboard defended_nonpawns = nonpawns
-                                   & defended_area;
+        Bitboard defended_nonpawns_enemies = nonpawns_enemies
+                                           & defended_area;
 
         Bitboard b;
 
-        if (0 != (defended_nonpawns | weak_pieces))
+        if (0 != (defended_nonpawns_enemies | weak_enemies))
         {
             // Bonus according to the type of attacking pieces
 
             // Enemies attacked by minors
-            b =  (  weak_pieces
+            b =  (  weak_enemies
                     // Enemy defended non-pawns
-                  | defended_nonpawns
+                  | defended_nonpawns_enemies
                     // Enemy Rooks or Queens
                   | pos.pieces (Opp, ROOK, QUEN))
               &  (  pin_attacked_by[Own][NIHT]
@@ -751,7 +751,7 @@ namespace {
                 }
             }
             // Enemies attacked by majors
-            b =  (  weak_pieces
+            b =  (  weak_enemies
                     // Enemy Queens
                   | pos.pieces (Opp, QUEN))
               &  pin_attacked_by[Own][ROOK];
@@ -766,7 +766,7 @@ namespace {
                 }
             }
             // Enemies attacked by king
-            b =  weak_pieces
+            b =  weak_enemies
               &  pin_attacked_by[Own][KING];
             if (0 != b)
             {
@@ -774,16 +774,15 @@ namespace {
             }
 
             // Enemies attacked are hanging
-            b =  weak_pieces
+            b =  weak_enemies
               & ~pin_attacked_by[Opp][NONE];
             score += PieceHanged * pop_count (b);
 
             // Bonus for overloaded: non-pawn enemies attacked and defended exactly once
-            b = nonpawns
+            b = nonpawns_enemies
               & pin_attacked_by[Own][NONE] & ~dbl_attacked[Own]
               & pin_attacked_by[Opp][NONE] & ~dbl_attacked[Opp];
             score += Overloaded * pop_count (b);
-
         }
 
         // Bonus for opponent unopposed weak pawns
@@ -797,7 +796,7 @@ namespace {
         // Safe friend pawns
         b = safe_area
           & pos.pieces (Own, PAWN);
-        b = nonpawns
+        b = nonpawns_enemies
           & pawn_attacks_bb<Own> (b)
           & pin_attacked_by[Own][PAWN];
         score += SafePawnThreat * pop_count (b);
