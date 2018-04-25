@@ -155,13 +155,13 @@ namespace TBSyzygy {
         T number (void *addr)
         {
             static const union { u32 i; char c[4]; } U = { 0x01020304 };
-            static const bool End = (0x04 == U.c[0]) ? Endian::LITTLE :
-                                    (0x01 == U.c[0]) ? Endian::BIG : Endian::UNKNOWN;
+            static const Endian End = (0x04 == U.c[0]) ? Endian::LITTLE :
+                                      (0x01 == U.c[0]) ? Endian::BIG : Endian::UNKNOWN;
             assert(Endian::UNKNOWN != End);
             T v;
-            if (0 != (uintptr_t(addr) & (alignof (T) -1))) // Unaligned pointer (very rare)
+            if (0 != ((uintptr_t)(addr) & (alignof (T) -1))) // Unaligned pointer (very rare)
             {
-                std::memcpy (&v, addr, sizeof (v));
+                std::memcpy (&v, addr, sizeof (T));
             }
             else
             {
@@ -614,7 +614,7 @@ namespace TBSyzygy {
             //     I(k) = k * d->span + d->span / 2      (1)
 
             // First step is to get the 'k' of the I(k) nearest to our idx, using definition (1)
-            u32 k = u32(idx / d->span);
+            u32 k = idx / d->span;
 
             // Then we read the corresponding SparseIndex[] entry
             u32 block  = number<u32, Endian::LITTLE> (&d->sparse_index[k].block);
@@ -789,6 +789,8 @@ namespace TBSyzygy {
                 // flip the squares before to lookup.
                      || (pos.si->matl_key != entry->key1);
 
+            auto stm = flip ? ~pos.active : pos.active;
+
             Square squares[TBPIECES];
             Piece pieces[TBPIECES];
             i32 size = 0;
@@ -816,8 +818,8 @@ namespace TBSyzygy {
                 do
                 {
                     squares[size] = flip ?
-                                       ~pop_lsq (b) :
-                                        pop_lsq (b);
+                                     ~pop_lsq (b) :
+                                      pop_lsq (b);
                     ++size;
                 }
                 while (0 != b);
@@ -841,7 +843,7 @@ namespace TBSyzygy {
             // DTZ tables are one-sided, i.e. they store positions only for white to
             // move or only for black to move, so check for side to move to be color,
             // early exit otherwise.
-            if (!check_dtz_stm (entry, flip ? ~pos.active : pos.active, tb_file))
+            if (!check_dtz_stm (entry, stm, tb_file))
             {
                 state = ProbeState::CHANGE_STM;
                 return Ret();
@@ -865,7 +867,7 @@ namespace TBSyzygy {
 
             assert(size >= 2);
 
-            auto *d = entry->get (flip ? ~pos.active : pos.active, tb_file);
+            auto *d = entry->get (stm, tb_file);
 
             // Then we reorder the pieces to have the same sequence as the one stored
             // in pieces[i]: the sequence that ensures the best compression.
@@ -972,7 +974,7 @@ namespace TBSyzygy {
                     // (mapped to 0...61) for the third.
                     if (off_A1H8 (squares[0]))
                     {
-                        idx = (  MapA1D1D4[squares[0]]  * 63
+                        idx = (  MapA1D1D4[squares[0]] * 63
                                + (squares[1] - adjust1)) * 62
                             + (squares[2] - adjust2);
                     }
@@ -1022,7 +1024,7 @@ namespace TBSyzygy {
             bool pawn_remain = entry->has_pawns && 0 != entry->pawn_count[1];
 
             i32 group_idx = 0;
-            while (0 < d->group_len[++group_idx])
+            while (0 != d->group_len[++group_idx])
             {
                 assert(0 <= d->group_len[group_idx] && d->group_len[group_idx] <= 6);
                 std::sort (group_sq, group_sq + d->group_len[group_idx]);
@@ -1169,8 +1171,8 @@ namespace TBSyzygy {
             // element stores the biggest index that is the tb size.
             u64 tb_size = d->group_idx[std::find (d->group_len, d->group_len + 7, 0) - d->group_len];
 
-            d->block_size = 1ULL << *data++;
-            d->span = 1ULL << *data++;
+            d->block_size = u64(1) << *data++;
+            d->span = u64(1) << *data++;
             d->sparse_index_size = (tb_size + d->span - 1) / d->span; // Round up
             i32 padding = number<u08, Endian::LITTLE> (data++);
             d->num_blocks = number<u32, Endian::LITTLE> (data); data += sizeof (u32);
@@ -1186,7 +1188,7 @@ namespace TBSyzygy {
             // Starting from this we compute a base64[] table indexed by symbol length
             // and containing 64 bit values so that d->base64[i] >= d->base64[i+1].
             // See http://www.eecs.harvard.edu/~michaelm/E210/huffman.pdf
-            for (i32 i = i32(d->base64.size () - 2); i >= 0; --i)
+            for (i32 i = d->base64.size () - 2; i >= 0; --i)
             {
                 d->base64[i] = (  d->base64[i + 1]
                                 + number<Sym, Endian::LITTLE> (&d->lowest_sym[i])
@@ -1224,7 +1226,7 @@ namespace TBSyzygy {
             return data + d->sym_len.size () * sizeof (LR) + (d->sym_len.size () & 1);
         }
 
-        u08* set_dtz_map (TBTable<WDL> &, u08 *, File)
+        u08* set_dtz_map (TBTable<WDL>&, u08*, File)
         {
             return nullptr;
         }
@@ -1244,7 +1246,7 @@ namespace TBSyzygy {
                     }
                 }
             }
-            return data += uintptr_t(data) & 1; // Word alignment
+            return data += (uintptr_t)(data) & 1; // Word alignment
         }
 
         template<typename T>
@@ -1291,7 +1293,7 @@ namespace TBSyzygy {
                 }
             }
 
-            data += uintptr_t(data) & 1; // Word alignment
+            data += (uintptr_t)(data) & 1; // Word alignment
 
             for (auto f = F_A; f <= MaxFile; ++f)
             {
@@ -1324,7 +1326,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    data = (u08*)((uintptr_t(data) + 0x3F) & ~0x3F); // 64 byte alignment
+                    data = (u08*)(((uintptr_t)(data) + 0x3F) & ~0x3F); // 64 byte alignment
                     (d = e.get (i, f))->data = data;
                     data += d->num_blocks * d->block_size;
                 }
@@ -1701,7 +1703,7 @@ namespace TBSyzygy {
 
             // Better moves are ranked higher. Certain wins are ranked equally.
             // Losing moves are ranked equally unless a 50-move draw is in sight.
-            int r = dtz > 0 ? (+dtz + clock_ply <= 99 && !rep ? +1000 : +1000 - (dtz + clock_ply)) :
+            i16 r = dtz > 0 ? (+dtz + clock_ply <= 99 && !rep ? +1000 : +1000 - (dtz + clock_ply)) :
                     dtz < 0 ? (-dtz * 2 + clock_ply < 100 ? -1000 : -1000 + (-dtz + clock_ply)) :
                     0;
             rm.tb_rank = r;

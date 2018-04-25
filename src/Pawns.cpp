@@ -192,10 +192,10 @@ namespace Pawns {
         template Score evaluate<BLACK> (const Position&, Entry*);
     }
 
-    /// Entry::evaluate_shelter() calculates the shelter bonus and the storm
-    /// penalty for a king, looking at the king file and the two closest files.
+    /// Entry::evaluate_safety() calculates shelter & storm for a king,
+    /// looking at the king file and the two closest files.
     template<Color Own>
-    Value Entry::evaluate_shelter (const Position &pos, Square fk_sq) const
+    Value Entry::evaluate_safety (const Position &pos, Square fk_sq) const
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
@@ -221,7 +221,7 @@ namespace Pawns {
                  && R_1 == opp_r)
                 || (own_r != opp_r));
 
-            auto ff = std::min (f, F_H - f);
+            auto ff = std::min (f, ~f);
             value += ShelterStrength[ff][own_r]
                    - StromDanger[contains (shift<Pull> (file_front_pawns), fk_sq) ? 0 : // BlockedByKing
                                  own_r == R_1                                     ? 1 : // Unopposed
@@ -233,8 +233,8 @@ namespace Pawns {
         return value;
     }
     // Explicit template instantiations
-    template Value Entry::evaluate_shelter<WHITE> (const Position&, Square) const;
-    template Value Entry::evaluate_shelter<BLACK> (const Position&, Square) const;
+    template Value Entry::evaluate_safety<WHITE> (const Position&, Square) const;
+    template Value Entry::evaluate_safety<BLACK> (const Position&, Square) const;
 
     /// Pawns::probe() looks up a current position's pawn configuration in the pawn hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.

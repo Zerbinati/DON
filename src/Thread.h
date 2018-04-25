@@ -154,6 +154,7 @@ public:
     void clear () override;
     void search () override;
 
+    void set_check_count ();
     void check_limits ();
 };
 

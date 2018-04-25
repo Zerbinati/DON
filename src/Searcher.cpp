@@ -2062,6 +2062,7 @@ void MainThread::search ()
         && 0 == index);
 
     check_count = 0;
+    set_check_count ();
     check_time = 0;
 
     if (!white_spaces (OutputFile))
@@ -2163,12 +2164,12 @@ void MainThread::search ()
             BasicContempt = i32(cp_to_value (FixedContempt + timed_contempt));
             // In analysis mode, adjust contempt in accordance with user preference
             if (   Limits.infinite
-                || Options["UCI_AnalyseMode"])
+                || bool(Options["UCI_AnalyseMode"]))
             {
-                BasicContempt = Options["Analysis Contempt"] == "Off"  ? 0 :
+                BasicContempt = Options["Analysis Contempt"] == "Off"                               ? 0 :
                                 Options["Analysis Contempt"] == "White" && BLACK == root_pos.active ? -BasicContempt :
                                 Options["Analysis Contempt"] == "Black" && WHITE == root_pos.active ? -BasicContempt :
-                                /*Options["Analysis Contempt"] == "Both" ? BasicContempt :*/ BasicContempt;
+                                /*Options["Analysis Contempt"] == "Both"                            ? +BasicContempt :*/ +BasicContempt;
             }
 
             if (Limits.use_time_management ())
@@ -2305,13 +2306,10 @@ void MainThread::search ()
     sync_cout << "bestmove " << move_to_can (best_move)
               << " ponder " << move_to_can (ponder_move) << sync_endl;
 }
-/// MainThread::check_limits() is used to detect when out of available limits and thus stop the search, also print debug info.
-void MainThread::check_limits ()
+/// MainThread::set_check_count()
+void MainThread::set_check_count ()
 {
-    if (0 < check_count--)
-    {
-        return;
-    }
+    assert(0 == check_count);
     // At low node count increase the checking rate otherwise use a default value.
     check_count = 1024;
     if (0 != Limits.nodes)
@@ -2319,6 +2317,17 @@ void MainThread::check_limits ()
         check_count = std::min (std::max (Limits.nodes / 1024, u64(1)), check_count);
     }
     assert(0 != check_count);
+}
+/// MainThread::check_limits() is used to detect when out of available limits and thus stop the search, also print debug info.
+void MainThread::check_limits ()
+{
+    if (0 < check_count)
+    {
+        --check_count;
+        return;
+    }
+
+    set_check_count ();
 
     auto elapsed_time = time_mgr.elapsed_time ();
 

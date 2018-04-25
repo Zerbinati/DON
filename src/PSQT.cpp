@@ -120,7 +120,7 @@ void psqt_initialize ()
         const auto p = mk_score (PieceValues[MG][pt], PieceValues[EG][pt]);
         for (auto s : SQ)
         {
-            const auto psq = p + HalfPST[pt][_rank (s)][std::min (_file (s), F_H - _file (s))];
+            const auto psq = p + HalfPST[pt][_rank (s)][std::min (_file (s), ~_file (s))];
             PST[WHITE][pt][ s] = +psq;
             PST[BLACK][pt][~s] = -psq;
         }

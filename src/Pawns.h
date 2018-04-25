@@ -30,14 +30,14 @@ namespace Pawns {
         Value  king_safety[CLR_NO][MaxCache];
         u08    king_pawn_dist[CLR_NO][MaxCache];
 
-        bool file_semiopen (Color c, File f) const
+        template<Color Own>
+        bool file_semiopen (File f) const
         {
-            return 0 != (  semiopens[c]
-                         & (1 << f));
+            return 0 != (semiopens[Own] & (u08(1) << f));
         }
 
         template<Color Own>
-        Value evaluate_shelter (const Position&, Square) const;
+        Value evaluate_safety (const Position&, Square) const;
 
         template<Color Own>
         u08 king_safety_on (const Position &pos, Square fk_sq)
@@ -57,7 +57,7 @@ namespace Pawns {
 
             king_square[Own][index[Own]] = fk_sq;
             king_pawn_dist[Own][index[Own]] = kp_dist;
-            king_safety[Own][index[Own]] = evaluate_shelter<Own> (pos, fk_sq);
+            king_safety[Own][index[Own]] = evaluate_safety<Own> (pos, fk_sq);
             return index[Own] < MaxCache - 1 ? index[Own]++ : index[Own];
         }
 

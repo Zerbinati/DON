@@ -510,9 +510,9 @@ namespace {
                 }
 
                 // Bonus for rook when on an open or semi-open file
-                if (pe->file_semiopen (Own, _file (s)))
+                if (pe->file_semiopen<Own> (_file (s)))
                 {
-                    score += RookOnFile[pe->file_semiopen (Opp, _file (s)) ? 1 : 0];
+                    score += RookOnFile[pe->file_semiopen<Opp> (_file (s)) ? 1 : 0];
                 }
                 else
                 // Penalty for rook when trapped by the king, even more if the king can't castle
@@ -707,6 +707,8 @@ namespace {
     Score Evaluator<Trace>::threats ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
+        constexpr Bitboard R3BB = WHITE == Own ? R3_bb : R6_bb;
 
         auto score = SCORE_ZERO;
 
@@ -805,9 +807,9 @@ namespace {
         b =  pos.pieces (Own, PAWN)
           & ~pos.si->king_blockers[Own];
         // Friend pawns push
-        b =  shift<WHITE == Own ? DEL_N : DEL_S> (b)
+        b =  shift<Push> (b)
           & ~pos.pieces ();
-        b |= shift<WHITE == Own ? DEL_N : DEL_S> (b & rank_bb (WHITE == Own ? R_3 : R_6))
+        b |= shift<Push> (b & R3BB)
           & ~pos.pieces ();
         // Friend pawns push safe
         b &= safe_area
@@ -957,7 +959,7 @@ namespace {
             }
 
             score += bonus
-                   + PawnPassFile[std::min (_file (s), F_H - _file (s))]
+                   + PawnPassFile[std::min (_file (s), ~_file (s))]
                    - PawnPassHinder * pop_count (front_line_bb (Own, s) & (pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
         }
 
@@ -979,6 +981,8 @@ namespace {
     Score Evaluator<Trace>::space ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto SPull = WHITE == Own ? DEL_S : DEL_N;
+        constexpr auto DPull = WHITE == Own ? DEL_SS : DEL_NN;
 
         // Find the safe squares for our pieces inside the area defined by SpaceMask.
         // A square is safe:
@@ -992,8 +996,8 @@ namespace {
 
         // Find all squares which are at most three squares behind some friend pawn
         Bitboard behind = pos.pieces (Own, PAWN);
-        behind |= shift<WHITE == Own ? DEL_S  : DEL_N > (behind);
-        behind |= shift<WHITE == Own ? DEL_SS : DEL_NN> (behind);
+        behind |= shift<SPull> (behind);
+        behind |= shift<DPull> (behind);
         i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
         i32 weight = pos.count (Own) - 2 * pe->open_count;
         auto score = mk_score (bonus * weight * weight / 16, 0);
