@@ -206,7 +206,7 @@ namespace Pawns {
         const Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
         const Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        auto value = Value ((own_front_pawns & file_bb (fk_sq)) ? +5 : -5);
+        auto value = Value(0 != (own_front_pawns & file_bb (fk_sq)) ? +5 : -5);
 
         auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
         for (auto f : { kf - File(1), kf, kf + File(1) })

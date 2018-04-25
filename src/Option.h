@@ -28,7 +28,6 @@ namespace UCI {
 
         explicit Option (OnChange = nullptr);
         Option (const char*, OnChange = nullptr);
-        Option (const std::string&, OnChange = nullptr);
         Option (const bool, OnChange = nullptr);
         Option (const i32, i32, i32, OnChange = nullptr);
         Option (const char*, const char*, OnChange = nullptr);
@@ -63,7 +62,7 @@ namespace UCI {
     }
 
     /// operator<<() is used to print all the options default values in chronological
-    /// insertion order (the idx field) and in the format defined by the UCI protocol.
+    /// insertion order and in the format defined by the UCI protocol.
     template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&
         operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap)

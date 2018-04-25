@@ -318,12 +318,12 @@ namespace {
         // Do not include in mobility area
         // - squares protected by enemy pawns
         // - squares occupied by block pawns (pawns blocked or on ranks 2-3)
-        // - square occupied by friend king
-        Bitboard b = pin_attacked_by[Own][PAWN]
-                   | (  pos.pieces (Opp, PAWN)
-                      & (  LowRanks_bb[Opp]
-                         | shift<WHITE == Own ? DEL_N : DEL_S> (pos.pieces ())));
-        mob_area[Opp] = ~(b | pos.square<KING> (Opp));
+        // - square occupied by friend Queen and King
+        mob_area[Opp] = ~(  pin_attacked_by[Own][PAWN]
+                          | pos.pieces (Opp, QUEN, KING)
+                          | (  pos.pieces (Opp, PAWN)
+                             & (  LowRanks_bb[Opp]
+                                | shift<WHITE == Own ? DEL_N : DEL_S> (pos.pieces ()))));
         mobility[Opp] = SCORE_ZERO;
 
         king_attackers_weight[Own] = 0;
@@ -429,15 +429,7 @@ namespace {
                 king_attacks_count[Own] += pop_count (pin_attacked_by[Opp][KING] & attacks);
             }
 
-            Bitboard b;
-
-            b = mob_area[Own] & attacks;
-            if (   NIHT == PT
-                || BSHP == PT)
-            {
-                b &= ~pos.pieces (Own, QUEN); // Queen not in mobility
-            }
-            auto mob = pop_count (b);
+            auto mob = pop_count (mob_area[Own] & attacks);
             assert(0 <= mob && mob <= 27);
 
             // Bonus for piece mobility
@@ -446,6 +438,7 @@ namespace {
             // Penalty for distance from the friend king
             score += KingProtector[PT - 1] * dist (s, pos.square<KING> (Own));
 
+            Bitboard b;
             // Special extra evaluation for pieces
             if (   NIHT == PT
                 || BSHP == PT)

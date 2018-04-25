@@ -196,7 +196,7 @@ u32 TTable::hash_full () const
     return u32(entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
 }
 /// TTable::save() saves hash to file
-void TTable::save () const
+void TTable::save (string &hash_fn) const
 {
     if (white_spaces (hash_fn))
     {
@@ -211,7 +211,7 @@ void TTable::save () const
     }
 }
 /// TTable::load() loads hash from file
-void TTable::load ()
+void TTable::load (string &hash_fn)
 {
     if (white_spaces (hash_fn))
     {

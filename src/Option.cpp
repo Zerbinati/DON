@@ -26,9 +26,6 @@ namespace UCI {
         , on_change (on_cng)
     {}
     Option::Option (const char *val, OnChange on_cng)
-        : Option (string(val), on_cng)
-    {}
-    Option::Option (const string &val, OnChange on_cng)
         : type ("string")
         , minimum (0)
         , maximum (0)
@@ -96,11 +93,6 @@ namespace UCI {
 
         if (type != "button")
         {
-            //if (value.empty ())
-            //{
-            //    return *this;
-            //}
-
             auto val = value;
 
             if (type == "check")
@@ -158,6 +150,7 @@ namespace UCI {
             {
                 oss << " default " << default_value;
             }
+            else
             if (type == "spin")
             {
                 oss << " default " << default_value
@@ -196,21 +189,20 @@ namespace UCI {
             TT.retain_hash = bool(Options["Retain Hash"]);
         }
 
-        void on_hash_fn ()
-        {
-            TT.set_hash_fn (string(Options["Hash File"]));
-        }
-
         void on_save_hash ()
         {
-            on_hash_fn ();
-            TT.save ();
+            auto hash_fn = string(Options["Hash File"]);
+            trim (hash_fn);
+            convert_path (hash_fn);
+            TT.save (hash_fn);
         }
 
         void on_load_hash ()
         {
-            on_hash_fn ();
-            TT.load ();
+            auto hash_fn = string(Options["Hash File"]);
+            trim (hash_fn);
+            convert_path (hash_fn);
+            TT.load (hash_fn);
         }
 
         void on_threads ()
@@ -337,12 +329,12 @@ namespace UCI {
         Options["Clear Hash"]         << Option (on_clear_hash);
         Options["Retain Hash"]        << Option (TT.retain_hash, on_retain_hash);
 
-        Options["Hash File"]          << Option (TT.hash_fn, on_hash_fn);
+        Options["Hash File"]          << Option ("Hash.dat");
         Options["Save Hash"]          << Option (on_save_hash);
         Options["Load Hash"]          << Option (on_load_hash);
 
         Options["Use Book"]           << Option (Book.use, on_book_opt);
-        Options["Book File"]          << Option (Book.filename, on_book_opt);
+        Options["Book File"]          << Option (Book.filename.c_str (), on_book_opt);
         Options["Book Pick Best"]     << Option (Book.pick_best, on_book_opt);
         Options["Book Move Num"]      << Option (Book.move_num, 0, 100, on_book_opt);
 
@@ -371,13 +363,13 @@ namespace UCI {
         Options["Nodes Time"]         << Option (NodesTime, 0, 10000, on_time_opt);
         Options["Ponder"]             << Option (Ponder, on_time_opt);
 
-        Options["SyzygyPath"]         << Option (PathString, on_syzygy_path);
+        Options["SyzygyPath"]         << Option (PathString.c_str (), on_syzygy_path);
         Options["SyzygyProbeDepth"]   << Option (TBProbeDepth, 1, 100);
         Options["SyzygyLimitPiece"]   << Option (TBLimitPiece, 0, 6);
         Options["SyzygyUseRule50"]    << Option (TBUseRule50);
 
-        Options["Debug File"]         << Option (Loger.filename, on_debug_file);
-        Options["Output File"]        << Option (OutputFile, on_output_file);
+        Options["Debug File"]         << Option (Loger.filename.c_str (), on_debug_file);
+        Options["Output File"]        << Option (OutputFile.c_str (), on_output_file);
 
         Options["UCI_Chess960"]       << Option (Position::Chess960, on_uci_chess960);
         Options["UCI_LimitStrength"]  << Option (false, on_uci_elo_limit);

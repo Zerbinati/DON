@@ -278,7 +278,7 @@ void ThreadPool::initialize ()
     {
         return;
     }
-    const auto GetLogicalProcessorInformationEx = (GLPIE) GetProcAddress (kernel32, "GetLogicalProcessorInformationEx");
+    const auto GetLogicalProcessorInformationEx = GLPIE(GetProcAddress (kernel32, "GetLogicalProcessorInformationEx"));
     if (nullptr == GetLogicalProcessorInformationEx)
     {
         return;
@@ -369,7 +369,7 @@ void ThreadPool::bind (size_t index)
         return;
     }
 
-    const auto GetNumaNodeProcessorMaskEx = (GNNPME) GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx");
+    const auto GetNumaNodeProcessorMaskEx = GNNPME(GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx"));
     if (nullptr == GetNumaNodeProcessorMaskEx)
     {
         return;
@@ -377,7 +377,7 @@ void ThreadPool::bind (size_t index)
     GROUP_AFFINITY group_affinity;
     if (GetNumaNodeProcessorMaskEx (group, &group_affinity))
     {
-        const auto SetThreadGroupAffinity = (STGA) GetProcAddress (kernel32, "SetThreadGroupAffinity");
+        const auto SetThreadGroupAffinity = STGA(GetProcAddress (kernel32, "SetThreadGroupAffinity"));
         if (nullptr == SetThreadGroupAffinity)
         {
             return;

@@ -42,7 +42,7 @@ std::string GetLastErrorString ()
             NULL,
             error,
             MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-            (LPTSTR) &msg_buffer,
+            LPTSTR (&msg_buffer),
             0, NULL);
         if (0 != buf_len)
         {
@@ -297,7 +297,7 @@ namespace TBSyzygy {
                     return nullptr;
                 }
 
-                *mapping = (u64)(mmap);
+                *mapping = u64(mmap);
                 *base_address = MapViewOfFile (mmap, FILE_MAP_READ, 0, 0, 0);
                 if (nullptr == *base_address)
                 {
@@ -362,7 +362,7 @@ namespace TBSyzygy {
             {
 #           if defined(_WIN32)
                 UnmapViewOfFile (base_address);
-                CloseHandle ((HANDLE)(mapping));
+                CloseHandle (HANDLE(mapping));
 #           else
                 munmap (base_address, mapping);
 #           endif
@@ -789,13 +789,12 @@ namespace TBSyzygy {
                 // flip the squares before to lookup.
                      || (pos.si->matl_key != entry->key1);
 
-            Bitboard b;
-            Bitboard lead_pawns;
-
             Square squares[TBPIECES];
             Piece pieces[TBPIECES];
-            i32 size;
-            i32 lead_pawn_count;
+            i32 size = 0;
+
+            Bitboard b;
+            Bitboard lead_pawns;
             File tb_file;
 
             // For pawns, TB files store 4 separate tables according if leading pawn is on
@@ -812,7 +811,6 @@ namespace TBSyzygy {
                 assert(PAWN == ptype (pc));
 
                 lead_pawns = pos.pieces (color (pc), PAWN);
-                size = 0;
 
                 b = lead_pawns;
                 do
@@ -824,9 +822,7 @@ namespace TBSyzygy {
                 }
                 while (0 != b);
 
-                lead_pawn_count = size;
-
-                std::swap (squares[0], *std::max_element (squares, squares + lead_pawn_count, pawns_comp));
+                std::swap (squares[0], *std::max_element (squares, squares + size, pawns_comp));
 
                 tb_file = _file (squares[0]);
                 if (tb_file > F_D)
@@ -837,10 +833,10 @@ namespace TBSyzygy {
             else
             {
                 lead_pawns = 0;
-                size = 0;
-                lead_pawn_count = 0;
                 tb_file = F_A;
             }
+
+            i32 lead_pawn_count = size;
 
             // DTZ tables are one-sided, i.e. they store positions only for white to
             // move or only for black to move, so check for side to move to be color,
@@ -1209,7 +1205,7 @@ namespace TBSyzygy {
             }
             data += d->base64.size () * sizeof (Sym);
             d->sym_len.resize (number<u16, Endian::LITTLE> (data)); data += sizeof (u16);
-            d->btree = (LR*) data;
+            d->btree = (LR*)(data);
 
             // The compression scheme used is "Recursive Pairing", that replaces the most
             // frequent adjacent pair of symbols in the source message by a new symbol,
@@ -1243,7 +1239,7 @@ namespace TBSyzygy {
                     for (i32 i = 0; i < 4; ++i)
                     { 
                         // Sequence like 3,x,x,x,1,x,0,2,x,x
-                        e.get (0, f)->map_idx[i] = (u16)(data - e.map + 1);
+                        e.get (0, f)->map_idx[i] = u16(data - e.map + 1);
                         data += *data + 1;
                     }
                 }

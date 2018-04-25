@@ -106,14 +106,12 @@ public:
     TCluster *clusters;
     size_t cluster_count;
     bool retain_hash;
-    std::string hash_fn;
 
     TTable ()
         : mem (nullptr)
         , clusters (nullptr)
         , cluster_count (0)
         , retain_hash (false)
-        , hash_fn ("Hash.dat")
     {}
 
     TTable (const TTable&) = delete;
@@ -145,15 +143,8 @@ public:
 
     u32 hash_full () const;
 
-    void set_hash_fn (const std::string &fn)
-    {
-        hash_fn = fn;
-        trim (hash_fn);
-        convert_path (hash_fn);
-    }
-
-    void save () const;
-    void load ();
+    void save (std::string&) const;
+    void load (std::string&);
 
     // Minimum size of Transposition::Table (4 MB)
     static constexpr u32 MinHashSize = 4;

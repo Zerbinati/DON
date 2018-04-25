@@ -300,10 +300,10 @@ enum MoveType : u16
 };
 /// Move needs 16-bits to be stored
 ///
-/// bit 00-05: Destiny square: (0...63)
-/// bit 06-11: Origin square: (0...63)
-/// bit 12-13: Promotion piece: (Knight...Queen) - 1
-/// bit 14-15: Move flag: (0) Normal (1) Castle (2) En-Passant (3) Promotion
+/// bit 00-05: (0...63), Destiny square
+/// bit 06-11: (0...63), Origin square
+/// bit 12-13: (0...3), Promotion piece
+/// bit 14-15: (0...3), Move Type
 ///
 /// Special cases are MOVE_NONE and MOVE_NULL.
 enum Move : u16
@@ -488,9 +488,9 @@ constexpr File _file  (Square s) { return File(i08(s) & i08(F_H)); }
 constexpr Rank _rank  (Square s) { return Rank(i08(s) >> 3); }
 constexpr Color color (Square s) { return Color(((i08(s) ^ (i08(s) >> 3)) & i08(BLACK)) != i08(BLACK)); }
 
-// Flip   -> Square::A1 -> Square::A8
+// Flip   -> SQ_A1 -> SQ_A8
 constexpr Square operator~ (Square s) { return Square(i08(s) ^ i08(SQ_A8)); }
-// Mirror -> Square::A1 -> Square::H1
+// Mirror -> SQ_A1 -> SQ_H1
 constexpr Square operator! (Square s) { return Square(i08(s) ^ i08(SQ_H1)); }
 
 constexpr Rank rel_rank (Color c, Square s) { return Rank(i08(_rank (s)) ^ (i08(c)*i08(R_8))); }

@@ -206,7 +206,7 @@ void MovePicker::value ()
         {
             assert(pos.capture_or_promotion (vm.move));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
-                     + pos.thread->capture_history[pos[org_sq (vm.move)]][move_pp (vm.move)][pos.cap_type (vm.move)];
+                     + pos.thread->capture_history[pos[org_sq (vm.move)]][move_pp (vm.move)][pos.cap_type (vm.move)] / 16;
         }
         else
         if (GenType::QUIET == GT)
@@ -228,7 +228,7 @@ void MovePicker::value ()
 }
 
 /// MovePicker::pick_move() returns the next move satisfying a predicate function
-template<MovePicker::PickType PT, typename Pred>
+template<MovePicker::PickType PT, class Pred>
 bool MovePicker::pick_move (Pred filter)
 {
     while (i < moves.size ())
