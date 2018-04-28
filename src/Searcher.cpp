@@ -253,7 +253,7 @@ bool MovePicker::pick_move (Pred filter)
 /// taking care not to return the tt_move if it has already been searched.
 Move MovePicker::next_move ()
 {
-    top:
+    restage:
     switch (stage)
     {
 
@@ -280,7 +280,7 @@ Move MovePicker::next_move ()
         ++stage;
         i = 0;
         // Re-branch at the top of the switch
-        goto top;
+        goto restage;
 
     case Stage::NAT_GOOD_CAPTURES:
         if (pick_move<BEST> ([&]()
@@ -537,7 +537,7 @@ namespace Searcher {
             ostringstream oss;
             for (size_t i = 0; i < Threadpool.pv_limit; ++i)
             {
-                bool updated = i <= th->pv_index
+                bool updated = i <= th->pv_cur
                             && -VALUE_INFINITE != rms[i].new_value;
 
                 if (   !updated
@@ -565,7 +565,7 @@ namespace Searcher {
                     << " seldepth " << rms[i].sel_depth
                     << " score " << to_string (v);
                 if (   !tb
-                    && i == th->pv_index)
+                    && i == th->pv_cur)
                 {
                     oss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
                 }
@@ -951,7 +951,7 @@ namespace Searcher {
             bool tt_hit;
             auto *tte = TT.probe (key, tt_hit);
             auto tt_move = root_node ?
-                            pos.thread->root_moves[pos.thread->pv_index][0] :
+                            pos.thread->root_moves[pos.thread->pv_cur][0] :
                                tt_hit
                             && MOVE_NONE != (move = tte->move ())
                             && pos.pseudo_legal (move)
@@ -1313,8 +1313,8 @@ namespace Searcher {
                     || (   root_node
                            // In "searchmoves" mode, skip moves not listed in RootMoves, as a consequence any illegal move is also skipped.
                            // In MultiPV mode we not only skip PV moves which have already been searched and those of lower "TB rank" if we are in a TB root position.
-                        && std::find (pos.thread->root_moves.begin () + pos.thread->pv_index,
-                                      pos.thread->root_moves.begin () + pos.thread->pv_last, move) == pos.thread->root_moves.end ()))
+                        && std::find (pos.thread->root_moves.begin () + pos.thread->pv_cur,
+                                      pos.thread->root_moves.begin () + pos.thread->pv_end, move) == pos.thread->root_moves.end ()))
                 {
                     continue;
                 }
@@ -1341,7 +1341,7 @@ namespace Searcher {
                     {
                         sync_cout << "info"
                                   << " currmove " << move_to_can (move)
-                                  << " currmovenumber " << pos.thread->pv_index + move_count
+                                  << " currmovenumber " << pos.thread->pv_cur + move_count
                                   << " maxmoves " << pos.thread->root_moves.size ()
                                   << " depth " << depth
                                   << " seldepth " << (*std::find (pos.thread->root_moves.begin (), pos.thread->root_moves.end (), move)).sel_depth
@@ -1761,7 +1761,7 @@ namespace Searcher {
             FutilityMoveCounts[0][d] = u08(0.74 * std::pow (d, 1.78) + 2.4);
             FutilityMoveCounts[1][d] = u08(1.00 * std::pow (d, 2.00) + 5.0);
         }
-        for (auto imp : { 0, 1 })
+        for (i08 imp = 0; imp < 2; ++imp)
         {
             ReductionDepths[0][imp][0][0] = 0;
             ReductionDepths[1][imp][0][0] = 0;
@@ -1863,17 +1863,17 @@ void Thread::search ()
             rm.old_value = rm.new_value;
         }
 
-        size_t pv_first = 0;
-        pv_last = 0;
+        size_t pv_beg = 0;
+        pv_end = 0;
 
         // MultiPV loop. Perform a full root search for each PV line.
-        for (pv_index = 0; !Threadpool.stop && pv_index < Threadpool.pv_limit; ++pv_index)
+        for (pv_cur = 0; !Threadpool.stop && pv_cur < Threadpool.pv_limit; ++pv_cur)
         {
-            if (pv_index == pv_last)
+            if (pv_cur == pv_end)
             {
-                for (pv_first = pv_last++; pv_last < root_moves.size (); ++pv_last)
+                for (pv_beg = pv_end++; pv_end < root_moves.size (); ++pv_end)
                 {
-                    if (root_moves[pv_last].tb_rank != root_moves[pv_first].tb_rank)
+                    if (root_moves[pv_beg].tb_rank != root_moves[pv_end].tb_rank)
                     {
                         break;
                     }
@@ -1886,7 +1886,7 @@ void Thread::search ()
             // Reset aspiration window starting size.
             if (4 < running_depth)
             {
-                auto old_value = root_moves[pv_index].old_value;
+                auto old_value = root_moves[pv_cur].old_value;
                 window = Value(18);
                 alfa = std::max (old_value - window, -VALUE_INFINITE);
                 beta = std::min (old_value + window, +VALUE_INFINITE);
@@ -1913,7 +1913,7 @@ void Thread::search ()
                 // want to keep the same order for all the moves but the new PV
                 // that goes to the front. Note that in case of MultiPV search
                 // the already searched PV lines are preserved.
-                std::stable_sort (root_moves.begin () + pv_index, root_moves.begin () + pv_last);
+                std::stable_sort (root_moves.begin () + pv_cur, root_moves.begin () + pv_end);
 
                 // If search has been stopped, break immediately.
                 // Sorting is safe because RootMoves is still valid, although it refers to the previous iteration.
@@ -1965,11 +1965,11 @@ void Thread::search ()
             }
 
             // Sort the PV lines searched so far and update the GUI.
-            std::stable_sort (root_moves.begin () + pv_first, root_moves.begin () + pv_index + 1);
+            std::stable_sort (root_moves.begin () + pv_beg, root_moves.begin () + pv_cur + 1);
 
             if (   nullptr != main_thread
                 && (   Threadpool.stop
-                    || Threadpool.pv_limit - 1 == pv_index
+                    || Threadpool.pv_limit - 1 == pv_cur
                     || main_thread->time_mgr.elapsed_time () > 3000))
             {
                 sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;

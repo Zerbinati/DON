@@ -119,14 +119,14 @@ public:
 
     bool use;
     bool enabled;
-    std::string filename;
+    std::string book_fn;
     bool pick_best;
     i16 move_num;
 
     PolyBook ();
     ~PolyBook ();
 
-    void initialize (const std::string&);
+    void initialize ();
 
     Move probe (Position&);
 

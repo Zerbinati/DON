@@ -732,7 +732,7 @@ void run (i32 argc, const char *const *argv)
     ThreadPool::initialize ();
     Threadpool.configure (i32(Options["Threads"]));
     Searcher::initialize ();
-    Book.initialize (string(Options["Book File"]));
+    Book.initialize ();
     TBSyzygy::initialize ();
 
     Searcher::clear ();

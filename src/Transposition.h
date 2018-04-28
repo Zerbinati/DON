@@ -32,20 +32,19 @@ public:
     // "Generation" variable distinguish transposition table entries from different searches.
     static u08 Generation;
 
-    //u16   key16 () const { return u16(k16); }
-    Move  move () const { return Move(m16); }
-    Value value () const { return Value(v16); }
-    Value eval () const { return Value(e16); }
-    i16   depth () const { return i16(d08); }
-    Bound bound () const { return Bound(gb08 & 3); }
-    u08   generation () const { return u08(gb08 & 252); }
-    bool  empty () const { return d08 == DepthEmpty; }
+    Move  move       () const { return Move (m16); }
+    Value value      () const { return Value(v16); }
+    Value eval       () const { return Value(e16); }
+    i16   depth      () const { return i16  (d08); }
+    Bound bound      () const { return Bound(gb08 & 0x03); }
+    u08   generation () const { return u08  (gb08 & 0xFC); }
+    bool  empty      () const { return d08 == DepthEmpty; }
 
     // The worth of an entry is calculated as its depth minus 2 times its relative age.
     // Due to packed storage format for generation and its cyclic nature
-    // add 259 (256 + 3 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
+    // add 0x103 (0x100 + 3 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
     // to calculate the entry age correctly even after generation overflows into the next cycle.
-    i16   worth () const { return d08 - ((Generation + 259 - gb08) & 252) * 2; }
+    i16  worth () const { return d08 - ((Generation - gb08 + 0x103) & 0xFC) * 2; }
 
     void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
     {
@@ -74,7 +73,7 @@ static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
 
 constexpr u08 CacheLineSize = 64;
 /// Transposition::Cluster needs 32 bytes to be stored
-/// 10 x 3 + 2 x 1 = 32
+/// 10 x 3 + 2 = 32
 struct TCluster
 {
 public:
@@ -102,6 +101,20 @@ private:
     void free_aligned_memory ();
 
 public:
+    // Minimum size of Transposition::Table (4 MB)
+    static constexpr u32 MinHashSize = 4;
+    // Maximum size of Transposition::Table (131072 MB = 128 GB)
+    static constexpr u32 MaxHashSize =
+#       if defined(BIT64)
+            128 * 1024;
+#       else
+            2 * 1024;
+#       endif
+
+    static constexpr u32 BufferSize = 0x10000;
+
+    static std::string Hash_fn;
+
     void *mem;
     TCluster *clusters;
     size_t cluster_count;
@@ -130,7 +143,7 @@ public:
 
     /// cluster_entry() returns a pointer to the first entry of a cluster given a position.
     /// The lower 32 order bits of the key are used to get the index of the cluster inside the table.
-    TEntry* cluster_entry (Key key) const { return clusters[(u32(key) * u64(cluster_count)) >> 32].entries; }
+    TEntry* cluster_entry (Key key) const { return clusters[(u32(key) * u64(cluster_count)) >> 0x20].entries; }
 
     u32 resize (u32, bool = false);
     u32 resize ();
@@ -143,20 +156,8 @@ public:
 
     u32 hash_full () const;
 
-    void save (std::string&) const;
-    void load (std::string&);
-
-    // Minimum size of Transposition::Table (4 MB)
-    static constexpr u32 MinHashSize = 4;
-    // Maximum size of Transposition::Table (131072 MB = 128 GB)
-    static constexpr u32 MaxHashSize =
-#   if defined(BIT64)
-        128 * 1024;
-#   else
-        2 * 1024;
-#   endif
-
-    static constexpr u32 BufferSize = 0x10000;
+    void save () const;
+    void load ();
 
     template<typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits>&

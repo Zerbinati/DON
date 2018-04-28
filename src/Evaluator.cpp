@@ -317,8 +317,8 @@ namespace {
 
         // Do not include in mobility area
         // - squares protected by enemy pawns
-        // - squares occupied by block pawns (pawns blocked or on ranks 2-3)
         // - square occupied by friend Queen and King
+        // - squares occupied by block pawns (pawns blocked or on ranks 2-3)
         mob_area[Opp] = ~(  pin_attacked_by[Own][PAWN]
                           | pos.pieces (Opp, QUEN, KING)
                           | (  pos.pieces (Opp, PAWN)
@@ -713,7 +713,8 @@ namespace {
         auto score = SCORE_ZERO;
 
         // Enemy non-pawns
-        Bitboard nonpawns_enemies = pos.pieces (Opp) ^ pos.pieces (Opp, PAWN);
+        Bitboard nonpawns_enemies = pos.pieces (Opp)
+                                  ^ pos.pieces (Opp, PAWN);
         // Squares defended by the opponent,
         // - attack the square with a pawn
         // - attack the square twice and not defended twice.
@@ -735,13 +736,13 @@ namespace {
             // Bonus according to the type of attacking pieces
 
             // Enemies attacked by minors
-            b =  (  weak_enemies
-                    // Enemy defended non-pawns
-                  | defended_nonpawns_enemies
-                    // Enemy Rooks or Queens
-                  | pos.pieces (Opp, ROOK, QUEN))
-              &  (  pin_attacked_by[Own][NIHT]
-                  | pin_attacked_by[Own][BSHP]);
+            b = (  weak_enemies
+                   // Enemy defended non-pawns
+                 | defended_nonpawns_enemies
+                   // Enemy Rooks or Queens
+                 | pos.pieces (Opp, ROOK, QUEN))
+              & (  pin_attacked_by[Own][NIHT]
+                 | pin_attacked_by[Own][BSHP]);
             while (0 != b)
             {
                 auto s = pop_lsq (b);
@@ -753,10 +754,10 @@ namespace {
                 }
             }
             // Enemies attacked by majors
-            b =  (  weak_enemies
-                    // Enemy Queens
-                  | pos.pieces (Opp, QUEN))
-              &  pin_attacked_by[Own][ROOK];
+            b = (  weak_enemies
+                   // Enemy Queens
+                 | pos.pieces (Opp, QUEN))
+              & pin_attacked_by[Own][ROOK];
             while (0 != b)
             {
                 auto s = pop_lsq (b);
@@ -768,15 +769,15 @@ namespace {
                 }
             }
             // Enemies attacked by king
-            b =  weak_enemies
-              &  pin_attacked_by[Own][KING];
+            b = weak_enemies
+              & pin_attacked_by[Own][KING];
             if (0 != b)
             {
                 score += KingThreat[more_than_one (b) ? 1 : 0];
             }
 
             // Enemies attacked are hanging
-            b =  weak_enemies
+            b = weak_enemies
               & ~pin_attacked_by[Opp][NONE];
             score += PieceHanged * pop_count (b);
 

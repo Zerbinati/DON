@@ -12,6 +12,9 @@ TTable TT;
 
 u08 TEntry::Generation;
 
+string TTable::Hash_fn = "Hash.dat";
+
+
 /// TTable::alloc_aligned_memory() allocates the aligned memory
 void TTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
 {
@@ -181,7 +184,7 @@ TEntry* TTable::probe (Key key, bool &tt_hit) const
 /// hash, are using <x>%. of the state of full.
 u32 TTable::hash_full () const
 {
-    u32 entry_count = 0;
+    size_t entry_count = 0;
     const auto cluster_limit = std::min (size_t(1000 / TCluster::EntryCount), cluster_count);
     for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
     {
@@ -196,32 +199,30 @@ u32 TTable::hash_full () const
     return u32(entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
 }
 /// TTable::save() saves hash to file
-void TTable::save (string &hash_fn) const
+void TTable::save () const
 {
-    if (white_spaces (hash_fn))
+    if (!white_spaces (Hash_fn))
     {
-        return;
-    }
-    ofstream ofs (hash_fn, ios_base::out|ios_base::binary);
-    if (ofs.is_open ())
-    {
-        ofs << *this;
-        ofs.close ();
-        sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
+        ofstream ofs (Hash_fn, ios_base::out|ios_base::binary);
+        if (ofs.is_open ())
+        {
+            ofs << *this;
+            ofs.close ();
+            sync_cout << "info string Hash saved to file \'" << Hash_fn << "\'" << sync_endl;
+        }
     }
 }
 /// TTable::load() loads hash from file
-void TTable::load (string &hash_fn)
+void TTable::load ()
 {
-    if (white_spaces (hash_fn))
+    if (!white_spaces (Hash_fn))
     {
-        return;
-    }
-    ifstream ifs (hash_fn, ios_base::in|ios_base::binary);
-    if (ifs.is_open ())
-    {
-        ifs >> *this;
-        ifs.close ();
-        sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'" << sync_endl;
+        ifstream ifs (Hash_fn, ios_base::in|ios_base::binary);
+        if (ifs.is_open ())
+        {
+            ifs >> *this;
+            ifs.close ();
+            sync_cout << "info string Hash loaded from file \'" << Hash_fn << "\'" << sync_endl;
+        }
     }
 }

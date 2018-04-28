@@ -1885,6 +1885,7 @@ namespace TBSyzygy {
         {
             if (!white_spaces (path))
             {
+                trim (path);
                 convert_path (path);
                 TBFile::Paths.push_back (path);
             }

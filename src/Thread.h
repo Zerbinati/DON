@@ -96,8 +96,8 @@ public:
     i16  nmp_ply;
     bool nmp_odd;
 
-    size_t pv_index
-         , pv_last;
+    size_t pv_cur
+         , pv_end;
         
     std::atomic<u64> nodes
         ,            tb_hits;

@@ -189,20 +189,20 @@ namespace UCI {
             TT.retain_hash = bool(Options["Retain Hash"]);
         }
 
+        void on_hash_fn ()
+        {
+            auto hash_fn = string(Options["Hash File"]);
+            trim (hash_fn);
+            convert_path (hash_fn);
+            TTable::Hash_fn = hash_fn;
+        }
         void on_save_hash ()
         {
-            auto hash_fn = string(Options["Hash File"]);
-            trim (hash_fn);
-            convert_path (hash_fn);
-            TT.save (hash_fn);
+            TT.save ();
         }
-
         void on_load_hash ()
         {
-            auto hash_fn = string(Options["Hash File"]);
-            trim (hash_fn);
-            convert_path (hash_fn);
-            TT.load (hash_fn);
+            TT.load ();
         }
 
         void on_threads ()
@@ -233,11 +233,28 @@ namespace UCI {
             //MultiPV_cp = i32(Options["MultiPV_cp"]);
         }
 
-        void on_book_opt ()
+        void on_book_use ()
         {
             Book.use = bool(Options["Use Book"]);
-            Book.initialize (string(Options["Book File"]));
+            Book.initialize ();
+        }
+        void on_book_fn ()
+        {
+            auto book_fn = string(Options["Book File"]);
+            trim (book_fn);
+            convert_path (book_fn);
+            if (Book.book_fn != book_fn)
+            {
+                Book.book_fn = book_fn;
+                Book.initialize ();
+            }
+        }
+        void on_book_pick_best ()
+        {
             Book.pick_best = bool(Options["Book Pick Best"]);
+        }
+        void on_book_move_num ()
+        {
             Book.move_num = i16(i32(Options["Book Move Num"]));
         }
 
@@ -276,9 +293,9 @@ namespace UCI {
 
         void on_syzygy_path ()
         {
-            auto filename = string(Options["SyzygyPath"]);
-            trim (filename);
-            PathString = filename;
+            auto path = string(Options["SyzygyPath"]);
+            trim (path);
+            PathString = path;
             TBSyzygy::initialize ();
         }
 
@@ -329,14 +346,14 @@ namespace UCI {
         Options["Clear Hash"]         << Option (on_clear_hash);
         Options["Retain Hash"]        << Option (TT.retain_hash, on_retain_hash);
 
-        Options["Hash File"]          << Option ("Hash.dat");
+        Options["Hash File"]          << Option (TTable::Hash_fn.c_str (), on_hash_fn);
         Options["Save Hash"]          << Option (on_save_hash);
         Options["Load Hash"]          << Option (on_load_hash);
 
-        Options["Use Book"]           << Option (Book.use, on_book_opt);
-        Options["Book File"]          << Option (Book.filename.c_str (), on_book_opt);
-        Options["Book Pick Best"]     << Option (Book.pick_best, on_book_opt);
-        Options["Book Move Num"]      << Option (Book.move_num, 0, 100, on_book_opt);
+        Options["Use Book"]           << Option (Book.use, on_book_use);
+        Options["Book File"]          << Option (Book.book_fn.c_str (), on_book_fn);
+        Options["Book Pick Best"]     << Option (Book.pick_best, on_book_pick_best);
+        Options["Book Move Num"]      << Option (Book.move_num, 0, 100, on_book_move_num);
 
         Options["Threads"]            << Option ( 1, 0, 512, on_threads);
 

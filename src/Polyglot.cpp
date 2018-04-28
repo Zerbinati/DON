@@ -118,7 +118,7 @@ PolyBook::PolyBook ()
     , last_piece_count (0)
     , use (false)
     , enabled (false)
-    , filename ("Book.bin")
+    , book_fn ("Book.bin")
     , pick_best (true)
     , move_num (20)
 {
@@ -132,7 +132,6 @@ PolyBook::~PolyBook ()
 void PolyBook::clear ()
 {
     enabled = false;
-    filename = Empty;
     if (nullptr != entries)
     {
         delete[] entries;
@@ -212,26 +211,17 @@ bool PolyBook::can_probe (const Position &pos)
     return do_probe;
 }
 
-void PolyBook::initialize (const string &book_fn)
+void PolyBook::initialize ()
 {
     clear ();
 
-    if (!use)
+    if (   !use
+        || white_spaces (book_fn))
     {
         return;
     }
 
-    filename = book_fn;
-
-    trim (filename);
-    convert_path (filename);
-
-    if (white_spaces (filename))
-    {
-        return;
-    }
-
-    ifstream polyglot (filename, ios_base::binary);
+    ifstream polyglot (book_fn, ios_base::binary);
     if (!polyglot.is_open ())
     {
         return;
@@ -258,7 +248,7 @@ void PolyBook::initialize (const string &book_fn)
     }
     polyglot.close ();
 
-    sync_cout << "info string Book entries found " << entry_count << " from file \'" << filename << "\'" << sync_endl;
+    sync_cout << "info string Book entries found " << entry_count << " from file \'" << book_fn << "\'" << sync_endl;
     enabled = true;
 }
 /// PolyBook::probe() tries to find a book move for the given position.

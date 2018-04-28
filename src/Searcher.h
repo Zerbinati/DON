@@ -81,7 +81,7 @@ public:
 
     void operator<< (i32 bonus)
     {
-        assert(abs (bonus) <= D); // Ensure range is [-W * D, W * D]
+        assert(abs (bonus) <= D); // Ensure range is [-D, +D]
         assert(D < std::numeric_limits<T>::max ()); // Ensure we don't overflow
 
         entry += T(bonus - entry * abs (bonus) / D);
