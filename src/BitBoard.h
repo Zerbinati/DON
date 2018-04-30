@@ -256,7 +256,7 @@ namespace BitBoard {
 
     /// Shift the bitboard using delta
     template<Delta DEL>
-    constexpr Bitboard shift (Bitboard bb);
+    constexpr Bitboard shift (Bitboard bb) { return 0; }
 
     template<> constexpr Bitboard shift<DEL_N > (Bitboard bb) { return (bb         ) << 010; }
     template<> constexpr Bitboard shift<DEL_S > (Bitboard bb) { return (bb         ) >> 010; }

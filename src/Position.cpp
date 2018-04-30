@@ -6,7 +6,6 @@
 #include "PSQT.h"
 #include "TBsyzygy.h"
 #include "Thread.h"
-#include "Transposition.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -35,7 +34,7 @@ bool Position::draw (i16 pp) const
         return false;
     }
     const auto *psi = si->ptr->ptr;
-    bool repeated = false;
+    bool rep = false;
     for (u08 p = 4; p <= end; p += 2)
     {
         psi = psi->ptr->ptr;
@@ -44,12 +43,12 @@ bool Position::draw (i16 pp) const
             // Return a draw score
             // - Repeats once earlier but strictly after the root, or
             // - Repeats twice before or at the root.
-            if (   repeated
+            if (   rep
                 || pp > p)
             {
                 return true;
             }
-            repeated = true;
+            rep = true;
         }
     }
     return false;
@@ -66,7 +65,6 @@ bool Position::repeated () const
         {
             break;
         }
-
         const auto *psi = si->ptr->ptr;
         do
         {

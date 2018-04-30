@@ -165,9 +165,9 @@ namespace Material {
             {
                 e->scale[c] = pos.si->non_pawn_material ( c) <  VALUE_MG_ROOK ?
                                 SCALE_DRAW :
-                                pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ?
-                                    Scale(4) :
-                                    Scale(14);
+                                Scale(pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ?
+                                    4 :
+                                    14);
             }
         }
 

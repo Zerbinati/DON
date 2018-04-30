@@ -56,9 +56,11 @@ void RootMoves::initialize (const Position &pos, const vector<Move> &search_move
     for (const auto &vm : MoveList<GenType::LEGAL> (pos))
     {
         if (   search_moves.empty ()
-            || std::find (search_moves.begin (), search_moves.end (), vm.move) != search_moves.end ())
+            || std::find (search_moves.begin (), search_moves.end (), vm) != search_moves.end ())
         {
-            *this += vm.move;
+            *this += vm;
+            assert(this->back ().tb_rank == 0
+                && this->back ().tb_value == VALUE_ZERO);
         }
     }
 }
@@ -199,29 +201,29 @@ void MovePicker::value ()
 
     for (auto &vm : moves)
     {
-        assert(pos.pseudo_legal (vm.move)
-            && pos.legal (vm.move));
+        assert(pos.pseudo_legal (vm)
+            && pos.legal (vm));
 
         if (GenType::CAPTURE == GT)
         {
-            assert(pos.capture_or_promotion (vm.move));
-            vm.value = i32(PieceValues[MG][pos.cap_type (vm.move)])
-                     + pos.thread->capture_history[pos[org_sq (vm.move)]][move_pp (vm.move)][pos.cap_type (vm.move)] / 16;
+            assert(pos.capture_or_promotion (vm));
+            vm.value = i32(PieceValues[MG][pos.cap_type (vm)])
+                     + pos.thread->capture_history[pos[org_sq (vm)]][move_pp (vm)][pos.cap_type (vm)] / 16;
         }
         else
         if (GenType::QUIET == GT)
         {
-            vm.value = pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
-                     + (*piece_destiny_history[0])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-                     + (*piece_destiny_history[1])[pos[org_sq (vm.move)]][dst_sq (vm.move)]
-                     + (*piece_destiny_history[3])[pos[org_sq (vm.move)]][dst_sq (vm.move)];
+            vm.value = pos.thread->butterfly_history[pos.active][move_pp (vm)]
+                     + (*piece_destiny_history[0])[pos[org_sq (vm)]][dst_sq (vm)]
+                     + (*piece_destiny_history[1])[pos[org_sq (vm)]][dst_sq (vm)]
+                     + (*piece_destiny_history[3])[pos[org_sq (vm)]][dst_sq (vm)];
         }
         else // GenType::EVASION == GT
         {
-            vm.value = pos.capture (vm.move) ?
-                          i32(PieceValues[MG][pos.cap_type (vm.move)])
-                        - ptype (pos[org_sq (vm.move)]) :
-                          pos.thread->butterfly_history[pos.active][move_pp (vm.move)]
+            vm.value = pos.capture (vm) ?
+                          i32(PieceValues[MG][pos.cap_type (vm)])
+                        - ptype (pos[org_sq (vm)]) :
+                          pos.thread->butterfly_history[pos.active][move_pp (vm)]
                         - (1 << 28);
         }
     }
@@ -273,7 +275,7 @@ Move MovePicker::next_move ()
                                      moves.end (),
                                      [&](const ValMove &vm)
                                      {
-                                         return tt_move == vm.move;
+                                         return tt_move == vm;
                                      }),
                      moves.end ());
         value<GenType::CAPTURE> ();
@@ -285,13 +287,13 @@ Move MovePicker::next_move ()
     case Stage::NAT_GOOD_CAPTURES:
         if (pick_move<BEST> ([&]()
                              {
-                                 return pos.see_ge (vmove.move, Value(-vmove.value * 55 / 1024)) ?
+                                 return pos.see_ge (vmove, Value(-vmove.value * 55 / 1024)) ?
                                         true :
                                         // Put losing capture to bad_capture_moves to be tried later
-                                        (bad_capture_moves.push_back (vmove.move), false);
+                                        (bad_capture_moves.push_back (vmove), false);
                              }))
         {
-            return vmove.move;
+            return vmove;
         }
 
         refutation_moves.erase (std::remove_if (refutation_moves.begin (),
@@ -321,8 +323,8 @@ Move MovePicker::next_move ()
                                      moves.end (),
                                      [&](const ValMove &vm)
                                      {
-                                         return tt_move == vm.move
-                                             || std::find (refutation_moves.begin (), refutation_moves.end (), vm.move) != refutation_moves.end ();
+                                         return tt_move == vm
+                                             || std::find (refutation_moves.begin (), refutation_moves.end (), vm) != refutation_moves.end ();
                                      }),
                      moves.end ());
         value<GenType::QUIET> ();
@@ -333,7 +335,7 @@ Move MovePicker::next_move ()
         if (   pick_quiets
             && pick_move<BEST> ([]() { return true; }))
         {
-            return vmove.move;
+            return vmove;
         }
         ++stage;
         i = 0;
@@ -351,7 +353,7 @@ Move MovePicker::next_move ()
                                      moves.end (),
                                      [&](const ValMove &vm)
                                      {
-                                         return tt_move == vm.move;
+                                         return tt_move == vm;
                                      }),
                      moves.end ());
         value<GenType::EVASION> ();
@@ -360,22 +362,22 @@ Move MovePicker::next_move ()
         /* fall through */
     case Stage::EVA_EVASIONS:
         return pick_move<BEST> ([]() { return true; }) ?
-                vmove.move :
+                vmove :
                 MOVE_NONE;
 
     case Stage::PC_CAPTURES:
-        return pick_move<BEST> ([&]() { return pos.see_ge (vmove.move, threshold); }) ?
-                vmove.move :
+        return pick_move<BEST> ([&]() { return pos.see_ge (vmove, threshold); }) ?
+                vmove :
                 MOVE_NONE;
 
     case Stage::QS_CAPTURES:
         if (pick_move<BEST> ([&]()
                              {
                                  return DepthQSRecapture < depth
-                                     || dst_sq (vmove.move) == recap_sq;
+                                     || dst_sq (vmove) == recap_sq;
                              }))
         {
-            return vmove.move;
+            return vmove;
         }
         // If did not find any move then do not try checks, finished.
         if (DepthQSCheck > depth)
@@ -389,7 +391,7 @@ Move MovePicker::next_move ()
                                      moves.end (),
                                      [&](const ValMove &vm)
                                      {
-                                         return tt_move == vm.move;
+                                         return tt_move == vm;
                                      }),
                      moves.end ());
         ++stage;
@@ -397,11 +399,11 @@ Move MovePicker::next_move ()
         /* fall through */
     case Stage::QS_CHECKS:
         return pick_move<NEXT> ([]() { return true; }) ?
-                vmove.move :
+                vmove :
                 MOVE_NONE;
-
+    default:
+        assert(false);
     }
-    assert(false);
     return MOVE_NONE;
 }
 
@@ -593,9 +595,6 @@ namespace Searcher {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(DepthZero >= depth);
-            assert(ss->ply >= 1
-                && ss->ply == (ss-1)->ply + 1
-                && ss->ply < MaxPlies);
 
             Value prev_alfa;
 
@@ -618,6 +617,10 @@ namespace Searcher {
                             evaluate (pos) :
                             VALUE_DRAW;
             }
+
+            assert(ss->ply >= 1
+                && ss->ply == (ss-1)->ply + 1
+                && ss->ply < MaxPlies);
 
             Move move;
             // Transposition table lookup.
