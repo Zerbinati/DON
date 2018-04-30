@@ -159,22 +159,15 @@ namespace Material {
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
-            if (abs (  pos.si->non_pawn_material ( c)
-                     - pos.si->non_pawn_material (~c)) <= VALUE_MG_BSHP)
+            if (   0 == pos.count (c, PAWN)
+                && abs (  pos.si->non_pawn_material ( c)
+                        - pos.si->non_pawn_material (~c)) <= VALUE_MG_BSHP)
             {
-                if (0 == pos.count ( c, PAWN))
-                {
-                    e->scale[c] = pos.si->non_pawn_material ( c) <  VALUE_MG_ROOK ?
-                                    SCALE_DRAW :
-                                    pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ?
-                                        Scale(4) :
-                                        Scale(14);
-                }
-                else
-                if (1 == pos.count ( c, PAWN))
-                {
-                    e->scale[c] = SCALE_ONEPAWN;
-                }
+                e->scale[c] = pos.si->non_pawn_material ( c) <  VALUE_MG_ROOK ?
+                                SCALE_DRAW :
+                                pos.si->non_pawn_material (~c) <= VALUE_MG_BSHP ?
+                                    Scale(4) :
+                                    Scale(14);
             }
         }
 

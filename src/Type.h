@@ -362,7 +362,6 @@ enum Phase : u08
 enum Scale : u08
 {
     SCALE_DRAW    =   0,
-    SCALE_ONEPAWN =  48,
     SCALE_NORMAL  =  64,
     SCALE_MAX     = 128,
     SCALE_NONE    = 255,

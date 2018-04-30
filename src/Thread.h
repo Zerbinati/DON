@@ -118,7 +118,7 @@ public:
 
     virtual ~Thread ();
 
-    void start_searching ();
+    void start ();
     void wait_while_busy ();
 
     void idle_loop ();

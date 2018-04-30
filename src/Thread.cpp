@@ -172,11 +172,11 @@ Thread::~Thread ()
 {
     assert(!busy);
     dead = true;
-    start_searching ();
+    start ();
     std_thread.join ();
 }
-/// Thread::start_searching() wakes up the thread that will start the search.
-void Thread::start_searching ()
+/// Thread::start() wakes up the thread that will start the search.
+void Thread::start ()
 {
     lock_guard<Mutex> lk (mutex);
     busy = true;
@@ -541,7 +541,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
     }
     setup_states->back () = back_si;
 
-    main_thread ()->start_searching ();
+    main_thread ()->start ();
 }
 /// ThreadPool::stop_thinking()
 void ThreadPool::stop_thinking ()

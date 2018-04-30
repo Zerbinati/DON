@@ -8,7 +8,11 @@
 ### ==========================================================================
 
 ### Executable name
-EXE = DON
+ifeq ($(COMP), mingw)
+	EXE = DON.exe
+else
+	EXE = DON
+endif
 
 ### Installation directory definitions
 PREFIX = /usr/local
@@ -442,7 +446,7 @@ clean: objclean profileclean
 
 # clean binaries and objects
 objclean:
-	@rm -f $(EXE) $(EXE).exe *.o
+	@rm -f $(EXE) *.o
 
 # clean auxiliary profiling files
 profileclean:

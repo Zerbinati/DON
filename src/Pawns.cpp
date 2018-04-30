@@ -14,7 +14,7 @@ namespace Pawns {
 
         // Strength of pawn shelter for our king by [distance from edge][rank].
         // RANK_1 = 0 is used for files where we have no pawn, or pawn is behind our king.
-        const Value ShelterStrength[F_NO/2][R_NO] =
+        constexpr Value ShelterStrength[F_NO/2][R_NO] =
         {
             { V( -9), V(64), V(77), V( 44), V( 4), V( -1), V(-11), V(0) },
             { V(-15), V(83), V(51), V(-10), V( 1), V(-10), V(-28), V(0) },
@@ -23,7 +23,7 @@ namespace Pawns {
         };
         // Dangerousness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
         // For the unopposed and unblocked cases, R_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
-        const Value StromDanger[4][F_NO/2][R_NO] =
+        constexpr Value StromDanger[4][F_NO/2][R_NO] =
         {
             {// BlockedByKing
                 { V( 0), V(-290), V(-274), V(57), V(41), V(0), V(0), V(0) },

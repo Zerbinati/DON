@@ -29,9 +29,9 @@ namespace {
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
         Bitboard attacks = NIHT == ptype (pos[org]) ? PieceAttacks[NIHT][dst] :
-                            BSHP == ptype (pos[org]) ? attacks_bb<BSHP> (dst, pos.pieces ()) :
-                            ROOK == ptype (pos[org]) ? attacks_bb<ROOK> (dst, pos.pieces ()) :
-                            QUEN == ptype (pos[org]) ? attacks_bb<QUEN> (dst, pos.pieces ()) : (assert(false), 0);
+                           BSHP == ptype (pos[org]) ? attacks_bb<BSHP> (dst, pos.pieces ()) :
+                           ROOK == ptype (pos[org]) ? attacks_bb<ROOK> (dst, pos.pieces ()) :
+                           QUEN == ptype (pos[org]) ? attacks_bb<QUEN> (dst, pos.pieces ()) : (assert(false), 0);
 
         Bitboard amb = (attacks & pos.pieces (pos.active, ptype (pos[org]))) ^ org;
         Bitboard pcs = amb; // & ~pos.abs_blockers (pos.active); // If pinned piece is considered as ambiguous

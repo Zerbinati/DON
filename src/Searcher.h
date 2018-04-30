@@ -81,8 +81,8 @@ public:
 
     void operator<< (i32 bonus)
     {
+        static_assert (D <= std::numeric_limits<T>::max (), "D overflows T");
         assert(abs (bonus) <= D); // Ensure range is [-D, +D]
-        assert(D < std::numeric_limits<T>::max ()); // Ensure we don't overflow
 
         entry += T(bonus - entry * abs (bonus) / D);
 

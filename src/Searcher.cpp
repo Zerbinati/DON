@@ -1261,10 +1261,8 @@ namespace Searcher {
                     }
 
                     // Step 11. Internal iterative deepening (IID). (~2 ELO)
-                    if (   MOVE_NONE == tt_move
-                        && 5 < depth
-                        && (   PVNode
-                            || ss->static_eval + 128 >= beta))
+                    if (   7 < depth
+                        && MOVE_NONE == tt_move)
                     {
                         depth_search<PVNode> (pos, ss, alfa, beta, 3*depth/4 - 2, cut_node, false);
 
@@ -2193,7 +2191,7 @@ void MainThread::search ()
             {
                 if (th != this)
                 {
-                    th->start_searching ();
+                    th->start ();
                 }
             }
 
