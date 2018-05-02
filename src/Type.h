@@ -472,9 +472,11 @@ BITWISE_OPERATORS(Bound)
 
 constexpr Color operator~ (Color c) { return Color(i08(c) ^ i08(BLACK)); }
 
+constexpr bool _ok (File f) { return 0 == (i08(f) & ~i08(F_H)); }
 constexpr File operator~ (File f) { return File(i08(f) ^ i08(F_H)); }
 constexpr File to_file   (char f) { return File(f - 'a'); }
 
+constexpr bool _ok (Rank r) { return 0 == (i08(r) & ~i08(R_8)); }
 constexpr Rank operator~ (Rank r) { return Rank(i08(r) ^ i08(R_8)); }
 constexpr Rank to_rank   (char r) { return Rank(r - '1'); }
 
@@ -482,7 +484,7 @@ constexpr Square operator| (File f, Rank r) { return Square((i08( r) << 3) + i08
 constexpr Square operator| (Rank r, File f) { return Square((i08(~r) << 3) + i08(f)); }
 constexpr Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
-constexpr bool _ok    (Square s) { return (i08(s) & ~i08(SQ_H8)) == 0; }
+constexpr bool _ok    (Square s) { return 0 == (i08(s) & ~i08(SQ_H8)); }
 constexpr File _file  (Square s) { return File(i08(s) & i08(F_H)); }
 constexpr Rank _rank  (Square s) { return Rank(i08(s) >> 3); }
 constexpr Color color (Square s) { return Color(((i08(s) ^ (i08(s) >> 3)) & i08(BLACK)) != i08(BLACK)); }

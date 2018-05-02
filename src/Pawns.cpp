@@ -23,14 +23,8 @@ namespace Pawns {
         };
         // Dangerousness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
         // For the unopposed and unblocked cases, R_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
-        constexpr Value StromDanger[4][F_NO/2][R_NO] =
+        constexpr Value StromDanger[3][F_NO/2][R_NO] =
         {
-            {// BlockedByKing
-                { V( 0), V(-290), V(-274), V(57), V(41), V(0), V(0), V(0) },
-                { V( 0), V(  60), V( 144), V(39), V(13), V(0), V(0), V(0) },
-                { V( 0), V(  65), V( 141), V(41), V(34), V(0), V(0), V(0) },
-                { V( 0), V(  53), V( 127), V(56), V(14), V(0), V(0), V(0) }
-            },
             {// Unopposed
                 { V( 4), V(  73), V(132), V(46), V(31), V(0), V(0), V(0) },
                 { V( 1), V(  64), V(143), V(26), V(13), V(0), V(0), V(0) },
@@ -199,6 +193,7 @@ namespace Pawns {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
+        constexpr Bitboard BlockSquares = (WHITE == Own ? R1_bb | R2_bb : R8_bb | R7_bb) & (FA_bb | FH_bb);
 
         const Bitboard front_pawns = pos.pieces (PAWN)
                                    & (  rank_bb (fk_sq)
@@ -207,6 +202,11 @@ namespace Pawns {
         const Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
         auto value = Value(0 != (own_front_pawns & file_bb (fk_sq)) ? +5 : -5);
+
+        if (contains (shift<Pull> (opp_front_pawns) & BlockSquares, fk_sq))
+        {
+            value += 374;
+        }
 
         auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
         for (auto f : { kf - File(1), kf, kf + File(1) })
@@ -223,10 +223,9 @@ namespace Pawns {
 
             auto ff = std::min (f, ~f);
             value += ShelterStrength[ff][own_r]
-                   - StromDanger[contains (shift<Pull> (file_front_pawns), fk_sq) ? 0 : // BlockedByKing
-                                 own_r == R_1                                     ? 1 : // Unopposed
-                                 opp_r == own_r + 1                               ? 2 : // BlockedByPawn
-                                                                                    3]  // Unblocked
+                   - StromDanger[own_r == R_1       ? 0 : // Unopposed
+                                 own_r == opp_r - 1 ? 1 : // BlockedByPawn
+                                                      2]  // Unblocked
                                 [ff][opp_r];
         }
 

@@ -84,43 +84,43 @@ namespace {
     #define S(mg, eg) mk_score (mg, eg)
 
         // Bonus for minor behind a pawn
-        static constexpr Score MinorBehindPawn =  S(16, 0);
+        static constexpr Score MinorBehindPawn =   S( 16,  0);
         // Bonus for bishop long range
-        static constexpr Score BishopOnDiagonal =  S(22, 0);
+        static constexpr Score BishopOnDiagonal =  S( 22,  0);
         // Penalty for bishop with pawns on same color
-        static constexpr Score BishopPawns =       S( 8,12);
+        static constexpr Score BishopPawns =       S(  3,  5);
         // Penalty for bishop trapped with pawns (Chess960)
-        static constexpr Score BishopTrapped =     S(50,50);
+        static constexpr Score BishopTrapped =     S( 50, 50);
         // Bonus for rook on pawns
-        static constexpr Score RookOnPawns =       S( 8,24);
+        static constexpr Score RookOnPawns =       S(  8, 24);
         // Penalty for rook trapped
-        static constexpr Score RookTrapped =       S(92, 0);
+        static constexpr Score RookTrapped =       S( 92,  0);
         // Penalty for queen weaken
-        static constexpr Score QueenWeaken =       S(50,10);
+        static constexpr Score QueenWeaken =       S( 50, 10);
 
-        static constexpr Score PawnLessFlank =     S(20,80);
-        static constexpr Score EnemyAttackKing =   S( 7, 0);
+        static constexpr Score PawnLessFlank =     S( 20, 80);
+        static constexpr Score EnemyAttackKing =   S(  7,  0);
 
-        static constexpr Score PawnWeakUnopposed = S( 5,25);
+        static constexpr Score PawnWeakUnopposed = S(  5, 25);
 
         // Bonus for each hanged piece
-        static constexpr Score PieceHanged =       S(52,30);
+        static constexpr Score PieceHanged =       S( 52, 30);
 
         static constexpr Score SafePawnThreat =    S(175,168);
 
-        static constexpr Score PawnPushThreat =    S(47,26);
+        static constexpr Score PawnPushThreat =    S( 47, 26);
 
-        static constexpr Score PieceRankThreat =   S(16, 3);
+        static constexpr Score PieceRankThreat =   S( 16,  3);
 
-        static constexpr Score KnightQueenThreat = S(21,11);
+        static constexpr Score KnightQueenThreat = S( 21, 11);
 
-        static constexpr Score SliderQueenThreat = S(42,21);
+        static constexpr Score SliderQueenThreat = S( 42, 21);
 
-        static constexpr Score Connectivity =      S( 3, 1);
+        static constexpr Score Connectivity =      S(  3,  1);
 
-        static constexpr Score Overloaded =        S(10, 5);
+        static constexpr Score Overloaded =        S( 10,  5);
 
-        static constexpr Score PawnPassHinder =    S( 8, 1);
+        static constexpr Score PawnPassHinder =    S(  8,  1);
 
 #undef S
 
@@ -247,7 +247,7 @@ namespace {
     };
 
     template<bool Trace>
-    const Score Evaluator<Trace>::KingProtector[4] = { S(+3,+5), S(+4,+3), S(+3, 0), S(+1,-1) };
+    const Score Evaluator<Trace>::KingProtector[4] = { S( 3, 5), S( 4, 3), S( 3, 0), S( 1,-1) };
 
     template<bool Trace>
     const Score Evaluator<Trace>::MinorOutpost[2][2] =
@@ -365,6 +365,7 @@ namespace {
                     || QUEN == PT, "PT incorrect");
 
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
         auto score = SCORE_ZERO;
 
@@ -469,8 +470,12 @@ namespace {
 
                 if (BSHP == PT)
                 {
-                    // Penalty for pawns on the same color square as the bishop
-                    score -= BishopPawns * i32(pe->color_count[Own][color (s)]);
+                    // Penalty for pawns on the same color square as the bishop,
+                    // more when the center files are blocked with pawns.
+                    b = pos.pieces (Own, PAWN) & shift<Pull> (pos.pieces ());
+                    score -= BishopPawns
+                           * (1 + pop_count (b & Side_bb[CS_NO]))
+                           * i32(pe->color_count[Own][color (s)]);
 
                     // Bonus for bishop on a long diagonal which can "see" both center squares
                     if (   contains (Diagonals_bb, s)
@@ -491,9 +496,10 @@ namespace {
                             auto del = Delta((F_E - _file (s))/3) + pawn_push (Own);
                             if (contains (pos.pieces (Own, PAWN), s+del))
                             {
-                                score -= BishopTrapped * (!contains (pos.pieces (), s+del+pawn_push (Own)) ?
-                                                              !contains (pos.pieces (Own, PAWN), s+del+del) ?
-                                                                  1 : 2 : 4);
+                                score -= BishopTrapped
+                                       * (!contains (pos.pieces (), s+del+pawn_push (Own)) ?
+                                              !contains (pos.pieces (Own, PAWN), s+del+del) ?
+                                                  1 : 2 : 4);
                             }
                         }
                     }
