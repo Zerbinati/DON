@@ -12,36 +12,36 @@ namespace Pawns {
 
     #define V(v) Value(v)
 
-        // Strength of pawn shelter for our king by [distance from edge][rank].
+        // Shelter of pawn for our king by [distance from edge][rank].
         // RANK_1 = 0 is used for files where we have no pawn, or pawn is behind our king.
-        constexpr Value ShelterStrength[F_NO/2][R_NO] =
+        constexpr Value Shelter[F_NO/2][R_NO] =
         {
             { V( -9), V(64), V(77), V( 44), V( 4), V( -1), V(-11), V(0) },
             { V(-15), V(83), V(51), V(-10), V( 1), V(-10), V(-28), V(0) },
             { V(-18), V(84), V(27), V(-12), V(21), V( -7), V(-36), V(0) },
             { V( 12), V(79), V(25), V( 19), V( 9), V( -6), V(-33), V(0) }
         };
-        // Dangerousness of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
+        // Strom of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
         // For the unopposed and unblocked cases, R_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
-        constexpr Value StromDanger[3][F_NO/2][R_NO] =
+        constexpr Value Strom[3][F_NO/2][R_NO] =
         {
-            {// Unopposed
-                { V( 4), V(  73), V(132), V(46), V(31), V(0), V(0), V(0) },
-                { V( 1), V(  64), V(143), V(26), V(13), V(0), V(0), V(0) },
-                { V( 1), V(  47), V(110), V(44), V(24), V(0), V(0), V(0) },
-                { V( 0), V(  72), V(127), V(50), V(31), V(0), V(0), V(0) }
+            { // Unopposed
+                { V( 4), V(73), V(132), V(46), V(31), V(0), V(0), V(0) },
+                { V( 1), V(64), V(143), V(26), V(13), V(0), V(0), V(0) },
+                { V( 1), V(47), V(110), V(44), V(24), V(0), V(0), V(0) },
+                { V( 0), V(72), V(127), V(50), V(31), V(0), V(0), V(0) }
             },
-            {// BlockedByPawn
-                { V( 0), V(   0), V( 19), V(23), V( 1), V(0), V(0), V(0) },
-                { V( 0), V(   0), V( 88), V(27), V( 2), V(0), V(0), V(0) },
-                { V( 0), V(   0), V(101), V(16), V( 1), V(0), V(0), V(0) },
-                { V( 0), V(   0), V(111), V(22), V(15), V(0), V(0), V(0) }
+            { // Blocked By Pawn
+                { V( 0), V( 0), V( 19), V(23), V( 1), V(0), V(0), V(0) },
+                { V( 0), V( 0), V( 88), V(27), V( 2), V(0), V(0), V(0) },
+                { V( 0), V( 0), V(101), V(16), V( 1), V(0), V(0), V(0) },
+                { V( 0), V( 0), V(111), V(22), V(15), V(0), V(0), V(0) }
             },
-            {// Unblocked
-                { V(22), V(  45), V(104), V(62), V( 6), V(0), V(0), V(0) },
-                { V(31), V(  30), V( 99), V(39), V(19), V(0), V(0), V(0) },
-                { V(23), V(  29), V( 96), V(41), V(15), V(0), V(0), V(0) },
-                { V(21), V(  23), V(116), V(41), V(15), V(0), V(0), V(0) }
+            { // Unblocked
+                { V(22), V(45), V(104), V(62), V( 6), V(0), V(0), V(0) },
+                { V(31), V(30), V( 99), V(39), V(19), V(0), V(0), V(0) },
+                { V(23), V(29), V( 96), V(41), V(15), V(0), V(0), V(0) },
+                { V(21), V(23), V(116), V(41), V(15), V(0), V(0), V(0) }
             }
         };
 
@@ -222,11 +222,11 @@ namespace Pawns {
                 || (own_r != opp_r));
 
             auto ff = std::min (f, ~f);
-            value += ShelterStrength[ff][own_r]
-                   - StromDanger[own_r == R_1       ? 0 : // Unopposed
-                                 own_r == opp_r - 1 ? 1 : // BlockedByPawn
-                                                      2]  // Unblocked
-                                [ff][opp_r];
+            value += Shelter[ff][own_r]
+                   - Strom[own_r == R_1       ? 0 : // Unopposed
+                           own_r == opp_r - 1 ? 1 : // Blocked By Pawn
+                                                2]  // Unblocked
+                          [ff][opp_r];
         }
 
         return value;
@@ -260,15 +260,15 @@ namespace Pawns {
     {
         const i32 Seeds[R_NO] = { 0, 13, 24, 18, 76, 100, 175, 330 };
 
-        for (auto opposed : { 0, 1 })
+        for (i08 opposed = 0; opposed < 2; ++opposed)
         {
-            for (auto phalanx : { 0, 1 })
+            for (i08 phalanx = 0; phalanx < 2; ++phalanx)
             {
-                for (auto support : { 0, 1, 2 })
+                for (i08 support = 0; support < 3; ++support)
                 {
                     for (auto r : { R_2, R_3, R_4, R_5, R_6, R_7 })
                     {
-                        const i32 v = 17 * support + ((Seeds[r] + (phalanx ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed);
+                        auto v = 17 * support + ((Seeds[r] + (0 != phalanx ? (Seeds[r + 1] - Seeds[r]) / 2 : 0)) >> opposed);
                         Connected[opposed][phalanx][support][r] = mk_score (v, v * (r-2) / 4);
                     }
                 }
