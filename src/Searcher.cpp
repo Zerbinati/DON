@@ -89,7 +89,6 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     , recap_sq (SQ_NO)
     , piece_destiny_history (pdh)
     , refutation_moves (km, km + MaxKillers)
-    , i (0)
     , pick_quiets (true)
 {
     assert(MOVE_NONE == tt_move
@@ -129,7 +128,6 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     , threshold (VALUE_ZERO)
     , recap_sq (rs)
     , piece_destiny_history (nullptr)
-    , i (0)
     , pick_quiets (true)
 {
     assert(MOVE_NONE == tt_move
@@ -167,7 +165,6 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     , threshold (thr)
     , recap_sq (SQ_NO)
     , piece_destiny_history (nullptr)
-    , i (0)
     , pick_quiets (true)
 {
     assert(0 == pos.si->checkers);

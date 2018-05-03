@@ -461,9 +461,9 @@ void filter_illegal (ValMoves &moves, const Position &pos)
                                  [&] (const ValMove &vm)
                                  {
                                      return (   0 != pos.abs_blockers (pos.active)
-                                             || pos.enpassant (vm.move)
-                                             || pos.square<KING> (pos.active) == org_sq (vm.move))
-                                         && !pos.legal (vm.move);
+                                             || pos.enpassant (vm)
+                                             || pos.square<KING> (pos.active) == org_sq (vm))
+                                         && !pos.legal (vm);
                                  }),
                  moves.end ());
 }
