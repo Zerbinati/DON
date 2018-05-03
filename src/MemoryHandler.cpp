@@ -93,7 +93,7 @@ namespace Memory {
 
         if (LargePages)
         {
-#   if defined(_WIN32)
+#       if defined(_WIN32)
 
             mem_ref = VirtualAlloc
                 (nullptr,                               // System selects address
@@ -119,7 +119,7 @@ namespace Memory {
             }
             std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed " << (mem_size >> 20) << " MB" << std::endl;
 
-#   else
+#       else
 
             SHM = shmget 
                 (IPC_PRIVATE,
@@ -163,7 +163,7 @@ namespace Memory {
             }
             std::cerr << "ERROR: shmget() shared memory alloc failed " << (mem_size >> 20) << " MB, error# = " << errno << std::endl;
 
-#   endif
+#       endif
         }
 
         ALIGN_MALLOC (mem_ref, alignment, mem_size);
@@ -185,12 +185,12 @@ namespace Memory {
 
         if (PagesUsed)
         {
-#   if defined(_WIN32)
+#       if defined(_WIN32)
             if (!VirtualFree (mem, 0, MEM_RELEASE))
             {
                 std::cerr << "ERROR: VirtualFree() virtual memory free failed" << std::endl;
             }
-#   else
+#       else
             if (shmdt (mem) == -1)
             {
                 std::cerr << "ERROR: shmdt() shared memory detach failed, error# = " << errno << std::endl;
@@ -199,7 +199,7 @@ namespace Memory {
             {
                 std::cerr << "ERROR: shmctl(IPC_RMID) failed, error# = " << errno << std::endl;
             }
-#   endif
+#       endif
             return;
         }
 
