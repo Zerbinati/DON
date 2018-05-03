@@ -59,8 +59,8 @@ void RootMoves::initialize (const Position &pos, const vector<Move> &search_move
             || std::find (search_moves.begin (), search_moves.end (), vm) != search_moves.end ())
         {
             *this += vm;
-            assert(this->back ().tb_rank == 0
-                && this->back ().tb_value == VALUE_ZERO);
+            assert(back ().tb_rank == 0
+                && back ().tb_value == VALUE_ZERO);
         }
     }
 }
