@@ -487,7 +487,7 @@ constexpr Square to_square (char f, char r) { return to_file (f) | to_rank (r); 
 constexpr bool _ok    (Square s) { return 0 == (i08(s) & ~i08(SQ_H8)); }
 constexpr File _file  (Square s) { return File(i08(s) & i08(F_H)); }
 constexpr Rank _rank  (Square s) { return Rank(i08(s) >> 3); }
-constexpr Color color (Square s) { return Color(1 != ((i08(s) ^ (i08(s) >> 3)) & i08(BLACK))); }
+constexpr Color color (Square s) { return 0 != ((i08(s) ^ (i08(s) >> 3)) & 1) ? WHITE : BLACK; }
 
 // Flip   -> SQ_A1 -> SQ_A8
 constexpr Square operator~ (Square s) { return Square(i08(s) ^ i08(SQ_A8)); }
@@ -501,7 +501,7 @@ inline bool opposite_colors (Square s1, Square s2)
 {
     assert(_ok (s1) && _ok (s2));
     i08 s = i08(s1) ^ i08(s2);
-    return 0 != (((s >> 3) ^ s) & i08(BLACK));
+    return 0 != (((s >> 3) ^ s) & 1);
 }
 
 constexpr Delta pawn_push (Color c)
