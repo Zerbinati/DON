@@ -65,11 +65,11 @@ void TTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
 /// TTable::free_aligned_memory() frees the aligned memory
 void TTable::free_aligned_memory ()
 {
-#   if defined(LPAGES)
+#if defined(LPAGES)
     Memory::free_memory (mem);
-#   else
+#else
     free (mem);
-#   endif
+#endif
     mem = nullptr;
     clusters = nullptr;
     cluster_count = 0;
