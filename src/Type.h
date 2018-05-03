@@ -538,7 +538,7 @@ constexpr Piece operator~ (Piece p) { return Piece(i08(p) ^ 8); }
 constexpr Square    org_sq  (Move m) { return Square((u16(m) >> 6) & i08(SQ_H8)); }
 constexpr Square    dst_sq  (Move m) { return Square((u16(m) >> 0) & i08(SQ_H8)); }
 constexpr bool      _ok     (Move m) { return org_sq (m) != dst_sq (m); }
-constexpr PieceType promote (Move m) { return PieceType(((u16(m) >> 12) & 3) + NIHT); }
+constexpr PieceType promote (Move m) { return PieceType(((u16(m) >> 12) & 3) + 1); }
 constexpr MoveType  mtype   (Move m) { return MoveType(u16(m) & u16(PROMOTE)); }
 constexpr i16       move_pp (Move m) { return u16(m) & 0x0FFF; }
 inline    void      promote (Move &m, PieceType pt) { m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (m & 0x0FFF)); }

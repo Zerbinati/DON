@@ -38,7 +38,7 @@ public:
                                    end (),
                                    [&pos] (const ValMove &vm)
                                    {
-                                       return PT != ptype (pos[org_sq (vm.move)]);
+                                       return PT != ptype (pos[org_sq (vm)]);
                                    }),
                     end ());
         }

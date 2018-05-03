@@ -1564,10 +1564,10 @@ namespace TBSyzygy {
 
         for (const auto &vm : MoveList<GenType::LEGAL> (pos))
         {
-            bool zeroing = pos.capture (vm.move)
-                        || PAWN == ptype (pos[org_sq (vm.move)]);
+            bool zeroing = pos.capture (vm)
+                        || PAWN == ptype (pos[org_sq (vm)]);
 
-            pos.do_move (vm.move, si);
+            pos.do_move (vm, si);
 
             // For zeroing moves we want the dtz of the move _before_ doing it,
             // otherwise we will get the dtz of the next move sequence. Search the
@@ -1598,7 +1598,7 @@ namespace TBSyzygy {
                 min_dtz = std::min (dtz, min_dtz);
             }
 
-            pos.undo_move (vm.move);
+            pos.undo_move (vm);
 
             if (ProbeState::FAILURE == state)
             {

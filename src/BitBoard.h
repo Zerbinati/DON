@@ -231,19 +231,19 @@ namespace BitBoard {
     constexpr Bitboard adj_file_bb (File f) { return AdjFile_bb[f]; }
     constexpr Bitboard adj_rank_bb (Rank r) { return AdjRank_bb[r]; }
 
-    constexpr Bitboard front_rank_bb (Color c, Square s) { return FrontRank_bb[c][_rank (s)]; }
-    constexpr Bitboard front_line_bb (Color c, Square s) { return FrontLine_bb[c][s]; }
+    inline Bitboard front_rank_bb (Color c, Square s) { assert(_ok (s)); return FrontRank_bb[c][_rank (s)]; }
+    inline Bitboard front_line_bb (Color c, Square s) { assert(_ok (s)); return FrontLine_bb[c][s]; }
 
-    constexpr Bitboard between_bb (Square s1, Square s2) { return Between_bb[s1][s2]; }
-    constexpr Bitboard strline_bb (Square s1, Square s2) { return StrLine_bb[s1][s2]; }
+    inline Bitboard between_bb (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return Between_bb[s1][s2]; }
+    inline Bitboard strline_bb (Square s1, Square s2) { assert(_ok (s1) && _ok (s2)); return StrLine_bb[s1][s2]; }
 
-    constexpr Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[s][d]; }
+    inline Bitboard dist_rings_bb (Square s, u08 d) { return DistRings_bb[s][d]; }
 
-    constexpr Bitboard pawn_attack_span (Color c, Square s) { return PawnAttackSpan[c][s]; }
-    constexpr Bitboard pawn_pass_span (Color c, Square s) { return PawnPassSpan[c][s]; }
+    inline Bitboard pawn_attack_span (Color c, Square s) { assert(_ok (s)); return PawnAttackSpan[c][s]; }
+    inline Bitboard pawn_pass_span (Color c, Square s) { assert(_ok (s)); return PawnPassSpan[c][s]; }
 
     /// Check the squares s1, s2 and s3 are aligned on a straight line.
-    constexpr bool sqrs_aligned (Square s1, Square s2, Square s3) { return contains (StrLine_bb[s1][s2], s3); }
+    inline bool sqrs_aligned (Square s1, Square s2, Square s3) { assert(_ok (s1) && _ok (s2) && _ok (s3)); return contains (StrLine_bb[s1][s2], s3); }
 
     constexpr bool more_than_one (Bitboard bb)
     {

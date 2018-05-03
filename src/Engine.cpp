@@ -237,7 +237,7 @@ namespace {
             {
                 for (const auto &vm : MoveList<GenType::LEGAL> (pos))
                 {
-                    search_moves.push_back (vm.move);
+                    search_moves.push_back (vm);
                 }
                 while (iss >> token)
                 {
@@ -576,9 +576,9 @@ namespace {
                         count = 0;
                         for (const auto &vm : MoveList<GenType::EVASION> (pos))
                         {
-                            if (pos.legal (vm.move))
+                            if (pos.legal (vm))
                             {
-                                std::cout << move_to_san (vm.move, pos) << " ";
+                                std::cout << move_to_san (vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -590,9 +590,9 @@ namespace {
                         count = 0;
                         for (const auto &vm : MoveList<GenType::QUIET> (pos))
                         {
-                            if (pos.legal (vm.move))
+                            if (pos.legal (vm))
                             {
-                                std::cout << move_to_san (vm.move, pos) << " ";
+                                std::cout << move_to_san (vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -602,9 +602,9 @@ namespace {
                         count = 0;
                         for (const auto &vm : MoveList<GenType::CHECK> (pos))
                         {
-                            if (pos.legal (vm.move))
+                            if (pos.legal (vm))
                             {
-                                std::cout << move_to_san (vm.move, pos) << " ";
+                                std::cout << move_to_san (vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -614,9 +614,9 @@ namespace {
                         count = 0;
                         for (const auto &vm : MoveList<GenType::QUIET_CHECK> (pos))
                         {
-                            if (pos.legal (vm.move))
+                            if (pos.legal (vm))
                             {
-                                std::cout << move_to_san (vm.move, pos) << " ";
+                                std::cout << move_to_san (vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -626,9 +626,9 @@ namespace {
                         count = 0;
                         for (const auto &vm : MoveList<GenType::CAPTURE> (pos))
                         {
-                            if (pos.legal (vm.move))
+                            if (pos.legal (vm))
                             {
-                                std::cout << move_to_san (vm.move, pos) << " ";
+                                std::cout << move_to_san (vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -639,7 +639,7 @@ namespace {
                     count = 0;
                     for (const auto &vm : MoveList<GenType::LEGAL> (pos))
                     {
-                        std::cout << move_to_san (vm.move, pos) << " ";
+                        std::cout << move_to_san (vm, pos) << " ";
                         ++count;
                     }
                     std::cout << "(" << count << ")";

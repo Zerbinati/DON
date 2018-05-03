@@ -80,7 +80,7 @@ namespace {
         {
             if ((vm.move & ~PROMOTE) == m)
             {
-                return vm.move;
+                return vm;
             }
         }
 

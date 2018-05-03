@@ -37,7 +37,7 @@ namespace {
                     continue;
                 }
                 Bitboard attacks = targets
-                                    & (NIHT == PT ? PieceAttacks[NIHT][s] :
+                                 & (NIHT == PT ? PieceAttacks[NIHT][s] :
                                     BSHP == PT ? attacks_bb<BSHP> (s, pos.pieces ()) :
                                     ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces ()) :
                                     QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces ()) : (assert(false), 0));
@@ -374,9 +374,9 @@ template<> void generate<GenType::EVASION    > (ValMoves &moves, const Position 
 
     // Generate evasions for king, capture and non capture moves
     Bitboard attacks = PieceAttacks[KING][fk_sq]
-                        & ~(  checker_attacks
-                            | pos.pieces (pos.active)
-                            | PieceAttacks[KING][pos.square<KING> (~pos.active)]);
+                     & ~(  checker_attacks
+                         | pos.pieces (pos.active)
+                         | PieceAttacks[KING][pos.square<KING> (~pos.active)]);
     while (0 != attacks) { moves += mk_move<NORMAL> (fk_sq, pop_lsq (attacks)); }
 
     // If double-check or only king, then only king move can save the day
@@ -489,13 +489,13 @@ u64 perft (Position &pos, i16 depth)
         else
         {
             StateInfo si;
-            pos.do_move (vm.move, si);
+            pos.do_move (vm, si);
 
             inter_nodes = LeafNode ?
                             MoveList<GenType::LEGAL> (pos).size () :
                             perft<false> (pos, depth - 1);
 
-            pos.undo_move (vm.move);
+            pos.undo_move (vm);
         }
 
         if (RootNode)
@@ -509,8 +509,8 @@ u64 perft (Position &pos, i16 depth)
                       << std::setfill (' ')
                       << std::setw (7)
                       <<
-                         //move_to_can (vm.move)
-                         move_to_san (vm.move, pos)
+                         //move_to_can (vm)
+                         move_to_san (vm, pos)
                       << std::right
                       << std::setfill ('.')
                       << std::setw (16)

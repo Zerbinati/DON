@@ -125,9 +125,9 @@ Move move_from_can (const string &can, const Position &pos)
     //}
     for (const auto &vm : MoveList<GenType::LEGAL> (pos))
     {
-        if (can == move_to_can (vm.move))
+        if (can == move_to_can (vm))
         {
-            return vm.move;
+            return vm;
         }
     }
     return MOVE_NONE;
@@ -210,9 +210,9 @@ Move move_from_san (const string &san, Position &pos)
 {
     for (const auto &vm : MoveList<GenType::LEGAL> (pos))
     {
-        if (san == move_to_san (vm.move, pos))
+        if (san == move_to_san (vm, pos))
         {
-            return vm.move;
+            return vm;
         }
     }
     return MOVE_NONE;
@@ -233,9 +233,9 @@ Move move_from_san (const string &san, Position &pos)
 //{
 //    for (const auto &vm : MoveList<GenType::LEGAL> (pos))
 //    {
-//        if (lan == move_to_lan (vm.move, pos))
+//        if (lan == move_to_lan (vm, pos))
 //        {
-//            return vm.move;
+//            return vm;
 //        }
 //    }
 //    return MOVE_NONE;

@@ -288,6 +288,8 @@ namespace {
     void Evaluator<Trace>::initialize ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
+        constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
         std::fill_n (pin_attacked_by[Own], NONE, 0);
         std::fill_n (pin_attacked_queen[Own], 3, 0);
@@ -323,7 +325,7 @@ namespace {
                           | pos.pieces (Opp, QUEN, KING)
                           | (  pos.pieces (Opp, PAWN)
                              & (  LowRanks_bb[Opp]
-                                | shift<WHITE == Own ? DEL_N : DEL_S> (pos.pieces ()))));
+                                | shift<Push> (pos.pieces ()))));
         mobility[Opp] = SCORE_ZERO;
 
         king_attackers_weight[Own] = 0;
@@ -333,7 +335,7 @@ namespace {
             king_ring[Opp] = PieceAttacks[KING][pos.square<KING> (Opp)];
             if (R_1 == rel_rank (Opp, pos.square<KING> (Opp)))
             {
-                king_ring[Opp] |= shift<WHITE == Own ? DEL_S : DEL_N> (king_ring[Opp]);
+                king_ring[Opp] |= shift<Pull> (king_ring[Opp]);
             }
             if (F_H == _file (pos.square<KING> (Opp)))
             {
@@ -479,7 +481,7 @@ namespace {
 
                     // Bonus for bishop on a long diagonal which can "see" both center squares
                     if (   contains (Diagonals_bb, s)
-                        && 2 == pop_count (Center_bb & (attacks_bb<BSHP> (s, pos.pieces (PAWN)) | s)))
+                        && more_than_one (Center_bb & (attacks_bb<BSHP> (s, pos.pieces (PAWN)) | s)))
                     {
                         score += BishopOnDiagonal;
                     }
@@ -528,7 +530,8 @@ namespace {
                     auto kf = _file (pos.square<KING> (Own));
                     if ((kf < F_E) == (_file (s) < kf))
                     {
-                        score -= (RookTrapped - mk_score (22 * mob, 0)) * (pos.si->can_castle (Own) ? 1 : 2);
+                        score -= (RookTrapped - mk_score (22 * mob, 0))
+                               * (pos.si->can_castle (Own) ? 1 : 2);
                     }
                 }
             }
@@ -759,33 +762,37 @@ namespace {
                     score += PieceRankThreat * rel_rank (Opp, s);
                 }
             }
-            // Enemies attacked by majors
-            b = (  weak_enemies
-                   // Enemy Queens
-                 | pos.pieces (Opp, QUEN))
-              & pin_attacked_by[Own][ROOK];
-            while (0 != b)
+            
+            if (0 != weak_enemies)
             {
-                auto s = pop_lsq (b);
-                auto pt = ptype (pos[s]);
-                score += MajorPieceThreat[pt];
-                if (PAWN != pt)
+                // Enemies attacked by majors
+                b = (  weak_enemies
+                       // Enemy Queens
+                     | pos.pieces (Opp, QUEN))
+                  & pin_attacked_by[Own][ROOK];
+                while (0 != b)
                 {
-                    score += PieceRankThreat * rel_rank (Opp, s);
+                    auto s = pop_lsq (b);
+                    auto pt = ptype (pos[s]);
+                    score += MajorPieceThreat[pt];
+                    if (PAWN != pt)
+                    {
+                        score += PieceRankThreat * rel_rank (Opp, s);
+                    }
                 }
-            }
-            // Enemies attacked by king
-            b = weak_enemies
-              & pin_attacked_by[Own][KING];
-            if (0 != b)
-            {
-                score += KingThreat[more_than_one (b) ? 1 : 0];
-            }
+                // Enemies attacked by king
+                b = weak_enemies
+                  & pin_attacked_by[Own][KING];
+                if (0 != b)
+                {
+                    score += KingThreat[more_than_one (b) ? 1 : 0];
+                }
 
-            // Enemies attacked are hanging
-            b = weak_enemies
-              & ~pin_attacked_by[Opp][NONE];
-            score += PieceHanged * pop_count (b);
+                // Enemies attacked are hanging
+                b = weak_enemies
+                  & ~pin_attacked_by[Opp][NONE];
+                score += PieceHanged * pop_count (b);
+            }
 
             // Bonus for overloaded: non-pawn enemies attacked and defended exactly once
             b = nonpawns_enemies
@@ -1126,17 +1133,17 @@ namespace {
 
         // Pieces should be evaluated first (populate attack information)
         score += pieces<WHITE, NIHT> () - pieces<BLACK, NIHT> ()
-              +  pieces<WHITE, BSHP> () - pieces<BLACK, BSHP> ()
-              +  pieces<WHITE, ROOK> () - pieces<BLACK, ROOK> ()
-              +  pieces<WHITE, QUEN> () - pieces<BLACK, QUEN> ();
+               + pieces<WHITE, BSHP> () - pieces<BLACK, BSHP> ()
+               + pieces<WHITE, ROOK> () - pieces<BLACK, ROOK> ()
+               + pieces<WHITE, QUEN> () - pieces<BLACK, QUEN> ();
 
         score += mobility[WHITE] - mobility[BLACK];
 
         // Rest should be evaluated after (full attack information needed including king)
         score += king<   WHITE> () - king<   BLACK> ()
-              +  threats<WHITE> () - threats<BLACK> ()
-              +  passers<WHITE> () - passers<BLACK> ()
-              +  (pos.si->non_pawn_material () >= SpaceThreshold ?
+               + threats<WHITE> () - threats<BLACK> ()
+               + passers<WHITE> () - passers<BLACK> ()
+               + (pos.si->non_pawn_material () >= SpaceThreshold ?
                   space<  WHITE> () - space<  BLACK> () : SCORE_ZERO);
 
         score += initiative (eg_value (score));
