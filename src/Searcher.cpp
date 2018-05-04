@@ -205,7 +205,7 @@ void MovePicker::value ()
         {
             assert(pos.capture_or_promotion (vm));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm)])
-                     + pos.thread->capture_history[pos[org_sq (vm)]][move_pp (vm)][pos.cap_type (vm)] / 16;
+                     + pos.thread->capture_history[pos[org_sq (vm)]][move_pp (vm)][pos.cap_type (vm)];
         }
         else
         if (GenType::QUIET == GT)
@@ -406,6 +406,7 @@ Move MovePicker::next_move ()
 
 namespace Searcher {
 
+    TimePoint StartTime = TimePoint(0);
     Limit Limits;
 
     i32 MultiPV = 1;
@@ -1512,19 +1513,19 @@ namespace Searcher {
 
                         // Decrease/Increase reduction by comparing own and opp stats (~10 Elo)
                         if (   (ss-1)->stat_score >= 0
-                            && ss->stat_score < 0)
+                            && (ss)->stat_score < 0)
                         {
                             reduce_depth += 1;
                         }
                         else
-                        if (   ss->stat_score >= 0
+                        if (   (ss)->stat_score >= 0
                             && (ss-1)->stat_score < 0)
                         {
                             reduce_depth -= 1;
                         }
 
                         // Decrease/Increase reduction for moves with +/-ve own stats (~30 Elo)
-                        reduce_depth -= i16(ss->stat_score / 20000);
+                        reduce_depth -= i16((ss)->stat_score / 20000);
                     }
 
                     reduce_depth = std::min (std::max (reduce_depth, i16(0)), i16(new_depth - 1));

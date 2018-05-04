@@ -762,7 +762,6 @@ namespace {
                     score += PieceRankThreat * rel_rank (Opp, s);
                 }
             }
-            
             if (0 != weak_enemies)
             {
                 // Enemies attacked by majors
@@ -874,9 +873,9 @@ namespace {
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
 
         auto king_proximity = [&](Color c, Square s)
-                            {
-                                return std::min (dist (pos.square<KING> (c), s), 5);
-                            };
+                              {
+                                  return std::min (dist (pos.square<KING> (c), s), 5);
+                              };
 
         auto score = SCORE_ZERO;
 

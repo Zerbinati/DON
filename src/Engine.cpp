@@ -185,11 +185,10 @@ namespace {
         Threadpool.stop = true;
         Threadpool.main_thread ()->wait_while_busy ();
 
+        StartTime = now ();
         Limit limits;
-        limits.start_time = now ();
-        i16 depth = 0;
-        bool ponder = false;
         vector<Move> search_moves; // Restrict search to these root moves only
+        bool ponder = false;
 
         string token;
         while (iss >> token)
@@ -213,8 +212,6 @@ namespace {
             if (token == "mate")      iss >> limits.mate;
             else
             if (token == "infinite")  limits.infinite = true;
-            else
-            if (token == "perft")     iss >> depth;
             else
             if (token == "ponder")    ponder = true;
             else
@@ -251,28 +248,31 @@ namespace {
                 }
             }
             else
+            if (token == "perft")
+            {
+                i16 depth = 0;
+                iss >> depth;
+                if (0 != depth)
+                {
+                    auto nodes = perft<true> (pos, depth);
+                    sync_cout << "\nTotal:    "
+                              << std::right
+                              << std::setfill ('.')
+                              << std::setw (16)
+                              << nodes
+                              << std::setfill (' ')
+                              << std::left 
+                              << sync_endl;
+                }
+                return;
+            }
+            else
             {
                 std::cerr << "ERROR: Illegal token : " << token << std::endl;
                 return;
             }
         }
-
-        if (0 != depth)
-        {
-            auto nodes = perft<true> (pos, depth);
-            sync_cout << "\nTotal:    "
-                      << std::right
-                      << std::setfill ('.')
-                      << std::setw (16)
-                      << nodes
-                      << std::setfill (' ')
-                      << std::left 
-                      << sync_endl;
-        }
-        else
-        {
-            Threadpool.start_thinking (pos, states, limits, search_moves, ponder);
-        }
+        Threadpool.start_thinking (pos, states, limits, search_moves, ponder);
     }
 
     /// setup_bench() builds a list of UCI commands to be run by bench.

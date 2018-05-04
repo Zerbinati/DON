@@ -43,7 +43,7 @@ public:
     u08         clock_ply;      // Number of half moves clock since the last pawn advance or any capture
                                 // Used to determine if a draw can be claimed under the clock-move rule
     u08         null_ply;
-    
+
     // ---Not copied when making a move---
     PieceType   capture;        // Piece type captured
     bool        promotion;      // Promotion
@@ -119,7 +119,7 @@ private:
 public:
     static bool Chess960;
     static u08  DrawClockPly;
-    
+
     Piece    board[SQ_NO];
     Bitboard color_bb[CLR_NO];
     Bitboard types_bb[MAX_PTYPE];
@@ -133,7 +133,7 @@ public:
 
     Color active;
     i16   ply;
-    
+
     Thread *thread;
 
     StateInfo *si; // Current state information pointer
@@ -200,7 +200,7 @@ public:
 
     Position& setup (const std::string&, StateInfo&, Thread *const = nullptr, bool = true);
     Position& setup (const std::string&, StateInfo&, Color);
-    
+
     void do_move (Move, StateInfo&, bool);
     void do_move (Move, StateInfo&);
     void undo_move (Move);
@@ -315,7 +315,7 @@ inline Key Position::posi_move_key (Move m) const
     const auto org = org_sq (m);
     const auto dst = dst_sq (m);
     assert(contains (pieces (active), org));
-    
+
     auto key = si->posi_key;
     auto ppt = PROMOTE != mtype (m) ?
                 ptype (board[org]) :

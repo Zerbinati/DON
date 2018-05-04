@@ -258,7 +258,7 @@ namespace Pawns {
     /// Pawns::initialize() initializes lookup tables at startup.
     void initialize ()
     {
-        const i32 Seeds[R_NO] = { 0, 13, 24, 18, 76, 100, 175, 330 };
+        const i32 Seeds[R_NO] = { 0, 13, 24, 18, 65, 100, 175, 330 };
 
         for (i08 opposed = 0; opposed < 2; ++opposed)
         {

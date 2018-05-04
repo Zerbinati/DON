@@ -37,8 +37,6 @@ public:
     u08       mate;        // Search mate in <x> moves
     bool      infinite;    // Search until the "stop" command
 
-    TimePoint start_time;
-
     Limit ()
         : clock { TimePoint(0), TimePoint(0) }
         , movestogo (0)
@@ -47,7 +45,6 @@ public:
         , nodes (0)
         , mate (0)
         , infinite (false)
-        , start_time (TimePoint(0))
     {}
 
     bool use_time_management () const
@@ -295,7 +292,8 @@ namespace Searcher {
 
     // Threshold for counter moves based pruning
     constexpr i32 CounterMovePruneThreshold = 0;
-
+    
+    extern TimePoint StartTime;
     extern Limit Limits;
 
     extern i32 MultiPV;

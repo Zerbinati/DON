@@ -13,10 +13,9 @@ using namespace TBSyzygy;
 
 TimePoint OverheadMoveTime = 30;  // Attempt to keep at least this much time for each remaining move, in milli-seconds.
 TimePoint MinimumMoveTime = 20;   // No matter what, use at least this much time before doing the move, in milli-seconds.
-
-i32 MoveSlowness = 84;      // Move Slowness, in %age.
-u16 NodesTime = 0;          // 'Nodes as Time' mode.
-bool Ponder = true;         // Whether or not the engine should analyze when it is the opponent's turn.
+i32 MoveSlowness = 84;            // Move Slowness, in %age.
+u16 NodesTime = 0;                // 'Nodes as Time' mode.
+bool Ponder = true;               // Whether or not the engine should analyze when it is the opponent's turn.
 
 ThreadPool Threadpool;
 
@@ -84,7 +83,7 @@ TimePoint TimeManager::elapsed_time () const
 {
     return TimePoint(0 != NodesTime ?
                         Threadpool.nodes () :
-                        now () - Limits.start_time);
+                        now () - StartTime);
 }
 /// TimeManager::initialize() calculates the allowed thinking time out of the time control and current game ply.
 /// Support four different kind of time controls, passed in 'limits':
