@@ -994,8 +994,8 @@ namespace {
     Score Evaluator<Trace>::space ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
-        constexpr auto SPull = WHITE == Own ? DEL_S : DEL_N;
-        constexpr auto DPull = WHITE == Own ? DEL_SS : DEL_NN;
+        constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
+        constexpr auto Dull = WHITE == Own ? DEL_SS : DEL_NN;
 
         // Find the safe squares for our pieces inside the area defined by SpaceMask.
         // A square is safe:
@@ -1009,8 +1009,8 @@ namespace {
 
         // Find all squares which are at most three squares behind some friend pawn
         Bitboard behind = pos.pieces (Own, PAWN);
-        behind |= shift<SPull> (behind);
-        behind |= shift<DPull> (behind);
+        behind |= shift<Pull> (behind);
+        behind |= shift<Dull> (behind);
         i32 bonus = pop_count (safe_space) + pop_count (behind & safe_space);
         i32 weight = pos.count (Own) - 2 * pe->open_count;
         auto score = mk_score (bonus * weight * weight / 16, 0);
