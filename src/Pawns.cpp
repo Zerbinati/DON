@@ -112,18 +112,9 @@ namespace Pawns {
                 bool opposed = 0 != (opp_pawns & front_line_bb (Own, s));
 
                 // A pawn is backward when it is behind all pawns of the same color on the adjacent files and cannot be safely advanced.
-                // The pawn is backward when it cannot safely progress to next rank:
-                // either there is a stoppers in the way on next rank
-                // or there is a stoppers on adjacent file which controls the way to next rank.
                 bool backward = 0 == levers
-                             && 0 != stoppers
-                             && 0 != neighbours
-                             && R_6 > rel_rank (Own, s)
-                                // Find the back most rank with neighbours or stoppers
-                             && 0 != (b = rank_bb (scan_backmost_sq (Own, neighbours | stoppers)))
-                                // If have an enemy pawn in the same or next rank, the pawn is
-                                // backward because it cannot advance without being captured.
-                             && 0 != (stoppers & (b | shift<Push> (b & adj_file_bb (f))));
+                             && 0 == (own_pawns & pawn_attack_span (Opp, s + Push))
+                             && 0 != (stoppers & (escapes | (s + Push)));
 
                 assert(!backward
                     || 0 == (pawn_attack_span (Opp, s+Push) & neighbours));

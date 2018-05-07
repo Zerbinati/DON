@@ -384,7 +384,7 @@ namespace {
             istringstream is (cmd);
             string token;
             token.clear ();
-            is >> skipws >> token;
+            is >> std::skipws >> token;
 
             if (white_spaces (token))
             {
@@ -447,20 +447,20 @@ namespace {
 
         dbg_init ();
 
+        Position pos;
+        Position::Chess960 = false;
+
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
         StateListPtr states (new std::deque<StateInfo> (1));
         auto ui_thread = std::make_shared<Thread> (0);
-        Position::Chess960 = false;
-        Position pos;
         pos.setup (StartFEN, states->back (), ui_thread.get ());
 
         do
         {
-            // Block here waiting for input or EOF
             if (   1 == argc
-                && !std::getline (std::cin, cmd, '\n'))
+                && !std::getline (std::cin, cmd, '\n')) // Block here waiting for input or EOF
             {
                 cmd = "quit";
             }
@@ -468,7 +468,7 @@ namespace {
             istringstream iss (cmd);
             string token;
             token.clear (); // Avoid a stale if getline() returns empty or blank line
-            iss >> skipws >> token;
+            iss >> std::skipws >> token;
 
             if (white_spaces (token))
             {
