@@ -2,11 +2,10 @@
 
 #include "Thread.h"
 
-using namespace std;
-
 Logger Loger;
-
 TimePoint DebugTime;
+
+using namespace std;
 
 namespace {
 

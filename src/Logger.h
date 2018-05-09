@@ -93,7 +93,6 @@ public:
 
 // Global Logger
 extern Logger Loger;
-
 extern TimePoint DebugTime;
 
 // Debug functions used mainly to collect run-time statistics

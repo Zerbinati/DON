@@ -6,14 +6,9 @@
 #include "Engine.h"
 #include "MemoryHandler.h"
 
-using namespace std;
-
 TTable TT;
 
-u08 TEntry::Generation;
-
-string TTable::Hash_fn = "Hash.dat";
-
+using namespace std;
 
 /// TTable::alloc_aligned_memory() allocates the aligned memory
 void TTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
@@ -161,14 +156,19 @@ TEntry* TTable::probe (Key key, bool &tt_hit) const
             tt_hit = !ite->empty ();
             // Refresh entry.
             if (   tt_hit
-                && ite->generation () != TEntry::Generation)
+                && ite->generation () != generation)
             {
-                ite->gb08 = u08(TEntry::Generation + ite->bound ());
+                ite->gb08 = u08(generation + ite->bound ());
             }
             return ite;
         }
         // Replacement strategy.
-        if (rte->worth () > ite->worth ())
+        // The worth of an entry is calculated as its depth minus 2 times its relative age.
+        // Due to packed storage format for generation and its cyclic nature
+        // add 0x103 (0x100 + 3 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
+        // to calculate the entry age correctly even after generation overflows into the next cycle.
+        if (  rte->d08 - ((generation - rte->gb08 + 0x103) & 0xFC) * 2
+            > ite->d08 - ((generation - ite->gb08 + 0x103) & 0xFC) * 2)
         {
             rte = ite;
         }
@@ -190,7 +190,7 @@ u32 TTable::hash_full () const
     {
         for (const auto *ite = itc->entries; ite < itc->entries + TCluster::EntryCount; ++ite)
         {
-            if (ite->generation () == TEntry::Generation)
+            if (ite->generation () == generation)
             {
                 ++entry_count;
             }
@@ -201,28 +201,28 @@ u32 TTable::hash_full () const
 /// TTable::save() saves hash to file
 void TTable::save () const
 {
-    if (!white_spaces (Hash_fn))
+    if (!white_spaces (hash_fn))
     {
-        ofstream ofs (Hash_fn, ios_base::out|ios_base::binary);
+        ofstream ofs (hash_fn, ios_base::out|ios_base::binary);
         if (ofs.is_open ())
         {
             ofs << *this;
             ofs.close ();
-            sync_cout << "info string Hash saved to file \'" << Hash_fn << "\'" << sync_endl;
+            sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
         }
     }
 }
 /// TTable::load() loads hash from file
 void TTable::load ()
 {
-    if (!white_spaces (Hash_fn))
+    if (!white_spaces (hash_fn))
     {
-        ifstream ifs (Hash_fn, ios_base::in|ios_base::binary);
+        ifstream ifs (hash_fn, ios_base::in|ios_base::binary);
         if (ifs.is_open ())
         {
             ifs >> *this;
             ifs.close ();
-            sync_cout << "info string Hash loaded from file \'" << Hash_fn << "\'" << sync_endl;
+            sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'" << sync_endl;
         }
     }
 }

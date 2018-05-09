@@ -29,9 +29,6 @@ private:
 
 public:
 
-    // "Generation" variable distinguish transposition table entries from different searches.
-    static u08 Generation;
-
     Move  move       () const { return Move (m16); }
     Value value      () const { return Value(v16); }
     Value eval       () const { return Value(e16); }
@@ -40,13 +37,7 @@ public:
     u08   generation () const { return u08  (gb08 & 0xFC); }
     bool  empty      () const { return d08 == DepthEmpty; }
 
-    // The worth of an entry is calculated as its depth minus 2 times its relative age.
-    // Due to packed storage format for generation and its cyclic nature
-    // add 0x103 (0x100 + 3 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
-    // to calculate the entry age correctly even after generation overflows into the next cycle.
-    i16  worth () const { return d08 - ((Generation - gb08 + 0x103) & 0xFC) * 2; }
-
-    void save (u64 k, Move m, Value v, Value e, i16 d, Bound b)
+    void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, u08 g)
     {
         // Preserve more valuable entries
         if (   k16 != (k >> 0x30)   // Use the high 16 bits as key inside the cluster
@@ -60,7 +51,7 @@ public:
         {
             k16 = u16(k >> 0x30);
             d08 = i08(d);
-            gb08 = u08(Generation + b);
+            gb08 = u08(g + b);
             v16 = i16(v);
             e16 = i16(e);
         }
@@ -113,18 +104,22 @@ public:
 
     static constexpr u32 BufferSize = 0x10000;
 
-    static std::string Hash_fn;
-
     void *mem;
     TCluster *clusters;
     size_t cluster_count;
+    // "Generation" variable distinguish transposition table entries from different searches.
+    u08 generation;
+
     bool retain_hash;
+    std::string hash_fn;
 
     TTable ()
         : mem (nullptr)
         , clusters (nullptr)
         , cluster_count (0)
+        , generation (0)
         , retain_hash (false)
+        , hash_fn ("Hash.dat")
     {}
 
     TTable (const TTable&) = delete;
@@ -169,7 +164,7 @@ public:
         os.write ((const CharT*)(&dummy), sizeof (dummy));
         os.write ((const CharT*)(&dummy), sizeof (dummy));
         os.write ((const CharT*)(&dummy), sizeof (dummy));
-        os.write ((const CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
+        os.write ((const CharT*)(&tt.generation), sizeof (tt.generation));
         os.write ((const CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
         for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
         {
@@ -188,7 +183,7 @@ public:
         is.read ((CharT*)(&dummy), sizeof (dummy));
         is.read ((CharT*)(&dummy), sizeof (dummy));
         is.read ((CharT*)(&dummy), sizeof (dummy));
-        is.read ((CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
+        is.read ((CharT*)(&tt.generation), sizeof (tt.generation));
         is.read ((CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
         tt.resize (mem_size);
         for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)

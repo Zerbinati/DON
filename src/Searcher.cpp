@@ -709,7 +709,8 @@ namespace Searcher {
                                        value_to_tt (best_value, ss->ply),
                                        ss->static_eval,
                                        DepthNone,
-                                       BOUND_LOWER);
+                                       BOUND_LOWER,
+                                       TT.generation);
                         }
 
                         assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -827,7 +828,8 @@ namespace Searcher {
                                        value_to_tt (value, ss->ply),
                                        ss->static_eval,
                                        qs_depth,
-                                       BOUND_LOWER);
+                                       BOUND_LOWER,
+                                       TT.generation);
 
                             assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
                             return value;
@@ -853,7 +855,8 @@ namespace Searcher {
                           PVNode
                        && best_value > prev_alfa ?
                            BOUND_EXACT :
-                           BOUND_UPPER);
+                           BOUND_UPPER,
+                       TT.generation);
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -1051,7 +1054,8 @@ namespace Searcher {
                                        value_to_tt (value, ss->ply),
                                        VALUE_NONE,
                                        std::min<i16> (depth + 6, MaxPlies - 1),
-                                       bound);
+                                       bound,
+                                       TT.generation);
 
                             return value;
                         }
@@ -1113,7 +1117,8 @@ namespace Searcher {
                                VALUE_NONE,
                                ss->static_eval,
                                DepthNone,
-                               BOUND_NONE);
+                               BOUND_NONE,
+                               TT.generation);
                 }
 
                 improving = (ss-0)->static_eval >= (ss-2)->static_eval
@@ -1743,7 +1748,8 @@ namespace Searcher {
                                   PVNode
                                && MOVE_NONE != best_move ?
                                    BOUND_EXACT :
-                                   BOUND_UPPER);
+                                   BOUND_UPPER,
+                           TT.generation);
             }
 
             assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -2104,8 +2110,8 @@ void MainThread::search ()
         time_mgr.initialize (root_pos.active, root_pos.ply);
     }
 
-    TEntry::Generation = u08((root_pos.ply + 1) << 2);
-    assert(0 == (TEntry::Generation & 0x03));
+    TT.generation = u08((root_pos.ply + 1) << 2);
+    assert(0 == (TT.generation & 0x03));
 
     bool think = true;
 

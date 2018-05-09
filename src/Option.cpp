@@ -194,7 +194,7 @@ namespace UCI {
             auto hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
             convert_path (hash_fn);
-            TTable::Hash_fn = hash_fn;
+            TT.hash_fn = hash_fn;
         }
         void on_save_hash ()
         {
@@ -346,7 +346,7 @@ namespace UCI {
         Options["Clear Hash"]         << Option (on_clear_hash);
         Options["Retain Hash"]        << Option (TT.retain_hash, on_retain_hash);
 
-        Options["Hash File"]          << Option (TTable::Hash_fn.c_str (), on_hash_fn);
+        Options["Hash File"]          << Option (TT.hash_fn.c_str (), on_hash_fn);
         Options["Save Hash"]          << Option (on_save_hash);
         Options["Load Hash"]          << Option (on_load_hash);
 
