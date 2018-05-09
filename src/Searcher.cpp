@@ -461,7 +461,7 @@ namespace Searcher {
         /// stat_bonus() is the bonus, based on depth
         i32 stat_bonus (i16 depth)
         {
-            return depth <= 17 ? depth*(depth + 2) - 2 : 0;
+            return depth <= 17 ? 32*(depth*(depth + 2) - 2) : 0;
         }
 
         /// update_stacks_continuation() updates tables of the move pairs with current move.
@@ -876,7 +876,7 @@ namespace Searcher {
             // Check for the available remaining limit.
             if (Threadpool.main_thread () == pos.thread)
             {
-                Threadpool.main_thread ()->check_limits ();
+                Threadpool.main_thread ()->tick ();
             }
 
             if (PVNode)
@@ -2062,7 +2062,6 @@ void MainThread::search ()
 
     check_count = 0;
     set_check_count ();
-    check_time = 0;
 
     if (!white_spaces (OutputFile))
     {
@@ -2317,25 +2316,24 @@ void MainThread::set_check_count ()
     }
     assert(0 != check_count);
 }
-/// MainThread::check_limits() is used to detect when out of available limits and thus stop the search, also print debug info.
-void MainThread::check_limits ()
+/// MainThread::tick() is used as timer function.
+/// Used to detect when out of available limits and thus stop the search, also print debug info.
+void MainThread::tick ()
 {
-    if (0 < check_count)
-    {
-        --check_count;
-        return;
-    }
-
-    set_check_count ();
-
     auto elapsed_time = time_mgr.elapsed_time ();
 
-    if (1000 <= elapsed_time - check_time)
+    if (DebugTime + 1000 <= elapsed_time)
     {
-        check_time = elapsed_time;
+        DebugTime = elapsed_time;
 
-        dbg_print ();
+        debug_print ();
     }
+
+    if (0 < --check_count)
+    {
+        return;
+    }
+    set_check_count ();
 
     // Do not stop until told so by the GUI.
     if (   Limits.infinite

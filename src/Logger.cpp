@@ -6,6 +6,8 @@ using namespace std;
 
 Logger Loger;
 
+TimePoint DebugTime;
+
 namespace {
 
     i64 CondCount;
@@ -15,7 +17,7 @@ namespace {
     i64 ItemSum;
 }
 
-void dbg_init ()
+void debug_init ()
 {
     CondCount = 0;
     HitCount = 0;
@@ -24,7 +26,7 @@ void dbg_init ()
     ItemSum = 0;
 }
 
-void dbg_hit_on (bool hit)
+void debug_hit_on (bool hit)
 {
     static Mutex mutex;
 
@@ -37,15 +39,15 @@ void dbg_hit_on (bool hit)
     mutex.unlock ();
 }
 
-void dbg_hit_on (bool cond, bool hit)
+void debug_hit_on (bool cond, bool hit)
 {
     if (cond)
     {
-        dbg_hit_on (hit);
+        debug_hit_on (hit);
     }
 }
 
-void dbg_mean_of (i64 item)
+void debug_mean_of (i64 item)
 {
     static Mutex mutex;
 
@@ -55,7 +57,7 @@ void dbg_mean_of (i64 item)
     mutex.unlock ();
 }
 
-void dbg_print ()
+void debug_print ()
 {
     if (0 != CondCount)
     {

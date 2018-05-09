@@ -131,10 +131,11 @@ public:
 class MainThread
     : public Thread
 {
-public:
+private :
 
     u64 check_count;
-    TimePoint check_time;
+    
+public:
 
     bool failed_low;
 
@@ -155,7 +156,7 @@ public:
     void search () override;
 
     void set_check_count ();
-    void check_limits ();
+    void tick ();
 };
 
 /// ThreadPool class handles all the threads related stuff like,

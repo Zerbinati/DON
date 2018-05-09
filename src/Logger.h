@@ -94,11 +94,13 @@ public:
 // Global Logger
 extern Logger Loger;
 
+extern TimePoint DebugTime;
+
 // Debug functions used mainly to collect run-time statistics
-extern void dbg_init ();
-extern void dbg_hit_on (bool);
-extern void dbg_hit_on (bool, bool);
-extern void dbg_mean_of (i64);
-extern void dbg_print ();
+extern void debug_init ();
+extern void debug_hit_on (bool);
+extern void debug_hit_on (bool, bool);
+extern void debug_mean_of (i64);
+extern void debug_print ();
 
 #endif // _LOGGER_H_INC_

@@ -185,6 +185,7 @@ namespace {
         Threadpool.stop = true;
         Threadpool.main_thread ()->wait_while_busy ();
 
+        DebugTime = 0;
         StartTime = now ();
         Limit limits;
         vector<Move> search_moves; // Restrict search to these root moves only
@@ -375,7 +376,7 @@ namespace {
         u16 total = u16(count_if (uci_cmds.begin (), uci_cmds.end (), [](string s) { return s.find ("go ") == 0; }));
         u16 count = 0;
         
-        dbg_init ();
+        debug_init ();
 
         auto elapsed_time = now ();
         u64 total_nodes = 0;
@@ -421,7 +422,7 @@ namespace {
 
         elapsed_time = std::max (now () - elapsed_time, 1LL);
 
-        dbg_print (); // Just before exiting
+        debug_print (); // Just before exiting
 
         std::cerr << std::right
                     << "\n=================================\n"
@@ -445,7 +446,7 @@ namespace {
             cmd += string(argv[i]) + " ";
         }
 
-        dbg_init ();
+        debug_init ();
 
         Position pos;
         Position::Chess960 = false;

@@ -186,7 +186,7 @@ namespace Material {
                 assert(2 <= pos.count (BLACK, PAWN));
                 e->scale_func[BLACK] = &ScaleKPsK[BLACK];
             }
-            else 
+            else
             if (   1 == pos.count (WHITE, PAWN)
                 && 1 == pos.count (BLACK, PAWN))
             {
