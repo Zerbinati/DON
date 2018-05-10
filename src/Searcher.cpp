@@ -854,7 +854,7 @@ namespace Searcher {
         }
         /// depth_search() is main depth limited search function, which is called when the remaining depth > 0.
         template<bool PVNode>
-        Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node, bool prun_node)
+        Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node)
         {
             // Use quiescence search when needed
             if (DepthZero >= depth)
@@ -1070,7 +1070,7 @@ namespace Searcher {
 
             StateInfo si;
 
-            // Step 6. Evaluate the position statically.
+            // Step 6. Static evaluation of the position
             if (in_check)
             {
                 ss->static_eval = VALUE_NONE;
@@ -1112,168 +1112,166 @@ namespace Searcher {
                                TT.generation);
                 }
 
+                // Step 7. Razoring. (~2 ELO)
+                if (   !PVNode
+                    && 3 > depth
+                    && tt_eval <= alfa - RazorMargin[depth])
+                {
+                    auto alfa_margin = alfa - RazorMargin[depth] * (1 < depth ? 1 : 0);
+                    auto v = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
+                    if (   2 > depth
+                        || v <= alfa_margin)
+                    {
+                        return v;
+                    }
+                }
+
                 improving = (ss-0)->static_eval >= (ss-2)->static_eval
                          || VALUE_NONE == (ss-2)->static_eval;
 
-                if (   prun_node
-                    && VALUE_ZERO != pos.si->non_pawn_material (pos.active))
+                // Step 8. Futility pruning: child node. (~30 ELO)
+                // Betting that the opponent doesn't have a move that will reduce
+                // the score by more than futility margins [depth] if do a null move.
+                if (   !root_node
+                    && 7 > depth
+                    //&& 0 == Limits.mate
+                    && tt_eval - (improving ? 125 : 175) * depth >= beta
+                    && tt_eval < +VALUE_KNOWN_WIN) // Don't return unproven wins.
                 {
-                    assert(MOVE_NONE == ss->excluded_move);
+                    return tt_eval;
+                }
 
-                    // Step 7. Razoring. (~2 ELO)
-                    if (   !PVNode
-                        && 3 > depth
-                        && tt_eval <= alfa - RazorMargin[depth])
+                // Step 9. Null move search with verification search. (~40 ELO)
+                if (   !PVNode
+                    //&& 0 == Limits.mate
+                    && MOVE_NULL != (ss-1)->played_move
+                    && MOVE_NONE == ss->excluded_move
+                    && VALUE_ZERO != pos.si->non_pawn_material (pos.active)
+                    && (ss-1)->stat_score < 30000
+                    && tt_eval >= beta
+                    && ss->static_eval + 36*depth - 225 >= beta
+                    && (   pos.thread->nmp_ply <= ss->ply
+                        || pos.thread->nmp_odd == ((ss->ply % 2) != 0)))
+                {
+                    // Null move dynamic reduction based on depth and static evaluation.
+                    auto R = i16((67*depth + 823) / 256 + std::min (i32((tt_eval - beta)/VALUE_MG_PAWN), 3));
+
+                    // Speculative prefetch as early as possible
+                    prefetch (TT.cluster_entry (  pos.si->posi_key
+                                                ^ RandZob.color
+                                                ^ (SQ_NO != pos.si->enpassant_sq ? RandZob.enpassant[_file (pos.si->enpassant_sq)] : 0)));
+
+                    ss->played_move = MOVE_NULL;
+                    ss->piece_destiny_history = pos.thread->continuation_history[NO_PIECE][0].get ();
+
+                    pos.do_null_move (si);
+
+                    auto null_value = -depth_search<false> (pos, ss+1, -beta, -beta+1, depth-R, !cut_node);
+
+                    pos.undo_null_move ();
+
+                    if (null_value >= beta)
                     {
-                        auto alfa_margin = alfa - RazorMargin[depth] * (1 < depth ? 1 : 0);
-                        auto v = quien_search<false> (pos, ss, alfa_margin, alfa_margin+1);
-                        if (   2 > depth
-                            || v <= alfa_margin)
+                        bool unproven = null_value >= +VALUE_MATE_MAX_PLY;
+
+                        // Skip verification search
+                        if (   abs (beta) < +VALUE_KNOWN_WIN
+                            && (   12 > depth
+                                || pos.thread->nmp_ply != 0))
                         {
-                            return v;
+                            // Don't return unproven wins
+                            return unproven ?
+                                    beta :
+                                    null_value;
+                        }
+
+                        // Verification search:
+                        // Disable null move pruning for side to move for the first part of the remaining search tree
+                        pos.thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
+                        pos.thread->nmp_odd = (ss->ply % 2) != 0;
+
+                        value = depth_search<false> (pos, ss, beta-1, beta, depth-R, false);
+
+                        pos.thread->nmp_ply = 0;
+                        pos.thread->nmp_odd = false;
+
+                        if (value >= beta)
+                        {
+                            // Don't return unproven wins
+                            return unproven ?
+                                    beta :
+                                    null_value;
                         }
                     }
+                }
 
-                    // Step 8. Futility pruning: child node. (~30 ELO)
-                    // Betting that the opponent doesn't have a move that will reduce
-                    // the score by more than futility margins [depth] if do a null move.
-                    if (   !root_node
-                        && 7 > depth
-                        //&& 0 == Limits.mate
-                        && tt_eval - (improving ? 125 : 175) * depth >= beta
-                        && tt_eval < +VALUE_KNOWN_WIN) // Don't return unproven wins.
-                    {
-                        return tt_eval;
-                    }
+                // Step 10. ProbCut. (~10 ELO)
+                // If good enough capture and a reduced search returns a value much above beta,
+                // then can (almost) safely prune the previous move.
+                if (   !PVNode
+                    && 4 < depth
+                    //&& 0 == Limits.mate
+                    && abs (beta) < +VALUE_MATE_MAX_PLY)
+                {
+                    auto beta_margin = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
+                    assert(_ok ((ss-1)->played_move));
 
-                    // Step 9. Null move search with verification search. (~40 ELO)
-                    if (   !PVNode
-                        //&& 0 == Limits.mate
-                        && tt_eval >= beta
-                        && ss->static_eval + 36*depth - 225 >= beta
-                        && (   pos.thread->nmp_ply <= ss->ply
-                            || pos.thread->nmp_odd == ((ss->ply % 2) != 0)))
+                    u08 pc_movecount = 0;
+
+                    // Initialize move picker (3) for the current position
+                    MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
+                    // Loop through all legal moves until no moves remain or a beta cutoff occurs
+                    while (   MOVE_NONE != (move = move_picker.next_move ())
+                            && 3 > pc_movecount)
                     {
-                        // Null move dynamic reduction based on depth and static evaluation.
-                        auto R = i16((67*depth + 823) / 256 + std::min (i32((tt_eval - beta)/VALUE_MG_PAWN), 3));
+                        assert(pos.pseudo_legal (move)
+                            && pos.legal (move)
+                            && pos.capture_or_promotion (move));
+
+                        ++pc_movecount;
 
                         // Speculative prefetch as early as possible
-                        prefetch (TT.cluster_entry (  pos.si->posi_key
-                                                    ^ RandZob.color
-                                                    ^ (SQ_NO != pos.si->enpassant_sq ? RandZob.enpassant[_file (pos.si->enpassant_sq)] : 0)));
+                        prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
-                        ss->played_move = MOVE_NULL;
-                        ss->piece_destiny_history = pos.thread->continuation_history[NO_PIECE][0].get ();
+                        ss->played_move = move;
+                        ss->piece_destiny_history = pos.thread->continuation_history[pos[org_sq (move)]][dst_sq (move)].get ();
 
-                        pos.do_null_move (si);
+                        pos.do_move (move, si);
 
-                        auto null_value = -depth_search<false> (pos, ss+1, -beta, -beta+1, depth-R, !cut_node, false);
+                        // Perform a preliminary quien_search to verify that the move holds
+                        value = -quien_search<false> (pos, ss+1, -beta_margin, -beta_margin+1);
 
-                        pos.undo_null_move ();
-
-                        if (null_value >= beta)
+                        // If the quien_search held perform the regular search
+                        if (value >= beta_margin)
                         {
-                            bool unproven = null_value >= +VALUE_MATE_MAX_PLY;
+                            value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, depth - 4, !cut_node);
+                        }
 
-                            // Skip verification search
-                            if (   abs (beta) < +VALUE_KNOWN_WIN
-                                && (   12 > depth
-                                    || pos.thread->nmp_ply != 0))
-                            {
-                                // Don't return unproven wins
-                                return unproven ?
-                                        beta :
-                                        null_value;
-                            }
+                        pos.undo_move (move);
 
-                            // Verification search:
-                            // Disable null move pruning for side to move for the first part of the remaining search tree
-                            pos.thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
-                            pos.thread->nmp_odd = (ss->ply % 2) != 0;
-
-                            value = depth_search<false> (pos, ss, beta-1, beta, depth-R, false, false);
-
-                            pos.thread->nmp_ply = 0;
-                            pos.thread->nmp_odd = false;
-
-                            if (value >= beta)
-                            {
-                                // Don't return unproven wins
-                                return unproven ?
-                                        beta :
-                                        null_value;
-                            }
+                        if (value >= beta_margin)
+                        {
+                            return value;
                         }
                     }
+                }
 
-                    // Step 10. ProbCut. (~10 ELO)
-                    // If good enough capture and a reduced search returns a value much above beta,
-                    // then can (almost) safely prune the previous move.
-                    if (   !PVNode
-                        && 4 < depth
-                        //&& 0 == Limits.mate
-                        && abs (beta) < +VALUE_MATE_MAX_PLY)
-                    {
-                        auto beta_margin = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
-                        assert(_ok ((ss-1)->played_move));
+                // Step 11. Internal iterative deepening (IID). (~2 ELO)
+                if (   7 < depth
+                    && MOVE_NONE == tt_move)
+                {
+                    depth_search<PVNode> (pos, ss, alfa, beta, 3*depth/4 - 2, cut_node);
 
-                        u08 pc_movecount = 0;
-
-                        // Initialize move picker (3) for the current position
-                        MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
-                        // Loop through all legal moves until no moves remain or a beta cutoff occurs
-                        while (   MOVE_NONE != (move = move_picker.next_move ())
-                               && 3 > pc_movecount)
-                        {
-                            assert(pos.pseudo_legal (move)
-                                && pos.legal (move)
-                                && pos.capture_or_promotion (move));
-
-                            ++pc_movecount;
-
-                            // Speculative prefetch as early as possible
-                            prefetch (TT.cluster_entry (pos.posi_move_key (move)));
-
-                            ss->played_move = move;
-                            ss->piece_destiny_history = pos.thread->continuation_history[pos[org_sq (move)]][dst_sq (move)].get ();
-
-                            pos.do_move (move, si);
-
-                            // Perform a preliminary quien_search to verify that the move holds
-                            value = -quien_search<false> (pos, ss+1, -beta_margin, -beta_margin+1);
-
-                            // If the quien_search held perform the regular search
-                            if (value >= beta_margin)
-                            {
-                                value = -depth_search<false> (pos, ss+1, -beta_margin, -beta_margin+1, depth - 4, !cut_node, true);
-                            }
-
-                            pos.undo_move (move);
-
-                            if (value >= beta_margin)
-                            {
-                                return value;
-                            }
-                        }
-                    }
-
-                    // Step 11. Internal iterative deepening (IID). (~2 ELO)
-                    if (   7 < depth
-                        && MOVE_NONE == tt_move)
-                    {
-                        depth_search<PVNode> (pos, ss, alfa, beta, 3*depth/4 - 2, cut_node, false);
-
-                        tte = TT.probe (key, tt_hit);
-                        tt_move = tt_hit
-                               && MOVE_NONE != (move = tte->move ())
-                               && pos.pseudo_legal (move)
-                               && pos.legal (move) ?
-                                    move :
-                                    MOVE_NONE;
-                        tt_value = tt_hit ?
-                                    value_of_tt (tte->value (), ss->ply) :
-                                    VALUE_NONE;
-                    }
+                    tte = TT.probe (key, tt_hit);
+                    tt_move = tt_hit
+                            && MOVE_NONE != (move = tte->move ())
+                            && pos.pseudo_legal (move)
+                            && pos.legal (move) ?
+                                move :
+                                MOVE_NONE;
+                    tt_value = tt_hit ?
+                                value_of_tt (tte->value (), ss->ply) :
+                                VALUE_NONE;
                 }
             }
 
@@ -1378,7 +1376,7 @@ namespace Searcher {
                     auto beta_margin = std::max (tt_value - 2*depth, -VALUE_MATE);
 
                     ss->excluded_move = move;
-                    value = depth_search<false> (pos, ss, beta_margin-1, beta_margin, depth/2, cut_node, false);
+                    value = depth_search<false> (pos, ss, beta_margin-1, beta_margin, depth/2, cut_node);
                     ss->excluded_move = MOVE_NONE;
 
                     if (value < beta_margin)
@@ -1526,7 +1524,7 @@ namespace Searcher {
 
                     reduce_depth = std::min (std::max (reduce_depth, i16(0)), i16(new_depth - 1));
 
-                    value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true, true);
+                    value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true);
 
                     fd_search = alfa < value
                              && 0 != reduce_depth;
@@ -1540,7 +1538,7 @@ namespace Searcher {
                 // Step 17. Full depth search when LMR is skipped or fails high.
                 if (fd_search)
                 {
-                    value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node, true);
+                    value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node);
                 }
 
                 // Full PV search.
@@ -1552,7 +1550,7 @@ namespace Searcher {
                 {
                     (ss+1)->pv.clear ();
 
-                    value = -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false, true);
+                    value = -depth_search<true> (pos, ss+1, -beta, -alfa, new_depth, false);
                 }
 
                 // Step 18. Undo move.
@@ -1901,7 +1899,7 @@ void Thread::search ()
             // research with bigger window until not failing high/low anymore.
             while (true)
             {
-                best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, running_depth, false, true);
+                best_value = depth_search<true> (root_pos, stacks+4, alfa, beta, running_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
                 // done with a stable algorithm because all the values but the first
