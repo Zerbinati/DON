@@ -1153,6 +1153,8 @@ namespace Searcher {
                     && (   pos.thread->nmp_ply <= ss->ply
                         || pos.thread->nmp_odd == ((ss->ply % 2) != 0)))
                 {
+                    assert(MOVE_NONE != (ss-1)->played_move);
+
                     // Null move dynamic reduction based on depth and static evaluation.
                     auto R = i16((67*depth + 823) / 256 + std::min (i32((tt_eval - beta)/VALUE_MG_PAWN), 3));
 
@@ -1213,11 +1215,8 @@ namespace Searcher {
                     //&& 0 == Limits.mate
                     && abs (beta) < +VALUE_MATE_MAX_PLY)
                 {
-                    auto beta_margin = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
-                    assert(_ok ((ss-1)->played_move));
-
                     u08 pc_movecount = 0;
-
+                    auto beta_margin = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
                     // Initialize move picker (3) for the current position
                     MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
                     // Loop through all legal moves until no moves remain or a beta cutoff occurs
@@ -1886,9 +1885,10 @@ void Thread::search ()
                 beta = std::min (old_value + window, +VALUE_INFINITE);
 
                 // Dynamic contempt
-                if (0 != i32(Options["Valued Contempt"]))
+                auto contempt_value = i32(Options["Contempt Value"]);
+                if (0 != contempt_value)
                 {
-                    i32 dynamic_contempt = BasicContempt + i32(((880 / i32(Options["Valued Contempt"])) * old_value) / (abs (old_value) + 200));
+                    i32 dynamic_contempt = BasicContempt + i32(((880 / contempt_value) * old_value) / (abs (old_value) + 200));
                     contempt = WHITE == root_pos.active ?
                                 +mk_score (dynamic_contempt, dynamic_contempt / 2) :
                                 -mk_score (dynamic_contempt, dynamic_contempt / 2);
@@ -2055,12 +2055,10 @@ void MainThread::search ()
     assert(Threadpool.main_thread () == this
         && 0 == index);
 
-    check_count = 0;
-    set_check_count ();
-
-    if (!white_spaces (string(Options["Output File"])))
+    auto output_fn = string(Options["Output File"]);
+    if (!white_spaces (output_fn))
     {
-        OutputStream.open (string(Options["Output File"]), ios_base::out|ios_base::app);
+        OutputStream.open (output_fn, ios_base::out|ios_base::app);
         if (OutputStream.is_open ())
         {
             OutputStream << std::boolalpha
@@ -2132,12 +2130,13 @@ void MainThread::search ()
         {
             i16 timed_contempt = 0;
             i64 diff_time;
+            auto contempt_time = i32(Options["Contempt Time"]);
             if (   Limits.use_time_management ()
-                && 0 != i32(Options["Timed Contempt"])
+                && 0 != contempt_time
                 && 0 != (diff_time = (i64(Limits.clock[ root_pos.active].time)
                                     - i64(Limits.clock[~root_pos.active].time)) / 1000))
             {
-                timed_contempt = i16(diff_time/i32(Options["Timed Contempt"]));
+                timed_contempt = i16(diff_time/contempt_time);
             }
 
             BasicContempt = i32(cp_to_value (i32(Options["Fixed Contempt"]) + timed_contempt));
@@ -2167,6 +2166,8 @@ void MainThread::search ()
             // that will use behind the scenes to get a set of possible moves.
             Threadpool.pv_limit = std::min (size_t(std::max (i32(Options["MultiPV"]), skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
             assert(0 < Threadpool.pv_limit);
+
+            set_check_count ();
 
             for (auto *th : Threadpool)
             {
@@ -2288,7 +2289,7 @@ void MainThread::search ()
 /// MainThread::set_check_count()
 void MainThread::set_check_count ()
 {
-    assert(0 == check_count);
+    //assert(0 == check_count);
     // At low node count increase the checking rate otherwise use a default value.
     check_count = 1024;
     if (0 != Limits.nodes)

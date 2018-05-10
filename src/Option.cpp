@@ -166,7 +166,7 @@ namespace UCI {
 
     namespace {
 
-        void on_hash_size ()
+        void on_hash ()
         {
             TT.auto_resize (i32(Options["Hash"]), false);
         }
@@ -266,7 +266,7 @@ namespace UCI {
     void initialize ()
     {
 
-        Options["Hash"]               << Option (16, 0, TTable::MaxHashSize, on_hash_size);
+        Options["Hash"]               << Option (16, 0, TTable::MaxHashSize, on_hash);
 
 #if defined(LPAGES)
         Options["Large Pages"]        << Option (true, on_large_pages);
@@ -291,8 +291,8 @@ namespace UCI {
         Options["MultiPV"]            << Option (1, 1, 255);
 
         Options["Fixed Contempt"]     << Option (0, -100, 100);
-        Options["Timed Contempt"]     << Option (60, 0, 1000);
-        Options["Valued Contempt"]    << Option (10, 0, 1000);
+        Options["Contempt Time"]      << Option (60, 0, 1000);
+        Options["Contempt Value"]     << Option (10, 0, 1000);
 
         Options["UCI_AnalyseMode"]    << Option (false);
         Options["Analysis Contempt"]  << Option ("Both var Off var White var Black var Both", "Both");

@@ -269,15 +269,15 @@ namespace {
     const Score Evaluator<Trace>::KingThreat[2] = { S( 3, 65), S( 9,145) };
 
     template<bool Trace>
-    const Score Evaluator<Trace>::PawnPassFile[F_NO/2] = { S( 9, 10), S( 2, 10), S( 1, -8), S(-20,-12) };
+    const Score Evaluator<Trace>::PawnPassFile[F_NO/2] = { S(15, 7), S(-5,14), S( 1,-5), S(-22,-11) };
 
     template<bool Trace>
-    const Score Evaluator<Trace>::PawnPassRank[R_NO] = { S(0, 0), S(5, 7), S(5, 13), S(32, 42), S(70, 70), S(172, 170), S(217, 269), S(0, 0) };
+    const Score Evaluator<Trace>::PawnPassRank[R_NO] = { S(0, 0), S(5, 7), S(5, 13), S(18, 23), S(74, 58), S(164, 166), S(268, 243), S(0, 0) };
 
 #undef S
 
     template<bool Trace>
-    const i32 Evaluator<Trace>::PawnPassDanger[R_NO] = { 0, 0, 0, 2, 7, 12, 19, 0 };
+    const i32 Evaluator<Trace>::PawnPassDanger[R_NO] = { 0, 0, 0, 3, 6, 12, 21, 0 };
 
     template<bool Trace>
     const i32 Evaluator<Trace>::PieceAttackWeights[NONE] = { 0, 78, 56, 45, 11, 0 };
