@@ -658,9 +658,6 @@ namespace {
                 unsafe_check |= b;
             }
 
-            // Unsafe check must be in mobility area.
-            unsafe_check &= mob_area[Opp];
-
             // Initialize the king danger, which will be transformed later into a score.
             // - number and types of the enemy's attacking pieces,
             // - number of attacked and undefended squares around our king,
@@ -668,7 +665,7 @@ namespace {
             king_danger +=  1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
                         + 102 * king_attacks_count[Opp]
                         + 191 * pop_count (king_ring[Own] & weak_area)
-                        + 143 * pop_count (pos.abs_blockers (Own) | unsafe_check)
+                        + 143 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
                         - 848 * (0 == pos.count (Opp, QUEN) ? 1 : 0)
                         -   9 * safety / 8
                         +  40;
