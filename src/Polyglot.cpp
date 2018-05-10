@@ -118,7 +118,7 @@ PolyBook::PolyBook ()
     , last_pieces (0)
     , last_piece_count (0)
     , enabled (false)
-    , book_fn ("Book.bin")
+    , book_fn ("")
 {
 }
 

@@ -224,7 +224,6 @@ namespace UCI {
 
         void on_syzygy_path ()
         {
-            PathString = string(Options["SyzygyPath"]);
             TBSyzygy::initialize ();
         }
 
@@ -280,7 +279,7 @@ namespace UCI {
         Options["Load Hash"]          << Option (on_load_hash);
 
         Options["Use Book"]           << Option (false);
-        Options["Book File"]          << Option (Book.book_fn.c_str (), on_book_fn);
+        Options["Book File"]          << Option ("Book.bin", on_book_fn);
         Options["Book Pick Best"]     << Option (true);
         Options["Book Move Num"]      << Option (20, 0, 100);
 
@@ -305,7 +304,7 @@ namespace UCI {
         Options["Nodes Time"]         << Option (0, 0, 10000);
         Options["Ponder"]             << Option (true);
 
-        Options["SyzygyPath"]         << Option (PathString.c_str (), on_syzygy_path);
+        Options["SyzygyPath"]         << Option (Empty.c_str (), on_syzygy_path);
         Options["SyzygyProbeDepth"]   << Option (TBProbeDepth, 1, 100);
         Options["SyzygyLimitPiece"]   << Option (TBLimitPiece, 0, 6);
         Options["SyzygyUseRule50"]    << Option (TBUseRule50);

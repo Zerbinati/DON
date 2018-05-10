@@ -67,7 +67,7 @@ namespace TBSyzygy {
     using namespace BitBoard;
     using namespace Searcher;
 
-    string PathString = Empty;
+    string PathString = "";
     i32    MaxLimitPiece = 0;
 
     namespace {
@@ -1861,6 +1861,7 @@ namespace TBSyzygy {
         TB_Tables.clear ();
         MaxLimitPiece = 0;
 
+        PathString = string(Options["SyzygyPath"]);
         if (white_spaces (PathString))
         {
             return;

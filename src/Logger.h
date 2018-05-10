@@ -78,10 +78,9 @@ public:
             _ofs << "[" << std::chrono::system_clock::now () << "] <-" << std::endl;
             _ofs.close ();
         }
-        if (   !white_spaces (fn)
-            && !_ofs.is_open ())
+        filename = fn;
+        if (!white_spaces (filename))
         {
-            filename = fn;
             _ofs.open (filename, std::ios_base::out|std::ios_base::app);
             _ofs << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
 
