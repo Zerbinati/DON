@@ -2,7 +2,7 @@
 
 #include "Thread.h"
 
-Logger Loger;
+Logger Log;
 TimePoint DebugTime;
 
 using namespace std;

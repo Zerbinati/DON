@@ -409,19 +409,10 @@ namespace Searcher {
     TimePoint StartTime = TimePoint(0);
     Limit Limits;
 
-    i32 MultiPV = 1;
-    //i32 MultiPV_cp = 0;
-
-    i16 FixedContempt = 0
-      , ContemptTime = 60
-      , ContemptValue = 10;
-
     i16 TBProbeDepth = 1;
     i32 TBLimitPiece = 6;
     bool TBUseRule50 = true;
     bool TBHasRoot = false;
-
-    string OutputFile = Empty;
 
     namespace {
 
@@ -1897,9 +1888,9 @@ void Thread::search ()
                 beta = std::min (old_value + window, +VALUE_INFINITE);
 
                 // Dynamic contempt
-                if (0 != ContemptValue)
+                if (0 != i32(Options["Valued Contempt"]))
                 {
-                    i32 dynamic_contempt = BasicContempt + i32(((880 / ContemptValue) * old_value) / (abs (old_value) + 200));
+                    i32 dynamic_contempt = BasicContempt + i32(((880 / i32(Options["Valued Contempt"])) * old_value) / (abs (old_value) + 200));
                     contempt = WHITE == root_pos.active ?
                                 +mk_score (dynamic_contempt, dynamic_contempt / 2) :
                                 -mk_score (dynamic_contempt, dynamic_contempt / 2);
@@ -2069,9 +2060,9 @@ void MainThread::search ()
     check_count = 0;
     set_check_count ();
 
-    if (!white_spaces (OutputFile))
+    if (!white_spaces (string(Options["Output File"])))
     {
-        OutputStream.open (OutputFile, ios_base::out|ios_base::app);
+        OutputStream.open (string(Options["Output File"]), ios_base::out|ios_base::app);
         if (OutputStream.is_open ())
         {
             OutputStream << std::boolalpha
@@ -2092,20 +2083,6 @@ void MainThread::search ()
 
     if (Limits.use_time_management ())
     {
-        // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
-        // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
-        if (0 != NodesTime)
-        {
-            // Only once at after ucinewgame
-            if (0 == time_mgr.available_nodes)
-            {
-                time_mgr.available_nodes = Limits.clock[root_pos.active].time * NodesTime;
-            }
-            // Convert from milli-seconds to nodes
-            Limits.clock[root_pos.active].time = TimePoint(time_mgr.available_nodes);
-            Limits.clock[root_pos.active].inc *= NodesTime;
-        }
-
         // Initialize the time manager before searching.
         time_mgr.initialize (root_pos.active, root_pos.ply);
     }
@@ -2128,9 +2105,9 @@ void MainThread::search ()
     }
     else
     {
-        if (   Book.use
-            && !Limits.infinite
-            && 0 == Limits.mate)
+        if (   !Limits.infinite
+            && 0 == Limits.mate
+            && bool(Options["Use Book"]))
         {
             auto book_best_move = Book.probe (root_pos);
             if (MOVE_NONE != book_best_move)
@@ -2157,15 +2134,15 @@ void MainThread::search ()
         {
             i16 timed_contempt = 0;
             i64 diff_time;
-            if (   0 != ContemptTime
-                && Limits.use_time_management ()
+            if (   Limits.use_time_management ()
+                && 0 != i32(Options["Timed Contempt"])
                 && 0 != (diff_time = (i64(Limits.clock[ root_pos.active].time)
                                     - i64(Limits.clock[~root_pos.active].time)) / 1000))
             {
-                timed_contempt = i16(diff_time/ContemptTime);
+                timed_contempt = i16(diff_time/i32(Options["Timed Contempt"]));
             }
 
-            BasicContempt = i32(cp_to_value (FixedContempt + timed_contempt));
+            BasicContempt = i32(cp_to_value (i32(Options["Fixed Contempt"]) + timed_contempt));
             // In analysis mode, adjust contempt in accordance with user preference
             if (   Limits.infinite
                 || bool(Options["UCI_AnalyseMode"]))
@@ -2190,7 +2167,7 @@ void MainThread::search ()
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            Threadpool.pv_limit = std::min (size_t(std::max (MultiPV, skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
+            Threadpool.pv_limit = std::min (size_t(std::max (i32(Options["MultiPV"]), skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
             assert(0 < Threadpool.pv_limit);
 
             for (auto *th : Threadpool)
@@ -2264,7 +2241,7 @@ void MainThread::search ()
     if (Limits.use_time_management ())
     {
         // When playing in 'Nodes as Time' mode, update the time manager after searching.
-        if (0 != NodesTime)
+        if (0 != time_mgr.nodes_time)
         {
             time_mgr.available_nodes += Limits.clock[root_pos.active].inc - Threadpool.nodes ();
         }

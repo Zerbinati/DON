@@ -53,21 +53,22 @@ private:
 
 public:
 
+    std::string filename;
+
     Logger ()
         : _inb (std::cin.rdbuf (), _ofs.rdbuf ())
         , _otb (std::cout.rdbuf (), _ofs.rdbuf ())
+        , filename (Empty)
     {}
     Logger (const Logger&) = delete;
     Logger& operator= (const Logger&) = delete;
         
    ~Logger ()
     {
-        log (Empty);
+        set (Empty);
     }
 
-    std::string filename;
-
-    void log (const std::string &fn)
+    void set (const std::string &fn)
     {
         if (_ofs.is_open ())
         {
@@ -92,7 +93,7 @@ public:
 };
 
 // Global Logger
-extern Logger Loger;
+extern Logger Log;
 extern TimePoint DebugTime;
 
 // Debug functions used mainly to collect run-time statistics

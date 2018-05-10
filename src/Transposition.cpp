@@ -5,6 +5,7 @@
 #include <iostream>
 #include "Engine.h"
 #include "MemoryHandler.h"
+#include "Option.h"
 
 TTable TT;
 
@@ -121,7 +122,7 @@ void TTable::auto_resize (u32 mem_size, bool force)
 void TTable::clear () const
 {
     assert(nullptr != clusters);
-    if (retain_hash)
+    if (bool(Options["Retain Hash"]))
     {
         return;
     }
@@ -201,6 +202,7 @@ u32 TTable::hash_full () const
 /// TTable::save() saves hash to file
 void TTable::save () const
 {
+    string hash_fn = string(Options["Hash File"]);
     if (!white_spaces (hash_fn))
     {
         ofstream ofs (hash_fn, ios_base::out|ios_base::binary);
@@ -215,6 +217,7 @@ void TTable::save () const
 /// TTable::load() loads hash from file
 void TTable::load ()
 {
+    string hash_fn = string(Options["Hash File"]);
     if (!white_spaces (hash_fn))
     {
         ifstream ifs (hash_fn, ios_base::in|ios_base::binary);

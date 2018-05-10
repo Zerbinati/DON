@@ -296,19 +296,10 @@ namespace Searcher {
     extern TimePoint StartTime;
     extern Limit Limits;
 
-    extern i32 MultiPV;
-    //extern i32 MultiPV_cp;
-
-    extern i16 FixedContempt
-        ,      ContemptTime 
-        ,      ContemptValue;
-
     extern i16 TBProbeDepth;
     extern i32 TBLimitPiece;
     extern bool TBUseRule50;
     extern bool TBHasRoot;
-
-    extern std::string OutputFile;
 
     extern void initialize ();
 

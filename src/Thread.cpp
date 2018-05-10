@@ -11,12 +11,6 @@ using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-TimePoint OverheadMoveTime = 30;  // Attempt to keep at least this much time for each remaining move, in milli-seconds.
-TimePoint MinimumMoveTime = 20;   // No matter what, use at least this much time before doing the move, in milli-seconds.
-i32 MoveSlowness = 84;            // Move Slowness, in %age.
-u16 NodesTime = 0;                // 'Nodes as Time' mode.
-bool Ponder = true;               // Whether or not the engine should analyze when it is the opponent's turn.
-
 ThreadPool Threadpool;
 
 namespace {
@@ -44,10 +38,6 @@ namespace {
 
 #endif
 
-    TimePoint OverheadClockTime = 2*OverheadMoveTime; // Attempt to keep at least this much time at clock, in milli-seconds.
-    u08 MaximumMoveHorizon = 50;                      // Plan time management at most this many moves ahead, in num of moves.
-    u08 ReadyMoveHorizon = 40;                        // Be prepared to always play at least this many moves, in num of moves.
-
     // Skew-logistic function based on naive statistical analysis of
     // "how many games are still undecided after n half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
@@ -59,12 +49,12 @@ namespace {
     }
 
     template<bool Optimum>
-    TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply)
+    TimePoint remaining_time (TimePoint time, u08 movestogo, i16 ply, double move_slowness)
     {
         constexpr auto  step_ratio = Optimum ? 1.00 : 7.30; // When in trouble, can step over reserved time with this ratio
         constexpr auto steal_ratio = Optimum ? 0.00 : 0.34; // However must not steal time from remaining moves over this ratio
 
-        auto move_imp1 = move_importance (ply) * MoveSlowness / 100.0;
+        auto move_imp1 = move_importance (ply) * move_slowness;
         auto move_imp2 = 0.0;
         for (u08 i = 1; i < movestogo; ++i)
         {
@@ -81,7 +71,7 @@ namespace {
 /// TimeManager::elapsed_time()
 TimePoint TimeManager::elapsed_time () const
 {
-    return TimePoint(0 != NodesTime ?
+    return TimePoint(0 != nodes_time ?
                         Threadpool.nodes () :
                         now () - StartTime);
 }
@@ -94,29 +84,49 @@ TimePoint TimeManager::elapsed_time () const
 /// increment != 0, moves to go != 0 => x moves in y basetime + z increment
 void TimeManager::initialize (Color c, i16 ply)
 {
-    optimum_time =
-    maximum_time = std::max (Limits.clock[c].time, MinimumMoveTime);
+    auto minimum_movetime = TimePoint(i32(Options["Minimum Move Time"]));   // No matter what, use at least this much time before doing the move, in milli-seconds.
+    auto overhead_movetime = TimePoint(i32(Options["Overhead Move Time"])); // Attempt to keep at least this much time for each remaining move, in milli-seconds.
+    auto overhead_clocktime = 2 * overhead_movetime;                        // Attempt to keep at least this much time at clock, in milli-seconds.
+    auto move_slowness = i32(Options["Move Slowness"]) / 100.0;             // Move Slowness, in %age.
+    nodes_time = u16(i32(Options["Nodes Time"]));
 
-    const auto Max_movestogo = 0 == Limits.movestogo ?
-                                MaximumMoveHorizon :
-                                std::min (Limits.movestogo, MaximumMoveHorizon);
+    // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
+    // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
+    if (0 != nodes_time)
+    {
+        // Only once at after ucinewgame
+        if (0 == available_nodes)
+        {
+            available_nodes = Limits.clock[c].time * nodes_time;
+        }
+        // Convert from milli-seconds to nodes
+        Limits.clock[c].time = TimePoint(available_nodes);
+        Limits.clock[c].inc *= nodes_time;
+    }
+
+    optimum_time =
+    maximum_time = std::max (Limits.clock[c].time, minimum_movetime);
+    // Plan time management at most this many moves ahead, in num of moves.
+    auto max_movestogo = 0 == Limits.movestogo ?
+                            u08(50) :
+                            std::min (Limits.movestogo, u08(50));
     TimePoint hyp_time;
     // Calculate optimum time usage for different hypothetic "moves to go" and choose the
     // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
-    for (u08 hyp_movestogo = 1; hyp_movestogo <= Max_movestogo; ++hyp_movestogo)
+    for (u08 hyp_movestogo = 1; hyp_movestogo <= max_movestogo; ++hyp_movestogo)
     {
         // Calculate thinking time for hypothetic "moves to go"
         hyp_time = std::max (
                         + Limits.clock[c].time
                         + Limits.clock[c].inc * (hyp_movestogo-1)
-                        - OverheadClockTime
-                        - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), TimePoint(0));
+                        - overhead_clocktime
+                        - overhead_movetime * std::min (hyp_movestogo, u08(40)), TimePoint(0)); // Be prepared to always play at least this many moves, in num of moves.
 
-        optimum_time = std::min (optimum_time, MinimumMoveTime + remaining_time<true > (hyp_time, hyp_movestogo, ply));
-        maximum_time = std::min (maximum_time, MinimumMoveTime + remaining_time<false> (hyp_time, hyp_movestogo, ply));
+        optimum_time = std::min (optimum_time, minimum_movetime + remaining_time<true > (hyp_time, hyp_movestogo, ply, move_slowness));
+        maximum_time = std::min (maximum_time, minimum_movetime + remaining_time<false> (hyp_time, hyp_movestogo, ply, move_slowness));
     }
 
-    if (Ponder)
+    if (bool(Options["Ponder"]))
     {
         optimum_time += optimum_time / 4;
     }

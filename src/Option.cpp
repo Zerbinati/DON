@@ -172,9 +172,8 @@ namespace UCI {
         }
 
 #   if defined(LPAGES)
-        void on_memory_type ()
+        void on_large_pages ()
         {
-            Memory::LargePages = bool(Options["Large Pages"]);
             TT.resize ();
         }
 #   endif
@@ -184,18 +183,6 @@ namespace UCI {
             clear ();
         }
 
-        void on_retain_hash ()
-        {
-            TT.retain_hash = bool(Options["Retain Hash"]);
-        }
-
-        void on_hash_fn ()
-        {
-            auto hash_fn = string(Options["Hash File"]);
-            trim (hash_fn);
-            convert_path (hash_fn);
-            TT.hash_fn = hash_fn;
-        }
         void on_save_hash ()
         {
             TT.save ();
@@ -220,42 +207,9 @@ namespace UCI {
             Position::DrawClockPly = 2 * u08(i32(Options["Draw MoveCount"]));
         }
 
-        void on_contempt_opt ()
-        {
-            FixedContempt = i16(i32(Options["Fixed Contempt"]));
-            ContemptTime = i16(i32(Options["Timed Contempt"]));
-            ContemptValue = i16(i32(Options["Valued Contempt"]));
-        }
-
-        void on_multipv ()
-        {
-            MultiPV = i32(Options["MultiPV"]);
-            //MultiPV_cp = i32(Options["MultiPV_cp"]);
-        }
-
-        void on_book_use ()
-        {
-            Book.use = bool(Options["Use Book"]);
-            Book.initialize ();
-        }
         void on_book_fn ()
         {
-            auto book_fn = string(Options["Book File"]);
-            trim (book_fn);
-            convert_path (book_fn);
-            if (Book.book_fn != book_fn)
-            {
-                Book.book_fn = book_fn;
-                Book.initialize ();
-            }
-        }
-        void on_book_pick_best ()
-        {
-            Book.pick_best = bool(Options["Book Pick Best"]);
-        }
-        void on_book_move_num ()
-        {
-            Book.move_num = i16(i32(Options["Book Move Num"]));
+            Book.initialize ();
         }
 
         void on_skill_level ()
@@ -263,39 +217,14 @@ namespace UCI {
             Threadpool.main_thread ()->skill_mgr.level = u08(i32(Options["Skill Level"]));
         }
 
-        void on_time_opt ()
-        {
-            OverheadMoveTime = TimePoint(i32(Options["Overhead Move Time"]));
-            MinimumMoveTime = TimePoint(i32(Options["Minimum Move Time"]));
-            //OverheadClockTime = TimePoint(i32(Options["Overhead Clock Time"]));
-            //MaximumMoveHorizon = u08(i32(Options["Maximum Move Horizon"]));
-            //ReadyMoveHorizon = u08(i32(Options["Ready Move Horizon"]));
-            MoveSlowness = i32(Options["Move Slowness"]);
-            NodesTime = u16(i32(Options["Nodes Time"]));
-            Ponder = bool(Options["Ponder"]);
-        }
-
         void on_debug_file ()
         {
-            auto filename = string(Options["Debug File"]);
-            trim (filename);
-            convert_path (filename);
-            Loger.log (filename);
-        }
-
-        void on_output_file ()
-        {
-            auto filename = string(Options["Output File"]);
-            trim (filename);
-            convert_path (filename);
-            OutputFile = filename;
+            Log.set (string(Options["Debug File"]));
         }
 
         void on_syzygy_path ()
         {
-            auto path = string(Options["SyzygyPath"]);
-            trim (path);
-            PathString = path;
+            PathString = string(Options["SyzygyPath"]);
             TBSyzygy::initialize ();
         }
 
@@ -340,53 +269,49 @@ namespace UCI {
         Options["Hash"]               << Option (16, 0, TTable::MaxHashSize, on_hash_size);
 
 #if defined(LPAGES)
-        Options["Large Pages"]        << Option (Memory::LargePages, on_memory_type);
+        Options["Large Pages"]        << Option (true, on_large_pages);
 #endif
 
         Options["Clear Hash"]         << Option (on_clear_hash);
-        Options["Retain Hash"]        << Option (TT.retain_hash, on_retain_hash);
+        Options["Retain Hash"]        << Option (false);
 
-        Options["Hash File"]          << Option (TT.hash_fn.c_str (), on_hash_fn);
+        Options["Hash File"]          << Option ("Hash.dat");
         Options["Save Hash"]          << Option (on_save_hash);
         Options["Load Hash"]          << Option (on_load_hash);
 
-        Options["Use Book"]           << Option (Book.use, on_book_use);
+        Options["Use Book"]           << Option (false);
         Options["Book File"]          << Option (Book.book_fn.c_str (), on_book_fn);
-        Options["Book Pick Best"]     << Option (Book.pick_best, on_book_pick_best);
-        Options["Book Move Num"]      << Option (Book.move_num, 0, 100, on_book_move_num);
+        Options["Book Pick Best"]     << Option (true);
+        Options["Book Move Num"]      << Option (20, 0, 100);
 
         Options["Threads"]            << Option ( 1, 0, 512, on_threads);
 
         Options["Skill Level"]        << Option (SkillManager::MaxLevel,  0, SkillManager::MaxLevel, on_skill_level);
 
-        Options["MultiPV"]            << Option (MultiPV, 1, 255, on_multipv);
-        //Options["MultiPV_cp"]         << Option (MultiPV_cp, 0, 1000, on_multipv);
+        Options["MultiPV"]            << Option (1, 1, 255);
 
-        Options["Fixed Contempt"]     << Option (FixedContempt, -100, 100, on_contempt_opt);
-        Options["Timed Contempt"]     << Option (ContemptTime , 0, 1000, on_contempt_opt);
-        Options["Valued Contempt"]    << Option (ContemptValue, 0, 1000, on_contempt_opt);
+        Options["Fixed Contempt"]     << Option (0, -100, 100);
+        Options["Timed Contempt"]     << Option (60, 0, 1000);
+        Options["Valued Contempt"]    << Option (10, 0, 1000);
 
         Options["UCI_AnalyseMode"]    << Option (false);
         Options["Analysis Contempt"]  << Option ("Both var Off var White var Black var Both", "Both");
 
         Options["Draw MoveCount"]     << Option (Position::DrawClockPly/2, 5, 50, on_draw_movecount);
 
-        Options["Overhead Move Time"] << Option (OverheadMoveTime, 0, 5000, on_time_opt);
-        Options["Minimum Move Time"]  << Option (MinimumMoveTime, 0, 5000, on_time_opt);
-        //Options["Maximum Move Horizon"]<< Option (MaximumMoveHorizon, 0, 100, on_time_opt);
-        //Options["Ready Move Horizon"]  << Option (ReadyMoveHorizon, 0, 100, on_time_opt);
-        //Options["Overhead Clock Time"] << Option (OverheadClockTime, 0, 30000, on_time_opt);
-        Options["Move Slowness"]      << Option (MoveSlowness, 10, 1000, on_time_opt);
-        Options["Nodes Time"]         << Option (NodesTime, 0, 10000, on_time_opt);
-        Options["Ponder"]             << Option (Ponder, on_time_opt);
+        Options["Overhead Move Time"] << Option (30, 0, 5000);
+        Options["Minimum Move Time"]  << Option (20, 0, 5000);
+        Options["Move Slowness"]      << Option (84, 10, 1000);
+        Options["Nodes Time"]         << Option (0, 0, 10000);
+        Options["Ponder"]             << Option (true);
 
         Options["SyzygyPath"]         << Option (PathString.c_str (), on_syzygy_path);
         Options["SyzygyProbeDepth"]   << Option (TBProbeDepth, 1, 100);
         Options["SyzygyLimitPiece"]   << Option (TBLimitPiece, 0, 6);
         Options["SyzygyUseRule50"]    << Option (TBUseRule50);
 
-        Options["Debug File"]         << Option (Loger.filename.c_str (), on_debug_file);
-        Options["Output File"]        << Option (OutputFile.c_str (), on_output_file);
+        Options["Debug File"]         << Option (Empty.c_str (), on_debug_file);
+        Options["Output File"]        << Option (Empty.c_str ());
 
         Options["UCI_Chess960"]       << Option (Position::Chess960, on_uci_chess960);
         Options["UCI_LimitStrength"]  << Option (false, on_uci_elo_limit);

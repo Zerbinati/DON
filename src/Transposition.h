@@ -110,16 +110,11 @@ public:
     // "Generation" variable distinguish transposition table entries from different searches.
     u08 generation;
 
-    bool retain_hash;
-    std::string hash_fn;
-
     TTable ()
         : mem (nullptr)
         , clusters (nullptr)
         , cluster_count (0)
         , generation (0)
-        , retain_hash (false)
-        , hash_fn ("Hash.dat")
     {}
 
     TTable (const TTable&) = delete;

@@ -11,13 +11,6 @@
 #include "thread_win32.h"
 #include "Type.h"
 
-extern TimePoint OverheadMoveTime;
-extern TimePoint MinimumMoveTime;
-
-extern i32 MoveSlowness;
-extern u16 NodesTime;
-extern bool Ponder;
-
 /// TimeManager class is used to computes the optimal time to think depending on the
 /// maximum available time, the move game number and other parameters.
 class TimeManager
@@ -26,8 +19,9 @@ public:
 
     TimePoint optimum_time;
     TimePoint maximum_time;
-    // Used in 'Nodes as Time' mode
-    u64 available_nodes;
+    
+    u16 nodes_time;
+    u64 available_nodes = 0;
 
     TimeManager () = default;
     TimeManager (const TimeManager&) = delete;

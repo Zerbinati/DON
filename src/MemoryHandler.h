@@ -7,8 +7,6 @@
 
 namespace Memory {
 
-    extern bool LargePages;
-
     extern void alloc_memory (void*&, size_t, u32);
 
     extern void free_memory (void*);

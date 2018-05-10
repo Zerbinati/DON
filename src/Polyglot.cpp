@@ -5,6 +5,7 @@
 #include "BitBoard.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
+#include "Option.h"
 #include "PRNG.h"
 
 PolyBook Book;
@@ -116,11 +117,8 @@ PolyBook::PolyBook ()
     , do_probe (true)
     , last_pieces (0)
     , last_piece_count (0)
-    , use (false)
     , enabled (false)
     , book_fn ("Book.bin")
-    , pick_best (true)
-    , move_num (20)
 {
 }
 
@@ -215,8 +213,11 @@ void PolyBook::initialize ()
 {
     clear ();
 
-    if (   !use
-        || white_spaces (book_fn))
+    book_fn = string(Options["Book File"]);
+    trim (book_fn);
+    convert_path (book_fn);
+
+    if (white_spaces (book_fn))
     {
         return;
     }
@@ -261,8 +262,7 @@ Move PolyBook::probe (Position &pos)
 
     if (   !enabled
         || nullptr == entries
-        || (   0 != move_num
-            && pos.move_num () > move_num)
+        || (0 != i32(Options["Book Move Num"]) && i32(Options["Book Move Num"]) < pos.move_num ())
         || !can_probe (pos))
     {
         return MOVE_NONE;
@@ -300,7 +300,7 @@ Move PolyBook::probe (Position &pos)
 
         // Choose the move
 
-        if (pick_best)
+        if (bool(Options["Book Pick Best"]))
         {
             if (max_weight == entries[i].weight)
             {

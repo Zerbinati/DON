@@ -117,11 +117,8 @@ public:
 
     const size_t HeaderSize = 0;
 
-    bool use;
     bool enabled;
     std::string book_fn;
-    bool pick_best;
-    i16 move_num;
 
     PolyBook ();
     ~PolyBook ();

@@ -3,6 +3,7 @@
 #include "MemoryHandler.h"
 
 #include <iostream>
+#include "Option.h"
 #include "Thread.h"
 
 #if defined(_WIN32)
@@ -43,8 +44,6 @@
 namespace Memory {
 
     using namespace std;
-
-    bool LargePages = true;
 
     namespace {
 
@@ -91,7 +90,7 @@ namespace Memory {
     {
         PagesUsed = false;
 
-        if (LargePages)
+        if (bool(Options["Large Pages"]))
         {
 #       if defined(_WIN32)
 
