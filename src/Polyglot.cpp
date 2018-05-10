@@ -260,9 +260,10 @@ Move PolyBook::probe (Position &pos)
 {
     static PRNG prng (now ());
 
+    auto book_move_num = i32(Options["Book Move Num"]);
     if (   !enabled
         || nullptr == entries
-        || (0 != i32(Options["Book Move Num"]) && i32(Options["Book Move Num"]) < pos.move_num ())
+        || (0 != book_move_num && book_move_num < pos.move_num ())
         || !can_probe (pos))
     {
         return MOVE_NONE;

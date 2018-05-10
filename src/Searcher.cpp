@@ -2302,6 +2302,12 @@ void MainThread::set_check_count ()
 /// Used to detect when out of available limits and thus stop the search, also print debug info.
 void MainThread::tick ()
 {
+    if (0 < --check_count)
+    {
+        return;
+    }
+    set_check_count ();
+
     auto elapsed_time = time_mgr.elapsed_time ();
 
     if (DebugTime + 1000 <= elapsed_time)
@@ -2311,12 +2317,6 @@ void MainThread::tick ()
         debug_print ();
     }
 
-    if (0 < --check_count)
-    {
-        return;
-    }
-    set_check_count ();
-
     // Do not stop until told so by the GUI.
     if (   Limits.infinite
         || Threadpool.ponder)
@@ -2324,12 +2324,9 @@ void MainThread::tick ()
         return;
     }
 
-    if (   (   Limits.use_time_management ()
-            && elapsed_time + 10 >  time_mgr.maximum_time)
-        || (   0 != Limits.movetime
-            && elapsed_time >= Limits.movetime)
-        || (   0 != Limits.nodes
-            && Threadpool.nodes () >= Limits.nodes))
+    if (   (Limits.use_time_management () && time_mgr.maximum_time < elapsed_time + 10)
+        || (0 != Limits.movetime && Limits.movetime <= elapsed_time)
+        || (0 != Limits.nodes && Limits.nodes <= Threadpool.nodes ()))
     {
         Threadpool.stop = true;
     }
