@@ -10,6 +10,8 @@ namespace Pawns {
 
     namespace {
 
+        constexpr i32 Seeds[R_NO] = { 0, 13, 24, 18, 65, 100, 175, 330 };
+
     #define V(v) Value(v)
 
         // Shelter of pawn for our king by [distance from edge][rank].
@@ -22,26 +24,20 @@ namespace Pawns {
             { V(11), V(83), V(19), V(  8), V(18), V(-21), V(-30), V(0) }
         };
         // Strom of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
-        // For the unopposed and unblocked cases, R_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
-        constexpr Value Strom[3][F_NO/2][R_NO] =
+        // For the unblocked case, RANK_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
+        constexpr Value Strom[2][F_NO/2][R_NO] =
         {
-            { // Unopposed
-                { V(11),  V( 79), V(132), V( 68), V( 33), V(0), V(0), V(0) },
-                { V( 4),  V(104), V(155), V(  4), V( 21), V(0), V(0), V(0) },
-                { V(-7),  V( 59), V(142), V( 45), V( 30), V(0), V(0), V(0) },
-                { V( 0),  V( 62), V(113), V( 43), V( 13), V(0), V(0), V(0) }
-            },
-            { // Blocked By Pawn
-                { V( 0),  V(  0), V( 37), V(  5), V(-48), V(0), V(0), V(0) },
-                { V( 0),  V(  0), V( 68), V(-12), V( 13), V(0), V(0), V(0) },
-                { V( 0),  V(  0), V(111), V(-25), V( -3), V(0), V(0), V(0) },
-                { V( 0),  V(  0), V(108), V( 14), V( 21), V(0), V(0), V(0) }
-            },
             { // Unblocked
-                { V(38),  V( 78), V( 83), V( 35), V( 22), V(0), V(0), V(0) },
-                { V(33),  V(-15), V(108), V( 12), V( 28), V(0), V(0), V(0) },
-                { V( 8),  V( 25), V( 94), V( 68), V( 25), V(0), V(0), V(0) },
-                { V( 6),  V( 48), V(120), V( 68), V( 40), V(0), V(0), V(0) }
+                { V(25),  V(79), V(107), V( 51), V( 27), V(0), V(0), V(0) },
+                { V(15),  V(45), V(131), V(  8), V( 25), V(0), V(0), V(0) },
+                { V( 0),  V(42), V(118), V( 56), V( 27), V(0), V(0), V(0) },
+                { V( 3),  V(54), V(110), V( 55), V( 26), V(0), V(0), V(0) }
+            },
+            { // Blocked
+                { V( 0),  V( 0), V( 37), V(  5), V(-48), V(0), V(0), V(0) },
+                { V( 0),  V( 0), V( 68), V(-12), V( 13), V(0), V(0), V(0) },
+                { V( 0),  V( 0), V(111), V(-25), V( -3), V(0), V(0), V(0) },
+                { V( 0),  V( 0), V(108), V( 14), V( 21), V(0), V(0), V(0) }
             }
         };
 
@@ -185,17 +181,17 @@ namespace Pawns {
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
         constexpr Bitboard BlockSquares = (WHITE == Own ? R1_bb | R2_bb : R8_bb | R7_bb) & (FA_bb | FH_bb);
 
-        const Bitboard front_pawns = pos.pieces (PAWN)
-                                   & (  rank_bb (fk_sq)
-                                      | front_rank_bb (Own, fk_sq));
-        const Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
-        const Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
+        Bitboard front_pawns = pos.pieces (PAWN)
+                             & (  rank_bb (fk_sq)
+                                | front_rank_bb (Own, fk_sq));
+        Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
+        Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
         auto value = Value(0 != (own_front_pawns & file_bb (fk_sq)) ? +5 : -5);
 
         if (contains (shift<Pull> (opp_front_pawns) & BlockSquares, fk_sq))
         {
-            value += 374;
+            value += Value(374);
         }
 
         auto kf = std::min (F_G, std::max (F_B, _file (fk_sq)));
@@ -212,11 +208,12 @@ namespace Pawns {
                 || (own_r != opp_r));
 
             auto ff = std::min (f, ~f);
-            value += Shelter[ff][own_r]
-                   - Strom[own_r == R_1       ? 0 : // Unopposed
-                           own_r == opp_r - 1 ? 1 : // Blocked By Pawn
-                                                2]  // Unblocked
-                          [ff][opp_r];
+
+            value += Shelter[ff][own_r];
+            if (own_r != opp_r)
+            {
+                value -= Strom[R_1 != own_r && (own_r == opp_r - 1) ? 1 : 0][ff][opp_r];
+            }
         }
 
         return value;
@@ -248,8 +245,6 @@ namespace Pawns {
     /// Pawns::initialize() initializes lookup tables at startup.
     void initialize ()
     {
-        const i32 Seeds[R_NO] = { 0, 13, 24, 18, 65, 100, 175, 330 };
-
         for (i08 opposed = 0; opposed < 2; ++opposed)
         {
             for (i08 phalanx = 0; phalanx < 2; ++phalanx)

@@ -1147,7 +1147,7 @@ namespace Searcher {
                     && MOVE_NULL != (ss-1)->played_move
                     && MOVE_NONE == ss->excluded_move
                     && VALUE_ZERO != pos.si->non_pawn_material (pos.active)
-                    && (ss-1)->stat_score < 30000
+                    && (ss-1)->stat_score < 22500
                     && tt_eval >= beta
                     && ss->static_eval + 36*depth - 225 >= beta
                     && (   pos.thread->nmp_ply <= ss->ply
