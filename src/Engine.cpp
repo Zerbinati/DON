@@ -449,8 +449,6 @@ namespace {
         debug_init ();
 
         Position pos;
-        Position::Chess960 = false;
-
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.

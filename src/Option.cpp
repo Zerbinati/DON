@@ -232,34 +232,6 @@ namespace UCI {
             Position::Chess960 = bool(Options["UCI_Chess960"]);
         }
 
-        void on_uci_elo_limit ()
-        {
-            u08 skill_level;
-            if (bool(Options["UCI_LimitStrength"]))
-            {
-                // ELO values corresponded to every Skill Levels
-                const i32 LevelELO[SkillManager::MaxLevel + 1] =
-                {
-                    1250, 1436, 1622, 1808, 1994, 2180, 2366, 2552, 2738, 2924, 3110, 3296, 3482
-                };
-
-                skill_level = SkillManager::MaxLevel;
-                i32 elo = i32(Options["UCI_ELO"]);
-                for (u08 level = 0; level < SkillManager::MaxLevel; ++level)
-                {
-                    if (elo < LevelELO[level + 1])
-                    {
-                        skill_level = level;
-                        break;
-                    }
-                }
-            }
-            else
-            {
-                skill_level = u08(i32(Options["Skill Level"]));
-            }
-            Threadpool.main_thread ()->skill_mgr.level = skill_level;
-        }
     }
 
     void initialize ()
@@ -313,9 +285,6 @@ namespace UCI {
         Options["Output File"]        << Option (Empty.c_str ());
 
         Options["UCI_Chess960"]       << Option (Position::Chess960, on_uci_chess960);
-        Options["UCI_LimitStrength"]  << Option (false, on_uci_elo_limit);
-        Options["UCI_ELO"]            << Option (3490, 1250, 3490, on_uci_elo_limit);
-
     }
 
     void deinitialize ()
