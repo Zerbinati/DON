@@ -280,7 +280,7 @@ namespace {
     const i32 Evaluator<Trace>::PawnPassDanger[R_NO] = { 0, 0, 0, 3, 6, 12, 21, 0 };
 
     template<bool Trace>
-    const i32 Evaluator<Trace>::PieceAttackWeights[NONE] = { 0, 78, 56, 45, 11, 0 };
+    const i32 Evaluator<Trace>::PieceAttackWeights[NONE] = { 0, 77, 55, 44, 10, 0 };
 
     /// initialize() computes king and pawn attacks, and the king ring bitboard of the color.
     template<bool Trace>

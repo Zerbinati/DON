@@ -1709,7 +1709,8 @@ namespace Searcher {
                 }
                 else
                 // Bonus for prior countermove that caused the fail low.
-                if (   2 < depth
+                if (   (   2 < depth
+                        || PVNode)
                     && _ok ((ss-1)->played_move)
                     && !pos.si->promotion
                     && NONE == pos.si->capture)
