@@ -1668,56 +1668,54 @@ namespace Searcher {
                                     VALUE_DRAW;
             }
             else
+            // Quiet best move: update move sorting heuristics.
+            if (MOVE_NONE != best_move)
             {
-                // Quiet best move: update move sorting heuristics.
-                if (MOVE_NONE != best_move)
+                if (!pos.capture_or_promotion (best_move))
                 {
-                    if (!pos.capture_or_promotion (best_move))
+                    update_killers (ss, pos, best_move);
+                    auto bonus = stat_bonus (depth);
+                    pos.thread->butterfly_history[pos.active][move_pp (best_move)] << bonus;
+                    update_stacks_continuation (ss, pos[org_sq (best_move)], dst_sq (best_move), bonus);
+                    // Decrease all the other played quiet moves.
+                    for (auto qm : quiet_moves)
                     {
-                        update_killers (ss, pos, best_move);
-                        auto bonus = stat_bonus (depth);
-                        pos.thread->butterfly_history[pos.active][move_pp (best_move)] << bonus;
-                        update_stacks_continuation (ss, pos[org_sq (best_move)], dst_sq (best_move), bonus);
-                        // Decrease all the other played quiet moves.
-                        for (auto qm : quiet_moves)
-                        {
-                            pos.thread->butterfly_history[pos.active][move_pp (qm)] << -bonus;
-                            update_stacks_continuation (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
-                        }
-                    }
-                    else
-                    //if (pos.capture (best_move))
-                    {
-                        auto bonus = stat_bonus (depth);
-                        pos.thread->capture_history[pos[org_sq (best_move)]][move_pp (best_move)][pos.cap_type (best_move)] << bonus;
-                        // Decrease all the other played capture moves.
-                        for (auto cm : capture_moves)
-                        {
-                            pos.thread->capture_history[pos[org_sq (cm)]][move_pp (cm)][pos.cap_type (cm)] << -bonus;
-                        }
-                    }
-
-                    // Extra penalty for a quiet best move in previous ply when it gets refuted.
-                    if (   1 == (ss-1)->move_count
-                        && _ok ((ss-1)->played_move)
-                        && !pos.si->promotion
-                        && NONE == pos.si->capture)
-                    {
-                        auto bonus = stat_bonus (depth + 1);
-                        update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -bonus);
+                        pos.thread->butterfly_history[pos.active][move_pp (qm)] << -bonus;
+                        update_stacks_continuation (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                     }
                 }
                 else
-                // Bonus for prior countermove that caused the fail low.
-                if (   (   2 < depth
-                        || PVNode)
+                //if (pos.capture (best_move))
+                {
+                    auto bonus = stat_bonus (depth);
+                    pos.thread->capture_history[pos[org_sq (best_move)]][move_pp (best_move)][pos.cap_type (best_move)] << bonus;
+                    // Decrease all the other played capture moves.
+                    for (auto cm : capture_moves)
+                    {
+                        pos.thread->capture_history[pos[org_sq (cm)]][move_pp (cm)][pos.cap_type (cm)] << -bonus;
+                    }
+                }
+
+                // Extra penalty for a quiet best move in previous ply when it gets refuted.
+                if (   1 == (ss-1)->move_count
                     && _ok ((ss-1)->played_move)
                     && !pos.si->promotion
                     && NONE == pos.si->capture)
                 {
-                    auto bonus = stat_bonus (depth);
-                    update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), bonus);
+                    auto bonus = stat_bonus (depth + 1);
+                    update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -bonus);
                 }
+            }
+            else
+            // Bonus for prior countermove that caused the fail low.
+            if (   (   2 < depth
+                    || PVNode)
+                && _ok ((ss-1)->played_move)
+                && !pos.si->promotion
+                && NONE == pos.si->capture)
+            {
+                auto bonus = stat_bonus (depth);
+                update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), bonus);
             }
 
             if (PVNode)

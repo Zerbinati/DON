@@ -107,7 +107,7 @@ private:
     void remove_piece_on (Square);
     void move_piece_on_to (Square, Square);
 
-    void set_castle (Color, CastleSide);
+    void set_castle (Color, CastleSide, Square);
 
     bool can_enpassant (Color, Square, bool = true) const;
 

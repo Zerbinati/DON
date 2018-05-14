@@ -72,8 +72,6 @@ void TTable::free_aligned_memory ()
 }
 
 /// TTable::resize() sets the size of the table, measured in mega-bytes.
-/// Transposition table consists of a power of 2 number of clusters and
-/// each cluster consists of TCluster::EntryCount number of entry.
 u32 TTable::resize (u32 mem_size, bool force)
 {
     mem_size = std::min (std::max (mem_size, MinHashSize), MaxHashSize);
