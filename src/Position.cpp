@@ -580,13 +580,14 @@ void Position::clear ()
     }
 }
 /// Position::set_castle() set the castling right.
-void Position::set_castle (Color c, CastleSide cs, Square rook_org)
+void Position::set_castle (Color c, Square rook_org)
 {
+    auto king_org = square<KING> (c);
+    assert(R_1 == rel_rank (c, king_org));
+    auto cs = rook_org > king_org ? CS_KING : CS_QUEN;
     assert(contains (pieces (c, ROOK), rook_org)
         && R_1 == rel_rank (c, rook_org));
     castle_rook[c][cs] = rook_org;
-    auto king_org = square<KING> (c);
-    assert(R_1 == rel_rank (c, king_org));
 
     auto cr = castle_right (c, cs);
     auto king_dst = rel_sq (c, rook_org > king_org ? SQ_G1 : SQ_C1);
@@ -756,7 +757,6 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             }
             assert(contains (pieces (c, ROOK), rook_org)
                 && rook_org > square<KING> (c));
-            set_castle (c, CS_KING, rook_org);
         }
         else
         if ('q' == token)
@@ -772,7 +772,6 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
             }
             assert(contains (pieces (c, ROOK), rook_org)
                 && rook_org < square<KING> (c));
-            set_castle (c, CS_QUEN, rook_org);
         }
         else
         // Chess960
@@ -780,14 +779,13 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
         {
             assert(R_1 == rel_rank (c, square<KING> (c)));
             rook_org = to_file (token)|_rank (square<KING> (c));
-            auto cs = rook_org > square<KING> (c) ? CS_KING : CS_QUEN;
-            set_castle (c, cs, rook_org);
         }
         else
         {
             assert('-' == token);
             continue;
         }
+        set_castle (c, rook_org);
     }
 
     // 4. Enpassant square. Ignore if no pawn capture is possible.
