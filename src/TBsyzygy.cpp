@@ -258,7 +258,7 @@ namespace TBSyzygy {
 
             // Memory map the file and check it. File should be already open and will be
             // closed after mapping.
-            u08* map (void **base_address, u64 *mapping, const u08 *TB_MAGIC)
+            u08* map (void **base_address, u64 *mapping, TBType type)
             {
                 assert(!white_spaces (filename) && std::ifstream::is_open ());
                 
@@ -342,12 +342,14 @@ namespace TBSyzygy {
                 }
 #           endif
 
-                u08 *data = (u08*)(*base_address);
+                constexpr u08 TB_MAGIC[][4] =
+                {
+                    { 0xD7, 0x66, 0x0C, 0xA5 },
+                    { 0x71, 0xE8, 0x23, 0x5D }
+                };
 
-                if (   *data++ != *TB_MAGIC++
-                    || *data++ != *TB_MAGIC++
-                    || *data++ != *TB_MAGIC++
-                    || *data++ != *TB_MAGIC)
+                u08 *data = (u08*)(*base_address);
+                if (0 != memcmp (data, TB_MAGIC[WDL == type], 4))
                 {
                     std::cerr << "Corrupted table in file " << filename << std::endl;
                     unmap (*base_address, *mapping);
@@ -355,7 +357,7 @@ namespace TBSyzygy {
                     return nullptr;
                 }
 
-                return data;
+                return data + 4; // Skip Magics's header
             }
 
             static void unmap (void *base_address, u64 mapping)
@@ -556,21 +558,22 @@ namespace TBSyzygy {
                 }
 
                 TBFile file (code, ".rtbw");
-                if (file.is_open ()) // Only WDL file is checked
+                if (!file.is_open ()) // Only WDL file is checked
                 {
-                    file.close ();
-
-                    wdl_table.emplace_back (code);
-                    dtz_table.emplace_back (wdl_table.back ());
-
-                    insert (wdl_table.back ().key1, &wdl_table.back (), &dtz_table.back ());
-                    insert (wdl_table.back ().key2, &wdl_table.back (), &dtz_table.back ());
-
-                    if (MaxLimitPiece < i32(pieces.size ()))
-                    {
-                        MaxLimitPiece = i32(pieces.size ());
-                    }
+                    return;
                 }
+                file.close ();
+
+                if (MaxLimitPiece < i32(pieces.size ()))
+                {
+                    MaxLimitPiece = i32(pieces.size ());
+                }
+
+                wdl_table.emplace_back (code);
+                dtz_table.emplace_back (wdl_table.back ());
+
+                insert (wdl_table.back ().key1, &wdl_table.back (), &dtz_table.back ());
+                insert (wdl_table.back ().key2, &wdl_table.back (), &dtz_table.back ());
             }
         };
 
@@ -1021,7 +1024,8 @@ namespace TBSyzygy {
             auto *group_sq = squares + d->group_len[0];
 
             // Encode remaining pawns then pieces according to square, in ascending order
-            bool pawn_remain = entry->has_pawns && 0 != entry->pawn_count[1];
+            bool pawn_remain = entry->has_pawns
+                            && 0 != entry->pawn_count[1];
 
             i32 group_idx = 0;
             while (0 != d->group_len[++group_idx])
@@ -1094,7 +1098,8 @@ namespace TBSyzygy {
             // pawns/pieces -> remainig pawns -> remaining pieces. In particular the
             // first group is at order[0] position and the remaining pawns, when present,
             // are at order[1] position.
-            bool pp = e.has_pawns && 0 != e.pawn_count[1]; // Pawns on both sides
+            bool pp = e.has_pawns
+                   && 0 != e.pawn_count[1]; // Pawns on both sides
             i32 next = pp ? 2 : 1;
             i32 free_squares = 64 - d->group_len[0] - (pp ? d->group_len[1] : 0);
             u64 idx = 1;
@@ -1133,7 +1138,6 @@ namespace TBSyzygy {
         {
             visited[s] = true; // We can set it now because tree is acyclic
             Sym sr = d->btree[s].get<LR::Side::Right> ();
-
             if (sr == 0xFFF)
             {
                 return 0;
@@ -1215,7 +1219,6 @@ namespace TBSyzygy {
             // the extended alphabet, and then repeating the process.
             // See http://www.larsson.dogma.net/dcc99.pdf
             vector<bool> visited (d->sym_len.size ());
-
             for (Sym sym = 0; sym < d->sym_len.size (); ++sym)
             {
                 if (!visited[sym])
@@ -1246,11 +1249,11 @@ namespace TBSyzygy {
                     }
                 }
             }
-            return data += (uintptr_t)(data) & 1; // Word alignment
+            return data += (uintptr_t)data & 1; // Word alignment
         }
 
         template<typename T>
-        void set (T &e,  u08 *data)
+        void set (T &e, u08 *data)
         {
             assert(e.has_pawns        == !!(*data & 2)); // HasPawns
             assert((e.key1 != e.key2) == !!(*data & 1)); // Split
@@ -1260,7 +1263,8 @@ namespace TBSyzygy {
             const i32  Sides = 2 == T::Sides && (e.key1 != e.key2) ? 2 : 1;
             const File MaxFile = e.has_pawns ? F_D : F_A;
 
-            bool pp = e.has_pawns && 0 != e.pawn_count[1]; // Pawns on both sides
+            bool pp = e.has_pawns
+                   && 0 != e.pawn_count[1]; // Pawns on both sides
 
             assert(!pp || 0 != e.pawn_count[0]);
 
@@ -1293,7 +1297,7 @@ namespace TBSyzygy {
                 }
             }
 
-            data += (uintptr_t)(data) & 1; // Word alignment
+            data += (uintptr_t)data & 1; // Word alignment
 
             for (auto f = F_A; f <= MaxFile; ++f)
             {
@@ -1360,14 +1364,8 @@ namespace TBSyzygy {
                 b += string(pos.count (BLACK, pt), PieceChar[pt]);
             }
 
-            constexpr u08 TB_MAGIC[][4] =
-            {
-                { 0xD7, 0x66, 0x0C, 0xA5 },
-                { 0x71, 0xE8, 0x23, 0x5D }
-            };
-
             TBFile file ((e.key1 == pos.si->matl_key ? w + b : b + w), WDL == Type ? ".rtbw" : ".rtbz");
-            u08 *data = file.map (&e.base_address, &e.mapping, TB_MAGIC[WDL == Type ? 1 : 0]);
+            u08 *data = file.map (&e.base_address, &e.mapping, Type);
             if (nullptr != data)
             {
                 set (e, data);
