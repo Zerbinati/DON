@@ -3,6 +3,7 @@
 #include <ostream>
 #include "BitBoard.h"
 #include "Material.h"
+#include "Notation.h"
 #include "Pawns.h"
 #include "Thread.h"
 
@@ -48,13 +49,6 @@ namespace {
     };
 
     Score Tracer::scores[TOTAL + 1][CLR_NO];
-
-    ostream& operator<< (ostream &os, Score score)
-    {
-        os << std::setw (5) << value_to_cp (mg_value (score)) / 100.0 << " "
-           << std::setw (5) << value_to_cp (eg_value (score)) / 100.0;
-        return os;
-    }
 
     ostream& operator<< (ostream &os, Tracer::Term term)
     {

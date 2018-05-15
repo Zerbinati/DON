@@ -77,6 +77,7 @@ namespace TBSyzygy {
         // Type of table
         enum TBType : u08
         {
+            KEY,
             WDL,
             DTZ
         }; 
@@ -159,7 +160,7 @@ namespace TBSyzygy {
                                       (0x01 == U.c[0]) ? Endian::BIG : Endian::UNKNOWN;
             assert(Endian::UNKNOWN != End);
             T v;
-            if (0 != ((uintptr_t)(addr) & (alignof (T) -1))) // Unaligned pointer (very rare)
+            if (0 != ((uintptr_t)(addr) & (alignof (T) - 1))) // Unaligned pointer (very rare)
             {
                 std::memcpy (&v, addr, sizeof (T));
             }
@@ -349,7 +350,7 @@ namespace TBSyzygy {
                 };
 
                 u08 *data = (u08*)(*base_address);
-                if (0 != memcmp (data, TB_MAGIC[WDL == type], 4))
+                if (0 != memcmp (data, TB_MAGIC[WDL == type ? 1 : 0], 4))
                 {
                     std::cerr << "Corrupted table in file " << filename << std::endl;
                     unmap (*base_address, *mapping);
@@ -424,7 +425,6 @@ namespace TBSyzygy {
             TBTable ()
                 : ready (false)
                 , base_address (nullptr)
-                , pawn_count { 0 }
                 //, map (nullptr)
                 //, mapping (0)
             {}
@@ -463,17 +463,15 @@ namespace TBSyzygy {
                 }
             }
             break_unique_pieces:
-            if (has_pawns)
-            {
-                // Set the leading color. In case both sides have pawns the leading color
-                // is the side with less pawns because this leads to better compression.
-                auto lead_color = pos.count (BLACK, PAWN) == 0
-                               || (   pos.count (WHITE, PAWN) != 0
-                                   && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
+            
+            // Set the leading color. In case both sides have pawns the leading color
+            // is the side with less pawns because this leads to better compression.
+            auto lead_color = pos.count (BLACK, PAWN) == 0
+                           || (   pos.count (WHITE, PAWN) != 0
+                               && pos.count (BLACK, PAWN) >= pos.count (WHITE, PAWN)) ? WHITE : BLACK;
 
-                pawn_count[0] = pos.count ( lead_color, PAWN);
-                pawn_count[1] = pos.count (~lead_color, PAWN);
-            }
+            pawn_count[0] = pos.count ( lead_color, PAWN);
+            pawn_count[1] = pos.count (~lead_color, PAWN);
 
             key2 = pos.setup (code, si, BLACK).si->matl_key;
         }
@@ -487,34 +485,31 @@ namespace TBSyzygy {
             piece_count = wdl.piece_count;
             has_pawns = wdl.has_pawns;
             has_unique_pieces = wdl.has_unique_pieces;
-            if (has_pawns)
-            {
-                pawn_count[0] = wdl.pawn_count[0];
-                pawn_count[1] = wdl.pawn_count[1];
-            }
+            pawn_count[0] = wdl.pawn_count[0];
+            pawn_count[1] = wdl.pawn_count[1];
         }
 
         class TBTables
         {
         private:
-            static constexpr i32 TBHASHBITS = 10;
-            static constexpr i32 HSHMAX = 6;
+            static const i32 Size = 1 << 12; // 4K table, indexed by key's 12 lsb
 
-            typedef pair<Key, pair<TBTable<WDL>*, TBTable<DTZ>*>> Entry;
+            typedef std::tuple<Key, TBTable<WDL>*, TBTable<DTZ>*> Entry;
 
-            Entry entries[1 << TBHASHBITS][HSHMAX];
+            Entry entries[Size];
 
             deque<TBTable<WDL>> wdl_table;
             deque<TBTable<DTZ>> dtz_table;
 
             void insert (Key key, TBTable<WDL> *wdl, TBTable<DTZ> *dtz)
             {
-                for (auto &entry : entries[key >> (64 - TBHASHBITS)])
+                // Ensure last element is empty to avoid overflow when looking up
+                for (auto* entry = &entries[(u32)key & (Size - 1)]; entry - entries < Size - 1; ++entry)
                 {
-                    if (   nullptr == entry.second.first
-                        || key == entry.first)
+                    if (   std::get<KEY> (*entry) == key
+                        || !std::get<WDL> (*entry))
                     {
-                        entry = std::make_pair (key, std::make_pair (wdl, dtz));
+                        *entry = std::make_tuple (key, wdl, dtz);
                         return;
                     }
                 }
@@ -527,14 +522,14 @@ namespace TBSyzygy {
             template<TBType Type>
             TBTable<Type>* get (Key key)
             {
-                for (auto &entry : entries[key >> (64 - TBHASHBITS)])
+                for (const auto* entry = &entries[(u32)key & (Size - 1)]; entry - entries < Size - 1; ++entry)
                 {
-                    if (key == entry.first)
+                    if (   std::get<KEY> (*entry) == key
+                        || !std::get<Type> (*entry))
                     {
-                        return std::get<Type> (entry.second);
+                        return std::get<Type> (*entry);
                     }
                 }
-                return nullptr;
             }
 
             void clear ()
@@ -1330,7 +1325,7 @@ namespace TBSyzygy {
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
-                    data = (u08*)(((uintptr_t)(data) + 0x3F) & ~0x3F); // 64 byte alignment
+                    data = (u08*)(((uintptr_t)data + 0x3F) & ~0x3F); // 64 byte alignment
                     (d = e.get (i, f))->data = data;
                     data += d->num_blocks * d->block_size;
                 }
@@ -1379,7 +1374,7 @@ namespace TBSyzygy {
         {
             if (0 == (pos.pieces () ^ pos.pieces (KING)))
             {
-                return Ret(0); // KvK
+                return Ret(WDLScore::DRAW); // KvK
             }
 
             auto *entry = TB_Tables.get<Type> (pos.si->matl_key);
@@ -1388,7 +1383,7 @@ namespace TBSyzygy {
                 || nullptr == mapped (*entry, pos))
             {
                 state = ProbeState::FAILURE;
-                return Ret(0);
+                return Ret();
             }
 
             return do_probe_table (pos, entry, wdl, state);
