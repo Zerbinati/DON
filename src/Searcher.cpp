@@ -516,7 +516,8 @@ namespace Searcher {
         string multipv_info (Thread *const &th, i16 depth, Value alfa, Value beta)
         {
             auto elapsed_time = std::max (Threadpool.main_thread ()->time_mgr.elapsed_time (), TimePoint(1));
-            const auto &rms = th->root_moves;
+            auto &rms = th->root_moves;
+            auto pv_cur = th->pv_cur;
 
             auto total_nodes = Threadpool.nodes ();
             auto tb_hits = Threadpool.tb_hits ();
@@ -528,7 +529,7 @@ namespace Searcher {
             ostringstream oss;
             for (size_t i = 0; i < Threadpool.pv_limit; ++i)
             {
-                bool updated = i <= th->pv_cur
+                bool updated = i <= pv_cur
                             && -VALUE_INFINITE != rms[i].new_value;
 
                 if (   !updated
@@ -556,7 +557,7 @@ namespace Searcher {
                     << " seldepth " << rms[i].sel_depth
                     << " score " << to_string (v);
                 if (   !tb
-                    && i == th->pv_cur)
+                    && i == pv_cur)
                 {
                     oss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
                 }

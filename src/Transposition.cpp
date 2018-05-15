@@ -201,29 +201,33 @@ u32 TTable::hash_full () const
 void TTable::save () const
 {
     string hash_fn = string(Options["Hash File"]);
-    if (!white_spaces (hash_fn))
+    if (white_spaces (hash_fn))
     {
-        ofstream ofs (hash_fn, ios_base::out|ios_base::binary);
-        if (ofs.is_open ())
-        {
-            ofs << *this;
-            ofs.close ();
-            sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
-        }
+        return;
     }
+    ofstream ofs (hash_fn, ios_base::out|ios_base::binary);
+    if (!ofs.is_open ())
+    {
+        return;
+    }
+    ofs << *this;
+    ofs.close ();
+    sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
 }
 /// TTable::load() loads hash from file
 void TTable::load ()
 {
     string hash_fn = string(Options["Hash File"]);
-    if (!white_spaces (hash_fn))
+    if (white_spaces (hash_fn))
     {
-        ifstream ifs (hash_fn, ios_base::in|ios_base::binary);
-        if (ifs.is_open ())
-        {
-            ifs >> *this;
-            ifs.close ();
-            sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'" << sync_endl;
-        }
+        return;
     }
+    ifstream ifs (hash_fn, ios_base::in|ios_base::binary);
+    if (!ifs.is_open ())
+    {
+        return;
+    }
+    ifs >> *this;
+    ifs.close ();
+    sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'" << sync_endl;
 }

@@ -1359,7 +1359,8 @@ namespace TBSyzygy {
                 b += string(pos.count (BLACK, pt), PieceChar[pt]);
             }
 
-            TBFile file ((e.key1 == pos.si->matl_key ? w + b : b + w), WDL == Type ? ".rtbw" : ".rtbz");
+            string code = e.key1 == pos.si->matl_key ? w + b : b + w;
+            TBFile file (code, WDL == Type ? ".rtbw" : ".rtbz");
             u08 *data = file.map (&e.base_address, &e.mapping, Type);
             if (nullptr != data)
             {
