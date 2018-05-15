@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iostream>
 #include "Option.h"
+#include "PRNG.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
 

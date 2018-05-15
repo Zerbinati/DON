@@ -7,7 +7,6 @@
 #include "Transposition.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
-#include "MemoryHandler.h"
 
 UCI::OptionMap Options;
 

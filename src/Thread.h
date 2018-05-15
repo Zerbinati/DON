@@ -6,7 +6,6 @@
 #include "Material.h"
 #include "Pawns.h"
 #include "Position.h"
-#include "PRNG.h"
 #include "Searcher.h"
 #include "thread_win32.h"
 #include "Type.h"
