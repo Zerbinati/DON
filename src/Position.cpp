@@ -14,6 +14,70 @@ using namespace TBSyzygy;
 bool Position::Chess960 = false;
 u08  Position::DrawClockPly = 100;
 
+namespace {
+    
+    // Marcel van Kervink's cuckoo algorithm for fast detection of "upcoming repetition"/
+    // "no progress" situations. Description of the algorithm in the following paper:
+    // https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
+
+    // First and second hash functions for indexing the cuckoo tables
+    inline u16 H1 (Key key) { return (key >> 0x00) & 0x1FFF; }
+    inline u16 H2 (Key key) { return (key >> 0x10) & 0x1FFF; }
+
+    // Cuckoo tables with Zobrist hashes of valid reversible moves, and the moves themselves
+    Key CuckooKeys[8192];
+    Move CuckooMoves[8192];
+
+}
+
+
+void Position::initialize ()
+{
+    // Prepare the Cuckoo tables
+    u16 count = 0;
+    for (auto c : { WHITE, BLACK })
+    {
+        for (auto pt : { NIHT, BSHP, ROOK, QUEN, KING })
+        {
+            for (auto s1 : SQ)
+            {
+                for (auto s2 : SQ)
+                {
+                    if (s2 <= s1)
+                    {
+                        continue;
+                    }
+                    if (contains (PieceAttacks[pt][s1], s2))
+                    {
+                        Key key = RandZob.piece_square[c][pt][s1]
+                                ^ RandZob.piece_square[c][pt][s2]
+                                ^ RandZob.color;
+                        Move move = mk_move<NORMAL> (s1, s2);
+
+                        u16 i = H1 (key);
+                        while (true)
+                        {
+                            std::swap (CuckooKeys[i], key);
+                            std::swap (CuckooMoves[i], move);
+                            if (MOVE_NONE == move)   // Arrived at empty slot ?
+                            {
+                                break;
+                            }
+                            // Push victim to alternative slot
+                            i = (i == H1 (key)) ?
+                                H2 (key) :
+                                H1 (key);
+                        }
+
+                        ++count;
+                    }
+                }
+            }
+        }
+    }
+    assert(count == 3668);
+}
+
 /// Position::draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
 /// It does not detect Insufficient materials and Stalemate.
 bool Position::draw (i16 pp) const
@@ -50,6 +114,60 @@ bool Position::draw (i16 pp) const
             }
             rep = true;
         }
+    }
+    return false;
+}
+
+/// Position::cycled() tests if the position has a move which draws by repetition,
+/// or an earlier position has a move that directly reaches the current position.
+bool Position::cycled (i16 pp) const
+{
+    u08 end = std::min (si->clock_ply, si->null_ply);
+    if (end < 3)
+    {
+        return false;
+    }
+
+    Key original_key = si->posi_key;
+    const auto *psi = si->ptr;
+    Key progress_key = psi->posi_key ^ RandZob.color;
+
+    for (u08 i = 3; i <= end; i += 2)
+    {
+        psi = psi->ptr;
+        progress_key ^= psi->posi_key ^ RandZob.color;
+        psi = psi->ptr;
+
+        // "originalKey == " detects upcoming repetition, "progressKey == " detects no-progress
+        if (   original_key == (progress_key ^ psi->posi_key)
+            || progress_key == RandZob.color)
+        {
+            Key key = original_key ^ psi->posi_key;
+            u16 j;
+            if (   (j = H1 (key), CuckooKeys[j] == key)
+                || (j = H2 (key), CuckooKeys[j] == key))
+            {
+                Move move = CuckooMoves[j];
+                if (0 == (between_bb (org_sq (move), dst_sq (move)) & pieces()))
+                {
+                    if (pp > i)
+                    {
+                        return true;
+                    }
+                    // For repetitions before or at the root, require one more
+                    const auto *next_psi = psi;
+                    for (u08 k = i + 2; k <= end; k += 2)
+                    {
+                        next_psi = next_psi->ptr->ptr;
+                        if (next_psi->posi_key == psi->posi_key)
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        progress_key ^= psi->posi_key;
     }
     return false;
 }

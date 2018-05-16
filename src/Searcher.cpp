@@ -924,6 +924,18 @@ namespace Searcher {
                 {
                     return alfa;
                 }
+
+                // Check if there exists a move which draws by repetition,
+                // or an alternative earlier move to this position.
+                if (   alfa < VALUE_DRAW
+                    && pos.cycled (ss->ply))
+                {
+                    alfa = VALUE_DRAW;
+                    if (alfa >= beta)
+                    {
+                        return alfa;
+                    }
+                }
             }
 
             assert(ss->ply >= 0
@@ -1035,11 +1047,11 @@ namespace Searcher {
                                                VALUE_ZERO + 2 * wdl * draw;
 
                         auto bound = wdl < -draw ? BOUND_UPPER :
-                                     wdl >  draw ? BOUND_LOWER :
+                                     wdl > +draw ? BOUND_LOWER :
                                                    BOUND_EXACT;
 
                         if (   BOUND_EXACT == bound
-                            || (BOUND_LOWER == bound ? value >= beta : value <= alfa))
+                            || (BOUND_LOWER == bound ? beta <= value : value <= alfa))
                         {
                             tte->save (key,
                                        MOVE_NONE,
@@ -1264,14 +1276,14 @@ namespace Searcher {
 
                     tte = TT.probe (key, tt_hit);
                     tt_move = tt_hit
-                            && MOVE_NONE != (move = tte->move ())
-                            && pos.pseudo_legal (move)
-                            && pos.legal (move) ?
-                                move :
-                                MOVE_NONE;
+                           && MOVE_NONE != (move = tte->move ())
+                           && pos.pseudo_legal (move)
+                           && pos.legal (move) ?
+                               move :
+                               MOVE_NONE;
                     tt_value = tt_hit ?
-                                value_of_tt (tte->value (), ss->ply) :
-                                VALUE_NONE;
+                               value_of_tt (tte->value (), ss->ply) :
+                               VALUE_NONE;
                 }
             }
 
@@ -1609,12 +1621,10 @@ namespace Searcher {
                         best_move = move;
 
                         // Update pv even in fail-high case.
-                        if (PVNode)
+                        if (   PVNode
+                            && !root_node)
                         {
-                            if (!root_node)
-                            {
-                                update_pv (ss->pv, move, (ss+1)->pv);
-                            }
+                            update_pv (ss->pv, move, (ss+1)->pv);
                         }
                         // Fail high
                         if (value >= beta)

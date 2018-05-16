@@ -138,6 +138,8 @@ public:
 
     StateInfo *si; // Current state information pointer
 
+    static void initialize ();
+
     Position () = default;
     Position (const Position&) = delete;
     Position& operator= (const Position&) = delete;
@@ -167,6 +169,7 @@ public:
 
     i16  move_num () const;
     bool draw (i16) const;
+    bool cycled (i16) const;
     bool repeated () const;
 
     bool see_ge (Move, Value = VALUE_ZERO) const;

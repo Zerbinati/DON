@@ -724,6 +724,7 @@ void run (i32 argc, const char *const *argv)
     BitBases::initialize ();
     psqt_initialize ();
     zobrist_initialize ();
+    Position::initialize ();
     UCI::initialize ();
     Pawns::initialize ();
     EndGame::initialize ();
