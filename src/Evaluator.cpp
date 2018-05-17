@@ -568,17 +568,17 @@ namespace {
         if (   R_1 == rel_rank (Own, fk_sq)
             && pos.si->can_castle (Own))
         {
-            if (   safety < pe->king_safety[Own][0]
-                && pos.si->can_castle (Own, CS_KING)
+            if (   pos.si->can_castle (Own, CS_KING)
                 && pos.expeded_castle (Own, CS_KING)
-                && 0 == (pos.king_path[Own][CS_KING] & ful_attacked_by[Opp]))
+                && 0 == (pos.king_path[Own][CS_KING] & ful_attacked_by[Opp])
+                && safety < pe->king_safety[Own][0])
             {
                 safety = pe->king_safety[Own][0];
             }
-            if (   safety < pe->king_safety[Own][1]
-                && pos.si->can_castle (Own, CS_QUEN)
+            if (   pos.si->can_castle (Own, CS_QUEN)
                 && pos.expeded_castle (Own, CS_QUEN)
-                && 0 == (pos.king_path[Own][CS_QUEN] & ful_attacked_by[Opp]))
+                && 0 == (pos.king_path[Own][CS_QUEN] & ful_attacked_by[Opp])
+                && safety < pe->king_safety[Own][1])
             {
                 safety = pe->king_safety[Own][1];
             }

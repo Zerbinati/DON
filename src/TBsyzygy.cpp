@@ -530,6 +530,7 @@ namespace TBSyzygy {
                         return std::get<Type> (*entry);
                     }
                 }
+                return nullptr;
             }
 
             void clear ()

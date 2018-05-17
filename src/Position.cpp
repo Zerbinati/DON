@@ -59,7 +59,8 @@ void Position::initialize ()
                         {
                             std::swap (CuckooKeys[i], key);
                             std::swap (CuckooMoves[i], move);
-                            if (MOVE_NONE == move)   // Arrived at empty slot ?
+                            // Arrived at empty slot ?
+                            if (0 == key)
                             {
                                 break;
                             }
