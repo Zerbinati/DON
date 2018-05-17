@@ -21,12 +21,12 @@ namespace {
     // https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 
     // First and second hash functions for indexing the cuckoo tables
-    inline u16 H1 (Key key) { return (key >> 0x00) & 0x1FFF; }
-    inline u16 H2 (Key key) { return (key >> 0x10) & 0x1FFF; }
+    inline u16 H1 (Key key) { return u16((key >> 0x00) & 0x1FFF); }
+    inline u16 H2 (Key key) { return u16((key >> 0x10) & 0x1FFF); }
 
     // Cuckoo tables with Zobrist hashes of valid reversible moves, and the moves themselves
-    Key CuckooKeys[8192];
-    Move CuckooMoves[8192];
+    Key CuckooKeys[0x2000];
+    Move CuckooMoves[0x2000];
 
 }
 
@@ -132,7 +132,7 @@ bool Position::cycled (i16 pp) const
     const auto *psi = si->ptr;
     Key progress_key = psi->posi_key ^ RandZob.color;
 
-    for (u08 i = 3; i <= end; i += 2)
+    for (u08 p = 3; p <= end; p += 2)
     {
         psi = psi->ptr;
         progress_key ^= psi->posi_key ^ RandZob.color;
@@ -150,13 +150,13 @@ bool Position::cycled (i16 pp) const
                 Move move = CuckooMoves[j];
                 if (0 == (between_bb (org_sq (move), dst_sq (move)) & pieces()))
                 {
-                    if (pp > i)
+                    if (pp > p)
                     {
                         return true;
                     }
                     // For repetitions before or at the root, require one more
                     const auto *next_psi = psi;
-                    for (u08 k = i + 2; k <= end; k += 2)
+                    for (u08 k = p + 2; k <= end; k += 2)
                     {
                         next_psi = next_psi->ptr->ptr;
                         if (next_psi->posi_key == psi->posi_key)
