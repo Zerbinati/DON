@@ -208,12 +208,8 @@ namespace Pawns {
                 || (own_r != opp_r));
 
             auto ff = std::min (f, ~f);
-
             value += Shelter[ff][own_r];
-            if (own_r != opp_r)
-            {
-                value -= Strom[R_1 != own_r && (own_r == opp_r - 1) ? 1 : 0][ff][opp_r];
-            }
+            value -= Strom[R_1 != own_r && (own_r == opp_r - 1) ? 1 : 0][ff][opp_r];
         }
 
         return value;

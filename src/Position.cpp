@@ -16,18 +16,22 @@ u08  Position::DrawClockPly = 100;
 
 namespace {
     
-    // Marcel van Kervink's cuckoo algorithm for fast detection of "upcoming repetition"/
-    // "no progress" situations. Description of the algorithm in the following paper:
+    // Marcel van Kervink's cuckoo algorithm for fast detection of "upcoming repetition"
+    // situations. Description of the algorithm in the following paper:
     // https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 
     // First and second hash functions for indexing the cuckoo tables
     inline u16 H1 (Key key) { return u16((key >> 0x00) & 0x1FFF); }
     inline u16 H2 (Key key) { return u16((key >> 0x10) & 0x1FFF); }
 
-    // Cuckoo tables with Zobrist hashes of valid reversible moves, and the moves themselves
-    Key CuckooKeys[0x2000];
-    Move CuckooMoves[0x2000];
+    struct Cuckoo
+    {
+        Key key;
+        Move move;
+    };
 
+    // Cuckoo tables with Zobrist hashes of valid reversible moves, and the moves themselves
+    Cuckoo Cuckoos[0x2000];
 }
 
 
@@ -57,15 +61,15 @@ void Position::initialize ()
                         u16 i = H1 (key);
                         while (true)
                         {
-                            std::swap (CuckooKeys[i], key);
-                            std::swap (CuckooMoves[i], move);
+                            std::swap (Cuckoos[i].key, key);
+                            std::swap (Cuckoos[i].move, move);
                             // Arrived at empty slot ?
                             if (0 == key)
                             {
                                 break;
                             }
                             // Push victim to alternative slot
-                            i = (i == H1 (key)) ?
+                            i = i == H1 (key) ?
                                 H2 (key) :
                                 H1 (key);
                         }
@@ -131,44 +135,43 @@ bool Position::cycled (i16 pp) const
 
     Key original_key = si->posi_key;
     const auto *psi = si->ptr;
-    Key progress_key = psi->posi_key ^ RandZob.color;
 
     for (u08 p = 3; p <= end; p += 2)
     {
-        psi = psi->ptr;
-        progress_key ^= psi->posi_key ^ RandZob.color;
-        psi = psi->ptr;
+        psi = psi->ptr->ptr;
 
-        // "originalKey == " detects upcoming repetition, "progressKey == " detects no-progress
-        if (   original_key == (progress_key ^ psi->posi_key)
-            || progress_key == RandZob.color)
+        Key key = original_key ^ psi->posi_key;
+
+        u16 j;
+        if (   (j = H1 (key), Cuckoos[j].key == key)
+            || (j = H2 (key), Cuckoos[j].key == key))
         {
-            Key key = original_key ^ psi->posi_key;
-            u16 j;
-            if (   (j = H1 (key), CuckooKeys[j] == key)
-                || (j = H2 (key), CuckooKeys[j] == key))
+            Move move = Cuckoos[j].move;
+
+            if (0 == (between_bb (org_sq (move), dst_sq (move)) & pieces()))
             {
-                Move move = CuckooMoves[j];
-                if (0 == (between_bb (org_sq (move), dst_sq (move)) & pieces()))
+                //// Take care to reverse the move in the no-progress case (opponent to move)
+                //if (empty (org_sq (move)))
+                //{
+                //    move = mk_move<NORMAL> (dst_sq (move), org_sq (move));
+                //}
+
+                if (pp > p)
                 {
-                    if (pp > p)
+                    return true;
+                }
+                // For repetitions before or at the root, require one more
+                const auto *next_psi = psi;
+                for (u08 k = p + 2; k <= end; k += 2)
+                {
+                    next_psi = next_psi->ptr->ptr;
+                    if (next_psi->posi_key == psi->posi_key)
                     {
                         return true;
-                    }
-                    // For repetitions before or at the root, require one more
-                    const auto *next_psi = psi;
-                    for (u08 k = p + 2; k <= end; k += 2)
-                    {
-                        next_psi = next_psi->ptr->ptr;
-                        if (next_psi->posi_key == psi->posi_key)
-                        {
-                            return true;
-                        }
                     }
                 }
             }
         }
-        progress_key ^= psi->posi_key;
     }
     return false;
 }
