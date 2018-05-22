@@ -676,9 +676,7 @@ namespace {
 
         // Penalty for king on a pawn less flank
         if (0 == (  kf_bb
-                  & (   rank_bb (fk_sq)
-                     | front_rank_bb (Own, fk_sq))
-                  & pos.pieces (Own, PAWN)))
+                  & pos.pieces (PAWN)))
         {
             score -= PawnLessFlank;
         }
