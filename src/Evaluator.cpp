@@ -675,7 +675,8 @@ namespace {
         Bitboard kf_bb = KingFlank_bb[_file (fk_sq)];
 
         // Penalty for king on a pawn less flank
-        if (0 == (pos.pieces (PAWN) & kf_bb))
+        if (   0 != pos.pieces(Opp, ROOK, QUEN)
+            && 0 == (pos.pieces (PAWN) & kf_bb))
         {
             score -= PawnLessFlank;
         }
