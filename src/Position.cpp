@@ -28,6 +28,14 @@ namespace {
     {
         Key key;
         Move move;
+
+        Cuckoo (Key k, Move m)
+            : key (k)
+            , move (m)
+        {}
+        Cuckoo ()
+            : Cuckoo (U64(0), MOVE_NONE)
+        {}
     };
 
     // Cuckoo tables with Zobrist hashes of valid reversible moves, and the moves themselves
@@ -53,25 +61,25 @@ void Position::initialize ()
                     }
                     if (contains (PieceAttacks[pt][s1], s2))
                     {
-                        Key key = RandZob.piece_square[c][pt][s1]
-                                ^ RandZob.piece_square[c][pt][s2]
-                                ^ RandZob.color;
-                        Move move = mk_move<NORMAL> (s1, s2);
+                        Cuckoo cuckoo (  RandZob.piece_square[c][pt][s1]
+                                       ^ RandZob.piece_square[c][pt][s2]
+                                       ^ RandZob.color,
+                                         mk_move<NORMAL> (s1, s2)
+                                      );
 
-                        u16 i = H1 (key);
+                        u16 i = H1 (cuckoo.key);
                         while (true)
                         {
-                            std::swap (Cuckoos[i].key, key);
-                            std::swap (Cuckoos[i].move, move);
+                            std::swap (Cuckoos[i], cuckoo);
                             // Arrived at empty slot ?
-                            if (0 == key)
+                            if (0 == cuckoo.key)
                             {
                                 break;
                             }
                             // Push victim to alternative slot
-                            i = i == H1 (key) ?
-                                H2 (key) :
-                                H1 (key);
+                            i = i == H1 (cuckoo.key) ?
+                                H2 (cuckoo.key) :
+                                H1 (cuckoo.key);
                         }
 
                         ++count;
@@ -139,7 +147,6 @@ bool Position::cycled (i16 pp) const
     for (u08 p = 3; p <= end; p += 2)
     {
         psi = psi->ptr->ptr;
-
         Key key = original_key ^ psi->posi_key;
 
         u16 j;

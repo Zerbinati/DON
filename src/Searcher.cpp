@@ -1629,11 +1629,7 @@ namespace Searcher {
                         // Fail high
                         if (value >= beta)
                         {
-                            // Reset negative stat_score
-                            if (ss->stat_score < 0)
-                            {
-                                ss->stat_score = 0;
-                            }
+                            ss->stat_score = 0;
                             break;
                         }
                         else

@@ -10,12 +10,12 @@ const std::string ColorChar ("wb-");
 
 inline char to_char (File f, bool lower = true)
 {
-    return char((lower ? 'a' : 'A') + i08(f) - i08(F_A));
+    return char((lower ? 'a' : 'A') + i08(f));
 }
 
 inline char to_char (Rank r)
 {
-    return char('1' + i08(r) - i08(R_1));
+    return char('1' + i08(r));
 }
 
 inline std::string to_string (Square s)
@@ -39,7 +39,7 @@ inline std::string to_string (Value v)
     }
     else
     {
-        oss << "mate " << i32(v > VALUE_ZERO ?
+        oss << "mate " << (v > VALUE_ZERO ?
                             +(VALUE_MATE - v + 1) :
                             -(VALUE_MATE + v + 0)) / 2;
     }
