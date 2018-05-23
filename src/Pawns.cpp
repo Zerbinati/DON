@@ -64,11 +64,11 @@ namespace Pawns {
             constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
             const auto PawnAtt = PawnAttacks[Own];
 
-            const Bitboard own_pawns = pos.pieces (Own, PAWN);
-            const Bitboard opp_pawns = pos.pieces (Opp, PAWN);
+            Bitboard own_pawns = pos.pieces (Own, PAWN);
+            Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            const Bitboard ul = shift<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
-            const Bitboard ur = shift<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
+            Bitboard ul = shift<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
+            Bitboard ur = shift<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
 
             e->any_attacks[Own] = ul | ur;
             e->dbl_attacks[Own] = ul & ur;

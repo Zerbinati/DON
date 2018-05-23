@@ -149,11 +149,12 @@ bool Position::cycled (i16 pp) const
 
             if (0 == (between_bb (org_sq (move), dst_sq (move)) & pieces()))
             {
-                //// Take care to reverse the move in the no-progress case (opponent to move)
-                //if (empty (org_sq (move)))
-                //{
-                //    move = mk_move<NORMAL> (dst_sq (move), org_sq (move));
-                //}
+                // Take care to reverse the move in the no-progress case (opponent to move)
+                if (empty (org_sq (move)))
+                {
+                    move = mk_move<NORMAL> (dst_sq (move), org_sq (move));
+                }
+                assert(empty (dst_sq (move)));
 
                 if (pp > p)
                 {

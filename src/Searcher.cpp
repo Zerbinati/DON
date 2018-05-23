@@ -928,6 +928,7 @@ namespace Searcher {
                 // Check if there exists a move which draws by repetition,
                 // or an alternative earlier move to this position.
                 if (   alfa < VALUE_DRAW
+                    && pos.si->clock_ply >= 3
                     && pos.cycled (ss->ply))
                 {
                     alfa = VALUE_DRAW;
