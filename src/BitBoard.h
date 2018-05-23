@@ -180,13 +180,14 @@ namespace BitBoard {
 
         u16 index (Bitboard occ)
         {
+            return
 #       if defined(BM2)
-            return u16(PEXT(occ, mask));
+            u16(PEXT(occ, mask));
 #       elif defined(BIT64)
-            return u16(((occ & mask) * number) >> shift);
+            u16(((occ & mask) * number) >> shift);
 #       else
-            return u16((u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(number >> 0x00))
-                      ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(number >> 0x20))) >> shift);
+            u16((  u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(number >> 0x00))
+                 ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(number >> 0x20))) >> shift);
 #       endif
         }
 
@@ -247,10 +248,11 @@ namespace BitBoard {
 
     constexpr bool more_than_one (Bitboard bb)
     {
+        return
 //#   if defined(BM2)
-//        return 0 != BLSR(bb);
+//      0 != BLSR(bb);
 //#   else
-        return 0 != (bb & (bb - 1));
+        0 != (bb & (bb - 1));
 //#   endif
     }
 
@@ -337,14 +339,15 @@ namespace BitBoard {
 #       include <nmmintrin.h> // Microsoft or Intel header for pop count intrinsics _mm_popcnt_u64() & _mm_popcnt_u32()
     inline i32 pop_count (Bitboard bb)
     {
+        return
 #   if defined(BIT64)
-        //return i32(__popcnt64 (bb));
-        return i32(_mm_popcnt_u64 (bb));
+        //i32(__popcnt64 (bb));
+        i32(_mm_popcnt_u64 (bb));
 #   else
-        //return i32(__popcnt (u32(bb >> 0x00))
-        //         + __popcnt (u32(bb >> 0x20)));
-        return i32(_mm_popcnt_u32 (bb >> 0x00)
-                 + _mm_popcnt_u32 (bb >> 0x20));
+        //i32(__popcnt (u32(bb >> 0x00))
+        //  + __popcnt (u32(bb >> 0x20)));
+        i32(_mm_popcnt_u32 (bb >> 0x00)
+          + _mm_popcnt_u32 (bb >> 0x20));
 #   endif
     }
 
@@ -352,14 +355,12 @@ namespace BitBoard {
 
     inline i32 pop_count (Bitboard bb)
     {
-        // Assembly code by Heinz van Saanen
-        //__asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
-        //return bb;
+        return
 #   if defined(BIT64)
-        return i32(__builtin_popcountll (bb));
+        i32(__builtin_popcountll (bb));
 #   else
-        return i32(__builtin_popcountl (bb >> 0x00)
-                 + __builtin_popcountl (bb >> 0x20));
+        i32(__builtin_popcountl (bb >> 0x00)
+          + __builtin_popcountl (bb >> 0x20));
 #   endif
     }
 
@@ -418,11 +419,11 @@ namespace BitBoard {
     inline Square scan_lsq (Bitboard bb)
     {
         assert(0 != bb);
-
+        return
 #   if defined(BIT64)
-        return Square(__builtin_ctzll (bb));
+        Square(__builtin_ctzll (bb));
 #   else
-        return Square(0 != u32(bb >> 0x00) ?
+        Square(0 != u32(bb >> 0x00) ?
                 __builtin_ctz (bb >> 0x00) :
                 __builtin_ctz (bb >> 0x20) + 0x20);
 #   endif
@@ -430,11 +431,11 @@ namespace BitBoard {
     inline Square scan_msq (Bitboard bb)
     {
         assert(0 != bb);
-
+        return
 #   if defined(BIT64)
-        return Square(i08(SQ_H8) ^ __builtin_clzll (bb));
+        Square(i08(SQ_H8) ^ __builtin_clzll (bb));
 #   else
-        return Square(0 != (i08(SQ_H8) ^ (u32(bb >> 0x20)) ?
+        Square(0 != (i08(SQ_H8) ^ (u32(bb >> 0x20)) ?
                 __builtin_clz (bb >> 0x20) :
                 __builtin_clz (bb >> 0x00) + 0x20));
 #   endif
@@ -577,11 +578,11 @@ namespace BitBoard {
     inline Square pop_lsq (Bitboard &bb)
     {
         Square sq = scan_lsq (bb);
-#   if defined(BM2)
-        bb = BLSR(bb);
-#   else
+//#   if defined(BM2)
+//        bb = BLSR(bb);
+//#   else
         bb &= (bb - 1);
-#   endif
+//#   endif
         return sq;
     }
 

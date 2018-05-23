@@ -199,10 +199,11 @@ namespace Memory {
                 std::cerr << "ERROR: shmctl(IPC_RMID) failed, error# = " << errno << std::endl;
             }
 #       endif
-            return;
         }
-
-        ALIGN_FREE (mem);
+        else
+        {
+            ALIGN_FREE (mem);
+        }
     }
 
     void initialize ()

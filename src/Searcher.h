@@ -66,7 +66,7 @@ class StatsEntry
 {
 private:
 
-    typedef typename std::conditional<std::is_integral<T>::value, i32, T>::type TT;
+    typedef typename std::conditional<std::is_integral<T>::value, i32, T>::type Type;
 
     T entry;
 
@@ -74,7 +74,7 @@ public:
 
     T* get () { return &entry; }
     void operator= (const T &v) { entry = v; }
-    operator TT() const { return entry; }
+    operator Type() const { return entry; }
 
     void operator<< (i32 bonus)
     {

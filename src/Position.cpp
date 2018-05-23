@@ -16,30 +16,25 @@ u08  Position::DrawClockPly = 100;
 
 namespace {
     
-    // Marcel van Kervink's cuckoo algorithm for fast detection of "upcoming repetition"
-    // situations. Description of the algorithm in the following paper:
+    // Marcel van Kervink's cuckoo algorithm for fast detection of "upcoming repetition".
+    // Description of the algorithm in the following paper:
     // https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
-
-    // First and second hash functions for indexing the cuckoo tables
-    inline u16 H1 (Key key) { return u16((key >> 0x00) & 0x1FFF); }
-    inline u16 H2 (Key key) { return u16((key >> 0x10) & 0x1FFF); }
 
     struct Cuckoo
     {
-        Key key;
-        Move move;
-
-        Cuckoo (Key k, Move m)
-            : key (k)
-            , move (m)
-        {}
-        Cuckoo ()
-            : Cuckoo (U64(0), MOVE_NONE)
-        {}
+        Key key;    // Zobrist key
+        Move move;  // Valid reversible move
     };
 
-    // Cuckoo tables with Zobrist hashes of valid reversible moves, and the moves themselves
-    Cuckoo Cuckoos[0x2000];
+    constexpr u16 CuckooSize = 0x2000;
+    // Cuckoo table
+    Cuckoo Cuckoos[CuckooSize];
+
+    // Hash functions for indexing the cuckoo tables
+
+    inline u16 H1 (Key key) { return u16((key >> 0x00) & (CuckooSize - 1)); }
+    inline u16 H2 (Key key) { return u16((key >> 0x10) & (CuckooSize - 1)); }
+
 }
 
 
@@ -61,11 +56,11 @@ void Position::initialize ()
                     }
                     if (contains (PieceAttacks[pt][s1], s2))
                     {
-                        Cuckoo cuckoo (  RandZob.piece_square[c][pt][s1]
-                                       ^ RandZob.piece_square[c][pt][s2]
-                                       ^ RandZob.color,
-                                         mk_move<NORMAL> (s1, s2)
-                                      );
+                        Cuckoo cuckoo;
+                        cuckoo.key = RandZob.piece_square[c][pt][s1]
+                                   ^ RandZob.piece_square[c][pt][s2]
+                                   ^ RandZob.color;
+                        cuckoo.move = mk_move<NORMAL> (s1, s2);
 
                         u16 i = H1 (cuckoo.key);
                         while (true)
@@ -150,8 +145,8 @@ bool Position::cycled (i16 pp) const
         Key key = original_key ^ psi->posi_key;
 
         u16 j;
-        if (   (j = H1 (key), Cuckoos[j].key == key)
-            || (j = H2 (key), Cuckoos[j].key == key))
+        if (   (j = H1 (key), key == Cuckoos[j].key)
+            || (j = H2 (key), key == Cuckoos[j].key))
         {
             Move move = Cuckoos[j].move;
 

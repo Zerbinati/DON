@@ -97,11 +97,11 @@ public:
     // Maximum size of Transposition::Table (131072 MB = 128 GB)
     static constexpr u32 MaxHashSize =
 #       if defined(BIT64)
-            128 * 1024;
+            128 * 1024
 #       else
-            2 * 1024;
+            2 * 1024
 #       endif
-
+        ;
     static constexpr u32 BufferSize = 0x10000;
 
     void *mem;
