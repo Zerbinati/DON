@@ -50,11 +50,8 @@ void Position::initialize ()
             {
                 for (auto s2 : SQ)
                 {
-                    if (s2 <= s1)
-                    {
-                        continue;
-                    }
-                    if (contains (PieceAttacks[pt][s1], s2))
+                    if (   s1 < s2
+                        && contains (PieceAttacks[pt][s1], s2))
                     {
                         Cuckoo cuckoo;
                         cuckoo.key = RandZob.piece_square[c][pt][s1]

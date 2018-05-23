@@ -313,7 +313,8 @@ namespace BitBoard {
             {
                 for (auto pt : { BSHP, ROOK })
                 {
-                    if (contains (PieceAttacks[pt][s1], s2))
+                    if (   s1 != s2
+                        && contains (PieceAttacks[pt][s1], s2))
                     {
                         Between_bb[s1][s2] = (BSHP == pt ? attacks_bb<BSHP> (s1, Square_bb[s2]) :
                                                            attacks_bb<ROOK> (s1, Square_bb[s2]))
