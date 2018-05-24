@@ -96,9 +96,9 @@ public:
         ,            tb_hits;
     Score contempt;
 
-    PieceDestinyMove counter_moves;
+    CounterMove counter_moves;
     ButterflyHistory butterfly_history;
-    CapturePieceDestinyHistory capture_history;
+    CaptureHistory capture_history;
     ContinuationHistory continuation_history;
 
     Pawns::Table pawn_table;

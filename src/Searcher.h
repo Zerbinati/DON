@@ -111,22 +111,21 @@ struct Stats<T, D, Size>
 };
 
 /// ButterflyHistory records how often quiet moves have been successful or unsuccessful
-/// during the current search, and is used for reduction and move ordering decisions.
-/// It is indexed by [color][move].
+/// during the current search, and is used for reduction and move ordering decisions, is indexed by [color][move].
 typedef Stats<i16, 10368, CLR_NO, SQ_NO*SQ_NO> ButterflyHistory;
 
 /// PieceDestinyHistory is like ButterflyHistory but is indexed by [piece][destiny]
 typedef Stats<i16, 29952, MAX_PIECE, SQ_NO> PieceDestinyHistory;
 
 /// ContinuationHistory is the combined history of a given pair of moves, usually the current one given a previous one.
-/// The nested history table is based on PieceDestinyHistory instead of ButterflyBoards.
+/// The nested history table is based on PieceDestinyHistory.
 typedef Stats<PieceDestinyHistory, 0, MAX_PIECE, SQ_NO> ContinuationHistory;
 
-/// CapturePieceDestinyHistory is indexed by [piece][move][captured piece type]
-typedef Stats<i16, 10368, MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE> CapturePieceDestinyHistory;
+/// CaptureHistory stores capture history is indexed by [piece][move][captured piece type]
+typedef Stats<i16, 10368, MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE> CaptureHistory;
 
-/// PieceDestinyMove stores counter moves is indexed by [piece][move]
-typedef Stats<Move, 0, MAX_PIECE, SQ_NO*SQ_NO> PieceDestinyMove;
+/// CounterMove stores counter moves is indexed by [piece][move]
+typedef Stats<Move, 0, MAX_PIECE, SQ_NO*SQ_NO> CounterMove;
 
 
 /// MovePicker class is used to pick one legal moves from the current position.

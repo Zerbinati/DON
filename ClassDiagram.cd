@@ -526,14 +526,14 @@
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="PieceDestinyMove" Collapsed="true">
+  <Typedef Name="CounterMove" Collapsed="true">
     <Position X="25" Y="3" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="CapturePieceDestinyHistory" Collapsed="true">
+  <Typedef Name="CaptureHistory" Collapsed="true">
     <Position X="17.75" Y="3" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
