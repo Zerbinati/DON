@@ -18,27 +18,24 @@ namespace Pawns {
         // RANK_1 = 0 is used for files where we have no pawn, or pawn is behind our king.
         constexpr Value Shelter[F_NO/2][R_NO] =
         {
-            { V( 7), V(76), V(84), V( 38), V( 7), V( 30), V(-19), V(0) },
-            { V(-3), V(93), V(52), V(-17), V(12), V(-22), V(-35), V(0) },
-            { V(-6), V(83), V(25), V(-24), V(15), V( 22), V(-39), V(0) },
-            { V(11), V(83), V(19), V(  8), V(18), V(-21), V(-30), V(0) }
+            { V(  7), V(76), V( 84), V( 38), V(  7), V( 30), V(-19), V(0) },
+            { V(-13), V(83), V( 42), V(-27), V(  2), V(-32), V(-45), V(0) },
+            { V(-26), V(63), V(  5), V(-44), V( -5), V(  2), V(-59), V(0) },
+            { V(-19), V(53), V(-11), V(-22), V(-12), V(-51), V(-60), V(0) }
         };
-        // Strom of enemy pawns moving toward the friend king, indexed by [block-type][distance from edge][rank]
-        // For the unblocked case, RANK_1 = 0 is used when opponent has no pawn on the given file, or their pawn is behind our king.
-        constexpr Value Strom[2][F_NO/2][R_NO] =
+        // Strom of unblocked enemy pawns moving toward our king by, indexed by [distance from edge][rank].
+        // RANK_1 = 0 is used for files where the enemy has no pawn, or their pawn is behind our king.
+        constexpr Value UnblockedStorm[F_NO/2][R_NO] =
         {
-            { // Unblocked
-                { V(25),  V(79), V(107), V( 51), V( 27), V(0), V(0), V(0) },
-                { V(15),  V(45), V(131), V(  8), V( 25), V(0), V(0), V(0) },
-                { V( 0),  V(42), V(118), V( 56), V( 27), V(0), V(0), V(0) },
-                { V( 3),  V(54), V(110), V( 55), V( 26), V(0), V(0), V(0) }
-            },
-            { // Blocked
-                { V( 0),  V( 0), V( 37), V(  5), V(-48), V(0), V(0), V(0) },
-                { V( 0),  V( 0), V( 68), V(-12), V( 13), V(0), V(0), V(0) },
-                { V( 0),  V( 0), V(111), V(-25), V( -3), V(0), V(0), V(0) },
-                { V( 0),  V( 0), V(108), V( 14), V( 21), V(0), V(0), V(0) }
-            }
+            { V( 25), V( 79), V(107), V( 51), V( 27), V(  0), V(  0), V(0) },
+            { V(  5), V( 35), V(121), V( -2), V( 15), V(-10), V(-10), V(0) },
+            { V(-20), V( 22), V( 98), V( 36), V(  7), V(-20), V(-20), V(0) },
+            { V(-27), V( 24), V( 80), V( 25), V( -4), V(-30), V(-30), V(0) }
+        };
+        // Strom of blocked enemy pawns moving toward our king, indexed by [rank]
+        constexpr Value BlockedStorm[R_NO] =
+        {
+            V(0), V(0), V(75), V(-10), V(-20), V(-20), V(-20), V(0)
         };
 
     #undef V
@@ -209,7 +206,9 @@ namespace Pawns {
 
             auto ff = std::min (f, ~f);
             value += Shelter[ff][own_r];
-            value -= Strom[R_1 != own_r && (own_r == opp_r - 1) ? 1 : 0][ff][opp_r];
+            value -= R_1 != own_r && (own_r == opp_r - 1) ?
+                        BlockedStorm[opp_r] :
+                        UnblockedStorm[ff][opp_r];
         }
 
         return value;
