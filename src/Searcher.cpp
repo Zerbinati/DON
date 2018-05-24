@@ -1481,7 +1481,10 @@ namespace Searcher {
                 {
                     i16 reduce_depth = reduction_depth (PVNode, improving, depth, move_count);
 
-                    if (capture_or_promotion) // (~5 Elo)
+                    // Decrease reduction for capture (~5 Elo)
+                    if (   capture_or_promotion
+                        && (   (ss-1)->stat_score < 0
+                            || pos.thread->capture_history[pos[org_sq (move)]][move_pp (move)][pos.cap_type (move)] >= 0))
                     {
                         reduce_depth -= 1;
                     }
@@ -1499,13 +1502,11 @@ namespace Searcher {
                         {
                             reduce_depth -= 1;
                         }
-
                         // Increase reduction if TT move is a capture (~0 Elo)
                         if (ttm_capture)
                         {
                             reduce_depth += 1;
                         }
-
                         // Increase reduction for cut nodes (~5 Elo)
                         if (cut_node)
                         {
