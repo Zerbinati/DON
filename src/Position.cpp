@@ -217,15 +217,13 @@ PieceType Position::pick_least_val_att (PieceType pt, Square dst, Bitboard stm_a
         if (   (   PAWN == pt
                 || BSHP == pt
                 || QUEN == pt)
-            && 0 != (b = mocc & pieces (BSHP, QUEN) & PieceAttacks[BSHP][dst])
-            && (attackers | b) != attackers)
+            && 0 != (b = mocc & pieces (BSHP, QUEN) & PieceAttacks[BSHP][dst]))
         {
             attackers |= b & attacks_bb<BSHP> (dst, mocc);
         }
         if (   (   ROOK == pt
                 || QUEN == pt)
-            && 0 != (b = mocc & pieces (ROOK, QUEN) & PieceAttacks[ROOK][dst])
-            && (attackers | b) != attackers)
+            && 0 != (b = mocc & pieces (ROOK, QUEN) & PieceAttacks[ROOK][dst]))
         {
             attackers |= b & attacks_bb<ROOK> (dst, mocc);
         }
@@ -403,13 +401,13 @@ bool Position::pseudo_legal (Move m) const
         auto cs = dst_sq (m) > org_sq (m) ? CS_KING : CS_QUEN;
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
-        if (!(   KING == ptype (board[org_sq (m)])
-              && R_1 == rel_rank (active, org_sq (m))
-              && R_1 == rel_rank (active, dst_sq (m))
-              && contains (pieces (active, ROOK), dst_sq (m))
-              && si->can_castle (active, cs)
-              && expeded_castle (active, cs)
-              && 0 == si->checkers))
+        if (   KING != ptype (board[org_sq (m)])
+            || R_1 != rel_rank (active, org_sq (m))
+            || R_1 != rel_rank (active, dst_sq (m))
+            || !contains (pieces (active, ROOK), dst_sq (m))
+            || !si->can_castle (active, cs)
+            || !expeded_castle (active, cs)
+            || 0 != si->checkers)
         {
             return false;
         }
@@ -445,75 +443,63 @@ bool Position::pseudo_legal (Move m) const
     switch (ptype (board[org_sq (m)]))
     {
     case PAWN:
-    {
         if (    // Single push
-               !(   (   (   NORMAL == mtype (m)
-                         && R_6 >= rel_rank (active, org_sq (m))
-                         && R_7 >= rel_rank (active, dst_sq (m)))
-                     || (   PROMOTE == mtype (m)
-                         && R_7 == rel_rank (active, org_sq (m))
-                         && R_8 == rel_rank (active, dst_sq (m))))
-                 && empty (dst_sq (m))
-                 && org_sq (m) + pawn_push (active) == dst_sq (m))
+               (   (   (   NORMAL != mtype (m)
+                        || R_6 < rel_rank (active, org_sq (m))
+                        || R_7 < rel_rank (active, dst_sq (m)))
+                    && (   PROMOTE != mtype (m)
+                        || R_7 != rel_rank (active, org_sq (m))
+                        || R_8 != rel_rank (active, dst_sq (m))))
+                || !empty (dst_sq (m))
+                || dst_sq (m) != org_sq (m) + pawn_push (active))
                 // Normal capture
-            && !(   (   (   NORMAL == mtype (m)
-                         && R_6 >= rel_rank (active, org_sq (m))
-                         && R_7 >= rel_rank (active, dst_sq (m)))
-                     || (   PROMOTE == mtype (m)
-                         && R_7 == rel_rank (active, org_sq (m))
-                         && R_8 == rel_rank (active, dst_sq (m))))
-                 && contains (pieces (~active) & PawnAttacks[active][org_sq (m)], dst_sq (m)))
+            && (   (   (   NORMAL != mtype (m)
+                        || R_6 < rel_rank (active, org_sq (m))
+                        || R_7 < rel_rank (active, dst_sq (m)))
+                    && (   PROMOTE != mtype (m)
+                        || R_7 != rel_rank (active, org_sq (m))
+                        || R_8 != rel_rank (active, dst_sq (m))))
+                || !contains (pieces (~active) & PawnAttacks[active][org_sq (m)], dst_sq (m)))
                 // Enpassant capture
-            && !(   ENPASSANT == mtype (m)
-                 && R_5 == rel_rank (active, org_sq (m))
-                 && R_6 == rel_rank (active, dst_sq (m))
-                 && si->enpassant_sq == dst_sq (m)
-                 && empty (dst_sq (m))
-                 && contains (pieces (~active, PAWN), dst_sq (m) - pawn_push (active)))
+            && (   ENPASSANT != mtype (m)
+                || R_5 != rel_rank (active, org_sq (m))
+                || R_6 != rel_rank (active, dst_sq (m))
+                || si->enpassant_sq != dst_sq (m)
+                || !empty (dst_sq (m))
+                || !contains (pieces (~active, PAWN), dst_sq (m) - pawn_push (active)))
                 // Double push
-            && !(   NORMAL == mtype (m)
-                 && R_2 == rel_rank (active, org_sq (m))
-                 && R_4 == rel_rank (active, dst_sq (m))
-                 && empty (dst_sq (m) - pawn_push (active))
-                 && empty (dst_sq (m))
-                 && org_sq (m) + pawn_push (active)*2 == dst_sq (m)))
+            && (   NORMAL != mtype (m)
+                || R_2 != rel_rank (active, org_sq (m))
+                || R_4 != rel_rank (active, dst_sq (m))
+                || !empty (dst_sq (m) - pawn_push (active))
+                || !empty (dst_sq (m))
+                || dst_sq (m) != org_sq (m) + pawn_push (active) * 2))
         {
             return false;
         }
-    }
         break;
     case NIHT:
-    {
         if (   NORMAL != mtype (m)
             || !contains (PieceAttacks[NIHT][org_sq (m)], dst_sq (m))) { return false; }
-    }
         break;
     case BSHP:
-    {
         if (   NORMAL != mtype (m)
             || !contains (PieceAttacks[BSHP][org_sq (m)], dst_sq (m))
             || !contains (attacks_bb<BSHP> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
-    }
         break;
     case ROOK:
-    {
         if (   NORMAL != mtype (m)
             || !contains (PieceAttacks[ROOK][org_sq (m)], dst_sq (m))
             || !contains (attacks_bb<ROOK> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
-    }
         break;
     case QUEN:
-    {
         if (   NORMAL != mtype (m)
             || !contains (PieceAttacks[QUEN][org_sq (m)], dst_sq (m))
             || !contains (attacks_bb<QUEN> (org_sq (m), pieces ()), dst_sq (m))) { return false; }
-    }
         break;
     case KING:
-    {
         if (   NORMAL != mtype (m)
             || !contains (PieceAttacks[KING][org_sq (m)], dst_sq (m))) { return false; }
-    }
         break;
     default:
         assert(false);

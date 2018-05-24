@@ -12,27 +12,26 @@
 
 inline std::string time_to_string (const std::chrono::system_clock::time_point &tp)
 {
+    std::string stime;
 
 #   if defined(_WIN32)
 
     auto time = std::chrono::system_clock::to_time_t (tp);
-    auto tp_sec = std::chrono::system_clock::from_time_t (time);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds> (tp - tp_sec).count ();
-    auto *ttm = localtime (&time);
-    const char date_time_format[] = "%Y.%m.%d-%H.%M.%S";
-    char time_str[] = "yyyy.mm.dd.HH-MM.SS.fff";
-    strftime (time_str, strlen (time_str), date_time_format, ttm);
-    std::string stime (time_str);
+    const auto *local_tm = localtime (&time);
+    const char *format = "%Y.%m.%d-%H.%M.%S";
+    char buffer[32];
+    strftime (buffer, sizeof (buffer), format, local_tm);
+    stime.append (buffer);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds> (tp - std::chrono::system_clock::from_time_t (time)).count ();
     stime.append (".");
     stime.append (std::to_string (ms));
-    return stime;
-
+    
 #   else
 
-    return Empty;
 
 #   endif
 
+    return stime;
 }
 
 template<typename CharT, typename Traits>
