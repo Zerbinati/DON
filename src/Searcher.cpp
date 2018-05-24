@@ -598,6 +598,8 @@ namespace Searcher {
 
             const bool in_check = 0 != pos.si->checkers;
 
+            const auto own = pos.active;
+
             // Check for maximum ply reached or immediate draw.
             if (   ss->ply >= MaxPlies
                 || pos.draw (ss->ply))
@@ -747,7 +749,7 @@ namespace Searcher {
                     //&& 0 == Limits.mate
                         // Advance pawn push
                     && !(   PAWN == ptype (mpc)
-                         && R_4 < rel_rank (pos.active, org)))
+                         && R_4 < rel_rank (own, org)))
                 {
                     // Futility pruning parent node
                     auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst_sq (move)])];
@@ -889,6 +891,8 @@ namespace Searcher {
 
             const bool in_check = 0 != pos.si->checkers;
 
+            const auto own = pos.active;
+
             ss->move_count = 0;
             ss->played_move = MOVE_NONE;
             ss->piece_destiny_history = pos.thread->continuation_history[NO_PIECE][0].get ();
@@ -994,7 +998,7 @@ namespace Searcher {
                         {
                             update_killers (ss, pos, tt_move);
                             auto bonus = stat_bonus (depth);
-                            pos.thread->butterfly_history[pos.active][move_pp (tt_move)] << bonus;
+                            pos.thread->butterfly_history[own][move_pp (tt_move)] << bonus;
                             update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), bonus);
                         }
 
@@ -1014,7 +1018,7 @@ namespace Searcher {
                         if (!pos.capture_or_promotion (tt_move))
                         {
                             auto bonus = stat_bonus (depth);
-                            pos.thread->butterfly_history[pos.active][move_pp (tt_move)] << -bonus;
+                            pos.thread->butterfly_history[own][move_pp (tt_move)] << -bonus;
                             update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), -bonus);
                         }
                     }
@@ -1160,12 +1164,12 @@ namespace Searcher {
                     //&& 0 == Limits.mate
                     && MOVE_NULL != (ss-1)->played_move
                     && MOVE_NONE == ss->excluded_move
-                    && VALUE_ZERO != pos.si->non_pawn_material (pos.active)
+                    && VALUE_ZERO != pos.si->non_pawn_material (own)
                     && (ss-1)->stat_score < 22500
                     && tt_eval >= beta
                     && ss->static_eval + 36*depth - 225 >= beta
-                    && (   pos.thread->nmp_ply <= ss->ply
-                        || pos.thread->nmp_odd == ((ss->ply % 2) != 0)))
+                    && (   pos.thread->nmp_ply < ss->ply
+                        || pos.thread->nmp_color != own))
                 {
                     assert(MOVE_NONE != (ss-1)->played_move);
 
@@ -1191,9 +1195,9 @@ namespace Searcher {
                         bool unproven = null_value >= +VALUE_MATE_MAX_PLY;
 
                         // Skip verification search
-                        if (   abs (beta) < +VALUE_KNOWN_WIN
-                            && (   12 > depth
-                                || pos.thread->nmp_ply != 0))
+                        if (   pos.thread->nmp_ply != 0
+                            || (   12 > depth
+                                && abs (beta) < +VALUE_KNOWN_WIN))
                         {
                             // Don't return unproven wins
                             return unproven ?
@@ -1201,15 +1205,18 @@ namespace Searcher {
                                     null_value;
                         }
 
-                        // Verification search:
-                        // Disable null move pruning for side to move for the first part of the remaining search tree
-                        pos.thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
-                        pos.thread->nmp_odd = (ss->ply % 2) != 0;
+                        assert(0 == pos.thread->nmp_ply); // Recursive verification is not allowed
 
+                        // Do verification search at high depths, untill
+                        // ply exceeds nmp_ply, or
+                        // own not equal nmp_color.
+                        pos.thread->nmp_ply = ss->ply + 3 * (depth-R) / 4 - 1;
+                        pos.thread->nmp_color = own;
+                        
                         value = depth_search<false> (pos, ss, beta-1, beta, depth-R, false);
 
                         pos.thread->nmp_ply = 0;
-                        pos.thread->nmp_odd = false;
+                        pos.thread->nmp_color = CLR_NO;
 
                         if (value >= beta)
                         {
@@ -1405,13 +1412,13 @@ namespace Searcher {
                 if (   !root_node
                     //&& 0 == Limits.mate
                     && best_value > -VALUE_MATE_MAX_PLY
-                    && VALUE_ZERO < pos.si->non_pawn_material (pos.active))
+                    && VALUE_ZERO < pos.si->non_pawn_material (own))
                 {
                     if (   !capture_or_promotion
                         && !gives_check
                             // Advance pawn push.
                         && !(   PAWN == ptype (mpc)
-                             && R_4 < rel_rank (pos.active, org)
+                             && R_4 < rel_rank (own, org)
                              && Value(5000) > pos.si->non_pawn_material ()))
                     {
                         // Move count based pruning. (~30 ELO)
@@ -1512,7 +1519,7 @@ namespace Searcher {
                             reduce_depth -= 2;
                         }
 
-                        ss->stat_score = pos.thread->butterfly_history[~pos.active][move_pp (move)]
+                        ss->stat_score = pos.thread->butterfly_history[own][move_pp (move)]
                                        + (*piece_destiny_history[0])[mpc][dst]
                                        + (*piece_destiny_history[1])[mpc][dst]
                                        + (*piece_destiny_history[3])[mpc][dst]
@@ -1683,12 +1690,12 @@ namespace Searcher {
                 {
                     update_killers (ss, pos, best_move);
                     auto bonus = stat_bonus (depth);
-                    pos.thread->butterfly_history[pos.active][move_pp (best_move)] << bonus;
+                    pos.thread->butterfly_history[own][move_pp (best_move)] << bonus;
                     update_stacks_continuation (ss, pos[org_sq (best_move)], dst_sq (best_move), bonus);
                     // Decrease all the other played quiet moves.
                     for (auto qm : quiet_moves)
                     {
-                        pos.thread->butterfly_history[pos.active][move_pp (qm)] << -bonus;
+                        pos.thread->butterfly_history[own][move_pp (qm)] << -bonus;
                         update_stacks_continuation (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                     }
                 }

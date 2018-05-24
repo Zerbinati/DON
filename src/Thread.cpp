@@ -240,7 +240,7 @@ void Thread::clear ()
     nodes = 0;
     tb_hits = 0;
     nmp_ply = 0;
-    nmp_odd = false;
+    nmp_color = CLR_NO;
     counter_moves.fill (MOVE_NONE);
     butterfly_history.fill (0);
     capture_history.fill (0);
@@ -543,7 +543,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
         th->nodes = 0;
         th->tb_hits = 0;
         th->nmp_ply = 0;
-        th->nmp_odd = false;
+        th->nmp_color = CLR_NO;
 
         th->root_pos.setup (fen, setup_states->back (), th);
         th->root_moves = root_moves;

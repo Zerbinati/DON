@@ -86,8 +86,8 @@ public:
       , finished_depth
       , sel_depth;
 
-    i16  nmp_ply;
-    bool nmp_odd;
+    i16   nmp_ply;
+    Color nmp_color;
 
     size_t pv_cur
          , pv_end;
