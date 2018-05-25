@@ -14,8 +14,8 @@ namespace Pawns {
 
     #define V(v) Value(v)
 
-        // Shelter of pawn for our king by [distance from edge][rank].
-        // RANK_1 = 0 is used for files where we have no pawn, or pawn is behind our king.
+        // Shelter of friend pawns for friend king by [distance from edge][rank].
+        // RANK_1 = 0 is used for files where no friend pawn, or friend pawn is behind friend king.
         constexpr Value Shelter[F_NO/2][R_NO] =
         {
             { V(  7), V(76), V( 84), V( 38), V(  7), V( 30), V(-19), V(0) },
@@ -23,8 +23,8 @@ namespace Pawns {
             { V(-26), V(63), V(  5), V(-44), V( -5), V(  2), V(-59), V(0) },
             { V(-19), V(53), V(-11), V(-22), V(-12), V(-51), V(-60), V(0) }
         };
-        // Strom of unblocked enemy pawns moving toward our king by, indexed by [distance from edge][rank].
-        // RANK_1 = 0 is used for files where the enemy has no pawn, or their pawn is behind our king.
+        // Storm of unblocked enemy pawns moving toward friend king by, indexed by [distance from edge][rank].
+        // RANK_1 = 0 is used for files where no enemy pawn, or enemy pawn is behind friend king.
         constexpr Value UnblockedStorm[F_NO/2][R_NO] =
         {
             { V( 25), V( 79), V(107), V( 51), V( 27), V(  0), V(  0), V(0) },
@@ -32,7 +32,7 @@ namespace Pawns {
             { V(-20), V( 22), V( 98), V( 36), V(  7), V(-20), V(-20), V(0) },
             { V(-27), V( 24), V( 80), V( 25), V( -4), V(-30), V(-30), V(0) }
         };
-        // Strom of blocked enemy pawns moving toward our king, indexed by [rank]
+        // Storm of blocked enemy pawns moving toward friend king, indexed by [rank]
         constexpr Value BlockedStorm[R_NO] =
         {
             V(0), V(0), V(75), V(-10), V(-20), V(-20), V(-20), V(0)
@@ -42,16 +42,16 @@ namespace Pawns {
 
     #define S(mg, eg) mk_score(mg, eg)
 
-        // Isolated pawn penalty
+        // Penalty for isolated pawn
         constexpr Score Isolated = S(13,16);
-        // Backward pawn penalty
+        // Penalty for backward pawn
         constexpr Score Backward = S(17,11);
-        // Blocked pawn penalty
+        // Penalty for blocked pawn
         constexpr Score Blocked =  S(13,40);
 
     #undef S
 
-        // Connected pawn bonus indexed by [opposed][phalanx][twice supported][rank]
+        // Bonus for connected pawn indexed by [opposed][phalanx][twice supported][rank]
         Score Connected[2][2][3][R_NO];
 
         template<Color Own>

@@ -69,89 +69,116 @@ namespace {
         return os;
     }
 
+#define S(mg, eg) mk_score (mg, eg)
+
+    // PieceMobility[piece-type][number of attacked squares in the mobility area] contains bonuses for mobility,
+    constexpr Score PieceMobility[4][28] =
+    {
+        { // Knight
+            S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12),
+            S( 22, 26), S( 29, 29), S( 36, 29)
+        },
+        { // Bishop
+            S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42),
+            S( 55, 54), S( 63, 57), S( 63, 65), S( 68, 73), S( 81, 78), S( 81, 86),
+            S( 91, 88), S( 98, 97)
+        },
+        { // Rook
+            S(-58,-76), S(-27,-18), S(-15, 28), S(-10, 55), S( -5, 69), S( -2, 82),
+            S(  9,112), S( 16,118), S( 30,132), S( 29,142), S( 32,155), S( 38,165),
+            S( 46,166), S( 48,169), S( 58,171)
+        },
+        { // Queen
+            S(-39,-36), S(-21,-15), S(  3,  8), S(  3, 18), S( 14, 34), S( 22, 54),
+            S( 28, 61), S( 41, 73), S( 43, 79), S( 48, 92), S( 56, 94), S( 60,104),
+            S( 60,113), S( 66,120), S( 67,123), S( 70,126), S( 71,133), S( 73,136),
+            S( 79,140), S( 88,143), S( 88,148), S( 99,166), S(102,170), S(102,175),
+            S(106,184), S(109,191), S(113,206), S(116,212)
+        }
+    };
+
+    // KingProtector[piece-type] contains a penalty according to distance from king.
+    constexpr Score KingProtector[4] = { S( 3, 5), S( 4, 3), S( 3, 0), S( 1,-1) };
+
+    // MinorOutpost[knight/bishop][supported by pawn] contains bonuses for minor outposts.
+    constexpr Score MinorOutpost[2][2] =
+    {
+        { S(22, 6), S(36,12) },
+        { S( 9, 2), S(15, 5) }
+    };
+
+    // RookOnFile[semiopen/open] contains bonuses for rooks when there is no friend pawn on the rook file.
+    constexpr Score RookOnFile[2] = { S(20, 7), S(45,20) };
+
+    // MinorPieceThreat[piece-type] contains bonus for minor attacks according to piece type.
+    constexpr Score MinorPieceThreat[NONE] = { S( 0,31), S(39,42), S(57,44), S(68,112), S(47,120), S( 0, 0) };
+    // MajorPieceThreat[piece-type] contains bonus for major attacks according to piece type.
+    constexpr Score MajorPieceThreat[NONE] = { S( 0,24), S(38,71), S(38,61), S( 0, 38), S(36, 38), S( 0, 0) };
+
+    // KingThreat[one/more] contains bonus for king attacks on pawns or pieces which are not pawn-defended.
+    constexpr Score KingThreat[2] = { S( 3, 65), S( 9,145) };
+
+    // PawnPassFile[distance from edge] contains bonus for passed pawns according to distance from edge.
+    constexpr Score PawnPassFile[F_NO/2] = { S(15, 7), S(-5,14), S( 1,-5), S(-22,-11) };
+    // PawnPassRank[rank] contains bonus for passed pawns according to the rank of the pawn.
+    constexpr Score PawnPassRank[R_NO] = { S(0, 0), S(5, 7), S(5, 13), S(18, 23), S(74, 58), S(164, 166), S(268, 243), S(0, 0) };
+
+    // Bonus for minor behind a pawn
+    constexpr Score MinorBehindPawn =   S( 16,  0);
+    // Bonus for bishop long range
+    constexpr Score BishopOnDiagonal =  S( 22,  0);
+    // Penalty for bishop with pawns on same color
+    constexpr Score BishopPawns =       S(  3,  5);
+    // Penalty for bishop trapped with pawns (Chess960)
+    constexpr Score BishopTrapped =     S( 50, 50);
+    // Bonus for rook on pawns
+    constexpr Score RookOnPawns =       S(  8, 24);
+    // Penalty for rook trapped
+    constexpr Score RookTrapped =       S( 92,  0);
+    // Penalty for queen weaken
+    constexpr Score QueenWeaken =       S( 50, 10);
+
+    constexpr Score PawnLessFlank =     S( 20, 80);
+    constexpr Score EnemyAttackKing =   S(  7,  0);
+
+    constexpr Score PawnWeakUnopposed = S(  5, 25);
+
+    // Bonus for each hanged piece
+    constexpr Score PieceHanged =       S( 52, 30);
+
+    constexpr Score SafePawnThreat =    S(175,168);
+
+    constexpr Score PawnPushThreat =    S( 47, 26);
+
+    constexpr Score PieceRankThreat =   S( 16,  3);
+
+    constexpr Score KnightQueenThreat = S( 21, 11);
+
+    constexpr Score SliderQueenThreat = S( 42, 21);
+
+    constexpr Score Connectivity =      S(  3,  1);
+
+    constexpr Score Overloaded =        S( 10,  5);
+
+    constexpr Score PawnPassHinder =    S(  8,  1);
+
+#undef S
+
+    // PawnPassDanger
+    constexpr i32 PawnPassDanger[R_NO] = { 0, 0, 0, 3, 6, 12, 21, 0 };
+
+    // PieceAttackWeights[piece-type] contains bonus for king attack according to piece type.
+    constexpr i32 PieceAttackWeights[NONE] = { 0, 77, 55, 44, 10, 0 };
+
+    constexpr Value LazyThreshold = Value(1500);
+    constexpr Value SpaceThreshold = Value(12222);
+
+
     // Evaluator class contains various evaluation functions.
     template<bool Trace>
     class Evaluator
     {
     private:
-
-    #define S(mg, eg) mk_score (mg, eg)
-
-        // Bonus for minor behind a pawn
-        static constexpr Score MinorBehindPawn =   S( 16,  0);
-        // Bonus for bishop long range
-        static constexpr Score BishopOnDiagonal =  S( 22,  0);
-        // Penalty for bishop with pawns on same color
-        static constexpr Score BishopPawns =       S(  3,  5);
-        // Penalty for bishop trapped with pawns (Chess960)
-        static constexpr Score BishopTrapped =     S( 50, 50);
-        // Bonus for rook on pawns
-        static constexpr Score RookOnPawns =       S(  8, 24);
-        // Penalty for rook trapped
-        static constexpr Score RookTrapped =       S( 92,  0);
-        // Penalty for queen weaken
-        static constexpr Score QueenWeaken =       S( 50, 10);
-
-        static constexpr Score PawnLessFlank =     S( 20, 80);
-        static constexpr Score EnemyAttackKing =   S(  7,  0);
-
-        static constexpr Score PawnWeakUnopposed = S(  5, 25);
-
-        // Bonus for each hanged piece
-        static constexpr Score PieceHanged =       S( 52, 30);
-
-        static constexpr Score SafePawnThreat =    S(175,168);
-
-        static constexpr Score PawnPushThreat =    S( 47, 26);
-
-        static constexpr Score PieceRankThreat =   S( 16,  3);
-
-        static constexpr Score KnightQueenThreat = S( 21, 11);
-
-        static constexpr Score SliderQueenThreat = S( 42, 21);
-
-        static constexpr Score Connectivity =      S(  3,  1);
-
-        static constexpr Score Overloaded =        S( 10,  5);
-
-        static constexpr Score PawnPassHinder =    S(  8,  1);
-
-#undef S
-
-        static constexpr Value LazyThreshold =     Value(1500);
-        static constexpr Value SpaceThreshold =    Value(12222);
-
-
-        // PieceMobility[piece-type][attacks] contains bonuses for mobility,
-        // indexed by piece type and number of attacked squares in the mobility area
-        static const Score PieceMobility[4][28];
-
-        // KingProtector[piece-type] contains a penalty according to distance from king.
-        static const Score KingProtector[4];
-
-        // MinorOutpost[knight/bishop][supported by pawn] contains bonuses for minor outposts.
-        static const Score MinorOutpost[2][2];
-
-        // RookOnFile[semiopen/open] contains bonuses for rooks when there is no friend pawn on the rook file
-        static const Score RookOnFile[2];
-
-        // MinorPieceThreat[piece-type] contains bonus for minor attacks according to piece type
-        static const Score MinorPieceThreat[NONE];
-        // MajorPieceThreat[piece-type] contains bonus for major attacks according to piece type
-        static const Score MajorPieceThreat[NONE];
-
-        // KingThreat[one/more] contains bonus for king attacks on pawns or pieces which are not pawn-defended
-        static const Score KingThreat[2];
-
-        // PawnPassFile[file] contains bonus for passed pawns according to distance from edge
-        static const Score PawnPassFile[F_NO/2];
-        // PawnPassRank[rank] contains bonus for passed pawns according to the rank of the pawn
-        static const Score PawnPassRank[R_NO];
-
-        static const i32 PawnPassDanger[R_NO];
-
-        // Bonus for king attack by piece type
-        static const i32 PieceAttackWeights[NONE];
 
         const Position &pos;
 
@@ -210,71 +237,6 @@ namespace {
 
         Value value ();
     };
-
-
-#define S(mg, eg) mk_score (mg, eg)
-
-    template<bool Trace>
-    const Score Evaluator<Trace>::PieceMobility[4][28] =
-    {
-        { // Knight
-            S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12),
-            S( 22, 26), S( 29, 29), S( 36, 29)
-        },
-        { // Bishop
-            S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42),
-            S( 55, 54), S( 63, 57), S( 63, 65), S( 68, 73), S( 81, 78), S( 81, 86),
-            S( 91, 88), S( 98, 97)
-        },
-        { // Rook
-            S(-58,-76), S(-27,-18), S(-15, 28), S(-10, 55), S( -5, 69), S( -2, 82),
-            S(  9,112), S( 16,118), S( 30,132), S( 29,142), S( 32,155), S( 38,165),
-            S( 46,166), S( 48,169), S( 58,171)
-        },
-        { // Queen
-            S(-39,-36), S(-21,-15), S(  3,  8), S(  3, 18), S( 14, 34), S( 22, 54),
-            S( 28, 61), S( 41, 73), S( 43, 79), S( 48, 92), S( 56, 94), S( 60,104),
-            S( 60,113), S( 66,120), S( 67,123), S( 70,126), S( 71,133), S( 73,136),
-            S( 79,140), S( 88,143), S( 88,148), S( 99,166), S(102,170), S(102,175),
-            S(106,184), S(109,191), S(113,206), S(116,212)
-        }
-    };
-
-    template<bool Trace>
-    const Score Evaluator<Trace>::KingProtector[4] = { S( 3, 5), S( 4, 3), S( 3, 0), S( 1,-1) };
-
-    template<bool Trace>
-    const Score Evaluator<Trace>::MinorOutpost[2][2] =
-    {
-        { S(22, 6), S(36,12) },
-        { S( 9, 2), S(15, 5) }
-    };
-
-    template<bool Trace>
-    const Score Evaluator<Trace>::RookOnFile[2] = { S(20, 7), S(45,20) };
-
-    template<bool Trace>
-    const Score Evaluator<Trace>::MinorPieceThreat[NONE] = { S( 0,31), S(39,42), S(57,44), S(68,112), S(47,120), S( 0, 0) };
-
-    template<bool Trace>
-    const Score Evaluator<Trace>::MajorPieceThreat[NONE] = { S( 0,24), S(38,71), S(38,61), S( 0, 38), S(36, 38), S( 0, 0) };
-
-    template<bool Trace>
-    const Score Evaluator<Trace>::KingThreat[2] = { S( 3, 65), S( 9,145) };
-
-    template<bool Trace>
-    const Score Evaluator<Trace>::PawnPassFile[F_NO/2] = { S(15, 7), S(-5,14), S( 1,-5), S(-22,-11) };
-
-    template<bool Trace>
-    const Score Evaluator<Trace>::PawnPassRank[R_NO] = { S(0, 0), S(5, 7), S(5, 13), S(18, 23), S(74, 58), S(164, 166), S(268, 243), S(0, 0) };
-
-#undef S
-
-    template<bool Trace>
-    const i32 Evaluator<Trace>::PawnPassDanger[R_NO] = { 0, 0, 0, 3, 6, 12, 21, 0 };
-
-    template<bool Trace>
-    const i32 Evaluator<Trace>::PieceAttackWeights[NONE] = { 0, 77, 55, 44, 10, 0 };
 
     /// initialize() computes king and pawn attacks, and the king ring bitboard of the color.
     template<bool Trace>
