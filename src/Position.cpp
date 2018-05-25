@@ -1017,14 +1017,14 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         if (PAWN == si->capture)
         {
             si->pawn_key ^= RandZob.piece_square[pasive][PAWN][cap];
-            prefetch (thread->pawn_table.get (si->pawn_key));
+            prefetch (thread->pawn_table[si->pawn_key]);
         }
         else
         {
             si->non_pawn_matl[pasive] -= PieceValues[MG][si->capture];
         }
         si->matl_key ^= RandZob.piece_square[pasive][si->capture][count (pasive, si->capture)];
-        prefetch (thread->matl_table.get (si->matl_key));
+        prefetch (thread->matl_table[si->matl_key]);
 
         si->posi_key ^= RandZob.piece_square[pasive][si->capture][cap];
         si->psq_score -= PST[pasive][si->capture][cap];
@@ -1047,7 +1047,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         {
             si->pawn_key ^= RandZob.piece_square[active][PAWN][dst]
                           ^ RandZob.piece_square[active][PAWN][org];
-            prefetch (thread->pawn_table.get (si->pawn_key));
+            prefetch (thread->pawn_table[si->pawn_key]);
             // Double push pawn
             if (16 == (u08(dst) ^ u08(org)))
             {
@@ -1094,7 +1094,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         move_piece_on_to (org, dst);
         si->pawn_key ^= RandZob.piece_square[active][PAWN][dst]
                       ^ RandZob.piece_square[active][PAWN][org];
-        prefetch (thread->pawn_table.get (si->pawn_key));
+        prefetch (thread->pawn_table[si->pawn_key]);
         break;
     case PROMOTE:
         assert(PAWN == mpt
@@ -1111,10 +1111,10 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         place_piece_on (dst, active|ppt);
         si->matl_key ^= RandZob.piece_square[active][PAWN][count (active, mpt)]
                       ^ RandZob.piece_square[active][ppt][count (active, ppt) - 1];
-        prefetch (thread->matl_table.get (si->matl_key));
+        prefetch (thread->matl_table[si->matl_key]);
 
         si->pawn_key ^= RandZob.piece_square[active][PAWN][org];
-        prefetch (thread->pawn_table.get (si->pawn_key));
+        prefetch (thread->pawn_table[si->pawn_key]);
         si->non_pawn_matl[active] += PieceValues[MG][ppt];
         break;
     default:

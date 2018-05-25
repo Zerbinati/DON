@@ -608,19 +608,26 @@ public:
     //void operator-= (Move move) { erase (std::remove (begin (), end (), move), end ()); }
 };
 
-template<typename T, u32 Size>
+template<class T, u32 Size>
 struct HashTable
-    : std::array<T, Size>
 {
+private:
+    std::array<T, Size> table;
+
 public:
-    T* get (Key key)
+    void clear ()
     {
-        return &(*this)[u32(key) & (Size - 1)];
+        table.fill (T ());
+    }
+
+    T* operator[](Key key)
+    {
+        return &table[u32(key) & (Size - 1)];
     }
 };
 
 // Return the sign of a number (-1, 0, 1)
-template<typename T> i32 sign (T val)
+template<class T> i32 sign (T val)
 {
     return (T(0) < val) - (val < T(0));
 }

@@ -105,29 +105,29 @@ namespace Material {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe (const Position &pos)
     {
-        auto *e = pos.thread->matl_table.get (pos.si->matl_key);
+        auto key = pos.si->matl_key;
+        auto *e = pos.thread->matl_table[key];
 
-        if (e->key == pos.si->matl_key)
+        if (e->key == key)
         {
             return e;
         }
 
         std::memset (e, 0x00, sizeof (*e));
-        e->key = pos.si->matl_key;
-
+        e->key = key;
+        e->scale[WHITE] =
+        e->scale[BLACK] = SCALE_NORMAL;
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
         e->phase = i32(  std::min (VALUE_MIDGAME,
                          std::max (VALUE_ENDGAME, pos.si->non_pawn_material ()))
                        - VALUE_ENDGAME)
                  * PhaseResolution
                  / (VALUE_MIDGAME - VALUE_ENDGAME);
-        e->scale[WHITE] =
-        e->scale[BLACK] = SCALE_NORMAL;
 
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
         // configuration one, then a generic one if previous search failed.
-        if (nullptr != (e->value_func = EndGames->probe<Value> (pos.si->matl_key)))
+        if (nullptr != (e->value_func = EndGames->probe<Value> (key)))
         {
             return e;
         }
@@ -148,7 +148,7 @@ namespace Material {
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
         EndgameBase<Scale> *scale_func;
-        if (nullptr != (scale_func = EndGames->probe<Scale> (pos.si->matl_key)))
+        if (nullptr != (scale_func = EndGames->probe<Scale> (key)))
         {
             e->scale_func[scale_func->strong_color] = scale_func;
             return e;

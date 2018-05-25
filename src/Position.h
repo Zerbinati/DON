@@ -325,9 +325,8 @@ inline Key Position::posi_move_key (Move m) const
                 promote (m);
     if (CASTLE == mtype (m))
     {
-        key ^=
-              RandZob.piece_square[active][ROOK][dst]
-            ^ RandZob.piece_square[active][ROOK][rel_sq (active, dst > org ? SQ_F1 : SQ_D1)];
+        key ^= RandZob.piece_square[active][ROOK][dst]
+             ^ RandZob.piece_square[active][ROOK][rel_sq (active, dst > org ? SQ_F1 : SQ_D1)];
     }
     else
     {

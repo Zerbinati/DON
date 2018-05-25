@@ -260,8 +260,8 @@ void Thread::clear ()
     }
     continuation_history[NO_PIECE][0].get ()->fill (CounterMovePruneThreshold - 1);
 
-    pawn_table.fill (Pawns::Entry ());
-    matl_table.fill (Material::Entry ());
+    pawn_table.clear ();
+    matl_table.clear ();
 }
 
 /// MainThread constructor

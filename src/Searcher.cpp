@@ -1480,11 +1480,13 @@ namespace Searcher {
                     i16 reduce_depth = reduction_depth (PVNode, improving, depth, move_count);
 
                     // Decrease reduction for capture (~5 Elo)
-                    if (   capture_or_promotion
-                        && (   (ss-1)->stat_score < 0
-                            || pos.thread->capture_history[mpc][move_pp (move)][pos.si->capture] >= 0))
+                    if (capture_or_promotion)
                     {
-                        reduce_depth -= 1;
+                        if (   (ss-1)->stat_score < 0
+                            || pos.thread->capture_history[mpc][move_pp (move)][pos.si->capture] >= 0)
+                        {
+                            reduce_depth -= 1;
+                        }
                     }
                     else
                     {
