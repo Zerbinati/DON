@@ -23,7 +23,7 @@ namespace Pawns {
             { V(-26), V(63), V(  5), V(-44), V( -5), V(  2), V(-59), V(0) },
             { V(-19), V(53), V(-11), V(-22), V(-12), V(-51), V(-60), V(0) }
         };
-        // Storm of unblocked enemy pawns moving toward friend king by, indexed by [distance from edge][rank].
+        // Storm of unblocked enemy pawns moving toward friend king, indexed by [distance from edge][rank].
         // RANK_1 = 0 is used for files where no enemy pawn, or enemy pawn is behind friend king.
         constexpr Value UnblockedStorm[F_NO/2][R_NO] =
         {
