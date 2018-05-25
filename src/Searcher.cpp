@@ -2252,11 +2252,8 @@ void MainThread::search ()
 
     if (Limits.use_time_management ())
     {
-        // When playing in 'Nodes as Time' mode, update the time manager after searching.
-        if (0 != time_mgr.nodes_time)
-        {
-            time_mgr.available_nodes += Limits.clock[root_pos.active].inc - Threadpool.nodes ();
-        }
+        // Update the time manager after searching.
+        time_mgr.update (root_pos.active);
         last_value = rm.new_value;
     }
 

@@ -131,6 +131,15 @@ void TimeManager::initialize (Color c, i16 ply)
     }
 }
 
+void TimeManager::update (Color c)
+{
+    // When playing in 'Nodes as Time' mode
+    if (0 != nodes_time)
+    {
+        available_nodes += Limits.clock[c].inc - Threadpool.nodes ();
+    }
+}
+
 /// SkillManager::pick_best_move() chooses best move among a set of RootMoves when playing with a strength handicap,
 /// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 void SkillManager::pick_best_move (const RootMoves &root_moves)

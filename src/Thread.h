@@ -14,12 +14,13 @@
 /// maximum available time, the move game number and other parameters.
 class TimeManager
 {
-public:
+private:
+    u16 nodes_time;
 
+public:
     TimePoint optimum_time;
     TimePoint maximum_time;
-    
-    u16 nodes_time;
+
     u64 available_nodes = 0;
 
     TimeManager () = default;
@@ -29,6 +30,7 @@ public:
     TimePoint elapsed_time () const;
 
     void initialize (Color, i16);
+    void update (Color);
 };
 
 /// Skill Manager class is used to implement strength limit
