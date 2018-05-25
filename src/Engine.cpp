@@ -322,7 +322,7 @@ namespace {
         }
         else
         {
-            ifstream ifs (pos_fn);
+            ifstream ifs (pos_fn, ios_base::in);
             if (!ifs.is_open ())
             {
                 std::cerr << "ERROR: unable to open file ... \'" << pos_fn << "\'" << std::endl;

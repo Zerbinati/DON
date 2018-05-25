@@ -126,7 +126,7 @@
     </ShowAsAssociation>
   </Class>
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
-    <Position X="11.5" Y="2.5" Width="1.5" />
+    <Position X="11.5" Y="2.5" Width="3" />
     <TypeIdentifier>
       <HashCode>IUoEEIEqCLBMUEBAAKMIAgISAgUESAIAxQMwgwAEQgI=</HashCode>
       <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\vector</FileName>
@@ -154,7 +154,7 @@
     </TypeIdentifier>
   </Class>
   <Class Name="MovePicker">
-    <Position X="16.75" Y="11" Width="1.75" />
+    <Position X="17" Y="11" Width="1.75" />
     <NestedTypes>
       <Enum Name="MovePicker::Stage" Collapsed="true">
         <TypeIdentifier>
@@ -167,6 +167,21 @@
         </TypeIdentifier>
       </Enum>
     </NestedTypes>
+    <AssociationLine Name="piece_destiny_history" Type="PieceDestinyHistory" ManuallyRouted="true" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="18.375" Y="11" />
+        <Point X="18.375" Y="5.373" />
+        <Point X="20" Y="5.373" />
+        <Point X="20" Y="3.502" />
+      </Path>
+    </AssociationLine>
+    <AssociationLine Name="vmove" Type="ValMove" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="17" Y="13.908" />
+        <Point X="15.5" Y="13.908" />
+        <Point X="15.5" Y="14.25" />
+      </Path>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AAQAAAgAAgEBAEAAAAAAFIAAQgAAGCAAIAAgIAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
@@ -174,6 +189,10 @@
     <ShowAsAssociation>
       <Field Name="threshold" />
       <Field Name="bad_capture_moves" />
+      <Field Name="piece_destiny_history" />
+      <Field Name="refutation_moves" />
+      <Field Name="vmove" />
+      <Field Name="tt_move" />
     </ShowAsAssociation>
   </Class>
   <Class Name="`anonymous-namespace'::Evaluator&lt;Trace&gt;">
@@ -364,14 +383,17 @@
     </TypeIdentifier>
   </Struct>
   <Struct Name="ValMove">
-    <Position X="0.75" Y="1" Width="1.5" />
+    <Position X="14.25" Y="14.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAQAAAAAAAAAACAAAAAAUAAAAAAACQAAAAgAAAAQAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
+    <ShowAsAssociation>
+      <Field Name="move" />
+    </ShowAsAssociation>
   </Struct>
   <Struct Name="BitBoard::Magic">
-    <Position X="19" Y="11.25" Width="1.5" />
+    <Position X="19.25" Y="11.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAACAAAQAEAAAAAAAAAAAAAACAAAAAAAAABgAA=</HashCode>
       <FileName>src\BitBoard.h</FileName>
@@ -637,7 +659,7 @@
     </TypeIdentifier>
   </Enum>
   <Enum Name="Move" Collapsed="true">
-    <Position X="14.75" Y="13" Width="1.5" />
+    <Position X="14.5" Y="13" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAACAAA=</HashCode>
       <FileName>src\Type.h</FileName>

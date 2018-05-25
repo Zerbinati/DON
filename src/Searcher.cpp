@@ -406,7 +406,7 @@ Move MovePicker::next_move ()
 
 namespace Searcher {
 
-    TimePoint StartTime = TimePoint(0);
+    TimePoint StartTime;
     Limit Limits;
 
     i16 TBProbeDepth = 1;
@@ -1482,7 +1482,7 @@ namespace Searcher {
                     // Decrease reduction for capture (~5 Elo)
                     if (   capture_or_promotion
                         && (   (ss-1)->stat_score < 0
-                            || pos.thread->capture_history[pos[org_sq (move)]][move_pp (move)][pos.cap_type (move)] >= 0))
+                            || pos.thread->capture_history[mpc][move_pp (move)][pos.si->capture] >= 0))
                     {
                         reduce_depth -= 1;
                     }
@@ -1935,7 +1935,7 @@ void Thread::search ()
                     && (best_value <= alfa || beta <= best_value)
                     && main_thread->time_mgr.elapsed_time () > 3000)
                 {
-                    sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
+                    sync_cout << multipv_info (main_thread, running_depth, alfa, beta) << sync_endl;
                 }
 
                 // If fail low set new bounds.
@@ -1979,7 +1979,7 @@ void Thread::search ()
                     || Threadpool.pv_limit - 1 == pv_cur
                     || main_thread->time_mgr.elapsed_time () > 3000))
             {
-                sync_cout << multipv_info (this, running_depth, alfa, beta) << sync_endl;
+                sync_cout << multipv_info (main_thread, running_depth, alfa, beta) << sync_endl;
             }
         }
 
@@ -2055,7 +2055,7 @@ void Thread::search ()
 
             if (OutputStream.is_open ())
             {
-                OutputStream << pretty_pv_info (this) << std::endl;
+                OutputStream << pretty_pv_info (main_thread) << std::endl;
             }
         }
     }

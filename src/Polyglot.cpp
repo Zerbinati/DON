@@ -222,15 +222,15 @@ void PolyBook::initialize ()
         return;
     }
 
-    ifstream polyglot (book_fn, ios_base::binary);
-    if (!polyglot.is_open ())
+    ifstream ifs (book_fn, ios_base::in|ios_base::binary);
+    if (!ifs.is_open ())
     {
         return;
     }
 
-    polyglot.seekg (size_t(0), ios_base::end);
-    size_t filesize = polyglot.tellg ();
-    polyglot.seekg (size_t(0), ios_base::beg);
+    ifs.seekg (size_t(0), ios_base::end);
+    size_t filesize = ifs.tellg ();
+    ifs.seekg (size_t(0), ios_base::beg);
 
     entry_count = (filesize - HeaderSize) / sizeof (PolyEntry);
     entries = new PolyEntry[entry_count];
@@ -240,14 +240,14 @@ void PolyBook::initialize ()
         PolyEntry dummy;
         for (size_t i = 0; i < HeaderSize / sizeof (PolyEntry); ++i)
         {
-            polyglot >> dummy;
+            ifs >> dummy;
         }
     }
     for (size_t i = 0; i < entry_count; ++i)
     {
-        polyglot >> entries[i];
+        ifs >> entries[i];
     }
-    polyglot.close ();
+    ifs.close ();
 
     sync_cout << "info string Book entries found " << entry_count << " from file \'" << book_fn << "\'" << sync_endl;
     enabled = true;

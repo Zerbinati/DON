@@ -254,11 +254,11 @@ namespace UCI {
         Options["Book Pick Best"]     << Option (true);
         Options["Book Move Num"]      << Option (20, 0, 100);
 
-        Options["Threads"]            << Option ( 1, 0, 512, on_threads);
+        Options["Threads"]            << Option (1, 0, 512, on_threads);
 
         Options["Skill Level"]        << Option (SkillManager::MaxLevel,  0, SkillManager::MaxLevel, on_skill_level);
 
-        Options["MultiPV"]            << Option (1, 1, 255);
+        Options["MultiPV"]            << Option (1, 1, 500);
 
         Options["Fixed Contempt"]     << Option (0, -100, 100);
         Options["Contempt Time"]      << Option (60, 0, 1000);
