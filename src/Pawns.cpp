@@ -23,6 +23,12 @@ namespace Pawns {
             { V(-26), V(63), V(  5), V(-44), V( -5), V(  2), V(-59), V(0) },
             { V(-19), V(53), V(-11), V(-22), V(-12), V(-51), V(-60), V(0) }
         };
+
+        // Storm of blocked enemy pawns moving toward friend king, indexed by [rank]
+        constexpr Value BlockedStorm[R_NO] =
+        {
+            V(0), V(0), V(75), V(-10), V(-20), V(-20), V(-20), V(0)
+        };
         // Storm of unblocked enemy pawns moving toward friend king, indexed by [distance from edge][rank].
         // RANK_1 = 0 is used for files where no enemy pawn, or enemy pawn is behind friend king.
         constexpr Value UnblockedStorm[F_NO/2][R_NO] =
@@ -31,11 +37,6 @@ namespace Pawns {
             { V(  5), V( 35), V(121), V( -2), V( 15), V(-10), V(-10), V(0) },
             { V(-20), V( 22), V( 98), V( 36), V(  7), V(-20), V(-20), V(0) },
             { V(-27), V( 24), V( 80), V( 25), V( -4), V(-30), V(-30), V(0) }
-        };
-        // Storm of blocked enemy pawns moving toward friend king, indexed by [rank]
-        constexpr Value BlockedStorm[R_NO] =
-        {
-            V(0), V(0), V(75), V(-10), V(-20), V(-20), V(-20), V(0)
         };
 
     #undef V
@@ -178,11 +179,10 @@ namespace Pawns {
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
         constexpr Bitboard BlockSquares = (WHITE == Own ? R1_bb | R2_bb : R8_bb | R7_bb) & (FA_bb | FH_bb);
 
-        Bitboard front_pawns = pos.pieces (PAWN)
-                             & (  rank_bb (fk_sq)
-                                | front_rank_bb (Own, fk_sq));
-        Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
-        Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
+        Bitboard front_ranks = rank_bb (fk_sq)
+                             | front_rank_bb (Own, fk_sq);
+        Bitboard own_front_pawns = pos.pieces (Own, PAWN) & front_ranks;
+        Bitboard opp_front_pawns = pos.pieces (Opp, PAWN) & front_ranks;
 
         auto value = Value(0 != (own_front_pawns & file_bb (fk_sq)) ? +5 : -5);
 
@@ -195,11 +195,10 @@ namespace Pawns {
         for (auto f : { kf - File(1), kf, kf + File(1) })
         {
             assert(F_A <= f && f <= F_H);
-            Bitboard file_front_pawns;
-            file_front_pawns = own_front_pawns & file_bb (f);
-            auto own_r = 0 != file_front_pawns ? rel_rank (Own, scan_backmost_sq (Own, file_front_pawns)) : R_1;
-            file_front_pawns = opp_front_pawns & file_bb (f);
-            auto opp_r = 0 != file_front_pawns ? rel_rank (Own, scan_frntmost_sq (Opp, file_front_pawns)) : R_1;
+            Bitboard f_own_front_pawns = own_front_pawns & file_bb (f);
+            auto own_r = 0 != f_own_front_pawns ? rel_rank (Own, scan_backmost_sq (Own, f_own_front_pawns)) : R_1;
+            Bitboard f_opp_front_pawns = opp_front_pawns & file_bb (f);
+            auto opp_r = 0 != f_opp_front_pawns ? rel_rank (Own, scan_frntmost_sq (Opp, f_opp_front_pawns)) : R_1;
             assert((R_1 == own_r
                  && R_1 == opp_r)
                 || (own_r != opp_r));
@@ -232,9 +231,9 @@ namespace Pawns {
         e->key = key;
         e->scores[WHITE] = evaluate<WHITE> (pos, e);
         e->scores[BLACK] = evaluate<BLACK> (pos, e);
-        e->open_count = u08(pop_count (e->semiopens[WHITE] & e->semiopens[BLACK]));
-        e->asymmetry  = u08(pop_count (  (e->passers  [WHITE] | e->passers  [BLACK])
-                                       | (e->semiopens[WHITE] ^ e->semiopens[BLACK])));
+        e->open_count = u08(pop_count ((e->semiopens[WHITE] & e->semiopens[BLACK])));
+        e->asymmetry  = u08(pop_count ((e->passers  [WHITE] | e->passers  [BLACK])
+                                     | (e->semiopens[WHITE] ^ e->semiopens[BLACK])));
         return e;
     }
 

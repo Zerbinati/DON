@@ -98,7 +98,7 @@ public:
         ,            tb_hits;
     Score contempt;
 
-    CounterMove counter_moves;
+    MoveHistory counter_moves;
     ButterflyHistory butterfly_history;
     CaptureHistory capture_history;
     ContinuationHistory continuation_history;

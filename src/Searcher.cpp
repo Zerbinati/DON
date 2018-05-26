@@ -895,9 +895,9 @@ namespace Searcher {
             ss->played_move = MOVE_NONE;
             ss->piece_destiny_history = pos.thread->continuation_history[NO_PIECE][0].get ();
 
-            auto value = VALUE_ZERO
-               , best_value = -VALUE_INFINITE
-               , min_value = +VALUE_INFINITE;
+            Value value;
+            auto best_value = -VALUE_INFINITE;
+            auto max_value = +VALUE_INFINITE;
 
             auto best_move = MOVE_NONE;
 
@@ -1076,7 +1076,7 @@ namespace Searcher {
                             }
                             else
                             {
-                                min_value = value;
+                                max_value = value;
                             }
                         }
 
@@ -1736,7 +1736,7 @@ namespace Searcher {
 
             if (PVNode)
             {
-                best_value = std::min (min_value, best_value);
+                best_value = std::min (max_value, best_value);
             }
 
             if (MOVE_NONE == ss->excluded_move)

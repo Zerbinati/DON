@@ -1,7 +1,7 @@
-#if defined(LPAGES)
-
 #ifndef _MEMORY_HANDLER_H_INC_
 #define _MEMORY_HANDLER_H_INC_
+
+#if defined(LPAGES)
 
 #include "Type.h"
 
@@ -16,6 +16,6 @@ namespace Memory {
 
 }
 
-#endif // _MEMORY_HANDLER_H_INC_
-
 #endif // LPAGES
+
+#endif // _MEMORY_HANDLER_H_INC_

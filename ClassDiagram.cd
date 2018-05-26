@@ -567,7 +567,7 @@
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="CounterMove" Collapsed="true">
+  <Typedef Name="MoveHistory" Collapsed="true">
     <Position X="25" Y="3" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>

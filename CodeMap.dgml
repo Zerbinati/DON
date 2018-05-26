@@ -706,7 +706,7 @@
     <Node Id="@688" Category="CodeSchema_Enum" Bounds="25516.8305046248,23579.2117794633,64.7233333333315,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="Piece" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@689" Category="CodeSchema_Struct" Bounds="25340.8490045255,24302.8917794633,163.673333333332,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="PieceDestinyHistory" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@69" Category="CodeSchema_Method" Bounds="26214.6183284348,25315.3047727307,91.9933333333465,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="adj_file_bb" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
-    <Node Id="@690" Category="CodeSchema_Struct" Bounds="25373.6010409525,24025.9717794633,193.503333333334,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="CounterMove" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@690" Category="CodeSchema_Struct" Bounds="25373.6010409525,24025.9717794633,193.503333333334,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="MoveHistory" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@691" Category="CodeSchema_TypeDef" Bounds="25534.934975476,25972.2517794632,166.536666666667,26" DelayedCrossGroupLinksState="NotFetched" Label="PieceDestinyMoveTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@692" Category="CodeSchema_TypeDef" Bounds="25182.6481088093,26027.3317794632,157.32,26" DelayedCrossGroupLinksState="NotFetched" Label="PieceDestinyStatTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@693" Category="CodeSchema_Enum" Bounds="25589.0425958489,24524.8517794633,90.1466666666674,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="PieceType" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -6862,7 +6862,7 @@
     <Alias n="687" Id="(@1 @5 Type=PairsData)" />
     <Alias n="688" Id="(@1 @3 Type=Piece)" />
     <Alias n="689" Id="(@1 @3 Type=PieceDestinyHistory)" />
-    <Alias n="690" Id="(@1 @3 Type=CounterMove)" />
+    <Alias n="690" Id="(@1 @3 Type=MoveHistory)" />
     <Alias n="691" Id="(@1 @3 Type=PieceDestinyMoveTable)" />
     <Alias n="692" Id="(@1 @3 Type=PieceDestinyStatTable)" />
     <Alias n="693" Id="(@1 @3 Type=PieceType)" />

@@ -61,7 +61,7 @@ public:
     {}
     Logger (const Logger&) = delete;
     Logger& operator= (const Logger&) = delete;
-        
+
    ~Logger ()
     {
         set (Empty);
