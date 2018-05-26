@@ -153,7 +153,7 @@ private:
     Value threshold;
     Square recap_sq;
 
-    const PieceDestinyHistory **piece_destiny_history;
+    const PieceDestinyHistory **arr_pd_history;
 
     ValMoves moves;
     std::vector<Move> refutation_moves
@@ -194,7 +194,7 @@ public:
     u08   move_count;
     Value static_eval;
     i32   stat_score;
-    PieceDestinyHistory *piece_destiny_history;
+    PieceDestinyHistory *pd_history;
 
     std::vector<Move> pv;
 };
