@@ -458,13 +458,10 @@ void filter_illegal (ValMoves &moves, const Position &pos)
 {
     moves.erase (std::remove_if (moves.begin (),
                                  moves.end (),
-                                 [&] (const ValMove &vm)
-                                 {
-                                     return (   0 != pos.abs_blockers (pos.active)
-                                             || pos.enpassant (vm)
-                                             || pos.square<KING> (pos.active) == org_sq (vm))
-                                         && !pos.legal (vm);
-                                 }),
+                                 [&] (const ValMove &vm) { return (   0 != pos.abs_blockers (pos.active)
+                                                                   || pos.enpassant (vm)
+                                                                   || pos.square<KING> (pos.active) == org_sq (vm))
+                                                               && !pos.legal (vm); }),
                  moves.end ());
 }
 

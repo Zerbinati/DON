@@ -272,10 +272,7 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
-                                     [&](const ValMove &vm)
-                                     {
-                                         return tt_move == vm;
-                                     }),
+                                     [&](const ValMove &vm) { return tt_move == vm; }),
                      moves.end ());
         value<GenType::CAPTURE> ();
         ++stage;
@@ -284,27 +281,21 @@ Move MovePicker::next_move ()
         goto restage;
 
     case Stage::NAT_GOOD_CAPTURES:
-        if (pick_move<BEST> ([&]()
-                             {
-                                 return pos.see_ge (vmove, Value(-vmove.value * 55 / 1024)) ?
-                                        true :
-                                        // Put losing capture to bad_capture_moves to be tried later
-                                        (bad_capture_moves.push_back (vmove), false);
-                             }))
+        if (pick_move<BEST> ([&]() { return pos.see_ge (vmove, Value(-vmove.value * 55 / 1024)) ?
+                                                true :
+                                                // Put losing capture to bad_capture_moves to be tried later
+                                                (bad_capture_moves.push_back (vmove), false); }))
         {
             return vmove;
         }
 
         refutation_moves.erase (std::remove_if (refutation_moves.begin (),
                                                 refutation_moves.end (),
-                                                [&](const Move m)
-                                                {
-                                                    return MOVE_NONE == m
-                                                        || tt_move == m
-                                                        || !pos.pseudo_legal (m)
-                                                        || !pos.legal (m)
-                                                        ||  pos.capture (m);
-                                                }),
+                                                [&](const Move m) { return MOVE_NONE == m
+                                                                        || tt_move == m
+                                                                        || !pos.pseudo_legal (m)
+                                                                        || !pos.legal (m)
+                                                                        ||  pos.capture (m); }),
                                 refutation_moves.end ());
         ++stage;
         i = 0;
@@ -320,11 +311,8 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
-                                     [&](const ValMove &vm)
-                                     {
-                                         return tt_move == vm
-                                             || std::find (refutation_moves.begin (), refutation_moves.end (), vm) != refutation_moves.end ();
-                                     }),
+                                     [&](const ValMove &vm) { return tt_move == vm
+                                                                  || std::find (refutation_moves.begin (), refutation_moves.end (), vm) != refutation_moves.end (); }),
                      moves.end ());
         value<GenType::QUIET> ();
         ++stage;
@@ -350,10 +338,7 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
-                                     [&](const ValMove &vm)
-                                     {
-                                         return tt_move == vm;
-                                     }),
+                                     [&](const ValMove &vm) { return tt_move == vm; }),
                      moves.end ());
         value<GenType::EVASION> ();
         ++stage;
@@ -370,11 +355,8 @@ Move MovePicker::next_move ()
                 MOVE_NONE;
 
     case Stage::QS_CAPTURES:
-        if (pick_move<BEST> ([&]()
-                             {
-                                 return DepthQSRecapture < depth
-                                     || dst_sq (vmove) == recap_sq;
-                             }))
+        if (pick_move<BEST> ([&]() { return DepthQSRecapture < depth
+                                        || dst_sq (vmove) == recap_sq; }))
         {
             return vmove;
         }
@@ -388,10 +370,7 @@ Move MovePicker::next_move ()
         filter_illegal (moves, pos);
         moves.erase (std::remove_if (moves.begin (),
                                      moves.end (),
-                                     [&](const ValMove &vm)
-                                     {
-                                         return tt_move == vm;
-                                     }),
+                                     [&](const ValMove &vm) { return tt_move == vm; }),
                      moves.end ());
         ++stage;
         i = 0;
@@ -423,10 +402,10 @@ namespace Searcher {
         constexpr u08 SkipPhase[SkipIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
 
         // Razoring and futility margin
-        constexpr Value RazorMargin[] = { Value(0), Value(590), Value(604) };
+        constexpr Value RazorMargin[3] = { Value(0), Value(590), Value(604) };
 
         // Margin for pruning capturing moves: almost linear in depth
-        constexpr Value CapturePruneMargin[] =
+        constexpr Value CapturePruneMargin[7] =
         { 
             VALUE_ZERO,
             VALUE_EG_PAWN * 1 * 1055 / 1000,
@@ -726,7 +705,7 @@ namespace Searcher {
             u08 move_count = 0;
 
             // Initialize move picker (2) for the current position
-            MovePicker move_picker (pos, tt_move, depth, dst_sq ((ss-1)->played_move));
+            MovePicker move_picker (pos, tt_move, depth, _ok ((ss-1)->played_move) ? dst_sq ((ss-1)->played_move) : SQ_NO);
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
@@ -1309,7 +1288,13 @@ namespace Searcher {
 
             value = best_value;
 
-            const PieceDestinyHistory *arr_pd_history[4] = { (ss-1)->pd_history, (ss-2)->pd_history, (ss-3)->pd_history, (ss-4)->pd_history };
+            const PieceDestinyHistory *arr_pd_history[4] =
+            {
+                (ss-1)->pd_history,
+                (ss-2)->pd_history,
+                (ss-3)->pd_history,
+                (ss-4)->pd_history
+            };
             auto counter_move = _ok ((ss-1)->played_move) ?
                                     thread->counter_moves[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
                                     MOVE_NONE;
