@@ -77,7 +77,7 @@ TimePoint TimeManager::elapsed_time () const
                         now () - StartTime);
 }
 /// TimeManager::initialize() calculates the allowed thinking time out of the time control and current game ply.
-/// Support four different kind of time controls, passed in 'limits':
+/// Support four different kind of time controls, passed in 'limit':
 ///
 /// increment == 0, moves to go == 0 => y basetime                             ['sudden death']
 /// increment != 0, moves to go == 0 => y basetime + z increment
@@ -152,7 +152,7 @@ void SkillManager::pick_best_move (const RootMoves &root_moves)
         // RootMoves are already sorted by value in descending order
         auto max_value = root_moves[0].new_value;
         auto min_value = root_moves[Threadpool.pv_limit - 1].new_value;
-        i32  weakness = MaxPlies - 8 * level;
+        i32  weakness = MaxPlies - 8 * i16(i32(Options["Skill Level"]));
         i32  diversion = std::min (max_value - min_value, VALUE_MG_PAWN);
         // First for each move score add two terms, both dependent on weakness.
         // One is deterministic with weakness, and one is random with weakness.
@@ -248,7 +248,7 @@ void Thread::clear ()
     tb_hits = 0;
     nmp_ply = 0;
     nmp_color = CLR_NO;
-    counter_moves.fill (MOVE_NONE);
+    move_history.fill (MOVE_NONE);
     butterfly_history.fill (0);
     capture_history.fill (0);
     for (auto &pd : continuation_history)
@@ -462,13 +462,13 @@ void ThreadPool::configure (u32 threads)
 }
 /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and returns immediately.
 /// Main thread will wake up other threads and start the search.
-void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limit &limits, const vector<Move> &search_moves, bool ponde)
+void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limit &limit, const vector<Move> &search_moves, bool ponde)
 {
     stop = false;
     stop_on_ponderhit = false;
     ponder = ponde;
 
-    Limits = limits;
+    Limits = limit;
 
     RootMoves root_moves;
     root_moves.initialize (pos, search_moves);

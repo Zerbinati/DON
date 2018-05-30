@@ -12,7 +12,6 @@ using namespace BitBoard;
 using namespace TBSyzygy;
 
 bool Position::Chess960 = false;
-u08  Position::DrawClockPly = 100;
 
 namespace {
     
@@ -88,8 +87,8 @@ void Position::initialize ()
 bool Position::draw (i16 pp) const
 {
     // Draw by Clock Ply Rule?
-    // Not in check or in check have legal moves 
-    if (   si->clock_ply >= DrawClockPly
+    // Not in check or in check have legal moves
+    if (   si->clock_ply >= 2*u08(i32(Options["Draw MoveCount"]))
         && (   0 == si->checkers
             || 0 != MoveList<GenType::LEGAL> (*this).size ()))
     {
@@ -176,7 +175,7 @@ bool Position::cycled (i16 pp) const
     return false;
 }
 
-/// Position::has_repeated() tests whether there has been at least one repetition of positions since the last capture or pawn move.
+/// Position::repeated() tests whether there has been at least one repetition of positions since the last capture or pawn move.
 bool Position::repeated () const
 {
     const auto *csi = si;
@@ -188,6 +187,7 @@ bool Position::repeated () const
             break;
         }
         const auto *psi = si->ptr->ptr;
+        u08 p = 4;
         do
         {
             psi = psi->ptr->ptr;
@@ -196,9 +196,9 @@ bool Position::repeated () const
             {
                 return true;
             }
-            end -= 2;
+            p += 2;
         }
-        while (end >= 4);
+        while (p <= end);
         csi = csi->ptr;
     }
     return false;
@@ -1589,7 +1589,7 @@ bool Position::ok () const
         || si->non_pawn_matl[WHITE] != compute_npm<WHITE> (*this)
         || si->non_pawn_matl[BLACK] != compute_npm<BLACK> (*this)
         || si->checkers != attackers_to (square<KING> (active), ~active)
-        || (   si->clock_ply > DrawClockPly
+        || (   si->clock_ply > 2*u08(i32(Options["Draw MoveCount"]))
             || (   NONE != si->capture
                 && 0 != si->clock_ply))
         || (   SQ_NO != si->enpassant_sq

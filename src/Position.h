@@ -118,7 +118,6 @@ private:
 
 public:
     static bool Chess960;
-    static u08  DrawClockPly;
 
     Piece    board[SQ_NO];
     Bitboard color_bb[CLR_NO];

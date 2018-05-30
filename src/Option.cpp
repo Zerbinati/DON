@@ -201,19 +201,9 @@ namespace UCI {
             Threadpool.configure (threads);
         }
 
-        void on_draw_movecount ()
-        {
-            Position::DrawClockPly = 2 * u08(i32(Options["Draw MoveCount"]));
-        }
-
         void on_book_fn ()
         {
             Book.initialize ();
-        }
-
-        void on_skill_level ()
-        {
-            Threadpool.main_thread ()->skill_mgr.level = u08(i32(Options["Skill Level"]));
         }
 
         void on_debug_file ()
@@ -256,7 +246,7 @@ namespace UCI {
 
         Options["Threads"]            << Option (1, 0, 512, on_threads);
 
-        Options["Skill Level"]        << Option (SkillManager::MaxLevel,  0, SkillManager::MaxLevel, on_skill_level);
+        Options["Skill Level"]        << Option (MaxLevel,  0, MaxLevel);
 
         Options["MultiPV"]            << Option (1, 1, 500);
 
@@ -267,7 +257,7 @@ namespace UCI {
         Options["UCI_AnalyseMode"]    << Option (false);
         Options["Analysis Contempt"]  << Option ("Both var Off var White var Black var Both", "Both");
 
-        Options["Draw MoveCount"]     << Option (Position::DrawClockPly/2, 5, 50, on_draw_movecount);
+        Options["Draw MoveCount"]     << Option (50, 5, 50);
 
         Options["Overhead Move Time"] << Option (30, 0, 5000);
         Options["Minimum Move Time"]  << Option (20, 0, 5000);

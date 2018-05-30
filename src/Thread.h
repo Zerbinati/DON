@@ -4,6 +4,7 @@
 #include <thread>
 #include <atomic>
 #include "Material.h"
+#include "Option.h"
 #include "Pawns.h"
 #include "Position.h"
 #include "Searcher.h"
@@ -33,31 +34,30 @@ public:
     void update (Color);
 };
 
+// MaxLevel should be <= MaxPlies/8
+const i16 MaxLevel = 12;
+
 /// Skill Manager class is used to implement strength limit
 class SkillManager
 {
 public:
-    // MaxLevel should be <= MaxPlies/8
-    static const u08 MaxLevel = 12;
 
-    u08  level;
     Move best_move;
 
-    explicit SkillManager (u08 lvl = MaxLevel)
-        : level (lvl)
-        , best_move (MOVE_NONE)
+    explicit SkillManager ()
+        : best_move (MOVE_NONE)
     {}
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;
 
     bool enabled () const
     {
-        return level < MaxLevel;
+        return i16(i32(Options["Skill Level"])) < MaxLevel;
     }
 
     bool can_pick (i16 depth) const
     {
-        return depth == level + 1;
+        return depth == i16(i32(Options["Skill Level"])) + 1;
     }
 
     void pick_best_move (const RootMoves&);
@@ -98,7 +98,7 @@ public:
         ,            tb_hits;
     Score contempt;
 
-    MoveHistory counter_moves;
+    MoveHistory move_history;
     ButterflyHistory butterfly_history;
     CaptureHistory capture_history;
     ContinuationHistory continuation_history;

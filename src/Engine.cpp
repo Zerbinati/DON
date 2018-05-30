@@ -187,32 +187,32 @@ namespace {
 
         DebugTime = 0;
         StartTime = now ();
-        Limit limits;
+        Limit limit;
         vector<Move> search_moves; // Restrict search to these root moves only
         bool ponder = false;
 
         string token;
         while (iss >> token)
         {
-            if (token == "wtime")     iss >> limits.clock[WHITE].time;
+            if (token == "wtime")     iss >> limit.clock[WHITE].time;
             else
-            if (token == "btime")     iss >> limits.clock[BLACK].time;
+            if (token == "btime")     iss >> limit.clock[BLACK].time;
             else
-            if (token == "winc")      iss >> limits.clock[WHITE].inc;
+            if (token == "winc")      iss >> limit.clock[WHITE].inc;
             else
-            if (token == "binc")      iss >> limits.clock[BLACK].inc;
+            if (token == "binc")      iss >> limit.clock[BLACK].inc;
             else
-            if (token == "movestogo") iss >> limits.movestogo;
+            if (token == "movestogo") iss >> limit.movestogo;
             else
-            if (token == "movetime")  iss >> limits.movetime;
+            if (token == "movetime")  iss >> limit.movetime;
             else
-            if (token == "depth")     iss >> limits.depth;
+            if (token == "depth")     iss >> limit.depth;
             else
-            if (token == "nodes")     iss >> limits.nodes;
+            if (token == "nodes")     iss >> limit.nodes;
             else
-            if (token == "mate")      iss >> limits.mate;
+            if (token == "mate")      iss >> limit.mate;
             else
-            if (token == "infinite")  limits.infinite = true;
+            if (token == "infinite")  limit.infinite = true;
             else
             if (token == "ponder")    ponder = true;
             else
@@ -273,7 +273,7 @@ namespace {
                 return;
             }
         }
-        Threadpool.start_thinking (pos, states, limits, search_moves, ponder);
+        Threadpool.start_thinking (pos, states, limit, search_moves, ponder);
     }
 
     /// setup_bench() builds a list of UCI commands to be run by bench.

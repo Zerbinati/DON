@@ -81,13 +81,13 @@ RootMoves::operator string () const
 /// and about how important good move ordering is at the current node.
 
 /// MovePicker constructor for the main search
-MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **a_pdh, const Move *km, Move cm)
+MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pdhs, const Move *km, Move cm)
     : pos (p)
     , tt_move (ttm)
     , depth (d)
     , threshold (Value(-4000*d))
     , recap_sq (SQ_NO)
-    , arr_pd_history (a_pdh)
+    , pd_histories (pdhs)
     , refutation_moves (km, km + MaxKillers)
     , pick_quiets (true)
 {
@@ -127,7 +127,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     , depth (d)
     , threshold (VALUE_ZERO)
     , recap_sq (rs)
-    , arr_pd_history (nullptr)
+    , pd_histories (nullptr)
     , pick_quiets (true)
 {
     assert(MOVE_NONE == tt_move
@@ -164,7 +164,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
     , depth (0)
     , threshold (thr)
     , recap_sq (SQ_NO)
-    , arr_pd_history (nullptr)
+    , pd_histories (nullptr)
     , pick_quiets (true)
 {
     assert(0 == pos.si->checkers);
@@ -207,15 +207,15 @@ void MovePicker::value ()
         {
             assert(pos.capture_or_promotion (vm));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm)])
-                     + thread->capture_history[pos[org_sq (vm)]][move_pp (vm)][pos.cap_type (vm)];
+                     + thread->capture_history[pos[org_sq (vm)]][move_pp (vm)][pos.cap_type (vm)] / 16;
         }
         else
         if (GenType::QUIET == GT)
         {
             vm.value = thread->butterfly_history[pos.active][move_pp (vm)]
-                     + (*arr_pd_history[0])[pos[org_sq (vm)]][dst_sq (vm)]
-                     + (*arr_pd_history[1])[pos[org_sq (vm)]][dst_sq (vm)]
-                     + (*arr_pd_history[3])[pos[org_sq (vm)]][dst_sq (vm)];
+                     + (*pd_histories[0])[pos[org_sq (vm)]][dst_sq (vm)]
+                     + (*pd_histories[1])[pos[org_sq (vm)]][dst_sq (vm)]
+                     + (*pd_histories[3])[pos[org_sq (vm)]][dst_sq (vm)];
         }
         else // GenType::EVASION == GT
         {
@@ -459,7 +459,7 @@ namespace Searcher {
 
             if (_ok ((ss-1)->played_move))
             {
-                pos.thread->counter_moves[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] = move;
+                pos.thread->move_history[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] = move;
             }
         }
 
@@ -988,8 +988,7 @@ namespace Searcher {
                             && !pos.si->promotion
                             && NONE == pos.si->capture)
                         {
-                            auto bonus = stat_bonus (depth + 1);
-                            update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -bonus);
+                            update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
                         }
                     }
                     else
@@ -1260,7 +1259,7 @@ namespace Searcher {
                 if (   7 < depth
                     && MOVE_NONE == tt_move)
                 {
-                    depth_search<PVNode> (pos, ss, alfa, beta, depth - 7, cut_node);
+                    depth_search<PVNode> (pos, ss, alfa, beta, 3 * depth / 4 - 2, cut_node);
 
                     tte = TT.probe (key, tt_hit);
                     tt_move = tt_hit
@@ -1288,7 +1287,7 @@ namespace Searcher {
 
             value = best_value;
 
-            const PieceDestinyHistory *arr_pd_history[4] =
+            const PieceDestinyHistory *pd_histories[4] =
             {
                 (ss-1)->pd_history,
                 (ss-2)->pd_history,
@@ -1296,10 +1295,10 @@ namespace Searcher {
                 (ss-4)->pd_history
             };
             auto counter_move = _ok ((ss-1)->played_move) ?
-                                    thread->counter_moves[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
+                                    thread->move_history[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
                                     MOVE_NONE;
             // Initialize move picker (1) for the current position
-            MovePicker move_picker (pos, tt_move, depth, arr_pd_history, ss->killer_moves, counter_move);
+            MovePicker move_picker (pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
@@ -1357,6 +1356,14 @@ namespace Searcher {
 
                 i16 extension = 0;
 
+                // Check extension (CE) (~2 ELO)
+                if (   gives_check
+                    && !move_count_pruning
+                    && pos.see_ge (move))
+                {
+                    extension = 1;
+                }
+                else
                 // Singular extension (SE) (~60 ELO)
                 // We extend the TT move if its value is much better than its siblings.
                 // If all moves but one fail low on a search of (alfa-s, beta-s),
@@ -1381,14 +1388,6 @@ namespace Searcher {
                     {
                         extension = 1;
                     }
-                }
-                else
-                // Check extension (CE) (~2 ELO)
-                if (   gives_check
-                    && !move_count_pruning
-                    && pos.see_ge (move))
-                {
-                    extension = 1;
                 }
 
                 // Calculate new depth for this move
@@ -1418,8 +1417,8 @@ namespace Searcher {
                         i16 lmr_depth = i16(std::max (new_depth - reduction_depth (PVNode, improving, depth, move_count), 0));
                         if (    // Countermoves based pruning. (~20 ELO)
                                (   3 > lmr_depth
-                                && (*arr_pd_history[0])[mpc][dst] < CounterMovePruneThreshold
-                                && (*arr_pd_history[1])[mpc][dst] < CounterMovePruneThreshold)
+                                && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
+                                && (*pd_histories[1])[mpc][dst] < CounterMovePruneThreshold)
                                 // Futility pruning: parent node. (~2 ELO)
                             || (   7 > lmr_depth
                                 && !in_check
@@ -1507,9 +1506,9 @@ namespace Searcher {
                         }
 
                         (ss)->stat_score = thread->butterfly_history[own][move_pp (move)]
-                                         + (*arr_pd_history[0])[mpc][dst]
-                                         + (*arr_pd_history[1])[mpc][dst]
-                                         + (*arr_pd_history[3])[mpc][dst]
+                                         + (*pd_histories[0])[mpc][dst]
+                                         + (*pd_histories[1])[mpc][dst]
+                                         + (*pd_histories[3])[mpc][dst]
                                          - 4000;
 
                         // Decrease/Increase reduction by comparing own and opp stats (~10 Elo)
@@ -1704,8 +1703,7 @@ namespace Searcher {
                     && !pos.si->promotion
                     && NONE == pos.si->capture)
                 {
-                    auto bonus = stat_bonus (depth + 1);
-                    update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -bonus);
+                    update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
                 }
             }
             else
@@ -1716,8 +1714,7 @@ namespace Searcher {
                 && !pos.si->promotion
                 && NONE == pos.si->capture)
             {
-                auto bonus = stat_bonus (depth);
-                update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), bonus);
+                update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), stat_bonus (depth));
             }
 
             if (PVNode)
@@ -2297,7 +2294,7 @@ void MainThread::set_check_count ()
     assert(0 != check_count);
 }
 /// MainThread::tick() is used as timer function.
-/// Used to detect when out of available limits and thus stop the search, also print debug info.
+/// Used to detect when out of available limit and thus stop the search, also print debug info.
 void MainThread::tick ()
 {
     if (0 < --check_count)

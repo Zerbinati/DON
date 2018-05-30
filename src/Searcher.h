@@ -38,7 +38,7 @@ public:
     bool      infinite;    // Search until the "stop" command
 
     Limit ()
-        : clock { TimePoint(0), TimePoint(0) }
+        : clock {}
         , movestogo (0)
         , movetime (TimePoint(0))
         , depth (0)
@@ -153,7 +153,7 @@ private:
     Value threshold;
     Square recap_sq;
 
-    const PieceDestinyHistory **arr_pd_history;
+    const PieceDestinyHistory **pd_histories;
 
     ValMoves moves;
     std::vector<Move> refutation_moves
