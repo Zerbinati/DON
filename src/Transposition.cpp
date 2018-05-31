@@ -135,9 +135,29 @@ void TTable::clear ()
     {
         return;
     }
-    for (auto *itc = clusters; itc < clusters + cluster_count; ++itc)
+
+    size_t stride = cluster_count / i32(Options["Threads"]);
+    std::vector<std::thread> threads;
+    for (i32 idx = 0; idx < i32(Options["Threads"]); ++idx)
     {
-        std::memcpy (itc, &TCluster::Empty, sizeof (TCluster));
+        threads.push_back (std::thread ([this, idx, stride]()
+                            {
+                                if (8 <= i32(Options["Threads"]))
+                                {
+                                    ThreadPool::bind (idx);
+                                }
+                                size_t count = idx != i32(Options["Threads"]) - 1 ?
+                                                stride :
+                                                cluster_count - idx * stride;
+                                for (auto *itc = clusters + idx * stride; itc < clusters + count; ++itc)
+                                {
+                                    std::memcpy (itc, &TCluster::Empty, sizeof (TCluster));
+                                }
+                            }));
+    }
+    for (auto &th : threads)
+    {
+        th.join ();
     }
     //sync_cout << "info string Hash cleared" << sync_endl;
 }
