@@ -11,6 +11,17 @@ TTable TT;
 
 using namespace std;
 
+TCluster TCluster::Empty;
+
+void TCluster::initialize ()
+{
+    std::memset (&Empty, 0x00, sizeof (Empty));
+    for (auto *ite = Empty.entries; ite < Empty.entries + TCluster::EntryCount; ++ite)
+    {
+        ite->d08 = DepthEmpty;
+    }
+}
+
 /// TTable::alloc_aligned_memory() allocates the aligned memory
 void TTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
 {
@@ -117,23 +128,16 @@ void TTable::auto_resize (u32 mem_size, bool force)
     stop (EXIT_FAILURE);
 }
 /// TTable::clear() clear the entire transposition table.
-void TTable::clear () const
+void TTable::clear ()
 {
     assert(nullptr != clusters);
     if (bool(Options["Retain Hash"]))
     {
         return;
     }
-    // Clear first cluster
-    std::memset (clusters, 0x00, sizeof (*clusters));
-    for (auto *ite = clusters->entries; ite < clusters->entries + TCluster::EntryCount; ++ite)
+    for (auto *itc = clusters; itc < clusters + cluster_count; ++itc)
     {
-        ite->d08 = DepthEmpty;
-    }
-    // Clear other cluster using first cluster as template
-    for (auto *itc = clusters + 1; itc < clusters + cluster_count; ++itc)
-    {
-        std::memcpy (itc, clusters, sizeof (*clusters));
+        std::memcpy (itc, &TCluster::Empty, sizeof (TCluster));
     }
     //sync_cout << "info string Hash cleared" << sync_endl;
 }

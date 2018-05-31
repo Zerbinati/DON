@@ -25,6 +25,7 @@ private:
     i08 d08;
     u08 gb08;
 
+    friend class TCluster;
     friend class TTable;
 
 public:
@@ -70,6 +71,9 @@ struct TCluster
 public:
     // Cluster entry count
     static constexpr u08 EntryCount = 3;
+    static TCluster Empty;
+
+    static void initialize ();
 
     TEntry entries[EntryCount];
     char padding[2]; // Align to a divisor of the cache line size
@@ -140,7 +144,7 @@ public:
 
     void auto_resize (u32, bool = false);
 
-    void clear () const;
+    void clear ();
 
     TEntry* probe (Key, bool&) const;
 

@@ -1259,7 +1259,7 @@ namespace Searcher {
                 if (   7 < depth
                     && MOVE_NONE == tt_move)
                 {
-                    depth_search<PVNode> (pos, ss, alfa, beta, 3 * depth / 4 - 2, cut_node);
+                    depth_search<PVNode> (pos, ss, alfa, beta, depth - 7, cut_node);
 
                     tte = TT.probe (key, tt_hit);
                     tt_move = tt_hit
