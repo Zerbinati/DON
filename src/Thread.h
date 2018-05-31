@@ -154,6 +154,14 @@ public:
     void tick ();
 };
 
+namespace WinProcGroup {
+
+    extern std::vector<i16> Groups;
+
+    extern void initialize ();
+    extern void bind (size_t);
+
+}
 /// ThreadPool class handles all the threads related stuff like,
 /// initializing & deinitializing, starting, parking & launching a thread
 /// All the access to shared thread data is done through this class.
@@ -161,8 +169,6 @@ class ThreadPool
     : public std::vector<Thread*>
 {
 private:
-
-    static std::vector<i16> Groups;
 
     StateListPtr setup_states;
 
@@ -183,9 +189,6 @@ public:
     std::atomic<bool> stop                // Stop search
         ,             stop_on_ponderhit   // Stop search on ponderhit
         ,             ponder;             // Search on ponder move until the "stop"/"ponderhit" command
-
-    static void initialize ();
-    static void bind (size_t);
 
     ThreadPool () = default;
     ThreadPool (const ThreadPool&) = delete;

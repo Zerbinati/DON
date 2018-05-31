@@ -728,9 +728,9 @@ void run (i32 argc, const char *const *argv)
     UCI::initialize ();
     Pawns::initialize ();
     EndGame::initialize ();
+    WinProcGroup::initialize ();
     TCluster::initialize ();
     TT.auto_resize (i32(Options["Hash"]), true);
-    ThreadPool::initialize ();
     Threadpool.configure (i32(Options["Threads"]));
     Searcher::initialize ();
     Book.initialize ();

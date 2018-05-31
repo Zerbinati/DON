@@ -144,12 +144,12 @@ void TTable::clear ()
                             {
                                 if (8 <= i32(Options["Threads"]))
                                 {
-                                    ThreadPool::bind (idx);
+                                    WinProcGroup::bind (idx);
                                 }
                                 size_t count = idx != i32(Options["Threads"]) - 1 ?
                                                 stride :
                                                 cluster_count - idx * stride;
-                                for (auto *itc = clusters + idx * stride; itc < clusters + count; ++itc)
+                                for (auto *itc = clusters + idx * stride; itc < clusters + idx * stride + count; ++itc)
                                 {
                                     std::memcpy (itc, &TCluster::Empty, sizeof (TCluster));
                                 }
