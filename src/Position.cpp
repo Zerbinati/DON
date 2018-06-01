@@ -2,6 +2,7 @@
 
 #include "MoveGenerator.h"
 #include "Notation.h"
+#include "Option.h"
 #include "Polyglot.h"
 #include "PSQT.h"
 #include "TBsyzygy.h"
@@ -88,7 +89,7 @@ bool Position::draw (i16 pp) const
 {
     // Draw by Clock Ply Rule?
     // Not in check or in check have legal moves
-    if (   si->clock_ply >= 2*u08(i32(Options["Draw MoveCount"]))
+    if (   si->clock_ply >= 2*i32(Options["Draw MoveCount"])
         && (   0 == si->checkers
             || 0 != MoveList<GenType::LEGAL> (*this).size ()))
     {
@@ -1589,7 +1590,7 @@ bool Position::ok () const
         || si->non_pawn_matl[WHITE] != compute_npm<WHITE> (*this)
         || si->non_pawn_matl[BLACK] != compute_npm<BLACK> (*this)
         || si->checkers != attackers_to (square<KING> (active), ~active)
-        || (   si->clock_ply > 2*u08(i32(Options["Draw MoveCount"]))
+        || (   si->clock_ply > 2*i32(Options["Draw MoveCount"])
             || (   NONE != si->capture
                 && 0 != si->clock_ply))
         || (   SQ_NO != si->enpassant_sq

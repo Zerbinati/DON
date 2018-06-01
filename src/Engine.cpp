@@ -732,10 +732,9 @@ void run (i32 argc, const char *const *argv)
     TCluster::initialize ();
     TT.auto_resize (i32(Options["Hash"]), true);
     Threadpool.configure (i32(Options["Threads"]));
-    Searcher::initialize ();
     Book.initialize (string(Options["Book File"]));
     TBSyzygy::initialize (string(Options["SyzygyPath"]));
-
+    Searcher::initialize ();
     Searcher::clear ();
 
     loop (argc, argv);

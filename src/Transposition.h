@@ -63,10 +63,11 @@ public:
 /// Size of Transposition entry (10 bytes)
 static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
 
-constexpr u08 CacheLineSize = 64;
+constexpr u32 CacheLineSize = 64;
+
 /// Transposition::Cluster needs 32 bytes to be stored
 /// 10 x 3 + 2 = 32
-struct TCluster
+class TCluster
 {
 public:
     // Cluster entry count
@@ -80,7 +81,7 @@ public:
 
     TEntry *probe (u16, bool&, u08);
 
-    void empty ();
+    void clear ();
 
     size_t full_entry_count (u08) const;
 

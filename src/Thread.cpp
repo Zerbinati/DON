@@ -286,6 +286,7 @@ void MainThread::clear ()
 namespace WinProcGroup {
 
     vector<i16> Groups;
+
     /// initialize() retrieves logical processor information using specific API
     void initialize ()
     {

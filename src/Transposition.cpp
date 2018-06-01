@@ -15,7 +15,7 @@ TCluster TCluster::Empty;
 void TCluster::initialize ()
 {
     std::memset (&Empty, 0x00, sizeof (Empty));
-    for (auto *ite = Empty.entries; ite < Empty.entries + TCluster::EntryCount; ++ite)
+    for (auto *ite = Empty.entries; ite < Empty.entries + EntryCount; ++ite)
     {
         ite->d08 = DepthEmpty;
     }
@@ -35,7 +35,7 @@ TEntry* TCluster::probe (u16 key16, bool &tt_hit, u08 gen)
             if (   tt_hit
                 && ite->generation () != gen)
             {
-                ite->gb08 = u08 (gen + ite->bound ());
+                ite->gb08 = u08(gen + ite->bound ());
             }
             return ite;
         }
@@ -54,7 +54,7 @@ TEntry* TCluster::probe (u16 key16, bool &tt_hit, u08 gen)
     return rte;
 }
 
-void TCluster::empty ()
+void TCluster::clear ()
 {
     std::memcpy (this, &Empty, sizeof (*this));
 }
@@ -202,7 +202,7 @@ void TTable::clear ()
                                                 cluster_count - idx * stride;
                                 for (auto *itc = pcluster; itc < pcluster + count; ++itc)
                                 {
-                                    itc->empty ();
+                                    itc->clear ();
                                 }
                             }));
     }
@@ -210,6 +210,7 @@ void TTable::clear ()
     {
         th.join ();
     }
+    threads.clear ();
     //sync_cout << "info string Hash cleared" << sync_endl;
 }
 
