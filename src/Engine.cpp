@@ -339,7 +339,7 @@ namespace {
             ifs.close ();
         }
 
-        const bool chess960 = Position::Chess960;
+        bool chess960 = bool(Options["UCI_Chess960"]);
 
         uci_cmds.emplace_back ("setoption name Threads value " + threads);
         uci_cmds.emplace_back ("setoption name Hash value " + hash);

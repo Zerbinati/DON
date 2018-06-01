@@ -221,8 +221,8 @@ public:
     Value old_value
         , new_value;
 
-    i16 sel_depth;
-    i16 tb_rank;
+    i16   sel_depth;
+    i16   tb_rank;
     Value tb_value;
 
     explicit RootMove (Move m = MOVE_NONE)

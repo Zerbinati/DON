@@ -12,8 +12,6 @@ using namespace std;
 using namespace BitBoard;
 using namespace TBSyzygy;
 
-bool Position::Chess960 = false;
-
 namespace {
     
     // Marcel van Kervink's cuckoo algorithm for fast detection of "upcoming repetition".
@@ -1322,7 +1320,7 @@ void Position::mirror ()
     {
         for (auto &ch : token)
         {
-            if (Chess960)
+            if (bool(Options["UCI_Chess960"]))
             {
                 assert(isalpha (ch));
                 ch = to_char (~to_file (char(tolower (ch))), islower (ch));
@@ -1395,10 +1393,10 @@ string Position::fen (bool full) const
 
     if (si->can_castle (CR_ANY))
     {
-        if (si->can_castle (CR_WKING)) oss << (Chess960 ? to_char (_file (castle_rook[WHITE][CS_KING]), false) : 'K');
-        if (si->can_castle (CR_WQUEN)) oss << (Chess960 ? to_char (_file (castle_rook[WHITE][CS_QUEN]), false) : 'Q');
-        if (si->can_castle (CR_BKING)) oss << (Chess960 ? to_char (_file (castle_rook[BLACK][CS_KING]),  true) : 'k');
-        if (si->can_castle (CR_BQUEN)) oss << (Chess960 ? to_char (_file (castle_rook[BLACK][CS_QUEN]),  true) : 'q');
+        if (si->can_castle (CR_WKING)) oss << (bool(Options["UCI_Chess960"]) ? to_char (_file (castle_rook[WHITE][CS_KING]), false) : 'K');
+        if (si->can_castle (CR_WQUEN)) oss << (bool(Options["UCI_Chess960"]) ? to_char (_file (castle_rook[WHITE][CS_QUEN]), false) : 'Q');
+        if (si->can_castle (CR_BKING)) oss << (bool(Options["UCI_Chess960"]) ? to_char (_file (castle_rook[BLACK][CS_KING]),  true) : 'k');
+        if (si->can_castle (CR_BQUEN)) oss << (bool(Options["UCI_Chess960"]) ? to_char (_file (castle_rook[BLACK][CS_QUEN]),  true) : 'q');
     }
     else
     {

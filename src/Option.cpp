@@ -216,11 +216,6 @@ namespace UCI {
             TBSyzygy::initialize (string(o));
         }
 
-        void on_uci_chess960 (const Option &o)
-        {
-            Position::Chess960 = bool(o);
-        }
-
     }
 
     void initialize ()
@@ -273,7 +268,7 @@ namespace UCI {
         Options["Debug File"]         << Option (Empty.c_str (), on_debug_file);
         Options["Output File"]        << Option (Empty.c_str ());
 
-        Options["UCI_Chess960"]       << Option (Position::Chess960, on_uci_chess960);
+        Options["UCI_Chess960"]       << Option (false);
     }
 
     void deinitialize ()

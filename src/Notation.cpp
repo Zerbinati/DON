@@ -106,7 +106,7 @@ string move_to_can (Move m)
     if (MOVE_NULL == m) return "(null)";
 
     auto can = to_string (org_sq (m))
-             + to_string (fix_dst_sq (m, Position::Chess960));
+             + to_string (fix_dst_sq (m, bool(Options["UCI_Chess960"])));
     if (PROMOTE == mtype (m))
     {
         can += PieceChar[BLACK|promote (m)];

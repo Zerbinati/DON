@@ -117,8 +117,6 @@ private:
     PieceType pick_least_val_att (PieceType, Square, Bitboard, Bitboard&, Bitboard&) const;
 
 public:
-    static bool Chess960;
-
     Piece    board[SQ_NO];
     Bitboard color_bb[CLR_NO];
     Bitboard types_bb[MAX_PTYPE];

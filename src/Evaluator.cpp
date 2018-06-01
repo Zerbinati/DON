@@ -442,7 +442,7 @@ namespace {
                         score += BishopOnDiagonal;
                     }
 
-                    if (Position::Chess960)
+                    if (bool(Options["UCI_Chess960"]))
                     {
                         // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
                         // It is a very serious problem, especially when that pawn is also blocked.
