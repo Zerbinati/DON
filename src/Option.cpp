@@ -122,7 +122,7 @@ namespace UCI {
 
         if (nullptr != on_change)
         {
-            on_change ();
+            on_change (*this);
         }
 
         return *this;
@@ -165,35 +165,35 @@ namespace UCI {
 
     namespace {
 
-        void on_hash ()
+        void on_hash (const Option &o)
         {
-            TT.auto_resize (i32(Options["Hash"]), false);
+            TT.auto_resize (i32(o), false);
         }
 
 #   if defined(LPAGES)
-        void on_large_pages ()
+        void on_large_pages (const Option&)
         {
             TT.resize ();
         }
 #   endif
 
-        void on_clear_hash ()
+        void on_clear_hash (const Option&)
         {
             clear ();
         }
 
-        void on_save_hash ()
+        void on_save_hash (const Option&)
         {
-            TT.save ();
+            TT.save (string(Options["Hash File"]));
         }
-        void on_load_hash ()
+        void on_load_hash (const Option&)
         {
-            TT.load ();
+            TT.load (string(Options["Hash File"]));
         }
 
-        void on_threads ()
+        void on_threads (const Option &o)
         {
-            auto threads = i32(Options["Threads"]);
+            auto threads = i32(o);
             if (0 == threads)
             {
                 threads = thread::hardware_concurrency ();
@@ -201,24 +201,24 @@ namespace UCI {
             Threadpool.configure (threads);
         }
 
-        void on_book_fn ()
+        void on_book_fn (const Option &o)
         {
-            Book.initialize ();
+            Book.initialize (string(o));
         }
 
-        void on_debug_file ()
+        void on_debug_file (const Option &o)
         {
-            Log.set (string(Options["Debug File"]));
+            Log.set (string(o));
         }
 
-        void on_syzygy_path ()
+        void on_syzygy_path (const Option &o)
         {
-            TBSyzygy::initialize ();
+            TBSyzygy::initialize (string(o));
         }
 
-        void on_uci_chess960 ()
+        void on_uci_chess960 (const Option &o)
         {
-            Position::Chess960 = bool(Options["UCI_Chess960"]);
+            Position::Chess960 = bool(o);
         }
 
     }

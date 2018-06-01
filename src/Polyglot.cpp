@@ -209,11 +209,11 @@ bool PolyBook::can_probe (const Position &pos)
     return do_probe;
 }
 
-void PolyBook::initialize ()
+void PolyBook::initialize (const string &bk_fn)
 {
     clear ();
 
-    book_fn = string(Options["Book File"]);
+    book_fn = bk_fn;
     trim (book_fn);
     convert_path (book_fn);
 

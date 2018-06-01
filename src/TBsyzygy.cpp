@@ -1716,7 +1716,7 @@ namespace TBSyzygy {
     }
 
     /// Initializes TB
-    void initialize ()
+    void initialize (const string &paths)
     {
         static bool initialized = false;
         if (!initialized)
@@ -1856,7 +1856,7 @@ namespace TBSyzygy {
         TB_Tables.clear ();
         MaxLimitPiece = 0;
 
-        PathString = string(Options["SyzygyPath"]);
+        PathString = paths;
         if (white_spaces (PathString))
         {
             return;

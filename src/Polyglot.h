@@ -123,7 +123,7 @@ public:
     PolyBook ();
     ~PolyBook ();
 
-    void initialize ();
+    void initialize (const std::string&);
 
     Move probe (Position&);
 

@@ -5,7 +5,6 @@
 #include <iostream>
 #include "Engine.h"
 #include "MemoryHandler.h"
-#include "Option.h"
 
 TTable TT;
 
@@ -20,6 +19,57 @@ void TCluster::initialize ()
     {
         ite->d08 = DepthEmpty;
     }
+}
+
+TEntry* TCluster::probe (u16 key16, bool &tt_hit, u08 gen)
+{
+    // Find an entry to be replaced according to the replacement strategy.
+    auto *rte = entries; // Default first
+    for (auto *ite = entries; ite < entries + EntryCount; ++ite)
+    {
+        if (   ite->empty ()
+            || ite->k16 == key16)
+        {
+            tt_hit = !ite->empty ();
+            // Refresh entry.
+            if (   tt_hit
+                && ite->generation () != gen)
+            {
+                ite->gb08 = u08 (gen + ite->bound ());
+            }
+            return ite;
+        }
+        // Replacement strategy.
+        // The worth of an entry is calculated as its depth minus 2 times its relative age.
+        // Due to packed storage format for generation and its cyclic nature
+        // add 0x103 (0x100 + 3 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
+        // to calculate the entry age correctly even after generation overflows into the next cycle.
+        if (  rte->d08 - ((gen - rte->gb08 + 0x103) & 0xFC) * 2
+            > ite->d08 - ((gen - ite->gb08 + 0x103) & 0xFC) * 2)
+        {
+            rte = ite;
+        }
+    }
+    tt_hit = false;
+    return rte;
+}
+
+void TCluster::empty ()
+{
+    std::memcpy (this, &Empty, sizeof (*this));
+}
+
+size_t TCluster::full_entry_count (u08 gen) const
+{
+    size_t count = 0;
+    for (const auto *ite = entries; ite < entries + EntryCount; ++ite)
+    {
+        if (ite->generation () == gen)
+        {
+            ++count;
+        }
+    }
+    return count;
 }
 
 /// TTable::alloc_aligned_memory() allocates the aligned memory
@@ -146,12 +196,13 @@ void TTable::clear ()
                                 {
                                     WinProcGroup::bind (idx);
                                 }
+                                auto *pcluster = clusters + idx * stride;
                                 size_t count = idx != i32(Options["Threads"]) - 1 ?
                                                 stride :
                                                 cluster_count - idx * stride;
-                                for (auto *itc = clusters + idx * stride; itc < clusters + idx * stride + count; ++itc)
+                                for (auto *itc = pcluster; itc < pcluster + count; ++itc)
                                 {
-                                    std::memcpy (itc, &TCluster::Empty, sizeof (TCluster));
+                                    itc->empty ();
                                 }
                             }));
     }
@@ -167,37 +218,7 @@ void TTable::clear ()
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
 TEntry* TTable::probe (Key key, bool &tt_hit) const
 {
-    const auto key16 = u16(key >> 0x30);
-    auto *const fte = cluster_entry (key);
-    // Find an entry to be replaced according to the replacement strategy.
-    auto *rte = fte; // Default first
-    for (auto *ite = fte; ite < fte + TCluster::EntryCount; ++ite)
-    {
-        if (   ite->empty ()
-            || ite->k16 == key16)
-        {
-            tt_hit = !ite->empty ();
-            // Refresh entry.
-            if (   tt_hit
-                && ite->generation () != generation)
-            {
-                ite->gb08 = u08(generation + ite->bound ());
-            }
-            return ite;
-        }
-        // Replacement strategy.
-        // The worth of an entry is calculated as its depth minus 2 times its relative age.
-        // Due to packed storage format for generation and its cyclic nature
-        // add 0x103 (0x100 + 3 (BOUND_EXACT) to keep the lowest two bound bits from affecting the result)
-        // to calculate the entry age correctly even after generation overflows into the next cycle.
-        if (  rte->d08 - ((generation - rte->gb08 + 0x103) & 0xFC) * 2
-            > ite->d08 - ((generation - ite->gb08 + 0x103) & 0xFC) * 2)
-        {
-            rte = ite;
-        }
-    }
-    tt_hit = false;
-    return rte;
+    return cluster (key)->probe (u16(key >> 0x30), tt_hit, generation);
 }
 /// TTable::hash_full() returns an approximation of the per-mille of the 
 /// all transposition entries during a search which have received
@@ -207,24 +228,17 @@ TEntry* TTable::probe (Key key, bool &tt_hit) const
 /// hash, are using <x>%. of the state of full.
 u32 TTable::hash_full () const
 {
-    size_t entry_count = 0;
+    size_t full_entry_count = 0;
     const auto cluster_limit = std::min (size_t(1000 / TCluster::EntryCount), cluster_count);
     for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
     {
-        for (const auto *ite = itc->entries; ite < itc->entries + TCluster::EntryCount; ++ite)
-        {
-            if (ite->generation () == generation)
-            {
-                ++entry_count;
-            }
-        }
+        full_entry_count += itc->full_entry_count (TT.generation);
     }
-    return u32(entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
+    return u32(full_entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
 }
 /// TTable::save() saves hash to file
-void TTable::save () const
+void TTable::save (const string &hash_fn) const
 {
-    string hash_fn = string(Options["Hash File"]);
     if (white_spaces (hash_fn))
     {
         return;
@@ -239,9 +253,8 @@ void TTable::save () const
     sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
 }
 /// TTable::load() loads hash from file
-void TTable::load ()
+void TTable::load (const string &hash_fn)
 {
-    string hash_fn = string(Options["Hash File"]);
     if (white_spaces (hash_fn))
     {
         return;

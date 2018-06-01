@@ -767,7 +767,7 @@ namespace Searcher {
                 }
 
                 // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
+                prefetch (TT.cluster (pos.posi_move_key (move))->entries);
 
                 // Update the current move.
                 ss->played_move = move;
@@ -1156,9 +1156,9 @@ namespace Searcher {
                     auto R = i16((67*depth + 823) / 256 + std::min (i32((tt_eval - beta)/VALUE_MG_PAWN), 3));
 
                     // Speculative prefetch as early as possible
-                    prefetch (TT.cluster_entry (  pos.si->posi_key
-                                                ^ RandZob.color
-                                                ^ (SQ_NO != pos.si->enpassant_sq ? RandZob.enpassant[_file (pos.si->enpassant_sq)] : 0)));
+                    prefetch (TT.cluster (  pos.si->posi_key
+                                          ^ RandZob.color
+                                          ^ (SQ_NO != pos.si->enpassant_sq ? RandZob.enpassant[_file (pos.si->enpassant_sq)] : 0))->entries);
 
                     ss->played_move = MOVE_NULL;
                     ss->pd_history = thread->continuation_history[NO_PIECE][0].get ();
@@ -1230,7 +1230,7 @@ namespace Searcher {
                         ++pc_movecount;
 
                         // Speculative prefetch as early as possible
-                        prefetch (TT.cluster_entry (pos.posi_move_key (move)));
+                        prefetch (TT.cluster (pos.posi_move_key (move))->entries);
 
                         ss->played_move = move;
                         ss->pd_history = thread->continuation_history[pos[org_sq (move)]][dst_sq (move)].get ();
@@ -1274,6 +1274,8 @@ namespace Searcher {
                 }
             }
 
+            value = VALUE_ZERO;
+
             bool pv_exact = PVNode
                          && tt_hit
                          && BOUND_EXACT == tte->bound ();
@@ -1284,8 +1286,6 @@ namespace Searcher {
 
             vector<Move> quiet_moves
                 ,        capture_moves;
-
-            value = best_value;
 
             const PieceDestinyHistory *pd_histories[4] =
             {
@@ -1447,7 +1447,7 @@ namespace Searcher {
                 }
 
                 // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
+                prefetch (TT.cluster (pos.posi_move_key (move))->entries);
 
                 // Update the current move.
                 ss->played_move = move;

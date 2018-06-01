@@ -35,7 +35,7 @@ namespace TBSyzygy {
     extern bool root_probe_dtz (Position&, RootMoves&);
     extern bool root_probe_wdl (Position&, RootMoves&);
 
-    extern void initialize ();
+    extern void initialize (const std::string&);
 
     template<typename CharT, typename Traits>
     inline std::basic_ostream<CharT, Traits>&

@@ -11,7 +11,7 @@ namespace UCI {
     class Option
     {
     private:
-        typedef void (*OnChange) ();
+        typedef void (*OnChange) (const Option&);
        
         std::string
               type

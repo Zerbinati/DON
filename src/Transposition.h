@@ -77,6 +77,13 @@ public:
 
     TEntry entries[EntryCount];
     char padding[2]; // Align to a divisor of the cache line size
+
+    TEntry *probe (u16, bool&, u08);
+
+    void empty ();
+
+    size_t full_entry_count (u08) const;
+
 };
 
 /// Size of Transposition cluster (32 bytes)
@@ -135,9 +142,9 @@ public:
     /// size() returns hash size in MB
     u32 size () const { return u32((cluster_count * sizeof (TCluster)) >> 20); }
 
-    /// cluster_entry() returns a pointer to the first entry of a cluster given a position.
+    /// cluster() returns a pointer to the cluster of given a key.
     /// The lower 32 order bits of the key are used to get the index of the cluster inside the table.
-    TEntry* cluster_entry (Key key) const { return clusters[(u32(key) * u64(cluster_count)) >> 0x20].entries; }
+    TCluster* cluster (Key key) const { return &clusters[(u32(key) * u64(cluster_count)) >> 0x20]; }
 
     u32 resize (u32, bool = false);
     u32 resize ();
@@ -150,8 +157,8 @@ public:
 
     u32 hash_full () const;
 
-    void save () const;
-    void load ();
+    void save (const std::string&) const;
+    void load (const std::string&);
 
     template<typename CharT, typename Traits>
     friend std::basic_ostream<CharT, Traits>&
