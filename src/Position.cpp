@@ -185,7 +185,7 @@ bool Position::repeated () const
         {
             break;
         }
-        const auto *psi = si->ptr->ptr;
+        const auto *psi = csi->ptr->ptr;
         u08 p = 4;
         do
         {

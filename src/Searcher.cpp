@@ -1688,7 +1688,7 @@ namespace Searcher {
                 else
                 //if (pos.capture (best_move))
                 {
-                    auto bonus = stat_bonus (depth);
+                    auto bonus = stat_bonus (depth + (best_value > beta + VALUE_MG_NIHT ? 1 : 0));
                     thread->capture_history[pos[org_sq (best_move)]][move_pp (best_move)][pos.cap_type (best_move)] << bonus;
                     // Decrease all the other played capture moves.
                     for (auto cm : capture_moves)
