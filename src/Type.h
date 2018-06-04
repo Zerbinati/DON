@@ -320,9 +320,9 @@ enum Value : i32
     VALUE_NONE      = SHRT_MAX,
     VALUE_INFINITE  = i32(VALUE_NONE) - 1,
     VALUE_MATE      = i32(VALUE_INFINITE) - 1,
-    
+
     VALUE_MATE_MAX_PLY = i32(VALUE_MATE) - 2*MaxPlies,
-    
+
     VALUE_KNOWN_WIN = 10000,
 
     VALUE_MG_PAWN =  171,  VALUE_EG_PAWN =  240,

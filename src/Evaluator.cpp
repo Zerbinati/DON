@@ -4,6 +4,7 @@
 #include "BitBoard.h"
 #include "Material.h"
 #include "Notation.h"
+#include "Option.h"
 #include "Pawns.h"
 #include "Thread.h"
 

@@ -9,6 +9,24 @@
 #include "TBsyzygy.h"
 #include "Transposition.h"
 
+#if defined(_WIN32)
+
+#   if !defined(NOMINMAX)
+#       define NOMINMAX // Disable macros min() and max()
+#   endif
+#   if !defined(WIN32_LEAN_AND_MEAN)
+#       define WIN32_LEAN_AND_MEAN
+#   endif
+#   if _WIN32_WINNT < 0x0601
+#       undef  _WIN32_WINNT
+#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
+#   endif
+#   include <windows.h>
+#   undef WIN32_LEAN_AND_MEAN
+#   undef NOMINMAX
+
+#endif
+
 using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
@@ -488,7 +506,7 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
         TBLimitPiece = i32(Options["SyzygyLimitPiece"]);
         TBUseRule50 = bool(Options["SyzygyUseRule50"]);
         TBHasRoot = false;
-    
+
         bool dtz_available = true;
 
         // Tables with fewer pieces than SyzygyProbeLimit are searched with ProbeDepth == DEPTH_ZERO

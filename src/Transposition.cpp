@@ -129,25 +129,22 @@ void TTable::free_aligned_memory ()
 #endif
     mem = nullptr;
     clusters = nullptr;
-    cluster_count = 0;
 }
 
 /// TTable::resize() sets the size of the table, measured in mega-bytes.
 u32 TTable::resize (u32 mem_size)
 {
     mem_size = std::min (std::max (mem_size, MinHashSize), MaxHashSize);
-    const size_t msize = size_t(mem_size) << 20;
-    cluster_count = msize / sizeof (TCluster);
+    size_t msize = size_t(mem_size) << 20;
     
     free_aligned_memory ();
     alloc_aligned_memory (msize, CacheLineSize);
 
     if (nullptr == clusters)
     {
-        cluster_count = 0;
         return 0;
     }
-
+    cluster_count = msize / sizeof (TCluster);
     clear ();
     return mem_size;
 }
@@ -172,7 +169,7 @@ void TTable::auto_resize (u32 mem_size)
 /// TTable::clear() clear the entire transposition table.
 void TTable::clear ()
 {
-    assert(nullptr != clusters);
+    assert(0 != cluster_count);
     if (bool(Options["Retain Hash"]))
     {
         return;
