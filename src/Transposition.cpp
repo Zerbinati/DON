@@ -133,17 +133,14 @@ void TTable::free_aligned_memory ()
 }
 
 /// TTable::resize() sets the size of the table, measured in mega-bytes.
-u32 TTable::resize (u32 mem_size, bool force)
+u32 TTable::resize (u32 mem_size)
 {
     mem_size = std::min (std::max (mem_size, MinHashSize), MaxHashSize);
     const size_t msize = size_t(mem_size) << 20;
-    const size_t new_cluster_count = msize / sizeof (TCluster);
-    if (   force
-        || cluster_count != new_cluster_count)
-    {
-        free_aligned_memory ();
-        alloc_aligned_memory (msize, CacheLineSize);
-    }
+    cluster_count = msize / sizeof (TCluster);
+    
+    free_aligned_memory ();
+    alloc_aligned_memory (msize, CacheLineSize);
 
     if (nullptr == clusters)
     {
@@ -151,17 +148,12 @@ u32 TTable::resize (u32 mem_size, bool force)
         return 0;
     }
 
-    cluster_count = new_cluster_count;
     clear ();
     return mem_size;
 }
-u32 TTable::resize ()
-{
-    return resize (size (), true);
-}
 
 /// TTable::auto_resize()
-void TTable::auto_resize (u32 mem_size, bool force)
+void TTable::auto_resize (u32 mem_size)
 {
     for (auto msize =
             0 != mem_size ?
@@ -170,7 +162,7 @@ void TTable::auto_resize (u32 mem_size, bool force)
             msize >= MinHashSize;
             msize /= 2)
     {
-        if (0 != resize (msize, force))
+        if (0 != resize (msize))
         {
             return;
         }

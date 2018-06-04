@@ -147,10 +147,9 @@ public:
     /// The lower 32 order bits of the key are used to get the index of the cluster inside the table.
     TCluster* cluster (Key key) const { return &clusters[(u32(key) * u64(cluster_count)) >> 0x20]; }
 
-    u32 resize (u32, bool = false);
-    u32 resize ();
+    u32 resize (u32);
 
-    void auto_resize (u32, bool = false);
+    void auto_resize (u32);
 
     void clear ();
 

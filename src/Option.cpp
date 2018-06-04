@@ -167,13 +167,13 @@ namespace UCI {
 
         void on_hash (const Option &o)
         {
-            TT.auto_resize (i32(o), false);
+            TT.auto_resize (i32(o));
         }
 
 #   if defined(LPAGES)
         void on_large_pages (const Option&)
         {
-            TT.resize ();
+            TT.auto_resize (i32(Options["Hash"]));
         }
 #   endif
 

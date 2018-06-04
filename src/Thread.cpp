@@ -7,6 +7,7 @@
 #include "PRNG.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
+#include "Transposition.h"
 
 using namespace std;
 using namespace Searcher;
@@ -464,6 +465,9 @@ void ThreadPool::configure (u32 threads)
 
         clear ();
     }
+
+    // Reallocate the hash with the new threadpool size
+    TT.auto_resize (i32(Options["Hash"]));
 }
 /// ThreadPool::start_thinking() wakes up main thread waiting in idle_loop() and returns immediately.
 /// Main thread will wake up other threads and start the search.
