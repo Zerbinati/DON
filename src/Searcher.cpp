@@ -436,10 +436,10 @@ namespace Searcher {
             return depth <= 17 ? 32*(depth*(depth + 2) - 2) : 0;
         }
 
-        /// update_stacks_continuation() updates tables of the move pairs with current move.
-        void update_stacks_continuation (Stack *const &ss, Piece pc, Square dst, i32 bonus)
+        /// update_continuation_histories() updates tables of the move pairs with current move.
+        void update_continuation_histories (Stack *const &ss, Piece pc, Square dst, i32 bonus)
         {
-            for (auto s : { ss-1, ss-2, ss-4 })
+            for (auto *s : { ss-1, ss-2, ss-4 })
             {
                 if (_ok (s->played_move))
                 {
@@ -839,7 +839,24 @@ namespace Searcher {
         template<bool PVNode>
         Value depth_search (Position &pos, Stack *const &ss, Value alfa, Value beta, i16 depth, bool cut_node)
         {
-            // Use quiescence search when needed
+            bool root_node = PVNode
+                          && 0 == ss->ply;
+
+            // Check if there exists a move which draws by repetition,
+            // or an alternative earlier move to this position.
+            if (   !root_node
+                && alfa < VALUE_DRAW
+                && pos.si->clock_ply >= 3
+                && pos.cycled (ss->ply))
+            {
+                alfa = VALUE_DRAW;
+                if (alfa >= beta)
+                {
+                    return alfa;
+                }
+            }
+
+            // Dive into quiescence search when the depth reaches zero
             if (DepthZero >= depth)
             {
                 return quien_search<PVNode> (pos, ss, alfa, beta);
@@ -851,9 +868,6 @@ namespace Searcher {
             assert(DepthZero < depth && depth < MaxPlies);
 
             // Step 1. Initialize node.
-            
-            bool root_node = PVNode
-                          && 0 == ss->ply;
             auto *thread = pos.thread;
             auto own = pos.active;
             bool in_check = 0 != pos.si->checkers;
@@ -904,19 +918,6 @@ namespace Searcher {
                 if (alfa >= beta)
                 {
                     return alfa;
-                }
-
-                // Check if there exists a move which draws by repetition,
-                // or an alternative earlier move to this position.
-                if (   alfa < VALUE_DRAW
-                    && pos.si->clock_ply >= 3
-                    && pos.cycled (ss->ply))
-                {
-                    alfa = VALUE_DRAW;
-                    if (alfa >= beta)
-                    {
-                        return alfa;
-                    }
                 }
             }
 
@@ -976,10 +977,13 @@ namespace Searcher {
                         // Bonus for a quiet tt_move that fails high.
                         if (!pos.capture_or_promotion (tt_move))
                         {
-                            update_killers (ss, pos, tt_move);
+                            if (0 == pos.si->checkers)
+                            {
+                                update_killers (ss, pos, tt_move);
+                            }
                             auto bonus = stat_bonus (depth);
                             thread->butterfly_history[own][move_pp (tt_move)] << bonus;
-                            update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), bonus);
+                            update_continuation_histories (ss, pos[org_sq (tt_move)], dst_sq (tt_move), bonus);
                         }
 
                         // Extra penalty for a quiet tt_move in previous ply when it gets refuted.
@@ -988,7 +992,7 @@ namespace Searcher {
                             && !pos.si->promotion
                             && NONE == pos.si->capture)
                         {
-                            update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
+                            update_continuation_histories (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
                         }
                     }
                     else
@@ -998,7 +1002,7 @@ namespace Searcher {
                         {
                             auto bonus = stat_bonus (depth);
                             thread->butterfly_history[own][move_pp (tt_move)] << -bonus;
-                            update_stacks_continuation (ss, pos[org_sq (tt_move)], dst_sq (tt_move), -bonus);
+                            update_continuation_histories (ss, pos[org_sq (tt_move)], dst_sq (tt_move), -bonus);
                         }
                     }
                 }
@@ -1009,7 +1013,7 @@ namespace Searcher {
             if (   !root_node
                 && 0 != TBLimitPiece)
             {
-                const auto piece_count = pos.count ();
+                auto piece_count = pos.count ();
 
                 if (   (   piece_count < TBLimitPiece
                         || (   piece_count == TBLimitPiece
@@ -1018,7 +1022,7 @@ namespace Searcher {
                     && !pos.si->can_castle (CR_ANY))
                 {
                     ProbeState state;
-                    const auto wdl = probe_wdl (pos, state);
+                    auto wdl = probe_wdl (pos, state);
 
                     if (ProbeState::FAILURE != state)
                     {
@@ -1294,7 +1298,8 @@ namespace Searcher {
                 (ss-3)->pd_history,
                 (ss-4)->pd_history
             };
-            auto counter_move = _ok ((ss-1)->played_move) ?
+            auto counter_move = 0 == pos.si->checkers
+                            &&  _ok ((ss-1)->played_move) ?
                                     thread->move_history[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
                                     MOVE_NONE;
             // Initialize move picker (1) for the current position
@@ -1673,15 +1678,18 @@ namespace Searcher {
             {
                 if (!pos.capture_or_promotion (best_move))
                 {
-                    update_killers (ss, pos, best_move);
+                    if (0 == pos.si->checkers)
+                    {
+                        update_killers (ss, pos, best_move);
+                    }
                     auto bonus = stat_bonus (depth);
                     thread->butterfly_history[own][move_pp (best_move)] << bonus;
-                    update_stacks_continuation (ss, pos[org_sq (best_move)], dst_sq (best_move), bonus);
+                    update_continuation_histories (ss, pos[org_sq (best_move)], dst_sq (best_move), bonus);
                     // Decrease all the other played quiet moves.
                     for (auto qm : quiet_moves)
                     {
                         thread->butterfly_history[own][move_pp (qm)] << -bonus;
-                        update_stacks_continuation (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
+                        update_continuation_histories (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                     }
                 }
                 else
@@ -1702,7 +1710,7 @@ namespace Searcher {
                     && !pos.si->promotion
                     && NONE == pos.si->capture)
                 {
-                    update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
+                    update_continuation_histories (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), -stat_bonus (depth + 1));
                 }
             }
             else
@@ -1713,7 +1721,7 @@ namespace Searcher {
                 && !pos.si->promotion
                 && NONE == pos.si->capture)
             {
-                update_stacks_continuation (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), stat_bonus (depth));
+                update_continuation_histories (ss-1, pos[fix_dst_sq ((ss-1)->played_move)], dst_sq ((ss-1)->played_move), stat_bonus (depth));
             }
 
             if (PVNode)

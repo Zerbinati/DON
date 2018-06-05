@@ -15,7 +15,7 @@
 ///  Bound      02 bits
 ///  --------------------
 ///  Total      80 bits = 10 bytes
-struct TEntry
+class TEntry
 {
 private:
     u16 k16;
@@ -26,9 +26,10 @@ private:
     u08 gb08;
 
     friend class TCluster;
-    friend class TTable;
 
 public:
+
+    TEntry () = default;
 
     Move  move       () const { return Move (m16); }
     Value value      () const { return Value(v16); }
@@ -79,6 +80,8 @@ public:
     TEntry entries[EntryCount];
     char padding[2]; // Align to a divisor of the cache line size
 
+    TCluster () = default;
+
     TEntry *probe (u16, bool&, u08);
 
     void clear ();
@@ -122,30 +125,26 @@ public:
     // "Generation" variable distinguish transposition table entries from different searches.
     u08 generation;
 
-    TTable ()
-        : mem (nullptr)
-        , clusters (nullptr)
-        , cluster_count (0)
-        , generation (0)
-    {}
-
+    TTable () = default;
     TTable (const TTable&) = delete;
     TTable& operator= (const TTable&) = delete;
-
    ~TTable ()
     {
         free_aligned_memory ();
     }
 
-    size_t cluster_mask () const { return cluster_count - 1; }
-    //size_t entry_count () const { return cluster_count * Cluster::EntryCount; }
-
     /// size() returns hash size in MB
-    u32 size () const { return u32((cluster_count * sizeof (TCluster)) >> 20); }
+    u32 size () const
+    {
+        return u32((cluster_count * sizeof (TCluster)) >> 20);
+    }
 
     /// cluster() returns a pointer to the cluster of given a key.
-    /// The lower 32 order bits of the key are used to get the index of the cluster inside the table.
-    TCluster* cluster (Key key) const { return &clusters[(u32(key) * u64(cluster_count)) >> 0x20]; }
+    /// Lower 32 bits of the key are used to get the index of the cluster.
+    TCluster* cluster (Key key) const
+    {
+        return &clusters[(u32(key) * u64(cluster_count)) >> 32];
+    }
 
     u32 resize (u32);
 

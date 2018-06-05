@@ -115,7 +115,8 @@ void TTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
 #endif
 
     clusters = (TCluster*)((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
-    assert(0 == (uintptr_t(clusters) & (alignment-1)));
+    assert(nullptr != clusters
+        && 0 == (uintptr_t(clusters) & (alignment-1)));
 
 }
 /// TTable::free_aligned_memory() frees the aligned memory

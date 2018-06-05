@@ -218,7 +218,7 @@ namespace Material {
         // Evaluate the material imbalance.
         // Use KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.
-        const i32 piece_count[CLR_NO][NONE] =
+        i32 piece_count[CLR_NO][NONE] =
         {
             {
                 pos.count (WHITE, PAWN), pos.count (WHITE, NIHT),
@@ -238,7 +238,7 @@ namespace Material {
             imbalance<BLACK> (piece_count)
         };
 
-        const auto value = (imb[WHITE] - imb[BLACK]) / 16; // Imbalance Resolution
+        auto value = (imb[WHITE] - imb[BLACK]) / 16; // Imbalance Resolution
         e->imbalance = mk_score (value, value);
 
         return e;
