@@ -10,9 +10,10 @@
 
 UCI::OptionMap Options;
 
+using namespace std;
+
 namespace UCI {
 
-    using namespace std;
     using namespace Searcher;
     using namespace TBSyzygy;
 
@@ -191,14 +192,9 @@ namespace UCI {
             TT.load (string(Options["Hash File"]));
         }
 
-        void on_threads (const Option &o)
+        void on_threads (const Option &)
         {
-            auto threads = i32(o);
-            if (0 == threads)
-            {
-                threads = thread::hardware_concurrency ();
-            }
-            Threadpool.configure (threads);
+            Threadpool.configure (option_threads ());
         }
 
         void on_book_fn (const Option &o)
@@ -276,4 +272,14 @@ namespace UCI {
         Options.clear ();
     }
 
+}
+
+i32 option_threads ()
+{
+    auto threads = i32(Options["Threads"]);
+    if (0 == threads)
+    {
+        threads = thread::hardware_concurrency ();
+    }
+    return threads;
 }

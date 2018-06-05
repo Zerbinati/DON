@@ -207,7 +207,7 @@ void MovePicker::value ()
         {
             assert(pos.capture_or_promotion (vm));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm)])
-                     + thread->capture_history[pos[org_sq (vm)]][move_pp (vm)][pos.cap_type (vm)] / 16;
+                     + thread->capture_history[pos[org_sq (vm)]][move_pp (vm)][pos.cap_type (vm)];
         }
         else
         if (GenType::QUIET == GT)
@@ -1191,7 +1191,7 @@ namespace Searcher {
                         // own not equal nmp_color.
                         thread->nmp_ply = ss->ply + 3 * (depth-R) / 4 - 1;
                         thread->nmp_color = own;
-                        
+
                         value = depth_search<false> (pos, ss, beta-1, beta, depth-R, false);
 
                         thread->nmp_ply = 0;
@@ -1590,7 +1590,7 @@ namespace Searcher {
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
                         if (   1 < move_count
-                            && Limits.use_time_management ()
+                            && Limits.time_mgr_used ()
                             && Threadpool.main_thread () == thread)
                         {
                             ++Threadpool.main_thread ()->best_move_change;
@@ -1829,7 +1829,7 @@ void Thread::search ()
     {
         if (nullptr != main_thread)
         {
-            if (Limits.use_time_management ())
+            if (Limits.time_mgr_used ())
             {
                 main_thread->failed_low = false;
                 // Age out PV variability metric
@@ -1931,7 +1931,7 @@ void Thread::search ()
 
                     if (nullptr != main_thread)
                     {
-                        if (Limits.use_time_management ())
+                        if (Limits.time_mgr_used ())
                         {
                             main_thread->failed_low = true;
                         }
@@ -1991,14 +1991,14 @@ void Thread::search ()
         if (nullptr != main_thread)
         {
             // If skill level is enabled and can pick move, pick a sub-optimal best move.
-            if (   main_thread->skill_mgr.enabled ()
-                && main_thread->skill_mgr.can_pick (running_depth))
+            if (   skill_mgr_enabled ()
+                && running_depth == i16(i32(Options["Skill Level"])) + 1)
             {
                 main_thread->skill_mgr.best_move = MOVE_NONE;
-                main_thread->skill_mgr.pick_best_move (main_thread->root_moves);
+                main_thread->skill_mgr.pick_best_move ();
             }
 
-            if (Limits.use_time_management ())
+            if (Limits.time_mgr_used ())
             {
                 if (   !Threadpool.stop
                     && !Threadpool.stop_on_ponderhit)
@@ -2075,7 +2075,7 @@ void MainThread::search ()
         }
     }
 
-    if (Limits.use_time_management ())
+    if (Limits.time_mgr_used ())
     {
         // Initialize the time manager before searching.
         time_mgr.initialize (root_pos.active, root_pos.ply);
@@ -2129,7 +2129,7 @@ void MainThread::search ()
             i16 timed_contempt = 0;
             i64 diff_time;
             auto contempt_time = i32(Options["Contempt Time"]);
-            if (   Limits.use_time_management ()
+            if (   Limits.time_mgr_used ()
                 && 0 != contempt_time
                 && 0 != (diff_time = (i64(Limits.clock[ root_pos.active].time)
                                     - i64(Limits.clock[~root_pos.active].time)) / 1000))
@@ -2148,13 +2148,13 @@ void MainThread::search ()
                                 /*Options["Analysis Contempt"] == "Both"                            ? +BasicContempt :*/ +BasicContempt;
             }
 
-            if (Limits.use_time_management ())
+            if (Limits.time_mgr_used ())
             {
                 failed_low = false;
                 best_move_change = 0.0;
             }
 
-            if (skill_mgr.enabled ())
+            if (skill_mgr_enabled ())
             {
                 skill_mgr.best_move = MOVE_NONE;
             }
@@ -2162,7 +2162,7 @@ void MainThread::search ()
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            Threadpool.pv_limit = std::min (size_t(std::max (i32(Options["MultiPV"]), skill_mgr.enabled () ? 4 : 1)), root_moves.size ());
+            Threadpool.pv_limit = std::min (size_t(std::max (i32(Options["MultiPV"]), skill_mgr_enabled () ? 4 : 1)), root_moves.size ());
             assert(0 < Threadpool.pv_limit);
 
             set_check_count ();
@@ -2178,9 +2178,9 @@ void MainThread::search ()
             Thread::search (); // Let's start searching !
 
             // Swap best PV line with the sub-optimal one if skill level is enabled
-            if (skill_mgr.enabled ())
+            if (skill_mgr_enabled ())
             {
-                skill_mgr.pick_best_move (root_moves);
+                skill_mgr.pick_best_move ();
                 std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move));
             }
         }
@@ -2219,7 +2219,7 @@ void MainThread::search ()
         if (   1 == Threadpool.pv_limit
             && 0 == Limits.depth // Depth limit search don't use deeper thread
             && MOVE_NONE != root_moves[0][0]
-            && !skill_mgr.enabled ())
+            && !skill_mgr_enabled ())
         {
             best_thread = Threadpool.best_thread ();
             // If new best thread then send PV info again.
@@ -2235,7 +2235,7 @@ void MainThread::search ()
 
     auto &rm = best_thread->root_moves[0];
 
-    if (Limits.use_time_management ())
+    if (Limits.time_mgr_used ())
     {
         // Update the time manager after searching.
         time_mgr.update (root_pos.active);
@@ -2319,7 +2319,7 @@ void MainThread::tick ()
         return;
     }
 
-    if (   (Limits.use_time_management () && time_mgr.maximum_time < elapsed_time + 10)
+    if (   (Limits.time_mgr_used () && time_mgr.maximum_time < elapsed_time + 10)
         || (0 != Limits.movetime && Limits.movetime <= elapsed_time)
         || (0 != Limits.nodes && Limits.nodes <= Threadpool.nodes ()))
     {

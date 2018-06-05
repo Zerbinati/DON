@@ -14,6 +14,24 @@
 #include <condition_variable>
 #include <mutex>
 
+#if defined(_WIN32)
+
+#   if !defined(NOMINMAX)
+#       define NOMINMAX // Disable macros min() and max()
+#   endif
+#   if !defined(WIN32_LEAN_AND_MEAN)
+#       define WIN32_LEAN_AND_MEAN
+#   endif
+#   if _WIN32_WINNT < 0x0601
+#       undef  _WIN32_WINNT
+#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
+#   endif
+#   include <windows.h>
+#   undef WIN32_LEAN_AND_MEAN
+#   undef NOMINMAX
+
+#endif
+
 #if defined(_WIN32) && !defined(_MSC_VER)
 /// Mutex and ConditionVariable struct are wrappers of the low level locking
 /// machinery and are modeled after the corresponding C++11 classes.

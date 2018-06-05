@@ -23,8 +23,8 @@
 
 #   define SE_PRIVILEGE_DISABLED       (0x00000000L)
 
-#   define ALIGN_MALLOC(mem, alignment, size)   mem=_aligned_malloc (size, alignment)
-#   define ALIGN_FREE(mem)                          _aligned_free (mem)
+#   define ALLOC_ALIGNED(mem, size, alignment) mem=_aligned_malloc (size, alignment)
+#   define FREE_ALIGNED(mem)                       _aligned_free (mem)
 
 #else
 
@@ -36,8 +36,8 @@
 #       define SHM_HUGETLB     04000
 #   endif
 
-#   define ALIGN_MALLOC(mem, alignment, size)   posix_memalign (&mem, alignment, size)
-#   define ALIGN_FREE(mem)                      free (mem)
+#   define ALLOC_ALIGNED(mem, size, alignment) posix_memalign (&mem, alignment, size)
+#   define FREE_ALIGNED(mem)                   free (mem)
 
 #endif
 
@@ -165,7 +165,7 @@ namespace Memory {
 #       endif
         }
 
-        ALIGN_MALLOC (mem_ref, alignment, mem_size);
+        ALLOC_ALIGNED(mem_ref, mem_size, alignment);
         if (nullptr != mem_ref)
         {
             sync_cout << "info string No Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
@@ -202,7 +202,7 @@ namespace Memory {
         }
         else
         {
-            ALIGN_FREE (mem);
+            FREE_ALIGNED(mem);
         }
     }
 

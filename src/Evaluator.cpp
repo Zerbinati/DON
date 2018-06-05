@@ -13,62 +13,55 @@ using namespace BitBoard;
 
 namespace {
 
-    class Tracer
+    enum Term : u08
     {
-    public:
-
-        enum Term : u08
-        {
-            // The first 6 entries are for PieceType
-            MATERIAL = NONE,
-            IMBALANCE,
-            INITIATIVE,
-            MOBILITY,
-            THREAT,
-            PASSER,
-            SPACE,
-            TOTAL,
-        };
-
-        static Score scores[TOTAL + 1][CLR_NO];
-
-        static void initialize ()
-        {
-            std::memset (scores, SCORE_ZERO, sizeof (scores));
-        }
-
-        static void write (Tracer::Term term, Color c, Score score)
-        {
-            scores[term][c] = score;
-        }
-        static void write (Tracer::Term term, Score wscore, Score bscore = SCORE_ZERO)
-        {
-            write (term, WHITE, wscore);
-            write (term, BLACK, bscore);
-        }
-
+        // The first 6 entries are for PieceType
+        MATERIAL = NONE,
+        IMBALANCE,
+        INITIATIVE,
+        MOBILITY,
+        THREAT,
+        PASSER,
+        SPACE,
+        TOTAL,
     };
 
-    Score Tracer::scores[TOTAL + 1][CLR_NO];
+    Score scores[TOTAL + 1][CLR_NO];
 
-    ostream& operator<< (ostream &os, Tracer::Term term)
+    void trace_initialize ()
+    {
+        std::memset (scores, SCORE_ZERO, sizeof (scores));
+    }
+
+    void write (Term term, Color c, Score score)
+    {
+        scores[term][c] = score;
+    }
+    void write (Term term, Score wscore, Score bscore = SCORE_ZERO)
+    {
+        write (term, WHITE, wscore);
+        write (term, BLACK, bscore);
+    }
+
+    ostream& operator<< (ostream &os, Term term)
     {
         switch (term)
         {
-        case Tracer::Term::MATERIAL:
-        case Tracer::Term::IMBALANCE:
-        case Tracer::Term::INITIATIVE:
-        case Tracer::Term::TOTAL:
+        case Term::MATERIAL:
+        case Term::IMBALANCE:
+        case Term::INITIATIVE:
+        case Term::TOTAL:
             os << " | ----- ----- | ----- ----- | ";
             break;
         default:
-            os << " | " << std::setw (5) << Tracer::scores[term][WHITE]
-               << " | " << std::setw (5) << Tracer::scores[term][BLACK] << " | ";
+            os << " | " << std::setw (5) << scores[term][WHITE]
+               << " | " << std::setw (5) << scores[term][BLACK] << " | ";
             break;
         }
-        os << std::setw (5) << Tracer::scores[term][WHITE] - Tracer::scores[term][BLACK] << std::endl;
+        os << std::setw (5) << scores[term][WHITE] - scores[term][BLACK] << std::endl;
         return os;
     }
+
 
 #define S(mg, eg) mk_score (mg, eg)
 
@@ -510,7 +503,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (Tracer::Term(PT), Own, score);
+            write (Term(PT), Own, score);
         }
 
         return score;
@@ -659,7 +652,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (Tracer::Term(KING), Own, score);
+            write (Term(KING), Own, score);
         }
 
         return score;
@@ -813,7 +806,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (Tracer::Term::THREAT, Own, score);
+            write (Term::THREAT, Own, score);
         }
 
         return score;
@@ -933,7 +926,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (Tracer::Term::PASSER, Own, score);
+            write (Term::PASSER, Own, score);
         }
 
         return score;
@@ -972,7 +965,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (Tracer::Term::SPACE, Own, score);
+            write (Term::SPACE, Own, score);
         }
 
         return score;
@@ -1003,7 +996,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::write (Tracer::Term::INITIATIVE, score);
+            write (Term::INITIATIVE, score);
         }
 
         return score;
@@ -1079,7 +1072,7 @@ namespace {
 
         if (Trace)
         {
-            Tracer::initialize ();
+            trace_initialize ();
         }
 
         initialize<WHITE> ();
@@ -1114,11 +1107,11 @@ namespace {
         if (Trace)
         {
             // Write remaining evaluation terms
-            Tracer::write (Tracer::Term(PAWN), pe->scores[WHITE], pe->scores[BLACK]);
-            Tracer::write (Tracer::Term::MATERIAL, pos.si->psq_score);
-            Tracer::write (Tracer::Term::IMBALANCE, me->imbalance);
-            Tracer::write (Tracer::Term::MOBILITY, mobility[WHITE], mobility[BLACK]);
-            Tracer::write (Tracer::Term::TOTAL, score);
+            write (Term(PAWN), pe->scores[WHITE], pe->scores[BLACK]);
+            write (Term::MATERIAL, pos.si->psq_score);
+            write (Term::IMBALANCE, me->imbalance);
+            write (Term::MOBILITY, mobility[WHITE], mobility[BLACK]);
+            write (Term::TOTAL, score);
         }
 
         return (WHITE == pos.active ? +v : -v) + Tempo; // Side to move point of view
@@ -1144,21 +1137,21 @@ string trace (const Position &pos)
         << "      Eval Term |    White    |    Black    |    Total     \n"
         << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
         << "----------------+-------------+-------------+--------------\n"
-        << "       Material" << Tracer::Term::MATERIAL
-        << "      Imbalance" << Tracer::Term::IMBALANCE
-        << "     Initiative" << Tracer::Term::INITIATIVE
-        << "           Pawn" << Tracer::Term(PAWN)
-        << "         Knight" << Tracer::Term(NIHT)
-        << "         Bishop" << Tracer::Term(BSHP)
-        << "           Rook" << Tracer::Term(ROOK)
-        << "          Queen" << Tracer::Term(QUEN)
-        << "       Mobility" << Tracer::Term::MOBILITY
-        << "           King" << Tracer::Term(KING)
-        << "         Threat" << Tracer::Term::THREAT
-        << "    Pawn Passer" << Tracer::Term::PASSER
-        << "          Space" << Tracer::Term::SPACE
+        << "       Material" << Term::MATERIAL
+        << "      Imbalance" << Term::IMBALANCE
+        << "     Initiative" << Term::INITIATIVE
+        << "           Pawn" << Term(PAWN)
+        << "         Knight" << Term(NIHT)
+        << "         Bishop" << Term(BSHP)
+        << "           Rook" << Term(ROOK)
+        << "          Queen" << Term(QUEN)
+        << "       Mobility" << Term::MOBILITY
+        << "           King" << Term(KING)
+        << "         Threat" << Term::THREAT
+        << "    Pawn Passer" << Term::PASSER
+        << "          Space" << Term::SPACE
         << "----------------+-------------+-------------+--------------\n"
-        << "          Total" << Tracer::Term::TOTAL
+        << "          Total" << Term::TOTAL
         << "\nEvaluation: " << value_to_cp (value) / 100.0 << " (white side)\n"
         << std::noshowpoint << std::noshowpos;
     return oss.str ();

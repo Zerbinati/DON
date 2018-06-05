@@ -313,8 +313,6 @@ namespace {
         {
             generate_king_moves<GT, Own> (moves, pos, targets);
         }
-
-        assert(std::unique (moves.begin (), moves.end ()) == moves.end ());
     }
 }
 

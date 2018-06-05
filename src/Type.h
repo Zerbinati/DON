@@ -575,7 +575,7 @@ struct ValMove
 public:
     Move move;
     i32  value;
-    
+
     ValMove (Move m, i32 v)
         : move (m)
         , value (v)
@@ -583,7 +583,7 @@ public:
     explicit ValMove (Move m = MOVE_NONE)
         : ValMove (m, 0)
     {}
-    
+
     operator Move () const { return move; }
     void operator= (Move m) { move = m; }
 
@@ -596,8 +596,6 @@ public:
     bool operator>  (const ValMove &vm) const { return value >  vm.value; }
     //bool operator<= (const ValMove &vm) const { return value <= vm.value; }
     //bool operator>= (const ValMove &vm) const { return value >= vm.value; }
-    bool operator== (const ValMove &vm) const { return move == vm.move; }
-    bool operator!= (const ValMove &vm) const { return move != vm.move; }
 };
 
 class ValMoves

@@ -719,7 +719,7 @@ void run (i32 argc, const char *const *argv)
 #if defined(LPAGES)
     Memory::initialize ();
 #endif
-        
+
     BitBoard::initialize ();
     BitBases::initialize ();
     psqt_initialize ();
@@ -730,7 +730,7 @@ void run (i32 argc, const char *const *argv)
     EndGame::initialize ();
     WinProcGroup::initialize ();
     TCluster::initialize ();
-    Threadpool.configure (i32(Options["Threads"]));
+    Threadpool.configure (option_threads ());
     Book.initialize (string(Options["Book File"]));
     TBSyzygy::initialize (string(Options["SyzygyPath"]));
     Searcher::initialize ();

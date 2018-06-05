@@ -47,7 +47,7 @@ public:
         , infinite (false)
     {}
 
-    bool use_time_management () const
+    bool time_mgr_used () const
     {
         return !infinite
             && 0 == movetime

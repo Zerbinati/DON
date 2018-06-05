@@ -89,4 +89,6 @@ namespace UCI {
 // Global string mapping of Options
 extern UCI::OptionMap Options;
 
+extern i32 option_threads ();
+
 #endif // _UCI_H_INC_

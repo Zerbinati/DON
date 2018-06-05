@@ -4,28 +4,9 @@
 #include <cmath>
 #include <iostream>
 #include "Option.h"
-#include "PRNG.h"
 #include "Searcher.h"
 #include "TBsyzygy.h"
 #include "Transposition.h"
-
-#if defined(_WIN32)
-
-#   if !defined(NOMINMAX)
-#       define NOMINMAX // Disable macros min() and max()
-#   endif
-#   if !defined(WIN32_LEAN_AND_MEAN)
-#       define WIN32_LEAN_AND_MEAN
-#   endif
-#   if _WIN32_WINNT < 0x0601
-#       undef  _WIN32_WINNT
-#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
-#   endif
-#   include <windows.h>
-#   undef WIN32_LEAN_AND_MEAN
-#   undef NOMINMAX
-
-#endif
 
 using namespace std;
 using namespace Searcher;
@@ -159,12 +140,13 @@ void TimeManager::update (Color c)
     }
 }
 
+PRNG SkillManager::prng (now ()); // PRNG sequence should be non-deterministic.
+
 /// SkillManager::pick_best_move() chooses best move among a set of RootMoves when playing with a strength handicap,
 /// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-void SkillManager::pick_best_move (const RootMoves &root_moves)
+void SkillManager::pick_best_move ()
 {
-    static PRNG prng (now ()); // PRNG sequence should be non-deterministic.
-
+    const auto &root_moves = Threadpool.main_thread ()->root_moves;
     assert(!root_moves.empty ());
     if (MOVE_NONE == best_move)
     {
@@ -233,12 +215,7 @@ void Thread::idle_loop ()
     // some Windows NUMA hardware, for instance in fishtest. To make it simple,
     // just check if running threads are below a threshold, in this case all this
     // NUMA machinery is not needed.
-    auto threads = i32(Options["Threads"]);
-    if (0 == threads)
-    {
-        threads = thread::hardware_concurrency ();
-    }
-    if (8 <= threads)
+    if (8 <= option_threads ())
     {
         WinProcGroup::bind (index);
     }
@@ -478,7 +455,6 @@ void ThreadPool::configure (u32 threads)
             push_back (new Thread (size ()));
         }
         assert(!empty ());
-        
         sync_cout << "info string Thread(s) used " << threads << sync_endl;
 
         clear ();

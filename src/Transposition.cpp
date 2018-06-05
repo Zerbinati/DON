@@ -85,8 +85,6 @@ void TTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
         return;
     }
-    clusters = (TCluster*)((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
-    assert(0 == (uintptr_t(clusters) & (alignment-1)));
 
 #else
 
@@ -113,10 +111,11 @@ void TTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
         return;
     }
     sync_cout << "info string Hash " << (mem_size >> 20) << " MB" << sync_endl;
-    clusters = (TCluster*)((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
-    assert(0 == (uintptr_t(clusters) & (alignment-1)));
 
 #endif
+
+    clusters = (TCluster*)((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
+    assert(0 == (uintptr_t(clusters) & (alignment-1)));
 
 }
 /// TTable::free_aligned_memory() frees the aligned memory
@@ -136,7 +135,7 @@ u32 TTable::resize (u32 mem_size)
 {
     mem_size = std::min (std::max (mem_size, MinHashSize), MaxHashSize);
     size_t msize = size_t(mem_size) << 20;
-    
+
     free_aligned_memory ();
     alloc_aligned_memory (msize, CacheLineSize);
 
@@ -174,19 +173,19 @@ void TTable::clear ()
     {
         return;
     }
-
-    size_t stride = cluster_count / i32(Options["Threads"]);
+    auto thread_count = option_threads ();
+    size_t stride = cluster_count / thread_count;
     std::vector<std::thread> threads;
-    for (i32 idx = 0; idx < i32(Options["Threads"]); ++idx)
+    for (i32 idx = 0; idx < thread_count; ++idx)
     {
-        threads.push_back (std::thread ([this, idx, stride]()
+        threads.push_back (std::thread ([this, idx, thread_count, stride]()
                             {
-                                if (8 <= i32(Options["Threads"]))
+                                if (8 <= thread_count)
                                 {
                                     WinProcGroup::bind (idx);
                                 }
                                 auto *pcluster = clusters + idx * stride;
-                                size_t count = idx != i32(Options["Threads"]) - 1 ?
+                                size_t count = idx != thread_count - 1 ?
                                                 stride :
                                                 cluster_count - idx * stride;
                                 for (auto *itc = pcluster; itc < pcluster + count; ++itc)

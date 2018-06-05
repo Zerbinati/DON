@@ -7,6 +7,7 @@
 #include "Option.h"
 #include "Pawns.h"
 #include "Position.h"
+#include "PRNG.h"
 #include "Searcher.h"
 #include "thread_win32.h"
 #include "Type.h"
@@ -37,10 +38,16 @@ public:
 // MaxLevel should be <= MaxPlies/8
 const i16 MaxLevel = 12;
 
+inline bool skill_mgr_enabled ()
+{
+    return i16(i32(Options["Skill Level"])) < MaxLevel;
+}
+
 /// Skill Manager class is used to implement strength limit
 class SkillManager
 {
 public:
+    static PRNG prng;
 
     Move best_move;
 
@@ -50,17 +57,7 @@ public:
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;
 
-    bool enabled () const
-    {
-        return i16(i32(Options["Skill Level"])) < MaxLevel;
-    }
-
-    bool can_pick (i16 depth) const
-    {
-        return depth == i16(i32(Options["Skill Level"])) + 1;
-    }
-
-    void pick_best_move (const RootMoves&);
+    void pick_best_move ();
 };
 
 /// Thread class keeps together all the thread-related stuff.
