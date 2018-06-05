@@ -62,8 +62,8 @@ namespace {
             move_imp2 += move_importance (ply + 2 * i);
         }
 
-        auto time_ratio1 = (move_imp1 * step_ratio /* + move_imp2 * 0.00*/ ) / (move_imp1 * step_ratio + move_imp2 /* * 1.00*/);
-        auto time_ratio2 = (move_imp1 /* * 1.00*/ + move_imp2 * steal_ratio) / (move_imp1 /* * 1.00*/  + move_imp2 /* * 1.00*/);
+        auto time_ratio1 = (1) / (1 + move_imp2 / (move_imp1 * step_ratio));
+        auto time_ratio2 = (1 + (move_imp2 * steal_ratio) / move_imp1) / (1 + move_imp2 / move_imp1);
 
         return TimePoint(time * std::min (time_ratio1, time_ratio2));
     }

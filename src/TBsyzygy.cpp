@@ -39,11 +39,12 @@ std::string GetLastErrorString ()
         LPTSTR msg_buffer = nullptr;
         DWORD buf_len = FormatMessage (
             FORMAT_MESSAGE_ALLOCATE_BUFFER|FORMAT_MESSAGE_FROM_SYSTEM|FORMAT_MESSAGE_IGNORE_INSERTS,
-            NULL,
+            nullptr,
             error,
             MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
             LPTSTR (&msg_buffer),
-            0, NULL);
+            0,
+            nullptr);
         if (0 != buf_len)
         {
             std::string message (msg_buffer, buf_len);

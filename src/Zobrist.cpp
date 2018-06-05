@@ -2,7 +2,6 @@
 
 #include "Position.h"
 #include "PRNG.h"
-#include "Notation.h"
 
 using namespace std;
 

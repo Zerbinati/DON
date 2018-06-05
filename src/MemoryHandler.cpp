@@ -64,7 +64,7 @@ namespace Memory {
                     token_priv.Privileges[0].Attributes = enable ?
                                                             SE_PRIVILEGE_ENABLED :
                                                             SE_PRIVILEGE_DISABLED;
-                    if (AdjustTokenPrivileges (token_handle, false, &token_priv, 0, nullptr, 0))
+                    if (AdjustTokenPrivileges (token_handle, false, &token_priv, 0, nullptr, nullptr))
                     {
                         if (GetLastError () != ERROR_NOT_ALL_ASSIGNED)
                         {

@@ -161,7 +161,7 @@ namespace UCI {
         }
         return oss.str ();
     }
-    
+
     /// 'On change' actions, triggered by an option's value change
 
     namespace {

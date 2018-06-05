@@ -49,11 +49,9 @@ class SkillManager
 public:
     static PRNG prng;
 
-    Move best_move;
+    Move best_move = MOVE_NONE;
 
-    explicit SkillManager ()
-        : best_move (MOVE_NONE)
-    {}
+    SkillManager () = default;
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;
 
@@ -90,7 +88,7 @@ public:
 
     size_t pv_cur
          , pv_end;
-        
+
     std::atomic<u64> nodes
         ,            tb_hits;
     Score contempt;
