@@ -207,7 +207,7 @@ void MovePicker::value ()
         {
             assert(pos.capture_or_promotion (vm));
             vm.value = i32(PieceValues[MG][pos.cap_type (vm)])
-                     + thread->capture_history[pos[org_sq (vm)]][move_pp (vm)][pos.cap_type (vm)];
+                     + thread->capture_history[pos[org_sq (vm)]][move_pp (vm)][pos.cap_type (vm)] / 16;
         }
         else
         if (GenType::QUIET == GT)

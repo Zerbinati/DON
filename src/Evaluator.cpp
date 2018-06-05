@@ -26,16 +26,16 @@ namespace {
         TOTAL,
     };
 
-    Score scores[TOTAL + 1][CLR_NO];
+    Score Scores[TOTAL + 1][CLR_NO];
 
-    void trace_initialize ()
+    void clear ()
     {
-        std::memset (scores, SCORE_ZERO, sizeof (scores));
+        std::memset (Scores, SCORE_ZERO, sizeof (Scores));
     }
 
     void write (Term term, Color c, Score score)
     {
-        scores[term][c] = score;
+        Scores[term][c] = score;
     }
     void write (Term term, Score wscore, Score bscore = SCORE_ZERO)
     {
@@ -54,11 +54,11 @@ namespace {
             os << " | ----- ----- | ----- ----- | ";
             break;
         default:
-            os << " | " << std::setw (5) << scores[term][WHITE]
-               << " | " << std::setw (5) << scores[term][BLACK] << " | ";
+            os << " | " << std::setw (5) << Scores[term][WHITE]
+               << " | " << std::setw (5) << Scores[term][BLACK] << " | ";
             break;
         }
-        os << std::setw (5) << scores[term][WHITE] - scores[term][BLACK] << std::endl;
+        os << std::setw (5) << Scores[term][WHITE] - Scores[term][BLACK] << std::endl;
         return os;
     }
 
@@ -1072,7 +1072,7 @@ namespace {
 
         if (Trace)
         {
-            trace_initialize ();
+            clear ();
         }
 
         initialize<WHITE> ();
