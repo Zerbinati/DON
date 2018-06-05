@@ -1147,7 +1147,7 @@ namespace Searcher {
                     && (ss-1)->stat_score < 22500
                     && tt_eval >= beta
                     && ss->static_eval + 36*depth - 225 >= beta
-                    && (   thread->nmp_ply < ss->ply
+                    && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != own))
                 {
                     assert(MOVE_NONE != (ss-1)->played_move);
@@ -1189,7 +1189,7 @@ namespace Searcher {
                         // Do verification search at high depths, untill
                         // ply exceeds nmp_ply, or
                         // own not equal nmp_color.
-                        thread->nmp_ply = ss->ply + 3 * (depth-R) / 4 - 1;
+                        thread->nmp_ply = ss->ply + 3 * (depth-R) / 4;
                         thread->nmp_color = own;
 
                         value = depth_search<false> (pos, ss, beta-1, beta, depth-R, false);
@@ -1469,8 +1469,7 @@ namespace Searcher {
                     // Decrease reduction for capture (~5 Elo)
                     if (capture_or_promotion)
                     {
-                        if (   (ss-1)->stat_score < 0
-                            || thread->capture_history[mpc][move_pp (move)][pos.si->capture] >= 0)
+                        if ((ss-1)->stat_score < 0)
                         {
                             reduce_depth -= 1;
                         }
