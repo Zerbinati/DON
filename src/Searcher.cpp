@@ -804,8 +804,11 @@ namespace Searcher {
                         // Update pv even in fail-high case
                         if (PVNode)
                         {
-                            update_pv (ss->pv, move, (ss+1)->pv);
+                            best_move = move;
+
+                            update_pv ((ss)->pv, move, (ss+1)->pv);
                         }
+
                         // Fail high
                         if (value >= beta)
                         {
@@ -826,7 +829,6 @@ namespace Searcher {
                             if (PVNode)
                             {
                                 alfa = value;
-                                best_move = move;
                             }
                         }
                     }
@@ -1624,11 +1626,14 @@ namespace Searcher {
                         best_move = move;
 
                         // Update pv even in fail-high case.
-                        if (   PVNode
-                            && !root_node)
+                        if (PVNode)
                         {
-                            update_pv (ss->pv, move, (ss+1)->pv);
+                            if (!root_node)
+                            {
+                                update_pv ((ss)->pv, move, (ss+1)->pv);
+                            }
                         }
+
                         // Fail high
                         if (value >= beta)
                         {
@@ -1653,7 +1658,6 @@ namespace Searcher {
                         quiet_moves.push_back (move);
                     }
                     else
-                    //if (pos.capture (move))
                     {
                         capture_moves.push_back (move);
                     }
@@ -1684,7 +1688,7 @@ namespace Searcher {
                 if (!pos.capture_or_promotion (best_move))
                 {
                     update_killers (ss, pos, best_move);
-                    auto bonus = stat_bonus (depth);
+                    auto bonus = stat_bonus (depth + (best_value > beta + VALUE_MG_PAWN ? 1 : 0));
                     thread->butterfly_history[own][move_pp (best_move)] << bonus;
                     update_continuation_histories (ss, pos[org_sq (best_move)], dst_sq (best_move), bonus);
                     // Decrease all the other played quiet moves.
@@ -1695,9 +1699,8 @@ namespace Searcher {
                     }
                 }
                 else
-                //if (pos.capture (best_move))
                 {
-                    auto bonus = stat_bonus (depth + (best_value > beta + VALUE_MG_NIHT ? 1 : 0));
+                    auto bonus = stat_bonus (depth + 1);
                     thread->capture_history[pos[org_sq (best_move)]][move_pp (best_move)][pos.cap_type (best_move)] << bonus;
                     // Decrease all the other played capture moves.
                     for (auto cm : capture_moves)
