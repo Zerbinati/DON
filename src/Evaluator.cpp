@@ -241,7 +241,7 @@ namespace {
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
-        std::fill_n (pin_attacked_by[Own], NONE, 0);
+        std::fill_n (pin_attacked_by[Own], i32(KING), 0);
         std::fill_n (pin_attacked_queen[Own], 3, 0);
 
         const Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);

@@ -81,14 +81,13 @@ RootMoves::operator string () const
 /// and about how important good move ordering is at the current node.
 
 /// MovePicker constructor for the main search
-MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pdhs, const Move *km, Move cm)
+MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pdhs, const Move *km, Move lm)
     : pos (p)
     , tt_move (ttm)
     , depth (d)
     , threshold (Value(-4000*d))
     , recap_sq (SQ_NO)
     , pd_histories (pdhs)
-    , refutation_moves (km, km + MaxKillers)
     , pick_quiets (true)
 {
     assert(MOVE_NONE == tt_move
@@ -105,8 +104,18 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
     {
         stage = Stage::NAT_TT;
 
-        if (   MOVE_NONE != cm
-            && tt_move != cm
+        for (u08 k = 0; k < MaxKillers; ++k)
+        {
+            if (   km[k] != MOVE_NONE
+                && km[k] != tt_move)
+            {
+                refutation_moves.push_back (km[k]);
+            }
+        }
+        Move cm;
+        if (   _ok (lm)
+            && (cm = pos.thread->move_history[pos[fix_dst_sq (lm)]][move_pp (lm)]) != MOVE_NONE
+            && cm != tt_move
             && std::find (refutation_moves.begin (), refutation_moves.end (), cm) == refutation_moves.end ())
         {
             refutation_moves.push_back (cm);
@@ -121,12 +130,12 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
 /// MovePicker constructor for quiescence search
 /// Because the depth <= DepthZero here, only captures, queen promotions
 /// and checks (only if depth >= DepthQSCheck) will be generated.
-MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
+MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Move lm)
     : pos (p)
     , tt_move (ttm)
     , depth (d)
     , threshold (VALUE_ZERO)
-    , recap_sq (rs)
+    , recap_sq (SQ_NO)
     , pd_histories (nullptr)
     , pick_quiets (true)
 {
@@ -142,8 +151,12 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Square rs)
     else
     {
         stage = Stage::QS_TT;
-    }
 
+        if (_ok (lm))
+        {
+            recap_sq = dst_sq (lm);
+        }
+    }
     if (   MOVE_NONE != tt_move
         && !(   DepthQSRecapture < depth
              || dst_sq (tt_move) == recap_sq))
@@ -291,9 +304,7 @@ Move MovePicker::next_move ()
 
         refutation_moves.erase (std::remove_if (refutation_moves.begin (),
                                                 refutation_moves.end (),
-                                                [&](const Move m) { return MOVE_NONE == m
-                                                                        || tt_move == m
-                                                                        || !pos.pseudo_legal (m)
+                                                [&](const Move m) { return !pos.pseudo_legal (m)
                                                                         || !pos.legal (m)
                                                                         ||  pos.capture (m); }),
                                 refutation_moves.end ());
@@ -704,8 +715,8 @@ namespace Searcher {
 
             u08 move_count = 0;
 
-            // Initialize move picker (2) for the current position
-            MovePicker move_picker (pos, tt_move, depth, _ok ((ss-1)->played_move) ? dst_sq ((ss-1)->played_move) : SQ_NO);
+            // Initialize movepicker (2) for the current position
+            MovePicker move_picker (pos, tt_move, depth, (ss-1)->played_move);
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
@@ -977,10 +988,7 @@ namespace Searcher {
                         // Bonus for a quiet tt_move that fails high.
                         if (!pos.capture_or_promotion (tt_move))
                         {
-                            if (0 == pos.si->checkers)
-                            {
-                                update_killers (ss, pos, tt_move);
-                            }
+                            update_killers (ss, pos, tt_move);
                             auto bonus = stat_bonus (depth);
                             thread->butterfly_history[own][move_pp (tt_move)] << bonus;
                             update_continuation_histories (ss, pos[org_sq (tt_move)], dst_sq (tt_move), bonus);
@@ -1221,7 +1229,7 @@ namespace Searcher {
                 {
                     u08 pc_movecount = 0;
                     auto beta_margin = std::min (beta + (improving ? 168 : 216), +VALUE_INFINITE);
-                    // Initialize move picker (3) for the current position
+                    // Initialize movepicker (3) for the current position
                     MovePicker move_picker (pos, tt_move, beta_margin - ss->static_eval);
                     // Loop through all legal moves until no moves remain or a beta cutoff occurs
                     while (   MOVE_NONE != (move = move_picker.next_move ())
@@ -1298,12 +1306,8 @@ namespace Searcher {
                 (ss-3)->pd_history,
                 (ss-4)->pd_history
             };
-            auto counter_move = 0 == pos.si->checkers
-                            &&  _ok ((ss-1)->played_move) ?
-                                    thread->move_history[pos[fix_dst_sq ((ss-1)->played_move)]][move_pp ((ss-1)->played_move)] :
-                                    MOVE_NONE;
-            // Initialize move picker (1) for the current position
-            MovePicker move_picker (pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move);
+            // Initialize movepicker (1) for the current position
+            MovePicker move_picker (pos, tt_move, depth, pd_histories, ss->killer_moves, (ss-1)->played_move);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
@@ -1678,10 +1682,7 @@ namespace Searcher {
             {
                 if (!pos.capture_or_promotion (best_move))
                 {
-                    if (0 == pos.si->checkers)
-                    {
-                        update_killers (ss, pos, best_move);
-                    }
+                    update_killers (ss, pos, best_move);
                     auto bonus = stat_bonus (depth);
                     thread->butterfly_history[own][move_pp (best_move)] << bonus;
                     update_continuation_histories (ss, pos[org_sq (best_move)], dst_sq (best_move), bonus);
