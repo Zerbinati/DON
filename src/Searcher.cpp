@@ -156,12 +156,12 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Move lm)
         {
             recap_sq = dst_sq (lm);
         }
-    }
-    if (   MOVE_NONE != tt_move
-        && !(   DepthQSRecapture < depth
-             || dst_sq (tt_move) == recap_sq))
-    {
-        tt_move = MOVE_NONE;
+        if (   MOVE_NONE != tt_move
+            && !(   DepthQSRecapture < depth
+                 || dst_sq (tt_move) == recap_sq))
+        {
+            tt_move = MOVE_NONE;
+        }
     }
 
     if (MOVE_NONE == tt_move)
@@ -186,6 +186,7 @@ MovePicker::MovePicker (const Position &p, Move ttm, Value thr)
          && pos.legal (tt_move)));
 
     stage = Stage::PC_TT;
+
     if (   MOVE_NONE != tt_move
         && !(   pos.capture (tt_move)
              && pos.see_ge (tt_move, threshold)))
