@@ -32,10 +32,17 @@ TEntry* TCluster::probe (u16 key16, bool &tt_hit, u08 gen)
         {
             tt_hit = !ite->empty ();
             // Refresh entry.
-            if (   tt_hit
-                && ite->generation () != gen)
+            if (tt_hit)
             {
-                ite->gb08 = u08(gen + ite->bound ());
+                if (ite->generation () != gen)
+                {
+                    ite->gb08 = u08 (gen + ite->bound ());
+                }
+            }
+            else
+            {
+                ite->d08 = -6;
+                ite->k16 = key16;
             }
             return ite;
         }
