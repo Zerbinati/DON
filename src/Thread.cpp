@@ -83,12 +83,13 @@ TimePoint TimeManager::elapsed_time () const
 /// increment != 0, moves to go == 0 => y basetime + z increment
 /// increment == 0, moves to go != 0 => x moves in y basetime                  ['standard']
 /// increment != 0, moves to go != 0 => x moves in y basetime + z increment
-void TimeManager::initialize (Color c, i16 ply)
+///
+/// Minimum movetime = No matter what, use at least this much time before doing the move, in milli-seconds.
+/// Overhead movetime = Attempt to keep at least this much time for each remaining move, in milli-seconds.
+/// Move Slowness = Move Slowness, in %age.
+void TimeManager::initialize (Color c, i16 ply, u16 nodes_tm, TimePoint minimum_movetime, TimePoint overhead_movetime, double move_slowness, bool ponder)
 {
-    auto minimum_movetime   = TimePoint(i32(Options["Minimum Move Time"]));  // No matter what, use at least this much time before doing the move, in milli-seconds.
-    auto overhead_movetime  = TimePoint(i32(Options["Overhead Move Time"])); // Attempt to keep at least this much time for each remaining move, in milli-seconds.
-    auto move_slowness      = i32(Options["Move Slowness"]) / 100.0;         // Move Slowness, in %age.
-    nodes_time              = u16(i32(Options["Nodes Time"]));
+    nodes_time = nodes_tm;
 
     // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
@@ -125,7 +126,7 @@ void TimeManager::initialize (Color c, i16 ply)
         maximum_time = std::min (maximum_time, minimum_movetime + remaining_time<false> (hyp_time, hyp_movestogo, ply, move_slowness));
     }
 
-    if (bool(Options["Ponder"]))
+    if (ponder)
     {
         optimum_time += optimum_time / 4;
     }
@@ -144,7 +145,7 @@ PRNG SkillManager::prng (now ()); // PRNG sequence should be non-deterministic.
 
 /// SkillManager::pick_best_move() chooses best move among a set of RootMoves when playing with a strength handicap,
 /// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-void SkillManager::pick_best_move ()
+void SkillManager::pick_best_move (i16 level)
 {
     const auto &root_moves = Threadpool.main_thread ()->root_moves;
     assert(!root_moves.empty ());
@@ -153,20 +154,18 @@ void SkillManager::pick_best_move ()
         // RootMoves are already sorted by value in descending order
         auto max_value = root_moves[0].new_value;
         auto min_value = root_moves[Threadpool.pv_limit - 1].new_value;
-        i32  weakness = MaxPlies - 8 * i16(i32(Options["Skill Level"]));
-        i32  diversion = std::min (max_value - min_value, VALUE_MG_PAWN);
-        // First for each move score add two terms, both dependent on weakness.
-        // One is deterministic with weakness, and one is random with weakness.
-        // Then choose the move with the highest value.
+        i32  weakness = MaxPlies - 8 * level;
+        i32  deviance = std::min (max_value - min_value, VALUE_MG_PAWN);
         auto best_value = -VALUE_INFINITE;
         for (u08 i = 0; i < Threadpool.pv_limit; ++i)
         {
             auto &rm = root_moves[i];
+            // First for each move score add two terms, both dependent on weakness.
+            // One is deterministic with weakness, and one is random with weakness.
             auto value = rm.new_value
-                        // This is magic formula for push
-                       + (  weakness  * i32(max_value - rm.new_value)
-                          + diversion * i32(prng.rand<u32> () % weakness)) / MaxPlies;
-
+                       + (  weakness * i32(max_value - rm.new_value)
+                          + deviance * i32(prng.rand<u32> () % weakness)) / MaxPlies;
+            // Then choose the move with the highest value.
             if (best_value <= value)
             {
                 best_value = value;
@@ -433,7 +432,7 @@ void ThreadPool::clear ()
 /// ThreadPool::configure() creates/destroys threads to match the requested number.
 /// Created and launched threads will go immediately to sleep in idle_loop.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::configure (u32 threads)
+void ThreadPool::configure (u32 thread_count)
 {
     // Destroy any existing thread(s)
     if (!empty ())
@@ -446,16 +445,16 @@ void ThreadPool::configure (u32 threads)
         }
     }
     // Create new thread(s)
-    if (0 < threads)
+    if (0 < thread_count)
     {
         assert(empty ());
         push_back (new MainThread (size ()));
-        while (size () < threads)
+        while (size () < thread_count)
         {
             push_back (new Thread (size ()));
         }
         assert(!empty ());
-        sync_cout << "info string Thread(s) used " << threads << sync_endl;
+        sync_cout << "info string Thread(s) used " << thread_count << sync_endl;
 
         clear ();
     }

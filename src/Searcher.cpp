@@ -2007,7 +2007,7 @@ void Thread::search ()
                 && running_depth == i16(i32(Options["Skill Level"])) + 1)
             {
                 main_thread->skill_mgr.best_move = MOVE_NONE;
-                main_thread->skill_mgr.pick_best_move ();
+                main_thread->skill_mgr.pick_best_move (i16(i32(Options["Skill Level"])));
             }
 
             if (Limits.time_mgr_used ())
@@ -2090,7 +2090,12 @@ void MainThread::search ()
     if (Limits.time_mgr_used ())
     {
         // Initialize the time manager before searching.
-        time_mgr.initialize (root_pos.active, root_pos.ply);
+        time_mgr.initialize (root_pos.active, root_pos.ply,
+                             u16(i32(Options["Nodes Time"])),
+                             TimePoint(i32(Options["Minimum Move Time"])),
+                             TimePoint(i32(Options["Overhead Move Time"])),
+                             i32(Options["Move Slowness"]) / 100.0,
+                             bool(Options["Ponder"]));
     }
 
     TT.generation = u08((root_pos.ply + 1) << 2);
@@ -2115,7 +2120,7 @@ void MainThread::search ()
             && 0 == Limits.mate
             && bool(Options["Use Book"]))
         {
-            auto book_best_move = Book.probe (root_pos);
+            auto book_best_move = Book.probe (root_pos, i32(Options["Book Move Num"]), bool(Options["Book Pick Best"]));
             if (MOVE_NONE != book_best_move)
             {
                 auto itr = std::find (root_moves.begin (), root_moves.end (), book_best_move);
@@ -2126,7 +2131,7 @@ void MainThread::search ()
                     root_moves[0].new_value = VALUE_NONE;
                     StateInfo si;
                     root_pos.do_move (book_best_move, si);
-                    auto book_ponder_move = Book.probe (root_pos);
+                    auto book_ponder_move = Book.probe (root_pos, i32(Options["Book Move Num"]), bool(Options["Book Pick Best"]));
                     if (MOVE_NONE != book_ponder_move)
                     {
                         root_moves[0] += book_ponder_move;
@@ -2192,7 +2197,7 @@ void MainThread::search ()
             // Swap best PV line with the sub-optimal one if skill level is enabled
             if (skill_mgr_enabled ())
             {
-                skill_mgr.pick_best_move ();
+                skill_mgr.pick_best_move (i16(i32(Options["Skill Level"])));
                 std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), skill_mgr.best_move));
             }
         }

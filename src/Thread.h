@@ -31,7 +31,7 @@ public:
 
     TimePoint elapsed_time () const;
 
-    void initialize (Color, i16);
+    void initialize (Color, i16, u16, TimePoint, TimePoint, double, bool);
     void update (Color);
 };
 
@@ -55,7 +55,7 @@ public:
     SkillManager (const SkillManager&) = delete;
     SkillManager& operator= (const SkillManager&) = delete;
 
-    void pick_best_move ();
+    void pick_best_move (i16);
 };
 
 /// Thread class keeps together all the thread-related stuff.

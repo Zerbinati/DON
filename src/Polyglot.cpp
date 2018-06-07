@@ -5,7 +5,6 @@
 #include "BitBoard.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
-#include "Option.h"
 #include "PRNG.h"
 
 PolyBook Book;
@@ -256,11 +255,10 @@ void PolyBook::initialize (const string &bk_fn)
 /// If no move is found returns MOVE_NONE.
 /// If pick_best is true returns always the highest rated move,
 /// otherwise randomly chooses one, based on the move score.
-Move PolyBook::probe (Position &pos)
+Move PolyBook::probe (Position &pos, i16 book_move_num, bool pick_best)
 {
     static PRNG prng (now ());
 
-    auto book_move_num = i32(Options["Book Move Num"]);
     if (   !enabled
         || nullptr == entries
         || (0 != book_move_num && book_move_num < pos.move_num ())
@@ -301,7 +299,7 @@ Move PolyBook::probe (Position &pos)
 
         // Choose the move
 
-        if (bool(Options["Book Pick Best"]))
+        if (pick_best)
         {
             if (max_weight == entries[i].weight)
             {

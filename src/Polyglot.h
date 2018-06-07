@@ -125,7 +125,7 @@ public:
 
     void initialize (const std::string&);
 
-    Move probe (Position&);
+    Move probe (Position&, i16, bool);
 
     std::string show (const Position&) const;
 };
