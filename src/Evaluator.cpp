@@ -540,7 +540,7 @@ namespace {
             }
         }
 
-        Score score = mk_score (safety, -16 * pe->king_pawn_dist[Own][index]);
+        auto score = mk_score (safety, -16 * pe->king_pawn_dist[Own][index]);
 
         Bitboard b;
         // Main king safety evaluation
@@ -1089,10 +1089,11 @@ namespace {
         // Rest should be evaluated after (full attack information needed including king)
         score += king<   WHITE> () - king<   BLACK> ()
                + threats<WHITE> () - threats<BLACK> ()
-               + passers<WHITE> () - passers<BLACK> ()
-               + (pos.si->non_pawn_material () >= SpaceThreshold ?
-                  space<  WHITE> () - space<  BLACK> () : SCORE_ZERO);
-
+               + passers<WHITE> () - passers<BLACK> ();
+        if (pos.si->non_pawn_material () >= SpaceThreshold)
+        {
+            score += space<WHITE> () - space<BLACK> ();
+        }
         score += initiative (eg_value (score));
 
         assert(-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);

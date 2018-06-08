@@ -255,13 +255,13 @@ void PolyBook::initialize (const string &bk_fn)
 /// If no move is found returns MOVE_NONE.
 /// If pick_best is true returns always the highest rated move,
 /// otherwise randomly chooses one, based on the move score.
-Move PolyBook::probe (Position &pos, i16 book_move_num, bool pick_best)
+Move PolyBook::probe (Position &pos, i16 move_num, bool pick_best)
 {
     static PRNG prng (now ());
 
     if (   !enabled
         || nullptr == entries
-        || (0 != book_move_num && book_move_num < pos.move_num ())
+        || (0 != move_num && move_num < pos.move_num ())
         || !can_probe (pos))
     {
         return MOVE_NONE;
