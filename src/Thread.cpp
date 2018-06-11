@@ -262,9 +262,6 @@ void Thread::clear ()
 /// MainThread constructor
 MainThread::MainThread (size_t idx)
     : Thread (idx)
-    , check_count (0)
-    , failed_low (false)
-    , best_move_change (0.0)
     , last_value (VALUE_NONE)
     , last_time_reduction (1.00)
 {}
@@ -273,9 +270,10 @@ void MainThread::clear ()
 {
     Thread::clear();
 
-    time_mgr.available_nodes = 0;
     last_value = VALUE_NONE;
     last_time_reduction = 1.00;
+
+    time_mgr.available_nodes = 0;
 }
 
 namespace WinProcGroup {

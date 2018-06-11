@@ -416,18 +416,6 @@ namespace Searcher {
         // Razoring and futility margin
         constexpr Value RazorMargin[3] = { Value(0), Value(590), Value(604) };
 
-        // Margin for pruning capturing moves: almost linear in depth
-        constexpr Value CapturePruneMargin[7] =
-        { 
-            VALUE_ZERO,
-            VALUE_EG_PAWN * 1 * 1055 / 1000,
-            VALUE_EG_PAWN * 2 * 1042 / 1000,
-            VALUE_EG_PAWN * 3 *  963 / 1000,
-            VALUE_EG_PAWN * 4 * 1038 / 1000,
-            VALUE_EG_PAWN * 5 *  950 / 1000,
-            VALUE_EG_PAWN * 6 *  930 / 1000
-        };
-
         // FutilityMoveCounts[improving][depth]
         u08 FutilityMoveCounts[2][16];
 
@@ -1446,7 +1434,7 @@ namespace Searcher {
                     // SEE based pruning. (~20 ELO)
                     if (   7 > depth
                         && 0 == extension
-                        && !pos.see_ge (move, -CapturePruneMargin[depth]))
+                        && !pos.see_ge (move, Value(-i32(VALUE_EG_PAWN)*depth)))
                     {
                         continue;
                     }

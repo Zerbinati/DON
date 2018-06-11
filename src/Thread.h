@@ -127,15 +127,14 @@ private :
     
 public:
 
-    bool failed_low;
-
-    double best_move_change;
-
     Value last_value;
     double last_time_reduction;
 
     TimeManager time_mgr;
     SkillManager skill_mgr;
+
+    bool failed_low;
+    double best_move_change;
 
     explicit MainThread (size_t);
     MainThread () = delete;

@@ -105,10 +105,9 @@ namespace EndGame {
         add<KNPKB>   ("KNPKB");
     }
 
-    /// Mate with KX vs K. This function is used to evaluate positions with
-    /// King and plenty of material vs a lone king. It simply gives the
-    /// attacking side a bonus for driving the defending king towards the edge
-    /// of the board, and for keeping the distance between the two kings small.
+    /// Mate with KX vs K. This gives the attacking side a bonus
+    /// for driving the defending king towards the edge of the board and
+    /// for keeping the distance between the two kings small.
     template<> Value Endgame<KXK>::operator() (const Position &pos) const
     {
         assert(0 == pos.si->checkers); // Eval is never called when in check
@@ -199,8 +198,8 @@ namespace EndGame {
     }
 
     /// KR vs KP. This is a somewhat tricky endgame to evaluate precisely without a bitbase.
-    /// The function below returns drawish scores when the pawn is far advanced
-    /// with support of the king, while the attacking king is far away.
+    /// This returns drawish scores when the pawn is far advanced with support of the king,
+    /// while the attacking king is far away.
     template<> Value Endgame<KRKP>::operator() (const Position &pos) const
     {
         assert(verify_material (pos, strong_color, VALUE_MG_ROOK, 0));
@@ -208,22 +207,18 @@ namespace EndGame {
 
         const auto sk_sq = rel_sq (strong_color, pos.square<KING> (strong_color));
         const auto wk_sq = rel_sq (strong_color, pos.square<KING> (  weak_color));
-        const auto sr_sq = rel_sq (strong_color, pos.square<ROOK> (strong_color));
         const auto wp_sq = rel_sq (strong_color, pos.square<PAWN> (  weak_color));
 
         const auto promote_sq = _file (wp_sq)|R_1;
 
         Value value;
 
-        // If the strong side's king is in front of the pawn, it's a win. or
-        // If the weak side's king is too far from the pawn and the rook, it's a win.
-        if (   (   sk_sq < wp_sq
-                && _file (sk_sq) == _file (wp_sq))
-            || (   3 <= dist (wk_sq, wp_sq) + (weak_color == pos.active ? 1 : 0)
-                && 3 <= dist (wk_sq, sr_sq)))
+        // If the strong side's king is in front of the pawn, it's a win.
+        if (contains (front_line_bb (WHITE, sk_sq), wp_sq))
         {
             value = VALUE_EG_ROOK
-                  - dist (sk_sq, wp_sq);
+                  - dist (sk_sq, wp_sq)
+                  + dist (wk_sq, wp_sq);
         }
         else
         // If the pawn is far advanced and supported by the defending king, it's a drawish.
@@ -264,7 +259,7 @@ namespace EndGame {
         if (   contains ((FA_bb|FH_bb)&(R1_bb|R8_bb), wk_sq)
             && opposite_colors (wk_sq, wb_sq)
             && 1 == dist (wk_sq, wb_sq)
-            && 1 < dist (sk_sq, wb_sq))
+            && 1 <  dist (sk_sq, wb_sq))
         {
             return VALUE_DRAW;
         }
@@ -276,7 +271,7 @@ namespace EndGame {
         return strong_color == pos.active ? +value : -value;
     }
 
-    /// KR vs KN.  The attacking side has slightly better winning chances than
+    /// KR vs KN. The attacking side has slightly better winning chances than
     /// in KR vs KB, particularly if the king and the knight are far apart.
     template<> Value Endgame<KRKN>::operator() (const Position &pos) const
     {
@@ -289,7 +284,7 @@ namespace EndGame {
 
         // If weak king is near the knight, it's a draw.
         if (   3 >= dist (wk_sq, wn_sq) + (strong_color == pos.active ? 1 : 0)
-            && 1 < dist (sk_sq, wn_sq))
+            && 1 <  dist (sk_sq, wn_sq))
         {
             return VALUE_DRAW;
         }
@@ -439,10 +434,10 @@ namespace EndGame {
         if (   F_A != f
             && f == _file (sr_sq)
             && sr_sq < sp_sq
-            && dist (sk_sq, promote_sq) < dist (wk_sq, promote_sq) - 2 + tempo
+            && dist (sk_sq, promote_sq)  < dist (wk_sq, promote_sq) - 2 + tempo
             && dist (sk_sq, sp_sq+DEL_N) < dist (wk_sq, sp_sq+DEL_N) - 2 + tempo
             && (   3 <= dist (wk_sq, sr_sq) + tempo
-                || (   dist (sk_sq, promote_sq) < dist (wk_sq, sr_sq) + tempo
+                || (   dist (sk_sq, promote_sq)  < dist (wk_sq, sr_sq) + tempo
                     && dist (sk_sq, sp_sq+DEL_N) < dist (wk_sq, sr_sq) + tempo)))
         {
             return Scale(SCALE_MAX
@@ -459,7 +454,7 @@ namespace EndGame {
                 return Scale(10);
             }
             if (   1 == dist<File> (wk_sq, sp_sq)
-                && 2 < dist (sk_sq, wk_sq))
+                && 2 <  dist (sk_sq, wk_sq))
             {
                 return Scale(24
                            - 2 * dist (sk_sq, wk_sq));

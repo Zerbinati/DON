@@ -190,13 +190,12 @@ i64 PolyBook::find_index (Key key) const
 bool PolyBook::can_probe (const Position &pos)
 {
     Bitboard pieces = pos.pieces ();
-    i32 piece_count = BitBoard::pop_count (pieces);
-        
+    i32 piece_count = pos.count ();
+
     if (   pieces != last_pieces
         //|| pop_count (pieces ^ last_pieces) > 6
         || piece_count > last_piece_count
         || piece_count < last_piece_count - 2
-        || U64(0x3DE128A923B62420) == pos.si->posi_key
         || U64(0x463B96181691FC9C) == pos.pg_key ())
     {
         do_probe = true;
