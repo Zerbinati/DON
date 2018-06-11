@@ -244,10 +244,10 @@ namespace {
         std::fill_n (pin_attacked_by[Own], i32(KING), 0);
         std::fill_n (pin_attacked_queen[Own], 3, 0);
 
-        const Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
+        Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
         if (0 != pinned_pawns)
         {
-            const Bitboard loosed_pawns = pos.pieces (Own, PAWN) ^ pinned_pawns;
+            Bitboard loosed_pawns = pos.pieces (Own, PAWN) ^ pinned_pawns;
             pin_attacked_by[Own][PAWN] = pawn_attacks_bb<Own> (loosed_pawns)
                                        | (  pawn_attacks_bb<Own> (pinned_pawns)
                                           & PieceAttacks[BSHP][pos.square<KING> (Own)]);
@@ -562,8 +562,8 @@ namespace {
                                   | (  weak_area
                                      & dbl_attacked[Opp]));
 
-            const Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
-            const Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
+            Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
+            Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
 
             // Enemy queens safe checks
             b = (  rook_attack

@@ -152,18 +152,16 @@ void SkillManager::pick_best_move (i16 level)
     if (MOVE_NONE == best_move)
     {
         // RootMoves are already sorted by value in descending order
-        auto max_value = root_moves[0].new_value;
-        auto min_value = root_moves[Threadpool.pv_limit - 1].new_value;
         i32  weakness = MaxPlies - 8 * level;
-        i32  deviance = std::min (max_value - min_value, VALUE_MG_PAWN);
+        i32  deviance = std::min (root_moves[0].new_value - root_moves[Threadpool.pv_limit - 1].new_value, VALUE_MG_PAWN);
         auto best_value = -VALUE_INFINITE;
         for (u08 i = 0; i < Threadpool.pv_limit; ++i)
         {
-            auto &rm = root_moves[i];
+            const auto &rm = root_moves[i];
             // First for each move score add two terms, both dependent on weakness.
             // One is deterministic with weakness, and one is random with weakness.
             auto value = rm.new_value
-                       + (  weakness * i32(max_value - rm.new_value)
+                       + (  weakness * i32(root_moves[0].new_value - rm.new_value)
                           + deviance * i32(prng.rand<u32> () % weakness)) / MaxPlies;
             // Then choose the move with the highest value.
             if (best_value <= value)
@@ -285,12 +283,12 @@ namespace WinProcGroup {
     {
 #if defined(_WIN32)
         // Early exit if the needed API is not available at runtime
-        const auto kernel32 = GetModuleHandle ("Kernel32.dll");
+        auto kernel32 = GetModuleHandle ("Kernel32.dll");
         if (nullptr == kernel32)
         {
             return;
         }
-        const auto GetLogicalProcessorInformationEx = GLPIE (GetProcAddress (kernel32, "GetLogicalProcessorInformationEx"));
+        auto GetLogicalProcessorInformationEx = GLPIE (GetProcAddress (kernel32, "GetLogicalProcessorInformationEx"));
         if (nullptr == GetLogicalProcessorInformationEx)
         {
             return;
@@ -375,13 +373,13 @@ namespace WinProcGroup {
 
 #if defined(_WIN32)
 
-        const auto kernel32 = GetModuleHandle ("Kernel32.dll");
+        auto kernel32 = GetModuleHandle ("Kernel32.dll");
         if (nullptr == kernel32)
         {
             return;
         }
 
-        const auto GetNumaNodeProcessorMaskEx = GNNPME (GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx"));
+        auto GetNumaNodeProcessorMaskEx = GNNPME (GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx"));
         if (nullptr == GetNumaNodeProcessorMaskEx)
         {
             return;
@@ -389,7 +387,7 @@ namespace WinProcGroup {
         GROUP_AFFINITY group_affinity;
         if (GetNumaNodeProcessorMaskEx (group, &group_affinity))
         {
-            const auto SetThreadGroupAffinity = STGA (GetProcAddress (kernel32, "SetThreadGroupAffinity"));
+            auto SetThreadGroupAffinity = STGA (GetProcAddress (kernel32, "SetThreadGroupAffinity"));
             if (nullptr == SetThreadGroupAffinity)
             {
                 return;
@@ -541,8 +539,8 @@ void ThreadPool::start_thinking (Position &pos, StateListPtr &states, const Limi
     // We use setup() to set root position across threads.
     // So we need to save and later to restore last stateinfo, cleared by setup().
     // Note that states is shared by threads but is accessed in read-only mode.
-    const auto fen = pos.fen ();
-    const auto back_si = setup_states->back ();
+    auto fen = pos.fen ();
+    auto back_si = setup_states->back ();
     for (auto *th : *this)
     {
         th->running_depth = 0;

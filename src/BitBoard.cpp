@@ -31,12 +31,12 @@ namespace BitBoard {
 
     namespace {
 
-        const Delta PawnDeltas[CLR_NO][3] =
+        constexpr Delta PawnDeltas[CLR_NO][3] =
         {
             { DEL_NW, DEL_NE, DEL_O },
             { DEL_SE, DEL_SW, DEL_O },
         };
-        const Delta PieceDeltas[NONE][9] =
+        constexpr Delta PieceDeltas[NONE][9] =
         {
             { DEL_O },
             { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE, DEL_O },
@@ -48,9 +48,9 @@ namespace BitBoard {
 
 //        // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
 //#   if defined(BIT64)
-//        const u64 DeBruijn_64 = U64(0x3F79D71B4CB0A89);
+//        constexpr u64 DeBruijn_64 = U64(0x3F79D71B4CB0A89);
 //#   else
-//        const u32 DeBruijn_32 = U32(0x783A9B23);
+//        constexpr u32 DeBruijn_32 = U32(0x783A9B23);
 //#   endif
 //
 //        Square BSF_Table[SQ_NO];
@@ -86,7 +86,7 @@ namespace BitBoard {
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32 = 4 * 0x200 + 4 * 0x40 + 12 * 0x80 + 32 * 0x20
         //    2048 +     256 +     1536 +     1408 =     0x800 +    0x100 +     0x600 +     0x580
         //                                    5248 =                                       0x1480
-        const u32 MaxBTSize = U32(0x1480);
+        constexpr u32 MaxBTSize = U32(0x1480);
         Bitboard BTable[MaxBTSize];
 
         // Max Rook Table Size
@@ -94,7 +94,7 @@ namespace BitBoard {
         // 4 * 4096 + 24 * 2048 + 36 * 1024 = 4 * 0x1000 + 24 * 0x800 + 36 * 0x400
         //    16384 +     49152 +     36864 =     0x4000 +     0xC000 +     0x9000
         //                           102400 =                              0x19000
-        const u32 MaxRTSize = U32(0x19000);
+        constexpr u32 MaxRTSize = U32(0x19000);
         Bitboard RTable[MaxRTSize];
 
         /// Initialize all bishop and rook attacks at startup.
@@ -105,11 +105,11 @@ namespace BitBoard {
         {
 
 #       if !defined(BM2)
-            const i16 MaxIndex = 0x1000;
+            constexpr i16 MaxIndex = 0x1000;
             Bitboard occupancy[MaxIndex]
                 ,    reference[MaxIndex];
 
-            const u32 Seeds[R_NO] =
+            constexpr u32 Seeds[R_NO] =
 #           if defined(BIT64)
                 { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
 #           else
@@ -261,7 +261,7 @@ namespace BitBoard {
                 k = 0;
                 while (DEL_O != (del = PawnDeltas[c][k++]))
                 {
-                    const auto sq = s + del;
+                    auto sq = s + del;
                     if (   _ok (sq)
                         && 1 == dist (s, sq))
                     {
@@ -276,7 +276,7 @@ namespace BitBoard {
             k = 0;
             while (DEL_O != (del = PieceDeltas[pt][k++]))
             {
-                const auto sq = s + del;
+                auto sq = s + del;
                 if (   _ok (sq)
                     && 2 == dist (s, sq))
                 {
@@ -288,7 +288,7 @@ namespace BitBoard {
             k = 0;
             while (DEL_O != (del = PieceDeltas[pt][k++]))
             {
-                const auto sq = s + del;
+                auto sq = s + del;
                 if (   _ok (sq)
                     && 1 == dist (s, sq))
                 {

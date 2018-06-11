@@ -89,7 +89,7 @@ namespace {
 
     i32 month_index (const string &month)
     {
-        const i08 Months = 12;
+        constexpr i08 Months = 12;
         const string MonthStr[Months] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
         for (auto m = 0; m < Months; ++m)
@@ -168,7 +168,7 @@ namespace {
         while (iss >> token)
         {
             ++count;
-            const auto m = move_from_can (token, pos);
+            auto m = move_from_can (token, pos);
             if (MOVE_NONE == m)
             {
                 std::cerr << "ERROR: Illegal Move '" << token << "' at " << count << std::endl;
@@ -302,11 +302,11 @@ namespace {
         string token;
 
         // Assign default values to missing arguments
-        const string hash    = (iss >> token) && !white_spaces (token) ? token : "16";
-        const string threads = (iss >> token) && !white_spaces (token) ? token : "1";
-        const string value   = (iss >> token) && !white_spaces (token) ? token : "13";
-        const string mode    = (iss >> token) && !white_spaces (token) ? token : "depth";
-        const string pos_fn  = (iss >> token) && !white_spaces (token) ? token : "default";
+        string hash    = (iss >> token) && !white_spaces (token) ? token : "16";
+        string threads = (iss >> token) && !white_spaces (token) ? token : "1";
+        string value   = (iss >> token) && !white_spaces (token) ? token : "13";
+        string mode    = (iss >> token) && !white_spaces (token) ? token : "depth";
+        string pos_fn  = (iss >> token) && !white_spaces (token) ? token : "default";
 
         vector<string> cmds;
         vector<string> uci_cmds;

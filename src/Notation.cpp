@@ -244,7 +244,7 @@ Move move_from_san (const string &san, Position &pos)
 /// Returns formated human-readable search information.
 string pretty_pv_info (Thread *const &th)
 {
-    const double K = 1000.0;
+    constexpr double K = 1000.0;
     u64 nodes = Threadpool.nodes ();
 
     ostringstream oss;

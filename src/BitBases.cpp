@@ -198,7 +198,7 @@ namespace BitBases {
     {
         assert(_file (wp_sq) <= F_D);
 
-        const u32 idx = index (c, wk_sq, bk_sq, wp_sq);
+        auto idx = index (c, wk_sq, bk_sq, wp_sq);
         return KPK_Bitbase[idx / 32] & (1 << (idx & 0x1F));
     }
 
