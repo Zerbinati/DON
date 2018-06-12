@@ -803,16 +803,17 @@ namespace EndGame {
             auto sk_sq = pos.square<KING> (strong_color);
             auto wk_sq = pos.square<KING> (  weak_color);
             auto sb_sq = pos.square<BSHP> (strong_color);
+            Bitboard wpawns = pos.pieces (weak_color, PAWN);
 
-            if (0 != pos.pieces (weak_color, PAWN))
+            if (0 != wpawns)
             {
                 // Get weak side pawn that is closest to home rank
-                auto wp_sq = scan_backmost_sq (weak_color, pos.pieces (weak_color, PAWN));
+                auto wp_sq = scan_backmost_sq (weak_color, wpawns);
 
                 // There's potential for a draw if weak pawn is blocked on the 7th rank
                 // and the bishop cannot attack it or they only have one pawn left
                 if (   R_7 == rel_rank (strong_color, wp_sq)
-                    && contains (pos.pieces (strong_color, PAWN), wp_sq + pawn_push (weak_color))
+                    && contains (spawns, wp_sq + pawn_push (weak_color))
                     && (   opposite_colors (sb_sq, wp_sq)
                         || 1 == pos.count (strong_color, PAWN)))
                 {
