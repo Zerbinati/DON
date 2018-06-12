@@ -299,10 +299,10 @@ enum MoveType : u16
 };
 /// Move needs 16-bits to be stored
 ///
-/// bit 00-05: (0...63), Destiny square
-/// bit 06-11: (0...63), Origin square
-/// bit 12-13: (0...3), Promotion piece
-/// bit 14-15: (0...3), Move Type
+/// bit 00-05: Destiny square
+/// bit 06-11: Origin square
+/// bit 12-13: Promotion piece
+/// bit 14-15: Move Type
 ///
 /// Special cases are MOVE_NONE and MOVE_NULL.
 enum Move : u16
