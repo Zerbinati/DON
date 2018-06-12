@@ -526,7 +526,7 @@ namespace Searcher {
                             rms[i].new_value :
                             rms[i].old_value;
                 bool tb = TBHasRoot
-                       && abs (v) < +VALUE_MATE - i32(MaxPlies);
+                       && abs (v) < +VALUE_MATE - i32(MaxDepth);
                 if (tb)
                 {
                     v = rms[i].tb_value;
@@ -581,10 +581,10 @@ namespace Searcher {
             bool in_check = 0 != pos.si->checkers;
 
             // Check for maximum ply reached or immediate draw.
-            if (   ss->ply >= MaxPlies
+            if (   ss->ply >= MaxDepth
                 || pos.draw (ss->ply))
             {
-                return ss->ply >= MaxPlies
+                return ss->ply >= MaxDepth
                     && !in_check ?
                             evaluate (pos) :
                             VALUE_DRAW;
@@ -592,7 +592,7 @@ namespace Searcher {
 
             assert(ss->ply >= 1
                 && ss->ply == (ss-1)->ply + 1
-                && ss->ply < MaxPlies);
+                && ss->ply < MaxDepth);
 
             Move move;
             // Transposition table lookup.
@@ -867,7 +867,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(!(PVNode && cut_node));
-            assert(DepthZero < depth && depth < MaxPlies);
+            assert(DepthZero < depth && depth < MaxDepth);
 
             // Step 1. Initialize node.
             auto *thread = pos.thread;
@@ -900,10 +900,10 @@ namespace Searcher {
             {
                 // Step 2. Check for aborted search, maximum ply reached or immediate draw.
                 if (   Threadpool.stop.load (std::memory_order::memory_order_relaxed)
-                    || ss->ply >= MaxPlies
+                    || ss->ply >= MaxDepth
                     || pos.draw (ss->ply))
                 {
-                    return ss->ply >= MaxPlies
+                    return ss->ply >= MaxDepth
                         && !in_check ?
                                 evaluate (pos) :
                                 VALUE_DRAW;
@@ -925,7 +925,7 @@ namespace Searcher {
 
             assert(ss->ply >= 0
                 && ss->ply == (ss-1)->ply + 1
-                && ss->ply < MaxPlies);
+                && ss->ply < MaxDepth);
 
             ss->played_move = MOVE_NONE;
             ss->pd_history = thread->continuation_history[NO_PIECE][0].get ();
@@ -1029,8 +1029,8 @@ namespace Searcher {
 
                         auto draw = TBUseRule50 ? 1 : 0;
 
-                        value = wdl < -draw ? -VALUE_MATE + i32(MaxPlies + ss->ply + 1) :
-                                wdl > +draw ? +VALUE_MATE - i32(MaxPlies + ss->ply + 1) :
+                        value = wdl < -draw ? -VALUE_MATE + i32(MaxDepth + ss->ply + 1) :
+                                wdl > +draw ? +VALUE_MATE - i32(MaxDepth + ss->ply + 1) :
                                                VALUE_ZERO + 2 * wdl * draw;
 
                         auto bound = wdl < -draw ? BOUND_UPPER :
@@ -1044,7 +1044,7 @@ namespace Searcher {
                                        MOVE_NONE,
                                        value_to_tt (value, ss->ply),
                                        VALUE_NONE,
-                                       std::min<i16> (depth + 6, MaxPlies - 1),
+                                       std::min<i16> (depth + 6, MaxDepth - 1),
                                        bound,
                                        TT.generation);
 
@@ -1792,8 +1792,8 @@ using namespace Searcher;
 /// - Maximum search depth is reached.
 void Thread::search ()
 {
-    Stack stacks[MaxPlies + 7]; // To allow referencing (ss-4) and (ss+2)
-    for (auto ss = stacks; ss < stacks + MaxPlies + 7; ++ss)
+    Stack stacks[MaxDepth + 7]; // To allow referencing (ss-4) and (ss+2)
+    for (auto ss = stacks; ss < stacks + MaxDepth + 7; ++ss)
     {
         ss->ply = i16(ss - (stacks + 4));
         ss->played_move = MOVE_NONE;
@@ -1819,7 +1819,7 @@ void Thread::search ()
         , beta = +VALUE_INFINITE;
 
     // Iterative deepening loop until requested to stop or the target depth is reached.
-    while (   ++running_depth < MaxPlies
+    while (   ++running_depth < MaxDepth
            && !Threadpool.stop
            && (   nullptr == main_thread
                || DepthZero == Limits.depth
@@ -2318,8 +2318,7 @@ void MainThread::tick ()
     }
 
     // Do not stop until told so by the GUI.
-    if (   Limits.infinite
-        || Threadpool.ponder)
+    if (Threadpool.ponder)
     {
         return;
     }

@@ -119,7 +119,7 @@ private:
 public:
     Piece    board[SQ_NO];
     Bitboard color_bb[CLR_NO];
-    Bitboard types_bb[MAX_PTYPE];
+    Bitboard types_bb[PT_NO];
     std::list<Square> squares[CLR_NO][NONE];
 
     CastleRight castle_mask[SQ_NO];

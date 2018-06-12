@@ -152,7 +152,7 @@ void SkillManager::pick_best_move (i16 level)
     if (MOVE_NONE == best_move)
     {
         // RootMoves are already sorted by value in descending order
-        i32  weakness = MaxPlies - 8 * level;
+        i32  weakness = MaxDepth - 8 * level;
         i32  deviance = std::min (root_moves[0].new_value - root_moves[Threadpool.pv_limit - 1].new_value, VALUE_MG_PAWN);
         auto best_value = -VALUE_INFINITE;
         for (u08 i = 0; i < Threadpool.pv_limit; ++i)
@@ -162,7 +162,7 @@ void SkillManager::pick_best_move (i16 level)
             // One is deterministic with weakness, and one is random with weakness.
             auto value = rm.new_value
                        + (  weakness * i32(root_moves[0].new_value - rm.new_value)
-                          + deviance * i32(prng.rand<u32> () % weakness)) / MaxPlies;
+                          + deviance * i32(prng.rand<u32> () % weakness)) / MaxDepth;
             // Then choose the move with the highest value.
             if (best_value <= value)
             {

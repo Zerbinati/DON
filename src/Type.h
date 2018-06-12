@@ -142,14 +142,13 @@ inline void prefetch (const void *)
 typedef u64 Key;
 typedef u64 Bitboard;
 
-constexpr u16 MaxPlies = 128; // Maximum Plies
-
 constexpr i16 DepthZero         =  0;
 constexpr i16 DepthQSCheck      =  0;
 constexpr i16 DepthQSNoCheck    = -1;
 constexpr i16 DepthQSRecapture  = -5;
 constexpr i16 DepthNone         = -6;
 constexpr i16 DepthEmpty        = -7;
+constexpr i16 MaxDepth          = 128; // Maximum Plies
 
 enum File : i08
 {
@@ -258,14 +257,14 @@ enum CastleRight : u08
 
 enum PieceType : i08
 {
-    PAWN     , // 000
-    NIHT     , // 001
-    BSHP     , // 010
-    ROOK     , // 011
-    QUEN     , // 100
-    KING     , // 101
-    NONE     , // 110
-    MAX_PTYPE, // 111
+    PAWN , // 000
+    NIHT , // 001
+    BSHP , // 010
+    ROOK , // 011
+    QUEN , // 100
+    KING , // 101
+    NONE , // 110
+    PT_NO, // 111
 };
 /// Piece needs 4-bits to be stored
 /// bit 0-2: Type of piece
@@ -321,7 +320,7 @@ enum Value : i32
     VALUE_INFINITE  = i32(VALUE_NONE) - 1,
     VALUE_MATE      = i32(VALUE_INFINITE) - 1,
 
-    VALUE_MATE_MAX_PLY = i32(VALUE_MATE) - 2*MaxPlies,
+    VALUE_MATE_MAX_PLY = i32(VALUE_MATE) - 2*MaxDepth,
 
     VALUE_KNOWN_WIN = 10000,
 
@@ -747,7 +746,7 @@ constexpr Square SQ[SQ_NO] =
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
 };
 
-constexpr Value PieceValues[2][MAX_PTYPE] =
+constexpr Value PieceValues[2][PT_NO] =
 {
     { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }

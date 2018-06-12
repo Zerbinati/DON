@@ -35,7 +35,7 @@ public:
     void update (Color);
 };
 
-// MaxLevel should be <= MaxPlies/8
+// MaxLevel should be <= MaxDepth/8
 const i16 MaxLevel = 12;
 
 inline bool skill_mgr_enabled ()

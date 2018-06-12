@@ -804,7 +804,7 @@ namespace EndGame {
             auto wk_sq = pos.square<KING> (  weak_color);
             auto sb_sq = pos.square<BSHP> (strong_color);
 
-            if (0 != pos.count (weak_color, PAWN))
+            if (0 != pos.pieces (weak_color, PAWN))
             {
                 // Get weak side pawn that is closest to home rank
                 auto wp_sq = scan_backmost_sq (weak_color, pos.pieces (weak_color, PAWN));

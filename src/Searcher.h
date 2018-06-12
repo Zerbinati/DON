@@ -115,7 +115,7 @@ struct Stats<T, D, Size>
 typedef Stats<i16, 10368, CLR_NO, SQ_NO*SQ_NO> ButterflyHistory;
 
 /// CaptureHistory stores capture history, indexed by [piece][move][captured piece type]
-typedef Stats<i16, 10368, MAX_PIECE, SQ_NO*SQ_NO, MAX_PTYPE> CaptureHistory;
+typedef Stats<i16, 10368, MAX_PIECE, SQ_NO*SQ_NO, PT_NO> CaptureHistory;
 
 /// PieceDestinyHistory is like ButterflyHistory, indexed by [piece][destiny]
 typedef Stats<i16, 29952, MAX_PIECE, SQ_NO> PieceDestinyHistory;

@@ -68,7 +68,7 @@ namespace {
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
         // Polyglot use 3 bits while engine use 2 bits.
-        u08 pt = (m >> 12) & MAX_PTYPE;
+        u08 pt = (m >> 12) & PT_NO;
         // Set new type for promotion piece
         if (0 != pt)
         {

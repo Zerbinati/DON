@@ -57,7 +57,7 @@ namespace {
     {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
         ostringstream oss;
-        if (abs (v) < +VALUE_MATE - i32(MaxPlies))
+        if (abs (v) < +VALUE_MATE - i32(MaxDepth))
         {
             oss << std::showpos << std::setprecision (2) << std::fixed << value_to_cp (v) / 100.0 << std::noshowpos;
         }
