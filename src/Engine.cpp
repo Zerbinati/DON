@@ -375,7 +375,7 @@ namespace {
         auto uci_cmds = setup_bench (iss, pos);
         u16 total = u16(count_if (uci_cmds.begin (), uci_cmds.end (), [](string s) { return s.find ("go ") == 0; }));
         u16 count = 0;
-        
+
         debug_init ();
 
         auto elapsed_time = now ();
@@ -392,6 +392,11 @@ namespace {
                 continue;
             }
 
+            if (token == "position")
+            {
+                position (is, pos, states);
+            }
+            else
             if (token == "go")
             {
                 std::cerr
@@ -405,14 +410,14 @@ namespace {
                 total_nodes += Threadpool.nodes ();
             }
             else
-            if (token == "position")
-            {
-                position (is, pos, states);
-            }
-            else
             if (token == "setoption")
             {
                 setoption (is);
+            }
+            else
+            if (token == "ucinewgame")
+            {
+                clear ();
             }
             else
             {
@@ -510,14 +515,14 @@ namespace {
                 clear ();
             }
             else
-            if (token == "go")
-            {
-                go (iss, pos, states);
-            }
-            else
             if (token == "position")
             {
                 position (iss, pos, states);
+            }
+            else
+            if (token == "go")
+            {
+                go (iss, pos, states);
             }
             else
             if (token == "setoption")

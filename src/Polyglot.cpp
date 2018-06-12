@@ -2,7 +2,6 @@
 
 #include <fstream>
 #include <iostream>
-#include "BitBoard.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
 #include "PRNG.h"

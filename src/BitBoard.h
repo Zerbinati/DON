@@ -178,7 +178,7 @@ namespace BitBoard {
 
         Bitboard *attacks;
 
-        u16 index (Bitboard occ)
+        u16 index (Bitboard occ) const
         {
             return
 #       if defined(BM2)
@@ -191,7 +191,7 @@ namespace BitBoard {
 #       endif
         }
 
-        Bitboard attacks_bb (Bitboard occ)
+        Bitboard attacks_bb (Bitboard occ) const
         {
             return attacks[index (occ)];
         }

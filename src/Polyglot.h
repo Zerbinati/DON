@@ -31,19 +31,19 @@ struct PolyEntry
 
     explicit operator Move () const { return Move(move); }
 
-    bool operator== (const PolyEntry &entry)
+    bool operator== (const PolyEntry &entry) const
     {
         return key == entry.key
             && move == entry.move
             && weight == entry.weight;
     }
-    bool operator!= (const PolyEntry &entry)
+    bool operator!= (const PolyEntry &entry) const
     {
         return key != entry.key
             || move != entry.move
             || weight != entry.weight;
     }
-    bool operator>  (const PolyEntry &entry)
+    bool operator>  (const PolyEntry &entry) const
     {
         return key != entry.key ?
                     key > entry.key :
@@ -51,7 +51,7 @@ struct PolyEntry
                         weight > entry.weight :
                         move > entry.move;
     }
-    bool operator<  (const PolyEntry &entry)
+    bool operator<  (const PolyEntry &entry) const
     {
         return key != entry.key ?
                     key < entry.key :
@@ -59,7 +59,7 @@ struct PolyEntry
                         weight < entry.weight :
                         move < entry.move;
     }
-    bool operator>= (const PolyEntry &entry)
+    bool operator>= (const PolyEntry &entry) const
     {
         return key != entry.key ?
                     key >= entry.key :
@@ -67,7 +67,7 @@ struct PolyEntry
                         weight >= entry.weight :
                         move >= entry.move;
     }
-    bool operator<= (const PolyEntry &entry)
+    bool operator<= (const PolyEntry &entry) const
     {
         return key != entry.key ?
                     key <= entry.key :
@@ -76,8 +76,8 @@ struct PolyEntry
                         move <= entry.move;
     }
 
-    bool operator== (Move m) { return move == m; }
-    bool operator!= (Move m) { return move != m; }
+    bool operator== (Move m)  const { return move == m; }
+    bool operator!= (Move m)  const { return move != m; }
 
     explicit operator std::string () const;
 
