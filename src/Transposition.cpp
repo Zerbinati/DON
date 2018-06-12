@@ -77,7 +77,6 @@ size_t TCluster::full_entry_count (u08 gen) const
 void TTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
 {
     assert(0 == (alignment & (alignment-1)));
-    assert(0 == (mem_size  & (alignment-1)));
 
 #if defined(LPAGES)
 

@@ -1456,7 +1456,7 @@ namespace Searcher {
                 // Step 15. Make the move.
                 pos.do_move (move, si, gives_check);
 
-                bool fd_search;
+                bool search_fd;
                 // Step 16. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
                 if (   2 < depth
@@ -1531,17 +1531,17 @@ namespace Searcher {
 
                     value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth - reduce_depth, true);
 
-                    fd_search = alfa < value
+                    search_fd = alfa < value
                              && 0 != reduce_depth;
                 }
                 else
                 {
-                    fd_search = !PVNode
+                    search_fd = !PVNode
                              || 1 < move_count;
                 }
 
                 // Step 17. Full depth search when LMR is skipped or fails high.
-                if (fd_search)
+                if (search_fd)
                 {
                     value = -depth_search<false> (pos, ss+1, -alfa-1, -alfa, new_depth, !cut_node);
                 }

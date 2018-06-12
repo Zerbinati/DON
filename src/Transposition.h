@@ -45,17 +45,17 @@ public:
         if (   k16 != (k >> 0x30)   // Use the high 16 bits as key inside the cluster
             || MOVE_NONE != m)
         {
-            m16 = u16(m);
+            m16  = u16(m);
         }
         if (   k16 != (k >> 0x30)
             || d08 - 4 < d
             || BOUND_EXACT == b)
         {
-            k16 = u16(k >> 0x30);
-            d08 = i08(d);
+            k16  = u16(k >> 0x30);
+            d08  = i08(d);
             gb08 = u08(g + b);
-            v16 = i16(v);
-            e16 = i16(e);
+            v16  = i16(v);
+            e16  = i16(e);
         }
         assert(!empty ());
     }
