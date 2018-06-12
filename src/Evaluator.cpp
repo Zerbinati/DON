@@ -45,20 +45,22 @@ namespace {
 
     ostream& operator<< (ostream &os, Term term)
     {
+        auto *score = Scores[term];
         switch (term)
         {
         case Term::MATERIAL:
         case Term::IMBALANCE:
         case Term::INITIATIVE:
         case Term::TOTAL:
-            os << " | ----- ----- | ----- ----- | ";
+            os << " | ----- -----"
+               << " | ----- -----";
             break;
         default:
-            os << " | " << std::setw (5) << Scores[term][WHITE]
-               << " | " << std::setw (5) << Scores[term][BLACK] << " | ";
+            os << " | " << score[WHITE]
+               << " | " << score[BLACK];
             break;
         }
-        os << std::setw (5) << Scores[term][WHITE] - Scores[term][BLACK] << std::endl;
+        os << " | " << score[WHITE] - score[BLACK] << std::endl;
         return os;
     }
 
@@ -1006,13 +1008,13 @@ namespace {
     template<bool Trace>
     Scale Evaluator<Trace>::scale (Value eg) const
     {
-        auto strong_color = eg >= VALUE_ZERO ? WHITE : BLACK;
+        auto color = eg >= VALUE_ZERO ? WHITE : BLACK;
 
         Scale scl;
-        if (   nullptr == me->scale_func[strong_color]
-            || SCALE_NONE == (scl = (*me->scale_func[strong_color])(pos)))
+        if (   nullptr == me->scale_func[color]
+            || SCALE_NONE == (scl = (*me->scale_func[color])(pos)))
         {
-            scl = me->scale[strong_color];
+            scl = me->scale[color];
         }
         assert(SCALE_NONE != scl);
 
@@ -1029,7 +1031,7 @@ namespace {
                                 // Endings with also other pieces, still a bit drawish, but not as drawish as with only the two bishops.
                                 46);
             }
-            return std::min (Scale(40 + 7 * pos.count (strong_color, PAWN)), scl);
+            return std::min (Scale(40 + 7 * pos.count (color, PAWN)), scl);
         }
         return scl;
     }

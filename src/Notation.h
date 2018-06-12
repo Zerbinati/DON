@@ -30,7 +30,7 @@ inline std::string to_string (Square s)
 inline std::string to_string (Value v)
 {
     assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
-        
+
     std::ostringstream oss;
 
     if (abs (v) < +VALUE_MATE - i32(MaxDepth))

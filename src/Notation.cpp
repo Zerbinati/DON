@@ -251,7 +251,7 @@ string pretty_pv_info (Thread *const &th)
     oss << std::setw ( 4) << th->finished_depth
         << std::setw ( 8) << pretty_value (th->root_moves[0].new_value)
         << std::setw (12) << pretty_time (Threadpool.main_thread ()->time_mgr.elapsed_time ());
-        
+
     if (nodes < 10*(K))
     {
         oss << std::setw (8) << u16(nodes);

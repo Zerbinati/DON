@@ -2284,7 +2284,7 @@ void MainThread::search ()
 
     // Best move could be MOVE_NONE when searching on a stalemate position.
     sync_cout << "bestmove " << move_to_can (bm)
-              << " ponder " << move_to_can (pm) << sync_endl;
+              << " ponder "  << move_to_can (pm) << sync_endl;
 }
 /// MainThread::set_check_count()
 void MainThread::set_check_count ()
