@@ -111,19 +111,19 @@ void TimeManager::initialize (Color c, i16 ply, u16 nodes_tm, TimePoint minimum_
     auto max_movestogo = 0 != Limits.movestogo ?
                             std::min (Limits.movestogo, u08(50)) :
                             u08(50);
-    TimePoint hyp_time;
-    // Calculate optimum time usage for different hypothetic "moves to go" and choose the
-    // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
-    for (u08 hyp_movestogo = 1; hyp_movestogo <= max_movestogo; ++hyp_movestogo)
+    TimePoint time;
+    // Calculate optimum time usage for different hypothetic "moves to go" and
+    // choose the minimum of calculated search time values.
+    for (u08 movestogo = 1; movestogo <= max_movestogo; ++movestogo)
     {
         // Calculate thinking time for hypothetic "moves to go"
-        hyp_time = std::max (Limits.clock[c].time
-                           + Limits.clock[c].inc * (hyp_movestogo - 1)
-                           - overhead_movetime * 2                                                 // Overhead clock time: Attempt to keep at least this much time at clock, in milli-seconds.
-                           - overhead_movetime * std::min (hyp_movestogo, u08(40)), TimePoint(0)); // Be prepared to always play at least this many moves.
+        time = std::max (Limits.clock[c].time
+                       + Limits.clock[c].inc * (movestogo - 1)
+                       - overhead_movetime * 2                                             // Overhead clock time: Attempt to keep at least this much time at clock, in milli-seconds.
+                       - overhead_movetime * std::min (movestogo, u08(40)), TimePoint(0)); // Be prepared to always play at least this many moves.
 
-        optimum_time = std::min (optimum_time, minimum_movetime + remaining_time<true > (hyp_time, hyp_movestogo, ply, move_slowness));
-        maximum_time = std::min (maximum_time, minimum_movetime + remaining_time<false> (hyp_time, hyp_movestogo, ply, move_slowness));
+        optimum_time = std::min (optimum_time, minimum_movetime + remaining_time<true > (time, movestogo, ply, move_slowness));
+        maximum_time = std::min (maximum_time, minimum_movetime + remaining_time<false> (time, movestogo, ply, move_slowness));
     }
 
     if (ponder)
@@ -431,10 +431,10 @@ void ThreadPool::clear ()
 void ThreadPool::configure (u32 thread_count)
 {
     // Destroy any existing thread(s)
-    if (!empty ())
+    if (0 < size ())
     {
         main_thread ()->wait_while_busy ();
-        while (!empty ())
+        while (0 < size ())
         {
             delete back ();
             pop_back ();
@@ -443,13 +443,11 @@ void ThreadPool::configure (u32 thread_count)
     // Create new thread(s)
     if (0 < thread_count)
     {
-        assert(empty ());
         push_back (new MainThread (size ()));
         while (size () < thread_count)
         {
             push_back (new Thread (size ()));
         }
-        assert(!empty ());
         sync_cout << "info string Thread(s) used " << thread_count << sync_endl;
 
         clear ();
