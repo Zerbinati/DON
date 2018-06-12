@@ -471,7 +471,7 @@ u64 perft (Position &pos, i16 depth)
     u64 leaf_nodes = 0;
     i16 move_count = 0;
 
-    const bool LeafNode = 2 >= depth;
+    bool LeafNode = 2 >= depth;
 
     for (const auto &vm : MoveList<GenType::LEGAL> (pos))
     {

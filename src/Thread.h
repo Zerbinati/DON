@@ -76,7 +76,7 @@ protected:
 
 public:
 
-    Position root_pos;
+    Position  root_pos;
     RootMoves root_moves;
 
     i16 running_depth
@@ -123,18 +123,20 @@ class MainThread
 {
 private :
 
-    u64 check_count;
+    u64    check_count;
     
 public:
 
-    Value last_value;
+    Value  last_value;
     double last_time_reduction;
 
-    TimeManager time_mgr;
+    TimeManager  time_mgr;
     SkillManager skill_mgr;
 
-    bool failed_low;
+    bool   failed_low;
     double best_move_change;
+    Move   best_move;
+    i16    best_move_depth;
 
     explicit MainThread (size_t);
     MainThread () = delete;
@@ -154,8 +156,8 @@ namespace WinProcGroup {
 
     extern void initialize ();
     extern void bind (size_t);
-
 }
+
 /// ThreadPool class handles all the threads related stuff like,
 /// initializing & deinitializing, starting, parking & launching a thread
 /// All the access to shared thread data is done through this class.

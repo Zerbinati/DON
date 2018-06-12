@@ -260,16 +260,16 @@ namespace BitBoard {
     template<Delta DEL>
     constexpr Bitboard shift (Bitboard bb) { return 0; }
 
-    template<> constexpr Bitboard shift<DEL_N > (Bitboard bb) { return (bb         ) << 010; }
-    template<> constexpr Bitboard shift<DEL_S > (Bitboard bb) { return (bb         ) >> 010; }
-    template<> constexpr Bitboard shift<DEL_NN> (Bitboard bb) { return (bb         ) << 020; }
-    template<> constexpr Bitboard shift<DEL_SS> (Bitboard bb) { return (bb         ) >> 020; }
-    template<> constexpr Bitboard shift<DEL_E > (Bitboard bb) { return (bb & ~FH_bb) << 001; }
-    template<> constexpr Bitboard shift<DEL_W > (Bitboard bb) { return (bb & ~FA_bb) >> 001; }
-    template<> constexpr Bitboard shift<DEL_NE> (Bitboard bb) { return (bb & ~FH_bb) << 011; }
-    template<> constexpr Bitboard shift<DEL_SE> (Bitboard bb) { return (bb & ~FH_bb) >> 007; }
-    template<> constexpr Bitboard shift<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) << 007; }
-    template<> constexpr Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> 011; }
+    template<> constexpr Bitboard shift<DEL_N > (Bitboard bb) { return (bb         ) << 8; }
+    template<> constexpr Bitboard shift<DEL_S > (Bitboard bb) { return (bb         ) >> 8; }
+    template<> constexpr Bitboard shift<DEL_NN> (Bitboard bb) { return (bb         ) << 16; }
+    template<> constexpr Bitboard shift<DEL_SS> (Bitboard bb) { return (bb         ) >> 16; }
+    template<> constexpr Bitboard shift<DEL_E > (Bitboard bb) { return (bb & ~FH_bb) << 1; }
+    template<> constexpr Bitboard shift<DEL_W > (Bitboard bb) { return (bb & ~FA_bb) >> 1; }
+    template<> constexpr Bitboard shift<DEL_NE> (Bitboard bb) { return (bb & ~FH_bb) << 9; }
+    template<> constexpr Bitboard shift<DEL_SE> (Bitboard bb) { return (bb & ~FH_bb) >> 7; }
+    template<> constexpr Bitboard shift<DEL_NW> (Bitboard bb) { return (bb & ~FA_bb) << 7; }
+    template<> constexpr Bitboard shift<DEL_SW> (Bitboard bb) { return (bb & ~FA_bb) >> 9; }
 
     //// Rotate Right (toward LSB)
     //inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08(SQ_NO) - k)); }
@@ -465,8 +465,8 @@ namespace BitBoard {
 #   if defined(BIT64)
 
     // * @author Kim Walisch (2012)
-    const u64 DeBruijn_64 = U64(0x03F79D71B4CB0A89);
-    const u08 BSF_Table[SQ_NO] =
+    constexpr u64 DeBruijn_64 = U64(0x03F79D71B4CB0A89);
+    constexpr u08 BSF_Table[SQ_NO] =
     {
          0, 47,  1, 56, 48, 27,  2, 60,
         57, 49, 41, 37, 28, 16,  3, 61,
@@ -480,8 +480,8 @@ namespace BitBoard {
 
 #   else
 
-    const u32 DeBruijn_32 = U32(0x783A9B23);
-    const u08 BSF_Table[SQ_NO] =
+    constexpr u32 DeBruijn_32 = U32(0x783A9B23);
+    constexpr u08 BSF_Table[SQ_NO] =
     {
         63, 30,  3, 32, 25, 41, 22, 33,
         15, 50, 42, 13, 11, 53, 19, 34,
@@ -493,7 +493,7 @@ namespace BitBoard {
         38, 28, 58, 20, 37, 17, 36,  8
     };
 
-    const u08 MSB_Table[(1 << 8)] =
+    constexpr u08 MSB_Table[(1 << 8)] =
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,

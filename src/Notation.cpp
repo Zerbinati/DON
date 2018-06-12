@@ -24,8 +24,8 @@ namespace {
         assert(pos.pseudo_legal (m)
             && pos.legal (m));
 
-        const auto org = org_sq (m);
-        const auto dst = dst_sq (m);
+        auto org = org_sq (m);
+        auto dst = dst_sq (m);
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
         Bitboard attacks = NIHT == ptype (pos[org]) ? PieceAttacks[NIHT][dst] :
@@ -72,9 +72,9 @@ namespace {
     // Time to string
     string pretty_time (u64 time)
     {
-        const u32 SecondMilliSec = 1000;
-        const u32 MinuteMilliSec = 60*SecondMilliSec;
-        const u32 HourMilliSec   = 60*MinuteMilliSec;
+        constexpr u32 SecondMilliSec = 1000;
+        constexpr u32 MinuteMilliSec = 60*SecondMilliSec;
+        constexpr u32 HourMilliSec   = 60*MinuteMilliSec;
 
         u32 hours  = u32(time / HourMilliSec);
         time      %= HourMilliSec;
@@ -141,8 +141,8 @@ string move_to_san (Move m, Position &pos)
     assert(MoveList<GenType::LEGAL> (pos).contains (m));
 
     string san;
-    const auto org = org_sq (m);
-    const auto dst = dst_sq (m);
+    auto org = org_sq (m);
+    auto dst = dst_sq (m);
 
     if (CASTLE != mtype (m))
     {

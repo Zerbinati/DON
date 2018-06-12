@@ -533,24 +533,24 @@ namespace Searcher {
                 }
 
                 oss << "info"
-                    << " multipv " << i + 1
-                    << " depth " << d
+                    << " multipv "  << i + 1
+                    << " depth "    << d
                     << " seldepth " << rms[i].sel_depth
-                    << " score " << to_string (v);
+                    << " score "    << to_string (v);
                 if (   !tb
                     && i == pv_cur)
                 {
                     oss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
                 }
-                oss << " nodes " << total_nodes
-                    << " time " << elapsed_time
-                    << " nps " << total_nodes * 1000 / elapsed_time
-                    << " tbhits " << tb_hits;
+                oss << " nodes "    << total_nodes
+                    << " time "     << elapsed_time
+                    << " nps "      << total_nodes * 1000 / elapsed_time
+                    << " tbhits "   << tb_hits;
                 if (elapsed_time > 1000)
                 {
                     oss << " hashfull " << TT.hash_full ();
                 }
-                oss << " pv" << rms[i];
+                oss << " pv"        << rms[i];
                 if (i < Threadpool.pv_limit - 1)
                 {
                     oss << "\n";
@@ -1338,12 +1338,12 @@ namespace Searcher {
                     if (elapsed_time > 3000)
                     {
                         sync_cout << "info"
-                                  << " currmove " << move_to_can (move)
+                                  << " currmove "       << move_to_can (move)
                                   << " currmovenumber " << thread->pv_cur + move_count
-                                  << " maxmoves " << thread->root_moves.size ()
-                                  << " depth " << depth
-                                  << " seldepth " << (*std::find (thread->root_moves.begin (), thread->root_moves.end (), move)).sel_depth
-                                  << " time " << elapsed_time << sync_endl;
+                                  << " maxmoves "       << thread->root_moves.size ()
+                                  << " depth "          << depth
+                                  << " seldepth "       << (*std::find (thread->root_moves.begin (), thread->root_moves.end (), move)).sel_depth
+                                  << " time "           << elapsed_time << sync_endl;
                     }
                 }
 
@@ -1813,8 +1813,6 @@ void Thread::search ()
                 +mk_score (BasicContempt, BasicContempt / 2) :
                 -mk_score (BasicContempt, BasicContempt / 2);
 
-    auto last_best_move = MOVE_NONE;
-    i16  last_best_move_depth = 0;
     auto best_value = VALUE_ZERO
         , window = VALUE_ZERO
         , alfa = -VALUE_INFINITE
@@ -1973,12 +1971,6 @@ void Thread::search ()
             finished_depth = running_depth;
         }
 
-        if (last_best_move != root_moves[0][0])
-        {
-            last_best_move = root_moves[0][0];
-            last_best_move_depth = running_depth;
-        }
-
         // Has any of the threads found a "mate in <x>"?
         if (   !Threadpool.stop
             && !Threadpool.stop_on_ponderhit
@@ -2003,11 +1995,17 @@ void Thread::search ()
                 if (   !Threadpool.stop
                     && !Threadpool.stop_on_ponderhit)
                 {
+                    if (main_thread->best_move != root_moves[0][0])
+                    {
+                        main_thread->best_move = root_moves[0][0];
+                        main_thread->best_move_depth = running_depth;
+                    }
+
                     // If the best_move is stable over several iterations, reduce time accordingly
                     double time_reduction = 1.00;
                     for (auto i : { 3, 4, 5 })
                     {
-                        if (last_best_move_depth * i < finished_depth)
+                        if (main_thread->best_move_depth * i < finished_depth)
                         {
                             time_reduction *= 1.25;
                         }
@@ -2098,9 +2096,9 @@ void MainThread::search ()
         root_moves += MOVE_NONE;
 
         sync_cout << "info"
-                  << " depth " << 0
-                  << " score " << to_string (0 != root_pos.si->checkers ? -VALUE_MATE : VALUE_DRAW)
-                  << " time " << 0 << sync_endl;
+                  << " depth "  << 0
+                  << " score "  << to_string (0 != root_pos.si->checkers ? -VALUE_MATE : VALUE_DRAW)
+                  << " time "   << 0 << sync_endl;
     }
     else
     {
@@ -2157,6 +2155,8 @@ void MainThread::search ()
             {
                 failed_low = false;
                 best_move_change = 0.0;
+                best_move = MOVE_NONE;
+                best_move_depth = DepthZero;
             }
 
             if (skill_mgr_enabled ())
