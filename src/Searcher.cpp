@@ -21,20 +21,20 @@ bool RootMove::extract_ponder_move_from_tt (Position &pos)
     assert(MOVE_NONE != front ());
 
     StateInfo si;
-    auto best_move = front ();
-    pos.do_move (best_move, si);
+    auto bm = front ();
+    pos.do_move (bm, si);
     bool tt_hit;
     auto *tte = TT.probe (pos.si->posi_key, tt_hit);
-    Move ponder_move;
+    Move pm;
     if (   tt_hit
-        && MOVE_NONE != (ponder_move = tte->move ()) // Local copy to be SMP safe
-        && pos.pseudo_legal (ponder_move)
-        && pos.legal (ponder_move))
+        && MOVE_NONE != (pm = tte->move ()) // Local copy to be SMP safe
+        && pos.pseudo_legal (pm)
+        && pos.legal (pm))
     {
-        assert(MoveList<GenType::LEGAL> (pos).contains (ponder_move));
-        *this += ponder_move;
+        assert(MoveList<GenType::LEGAL> (pos).contains (pm));
+        *this += pm;
     }
-    pos.undo_move (best_move);
+    pos.undo_move (bm);
     return 1 < size ();
 }
 /// RootMove::operator string()
@@ -2106,23 +2106,23 @@ void MainThread::search ()
             && 0 == Limits.mate
             && bool(Options["Use Book"]))
         {
-            auto book_best_move = Book.probe (root_pos, i32(Options["Book Move Num"]), bool(Options["Book Pick Best"]));
-            if (MOVE_NONE != book_best_move)
+            auto book_bm = Book.probe (root_pos, i32(Options["Book Move Num"]), bool(Options["Book Pick Best"]));
+            if (MOVE_NONE != book_bm)
             {
-                auto itr = std::find (root_moves.begin (), root_moves.end (), book_best_move);
+                auto itr = std::find (root_moves.begin (), root_moves.end (), book_bm);
                 if (itr != root_moves.end ())
                 {
                     think = false;
                     std::swap (root_moves[0], *itr);
                     root_moves[0].new_value = VALUE_NONE;
                     StateInfo si;
-                    root_pos.do_move (book_best_move, si);
-                    auto book_ponder_move = Book.probe (root_pos, i32(Options["Book Move Num"]), bool(Options["Book Pick Best"]));
-                    if (MOVE_NONE != book_ponder_move)
+                    root_pos.do_move (book_bm, si);
+                    auto book_pm = Book.probe (root_pos, i32(Options["Book Move Num"]), bool(Options["Book Pick Best"]));
+                    if (MOVE_NONE != book_pm)
                     {
-                        root_moves[0] += book_ponder_move;
+                        root_moves[0] += book_pm;
                     }
-                    root_pos.undo_move (book_best_move);
+                    root_pos.undo_move (book_bm);
                 }
             }
         }
@@ -2206,7 +2206,7 @@ void MainThread::search ()
            && !Threadpool.stop)
     {}
 
-    Thread *best_thread = this;
+    Thread *bt = this;
     if (think)
     {
         // Stop the threads if not already stopped.
@@ -2226,19 +2226,19 @@ void MainThread::search ()
             && MOVE_NONE != root_moves[0][0]
             && !skill_mgr_enabled ())
         {
-            best_thread = Threadpool.best_thread ();
+            bt = Threadpool.best_thread ();
             // If new best thread then send PV info again.
-            if (best_thread != this)
+            if (bt != this)
             {
-                sync_cout << multipv_info (best_thread, best_thread->finished_depth, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
+                sync_cout << multipv_info (bt, bt->finished_depth, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
             }
         }
     }
 
-    assert(!best_thread->root_moves.empty ()
-        && !best_thread->root_moves[0].empty ());
+    assert(!bt->root_moves.empty ()
+        && !bt->root_moves[0].empty ());
 
-    auto &rm = best_thread->root_moves[0];
+    auto &rm = bt->root_moves[0];
 
     if (Limits.time_mgr_used ())
     {
@@ -2247,15 +2247,15 @@ void MainThread::search ()
         last_value = rm.new_value;
     }
 
-    auto best_move = rm[0];
-    auto ponder_move = MOVE_NONE != best_move
-                    && (   rm.size () > 1
-                        || rm.extract_ponder_move_from_tt (root_pos)) ?
-                           rm[1] :
-                           MOVE_NONE;
-    assert(MOVE_NONE != best_move
-        || (MOVE_NONE == best_move
-         && MOVE_NONE == ponder_move));
+    auto bm = rm[0];
+    auto pm = MOVE_NONE != bm
+           && (   rm.size () > 1
+               || rm.extract_ponder_move_from_tt (root_pos)) ?
+                  rm[1] :
+                  MOVE_NONE;
+    assert(MOVE_NONE != bm
+        || (MOVE_NONE == bm
+         && MOVE_NONE == pm));
 
     if (OutputStream.is_open ())
     {
@@ -2265,14 +2265,14 @@ void MainThread::search ()
                      << "Time       : " << elapsed_time << " ms\n"
                      << "Speed      : " << total_nodes * 1000 / elapsed_time << " N/s\n"
                      << "Hash-full  : " << TT.hash_full () << "\n"
-                     << "Best Move  : " << move_to_san (best_move, root_pos) << "\n"
+                     << "Best Move  : " << move_to_san (bm, root_pos) << "\n"
                      << "Ponder Move: ";
-        if (MOVE_NONE != best_move)
+        if (MOVE_NONE != bm)
         {
             StateInfo si;
-            root_pos.do_move (best_move, si);
-            OutputStream << move_to_san (ponder_move, root_pos);
-            root_pos.undo_move (best_move);
+            root_pos.do_move (bm, si);
+            OutputStream << move_to_san (pm, root_pos);
+            root_pos.undo_move (bm);
         }
         else
         {
@@ -2283,8 +2283,8 @@ void MainThread::search ()
     }
 
     // Best move could be MOVE_NONE when searching on a stalemate position.
-    sync_cout << "bestmove " << move_to_can (best_move)
-              << " ponder " << move_to_can (ponder_move) << sync_endl;
+    sync_cout << "bestmove " << move_to_can (bm)
+              << " ponder " << move_to_can (pm) << sync_endl;
 }
 /// MainThread::set_check_count()
 void MainThread::set_check_count ()
