@@ -44,7 +44,7 @@ namespace EndGame {
         constexpr i32 PushAway [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
         // Pawn Rank based scaling.
-        constexpr Scale Scales[R_NO] =
+        constexpr Scale RankScale[R_NO] =
         {
             Scale (0),
             Scale (9),
@@ -234,9 +234,9 @@ namespace EndGame {
         else
         {
             value = VALUE_ZERO
-                  - 8 * (  dist (sk_sq, wp_sq+DEL_S)
-                         - dist (wk_sq, wp_sq+DEL_S)
-                         - dist (wp_sq, promote_sq))
+                  - 8 * dist (sk_sq, wp_sq+DEL_S)
+                  + 8 * dist (wk_sq, wp_sq+DEL_S)
+                  + 8 * dist (wp_sq, promote_sq)
                   + 200;
         }
 
@@ -531,7 +531,7 @@ namespace EndGame {
             && r < rel_rank (strong_color, wk_sq))
         {
             assert(R_1 < r && r < R_7);
-            return Scales[r];
+            return RankScale[r];
         }
 
         return SCALE_NONE;
