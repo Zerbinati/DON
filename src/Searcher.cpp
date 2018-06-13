@@ -1424,16 +1424,14 @@ namespace Searcher {
                                 && !in_check
                                 && ss->static_eval + 200*lmr_depth + 256 <= alfa)
                                 // SEE based pruning: -ve SEE (~10 ELO)
-                            || (   8 > lmr_depth
-                                && !pos.see_ge (move, Value(-35*lmr_depth*lmr_depth))))
+                            || (!pos.see_ge (move, Value(-29*lmr_depth*lmr_depth))))
                         {
                             continue;
                         }
                     }
                     else
                     // SEE based pruning. (~20 ELO)
-                    if (   7 > depth
-                        && 0 == extension
+                    if (   0 == extension
                         && !pos.see_ge (move, Value(-i32(VALUE_EG_PAWN)*depth)))
                     {
                         continue;
