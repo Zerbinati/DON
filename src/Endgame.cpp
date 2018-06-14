@@ -206,6 +206,7 @@ namespace EndGame {
         assert(verify_material (pos,   weak_color, VALUE_ZERO   , 1));
 
         auto sk_sq = rel_sq (strong_color, pos.square<KING> (strong_color));
+        auto sr_sq = rel_sq (strong_color, pos.square<ROOK> (strong_color));
         auto wk_sq = rel_sq (strong_color, pos.square<KING> (  weak_color));
         auto wp_sq = rel_sq (strong_color, pos.square<PAWN> (  weak_color));
 
@@ -213,12 +214,14 @@ namespace EndGame {
 
         Value value;
 
-        // If the strong side's king is in front of the pawn, it's a win.
-        if (contains (front_line_bb (WHITE, sk_sq), wp_sq))
+        // If the strong side's king is in front of the pawn, it's a win. or
+        // If the weak side's king is too far from the pawn and the rook, it's a win.
+        if (   contains (front_line_bb (WHITE, sk_sq), wp_sq)
+            || (   3 <= dist (wk_sq, wp_sq) + (weak_color == pos.active ? 1 : 0)
+                && 3 <= dist (wk_sq, sr_sq)))
         {
             value = VALUE_EG_ROOK
-                  - dist (sk_sq, wp_sq)
-                  + dist (wk_sq, wp_sq);
+                  - dist (sk_sq, wp_sq);
         }
         else
         // If the pawn is far advanced and supported by the defending king, it's a drawish.
