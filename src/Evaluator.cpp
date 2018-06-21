@@ -94,7 +94,7 @@ namespace {
     };
 
     // KingProtector[piece-type] contains a penalty according to distance from king.
-    constexpr Score KingProtector[4] = { S( 3, 5), S( 4, 3), S( 3, 0), S( 1,-1) };
+    constexpr Score KingProtector[4] = { S( 3, 5), S( 5, 3), S( 3, 0), S( 0,-2) };
 
     // MinorOutpost[knight/bishop][supported by pawn] contains bonuses for minor outposts.
     constexpr Score MinorOutpost[2][2] =
@@ -112,12 +112,12 @@ namespace {
     constexpr Score MajorPieceThreat[NONE] = { S( 0,24), S(38,71), S(38,61), S( 0, 38), S(36, 38), S( 0, 0) };
 
     // KingThreat[one/more] contains bonus for king attacks on pawns or pieces which are not pawn-defended.
-    constexpr Score KingThreat[2] = { S( 3, 65), S( 9,145) };
+    constexpr Score KingThreat[2] = { S(25, 57), S( 4,139) };
 
     // PawnPassFile[distance from edge] contains bonus for passed pawns according to distance from edge.
-    constexpr Score PawnPassFile[F_NO/2] = { S(15, 7), S(-5,14), S( 1,-5), S(-22,-11) };
+    constexpr Score PawnPassFile[F_NO/2] = { S( 17,  6), S( -4,  7), S(  2,-12), S(-17,-14) };
     // PawnPassRank[rank] contains bonus for passed pawns according to the rank of the pawn.
-    constexpr Score PawnPassRank[R_NO] = { S(0, 0), S(5, 7), S(5, 13), S(18, 23), S(74, 58), S(164, 166), S(268, 243), S(0, 0) };
+    constexpr Score PawnPassRank[R_NO] = { S(  0,  0), S(  7, 10), S(  7, 26), S( 14, 31), S( 42, 63), S(178,167), S(279,244), S(  0,  0) };
 
     // Bonus for minor behind a pawn
     constexpr Score MinorBehindPawn =   S( 16,  0);
@@ -135,16 +135,16 @@ namespace {
     constexpr Score QueenWeaken =       S( 50, 10);
 
     constexpr Score PawnLessFlank =     S( 20, 80);
-    constexpr Score EnemyAttackKing =   S(  7,  0);
+    constexpr Score EnemyAttackKing =   S(  8,  0);
 
-    constexpr Score PawnWeakUnopposed = S(  5, 25);
+    constexpr Score PawnWeakUnopposed = S( 14, 19);
 
     // Bonus for each hanged piece
     constexpr Score PieceHanged =       S( 52, 30);
 
-    constexpr Score SafePawnThreat =    S(175,168);
+    constexpr Score SafePawnThreat =    S(186,140);
 
-    constexpr Score PawnPushThreat =    S( 47, 26);
+    constexpr Score PawnPushThreat =    S( 49, 30);
 
     constexpr Score PieceRankThreat =   S( 16,  3);
 
@@ -156,7 +156,7 @@ namespace {
 
     constexpr Score Overloaded =        S( 10,  5);
 
-    constexpr Score PawnPassHinder =    S(  8,  1);
+    constexpr Score PawnPassHinder =    S(  5,  2);
 
 #undef S
 
@@ -548,7 +548,7 @@ namespace {
         // Main king safety evaluation
         if (king_attackers_count[Opp] + pos.count (Opp, QUEN) > 1)
         {
-            i32 king_danger = 0;
+            i32 king_danger = -safety;
             Bitboard unsafe_check = 0;
 
             // Attacked squares defended at most once by our queen or king
@@ -615,12 +615,11 @@ namespace {
             // - number of attacked and undefended squares around our king,
             // - quality of the pawn shelter ('mg score' safety).
             king_danger +=  1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
-                        + 102 * king_attacks_count[Opp]
-                        + 191 * pop_count (king_ring[Own] & weak_area)
-                        + 143 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
-                        - 848 * (0 == pos.count (Opp, QUEN) ? 1 : 0)
-                        -   9 * safety / 8
-                        +  40;
+                        +  64 * king_attacks_count[Opp]
+                        + 182 * pop_count (king_ring[Own] & weak_area)
+                        + 128 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
+                        - 857 * (0 == pos.count (Opp, QUEN) ? 1 : 0)
+                        +  31;
 
             if (king_danger > 0)
             {
