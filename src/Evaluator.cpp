@@ -1021,17 +1021,12 @@ namespace {
         // If don't already have an unusual scale, check for certain types of endgames.
         if (SCALE_NORMAL == scl)
         {
-            // Endings with opposite-colored bishops
-            if (pos.opposite_bishops ())
-            {
-                return Scale(   VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE)
-                             && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) ?
-                                // Endings with no other pieces is almost a draw
-                                31 :
-                                // Endings with also other pieces, still a bit drawish, but not as drawish as with only the two bishops.
-                                46);
-            }
-            return std::min (Scale(40 + 7 * pos.count (color, PAWN)), scl);
+            return pos.opposite_bishops ()
+                && VALUE_MG_BSHP == pos.si->non_pawn_material (WHITE)
+                && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) ?
+                    // Endings with opposite-colored bishops and no other pieces is almost a draw
+                    Scale(31) :
+                    Scale(std::min (40 + (pos.opposite_bishops () ? 2 : 7) * pos.count (color, PAWN), 64));
         }
         return scl;
     }

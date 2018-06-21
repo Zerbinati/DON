@@ -288,7 +288,7 @@ namespace WinProcGroup {
         {
             return;
         }
-        auto GetLogicalProcessorInformationEx = GLPIE (GetProcAddress (kernel32, "GetLogicalProcessorInformationEx"));
+        auto GetLogicalProcessorInformationEx = GLPIE ((void (*)())GetProcAddress (kernel32, "GetLogicalProcessorInformationEx"));
         if (nullptr == GetLogicalProcessorInformationEx)
         {
             return;
@@ -379,7 +379,7 @@ namespace WinProcGroup {
             return;
         }
 
-        auto GetNumaNodeProcessorMaskEx = GNNPME (GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx"));
+        auto GetNumaNodeProcessorMaskEx = GNNPME ((void (*)())GetProcAddress (kernel32, "GetNumaNodeProcessorMaskEx"));
         if (nullptr == GetNumaNodeProcessorMaskEx)
         {
             return;
@@ -387,7 +387,7 @@ namespace WinProcGroup {
         GROUP_AFFINITY group_affinity;
         if (GetNumaNodeProcessorMaskEx (group, &group_affinity))
         {
-            auto SetThreadGroupAffinity = STGA (GetProcAddress (kernel32, "SetThreadGroupAffinity"));
+            auto SetThreadGroupAffinity = STGA ((void (*)())GetProcAddress (kernel32, "SetThreadGroupAffinity"));
             if (nullptr == SetThreadGroupAffinity)
             {
                 return;
