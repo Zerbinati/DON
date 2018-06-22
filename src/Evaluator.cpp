@@ -981,9 +981,9 @@ namespace {
                         - dist<Rank> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
 
         // Compute the initiative bonus for the attacking side
-        i32 complexity =   8 * outflanking
-                       +   8 * pe->asymmetry
+        i32 complexity =   8 * pe->asymmetry
                        +  12 * pos.count (PAWN)
+                       +  12 * outflanking
                           // Pawn on both flanks
                        +  16 * (   0 != (pos.pieces (PAWN) & Side_bb[CS_KING])
                                 && 0 != (pos.pieces (PAWN) & Side_bb[CS_QUEN]) ? 1 : 0)
