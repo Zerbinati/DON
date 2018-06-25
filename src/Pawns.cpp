@@ -18,25 +18,25 @@ namespace Pawns {
         // RANK_1 = 0 is used for files where no friend pawn, or friend pawn is behind friend king.
         constexpr Value Shelter[F_NO/2][R_NO] =
         {
-            { V( 28), V(79), V( 75), V( 46), V( 14), V( 31), V(-14), V(0) },
-            { V(-48), V(50), V( 29), V(-21), V(-41), V(-23), V(-45), V(0) },
-            { V(-25), V(50), V( 17), V(-33), V( -5), V(  9), V(-35), V(0) },
-            { V(-29), V(57), V(-25), V(-48), V( -4), V(-46), V(-64), V(0) }
+            { V( 16), V( 82), V( 83), V( 47), V( 19), V( 44), V(  4), V(0) },
+            { V(-51), V( 56), V( 33), V(-58), V(-57), V(-50), V(-39), V(0) },
+            { V(-20), V( 71), V( 16), V(-10), V( 13), V( 19), V(-30), V(0) },
+            { V(-29), V( 12), V(-21), V(-40), V(-15), V(-77), V(-91), V(0) }
         };
 
         // Storm of blocked enemy pawns moving toward friend king, indexed by [rank]
         constexpr Value BlockedStorm[R_NO] =
         {
-            V(0), V(0), V( 58), V(-13), V(-22), V( -3), V( -5), V(0)
+            V(  0), V(  0), V( 81), V( -9), V( -5), V( -1), V( 26), V(0)
         };
         // Storm of unblocked enemy pawns moving toward friend king, indexed by [distance from edge][rank].
         // RANK_1 = 0 is used for files where no enemy pawn, or enemy pawn is behind friend king.
         constexpr Value UnblockedStorm[F_NO/2][R_NO] =
         {
-            { V( 34), V( 58), V(113), V( 61), V( 37), V( 24), V( 21), V(0) },
-            { V( 23), V( 46), V( 93), V( 10), V(  2), V(-20), V(  6), V(0) },
-            { V( -6), V( 22), V(106), V( 28), V(  6), V(-33), V( -1), V(0) },
-            { V(-17), V( 33), V( 71), V( 14), V( -9), V(-21), V(-16), V(0) }
+            { V( 54), V( 48), V( 99), V( 91), V( 42), V( 32), V( 31), V(0) },
+            { V( 34), V( 27), V(105), V( 38), V( 32), V(-19), V(  3), V(0) },
+            { V( -4), V( 28), V( 87), V( 18), V( -3), V(-14), V(-11), V(0) },
+            { V( -5), V( 22), V( 75), V( 14), V(  2), V( -5), V(-19), V(0) }
         };
 
     #undef V
@@ -44,11 +44,11 @@ namespace Pawns {
     #define S(mg, eg) mk_score(mg, eg)
 
         // Penalty for isolated pawn
-        constexpr Score Isolated = S( 6,16);
+        constexpr Score Isolated = S( 4,20);
         // Penalty for backward pawn
-        constexpr Score Backward = S(15,21);
+        constexpr Score Backward = S(21,22);
         // Penalty for blocked pawn
-        constexpr Score Blocked =  S( 8,44);
+        constexpr Score Blocked =  S(12,54);
 
     #undef S
 
