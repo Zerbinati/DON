@@ -215,6 +215,7 @@ namespace BitBoard {
 
         //for (auto s : SQ)
         //{
+        //    //Square_bb[s] = U64(1) << s;
         //    BSF_Table[bsf_index (Square_bb[s])] = s;
         //}
         //for (u32 b = 2; b < (1 << 8); ++b)

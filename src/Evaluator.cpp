@@ -93,11 +93,11 @@ namespace {
         }
     };
 
-    // KingProtector[piece-type] contains a penalty according to distance from king.
-    constexpr Score KingProtector[4] = { S( 4, 6), S( 6, 3), S( 1, 0), S( 0,-2) };
+    // KingDistance[knight/bishop] contains a penalty according to distance from king.
+    constexpr Score KingDistance[2] = { S( 4, 6), S( 6, 3) };
 
-    // MinorOutpost[knight/bishop][supported by pawn] contains bonuses for minor outposts.
-    constexpr Score MinorOutpost[2][2] =
+    // Outpost[knight/bishop][supported by pawn] contains bonuses for minor outposts.
+    constexpr Score Outpost[2][2] =
     {
         { S(22, 6), S(36,12) },
         { S( 9, 2), S(15, 5) }
@@ -168,7 +168,6 @@ namespace {
 
     constexpr Value LazyThreshold = Value(1500);
     constexpr Value SpaceThreshold = Value(12222);
-
 
     // Evaluator class contains various evaluation functions.
     template<bool Trace>
@@ -390,9 +389,6 @@ namespace {
             // Bonus for piece mobility
             mobility[Own] += PieceMobility[PT - 1][mob];
 
-            // Penalty for distance from the friend king
-            score += KingProtector[PT - 1] * dist (s, pos.square<KING> (Own));
-
             Bitboard b;
             // Special extra evaluation for pieces
             if (   NIHT == PT
@@ -405,12 +401,15 @@ namespace {
                     score += MinorBehindPawn;
                 }
 
+                // Penalty for distance from the friend king
+                score -= KingDistance[PT - 1] * dist (s, pos.square<KING> (Own));
+
                 b = Outposts_bb[Own]
                   & ~pe->attack_span[Opp];
                 // Bonus for knight outpost squares
                 if (contains (b, s))
                 {
-                    score += MinorOutpost[PT - 1][contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
+                    score += Outpost[PT - 1][contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
                 }
                 else
                 {
@@ -418,7 +417,7 @@ namespace {
                       & ~pos.pieces (Own);
                     if (0 != b)
                     {
-                        score += MinorOutpost[PT - 1][0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
+                        score += Outpost[PT - 1][0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
                     }
                 }
 
@@ -839,7 +838,7 @@ namespace {
             i32 w = PawnPassDanger[r];
 
             // Base bonus depending on rank.
-            auto bonus = PawnPassRank[r];
+            Score bonus = PawnPassRank[r];
 
             if (0 != w)
             {
@@ -923,7 +922,7 @@ namespace {
 
             score += bonus
                    + PawnPassFile[std::min (_file (s), ~_file (s))]
-                   - PawnPassHinder * pop_count (front_line_bb (Own, s) & (pin_attacked_by[Opp][NONE] | pos.pieces (Opp)));
+                   - PawnPassHinder * pop_count (front_line_bb (Own, s) & pos.pieces (Opp));
         }
 
         if (Trace)
