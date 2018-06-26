@@ -25,6 +25,7 @@ namespace Pawns {
         };
 
         // Storm of blocked enemy pawns moving toward friend king, indexed by [rank]
+        // RANK_1 = 0 is used for files where no enemy pawn, or enemy pawn is behind friend king.
         constexpr Value BlockedStorm[R_NO] =
         {
             V(  0), V(  0), V( 81), V( -9), V( -5), V( -1), V( 26), V(0)
@@ -205,7 +206,7 @@ namespace Pawns {
 
             auto ff = std::min (f, ~f);
             value += Shelter[ff][own_r];
-            value -= R_1 != own_r && (own_r == opp_r - 1) ?
+            value -= R_1 != own_r && (own_r + 1 == opp_r) ?
                         BlockedStorm[opp_r] :
                         UnblockedStorm[ff][opp_r];
         }

@@ -2094,9 +2094,9 @@ void MainThread::search ()
         root_moves += MOVE_NONE;
 
         sync_cout << "info"
-                  << " depth "  << 0
-                  << " score "  << to_string (0 != root_pos.si->checkers ? -VALUE_MATE : VALUE_DRAW)
-                  << " time "   << 0 << sync_endl;
+                  << " depth " << 0
+                  << " score " << to_string (0 != root_pos.si->checkers ? -VALUE_MATE : VALUE_DRAW)
+                  << " time "  << 0 << sync_endl;
     }
     else
     {
@@ -2104,7 +2104,7 @@ void MainThread::search ()
             && 0 == Limits.mate
             && bool(Options["Use Book"]))
         {
-            auto book_bm = Book.probe (root_pos, i32(Options["Book Move Num"]), bool(Options["Book Pick Best"]));
+            auto book_bm = Book.probe (root_pos, i16(i32(Options["Book Move Num"])), bool(Options["Book Pick Best"]));
             if (MOVE_NONE != book_bm)
             {
                 auto itr = std::find (root_moves.begin (), root_moves.end (), book_bm);
@@ -2115,7 +2115,7 @@ void MainThread::search ()
                     root_moves[0].new_value = VALUE_NONE;
                     StateInfo si;
                     root_pos.do_move (book_bm, si);
-                    auto book_pm = Book.probe (root_pos, i32(Options["Book Move Num"]), bool(Options["Book Pick Best"]));
+                    auto book_pm = Book.probe (root_pos, i16(i32(Options["Book Move Num"])), bool(Options["Book Pick Best"]));
                     if (MOVE_NONE != book_pm)
                     {
                         root_moves[0] += book_pm;
@@ -2138,7 +2138,7 @@ void MainThread::search ()
                 timed_contempt = i16(diff_time/contempt_time);
             }
 
-            BasicContempt = i32(cp_to_value (i32(Options["Fixed Contempt"]) + timed_contempt));
+            BasicContempt = i32(cp_to_value (i16(i32(Options["Fixed Contempt"])) + timed_contempt));
             // In analysis mode, adjust contempt in accordance with user preference
             if (   Limits.infinite
                 || bool(Options["UCI_AnalyseMode"]))
