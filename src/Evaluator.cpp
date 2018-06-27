@@ -187,13 +187,13 @@ namespace {
         Score    mobility[CLR_NO];
 
         // Contains all squares attacked by the color and piece type.
-        Bitboard ful_attacked_by[CLR_NO];
+        Bitboard ful_attacks[CLR_NO];
         // Contains all squares attacked by the color and piece type with pinned removed.
-        Bitboard pin_attacked_by[CLR_NO][PT_NO];
+        Bitboard pin_attacks[CLR_NO][PT_NO];
         // Contains all squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
-        Bitboard dbl_attacked[CLR_NO];
+        Bitboard dbl_attacks[CLR_NO];
 
-        Bitboard pin_attacked_queen[CLR_NO][3];
+        Bitboard queen_attacks[CLR_NO][3];
 
         // Zone around the king which is considered by the king safety evaluation.
         // This consists of the squares directly adjacent to the king, and the three (or two, for a king on an edge file) squares two ranks in front of the king.
@@ -238,37 +238,37 @@ namespace {
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
-        std::fill_n (pin_attacked_by[Own], i32(KING), 0);
-        std::fill_n (pin_attacked_queen[Own], 3, 0);
+        std::fill_n (pin_attacks[Own], i32(KING), 0);
+        std::fill_n (queen_attacks[Own], 3, 0);
 
         Bitboard pinned_pawns = pos.si->king_blockers[Own] & pos.pieces (Own, PAWN);
         if (0 != pinned_pawns)
         {
             Bitboard loosed_pawns = pos.pieces (Own, PAWN) ^ pinned_pawns;
-            pin_attacked_by[Own][PAWN] = pawn_attacks_bb<Own> (loosed_pawns)
+            pin_attacks[Own][PAWN] = pawn_attacks_bb<Own> (loosed_pawns)
                                        | (  pawn_attacks_bb<Own> (pinned_pawns)
                                           & PieceAttacks[BSHP][pos.square<KING> (Own)]);
         }
         else
         {
-            pin_attacked_by[Own][PAWN] = pe->any_attacks[Own];
+            pin_attacks[Own][PAWN] = pe->any_attacks[Own];
         }
 
-        pin_attacked_by[Own][KING] = PieceAttacks[KING][pos.square<KING> (Own)];
+        pin_attacks[Own][KING] = PieceAttacks[KING][pos.square<KING> (Own)];
 
-        ful_attacked_by[Own]       = pin_attacked_by[Own][KING]
-                                   | pe->any_attacks[Own];
-        pin_attacked_by[Own][NONE] = pin_attacked_by[Own][KING]
-                                   | pin_attacked_by[Own][PAWN];
-        dbl_attacked[Own]          = (  pin_attacked_by[Own][KING]
-                                      | pe->dbl_attacks[Own])
-                                   & pin_attacked_by[Own][PAWN];
+        ful_attacks[Own] = pin_attacks[Own][KING]
+                         | pe->any_attacks[Own];
+        pin_attacks[Own][NONE] = pin_attacks[Own][KING]
+                               | pin_attacks[Own][PAWN];
+        dbl_attacks[Own] = (  pin_attacks[Own][KING]
+                            | pe->dbl_attacks[Own])
+                         & pin_attacks[Own][PAWN];
 
         // Do not include in mobility area
         // - squares protected by enemy pawns
         // - square occupied by friend Queen and King
         // - squares occupied by block pawns (pawns blocked or on ranks 2-3)
-        mob_area[Opp] = ~(  pin_attacked_by[Own][PAWN]
+        mob_area[Opp] = ~(  pin_attacks[Own][PAWN]
                           | pos.pieces (Opp, QUEN, KING)
                           | (  pos.pieces (Opp, PAWN)
                              & (  LowRanks_bb[Opp]
@@ -294,7 +294,7 @@ namespace {
                 king_ring[Opp] |= shift<DEL_E> (king_ring[Opp]);
             }
 
-            king_attackers_count[Own] = pop_count (king_ring[Opp] & pin_attacked_by[Own][PAWN]);
+            king_attackers_count[Own] = pop_count (king_ring[Opp] & pin_attacks[Own][PAWN]);
         }
         else
         {
@@ -327,13 +327,13 @@ namespace {
                       ROOK == PT ? attacks_bb<ROOK> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN, ROOK) & ~pos.si->king_blockers[Own]) | pos.pieces (Opp, QUEN))) :
                       QUEN == PT ? attacks_bb<QUEN> (s, pos.pieces () ^ ((pos.pieces (Own, QUEN)       & ~pos.si->king_blockers[Own]))) : (assert(false), 0);
 
-            ful_attacked_by[Own] |= attacks;
+            ful_attacks[Own] |= attacks;
 
             if (QUEN == PT)
             {
-                pin_attacked_queen[Own][0] |= PieceAttacks[NIHT][s];
-                pin_attacked_queen[Own][1] |= PieceAttacks[BSHP][s] & attacks;
-                pin_attacked_queen[Own][2] |= PieceAttacks[ROOK][s] & attacks;
+                queen_attacks[Own][0] |= PieceAttacks[NIHT][s];
+                queen_attacks[Own][1] |= PieceAttacks[BSHP][s] & attacks;
+                queen_attacks[Own][2] |= PieceAttacks[ROOK][s] & attacks;
             }
 
             if (contains (pos.si->king_blockers[Own], s))
@@ -345,9 +345,9 @@ namespace {
             {
                 Bitboard att = attacks & pos.pieces (Own) & ~pos.si->king_blockers[Own];
                 Bitboard bp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
-                dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
-                                   & (  attacks
-                                      | (0 != bp ? pawn_attacks_bb<Own> (bp) & PieceAttacks[BSHP][s] : 0));
+                dbl_attacks[Own] |= pin_attacks[Own][NONE]
+                                  & (  attacks
+                                     | (0 != bp ? pawn_attacks_bb<Own> (bp) & PieceAttacks[BSHP][s] : 0));
             }
             else
             if (QUEN == PT)
@@ -356,26 +356,26 @@ namespace {
                 Bitboard qp = att & front_rank_bb (Own, s) & pos.pieces (PAWN);
                 Bitboard qb = att & PieceAttacks[BSHP][s]  & pos.pieces (BSHP);
                 Bitboard qr = att & PieceAttacks[ROOK][s]  & pos.pieces (ROOK);
-                dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
-                                   & (  attacks
-                                      | (0 != qp ? pawn_attacks_bb<Own> (qp) & PieceAttacks[BSHP][s] : 0)
-                                      | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
-                                      | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
+                dbl_attacks[Own] |= pin_attacks[Own][NONE]
+                                  & (  attacks
+                                     | (0 != qp ? pawn_attacks_bb<Own> (qp) & PieceAttacks[BSHP][s] : 0)
+                                     | (0 != qb ? attacks_bb<BSHP> (s, pos.pieces () ^ qb) : 0)
+                                     | (0 != qr ? attacks_bb<ROOK> (s, pos.pieces () ^ qr) : 0));
             }
             else
             {
-                dbl_attacked[Own] |= pin_attacked_by[Own][NONE]
-                                   & attacks;
+                dbl_attacks[Own] |= pin_attacks[Own][NONE]
+                                  & attacks;
             }
 
-            pin_attacked_by[Own][PT]   |= attacks;
-            pin_attacked_by[Own][NONE] |= attacks;
+            pin_attacks[Own][PT]   |= attacks;
+            pin_attacks[Own][NONE] |= attacks;
 
             if (0 != (king_ring[Opp] & attacks))
             {
                 ++king_attackers_count[Own];
                 king_attackers_weight[Own] += KingAttackWeight[PT];
-                king_attacks_count[Own] += pop_count (pin_attacked_by[Opp][KING] & attacks);
+                king_attacks_count[Own] += pop_count (pin_attacks[Opp][KING] & attacks);
             }
 
             auto mob = pop_count (mob_area[Own] & attacks);
@@ -404,7 +404,7 @@ namespace {
                 // Bonus for knight outpost squares
                 if (contains (b, s))
                 {
-                    score += Outpost[PT - 1][contains (pin_attacked_by[Own][PAWN], s) ? 1 : 0] * 2;
+                    score += Outpost[PT - 1][contains (pin_attacks[Own][PAWN], s) ? 1 : 0] * 2;
                 }
                 else
                 {
@@ -412,7 +412,7 @@ namespace {
                       & ~pos.pieces (Own);
                     if (0 != b)
                     {
-                        score += Outpost[PT - 1][0 != (pin_attacked_by[Own][PAWN] & b) ? 1 : 0] * 1;
+                        score += Outpost[PT - 1][0 != (pin_attacks[Own][PAWN] & b) ? 1 : 0] * 1;
                     }
                 }
 
@@ -521,14 +521,14 @@ namespace {
         {
             if (   pos.si->can_castle (Own, CS_KING)
                 && pos.expeded_castle (Own, CS_KING)
-                && 0 == (pos.king_path[Own][CS_KING] & ful_attacked_by[Opp])
+                && 0 == (pos.king_path[Own][CS_KING] & ful_attacks[Opp])
                 && safety < pe->king_safety[Own][0])
             {
                 safety = pe->king_safety[Own][0];
             }
             if (   pos.si->can_castle (Own, CS_QUEN)
                 && pos.expeded_castle (Own, CS_QUEN)
-                && 0 == (pos.king_path[Own][CS_QUEN] & ful_attacked_by[Opp])
+                && 0 == (pos.king_path[Own][CS_QUEN] & ful_attacks[Opp])
                 && safety < pe->king_safety[Own][1])
             {
                 safety = pe->king_safety[Own][1];
@@ -545,17 +545,17 @@ namespace {
             Bitboard unsafe_check = 0;
 
             // Attacked squares defended at most once by friend queen or king
-            Bitboard weak_area =  pin_attacked_by[Opp][NONE]
-                               & ~dbl_attacked[Own]
-                               & (   pin_attacked_by[Own][KING]
-                                  |  pin_attacked_by[Own][QUEN]
-                                  | ~pin_attacked_by[Own][NONE]);
+            Bitboard weak_area =  pin_attacks[Opp][NONE]
+                               & ~dbl_attacks[Own]
+                               & (   pin_attacks[Own][KING]
+                                  |  pin_attacks[Own][QUEN]
+                                  | ~pin_attacks[Own][NONE]);
 
             // Safe squares where enemy's safe checks are possible on next move
             Bitboard safe_area = ~pos.pieces (Opp)
-                               & (  ~pin_attacked_by[Own][NONE]
+                               & (  ~pin_attacks[Own][NONE]
                                   | (  weak_area
-                                     & dbl_attacked[Opp]));
+                                     & dbl_attacks[Opp]));
 
             Bitboard rook_attack = attacks_bb<ROOK> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
             Bitboard bshp_attack = attacks_bb<BSHP> (fk_sq, pos.pieces () ^ pos.pieces (Own, QUEN));
@@ -563,15 +563,15 @@ namespace {
             // Enemy queens safe checks
             b = (  rook_attack
                  | bshp_attack)
-              &  pin_attacked_by[Opp][QUEN]
-              & ~pin_attacked_by[Own][QUEN];
+              &  pin_attacks[Opp][QUEN]
+              & ~pin_attacks[Own][QUEN];
             if (0 != (b & safe_area))
             {
                 king_danger += KingSafeCheck[QUEN];
             }
 
             b = rook_attack
-              & pin_attacked_by[Opp][ROOK];
+              & pin_attacks[Opp][ROOK];
             if (0 != (b & safe_area))
             {
                 king_danger += KingSafeCheck[ROOK];
@@ -582,7 +582,7 @@ namespace {
             }
 
             b = bshp_attack
-              & pin_attacked_by[Opp][BSHP];
+              & pin_attacks[Opp][BSHP];
             if (0 != (b & safe_area))
             {
                 king_danger += KingSafeCheck[BSHP];
@@ -593,7 +593,7 @@ namespace {
             }
 
             b = PieceAttacks[NIHT][fk_sq]
-              & pin_attacked_by[Opp][NIHT];
+              & pin_attacks[Opp][NIHT];
             if (0 != (b & safe_area))
             {
                 king_danger += KingSafeCheck[NIHT];
@@ -637,11 +637,11 @@ namespace {
         // Squares attacked by enemy in friend king flank
         b = Camp_bb[Own]
           & kf_bb
-          & pin_attacked_by[Opp][NONE];
+          & pin_attacks[Opp][NONE];
         // Squares attacked by enemy twice in friend king flank but not defended by friend pawns.
         e = b
-          & dbl_attacked[Opp]
-          & ~pin_attacked_by[Own][PAWN];
+          & dbl_attacks[Opp]
+          & ~pin_attacks[Own][PAWN];
         // King tropism, to anticipate slow motion attacks on friend king zone
         score -= KingUnderAttack * (pop_count (b) + pop_count (e));
 
@@ -669,13 +669,13 @@ namespace {
         // Squares defended by the opponent,
         // - attack the square with a pawn
         // - attack the square twice and not defended twice.
-        Bitboard defended_area = pin_attacked_by[Opp][PAWN]
-                               | (   dbl_attacked[Opp]
-                                  & ~dbl_attacked[Own]);
+        Bitboard defended_area = pin_attacks[Opp][PAWN]
+                               | (   dbl_attacks[Opp]
+                                  & ~dbl_attacks[Own]);
         // Enemy not defended and under attacked by any friend piece
         Bitboard weak_enemies =  pos.pieces (Opp)
                               & ~defended_area
-                              &  pin_attacked_by[Own][NONE];
+                              &  pin_attacks[Own][NONE];
         // Non-pawn enemies, defended by enemies
         Bitboard defended_nonpawns_enemies = nonpawns_enemies
                                            & defended_area;
@@ -692,8 +692,8 @@ namespace {
                  | defended_nonpawns_enemies
                    // Enemy Rooks or Queens
                  | pos.pieces (Opp, ROOK, QUEN))
-              & (  pin_attacked_by[Own][NIHT]
-                 | pin_attacked_by[Own][BSHP]);
+              & (  pin_attacks[Own][NIHT]
+                 | pin_attacks[Own][BSHP]);
             while (0 != b)
             {
                 auto s = pop_lsq (b);
@@ -710,7 +710,7 @@ namespace {
                 b = (  weak_enemies
                        // Enemy Queens
                      | pos.pieces (Opp, QUEN))
-                  & pin_attacked_by[Own][ROOK];
+                  & pin_attacks[Own][ROOK];
                 while (0 != b)
                 {
                     auto s = pop_lsq (b);
@@ -723,7 +723,7 @@ namespace {
                 }
                 // Enemies attacked by king
                 b = weak_enemies
-                  & pin_attacked_by[Own][KING];
+                  & pin_attacks[Own][KING];
                 if (0 != b)
                 {
                     score += KingThreat[more_than_one (b) ? 1 : 0];
@@ -731,14 +731,14 @@ namespace {
 
                 // Enemies attacked are hanging
                 b = weak_enemies
-                  & ~pin_attacked_by[Opp][NONE];
+                  & ~pin_attacks[Opp][NONE];
                 score += PieceHanged * pop_count (b);
             }
 
             // Bonus for overloaded: non-pawn enemies attacked and defended exactly once
             b = nonpawns_enemies
-              & pin_attacked_by[Own][NONE] & ~dbl_attacked[Own]
-              & pin_attacked_by[Opp][NONE] & ~dbl_attacked[Opp];
+              & pin_attacks[Own][NONE] & ~dbl_attacks[Own]
+              & pin_attacks[Opp][NONE] & ~dbl_attacks[Opp];
             score += Overloaded * pop_count (b);
         }
 
@@ -748,14 +748,14 @@ namespace {
             score += PawnWeakUnopposed * pop_count (pe->weak_unopposed[Opp]);
         }
 
-        Bitboard safe_area =  pin_attacked_by[Own][NONE]
-                           | ~pin_attacked_by[Opp][NONE];
+        Bitboard safe_area =  pin_attacks[Own][NONE]
+                           | ~pin_attacks[Opp][NONE];
         // Safe friend pawns
         b = safe_area
           & pos.pieces (Own, PAWN);
         b = nonpawns_enemies
           & pawn_attacks_bb<Own> (b)
-          & pin_attacked_by[Own][PAWN];
+          & pin_attacks[Own][PAWN];
         score += SafePawnThreat * pop_count (b);
 
         // Friend pawns who can push on the next move
@@ -768,11 +768,11 @@ namespace {
           & ~pos.pieces ();
         // Friend pawns push safe
         b &= safe_area
-          & ~pin_attacked_by[Opp][PAWN];
+          & ~pin_attacks[Opp][PAWN];
         // Friend pawns push safe attacks an enemy piece not already attacked by pawn
         b =  pawn_attacks_bb<Own> (b)
           &  pos.pieces (Opp)
-          & ~pin_attacked_by[Own][PAWN];
+          & ~pin_attacks[Own][PAWN];
         // Bonus for friend pawns push safely can attack an enemy piece not already attacked by pawn
         score += PawnPushThreat * pop_count (b);
 
@@ -782,20 +782,20 @@ namespace {
             Bitboard safe_threat = mob_area[Own]
                                  & ~defended_area;
             b = safe_threat
-              & (pin_attacked_by[Own][NIHT] & pin_attacked_queen[Opp][0]);
+              & (pin_attacks[Own][NIHT] & queen_attacks[Opp][0]);
             score += KnightQueenThreat * pop_count (b);
 
             b = safe_threat
-              & (  (pin_attacked_by[Own][BSHP] & pin_attacked_queen[Opp][1])
-                 | (pin_attacked_by[Own][ROOK] & pin_attacked_queen[Opp][2]))
-              & dbl_attacked[Own];
+              & (  (pin_attacks[Own][BSHP] & queen_attacks[Opp][1])
+                 | (pin_attacks[Own][ROOK] & queen_attacks[Opp][2]))
+              & dbl_attacks[Own];
             // Bonus for safe slider attack threats on enemy queen
             score += SliderQueenThreat * pop_count (b);
         }
         // Bonus for Connectivity: ensure that knights, bishops, rooks, and queens are protected
         b = (  pos.pieces (Own)
              ^ pos.pieces (Own, PAWN, KING))
-          & pin_attacked_by[Own][NONE];
+          & pin_attacks[Own][NONE];
         score += Connectivity * pop_count (b);
 
         if (Trace)
@@ -871,7 +871,7 @@ namespace {
                     if (   0 == (b = (behind_major & pos.pieces (Opp)))
                         || 0 != (b & pos.si->king_blockers[Opp]))
                     {
-                        unsafe_front_line &= pin_attacked_by[Opp][NONE] | pos.pieces (Opp);
+                        unsafe_front_line &= pin_attacks[Opp][NONE] | pos.pieces (Opp);
                     }
                     // If there is no friend rook or queen attacking the pawn from behind,
                     // consider only the squares in the pawn's path attacked by the friend.
@@ -879,7 +879,7 @@ namespace {
                     if (   0 == (b = (behind_major & pos.pieces (Own)))
                         || 0 != (b & pos.si->king_blockers[Own]))
                     {
-                        safe_front_line &= pin_attacked_by[Own][NONE];
+                        safe_front_line &= pin_attacks[Own][NONE];
                     }
 
                     i32 k;
@@ -944,7 +944,7 @@ namespace {
         Bitboard safe_space = Space_bb[Own]
                             & Side_bb[CS_NO]
                             & ~pos.pieces (Own, PAWN)
-                            & ~pin_attacked_by[Opp][PAWN];
+                            & ~pin_attacks[Opp][PAWN];
 
         // Find all squares which are at most three squares behind some friend pawn
         Bitboard behind = pos.pieces (Own, PAWN);

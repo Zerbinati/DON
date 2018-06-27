@@ -12,6 +12,8 @@ using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
 
+Mutex OutputMutex;
+
 ThreadPool Threadpool;
 
 namespace {
