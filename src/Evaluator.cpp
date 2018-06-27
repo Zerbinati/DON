@@ -67,8 +67,8 @@ namespace {
 
 #define S(mg, eg) mk_score (mg, eg)
 
-    // PieceMobility[piece-type][number of attacked squares in the mobility area] contains bonuses for mobility,
-    constexpr Score PieceMobility[4][28] =
+    // Mobility[piece-type][number of attacked squares in the mobility area] contains bonuses for mobility,
+    constexpr Score Mobility[4][28] =
     {
         { // Knight
             S(-75,-76), S(-57,-54), S( -9,-28), S( -2,-10), S(  6,  5), S( 14, 12),
@@ -106,18 +106,18 @@ namespace {
     // RookOnFile[semiopen/open] contains bonuses for rooks when there is no friend pawn on the rook file.
     constexpr Score RookOnFile[2] = { S(20, 7), S(45,20) };
 
-    // MinorPieceThreat[piece-type] contains bonus for minor attacks according to piece type.
-    constexpr Score MinorPieceThreat[NONE] = { S( 0,31), S(39,42), S(57,44), S(68,112), S(47,120), S( 0, 0) };
-    // MajorPieceThreat[piece-type] contains bonus for major attacks according to piece type.
-    constexpr Score MajorPieceThreat[NONE] = { S( 0,24), S(38,71), S(38,61), S( 0, 38), S(36, 38), S( 0, 0) };
+    // MinorThreat[piece-type] contains bonus for minor attacks according to piece type.
+    constexpr Score MinorThreat[NONE] = { S( 0,31), S(39,42), S(57,44), S(68,112), S(47,120), S( 0, 0) };
+    // MajorThreat[piece-type] contains bonus for major attacks according to piece type.
+    constexpr Score MajorThreat[NONE] = { S( 0,24), S(38,71), S(38,61), S( 0, 38), S(36, 38), S( 0, 0) };
 
     // KingThreat[one/more] contains bonus for king attacks on pawns or pieces which are not pawn-defended.
     constexpr Score KingThreat[2] = { S(30, 62), S(-9,160) };
 
-    // PawnPassFile[distance from edge] contains bonus for passed pawns according to distance from edge.
-    constexpr Score PawnPassFile[F_NO/2] = { S( 11, 14), S(  0, -5), S( -2, -8), S(-25,-13) };
-    // PawnPassRank[rank] contains bonus for passed pawns according to the rank of the pawn.
-    constexpr Score PawnPassRank[R_NO] = { S(  0,  0), S(  4, 17), S(  7, 20), S( 14, 36), S( 42, 62), S(165,171), S(279,252), S( 0, 0) };
+    // PasserFile[distance from edge] contains bonus for passed pawns according to distance from edge.
+    constexpr Score PasserFile[F_NO/2] = { S( 11, 14), S(  0, -5), S( -2, -8), S(-25,-13) };
+    // PasserRank[rank] contains bonus for passed pawns according to the rank of the pawn.
+    constexpr Score PasserRank[R_NO] = { S( 0, 0), S(  4, 17), S(  7, 20), S( 14, 36), S( 42, 62), S(165,171), S(279,252), S( 0, 0) };
 
     // Bonus for minor behind a pawn
     constexpr Score MinorBehindPawn =   S( 16,  0);
@@ -135,7 +135,7 @@ namespace {
     constexpr Score QueenWeaken =       S( 50, 10);
 
     constexpr Score PawnLessFlank =     S( 20, 80);
-    constexpr Score EnemyAttackKing =   S(  8,  0);
+    constexpr Score KingUnderAttack =   S(  8,  0);
 
     constexpr Score PawnWeakUnopposed = S(  5, 26);
 
@@ -156,15 +156,18 @@ namespace {
 
     constexpr Score Overloaded =        S( 10,  5);
 
-    constexpr Score PawnPassHinder =    S(  5, -1);
+    constexpr Score PasserHinder =      S(  5, -1);
 
 #undef S
 
-    // PawnPassDanger
-    constexpr i32 PawnPassDanger[R_NO] = { 0, 0, 0, 2, 7, 12, 19, 0 };
+    // KingSafeCheck[piece-type] contains bonus for safe checks according to piece type.
+    constexpr i32 KingSafeCheck[NONE] = { 0, 790, 435, 880, 780, 0 };
 
-    // PieceAttackWeights[piece-type] contains bonus for king attack according to piece type.
-    constexpr i32 PieceAttackWeights[NONE] = { 0, 77, 55, 44, 10, 0 };
+    // KingAttackWeight[piece-type] contains bonus for king attack according to piece type.
+    constexpr i32 KingAttackWeight[NONE] = { 0, 77, 55, 44, 10, 0 };
+
+    // PasserDanger[rank] contains a bonus for passer according to rank
+    constexpr i32 PasserDanger[R_NO] = { 0, 0, 0, 2, 7, 12, 19, 0 };
 
     constexpr Value LazyThreshold = Value(1500);
     constexpr Value SpaceThreshold = Value(12222);
@@ -199,7 +202,7 @@ namespace {
         // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
         u08 king_attackers_count[CLR_NO];
         // Sum of the "weight" of the pieces of the color which attack a square in the king_ring of the enemy king.
-        // The weights of the individual piece types are given by the PieceAttackWeights[piece-type]
+        // The weights of the individual piece types are given by the KingAttackWeight[piece-type]
         i32 king_attackers_weight[CLR_NO];
         // Number of attacks by the color to squares directly adjacent to the enemy king.
         // Pieces which attack more than one square are counted multiple times.
@@ -371,7 +374,7 @@ namespace {
             if (0 != (king_ring[Opp] & attacks))
             {
                 ++king_attackers_count[Own];
-                king_attackers_weight[Own] += PieceAttackWeights[PT];
+                king_attackers_weight[Own] += KingAttackWeight[PT];
                 king_attacks_count[Own] += pop_count (pin_attacked_by[Opp][KING] & attacks);
             }
 
@@ -379,7 +382,7 @@ namespace {
             assert(0 <= mob && mob <= 27);
 
             // Bonus for piece mobility
-            mobility[Own] += PieceMobility[PT - 1][mob];
+            mobility[Own] += Mobility[PT - 1][mob];
 
             Bitboard b;
             // Special extra evaluation for pieces
@@ -541,7 +544,7 @@ namespace {
             i32 king_danger = 0;
             Bitboard unsafe_check = 0;
 
-            // Attacked squares defended at most once by our queen or king
+            // Attacked squares defended at most once by friend queen or king
             Bitboard weak_area =  pin_attacked_by[Opp][NONE]
                                & ~dbl_attacked[Own]
                                & (   pin_attacked_by[Own][KING]
@@ -564,14 +567,14 @@ namespace {
               & ~pin_attacked_by[Own][QUEN];
             if (0 != (b & safe_area))
             {
-                king_danger += 780;
+                king_danger += KingSafeCheck[QUEN];
             }
 
             b = rook_attack
               & pin_attacked_by[Opp][ROOK];
             if (0 != (b & safe_area))
             {
-                king_danger += 880;
+                king_danger += KingSafeCheck[ROOK];
             }
             else
             {
@@ -582,7 +585,7 @@ namespace {
               & pin_attacked_by[Opp][BSHP];
             if (0 != (b & safe_area))
             {
-                king_danger += 435;
+                king_danger += KingSafeCheck[BSHP];
             }
             else
             {
@@ -593,7 +596,7 @@ namespace {
               & pin_attacked_by[Opp][NIHT];
             if (0 != (b & safe_area))
             {
-                king_danger += 790;
+                king_danger += KingSafeCheck[NIHT];
             }
             else
             {
@@ -602,7 +605,7 @@ namespace {
 
             // Initialize the king danger, which will be transformed later into a score.
             // - number and types of the enemy's attacking pieces,
-            // - number of attacked and undefended squares around our king,
+            // - number of attacked and undefended squares around friend king,
             // - quality of the pawn shelter ('mg score' safety).
             king_danger +=  1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
                         +  64 * king_attacks_count[Opp]
@@ -631,16 +634,16 @@ namespace {
 
         Bitboard e;
 
-        // Find the squares that opponent attacks in our king flank, and the squares  
-        // which are attacked twice in that flank but not defended by our pawns.
+        // Squares attacked by enemy in friend king flank
         b = Camp_bb[Own]
           & kf_bb
           & pin_attacked_by[Opp][NONE];
+        // Squares attacked by enemy twice in friend king flank but not defended by friend pawns.
         e = b
           & dbl_attacked[Opp]
           & ~pin_attacked_by[Own][PAWN];
-        // King tropism, to anticipate slow motion attacks on our king zone
-        score -= EnemyAttackKing * (pop_count (b) + pop_count (e));
+        // King tropism, to anticipate slow motion attacks on friend king zone
+        score -= KingUnderAttack * (pop_count (b) + pop_count (e));
 
         if (Trace)
         {
@@ -695,7 +698,7 @@ namespace {
             {
                 auto s = pop_lsq (b);
                 auto pt = ptype (pos[s]);
-                score += MinorPieceThreat[pt];
+                score += MinorThreat[pt];
                 if (PAWN != pt)
                 {
                     score += PieceRankThreat * rel_rank (Opp, s);
@@ -712,7 +715,7 @@ namespace {
                 {
                     auto s = pop_lsq (b);
                     auto pt = ptype (pos[s]);
-                    score += MajorPieceThreat[pt];
+                    score += MajorThreat[pt];
                     if (PAWN != pt)
                     {
                         score += PieceRankThreat * rel_rank (Opp, s);
@@ -824,10 +827,10 @@ namespace {
             assert(0 == (pos.pieces (Opp, PAWN) & front_line_bb (Own, s+Push)));
 
             i32 r = rel_rank (Own, s);
-            i32 w = PawnPassDanger[r];
+            i32 w = PasserDanger[r];
 
             // Base bonus depending on rank.
-            Score bonus = PawnPassRank[r];
+            Score bonus = PasserRank[r];
 
             if (0 != w)
             {
@@ -910,8 +913,8 @@ namespace {
             }
 
             score += bonus
-                   + PawnPassFile[std::min (_file (s), ~_file (s))]
-                   - PawnPassHinder * pop_count (front_line_bb (Own, s) & pos.pieces (Opp));
+                   + PasserFile[std::min (_file (s), ~_file (s))]
+                   - PasserHinder * pop_count (front_line_bb (Own, s) & pos.pieces (Opp));
         }
 
         if (Trace)
@@ -934,8 +937,7 @@ namespace {
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
         constexpr auto Dull = WHITE == Own ? DEL_SS : DEL_NN;
 
-        // Find the safe squares for our pieces inside the area defined by SpaceMask.
-        // A square is safe:
+        // Safe squares for friend pieces inside the area defined by SpaceMask.
         // - if not occupied by friend pawns
         // - if not attacked by an enemy pawns
         // - if defended by friend pieces or not attacked by enemy pieces.
@@ -1013,7 +1015,7 @@ namespace {
                 && VALUE_MG_BSHP == pos.si->non_pawn_material (BLACK) ?
                     // Endings with opposite-colored bishops and no other pieces is almost a draw
                     Scale(31) :
-                    Scale(std::min (40 + (pos.opposite_bishops () ? 2 : 7) * pos.count (color, PAWN), 64));
+                    std::min (Scale(40 + (pos.opposite_bishops () ? 2 : 7) * pos.count (color, PAWN)), SCALE_NORMAL);
         }
         return scl;
     }

@@ -166,7 +166,7 @@ void TTable::auto_resize (u32 mem_size)
     }
     stop (EXIT_FAILURE);
 }
-/// TTable::clear() clear the entire transposition table.
+/// TTable::clear() clear the entire transposition table in a multi-threaded way.
 void TTable::clear ()
 {
     assert(0 != cluster_count);
@@ -174,17 +174,18 @@ void TTable::clear ()
     {
         return;
     }
-    auto thread_count = option_threads ();
-    size_t stride = cluster_count / thread_count;
+    
     std::vector<std::thread> threads;
+    auto thread_count = option_threads ();
     for (i32 idx = 0; idx < thread_count; ++idx)
     {
-        threads.push_back (std::thread ([this, idx, thread_count, stride]()
+        threads.push_back (std::thread ([this, idx, thread_count]()
                             {
                                 if (8 <= thread_count)
                                 {
                                     WinProcGroup::bind (idx);
                                 }
+                                size_t stride = cluster_count / thread_count;
                                 auto *pcluster = clusters + idx * stride;
                                 size_t count = idx != thread_count - 1 ?
                                                 stride :
