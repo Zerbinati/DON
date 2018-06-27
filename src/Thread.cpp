@@ -235,12 +235,6 @@ void Thread::idle_loop ()
 /// Thread::clear() clears all the thread related stuff.
 void Thread::clear ()
 {
-    running_depth = 0;
-    finished_depth = 0;
-    nodes = 0;
-    tb_hits = 0;
-    nmp_ply = 0;
-    nmp_color = CLR_NO;
     move_history.fill (MOVE_NONE);
     butterfly_history.fill (0);
     capture_history.fill (0);
@@ -252,9 +246,9 @@ void Thread::clear ()
         }
     }
     continuation_history[NO_PIECE][0].get ()->fill (CounterMovePruneThreshold - 1);
-
-    pawn_table.clear ();
-    matl_table.clear ();
+    //// No need to clear
+    //pawn_table.clear ();
+    //matl_table.clear ();
 }
 
 /// MainThread constructor

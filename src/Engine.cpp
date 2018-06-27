@@ -253,7 +253,7 @@ namespace {
             {
                 i16 depth = 0;
                 iss >> depth;
-                if (0 != depth)
+                if (DepthZero != depth)
                 {
                     auto nodes = perft<true> (pos, depth);
                     sync_cout << "\nTotal:    "

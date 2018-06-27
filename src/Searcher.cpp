@@ -514,14 +514,14 @@ namespace Searcher {
                             && -VALUE_INFINITE != rms[i].new_value;
 
                 if (   !updated
-                    && 1 == depth)
+                    && DepthOne == depth)
                 {
                     continue;
                 }
 
                 i16 d = updated ?
                             depth :
-                            depth - 1;
+                            depth - DepthOne;
                 auto v = updated ?
                             rms[i].new_value :
                             rms[i].old_value;
@@ -665,8 +665,8 @@ namespace Searcher {
                 {
                     assert(MOVE_NULL != (ss-1)->played_move
                         || VALUE_NONE != (ss-1)->static_eval);
-                    ss->static_eval =
-                    best_value = MOVE_NULL != (ss-1)->played_move ?
+                    best_value =
+                    ss->static_eval = MOVE_NULL != (ss-1)->played_move ?
                                 evaluate (pos) :
                                 -(ss-1)->static_eval + Tempo*2;
                 }
@@ -1098,8 +1098,8 @@ namespace Searcher {
                 {
                     assert(MOVE_NULL != (ss-1)->played_move
                         || VALUE_NONE != (ss-1)->static_eval);
-                    ss->static_eval =
-                    tt_eval = MOVE_NULL != (ss-1)->played_move ?
+                    tt_eval =
+                    ss->static_eval = MOVE_NULL != (ss-1)->played_move ?
                                 evaluate (pos) :
                                 -(ss-1)->static_eval + Tempo*2;
 
@@ -1354,14 +1354,14 @@ namespace Searcher {
 
                 // Step 13. Extensions. (~70 ELO)
 
-                i16 extension = 0;
+                i16 extension = DepthZero;
 
                 // Check extension (CE) (~2 ELO)
                 if (   gives_check
                     && !move_count_pruning
                     && pos.see_ge (move))
                 {
-                    extension = 1;
+                    extension = DepthOne;
                 }
                 else
                 // Singular extension (SE) (~60 ELO)
@@ -1386,12 +1386,12 @@ namespace Searcher {
 
                     if (value < beta_margin)
                     {
-                        extension = 1;
+                        extension = DepthOne;
                     }
                 }
 
                 // Calculate new depth for this move
-                i16 new_depth = depth - 1 + extension;
+                i16 new_depth = depth - DepthOne + extension;
 
                 // Step 14. Pruning at shallow depth. (~170 ELO)
                 if (   !root_node
@@ -1431,7 +1431,7 @@ namespace Searcher {
                     }
                     else
                     // SEE based pruning. (~20 ELO)
-                    if (   0 == extension
+                    if (   DepthZero == extension
                         && !pos.see_ge (move, Value(-i32(VALUE_EG_PAWN)*depth)))
                     {
                         continue;
@@ -1775,8 +1775,9 @@ namespace Searcher {
     {
         Threadpool.stop = true;
         Threadpool.main_thread ()->wait_while_busy ();
-        Threadpool.clear ();
+        
         TT.clear ();
+        Threadpool.clear ();
     }
 
 }
@@ -2220,7 +2221,7 @@ void MainThread::search ()
         }
         // Check if there is better thread than main thread.
         if (   1 == Threadpool.pv_limit
-            && 0 == Limits.depth // Depth limit search don't use deeper thread
+            && DepthZero == Limits.depth // Depth limit search don't use deeper thread
             && MOVE_NONE != root_moves[0][0]
             && !skill_mgr_enabled ())
         {

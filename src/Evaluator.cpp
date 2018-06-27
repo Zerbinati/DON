@@ -205,18 +205,12 @@ namespace {
         // Pieces which attack more than one square are counted multiple times.
         u08 king_attacks_count[CLR_NO];
 
-        template<Color>
-        void initialize ();
-        template<Color, PieceType>
-        Score pieces ();
-        template<Color>
-        Score king ();
-        template<Color>
-        Score threats ();
-        template<Color>
-        Score passers ();
-        template<Color>
-        Score space ();
+        template<Color> void initialize ();
+        template<Color, PieceType> Score pieces ();
+        template<Color> Score king ();
+        template<Color> Score threats ();
+        template<Color> Score passers ();
+        template<Color> Score space ();
 
         Score initiative (Value) const;
         Scale scale (Value) const;
@@ -234,8 +228,7 @@ namespace {
     };
 
     /// initialize() computes king and pawn attacks, and the king ring bitboard of the color.
-    template<bool Trace>
-    template<Color Own>
+    template<bool Trace> template<Color Own>
     void Evaluator<Trace>::initialize ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
@@ -308,8 +301,7 @@ namespace {
     }
 
     /// pieces() evaluates the pieces of the color and type.
-    template<bool Trace>
-    template<Color Own, PieceType PT>
+    template<bool Trace> template<Color Own, PieceType PT>
     Score Evaluator<Trace>::pieces ()
     {
         static_assert (NIHT == PT
@@ -511,8 +503,7 @@ namespace {
     }
 
     /// king() evaluates the king of the color.
-    template<bool Trace>
-    template<Color Own>
+    template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::king ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
@@ -660,8 +651,7 @@ namespace {
     }
 
     /// threats() evaluates the threats of the color.
-    template<bool Trace>
-    template<Color Own>
+    template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::threats ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
@@ -814,8 +804,7 @@ namespace {
     }
 
     /// passers() evaluates the passed pawns of the color.
-    template<bool Trace>
-    template<Color Own>
+    template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::passers ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
@@ -938,8 +927,7 @@ namespace {
     /// available for minor pieces on the central four files on ranks 2-4
     /// Safe squares one, two or three squares behind a friend pawn are counted twice
     /// The aim is to improve play on opening
-    template<bool Trace>
-    template<Color Own>
+    template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::space ()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;

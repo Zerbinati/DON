@@ -202,7 +202,7 @@ namespace UCI {
             Book.initialize (string(o));
         }
 
-        void on_debug_file (const Option &o)
+        void on_debug_fn (const Option &o)
         {
             Log.set (string(o));
         }
@@ -261,7 +261,7 @@ namespace UCI {
         Options["SyzygyLimitPiece"]   << Option (TBLimitPiece, 0, 6);
         Options["SyzygyUseRule50"]    << Option (TBUseRule50);
 
-        Options["Debug File"]         << Option (Empty.c_str (), on_debug_file);
+        Options["Debug File"]         << Option (Empty.c_str (), on_debug_fn);
         Options["Output File"]        << Option (Empty.c_str ());
 
         Options["UCI_Chess960"]       << Option (false);

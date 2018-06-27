@@ -143,6 +143,7 @@ typedef u64 Key;
 typedef u64 Bitboard;
 
 constexpr i16 DepthZero         =  0;
+constexpr i16 DepthOne          =  1;
 constexpr i16 DepthQSCheck      =  0;
 constexpr i16 DepthQSNoCheck    = -1;
 constexpr i16 DepthQSRecapture  = -5;
@@ -150,38 +151,11 @@ constexpr i16 DepthNone         = -6;
 constexpr i16 DepthEmpty        = -7;
 constexpr i16 MaxDepth          = 128; // Maximum Plies
 
-enum File : i08
-{
-    F_A,
-    F_B,
-    F_C,
-    F_D,
-    F_E,
-    F_F,
-    F_G,
-    F_H,
-    F_NO,
-};
+enum Color : i08 { WHITE, BLACK, CLR_NO };
 
-enum Rank : i08
-{
-    R_1,
-    R_2,
-    R_3,
-    R_4,
-    R_5,
-    R_6,
-    R_7,
-    R_8,
-    R_NO,
-};
+enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
 
-enum Color : i08
-{
-    WHITE,
-    BLACK,
-    CLR_NO,
-};
+enum Rank : i08 { R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO };
 
 /// Square needs 6-bits to be stored
 /// bit 0-2: File
@@ -232,12 +206,8 @@ enum Delta : i08
     DEL_WWS = i08(DEL_WW) + i08(DEL_S),
 };
 
-enum CastleSide : i08
-{
-    CS_KING,    // King  Side (Short Castle)
-    CS_QUEN,    // Queen Side (Long  Castle)
-    CS_NO,
-};
+enum CastleSide : i08 { CS_KING, CS_QUEN, CS_NO };
+
 /// Castle Right defined as in Polyglot book hash key
 enum CastleRight : u08
 {
@@ -292,10 +262,10 @@ enum Piece : u08
 
 enum MoveType : u16
 {
-    NORMAL    = 0x0000, // 0000
-    CASTLE    = 0x4000, // 0100
-    ENPASSANT = 0x8000, // 1000
-    PROMOTE   = 0xC000, // 11xx
+    NORMAL    = 0x0000, // [00] 00
+    CASTLE    = 0x4000, // [01] 00
+    ENPASSANT = 0x8000, // [10] 00
+    PROMOTE   = 0xC000, // [11] xx
 };
 /// Move needs 16-bits to be stored
 ///

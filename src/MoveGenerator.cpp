@@ -477,7 +477,7 @@ u64 perft (Position &pos, i16 depth)
     {
         u64 inter_nodes;
         if (   RootNode
-            && 1 >= depth)
+            && DepthOne >= depth)
         {
             inter_nodes = 1;
         }
@@ -488,7 +488,7 @@ u64 perft (Position &pos, i16 depth)
 
             inter_nodes = LeafNode ?
                             MoveList<GenType::LEGAL> (pos).size () :
-                            perft<false> (pos, depth - 1);
+                            perft<false> (pos, depth - DepthOne);
 
             pos.undo_move (vm);
         }

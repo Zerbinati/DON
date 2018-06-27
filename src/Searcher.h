@@ -51,7 +51,7 @@ public:
     {
         return !infinite
             && 0 == movetime
-            && 0 == depth
+            && DepthZero == depth
             && 0 == nodes
             && 0 == mate;
     }
