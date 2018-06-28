@@ -1043,7 +1043,7 @@ namespace {
         // - incrementally updated scores (material + piece square tables).
         // - material imbalance.
         // - pawn score
-        score = pos.si->psq_score
+        score = pos.psq
               + me->imbalance
               + pe->scores[WHITE]
               - pe->scores[BLACK]
@@ -1095,7 +1095,7 @@ namespace {
         {
             // Write remaining evaluation terms
             write (Term(PAWN), pe->scores[WHITE], pe->scores[BLACK]);
-            write (Term::MATERIAL, pos.si->psq_score);
+            write (Term::MATERIAL, pos.psq);
             write (Term::IMBALANCE, me->imbalance);
             write (Term::MOBILITY, mobility[WHITE], mobility[BLACK]);
             write (Term::TOTAL, score);

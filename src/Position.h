@@ -7,6 +7,7 @@
 #include <memory> // For std::unique_ptr
 #include <string>
 #include "BitBoard.h"
+#include "PSQT.h"
 #include "Type.h"
 #include "Zobrist.h"
 
@@ -36,7 +37,6 @@ public:
     Key         pawn_key;       // Hash key of pawns
 
     Value       non_pawn_matl[CLR_NO];
-    Score       psq_score;
 
     CastleRight castle_rights;  // Castling-rights information
     Square      enpassant_sq;   // Enpassant -> "In passing"
@@ -130,6 +130,8 @@ public:
 
     Color active;
     i16   ply;
+
+    Score psq;
 
     Thread *thread;
 
@@ -500,6 +502,7 @@ inline void Position::place_piece_on (Square s, Piece pc)
     types_bb[ptype (pc)] |= s;
     types_bb[NONE] |= s;
     squares[color (pc)][ptype (pc)].emplace_back (s);
+    psq += PSQT[color (pc)][ptype (pc)][s];
     board[s] = pc;
 }
 inline void Position::remove_piece_on (Square s)
@@ -509,6 +512,7 @@ inline void Position::remove_piece_on (Square s)
     types_bb[ptype (board[s])] ^= s;
     types_bb[NONE] ^= s;
     squares[color (board[s])][ptype (board[s])].remove (s);
+    psq -= PSQT[color (board[s])][ptype (board[s])][s];
     //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 }
 inline void Position::move_piece_on_to (Square s1, Square s2)
@@ -522,6 +526,8 @@ inline void Position::move_piece_on_to (Square s1, Square s2)
     types_bb[NONE] ^= bb;
     std::replace (squares[color (board[s1])][ptype (board[s1])].begin (),
                   squares[color (board[s1])][ptype (board[s1])].end (), s1, s2);
+    psq += PSQT[color (board[s1])][ptype (board[s1])][s2]
+         - PSQT[color (board[s1])][ptype (board[s1])][s1];
     board[s2] = board[s1];
     board[s1] = NO_PIECE;
 }

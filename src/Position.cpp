@@ -4,7 +4,6 @@
 #include "Notation.h"
 #include "Option.h"
 #include "Polyglot.h"
-#include "PSQT.h"
 #include "TBsyzygy.h"
 #include "Thread.h"
 
@@ -685,6 +684,7 @@ void Position::clear ()
             king_path  [c][cs] = 0;
         }
     }
+    psq = SCORE_ZERO;
 }
 /// Position::set_castle() set the castling right.
 void Position::set_castle (Color c, Square rook_org)
@@ -937,7 +937,6 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->posi_key = RandZob.compute_posi_key (*this);
     si->matl_key = RandZob.compute_matl_key (*this);
     si->pawn_key = RandZob.compute_pawn_key (*this);
-    si->psq_score = compute_psq (*this);
     si->non_pawn_matl[WHITE] = compute_npm<WHITE> (*this);
     si->non_pawn_matl[BLACK] = compute_npm<BLACK> (*this);
     si->clock_ply = u08(clock_ply);
@@ -1026,7 +1025,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         prefetch (thread->matl_table[si->matl_key]);
 
         si->posi_key ^= RandZob.piece_square[pasive][si->capture][cap];
-        si->psq_score -= PST[pasive][si->capture][cap];
         si->clock_ply = 0;
     }
     // Reset enpassant square
@@ -1075,8 +1073,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         do_castling (org, dst, rook_org, rook_dst);
         si->posi_key ^= RandZob.piece_square[active][ROOK][rook_dst]
                       ^ RandZob.piece_square[active][ROOK][rook_org];
-        si->psq_score += PST[active][ROOK][rook_dst]
-                       - PST[active][ROOK][rook_org];
     }
         break;
     case ENPASSANT:
@@ -1121,8 +1117,6 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
     }
     si->posi_key ^= RandZob.piece_square[active][ppt][dst]
                   ^ RandZob.piece_square[active][mpt][org];
-    si->psq_score += PST[active][ppt][dst]
-                   - PST[active][mpt][org];
 
     // Update castling rights
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
@@ -1538,6 +1532,13 @@ bool Position::ok () const
         }
     }
 
+    // PSQ
+    if (psq != compute_psq (*this))
+    {
+        assert(false && "Position OK: PSQ");
+        return false;
+    }
+
     if (Fast)
     {
         return true;
@@ -1584,7 +1585,6 @@ bool Position::ok () const
     if (   si->matl_key != RandZob.compute_matl_key (*this)
         || si->pawn_key != RandZob.compute_pawn_key (*this)
         || si->posi_key != RandZob.compute_posi_key (*this)
-        || si->psq_score != compute_psq (*this)
         || si->non_pawn_matl[WHITE] != compute_npm<WHITE> (*this)
         || si->non_pawn_matl[BLACK] != compute_npm<BLACK> (*this)
         || si->checkers != attackers_to (square<KING> (active), ~active)
