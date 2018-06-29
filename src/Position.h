@@ -36,7 +36,7 @@ public:
     Key         matl_key;       // Hash key of materials
     Key         pawn_key;       // Hash key of pawns
 
-    Value       non_pawn_matl[CLR_NO];
+    Value       npm[CLR_NO];
 
     CastleRight castle_rights;  // Castling-rights information
     Square      enpassant_sq;   // Enpassant -> "In passing"
@@ -57,12 +57,12 @@ public:
 
     Value non_pawn_material () const
     {
-        return non_pawn_matl[WHITE]
-             + non_pawn_matl[BLACK];
+        return npm[WHITE]
+             + npm[BLACK];
     }
     Value non_pawn_material (Color c) const
     {
-        return non_pawn_matl[c];
+        return npm[c];
     }
 
     bool can_castle (CastleRight cr) const

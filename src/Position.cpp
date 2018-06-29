@@ -937,8 +937,8 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
     si->posi_key = RandZob.compute_posi_key (*this);
     si->matl_key = RandZob.compute_matl_key (*this);
     si->pawn_key = RandZob.compute_pawn_key (*this);
-    si->non_pawn_matl[WHITE] = compute_npm<WHITE> (*this);
-    si->non_pawn_matl[BLACK] = compute_npm<BLACK> (*this);
+    si->npm[WHITE] = compute_npm<WHITE> (*this);
+    si->npm[BLACK] = compute_npm<BLACK> (*this);
     si->clock_ply = u08(clock_ply);
     si->null_ply = 0;
     si->capture = NONE;
@@ -1019,7 +1019,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
         }
         else
         {
-            si->non_pawn_matl[pasive] -= PieceValues[MG][si->capture];
+            si->npm[pasive] -= PieceValues[MG][si->capture];
         }
         si->matl_key ^= RandZob.piece_square[pasive][si->capture][count (pasive, si->capture)];
         prefetch (thread->matl_table[si->matl_key]);
@@ -1110,7 +1110,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool is_check)
 
         si->pawn_key ^= RandZob.piece_square[active][PAWN][org];
         prefetch (thread->pawn_table[si->pawn_key]);
-        si->non_pawn_matl[active] += PieceValues[MG][ppt];
+        si->npm[active] += PieceValues[MG][ppt];
         break;
     default:
         assert(false);
@@ -1585,8 +1585,8 @@ bool Position::ok () const
     if (   si->matl_key != RandZob.compute_matl_key (*this)
         || si->pawn_key != RandZob.compute_pawn_key (*this)
         || si->posi_key != RandZob.compute_posi_key (*this)
-        || si->non_pawn_matl[WHITE] != compute_npm<WHITE> (*this)
-        || si->non_pawn_matl[BLACK] != compute_npm<BLACK> (*this)
+        || si->npm[WHITE] != compute_npm<WHITE> (*this)
+        || si->npm[BLACK] != compute_npm<BLACK> (*this)
         || si->checkers != attackers_to (square<KING> (active), ~active)
         || (   si->clock_ply > 2*i32(Options["Draw MoveCount"])
             || (   NONE != si->capture
