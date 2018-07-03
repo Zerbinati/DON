@@ -14,7 +14,7 @@ namespace Pawns {
 
     #define V(v) Value(v)
 
-        // Shelter of friend pawns for friend king by [distance from edge][rank].
+        // Shelter of friend pawns for friend king, indexed by [distance from edge][rank].
         // RANK_1 = 0 is used for files where no friend pawn, or friend pawn is behind friend king.
         constexpr Value Shelter[F_NO/2][R_NO] =
         {
@@ -98,10 +98,10 @@ namespace Pawns {
 
                 Bitboard neighbours = own_pawns & adj_file_bb (f);
                 Bitboard supporters = neighbours & rank_bb (s-Push);
-                Bitboard phalanxes  = neighbours & rank_bb (s);
-                Bitboard stoppers   = opp_pawns & pawn_pass_span (Own, s);
-                Bitboard levers     = opp_pawns & PawnAtt[s];
-                Bitboard escapes    = opp_pawns & PawnAtt[s+Push];
+                Bitboard phalanxes = neighbours & rank_bb (s);
+                Bitboard stoppers = opp_pawns & pawn_pass_span (Own, s);
+                Bitboard levers = opp_pawns & PawnAtt[s];
+                Bitboard escapes = opp_pawns & PawnAtt[s+Push];
 
                 bool blocked = contains (own_pawns, s-Push);
                 bool opposed = 0 != (opp_pawns & front_line_bb (Own, s));

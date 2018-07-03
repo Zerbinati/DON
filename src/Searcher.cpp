@@ -794,7 +794,7 @@ namespace Searcher {
                         {
                             best_move = move;
 
-                            update_pv ((ss)->pv, move, (ss+1)->pv);
+                            update_pv (ss->pv, move, (ss+1)->pv);
                         }
 
                         // Fail high
@@ -933,11 +933,11 @@ namespace Searcher {
             assert(MOVE_NONE == (ss+1)->excluded_move);
             std::fill_n ((ss+2)->killer_moves, MaxKillers, MOVE_NONE);
 
-            // Initialize stat_score to zero for the grandchildren of the current position.
-            // So stat_score is shared between all grandchildren and only the first grandchild starts with stat_score = 0.
-            // Later grandchildren start with the last calculated stat_score of the previous grandchild.
-            // This influences the reduction rules in LMR which are based on the stat_score of parent position.
-            (ss+2)->stat_score = 0;
+            // Initialize stats to zero for the grandchildren of the current position.
+            // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.
+            // Later grandchildren start with the last calculated stats of the previous grandchild.
+            // This influences the reduction rules in LMR which are based on the stats of parent position.
+            (ss+2)->stats = 0;
 
             Move move;
             // Step 4. Transposition table lookup.
@@ -1147,7 +1147,7 @@ namespace Searcher {
                     && MOVE_NULL != (ss-1)->played_move
                     && MOVE_NONE == ss->excluded_move
                     && VALUE_ZERO != pos.si->non_pawn_material (own)
-                    && (ss-1)->stat_score < 22500
+                    && (ss-1)->stats < 22500
                     && tt_eval >= beta
                     && ss->static_eval + 36*depth - 225 >= beta
                     && (   thread->nmp_ply <= ss->ply
@@ -1467,7 +1467,7 @@ namespace Searcher {
                     // Decrease reduction for capture (~5 Elo)
                     if (capture_or_promotion)
                     {
-                        if ((ss-1)->stat_score < 0)
+                        if ((ss-1)->stats < 0)
                         {
                             reduce_depth -= 1;
                         }
@@ -1502,27 +1502,27 @@ namespace Searcher {
                             reduce_depth -= 2;
                         }
 
-                        (ss)->stat_score = thread->butterfly_history[own][move_pp (move)]
-                                         + (*pd_histories[0])[mpc][dst]
-                                         + (*pd_histories[1])[mpc][dst]
-                                         + (*pd_histories[3])[mpc][dst]
-                                         - 4000;
+                        ss->stats = thread->butterfly_history[own][move_pp (move)]
+                                  + (*pd_histories[0])[mpc][dst]
+                                  + (*pd_histories[1])[mpc][dst]
+                                  + (*pd_histories[3])[mpc][dst]
+                                  - 4000;
 
                         // Decrease/Increase reduction by comparing own and opp stats (~10 Elo)
-                        if (   (ss-1)->stat_score >= 0
-                            && (ss)->stat_score < 0)
+                        if (   ss->stats < 0
+                            && (ss-1)->stats >= 0)
                         {
                             reduce_depth += 1;
                         }
                         else
-                        if (   (ss)->stat_score >= 0
-                            && (ss-1)->stat_score < 0)
+                        if (   ss->stats >= 0
+                            && (ss-1)->stats < 0)
                         {
                             reduce_depth -= 1;
                         }
 
                         // Decrease/Increase reduction for moves with +/-ve own stats (~30 Elo)
-                        reduce_depth -= i16((ss)->stat_score / 20000);
+                        reduce_depth -= i16(ss->stats / 20000);
                     }
 
                     reduce_depth = std::min (std::max (reduce_depth, i16(0)), i16(new_depth - 1));
@@ -1616,14 +1616,14 @@ namespace Searcher {
                         {
                             if (!root_node)
                             {
-                                update_pv ((ss)->pv, move, (ss+1)->pv);
+                                update_pv (ss->pv, move, (ss+1)->pv);
                             }
                         }
 
                         // Fail high
                         if (value >= beta)
                         {
-                            ss->stat_score = 0;
+                            ss->stats = 0;
                             break;
                         }
                         else
@@ -1794,13 +1794,13 @@ void Thread::search ()
     Stack stacks[MaxDepth + 7]; // To allow referencing (ss-4) and (ss+2)
     for (auto ss = stacks; ss < stacks + MaxDepth + 7; ++ss)
     {
-        ss->ply = i16(ss - (stacks + 4));
+        ss->ply = i16(ss - (stacks+4));
         ss->played_move = MOVE_NONE;
         ss->excluded_move = MOVE_NONE;
         std::fill_n (ss->killer_moves, MaxKillers, MOVE_NONE);
         ss->move_count = 0;
         ss->static_eval = VALUE_ZERO;
-        ss->stat_score = 0;
+        ss->stats = 0;
         ss->pd_history = continuation_history[NO_PIECE][0].get ();
     }
 

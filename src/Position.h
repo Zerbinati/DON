@@ -149,9 +149,10 @@ public:
     Bitboard pieces () const;
     Bitboard pieces (Color) const;
     Bitboard pieces (PieceType) const;
-    Bitboard pieces (Color, PieceType) const;
-    Bitboard pieces (PieceType, PieceType) const;
-    Bitboard pieces (Color, PieceType, PieceType) const;
+    template<typename ...PieceTypes>
+    Bitboard pieces (PieceType, PieceTypes...) const;
+    template<typename ...PieceTypes>
+    Bitboard pieces (Color, PieceTypes...) const;
 
     i32 count () const;
     i32 count (Color) const;
@@ -246,22 +247,16 @@ inline Bitboard Position::pieces (PieceType pt) const
     assert(PAWN <= pt && pt <= KING);
     return types_bb[pt];
 }
-inline Bitboard Position::pieces (Color c, PieceType pt) const
+template<typename ...PieceTypes>
+inline Bitboard Position::pieces (PieceType pt, PieceTypes... pts) const
 {
     assert(PAWN <= pt && pt <= KING);
-    return color_bb[c]&types_bb[pt];
+    return types_bb[pt] | pieces (pts...);
 }
-inline Bitboard Position::pieces (PieceType pt1, PieceType pt2) const
+template<typename ...PieceTypes>
+inline Bitboard Position::pieces (Color c, PieceTypes... pts) const
 {
-    assert(PAWN <= pt1 && pt1 <= KING);
-    assert(PAWN <= pt2 && pt2 <= KING);
-    return types_bb[pt1]|types_bb[pt2];
-}
-inline Bitboard Position::pieces (Color c, PieceType pt1, PieceType pt2) const
-{
-    assert(PAWN <= pt1 && pt1 <= KING);
-    assert(PAWN <= pt2 && pt2 <= KING);
-    return color_bb[c]&(types_bb[pt1]|types_bb[pt2]);
+    return color_bb[c] & pieces (pts...);
 }
 /// Position::count() counts all
 inline i32 Position::count () const

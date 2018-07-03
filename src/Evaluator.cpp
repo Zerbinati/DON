@@ -146,7 +146,7 @@ namespace {
 
     constexpr Score PawnPushThreat =    S( 49, 30);
 
-    constexpr Score PieceRankThreat =   S( 16,  3);
+    constexpr Score RankThreat =        S( 16,  3);
 
     constexpr Score KnightQueenThreat = S( 21, 11);
 
@@ -701,7 +701,7 @@ namespace {
                 score += MinorThreat[pt];
                 if (PAWN != pt)
                 {
-                    score += PieceRankThreat * rel_rank (Opp, s);
+                    score += RankThreat * rel_rank (Opp, s);
                 }
             }
             if (0 != weak_enemies)
@@ -718,7 +718,7 @@ namespace {
                     score += MajorThreat[pt];
                     if (PAWN != pt)
                     {
-                        score += PieceRankThreat * rel_rank (Opp, s);
+                        score += RankThreat * rel_rank (Opp, s);
                     }
                 }
                 // Enemies attacked by king
@@ -793,8 +793,7 @@ namespace {
             score += SliderQueenThreat * pop_count (b);
         }
         // Bonus for Connectivity: ensure that knights, bishops, rooks, and queens are protected
-        b = (  pos.pieces (Own)
-             ^ pos.pieces (Own, PAWN, KING))
+        b = pos.pieces (Own, NIHT, BSHP, ROOK, QUEN)
           & sgl_attacks[Own][NONE];
         score += Connectivity * pop_count (b);
 

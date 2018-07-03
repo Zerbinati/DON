@@ -193,7 +193,7 @@ public:
     Move  killer_moves[MaxKillers];
     u08   move_count;
     Value static_eval;
-    i32   stat_score;
+    i32   stats;
     PieceDestinyHistory *pd_history;
 
     std::vector<Move> pv;
