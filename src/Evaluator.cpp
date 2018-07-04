@@ -94,7 +94,10 @@ namespace {
     };
 
     // KingDistance[knight/bishop] contains a penalty according to distance from king.
-    constexpr Score KingDistance[2] = { S( 4, 6), S( 6, 3) };
+    constexpr Score KingDistance[2] =
+    {
+        S( 4, 6), S( 6, 3)
+    };
 
     // Outpost[knight/bishop][supported by pawn] contains bonuses for minor outposts.
     constexpr Score Outpost[2][2] =
@@ -104,20 +107,38 @@ namespace {
     };
 
     // RookOnFile[semiopen/open] contains bonuses for rooks when there is no friend pawn on the rook file.
-    constexpr Score RookOnFile[2] = { S(20, 7), S(45,20) };
+    constexpr Score RookOnFile[2] =
+    {
+        S(20, 7), S(45,20)
+    };
 
     // MinorThreat[piece-type] contains bonus for minor attacks according to piece type.
-    constexpr Score MinorThreat[NONE] = { S( 0,31), S(39,42), S(57,44), S(68,112), S(47,120), S( 0, 0) };
+    constexpr Score MinorThreat[NONE] =
+    {
+        S( 0,31), S(39,42), S(57,44), S(68,112), S(47,120), S( 0, 0)
+    };
     // MajorThreat[piece-type] contains bonus for major attacks according to piece type.
-    constexpr Score MajorThreat[NONE] = { S( 0,24), S(38,71), S(38,61), S( 0, 38), S(36, 38), S( 0, 0) };
+    constexpr Score MajorThreat[NONE] =
+    {
+        S( 0,24), S(38,71), S(38,61), S( 0, 38), S(36, 38), S( 0, 0)
+    };
 
     // KingThreat[one/more] contains bonus for king attacks on pawns or pieces which are not pawn-defended.
-    constexpr Score KingThreat[2] = { S(30, 62), S(-9,160) };
+    constexpr Score KingThreat[2] =
+    {
+        S(30, 62), S(-9,160)
+    };
 
     // PasserFile[distance from edge] contains bonus for passed pawns according to distance from edge.
-    constexpr Score PasserFile[F_NO/2] = { S( 11, 14), S(  0, -5), S( -2, -8), S(-25,-13) };
+    constexpr Score PasserFile[F_NO/2] =
+    {
+        S( 11, 14), S(  0, -5), S( -2, -8), S(-25,-13)
+    };
     // PasserRank[rank] contains bonus for passed pawns according to the rank of the pawn.
-    constexpr Score PasserRank[R_NO] = { S( 0, 0), S(  4, 17), S(  7, 20), S( 14, 36), S( 42, 62), S(165,171), S(279,252), S( 0, 0) };
+    constexpr Score PasserRank[R_NO] =
+    {
+        S( 0, 0), S(  4, 17), S(  7, 20), S( 14, 36), S( 42, 62), S(165,171), S(279,252), S( 0, 0)
+    };
 
     // Bonus for minor behind a pawn
     constexpr Score MinorBehindPawn =   S( 16,  0);
@@ -161,13 +182,22 @@ namespace {
 #undef S
 
     // KingSafeCheck[piece-type] contains bonus for safe checks according to piece type.
-    constexpr i32 KingSafeCheck[NONE] = { 0, 790, 435, 880, 780, 0 };
+    constexpr i32 KingSafeCheck[NONE] =
+    {
+        0, 790, 435, 880, 780, 0
+    };
 
-    // KingAttackWeight[piece-type] contains bonus for king attack according to piece type.
-    constexpr i32 KingAttackWeight[NONE] = { 0, 77, 55, 44, 10, 0 };
+    // KingAttack[piece-type] contains bonus for king attack according to piece type.
+    constexpr i32 KingAttack[NONE] =
+    {
+        0, 77, 55, 44, 10, 0
+    };
 
     // PasserDanger[rank] contains a bonus for passer according to rank
-    constexpr i32 PasserDanger[R_NO] = { 0, 0, 0, 2, 7, 12, 19, 0 };
+    constexpr i32 PasserDanger[R_NO] =
+    {
+        0, 0, 0, 2, 7, 12, 19, 0
+    };
 
     constexpr Value LazyThreshold = Value(1500);
     constexpr Value SpaceThreshold = Value(12222);
@@ -202,7 +232,7 @@ namespace {
         // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
         u08 king_attackers_count[CLR_NO];
         // Sum of the "weight" of the pieces of the color which attack a square in the king_ring of the enemy king.
-        // The weights of the individual piece types are given by the KingAttackWeight[piece-type]
+        // The weights of the individual piece types are given by the KingAttack[piece-type]
         i32 king_attackers_weight[CLR_NO];
         // Number of attacks by the color to squares directly adjacent to the enemy king.
         // Pieces which attack more than one square are counted multiple times.
@@ -374,7 +404,7 @@ namespace {
             if (0 != (king_ring[Opp] & attacks))
             {
                 ++king_attackers_count[Own];
-                king_attackers_weight[Own] += KingAttackWeight[PT];
+                king_attackers_weight[Own] += KingAttack[PT];
                 king_attacks_count[Own] += pop_count (sgl_attacks[Opp][KING] & attacks);
             }
 

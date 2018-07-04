@@ -410,11 +410,20 @@ namespace Searcher {
     namespace {
 
         constexpr u08 SkipIndex = 20;
-        constexpr u08 SkipSize[SkipIndex] = { 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4 };
-        constexpr u08 SkipPhase[SkipIndex] = { 0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7 };
+        constexpr u08 SkipSize[SkipIndex] =
+        {
+            1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 4
+        };
+        constexpr u08 SkipPhase[SkipIndex] =
+        {
+            0, 1, 0, 1, 2, 3, 0, 1, 2, 3, 4, 5, 0, 1, 2, 3, 4, 5, 6, 7
+        };
 
         // Razoring and futility margin
-        constexpr Value RazorMargin[3] = { Value(0), Value(590), Value(604) };
+        constexpr Value RazorMargin[3] =
+        {
+            Value(0), Value(590), Value(604)
+        };
 
         // FutilityMoveCounts[improving][depth]
         u08 FutilityMoveCounts[2][16];

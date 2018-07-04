@@ -47,48 +47,55 @@ namespace {
     }
 
     /// Generates pawn promotion move
-    template<GenType GT, Delta Del>
-    void generate_promotion_moves (ValMoves &moves, const Position &pos, Square dst)
+    template<GenType GT, Color Own>
+    void generate_promotion_moves (ValMoves &moves, const Position &pos, Bitboard promotion, Delta del)
     {
-        static_assert (DEL_N  == Del
-                    || DEL_NE == Del
-                    || DEL_NW == Del
-                    || DEL_S  == Del
-                    || DEL_SE == Del
-                    || DEL_SW == Del, "Del incorrect");
+        assert(DEL_N  == del
+            || DEL_NE == del
+            || DEL_NW == del
+            || DEL_S  == del
+            || DEL_SE == del
+            || DEL_SW == del);
 
-        if (   GenType::NATURAL == GT
-            || GenType::EVASION == GT
-            || GenType::CAPTURE == GT
-            || (   GenType::CHECK == GT
-                && contains (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - Del)), pos.square<KING> (~pos.active))))
+        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+
+        while (0 != promotion)
         {
-            moves += mk_move (dst - Del, dst, QUEN);
-        }
-        if (   GenType::NATURAL == GT
-            || GenType::EVASION == GT
-            || GenType::QUIET == GT
-            || (   GenType::CHECK == GT
-                && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - Del)), pos.square<KING> (~pos.active))))
-        {
-            moves += mk_move (dst - Del, dst, ROOK);
-        }
-        if (   GenType::NATURAL == GT
-            || GenType::EVASION == GT
-            || GenType::QUIET == GT
-            || (   GenType::CHECK == GT
-                && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - Del)), pos.square<KING> (~pos.active))))
-        {
-            moves += mk_move (dst - Del, dst, BSHP);
-        }
-        if (   GenType::NATURAL == GT
-            || GenType::EVASION == GT
-            || GenType::QUIET == GT
-            || (   (   GenType::CHECK == GT
-                    || GenType::QUIET_CHECK == GT)
-                && contains (PieceAttacks[NIHT][dst], pos.square<KING> (~pos.active))))
-        {
-            moves += mk_move (dst - Del, dst, NIHT);
+            auto dst = pop_lsq (promotion);
+
+            if (   GenType::NATURAL == GT
+                || GenType::EVASION == GT
+                || GenType::CAPTURE == GT
+                || (   GenType::CHECK == GT
+                    && contains (attacks_bb<QUEN> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (Opp))))
+            {
+                moves += mk_move (dst - del, dst, QUEN);
+            }
+            if (   GenType::NATURAL == GT
+                || GenType::EVASION == GT
+                || GenType::QUIET == GT
+                || (   GenType::CHECK == GT
+                    && contains (attacks_bb<ROOK> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (Opp))))
+            {
+                moves += mk_move (dst - del, dst, ROOK);
+            }
+            if (   GenType::NATURAL == GT
+                || GenType::EVASION == GT
+                || GenType::QUIET == GT
+                || (   GenType::CHECK == GT
+                    && contains (attacks_bb<BSHP> (dst, pos.pieces () ^ (dst - del)), pos.square<KING> (Opp))))
+            {
+                moves += mk_move (dst - del, dst, BSHP);
+            }
+            if (   GenType::NATURAL == GT
+                || GenType::EVASION == GT
+                || GenType::QUIET == GT
+                || (   (   GenType::CHECK == GT
+                        || GenType::QUIET_CHECK == GT)
+                    && contains (PieceAttacks[NIHT][dst], pos.square<KING> (Opp))))
+            {
+                moves += mk_move (dst - del, dst, NIHT);
+            }
         }
     }
     /// Generates pawn normal move
@@ -166,20 +173,18 @@ namespace {
             if (SQ_NO != pos.si->enpassant_sq)
             {
                 assert(R_6 == rel_rank (Own, pos.si->enpassant_sq));
-                Bitboard ep_captures = Rx_pawns & rank_bb (WHITE == Own ? R_5 : R_4);
+                Bitboard ep_captures = Rx_pawns & PawnAttacks[Opp][pos.si->enpassant_sq];
                 if (0 != ep_captures)
                 {
                     // If the checking piece is the double pushed pawn and also is in the target.
                     // Otherwise this is a discovery check and are forced to do otherwise.
-                    if (GenType::EVASION == GT)
+                    if (   GenType::EVASION != GT
+                        || contains (enemies & pos.pieces (PAWN), pos.si->enpassant_sq - Push))
                     {
-                        ep_captures &= (  shift<DEL_E> (targets)
-                                        | shift<DEL_W> (targets));
+                        assert(0 != ep_captures
+                            && 2 >= pop_count (ep_captures));
+                        while (0 != ep_captures) { moves += mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->enpassant_sq); }
                     }
-                    ep_captures &= PawnAttacks[Opp][pos.si->enpassant_sq];
-                    assert(0 != ep_captures
-                        && 2 >= pop_count (ep_captures));
-                    while (0 != ep_captures) { moves += mk_move<ENPASSANT> (pop_lsq (ep_captures), pos.si->enpassant_sq); }
                 }
             }
         }
@@ -192,22 +197,9 @@ namespace {
                 empties &= targets;
             }
             // Promoting pawns
-            Bitboard proms;
-            proms = empties & shift<Push> (R7_pawns);
-            while (0 != proms)
-            {
-                generate_promotion_moves<GT, Push> (moves, pos, pop_lsq (proms));
-            }
-            proms = enemies & shift<LCap> (R7_pawns);
-            while (0 != proms)
-            {
-                generate_promotion_moves<GT, LCap> (moves, pos, pop_lsq (proms));
-            }
-            proms = enemies & shift<RCap> (R7_pawns);
-            while (0 != proms)
-            {
-                generate_promotion_moves<GT, RCap> (moves, pos, pop_lsq (proms));
-            }
+            generate_promotion_moves<GT, Own> (moves, pos, empties & shift<Push> (R7_pawns), Push);
+            generate_promotion_moves<GT, Own> (moves, pos, enemies & shift<LCap> (R7_pawns), LCap);
+            generate_promotion_moves<GT, Own> (moves, pos, enemies & shift<RCap> (R7_pawns), RCap);
         }
     }
 
@@ -326,7 +318,7 @@ void generate (ValMoves &moves, const Position &pos)
     moves.clear ();
     Bitboard targets = GenType::NATURAL == GT ? ~pos.pieces ( pos.active) :
                        GenType::CAPTURE == GT ?  pos.pieces (~pos.active) :
-                       GenType::QUIET == GT ? ~pos.pieces () : (assert(false), 0);
+                       GenType::QUIET == GT ?   ~pos.pieces () : (assert(false), 0);
 
     WHITE == pos.active ?
         generate_moves<GT, WHITE> (moves, pos, targets) :
