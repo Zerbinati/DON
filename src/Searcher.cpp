@@ -617,6 +617,8 @@ namespace Searcher {
             assert(MOVE_NONE == tt_move
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
+            tt_hit = tt_hit
+                  && tt_move == tte->move ();
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
@@ -966,6 +968,9 @@ namespace Searcher {
             assert(MOVE_NONE == tt_move
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
+            tt_hit = tt_hit
+                  && (   root_node
+                      || tt_move == tte->move ());
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
@@ -1268,7 +1273,8 @@ namespace Searcher {
                 }
 
                 // Step 11. Internal iterative deepening (IID). (~2 ELO)
-                if (   7 < depth
+                if (   !root_node
+                    && 7 < depth
                     && MOVE_NONE == tt_move)
                 {
                     depth_search<PVNode> (pos, ss, alfa, beta, depth - 7, cut_node);
@@ -1280,6 +1286,8 @@ namespace Searcher {
                            && pos.legal (move) ?
                                move :
                                MOVE_NONE;
+                    tt_hit = tt_hit
+                          && tt_move == tte->move ();
                     tt_value = tt_hit ?
                                value_of_tt (tte->value (), ss->ply) :
                                VALUE_NONE;

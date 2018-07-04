@@ -41,17 +41,12 @@ public:
 
     void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, u08 g)
     {
-        // Preserve more valuable entries
-        if (   MOVE_NONE != m
-            || k16 != (k >> 0x30))
-        {
-            m16  = u16(m);
-        }
         if (   d08 - 4 < d
             || BOUND_EXACT == b
             || k16 != (k >> 0x30))
         {
             k16  = u16(k >> 0x30);
+            m16  = u16(m);
             d08  = i08(d);
             gb08 = u08(g + b);
             v16  = i16(v);

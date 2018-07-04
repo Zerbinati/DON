@@ -340,8 +340,8 @@ inline Key Position::posi_move_key (Move m) const
         if (NONE != cpt)
         {
             key ^= RandZob.piece_square[~active][cpt][ENPASSANT != mtype (m) ?
-                                                                dst :
-                                                                dst - pawn_push (active)];
+                                                        dst :
+                                                        dst - pawn_push (active)];
         }
     }
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
