@@ -42,14 +42,14 @@ public:
     void save (u64 k, Move m, Value v, Value e, i16 d, Bound b, u08 g)
     {
         // Preserve more valuable entries
-        if (   k16 != (k >> 0x30)   // Use the high 16 bits as key inside the cluster
-            || MOVE_NONE != m)
+        if (   MOVE_NONE != m
+            || k16 != (k >> 0x30))
         {
             m16  = u16(m);
         }
-        if (   k16 != (k >> 0x30)
-            || d08 - 4 < d
-            || BOUND_EXACT == b)
+        if (   d08 - 4 < d
+            || BOUND_EXACT == b
+            || k16 != (k >> 0x30))
         {
             k16  = u16(k >> 0x30);
             d08  = i08(d);

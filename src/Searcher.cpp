@@ -1680,7 +1680,12 @@ namespace Searcher {
             // Quiet best move: update move sorting heuristics.
             if (MOVE_NONE != best_move)
             {
-                if (!pos.capture_or_promotion (best_move))
+                auto cbonus = stat_bonus (depth + 1);
+                if (pos.capture_or_promotion (best_move))
+                {
+                    thread->capture_history[pos[org_sq (best_move)]][move_pp (best_move)][pos.cap_type (best_move)] << cbonus;
+                }
+                else
                 {
                     update_killers (ss, pos, best_move);
                     auto bonus = stat_bonus (depth + (best_value > beta + VALUE_MG_PAWN ? 1 : 0));
@@ -1693,15 +1698,10 @@ namespace Searcher {
                         update_continuation_histories (ss, pos[org_sq (qm)], dst_sq (qm), -bonus);
                     }
                 }
-                else
+                // Decrease all the other played capture moves.
+                for (auto cm : capture_moves)
                 {
-                    auto bonus = stat_bonus (depth + 1);
-                    thread->capture_history[pos[org_sq (best_move)]][move_pp (best_move)][pos.cap_type (best_move)] << bonus;
-                    // Decrease all the other played capture moves.
-                    for (auto cm : capture_moves)
-                    {
-                        thread->capture_history[pos[org_sq (cm)]][move_pp (cm)][pos.cap_type (cm)] << -bonus;
-                    }
+                    thread->capture_history[pos[org_sq (cm)]][move_pp (cm)][pos.cap_type (cm)] << -cbonus;
                 }
 
                 // Extra penalty for a quiet best move in previous ply when it gets refuted.
