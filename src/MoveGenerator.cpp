@@ -106,11 +106,13 @@ namespace {
         constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
         constexpr auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
         constexpr auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
+        constexpr Bitboard R3BB = WHITE == Own ? R3_bb : R6_bb;
+        constexpr Bitboard R7BB = WHITE == Own ? R7_bb : R2_bb;
 
         // Pawns on 7th Rank
-        Bitboard R7_pawns = pos.pieces (Own, PAWN) &  rank_bb (WHITE == Own ? R_7 : R_2);
+        Bitboard R7_pawns = pos.pieces (Own, PAWN) &  R7BB;
         // Pawns not on 7th Rank
-        Bitboard Rx_pawns = pos.pieces (Own, PAWN) & ~rank_bb (WHITE == Own ? R_7 : R_2);
+        Bitboard Rx_pawns = pos.pieces (Own, PAWN) & ~R7BB;
 
         Bitboard empties = ~pos.pieces ();
         Bitboard enemies =  pos.pieces (Opp) & targets;
@@ -122,7 +124,7 @@ namespace {
             || GenType::QUIET_CHECK == GT)
         {
             Bitboard push_1 = empties & shift<Push> (Rx_pawns);
-            Bitboard push_2 = empties & shift<Push> (push_1 & rank_bb (WHITE == Own ? R_3 : R_6));
+            Bitboard push_2 = empties & shift<Push> (push_1 & R3BB);
             if (   GenType::CHECK == GT
                 || GenType::QUIET_CHECK == GT)
             {
@@ -136,7 +138,7 @@ namespace {
                 if (0 != dsc_pawns)
                 {
                     Bitboard dc_push_1 = empties & shift<Push> (dsc_pawns);
-                    Bitboard dc_push_2 = empties & shift<Push> (dc_push_1 & rank_bb (WHITE == Own ? R_3 : R_6));
+                    Bitboard dc_push_2 = empties & shift<Push> (dc_push_1 & R3BB);
                     push_1 |= dc_push_1;
                     push_2 |= dc_push_2;
                 }
@@ -208,6 +210,7 @@ namespace {
     void generate_castling_moves (ValMoves &moves, const Position &pos)
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr Bitboard R1BB = WHITE == Own ? R1_bb : R8_bb;
 
         assert(GenType::EVASION != GT
             && pos.si->can_castle (Own, CS)
@@ -232,7 +235,7 @@ namespace {
         // Because generate only legal castling moves needed to verify that
         // when moving the castling rook do not discover some hidden checker.
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        if (   0 != (b = pos.pieces (Opp, ROOK, QUEN) & rank_bb (king_dst))
+        if (   0 != (b = pos.pieces (Opp, ROOK, QUEN) & R1BB)
             && 0 != (b & attacks_bb<ROOK> (king_dst, pos.pieces () ^ rook_org)))
         {
             return;
@@ -448,8 +451,8 @@ void filter_illegal (ValMoves &moves, const Position &pos)
 {
     moves.erase (std::remove_if (moves.begin (),
                                  moves.end (),
-                                 [&] (const ValMove &vm) { return (   0 != pos.abs_blockers (pos.active)
-                                                                   || pos.enpassant (vm)
+                                 [&] (const ValMove &vm) { return (   pos.enpassant (vm)
+                                                                   || contains (pos.si->king_blockers[pos.active], org_sq (vm))
                                                                    || pos.square<KING> (pos.active) == org_sq (vm))
                                                                && !pos.legal (vm); }),
                  moves.end ());

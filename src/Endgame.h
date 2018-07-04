@@ -99,8 +99,8 @@ namespace EndGame {
         {
             StateInfo si[CLR_NO];
             std::memset (si, 0, sizeof (si));
-            map<ET> ()[Position ().setup (code, si[WHITE], WHITE).si->matl_key] = EP (new Endgame<EC> (WHITE));
-            map<ET> ()[Position ().setup (code, si[BLACK], BLACK).si->matl_key] = EP (new Endgame<EC> (BLACK));
+            map<ET> ()[Position ().setup (code, WHITE, si[WHITE]).si->matl_key] = EP (new Endgame<EC> (WHITE));
+            map<ET> ()[Position ().setup (code, BLACK, si[BLACK]).si->matl_key] = EP (new Endgame<EC> (BLACK));
         }
 
     public:

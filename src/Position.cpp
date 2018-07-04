@@ -423,7 +423,7 @@ bool Position::pseudo_legal (Move m) const
         auto king_dst = rel_sq (active, dst_sq (m) > org_sq (m) ? SQ_G1 : SQ_C1);
         // Chess960
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        if (   0 != (b = pieces (~active, ROOK, QUEN) & rank_bb (king_dst))
+        if (   0 != (b = pieces (~active, ROOK, QUEN) & rank_bb (rel_rank (active, R_1)))
             && 0 != (b & attacks_bb<ROOK> (king_dst, pieces () ^ dst_sq (m))))
         {
             return false;
@@ -950,7 +950,7 @@ Position& Position::setup (const string &ff, StateInfo &nsi, Thread *const th, b
 }
 /// Position::setup() initializes the position object with the given endgame code string like "KBPKN".
 /// It is mainly an helper to get the material key out of an endgame code.
-Position& Position::setup (const string &code, StateInfo &nsi, Color c)
+Position& Position::setup (const string &code, Color c, StateInfo &nsi)
 {
     assert(0 < code.length () && code.length () <= 8);
     assert(code[0] == 'K');

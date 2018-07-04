@@ -202,7 +202,7 @@ public:
     void clear ();
 
     Position& setup (const std::string&, StateInfo&, Thread *const = nullptr, bool = true);
-    Position& setup (const std::string&, StateInfo&, Color);
+    Position& setup (const std::string&, Color, StateInfo&);
 
     void do_move (Move, StateInfo&, bool);
     void do_move (Move, StateInfo&);

@@ -448,7 +448,7 @@ namespace TBSyzygy {
         {
             StateInfo si;
             Position pos;
-            key1 = pos.setup (code, si, WHITE).si->matl_key;
+            key1 = pos.setup (code, WHITE, si).si->matl_key;
             piece_count = pos.count ();
             has_pawns = 0 != pos.count (PAWN);
             has_unique_pieces = false;
@@ -474,7 +474,7 @@ namespace TBSyzygy {
             pawn_count[0] = pos.count ( lead_color, PAWN);
             pawn_count[1] = pos.count (~lead_color, PAWN);
 
-            key2 = pos.setup (code, si, BLACK).si->matl_key;
+            key2 = pos.setup (code, BLACK, si).si->matl_key;
         }
 
         template<>
