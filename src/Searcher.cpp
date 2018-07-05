@@ -969,8 +969,7 @@ namespace Searcher {
                 || (pos.pseudo_legal (tt_move)
                  && pos.legal (tt_move)));
             tt_hit = tt_hit
-                  && (   root_node
-                      || tt_move == tte->move ());
+                  && tt_move == tte->move ();
             auto tt_value = tt_hit ?
                             value_of_tt (tte->value (), ss->ply) :
                             VALUE_NONE;
@@ -1058,7 +1057,7 @@ namespace Searcher {
                                        MOVE_NONE,
                                        value_to_tt (value, ss->ply),
                                        VALUE_NONE,
-                                       std::min<i16> (depth + 6, MaxDepth - 1),
+                                       std::min (depth + 6, MaxDepth - 1),
                                        bound,
                                        TT.generation);
 
@@ -1273,8 +1272,7 @@ namespace Searcher {
                 }
 
                 // Step 11. Internal iterative deepening (IID). (~2 ELO)
-                if (   !root_node
-                    && 7 < depth
+                if (   7 < depth
                     && MOVE_NONE == tt_move)
                 {
                     depth_search<PVNode> (pos, ss, alfa, beta, depth - 7, cut_node);
