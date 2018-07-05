@@ -14,8 +14,6 @@ namespace Pawns {
 
     #define V(v) Value(v)
 
-        // Shelter of friend pawns for friend king, indexed by [distance from edge][rank].
-        // RANK_1 = 0 is used for files where no friend pawn, or friend pawn is behind friend king.
         constexpr Value Shelter[F_NO/2][R_NO] =
         {
             { V( 16), V( 82), V( 83), V( 47), V( 19), V( 44), V(  4), V(0) },
@@ -24,31 +22,21 @@ namespace Pawns {
             { V(-29), V( 12), V(-21), V(-40), V(-15), V(-77), V(-91), V(0) }
         };
 
-        // Storm of blocked enemy pawns moving toward friend king, indexed by [rank]
-        // RANK_1 = 0 is used for files where no enemy pawn, or enemy pawn is behind friend king.
-        constexpr Value BlockedStorm[R_NO] =
-        {
-            V(  0), V(  0), V( 81), V( -9), V( -5), V( -1), V( 26), V(0)
-        };
-        // Storm of unblocked enemy pawns moving toward friend king, indexed by [distance from edge][rank].
-        // RANK_1 = 0 is used for files where no enemy pawn, or enemy pawn is behind friend king.
-        constexpr Value UnblockedStorm[F_NO/2][R_NO] =
+        constexpr Value Storm[F_NO/2+1][R_NO] =
         {
             { V( 54), V( 48), V( 99), V( 91), V( 42), V( 32), V( 31), V(0) },
             { V( 34), V( 27), V(105), V( 38), V( 32), V(-19), V(  3), V(0) },
             { V( -4), V( 28), V( 87), V( 18), V( -3), V(-14), V(-11), V(0) },
-            { V( -5), V( 22), V( 75), V( 14), V(  2), V( -5), V(-19), V(0) }
+            { V( -5), V( 22), V( 75), V( 14), V(  2), V( -5), V(-19), V(0) },
+            { V(  0), V(  0), V( 81), V( -9), V( -5), V( -1), V( 26), V(0) }
         };
 
     #undef V
 
     #define S(mg, eg) mk_score(mg, eg)
 
-        // Penalty for isolated pawn
         constexpr Score Isolated = S( 4,20);
-        // Penalty for backward pawn
         constexpr Score Backward = S(21,22);
-        // Penalty for blocked pawn
         constexpr Score Blocked =  S(12,54);
 
     #undef S
@@ -205,10 +193,9 @@ namespace Pawns {
                 || (own_r != opp_r));
 
             auto ff = std::min (f, ~f);
+            assert(ff < 4);
             value += Shelter[ff][own_r];
-            value -= R_1 != own_r && (own_r + 1 == opp_r) ?
-                        BlockedStorm[opp_r] :
-                        UnblockedStorm[ff][opp_r];
+            value -= Storm[R_1 != own_r && (own_r + 1 == opp_r) ? 4 : ff][opp_r];
         }
 
         return value;

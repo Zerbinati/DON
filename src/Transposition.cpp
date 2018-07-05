@@ -223,7 +223,7 @@ u32 TTable::hash_full () const
     const auto cluster_limit = std::min (size_t(1000 / TCluster::EntryCount), cluster_count);
     for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
     {
-        full_entry_count += itc->full_entry_count (TT.generation);
+        full_entry_count += itc->full_entry_count (generation);
     }
     return u32(full_entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
 }
