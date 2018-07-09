@@ -1844,10 +1844,10 @@ void Thread::search ()
         }
         else
         {
-            // Distribute search depths across the threads.
+            // Thread Redistribution Scheme: distribute search depths across the threads.
             assert(0 != index);
             i32 i = (index - 1) % SkipIndex;
-            if (0 != ((running_depth + root_pos.ply + SkipPhase[i]) / SkipSize[i]) % 2)
+            if (0 != ((running_depth + SkipPhase[i]) / SkipSize[i]) % 2)
             {
                 continue;
             }
@@ -2084,7 +2084,8 @@ void MainThread::search ()
     if (Limits.time_mgr_used ())
     {
         // Initialize the time manager before searching.
-        time_mgr.initialize (root_pos.active, root_pos.ply,
+        time_mgr.initialize (root_pos.active,
+                             root_pos.ply,
                              u16(i32(Options["Nodes Time"])),
                              TimePoint(i32(Options["Minimum Move Time"])),
                              TimePoint(i32(Options["Overhead Move Time"])),
