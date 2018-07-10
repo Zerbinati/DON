@@ -34,7 +34,7 @@ namespace {
                            QUEN == ptype (pos[org]) ? attacks_bb<QUEN> (dst, pos.pieces ()) : (assert(false), 0);
 
         Bitboard amb = (attacks & pos.pieces (pos.active, ptype (pos[org]))) ^ org;
-        Bitboard pcs = amb; // & ~pos.abs_blockers (pos.active); // If pinned piece is considered as ambiguous
+        Bitboard pcs = amb; // & ~(pos.si->king_blockers[pos.active] & pos.pieces (pos.active)); // If pinned piece is considered as ambiguous
         while (0 != pcs)
         {
             auto sq = pop_lsq (pcs);

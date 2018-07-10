@@ -270,9 +270,11 @@ bool Position::see_ge (Move m, Value threshold) const
 
     auto own = color (board[org]);
     auto stm = ~own; // First consider opponent's move
-    Bitboard mocc = empty (dst) ?
-                    pieces () ^ org ^ dst :
-                    pieces () ^ org;
+    Bitboard mocc = pieces () ^ org;
+    if (empty (dst))
+    {
+        mocc |= dst;
+    }
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, mocc) & mocc;
@@ -296,7 +298,6 @@ bool Position::see_ge (Move m, Value threshold) const
         if (   0 != stm_attackers
             && 0 != (b = si->king_checkers[~stm] & pieces (~stm) & mocc))
         {
-            assert(contains (mocc, dst));
             while (0 != b)
             {
                 if (0 == (between_bb (pop_lsq (b), square<KING> (stm)) & mocc))
@@ -348,26 +349,22 @@ bool Position::see_ge (Move m, Value threshold) const
 /// A piece blocks a slider if removing that piece from the board would result in a position where square is attacked by the sliders in 'attackers'.
 /// For example, a king-attack blocking piece can be either absolute or discovered blocked piece,
 /// according if its color is the opposite or the same of the color of the sliders in 'attackers'.
-Bitboard Position::slider_blockers (Color c, Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const
+Bitboard Position::slider_blockers (Square s, Bitboard attackers, Bitboard &pinners, Bitboard &discovers) const
 {
     Bitboard blockers = 0;
-    Bitboard defenders = pieces ( c);
-    Bitboard attackers = pieces (~c) ^ ex_attackers;
     // Snipers are attackers that are aligned on square in x-ray.
     Bitboard snipers = attackers
                      & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
                         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
-    Bitboard hurdle = defenders | (attackers ^ snipers);
-    Bitboard b;
     while (0 != snipers)
     {
         auto sniper_sq = pop_lsq (snipers);
-        b = hurdle & between_bb (s, sniper_sq);
+        Bitboard b = between_bb (s, sniper_sq) & pieces ();
         if (   0 != b
             && !more_than_one (b))
         {
             blockers |= b;
-            if (0 != (b & defenders))
+            if (0 != (b & pieces (color (board[s]))))
             {
                 pinners |= sniper_sq;
             }
@@ -1358,14 +1355,12 @@ string Position::fen (bool full) const
 
     for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
-        i08 f = F_A;
-        while (f <= F_H)
+        for (auto f = F_A; f <= F_H; ++f)
         {
-            i16 empty_count = 0;
-            while (f <= F_H && empty (File(f)|r))
+            i16 empty_count;
+            for (empty_count = 0; f <= F_H && empty (f|r); ++f)
             {
                 ++empty_count;
-                ++f;
             }
             if (0 != empty_count)
             {
@@ -1373,9 +1368,8 @@ string Position::fen (bool full) const
             }
             if (f <= F_H)
             {
-                oss << board[File(f)|r];
+                oss << board[f|r];
             }
-            ++f;
         }
         if (r > R_1)
         {

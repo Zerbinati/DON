@@ -395,7 +395,9 @@ template<> void generate<GenType::CHECK      > (ValMoves &moves, const Position 
     moves.clear ();
     Bitboard targets = ~pos.pieces (pos.active);
     // Pawns is excluded, will be generated together with direct checks
-    Bitboard dsc_blockers_ex = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
+    Bitboard dsc_blockers_ex =  pos.si->king_blockers[~pos.active]
+                             &  pos.pieces (pos.active)
+                             & ~pos.pieces (PAWN);
     while (0 != dsc_blockers_ex)
     {
         auto org = pop_lsq (dsc_blockers_ex);
@@ -419,7 +421,9 @@ template<> void generate<GenType::QUIET_CHECK> (ValMoves &moves, const Position 
     moves.clear ();
     Bitboard targets = ~pos.pieces ();
     // Pawns is excluded, will be generated together with direct checks
-    Bitboard dsc_blockers_ex = pos.dsc_blockers (pos.active) & ~pos.pieces (PAWN);
+    Bitboard dsc_blockers_ex =  pos.si->king_blockers[~pos.active]
+                             &  pos.pieces (pos.active)
+                             & ~pos.pieces (PAWN);
     while (0 != dsc_blockers_ex)
     {
         auto org = pop_lsq (dsc_blockers_ex);
@@ -452,8 +456,7 @@ void filter_illegal (ValMoves &moves, const Position &pos)
     moves.erase (std::remove_if (moves.begin (),
                                  moves.end (),
                                  [&] (const ValMove &vm) { return (   pos.enpassant (vm)
-                                                                   || contains (pos.si->king_blockers[pos.active], org_sq (vm))
-                                                                   || pos.square<KING> (pos.active) == org_sq (vm))
+                                                                   || contains (pos.si->king_blockers[pos.active] | pos.pieces (pos.active, KING), org_sq (vm)))
                                                                && !pos.legal (vm); }),
                  moves.end ());
 }

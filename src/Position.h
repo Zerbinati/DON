@@ -144,7 +144,7 @@ public:
     Position& operator= (const Position&) = delete;
 
     Piece operator[] (Square s) const;
-    bool empty  (Square s)  const;
+    bool empty (Square s)  const;
 
     Bitboard pieces () const;
     Bitboard pieces (Color) const;
@@ -179,9 +179,9 @@ public:
     Bitboard attackers_to (Square, Bitboard) const;
     Bitboard attackers_to (Square) const;
 
-    Bitboard slider_blockers (Color, Square, Bitboard, Bitboard&, Bitboard&) const;
-    Bitboard abs_blockers (Color) const;
-    Bitboard dsc_blockers (Color) const;
+    Bitboard slider_blockers (Square, Bitboard, Bitboard&, Bitboard&) const;
+    //Bitboard abs_blockers (Color) const;
+    //Bitboard dsc_blockers (Color) const;
     //Bitboard abs_checkers (Color) const;
     //Bitboard dsc_checkers (Color) const;
 
@@ -228,7 +228,7 @@ inline Piece Position::operator[] (Square s) const
     assert(_ok (s));
     return board[s];
 }
-inline bool Position::empty  (Square s)  const
+inline bool Position::empty (Square s)  const
 {
     assert(_ok (s));
     return NO_PIECE == board[s];
@@ -340,8 +340,8 @@ inline Key Position::posi_move_key (Move m) const
         if (NONE != cpt)
         {
             key ^= RandZob.piece_square[~active][cpt][ENPASSANT != mtype (m) ?
-                                                                dst :
-                                                                dst - pawn_push (active)];
+                                                        dst :
+                                                        dst - pawn_push (active)];
         }
     }
     auto b = si->castle_rights & (castle_mask[org]|castle_mask[dst]);
@@ -398,16 +398,16 @@ inline Bitboard Position::attackers_to (Square s) const
     return attackers_to (s, pieces ());
 }
 
-/// Position::abs_blockers() find absolute blockers (friend pieces), that blocks the check to friend king.
-inline Bitboard Position::abs_blockers (Color c) const
-{
-    return si->king_blockers[ c] & pieces (c);
-}
-/// Position::dsc_blockers() finds discovered blockers (friend pieces), that blocks the check to enemy king.
-inline Bitboard Position::dsc_blockers (Color c) const
-{
-    return si->king_blockers[~c] & pieces (c);
-}
+///// Position::abs_blockers() find absolute blockers (friend pieces), that blocks the check to friend king.
+//inline Bitboard Position::abs_blockers (Color c) const
+//{
+//    return si->king_blockers[ c] & pieces (c);
+//}
+///// Position::dsc_blockers() finds discovered blockers (friend pieces), that blocks the check to enemy king.
+//inline Bitboard Position::dsc_blockers (Color c) const
+//{
+//    return si->king_blockers[~c] & pieces (c);
+//}
 ///// Position::abs_checkers() find absolute checkers (friend pieces), that give the check when enemy piece is moved.
 //inline Bitboard Position::abs_checkers (Color c) const
 //{
@@ -480,8 +480,8 @@ inline bool Position::capture_or_promotion (Move m) const
 inline PieceType Position::cap_type (Move m) const
 {
     return ENPASSANT != mtype (m) ?
-               ptype (board[dst_sq (m)]) :
-               PAWN;
+            ptype (board[dst_sq (m)]) :
+            PAWN;
 }
 
 inline void Position::do_move (Move m, StateInfo &nsi)
@@ -536,10 +536,9 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     // Remove both pieces first since squares could overlap in chess960
     remove_piece_on (king_org);
     remove_piece_on (rook_org);
-    board[king_org] =
-    board[rook_org] = NO_PIECE; // Not done by remove_piece_on()
-    place_piece_on (king_dst, active|KING);
-    place_piece_on (rook_dst, active|ROOK);
+    board[king_org] = board[rook_org] = NO_PIECE; // Not done by remove_piece_on()
+    place_piece_on (king_dst, active | KING);
+    place_piece_on (rook_dst, active | ROOK);
 }
 /// undo_castling()
 inline void Position::undo_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
@@ -550,10 +549,9 @@ inline void Position::undo_castling (Square king_org, Square &king_dst, Square &
     // Remove both pieces first since squares could overlap in chess960
     remove_piece_on (king_dst);
     remove_piece_on (rook_dst);
-    board[king_dst] =
-    board[rook_dst] = NO_PIECE; // Not done by remove_piece_on()
-    place_piece_on (king_org, active|KING);
-    place_piece_on (rook_org, active|ROOK);
+    board[king_dst] = board[rook_dst] = NO_PIECE; // Not done by remove_piece_on()
+    place_piece_on (king_org, active | KING);
+    place_piece_on (rook_org, active | ROOK);
 }
 
 
@@ -570,8 +568,10 @@ inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] = 0;
     king_checkers[BLACK] = 0;
-    king_blockers[WHITE] = pos.slider_blockers (WHITE, pos.square<KING> (WHITE), 0, king_checkers[WHITE], king_checkers[BLACK]);
-    king_blockers[BLACK] = pos.slider_blockers (BLACK, pos.square<KING> (BLACK), 0, king_checkers[BLACK], king_checkers[WHITE]);
+    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), pos.pieces (BLACK), king_checkers[WHITE], king_checkers[BLACK]);
+    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), pos.pieces (WHITE), king_checkers[BLACK], king_checkers[WHITE]);
+    assert((attacks_bb<QUEN> (pos.square<KING> (WHITE), pos.pieces ()) & king_blockers[WHITE]) == king_blockers[WHITE]);
+    assert((attacks_bb<QUEN> (pos.square<KING> (BLACK), pos.pieces ()) & king_blockers[BLACK]) == king_blockers[BLACK]);
 
     checks[PAWN] = PawnAttacks[~pos.active][pos.square<KING> (~pos.active)];
     checks[NIHT] = PieceAttacks[NIHT][pos.square<KING> (~pos.active)];

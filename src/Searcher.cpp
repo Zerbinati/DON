@@ -44,7 +44,7 @@ RootMove::operator string () const
     for (auto move : *this)
     {
         assert(MOVE_NONE != move);
-        oss << " " << move_to_can (move);
+        oss << " " << move;
     }
     return oss.str ();
 }
@@ -1053,7 +1053,7 @@ namespace Searcher {
                                        MOVE_NONE,
                                        value_to_tt (value, ss->ply),
                                        VALUE_NONE,
-                                       std::min<i16> (depth + 6, MaxDepth - 1),
+                                       std::min (depth + 6, MaxDepth - 1),
                                        bound,
                                        TT.generation);
 
@@ -1347,7 +1347,7 @@ namespace Searcher {
                     if (elapsed_time > 3000)
                     {
                         sync_cout << "info"
-                                  << " currmove "       << move_to_can (move)
+                                  << " currmove "       << move
                                   << " currmovenumber " << thread->pv_cur + move_count
                                   << " maxmoves "       << thread->root_moves.size ()
                                   << " depth "          << depth
@@ -2023,7 +2023,7 @@ void Thread::search ()
                     // -If there is only one legal move available
                     // -If all of the available time has been used
                     if (   1 == root_moves.size ()
-                        || (  main_thread->time_mgr.elapsed_time () >
+                        || (   main_thread->time_mgr.elapsed_time () >
                      TimePoint(main_thread->time_mgr.optimum_time
                             // Best Move Instability - Use part of the gained time from a previous stable move for the current move
                             // Unstable factor
@@ -2292,8 +2292,8 @@ void MainThread::search ()
     }
 
     // Best move could be MOVE_NONE when searching on a stalemate position.
-    sync_cout << "bestmove " << move_to_can (bm)
-              << " ponder "  << move_to_can (pm) << sync_endl;
+    sync_cout << "bestmove " << bm
+              << " ponder "  << pm << sync_endl;
 }
 /// MainThread::set_check_count()
 void MainThread::set_check_count ()

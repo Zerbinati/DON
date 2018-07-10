@@ -101,7 +101,7 @@ PolyEntry::operator string () const
 {
     ostringstream oss;
     oss << " key: " << std::setw (16) << std::setfill ('0') << std::hex << std::uppercase << key << std::nouppercase << std::dec
-        << " move: " << std::setw ( 5) << std::setfill (' ') << std::left << move_to_can (Move(move)) << std::right
+        << " move: " << std::setw ( 5) << std::setfill (' ') << std::left << Move(move) << std::right
         << " weight: " << std::setw ( 5) << std::setfill ('0') << weight
         << " learn: " << std::setw ( 2) << std::setfill ('0') << learn
         << std::setfill (' ');
