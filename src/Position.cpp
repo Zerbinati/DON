@@ -270,11 +270,7 @@ bool Position::see_ge (Move m, Value threshold) const
 
     auto own = color (board[org]);
     auto stm = ~own; // First consider opponent's move
-    Bitboard mocc = pieces () ^ org;
-    if (empty (dst))
-    {
-        mocc |= dst;
-    }
+    Bitboard mocc = pieces () ^ org ^ dst;
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, mocc) & mocc;
@@ -292,7 +288,7 @@ bool Position::see_ge (Move m, Value threshold) const
         // Only allow king for defensive capture to evade the discovered check,
         // as long all discovered are on their original square.
         if (   0 != stm_attackers
-            && 0 != (si->king_checkers[~stm] & pieces (~stm) & mocc & attacks_bb<QUEN> (square<KING> (stm), mocc)))
+            && 0 != (si->king_checkers[~stm] & pieces (~stm) & mocc & attacks_bb<QUEN> (square<KING> (stm), mocc | dst)))
         {
             stm_attackers &= pieces (KING);
         }
@@ -335,31 +331,29 @@ bool Position::see_ge (Move m, Value threshold) const
 }
 
 /// Position::slider_blockers() returns a bitboard of all the pieces that are blocking attacks on the square.
-/// A piece blocks a slider if removing that piece from the board would result in a position where square is attacked by the sliders.
-/// King-attack blocking piece can be either pinned or discovered piece.
-Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const
+/// King-attack piece can be either pinner or hidden piece.
+Bitboard Position::slider_blockers (Square s, Color own, Bitboard ex_attackers, Bitboard &pinners, Bitboard &hiddens) const
 {
-    auto c = color (board[s]);
-    // Snipers are attackers that are aligned on square in x-ray.
-    Bitboard snipers = (pieces (~c) & ~ex_attackers)
+    // Sliders are attackers that are aligned on square in x-ray.
+    Bitboard sliders = (pieces (~own) & ~ex_attackers)
                      & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
                         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
     Bitboard blockers = 0;
-    while (0 != snipers)
+    while (0 != sliders)
     {
-        auto sniper_sq = pop_lsq (snipers);
-        Bitboard b = between_bb (s, sniper_sq) & pieces ();
+        auto slide_sq = pop_lsq (sliders);
+        Bitboard b = between_bb (s, slide_sq) & pieces ();
         if (   0 != b
             && !more_than_one (b))
         {
             blockers |= b;
-            if (0 != (b & pieces (c)))
+            if (0 != (b & pieces (own)))
             {
-                pinners |= sniper_sq;
+                pinners |= slide_sq;
             }
             else
             {
-                discovers |= sniper_sq;
+                hiddens |= slide_sq;
             }
         }
     }

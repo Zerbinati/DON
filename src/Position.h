@@ -179,7 +179,7 @@ public:
     Bitboard attackers_to (Square, Bitboard) const;
     Bitboard attackers_to (Square) const;
 
-    Bitboard slider_blockers (Square, Bitboard, Bitboard&, Bitboard&) const;
+    Bitboard slider_blockers (Square, Color, Bitboard, Bitboard&, Bitboard&) const;
 
     bool pseudo_legal (Move) const;
     bool legal (Move) const;
@@ -543,8 +543,8 @@ inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] = 0;
     king_checkers[BLACK] = 0;
-    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), 0, king_checkers[WHITE], king_checkers[BLACK]);
-    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), 0, king_checkers[BLACK], king_checkers[WHITE]);
+    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), WHITE, 0, king_checkers[WHITE], king_checkers[BLACK]);
+    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), BLACK, 0, king_checkers[BLACK], king_checkers[WHITE]);
     assert((attacks_bb<QUEN> (pos.square<KING> (WHITE), pos.pieces ()) & king_blockers[WHITE]) == king_blockers[WHITE]);
     assert((attacks_bb<QUEN> (pos.square<KING> (BLACK), pos.pieces ()) & king_blockers[BLACK]) == king_blockers[BLACK]);
 

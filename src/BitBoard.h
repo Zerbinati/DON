@@ -290,9 +290,7 @@ namespace BitBoard {
         Bitboard slide_attacks = 0;
         while (DEL_O != *deltas)
         {
-            for (auto sq = s + *deltas;
-                 _ok (sq) && 1 == dist (sq, sq - *deltas);
-                 sq += *deltas)
+            for (auto sq = s + *deltas; _ok (sq) && 1 == dist (sq, sq - *deltas); sq += *deltas)
             {
                 slide_attacks |= sq;
                 if (contains (occ, sq))
