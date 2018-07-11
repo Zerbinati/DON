@@ -481,11 +481,12 @@ namespace {
             {
                 // Penalty for pin or discover attack on the queen
                 b = 0;
-                if (0 != (  pos.slider_blockers (s, pos.pieces (Opp) ^ pos.pieces (Opp, QUEN), b, b)
+                if (0 != (  pos.slider_blockers (s, pos.pieces (QUEN), b, b)
                           & ~(  (  pos.pieces (Opp, PAWN)
                                  & file_bb (s)
                                  & ~pawn_attacks_bb<Own> (pos.pieces (Own)))
-                              | (pos.si->king_blockers[Opp] & pos.pieces (Opp)))))
+                              | (  pos.si->king_blockers[Opp]
+                                 & pos.pieces (Opp)))))
                 {
                     score -= QueenWeaken;
                 }

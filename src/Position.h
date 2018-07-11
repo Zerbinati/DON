@@ -180,10 +180,6 @@ public:
     Bitboard attackers_to (Square) const;
 
     Bitboard slider_blockers (Square, Bitboard, Bitboard&, Bitboard&) const;
-    //Bitboard abs_blockers (Color) const;
-    //Bitboard dsc_blockers (Color) const;
-    //Bitboard abs_checkers (Color) const;
-    //Bitboard dsc_checkers (Color) const;
 
     bool pseudo_legal (Move) const;
     bool legal (Move) const;
@@ -398,27 +394,6 @@ inline Bitboard Position::attackers_to (Square s) const
     return attackers_to (s, pieces ());
 }
 
-///// Position::abs_blockers() find absolute blockers (friend pieces), that blocks the check to friend king.
-//inline Bitboard Position::abs_blockers (Color c) const
-//{
-//    return si->king_blockers[ c] & pieces (c);
-//}
-///// Position::dsc_blockers() finds discovered blockers (friend pieces), that blocks the check to enemy king.
-//inline Bitboard Position::dsc_blockers (Color c) const
-//{
-//    return si->king_blockers[~c] & pieces (c);
-//}
-///// Position::abs_checkers() find absolute checkers (friend pieces), that give the check when enemy piece is moved.
-//inline Bitboard Position::abs_checkers (Color c) const
-//{
-//    return si->king_checkers[~c] & pieces (c);
-//}
-///// Position::dsc_checkers() finds discovered checkers (friend pieces), that give the check when friend piece is moved.
-//inline Bitboard Position::dsc_checkers (Color c) const
-//{
-//    return si->king_checkers[ c] & pieces (c);
-//}
-
 /// Position::pawn_passed_at() check if pawn passed at the given square.
 inline bool Position::pawn_passed_at (Color c, Square s) const
 {
@@ -568,8 +543,8 @@ inline void StateInfo::set_check_info (const Position &pos)
 {
     king_checkers[WHITE] = 0;
     king_checkers[BLACK] = 0;
-    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), pos.pieces (BLACK), king_checkers[WHITE], king_checkers[BLACK]);
-    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), pos.pieces (WHITE), king_checkers[BLACK], king_checkers[WHITE]);
+    king_blockers[WHITE] = pos.slider_blockers (pos.square<KING> (WHITE), 0, king_checkers[WHITE], king_checkers[BLACK]);
+    king_blockers[BLACK] = pos.slider_blockers (pos.square<KING> (BLACK), 0, king_checkers[BLACK], king_checkers[WHITE]);
     assert((attacks_bb<QUEN> (pos.square<KING> (WHITE), pos.pieces ()) & king_blockers[WHITE]) == king_blockers[WHITE]);
     assert((attacks_bb<QUEN> (pos.square<KING> (BLACK), pos.pieces ()) & king_blockers[BLACK]) == king_blockers[BLACK]);
 

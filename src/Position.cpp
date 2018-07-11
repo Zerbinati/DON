@@ -282,30 +282,19 @@ bool Position::see_ge (Move m, Value threshold) const
     {
         Bitboard stm_attackers = attackers & pieces (stm);
 
-        Bitboard b;
-        // Don't allow pinned pieces to attack pieces except the king as long all pinners are on their original square.
-        // for resolving Bxf2 on fen: r2qk2r/pppb1ppp/2np4/1Bb5/4n3/5N2/PPP2PPP/RNBQR1K1 b kq - 1 1
+        // Don't allow pinned pieces for defensive capture,
+        // as long all pinners are on their original square.
         if (   0 != stm_attackers
-            && 0 != (b = si->king_checkers[ stm] & pieces (~stm) & mocc))
+            && 0 != (si->king_checkers[stm] & pieces (~stm) & mocc))
         {
-            while (0 != b)
-            {
-                stm_attackers &= ~between_bb (pop_lsq (b), square<KING> (stm));
-            }
+            stm_attackers &= ~si->king_blockers[stm];
         }
-
-        // If move is a discovered check, the only possible defensive capture on the destination square is capture by the king to evade the check.
+        // Only allow king for defensive capture to evade the discovered check,
+        // as long all discovered are on their original square.
         if (   0 != stm_attackers
-            && 0 != (b = si->king_checkers[~stm] & pieces (~stm) & mocc))
+            && 0 != (si->king_checkers[~stm] & pieces (~stm) & mocc & attacks_bb<QUEN> (square<KING> (stm), mocc)))
         {
-            while (0 != b)
-            {
-                if (0 == (between_bb (pop_lsq (b), square<KING> (stm)) & mocc))
-                {
-                    stm_attackers &= pieces (stm, KING);
-                    break;
-                }
-            }
+            stm_attackers &= pieces (KING);
         }
 
         // If stm has no more attackers then give up: stm loses
@@ -328,9 +317,9 @@ bool Position::see_ge (Move m, Value threshold) const
 
         balance = -balance - 1 - PieceValues[MG][victim];
 
-        // If balance is still non-negative after giving away nextVictim then we
-        // win. The only thing to be careful about it is that we should revert
-        // stm if we captured with the king when the opponent still has attackers.
+        // If balance is still non-negative after giving away victim then we win.
+        // The only thing to be careful about it is that we should revert stm
+        // if we captured with the king when the opponent still has attackers.
         if (VALUE_ZERO <= balance)
         {
             if (   KING == victim
@@ -346,16 +335,16 @@ bool Position::see_ge (Move m, Value threshold) const
 }
 
 /// Position::slider_blockers() returns a bitboard of all the pieces that are blocking attacks on the square.
-/// A piece blocks a slider if removing that piece from the board would result in a position where square is attacked by the sliders in 'attackers'.
-/// For example, a king-attack blocking piece can be either absolute or discovered blocked piece,
-/// according if its color is the opposite or the same of the color of the sliders in 'attackers'.
-Bitboard Position::slider_blockers (Square s, Bitboard attackers, Bitboard &pinners, Bitboard &discovers) const
+/// A piece blocks a slider if removing that piece from the board would result in a position where square is attacked by the sliders.
+/// King-attack blocking piece can be either pinned or discovered piece.
+Bitboard Position::slider_blockers (Square s, Bitboard ex_attackers, Bitboard &pinners, Bitboard &discovers) const
 {
-    Bitboard blockers = 0;
+    auto c = color (board[s]);
     // Snipers are attackers that are aligned on square in x-ray.
-    Bitboard snipers = attackers
+    Bitboard snipers = (pieces (~c) & ~ex_attackers)
                      & (  (pieces (BSHP, QUEN) & PieceAttacks[BSHP][s])
                         | (pieces (ROOK, QUEN) & PieceAttacks[ROOK][s]));
+    Bitboard blockers = 0;
     while (0 != snipers)
     {
         auto sniper_sq = pop_lsq (snipers);
@@ -364,7 +353,7 @@ Bitboard Position::slider_blockers (Square s, Bitboard attackers, Bitboard &pinn
             && !more_than_one (b))
         {
             blockers |= b;
-            if (0 != (b & pieces (color (board[s]))))
+            if (0 != (b & pieces (c)))
             {
                 pinners |= sniper_sq;
             }
