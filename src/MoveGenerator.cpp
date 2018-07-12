@@ -218,10 +218,10 @@ namespace {
             && 0 == pos.si->checkers);
 
         auto king_org = pos.square<KING> (Own);
-        auto rook_org = pos.castle_rook[Own][CS];
+        auto rook_org = pos.castle_rook_sq[Own][CS];
         assert(contains (pos.pieces (Own, ROOK), rook_org));
 
-        Bitboard b = pos.king_path[Own][CS];
+        Bitboard b = pos.king_path_bb[Own][CS];
         // Check king's path for attackers
         while (0 != b)
         {

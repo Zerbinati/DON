@@ -124,14 +124,14 @@ public:
 
     CastleRight castle_mask[SQ_NO];
 
-    Square   castle_rook[CLR_NO][CS_NO];
-    Bitboard castle_path[CLR_NO][CS_NO];
-    Bitboard king_path  [CLR_NO][CS_NO];
-
-    Color active;
-    i16   ply;
+    Square   castle_rook_sq[CLR_NO][CS_NO];
+    Bitboard castle_path_bb[CLR_NO][CS_NO];
+    Bitboard king_path_bb  [CLR_NO][CS_NO];
 
     Score psq;
+    i16   ply;
+
+    Color active;
 
     Thread *thread;
 
@@ -189,7 +189,7 @@ public:
     bool capture_or_promotion (Move) const;
     bool gives_check (Move) const;
 
-    PieceType cap_type  (Move) const;
+    PieceType cap_type (Move) const;
 
     bool pawn_passed_at (Color, Square) const;
     bool paired_bishop  (Color) const;
@@ -357,7 +357,7 @@ inline Key Position::posi_move_key (Move m) const
 
 inline bool Position::expeded_castle (Color c, CastleSide cs) const
 {
-    return 0 == (castle_path[c][cs] & pieces ());
+    return 0 == (castle_path_bb[c][cs] & pieces ());
 }
 /// Position::move_num() starts at 1, and is incremented after BLACK's move.
 inline i16  Position::move_num () const
@@ -560,9 +560,10 @@ inline void StateInfo::set_check_info (const Position &pos)
 /// _ok() Check the validity of FEN string.
 inline bool _ok (const std::string &fen, bool full = true)
 {
+    Position pos;
     StateInfo si;
     return !white_spaces (fen)
-        && Position().setup (fen, si, nullptr, full).ok ();
+        && pos.setup (fen, si, nullptr, full).ok ();
 }
 #endif
 

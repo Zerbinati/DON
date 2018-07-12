@@ -517,14 +517,14 @@ namespace {
         {
             if (   pos.si->can_castle (Own, CS_KING)
                 && pos.expeded_castle (Own, CS_KING)
-                && 0 == (pos.king_path[Own][CS_KING] & ful_attacks[Opp])
+                && 0 == (pos.king_path_bb[Own][CS_KING] & ful_attacks[Opp])
                 && safety < pe->king_safety[Own][0])
             {
                 safety = pe->king_safety[Own][0];
             }
             if (   pos.si->can_castle (Own, CS_QUEN)
                 && pos.expeded_castle (Own, CS_QUEN)
-                && 0 == (pos.king_path[Own][CS_QUEN] & ful_attacks[Opp])
+                && 0 == (pos.king_path_bb[Own][CS_QUEN] & ful_attacks[Opp])
                 && safety < pe->king_safety[Own][1])
             {
                 safety = pe->king_safety[Own][1];
