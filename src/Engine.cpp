@@ -675,9 +675,9 @@ string info ()
         istringstream iss (__DATE__);
         string month, day, year;
         iss >> month >> day >> year;
-        oss << std::setw (2) << day
+        oss << std::setw (2) << year.substr (2)
             << std::setw (2) << month_index (month)
-            << std::setw (2) << year.substr (2);
+            << std::setw (2) << day;
     }
     else
     {
