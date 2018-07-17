@@ -94,7 +94,7 @@ namespace {
 
     constexpr Score KingDistance[2] =
     {
-        S( 4, 6), S( 6, 3)
+        S( 5, 6), S( 6, 5)
     };
 
     constexpr Score Outpost[2][2] =
@@ -119,33 +119,33 @@ namespace {
 
     constexpr Score PasserFile[F_NO/2] =
     {
-        S( 11, 14), S(  0, -5), S( -2, -8), S(-25,-13)
+        S( -1,  7), S(  0,  9), S( -9, -8), S(-30,-14)
     };
     constexpr Score PasserRank[R_NO] =
     {
-        S( 0, 0), S(  4, 17), S(  7, 20), S( 14, 36), S( 42, 62), S(165,171), S(279,252), S( 0, 0)
+        S( 0, 0), S(  5, 18), S( 12, 23), S( 10, 31), S( 57, 62), S(163,167), S(271,250), S( 0, 0)
     };
 
     constexpr Score MinorBehindPawn =   S( 16,  0);
     constexpr Score BishopOnDiagonal =  S( 22,  0);
-    constexpr Score BishopPawns =       S(  3,  5);
+    constexpr Score BishopPawns =       S(  3,  7);
     constexpr Score BishopTrapped =     S( 50, 50);
     constexpr Score RookOnPawns =       S(  8, 24);
     constexpr Score RookTrapped =       S( 92,  0);
     constexpr Score QueenWeaken =       S( 50, 10);
     constexpr Score PawnLessFlank =     S( 20, 80);
     constexpr Score KingUnderAttack =   S(  8,  0);
-    constexpr Score PawnWeakUnopposed = S(  5, 26);
+    constexpr Score PawnWeakUnopposed = S(  5, 29);
     constexpr Score PieceHanged =       S( 52, 30);
-    constexpr Score SafePawnThreat =    S(165,133);
-    constexpr Score PawnPushThreat =    S( 49, 30);
+    constexpr Score SafePawnThreat =    S(173,102);
+    constexpr Score PawnPushThreat =    S( 45, 40);
     constexpr Score RankThreat =        S( 16,  3);
-    constexpr Score KingThreat =        S( 31, 75);
+    constexpr Score KingThreat =        S( 23, 76);
     constexpr Score KnightQueenThreat = S( 21, 11);
     constexpr Score SliderQueenThreat = S( 42, 21);
     constexpr Score Connectivity =      S(  3,  1);
     constexpr Score Overloaded =        S( 10,  5);
-    constexpr Score PasserHinder =      S(  5, -1);
+    constexpr Score PasserHinder =      S(  4,  0);
 
 #undef S
 
@@ -161,7 +161,7 @@ namespace {
 
     constexpr i32 PasserDanger[R_NO] =
     {
-        0, 0, 0, 2, 7, 12, 19, 0
+        0, 0, 0, 3, 7, 11, 20, 0
     };
 
     constexpr Value LazyThreshold = Value(1500);
@@ -308,6 +308,7 @@ namespace {
                     || QUEN == PT, "PT incorrect");
 
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
         constexpr auto Pull = WHITE == Own ? DEL_S : DEL_N;
 
         auto score = SCORE_ZERO;
@@ -384,9 +385,8 @@ namespace {
             if (   NIHT == PT
                 || BSHP == PT)
             {
-                // Bonus for knight behind a pawn
-                if (   R_5 > rel_rank (Own, s)
-                    && contains (pos.pieces (PAWN), s+pawn_push (Own)))
+                // Bonus for minor behind a pawn
+                if (contains (shift<Pull> (pos.pieces (PAWN)), s))
                 {
                     score += MinorBehindPawn;
                 }
@@ -436,11 +436,11 @@ namespace {
                             && contains (FA_bb|FH_bb, s)
                             && R_1 == rel_rank (Own, s))
                         {
-                            auto del = Delta((F_E - _file (s))/3) + pawn_push (Own);
+                            auto del = Delta((F_E - _file (s))/3) + Push;
                             if (contains (pos.pieces (Own, PAWN), s+del))
                             {
                                 score -= BishopTrapped
-                                       * (!contains (pos.pieces (), s+del+pawn_push (Own)) ?
+                                       * (!contains (pos.pieces (), s+del+Push) ?
                                               !contains (pos.pieces (Own, PAWN), s+del+del) ?
                                                   1 : 2 : 4);
                             }
@@ -604,12 +604,12 @@ namespace {
             // - number of attacked and undefended squares around friend king,
             // - quality of the pawn shelter ('mg score' safety).
             king_danger +=  1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
-                        +  64 * king_attacks_count[Opp]
-                        + 183 * pop_count (king_ring[Own] & weak_area)
-                        + 122 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
-                        - 860 * (0 == pos.count (Opp, QUEN) ? 1 : 0)
-                        -   7 * safety / 8
-                        +  17;
+                        +  69 * king_attacks_count[Opp]
+                        + 185 * pop_count (king_ring[Own] & weak_area)
+                        + 129 * pop_count (pos.si->king_blockers[Own] | (unsafe_check & mob_area[Opp]))
+                        - 873 * (0 == pos.count (Opp, QUEN) ? 1 : 0)
+                        -   6 * safety / 8
+                        -   2;
 
             if (king_danger > 0)
             {
@@ -819,7 +819,7 @@ namespace {
         while (0 != psr)
         {
             auto s = pop_lsq (psr);
-            assert(0 == (pos.pieces (Opp, PAWN) & front_line_bb (Own, s+Push)));
+            assert(0 == (pos.pieces (Opp, PAWN) & shift<Push> (front_line_bb (Own, s))));
 
             i32 r = rel_rank (Own, s);
             i32 w = PasserDanger[r];
@@ -827,10 +827,10 @@ namespace {
             // Base bonus depending on rank.
             Score bonus = PasserRank[r];
 
+            auto push_sq = s + Push;
+
             if (0 != w)
             {
-                auto push_sq = s+Push;
-
                 // Adjust bonus based on the king's proximity
                 if (!contains (pawn_pass_span (Own, s), pos.square<KING> (Opp)))
                 {
@@ -901,7 +901,7 @@ namespace {
 
             // Scale down bonus for candidate passers which need more than one 
             // pawn push to become passed or have a pawn in front of them.
-            if (   !pos.pawn_passed_at (Own, s+Push)
+            if (   !pos.pawn_passed_at (Own, push_sq)
                 || 0 != (pos.pieces (PAWN) & front_line_bb (Own, s)))
             {
                 bonus /= 2;

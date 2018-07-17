@@ -402,14 +402,6 @@ inline bool Position::pawn_passed_at (Color c, Square s) const
 /// Position::paired_bishop() check the side has pair of opposite color bishops.
 inline bool Position::paired_bishop (Color c) const
 {
-    //for (u08 pc = 1; pc < count (c, BSHP); ++pc)
-    //{
-    //    if (opposite_colors (square<BSHP> (c, pc-1), square<BSHP> (c, pc)))
-    //    {
-    //        return true;
-    //    }
-    //}
-    //return false;
     return 0 != (pieces (c, BSHP) & Color_bb[WHITE])
         && 0 != (pieces (c, BSHP) & Color_bb[BLACK]);
 }
