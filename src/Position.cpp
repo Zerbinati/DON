@@ -38,6 +38,7 @@ namespace {
 void Position::initialize ()
 {
     // Prepare the Cuckoo tables
+    std::memset (Cuckoos, 0, sizeof (Cuckoos));
     u16 count = 0;
     for (auto c : { WHITE, BLACK })
     {

@@ -92,11 +92,6 @@ namespace {
         }
     };
 
-    constexpr Score KingDistance[2] =
-    {
-        S( 5, 6), S( 6, 5)
-    };
-
     constexpr Score Outpost[2][2] =
     {
         { S(22, 6), S(36,12) },
@@ -127,6 +122,7 @@ namespace {
     };
 
     constexpr Score MinorBehindPawn =   S( 16,  0);
+    constexpr Score KingDistance =      S(  6,  6);
     constexpr Score BishopOnDiagonal =  S( 22,  0);
     constexpr Score BishopPawns =       S(  3,  7);
     constexpr Score BishopTrapped =     S( 50, 50);
@@ -392,7 +388,7 @@ namespace {
                 }
 
                 // Penalty for distance from the friend king
-                score -= KingDistance[PT - 1] * dist (s, pos.square<KING> (Own));
+                score -= KingDistance * dist (s, pos.square<KING> (Own));
 
                 b = Outposts_bb[Own]
                   & ~pe->attack_span[Opp];
@@ -440,8 +436,8 @@ namespace {
                             if (contains (pos.pieces (Own, PAWN), s+del))
                             {
                                 score -= BishopTrapped
-                                       * (!contains (pos.pieces (), s+del+Push) ?
-                                              !contains (pos.pieces (Own, PAWN), s+del+del) ?
+                                       * (!contains (pos.pieces (), s + del + Push) ?
+                                              !contains (pos.pieces (Own, PAWN), s + del + del) ?
                                                   1 : 2 : 4);
                             }
                         }
@@ -731,10 +727,11 @@ namespace {
                 score += PieceHanged * pop_count (b);
             }
 
-            // Bonus for overloaded: non-pawn enemies attacked and defended exactly once
+            // Bonus for overloaded: non-pawn enemies attacked once or more and defended exactly once
             b = nonpawns_enemies
-              & sgl_attacks[Own][NONE] & ~dbl_attacks[Own]
-              & sgl_attacks[Opp][NONE] & ~dbl_attacks[Opp];
+              & sgl_attacks[Own][NONE]
+              & sgl_attacks[Opp][NONE]
+              & ~dbl_attacks[Opp];
             score += Overloaded * pop_count (b);
         }
 
@@ -841,7 +838,7 @@ namespace {
                 // If block square is not the queening square then consider also a second push.
                 if (R_7 != r)
                 {
-                    bonus -= mk_score (0, 1*w*king_proximity (Own, push_sq+Push));
+                    bonus -= mk_score (0, 1*w*king_proximity (Own, push_sq + Push));
                 }
 
                 // If the pawn is free to advance.
