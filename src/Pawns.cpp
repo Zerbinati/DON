@@ -49,22 +49,24 @@ namespace Pawns {
         {
             constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
             constexpr auto Push = WHITE == Own ? DEL_N : DEL_S;
+            constexpr auto LAtt = WHITE == Own ? DEL_NW : DEL_SE;
+            constexpr auto RAtt = WHITE == Own ? DEL_NE : DEL_SW;
             const auto PawnAtt = PawnAttacks[Own];
 
             Bitboard own_pawns = pos.pieces (Own, PAWN);
             Bitboard opp_pawns = pos.pieces (Opp, PAWN);
 
-            Bitboard ul = shift<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
-            Bitboard ur = shift<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
+            Bitboard latt = shift<LAtt> (own_pawns);
+            Bitboard ratt = shift<RAtt> (own_pawns);
 
-            e->any_attacks[Own] = ul | ur;
-            e->dbl_attacks[Own] = ul & ur;
+            e->any_attacks[Own] = latt | ratt;
+            e->dbl_attacks[Own] = latt & ratt;
             e->attack_span[Own] = 0;
             e->passers[Own] = 0;
             e->weak_unopposed[Own] = 0;
             e->semiopens[Own] = u08(0xFF);
-            e->color_count[Own][WHITE] = u08(pop_count (own_pawns & Color_bb[WHITE]));
-            e->color_count[Own][BLACK] = u08(pop_count (own_pawns & Color_bb[BLACK]));
+            e->color_count[Own][WHITE] = pop_count (own_pawns & Color_bb[WHITE]);
+            e->color_count[Own][BLACK] = pop_count (own_pawns & Color_bb[BLACK]);
             e->index[Own] = 0;
             std::fill_n (e->king_square[Own], MaxCache, SQ_NO);
             std::fill_n (e->king_safety[Own], MaxCache, VALUE_ZERO);

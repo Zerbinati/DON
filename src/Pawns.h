@@ -23,7 +23,7 @@ namespace Pawns {
         Bitboard weak_unopposed[CLR_NO];
 
         u08 semiopens[CLR_NO];
-        u08 color_count[CLR_NO][CLR_NO];
+        i32 color_count[CLR_NO][CLR_NO];
 
         u08    index[CLR_NO];
         Square king_square[CLR_NO][MaxCache];

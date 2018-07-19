@@ -130,13 +130,13 @@ MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHi
 /// MovePicker constructor for quiescence search
 /// Because the depth <= DepthZero here, only captures, queen promotions
 /// and checks (only if depth >= DepthQSCheck) will be generated.
-MovePicker::MovePicker (const Position &p, Move ttm, i16 d, Move lm)
+MovePicker::MovePicker (const Position &p, Move ttm, i16 d, const PieceDestinyHistory **pdhs, Move lm)
     : pos (p)
     , tt_move (ttm)
     , depth (d)
     , threshold (VALUE_ZERO)
     , recap_sq (SQ_NO)
-    , pd_histories (nullptr)
+    , pd_histories (pdhs)
     , pick_quiets (true)
 {
     assert(MOVE_NONE == tt_move
@@ -212,31 +212,32 @@ void MovePicker::value ()
 
     auto *thread = pos.thread;
 
-    for (auto &vm : moves)
+    for (auto &m : moves)
     {
-        assert(pos.pseudo_legal (vm)
-            && pos.legal (vm));
+        assert(pos.pseudo_legal (m)
+            && pos.legal (m));
 
         if (GenType::CAPTURE == GT)
         {
-            assert(pos.capture_or_promotion (vm));
-            vm.value = i32(PieceValues[MG][pos.cap_type (vm)])
-                     + thread->capture_history[pos[org_sq (vm)]][move_pp (vm)][pos.cap_type (vm)] / 16;
+            assert(pos.capture_or_promotion (m));
+            m.value = i32(PieceValues[MG][pos.cap_type (m)])
+                    + thread->capture_history[pos[org_sq (m)]][move_pp (m)][pos.cap_type (m)] / 16;
         }
         else
         if (GenType::QUIET == GT)
         {
-            vm.value = thread->butterfly_history[pos.active][move_pp (vm)]
-                     + (*pd_histories[0])[pos[org_sq (vm)]][dst_sq (vm)]
-                     + (*pd_histories[1])[pos[org_sq (vm)]][dst_sq (vm)]
-                     + (*pd_histories[3])[pos[org_sq (vm)]][dst_sq (vm)];
+            m.value = thread->butterfly_history[pos.active][move_pp (m)]
+                    + (*pd_histories[0])[pos[org_sq (m)]][dst_sq (m)]
+                    + (*pd_histories[1])[pos[org_sq (m)]][dst_sq (m)]
+                    + (*pd_histories[3])[pos[org_sq (m)]][dst_sq (m)];
         }
         else // GenType::EVASION == GT
         {
-            vm.value = pos.capture (vm) ?
-                          i32(PieceValues[MG][pos.cap_type (vm)])
-                        - ptype (pos[org_sq (vm)]) :
-                          thread->butterfly_history[pos.active][move_pp (vm)]
+            m.value = pos.capture (m) ?
+                          i32(PieceValues[MG][pos.cap_type (m)])
+                        - ptype (pos[org_sq (m)]) :
+                          thread->butterfly_history[pos.active][move_pp (m)]
+                        + (*pd_histories[0])[pos[org_sq (m)]][dst_sq (m)]
                         - (1 << 28);
         }
     }
@@ -253,7 +254,7 @@ bool MovePicker::pick_move (Pred filter)
         {
             std::swap (*beg, *std::max_element (beg, moves.end ()));
         }
-        vmove = *beg;
+        vm = *beg;
         if (filter ())
         {
             return true;
@@ -295,12 +296,12 @@ Move MovePicker::next_move ()
         goto restage;
 
     case Stage::NAT_GOOD_CAPTURES:
-        if (pick_move<BEST> ([&]() { return pos.see_ge (vmove, Value(-vmove.value * 55 / 1024)) ?
+        if (pick_move<BEST> ([&]() { return pos.see_ge (vm, Value(-vm.value * 55 / 1024)) ?
                                                 true :
                                                 // Put losing capture to bad_capture_moves to be tried later
-                                                (bad_capture_moves.push_back (vmove), false); }))
+                                                (bad_capture_moves.push_back (vm), false); }))
         {
-            return vmove;
+            return vm;
         }
 
         refutation_moves.erase (std::remove_if (refutation_moves.begin (),
@@ -334,7 +335,7 @@ Move MovePicker::next_move ()
         if (   pick_quiets
             && pick_move<BEST> ([]() { return true; }))
         {
-            return vmove;
+            return vm;
         }
         ++stage;
         i = 0;
@@ -358,19 +359,19 @@ Move MovePicker::next_move ()
         /* fall through */
     case Stage::EVA_EVASIONS:
         return pick_move<BEST> ([]() { return true; }) ?
-                vmove :
+                vm :
                 MOVE_NONE;
 
     case Stage::PC_CAPTURES:
-        return pick_move<BEST> ([&]() { return pos.see_ge (vmove, threshold); }) ?
-                vmove :
+        return pick_move<BEST> ([&]() { return pos.see_ge (vm, threshold); }) ?
+                vm :
                 MOVE_NONE;
 
     case Stage::QS_CAPTURES:
         if (pick_move<BEST> ([&]() { return DepthQSRecapture < depth
-                                        || dst_sq (vmove) == recap_sq; }))
+                                        || dst_sq (vm) == recap_sq; }))
         {
-            return vmove;
+            return vm;
         }
         // If did not find any move then do not try checks, finished.
         if (DepthQSCheck > depth)
@@ -389,7 +390,7 @@ Move MovePicker::next_move ()
         /* fall through */
     case Stage::QS_CHECKS:
         return pick_move<NEXT> ([]() { return true; }) ?
-                vmove :
+                vm :
                 MOVE_NONE;
     default:
         assert(false);
@@ -584,7 +585,9 @@ namespace Searcher {
                 ss->pv.clear ();
             }
 
+            auto *thread = pos.thread;
             ss->played_move = MOVE_NONE;
+            ss->pd_history = thread->continuation_history[NO_PIECE][0].get ();
 
             auto own = pos.active;
             bool in_check = 0 != pos.si->checkers;
@@ -713,8 +716,15 @@ namespace Searcher {
 
             u08 move_count = 0;
 
+            const PieceDestinyHistory *pd_histories[4] =
+            {
+                (ss-1)->pd_history,
+                (ss-2)->pd_history,
+                (ss-3)->pd_history,
+                (ss-4)->pd_history
+            };
             // Initialize movepicker (2) for the current position
-            MovePicker move_picker (pos, tt_move, depth, (ss-1)->played_move);
+            MovePicker move_picker (pos, tt_move, depth, pd_histories, (ss-1)->played_move);
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while (MOVE_NONE != (move = move_picker.next_move ()))
             {
@@ -724,7 +734,7 @@ namespace Searcher {
                 ++move_count;
 
                 auto org = org_sq (move);
-                //auto dst = dst_sq (move);
+                auto dst = dst_sq (move);
 
                 auto mpc = pos[org];
                 assert(NO_PIECE != mpc);
@@ -741,14 +751,17 @@ namespace Searcher {
                          && R_4 < rel_rank (own, org)))
                 {
                     // Futility pruning parent node
-                    auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst_sq (move)])];
-                    if (futility_value <= alfa)
+                    if (CASTLE != mtype (move))
                     {
-                        if (best_value < futility_value)
+                        auto futility_value = futility_base + PieceValues[EG][ptype (pos[dst])];
+                        if (futility_value <= alfa)
                         {
-                            best_value = futility_value;
+                            if (best_value < futility_value)
+                            {
+                                best_value = futility_value;
+                            }
+                            continue;
                         }
-                        continue;
                     }
                     // Prune moves with negative or zero SEE
                     if (   futility_base <= alfa
@@ -780,6 +793,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->played_move = move;
+                ss->pd_history = thread->continuation_history[mpc][dst].get ();
 
                 // Make the move.
                 pos.do_move (move, si, gives_check);
@@ -1053,7 +1067,7 @@ namespace Searcher {
                                        MOVE_NONE,
                                        value_to_tt (value, ss->ply),
                                        VALUE_NONE,
-                                       std::min (depth + 6, MaxDepth - 1),
+                                       i16(std::min (depth + 6, MaxDepth - 1)),
                                        bound,
                                        TT.generation);
 

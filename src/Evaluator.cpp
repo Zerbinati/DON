@@ -411,10 +411,12 @@ namespace {
                 {
                     // Penalty for pawns on the same color square as the bishop,
                     // more when the center files are blocked with pawns.
-                    b = pos.pieces (Own, PAWN) & shift<Pull> (pos.pieces ());
+                    b = pos.pieces (Own, PAWN)
+                      & Side_bb[CS_NO]
+                      & shift<Pull> (pos.pieces ());
                     score -= BishopPawns
-                           * (1 + pop_count (b & Side_bb[CS_NO]))
-                           * i32(pe->color_count[Own][color (s)]);
+                           * (1 + pop_count (b))
+                           * pe->color_count[Own][color (s)];
 
                     // Bonus for bishop on a long diagonal which can "see" both center squares
                     if (   contains (Diagonals_bb, s)
