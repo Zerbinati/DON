@@ -1517,7 +1517,7 @@ namespace Searcher {
                                   + (*pd_histories[3])[mpc][dst]
                                   - 4000;
 
-                        // Decrease/Increase reduction by comparing own and opp stats (~10 Elo)
+                        // Decrease/Increase reduction by comparing stats (~10 Elo)
                         if (   ss->stats < 0
                             && (ss-1)->stats >= 0)
                         {
@@ -1530,7 +1530,7 @@ namespace Searcher {
                             reduce_depth -= 1;
                         }
 
-                        // Decrease/Increase reduction for moves with +/-ve own stats (~30 Elo)
+                        // Decrease/Increase reduction for moves with +/-ve stats (~30 Elo)
                         reduce_depth -= i16(ss->stats / 20000);
                     }
 

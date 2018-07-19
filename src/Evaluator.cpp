@@ -122,7 +122,7 @@ namespace {
     };
 
     constexpr Score MinorBehindPawn =   S( 16,  0);
-    constexpr Score KingDistance =      S(  6,  6);
+    constexpr Score MinorKingProtect =  S(  6,  6);
     constexpr Score BishopOnDiagonal =  S( 22,  0);
     constexpr Score BishopPawns =       S(  3,  7);
     constexpr Score BishopTrapped =     S( 50, 50);
@@ -388,7 +388,7 @@ namespace {
                 }
 
                 // Penalty for distance from the friend king
-                score -= KingDistance * dist (s, pos.square<KING> (Own));
+                score -= MinorKingProtect * dist (s, pos.square<KING> (Own));
 
                 b = Outposts_bb[Own]
                   & ~pe->attack_span[Opp];
